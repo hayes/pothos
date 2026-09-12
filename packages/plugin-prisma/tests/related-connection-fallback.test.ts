@@ -6,8 +6,6 @@ import PrismaPlugin, { type PrismaTypesFromClient } from '../src';
 import { prisma, queries } from './example/builder';
 import { getDatamodel } from './generated.js';
 
-// A `relatedConnection` with a custom `resolve` installs a fallback resolver, which runs whenever
-// the parent row was not loaded with the connection's rows on it.
 const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypesFromClient<typeof prisma>;
 }>({
@@ -32,8 +30,6 @@ interface FallbackQuery {
 
 const resolveCalls: FallbackQuery[] = [];
 
-// A resolver that does not key off the parent at all, so a page of rows comes back even for a
-// parent that matches no row in the database.
 const resolveDetached = (query: FallbackQuery) => {
   resolveCalls.push(query);
 
@@ -63,8 +59,6 @@ builder.prismaObject('User', {
   fields: (t) => ({ id: t.exposeID('id') }),
 });
 
-// A node type in select mode, where what the plan selected is visible in the emitted query rather
-// than implied by include mode's "every column".
 const SelectedPost = builder.prismaObject('Post', {
   variant: 'SelectedPost',
   select: { id: true },
@@ -75,8 +69,6 @@ const SelectedPost = builder.prismaObject('Post', {
   }),
 });
 
-// A connection object shared between fields: the recipe has to name the *node* type, since a
-// shared wrapper could never resolve to one model.
 const SharedPostConnection = builder.connectionObject(
   { type: SelectedPost, name: 'SharedPostConnection' },
   { name: 'SharedPostEdge' },
@@ -86,7 +78,6 @@ const User = builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
     posts: t.relatedConnection('posts', { cursor: 'id', resolve: resolvePosts }),
-    // A page big enough to reach the end of the relation, past the default max size.
     allPosts: t.relatedConnection('posts', { cursor: 'id', maxSize: 500, resolve: resolvePosts }),
     selectedPosts: t.relatedConnection('posts', {
       cursor: 'id',
@@ -115,8 +106,6 @@ const User = builder.prismaObject('User', {
       resolve: resolveDetached,
     }),
     detachedPosts: t.relatedConnection('posts', { cursor: 'id', resolve: resolveDetached }),
-    // A user-defined field on the connection object, which reads `totalCount` off the connection
-    // the same way the generated field does.
     countWithCustomField: t.relatedConnection(
       'posts',
       { cursor: 'id', totalCount: true, resolve: resolvePosts },
@@ -131,8 +120,6 @@ const User = builder.prismaObject('User', {
         }),
       },
     ),
-    // No `resolve`: never installs a fallback, so an unplanned parent reloads itself through the
-    // model loader.
     plainPosts: t.relatedConnection('posts', { cursor: 'id', totalCount: true }),
     plainCountWithCustomField: t.relatedConnection(
       'posts',
@@ -154,13 +141,10 @@ const User = builder.prismaObject('User', {
 
 builder.queryType({
   fields: (t) => ({
-    // An unplanned parent: the row is built by hand, so nothing beneath it was planned into a
-    // prisma query and every field on it has to load itself.
     unplannedUser: t.field({
       type: User,
       resolve: () => ({ id: 1 }) as never,
     }),
-    // Five unplanned parents, for counting the queries a list of them costs.
     unplannedUsers: t.field({
       type: [User],
       resolve: () => [1, 2, 3, 4, 5].map((id) => ({ id })) as never,
@@ -170,12 +154,10 @@ builder.queryType({
       resolve: (query) =>
         prisma.user.findMany({ ...query, where: { id: { in: [1, 2, 3, 4, 5] } } }),
     }),
-    // A parent that corresponds to no row at all.
     ghostUser: t.field({
       type: User,
       resolve: () => ({ id: 999999 }) as never,
     }),
-    // The same user through a planned query, for comparing the two paths.
     plannedUser: t.prismaField({
       type: User,
       resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
@@ -192,8 +174,6 @@ const connection = (result: { data?: unknown }, root: string, field: string): an
   // biome-ignore lint/suspicious/noExplicitAny: as above
   (result.data as any)[root][field];
 
-// The prisma call the planned path emitted for the relation, which is the connection's own query
-// nested under the parent's.
 const plannedRelationQuery = (relation = 'posts') =>
   (queries[0] as { args: { include?: Record<string, unknown> } }).args.include?.[relation];
 
@@ -232,8 +212,6 @@ describe('relatedConnection with a custom resolve, unplanned parent', () => {
     }`);
 
     expect(result.errors).toBeUndefined();
-    // `id` is the cursor column the recipe seeds, without which `formatCursor` would have no
-    // column to read; `title` is what the document asked for beneath `edges { node }`.
     expect(resolveCalls[0].select).toStrictEqual({ id: true, title: true });
   });
 
@@ -311,7 +289,6 @@ describe('relatedConnection fallback totalCount', () => {
     }`);
 
     expect(result.errors).toBeUndefined();
-    // 250 posts per user, published for `j > 100`: 149 of them.
     expect(connection(result, 'unplannedUser', 'publishedWithCount').totalCount).toBe(149);
   });
 
@@ -321,7 +298,6 @@ describe('relatedConnection fallback totalCount', () => {
     }`);
 
     expect(result.errors).toBeUndefined();
-    // Only the resolver's own findMany: `totalCount` is unselected, so no count is loaded.
     expect(queries).toStrictEqual([expect.objectContaining({ model: 'Post', action: 'findMany' })]);
   });
 
@@ -332,8 +308,6 @@ describe('relatedConnection fallback totalCount', () => {
 
     expect(result.errors).toBeUndefined();
     expect(connection(result, 'unplannedUser', 'postsWithCount').totalCount).toBe(250);
-    // `Plan.fromInfo` answers `undefined` here — nothing is selected under `nodes`/`edges.node`
-    // — and the fallback plans the recipe's own seed instead.
     expect(resolveCalls).toHaveLength(0);
   });
 });
@@ -356,8 +330,6 @@ describe('relatedConnection fallback pagination', () => {
 
     expect(result.errors).toBeUndefined();
     const posts = connection(result, 'unplannedUser', 'posts');
-    // The connection query asks for one row plus a probe; the probe is sliced off and reported
-    // as a next page.
     expect(resolveCalls[0].take).toBe(2);
     expect(posts.edges).toHaveLength(1);
     expect(posts.pageInfo.hasNextPage).toBe(true);
@@ -444,7 +416,6 @@ describe('relatedConnection fallback agrees with the planned path', () => {
 
     const planned = await run(`{ plannedUser { ${document} } }`);
     expect(planned.errors).toBeUndefined();
-    // The planned parent carries the rows, so the fallback never runs for it.
     expect(resolveCalls).toHaveLength(0);
 
     expect(fallbackQuery).toStrictEqual(plannedRelationQuery());
@@ -522,8 +493,6 @@ describe('relatedConnection fallback review follow-ups', () => {
       ghostUser { detachedWithCount(first: 2) { totalCount edges { node { id } } } }
     }`);
 
-    // The resolver still returns rows, so a count of 0 would sit next to a non-empty page on a
-    // non-nullable Int.
     expect(result.errors?.[0]?.message).toMatch(
       /Unable to load totalCount for User\.detachedWithCount/,
     );
@@ -534,7 +503,6 @@ describe('relatedConnection fallback review follow-ups', () => {
       ghostUser { detachedPosts(first: 2) { edges { node { id } } } }
     }`);
 
-    // Nothing here needs the parent to exist, so nothing errors.
     expect(result.errors).toBeUndefined();
     expect(connection(result, 'ghostUser', 'detachedPosts').edges).toHaveLength(2);
   });
@@ -548,12 +516,10 @@ describe('relatedConnection fallback review follow-ups', () => {
       (result.data as any).unplannedUsers.map((u: any) => u.postsWithCount.totalCount),
     ).toStrictEqual([250, 250, 250, 250, 250]);
 
-    // Five counts and nothing else.
     expect(queries).toHaveLength(5);
     expect(queries.every((q) => (q as { model: string }).model === 'User')).toBe(true);
     expect(resolveCalls).toHaveLength(0);
 
-    // The same unplanned parents cost as much through the model loader.
     queries.length = 0;
     const viaLoader = await run('{ unplannedUsers { plainPosts { totalCount } } }');
 

@@ -51,8 +51,6 @@ import type { FallbackPlanRecipe } from './util/map-query.js';
 
 import type { FieldMap } from './util/relation-map.js';
 
-// The two ways a relay connection exposes its nodes, shared by the planned path's select function
-// and the fallback's plan recipe so both plan the same selection.
 const CONNECTION_NODE_PATHS: IndirectPathSegment[][] = [
   [{ name: 'nodes' }],
   [{ name: 'edges' }, { name: 'node' }],
@@ -335,9 +333,6 @@ export class PrismaObjectFieldBuilder<
         (parent as { _count?: Record<string, number> })._count?.[name],
       );
 
-    // The fallback branch's count: its rows come from the user's own resolver, not from a query
-    // that could have selected `_count` beside them, so the count is asked of the parent through
-    // the same `findUnique` every other load of it uses.
     const totalCountFromParent = (
       connectionQuery: { where?: {} },
       parent: unknown,
@@ -370,8 +365,6 @@ export class PrismaObjectFieldBuilder<
       ).then((row) => {
         const count = row?._count?.[name];
 
-        // `totalCount` is a non-nullable Int, and a parent the fallback was handed need not be a
-        // row at all, so a parent that matches none has no count to report.
         if (count === undefined) {
           throw new PothosValidationError(
             `Unable to load totalCount for ${field}: no ${loader.modelName} row matches the parent this connection resolved from`,
@@ -396,8 +389,6 @@ export class PrismaObjectFieldBuilder<
         const { hasTotalCount, totalCountOnly } = connectionSelection(context, info);
 
         return Promise.all([
-          // Nothing beneath this connection but `totalCount`, so every row the resolver returned
-          // would be dropped on the floor; the planned path passes `[]` here too.
           totalCountOnly
             ? []
             : resolve({ ...q, ...connectionQuery } as never, parent, args, context, info),
@@ -405,23 +396,10 @@ export class PrismaObjectFieldBuilder<
             ? totalCountFromParent(connectionQuery, parent, context, loaderCache, info)
             : undefined,
         ]).then(([result, count]) =>
-          wrapConnectionResult(
-            parent,
-            result,
-            args,
-            // The page size of the *connection* query, probe row included; `q` is the plan's
-            // selection map and has no `take` of its own.
-            connectionQuery.take,
-            formatCursor,
-            count,
-          ),
+          wrapConnectionResult(parent, result, args, connectionQuery.take, formatCursor, count),
         );
       });
 
-    // The field's return type is the relay wrapper, which has no model, so the planner is told
-    // what `relationSelect` computes for the planned path: the node type (from `ref`, never the
-    // wrapper, so a shared connection object still resolves to one model), the paths down to it,
-    // and the cursor columns to seed so `formatCursor` has something to read.
     const fallbackPlan: FallbackPlanRecipe | undefined =
       typeof resolve === 'function'
         ? () => {

@@ -214,9 +214,6 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
           fallback.plan,
         );
 
-        // The loader cache rather than a loader: a fallback that needs something of the parent
-        // the row does not carry reaches it through the same `findUnique` every other load of
-        // this parent uses, and one that needs nothing never creates it.
         return isThenable(query)
           ? query.then((resolved) =>
               fallback.resolve(resolved as {}, parent, args, context, info, loaderCache),

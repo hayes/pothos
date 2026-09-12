@@ -120,14 +120,6 @@ export function queryFromInfo<
   return result as QueryFromInfoReturn<Select, Include, Await>;
 }
 
-/**
- * How a field wants its fallback planned, recorded where the field is defined. A field whose
- * return type is not the type its rows come from — a relay connection wrapper, which has no model
- * of its own — cannot be planned from `info.returnType`, so it names the node type, the paths down
- * to it, and the columns to seed. Read through a function because `typeName` resolves against the
- * config store, which a field cannot read while it is being defined, and because `initial` is
- * merged into a plan's root and must not be shared between plans.
- */
 export type FallbackPlanRecipe = () => {
   typeName?: string;
   paths?: PathSegment[][];
@@ -163,8 +155,6 @@ export function fallbackQueryFromInfo(
       skipDeferredFragments,
     }) as MaybePromise<PrismaPlan> | undefined;
 
-    // Nothing is selected under the recipe's paths — a connection asked only for its `totalCount`.
-    // There is no plan to cache and nothing to map, so the caller gets back the recipe's own seed.
     if (!planned) {
       return initial ?? {};
     }
