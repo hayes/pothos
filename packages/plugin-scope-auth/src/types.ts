@@ -150,7 +150,26 @@ export type ContextForAuth<
   Scopes,
 > = 'any' extends Types['DefaultAuthStrategy']
   ? ContextForAuthUnion<Types, Scopes>
-  : UnionToIntersection<ContextForAuthUnion<Types, Scopes>>;
+  : ContextForAuthAll<Types, Scopes>;
+
+// With a default strategy of `all`, every key of the scope map must pass, so the contexts for
+// each key are intersected. An explicit `$any` key is the exception: only one of its scopes is
+// guaranteed, so its contexts stay a union instead of being intersected away.
+type ContextForAuthAll<Types extends SchemaTypes, Scopes> = Scopes extends (
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
+  ...args: any[]
+) => infer R
+  ? ContextForAuthAll<Types, R>
+  : '$any' extends keyof Scopes
+    ? IntersectContexts<ContextForAuthUnion<Types, Omit<Scopes, '$any'>>> &
+        ContextForAuthUnion<Types, Scopes['$any' & keyof Scopes]>
+    : UnionToIntersection<ContextForAuthUnion<Types, Scopes>>;
+
+// `UnionToIntersection<never>` is `never`, which would erase the `$any` half of the intersection
+// above when the map has no keys other than `$any`.
+type IntersectContexts<Contexts> = [Contexts] extends [never]
+  ? unknown
+  : UnionToIntersection<Contexts>;
 
 type ContextForAuthUnion<Types extends SchemaTypes, Scopes> = Scopes extends (
   // biome-ignore lint/suspicious/noExplicitAny: this is fine
