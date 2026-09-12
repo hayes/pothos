@@ -93,11 +93,6 @@ export function createArgsValidator<Types extends SchemaTypes>(
   };
 }
 
-/**
- * Runs a list of schemas in order, feeding each result into the next. Values are boxed so a schema
- * that successfully returns `null` stays distinct from the `null` `reduceMaybeAsync` uses to stop
- * the chain; a `null` result means a schema reported issues.
- */
 function reduceSchemas(
   schemas: StandardSchemaV1[],
   initialValue: unknown,

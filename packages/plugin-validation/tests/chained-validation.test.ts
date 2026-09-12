@@ -54,7 +54,6 @@ describe('Chained validation', () => {
       });
 
       expect(result.errors).toBeUndefined();
-      // (2 + 1) * 2, not (2 * 2) + 1
       expect(result.data?.value).toBe(6);
     });
   });
@@ -94,8 +93,6 @@ describe('Chained validation', () => {
       });
 
       expect(result.errors).toBeUndefined();
-      // chained schemas run in declaration order, then the options schema,
-      // consistent with input fields and arguments: (2 + 1) * 2
       expect(result.data?.value).toBe(6);
     });
 
