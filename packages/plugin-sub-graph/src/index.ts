@@ -116,10 +116,6 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
     });
   }
 
-  // Directive arguments reference the types of the original schema, and need to be re-pointed at
-  // the types rebuilt for the sub-graph, otherwise the schema ends up with 2 types of the same name.
-  // Arguments that reference a type which is not part of the sub-graph throw, rather than keeping
-  // the original type, which would publish an excluded type through the directive.
   static mapDirective(
     directive: GraphQLDirective,
     newTypes: Map<string, GraphQLNamedType>,

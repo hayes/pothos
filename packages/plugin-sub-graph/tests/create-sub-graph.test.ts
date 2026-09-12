@@ -55,7 +55,6 @@ describe('createSubGraph', () => {
       ?.args.find((arg) => arg.name === 'input')?.type;
 
     expect(directiveArgType).toBe(subGraph.getType('Filter'));
-    // directives that need no remapping are passed through untouched
     expect(subGraph.getDirective('skip')).toBe(schemaWithDirective.getDirective('skip'));
   });
 
