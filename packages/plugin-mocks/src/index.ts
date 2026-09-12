@@ -58,16 +58,32 @@ export class PothosMocksPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
 
     const resolveMock = this.resolveMock(fieldConfig.parentType, fieldConfig.name, mocks);
 
-    // Fields defined on an interface are shared by every type that implements it, so mocks for the
-    // concrete object type can only be resolved when the field is executed.
+    // Fields defined on an interface are shared by every type that implements it, and graphql-js
+    // always executes them against the concrete type, so mocks for the object type can only be
+    // resolved when the field is executed. The lookup is cached per concrete type.
     if (fieldConfig.graphqlKind === 'Interface') {
-      return (parent, args, context, info) => {
-        const mock =
-          info.parentType.name === fieldConfig.parentType
-            ? resolveMock
-            : (this.resolveMock(info.parentType.name, fieldConfig.name, mocks) ?? resolveMock);
+      const resolversByType = new Map<
+        string,
+        GraphQLFieldResolver<unknown, Types['Context'], object>
+      >();
 
-        return (mock ?? resolver)(parent, args, context, info);
+      return (parent, args, context, info) => {
+        let mocked = resolversByType.get(info.parentType.name);
+
+        if (mocked === undefined) {
+          mocked =
+            (this.resolveMock(
+              info.parentType.name,
+              fieldConfig.name,
+              mocks,
+            ) as GraphQLFieldResolver<unknown, Types['Context'], object> | null) ??
+            resolveMock ??
+            resolver;
+
+          resolversByType.set(info.parentType.name, mocked);
+        }
+
+        return mocked(parent, args, context, info);
       };
     }
 

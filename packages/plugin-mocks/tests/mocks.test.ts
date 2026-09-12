@@ -1,7 +1,8 @@
 import SchemaBuilder from '@pothos/core';
 import { execute, subscribe } from 'graphql';
 import { gql } from 'graphql-tag';
-import Mocks from '../src';
+import { vi } from 'vitest';
+import Mocks, { PothosMocksPlugin } from '../src';
 
 describe('mock resolution', () => {
   it('applies object mocks to fields inherited from an interface', async () => {
@@ -240,5 +241,58 @@ describe('mock maps that are not plain objects', () => {
     const mocks = { Query: new QueryMocks() } as unknown as MockMap;
 
     expect(await queryHello(mocks)).toEqual({ data: { hello: 'mocked' } });
+  });
+});
+
+describe('interface field mock lookups', () => {
+  it('resolves the mock once per concrete type instead of once per field resolution', async () => {
+    const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [Mocks] });
+
+    const Named = builder.interfaceRef<{ a: string; b: string }>('Named').implement({
+      resolveType: () => 'Obj',
+      fields: (t) => ({
+        a: t.exposeString('a'),
+        b: t.exposeString('b'),
+      }),
+    });
+
+    const Obj = builder.objectRef<{ a: string; b: string }>('Obj').implement({
+      interfaces: [Named],
+      fields: () => ({}),
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        objs: t.field({
+          type: [Obj],
+          resolve: () => Array.from({ length: 5 }, () => ({ a: 'a', b: 'b' })),
+        }),
+      }),
+    });
+
+    const schema = builder.toSchema({ mocks: { Query: {} } });
+
+    const resolveMock = vi.spyOn(PothosMocksPlugin.prototype, 'resolveMock');
+
+    try {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            objs {
+              a
+              b
+            }
+          }
+        `,
+        contextValue: {},
+      });
+
+      expect(result.errors).toBeUndefined();
+      // 2 interface fields x 5 items: one lookup per (field, concrete type), not one per resolution
+      expect(resolveMock).toHaveBeenCalledTimes(2);
+    } finally {
+      resolveMock.mockRestore();
+    }
   });
 });
