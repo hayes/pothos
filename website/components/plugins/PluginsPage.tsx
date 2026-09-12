@@ -21,10 +21,10 @@ export function PluginsPage() {
           className="font-serif font-normal m-0"
           style={{ fontSize: 44, letterSpacing: '-0.022em', lineHeight: 1.1 }}
         >
-          All first-party plugins.
+          Plugins
         </h1>
         <p className="text-bm-ink-soft leading-[1.5] mt-5 text-[17px] max-w-[640px]">
-          {totalPlugins} first-party plugins for your data layer, auth, tracing, and common schema
+          {totalPlugins} plugins for your data layer, auth, tracing, and common schema
           patterns. Each one adds methods and options to the builder, with the same type inference
           as the core API.
         </p>
