@@ -553,6 +553,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       graphqlKind: 'Scalar',
       name,
       description: options.description,
+      specifiedByURL: options.specifiedByURL,
       parseLiteral: options.parseLiteral,
       parseValue: options.parseValue,
       serialize: options.serialize as GraphQLScalarSerializer<OutputShape<Types, Name>>,
