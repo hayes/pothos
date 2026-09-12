@@ -140,4 +140,103 @@ describe('Chained validation', () => {
       `);
     });
   });
+
+  describe('transforms that return null', () => {
+    it('continues the chain after a schema transforms a value to null', async () => {
+      const builder = createBuilder();
+
+      builder.queryType({
+        fields: (t) => ({
+          value: t.int({
+            args: {
+              n: t.arg
+                .int({ required: true })
+                .validate(zod.number().transform(() => null))
+                .validate(zod.null().transform(() => 7)),
+            },
+            resolve: (_root, args) => args.n,
+          }),
+        }),
+      });
+
+      const result = await execute({
+        schema: builder.toSchema(),
+        document: gql`
+          query {
+            value(n: 2)
+          }
+        `,
+        contextValue: {},
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.value).toBe(7);
+    });
+
+    it('continues the chain after an async schema transforms a value to null', async () => {
+      const builder = createBuilder();
+
+      builder.queryType({
+        fields: (t) => ({
+          value: t.int({
+            args: {
+              n: t.arg
+                .int({ required: true })
+                .validate(zod.number().transform(() => Promise.resolve(null)))
+                .validate(zod.null().transform(() => Promise.resolve(7))),
+            },
+            resolve: (_root, args) => args.n,
+          }),
+        }),
+      });
+
+      const result = await execute({
+        schema: builder.toSchema(),
+        document: gql`
+          query {
+            value(n: 2)
+          }
+        `,
+        contextValue: {},
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.value).toBe(7);
+    });
+
+    it('still reports issues from a schema that rejects a null transform result', async () => {
+      const builder = createBuilder();
+
+      builder.queryType({
+        fields: (t) => ({
+          value: t.int({
+            args: {
+              n: t.arg
+                .int({ required: true })
+                .validate(zod.number().transform(() => null))
+                .validate(zod.number()),
+            },
+            resolve: (_root, args) => args.n,
+          }),
+        }),
+      });
+
+      const result = await execute({
+        schema: builder.toSchema(),
+        document: gql`
+          query {
+            value(n: 2)
+          }
+        `,
+        contextValue: {},
+      });
+
+      expect(result.data?.value).toBeNull();
+      expect(result.errors?.map((error) => error.message)).toMatchInlineSnapshot(`
+        [
+          "Validation error: n: Invalid input: expected number, received null",
+        ]
+      `);
+    });
+  });
 });

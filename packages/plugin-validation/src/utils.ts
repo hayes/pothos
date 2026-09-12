@@ -35,15 +35,9 @@ export function createArgsValidator<Types extends SchemaTypes>(
             return value;
           }
 
-          return reduceMaybeAsync(mappings.value.typeSchemas, value, (val, schema) =>
-            completeValue(schema['~standard'].validate(val), (result) => {
-              if (result.issues) {
-                addIssues(result.issues);
-                return null;
-              }
-
-              return result.value;
-            }),
+          return completeValue(
+            reduceSchemas(mappings.value.typeSchemas, value, addIssues),
+            (result) => (result ? result.value : null),
           );
         },
         (mapped, mappings, addIssues) => {
@@ -51,15 +45,9 @@ export function createArgsValidator<Types extends SchemaTypes>(
             return mapped;
           }
 
-          return reduceMaybeAsync(mappings.value.fieldSchemas, mapped, (val, schema) =>
-            completeValue(schema['~standard'].validate(val), (result) => {
-              if (result.issues) {
-                addIssues(result.issues);
-                return null;
-              }
-
-              return result.value;
-            }),
+          return completeValue(
+            reduceSchemas(mappings.value.fieldSchemas, mapped, addIssues),
+            (result) => (result ? result.value : null),
           );
         },
       )
@@ -89,27 +77,47 @@ export function createArgsValidator<Types extends SchemaTypes>(
 
         const issues: StandardSchemaV1.Issue[] = [];
 
-        const validated = reduceMaybeAsync(schemasArray, mapped.value, (val, schema) =>
-          completeValue(schema['~standard'].validate(val), (result) => {
-            if (result.issues) {
-              issues.push(...result.issues);
-              return null;
-            }
-
-            return result.value as Record<string, unknown>;
-          }),
-        );
+        const validated = reduceSchemas(schemasArray, mapped.value, (newIssues) => {
+          issues.push(...newIssues);
+        });
 
         return completeValue(validated, (result) => {
           if (issues.length) {
             throw options.validationError({ issues }, args, context, info);
           }
 
-          return result as Record<string, unknown>;
+          return (result as { value: unknown }).value as Record<string, unknown>;
         });
       },
     );
   };
+}
+
+/**
+ * Runs a list of schemas in order, feeding each result into the next schema.
+ *
+ * Values are wrapped so that a schema that successfully returns `null` is not
+ * confused with the `null` `reduceMaybeAsync` uses to stop the chain. Returns
+ * `null` only when a schema reported issues.
+ */
+function reduceSchemas(
+  schemas: StandardSchemaV1[],
+  initialValue: unknown,
+  addIssues: (issues: readonly StandardSchemaV1.Issue[]) => void,
+): MaybePromise<{ value: unknown } | null> {
+  return reduceMaybeAsync<StandardSchemaV1, { value: unknown }>(
+    schemas,
+    { value: initialValue },
+    (current, schema) =>
+      completeValue(schema['~standard'].validate(current.value), (result) => {
+        if (result.issues) {
+          addIssues(result.issues);
+          return null;
+        }
+
+        return { value: result.value };
+      }),
+  );
 }
 
 export function createInputValueMapper<Types extends SchemaTypes, T, Args extends unknown[] = []>(
