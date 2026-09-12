@@ -94,6 +94,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
     }
 
     return new GraphQLSchema({
+      description: config.description,
       directives: config.directives.map((directive) =>
         PothosSubGraphPlugin.mapDirective(directive, newTypes, subGraphs),
       ),

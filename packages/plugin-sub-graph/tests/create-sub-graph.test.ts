@@ -56,4 +56,22 @@ describe('createSubGraph', () => {
 
     expect(directiveArgType).toBe(subGraph.getType('Filter'));
   });
+
+  it('preserves the schema description', () => {
+    const builder = createBuilder();
+
+    builder.queryType({
+      fields: (t) => ({ hello: t.string({ resolve: () => 'hello' }) }),
+    });
+
+    const fullSchema = builder.toSchema();
+    const describedSchema = new GraphQLSchema({
+      ...fullSchema.toConfig(),
+      description: 'Public API',
+    });
+
+    const subGraph = PothosSubGraphPlugin.createSubGraph(describedSchema, 'Public', builder);
+
+    expect(subGraph.description).toBe('Public API');
+  });
 });
