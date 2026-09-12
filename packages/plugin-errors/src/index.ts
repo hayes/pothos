@@ -35,6 +35,21 @@ const pluginName = 'errors';
 
 export default pluginName;
 
+// Number of list levels in a field type. The generated item error union sits
+// one level in from the innermost list, so this tells the item wrapper which
+// level of a nested list its error types actually apply to.
+function getListDepth<Types extends SchemaTypes>(type: PothosOutputFieldType<Types>): number {
+  let depth = 0;
+  let current = type;
+
+  while (current.kind === 'List') {
+    depth += 1;
+    current = current.type;
+  }
+
+  return depth;
+}
+
 export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapIsTypeOf(
     isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined,
@@ -66,13 +81,15 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         | undefined;
 
       if (errorTypes) {
-        const isListField = fieldConfig.type.kind === 'List';
+        const listDepth = getListDepth(fieldConfig.type);
 
         return {
           ...fieldConfig,
           extensions: {
             ...fieldConfig.extensions,
-            ...(isListField ? { pothosItemErrors: errorTypes } : { pothosErrors: errorTypes }),
+            ...(listDepth > 0
+              ? { pothosItemErrors: errorTypes, pothosItemErrorsDepth: listDepth - 1 }
+              : { pothosErrors: errorTypes }),
           },
         };
       }
@@ -177,6 +194,8 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     const pothosItemErrors = fieldConfig.extensions?.pothosItemErrors as
       | (typeof Error)[]
       | undefined;
+    const pothosItemErrorsDepth =
+      (fieldConfig.extensions?.pothosItemErrorsDepth as number | undefined) ?? 0;
     const onResolvedError = this.builder.options.errors?.onResolvedError;
 
     if (!pothosErrors && !pothosItemErrors) {
@@ -192,7 +211,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         const result = (await resolver(source, args, context, info)) as never;
 
         if (pothosItemErrors && result && typeof result === 'object' && Symbol.iterator in result) {
-          return yieldErrors(result, pothosItemErrors, onResolvedError);
+          return yieldErrors(result, pothosItemErrors, onResolvedError, pothosItemErrorsDepth);
         }
 
         if (
@@ -201,7 +220,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
           typeof result === 'object' &&
           Symbol.asyncIterator in result
         ) {
-          return yieldAsyncErrors(result, pothosItemErrors, onResolvedError);
+          return yieldAsyncErrors(result, pothosItemErrors, onResolvedError, pothosItemErrorsDepth);
         }
 
         if (

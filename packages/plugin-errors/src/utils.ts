@@ -126,18 +126,26 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
   );
 }
 
+function isNestedList(item: unknown): item is Iterable<unknown> {
+  return (
+    item !== null && typeof item === 'object' && !(item instanceof Error) && Symbol.iterator in item
+  );
+}
+
+// `depth` is the number of list levels between the items being iterated and the
+// items the generated error union actually covers. Errors are only wrapped at
+// that depth; at any other level they are left alone so they are reported as
+// ordinary errors rather than becoming invalid values for the real item type.
 function wrapItem(
   item: unknown,
   pothosErrors: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
+  depth = 0,
 ): unknown {
-  if (
-    item !== null &&
-    typeof item === 'object' &&
-    !(item instanceof Error) &&
-    Symbol.iterator in item
-  ) {
-    return [...yieldErrors(item as Iterable<unknown>, pothosErrors, onResolvedError)];
+  if (depth > 0) {
+    return isNestedList(item)
+      ? [...yieldErrors(item, pothosErrors, onResolvedError, depth - 1)]
+      : item;
   }
 
   return wrapErrorIfMatches(item, pothosErrors, onResolvedError);
@@ -147,19 +155,30 @@ export function* yieldErrors(
   result: Iterable<unknown>,
   pothosErrors: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
+  depth = 0,
 ): Generator<unknown> {
   try {
     for (const item of result) {
       if (isThenable(item)) {
         yield Promise.resolve(item).then(
-          (value) => wrapItem(value, pothosErrors, onResolvedError),
-          (error: unknown) => wrapOrThrow(error, pothosErrors, onResolvedError),
+          (value) => wrapItem(value, pothosErrors, onResolvedError, depth),
+          (error: unknown) => {
+            if (depth > 0) {
+              throw error;
+            }
+
+            return wrapOrThrow(error, pothosErrors, onResolvedError);
+          },
         );
       } else {
-        yield wrapItem(item, pothosErrors, onResolvedError);
+        yield wrapItem(item, pothosErrors, onResolvedError, depth);
       }
     }
   } catch (error: unknown) {
+    if (depth > 0) {
+      throw error;
+    }
+
     yield wrapOrThrow(error, pothosErrors, onResolvedError);
   }
 }
@@ -168,10 +187,12 @@ export async function* yieldAsyncErrors(
   result: AsyncIterable<unknown>,
   pothosErrors: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
+  depth = 0,
 ): AsyncGenerator<unknown> {
   try {
     for await (const item of result) {
       if (
+        depth > 0 &&
         item !== null &&
         typeof item === 'object' &&
         !(item instanceof Error) &&
@@ -182,22 +203,20 @@ export async function* yieldAsyncErrors(
           item as AsyncIterable<unknown>,
           pothosErrors,
           onResolvedError,
+          depth - 1,
         )) {
           nestedResults.push(nested);
         }
         yield nestedResults;
-      } else if (
-        item !== null &&
-        typeof item === 'object' &&
-        !(item instanceof Error) &&
-        Symbol.iterator in item
-      ) {
-        yield [...yieldErrors(item as Iterable<unknown>, pothosErrors, onResolvedError)];
       } else {
-        yield wrapErrorIfMatches(item, pothosErrors, onResolvedError);
+        yield wrapItem(item, pothosErrors, onResolvedError, depth);
       }
     }
   } catch (error: unknown) {
+    if (depth > 0) {
+      throw error;
+    }
+
     yield wrapOrThrow(error, pothosErrors, onResolvedError);
   }
 }
