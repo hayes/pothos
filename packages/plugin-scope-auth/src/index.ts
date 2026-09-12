@@ -345,22 +345,36 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       forField: true,
     };
 
+    const inherited = !!ownerTypeConfig && ownerTypeConfig !== typeConfig;
+
+    // On an inherited field the declaring interface's `authScopes` is an interface check, even
+    // though it arrives as the `typeConfig`'s own scope. `skipInterfaceScopes` opts out of it,
+    // using the same rule as a non-inherited field on an object that implements interfaces
+    // (`createStepsForType` below): either the field option or the concrete type's option.
+    const skipDeclaringInterfaceScopes =
+      inherited &&
+      (skipScopeOptions.skipInterfaceScopes ||
+        (ownerTypeConfig.kind === 'Object' && !!ownerTypeConfig.pothosOptions.skipInterfaceScopes));
+
     const stepsForType: ResolveStep<Types>[] = [];
 
     if (!authorizedOnSubscribe) {
       if (shouldRunTypeScopes) {
-        stepsForType.push(...this.createStepsForType(typeConfig, skipScopeOptions));
+        stepsForType.push(
+          ...this.createStepsForType(typeConfig, {
+            ...skipScopeOptions,
+            // The interface's `grantScopes` still run: `skipInterfaceScopes` opts out of auth
+            // checks, and dropping the grant would newly deny `$granted` interface fields.
+            skipTypeScopes: skipScopeOptions.skipTypeScopes || skipDeclaringInterfaceScopes,
+          }),
+        );
       }
 
       // For a field inherited from an interface, also enforce the policy of the concrete type the
       // field is being resolved on. Steps the declaring interface already contributed are not
       // repeated, and `runScopesOnType` is read from the concrete type so that a type running its
       // scopes in `isTypeOf` does not also run them here.
-      if (
-        ownerTypeConfig &&
-        ownerTypeConfig !== typeConfig &&
-        this.runTypeScopesOnField(ownerTypeConfig)
-      ) {
+      if (inherited && this.runTypeScopesOnField(ownerTypeConfig)) {
         const seen = new Set(stepsForType.map((step) => step.key));
 
         for (const step of this.createStepsForType(ownerTypeConfig, skipScopeOptions)) {

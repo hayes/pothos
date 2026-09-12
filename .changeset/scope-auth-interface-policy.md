@@ -19,6 +19,13 @@ opt out flag: the previous behavior disclosed fields the schema's own policy int
 this fails closed by default. Fields that should stay readable can set `skipTypeScopes` or
 `skipInterfaceScopes` on the interface field, or be redeclared on the object type.
 
+`skipInterfaceScopes` opts out of the declaring interface's check on an inherited field, following
+the same rule it already follows for a field declared on an object that implements interfaces:
+either the field option or the object type's option suppresses it. The concrete type's own
+`authScopes` still runs — `skipInterfaceScopes` never suppresses that. The declaring interface's
+`grantScopes` also still runs, since skipping it would newly deny interface fields that use
+`$granted`.
+
 The implementing type's `grantScopes` now also reach inherited fields, which can newly _authorize_
 an interface field that uses `$granted`.
 
