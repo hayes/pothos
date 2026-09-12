@@ -42,8 +42,7 @@ export function resolveFieldType<Types extends SchemaTypes>(
 const spanCacheSymbol = Symbol.for('Pothos.tracing.spanCache');
 
 interface InternalContext<T> {
-  // A Map rather than an object so that field paths that collide with `Object.prototype`
-  // members (eg. a field aliased `constructor`) can't resolve to an inherited property
+  // A Map, not an object: field paths like `constructor` collide with `Object.prototype` members.
   [spanCacheSymbol]?: Map<string, T>;
 }
 

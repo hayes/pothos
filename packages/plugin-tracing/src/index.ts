@@ -25,8 +25,6 @@ export class PothosTracingPlugin<Types extends SchemaTypes> extends BasePlugin<T
 
     const { wrap, default: defaultConfig } = this.builder.options.tracing;
     const fieldTracing = fieldConfig.pothosOptions.tracing;
-    // Only an unset (undefined) field option falls back to the default, so an explicit `null`
-    // disables tracing the same way a callback returning `null` does
     const tracingValue =
       fieldTracing !== undefined
         ? fieldTracing
