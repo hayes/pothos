@@ -92,7 +92,8 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
 
       const typeSchemas =
         typeConfig.kind === 'InputObject'
-          ? (typeConfig.extensions?.['@pothos/plugin-validation']?.schemas ?? null)
+          ? (typeConfig.extensions?.['@pothos/plugin-validation']?.schemas?.slice().reverse() ??
+            null)
           : null;
 
       return fieldSchemas.length > 0 || typeSchemas
