@@ -1,9 +1,21 @@
 import type { TableRelationalConfig } from 'drizzle-orm';
+import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { drizzleAdapter } from '../src/utils/adapter';
 import type { PothosDrizzleSchemaConfig } from '../src/utils/config';
 import { omitUndefinedKeys } from '../src/utils/selections';
 
 const fakeTable = { name: 'users', relations: {} } as unknown as TableRelationalConfig;
+
+// An exclusion selection has to read the table's own columns, which the stub above omits.
+const usersTable = {
+  name: 'users',
+  relations: {},
+  table: sqliteTable('users', {
+    id: integer('id').primaryKey(),
+    firstName: text('first_name'),
+    passwordHash: text('password_hash'),
+  }),
+} as unknown as TableRelationalConfig;
 const fakeConfig = {
   getPrimaryKey: () => [],
   columnToTsName: () => '',
@@ -77,6 +89,7 @@ describe('selections', () => {
 
     adapter.mergeQuery(node, {
       columns: {
+        firstName: true,
         passwordHash: false,
       },
     });
@@ -87,11 +100,11 @@ describe('selections', () => {
       },
     });
 
-    expect(node.columns).toEqual(new Set(['passwordHash']));
+    expect(node.columns).toEqual(new Set(['firstName', 'passwordHash']));
   });
 
-  it('treats columns object with only falsy entries as an empty selection', () => {
-    const node = adapter.createNode(fakeTable);
+  it('treats a columns object with only falsy entries as drizzle`s exclusion selection', () => {
+    const node = adapter.createNode(usersTable);
 
     adapter.mergeQuery(node, {
       columns: {
@@ -99,6 +112,6 @@ describe('selections', () => {
       },
     });
 
-    expect(node.columns?.size).toBe(0);
+    expect(node.columns).toEqual(new Set(['id', 'firstName']));
   });
 });

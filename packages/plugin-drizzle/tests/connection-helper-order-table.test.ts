@@ -8,6 +8,7 @@ const builder = new SchemaBuilder<{
   DrizzleRelations: DrizzleRelations;
 }>({
   plugins: [DrizzlePlugin],
+  scopeAuth: { authScopes: () => ({}) },
   drizzle: { client: db, relations, getTableConfig },
 });
 
