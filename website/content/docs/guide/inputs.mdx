@@ -8,7 +8,7 @@ returned ref as an argument type. Pothos infers the input shape from its fields.
 
 ## Creating input objects
 
-The examples through “Recursive inputs” build on the same schema. Start with a backing model and
+The “Creating input objects” and “Recursive inputs” sections build on the same schema. Start with a backing model and
 an object ref for the mutation result:
 
 <include cwd lang="typescript" meta='playground example="foundations-inputs"'>playground-examples/foundations-inputs/schema.ts#model</include>
@@ -31,13 +31,47 @@ requiredness; here all three fields must also be provided and cannot be `null`.
 In the playground, run **01-Create**, then **03-Read** to inspect the
 array. Mutations accumulate data until you choose **Reset example**.
 
+## OneOf inputs
+
+A OneOf input accepts exactly one of its fields, with a non-null value. This is useful for a lookup
+that accepts either an ID or a name. Use a GraphQL.js version with OneOf support, and define the
+input with `isOneOf: true`:
+
+<include cwd lang="typescript" meta='playground example="inputs-oneof"'>playground-examples/inputs-oneof/schema.ts</include>
+
+Each member must be optional (`required: false`) and must not have a `defaultValue`. Explicitly
+setting `required: false` also works when the builder uses `defaultInputFieldRequiredness: true`.
+The selected member still cannot be `null`: OneOf coercion enforces that constraint.
+
+The `by` argument above is required. This requires the input object itself; it does not make both
+alternatives required. With the default scalar types, Pothos infers `by` as
+`{ id: string; name?: never } | { name: string; id?: never }`, so checking `by.id !== undefined`
+selects the ID branch without a type assertion.
+
+Both `{ id: "1" }` and `{ name: "Gina" }` select Gina in this example. The following operation takes the lookup as a variable:
+
+<include cwd lang="graphql" meta='playground example="inputs-oneof"'>playground-examples/inputs-oneof/query.graphql</include>
+
+| Value of the `by` variable | Result |
+| --- | --- |
+| `{ "id": "1" }` | `giraffeName` is `"Gina"` |
+| `{ "name": "Gina" }` | `giraffeName` is `"Gina"` |
+| `{}` | Rejected: exactly one field is required |
+| `{ "id": "1", "name": "Gina" }` | Rejected: more than one field is provided |
+| `{ "id": null }` | Rejected: the selected value must be non-null |
+| `null`, or an omitted `by` variable | Rejected: the argument uses `GiraffeLookup!` |
+
+Invalid inputs are rejected before the resolver runs. The same OneOf constraints apply to inline
+input literals.
+
 ## Recursive inputs
 
 Input objects can reference other input refs directly. For circular references, declare the input
 shape explicitly with `builder.inputRef` so TypeScript does not have to infer it through the cycle.
 Create the ref before implementing its fields.
 
-Add this input and mutation field to the builder above:
+Continue with the builder from [Creating input objects](#creating-input-objects), and add this input
+and mutation field:
 
 <include cwd lang="typescript" meta='playground example="foundations-inputs"'>playground-examples/foundations-inputs/schema.ts#recursive-input</include>
 

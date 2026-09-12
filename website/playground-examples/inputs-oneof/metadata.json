@@ -1,0 +1,8 @@
+{
+  "id": "inputs-oneof",
+  "title": "OneOf input objects",
+  "description": "Run the lookup by ID, then replace by with {\"name\":\"Gina\"}. Try an empty object, both fields, or a null value to see OneOf coercion reject the input.",
+  "category": "core",
+  "relatedDocs": ["/docs/guide/inputs"],
+  "defaultActiveFile": "schema.ts"
+}
