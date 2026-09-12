@@ -1,5 +1,5 @@
 ---
-"@pothos/core": patch
+"@pothos/core": minor
 ---
 
 - Compute recursive input mapping reachability to a fixed point so mapped fields reachable only through a cycle are no longer pruned
