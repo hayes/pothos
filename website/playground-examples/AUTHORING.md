@@ -42,7 +42,7 @@ objects/
 
 Keep the ID equal to the directory name. `schema.ts` exports a named `schema`, built with `builder.toSchema()`. Use actual current package APIs. `category` accepts `core`, `plugins`, `examples`, or `patterns`; optional `subcategory`, `tags`, `difficulty` and `order` support catalog organization. `difficulty` accepts `beginner`, `intermediate`, or `advanced`. Metadata is not a curriculum engine: `prerequisites` is carried in the bundle but does not load dependencies or enforce completion.
 
-The guide area displays the example description, or the current step description, as **plain text**, with the first `relatedDocs` link and a reset action. Write short actionable instructions; Markdown, rich guide blocks, and additional related links are not rendered there.
+The guide area displays the example description, or the current step description, as **plain text**, with the first `relatedDocs` link and a reset action. Write short actionable instructions. For several independent tasks, separate them with newlines (`\n` in JSON); the guide renders each nonempty line as a list item. A single-line description stays a paragraph. Markdown, rich guide blocks, and additional related links are not rendered there.
 
 ## Excerpts, literal fences and playground actions
 

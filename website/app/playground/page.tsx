@@ -1,6 +1,7 @@
 'use client';
 
 import { ConsoleDrawer } from '@/components/playground/ConsoleDrawer/ConsoleDrawer';
+import { GuideDescription } from '@/components/playground/GuideDescription';
 import { OperationPane } from '@/components/playground/OperationPane/OperationPane';
 import { ResponsePane } from '@/components/playground/ResponsePane/ResponsePane';
 import { SchemaEditor } from '@/components/playground/SchemaEditor/SchemaEditor';
@@ -69,17 +70,19 @@ export default function PlaygroundPage() {
         {ui.loadedExample && (
           <aside
             aria-label="Example guide"
-            className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-bm-line bg-bm-surface-alt px-4 py-2 text-sm"
+            className="flex flex-wrap items-start gap-x-6 gap-y-2 border-b border-bm-line bg-bm-surface-alt px-4 py-2 text-sm"
           >
-            <p className="min-w-0 flex-[1_1_32rem] leading-relaxed">
-              {ui.loadedExample.steps.length > 1 && (
-                <strong className="sm:hidden">
-                  {ui.loadedExample.steps[ui.stepIndex]?.title}.{' '}
-                </strong>
-              )}
-              {ui.loadedExample.steps[ui.stepIndex]?.description ??
-                ui.loadedExample.metadata.description}
-            </p>
+            <GuideDescription
+              description={
+                ui.loadedExample.steps[ui.stepIndex]?.description ??
+                ui.loadedExample.metadata.description
+              }
+              stepTitle={
+                ui.loadedExample.steps.length > 1
+                  ? ui.loadedExample.steps[ui.stepIndex]?.title
+                  : undefined
+              }
+            />
             <div className="flex shrink-0 gap-3 text-xs">
               {ui.loadedExample.metadata.relatedDocs?.[0] && (
                 <a

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { checkPlaygroundGuide } from './check-playground-guide.mjs';
 import { checkPlaygroundMobile, checkPlaygroundMobileFiles } from './check-playground-mobile.mjs';
 import { checkPlaygroundProject } from './check-playground-project.mjs';
 import { checkPlaygroundTabs } from './check-playground-tabs.mjs';
@@ -81,6 +82,7 @@ try {
       await page.close();
     }
   }
+  await checkPlaygroundGuide(browser, origin);
   await checkPlaygroundTracing(browser, origin);
   await checkPlaygroundMobile(browser, origin);
   await checkPlaygroundMobileFiles(browser, origin);
