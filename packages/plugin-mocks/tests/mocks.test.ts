@@ -1,5 +1,5 @@
 import SchemaBuilder from '@pothos/core';
-import { execute } from 'graphql';
+import { execute, subscribe } from 'graphql';
 import { gql } from 'graphql-tag';
 import Mocks from '../src';
 
@@ -90,5 +90,100 @@ describe('mock resolution', () => {
     });
 
     expect(result).toEqual({ data: { obj: { hello: 'mocked' } } });
+  });
+
+  it('does not mock unlisted fields that share a name with Object.prototype members', async () => {
+    const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [Mocks] });
+
+    builder.queryType({
+      fields: (t) => ({
+        toString: t.string({ resolve: () => 'original' }),
+        constructor: t.string({ resolve: () => 'original' }),
+      }),
+    });
+
+    const schema = builder.toSchema({ mocks: { Query: {} } });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          toString
+          constructor
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(result).toEqual({ data: { toString: 'original', constructor: 'original' } });
+  });
+
+  it('does not mock fields on types that share a name with Object.prototype members', async () => {
+    const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [Mocks] });
+
+    const Constructor = builder.objectRef<{}>('constructor').implement({
+      fields: (t) => ({
+        call: t.string({ resolve: () => 'original' }),
+      }),
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        obj: t.field({ type: Constructor, resolve: () => ({}) }),
+      }),
+    });
+
+    const schema = builder.toSchema({ mocks: {} });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          obj {
+            call
+          }
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(result).toEqual({ data: { obj: { call: 'original' } } });
+  });
+
+  it('does not use prototype members as subscribe mocks', async () => {
+    const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [Mocks] });
+
+    builder.queryType({
+      fields: (t) => ({
+        hello: t.string({ resolve: () => 'original' }),
+      }),
+    });
+
+    builder.subscriptionType({
+      fields: (t) => ({
+        toString: t.string({
+          subscribe: async function* subscribeField() {
+            yield await Promise.resolve('original');
+          },
+          resolve: (value) => value as string,
+        }),
+      }),
+    });
+
+    const schema = builder.toSchema({ mocks: { Subscription: {} } });
+
+    const iterator = (await subscribe({
+      schema,
+      document: gql`
+        subscription {
+          toString
+        }
+      `,
+      contextValue: {},
+    })) as AsyncGenerator<unknown>;
+
+    const first = await iterator.next();
+
+    expect(first.value).toEqual({ data: { toString: 'original' } });
   });
 });

@@ -9,6 +9,10 @@ import type { ResolverMap } from './types.js';
 
 const pluginName = 'mocks';
 
+function getOwn<T>(map: Record<string, T> | undefined, key: string): T | undefined {
+  return map !== undefined && Object.hasOwn(map, key) ? map[key] : undefined;
+}
+
 export default pluginName;
 export class PothosMocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapResolve(
@@ -55,7 +59,7 @@ export class PothosMocksPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
   }
 
   resolveMock(typename: string, fieldName: string, mocks: ResolverMap<Types>) {
-    const fieldMock = mocks[typename]?.[fieldName] || null;
+    const fieldMock = getOwn(getOwn(mocks, typename), fieldName) || null;
 
     if (!fieldMock) {
       return null;
@@ -69,7 +73,7 @@ export class PothosMocksPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
   }
 
   subscribeMock(typename: string, fieldName: string, mocks: ResolverMap<Types>) {
-    const fieldMock = mocks[typename]?.[fieldName] || null;
+    const fieldMock = getOwn(getOwn(mocks, typename), fieldName) || null;
 
     if (!fieldMock) {
       return null;
