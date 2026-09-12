@@ -64,17 +64,42 @@ export default class CacheNode<Types extends SchemaTypes> {
 
   replaceValue(value: unknown, key: number | string) {
     if (typeof key === 'number') {
-      if (!Array.isArray(this.value)) {
-        throw new PothosValidationError('Expected value of CacheNode for list path to be an array');
-      }
+      const list = this.valueAsList();
 
       this.cache.invalidPaths.push(`${this.path}.${key}`);
-      this.value[key] = value;
+      list[key] = value;
     } else {
       this.cache.invalidPaths.push(`${this.path}.`);
       this.value = value;
     }
 
     this.typeManagers.delete(key);
+  }
+
+  /**
+   * Lists may be resolved to any iterable, but replacing an entry requires indexed access, so
+   * non-array iterables are materialized into an array the first time an entry is replaced.
+   */
+  private valueAsList(): unknown[] {
+    if (Array.isArray(this.value)) {
+      return this.value as unknown[];
+    }
+
+    if (
+      typeof this.value === 'object' &&
+      this.value !== null &&
+      Symbol.iterator in this.value &&
+      typeof (this.value as Iterable<unknown>)[Symbol.iterator] === 'function'
+    ) {
+      const list = [...(this.value as Iterable<unknown>)];
+
+      this.value = list;
+
+      return list;
+    }
+
+    throw new PothosValidationError(
+      'Expected value of CacheNode for list path to be an array or iterable',
+    );
   }
 }
