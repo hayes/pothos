@@ -857,6 +857,10 @@ Object type's option is enough to skip them. The Object type's own `authScopes` 
 `skipInterfaceScopes` never skips the scopes of the concrete type. Use `skipTypeScopes` on the field
 to skip those as well.
 
+`runScopesOnType` on an interface moves that interface's scopes off the fields it declares. Since an
+interface has no `isTypeOf`, those scopes are enforced through the interface list of each Object type
+that implements it — for the interface's own fields as well as the Object type's.
+
 ### Cache keys
 
 Auth scopes by default are cached based on the identity of the scope parameter. This works great for
