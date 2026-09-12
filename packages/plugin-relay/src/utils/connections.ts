@@ -204,7 +204,9 @@ export function resolveArrayConnection<T>(
 
 export { parseCursorConnectionArgs } from '@pothos/core';
 
-type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
+type NodeType<T> = T extends readonly (infer N)[] | Promise<readonly (infer N)[] | null> | null
+  ? N
+  : never;
 
 export async function resolveCursorConnection<
   U extends Promise<readonly unknown[] | null> | readonly unknown[] | null,

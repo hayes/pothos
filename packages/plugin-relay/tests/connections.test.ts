@@ -1,4 +1,9 @@
-import { offsetToCursor, resolveArrayConnection, resolveOffsetConnection } from '../src';
+import {
+  offsetToCursor,
+  resolveArrayConnection,
+  resolveCursorConnection,
+  resolveOffsetConnection,
+} from '../src';
 
 describe('resolveArrayConnection', () => {
   it('caps backward pages from the end of the requested window', () => {
@@ -32,5 +37,18 @@ describe('resolveOffsetConnection', () => {
     expect(requested?.limit).toBeGreaterThanOrEqual(0);
     expect(result.edges).toEqual([]);
     expect(result.pageInfo.hasNextPage).toBe(false);
+  });
+});
+
+describe('resolveCursorConnection', () => {
+  it('infers the node type from a readonly array of rows', async () => {
+    const rows: readonly { id: string }[] = [{ id: '1' }, { id: '2' }];
+
+    const result = await resolveCursorConnection(
+      { args: { first: 1 }, toCursor: (row) => row.id },
+      () => rows,
+    );
+
+    expect(result.edges.map((edge) => edge?.node.id)).toEqual(['1']);
   });
 });
