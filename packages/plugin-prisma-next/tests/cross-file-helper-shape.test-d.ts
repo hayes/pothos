@@ -173,6 +173,38 @@ builder.prismaNode('User', {
   fields: (t) => ({ firstName: t.exposeString('firstName') }),
 });
 
+// The realistic typo is one bad key among good ones — nobody misspells every
+// key. A generic constraint alone does not catch this: excess-property
+// checking only fires on a fresh literal against a concrete target, and a
+// literal with one valid key already satisfies the constraint. The extra key
+// has to be rejected explicitly, in both the object and the array form.
+builder.prismaNode('User', {
+  variant: 'MixedTypoObjectSelectNode',
+  // @ts-expect-error `emial` is not a column of `User`, even beside a valid key.
+  select: { email: true, emial: true },
+  id: { field: 'id' },
+  collection: null as never,
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
+});
+
+builder.prismaNode('User', {
+  variant: 'MixedTypoRelationSelectNode',
+  // @ts-expect-error `psots` is not a relation of `User`, even beside a valid key.
+  select: { posts: true, psots: { limit: 3 } },
+  id: { field: 'id' },
+  collection: null as never,
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
+});
+
+builder.prismaNode('User', {
+  variant: 'MixedTypoArraySelectNode',
+  // @ts-expect-error `emial` is not a column of `User`, even beside a valid one.
+  select: ['email', 'emial'],
+  id: { field: 'id' },
+  collection: null as never,
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
+});
+
 //
 // ── Positive fixtures ───────────────────────────────────────────────────
 //

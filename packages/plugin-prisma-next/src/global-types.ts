@@ -60,6 +60,55 @@ type ObjectLevelShape<
 > = ShapeFromObjectSelect<Types, M, never, Select>;
 
 /**
+ * Keys an object-form `select` names that the model doesn't have.
+ *
+ * A generic constraint alone can't catch these. TypeScript's excess-property
+ * check only fires on a fresh object literal against a *concrete* target, and
+ * once `Select` is a type parameter the literal is its own instantiation — so
+ * `{ email: true, emial: true }` satisfies `SelectObjectSpec` structurally and
+ * `emial` rides along, to be thrown on later by `compileSelect`. An all-invalid
+ * literal still fails the constraint, which is why the mixed case is the one
+ * that slips through and the one worth pinning.
+ *
+ * The array form needs none of this: its constraint is over the element type,
+ * and a tuple has no excess-property leniency, so `['email', 'emial']` is
+ * already rejected.
+ */
+type UnknownSelectKeys<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Select,
+> = Select extends readonly unknown[]
+  ? never
+  : Select extends object
+    ? Exclude<keyof Select, keyof SelectObjectSpec<Types, M>>
+    : never;
+
+/**
+ * `unknown` when every object-form `select` key is real, otherwise a type that
+ * nothing satisfies and whose text names the offending keys.
+ *
+ * Applied as a second intersected `select` member on the options parameter,
+ * beside the bare `select?: Select` that does the inferring. `unknown` is the
+ * identity of `&`, so a valid select is untouched; an invalid one intersects
+ * with an unsatisfiable object and fails *on the `select` property*, which is
+ * where the reader needs the squiggle. A defaulted phantom type parameter was
+ * the other candidate, but TypeScript checks a parameter default against its
+ * constraint at the declaration site, where `Select` is still unresolved — so
+ * that form doesn't compile.
+ */
+type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = [
+  UnknownSelectKeys<Types, M, Select>,
+] extends [never]
+  ? unknown
+  : {
+      // The key *is* the message: TypeScript reports the missing required
+      // property by name, so the diagnostic reads as a sentence naming the
+      // offending key. The `never` value makes it unsatisfiable.
+      [K in UnknownSelectKeys<Types, M, Select> & string as `Unknown key in select: ${K}`]: never;
+    };
+
+/**
  * Columns a `prismaNode`'s `id.field` declares.
  *
  * `id.field` is a dependency declaration in its own right: the schema builder
@@ -324,7 +373,11 @@ declare global {
               collection:
                 | CollectionFor<Types, M>
                 | ((ctx: Types['Context']) => CollectionFor<Types, M>);
-            },
+              // The bare `select?: Select` above is the inference site; this
+              // intersected member is the exactness check. It resolves to
+              // `unknown` (a no-op in the intersection) for a valid select, and
+              // to an unsatisfiable type naming the bad keys otherwise.
+            } & { select?: ExactSelectCheck<Types, M, Select> },
           ) => PrismaNextNodeRef<Types, M, Shape, IDShape>
         : '@pothos/plugin-relay is required to use this method';
     }
