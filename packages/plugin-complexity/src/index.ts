@@ -84,7 +84,7 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    if (this.builder.options.complexity?.disabled) {
+    if (this.options.complexity?.disabled ?? this.builder.options.complexity?.disabled) {
       return resolver;
     }
 
@@ -146,7 +146,11 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
       max = max(ctx);
     }
 
-    if (max?.complexity || max?.depth || max?.breadth) {
+    if (
+      typeof max?.complexity === 'number' ||
+      typeof max?.depth === 'number' ||
+      typeof max?.breadth === 'number'
+    ) {
       return max;
     }
 
