@@ -90,10 +90,6 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   info: GraphQLResolveInfo,
   ids: readonly unknown[],
   type: OutputType<Types> | string,
-  /**
-   * Request cache keys for each entry of `ids`, in the same order. Defaults to
-   * `${typename}:${id}`.
-   */
   keys?: readonly string[],
 ): Promise<unknown[]> {
   const requestCache = getRequestCache(context);
