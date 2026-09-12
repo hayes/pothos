@@ -177,6 +177,8 @@ For the exact function signature, see the `index.ts` of the example plugin.
 - `afterBuild`: Invoked with the fully built Schema.
 - `wrapResolve`: Invoked when creating the resolver for each field
 - `wrapSubscribe`: Invoked for each field in the `Subscriptions` object.
+- `wrapArgMappers`: Wraps outside argument mapping for resolvers and subscription setup; see
+  [Argument mapping and errors](#argument-mapping-and-errors).
 - `wrapResolveType`: Invoked for each Union and Interface.
 - `wrapIsTypeOf`: Invoked for each Object, including objects without an `isTypeOf` function.
 
@@ -413,9 +415,10 @@ identify the current request.
 
 ### Wrapping arguments and inputs
 
-The plugin API does not directly have a method for wrapping input fields, instead, the `wrapResolve`
-and `wrapSubscribe` methods can be used to modify the `args` object before passing it down to the
-original resolver.
+The plugin API does not directly wrap individual input fields. `wrapResolve` and `wrapSubscribe`
+can transform the `args` object before passing it to the original function. These wrappers receive
+arguments after any registered argument mappers have run; use `fieldConfig.argMappers` when the
+transformation needs to happen before resolver or subscription wrappers.
 
 Figuring out how to wrap inputs can be a little complex, especially when dealing with recursive
 inputs, and optimizing to wrap as little as possible. To help with this, Pothos has a couple of
@@ -461,6 +464,59 @@ interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
 Both the root map and nested `fields.map` maps contain fields with non-null mappings and
 input objects with mapped descendants. If the mapping function returned null for all fields, the
 `mapInputFields` will return null instead of returning a map to indicate no wrapping should occur
+
+### Argument mapping and errors
+
+Register an argument mapper in `onOutputFieldConfig` by returning a config with an updated
+`argMappers` array. Each mapper receives `(args, context, info)` and returns the next argument object,
+or a promise of it. `args` is a `Record<string, unknown>`; `info` is Pothos's `PartialResolveInfo`.
+Preserve existing mappers when appending your own. Mappers run sequentially in array order, awaiting
+each result before passing it to the next mapper.
+
+For a resolver call, execution enters these layers in order:
+
+1. `wrapArgMappers` wrappers, which see the arguments before mapping.
+2. The field's `argMappers`.
+3. `wrapResolve` wrappers, which see the mapped arguments.
+4. The application's resolver.
+
+Subscription setup follows the same order with `wrapSubscribe` and the application's subscribe
+function in the last two positions. The subscription's event resolver has its own resolver path;
+do not assume mapping runs only once per subscription. Within each wrapper hook, the first plugin
+in the builder's `plugins` array is outermost. Configuration hooks run from the last plugin to the
+first, so appending in `onOutputFieldConfig` determines the final mapper-array order at build time.
+
+A `try/catch` inside `wrapResolve` cannot catch a mapper failure: mapping happens before that wrapper
+is entered. Use `wrapArgMappers` for an outer error boundary. The example below appends a synchronous
+normalizer and an asynchronous validator for fields marked with `extensions: { normalizeName: true }`.
+The boundary converts their `NameInputError` failures to a GraphQL error with a `BAD_USER_INPUT` code.
+
+<include cwd lang="typescript" meta='playground example="architecture-arg-mappers"'>playground-examples/architecture-arg-mappers/plugin.ts</include>
+
+The `await` inside `try` catches both a synchronous throw and an asynchronous rejection. Returning
+the promise without awaiting it would let its rejection escape that `catch`. Preserve an absent
+function by returning `undefined` unchanged: this hook is also called when a field has no subscribe
+function. It should not accidentally manufacture one.
+
+The boundary also encloses resolver/subscriber wrappers and the application function, so it can
+receive their errors too. Handle only errors belonging to the policy you intend to implement;
+this example rethrows every error other than `NameInputError`. It does not catch GraphQL document
+validation or variable-coercion errors, which occur before field execution, or errors thrown by a
+subscription's async iterable while producing events.
+
+Use the registered plugin and opt in on the field in a separate `schema.ts`:
+
+<include cwd lang="typescript" meta='playground example="architecture-arg-mappers"'>playground-examples/architecture-arg-mappers/schema.ts</include>
+
+`greeting(name: "  Gina  ")` returns `"Hello, Gina!"`. A blank name throws synchronously; `"reserved"`
+rejects from the asynchronous mapper, even when surrounded by whitespace. Both failures prevent the
+resolver from running. `"broken"` reaches the resolver and retains the `"Greeting unavailable"` error
+without a `BAD_USER_INPUT` code.
+
+These mappers preserve the schema's string argument shape. Registering a mapper does not itself
+change the TypeScript argument types inferred from field definitions. The earlier trim example
+remains a valid `wrapResolve` transformation; moving its mapper into `argMappers` would make it run
+before all resolver wrappers instead of inside that plugin's wrapper.
 
 ### Removing fields and enum values
 

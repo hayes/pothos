@@ -1,0 +1,3 @@
+query Blank {
+  greeting(name: "   ")
+}

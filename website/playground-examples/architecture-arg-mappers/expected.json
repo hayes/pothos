@@ -1,0 +1,27 @@
+{
+  "01-Valid.graphql": { "data": { "greeting": "Hello, Gina!" } },
+  "02-Blank.graphql": {
+    "data": { "greeting": null },
+    "errors": [
+      {
+        "message": "Name must not be blank",
+        "path": ["greeting"],
+        "extensions": { "code": "BAD_USER_INPUT" }
+      }
+    ]
+  },
+  "03-Reserved.graphql": {
+    "data": { "greeting": null },
+    "errors": [
+      {
+        "message": "Name is reserved",
+        "path": ["greeting"],
+        "extensions": { "code": "BAD_USER_INPUT" }
+      }
+    ]
+  },
+  "04-Resolver-failure.graphql": {
+    "data": { "greeting": null },
+    "errors": [{ "message": "Greeting unavailable", "path": ["greeting"] }]
+  }
+}
