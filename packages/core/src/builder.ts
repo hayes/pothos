@@ -547,7 +547,6 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       InputShape<Types, Name>,
       ParentShape<Types, Name>
     >,
-    // `ScalarRef` takes the output shape first; `ScalarTypeOptions` takes input then parent.
   ): PothosSchemaTypes.ScalarRef<
     Types,
     OutputShape<Types, Name>,

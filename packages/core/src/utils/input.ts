@@ -109,8 +109,6 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     return filtered.size > 0 ? filtered : null;
   }
 
-  // Input types may be mutually recursive, so this walks every reachable map and propagates
-  // `true` to a fixed point.
   function checkForMappings(
     map: InputFieldsMapping<Types, T>,
     hasMappings: Map<InputFieldsMapping<Types, T>, boolean>,

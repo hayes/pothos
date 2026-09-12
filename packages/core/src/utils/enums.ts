@@ -36,7 +36,6 @@ export function valuesFromEnum<Types extends SchemaTypes>(
   const result: Record<string, PothosEnumValueConfig<Types>> = {};
 
   // TypeScript emits a reverse mapping (`[numericValue]: 'MemberName'`) for every numeric member.
-  // The `Number.isNaN` arm covers a computed NaN member, which is never `===` itself.
   const isReverseMapping = (key: string) => {
     const value = Enum[key];
 
