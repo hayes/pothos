@@ -308,8 +308,11 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     > = {} as never,
   ) {
     const errorBuilderOptions = this.builder.options.errors;
-    const { name: getResultName = defaultResultName, ...defaultResultOptions } =
-      builderResultOptions ?? {};
+    const {
+      name: getResultName = defaultResultName,
+      fields: defaultResultFields,
+      ...defaultResultOptions
+    } = builderResultOptions ?? {};
     const { name: getUnionName = defaultUnionName, ...defaultUnionOptions } =
       builderUnionOptions ?? {};
 
@@ -358,6 +361,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
           ...defaultResultOptions,
           ...resultObjectOptions,
           fields: (t) => ({
+            ...defaultResultFields?.(t as never),
             ...resultFieldOptions?.(t),
             [dataFieldName]: t.field({
               ...dataField,
@@ -379,6 +383,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         ...defaultUnionOptions,
         ...unionOptions,
         extensions: {
+          ...defaultUnionOptions.extensions,
           ...unionOptions.extensions,
           getDataloader,
           pothosIndirectInclude: {
