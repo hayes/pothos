@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { graphql } from 'graphql';
+import { checkMediaConnections } from './connections-check';
 import { createDatabase } from './db';
 import { createSchema } from './schema';
-import { checkMediaConnections } from './connections-check';
 
 async function check() {
   const { prisma, statements, close } = await createDatabase();

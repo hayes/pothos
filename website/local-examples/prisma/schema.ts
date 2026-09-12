@@ -1,7 +1,7 @@
 import { queryFromInfo } from '@pothos/plugin-prisma';
-import type { Post as PostRow, PrismaClient } from './generated/client/client';
 import { createSchemaBuilder } from './builder';
 import { addMediaConnection, createMediaType } from './connections';
+import type { Post as PostRow, PrismaClient } from './generated/client/client';
 
 export function createSchema(prisma: PrismaClient) {
   const builder = createSchemaBuilder(prisma);
