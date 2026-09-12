@@ -849,14 +849,13 @@ returns the same public fields as the author lookup, including only published po
 
 ### Authorize the node load path
 
-Registering a node makes its rows directly reachable through the root `node` and `nodes` fields.
-Those loads do not call your custom `author`, `me`, or other root resolvers. A permission check or
-visibility filter on one of those resolvers therefore does not protect node lookups.
-
-Apply authorization to the node type or its fields as appropriate. The
-[Scope Auth guide to Relay nodes](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes) explains how to enforce
-authorization on this separate load path. An encoded global ID is an identifier, not proof of
-permission to access the row.
+> [!WARNING]
+> Defining a node creates a direct lookup through `node` and `nodes`. These lookups bypass custom
+> root resolvers, so permission checks or visibility filters on a list or parent field do not protect
+> node refetches. An encoded global ID is an identifier, not proof of permission.
+>
+> Apply an access policy to node loading, the type, or its fields as appropriate. See
+> [Authorizing Relay nodes](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes) for scope patterns and their limits.
 
 The public User type here can be refetched by anyone. Its
 [published-posts relation](https://pothos-graphql.dev/docs/plugins/drizzle/relations#published-posts-and-profiles) applies the publication filter

@@ -779,10 +779,13 @@ data in its selection, even when the GraphQL field itself is just a string.
 `prismaNode` adds Relay IDs and root node lookups to Prisma objects. Register the
 [Relay plugin](https://pothos-graphql.dev/docs/plugins/relay); see [Connections](https://pothos-graphql.dev/docs/plugins/prisma/connections) for pagination.
 
-Defining a node creates a direct lookup for that entity through `node` and `nodes`. These fields
-bypass custom root resolvers, so checks on an author lookup or a filtered feed do not protect
-node refetches. Apply the same access rules to node loading or type authorization; see
-[Authorizing Relay nodes](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes).
+> [!WARNING]
+> Defining a node creates a direct lookup through `node` and `nodes`. These lookups bypass custom
+> root resolvers, so permission checks or visibility filters on a list or parent field do not protect
+> node refetches. An encoded global ID is an identifier, not proof of permission.
+>
+> Apply an access policy to node loading, the type, or its fields as appropriate. See
+> [Authorizing Relay nodes](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes) for scope patterns and their limits.
 
 #### `prismaNode`
 
