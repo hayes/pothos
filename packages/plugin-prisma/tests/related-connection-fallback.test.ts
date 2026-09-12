@@ -37,6 +37,14 @@ interface FallbackQuery {
 
 const resolveCalls: FallbackQuery[] = [];
 
+// A resolver that does not key off the parent at all, which a custom `resolve` is free to do:
+// a page of rows comes back even for a parent that matches no row in the database.
+const resolveDetached = (query: FallbackQuery) => {
+  resolveCalls.push(query);
+
+  return prisma.post.findMany({ ...query, orderBy: { id: 'asc' } } as never);
+};
+
 const resolvePosts = (query: FallbackQuery, user: { id: number }) => {
   resolveCalls.push(query);
 
@@ -106,9 +114,46 @@ const User = builder.prismaObject('User', {
       { cursor: 'id', type: SelectedPost, resolve: resolvePosts },
       SharedPostConnection,
     ),
+    detachedWithCount: t.relatedConnection('posts', {
+      cursor: 'id',
+      totalCount: true,
+      resolve: resolveDetached,
+    }),
+    detachedPosts: t.relatedConnection('posts', { cursor: 'id', resolve: resolveDetached }),
+    // A user-defined field on the connection object, which reads `totalCount` off the connection
+    // the same way the generated field does.
+    countWithCustomField: t.relatedConnection(
+      'posts',
+      { cursor: 'id', totalCount: true, resolve: resolvePosts },
+      {
+        fields: (c) => ({
+          doubled: c.int({
+            resolve: (con) => ((con as { totalCount?: number }).totalCount ?? 0) * 2,
+          }),
+          countKind: c.string({
+            resolve: (con) => typeof (con as { totalCount?: unknown }).totalCount,
+          }),
+        }),
+      },
+    ),
     // No `resolve`: never installs a fallback, so an unplanned parent keeps reloading itself
     // through the model loader. Here to pin that the recipe changes nothing for it.
     plainPosts: t.relatedConnection('posts', { cursor: 'id', totalCount: true }),
+    plainCountWithCustomField: t.relatedConnection(
+      'posts',
+      { cursor: 'id', totalCount: true },
+      {
+        name: 'PlainCountConnection',
+        fields: (c) => ({
+          doubled: c.int({
+            resolve: (con) => ((con as { totalCount?: number }).totalCount ?? 0) * 2,
+          }),
+          countKind: c.string({
+            resolve: (con) => typeof (con as { totalCount?: unknown }).totalCount,
+          }),
+        }),
+      },
+    ),
   }),
 });
 
@@ -119,6 +164,12 @@ builder.queryType({
     unplannedUser: t.field({
       type: User,
       resolve: () => ({ id: 1 }) as never,
+    }),
+    // A parent that corresponds to no row at all, which only the fallback branch can produce: it
+    // came from a resolver of the user's own, not from a prisma query.
+    ghostUser: t.field({
+      type: User,
+      resolve: () => ({ id: 999999 }) as never,
     }),
     // The same user through a planned query, for comparing the two paths.
     plannedUser: t.prismaField({
@@ -427,5 +478,77 @@ describe('relatedConnection fallback agrees with the planned path', () => {
     const posts = connection(result, 'unplannedUser', 'plainPosts');
     expect(posts.totalCount).toBe(250);
     expect(posts.edges).toHaveLength(2);
+  });
+});
+
+describe('relatedConnection fallback review follow-ups', () => {
+  afterEach(() => {
+    queries.length = 0;
+    resolveCalls.length = 0;
+  });
+
+  it('hands user-defined connection fields the same totalCount the generated field gets', async () => {
+    const selection = 'countWithCustomField(first: 1) { totalCount countKind doubled }';
+
+    const fallback = await run(`{ unplannedUser { ${selection} } }`);
+    expect(fallback.errors).toBeUndefined();
+    expect(connection(fallback, 'unplannedUser', 'countWithCustomField')).toEqual({
+      totalCount: 250,
+      countKind: 'number',
+      doubled: 500,
+    });
+  });
+
+  it('matches the loader path for a user-defined connection field', async () => {
+    const fallback = await run(
+      '{ unplannedUser { countWithCustomField(first: 1) { totalCount countKind doubled } } }',
+    );
+    const loader = await run(
+      '{ unplannedUser { plainCountWithCustomField(first: 1) { totalCount countKind doubled } } }',
+    );
+
+    expect(fallback.errors).toBeUndefined();
+    expect(loader.errors).toBeUndefined();
+    expect(connection(fallback, 'unplannedUser', 'countWithCustomField')).toStrictEqual(
+      connection(loader, 'unplannedUser', 'plainCountWithCustomField'),
+    );
+  });
+
+  it('refuses to invent a totalCount for a parent that is not a row', async () => {
+    const result = await run(`{
+      ghostUser { detachedWithCount(first: 2) { totalCount edges { node { id } } } }
+    }`);
+
+    // The resolver still returns rows, so a count of 0 would sit next to a non-empty page: a
+    // wrong answer presented as a fact on a non-nullable Int. The field errors instead, naming
+    // what could not be counted.
+    expect(result.errors?.[0]?.message).toMatch(
+      /Unable to load totalCount for User\.detachedWithCount/,
+    );
+  });
+
+  it('still answers a page for a parent that is not a row when totalCount is not selected', async () => {
+    const result = await run(`{
+      ghostUser { detachedPosts(first: 2) { edges { node { id } } } }
+    }`);
+
+    // Nothing here needs the parent to exist, so nothing errors.
+    expect(result.errors).toBeUndefined();
+    expect(connection(result, 'ghostUser', 'detachedPosts').edges).toHaveLength(2);
+  });
+
+  it('does not ask the resolver for rows it would throw away on a totalCount-only selection', async () => {
+    const result = await run(`{
+      unplannedUser { postsWithCount { totalCount } }
+    }`);
+
+    expect(result.errors).toBeUndefined();
+    expect(connection(result, 'unplannedUser', 'postsWithCount').totalCount).toBe(250);
+    // The loaded path passes `[]` rather than reading rows it will discard; the fallback does the
+    // same rather than paying for a findMany whose rows nothing reads.
+    expect(resolveCalls).toHaveLength(0);
+    expect(queries).toStrictEqual([
+      expect.objectContaining({ model: 'User', action: 'findUnique' }),
+    ]);
   });
 });
