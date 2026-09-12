@@ -3,6 +3,7 @@ import {
   buildSchema,
   execute,
   GraphQLObjectType,
+  GraphQLSchema,
   GraphQLString,
   parse,
   printSchema,
@@ -256,6 +257,78 @@ describe('importing schemas with custom operation root names', () => {
 
     expect(schema.getQueryType()?.name).toBe('Query');
     expect(Object.keys(schema.getQueryType()!.getFields())).toStrictEqual(['hello']);
+  });
+
+  it('honors an explicit rootKind of null for standalone imports', () => {
+    const existingMutation = new GraphQLObjectType({
+      name: 'Mutation',
+      fields: { doIt: { type: GraphQLString, resolve: () => 'done' } },
+    });
+
+    const builder = new SchemaBuilder({ plugins: [AddGraphQLPlugin] });
+
+    builder.addGraphQLObject(existingMutation, { rootKind: null });
+    builder.queryType({ fields: (t) => ({ hello: t.string({ resolve: () => 'world' }) }) });
+
+    const schema = builder.toSchema();
+
+    expect(schema.getMutationType()).toBeUndefined();
+    expect(schema.getType('Mutation')).toBeDefined();
+  });
+
+  it('honors an explicit rootKind of null when the imported type is renamed', () => {
+    const existingObject = new GraphQLObjectType({
+      name: 'Legacy',
+      fields: { doIt: { type: GraphQLString, resolve: () => 'done' } },
+    });
+
+    const builder = new SchemaBuilder({ plugins: [AddGraphQLPlugin] });
+
+    builder.addGraphQLObject(existingObject, { rootKind: null, name: 'Mutation' });
+    builder.queryType({ fields: (t) => ({ hello: t.string({ resolve: () => 'world' }) }) });
+
+    const schema = builder.toSchema();
+
+    expect(schema.getMutationType()).toBeUndefined();
+    expect(schema.getType('Mutation')).toBeDefined();
+  });
+
+  it('honors an explicit rootKind for standalone imports', () => {
+    const existingMutation = new GraphQLObjectType({
+      name: 'Ops',
+      fields: { doIt: { type: GraphQLString, resolve: () => 'done' } },
+    });
+
+    const builder = new SchemaBuilder({ plugins: [AddGraphQLPlugin] });
+
+    builder.addGraphQLObject(existingMutation, { rootKind: 'Mutation' });
+    builder.queryType({ fields: (t) => ({ hello: t.string({ resolve: () => 'world' }) }) });
+
+    const schema = builder.toSchema();
+
+    expect(schema.getMutationType()?.name).toBe('Ops');
+    expect(Object.keys(schema.getMutationType()!.getFields())).toStrictEqual(['doIt']);
+  });
+
+  it('still falls back to a type named Query when the imported schema declares no query root', () => {
+    const existingQuery = new GraphQLObjectType({
+      name: 'Query',
+      fields: { hello: { type: GraphQLString, resolve: () => 'world' } },
+    });
+
+    const existingSchema = new GraphQLSchema({ types: [existingQuery] });
+
+    expect(existingSchema.getQueryType()).toBeUndefined();
+
+    const builder = new SchemaBuilder({
+      plugins: [AddGraphQLPlugin],
+      add: { schema: existingSchema },
+    });
+
+    const schema = builder.toSchema();
+
+    expect(validateSchema(schema)).toStrictEqual([]);
+    expect(schema.getQueryType()?.name).toBe('Query');
   });
 
   it('still merges imported roots that use the default names', () => {

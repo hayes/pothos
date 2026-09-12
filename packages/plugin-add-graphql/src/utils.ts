@@ -43,13 +43,9 @@ export function addTypeToSchema<Types extends SchemaTypes>(
   if (isObjectType(type)) {
     // If the builder already defines this operation root, the imported type is added as a normal
     // object type rather than re-declaring (and renaming) the existing root.
-    const kind = rootKind && hasRootType(builder, rootKind) ? null : rootKind;
-
-    if (kind === null) {
-      importedNonRootTypes(builder).add(type.name);
-    }
-
-    builder.addGraphQLObject(type, { rootKind: kind });
+    builder.addGraphQLObject(type, {
+      rootKind: rootKind && hasRootType(builder, rootKind) ? null : rootKind,
+    });
   } else if (isInterfaceType(type)) {
     builder.addGraphQLInterface(type);
   } else if (isUnionType(type)) {
