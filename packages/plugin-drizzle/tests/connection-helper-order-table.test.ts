@@ -12,8 +12,6 @@ const builder = new SchemaBuilder<{
   drizzle: { client: db, relations, getTableConfig },
 });
 
-// `orderBy` callbacks are documented to receive the Drizzle table, the same object root
-// connections pass, so `getColumns(table)` has to work here too.
 it('passes the drizzle table to a helper orderBy callback', () => {
   const helpers = drizzleConnectionHelpers(builder, 'comments', {
     query: { orderBy: (table) => [getColumns(table).id] },
