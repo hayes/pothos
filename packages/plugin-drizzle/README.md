@@ -136,6 +136,15 @@ plugins: [RelayPlugin, WithInputPlugin, DrizzlePlugin],
   by default, and the fragment's fields are loaded through [fallback queries](https://pothos-graphql.dev/docs/plugins/drizzle/relations#fallback-queries)
   when it resolves. Set this to `false` to plan deferred selections with the rest of the query.
 
+`skipDeferredFragments` controls query planning; it does not enable incremental execution. The application
+must register the defer directive and use an executor, server transport, and client that support
+the same incremental delivery protocol. With GraphQL.js 17, ordinary `execute` rejects schemas
+containing `@defer` or `@stream`; incremental execution uses `experimentalExecuteIncrementally`.
+For a server integration, see [GraphQL Yoga's defer and stream setup](https://the-guild.dev/graphql/yoga-server/docs/features/defer-stream),
+which uses `@graphql-yoga/plugin-defer-stream`. Check the integration's supported versions when
+choosing an executor and client; adding directives or changing `skipDeferredFragments` alone is
+not sufficient.
+
 ## Drizzle Objects
 
 Use the [configured builder](https://pothos-graphql.dev/docs/plugins/drizzle/setup) to map a Drizzle table to a GraphQL type. Defining a type

@@ -277,6 +277,15 @@ It's recommended to enable this check in development to more quickly find potent
 
 ### Deferred fragments
 
+`skipDeferredFragments` controls query planning; it does not enable incremental execution. The application
+must register the defer directive and use an executor, server transport, and client that support
+the same incremental delivery protocol. With GraphQL.js 17, ordinary `execute` rejects schemas
+containing `@defer` or `@stream`; incremental execution uses `experimentalExecuteIncrementally`.
+For a server integration, see [GraphQL Yoga's defer and stream setup](https://the-guild.dev/graphql/yoga-server/docs/features/defer-stream),
+which uses `@graphql-yoga/plugin-defer-stream`. Check the integration's supported versions when
+choosing an executor and client; adding directives or changing `skipDeferredFragments` alone is
+not sufficient.
+
 Selections inside a `@defer` fragment are left out of the planned query by default, so the initial
 payload is not delayed by data the client has agreed to wait for. When the deferred fragment
 resolves, its fields are loaded through [fallback queries](https://pothos-graphql.dev/docs/plugins/prisma/relations#fallback-queries), batched as
