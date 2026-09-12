@@ -12,6 +12,57 @@ This applies to `builder.node`, `builder.prismaNode`, and `builder.drizzleNode`.
 objects should be refetchable and what access a direct lookup should allow. A type can participate
 in a [connection](/docs/plugins/relay#creating-connections) without implementing `Node`.
 
+## Choose a default policy
+
+For an API where direct refetches require a signed-in user, put that requirement on **both**
+generated lookup fields. These options belong in the builder's `relay` configuration, alongside
+the Scope Auth setup shown below. The private-policy example combines these gates with the
+Node interface and Query defaults discussed next; the original example keeps its public
+featured-article path:
+
+<include cwd lang="typescript" meta='playground example="plugin-scope-auth-variant-private-nodes" op="1"'>playground-examples/plugin-scope-auth/variant-private-nodes/builder.ts#node-lookup-gates</include>
+
+These field checks run before Relay's node resolver, so an anonymous request cannot trigger its
+node loaders, even with a `__typename`-only selection. A successful login check is only a baseline:
+keep resource-specific permissions on the returned types or in their loaders. These options do not
+protect custom fields that return the same objects or use node-loading helpers themselves.
+
+You can also put a shared policy on the `Node` interface:
+
+<include cwd lang="typescript" meta='playground example="plugin-scope-auth-variant-private-nodes" op="2"'>playground-examples/plugin-scope-auth/variant-private-nodes/builder.ts#node-interface-policy</include>
+
+This applies the interface requirement to fields of its implementing objects, including objects
+returned through ordinary root fields, relationships, and connections. It adds to each object's
+own scopes; satisfying one does not bypass the other. For example, a signed-in reader can still
+fail an article's separate `readArticle` permission check.
+
+Interface scopes are useful for a shared baseline, but their default execution still happens at
+the object's fields, after loading. They do not hide `__typename`. Use the root-field gates when
+you also want to reject anonymous node lookups before loading. The two configurations can be used
+together. An object or field can opt out of interface checks with `skipInterfaceScopes: true`, so
+audit these exceptions as part of the policy.
+
+An interface login requirement would also block the anonymous featured-article path later in this
+guide. Its parent grant satisfies the article's own policy; it does not override a separate
+interface requirement. Choose a baseline that matches which parts of your API are public.
+
+### Make Query fields private by default
+
+If most of the API requires login, `authScopes` on `builder.queryType` also applies to the generated
+`node` and `nodes` fields. Public fields can explicitly skip the Query type requirement:
+
+<include cwd lang="typescript" meta='playground example="plugin-scope-auth-variant-private-nodes" op="1"'>playground-examples/plugin-scope-auth/variant-private-nodes/schema.ts#query-default</include>
+
+This is a Query-root policy, not a schema-wide authorization default. Configure Mutation and
+Subscription separately, and keep entity-level checks for access through other paths. Field scopes
+still apply when `skipTypeScopes` is used; it only removes the parent type's requirement.
+`scopeAuth.defaultStrategy` controls whether scopes in a map use AND or OR, not whether unannotated
+fields are private.
+
+If direct refetching is not part of the API, set both `relay.nodeQueryOptions` and
+`relay.nodesQueryOptions` to `false`. Node types and their IDs can remain in the schema without
+those generated root lookups; custom lookup fields still need their own policy.
+
 ## Apply a policy to the returned object
 
 Type `authScopes` let the same policy protect fields whether the object came from a root field,
@@ -23,11 +74,11 @@ In this example, readers with the `readArticle` permission may read articles thr
 Other readers can read the featured article through a field that explicitly grants access.
 The builder defines a `permission` scope using the current user:
 
-<include cwd lang="typescript">playground-examples/plugin-scope-auth/builder.ts#scopes</include>
+<include cwd lang="typescript" meta='playground example="plugin-scope-auth" op="9"'>playground-examples/plugin-scope-auth/builder.ts#scopes</include>
 
 The node accepts either the read permission or a grant from its parent field:
 
-<include cwd lang="typescript">playground-examples/plugin-scope-auth/nodes.ts#article-node</include>
+<include cwd lang="typescript" meta='playground example="plugin-scope-auth" op="8"'>playground-examples/plugin-scope-auth/nodes.ts#article-node</include>
 
 `$any` makes this an explicit choice between two authorization paths. For policies requiring both
 membership and a resource permission, use `$all` instead. A scope parameter should identify the
@@ -51,26 +102,13 @@ resolved at the same response path when scopes run through `isTypeOf`.
 A featured-article field can deliberately allow a reader to view one selected article without
 making every article available through node lookups:
 
-<include cwd lang="typescript">playground-examples/plugin-scope-auth/nodes.ts#featured-article</include>
+<include cwd lang="typescript" meta='playground example="plugin-scope-auth" op="8"'>playground-examples/plugin-scope-auth/nodes.ts#featured-article</include>
 
 `grantScopes` applies to the returned object's response path. It does not add an ordinary scope to
 the request, and it does not turn the returned ID into a transferable permission. An anonymous
 reader can receive the featured article and still be denied when refetching the same ID:
 
-```graphql
-query ArticleAccessPaths {
-  featuredArticle {
-    id
-    title
-  }
-  node(id: "QXJ0aWNsZTox") {
-    ... on Article {
-      id
-      title
-    }
-  }
-}
-```
+<include cwd lang="graphql">playground-examples/plugin-scope-auth/08-node-paths.graphql</include>
 
 [Run both access paths](/playground?example=plugin-scope-auth&op=8). The featured article resolves,
 while `node` is `null` with a `Not authorized` error at `node.id`. The Relay ID is non-null, so

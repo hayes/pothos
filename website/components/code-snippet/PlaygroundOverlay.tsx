@@ -21,6 +21,9 @@ export interface PlaygroundOverlayProps {
    */
   query?: string;
 
+  /** One-based operation index within the example. */
+  operation?: number;
+
   /**
    * Callback when overlay is closed
    */
@@ -41,6 +44,7 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
   exampleId,
   code,
   query,
+  operation,
   onClose,
 }) => {
   // Build playground URL — `embed=1` puts the page in embedded mode
@@ -54,6 +58,9 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
       params.set('embed', '1');
       params.set('overlay', '1');
       params.set('example', exampleId);
+      if (operation !== undefined && Number.isInteger(operation) && operation > 0) {
+        params.set('op', String(operation));
+      }
       if (code) {
         params.set('snippet', code);
       }
@@ -73,7 +80,7 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
     }
 
     return '/playground?embed=1&overlay=1';
-  }, [exampleId, code, query]);
+  }, [exampleId, code, query, operation]);
 
   // Focus into the dialog on open, restore focus on close, close on Escape.
   const dialogRef = useRef<HTMLDivElement>(null);

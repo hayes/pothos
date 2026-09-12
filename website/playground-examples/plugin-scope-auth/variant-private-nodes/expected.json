@@ -1,0 +1,39 @@
+{
+  "01-signed-out.graphql": {
+    "errors": [
+      {
+        "message": "Not authorized",
+        "path": ["featuredArticle"]
+      },
+      {
+        "message": "Not authorized",
+        "path": ["node"]
+      }
+    ],
+    "data": {
+      "serviceName": "Publishing API",
+      "featuredArticle": null,
+      "node": null
+    }
+  },
+  "02-reader.graphql": {
+    "data": {
+      "serviceName": "Publishing API",
+      "featuredArticle": {
+        "title": "A field guide to GraphQL"
+      },
+      "node": {
+        "title": "A field guide to GraphQL"
+      }
+    }
+  },
+  "03-signed-out-nodes.graphql": {
+    "errors": [
+      {
+        "message": "Not authorized",
+        "path": ["nodes"]
+      }
+    ],
+    "data": null
+  }
+}

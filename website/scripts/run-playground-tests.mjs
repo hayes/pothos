@@ -29,8 +29,10 @@ try {
   for (const script of [
     'check-playground.mjs',
     'check-database-browser.mjs',
+    'check-scope-auth-browser.mjs',
     'check-landing-playground.mjs',
     'check-doc-links.mjs',
+    'check-doc-formats.mjs',
   ]) {
     const test = spawn(process.execPath, [`scripts/${script}`, origin], { stdio: 'inherit' });
     const code = await new Promise((resolve, reject) => {

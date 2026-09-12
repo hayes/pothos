@@ -26,12 +26,16 @@ interface PlaygroundCodeBlockProps extends ComponentProps<typeof CodeBlock> {
    */
   query?: string;
 
+  /** One-based operation index within the example. */
+  operation?: number;
+
   /**
    * Data attributes from rehype plugin
    */
   'data-playground'?: string;
   'data-example'?: string;
   'data-query'?: string;
+  'data-op'?: string;
 }
 
 /**
@@ -52,10 +56,12 @@ export function PlaygroundCodeBlock({
   playground: playgroundProp,
   code,
   query: queryProp,
+  operation: operationProp,
   children,
   'data-playground': dataPlayground,
   'data-example': dataExample,
   'data-query': dataQuery,
+  'data-op': dataOperation,
   ...props
 }: PlaygroundCodeBlockProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -64,6 +70,7 @@ export function PlaygroundCodeBlock({
   const playground = playgroundProp ?? dataPlayground === 'true';
   const exampleId = exampleIdProp ?? dataExample;
   const query = queryProp ?? dataQuery;
+  const operation = operationProp ?? (dataOperation ? Number(dataOperation) : undefined);
 
   // Extract code content from children if not provided
   const codeContent = code || extractCodeContent(children);
@@ -101,6 +108,7 @@ export function PlaygroundCodeBlock({
           exampleId={exampleId}
           code={codeContent}
           query={query}
+          operation={operation}
           onClose={() => setIsExpanded(false)}
         />
       )}

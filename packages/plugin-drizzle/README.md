@@ -340,6 +340,8 @@ The `where` option accepts either a static SQL filter or a function that receive
 and context:
 
 ```ts
+import { and, eq } from 'drizzle-orm';
+import { posts } from './tables';
 
 // In the User fields callback:
 publishedPostsCount: t.relatedCount('posts', {
@@ -401,6 +403,8 @@ For a simple count, prefer `t.relatedCount`. Its equivalent using `t.relatedFiel
 how `buildFilter` restricts an expression to the parent's related rows:
 
 ```ts
+import { and, eq } from 'drizzle-orm';
+import { posts } from './tables';
 
 builder.drizzleNode('users', {
   name: 'User',

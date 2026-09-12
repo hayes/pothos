@@ -1,0 +1,11 @@
+query PrivateNodePolicy {
+  serviceName
+  featuredArticle {
+    title
+  }
+  node(id: "QXJ0aWNsZTox") {
+    ... on Article {
+      title
+    }
+  }
+}

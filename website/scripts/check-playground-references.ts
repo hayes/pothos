@@ -26,6 +26,9 @@ interface Reference {
   file: string;
   line: number;
   id: string;
+  operation?: string;
+  hasQuery?: boolean;
+  error?: string;
 }
 
 async function walkMdx(dir: string, out: string[] = []): Promise<string[]> {
@@ -65,7 +68,13 @@ async function extractReferences(file: string): Promise<Reference[]> {
     }
     const match = line.match(/example=["']([^"']+)["']/);
     if (match) {
-      refs.push({ file, line: i + 1, id: match[1] });
+      refs.push({
+        file,
+        line: i + 1,
+        id: match[1],
+        operation: line.match(/\bop=["']([^"']*)["']/)?.[1],
+        hasQuery: /\bquery=/.test(line),
+      });
     }
   }
 
@@ -75,7 +84,13 @@ async function extractReferences(file: string): Promise<Reference[]> {
   // fence to an include must never drop it from this CI check.
   for (const match of content.matchAll(INCLUDE_TAG_RE)) {
     const line = content.slice(0, match.index ?? 0).split('\n').length;
-    refs.push({ file, line, id: match[1] });
+    refs.push({
+      file,
+      line,
+      id: match[1],
+      operation: match[0].match(/\bop=["']([^"']*)["']/)?.[1],
+      hasQuery: /\bquery=/.test(match[0]),
+    });
   }
 
   return refs;
@@ -126,13 +141,33 @@ async function main() {
   for (const ref of refs) {
     if (!(await bundleExists(ref.id))) {
       failures.push(ref);
+      continue;
+    }
+    if (ref.operation !== undefined) {
+      if (!/^[1-9]\d*$/.test(ref.operation) || ref.hasQuery) {
+        ref.error = 'op must be a positive integer and cannot be combined with query';
+      } else {
+        try {
+          const bundle = JSON.parse(
+            await readFile(join(ROOT, 'public', 'playground-examples', `${ref.id}.json`), 'utf8'),
+          );
+          if (Number(ref.operation) > bundle.queries.length) {
+            ref.error = `op="${ref.operation}" exceeds the ${bundle.queries.length} available operations`;
+          }
+        } catch {
+          ref.error = 'cannot check operation; run build-examples first';
+        }
+      }
+      if (ref.error) failures.push(ref);
     }
   }
 
   if (failures.length > 0) {
     console.error(`Found ${failures.length} broken playground reference(s):`);
     for (const ref of failures) {
-      console.error(`  ${relative(ROOT, ref.file)}:${ref.line}  example="${ref.id}"`);
+      console.error(
+        `  ${relative(ROOT, ref.file)}:${ref.line}  example="${ref.id}"${ref.error ? `: ${ref.error}` : ''}`,
+      );
     }
     console.error(
       `\nExpected each id to resolve to a directory under ${relative(ROOT, BUNDLES_DIR)}/`,

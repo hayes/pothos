@@ -19,6 +19,7 @@
     "postinstall": "fumadocs-mdx",
     "check:examples": "node scripts/check-doc-examples.mjs",
     "check:links": "node scripts/check-doc-links.mjs",
+    "check:formats": "node scripts/check-doc-formats.mjs",
     "type:examples": "node scripts/type-playground-examples.mjs",
     "check:playground": "node scripts/check-playground.mjs",
     "test:browser": "node scripts/run-playground-tests.mjs",

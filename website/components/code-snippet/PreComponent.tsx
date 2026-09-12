@@ -30,6 +30,7 @@ export function PreComponent(props: ComponentProps<'pre'>) {
     'data-playground'?: string;
     'data-example'?: string;
     'data-query'?: string;
+    'data-op'?: string;
     'data-raw-code'?: string;
   };
 
