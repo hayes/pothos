@@ -35,7 +35,6 @@ export const defaultGetListItemResultName: GetTypeName = ({ parentTypeName, fiel
 export const defaultGetListItemUnionName: GetTypeName = ({ parentTypeName, fieldName }) =>
   `${parentTypeName}${capitalize(fieldName)}ItemResult`;
 
-// A non-extensible target forces a Proxy's `getPrototypeOf` to report the target's own prototype.
 function createProxyTarget(target: {}): {} {
   if (Object.isExtensible(target)) {
     return target;

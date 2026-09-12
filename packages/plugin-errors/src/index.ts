@@ -78,7 +78,6 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         | undefined;
 
       if (errorTypes) {
-        // `pothosItemErrorsDepth` is the number of list levels above the items the union covers.
         const listDepth = getListDepth(fieldConfig.type);
 
         return {
