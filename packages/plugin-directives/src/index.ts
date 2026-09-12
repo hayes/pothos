@@ -167,11 +167,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
       return Object.fromEntries(byName);
     }
 
-    if (Array.isArray(directives)) {
-      return directives;
-    }
-
-    return Object.keys(directives).map((name) => ({ name, args: directives[name] }));
+    return toDirectiveList(directives);
   }
 }
 
