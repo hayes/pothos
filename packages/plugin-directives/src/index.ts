@@ -20,8 +20,7 @@ function toDirectiveList(directives: DirectiveList | Record<string, object>): Di
     return directives;
   }
 
-  // Unordered (graphql-tools) directives use an array of arg objects for repeated directives,
-  // each of which becomes its own entry in the ordered list.
+  // An array of args in the unordered format is a repeated directive, one entry per args object.
   return Object.keys(directives).flatMap((name) => {
     const args = directives[name];
 
