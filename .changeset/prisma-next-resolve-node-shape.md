@@ -22,5 +22,10 @@ annotated with the model's full row. `wrap` now requires the full row whenever a
 type and promise columns the caller never loaded. Passing narrowed rows to such a helper is
 now rejected at the `wrap` call, naming the missing columns.
 
+A `resolveNode` supplied conditionally (`enabled ? fn : undefined`) may never run, and `wrap`
+leaves the row untouched when it is absent. Such a helper's node is therefore typed as the
+callback's result *or* the original row, so the caller has to narrow, rather than promising a
+transform that did not happen.
+
 Runtime behaviour is unchanged — the transform still runs after `buildConnectionPage`, so
 each edge's cursor is still encoded from the original row.

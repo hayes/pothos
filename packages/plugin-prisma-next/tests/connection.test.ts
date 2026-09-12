@@ -1043,6 +1043,32 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     expect(second.decoratedUsers.edges[0]!.node.userId).toBe('u-bob');
   });
 
+  it('prismaConnectionHelpers resolveNode: an absent transform leaves the original row', async () => {
+    // The runtime half of the conditional-transform case. `wrap` only rewrites nodes when
+    // a callback is actually there, so a helper built with `enabled ? fn : undefined` and
+    // `enabled === false` hands back untouched rows. The declared node type is the union of
+    // both outcomes for exactly this reason.
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { contract: ctx.contract },
+    });
+
+    const off: boolean = false;
+    const helper = prismaConnectionHelpers(builder, 'User', {
+      cursor: 'id',
+      resolveNode: off ? (row) => ({ user: row }) : undefined,
+    });
+
+    const page = await helper.applyPagination(ctx.ormClient.User, { first: 1 }, undefined, {});
+    const node = page.wrap(await page.collection.all()).edges[0]!.node;
+
+    expect('user' in node).toBe(false);
+    if (!('user' in node)) {
+      expect(node.id).toBe('u-alice');
+    }
+  });
+
   it('totalCount rejection does NOT crash queries that did not select totalCount', async () => {
     // Round-3 fix: the count promise is only built when `totalCount`
     // is in the selection set. Without this gate, a `totalCount` that

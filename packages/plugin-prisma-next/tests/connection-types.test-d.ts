@@ -148,3 +148,73 @@ export async function narrowedRowsRejected() {
   expectTypeOf(result.edges[0]!.node.extra).toEqualTypeOf<number>();
   expectTypeOf(result.edges[0]!.node.email).toEqualTypeOf<string>();
 }
+
+// A `resolveNode` supplied conditionally may never run. Taking only its return type would
+// promise a transform that didn't happen: at runtime `wrap` leaves the row untouched when
+// the callback is absent, so the node is the callback's result *or* the original row.
+declare const enabled: boolean;
+
+const conditionalNodes = prismaConnectionHelpers(builder, 'User', {
+  cursor: 'id',
+  resolveNode: enabled ? (row) => ({ user: row }) : undefined,
+});
+
+export async function conditionalNodeShape() {
+  const page = await conditionalNodes.applyPagination(
+    ctx.ormClient.User,
+    { first: 1 },
+    undefined,
+    {},
+  );
+  const node = page.wrap(await page.collection.all()).edges[0]!.node;
+
+  // @ts-expect-error the transform may not have run, so the node may still be the raw row.
+  node.user;
+
+  // Narrowing is the caller's job, and both branches are reachable.
+  if ('user' in node) {
+    expectTypeOf(node.user.id).toEqualTypeOf<string>();
+  } else {
+    expectTypeOf(node.id).toEqualTypeOf<string>();
+  }
+}
+
+// Non-object returns survive inference unchanged.
+const primitiveNode = prismaConnectionHelpers(builder, 'User', {
+  cursor: 'id',
+  resolveNode: (row) => row.firstName,
+});
+
+const nullNode = prismaConnectionHelpers(builder, 'User', {
+  cursor: 'id',
+  resolveNode: () => null,
+});
+
+const promiseNode = prismaConnectionHelpers(builder, 'User', {
+  cursor: 'id',
+  resolveNode: (row) => Promise.resolve({ user: row }),
+});
+
+export async function otherReturnShapes() {
+  const primitive = await primitiveNode.applyPagination(
+    ctx.ormClient.User,
+    { first: 1 },
+    undefined,
+    {},
+  );
+  expectTypeOf(
+    primitive.wrap(await primitive.collection.all()).edges[0]!.node,
+  ).toEqualTypeOf<string>();
+
+  const nulled = await nullNode.applyPagination(ctx.ormClient.User, { first: 1 }, undefined, {});
+  expectTypeOf(nulled.wrap(await nulled.collection.all()).edges[0]!.node).toEqualTypeOf<null>();
+
+  const promised = await promiseNode.applyPagination(
+    ctx.ormClient.User,
+    { first: 1 },
+    undefined,
+    {},
+  );
+  const node = promised.wrap(await promised.collection.all()).edges[0]!.node;
+  expectTypeOf((await node).user.id).toEqualTypeOf<string>();
+}

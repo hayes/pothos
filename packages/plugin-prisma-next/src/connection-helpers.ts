@@ -36,31 +36,39 @@ import { getRefFromContractModel } from './utils/refs.js';
 import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
 /**
- * The shape `wrap` hands back on each edge. `resolveNode` replaces every `edge.node`, so
- * when one is configured the node is the callback's return type; otherwise the node stays
- * the row the caller passed to `wrap`.
+ * The shape `wrap` hands back on each edge. Three cases, and the middle one is easy to miss:
  *
- * `Node` defaults to `never` rather than to `Row<Types, M>` so that helpers without a
- * `resolveNode` keep inferring the node from `wrap`'s argument — a caller who narrows the
- * collection's selection before materializing it must not be handed the full model row.
+ * - **No `resolveNode`** — `Node` finds no inference candidate and stays `never`, so the node
+ *   is whatever the caller passed to `wrap`. `Node` defaults to `never` rather than to
+ *   `Row<Types, M>` precisely so this holds: a caller who narrows the collection's selection
+ *   before materializing it must not be handed the full model row.
+ * - **A `resolveNode` that may be absent** (`MaybeAbsent`, from `enabled ? fn : undefined`) —
+ *   the transform runs only sometimes, so the node is the callback's result *or* the
+ *   untouched row, and the caller has to narrow. Taking only the callback's return type here
+ *   would promise a transform that never ran.
+ * - **A `resolveNode` that is always there** — the node is its return type.
+ *
  * `[Node] extends [never]` is the naked-`never` guard: a bare `Node extends never`
  * distributes and would collapse to `never`.
  */
-export type ConnectionNodeShape<Node, WrapRow> = [Node] extends [never] ? WrapRow : Node;
+export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [Node] extends [never]
+  ? WrapRow
+  : MaybeAbsent extends true
+    ? Node | WrapRow
+    : Node;
 
 /**
  * What `wrap` accepts as rows.
  *
- * `resolveNode` is supplied when the helper is built, so its parameter can only be
- * annotated with the model's full row — the shape of the rows actually handed to `wrap` is
- * not known until much later. Inferring `Node` from that callback's return type therefore
- * only tells the truth if the rows really are full rows: a callback that mentions its
- * parameter (`(row) => ({ ...row, extra: 1 })`, or plain `(row) => row`) would otherwise
- * propagate the full-row annotation into the node type and promise columns the caller
- * never loaded.
+ * `resolveNode` is supplied when the helper is built, so its parameter can only be annotated
+ * with the model's full row — the shape of the rows actually handed to `wrap` is not known
+ * until much later. Reading the node off that callback therefore only tells the truth if the
+ * rows really are full rows: a callback that mentions its parameter
+ * (`(row) => ({ ...row, extra: 1 })`, or plain `(row) => row`) would otherwise propagate the
+ * full-row annotation into the node type and promise columns the caller never loaded.
  *
- * So when a `resolveNode` is configured, `wrap` requires the full row, which is what the
- * callback already claims to receive. Without one, rows are unconstrained as before and a
+ * So whenever a callback might run, `wrap` requires the full row — which is what that
+ * callback already claims to receive. With no callback at all, rows are unconstrained and a
  * caller may narrow the selection freely.
  */
 export type ConnectionWrapRows<Types extends SchemaTypes, M extends ModelName<Types>, Node> = [
@@ -74,6 +82,8 @@ export interface PrismaConnectionHelpers<
   M extends ModelName<Types>,
   Args extends InputFieldMap = {},
   Node = never,
+  /** Whether the configured `resolveNode` might not be there at all. */
+  MaybeAbsent extends boolean = false,
 > {
   ref: PrismaNextObjectRef<Types, M>;
   /**
@@ -95,11 +105,99 @@ export interface PrismaConnectionHelpers<
     wrap<WrapRow extends ConnectionWrapRows<Types, M, Node>>(
       rows: readonly WrapRow[],
       totalCount?: number,
-    ): ConnectionPage<ConnectionNodeShape<Node, WrapRow>>;
+    ): ConnectionPage<ConnectionNodeShape<Node, WrapRow, MaybeAbsent>>;
   }>;
   getArgs(): Args;
   connectionOptions<T extends object>(connectionOptions: T): T;
 }
+
+/**
+ * Everything about a helper except `resolveNode`, which the overloads below vary so that a
+ * definitely-present callback can be told apart from one that may be absent.
+ */
+export interface PrismaConnectionHelperOptions<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Cursor extends CursorSpec<Types, M>,
+  Args extends InputFieldMap,
+> {
+  cursor: Cursor;
+  args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
+  defaultSize?:
+    | number
+    | ((
+        args: import('@pothos/plugin-relay').DefaultConnectionArguments,
+        ctx: Types['Context'],
+      ) => number);
+  maxSize?:
+    | number
+    | ((
+        args: import('@pothos/plugin-relay').DefaultConnectionArguments,
+        ctx: Types['Context'],
+      ) => number);
+  totalCount?:
+    | boolean
+    | ((
+        args: InputShapeFromFields<Args> &
+          import('@pothos/plugin-relay').DefaultConnectionArguments,
+        ctx: Types['Context'],
+        info: GraphQLResolveInfo | undefined,
+      ) => MaybePromise<number>);
+  where?:
+    | import('@prisma/orm-family-sql/orm-client').ShorthandWhereFilter<
+        Types['PrismaNextContract'],
+        NamespaceOf<Types, M>,
+        M
+      >
+    | ((
+        accessor: import('@prisma/orm-family-sql/orm-client').ModelAccessor<
+          Types['PrismaNextContract'],
+          M
+        >,
+        args: InputShapeFromFields<Args> &
+          import('@pothos/plugin-relay').DefaultConnectionArguments,
+        ctx: Types['Context'],
+      ) => unknown);
+}
+
+/**
+ * A `resolveNode` that is always present: every edge is transformed, so the node is exactly
+ * the callback's return type.
+ */
+export function prismaConnectionHelpers<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Cursor extends CursorSpec<Types, M>,
+  Args extends InputFieldMap = {},
+  Node = never,
+>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  modelName: M,
+  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
+    resolveNode: (edge: Row<Types, M>) => Node;
+  },
+): PrismaConnectionHelpers<Types, M, Args, Node, false>;
+
+/**
+ * No `resolveNode`, or one that may be absent (`enabled ? fn : undefined`). When it may be
+ * absent the node is the callback's result *or* the untouched row, because that is what
+ * `wrap` actually produces, and the caller has to narrow. When it is absent entirely `Node`
+ * has no inference candidate and stays `never`, which collapses the node back to `wrap`'s
+ * own row inference.
+ */
+export function prismaConnectionHelpers<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Cursor extends CursorSpec<Types, M>,
+  Args extends InputFieldMap = {},
+  Node = never,
+>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  modelName: M,
+  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
+    resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
+  },
+): PrismaConnectionHelpers<Types, M, Args, Node, true>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -110,52 +208,10 @@ export function prismaConnectionHelpers<
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   modelName: M,
-  options: {
-    cursor: Cursor;
-    args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
-    defaultSize?:
-      | number
-      | ((
-          args: import('@pothos/plugin-relay').DefaultConnectionArguments,
-          ctx: Types['Context'],
-        ) => number);
-    maxSize?:
-      | number
-      | ((
-          args: import('@pothos/plugin-relay').DefaultConnectionArguments,
-          ctx: Types['Context'],
-        ) => number);
-    totalCount?:
-      | boolean
-      | ((
-          args: InputShapeFromFields<Args> &
-            import('@pothos/plugin-relay').DefaultConnectionArguments,
-          ctx: Types['Context'],
-          info: GraphQLResolveInfo | undefined,
-        ) => MaybePromise<number>);
-    where?:
-      | import('@prisma/orm-family-sql/orm-client').ShorthandWhereFilter<
-          Types['PrismaNextContract'],
-          NamespaceOf<Types, M>,
-          M
-        >
-      | ((
-          accessor: import('@prisma/orm-family-sql/orm-client').ModelAccessor<
-            Types['PrismaNextContract'],
-            M
-          >,
-          args: InputShapeFromFields<Args> &
-            import('@pothos/plugin-relay').DefaultConnectionArguments,
-          ctx: Types['Context'],
-        ) => unknown);
-    /**
-     * `Node` is inferred from this callback's return type and becomes the node on every
-     * edge `wrap` returns. Omitting `resolveNode` leaves `Node` at its `never` default,
-     * which hands the node position back to `wrap`'s own row inference.
-     */
-    resolveNode?: (edge: Row<Types, M>) => Node;
+  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
+    resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
-): PrismaConnectionHelpers<Types, M, Args, Node> {
+): PrismaConnectionHelpers<Types, M, Args, Node, boolean> {
   const ref = getRefFromContractModel<Types, M>(modelName, builder);
 
   // `options.args` may be a literal or a thunk `(t) => argMap`; resolve
@@ -255,7 +311,7 @@ export function prismaConnectionHelpers<
         wrap<WrapRow extends ConnectionWrapRows<Types, M, Node>>(
           rows: readonly WrapRow[],
           totalCount?: number,
-        ): ConnectionPage<ConnectionNodeShape<Node, WrapRow>> {
+        ): ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>> {
           const page = buildConnectionPage(rows, pagination);
           // Apply resolveNode after buildConnectionPage so the cursor
           // encoder still sees the original row columns.
@@ -271,7 +327,7 @@ export function prismaConnectionHelpers<
           // The loop above is what makes the declared node shape true; `page` is still
           // typed from `rows`, and the conditional can't be resolved against an
           // unbound `Node` here.
-          return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow>>;
+          return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>>;
         },
       });
 

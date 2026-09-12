@@ -50,6 +50,7 @@ export { all, and, not, or } from '@prisma/orm-family-sql/orm-client';
 export type {
   ConnectionNodeShape,
   ConnectionWrapRows,
+  PrismaConnectionHelperOptions,
   PrismaConnectionHelpers,
 } from './connection-helpers.js';
 export { prismaConnectionHelpers } from './connection-helpers.js';
