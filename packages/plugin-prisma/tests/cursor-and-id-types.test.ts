@@ -62,6 +62,10 @@ class FakeDecimal {
   toFixed() {
     return this.digits;
   }
+
+  toString() {
+    return this.digits;
+  }
 }
 
 describe('compound cursors', () => {
@@ -228,5 +232,88 @@ describe('node ids', () => {
       meta: { a: 1 },
       n: 3,
     });
+  });
+});
+
+describe('decimal node ids', () => {
+  const digits = '0.1234567890123456789012345';
+
+  it('round trips a Decimal id without losing digits', () => {
+    const builder = builderFor([{ name: 'amount', type: 'Decimal', isId: true }]);
+
+    const id = getDefaultIDSerializer(
+      'Model',
+      'amount',
+      builder,
+    )({
+      amount: new FakeDecimal(digits),
+    }) as string;
+
+    expect(id).toBe(digits);
+    expect(getDefaultIDParser('Model', 'amount', builder)(id)).toBe(digits);
+  });
+
+  it('round trips a compound id containing a Decimal without losing digits', () => {
+    const builder = builderFor(
+      [
+        { name: 'amount', type: 'Decimal' },
+        { name: 'n', type: 'Int' },
+      ],
+      { name: null, fields: ['amount', 'n'] },
+    );
+
+    const id = getDefaultIDSerializer(
+      'Model',
+      'amount_n',
+      builder,
+    )({ amount: new FakeDecimal(digits), n: 1 }) as string;
+
+    expect(getDefaultIDParser('Model', 'amount_n', builder)(id)).toEqual({ amount: digits, n: 1 });
+  });
+
+  it('still reads a Float id as a number', () => {
+    const builder = builderFor([{ name: 'views', type: 'Float', isId: true }]);
+
+    expect(getDefaultIDParser('Model', 'views', builder)('1.75')).toBe(1.75);
+  });
+});
+
+describe('ids issued before this release', () => {
+  const intBuilder = builderFor([{ name: 'id', type: 'Int', isId: true }]);
+  const stringBuilder = builderFor([{ name: 'slug', type: 'String', isId: true }]);
+  const compoundBuilder = builderFor(
+    [
+      { name: 'id', type: 'Int' },
+      { name: 'slug', type: 'String' },
+    ],
+    { name: null, fields: ['id', 'slug'] },
+  );
+  const decimalBuilder = builderFor([{ name: 'amount', type: 'Decimal', isId: true }]);
+
+  it('writes an Int id, a String id and a compound id byte for byte as it always has', () => {
+    expect(getDefaultIDSerializer('Model', 'id', intBuilder)({ id: 42 })).toBe('42');
+    expect(getDefaultIDSerializer('Model', 'slug', stringBuilder)({ slug: 'ada' })).toBe('ada');
+    expect(
+      getDefaultIDSerializer('Model', 'id_slug', compoundBuilder)({ id: 42, slug: 'ada' }),
+    ).toBe('["42","ada"]');
+  });
+
+  it('writes a Decimal id byte for byte as it always has', () => {
+    expect(
+      getDefaultIDSerializer('Model', 'amount', decimalBuilder)({ amount: new FakeDecimal('1.5') }),
+    ).toBe('1.5');
+  });
+
+  it('reads an Int id, a String id and a compound id back to exactly what it always did', () => {
+    expect(getDefaultIDParser('Model', 'id', intBuilder)('42')).toBe(42);
+    expect(getDefaultIDParser('Model', 'slug', stringBuilder)('ada')).toBe('ada');
+    expect(getDefaultIDParser('Model', 'id_slug', compoundBuilder)('["42","ada"]')).toEqual({
+      id: 42,
+      slug: 'ada',
+    });
+  });
+
+  it('reads a Decimal id back to the same value it always named', () => {
+    expect(Number(getDefaultIDParser('Model', 'amount', decimalBuilder)('1.5'))).toBe(1.5);
   });
 });

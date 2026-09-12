@@ -66,8 +66,9 @@ export function parseID(id: string, dataType: string): unknown {
     case 'Boolean':
       return id !== 'false';
     case 'Float':
-    case 'Decimal':
       return Number.parseFloat(id);
+    case 'Decimal':
+      return id;
     case 'DateTime':
       return new Date(id);
     case 'Json':
