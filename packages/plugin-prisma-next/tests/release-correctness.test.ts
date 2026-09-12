@@ -110,6 +110,56 @@ describe('Relay node types across planned entry points', () => {
     expect(sql).not.toMatch(/postConnection:rows|"title"|"score"/i);
   });
 
+  it('hands a custom id.resolve the columns declared by id.field', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { contract: ctx.contract },
+    });
+    // Neither node declares an object-level `select`: `id.field` is the only
+    // declaration of these columns, and the ID field's own selection
+    // extensions are what load them. Both the single-column and the compound
+    // form have to reach the custom resolver.
+    builder.prismaNode('User', {
+      id: { field: 'id', resolve: (row) => `u:${row.id}` },
+      collection: ctx.ormClient.User,
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.prismaNode('Post', {
+      id: { field: ['authorId', 'id'], resolve: (row) => `${row.authorId}/${row.id}` },
+      collection: ctx.ormClient.Post,
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: 'User',
+          resolve: () => ctx.ormClient.User.where({ id: 'u-alice' }),
+        }),
+        post: t.prismaField({
+          type: 'Post',
+          resolve: () => ctx.ormClient.Post.where({ id: 'p-hello' }),
+        }),
+      }),
+    });
+    const result = await execute({
+      schema: builder.toSchema(),
+      document: parse('{ user { id firstName } post { id title } }'),
+      contextValue: {},
+    });
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      user: {
+        id: Buffer.from('User:u:u-alice').toString('base64'),
+        firstName: 'Alice',
+      },
+      post: {
+        id: Buffer.from('Post:u-alice/p-hello').toString('base64'),
+        title: 'Hello, Pothos',
+      },
+    });
+  });
+
   it('still resolves the abstract Node interface with the loader brand', async () => {
     const result = await execute({
       schema: nodeSchema(),

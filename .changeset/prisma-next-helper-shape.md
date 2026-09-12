@@ -16,6 +16,10 @@ from the same brand-only `ObjectBaseShape` that `prismaObject` uses, and
 does. Field-level `select` still layers on additively, `t.expose*` and
 `t.relation` are unaffected, and the ref form is unchanged.
 
+`prismaNode`'s custom `id.resolve` additionally receives the columns named by
+`id.field` — single or compound — since those are selected for the ID field
+already, so it needs no redundant object-level `select`.
+
 Runtime behaviour is unchanged — declaring `select` is still how a field
 adds a column dependency. To opt back into the old parent type, pass `Shape`
 explicitly: `builder.prismaObjectField<'User', Row<Types, 'User'>>('User', …)`.

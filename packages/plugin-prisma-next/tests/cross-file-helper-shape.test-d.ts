@@ -69,6 +69,79 @@ builder.prismaNode('User', {
   }),
 });
 
+// …but `id.field` *is* a declaration. `schema-builder.ts` registers those
+// columns in the ID field's own selection extensions
+// (`PRISMA_NEXT_FIELD_SELECT`) before calling `id.resolve`, so the custom ID
+// resolver really does receive them and must not need a redundant
+// object-level `select` to read them.
+builder.prismaNode('User', {
+  variant: 'CustomIdResolverNode',
+  id: {
+    field: 'id',
+    resolve: (row) => {
+      expectTypeOf(row.id).toEqualTypeOf<string>();
+      return row.id;
+    },
+  },
+  collection: null as never,
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
+});
+
+// Every column a compound `id.field` names is declared, not just the first.
+builder.prismaNode('Post', {
+  variant: 'CompoundIdResolverNode',
+  id: {
+    field: ['authorId', 'id'],
+    resolve: (row) => {
+      expectTypeOf(row.authorId).toEqualTypeOf<string>();
+      expectTypeOf(row.id).toEqualTypeOf<string>();
+      return `${row.authorId}:${row.id}`;
+    },
+  },
+  collection: null as never,
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+
+// The widening is scoped to what `id.field` declared — a column outside it is
+// still rejected, which is the whole point of the change.
+builder.prismaNode('User', {
+  variant: 'CustomIdResolverUndeclaredNode',
+  id: {
+    field: 'id',
+    // @ts-expect-error `email` is declared by neither `id.field` nor `select`.
+    resolve: (row) => row.email,
+  },
+  collection: null as never,
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
+});
+
+// `id.field` is now an inference site; it must still reject a column the model
+// doesn't have.
+builder.prismaNode('User', {
+  variant: 'BadIdFieldNode',
+  // @ts-expect-error `nope` is not a column of `User`.
+  id: { field: 'nope' },
+  collection: null as never,
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
+});
+
+// `id.field` columns compose with an object-level `select` rather than
+// replacing it.
+builder.prismaNode('User', {
+  variant: 'CustomIdResolverSelectNode',
+  select: ['email'],
+  id: {
+    field: 'id',
+    resolve: (row) => {
+      expectTypeOf(row.id).toEqualTypeOf<string>();
+      expectTypeOf(row.email).toEqualTypeOf<string>();
+      return `${row.id}:${row.email}`;
+    },
+  },
+  collection: null as never,
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
+});
+
 //
 // ── Positive fixtures ───────────────────────────────────────────────────
 //

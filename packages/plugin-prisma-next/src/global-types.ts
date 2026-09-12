@@ -58,6 +58,34 @@ type ObjectLevelShape<
   Select,
 > = ShapeFromObjectSelect<Types, M, never, Select>;
 
+/**
+ * Columns a `prismaNode`'s `id.field` declares.
+ *
+ * `id.field` is a dependency declaration in its own right: the schema builder
+ * registers those columns in the ID field's own selection extensions
+ * (`PRISMA_NEXT_FIELD_SELECT`, `schema-builder.ts`) before it calls
+ * `id.resolve`, so a custom ID resolver really is handed them. Its parent is
+ * therefore the object-level shape *plus* these — requiring a redundant
+ * object-level `select` to read a column the ID already declared would reject
+ * code that is correct at runtime.
+ *
+ *   - Single column `field: 'id'` → that column.
+ *   - Compound `field: ['authorId', 'id']` → every column in the tuple.
+ *
+ * Scoped to `id.resolve` deliberately: the selection lives on the `id` field,
+ * so other field resolvers on the same type still can't assume the ID columns
+ * are present.
+ */
+type IdFieldShape<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  IDFields,
+> = IDFields extends readonly (infer K extends keyof Row<Types, M>)[]
+  ? Pick<Row<Types, M>, K>
+  : IDFields extends keyof Row<Types, M>
+    ? Pick<Row<Types, M>, IDFields>
+    : unknown;
+
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
@@ -252,15 +280,19 @@ declare global {
             const Select = unknown,
             Shape = ObjectLevelShape<Types, M, Select>,
             IDShape = string,
+            const IDFields extends
+              | (keyof Row<Types, M> & string)
+              | readonly [
+                  keyof Row<Types, M> & string,
+                  ...(keyof Row<Types, M> & string)[],
+                ] = keyof Row<Types, M> & string,
           >(
             modelName: M,
             options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
               select?: Select;
               id: {
                 /** Column name or non-empty tuple for composite primary keys (encoded as a JSON array). */
-                field:
-                  | (keyof Row<Types, M> & string)
-                  | readonly [keyof Row<Types, M> & string, ...(keyof Row<Types, M> & string)[]];
+                field: IDFields;
                 description?: string;
                 /** Restore nonstandard ORM values such as Temporal and Decimal IDs. */
                 codecs?: {
@@ -269,7 +301,15 @@ declare global {
                   >;
                 };
                 parse?: (id: string, ctx: Types['Context']) => IDShape;
-                resolve?: (parent: Shape, ctx: Types['Context']) => string | number;
+                /**
+                 * The parent is the object-level shape plus whatever `id.field`
+                 * named — those columns are selected for this field, so reading
+                 * them needs no extra `select`.
+                 */
+                resolve?: (
+                  parent: Shape & IdFieldShape<Types, M, IDFields>,
+                  ctx: Types['Context'],
+                ) => string | number;
               };
               collection:
                 | CollectionFor<Types, M>
