@@ -324,15 +324,22 @@ async function count(document: DocumentNode): Promise<Counted> {
 
   queries.length = 0;
 
-  const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
+  let issued: { action: string; args: { include?: unknown } }[];
+  let batches: number;
 
-  expect(result.errors).toBeUndefined();
+  try {
+    const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
 
-  const issued = [...queries] as { action: string; args: { include?: unknown } }[];
-  const batches = initLoad.mock.calls.length;
+    expect(result.errors).toBeUndefined();
 
-  queries.length = 0;
-  initLoad.mockRestore();
+    issued = [...queries] as typeof issued;
+    batches = initLoad.mock.calls.length;
+  } finally {
+    // Restored even when the assertion above throws: a spy left installed counts the next test's
+    // batches too, turning one failure into a cascade of unrelated ones.
+    queries.length = 0;
+    initLoad.mockRestore();
+  }
 
   const loads = issued.filter((query) => query.action !== 'findMany');
 

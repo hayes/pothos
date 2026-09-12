@@ -9,4 +9,5 @@ value straight to a custom `findUnique`. An async resolver meant the callback re
 where its own type promised a string, so `findUnique: (id) => ({ id: Number(id) })` built
 `where: { id: NaN }` and the row failed to load. The model loader now waits for the where before
 issuing the lookup, guarded so a synchronous resolver still issues its query in the same
-microtask and batching is unchanged. A `findUnique` of your own may now return a promise.
+microtask and batching is unchanged. A where that rejects fails only its own row; the rest of the
+batch loads. A `findUnique` of your own may now return a promise.

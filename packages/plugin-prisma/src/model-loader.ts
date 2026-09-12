@@ -337,11 +337,12 @@ export class ModelLoader {
               where: { ...where },
             } as never);
 
-      // A throw here — `toQuery`, `findUnique`, or the delegate call itself — would otherwise abort
-      // the loop, leaving every model it had not reached pending forever and the request with it.
-      // The whole batch rejects instead, the way drizzle's loader does; a promise the loop already
-      // settled ignores it. Caught rather than chained so the tick still allocates no promise of
-      // its own.
+      // A synchronous throw here — `toQuery`, `findUnique`, or the delegate call itself — would
+      // otherwise abort the loop, leaving every model it had not reached pending forever and the
+      // request with it. The whole batch rejects instead, the way drizzle's loader does; a promise
+      // the loop already settled ignores it. Caught rather than chained so the tick still
+      // allocates no promise of its own. A failure that surfaces after the loop has finished takes
+      // only the row it belongs to — see the async branch below.
       try {
         for (const [model, { resolve, reject }] of entry.models) {
           const where = this.findUnique(model as Record<string, unknown>, this.context);
@@ -352,15 +353,16 @@ export class ModelLoader {
           // moves a boundary. A synchronous where never leaves this tick.
           if (isThenable(where)) {
             where.then((settled) => {
-              // The same containment across the await: a rejected where, or a throw from the
-              // delegate call it was waiting for, takes the whole batch rather than escaping and
-              // stranding every model the loop had already reached.
+              // Only this row. The loop has run to its end by the time any continuation of it
+              // does, so every model already holds a handler and none of them can be stranded:
+              // the reason the synchronous path rejects the whole batch does not apply here, and
+              // failing a sibling whose own where settled would be failing a row that was fine.
               try {
                 load(settled as {}).then(resolve as () => {}, reject);
               } catch (error) {
-                rejectBatch(error);
+                reject(error);
               }
-            }, rejectBatch);
+            }, reject);
           } else {
             load(where as {}).then(resolve as () => {}, reject);
           }

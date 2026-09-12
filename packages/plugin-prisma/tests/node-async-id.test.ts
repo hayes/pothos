@@ -129,11 +129,13 @@ describe('async custom node IDs on the fallback lookup', () => {
   });
 });
 
-// The loader's flush loop is what awaits the where, and neither the microtask a delegate call is
-// issued in nor the fate of a batch whose where rejects is legible through a real client. Both
-// are driven against a stub delegate below.
+// The loader's flush loop is what awaits the where, and the microtask a delegate call is issued
+// in is not legible through a real client. The rest of these drive it against a stub delegate.
 
-const ROWS = 4;
+const ROWS = 5;
+
+/** The row whose ID resolver fails in the containment cases below. */
+const FAILING_ROW = 3;
 
 /** Microtask boundaries crossed since the batch that is loading was opened. */
 let microtasks = 0;
@@ -141,17 +143,28 @@ let microtasks = 0;
 /** The value of `microtasks` at each delegate call, in the order the flush loop issued them. */
 const issuedAt: number[] = [];
 
-/** Batches whose queries the stub leaves pending, to prove the batch itself rejected them. */
-let hangingQueries = 0;
+/**
+ * How long the stub delegate takes to answer. `never` is only for the synchronous-throw case,
+ * where a query the loop never issued is the thing being observed; every other case settles, and
+ * is asserted to reach the same outcome whichever of the two settling speeds it runs at.
+ */
+let delegateSettles: 'immediately' | 'a macrotask later' | 'never' = 'immediately';
 
 const stubClient = {
   user: {
     findUniqueOrThrow: (args: { where: { id: number } }) => {
       issuedAt.push(microtasks);
 
-      return hangingQueries > 0
-        ? new Promise(() => {})
-        : Promise.resolve({ id: args.where.id, name: `user-${args.where.id}` });
+      const row = { id: args.where.id, name: `user-${args.where.id}` };
+
+      switch (delegateSettles) {
+        case 'never':
+          return new Promise(() => {});
+        case 'a macrotask later':
+          return new Promise((resolve) => setTimeout(() => resolve(row), 1));
+        default:
+          return Promise.resolve(row);
+      }
     },
   },
 };
@@ -176,9 +189,12 @@ const StubUser = stubBuilder.prismaNode('User', {
   id: { resolve: (user) => resolveId(user) as never },
   findUnique: (id) => ({ id: Number(id) }),
   fields: (t) => ({
+    // Nullable so a row that fails shows as its own null beside the rows that loaded, rather
+    // than bubbling up and taking the list with it.
     name: t.string({
+      nullable: true,
       select: { name: true },
-      resolve: (user) => user.name ?? '',
+      resolve: (user) => user.name,
     }),
   }),
 });
@@ -260,13 +276,17 @@ describe('the flush loop under an async where', () => {
     expect(issuedAt.every((at) => at > 0)).toBe(true);
   });
 
-  it('rejects every model in the batch when one row’s where rejects', async () => {
-    // The rest of the batch is left pending by the stub, so the request can only complete if the
-    // rejection reached models the loop had already issued queries for — the invariant the
-    // synchronous `try/catch` gives a throwing `findUnique`.
-    hangingQueries = 1;
+  // A where that rejects does so after the flush loop has run to its end, so every model already
+  // holds a handler and none of them can be stranded. Rejecting the batch there would fail rows
+  // whose own where was fine, and which of them it actually reached would depend on whether their
+  // queries beat the rejection — so both settling speeds are asserted to the same outcome.
+  it.each([
+    'immediately',
+    'a macrotask later',
+  ] as const)('fails only the row whose where rejected, with a delegate that settles %s', async (settles) => {
+    delegateSettles = settles;
     resolveId = (user) =>
-      user.id === 1 ? Promise.reject(new Error('id resolver failed')) : String(user.id);
+      user.id === FAILING_ROW ? Promise.reject(new Error('id resolver failed')) : String(user.id);
 
     const result = await execute({
       schema: stubSchema,
@@ -274,12 +294,49 @@ describe('the flush loop under an async where', () => {
       contextValue: {},
     });
 
-    hangingQueries = 0;
+    delegateSettles = 'immediately';
+    resolveId = (user) => String(user.id);
+
+    expect(result.errors?.map((error) => error.message)).toEqual(['id resolver failed']);
+    expect(result.errors?.[0].path).toEqual(['rows', FAILING_ROW - 1, 'name']);
+    // The rows either side of it loaded; only the one that failed is null.
+    expect(result.data).toEqual({
+      rows: Array.from({ length: ROWS }, (_, index) => ({
+        name: index + 1 === FAILING_ROW ? null : `user-${index + 1}`,
+      })),
+    });
+  });
+
+  it('rejects every model in the batch when findUnique throws synchronously', async () => {
+    // A synchronous throw aborts the loop, so the rows after it were never issued a query at all.
+    // The stub leaves the ones before it pending, so the request can only complete if the whole
+    // batch rejected: without that, the rows the loop never reached hang and take the request
+    // with them. This is the path `rejectBatch` exists for, and the one the async branch above
+    // deliberately does not share.
+    delegateSettles = 'never';
+    resolveId = (user) => {
+      if (user.id === FAILING_ROW) {
+        throw new Error('findUnique threw');
+      }
+
+      return String(user.id);
+    };
+
+    const result = await execute({
+      schema: stubSchema,
+      document: gql`{ rows { name } }`,
+      contextValue: {},
+    });
+
+    delegateSettles = 'immediately';
     resolveId = (user) => String(user.id);
 
     expect(result.errors).toHaveLength(ROWS);
     expect(result.errors?.map((error) => error.message)).toEqual(
-      Array.from({ length: ROWS }, () => 'id resolver failed'),
+      Array.from({ length: ROWS }, () => 'findUnique threw'),
     );
+    // The rows the loop never reached, named explicitly: these are the ones that would hang.
+    expect(result.errors?.map((error) => error.path?.[1])).toContain(FAILING_ROW);
+    expect(result.errors?.map((error) => error.path?.[1])).toContain(ROWS - 1);
   });
 });
