@@ -1,4 +1,4 @@
-import { createContextCache, type SchemaTypes } from '@pothos/core';
+import { createContextCache, type RootName, type SchemaTypes } from '@pothos/core';
 import {
   type GraphQLNamedType,
   isEnumType,
@@ -14,13 +14,14 @@ export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType
 export function addTypeToSchema<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   type: GraphQLNamedType,
+  rootKind?: RootName,
 ) {
   if (builder.configStore.hasConfig(type.name as never)) {
     return;
   }
 
   if (isObjectType(type)) {
-    builder.addGraphQLObject(type);
+    builder.addGraphQLObject(type, { rootKind });
   } else if (isInterfaceType(type)) {
     builder.addGraphQLInterface(type);
   } else if (isUnionType(type)) {

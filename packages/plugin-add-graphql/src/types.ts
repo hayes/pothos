@@ -6,6 +6,7 @@ import type {
   InputFieldsFromShape,
   NullableToOptional,
   ObjectParam,
+  RootName,
   SchemaTypes,
 } from '@pothos/core';
 
@@ -36,6 +37,11 @@ export type AddGraphQLObjectTypeOptions<Types extends SchemaTypes, Shape> = Omit
   'fields'
 > & {
   name?: string;
+  /**
+   * The operation root the type should be used for. Defaults to matching the type name against the
+   * default root type names (Query, Mutation and Subscription).
+   */
+  rootKind?: RootName;
   fields?: AddGraphQLObjectFieldsShape<Types, Shape>;
 };
 
