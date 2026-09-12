@@ -345,6 +345,7 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
         combinedFields[fieldName] = t.field({
           ...resolveInputType(this, field.type),
           description: field.description ?? undefined,
+          deprecationReason: field.deprecationReason ?? undefined,
           defaultValue: field.defaultValue,
           extensions: field.extensions,
           astNode: field.astNode ?? undefined,
