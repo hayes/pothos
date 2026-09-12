@@ -86,8 +86,9 @@ function parseCompoundIDValue(value: unknown, field: Column) {
     return BigInt(value);
   }
 
-  // the epoch milliseconds `formatCompoundIDValue` wrote. A string here is an ID issued before
-  // this release, which never restored a Date, and is left as it was.
+  // A Date column's value comes back from the epoch milliseconds `formatCompoundIDValue` wrote.
+  // A string here is an ID issued before this release, which never restored a Date, and is left
+  // as it was.
   if (field.dataType === 'object date' && typeof value === 'number') {
     return new Date(value);
   }
