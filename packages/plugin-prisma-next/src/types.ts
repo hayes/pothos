@@ -696,7 +696,9 @@ export type PrismaNextRootFieldWithInputOptions<
   resolve: (
     parent: ParentShape,
     args: InputShapeFromFields<Args> & {
-      [K in InputName]: InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null);
+      [K in InputName]:
+        | InputShapeFromFields<Fields>
+        | (true extends ArgRequired ? never : null | undefined);
     },
     context: Types['Context'],
     info: GraphQLResolveInfo,

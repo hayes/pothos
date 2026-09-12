@@ -113,9 +113,9 @@ include, the resolver returns rows shaped as AdminUser.
 ## Extending a variant
 
 `prismaObjectField` / `prismaObjectFields` work on variant refs the same
-way they work on default refs. The string form (passing the model name)
-defaults to the registered ref keyed under that name — pass the variant
-name explicitly if you want to extend a variant:
+way they work on default refs. The string form (passing the contract model
+name) always resolves the ref keyed under that model name, so it can never
+reach a variant. Pass the variant's ref to extend a variant:
 
 ```ts
 builder.prismaObjectField(adminUserRef, 'displayName', (t) =>
@@ -131,7 +131,7 @@ default (e.g. by passing the model name string to `t.relation('user')`
 from somewhere else), the schema build fails with an "unresolved
 ObjectRef" error from Pothos core. Either register a default
 `prismaObject('User', ...)` alongside the variant, or pass the variant
-ref / variant name explicitly everywhere.
+ref explicitly everywhere.
 
 ## Brands for abstract positions
 

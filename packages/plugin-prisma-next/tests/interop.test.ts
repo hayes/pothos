@@ -63,6 +63,59 @@ describe('plugin interop', () => {
     });
   });
 
+  it('prismaFieldWithInput hands the resolver `undefined` when an optional input is omitted', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [WithInputPlugin, prismaNextPlugin],
+      prismaNext: { contract: ctx.contract },
+    });
+
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+      }),
+    });
+
+    const seen: unknown[] = [];
+
+    builder.queryType({
+      fields: (t) => ({
+        userByOptionalInput: t.prismaFieldWithInput({
+          type: 'User',
+          nullable: true,
+          argOptions: { required: false },
+          input: {
+            email: t.input.string({ required: true }),
+          },
+          resolve: ((_parent: unknown, args: { input?: { email: string } | null }) => {
+            seen.push(args.input);
+            const email = args.input?.email ?? 'alice@example.com';
+            return ctx.ormClient.User.where((u) => u.email.eq(email));
+          }) as never,
+        }),
+      }),
+    });
+
+    const schema = builder.toSchema();
+
+    const omitted = await execute({
+      schema,
+      document: parse('{ userByOptionalInput { id } }'),
+      contextValue: {},
+    });
+    expect(omitted.errors).toBeUndefined();
+    expect(omitted.data).toEqual({ userByOptionalInput: { id: 'u-alice' } });
+
+    const explicitNull = await execute({
+      schema,
+      document: parse('{ userByOptionalInput(input: null) { id } }'),
+      contextValue: {},
+    });
+    expect(explicitNull.errors).toBeUndefined();
+    expect(explicitNull.data).toEqual({ userByOptionalInput: { id: 'u-alice' } });
+
+    expect(seen).toEqual([undefined, null]);
+  });
+
   it('t.relation forwards errors plugin options through to the field config', () => {
     // Errors plugin reads `errors:` on a field's options to wrap the
     // resolver in a try/catch and turn returned errors into a union.
