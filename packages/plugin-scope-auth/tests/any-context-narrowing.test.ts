@@ -5,9 +5,6 @@ import { getDatamodel } from '../prisma/generated';
 import ScopeAuthPlugin from '../src';
 import { db } from './example/db';
 
-// vitest's typecheck reports `Type Errors  no errors` even when the `@ts-expect-error` below is
-// unused; only `run type` (tsc) reports that, as TS2578.
-
 interface Context {
   user: { id: string } | null;
   admin: { id: string } | null;
