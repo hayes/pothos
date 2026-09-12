@@ -28,8 +28,7 @@ requiredness; here all three fields must also be provided and cannot be `null`.
 { "data": { "createGiraffe": { "name": "Gina", "height": 4.8 } } }
 ```
 
-In the playground, run **01-Create**, then **03-Read** to inspect the
-array. Mutations accumulate data until you choose **Reset example**.
+The mutation appends each created giraffe to the in-memory array, which the `giraffes` query returns.
 
 ## OneOf inputs
 
@@ -74,9 +73,6 @@ Continue with the builder from [Creating input objects](#creating-input-objects)
 and mutation field:
 
 <include cwd lang="typescript" meta='playground example="foundations-inputs"'>playground-examples/foundations-inputs/schema.ts#recursive-input</include>
-
-Select **02-Friends** in the playground to run the recursive mutation below. Change a
-nested friend's height to see that each result comes from its own input.
 
 The `friends` list can be omitted or set to `null`, but its items cannot be `null`. The TypeScript
 shape includes both optionality and `null` to match those values. The resolver uses each friend's

@@ -32,8 +32,8 @@ multiple builder instances.
 <include cwd lang="typescript" meta='playground example="types-inference"'>playground-examples/types-inference/schema.ts#pagination</include>
 
 The example uses the inferred input shape in `toUser` and returns real users from `getUsers`.
-Run the query, then change `limit` from `1` to `2`. Hover `input` and `parent` in the source to
-inspect their types. In `MyInput`, change `name: t.string({ required: true })` to
-`name: t.int({ required: true })`. The inferred input now has a numeric name, so returning it from
+A `limit` of `1` returns one user; `2` returns both. If `MyInput.name` is defined with
+`t.int({ required: true })` instead of `t.string({ required: true })`, the inferred input has a
+numeric name, so returning it from
 `toUser` produces a TypeScript error: `UserType` still requires a string. The GraphQL input field
 also changes from `String!` to `Int!`.

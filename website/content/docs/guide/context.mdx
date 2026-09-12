@@ -19,9 +19,8 @@ current user with:
 
 <include cwd lang="graphql" meta='playground example="foundations-context"'>playground-examples/foundations-context/01-Signed in.graphql</include>
 
-In the playground, select **01-Signed in** or **02-Signed out** and inspect **Context**. Change
-the signed-in fixture's `username` and run it again. These values simulate request data; the server
-setup below performs the actual user lookup.
+The example context values simulate request data; the server setup below performs the actual
+user lookup.
 
 When there is no signed-in user, the response is `{ "data": { "currentUser": null } }`.
 

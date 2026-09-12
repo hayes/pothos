@@ -142,7 +142,7 @@ optional \(`newProp?: TypeOfProp`\) is recommended for most use cases.
 
 ### Run a complete plugin
 
-The example adds a `logLabel` builder option, registers a local plugin, and wraps each resolver. Run the query and open **Console** to see two field resolutions. Run it again: the request counter starts at one because each execution receives a fresh context. Change `logLabel` in `schema.ts` to label the messages.
+The example adds a `logLabel` builder option, registers a local plugin, and wraps each resolver. The query logs two field resolutions. The request counter starts at one for each execution because it receives a fresh context; `logLabel` labels the messages.
 
 <include cwd lang="typescript" meta='playground example="architecture-writing-plugin"'>playground-examples/architecture-writing-plugin/plugin.ts#plugin</include>
 
@@ -202,7 +202,7 @@ builder\), even if multiple instances of the plugin are created. To help with th
 `runUnique` helper on the base plugin class, which accepts a key, and a callback, and will only run
 a callback once per builder for the given key, even across multiple `toSchema` calls.
 
-The example calls `toSchema()` twice. Open **Console** to see the preparation callback run once:
+The example calls `toSchema()` twice, but the preparation callback runs only once:
 
 <include cwd lang="typescript" meta='playground example="architecture-plugin-hooks"'>playground-examples/architecture-plugin-hooks/plugin.ts#before-build</include>
 
@@ -234,7 +234,7 @@ Extending this interface will allow the user to pass in these new options when c
 of `SchemaBuilder`.
 
 You can then access the options through `this.builder.options` in your plugin, with everything
-correctly typed. Run **01-Inspect** to see these options reflected in the object description. Change `nestedOptionsObject.exampleOption` in `schema.ts` and run again:
+correctly typed. The example reflects `nestedOptionsObject.exampleOption` in the object description:
 
 <include cwd lang="typescript" meta='playground example="architecture-plugin-hooks"'>playground-examples/architecture-plugin-hooks/plugin.ts#constructor-options</include>
 
@@ -349,7 +349,7 @@ plugin\). In these cases, the `afterBuild` hook can be used. It receives the bui
 expected to return either the schema it was passed, or a completely new schema. This allows plugins
 to use 3rd party libraries like `graphql-tools` to arbitrarily transform schemas if desired.
 
-This example returns a new schema with a changed description. Run **01-Inspect** to see `__schema.description`:
+This example returns a new schema with a changed description. The changed description is available through `__schema.description`:
 
 <include cwd lang="typescript" meta='playground example="architecture-plugin-hooks"'>playground-examples/architecture-plugin-hooks/plugin.ts#after-build</include>
 
@@ -425,7 +425,7 @@ utility functions that can make this easier:
 - `createInputValueMapper`: Creates a mapping function that uses the result of `mapInputFields` to
   map inputs in an args object to new values.
 
-The relay plugin uses these methods to decode `globalID` inputs. This example uses the same utilities to trim marked strings, including strings inside a nested input list. Remove a `trimInput` extension in `schema.ts` and run again to compare the result:
+The relay plugin uses these methods to decode `globalID` inputs. This example uses the same utilities to trim marked strings, including strings inside a nested input list. Fields without the `trimInput` extension retain their whitespace:
 
 <include cwd lang="typescript" meta='playground example="architecture-plugin-inputs"'>playground-examples/architecture-plugin-inputs/plugin.ts#mapping</include>
 
@@ -471,7 +471,7 @@ from enums. To do this, simply return null from the corresponding on\*Config plu
 
 <include cwd lang="typescript" meta='playground example="architecture-plugin-hooks"'>playground-examples/architecture-plugin-hooks/plugin.ts#remove-input-enum</include>
 
-Run **01-Inspect** to verify that `removeMe` output and input fields and the enum value backed by `removeMe` are absent. The other fields and enum values remain.
+Introspection omits the `removeMe` output and input fields and the enum value backed by `removeMe`. The other fields and enum values remain.
 
 Removing whole types from the schema needs to be done by transforming the schema during the
 `afterBuild` hook. See the `sub-graph` plugin for a more complete example of removing types.

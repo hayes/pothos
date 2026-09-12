@@ -31,9 +31,8 @@ in memory; an application can perform its database write in the resolver instead
 
 <include cwd lang="graphql" meta='playground example="foundations-root-operations"'>playground-examples/foundations-root-operations/02-Create.graphql</include>
 
-In the playground, select **02-Create** to run that mutation, then **03-After**.
-The `{ giraffes { name } }` query now returns both James and Morgan. Repeating a mutation adds
-another entry; **Reset example** restores the initial data.
+After this mutation, `{ giraffes { name } }` returns both James and Morgan. Each mutation adds
+another entry to the in-memory store.
 
 ## Subscriptions
 

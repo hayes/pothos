@@ -28,8 +28,7 @@ in a separate variable, use `as const` to retain those literal types.
 ```
 
 Enum literals in a query are unquoted names. When passing an enum in JSON variables, use a string
-such as `"Meters"`. Select the example's `variables` operation, change the unit to `"Feet"`
-in its Variables tab, and run again.
+such as `"Meters"` or `"Feet"`.
 
 ## Descriptions and internal values
 
@@ -70,5 +69,5 @@ use `SEDAN`, `SUV`, `TRUCK`, and `MOTORCYCLE`.
 **Keys as names** uses `Object.keys(VehicleType)` for both. TypeScript types `Object.keys` as
 `string[]`, so the assertion preserves the known keys of this local object.
 
-Open each tab in the playground and compare `vehicle` with `internalValue`: the first is the
-GraphQL enum name, while the second exposes the value the argument resolver receives.
+In each variant, `vehicle` returns the GraphQL enum name, while `internalValue` exposes the value
+the argument resolver receives.
