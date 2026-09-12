@@ -35,8 +35,29 @@ export const defaultGetListItemResultName: GetTypeName = ({ parentTypeName, fiel
 export const defaultGetListItemUnionName: GetTypeName = ({ parentTypeName, fieldName }) =>
   `${parentTypeName}${capitalize(fieldName)}ItemResult`;
 
+// Proxy invariants require `getPrototypeOf` to return the real prototype of a
+// non-extensible target, which would make the wrapped error visible as an Error
+// again. Wrapping an extensible copy of the error keeps the invariants intact.
+function createProxyTarget(target: {}): {} {
+  if (Object.isExtensible(target)) {
+    return target;
+  }
+
+  const copy = Object.create(Object.getPrototypeOf(target) as object | null) as {};
+
+  for (const key of Reflect.ownKeys(target)) {
+    const descriptor = Object.getOwnPropertyDescriptor(target, key);
+
+    if (descriptor) {
+      Object.defineProperty(copy, key, { ...descriptor, configurable: true });
+    }
+  }
+
+  return copy;
+}
+
 export function createErrorProxy(target: {}, ref: unknown, state: { wrapped: boolean }): {} {
-  return new Proxy(target, {
+  return new Proxy(createProxyTarget(target), {
     get(err, val, receiver) {
       if (val === unwrapError) {
         return () => {
