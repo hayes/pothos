@@ -269,4 +269,60 @@ describe('ways to add enums', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toMatchObject({ a: 'A', b: 'B' });
   });
+
+  it('ignores the reverse mapping of a computed NaN-valued enum member', async () => {
+    enum Computed {
+      // biome-ignore lint/style/useLiteralEnumMembers: a computed member is the case under test
+      A = Number('not a number'),
+    }
+
+    // TypeScript emits `{ A: NaN, NaN: 'A' }` for this, so the reverse entry is keyed "NaN".
+    const builder = new SchemaBuilder({});
+    const ComputedEnum = builder.enumType(Computed, { name: 'Computed' });
+
+    builder.queryType({
+      fields: (t) => ({
+        a: t.field({ type: ComputedEnum, resolve: () => Computed.A }),
+      }),
+    });
+
+    const schema = builder.toSchema();
+
+    expect(
+      (schema.getType('Computed') as GraphQLEnumType).getValues().map((value) => value.name),
+    ).toEqual(['A']);
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          a
+        }
+      `,
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toMatchObject({ a: 'A' });
+  });
+
+  it('keeps a member whose value is negative zero', () => {
+    enum NegativeZero {
+      A = -0,
+    }
+
+    const builder = new SchemaBuilder({});
+    const NegativeZeroEnum = builder.enumType(NegativeZero, { name: 'NegativeZero' });
+
+    builder.queryType({
+      fields: (t) => ({
+        a: t.field({ type: NegativeZeroEnum, resolve: () => NegativeZero.A }),
+      }),
+    });
+
+    const schema = builder.toSchema();
+
+    expect(
+      (schema.getType('NegativeZero') as GraphQLEnumType).getValues().map((value) => value.name),
+    ).toEqual(['A']);
+  });
 });

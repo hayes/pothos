@@ -39,10 +39,24 @@ export function valuesFromEnum<Types extends SchemaTypes>(
   // Only skip keys that actually are one of those entries: a numeric key whose member maps back to
   // it. Filtering on `typeof Enum[Enum[key]] !== 'number'` alone also drops real string members
   // whose value happens to name a numeric member (`enum Mixed { A = 'B', B = 1 }`).
+  // A computed member can be NaN (`enum E { A = Number('bad') }` emits `{ A: NaN, NaN: 'A' }`), and
+  // NaN is never `===` itself, so that case needs its own comparison. Plain `===` is still the right
+  // test for everything else: it also matches `-0` against the `"0"` key that TypeScript emits,
+  // which `Object.is` would not.
   const isReverseMapping = (key: string) => {
     const value = Enum[key];
 
-    return typeof value === 'string' && Enum[value] === Number(key);
+    if (typeof value !== 'string') {
+      return false;
+    }
+
+    const mapped = Enum[value];
+    const numericKey = Number(key);
+
+    return (
+      typeof mapped === 'number' &&
+      (mapped === numericKey || (Number.isNaN(mapped) && Number.isNaN(numericKey)))
+    );
   };
 
   for (const key of Object.keys(Enum).filter((key) => !isReverseMapping(key))) {
