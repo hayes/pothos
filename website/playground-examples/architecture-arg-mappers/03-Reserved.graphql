@@ -1,0 +1,3 @@
+query Reserved {
+  greeting(name: " reserved ")
+}

@@ -1,0 +1,3 @@
+query ResolverFailure {
+  greeting(name: "broken")
+}

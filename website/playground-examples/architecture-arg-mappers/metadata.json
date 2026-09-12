@@ -1,0 +1,8 @@
+{
+  "id": "architecture-arg-mappers",
+  "title": "Argument mapping and error boundaries",
+  "description": "Run Valid to see a trimmed name. Blank throws in the first mapper; Reserved rejects in the async mapper. Both return BAD_USER_INPUT. Resolver failure keeps its original error without that code.",
+  "category": "patterns",
+  "relatedDocs": ["/docs/guide/writing-plugins"],
+  "defaultActiveFile": "plugin.ts"
+}
