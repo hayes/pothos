@@ -77,8 +77,9 @@ export default class CacheNode<Types extends SchemaTypes> {
   }
 
   /**
-   * Lists may be resolved to any iterable, but replacing an entry requires indexed access, so
-   * non-array iterables are materialized into an array the first time an entry is replaced.
+   * List values are normally materialized into an array before they are cached, but a node may be
+   * created with any iterable, so fall back to materializing it here. This only recovers every
+   * entry for iterables that can be iterated more than once.
    */
   private valueAsList(): unknown[] {
     if (Array.isArray(this.value)) {

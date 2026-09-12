@@ -1,7 +1,34 @@
 import type { BuildCache, Path, SchemaTypes } from '@pothos/core';
-import type { GraphQLResolveInfo } from 'graphql';
+import {
+  type GraphQLOutputType,
+  type GraphQLResolveInfo,
+  getNullableType,
+  isListType,
+} from 'graphql';
 import CacheNode from './cache-node.js';
 import type SubscriptionManager from './manager/index.js';
+
+/**
+ * Lists may be resolved to any synchronous iterable, but refetching an entry requires indexed
+ * access, and single-use iterables (like generators) are exhausted by the first execution.
+ * Materializing the iterable before it is cached and executed keeps every entry available for
+ * later refetches. Arrays, async iterables and non-list values are left untouched.
+ */
+function normalizeListValue(type: GraphQLOutputType, value: unknown) {
+  if (!isListType(getNullableType(type)) || Array.isArray(value)) {
+    return value;
+  }
+
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as Iterable<unknown>)[Symbol.iterator] === 'function'
+  ) {
+    return [...(value as Iterable<unknown>)];
+  }
+
+  return value;
+}
 
 export default class SubscriptionCache<Types extends SchemaTypes> {
   manager: SubscriptionManager;
@@ -93,7 +120,7 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
     const node = new CacheNode(
       this,
       path,
-      value,
+      normalizeListValue(info.returnType, value),
       canRefetch || !parent
         ? () => {
             this.invalidPaths.push(path);

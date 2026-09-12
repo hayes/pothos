@@ -38,11 +38,13 @@ export default function resolveWithCache<Types extends SchemaTypes>(
 
     const sub = subscribe?.(cacheNode.managerForField(), parent, args, context, info);
 
+    // The cache node may have normalized the resolved value (see normalizeListValue), and execution
+    // needs to use the same value that will be refetched into later.
     if (isThenable(sub)) {
-      return sub.then(() => result);
+      return sub.then(() => cacheNode.value);
     }
 
-    return result;
+    return cacheNode.value;
   }
 
   return isThenable(resultOrPromise)
