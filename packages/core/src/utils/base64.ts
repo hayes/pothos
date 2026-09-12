@@ -51,7 +51,9 @@ export function decodeBase64(value: string): string {
 
   if (typeof localGlobalThis.atob === 'function') {
     // `atob` returns latin1 code units, so decode the bytes as UTF-8 to match the `Buffer` path.
-    return new TextDecoder().decode(decodeBase64Bytes(value));
+    // `ignoreBOM: true` keeps a leading U+FEFF, which is a character of the encoded string rather
+    // than an encoding marker. Without it TextDecoder strips it and the two paths disagree.
+    return new TextDecoder('utf-8', { ignoreBOM: true }).decode(decodeBase64Bytes(value));
   }
 
   throw new Error('Unable to locate global `Buffer` or `atob`');
