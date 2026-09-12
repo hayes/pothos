@@ -35,7 +35,6 @@ export function valuesFromEnum<Types extends SchemaTypes>(
 ): Record<string, PothosEnumValueConfig<Types>> {
   const result: Record<string, PothosEnumValueConfig<Types>> = {};
 
-  // TypeScript emits a reverse mapping (`[numericValue]: 'MemberName'`) for every numeric member.
   const isReverseMapping = (key: string) => {
     const value = Enum[key];
 

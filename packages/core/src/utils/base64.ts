@@ -31,7 +31,6 @@ export function encodeBase64(value: string): string {
   }
 
   if (typeof localGlobalThis.btoa === 'function') {
-    // `btoa` reads its input as latin1, not UTF-8, and throws on a code point above U+00FF.
     return encodeBase64Bytes(new TextEncoder().encode(value));
   }
 
@@ -50,8 +49,6 @@ export function decodeBase64(value: string): string {
   }
 
   if (typeof localGlobalThis.atob === 'function') {
-    // `atob` returns one latin1 code unit per byte, not UTF-8 text.
-    // `ignoreBOM: true`: `TextDecoder` otherwise strips a leading U+FEFF from its output.
     return new TextDecoder('utf-8', { ignoreBOM: true }).decode(decodeBase64Bytes(value));
   }
 
