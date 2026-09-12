@@ -547,8 +547,21 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       InputShape<Types, Name>,
       ParentShape<Types, Name>
     >,
-  ): PothosSchemaTypes.ScalarRef<Types, InputShape<Types, Name>, ParentShape<Types, Name>> {
-    const ref = new ScalarRef<Types, InputShape<Types, Name>, ParentShape<Types, Name>>(name, {
+    // `ScalarRef` is `<Types, Output, Input, Parent>`: the output shape comes first, matching
+    // `OutputRef`/`InputRef`. The option callbacks keep taking the input shape then the parent
+    // shape, which is the order `ScalarTypeOptions` declares.
+  ): PothosSchemaTypes.ScalarRef<
+    Types,
+    OutputShape<Types, Name>,
+    InputShape<Types, Name>,
+    ParentShape<Types, Name>
+  > {
+    const ref = new ScalarRef<
+      Types,
+      OutputShape<Types, Name>,
+      InputShape<Types, Name>,
+      ParentShape<Types, Name>
+    >(name, {
       kind: 'Scalar',
       graphqlKind: 'Scalar',
       name,

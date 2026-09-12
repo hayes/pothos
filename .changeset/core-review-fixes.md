@@ -3,6 +3,7 @@
 ---
 
 - Compute recursive input mapping reachability to a fixed point so mapped fields reachable only through a cycle are no longer pruned
+- Correct the input and output types on the ref returned by `scalarType`, which were swapped relative to the scalar's `Input`/`Output` shapes
 - Normalize refs (and promises of refs) returned from an interface `resolveType` to type names, as the union path already did
 - Type the fourth argument of an interface `resolveType` callback as `GraphQLInterfaceType` instead of `GraphQLUnionType`
 - Honor the `name` option when implementing an interface ref
