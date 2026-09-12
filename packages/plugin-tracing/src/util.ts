@@ -42,7 +42,9 @@ export function resolveFieldType<Types extends SchemaTypes>(
 const spanCacheSymbol = Symbol.for('Pothos.tracing.spanCache');
 
 interface InternalContext<T> {
-  [spanCacheSymbol]?: Record<string, T>;
+  // A Map rather than an object so that field paths that collide with `Object.prototype`
+  // members (eg. a field aliased `constructor`) can't resolve to an inherited property
+  [spanCacheSymbol]?: Map<string, T>;
 }
 
 export function pathToString(info: GraphQLResolveInfo) {
@@ -80,8 +82,10 @@ export function getParentSpan<T>(context: InternalContext<T>, info: GraphQLResol
   }
 
   for (const path of paths) {
-    if (spanCache[path]) {
-      return spanCache[path];
+    const span = spanCache.get(path);
+
+    if (span) {
+      return span;
     }
   }
 
@@ -98,10 +102,10 @@ export function createSpanWithParent<T>(
   const span = createSpan(stringPath, parentSpan);
 
   if (!(context as InternalContext<T>)[spanCacheSymbol]) {
-    (context as InternalContext<T>)[spanCacheSymbol] = {};
+    (context as InternalContext<T>)[spanCacheSymbol] = new Map();
   }
 
-  (context as InternalContext<T>)[spanCacheSymbol]![stringPath] = span;
+  (context as InternalContext<T>)[spanCacheSymbol]!.set(stringPath, span);
 
   return span;
 }
