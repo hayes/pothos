@@ -19,3 +19,10 @@ driver and their normal migration workflow instead of this playground bridge.
 
 The operation fixtures cover author lookups, aliased relation queries, viewer context, pagination,
 missing rows, related counts, node refetching, computed selections, conditional variants, and attachment edges with filtered cursor pagination.
+
+After running an operation, the **Queries** response tab shows each `db.query.<table>.findFirst`,
+`findMany`, and `db.$count` invocation with the arguments passed to Drizzle, including Pothos's
+nested selections and fallback loads. These are snapshots at API invocation, not a count of SQL
+executions. SQL remains in Console. Callbacks are shown as function source without being evaluated;
+SQL objects, columns, dates, and other non-JSON values use labeled diagnostic representations.
+Captures are replaced on each run and cleared when the example is reset.
