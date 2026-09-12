@@ -92,3 +92,59 @@ export async function plainNodeShape() {
   expectTypeOf(rows.edges[0]!.node.id).toEqualTypeOf<string>();
   expectTypeOf(rows.edges[0]!.cursor).toEqualTypeOf<string>();
 }
+
+// `resolveNode`'s parameter can only be annotated with the model's full row — the helper
+// is built long before anyone calls `wrap`. So a callback that mentions its parameter
+// would otherwise launder that annotation into the node type and promise columns the
+// caller never loaded. `wrap` therefore demands the full row whenever a `resolveNode` is
+// configured, which is exactly what the callback already claims to receive.
+//
+// Each case below is rejected at the `wrap` call, naming the missing columns, rather than
+// silently producing a node type with `email`/`lastName` on it.
+const narrowRows = [{ id: 'a', firstName: 'Alice' }];
+
+const spreadingNode = prismaConnectionHelpers(builder, 'User', {
+  cursor: 'id',
+  resolveNode: (row) => ({ ...row, extra: 1 }),
+});
+
+const identityNode = prismaConnectionHelpers(builder, 'User', {
+  cursor: 'id',
+  resolveNode: (row) => row,
+});
+
+export async function narrowedRowsRejected() {
+  const spreading = await spreadingNode.applyPagination(
+    ctx.ormClient.User,
+    { first: 1 },
+    undefined,
+    {},
+  );
+  // @ts-expect-error a spreading callback would claim `email`/`lastName` these rows lack.
+  spreading.wrap(narrowRows);
+
+  const identity = await identityNode.applyPagination(
+    ctx.ormClient.User,
+    { first: 1 },
+    undefined,
+    {},
+  );
+  // @ts-expect-error an identity callback would re-declare the node as the full row.
+  identity.wrap(narrowRows);
+
+  const wrapper = await wrappedNodes.applyPagination(
+    ctx.ormClient.User,
+    { first: 1 },
+    undefined,
+    {},
+  );
+  // @ts-expect-error the documented wrapper form would put the full row under `.user`.
+  wrapper.wrap(narrowRows);
+
+  // The full row satisfies the constraint, so the ordinary path is untouched — the node
+  // type is then true, because the callback really did receive what it was annotated with.
+  const full = await spreadingNode.applyPagination(ctx.ormClient.User, { first: 1 }, undefined, {});
+  const result = full.wrap(await full.collection.all());
+  expectTypeOf(result.edges[0]!.node.extra).toEqualTypeOf<number>();
+  expectTypeOf(result.edges[0]!.node.email).toEqualTypeOf<string>();
+}

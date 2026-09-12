@@ -48,6 +48,27 @@ import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/tot
  */
 export type ConnectionNodeShape<Node, WrapRow> = [Node] extends [never] ? WrapRow : Node;
 
+/**
+ * What `wrap` accepts as rows.
+ *
+ * `resolveNode` is supplied when the helper is built, so its parameter can only be
+ * annotated with the model's full row — the shape of the rows actually handed to `wrap` is
+ * not known until much later. Inferring `Node` from that callback's return type therefore
+ * only tells the truth if the rows really are full rows: a callback that mentions its
+ * parameter (`(row) => ({ ...row, extra: 1 })`, or plain `(row) => row`) would otherwise
+ * propagate the full-row annotation into the node type and promise columns the caller
+ * never loaded.
+ *
+ * So when a `resolveNode` is configured, `wrap` requires the full row, which is what the
+ * callback already claims to receive. Without one, rows are unconstrained as before and a
+ * caller may narrow the selection freely.
+ */
+export type ConnectionWrapRows<Types extends SchemaTypes, M extends ModelName<Types>, Node> = [
+  Node,
+] extends [never]
+  ? Record<string, unknown>
+  : Row<Types, M>;
+
 export interface PrismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -71,7 +92,7 @@ export interface PrismaConnectionHelpers<
   ): MaybePromise<{
     collection: CollectionFor<Types, M>;
     totalCountPromise: Promise<number> | undefined;
-    wrap<WrapRow extends Record<string, unknown>>(
+    wrap<WrapRow extends ConnectionWrapRows<Types, M, Node>>(
       rows: readonly WrapRow[],
       totalCount?: number,
     ): ConnectionPage<ConnectionNodeShape<Node, WrapRow>>;
@@ -231,7 +252,7 @@ export function prismaConnectionHelpers<
         get totalCountPromise() {
           return getTotalCountPromise();
         },
-        wrap<WrapRow extends Record<string, unknown>>(
+        wrap<WrapRow extends ConnectionWrapRows<Types, M, Node>>(
           rows: readonly WrapRow[],
           totalCount?: number,
         ): ConnectionPage<ConnectionNodeShape<Node, WrapRow>> {

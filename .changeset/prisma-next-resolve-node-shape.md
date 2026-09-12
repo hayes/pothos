@@ -15,5 +15,12 @@ as `string` while the runtime value was `undefined`, and strict `tsc` accepted i
 `resolveNode` are unaffected: `Node` stays at its `never` default and `wrap` keeps
 inferring the node from its own argument, including rows narrowed before materializing.
 
+Because `resolveNode` is supplied when the helper is built, its parameter can only be
+annotated with the model's full row. `wrap` now requires the full row whenever a
+`resolveNode` is configured, so a callback that mentions its parameter — `(row) => row`, or
+`(row) => ({ ...row, extra: 1 })` — can no longer launder that annotation into the node
+type and promise columns the caller never loaded. Passing narrowed rows to such a helper is
+now rejected at the `wrap` call, naming the missing columns.
+
 Runtime behaviour is unchanged — the transform still runs after `buildConnectionPage`, so
 each edge's cursor is still encoded from the original row.
