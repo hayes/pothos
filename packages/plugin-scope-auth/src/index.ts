@@ -24,6 +24,7 @@ import {
   createResolveStep,
   createTypeAuthScopesStep,
   createTypeGrantScopesStep,
+  typeAuthScopesStepKey,
 } from './steps.js';
 import type { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types.js';
 
@@ -375,7 +376,16 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       // repeated, and `runScopesOnType` is read from the concrete type so that a type running its
       // scopes in `isTypeOf` does not also run them here.
       if (inherited && this.runTypeScopesOnField(ownerTypeConfig)) {
-        const seen = new Set(stepsForType.map((step) => step.key));
+        // The declaring interface's own auth check belongs to the pass above, including its
+        // decision to omit it for `skipTypeScopes` or `skipInterfaceScopes`. The concrete type
+        // implements that interface, so its interface walk below would otherwise add the check back
+        // through a gate the pass above does not share, undoing an explicit opt out. Seeding the
+        // key covers the omitted case; steps that were emitted are added to the set below.
+        const seen = new Set<string | undefined>([typeAuthScopesStepKey(typeConfig.name)]);
+
+        for (const step of stepsForType) {
+          seen.add(step.key);
+        }
 
         for (const step of this.createStepsForType(ownerTypeConfig, skipScopeOptions)) {
           if (!step.key || !seen.has(step.key)) {

@@ -343,6 +343,20 @@ describe('skipTypeScopes and skipInterfaceScopes with inherited interface fields
     fields: () => ({}),
   });
 
+  const SecondIface = builder.interfaceRef<{ kind: string }>('SkipSecondIface').implement({
+    authScopes: { admin: true },
+    resolveType: (parent) => parent.kind,
+    fields: (t) => ({
+      second: t.string({ resolve: () => 'ok' }),
+    }),
+  });
+
+  const TwoIfaceObj = builder.objectRef<{ kind: string }>('TwoIfaceObj').implement({
+    interfaces: [AdminIface, SecondIface],
+    authScopes: { objOk: true },
+    fields: () => ({}),
+  });
+
   builder.queryType({
     fields: (t) => ({
       obj: t.field({ type: SkipObj, nullable: true, resolve: () => ({ kind: 'SkipObj' }) }),
@@ -350,6 +364,11 @@ describe('skipTypeScopes and skipInterfaceScopes with inherited interface fields
         type: NoSkipObj,
         nullable: true,
         resolve: () => ({ kind: 'NoSkipObj' }),
+      }),
+      twoIfaceObj: t.field({
+        type: TwoIfaceObj,
+        nullable: true,
+        resolve: () => ({ kind: 'TwoIfaceObj' }),
       }),
     }),
   });
@@ -415,6 +434,22 @@ describe('skipTypeScopes and skipInterfaceScopes with inherited interface fields
 
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ obj: { skipsType: 'ok' } });
+  });
+
+  it('honors skipTypeScopes without the object also setting skipInterfaceScopes', async () => {
+    const result = await run(schema, '{ noSkipObj { skipsType } }', createContext());
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ noSkipObj: { skipsType: 'ok' } });
+  });
+
+  it('keeps running the other interfaces of the object when the field skips type scopes', async () => {
+    const result = await run(schema, '{ twoIfaceObj { skipsType } }', createContext());
+
+    expect(result.data).toEqual({ twoIfaceObj: { skipsType: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Not authorized to read fields for SkipSecondIface',
+    ]);
   });
 
   it('resolves when both the interface and the implementing type authorize', async () => {

@@ -8,13 +8,26 @@ import type {
   TypeGrantScopes,
 } from './types.js';
 
+/**
+ * Step keys identify the policy a step enforces so that step lists merged from more than one type
+ * config (an interface and the object that implements it) neither run the same policy twice nor
+ * re-add one that was deliberately skipped.
+ */
+export function typeAuthScopesStepKey(type: string) {
+  return `authScopes:${type}`;
+}
+
+export function typeGrantScopesStepKey(type: string) {
+  return `grantScopes:${type}`;
+}
+
 export function createTypeAuthScopesStep<Types extends SchemaTypes>(
   authScopes: TypeAuthScopes<Types, unknown>,
   type: string,
 ): ResolveStep<Types> {
   if (typeof authScopes === 'function') {
     return {
-      key: `authScopes:${type}`,
+      key: typeAuthScopesStepKey(type),
       run: (state, parent, _args, _context, info) =>
         state.evaluateTypeScopeFunction(authScopes, type, parent, info),
       errorMessage: `Not authorized to read fields for ${type}`,
@@ -22,7 +35,7 @@ export function createTypeAuthScopesStep<Types extends SchemaTypes>(
   }
 
   return {
-    key: `authScopes:${type}`,
+    key: typeAuthScopesStepKey(type),
     run: (state, _parent, _args, _context, info) => state.evaluateScopeMap(authScopes, info),
     errorMessage: `Not authorized to read fields for ${type}`,
   };
@@ -34,7 +47,7 @@ export function createTypeGrantScopesStep<Types extends SchemaTypes>(
   forField: boolean,
 ): ResolveStep<Types> {
   return {
-    key: `grantScopes:${type}`,
+    key: typeGrantScopesStepKey(type),
     run: (state, parent, _args, context, info) =>
       state.grantTypeScopes(type, parent, forField ? info.path.prev : info.path, () =>
         grantScopes(parent, context),
