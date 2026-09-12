@@ -112,8 +112,6 @@ it('does not execute the root collection when a root scope denies access', async
   expect(captures).toHaveLength(0);
 });
 
-// Type-level fixture, never executed: the narrowed parent shape has to survive
-// `withAuth`'s re-parameterization of the field builder.
 function _narrowedParentShapeSurvivesWithAuth() {
   const builder = new SchemaBuilder<{
     PrismaNextContract: SampleContract;

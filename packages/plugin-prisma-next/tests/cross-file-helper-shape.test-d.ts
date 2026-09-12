@@ -13,13 +13,6 @@ const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
 
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
 
-//
-// ── Negative fixtures ───────────────────────────────────────────────────
-//
-// Each `@ts-expect-error` below is the assertion: an unused-directive
-// diagnostic means the narrowing stopped applying.
-//
-
 builder.prismaObjectField('User', 'undeclaredViaObjectField', (t) =>
   t.string({
     // @ts-expect-error The string form's parent carries only declared dependencies.
@@ -175,10 +168,6 @@ builder.prismaNode('User', {
   fields: (t) => ({ firstName: t.exposeString('firstName') }),
 });
 
-//
-// ── Positive fixtures ───────────────────────────────────────────────────
-//
-
 builder.prismaObjectField('User', 'declaredArrayForm', (t) =>
   t.string({
     select: ['email'],
@@ -235,8 +224,6 @@ builder.prismaNode('User', {
   }),
 });
 
-// `t.expose*` is checked against the builder's separate `ExposableShape` generic,
-// not `Shape`.
 builder.prismaObjectFields('User', (t) => ({
   exposedFirstName: t.exposeString('firstName'),
   exposedId: t.exposeID('id'),
@@ -246,13 +233,6 @@ builder.prismaObjectFields('User', (t) => ({
 builder.prismaInterfaceFields('User', (t) => ({
   interfaceExposedFirstName: t.exposeString('firstName'),
 }));
-
-//
-// ── The ref form ────────────────────────────────────────────────────────
-//
-// Passing a ref infers `Shape` from the ref, so the parent is whatever the
-// registered object declared.
-//
 
 const bareUserRef = builder.prismaObject('User', {
   variant: 'BareRefUser',
@@ -280,14 +260,6 @@ builder.prismaObjectFields(selectedUserRef, (t) => ({
     },
   }),
 }));
-
-//
-// ── Escape hatch ────────────────────────────────────────────────────────
-//
-// `Shape` is the second positional type parameter, so a caller can ask for
-// the full-row parent explicitly. The `select` is still what makes the
-// column present at runtime.
-//
 
 builder.prismaObjectField<'User', Row<Types, 'User'>>('User', 'escapeHatch', (t) =>
   t.string({

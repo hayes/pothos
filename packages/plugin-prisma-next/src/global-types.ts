@@ -60,10 +60,9 @@ type ObjectLevelShape<
 > = ShapeFromObjectSelect<Types, M, never, Select>;
 
 /**
- * Keys an object-form `select` names that the model doesn't have. Only the object form
- * needs this: TypeScript's excess-property check fires on a fresh literal only against a
- * *concrete* target, so once `Select` is a type parameter `{ email: true, emial: true }`
- * satisfies `SelectObjectSpec` structurally and `emial` rides along.
+ * Excess-property checking fires on a fresh object literal only against a concrete target:
+ * against a type parameter `Select`, `{ email: true, emial: true }` satisfies
+ * `SelectObjectSpec` structurally and `emial` rides along.
  */
 type UnknownSelectKeys<
   Types extends SchemaTypes,
@@ -76,12 +75,6 @@ type UnknownSelectKeys<
     : never;
 
 /**
- * `unknown` when every object-form `select` key is real, otherwise a type that nothing
- * satisfies and whose text names the offending keys. Applied as a second intersected
- * `select` member beside the bare `select?: Select` that does the inferring: `unknown` is
- * the identity of `&`, so a valid select is untouched and an invalid one fails *on the
- * `select` property*.
- *
  * Not a defaulted phantom type parameter: TypeScript checks a parameter default against
  * its constraint at the declaration site, where `Select` is still unresolved.
  */
@@ -90,20 +83,13 @@ type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Sel
 ] extends [never]
   ? unknown
   : {
-      // The key *is* the message: TypeScript names the missing required property, so the
-      // diagnostic reads as a sentence. The `never` value makes it unsatisfiable.
+      // TypeScript names a missing required property in the diagnostic text.
       [K in UnknownSelectKeys<Types, M, Select> & string as `Unknown key in select: ${K}`]: never;
     };
 
 /**
- * Columns a `prismaNode`'s `id.field` declares — the single column, or every column of a
- * compound tuple.
- *
- * `id.field` is a dependency declaration in its own right: the schema builder registers
- * those columns in the ID field's own selection extensions (`PRISMA_NEXT_FIELD_SELECT`,
- * `schema-builder.ts`) before it calls `id.resolve`, so a custom ID resolver really is
- * handed them. Scoped to `id.resolve`: the selection lives on the `id` field, so other
- * field resolvers on the same type still can't assume the ID columns are present.
+ * `schema-builder.ts` registers `id.field`'s columns in the ID field's own selection
+ * extensions (`PRISMA_NEXT_FIELD_SELECT`) before calling `id.resolve`.
  */
 type IdFieldShape<
   Types extends SchemaTypes,
@@ -203,16 +189,6 @@ declare global {
         },
       ) => PrismaNextInterfaceRef<Types, M, Shape>;
 
-      /**
-       * Add one field to an already-registered prismaObject from another file.
-       *
-       * A `PrismaNextObjectRef` carries the shape the registered object declared; a
-       * model-name string can't see that declaration, so the parent is
-       * `ObjectBaseShape` — the brand and nothing else — and the field declares the
-       * columns its resolver reads with its own `select`, which layers onto the base
-       * additively. `Shape` is the second positional type argument for a caller who
-       * wants the full row back.
-       */
       prismaObjectField: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fieldName: string,
@@ -225,12 +201,6 @@ declare global {
         ) => FieldRef<Types, unknown>,
       ) => void;
 
-      /**
-       * Add fields to an already-registered prismaObject from another file. Same
-       * parent-shape rule as `prismaObjectField`: a ref carries the declared shape, a
-       * model-name string gives the brand-only `ObjectBaseShape`, and each field's own
-       * `select` adds the columns its resolver reads.
-       */
       prismaObjectFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fields: (
@@ -242,12 +212,6 @@ declare global {
         ) => FieldMap,
       ) => void;
 
-      /**
-       * Add one field to an already-registered prismaInterface from another file. Same
-       * parent-shape rule as `prismaObjectField`: a ref carries the declared shape, a
-       * model-name string gives the brand-only `ObjectBaseShape`, and each field's own
-       * `select` adds the columns its resolver reads.
-       */
       prismaInterfaceField: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fieldName: string,
@@ -260,12 +224,6 @@ declare global {
         ) => FieldRef<Types, unknown>,
       ) => void;
 
-      /**
-       * Add fields to an already-registered prismaInterface from another file. Same
-       * parent-shape rule as `prismaObjectField`: a ref carries the declared shape, a
-       * model-name string gives the brand-only `ObjectBaseShape`, and each field's own
-       * `select` adds the columns its resolver reads.
-       */
       prismaInterfaceFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fields: (
@@ -277,19 +235,10 @@ declare global {
         ) => FieldMap,
       ) => void;
 
-      /**
-       * Register a prismaObject that also implements the Relay `Node` interface. The
-       * parent shape is computed from `select` exactly as `prismaObject` computes it
-       * (`ObjectLevelShape`). `Select` is the third positional type argument and `Shape`
-       * the fourth, matching `prismaObject`'s ordering.
-       */
       prismaNode: 'relay' extends PluginName
         ? <
             const Interfaces extends InterfaceParam<Types>[],
             M extends ModelName<Types>,
-            // `undefined`, not `unknown`, is the no-select default so the constraint
-            // stays satisfiable; `ShapeFromObjectSelect` maps either to the brand-only
-            // base.
             const Select extends
               | readonly (keyof Row<Types, M> & string)[]
               | SelectObjectSpec<Types, M>
@@ -317,11 +266,6 @@ declare global {
                   >;
                 };
                 parse?: (id: string, ctx: Types['Context']) => IDShape;
-                /**
-                 * The parent is the object-level shape plus whatever `id.field`
-                 * named — those columns are selected for this field, so reading
-                 * them needs no extra `select`.
-                 */
                 resolve?: (
                   parent: Shape & IdFieldShape<Types, M, IDFields>,
                   ctx: Types['Context'],
@@ -330,8 +274,6 @@ declare global {
               collection:
                 | CollectionFor<Types, M>
                 | ((ctx: Types['Context']) => CollectionFor<Types, M>);
-              // The bare `select?: Select` above is the inference site; this intersected
-              // member is the exactness check.
             } & { select?: ExactSelectCheck<Types, M, Select> },
           ) => PrismaNextNodeRef<Types, M, Shape, IDShape>
         : '@pothos/plugin-relay is required to use this method';

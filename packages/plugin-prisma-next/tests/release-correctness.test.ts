@@ -116,8 +116,6 @@ describe('Relay node types across planned entry points', () => {
       relay: {},
       prismaNext: { contract: ctx.contract },
     });
-    // Neither node declares an object-level `select`: `id.field` is the only
-    // declaration of these columns.
     builder.prismaNode('User', {
       id: { field: 'id', resolve: (row) => `u:${row.id}` },
       collection: ctx.ormClient.User,
