@@ -81,10 +81,6 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     return resolver;
   }
 
-  /**
-   * Returns a resolver that resolves the type policy from `info.parentType` (the concrete type the
-   * field is being resolved on) rather than from the interface that declared the field.
-   */
   createInheritedFieldResolver(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -123,11 +119,6 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       resolverForType(info.parentType.name)(parent, args, context, info);
   }
 
-  /**
-   * Resolves the config for the concrete type a field is being resolved on. Types that have no
-   * Pothos config (types added to the schema outside of the builder) fall back to the declaring
-   * interface.
-   */
   getOwnerTypeConfig(
     typeName: string,
     declaringTypeConfig: PothosInterfaceTypeConfig,
@@ -339,7 +330,6 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
 
     const inherited = !!ownerTypeConfig && ownerTypeConfig !== typeConfig;
 
-    // The declaring interface arrives as `typeConfig`, so its `authScopes` is an interface check.
     const skipDeclaringInterfaceScopes =
       inherited &&
       (skipScopeOptions.skipInterfaceScopes ||
