@@ -35,7 +35,17 @@ export function valuesFromEnum<Types extends SchemaTypes>(
 ): Record<string, PothosEnumValueConfig<Types>> {
   const result: Record<string, PothosEnumValueConfig<Types>> = {};
 
-  for (const key of Object.keys(Enum).filter((key) => typeof Enum[Enum[key]] !== 'number')) {
+  // TypeScript adds a reverse mapping (`[numericValue]: 'MemberName'`) for every numeric member.
+  // Only skip keys that actually are one of those entries: a numeric key whose member maps back to
+  // it. Filtering on `typeof Enum[Enum[key]] !== 'number'` alone also drops real string members
+  // whose value happens to name a numeric member (`enum Mixed { A = 'B', B = 1 }`).
+  const isReverseMapping = (key: string) => {
+    const value = Enum[key];
+
+    return typeof value === 'string' && Enum[value] === Number(key);
+  };
+
+  for (const key of Object.keys(Enum).filter((key) => !isReverseMapping(key))) {
     result[key] = {
       value: Enum[key],
       pothosOptions: {},

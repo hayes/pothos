@@ -1,4 +1,4 @@
-import { execute } from 'graphql';
+import { execute, type GraphQLEnumType } from 'graphql';
 import gql from 'graphql-tag';
 import SchemaBuilder, { type SchemaTypes } from '../src';
 
@@ -229,5 +229,44 @@ describe('ways to add enums', () => {
       `,
     });
     expect(result.data).toMatchObject({ vroom: 'motorcycle' });
+  });
+
+  it('heterogeneous enum where a string value collides with a numeric member name', async () => {
+    enum Mixed {
+      A = 'B',
+      B = 1,
+    }
+
+    const builder = new SchemaBuilder({});
+    const MixedEnum = builder.enumType(Mixed, { name: 'Mixed' });
+
+    builder.queryType({
+      fields: (t) => ({
+        a: t.field({ type: MixedEnum, resolve: () => Mixed.A }),
+        b: t.field({ type: MixedEnum, resolve: () => Mixed.B }),
+      }),
+    });
+
+    const schema = builder.toSchema();
+
+    expect(
+      (schema.getType('Mixed') as GraphQLEnumType)
+        .getValues()
+        .map((value) => value.name)
+        .sort(),
+    ).toEqual(['A', 'B']);
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          a
+          b
+        }
+      `,
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toMatchObject({ a: 'A', b: 'B' });
   });
 });
