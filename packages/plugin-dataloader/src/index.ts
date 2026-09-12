@@ -78,7 +78,6 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
         return result;
       }
 
-      // An Error in a list position is how graphql-js is told to null that position.
       if (result instanceof Error) {
         return result;
       }
