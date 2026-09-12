@@ -311,6 +311,27 @@ syncBuilder.prismaObject('User', {
   }),
 });
 
+// A node's `findUnique` is ungated by `AsyncSelections`, as `id.resolve` beside it already is:
+// the where a custom lookup builds is as async as the ID resolver it is built from, and the model
+// loader awaits it. Both shapes compile on the builder that opted into nothing.
+syncBuilder.prismaNode('User', {
+  variant: 'SyncFindUniqueUser',
+  id: { resolve: (user) => String(user.id) },
+  findUnique: (id) => ({ id: Number(id) }),
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
+syncBuilder.prismaNode('User', {
+  variant: 'AsyncFindUniqueUser',
+  id: { resolve: async (user) => String(user.id) },
+  findUnique: async (id) => ({ id: Number(id) }),
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
 // The shapes above reach `CheckAsyncSelection` only if the option's own type lets them through,
 // which hides what the check itself answers. Asked directly, it answers `unknown` for a callback
 // it accepts and the diagnostic for one it rejects.

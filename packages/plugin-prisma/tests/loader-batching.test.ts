@@ -221,6 +221,39 @@ const User = builder.prismaObject('User', {
   }),
 });
 
+// A node whose custom `findUnique` builds its where from an ID the resolver settles later. The
+// loader waits for that where inside the flush loop, after the batch it belongs to is closed.
+const AsyncIdUser = builder.prismaNode('User', {
+  variant: 'AsyncIdUser',
+  id: {
+    resolve: async (user) => {
+      await macrotask();
+
+      return String(user.id);
+    },
+  },
+  findUnique: (id) => ({ id: Number(id) }),
+  fields: (t) => ({
+    titles: t.stringList({
+      select: { posts: postsSelect },
+      resolve: (user) => user.posts.map((post) => post.title),
+    }),
+  }),
+});
+
+// The same node with the ID resolved in place: the counts the async one is read against.
+const SyncIdUser = builder.prismaNode('User', {
+  variant: 'SyncIdUser',
+  id: { resolve: (user) => String(user.id) },
+  findUnique: (id) => ({ id: Number(id) }),
+  fields: (t) => ({
+    titles: t.stringList({
+      select: { posts: postsSelect },
+      resolve: (user) => user.posts.map((post) => post.title),
+    }),
+  }),
+});
+
 // The same rows behind a field that returns each of them a different number of macrotasks later:
 // the shape a batch cannot hold together, and the control the counts below are read against.
 const StaggeredUser = builder.prismaObject('User', {
@@ -250,6 +283,14 @@ builder.queryType({
     }),
     staggeredUsers: t.field({
       type: [StaggeredUser],
+      resolve: () => prisma.user.findMany({ take: ROWS, orderBy: { id: 'asc' } }),
+    }),
+    rawAsyncIdUsers: t.field({
+      type: [AsyncIdUser],
+      resolve: () => prisma.user.findMany({ take: ROWS, orderBy: { id: 'asc' } }),
+    }),
+    rawSyncIdUsers: t.field({
+      type: [SyncIdUser],
       resolve: () => prisma.user.findMany({ take: ROWS, orderBy: { id: 'asc' } }),
     }),
     // The same rows with their posts loaded raw beside them, so the nested list resolves
@@ -335,6 +376,19 @@ describe('model loader batching under async selections', () => {
     expect(async.batches).toBe(sync.batches);
     expect(async.loads).toBe(sync.loads);
     expect(async).toMatchObject({ batches: 1, loads: ROWS, selections: 1 });
+  });
+
+  it('batches a list of rows whose node IDs resolve asynchronously', async () => {
+    const sync = await count(gql`{ rawSyncIdUsers { titles } }`);
+    const async = await count(gql`{ rawAsyncIdUsers { titles } }`);
+
+    // The where each row's `findUnique` builds is awaited inside the flush loop, after
+    // `stageQuery` has already decided which batch the row belongs to — so an async ID costs the
+    // same one batch and the same one merged selection a synchronous one does. `loads` stays ROWS
+    // in both: the batch merges what the rows select, not the round trips they take.
+    expect(sync).toMatchObject({ batches: 1, loads: ROWS, selections: 1 });
+    expect(async).toMatchObject({ batches: 1, loads: ROWS, selections: 1 });
+    expect(async.selections).toBe(sync.selections);
   });
 
   it('batches two async selections that settle in one drain', async () => {

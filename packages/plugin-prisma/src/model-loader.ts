@@ -24,7 +24,9 @@ export class ModelLoader {
 
   builder: PothosSchemaTypes.SchemaBuilder<never>;
 
-  findUnique: (model: Record<string, unknown>, ctx: {}) => unknown;
+  // `MaybePromise` because a node's `id.resolve` may be async and the user's `findUnique` builds
+  // the where from the ID it settles to. The flush loop below waits for it, and only for it.
+  findUnique: (model: Record<string, unknown>, ctx: {}) => MaybePromise<unknown>;
 
   modelName: string;
 
@@ -45,7 +47,7 @@ export class ModelLoader {
     context: object,
     builder: PothosSchemaTypes.SchemaBuilder<never>,
     modelName: string,
-    findUnique: (model: Record<string, unknown>, ctx: {}) => unknown,
+    findUnique: (model: Record<string, unknown>, ctx: {}) => MaybePromise<unknown>,
   ) {
     this.context = context;
     this.builder = builder;
@@ -56,7 +58,10 @@ export class ModelLoader {
   static forRef<Types extends SchemaTypes>(
     ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
     modelName: string,
-    findUnique: ((model: Record<string, unknown>, ctx: {}) => unknown) | null | undefined,
+    findUnique:
+      | ((model: Record<string, unknown>, ctx: {}) => MaybePromise<unknown>)
+      | null
+      | undefined,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
     return createContextCache(
@@ -314,6 +319,24 @@ export class ModelLoader {
     this.tick.then(() => {
       this.staged.delete(entry);
 
+      const rejectBatch = (error: unknown) => {
+        for (const { reject } of entry.models.values()) {
+          reject(error);
+        }
+      };
+
+      const load = (where: {}) =>
+        delegate.findUniqueOrThrow
+          ? delegate.findUniqueOrThrow({
+              ...prismaAdapter.toQuery(entry.root),
+              where: { ...where },
+            } as never)
+          : delegate.findUnique({
+              rejectOnNotFound: true,
+              ...prismaAdapter.toQuery(entry.root),
+              where: { ...where },
+            } as never);
+
       // A throw here — `toQuery`, `findUnique`, or the delegate call itself — would otherwise abort
       // the loop, leaving every model it had not reached pending forever and the request with it.
       // The whole batch rejects instead, the way drizzle's loader does; a promise the loop already
@@ -321,31 +344,29 @@ export class ModelLoader {
       // its own.
       try {
         for (const [model, { resolve, reject }] of entry.models) {
-          if (delegate.findUniqueOrThrow) {
-            delegate
-              .findUniqueOrThrow({
-                ...prismaAdapter.toQuery(entry.root),
-                where: {
-                  ...(this.findUnique(model as Record<string, unknown>, this.context) as {}),
-                },
-              } as never)
-              .then(resolve as () => {}, reject);
+          const where = this.findUnique(model as Record<string, unknown>, this.context);
+
+          // A where built from an async `id.resolve` settles a microtask or more later, and
+          // spreading the promise itself would make an unfiltered lookup. Only that row waits:
+          // batch membership was sealed at `stageQuery`, before this loop ran, so nothing here
+          // moves a boundary. A synchronous where never leaves this tick.
+          if (isThenable(where)) {
+            where.then((settled) => {
+              // The same containment across the await: a rejected where, or a throw from the
+              // delegate call it was waiting for, takes the whole batch rather than escaping and
+              // stranding every model the loop had already reached.
+              try {
+                load(settled as {}).then(resolve as () => {}, reject);
+              } catch (error) {
+                rejectBatch(error);
+              }
+            }, rejectBatch);
           } else {
-            delegate
-              .findUnique({
-                rejectOnNotFound: true,
-                ...prismaAdapter.toQuery(entry.root),
-                where: {
-                  ...(this.findUnique(model as Record<string, unknown>, this.context) as {}),
-                },
-              } as never)
-              .then(resolve as () => {}, reject);
+            load(where as {}).then(resolve as () => {}, reject);
           }
         }
       } catch (error) {
-        for (const { reject } of entry.models.values()) {
-          reject(error);
-        }
+        rejectBatch(error);
       }
     });
     setTimeout(() => nextTick.resolve(), 0);

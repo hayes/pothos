@@ -427,12 +427,14 @@ export type PrismaNodeOptions<
     | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
     'fields' | 'isTypeOf'
   > &
+  // The where may settle later: `id.resolve` below is itself a `MaybePromise`, and a callback
+  // built from the ID it settles to is as async as the resolver that produced it.
   (UniqueField extends string
     ? {
-        findUnique?: (id: string, context: Types['Context']) => Model['WhereUnique'];
+        findUnique?: (id: string, context: Types['Context']) => MaybePromise<Model['WhereUnique']>;
       }
     : {
-        findUnique: (id: string, context: Types['Context']) => Model['WhereUnique'];
+        findUnique: (id: string, context: Types['Context']) => MaybePromise<Model['WhereUnique']>;
       }) & {
     id: Omit<
       FieldOptionsFromKind<
