@@ -17,6 +17,22 @@ export * from './types.js';
 export * from './util.js';
 
 const pluginName = 'dataloader';
+
+// Resolvers for list fields are allowed to return any Iterable, but the loader wrappers below need
+// to be able to map over the results, so non-array iterables are consumed into an array first.
+// Anything that isn't iterable is passed through unchanged so it fails the way it did before.
+function toResolvedList(value: unknown): unknown[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (typeof value === 'object' && value !== null && Symbol.iterator in value) {
+    return [...(value as Iterable<unknown>)];
+  }
+
+  return value as unknown[];
+}
+
 export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
@@ -65,14 +81,17 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
       return (parent, args, context, info) => {
         const loader = getDataloader(context);
         const promiseOrResults = resolver(parent, args, context, info) as MaybePromise<
-          unknown[] | null | undefined
+          Iterable<unknown> | null | undefined
         >;
 
+        const loadList = (results: Iterable<unknown> | null | undefined) =>
+          results == null ? results : toResolvedList(results).map((item) => loadIfID(item, loader));
+
         if (isThenable(promiseOrResults)) {
-          return promiseOrResults.then((results) => results?.map((item) => loadIfID(item, loader)));
+          return promiseOrResults.then(loadList);
         }
 
-        return promiseOrResults?.map((item) => loadIfID(item, loader));
+        return loadList(promiseOrResults);
       };
     }
 

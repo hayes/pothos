@@ -85,7 +85,10 @@ fieldBuilderProto.loadable = function loadable<
       const loader = getLoader(args, context, info);
 
       if (Array.isArray(type)) {
-        return rejectErrors((ids as Key[]).map((id) => (id == null ? id : loader.load(id))));
+        // list resolvers are allowed to return any Iterable, so consume it before mapping
+        const keys = Array.isArray(ids) ? (ids as Key[]) : [...(ids as unknown as Iterable<Key>)];
+
+        return rejectErrors(keys.map((id) => (id == null ? id : loader.load(id))));
       }
 
       return loader.load(ids as Key);
