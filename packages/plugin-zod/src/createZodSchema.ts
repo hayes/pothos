@@ -3,6 +3,7 @@ import * as zod from 'zod';
 import type {
   ArrayValidationOptions,
   BaseValidationOptions,
+  Constraint,
   NumberValidationOptions,
   RefineConstraint,
   StringValidationOptions,
@@ -141,6 +142,15 @@ function normalizeRefinements(refine: RefineConstraint): RefineTuple[] {
   );
 }
 
+/**
+ * Boolean constraints may be given as a bare boolean, or as a `[enabled, options]` tuple. In the
+ * tuple form the flag itself decides whether the constraint applies, so `[false, { message }]`
+ * disables it just like a bare `false`.
+ */
+function isFlagEnabled(constraint: Constraint<boolean> | undefined): boolean {
+  return Array.isArray(constraint) ? constraint[0] : !!constraint;
+}
+
 export const createNumberValidator = validatorCreator(
   'number',
   numberValidations,
@@ -168,9 +178,10 @@ export const createNumberValidator = validatorCreator(
     ] as const;
 
     for (const constraint of booleanConstraints) {
-      if (options[constraint]) {
-        const value = options[constraint];
-        validator = validator[constraint](Array.isArray(value) ? value[1] : {});
+      const value = options[constraint];
+
+      if (isFlagEnabled(value)) {
+        validator = validator[constraint](Array.isArray(value) ? (value[1] ?? {}) : {});
       }
     }
 
@@ -223,10 +234,10 @@ export const createStringValidator = validatorCreator(
     const booleanConstraints = ['email', 'url', 'uuid'] as const;
 
     for (const constraint of booleanConstraints) {
-      if (options[constraint]) {
-        const value = options[constraint];
+      const value = options[constraint];
 
-        validator = validator[constraint](Array.isArray(value) ? value[1] : {});
+      if (isFlagEnabled(value)) {
+        validator = validator[constraint](Array.isArray(value) ? (value[1] ?? {}) : {});
       }
     }
 
