@@ -12,7 +12,7 @@ Read this before adding playground links, writing a guide, changing an example, 
 
 Completion means the reader can follow the explanation, run the corresponding code, make the suggested edit, and observe the promised effect. A compiling schema, valid query, working URL, or shorter page alone does not establish that.
 
-Write docs for readers who will read and copy the code without opening the playground. Keep API explanations, relevant outcomes, and complete local workflows in the docs. Put operation-tab selection, suggested edits, and run/reset instructions in `metadata.description` or the current step’s `description`, which the playground guide panel displays. Keep this guidance concise. Package READMEs contain code snippets and API explanations. Omit links and references to browser or local example projects, repository test commands, and instructions for running or editing those projects.
+Write docs for readers who will read and copy the code without opening the playground. Keep API explanations, relevant outcomes, and complete local workflows in the docs. Use `metadata.description` to introduce the example and explain what the reader can observe. Keep it concise and understandable before opening any operation. Put operation-specific suggestions in comments beside the relevant GraphQL operation, or in the current step’s `description` when they belong to that step. Package READMEs contain code snippets and API explanations. Omit links and references to browser or local example projects, repository test commands, and instructions for running or editing those projects.
 
 Start introductory examples with one source file and one useful query. Add variables, context, helper files, steps, or variants when they teach the page's concept, not to demonstrate the toolkit. Keep trivial resolvers inline. Choose `defaultActiveFile` so a step opens on the code the reader needs; verify the initial file in the actual playground. Follow the full step sequence, including moving backward and resetting, rather than checking only isolated step URLs.
 
@@ -42,7 +42,7 @@ objects/
 
 Keep the ID equal to the directory name. `schema.ts` exports a named `schema`, built with `builder.toSchema()`. Use actual current package APIs. `category` accepts `core`, `plugins`, `examples`, or `patterns`; optional `subcategory`, `tags`, `difficulty` and `order` support catalog organization. `difficulty` accepts `beginner`, `intermediate`, or `advanced`. Metadata is not a curriculum engine: `prerequisites` is carried in the bundle but does not load dependencies or enforce completion.
 
-The guide area displays the example description, or the current step description, as **plain text**, with the first `relatedDocs` link and a reset action. Write short actionable instructions. For several independent tasks, separate them with newlines (`\n` in JSON); the guide renders each nonempty line as a list item. A single-line description stays a paragraph. Markdown, rich guide blocks, and additional related links are not rendered there.
+The guide area displays the example description, or the current step description, as **plain text**, with the first `relatedDocs` link and a reset action. Write a short contextual introduction, not a checklist of operation filenames. When a step needs several short instructions, newlines (`\n` in JSON) render as list items. A single-line description stays a paragraph. Markdown, rich guide blocks, and additional related links are not rendered there.
 
 ## Excerpts, literal fences and playground actions
 

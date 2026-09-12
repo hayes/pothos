@@ -8,29 +8,16 @@ export async function checkPlaygroundGuide(browser, origin) {
       await page.goto(`${origin}/playground?example=plugin-drizzle`);
       const guide = page.getByRole('complementary', { name: 'Example guide' });
       await guide.waitFor();
-      const instructions = guide.getByRole('listitem');
-      assert.equal(
-        await instructions.count(),
-        5,
-        'Show each Drizzle task as a separate instruction',
-      );
-      const text = await guide.innerText();
-      for (const instruction of [
-        '04-pagination',
-        'Variables.after',
-        '10-attachments',
-        'hasCaption',
-        '02-aliases',
-        '03-viewer',
-        '09-variant',
-        'userId',
-        'Reset restores the seed',
-      ]) {
-        assert.ok(text.includes(instruction), `Preserve ${instruction}`);
-      }
+      const description = guide.locator('p');
+      assert.equal(await description.count(), 1, 'Introduce the example in one paragraph');
+      assert.equal(await guide.getByRole('listitem').count(), 0, 'Avoid a task checklist');
+      const descriptionText = await description.innerText();
+      assert.ok(descriptionText.length < 250, 'Keep the introduction concise');
+      assert.ok(!/\b\d{2}-[a-z]/.test(descriptionText), 'Avoid unexplained operation filenames');
+      assert.ok(/GraphQL/.test(descriptionText) && /Drizzle/.test(descriptionText));
       for (const element of [
         guide,
-        ...(await instructions.all()),
+        description,
         guide.getByRole('link'),
         guide.getByRole('button'),
       ]) {
@@ -49,8 +36,12 @@ export async function checkPlaygroundGuide(browser, origin) {
         guide.getByRole('button', { name: 'Reset example' }).click(),
       ]);
       await guide.waitFor();
-      assert.equal(await guide.getByRole('listitem').count(), 5, 'Reset preserves the guide');
-      console.log(`PASS ${width}px guide instructions, actions, and reset`);
+      assert.equal(
+        await guide.locator('p').innerText(),
+        descriptionText,
+        'Reset preserves the guide',
+      );
+      console.log(`PASS ${width}px guide introduction, actions, and reset`);
     } finally {
       await page.close();
     }

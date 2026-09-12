@@ -1,3 +1,4 @@
+# Change userId to 2 in Context to see the other viewer and their drafts.
 query Viewer {
   me {
     __typename

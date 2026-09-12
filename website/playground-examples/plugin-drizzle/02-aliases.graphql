@@ -1,3 +1,4 @@
+# Compare the newest and oldest selections in Queries, then inspect their SQL in Console.
 query Aliases {
   author(id: 1) {
     newest: posts {

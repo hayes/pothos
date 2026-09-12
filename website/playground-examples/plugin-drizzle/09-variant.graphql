@@ -1,3 +1,4 @@
+# Change userId to 2 in Context to see which author exposes private viewer fields.
 query PrivateVariant {
   own: author(id: 1) {
     viewer {
