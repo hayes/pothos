@@ -13,12 +13,38 @@ const pluginName = 'mocks';
 // a type or field (`toString`, `constructor`, `call`, ...).
 const builtInPrototypes: object[] = [Object.prototype, Function.prototype];
 
-// Checks whether the value a mock map returned for a key *is* the built-in inherited for that name,
-// rather than whether some prototype happens to define the name. A Proxy or a prototype that
-// supplies its own `toString` mock returns a different value than `Object.prototype.toString`.
+// Finds the object in the prototype chain of `map` that defines `key`, without reading the property
+// itself: `Function.prototype.caller` and `Function.prototype.arguments` are accessors that throw on
+// any access.
+function findDeclaringPrototype(map: object, key: string) {
+  for (
+    let proto: object | null = Object.getPrototypeOf(map) as object | null;
+    proto !== null;
+    proto = Object.getPrototypeOf(proto) as object | null
+  ) {
+    const descriptor = Object.getOwnPropertyDescriptor(proto, key);
+
+    if (descriptor) {
+      return { proto, descriptor };
+    }
+  }
+
+  return null;
+}
+
+// Checks whether the value a mock map returned for a key *is* an inherited built-in, rather than
+// whether some prototype happens to define the name: a Proxy or a prototype that supplies its own
+// `toString` mock returns a different value than `Object.prototype.toString`. Only a data property
+// can be compared to the value that was read: comparing an accessor would mean invoking it, which
+// throws for `caller` and `arguments`, so values declared by a built-in accessor are kept.
 function isBuiltInValue(map: object, key: string, value: unknown) {
-  return builtInPrototypes.some(
-    (proto) => Object.hasOwn(proto, key) && Reflect.get(proto, key, map) === value,
+  const declaration = findDeclaringPrototype(map, key);
+
+  return (
+    declaration !== null &&
+    builtInPrototypes.includes(declaration.proto) &&
+    'value' in declaration.descriptor &&
+    declaration.descriptor.value === value
   );
 }
 

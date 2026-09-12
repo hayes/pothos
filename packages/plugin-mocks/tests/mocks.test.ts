@@ -314,6 +314,96 @@ describe('mock maps that are not plain objects', () => {
 
     expect(result).toEqual({ data: { obj: { call: 'mocked' } } });
   });
+
+  it('uses mocks supplied for names guarded by Function.prototype', async () => {
+    const collidingBuilder = new SchemaBuilder<{ Context: {} }>({ plugins: [Mocks] });
+
+    collidingBuilder.queryType({
+      fields: (t) => ({
+        caller: t.string({ resolve: () => 'original' }),
+        arguments: t.string({ resolve: () => 'original' }),
+      }),
+    });
+
+    const fieldMocks = Object.create({
+      caller: () => 'mocked',
+      arguments: () => 'mocked',
+    }) as {};
+
+    const schema = collidingBuilder.toSchema({
+      mocks: { Query: fieldMocks } as unknown as MockMap,
+    });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          caller
+          arguments
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(result).toEqual({ data: { caller: 'mocked', arguments: 'mocked' } });
+  });
+
+  it('uses mocks a Proxy supplies for names guarded by Function.prototype', async () => {
+    const collidingBuilder = new SchemaBuilder<{ Context: {} }>({ plugins: [Mocks] });
+
+    collidingBuilder.queryType({
+      fields: (t) => ({
+        caller: t.string({ resolve: () => 'original' }),
+      }),
+    });
+
+    const typeMocks = new Proxy(
+      {},
+      {
+        get: (_target, key) => (key === 'Query' ? { caller: () => 'mocked' } : undefined),
+      },
+    );
+
+    const schema = collidingBuilder.toSchema({ mocks: typeMocks as unknown as MockMap });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          caller
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(result).toEqual({ data: { caller: 'mocked' } });
+  });
+
+  it('does not mock unlisted fields named after restricted function members', async () => {
+    const collidingBuilder = new SchemaBuilder<{ Context: {} }>({ plugins: [Mocks] });
+
+    collidingBuilder.queryType({
+      fields: (t) => ({
+        caller: t.string({ resolve: () => 'original' }),
+        arguments: t.string({ resolve: () => 'original' }),
+      }),
+    });
+
+    const schema = collidingBuilder.toSchema({ mocks: { Query: {} } as unknown as MockMap });
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          caller
+          arguments
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(result).toEqual({ data: { caller: 'original', arguments: 'original' } });
+  });
 });
 
 describe('interface field mock lookups', () => {
