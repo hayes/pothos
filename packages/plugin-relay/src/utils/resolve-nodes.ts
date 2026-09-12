@@ -12,9 +12,6 @@ import type { NodeObjectOptions } from '../types.js';
 
 const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
 
-// A node's identity is the global ID the client sent, not whatever `id.parse` turned it into.
-// `rawId` is only absent for callers that build global IDs themselves (or never parse), where
-// `id` is already the raw value, so this produces the same key strings as before.
 function nodeCacheKey(typename: string, globalID: { id: unknown; rawId?: string }) {
   return `${typename}:${globalID.rawId ?? globalID.id}`;
 }
@@ -26,10 +23,6 @@ export async function resolveNodes<Types extends SchemaTypes>(
   globalIDs: ({ id: unknown; rawId?: string; typename: string } | null | undefined)[],
 ): Promise<MaybePromise<unknown>[]> {
   const requestCache = getRequestCache(context);
-  // The inner Map goes from a node's identity key to its (possibly parsed) id. `id.parse`
-  // may return any shape, so the parsed value is never a usable identity: `{ key: 1 }` and
-  // `{ key: 2 }` both stringify to `[object Object]`. The key is always derived from the
-  // raw, pre-parse global ID instead.
   const idsByType = new Map<string, Map<string, unknown>>();
   const results = new Map<string, MaybePromise<unknown>>();
 
@@ -99,8 +92,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   type: OutputType<Types> | string,
   /**
    * Request cache keys for each entry of `ids`, in the same order. Defaults to
-   * `${typename}:${id}`, which is only a correct identity when `id` has not been
-   * transformed by `id.parse`.
+   * `${typename}:${id}`.
    */
   keys?: readonly string[],
 ): Promise<unknown[]> {

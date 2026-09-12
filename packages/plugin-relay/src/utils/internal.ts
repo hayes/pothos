@@ -20,14 +20,6 @@ function getParseGlobalID(typename: string, info: PartialResolveInfo) {
     | undefined;
 }
 
-/**
- * Normalizes a `GlobalIDShape` (`{ id, type }`) the same way a global ID string is normalized.
- *
- * `GlobalIDShape.id` is an `ID` scalar, never an already-parsed `IDShape`, so a node type
- * configuring `id.parse` must have it applied here too — otherwise `loadOne`/`loadMany` receive
- * a raw id through this path and the parsed id through the string path, despite being typed to
- * always receive the parsed one.
- */
 export function internalNormalizeGlobalIDShape(
   typename: string,
   id: unknown,
@@ -70,8 +62,6 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
       return {
         ...decoded,
         id: entry.parseId(decoded.id, ctx),
-        // The parsed id may be any shape, and is not usable as an identity. Keep the
-        // decoded global ID so node identity never depends on the parse result.
         rawId: decoded.id,
       };
     }

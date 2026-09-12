@@ -109,8 +109,6 @@ describe('node identity for parsed ids', () => {
     const User = builder.objectRef<{ id: number }>('User');
 
     builder.node(User, {
-      // The request cache can hand a node back before `resolveNodes` has branded it,
-      // so resolve the type explicitly to keep this test about cache hits.
       isTypeOf: () => true,
       id: { resolve: (user) => user.id, parse: (id) => ({ key: Number(id) }) },
       loadOne: (id) => {
@@ -146,10 +144,6 @@ describe('node identity for parsed ids', () => {
   });
 
   it('produces byte-identical cache keys for the default (no `parse`) path', async () => {
-    // `resolveUncachedNodesForType` is publicly exported and knows nothing about raw global
-    // IDs, so it can only ever write the legacy `${typename}:${id}` key. If `resolveNodes`
-    // reads a different string for the same node, this cache entry is missed and the loader
-    // runs a second time. A hit here is proof the two key strings are identical.
     const builder = new SchemaBuilder<{}>({ plugins: [RelayPlugin] });
 
     const calls: unknown[] = [];
@@ -172,7 +166,6 @@ describe('node identity for parsed ids', () => {
     const schema = builder.toSchema();
     const context = {};
 
-    // Legacy 5-argument call: the exported signature, unchanged.
     await resolveUncachedNodesForType(builder, context, {} as GraphQLResolveInfo, ['1'], 'User');
 
     expect(calls).toEqual(['1']);
@@ -227,10 +220,6 @@ describe('node identity for parsed ids', () => {
   });
 
   describe('a GlobalIDShape and a global ID string for the same node', () => {
-    // `GlobalIDShape.id` is an `ID` scalar, not an already-parsed `IDShape`, so both paths
-    // must apply `id.parse` and hand loaders the shape they are typed to receive. Keying on
-    // the raw id makes both paths share one cache entry, so a shape-supplied field appearing
-    // first must not be able to poison a string-supplied one (or vice versa).
     function build() {
       const builder = new SchemaBuilder<{}>({ plugins: [RelayPlugin] });
 
