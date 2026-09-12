@@ -60,7 +60,9 @@ export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   let endOffset = before
     ? Math.max(beforeOffset, startOffset)
     : options.totalCount != null
-      ? Math.max(options.totalCount, 0)
+      ? // A previously valid cursor can point past the end of a collection that has since
+        // shrunk. Clamping to `startOffset` keeps that window empty rather than negative.
+        Math.max(options.totalCount, startOffset)
       : Number.POSITIVE_INFINITY;
 
   if (first != null) {

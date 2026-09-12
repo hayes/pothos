@@ -1,9 +1,36 @@
-import { resolveArrayConnection } from '../src';
+import { offsetToCursor, resolveArrayConnection, resolveOffsetConnection } from '../src';
 
 describe('resolveArrayConnection', () => {
   it('caps backward pages from the end of the requested window', () => {
     const result = resolveArrayConnection({ args: { last: 3 }, maxSize: 2 }, [0, 1, 2, 3, 4]);
 
     expect(result.edges.map((edge) => edge?.node)).toEqual([3, 4]);
+  });
+
+  it('returns an empty page when a stale after cursor is past the end of the array', () => {
+    // Offset 4 was a valid cursor before the collection shrank to two rows.
+    const result = resolveArrayConnection({ args: { after: offsetToCursor(4), first: 2 } }, [0, 1]);
+
+    expect(result.edges).toEqual([]);
+    expect(result.pageInfo.hasNextPage).toBe(false);
+  });
+});
+
+describe('resolveOffsetConnection', () => {
+  it('never requests a negative limit when a stale after cursor is past totalCount', async () => {
+    let requested: { offset: number; limit: number } | undefined;
+
+    const result = await resolveOffsetConnection(
+      { args: { after: offsetToCursor(4), first: 2 }, totalCount: 2 },
+      (params) => {
+        requested = params;
+
+        return [];
+      },
+    );
+
+    expect(requested?.limit).toBeGreaterThanOrEqual(0);
+    expect(result.edges).toEqual([]);
+    expect(result.pageInfo.hasNextPage).toBe(false);
   });
 });
