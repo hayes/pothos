@@ -76,7 +76,6 @@ export default class CacheNode<Types extends SchemaTypes> {
     this.typeManagers.delete(key);
   }
 
-  // Only recovers every entry for iterables that can be iterated more than once.
   private valueAsList(): unknown[] {
     if (Array.isArray(this.value)) {
       return this.value as unknown[];
