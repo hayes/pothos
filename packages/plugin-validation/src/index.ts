@@ -46,11 +46,9 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
 
   override onTypeConfig(typeConfig: PothosTypeConfig) {
     if (typeConfig.graphqlKind === 'InputObject') {
-      const extensions = (typeConfig.extensions ?? {}) as {
-        validationSchemas?: StandardSchemaV1[];
-      };
+      const extensions = typeConfig.extensions ?? {};
 
-      const existingSchemas = extensions.validationSchemas ?? [];
+      const existingSchemas = extensions['@pothos/plugin-validation']?.schemas ?? [];
       const optionsSchema = typeConfig.pothosOptions.validate;
 
       if (optionsSchema || existingSchemas.length > 0) {
@@ -59,6 +57,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
           extensions: {
             ...extensions,
             '@pothos/plugin-validation': {
+              ...extensions['@pothos/plugin-validation'],
               schemas: optionsSchema ? [optionsSchema, ...existingSchemas] : existingSchemas,
             },
           },
