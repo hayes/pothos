@@ -574,6 +574,30 @@ export class BuildCache<Types extends SchemaTypes> {
     return type;
   }
 
+  // `resolveType` callbacks may return a type name, a GraphQLObjectType, or a Pothos ref. graphql
+  // only understands names and object types, so refs are looked up and replaced with their names.
+  private normalizeResolvedType(
+    result: GraphQLObjectType<unknown, object> | string | null | undefined,
+  ) {
+    if (typeof result === 'string' || !result) {
+      return result!;
+    }
+
+    if (result instanceof GraphQLObjectType) {
+      return result.name;
+    }
+
+    try {
+      const typeConfig = this.configStore.getTypeConfig(result);
+
+      return typeConfig.name;
+    } catch {
+      // ignore
+    }
+
+    return result;
+  }
+
   private buildInterface(config: PothosInterfaceTypeConfig) {
     const resolveType: GraphQLTypeResolver<unknown, Types['Context']> = (parent, context, info) => {
       const typeBrand = getTypeBrand(parent);
@@ -587,7 +611,11 @@ export class BuildCache<Types extends SchemaTypes> {
 
       const resolver = config.resolveType ?? defaultTypeResolver;
 
-      return resolver(parent, context, info, type);
+      const resultOrPromise = resolver(parent, context, info, type);
+
+      return isThenable(resultOrPromise)
+        ? resultOrPromise.then((result) => this.normalizeResolvedType(result))
+        : this.normalizeResolvedType(resultOrPromise);
     };
 
     const type: GraphQLInterfaceType = new GraphQLInterfaceType({
@@ -628,31 +656,9 @@ export class BuildCache<Types extends SchemaTypes> {
 
       const resultOrPromise = config.resolveType(parent, context, info, type);
 
-      const getResult = (
-        result: GraphQLObjectType<unknown, object> | string | null | undefined,
-      ) => {
-        if (typeof result === 'string' || !result) {
-          return result!;
-        }
-
-        if (result instanceof GraphQLObjectType) {
-          return result.name;
-        }
-
-        try {
-          const typeConfig = this.configStore.getTypeConfig(result);
-
-          return typeConfig.name;
-        } catch {
-          // ignore
-        }
-
-        return result;
-      };
-
       return isThenable(resultOrPromise)
-        ? resultOrPromise.then(getResult)
-        : getResult(resultOrPromise);
+        ? resultOrPromise.then((result) => this.normalizeResolvedType(result))
+        : this.normalizeResolvedType(resultOrPromise);
     };
 
     return new GraphQLUnionType({

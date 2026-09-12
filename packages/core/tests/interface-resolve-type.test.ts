@@ -62,4 +62,52 @@ describe('interface resolveType', () => {
     expect(result.data).toEqual({ animal: { id: '1', legs: 4 } });
     expect(seen).toEqual([[]]);
   });
+
+  it.each([
+    ['a name', (_ref: unknown) => () => 'Dog'],
+    ['a ref', (ref: unknown) => () => ref],
+    ['a promise of a ref', (ref: unknown) => () => Promise.resolve(ref)],
+  ] as const)('resolves a type returned as %s', async (_label, makeResolver) => {
+    const builder = new SchemaBuilder({});
+    const animal = builder.interfaceRef<Animal>('Animal');
+    const dog = builder.objectRef<Animal>('Dog');
+
+    animal.implement({
+      resolveType: makeResolver(dog) as never,
+      fields: (t) => ({
+        id: t.id({
+          resolve: (parent) => parent.id,
+          exampleRequiredOptionFromPlugin: true,
+        }),
+      }),
+    });
+
+    dog.implement({
+      interfaces: [animal],
+      fields: (t) => ({ legs: t.int({ resolve: (parent) => parent.legs }) }),
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        animal: t.field({ type: animal, resolve: () => ({ id: '1', legs: 4 }) }),
+      }),
+    });
+
+    const result = await execute({
+      schema: builder.toSchema(),
+      document: gql`
+        query {
+          animal {
+            id
+            ... on Dog {
+              legs
+            }
+          }
+        }
+      `,
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ animal: { id: '1', legs: 4 } });
+  });
 });
