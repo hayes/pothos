@@ -11,6 +11,19 @@ import {
 
 export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType>());
 
+function hasRootType<Types extends SchemaTypes>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  kind: RootName,
+) {
+  for (const config of builder.configStore.typeConfigs.values()) {
+    if (config.kind === kind) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function addTypeToSchema<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   type: GraphQLNamedType,
@@ -21,7 +34,11 @@ export function addTypeToSchema<Types extends SchemaTypes>(
   }
 
   if (isObjectType(type)) {
-    builder.addGraphQLObject(type, { rootKind });
+    // If the builder already defines this operation root, the imported type is added as a normal
+    // object type rather than re-declaring (and renaming) the existing root.
+    builder.addGraphQLObject(type, {
+      rootKind: rootKind && !hasRootType(builder, rootKind) ? rootKind : undefined,
+    });
   } else if (isInterfaceType(type)) {
     builder.addGraphQLInterface(type);
   } else if (isUnionType(type)) {

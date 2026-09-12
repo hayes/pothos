@@ -38,4 +38,59 @@ describe('importing schemas with custom operation root names', () => {
 
     expect(result.data).toEqual({ hello: 'world' });
   });
+
+  it('does not re-declare an operation root the builder already defines', () => {
+    const existingSchema = buildSchema(`
+      schema {
+        query: Root
+      }
+
+      type Root {
+        hello: String
+        secret: String
+      }
+    `);
+
+    const builder = new SchemaBuilder({
+      plugins: [AddGraphQLPlugin],
+      add: { schema: existingSchema },
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        ownField: t.string({ resolve: () => 'own' }),
+      }),
+    });
+
+    const schema = builder.toSchema();
+
+    expect(schema.getQueryType()?.name).toBe('Query');
+    expect(Object.keys(schema.getQueryType()!.getFields())).toStrictEqual(['ownField']);
+    expect(printSchema(schema)).not.toContain('schema {');
+  });
+
+  it('still merges imported roots that use the default names', () => {
+    const existingSchema = buildSchema(`
+      type Query {
+        hello: String
+      }
+    `);
+
+    const builder = new SchemaBuilder({
+      plugins: [AddGraphQLPlugin],
+      add: { schema: existingSchema },
+    });
+
+    builder.queryFields((t) => ({
+      ownField: t.string({ resolve: () => 'own' }),
+    }));
+
+    const schema = builder.toSchema();
+
+    expect(schema.getQueryType()?.name).toBe('Query');
+    expect(Object.keys(schema.getQueryType()!.getFields()).sort()).toStrictEqual([
+      'hello',
+      'ownField',
+    ]);
+  });
 });
