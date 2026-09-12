@@ -111,3 +111,27 @@ it('does not execute the root collection when a root scope denies access', async
   expect(result.data).toEqual({ privateUser: null });
   expect(captures).toHaveLength(0);
 });
+
+function _narrowedParentShapeSurvivesWithAuth() {
+  const builder = new SchemaBuilder<{
+    PrismaNextContract: SampleContract;
+    Context: { admin: boolean };
+    AuthScopes: { admin: boolean };
+  }>({
+    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    relay: {},
+    scopeAuth: { authScopes: ({ admin }) => ({ admin }) },
+    prismaNext: { contract: ctx.contract },
+  });
+
+  builder.prismaObjectFields('User', (t) => ({
+    declaredBehindScope: t.withAuth({ admin: true }).string({
+      select: ['email'],
+      resolve: (row) => row.email,
+    }),
+    undeclaredBehindScope: t.withAuth({ admin: true }).string({
+      // @ts-expect-error The string form's parent carries only declared dependencies.
+      resolve: (row) => row.email,
+    }),
+  }));
+}

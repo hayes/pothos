@@ -75,7 +75,15 @@ it('normalizes computed counts across connection, nested relation and node loadi
     isTypeOf: () => true,
     id: { field: 'id' },
     collection: ctx.ormClient.User,
-    select: { posts: (sub) => ({ total: sub.count() }) },
+    select: {
+      posts: (
+        sub: RelationRefinementCollection<
+          PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: SampleContract }>,
+          'User',
+          'posts'
+        >,
+      ) => ({ total: sub.count() }),
+    },
     fields: (t) => ({
       total: t.int({ resolve: (p) => (p as typeof p & { total: number }).total }),
       postsPage: t.relatedConnection('posts', {
