@@ -5,6 +5,7 @@ import type {
   GraphQLIsTypeOfFn,
   GraphQLResolveInfo,
   GraphQLScalarLiteralParser,
+  GraphQLInterfaceType,
   GraphQLScalarValueParser,
   GraphQLUnionType,
   InputObjectTypeDefinitionNode,
@@ -106,7 +107,7 @@ declare global {
           parent: Shape,
           context: Types['Context'],
           info: GraphQLResolveInfo,
-          type: GraphQLUnionType,
+          type: GraphQLInterfaceType,
         ) => MaybePromise<ObjectParam<Types> | string | null | undefined>);
     }
 
