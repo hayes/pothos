@@ -26,12 +26,16 @@ interface PlaygroundCodeBlockProps extends ComponentProps<typeof CodeBlock> {
    */
   query?: string;
 
+  /** One-based operation index within the example. */
+  operation?: number;
+
   /**
    * Data attributes from rehype plugin
    */
   'data-playground'?: string;
   'data-example'?: string;
   'data-query'?: string;
+  'data-op'?: string;
 }
 
 /**
@@ -52,10 +56,12 @@ export function PlaygroundCodeBlock({
   playground: playgroundProp,
   code,
   query: queryProp,
+  operation: operationProp,
   children,
   'data-playground': dataPlayground,
   'data-example': dataExample,
   'data-query': dataQuery,
+  'data-op': dataOperation,
   ...props
 }: PlaygroundCodeBlockProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -64,6 +70,7 @@ export function PlaygroundCodeBlock({
   const playground = playgroundProp ?? dataPlayground === 'true';
   const exampleId = exampleIdProp ?? dataExample;
   const query = queryProp ?? dataQuery;
+  const operation = operationProp ?? (dataOperation ? Number(dataOperation) : undefined);
 
   // Extract code content from children if not provided
   const codeContent = code || extractCodeContent(children);
@@ -72,8 +79,7 @@ export function PlaygroundCodeBlock({
     <>
       <CodeBlock
         {...props}
-        // Give source-linked blocks a separate action row so enlarged text
-        // and horizontally scrolled code never overlap the controls.
+        // Use the standard code-block action placement for Playground and Copy.
         className={[props.className, playground && 'has-playground'].filter(Boolean).join(' ')}
         Actions={({ className, children: copyButton }) => (
           <div className={`flex items-center gap-1 ${className || ''}`}>
@@ -81,7 +87,7 @@ export function PlaygroundCodeBlock({
               <button
                 type="button"
                 onClick={() => setIsExpanded(true)}
-                className="inline-flex min-h-7 items-center gap-1 rounded-md px-1.5 text-fd-muted-foreground text-sm transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
+                className="inline-flex min-h-6 items-center gap-1 rounded-md px-1.5 text-fd-muted-foreground text-xs transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
                 title="Open in Playground"
                 aria-label="Open in Playground"
               >
@@ -102,6 +108,7 @@ export function PlaygroundCodeBlock({
           exampleId={exampleId}
           code={codeContent}
           query={query}
+          operation={operation}
           onClose={() => setIsExpanded(false)}
         />
       )}

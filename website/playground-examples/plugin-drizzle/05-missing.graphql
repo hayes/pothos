@@ -1,0 +1,12 @@
+query Missing {
+  author(id: 3) {
+    bio
+    posts {
+      title
+    }
+    postCount
+  }
+  missing: author(id: 999) {
+    fullName
+  }
+}

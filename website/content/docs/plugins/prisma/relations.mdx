@@ -11,11 +11,12 @@ builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
       type: 'User',
-      resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUniqueOrThrow({
+      resolve: async (query, root, args, ctx, info) => {
+        return prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.userId },
-        }),
+        });
+      },
     }),
   }),
 });
@@ -184,3 +185,19 @@ builder.prismaObject('User', {
   }),
 });
 ```
+
+## Published posts and profiles
+
+In a publishing API, a public author page exposes published posts and an optional profile.
+Drafts belong on the [private viewer](./variants#the-authors-writing-desk). Filtering the list and
+its count consistently prevents the count from revealing unpublished posts. Sorting by both the
+timestamp and ID makes the order deterministic when two posts share a timestamp.
+
+The following type is used by the nullable `author` lookup in [Objects](./objects#a-nullable-author-lookup):
+
+<include cwd lang="typescript">local-examples/prisma/schema.ts#user</include>
+
+`author(id: 1) { name bio postCount posts { title } }` returns Maya's profile and two
+published posts. Nora (`id: 3`) has no profile or posts, so `bio` is null, `posts` is empty, and
+`postCount` is zero. A missing relation is represented as missing data, without manufacturing a
+profile record.

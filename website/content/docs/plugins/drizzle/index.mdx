@@ -16,47 +16,36 @@ import { Callout } from 'fumadocs-ui/components/callout';
   Pothos specific changes.
 </Callout>
 
-The Drizzle plugin defines GraphQL types from your tables and plans database queries from GraphQL
-selections. It loads relations and integrates with Relay nodes and connections.
+The Drizzle plugin maps database tables to GraphQL types and plans database queries from the
+fields a client selects. It supports relations, computed fields, and Relay nodes and connections.
+
+The examples share a small author-and-post schema. The
+[publishing playground](/playground?example=plugin-drizzle) includes its database definitions
+and initialization, and executes queries against SQLite in the browser.
 
 ## Getting started
 
-Install the plugin and add it to your builder, as described in [Setup](/docs/plugins/drizzle/setup):
+[Setup](/docs/plugins/drizzle/setup) connects your Drizzle client to Pothos.
+[Objects](/docs/plugins/drizzle/objects) covers type definitions and fields such as this lookup:
 
-```package-install
-npm install --save @pothos/plugin-drizzle drizzle-orm@rc
+<include cwd lang="typescript" meta='playground example="plugin-drizzle"'>playground-examples/plugin-drizzle/queries.ts#author-query</include>
+
+```graphql
+query AuthorPage {
+  author(id: 1) {
+    fullName
+    posts {
+      title
+    }
+  }
+}
 ```
 
-Define an object type for a table, expose the columns you want in your API, and add the relations
-you want clients to query. This example uses the builder, database client, and `userId` context
-from Setup, with a users table related to posts:
+The resolver passes Pothos's selection plan to Drizzle, loading the requested posts with their
+author. Adding GraphQL fields does not require rewriting this root resolver.
 
-```ts
-const User = builder.drizzleObject('users', {
-  name: 'User',
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    lastName: t.exposeString('lastName'),
-    posts: t.relation('posts'),
-  }),
-});
-
-builder.drizzleObject('posts', {
-  name: 'Post',
-  fields: (t) => ({ title: t.exposeString('title') }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    me: t.drizzleField({
-      type: 'users',
-      nullable: true,
-      resolve: (query, root, args, ctx) =>
-        db.query.users.findFirst(query({ where: { id: ctx.userId } })),
-    }),
-  }),
-});
-```
-
-Querying `me { firstName posts { title } }` loads the user and their posts in a single query
-through drizzles relational query builder.
+[Relations](/docs/plugins/drizzle/relations) covers filtering and counts; [Selections](/docs/plugins/drizzle/selections) explains computed
+fields and profiles; [Connections](/docs/plugins/drizzle/connections) handles pagination. [Variants](/docs/plugins/drizzle/variants) and
+[Interfaces](/docs/plugins/drizzle/interfaces) keep private account data separate from public authors. For more
+specialized schemas, [Connection helpers](/docs/plugins/drizzle/connection-helpers) and [Async selections](/docs/plugins/drizzle/async-selections)
+cover custom pagination and asynchronous planning.

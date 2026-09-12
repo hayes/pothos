@@ -1,0 +1,18 @@
+query PrivateVariant {
+  own: author(id: 1) {
+    viewer {
+      email
+      drafts {
+        title
+      }
+    }
+  }
+  other: author(id: 2) {
+    viewer {
+      email
+      drafts {
+        title
+      }
+    }
+  }
+}

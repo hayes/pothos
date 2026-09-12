@@ -204,9 +204,13 @@ The source interface and union keep their `resolveType` functions. The enum expo
 
 ```graphql
 query {
-  member { name }
+  member {
+    name
+  }
   search(filter: { name: "Leia" }, order: ASC) {
-    ... on Member { name }
+    ... on Member {
+      name
+    }
   }
 }
 ```

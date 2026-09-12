@@ -1,0 +1,23 @@
+query MediaAttachments {
+  author(id: 1) {
+    posts(oldestFirst: true) {
+      title
+      mediaConnection(first: 1) {
+        totalCount
+        edges {
+          caption
+          node {
+            url
+            uploadedBy {
+              name
+            }
+          }
+        }
+        pageInfo {
+          endCursor
+          hasNextPage
+        }
+      }
+    }
+  }
+}

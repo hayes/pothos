@@ -3,86 +3,74 @@ title: Setup
 description: Setting up the Drizzle plugin
 ---
 
+Pass your existing Drizzle client and relations to the plugin. These guides assume familiarity
+with Drizzle; use its [driver setup](https://orm.drizzle.team/docs/connect-overview) and
+[relations documentation](https://orm.drizzle.team/docs/relations-v2) to configure the database.
+
 ## Installing
 
 ```package-install
-npm install --save @pothos/plugin-drizzle drizzle-orm@rc
+npm install --save @pothos/plugin-drizzle
 ```
 
-The Drizzle plugin uses the relational query builder. Define the tables and relations your schema
-will query; see Drizzle’s [relations API](https://orm.drizzle.team/docs/relations-v2).
+The plugin requires Drizzle's relational query builder v2. See the
+[version requirements](/docs/plugins/drizzle) before installing or upgrading Drizzle.
 
-Once you have configured your drizzle schema, you can initialize your Pothos
-SchemaBuilder with the drizzle plugin. This example uses SQLite through `@libsql/client`;
-install that driver and use the `relations` exported by your application. For another database,
-use its Drizzle driver and matching `getTableConfig` import:
+## Configure the builder
 
 ```ts
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
-// Import the appropriate getTableConfig for your dialect
-import { getTableConfig } from 'drizzle-orm/sqlite-core';
+// builder.ts
 import SchemaBuilder from '@pothos/core';
 import DrizzlePlugin from '@pothos/plugin-drizzle';
-import { relations } from './db/relations';
-
-const client = createClient({ url: 'file:./dev.db' });
-const db = drizzle({ client, relations });
-
-type DrizzleRelations = typeof relations;
-
-export interface PothosTypes {
-  DrizzleRelations: DrizzleRelations;
-  Context: { userId: number };
-}
-
-const builder = new SchemaBuilder<PothosTypes>({
-  plugins: [DrizzlePlugin],
-  drizzle: {
-    client: db, // or (ctx) => db if you want to create a request specific client
-    getTableConfig,
-    relations,
-  },
-});
-```
-
-The examples use an authenticated request context with `userId: number`. Supply it through your
-GraphQL server; see [Context](/docs/guide/context).
-
-### Integration with other plugins
-
-The drizzle plugin has integrations with several other plugins. While the `with-input` and `relay`
-plugins are not required, many examples will assume these plugins have been installed:
-
-```ts
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
-import SchemaBuilder from '@pothos/core';
-import DrizzlePlugin from '@pothos/plugin-drizzle';
-import RelayPlugin from '@pothos/plugin-relay';
-import WithInputPlugin from '@pothos/plugin-with-input';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import { relations } from './db/relations';
-
-const client = createClient({ url: 'file:./dev.db' });
-const db = drizzle({ client, relations });
+import { db } from './database';
+import { relations } from './tables';
 
 export interface PothosTypes {
   DrizzleRelations: typeof relations;
   Context: { userId: number };
 }
 
-const builder = new SchemaBuilder<PothosTypes>({
-  plugins: [RelayPlugin, WithInputPlugin, DrizzlePlugin],
-  drizzle: {
-    client: db,
-    getTableConfig,
-    relations,
-  },
+export const builder = new SchemaBuilder<PothosTypes>({
+  plugins: [DrizzlePlugin],
+  drizzle: { client: db, getTableConfig, relations },
 });
 ```
 
-### Plugin options
+`DrizzleRelations` provides the table and relation types used by Pothos. Import `getTableConfig`
+from the dialect used by your client (`sqlite-core` above, or `pg-core` / `mysql-core`). `client`
+may also be a function `(ctx) => db` for a request-specific client. The examples use
+[request context](/docs/guide/context) to supply the current `userId`.
+
+Use this builder to [define GraphQL types and fields](./objects), then call `builder.toSchema()`.
+
+## Integration with other plugins
+
+Install and register `@pothos/plugin-relay` to use `drizzleNode` and connection fields:
+
+```ts
+import RelayPlugin from '@pothos/plugin-relay';
+
+// In the builder options:
+plugins: [RelayPlugin, DrizzlePlugin],
+relay: { nodesOnConnection: true },
+```
+
+`nodesOnConnection` adds the `nodes` convenience field used in these guides. Without it,
+select `edges { node { ... } }` instead.
+
+The [with-input plugin](../with-input) is another optional integration. To use
+`t.drizzleFieldWithInput`, install `@pothos/plugin-with-input`, import it, and add it to the
+builder's plugins:
+
+```ts
+import WithInputPlugin from '@pothos/plugin-with-input';
+
+// In the builder options:
+plugins: [RelayPlugin, WithInputPlugin, DrizzlePlugin],
+```
+
+## Plugin options
 
 - `client`: the drizzle client, or a function returning one from the request context.
 - `getTableConfig`: the `getTableConfig` of your dialect, used to read primary keys and unique

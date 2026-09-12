@@ -377,7 +377,10 @@ builder.queryFields((t) => ({
   }),
   fromContext4: t.field({
     type: [User],
-    resolve: (root, args, { loadMany }) => rejectErrors(loadMany(User, ['123', '456'])),
+    resolve: (root, args, { loadMany }) => {
+      const users = loadMany(User, ['123', '456']);
+      return rejectErrors(users);
+    },
   }),
 }));
 ```

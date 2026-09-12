@@ -1,0 +1,5 @@
+query PrivateNodeBatch {
+  nodes(ids: ["QXJ0aWNsZTox"]) {
+    __typename
+  }
+}

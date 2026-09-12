@@ -1,11 +1,23 @@
 ---
-title: Relay
+title: Relay nodes
 description: Using the Prisma and Relay plugins together
 ---
 
-This plugin has extensive integration with the
-[relay plugin](https://pothos-graphql.dev/docs/plugins/relay), which makes creating nodes and
-connections very easy.
+import { Callout } from 'fumadocs-ui/components/callout';
+
+`prismaNode` adds Relay IDs and root node lookups to Prisma objects. Register the
+[Relay plugin](/docs/plugins/relay); see [Connections](./connections) for pagination.
+
+<Callout type="warn" title="Authorize direct node lookups">
+
+Defining a node creates a direct lookup through `node` and `nodes`. These lookups bypass custom
+root resolvers, so permission checks or visibility filters on a list or parent field do not protect
+node refetches. An encoded global ID is an identifier, not proof of permission.
+
+Apply an access policy to node loading, the type, or its fields as appropriate. See
+[Authorizing Relay nodes](/docs/plugins/scope-auth/relay-nodes) for scope patterns and their limits.
+
+</Callout>
 
 ### `prismaNode`
 
@@ -60,3 +72,28 @@ builder.prismaNode('Post', {
 });
 ```
 
+## Refetch a public author
+
+The publishing schema defines User as a Relay node. Its returned ID can be passed back to
+`node` to fetch the author with a new selection:
+
+```graphql
+query RefetchAuthor {
+  node(id: "VXNlcjox") {
+    ... on User {
+      name
+      posts {
+        title
+      }
+    }
+  }
+}
+```
+
+The ID identifies User 1. The node returns the same public fields as the author lookup, including
+only published posts. A node lookup does not route through a custom root resolver, so any
+access restrictions on an entity must also hold when it is loaded as a node.
+
+Post node lookups additionally restrict rows to published posts or the requesting author's own
+drafts. With `nullable: true`, a missing or inaccessible Post returns null. Merely hiding a draft
+from the public connection would not prevent a client from refetching it by a known node ID.

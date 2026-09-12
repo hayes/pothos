@@ -1,0 +1,18 @@
+query Pages {
+  posts(first: 2) {
+    totalCount
+    nodes {
+      title
+      media {
+        url
+        uploadedBy {
+          name
+        }
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}

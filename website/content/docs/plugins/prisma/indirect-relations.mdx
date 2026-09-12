@@ -78,7 +78,9 @@ builder.prismaObject('User', {
         // Plan what `post` selects under `... on PostEntry`, not under other implementations
         posts: nestedSelection({ take: 2 }, [{ name: 'post', type: 'PostEntry' }]),
       }),
-      resolve: (user) => user.posts.map((post) => ({ kind: 'post', post })),
+      resolve: (user) => {
+        return user.posts.map((post) => ({ kind: 'post', post }));
+      },
     }),
   }),
 });
@@ -166,7 +168,9 @@ const PostWithMedia = builder.prismaObject('Post', {
         },
       }),
       type: [Media],
-      resolve: (post) => post.media.map(({ media }) => media),
+      resolve: (post) => {
+        return post.media.map(({ media }) => media);
+      },
     }),
   }),
 });
@@ -181,3 +185,16 @@ const Media = builder.prismaObject('Media', {
   }),
 });
 ```
+
+## Shared media on published posts
+
+The publishing schema stores attachment rows in PostMedia, but clients request Media objects.
+`nestedSelection` follows the media field's selection through that join, including the uploader
+when requested:
+
+<include cwd lang="typescript">local-examples/prisma/schema.ts#post</include>
+
+Both “Starting a seed library” and “A guide to composting” attach the same image, uploaded by Leo.
+Querying `posts { title media { url uploadedBy { name } } }` through Maya's author page returns
+that uploader for both posts. The GraphQL shape need not expose the join table just because the
+database uses one.

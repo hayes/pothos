@@ -1,7 +1,7 @@
 # Drizzle Plugin for Pothos
 
 > **Note:**
-  This plugin uses drizzle's [relational query builder v2](https://orm.drizzle.team/docs/rqb-v2),
+This plugin uses drizzle's [relational query builder v2](https://orm.drizzle.team/docs/rqb-v2),
   which ships in `drizzle-orm` 1.0. That release is still a release candidate, and npm's `latest`
   tag is the 0.x line, so install drizzle with the `rc` tag. Its API can still change before 1.0 is
   final.
@@ -11,133 +11,118 @@
   Pothos specific changes.
 
 
-The Drizzle plugin defines GraphQL types from your tables and plans database queries from GraphQL
-selections. It loads relations and integrates with Relay nodes and connections.
+The Drizzle plugin maps database tables to GraphQL types and plans database queries from the
+fields a client selects. It supports relations, computed fields, and Relay nodes and connections.
 
-## Getting started
+The examples use authors and posts to demonstrate the plugin APIs.
 
-Install the plugin and add it to your builder, as described in [Setup](https://pothos-graphql.dev/docs/plugins/drizzle/setup):
+### Getting started
 
-```package-install
-npm install --save @pothos/plugin-drizzle drizzle-orm@rc
-```
+[Setup](https://pothos-graphql.dev/docs/plugins/drizzle/setup) connects your Drizzle client to Pothos.
+[Objects](https://pothos-graphql.dev/docs/plugins/drizzle/objects) covers type definitions and fields such as this lookup:
 
-Define an object type for a table, expose the columns you want in your API, and add the relations
-you want clients to query. This example uses the builder, database client, and `userId` context
-from Setup, with a users table related to posts:
-
-```ts
-const User = builder.drizzleObject('users', {
-  name: 'User',
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    lastName: t.exposeString('lastName'),
-    posts: t.relation('posts'),
-  }),
-});
-
-builder.drizzleObject('posts', {
-  name: 'Post',
-  fields: (t) => ({ title: t.exposeString('title') }),
-});
-
+```typescript
 builder.queryType({
   fields: (t) => ({
-    me: t.drizzleField({
+    author: t.drizzleField({
       type: 'users',
       nullable: true,
-      resolve: (query, root, args, ctx) =>
-        db.query.users.findFirst(query({ where: { id: ctx.userId } })),
+      args: { id: t.arg.int({ required: true }) },
+      resolve: (query, _root, args) => {
+        return db.query.users.findFirst(
+          query({
+            where: { id: args.id },
+          }),
+        );
+      },
     }),
   }),
 });
 ```
 
-Querying `me { firstName posts { title } }` loads the user and their posts in a single query
-through drizzles relational query builder.
+```graphql
+query AuthorPage {
+  author(id: 1) {
+    fullName
+    posts {
+      title
+    }
+  }
+}
+```
+
+The resolver passes Pothos's selection plan to Drizzle, loading the requested posts with their
+author. Adding GraphQL fields does not require rewriting this root resolver.
+
+[Relations](https://pothos-graphql.dev/docs/plugins/drizzle/relations) covers filtering and counts; [Selections](https://pothos-graphql.dev/docs/plugins/drizzle/selections) explains computed
+fields and profiles; [Connections](https://pothos-graphql.dev/docs/plugins/drizzle/connections) handles pagination. [Variants](https://pothos-graphql.dev/docs/plugins/drizzle/variants) and
+[Interfaces](https://pothos-graphql.dev/docs/plugins/drizzle/interfaces) keep private account data separate from public authors. For more
+specialized schemas, [Connection helpers](https://pothos-graphql.dev/docs/plugins/drizzle/connection-helpers) and [Async selections](https://pothos-graphql.dev/docs/plugins/drizzle/async-selections)
+cover custom pagination and asynchronous planning.
 
 ## Setup
+
+Pass your existing Drizzle client and relations to the plugin. These guides assume familiarity
+with Drizzle; use its [driver setup](https://orm.drizzle.team/docs/connect-overview) and
+[relations documentation](https://orm.drizzle.team/docs/relations-v2) to configure the database.
 
 ### Installing
 
 ```package-install
-npm install --save @pothos/plugin-drizzle drizzle-orm@rc
+npm install --save @pothos/plugin-drizzle
 ```
 
-The Drizzle plugin uses the relational query builder. Define the tables and relations your schema
-will query; see Drizzle’s [relations API](https://orm.drizzle.team/docs/relations-v2).
+The plugin requires Drizzle's relational query builder v2. See the
+[version requirements](https://pothos-graphql.dev/docs/plugins/drizzle) before installing or upgrading Drizzle.
 
-Once you have configured your drizzle schema, you can initialize your Pothos
-SchemaBuilder with the drizzle plugin. This example uses SQLite through `@libsql/client`;
-install that driver and use the `relations` exported by your application. For another database,
-use its Drizzle driver and matching `getTableConfig` import:
+### Configure the builder
 
 ```ts
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
-// Import the appropriate getTableConfig for your dialect
-import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import SchemaBuilder from '@pothos/core';
-import DrizzlePlugin from '@pothos/plugin-drizzle';
-import { relations } from './db/relations';
-
-const client = createClient({ url: 'file:./dev.db' });
-const db = drizzle({ client, relations });
-
-type DrizzleRelations = typeof relations;
-
-export interface PothosTypes {
-  DrizzleRelations: DrizzleRelations;
-  Context: { userId: number };
-}
-
-const builder = new SchemaBuilder<PothosTypes>({
-  plugins: [DrizzlePlugin],
-  drizzle: {
-    client: db, // or (ctx) => db if you want to create a request specific client
-    getTableConfig,
-    relations,
-  },
-});
-```
-
-The examples use an authenticated request context with `userId: number`. Supply it through your
-GraphQL server; see [Context](https://pothos-graphql.dev/docs/guide/context).
-
-#### Integration with other plugins
-
-The drizzle plugin has integrations with several other plugins. While the `with-input` and `relay`
-plugins are not required, many examples will assume these plugins have been installed:
-
-```ts
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
-import SchemaBuilder from '@pothos/core';
-import DrizzlePlugin from '@pothos/plugin-drizzle';
-import RelayPlugin from '@pothos/plugin-relay';
-import WithInputPlugin from '@pothos/plugin-with-input';
-import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import { relations } from './db/relations';
-
-const client = createClient({ url: 'file:./dev.db' });
-const db = drizzle({ client, relations });
+// builder.ts
 
 export interface PothosTypes {
   DrizzleRelations: typeof relations;
   Context: { userId: number };
 }
 
-const builder = new SchemaBuilder<PothosTypes>({
-  plugins: [RelayPlugin, WithInputPlugin, DrizzlePlugin],
-  drizzle: {
-    client: db,
-    getTableConfig,
-    relations,
-  },
+export const builder = new SchemaBuilder<PothosTypes>({
+  plugins: [DrizzlePlugin],
+  drizzle: { client: db, getTableConfig, relations },
 });
 ```
 
-#### Plugin options
+`DrizzleRelations` provides the table and relation types used by Pothos. Import `getTableConfig`
+from the dialect used by your client (`sqlite-core` above, or `pg-core` / `mysql-core`). `client`
+may also be a function `(ctx) => db` for a request-specific client. The examples use
+[request context](https://pothos-graphql.dev/docs/guide/context) to supply the current `userId`.
+
+Use this builder to [define GraphQL types and fields](https://pothos-graphql.dev/docs/plugins/drizzle/objects), then call `builder.toSchema()`.
+
+### Integration with other plugins
+
+Install and register `@pothos/plugin-relay` to use `drizzleNode` and connection fields:
+
+```ts
+
+// In the builder options:
+plugins: [RelayPlugin, DrizzlePlugin],
+relay: { nodesOnConnection: true },
+```
+
+`nodesOnConnection` adds the `nodes` convenience field used in these guides. Without it,
+select `edges { node { ... } }` instead.
+
+The [with-input plugin](https://pothos-graphql.dev/docs/plugins/with-input) is another optional integration. To use
+`t.drizzleFieldWithInput`, install `@pothos/plugin-with-input`, import it, and add it to the
+builder's plugins:
+
+```ts
+
+// In the builder options:
+plugins: [RelayPlugin, WithInputPlugin, DrizzlePlugin],
+```
+
+### Plugin options
 
 - `client`: the drizzle client, or a function returning one from the request context.
 - `getTableConfig`: the `getTableConfig` of your dialect, used to read primary keys and unique
@@ -153,8 +138,8 @@ const builder = new SchemaBuilder<PothosTypes>({
 
 ## Drizzle Objects
 
-Use the builder and database client from [Setup](https://pothos-graphql.dev/docs/plugins/drizzle/setup). The examples below use a `users` table
-with an integer `id` and string `firstName` and `lastName` columns.
+Use the [configured builder](https://pothos-graphql.dev/docs/plugins/drizzle/setup) to map a Drizzle table to a GraphQL type. Defining a type
+registers its fields; a root lookup makes them queryable.
 
 ### Defining Objects
 
@@ -175,156 +160,134 @@ You will be able to "expose" any column in the table, and GraphQL fields do not 
 names of the columns in your database. The returned `User` can be used like any other `ObjectRef`
 in Pothos.
 
+The example uses `builder.drizzleNode`, which adds a Relay ID and node refetching to the
+same object API. See [Relay](https://pothos-graphql.dev/docs/plugins/drizzle/relay) for node IDs and refetching.
+
 ### Custom fields
 
-You will often want to define fields in your API that do not correspond to a specific database
-column. For example, replace the object definition above with a computed full name:
+A GraphQL field can combine several columns. The author’s full name declares both columns in
+its selection and computes the string from the loaded row:
 
-```ts
-const User = builder.drizzleObject('users', {
-  name: 'User',
-  fields: (t) => ({
-    fullName: t.string({
-      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
-    }),
-  }),
-});
+```typescript
+fullName: t.string({
+  select: { columns: { firstName: true, lastName: true } },
+  resolve: (user) => `${user.firstName} ${user.lastName}`,
+}),
 ```
+
+This field belongs in User's `fields` callback. With the default type selection, all scalar
+columns are available; with `select: {}`, computed fields must declare what they read.
+[Selections](https://pothos-graphql.dev/docs/plugins/drizzle/selections) explains when those columns and relations are loaded.
 
 ### Drizzle Fields
 
-Drizzle objects and relations allow you to define parts of your schema backed by your drizzle
-schema, but don't provide a clear entry point into this Graph of data. To make your drizzle objects
-queryable, we will need to add fields that return our drizzle objects. This can be done using the
-`t.drizzleField` method. This can be used to define fields on the root `Query` type, or any other
-object type in your schema:
+`t.drizzleField` can return a Drizzle object from Query or from any other object type. Its
+resolver receives a `query` function before the usual resolver arguments. Call that function and
+pass its result to `findFirst` or `findMany`: it merges your filters and ordering with the
+requirements of the GraphQL selection.
 
-```ts
+#### A nullable author lookup
+
+The author page accepts an integer ID. A missing author returns null, matching the result of
+`findFirst` and the field's `nullable: true` option:
+
+```typescript
 builder.queryType({
   fields: (t) => ({
-    user: t.drizzleField({
+    author: t.drizzleField({
       type: 'users',
       nullable: true,
-      args: {
-        id: t.arg.id({ required: true }),
-      },
-      resolve: (query, root, args, ctx) =>
-        db.query.users.findFirst(
+      args: { id: t.arg.int({ required: true }) },
+      resolve: (query, _root, args) => {
+        return db.query.users.findFirst(
           query({
-            where: {
-              id: Number.parseInt(args.id, 10),
-            },
+            where: { id: args.id },
           }),
-        ),
-    }),
-    users: t.drizzleField({
-      type: ['users'],
-      resolve: (query, root, args, ctx) => db.query.users.findMany(query()),
+        );
+      },
     }),
   }),
 });
 ```
 
-The `resolve` function of a `drizzleField` receives a `query` function. Call it and pass its result
-to a Drizzle `findFirst` or `findMany` query. The `query` function optionally accepts any
-arguments that are normally passed into the query, and will merge these options with the selection
-used to resolve data for the nested GraphQL selections.
+`author(id: 1) { fullName }` returns Maya Chen. `author(id: 999) { fullName }` returns null.
+Adding `posts { title }` loads the public posts through the same root resolver.
+
+For a list field, use `type: ['users']` and `db.query.users.findMany(query())`. A plain lookup
+without arguments can pass no options to `query`; fields with filters pass those options to it.
 
 #### `drizzleFieldWithInput`
 
 With the [with-input plugin](https://pothos-graphql.dev/docs/plugins/with-input),
 `t.drizzleFieldWithInput` combines `t.drizzleField` with `t.fieldWithInput`. The `input` fields
 become an input object argument, and the resolver still receives the `query` function as its first
-argument. This replaces the `user` field above:
+argument. This alternative adds an `authorWithInput` lookup to the same public User type.
+Install and register WithInputPlugin as described in [Setup](https://pothos-graphql.dev/docs/plugins/drizzle/setup#integration-with-other-plugins):
 
 ```ts
 builder.queryFields((t) => ({
-  user: t.drizzleFieldWithInput({
+  authorWithInput: t.drizzleFieldWithInput({
     type: 'users',
     nullable: true,
     input: {
-      id: t.input.id({ required: true }),
+      id: t.input.int({ required: true }),
     },
-    resolve: (query, root, args, ctx) =>
-      db.query.users.findFirst(query({ where: { id: Number.parseInt(args.input.id, 10) } })),
+    resolve: (query, root, args, ctx) => {
+      return db.query.users.findFirst(
+        query({
+          where: { id: args.input.id },
+        }),
+      );
+    },
   }),
 }));
 ```
 
 ## Relations
 
-### Relations
+`t.relation` turns a Drizzle relation into a GraphQL field with its target type and cardinality.
+Register the target GraphQL type as well as the relation.
 
-Drizzles relational query builder allows you to define the relationships between your tables. The
-`t.relation` method makes it easy to add fields to your GraphQL API that implement those
-relations:
+### Published posts and profiles
 
-```ts
-builder.drizzleObject('profiles', {
-  name: 'Profile',
-  fields: (t) => ({
-    bio: t.exposeString('bio'),
+The public author page returns published posts. Drafts belong on the [private Viewer](https://pothos-graphql.dev/docs/plugins/drizzle/variants),
+so the filter belongs on the relation wherever User can be reached:
+
+```typescript
+posts: t.relation('posts', {
+  args: { oldestFirst: t.arg.boolean() },
+  query: (args) => ({
+    where: { published: true },
+    orderBy: {
+      createdAt: args.oldestFirst ? 'asc' : 'desc',
+      id: args.oldestFirst ? 'asc' : 'desc',
+    },
   }),
-});
-
-builder.drizzleObject('posts', {
-  name: 'Post',
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    author: t.relation('author'),
-  }),
-});
-
-builder.drizzleObject('users', {
-  name: 'User',
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    profile: t.relation('profile'),
-    posts: t.relation('posts'),
-  }),
-});
+}),
 ```
 
-The relation will automatically define GraphQL fields of the appropriate type based on the relation
-defined in your drizzle schema.
+The filter applies whenever this User type is queried. An author with no matching posts returns
+an empty list. The `oldestFirst` argument selects the ordering.
+
+To return the Profile object, register its GraphQL type and use `t.relation('profile')`. To
+return only its nullable biography, use a [field selection](https://pothos-graphql.dev/docs/plugins/drizzle/selections#only-load-a-profile-when-requested).
 
 ### Relation queries
 
-For some cases, exposing relations as fields without any customization works great, but in some
-cases you may want to apply some filtering or ordering to your relations. This can be done by
-specifying a `query` option on the relation:
+`query` accepts a static object or a callback that converts field arguments into Drizzle query
+options. Alongside filters and ordering, a relation may use `limit` and `offset`. For example,
+this alternative adds offset pagination to the public posts field:
 
 ```ts
-builder.drizzleObject('users', {
-  name: 'User',
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    posts: t.relation('posts', {
-      args: {
-        limit: t.arg.int(),
-        offset: t.arg.int(),
-      },
-      // query callback receives (args, ctx, pathInfo)
-      query: (args) => ({
-        limit: args.limit ?? 10,
-        offset: args.offset ?? 0,
-        where: {
-          published: true,
-        },
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      }),
-    }),
-    drafts: t.relation('posts', {
-      query: {
-        where: {
-          published: false,
-        },
-      },
-    }),
+posts: t.relation('posts', {
+  args: { limit: t.arg.int(), offset: t.arg.int() },
+  query: (args) => ({
+    limit: args.limit ?? 10,
+    offset: args.offset ?? 0,
+    where: { published: true },
+    orderBy: { createdAt: 'desc', id: 'desc' },
   }),
-});
+}),
 ```
 
 The query API enables you to define args and convert them into parameters that will be passed into
@@ -358,99 +321,40 @@ not return a row for a parent, because it was deleted since it was loaded, or ne
 table, that field rejects with `Model users(1) not found`, where the value in parentheses is the
 key that was looked up.
 
-### Related field
-
-The `t.relatedField` method allows you to define a field based on a relation that uses custom
-selections, including aggregations like counts. This is useful when you want to expose derived data
-from a relation without loading the full related records.
-
-#### Count aggregations
-
-One common use case is adding a count field that efficiently counts related records:
-
-```ts
-import { count } from 'drizzle-orm';
-
-builder.drizzleNode('users', {
-  name: 'User',
-  id: { column: (user) => user.id },
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    // Add a count of related posts
-    postsCount: t.relatedField('posts', {
-      type: 'Int',
-      // buildFilter creates the correct WHERE clause for the relation
-      select: (buildFilter) => ({
-        extras: {
-          postsCount: (parent) => db.$count(posts, buildFilter(parent)),
-        },
-      }),
-      resolve: (user) => user.postsCount,
-    }),
-  }),
-});
-```
-
-The `buildFilter` function passed to `select` generates the appropriate SQL filter based on the
-relation definition.  This is no different than using `t.field`, but the `buildFilter` helper makes
-it easier to filter for the related records.
-
-`t.relatedField` also accepts the normal field options (`description`, `deprecationReason`,
-`extensions`, and options added by other plugins like `authScopes`). Its `resolve` may be async,
-and receives the resolve `info` as its fourth argument.
-
-#### SQLite many-to-many filters
-
-On SQLite, `buildFilter` can look up related target identities through the junction join when the
-target has a non-null unique key. PostgreSQL retains an `EXISTS` predicate to avoid an additional
-target join.
-
-For a custom `RAW` scope in a Drizzle relation definition, use the table supplied to the callback:
-
-```ts
-where: {
-  RAW: (target) => sql`${target.published} = true`,
-},
-```
-
-This lets Drizzle use the target's alias inside the lookup. A static SQL scope referencing the
-original target table, such as ``RAW: sql`${posts.published} = true` ``, is passed through unchanged
-and can still force SQLite to scan the target table. The same applies to a callback that ignores
-its table argument and references `posts` directly. Object filters such as
-`where: { published: true }` also use the supplied alias.
+The [alias query](https://pothos-graphql.dev/docs/plugins/drizzle/query-planning#compare-two-orderings-of-one-relation) demonstrates
+this fallback: newest and oldest cannot share one loaded posts list.
 
 ### Related count
 
-For the common case of counting related records, there's a simpler `t.relatedCount` method that handles
-all the boilerplate for you:
+An author’s count must use the same publication filter as the list. Otherwise the number can
+reveal that unpublished posts exist:
 
-```ts
-builder.drizzleNode('users', {
-  name: 'User',
-  id: { column: (user) => user.id },
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    // Simple count of all related comments
-    commentsCount: t.relatedCount('comments'),
-    // Count with a where filter
-    publishedPostsCount: t.relatedCount('posts', {
-      where: eq(posts.published, true),
-    }),
-  }),
-});
+```typescript
+postCount: t.relatedCount('posts', { where: eq(posts.published, true) }),
 ```
+
+`t.relatedCount` returns the number of related rows without loading them. Without a `where`,
+it counts all rows in the relation.
 
 The `where` option accepts either a static SQL filter or a function that receives the field arguments
 and context:
 
 ```ts
+import { and, eq } from 'drizzle-orm';
+import { posts } from './tables';
+
+// In the User fields callback:
 publishedPostsCount: t.relatedCount('posts', {
   args: {
-    category: t.arg.string(),
+    title: t.arg.string(),
   },
-  where: (args, ctx) => args.category
-    ? and(eq(posts.published, true), eq(posts.category, args.category))
-    : eq(posts.published, true),
+  where: (args, ctx) => {
+    if (args.title) {
+      return and(eq(posts.published, true), eq(posts.title, args.title));
+    }
+
+    return eq(posts.published, true);
+  },
 });
 ```
 
@@ -459,13 +363,138 @@ related rows, so a row reachable through two junction rows counts once. A `t.rel
 `totalCount` counts the rows the connection pages over instead, which is one per junction row,
 since that is what the relational query builder returns for the relation.
 
+
+### Many-to-many relations
+
+A post exposes attached Media objects even though the database stores an attachment row. The
+`through` relation handles that join; Pothos exposes its target like any other relation:
+
+```typescript
+builder.drizzleObject('posts', {
+  name: 'Post',
+  select: {},
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+    media: t.relation('media'),
+    mediaConnection: t.relatedConnection('media', {
+      query: { orderBy: { id: 'asc' } },
+      totalCount: true,
+    }),
+  }),
+});
+export const Media = builder.drizzleObject('media', {
+  name: 'Media',
+  fields: (t) => ({ url: t.exposeString('url'), uploadedBy: t.relation('uploadedBy') }),
+});
+```
+
+`t.relation` and `t.relatedConnection` expose the Media type directly; no GraphQL type for the
+junction table is needed.
+
+### Related field
+
+The `t.relatedField` method allows you to define a field based on a relation that uses custom
+selections, including aggregations like counts. This is useful when you want to expose derived data
+from a relation without loading the full related records.
+
+For a simple count, prefer `t.relatedCount`. Its equivalent using `t.relatedField` illustrates
+how `buildFilter` restricts an expression to the parent's related rows:
+
+```ts
+import { and, eq } from 'drizzle-orm';
+import { posts } from './tables';
+
+builder.drizzleNode('users', {
+  name: 'User',
+  id: { column: (user) => user.id },
+  fields: (t) => ({
+    firstName: t.exposeString('firstName'),
+    // Count only this author’s published posts
+    postsCount: t.relatedField('posts', {
+      type: 'Int',
+      // buildFilter creates the correct WHERE clause for the relation
+      select: (buildFilter) => {
+        return {
+          extras: {
+            postsCount: (parent) => {
+              return db.$count(
+                posts,
+                and(buildFilter(parent), eq(posts.published, true)),
+              );
+            },
+          },
+        };
+      },
+      resolve: (user) => user.postsCount,
+    }),
+  }),
+});
+```
+
+`buildFilter(parent)` includes the relation's join conditions and any filter defined on the
+relation. Combine it with the conditions your field needs, then return the selected value from
+`resolve`. Use this helper for custom expressions that `t.relatedCount` does not cover.
+
+`t.relatedField` also accepts the normal field options (`description`, `deprecationReason`,
+`extensions`, and options added by other plugins like `authScopes`). Its `resolve` may be async,
+and receives the resolve `info` as its fourth argument.
+
 ## Selections
+
+Selections describe the database data a GraphQL field needs. The example User starts with
+`select: {}` so requesting one field does not load unrelated columns or a profile.
+
+### Field selections
+
+An exposed column, such as `t.exposeString('firstName')`, contributes its own selection. A custom
+resolver must declare the columns it reads:
+
+```typescript
+fullName: t.string({
+  select: { columns: { firstName: true, lastName: true } },
+  resolve: (user) => `${user.firstName} ${user.lastName}`,
+}),
+```
+
+### Only load a profile when requested
+
+A biography is a string in GraphQL, but it comes from the optional profile relation. The field
+selects that relation only when requested:
+
+```typescript
+bio: t.string({
+  nullable: true,
+  select: { with: { profile: true } },
+  resolve: (user) => user.profile?.bio,
+}),
+```
+
+A missing profile returns null. A name-only query does not load the profile; adding `bio` adds
+the relation to the database query.
+
+### Computed SQL values
+
+The same mechanism supports SQL expressions through `extras`. For example, a field can select
+`lowercaseName` only when the GraphQL operation requests it:
+
+```typescript
+lowercaseName: t.string({
+  select: {
+    extras: {
+      lowercaseName: (users, { sql }) => sql<string>`lower(${users.firstName})`,
+    },
+  },
+  resolve: (user) => user.lowercaseName,
+}),
+```
 
 ### Type selections
 
-By default, a `drizzleObject` gives its resolvers access to all columns of the table. For tables
-with many columns, it can be more efficient to only select the needed columns. You can configure the
-selected columns, and relations by passing a `select` option when defining the type:
+By default, a `drizzleObject` gives its resolvers access to all columns of the table. A type-level
+`select` replaces that default and makes its selected data available to every field resolver.
+This alternative always loads the name, profile, and expression:
 
 ```ts
 const User = builder.drizzleObject('users', {
@@ -482,451 +511,188 @@ const User = builder.drizzleObject('users', {
       lowercaseName: (users, { sql }) => sql<string>`lower(${users.firstName})`
     },
   },
-  fields: (t) => ({
-    fullName: t.string({
-      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
-    }),
-    bio: t.string({
-      nullable: true,
-      resolve: (user) => user.profile?.bio,
-    }),
-    lowercaseName: t.string({
-      resolve: (user) => user.lowercaseName,
-    }),
-  }),
+  fields: (t) => {
+    return {
+      fullName: t.string({
+        resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
+      }),
+      bio: t.string({
+        nullable: true,
+        resolve: (user) => user.profile?.bio,
+      }),
+      lowercaseName: t.string({
+        resolve: (user) => user.lowercaseName,
+      }),
+    };
+  },
 });
 ```
 
 Any selections added to the type will be available to consume in all resolvers. Columns that are not
 selected can still be exposed as before.
 
-### Field selections
-
-The previous example allows you to control what gets selected by default, but you often want to only
-select the columns that are required to fulfill a specific field. You can do this by adding the
-appropriate selections on each field. Replace the preceding User definition with:
-
-```ts
-const User = builder.drizzleObject('users', {
-  name: 'User',
-  select: {},
-  fields: (t) => ({
-    fullName: t.string({
-      select: {
-        columns: { firstName: true, lastName: true },
-      },
-      resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
-    }),
-    bio: t.string({
-      nullable: true,
-      select: {
-        with: { profile: true },
-      },
-      resolve: (user) => user.profile?.bio,
-    }),
-    lowercaseName: t.string({
-      select: {
-        extras: {
-          lowercaseName: (users, { sql }) => sql<string>`lower(${users.firstName})`
-        },
-      },
-      resolve: (user) => user.lowercaseName,
-    }),
-  }),
-});
-```
+Use type selections for data required whenever the type is loaded, and field selections for data
+needed by a particular field. Both are merged into the parent query; they do not make each field
+an independent database query. See [Query planning](https://pothos-graphql.dev/docs/plugins/drizzle/query-planning).
 
 ## Connections
 
-Use the [builder setup with Relay](https://pothos-graphql.dev/docs/plugins/drizzle/setup#integration-with-other-plugins) and register the users
-and posts object types. Examples defining the same field or helper are alternatives.
+Connection fields combine cursor pagination with Pothos's selection planning. Define the rows a
+field may return; Pothos adds pagination constraints and selects the columns and relations
+requested under each node. The same field supports forward and backward pagination.
 
-### Related connections
+Use `t.drizzleConnection` when your resolver queries the rows and `t.relatedConnection` for a
+Drizzle relation. Both require the [Relay plugin](https://pothos-graphql.dev/docs/plugins/drizzle/setup#integration-with-other-plugins).
 
-To implement a relation as a connection, you can use `t.relatedConnection` instead of `t.relation`:
+### Page through published posts
 
-```ts
-builder.drizzleNode('users', {
-  name: 'User',
-  id: { column: (user) => user.id },
-  fields: (t) => ({
-    posts: t.relatedConnection('posts'),
-  }),
-});
-```
+The feed returns published posts ordered by creation time. Its resolver passes the result of
+`query()` to Drizzle, just as a `t.drizzleField` does:
 
-This will automatically define the `Connection`, and `Edge` types, and their respective fields. To
-customize the Connection and Edge types, options for these types can be passed as additional
-arguments to `t.relatedConnection`, just like `t.connection` from the relay plugin. See the
-[relay plugin docs](https://pothos-graphql.dev/docs/plugins/relay) for more details.
-
-You can also define a `query` like with `t.relation`. The only difference with `t.relatedConnection`
-is that the `orderBy` format is slightly changed.
-
-To comply with the relay spec and efficiently support backwards pagination, some queries need to be
-performed in reverse order, which requires inverting the orderBy clause. To do this automatically,
-the `t.relatedConnection` method accepts orderBy as an object keyed by column name with `'asc'` or
-`'desc'` values, like `{ createdAt: 'desc' }`, rather than using the `asc(column)` and
-`desc(column)` helpers from drizzle. orderBy can also be returned as a single column, or an array of
-columns when ordering by multiple columns, which orders ascending.
-
-Ordering defaults to using the table `primaryKey`, and the orderBy columns will also be used to
-derive the connections cursor.
-
-```ts
-builder.drizzleNode('users', {
-  name: 'User',
-  id: { column: (user) => user.id },
-  fields: (t) => ({
-    posts: t.relatedConnection('posts', {
-      query: () => ({
-        where: {
-          published: true,
-        },
-        orderBy: {
-          id: 'desc',
-        },
+```typescript
+posts: t.drizzleConnection({
+  type: 'posts',
+  totalCount: () => {
+    return db.$count(posts, eq(posts.published, true));
+  },
+  resolve: (query) => {
+    return db.query.posts.findMany(
+      query({
+        where: { published: true },
+        // Three posts share this timestamp. Pothos adds the primary key
+        // to the cursor ordering, so traversing pages still visits each once.
+        orderBy: { createdAt: 'desc' },
       }),
-    }),
-  }),
-});
+    );
+  },
+}),
 ```
 
-#### Connection totalCount
+Pothos uses the selected node fields to plan the database query, including the nested author.
+It also adds the ordering columns needed for cursors, even when the client does not select them.
+When creation times tie, Pothos appends a primary-key tie breaker so posts have distinct positions.
+See [Ordering and cursors](https://pothos-graphql.dev/docs/plugins/drizzle/ordering-and-cursors) for other orderings and column requirements.
 
-You can add a `totalCount` field to your connection by setting the `totalCount` option to `true`:
-
-```ts
-builder.drizzleNode('users', {
-  name: 'User',
-  id: { column: (user) => user.id },
-  fields: (t) => ({
-    posts: t.relatedConnection('posts', {
-      totalCount: true,
-      query: () => ({
-        where: {
-          published: true,
-        },
-        orderBy: {
-          id: 'desc',
-        },
-      }),
-    }),
-  }),
-});
-```
-
-This will automatically add a `totalCount` field to the connection type. The count query is only
-executed when the `totalCount` field is actually requested in the GraphQL query, and it's included
-as a subquery in the main database query for efficiency.
+A client requests the first page with `first`:
 
 ```graphql
-query {
-  user(id: "...") {
-    posts(first: 10) {
-      totalCount
-      edges {
-        node {
-          id
-          title
+query PostFeed($after: String) {
+  posts(first: 2, after: $after) {
+    totalCount
+    edges {
+      cursor
+      node {
+        title
+        author {
+          fullName
         }
       }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
     }
   }
 }
 ```
 
-The count applies the `where` returned by the field's `query`, so it counts the same rows the
-connection paginates (only published posts in the example above). To count every related row
-regardless of the filter, set `filterConnectionTotalCount: false` in the `drizzle` plugin options:
+For the next page, pass the previous `endCursor` as `after`. To paginate backward, use `last`
+and `before`, taking `before` from a page's `startCursor`:
 
-```ts
-const builder = new SchemaBuilder<PothosTypes>({
-  plugins: [RelayPlugin, DrizzlePlugin],
-  drizzle: {
-    client: db,
-    getTableConfig,
-    relations,
-    // count every related row for totalCount, ignoring the where from query (defaults to true)
-    filterConnectionTotalCount: false,
-  },
-});
-```
-
-A `where` on the relation itself always applies to the count, as does the junction table of a
-many-to-many relation defined with `.through(...)`. The count joins the junction table the same way
-the rows do, so a row that matches the junction twice counts twice, and appears twice in the
-connection.
-
-### Drizzle connections
-
-Similar to `t.drizzleField`, `t.drizzleConnection` allows you to define a connection field that acts
-as an entry point to your drizzle query. The `orderBy` in `t.drizzleConnection` works the same way
-as it does for `t.relatedConnection`
-
-```ts
-builder.queryFields((t) => ({
-  posts: t.drizzleConnection({
-    type: 'posts',
-    resolve: (query, root, args, ctx) =>
-      db.query.posts.findMany(
-        query({
-          where: {
-            published: true,
-          },
-          orderBy: {
-            id: 'desc',
-          },
-        }),
-      ),
-  }),
-}));
-```
-
-#### drizzleConnection totalCount
-
-You can add a `totalCount` field to a `drizzleConnection` by providing a `totalCount` callback function that returns the count:
-
-```ts
-builder.queryFields((t) => ({
-  posts: t.drizzleConnection({
-    type: 'posts',
-    // Use db.$count() for a simple count query
-    totalCount: () => db.$count(posts, eq(posts.published, true)),
-    resolve: (query, root, args, ctx) =>
-      db.query.posts.findMany(
-        query({
-          where: {
-            published: true,
-          },
-          orderBy: {
-            id: 'desc',
-          },
-        }),
-      ),
-  }),
-}));
-```
-
-The `totalCount` callback receives the same arguments as a normal resolver (`parent`, `args`, `context`, `info`), allowing you to implement custom count logic based on the query context. The example above uses `db.$count()` for a simple count, but you can use any Drizzle query approach.
-
-When only the `totalCount` field is requested (without `edges` or `nodes`), the main query is skipped entirely and only the count query is executed for efficiency.
-
-#### Indirect relations as connections
-
-In many cases, you can define many to many connections via drizzle relations, allowing the `relatedConnection` API to work across
-more complex relations. In some cases you may want to define a connection for a relation not expressed directly as a relation in
-your drizzle schema.  For these cases, you can use the `drizzleConnectionHelpers`, which allows you to define connection with the `t.connection` API.
-
-```typescript
-// Create a drizzle object for the node type of your connection
-const Role = builder.drizzleObject('roles', {
-  name: 'Role',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name'),
-  }),
-});
-
-
-
-// Create connection helpers for the userRoles join table.  This will allow you
-// to use the normal t.connection with a drizzle type
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
-  // select the data needed for the nodes
-  select: (nestedSelection) => ({
-    with: {
-      // use nestedSelection to create the correct selection for the node
-      role: nestedSelection(),
-    },
-  }),
-  // resolve the node from the returned list item
-  resolveNode: (userRole) => userRole.role,
-});
-
-builder.drizzleObjectField('users', 'rolesConnection', (t) =>
-  t.connection({
-    // The type for the Node
-    type: Role,
-    nodeNullable: true,
-    // since we are not using t.relatedConnection we need to manually
-    // include the selections for our connection
-    select: (args, ctx, nestedSelection) => ({
-      with: {
-        userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
-      },
-    }),
-    // This helper takes a list of nodes and formats them for the connection
-    resolve: (user, args, ctx) => {
-      return rolesConnection.resolve(user.userRoles, args, ctx, user);
-    },
-  }),
-);
-```
-
-The above example assumes that you are paginating a relation to a join table, where the pagination
-args are applied based on the relation to that join table, but the nodes themselves are nested
-deeper.
-
-`drizzleConnectionHelpers` can also be used to manually create a connection where the edge and
-connections share the same model, and pagination happens directly on a relation to nodes type (even
-if that relation is nested).
-
-```ts
-const commentConnectionHelpers = drizzleConnectionHelpers(builder, 'comments');
-
-const SelectPost = builder.drizzleObject('posts', {
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    comments: t.connection({
-      type: commentConnectionHelpers.ref,
-      select: (args, ctx, nestedSelection) => ({
-        with: {
-          comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
-        },
-      }),
-      resolve: (parent, args, ctx) => commentConnectionHelpers.resolve(parent.comments, args, ctx),
-    }),
-  }),
-});
-```
-
-Replace the preceding `rolesConnection` helper and field to add filtering and ordering:
-
-```ts
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
-  // define additional arguments
-  args: (t) => ({}),
-  query: (args) => ({
-    // define an order
-    orderBy: {
-      roleId: 'asc',
-    },
-    // define a filter
-    where: {
-      accepted: true,
+```graphql
+query PreviousPosts($before: String) {
+  posts(last: 2, before: $before) {
+    nodes {
+      title
     }
-  }),
-  // select the data needed for the nodes
-  select: (nestedSelection) => ({
-    with: {
-      // use nestedSelection to create the correct selection for the node
-      role: nestedSelection(),
-    },
-  }),
-  // resolve the node from the returned list item
-  resolveNode: (userRole) => userRole.role,
-});
-
-
-builder.drizzleObjectField('users', 'rolesConnection', (t) =>
-  t.connection({
-    type: Role,
-    nodeNullable: true,
-    // add the args from the connection helper to the field
-    args: rolesConnection.getArgs(),
-    select: (args, ctx, nestedSelection) => ({
-      with: {
-        userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
-      },
-    }),
-    resolve: (user, args, ctx) => rolesConnection.resolve(user.userRoles, args, ctx, user),
-  }),
-);
+    pageInfo {
+      startCursor
+      hasPreviousPage
+    }
+  }
+}
 ```
 
-#### Extending connection edges
+Backward pagination retains the connection's declared ordering; it selects the preceding rows
+rather than reversing the response. `nodes` is a convenience field enabled by
+`relay: { nodesOnConnection: true }`. With the default Relay configuration, use `edges { node }`.
 
-This alternative exposes the join row’s `createdAt` on each edge. It assumes a registered
-`DateTime` scalar whose output type is `Date`.
+### Related connections
+
+An author's `postsConnection` applies the same publication filter as the feed. `t.relatedConnection`
+plans that relation from the parent selection without a custom resolver:
 
 ```typescript
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
-  select: (nestedSelection) => ({
-    with: {
-      role: nestedSelection(),
-    },
-  }),
-  resolveNode: (userRole) => userRole.role,
-});
-
-builder.drizzleObjectFields('users', (t) => ({
-  rolesConnection: t.connection(
-    {
-      type: Role,
-      nodeNullable: true,
-      select: (args, ctx, nestedSelection) => ({
-        with: {
-          userRoles: rolesConnection.getQuery(args, ctx, nestedSelection),
-        },
-      }),
-      resolve: (user, args, ctx) =>
-        rolesConnection.resolve(
-          user.userRoles,
-          args,
-          ctx,
-          user,
-        ),
-    },
-    {},
-    // options for the edge object
-    {
-      // define the additional fields on the edge object
-      fields: (edge) => ({
-        createdAt: edge.field({
-          type: 'DateTime',
-          // the parent shape for edge fields is inferred from the connections resolve function
-          resolve: (role) => role.createdAt,
-        }),
-      }),
-    },
-  ),
-}));
+postsConnection: t.relatedConnection('posts', {
+  query: { where: { published: true }, orderBy: { createdAt: 'desc' } },
+  totalCount: true,
+}),
 ```
 
-#### `drizzleConnectionHelpers` for non-relation connections
+The `query` option accepts an object or a callback receiving field arguments and context, as it
+does on `t.relation`. Connection `orderBy` accepts column names with `'asc'` or `'desc'`, or a
+column or array of columns for ascending order. Pothos can invert these orderings when fetching
+a backward page. The default ordering uses the table's primary key.
 
-You can also use `drizzleConnectionHelpers` for non-relation connections where you want a connection where your edges and nodes are not the same type.
+Both connection methods create Connection and Edge types. Pass additional options to customize
+those types, as with the [Relay plugin's connection fields](https://pothos-graphql.dev/docs/plugins/relay).
 
-Note that when doing this, you need to be careful to properly merge the `where` clause generated by the connection helper with any additional `where` clause you need to apply to your query
+### Connection totalCount
 
-```typescript
-const rolesConnection = drizzleConnectionHelpers(builder, 'userRoles', {
-  select: (nestedSelection) => ({
-    with: {
-      role: nestedSelection(),
-    },
-  }),
-  resolveNode: (userRole) => userRole.role,
-});
+`totalCount` describes the matching rows across all pages. The author's `totalCount: true`
+counts both published posts even when `first: 1` returns only one. Pothos loads the count only
+when it is selected; a query for only `totalCount` does not load the related posts.
 
-builder.queryFields((t) => ({
-  roles: t.connection({
-    type: Role,
-    nodeNullable: true,
-    args: {
-      userId: t.arg.int({ required: true }),
-    },
-    resolve: async (_, args, ctx, info) => {
-      const query = rolesConnection.getQuery(args, ctx, info);
-      const userRoles = await db.query.userRoles.findMany({
-        ...query,
-        where: {
-          AND: [query.where ?? {}, { userId: args.userId }],
-        },
-      });
-      return rolesConnection.resolve(userRoles, args, ctx);
-    },
-  }),
-}));
-```
+For `t.relatedConnection`, Pothos derives the count from the relation and its filter. For a root
+`t.drizzleConnection`, supply a `totalCount` resolver, as the feed does above. Its filter must
+match the rows returned by the connection. This resolver receives the usual
+`parent`, `args`, `context`, and `info` arguments. A count-only root query skips the main resolver.
+
+By default, a related count includes the `where` returned by the connection's `query`. Setting
+`filterConnectionTotalCount: false` in the builder's `drizzle` options ignores that field filter
+for counts. A filter on the Drizzle relation itself still applies. Keep the default for the
+public author field: counting drafts would reveal data excluded by its publication filter.
+
+For a many-to-many relation defined with `through`, the count matches the rows being paginated.
+If two junction rows reach the same target, that target appears and is counted twice. This differs
+from [`t.relatedCount`](https://pothos-graphql.dev/docs/plugins/drizzle/relations#related-count), which counts distinct related targets.
+
+### Connections with custom edges
+
+A direct many-to-many relation works with `t.relatedConnection`. When the attachment itself has
+fields, such as a caption, the edge needs data from the junction row while its node represents
+Media. [Connection helpers](https://pothos-graphql.dev/docs/plugins/drizzle/connection-helpers) shows how to combine that mapping with selection
+planning, pagination, and custom edge fields in one connection.
 
 ## Ordering and cursors
 
-### Ordering and cursors
-
 Connections page with a cursor that records where in the ordering the previous page ended. This
 applies to `t.relatedConnection`, `t.drizzleConnection`, and `drizzleConnectionHelpers`.
+
+### Tied timestamps in a feed
+
+The [post connection](https://pothos-graphql.dev/docs/plugins/drizzle/connections#page-through-published-posts) orders by `createdAt`, which
+can be identical for several posts. Pothos adds a primary-key tie breaker so each post has a
+distinct position in the connection.
+
+```typescript
+posts: t.drizzleConnection({
+  type: 'posts',
+  totalCount: () => {
+    return db.$count(posts, eq(posts.published, true));
+  },
+  resolve: (query) => {
+    return db.query.posts.findMany(
+      query({
+        where: { published: true },
+        // Three posts share this timestamp. Pothos adds the primary key
+        // to the cursor ordering, so traversing pages still visits each once.
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+  },
+}),
+```
 
 #### Unique orderings
 
@@ -953,9 +719,9 @@ all marked `notNull()`, are used as provided. Nullable unique columns are not tr
 because rows containing a `null` are still tied with each other. Uniqueness declared with
 `uniqueIndex()` is not detected, so those orderings still get the primary key appended.
 
-Primary keys are used whether or not their columns are marked `notNull()`, since SQL makes primary
-key columns non-nullable anyway. That includes composite keys declared with
-`primaryKey({ columns: [...] })`.
+Pothos also recognizes composite primary keys declared with `primaryKey({ columns: [...] })`.
+Primary-key columns are treated as non-null for ordering; ensure your database enforces that
+constraint.
 
 Nothing is appended when Pothos cannot find a key it can rely on, which means tables with no primary
 key, and tables whose only unique column is nullable. Those connections keep the ordering you wrote,
@@ -1004,8 +770,8 @@ mapping:
 builder.queryFields((t) => ({
   posts: t.drizzleConnection({
     type: 'posts',
-    resolve: (query) =>
-      db.query.posts.findMany(
+    resolve: (query) => {
+      return db.query.posts.findMany(
         query({
           extras: {
             createdAtExact: (table) =>
@@ -1013,7 +779,8 @@ builder.queryFields((t) => ({
           },
           orderBy: { createdAtExact: 'desc' },
         }),
-      ),
+      );
+    },
   }),
 }));
 ```
@@ -1041,164 +808,240 @@ The expression also needs to sort in the same order its values compare. A timest
 fixed width UTC text sorts the same way it does chronologically, but a local time or variable width
 format does not, and will skip rows.
 
-Ordering by an expression cannot use an index on the underlying column. If the table is large enough
-to need one, add an index on the expression.
+## Relay nodes
 
-## Relay
+The Relay plugin supplies node IDs and cursor connections. Register it with Drizzle as shown in
+[Setup](https://pothos-graphql.dev/docs/plugins/drizzle/setup#integration-with-other-plugins); [Connections](https://pothos-graphql.dev/docs/plugins/drizzle/connections) covers pagination.
 
-### Relay integration
+### Define a node
 
-Relay provides some very useful best practices that are useful for most GraphQL APIs. To make it
-easy to comply with these best practices, the drizzle plugin has built in support for defining relay
-`nodes` and `connections`.
-
-### Relay Nodes
-
-Defining relay nodes works just like defining normal `drizzleObject`s, but requires specifying a
-column to use as the node's `id` field.
+`builder.drizzleNode` uses the same fields and selections as `builder.drizzleObject`, and adds
+an ID and a root node lookup. The example User uses its integer primary key:
 
 ```ts
 builder.drizzleNode('users', {
   name: 'User',
-  id: {
-    column: (user) => user.id,
-    // other options for the ID field can be passed here
-  },
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    lastName: t.exposeString('lastName'),
-  }),
+  id: { column: (user) => user.id },
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
 });
 ```
 
-The id column can also be set to a list of columns for types with a composite primary key.
+This minimal alternative shows the node options. The example User adds full name, profile,
+and published posts to the same type. Other ID field options can be passed alongside `column`;
+for a composite primary key, `column` can return a list of columns.
+
+### Refetch a public author
+
+The ID returned by User can be passed back to
+`node` to fetch the author with a new selection:
+
+```graphql
+query RefetchAuthor {
+  node(id: "VXNlcjox") {
+    ... on User {
+      fullName
+      posts {
+        title
+      }
+    }
+  }
+}
+```
+
+The operation uses the ID of User 1. The node
+returns the same public fields as the author lookup, including only published posts.
+
+### Authorize the node load path
+
+> [!WARNING]
+> Defining a node creates a direct lookup through `node` and `nodes`. These lookups bypass custom
+> root resolvers, so permission checks or visibility filters on a list or parent field do not protect
+> node refetches. An encoded global ID is an identifier, not proof of permission.
+>
+> Apply an access policy to node loading, the type, or its fields as appropriate. See
+> [Authorizing Relay nodes](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes) for scope patterns and their limits.
+
+The public User type here can be refetched by anyone. Its
+[published-posts relation](https://pothos-graphql.dev/docs/plugins/drizzle/relations#published-posts-and-profiles) applies the publication filter
+wherever User is reached, including through `node`. Post stays an ordinary Drizzle object;
+defining a public feed does not also make individual drafts globally refetchable.
 
 ## Type variants
 
-Use the [builder setup with Relay](https://pothos-graphql.dev/docs/plugins/drizzle/setup#integration-with-other-plugins), and include
-`Context: { user: { id: number } }` in `PothosTypes`. These examples assume an authenticated user
-and a registered posts type. The `users` table has a posts relation.
+A variant gives another GraphQL representation to the same database row. The publishing API
+uses public User fields for author pages and a private Viewer for the signed-in account.
 
-### Variants
+The API has three parts:
 
-It is often useful to be able to define multiple object types based on the same table. This can be
-done using a feature called `variants`. The `variants` API consists of 3 parts:
+- `variant` registers an additional type instead of naming the primary type with `name`.
+- `t.variant` returns another representation of the same row.
+- A relation's `type` option can select a variant using its returned object ref.
 
-- A `variant` option that can be passed instead of a name on `drizzleObjects`
-- The ability to pass an `ObjectRef` to the `type` option of `t.relation` and other similar fields
-- A `t.variant` method that works similar to `t.relation`, but is used to define a GraphQL field that
-  references a variant of the same record.
+### A single object variant
+
+Use `variant` to define Viewer alongside the primary User type. `t.variant('users')` exposes
+the public representation of the same row:
 
 ```ts
-// Viewer type representing the current user
-export const Viewer = builder.drizzleObject('users', {
+const Viewer = builder.drizzleObject('users', {
   variant: 'Viewer',
   select: {},
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    // A reference to the normal user type so normal user fields can be queried
-    user: t.variant('users'),
-    // Adding drafts to View allows a user to fetch their own drafts without exposing it for Other Users in the API
-    drafts: t.relation('posts', {
-      query: {
-        where: {
-          published: false,
-        },
-        orderBy: {
-          updatedAt: 'desc',
-        },
+  fields: (t) => {
+    return {
+      id: t.exposeID('id'),
+      user: t.variant('users'),
+      drafts: t.relation('posts', {
+        query: {
+        where: { published: false },
+        orderBy: { createdAt: 'desc', id: 'desc' },
       },
-    }),
-  }),
+      }),
+    };
+  },
 });
+```
 
-builder.queryType({
-  fields: (t) => ({
-    me: t.drizzleField({
-      // We can use the ref returned by builder.drizzleObject to define our `drizzleField`
-      type: Viewer,
-      resolve: (query, root, args, ctx) =>
-        db.query.users.findFirst(
-          query({
-            where: {
-              id: ctx.user.id,
-            },
-          }),
-        ),
-    }),
-  }),
-});
+### A viewer with role-specific fields
 
-builder.drizzleNode('users', {
-  name: 'User',
-  id: { column: (user) => user.id },
+When viewer fields differ by role, Viewer can instead be an interface with object variants
+for each role. The following definition uses this structure; [Interfaces](https://pothos-graphql.dev/docs/plugins/drizzle/interfaces) explains
+its implementations:
+
+```typescript
+export const Viewer = builder.drizzleInterface('users', {
+  variant: 'Viewer',
+  select: { columns: { id: true, role: true } },
+  resolveType: (user) => (user.role === 'editor' ? 'EditorViewer' : 'AuthorViewer'),
   fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    // This field will resolve to the Viewer type, but be set to null if the user is not the current user
-    viewer: t.variant(Viewer, {
-      isNull: (user, args, ctx) => user.id !== ctx.user?.id,
+    user: t.variant('users'),
+    email: t.exposeString('email'),
+    drafts: t.relation('posts', {
+      query: { where: { published: false }, orderBy: { id: 'asc' } },
     }),
   }),
 });
 ```
 
-As an alternative to the User node definition above, a `t.variant` field can have a `select` of its own. It is planned along with the variant's
-type-level selection when the variant is queried through that field:
+The root lookup uses the authenticated context ID. It does not accept an arbitrary author's ID:
+
+```typescript
+me: t.drizzleField({
+  type: Viewer,
+  nullable: true,
+  resolve: (query, _root, _args, ctx) => {
+    return db.query.users.findFirst(
+      query({
+        where: { id: ctx.userId },
+      }),
+    );
+  },
+}),
+```
+
+Maya (`userId: 1`) sees “Planning the spring exchange”; Leo (`userId: 2`) sees “Saving rainwater.”
+The interface and variants describe the shapes; the root lookup restricts ownership. Public
+author fields and post connections return published posts only.
+
+### Conditionally expose another variant
+
+The publishing User also exposes its Viewer conditionally. Define that field after Viewer is registered,
+which avoids a circular reference between their definitions:
+
+```typescript
+builder.drizzleObjectField('users', 'viewer', (t) =>
+  t.variant(Viewer, {
+    select: { columns: { id: true } },
+    isNull: (user, _args, ctx) => user.id !== ctx.userId,
+  }),
+);
+```
+
+The ownership check is essential: without it an arbitrary author's public row could reveal that
+author's drafts. `isNull` makes the variant field null when its parent is another account.
+
+A variant field accepts a `select` just like other fields. Here it loads `id` for the ownership
+check; the target variant contributes the selections required by its own fields.
+
+### Relation variants
+
+To use a different representation of a related row, pass its object ref to `t.relation`'s `type`
+option. The variant must represent the relation's target table. For example, this alternative
+adds a compact PostSummary representation and selects it for a public author's posts:
 
 ```ts
-builder.drizzleNode('users', {
-  name: 'User',
-  id: { column: (user) => user.id },
-  fields: (t) => ({
-    viewer: t.variant(Viewer, {
-      // loaded with the row when `viewer` is selected
-      select: { columns: { email: true } },
-      isNull: (user, args, ctx) => user.id !== ctx.user?.id,
-    }),
-  }),
+const PostSummary = builder.drizzleObject('posts', {
+  variant: 'PostSummary',
+  fields: (t) => ({ title: t.exposeString('title') }),
 });
+
+builder.drizzleObjectField('users', 'postSummaries', (t) =>
+  t.relation('posts', {
+    type: PostSummary,
+    query: {
+      where: { published: true },
+      orderBy: { id: 'asc' },
+    },
+  }),
+);
 ```
 
-Two variants of one table selected for the same row have their type-level selections merged into a
-single query, which can fail if they disagree. See
+Two variants selected for the same row have their type-level selections merged. Conflicting
+relation arguments or extras can fail; see
 [Conflicting selections between variants](https://pothos-graphql.dev/docs/plugins/drizzle/query-planning#conflicting-selections-between-variants).
 
 ## Interfaces
 
 ### Interfaces
 
-`builder.drizzleInterface` works just like `builder.drizzleObject`, and can be used to define
-either the primary type or a variant of a table as an interface that other variants implement. The
-interface's `select` is planned whenever a field returns the interface, and an implementation's own
-`select` is planned when a fragment narrows to it. Selections are not inherited, so an
-implementation that exposes more columns will need a `select` of its own.
+`builder.drizzleInterface` works like `builder.drizzleObject`. It can define the primary type
+or a variant of a table. Here Viewer is a variant, leaving User as the public primary type.
 
-```ts
+### Define the interface
+
+```typescript
 export const Viewer = builder.drizzleInterface('users', {
   variant: 'Viewer',
   select: { columns: { id: true, role: true } },
-  resolveType: (user) => (user.role === 'admin' ? 'AdminViewer' : 'MemberViewer'),
+  resolveType: (user) => (user.role === 'editor' ? 'EditorViewer' : 'AuthorViewer'),
   fields: (t) => ({
-    id: t.exposeID('id'),
     user: t.variant('users'),
+    email: t.exposeString('email'),
+    drafts: t.relation('posts', {
+      query: { where: { published: false }, orderBy: { id: 'asc' } },
+    }),
   }),
-});
-
-builder.drizzleObject('users', {
-  variant: 'AdminViewer',
-  interfaces: [Viewer],
-  select: { columns: { permissions: true } },
-  fields: (t) => ({
-    permissions: t.exposeStringList('permissions'),
-  }),
-});
-
-builder.drizzleObject('users', {
-  variant: 'MemberViewer',
-  interfaces: [Viewer],
-  select: { columns: { id: true } },
 });
 ```
+
+`resolveType` uses the selected `role` discriminator and returns GraphQL type names. Returning
+names avoids a circular reference between the interface and its implementations.
+
+### Selecting a viewer implementation
+
+```typescript
+builder.drizzleObject('users', {
+  variant: 'EditorViewer',
+  interfaces: [Viewer],
+  select: { columns: { id: true, role: true } },
+  fields: (t) => ({ canReviewSubmissions: t.boolean({ resolve: () => true }) }),
+});
+builder.drizzleObject('users', {
+  variant: 'AuthorViewer',
+  interfaces: [Viewer],
+  select: { columns: { id: true, role: true } },
+});
+```
+
+The interface's `select` is planned whenever a field returns the interface. An implementation's
+own selection is planned when a fragment narrows to it. Selections are not inherited; put data
+required by an implementation in its selection as well. An implementation may select additional
+columns or expressions for fields that do not belong on the interface.
+
+Maya (`userId: 1`) resolves to EditorViewer with `canReviewSubmissions: true`. Leo (`userId: 2`)
+resolves to AuthorViewer, so the editor fragment contributes no field. The interface describes
+those result shapes; the authenticated root lookup enforces whose drafts are returned.
+
+### Extending an interface
 
 Fields can be added to an interface later with `builder.drizzleInterfaceField` and
 `builder.drizzleInterfaceFields`, which take the interface ref (or the table name) like their
@@ -1206,7 +1049,9 @@ Fields can be added to an interface later with `builder.drizzleInterfaceField` a
 
 ```ts
 builder.drizzleInterfaceFields(Viewer, (t) => ({
-  posts: t.relatedConnection('posts'),
+  publishedPosts: t.relatedConnection('posts', {
+    query: { where: { published: true } },
+  }),
 }));
 ```
 
@@ -1240,6 +1085,44 @@ the first one planned wins, and the other is loaded with a query of its own. A t
 is planned before any field's selection, no matter where they appear in the document, and fields
 are planned in the order they are selected.
 
+### Compare two orderings of one relation
+
+A client may need both the newest and oldest published posts on one author page:
+
+```graphql
+query CompareOrderings {
+  author(id: 1) {
+    newest: posts {
+      title
+    }
+    oldest: posts(oldestFirst: true) {
+      title
+    }
+  }
+}
+```
+
+The [published-posts field](https://pothos-graphql.dev/docs/plugins/drizzle/relations#published-posts-and-profiles) translates those arguments
+into different database orderings. The two fields cannot reuse the same loaded
+relation because their orderings differ. The additional ordering is loaded through a fallback
+query.
+
+In this example, selecting one ordering executes one SQL statement; selecting both executes
+two. The number of GraphQL field resolvers does not determine the number of database queries.
+
+```typescript
+posts: t.relation('posts', {
+  args: { oldestFirst: t.arg.boolean() },
+  query: (args) => ({
+    where: { published: true },
+    orderBy: {
+      createdAt: args.oldestFirst ? 'asc' : 'desc',
+      id: args.oldestFirst ? 'asc' : 'desc',
+    },
+  }),
+}),
+```
+
 ### Nested selections
 
 A `select` function receives `nestedSelection`, which plans the selection beneath the field for the
@@ -1252,11 +1135,19 @@ builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
     previewPosts: t.field({
-      type: [Post],
-      select: (args, ctx, nestedSelection) => ({
-        // what the query selects on the posts, limited to one
-        with: { posts: nestedSelection({ limit: 1 }) },
-      }),
+      type: ['posts'],
+      select: (args, ctx, nestedSelection) => {
+        return {
+          // what the query selects on the posts, limited to one
+          with: {
+            posts: nestedSelection({
+              where: { published: true },
+              orderBy: { id: 'asc' },
+              limit: 1,
+            }),
+          },
+        };
+      },
       resolve: (user) => user.posts,
     }),
   }),
@@ -1274,81 +1165,9 @@ which are described under [Relation queries](https://pothos-graphql.dev/docs/plu
 
 ### Async selections
 
-Selections are synchronous unless the schema opts in with `AsyncSelections: true`. This example
-uses request context methods that asynchronously return a user ID and a preview limit:
-
-```ts
-const builder = new SchemaBuilder<{
-  DrizzleRelations: typeof relations;
-  AsyncSelections: true;
-  Context: {
-    currentUserId: () => Promise<number>;
-    previewSize: () => Promise<number>;
-  };
-}>({
-  plugins: [DrizzlePlugin],
-  drizzle: {
-    client: db,
-    getTableConfig,
-    relations,
-  },
-});
-```
-
-With the opt-in, `select` functions, relation `query` callbacks, `relatedCount` `where` callbacks,
-and the `select` and `query` callbacks of `drizzleConnectionHelpers` may be async. Without it they
-are typed as synchronous, and an async callback is a type error.
-
-The plugin still builds a single query. It waits for the callbacks, and merges what they return
-after every synchronous selection, in document order. `t.relation`, `t.relatedCount`,
-`t.drizzleField`, `t.drizzleConnection` and `t.relatedConnection` settle their plan before the
-resolver runs, and need no changes.
-
-```ts
-builder.drizzleObject('users', {
-  name: 'User',
-  fields: (t) => ({
-    posts: t.relation('posts', {
-      query: async (args, ctx) => ({ where: { authorId: await ctx.currentUserId() } }),
-    }),
-    previewPosts: t.field({
-      type: [Post],
-      select: async (args, ctx, nestedSelection) => ({
-        with: { posts: await nestedSelection({ limit: await ctx.previewSize() }) },
-      }),
-      resolve: (user) => user.posts,
-    }),
-  }),
-});
-```
-
-`await` what `nestedSelection` returns before putting it in the selection, and the same for the
-`nestedQuery` passed as the fourth argument of a `t.relatedField` `select`. A selection that
-contains the promise itself will throw, and so will a `select` that returns while a nested
-selection it started is still pending. Calling `nestedSelection` and discarding a synchronous
-result is not detected, and the nested selection will not be loaded with the parent.
-
-Pass `awaitSelections: true` to `drizzleConnectionHelpers(...).getQuery`, and `await` the query it
-returns. Without it, an async selection beneath the field throws, and whether there is one
-depends on the incoming document rather than on the callback you wrote. A connection helper also
-throws when its own `select` or `query` is async, whatever the document asked for:
-
-```ts
-select: async (args, ctx, nestedSelection) => ({
-  with: {
-    comments: await commentConnectionHelpers.getQuery(args, ctx, nestedSelection, {
-      awaitSelections: true,
-    }),
-  },
-}),
-```
-
-`awaitSelections` is a per-call option, and is available whether or not the schema sets
-`AsyncSelections`.
-
-When `AsyncSelections: true`, also `await` a connection helper's `resolve()` before inspecting or
-spreading its result: an async `query` callback makes resolution asynchronous. Returning its
-result directly from a GraphQL resolver remains supported.
+When a selection depends on asynchronous request data, enable `AsyncSelections: true` and await
+nested plans. [Async selections](https://pothos-graphql.dev/docs/plugins/drizzle/async-selections) covers the builder configuration, supported
+callbacks, helper options, and errors caused by unsettled promises.
 
 ### Conflicting selections between variants
 
@@ -1368,3 +1187,248 @@ options are merged into a single query.
 To fix this, move the relation with its arguments, or the extra, into the `select` of the field
 that needs it on one of the variants. A field-level selection that conflicts with what the row
 already holds falls back to a query for that field, rather than failing the request.
+
+## Connection helpers
+
+An image can appear in several posts, with a different caption in each. The Media row describes
+the image; the PostMedia row describes its attachment to a post. A connection can expose the
+image as its node and the attachment's caption as an edge field:
+
+```graphql
+query PostAttachments {
+  author(id: 1) {
+    postsConnection(first: 1) {
+      nodes {
+        title
+        attachments(first: 2) {
+          edges {
+            caption
+            node {
+              url
+              uploadedBy {
+                fullName
+              }
+            }
+          }
+          pageInfo {
+            endCursor
+            hasNextPage
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+`t.relatedConnection` handles a relation whose rows are the connection's nodes. Use
+`drizzleConnectionHelpers` with `t.connection` when the rows being paginated differ from those
+nodes, or when you need to load the rows yourself. The helper supplies the selection, cursor,
+and result handling that a normal Relay connection field does not have.
+
+### Select the nodes through the attachment
+
+Import `drizzleConnectionHelpers` from `@pothos/plugin-drizzle` and use the builder configured
+with the Drizzle and Relay plugins. The helper targets `postMedia`. Its `select` uses
+`nestedSelection()` to request the Media fields
+selected beneath the connection's nodes; `resolveNode` returns that related Media row:
+
+```typescript
+const attachmentArgs = builder.args((t) => ({
+  hasCaption: t.boolean({ defaultValue: false }),
+}));
+
+const attachments = drizzleConnectionHelpers(builder, 'postMedia', {
+  args: () => attachmentArgs,
+  query: (args) => ({
+    orderBy: { id: 'asc' },
+    where: args.hasCaption ? { caption: { isNotNull: true } } : {},
+  }),
+  select: (nestedSelection) => {
+    return {
+      columns: { caption: true },
+      with: { media: nestedSelection() },
+    };
+  },
+  resolveNode: (attachment) => attachment.media,
+});
+```
+
+The connection orders and creates cursors from attachment IDs, not Media IDs. An image shared
+by two posts can therefore have a different caption and connection position in each post.
+The nested uploader selection is still planned from the requested Media fields.
+
+The helper's `args` and `query` options define a `hasCaption` argument. When it is true, the
+connection includes only attachments with a caption. Its default, false, includes all attachments.
+`getArgs()` exposes that argument on the field, and `getQuery()` combines the filter and ordering
+with the requested page and node selection.
+
+### Add the connection and its edge fields
+
+`Media` below is the object ref returned by `builder.drizzleObject('media', ...)`.
+A normal `t.connection` needs an explicit `select` to load the helper's query on the parent.
+Its resolver passes the selected attachment rows to the helper's `resolve` method:
+
+```typescript
+builder.drizzleObjectField('posts', 'attachments', (t) =>
+  t.connection(
+    {
+      type: Media,
+      args: attachments.getArgs(),
+      select: (args, ctx, nestedSelection) => {
+        return {
+          with: {
+            attachments: attachments.getQuery(args, ctx, nestedSelection),
+          },
+        };
+      },
+      resolve: (post, args, ctx) => {
+        return attachments.resolve(post.attachments, args, ctx);
+      },
+    },
+    {},
+    {
+      fields: (edge) => ({
+        caption: edge.string({
+          nullable: true,
+          resolve: (attachment) => attachment.caption,
+        }),
+      }),
+    },
+  ),
+);
+```
+
+The third argument to `t.connection` configures the Edge type. Each edge retains the selected
+attachment fields, so its `caption` resolver reads the attachment's caption, while `node` returns
+the Media selected by `resolveNode`. A missing caption returns null.
+
+The post has three attachments. Its first unfiltered page of two has `hasNextPage: true`;
+filtering to captioned attachments returns two and has no next page. Pagination uses the same
+`first`/`after` and `last`/`before` arguments as [other connections](https://pothos-graphql.dev/docs/plugins/drizzle/connections#page-through-published-posts).
+
+### Querying the rows in a resolver
+
+The same helper can build a query for a resolver that fetches the attachment rows itself.
+Pass GraphQL resolve `info` to `getQuery`, merge any additional filter with its cursor filter,
+and pass the result to `resolve`:
+
+```ts
+// Alternative resolver for the Post.attachments connection above:
+resolve: async (post, args, ctx, info) => {
+  const query = attachments.getQuery(args, ctx, info);
+  const attachmentRows = await db.query.postMedia.findMany({
+    ...query,
+    where: {
+      AND: [query.where ?? {}, { postId: post.id }],
+    },
+  });
+
+  return attachments.resolve(attachmentRows, args, ctx);
+},
+```
+
+This alternative needs `db` imported from the application's database module and `id` selected
+on Post. Remove the field's relation `select` when using it, so the rows are not also loaded
+through the parent query. Replacing the helper's `where` rather than combining it would discard
+pagination constraints.
+
+If the rows and nodes are the same type, omit `resolveNode` and the node-mapping `select` when
+creating the helper. Its `ref` provides the node type for `t.connection`. Prefer
+`t.relatedConnection` when you can expose that relation directly without custom loading.
+
+## Async selections
+
+Pothos selections are synchronous by default. Set `AsyncSelections: true` when a selection or
+relation query must await request data before returning its query options.
+
+### Async selections
+
+Use the client and relations configured in [Setup](https://pothos-graphql.dev/docs/plugins/drizzle/setup). The context method below supplies
+a preview size loaded asynchronously, for example from account settings:
+
+```ts
+const builder = new SchemaBuilder<{
+  DrizzleRelations: typeof relations;
+  AsyncSelections: true;
+  Context: {
+    previewSize: () => Promise<number>;
+  };
+}>({
+  plugins: [DrizzlePlugin],
+  drizzle: {
+    client: db,
+    getTableConfig,
+    relations,
+  },
+});
+```
+
+With the opt-in, `select` functions, relation `query` callbacks, `relatedCount` `where` callbacks,
+and the `select` and `query` callbacks of `drizzleConnectionHelpers` may be async. Without it they
+are typed as synchronous, and an async callback is a type error.
+
+Pothos waits for these callbacks before executing the planned query. `t.relation`, `t.relatedCount`,
+`t.drizzleField`, `t.drizzleConnection` and `t.relatedConnection` settle their plan before the
+resolver runs, and need no changes.
+
+```ts
+builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    previewPosts: t.field({
+      type: ['posts'],
+      select: async (args, ctx, nestedSelection) => {
+        return {
+          with: {
+            posts: await nestedSelection({
+              where: { published: true },
+              orderBy: { id: 'asc' },
+              limit: await ctx.previewSize(),
+            }),
+          },
+        };
+      },
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
+### Await nested selections
+
+`await` what `nestedSelection` returns before putting it in the selection, and the same for the
+`nestedQuery` passed as the fourth argument of a `t.relatedField` `select`. A selection that
+contains the promise itself will throw, and so will a `select` that returns while a nested
+selection it started is still pending. Include the nested selection in the returned query to
+load its data.
+
+### Connection helpers
+
+Pass `awaitSelections: true` to `drizzleConnectionHelpers(...).getQuery`, and `await` the query it
+returns. Without it, an async selection beneath the field throws, and whether there is one
+depends on the incoming document rather than on the callback you wrote. A connection helper also
+throws when its own `select` or `query` is async, whatever the document asked for:
+
+```ts
+select: async (args, ctx, nestedSelection) => {
+  return {
+    with: {
+      attachments: await attachments.getQuery(args, ctx, nestedSelection, {
+        awaitSelections: true,
+      }),
+    },
+  };
+},
+```
+
+`awaitSelections` is a per-call option, and is available whether or not the schema sets
+`AsyncSelections`.
+
+When `AsyncSelections: true`, also `await` a connection helper's `resolve()` before inspecting or
+spreading its result: an async `query` callback makes resolution asynchronous. Returning its
+result directly from a GraphQL resolver remains supported.
+
+The connection-helper excerpt uses the Post attachments relation and `attachments` helper from
+[Connection helpers](https://pothos-graphql.dev/docs/plugins/drizzle/connection-helpers). Request-context
+methods must be supplied by the application; they are not created by declaring the Context type.

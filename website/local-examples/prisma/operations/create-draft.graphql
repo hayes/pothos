@@ -1,0 +1,9 @@
+mutation CreateDraft {
+  createDraft(input: { title: "Mulching paths", content: "Use local wood chips." }) {
+    title
+    published
+    author {
+      name
+    }
+  }
+}

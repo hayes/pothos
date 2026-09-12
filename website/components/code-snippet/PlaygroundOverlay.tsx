@@ -21,6 +21,9 @@ export interface PlaygroundOverlayProps {
    */
   query?: string;
 
+  /** One-based operation index within the example. */
+  operation?: number;
+
   /**
    * Callback when overlay is closed
    */
@@ -41,6 +44,7 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
   exampleId,
   code,
   query,
+  operation,
   onClose,
 }) => {
   // Build playground URL — `embed=1` puts the page in embedded mode
@@ -52,7 +56,11 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
     if (exampleId) {
       const params = new URLSearchParams();
       params.set('embed', '1');
+      params.set('overlay', '1');
       params.set('example', exampleId);
+      if (operation !== undefined && Number.isInteger(operation) && operation > 0) {
+        params.set('op', String(operation));
+      }
       if (code) {
         params.set('snippet', code);
       }
@@ -68,11 +76,11 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
         query,
         viewMode: query ? 'graphql' : 'code',
       });
-      return `/playground?embed=1#${state}`;
+      return `/playground?embed=1&overlay=1#${state}`;
     }
 
-    return '/playground?embed=1';
-  }, [exampleId, code, query]);
+    return '/playground?embed=1&overlay=1';
+  }, [exampleId, code, query, operation]);
 
   // Focus into the dialog on open, restore focus on close, close on Escape.
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -103,9 +111,8 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
         {/* biome-ignore lint/a11y/noNoninteractiveTabindex: intentional focus-trap sentinel — must be Tab-reachable to wrap focus */}
         <span data-focus-guard tabIndex={0} aria-hidden="true" onFocus={focusLast} />
 
-        {/* Keep Close outside the iframe's content so it cannot cover guide
-            instructions or step controls, especially on narrow screens. */}
-        <div className="flex shrink-0 justify-end border-b border-fd-border p-2">
+        {/* The embedded toolbar reserves this corner for the parent-owned close control. */}
+        <div className="absolute right-2 top-2 z-10">
           <button
             type="button"
             onClick={onClose}
@@ -119,7 +126,7 @@ export const PlaygroundOverlay: FC<PlaygroundOverlayProps> = ({
         {/* Playground iframe */}
         <iframe
           src={playgroundURL}
-          className="min-h-0 w-full flex-1 md:rounded-b-lg"
+          className="min-h-0 w-full flex-1 md:rounded-lg"
           title="Pothos Playground"
           allow="clipboard-write"
         />

@@ -1,0 +1,26 @@
+query Attachments($after: String, $hasCaption: Boolean = false) {
+  author(id: 1) {
+    postsConnection(first: 1) {
+      nodes {
+        title
+        attachments(first: 2, after: $after, hasCaption: $hasCaption) {
+          edges {
+            caption
+            node {
+              url
+              uploadedBy {
+                fullName
+              }
+            }
+          }
+          pageInfo {
+            startCursor
+            endCursor
+            hasNextPage
+            hasPreviousPage
+          }
+        }
+      }
+    }
+  }
+}

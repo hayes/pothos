@@ -1,0 +1,6 @@
+query ComputedNames {
+  author(id: 1) {
+    fullName
+    lowercaseName
+  }
+}

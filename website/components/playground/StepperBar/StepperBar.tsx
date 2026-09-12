@@ -30,16 +30,12 @@ export function StepperBar({ exampleTitle, steps, index, pendingIndex, onSelect,
   const next = () => onSelect(Math.min(total - 1, baseline + 1));
 
   return (
-    <div
-      className="flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 md:px-6 py-2.5 bg-bm-accent-soft/20 border-b border-bm-line"
+    <nav
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 bg-bm-accent-soft/20 border-b border-bm-line"
       aria-busy={isPending}
+      aria-label={`${exampleTitle} steps`}
     >
-      <div className="flex min-w-0 items-baseline gap-2 font-serif">
-        <span className="text-[11px] uppercase tracking-[0.08em] text-bm-ink-muted">Example</span>
-        <span className="text-[14px] italic text-bm-ink break-words">{exampleTitle}</span>
-      </div>
-
-      <div className="order-3 md:order-none flex w-full md:w-auto md:flex-1 items-center min-w-0 overflow-x-auto">
+      <div className="flex flex-1 items-center min-w-0 overflow-x-auto">
         {steps.map((step, i) => {
           const isCurrent = i === clamped;
           const isPendingThis = pendingIndex === i;
@@ -58,6 +54,7 @@ export function StepperBar({ exampleTitle, steps, index, pendingIndex, onSelect,
                   isPending ? 'cursor-progress' : 'hover:opacity-90'
                 } ${dimmed ? 'opacity-40' : ''}`}
                 title={step.description}
+                aria-label={`${i + 1}. ${step.title}`}
               >
                 <StepCircle
                   state={
@@ -73,7 +70,7 @@ export function StepperBar({ exampleTitle, steps, index, pendingIndex, onSelect,
                   {isPendingThis ? <Spinner /> : i < clamped ? '✓' : i + 1}
                 </StepCircle>
                 <span
-                  className={`text-[12px] whitespace-nowrap ${
+                  className={`hidden sm:inline text-[12px] whitespace-nowrap ${
                     isCurrent || isPendingThis ? 'text-bm-ink font-medium' : 'text-bm-ink-muted'
                   }`}
                 >
@@ -119,7 +116,7 @@ export function StepperBar({ exampleTitle, steps, index, pendingIndex, onSelect,
           ×
         </button>
       </div>
-    </div>
+    </nav>
   );
 }
 

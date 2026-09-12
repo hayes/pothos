@@ -41,6 +41,10 @@ export async function typecheckPlaygroundCases(examples, root = process.cwd()) {
             skipLibCheck: true,
             esModuleInterop: true,
             resolveJsonModule: true,
+            paths: {
+              'drizzle-orm': [join(root, 'node_modules/drizzle-orm')],
+              'drizzle-orm/*': [join(root, 'node_modules/drizzle-orm/*')],
+            },
           },
           files,
         }),

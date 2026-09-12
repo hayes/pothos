@@ -145,7 +145,10 @@ builder.queryFields((t) => ({
     },
     // base multiplier on how many posts are being requested
     complexity: (args, ctx) => ({ field: 5, multiplier: Math.max(0, args.limit ?? 5) }),
-    resolve: (parent, args) => loadPosts(Math.max(0, args.limit ?? 5)),
+    resolve: (parent, args) => {
+      const limit = Math.max(0, args.limit ?? 5);
+      return loadPosts(limit);
+    },
   }),
 }));
 ```

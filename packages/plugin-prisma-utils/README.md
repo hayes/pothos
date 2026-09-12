@@ -323,3 +323,88 @@ You can find an example
 This generator exports a class that can be used to dynamically create input types for your builder
 as shown
 [here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/index.ts#L9-L20)
+
+## Filters and draft inputs in one API
+
+The schema uses these helpers to expose a small, intentional input surface. A title
+filter and ordering input support public post search:
+
+```typescript
+const TitleFilter = builder.prismaFilter('String', { ops: ['contains', 'equals'] });
+const PostWhere = builder.prismaWhere('Post', {
+  fields: { title: TitleFilter },
+});
+const PostOrderBy = builder.prismaOrderBy('Post', { fields: { title: true, id: true } });
+```
+
+The `searchPosts` resolver combines the caller's filter with `published: true` using `AND`.
+A caller can narrow the public result set, but cannot expand it to drafts. The selected ordering
+also gets an ID tie breaker for deterministic results.
+
+Draft creation and editing expose only title and content. The resolver supplies ownership from
+the authenticated context and keeps publication state outside the input:
+
+```typescript
+const DraftInput = builder.prismaCreate('Post', {
+  name: 'DraftInput',
+  fields: { title: 'String', content: 'String' },
+});
+const DraftUpdate = builder.prismaUpdate('Post', {
+  name: 'DraftUpdate',
+  fields: { title: 'String', content: 'String' },
+});
+const CreateDraftResult = builder.objectRef<{ post: PostRow }>('CreateDraftResult').implement({
+  fields: (t) => ({ post: t.field({ type: Post, resolve: (result) => result.post }) }),
+});
+builder.mutationType({
+  fields: (t) => ({
+    createDraft: t.prismaField({
+      type: 'Post',
+      args: { input: t.arg({ type: DraftInput, required: true }) },
+      resolve: (query, _root, args, ctx) => {
+        return prisma.post.create({
+          ...query,
+          data: { ...args.input, author: { connect: { id: ctx.userId } } },
+        });
+      },
+    }),
+    updateDraft: t.prismaField({
+      type: 'Post',
+      args: {
+        id: t.arg.int({ required: true }),
+        input: t.arg({ type: DraftUpdate, required: true }),
+      },
+      resolve: (query, _root, args, ctx) => {
+        return prisma.post.update({
+          ...query,
+          where: { id: args.id, authorId: ctx.userId, published: false },
+          data: args.input,
+        });
+      },
+    }),
+    createDraftWithPayload: t.field({
+      type: CreateDraftResult,
+      args: {
+        title: t.arg.string({ required: true }),
+        content: t.arg.string({ required: true }),
+      },
+      resolve: async (_root, args, context, info) => {
+        return {
+          post: await prisma.post.create({
+            ...queryFromInfo({ context, info, path: ['post'] }),
+            data: { ...args, authorId: context.userId },
+          }),
+        };
+      },
+    }),
+  }),
+});
+```
+
+Creating “Mulching paths” returns an unpublished post owned by the current author, including its
+requested author relation. Updating another author's draft fails and leaves its title unchanged.
+`createDraftWithPayload` returns a post inside a result object, so `queryFromInfo` uses `path:
+['post']` to plan the nested selection. These are application decisions; input generation does not
+provide authorization by itself.
+
+Scalar-list filters require a database that supports Prisma scalar lists.

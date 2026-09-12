@@ -3,10 +3,16 @@ title: Ordering and cursors
 description: How a connection orders rows, and the cursors that ordering produces
 ---
 
-## Ordering and cursors
-
 Connections page with a cursor that records where in the ordering the previous page ended. This
 applies to `t.relatedConnection`, `t.drizzleConnection`, and `drizzleConnectionHelpers`.
+
+## Tied timestamps in a feed
+
+The [post connection](./connections#page-through-published-posts) orders by `createdAt`, which
+can be identical for several posts. Pothos adds a primary-key tie breaker so each post has a
+distinct position in the connection.
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ posts(first: 2) { nodes { title } pageInfo { endCursor hasNextPage } } }"'>playground-examples/plugin-drizzle/queries.ts#posts-query</include>
 
 ### Unique orderings
 
@@ -33,9 +39,9 @@ all marked `notNull()`, are used as provided. Nullable unique columns are not tr
 because rows containing a `null` are still tied with each other. Uniqueness declared with
 `uniqueIndex()` is not detected, so those orderings still get the primary key appended.
 
-Primary keys are used whether or not their columns are marked `notNull()`, since SQL makes primary
-key columns non-nullable anyway. That includes composite keys declared with
-`primaryKey({ columns: [...] })`.
+Pothos also recognizes composite primary keys declared with `primaryKey({ columns: [...] })`.
+Primary-key columns are treated as non-null for ordering; ensure your database enforces that
+constraint.
 
 Nothing is appended when Pothos cannot find a key it can rely on, which means tables with no primary
 key, and tables whose only unique column is nullable. Those connections keep the ordering you wrote,
@@ -84,8 +90,8 @@ mapping:
 builder.queryFields((t) => ({
   posts: t.drizzleConnection({
     type: 'posts',
-    resolve: (query) =>
-      db.query.posts.findMany(
+    resolve: (query) => {
+      return db.query.posts.findMany(
         query({
           extras: {
             createdAtExact: (table) =>
@@ -93,7 +99,8 @@ builder.queryFields((t) => ({
           },
           orderBy: { createdAtExact: 'desc' },
         }),
-      ),
+      );
+    },
   }),
 }));
 ```
@@ -120,6 +127,3 @@ is read when the ordering is resolved.
 The expression also needs to sort in the same order its values compare. A timestamp formatted as
 fixed width UTC text sorts the same way it does chronologically, but a local time or variable width
 format does not, and will skip rows.
-
-Ordering by an expression cannot use an index on the underlying column. If the table is large enough
-to need one, add an index on the expression.

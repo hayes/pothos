@@ -3,6 +3,8 @@ title: Relay plugin
 description: Add globally identifiable nodes, cursor pagination, and Relay mutation fields.
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+
 The Relay plugin adds globally identifiable nodes, cursor-based connections, and mutation helpers.
 Use nodes when clients need to refetch an object by ID, and connections when clients need to page
 through a collection. A connection can return ordinary object types; its items do not have to
@@ -97,6 +99,15 @@ const builder = new SchemaBuilder({
 Both options support all standard type options including `name`, `description`, and `extensions`.
 
 ### Creating Nodes
+
+<Callout type="warn" title="Authorize direct node lookups">
+
+Defining a node adds direct lookups through `node` and `nodes`. Filters or permission checks on
+other root fields do not protect these lookups. Use Scope Auth to gate the lookup fields or apply
+a shared policy to the Node interface, and enforce entity-specific access where needed. See
+[Relay node authorization](/docs/plugins/scope-auth/relay-nodes) for safer defaults and their limits.
+
+</Callout>
 
 To create objects that extend the `Node` interface, use `builder.node`. The `id` resolver supplies
 the local key, and `loadOne` uses that key to retrieve the record:
@@ -811,7 +822,11 @@ const ThingsConnection = builder.connectionObject({
 
 ### Extending the `Node` interface
 
-Use the `nodeInterfaceRef` method of your Builder.
+Use `relay.nodeTypeOptions` to configure the interface itself, including `authScopes` when using
+Scope Auth. See [Relay node authorization](/docs/plugins/scope-auth/relay-nodes#choose-a-default-policy) for how interface
+scopes apply to implementing types and how they differ from authorizing the root lookup fields.
+
+Use the `nodeInterfaceRef` method of your Builder to reference the interface.
 
 For example, to add a field on the interface:
 

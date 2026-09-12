@@ -95,6 +95,12 @@ Both options support all standard type options including `name`, `description`, 
 
 ### Creating Nodes
 
+> [!WARNING]
+> Defining a node adds direct lookups through `node` and `nodes`. Filters or permission checks on
+> other root fields do not protect these lookups. Use Scope Auth to gate the lookup fields or apply
+> a shared policy to the Node interface, and enforce entity-specific access where needed. See
+> [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes) for safer defaults and their limits.
+
 To create objects that extend the `Node` interface, use `builder.node`. The `id` resolver supplies
 the local key, and `loadOne` uses that key to retrieve the record:
 
@@ -847,7 +853,12 @@ const ThingsConnection = builder.connectionObject({
 
 ### Extending the `Node` interface
 
-Use the `nodeInterfaceRef` method of your Builder.
+Use `relay.nodeTypeOptions` to configure the interface itself, including `authScopes` when using
+Scope Auth. See [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes#choose-a-default-policy)
+for how interface scopes apply to implementing types and how they differ from authorizing the root
+lookup fields.
+
+Use the `nodeInterfaceRef` method of your Builder to reference the interface.
 
 For example, to add a field on the interface:
 

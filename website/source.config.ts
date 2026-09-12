@@ -100,6 +100,11 @@ export default defineConfig({
               node.properties['data-example'] = exampleMatch[1];
             }
 
+            const operationMatch = metaRaw.match(/\bop=["']([1-9]\d*)["']/);
+            if (operationMatch?.[1]) {
+              node.properties['data-op'] = operationMatch[1];
+            }
+
             const queryMatch = metaRaw.match(/query=["']([^"']+)["']/);
             if (queryMatch?.[1]) {
               node.properties['data-query'] = queryMatch[1];

@@ -547,10 +547,9 @@ article#nd-page .fd-scroll-container {
   }
 }
 
-/* An action row prevents long source lines sliding beneath the wider
-   Playground label, including on phones and at enlarged text sizes. */
-article#nd-page figure.has-playground > div:has(> button[aria-label="Open in Playground"]) {
-  position: static;
-  justify-content: flex-end;
-  padding: 0.375rem 0.5rem 0;
+.monaco-editor .playground-source-highlight {
+  background: color-mix(in srgb, var(--bm-accent) 12%, transparent);
+}
+.monaco-editor .playground-source-highlight-gutter {
+  border-left: 3px solid var(--bm-accent);
 }

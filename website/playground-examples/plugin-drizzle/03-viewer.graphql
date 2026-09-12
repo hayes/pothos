@@ -1,0 +1,15 @@
+query Viewer {
+  me {
+    __typename
+    email
+    user {
+      fullName
+    }
+    drafts {
+      title
+    }
+    ... on EditorViewer {
+      canReviewSubmissions
+    }
+  }
+}

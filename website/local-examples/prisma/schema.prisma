@@ -1,0 +1,77 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output = "./generated/client"
+  moduleFormat = "esm"
+}
+
+generator pothos {
+  provider = "prisma-pothos-types"
+  output = "./generated/pothos.ts"
+  clientOutput = "./client"
+  prismaUtils = true
+  generateDatamodel = true
+}
+
+model User {
+  id Int @id @default(autoincrement())
+  email String @unique
+  name String
+  isAdmin Boolean @default(false)
+  profile Profile?
+  posts Post[]
+  comments Comment[]
+  uploads Media[]
+}
+
+model Profile {
+  id Int @id @default(autoincrement())
+  userId Int @unique
+  user User @relation(fields: [userId], references: [id])
+  bio String?
+}
+
+model Post {
+  id Int @id @default(autoincrement())
+  title String
+  content String
+  published Boolean @default(false)
+  views Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  authorId Int
+  author User @relation(fields: [authorId], references: [id])
+  comments Comment[]
+  media PostMedia[]
+}
+
+model Comment {
+  id Int @id @default(autoincrement())
+  content String
+  createdAt DateTime @default(now())
+  authorId Int
+  author User @relation(fields: [authorId], references: [id])
+  postId Int
+  post Post @relation(fields: [postId], references: [id])
+}
+
+model Media {
+  id Int @id @default(autoincrement())
+  url String
+  uploadedById Int
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+  posts PostMedia[]
+}
+
+model PostMedia {
+  caption String
+  id Int @id @default(autoincrement())
+  postId Int
+  mediaId Int
+  post Post @relation(fields: [postId], references: [id])
+  media Media @relation(fields: [mediaId], references: [id])
+  @@unique([postId, mediaId])
+}

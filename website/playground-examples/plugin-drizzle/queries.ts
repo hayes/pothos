@@ -1,0 +1,60 @@
+import { eq } from 'drizzle-orm';
+import { builder } from './builder';
+import { db } from './database';
+import { posts } from './tables';
+import { Viewer } from './types/viewer';
+
+// #region author-query
+builder.queryType({
+  fields: (t) => ({
+    author: t.drizzleField({
+      type: 'users',
+      nullable: true,
+      args: { id: t.arg.int({ required: true }) },
+      resolve: (query, _root, args) => {
+        return db.query.users.findFirst(
+          query({
+            where: { id: args.id },
+          }),
+        );
+      },
+    }),
+  }),
+});
+// #endregion author-query
+
+// #region queries
+builder.queryFields((t) => ({
+  // #region viewer-query
+  me: t.drizzleField({
+    type: Viewer,
+    nullable: true,
+    resolve: (query, _root, _args, ctx) => {
+      return db.query.users.findFirst(
+        query({
+          where: { id: ctx.userId },
+        }),
+      );
+    },
+  }),
+  // #endregion viewer-query
+  // #region posts-query
+  posts: t.drizzleConnection({
+    type: 'posts',
+    totalCount: () => {
+      return db.$count(posts, eq(posts.published, true));
+    },
+    resolve: (query) => {
+      return db.query.posts.findMany(
+        query({
+          where: { published: true },
+          // Three posts share this timestamp. Pothos adds the primary key
+          // to the cursor ordering, so traversing pages still visits each once.
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
+    },
+  }),
+  // #endregion posts-query
+}));
+// #endregion queries

@@ -14,30 +14,30 @@ export default function PlaygroundPage() {
   const ui = usePlaygroundShellUI();
 
   return (
-    <div
-      className={`playground-shell grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr_auto] h-screen w-full min-w-0 overflow-x-clip bg-bm-bg text-bm-ink relative ${
-        ui.embed ? '' : 'min-h-[820px]'
-      }`}
-    >
-      {/* Stepper goes ABOVE the toolbar so when a multi-step example
-          is loaded, the example title + progress is the first thing
-          you read on the page. The toolbar (run / share / console /
-          examples) sits below and stays focused on the active step's
-          tools. */}
-      {ui.loadedExample && ui.loadedExample.steps.length > 1 ? (
-        <StepperBar
-          exampleTitle={ui.loadedExample.metadata.title}
-          steps={ui.loadedExample.steps}
-          index={ui.stepIndex}
-          pendingIndex={ui.pendingStepIndex}
-          onSelect={ui.onStepSelect}
-          onExit={ui.exitExample}
-        />
-      ) : (
-        <div />
-      )}
-
+    <div className="playground-shell grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] h-dvh w-full min-w-0 overflow-x-clip bg-bm-bg text-bm-ink relative">
       <div>
+        <Toolbar
+          embed={ui.embed}
+          overlay={ui.overlay}
+          sketchName={ui.sketchName}
+          onSketchRename={ui.setSketchName}
+          status={ui.status}
+          consoleCount={ui.consoleCount}
+          consoleHasErrors={ui.consoleHasErrors}
+          consoleOpen={ui.consoleOpen}
+          onToggleConsole={ui.toggleConsole}
+          onShare={ui.onShare}
+          shareLabel={ui.shareLabel}
+          running={ui.running}
+          onRun={ui.onRun}
+          examplesOpen={ui.examplesOpen}
+          onToggleExamples={ui.toggleExamples}
+          examplesPicker={ui.examplesPicker}
+          hasExamples={ui.hasExamples}
+          overflowOpen={ui.overflowOpen}
+          onToggleOverflow={ui.toggleOverflow}
+          overflowItems={ui.overflowItems}
+        />
         {ui.executionBlocked && (
           <div role="status" className="border-b border-bm-line bg-bm-surface-alt p-3 text-sm">
             <p>
@@ -53,16 +53,34 @@ export default function PlaygroundPage() {
             </button>
           </div>
         )}
+        {ui.loadedExample && ui.loadedExample.steps.length > 1 ? (
+          <StepperBar
+            exampleTitle={ui.loadedExample.metadata.title}
+            steps={ui.loadedExample.steps}
+            index={ui.stepIndex}
+            pendingIndex={ui.pendingStepIndex}
+            onSelect={ui.onStepSelect}
+            onExit={ui.exitExample}
+          />
+        ) : (
+          <div />
+        )}
+
         {ui.loadedExample && (
           <aside
             aria-label="Example guide"
-            className="border-b border-bm-line bg-bm-surface-alt px-6 py-3 text-sm"
+            className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-bm-line bg-bm-surface-alt px-4 py-2 text-sm"
           >
-            <p>
+            <p className="min-w-0 flex-[1_1_32rem] leading-relaxed">
+              {ui.loadedExample.steps.length > 1 && (
+                <strong className="sm:hidden">
+                  {ui.loadedExample.steps[ui.stepIndex]?.title}.{' '}
+                </strong>
+              )}
               {ui.loadedExample.steps[ui.stepIndex]?.description ??
                 ui.loadedExample.metadata.description}
             </p>
-            <div className="mt-2 flex gap-4">
+            <div className="flex shrink-0 gap-3 text-xs">
               {ui.loadedExample.metadata.relatedDocs?.[0] && (
                 <a
                   className="underline"
@@ -86,31 +104,10 @@ export default function PlaygroundPage() {
             </div>
           </aside>
         )}
-        <Toolbar
-          embed={ui.embed}
-          sketchName={ui.sketchName}
-          onSketchRename={ui.setSketchName}
-          status={ui.status}
-          consoleCount={ui.consoleCount}
-          consoleHasErrors={ui.consoleHasErrors}
-          consoleOpen={ui.consoleOpen}
-          onToggleConsole={ui.toggleConsole}
-          onShare={ui.onShare}
-          shareLabel={ui.shareLabel}
-          running={ui.running}
-          onRun={ui.onRun}
-          examplesOpen={ui.examplesOpen}
-          onToggleExamples={ui.toggleExamples}
-          examplesPicker={ui.examplesPicker}
-          hasExamples={ui.hasExamples}
-          overflowOpen={ui.overflowOpen}
-          onToggleOverflow={ui.toggleOverflow}
-          overflowItems={ui.overflowItems}
-        />
       </div>
 
       <PlaygroundLayout
-        hideSidebar={ui.embed}
+        hideSidebar={ui.hideSidebar}
         sidebar={
           <SchemaSidebar
             files={ui.files}
@@ -127,7 +124,7 @@ export default function PlaygroundPage() {
         }
         editor={
           <SchemaEditor
-            showTabs={ui.embed}
+            showTabs={ui.hideSidebar}
             files={ui.files}
             activeIndex={ui.activeFileIndex}
             sdlActive={ui.sdlActive}

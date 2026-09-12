@@ -1,31 +1,65 @@
 ---
-title: Relay
-description: Using the Drizzle and Relay plugins together
+title: Relay nodes
+description: Defining refetchable nodes with the Drizzle plugin
 ---
 
-## Relay integration
+import { Callout } from 'fumadocs-ui/components/callout';
 
-Relay provides some very useful best practices that are useful for most GraphQL APIs. To make it
-easy to comply with these best practices, the drizzle plugin has built in support for defining relay
-`nodes` and `connections`.
+The Relay plugin supplies node IDs and cursor connections. Register it with Drizzle as shown in
+[Setup](./setup#integration-with-other-plugins); [Connections](./connections) covers pagination.
 
-## Relay Nodes
+<Callout type="warn" title="Authorize direct node lookups">
 
-Defining relay nodes works just like defining normal `drizzleObject`s, but requires specifying a
-column to use as the node's `id` field.
+Defining a node creates a direct lookup through `node` and `nodes`. These lookups bypass custom
+root resolvers, so permission checks or visibility filters on a list or parent field do not protect
+node refetches. An encoded global ID is an identifier, not proof of permission.
+
+Apply an access policy to node loading, the type, or its fields as appropriate. See
+[Authorizing Relay nodes](/docs/plugins/scope-auth/relay-nodes) for scope patterns and their limits.
+
+</Callout>
+
+## Define a node
+
+`builder.drizzleNode` uses the same fields and selections as `builder.drizzleObject`, and adds
+an ID and a root node lookup. The example User uses its integer primary key:
 
 ```ts
 builder.drizzleNode('users', {
   name: 'User',
-  id: {
-    column: (user) => user.id,
-    // other options for the ID field can be passed here
-  },
-  fields: (t) => ({
-    firstName: t.exposeString('firstName'),
-    lastName: t.exposeString('lastName'),
-  }),
+  id: { column: (user) => user.id },
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
 });
 ```
 
-The id column can also be set to a list of columns for types with a composite primary key.
+This minimal alternative shows the node options. The example User adds full name, profile,
+and published posts to the same type. Other ID field options can be passed alongside `column`;
+for a composite primary key, `column` can return a list of columns.
+
+## Refetch a public author
+
+The ID returned by User can be passed back to
+`node` to fetch the author with a new selection:
+
+```graphql
+query RefetchAuthor {
+  node(id: "VXNlcjox") {
+    ... on User {
+      fullName
+      posts {
+        title
+      }
+    }
+  }
+}
+```
+
+The [refetch operation](/playground?example=plugin-drizzle&op=7) uses the ID of User 1. The node
+returns the same public fields as the author lookup, including only published posts.
+
+## Authorize the node load path
+
+The public User type here can be refetched by anyone. Its
+[published-posts relation](./relations#published-posts-and-profiles) applies the publication filter
+wherever User is reached, including through `node`. Post stays an ordinary Drizzle object;
+defining a public feed does not also make individual drafts globally refetchable.

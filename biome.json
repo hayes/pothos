@@ -25,6 +25,8 @@
       "!**/packages/**/*/esm/**/*",
       "!**/packages/**/*/dts/**/*",
       "!**/website/.next/**/*",
+      "!**/website/local-examples/.packages",
+      "!**/website/local-examples/prisma/generated",
       "!**/__generated__/**/*",
       "!**/.vscode/**/*",
       "!**/generated.ts",

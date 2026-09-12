@@ -1,8 +1,19 @@
 {
   "id": "plugin-scope-auth",
   "title": "Request permissions and protected writes",
-  "description": "Compare signed-out, reader and editor contexts. Add editArticle in Context to allow editPreview. Run the write/read operations in order: rejected writes leave state unchanged; permitted writes update it. Context is fixture data, not authentication. Reset example restores the article.",
+  "description": "Edit permissions in Context and compare signed-out and reader operations. Featured-article grants allow a different path than direct node reads; the private policy also requires login. Run writes and reads in order. Reset restores data. Context is fixture data.",
   "category": "plugins",
-  "relatedDocs": ["/docs/plugins/scope-auth"],
-  "defaultActiveFile": "schema.ts"
+  "relatedDocs": ["/docs/plugins/scope-auth", "/docs/plugins/scope-auth/relay-nodes"],
+  "defaultActiveFile": "schema.ts",
+  "variants": [
+    {
+      "id": "field-permissions",
+      "title": "Field permissions and grants",
+      "default": true
+    },
+    {
+      "id": "private-nodes",
+      "title": "Private node policy"
+    }
+  ]
 }

@@ -34,6 +34,7 @@ const PLUGIN_PACKAGES: string[] = [
   'plugin-add-graphql',
   'plugin-tracing',
   'plugin-zod',
+  'plugin-drizzle',
 ];
 
 function readDtsFiles(packagePath: string, moduleName: string): TypeDefinition[] {
@@ -381,6 +382,50 @@ function main() {
   // (loaded on-demand only when the example imports plugin-dataloader).
   if (pluginDefinitions['@pothos/plugin-dataloader']) {
     pluginDefinitions['@pothos/plugin-dataloader'].push(...readDataloaderTypes());
+  }
+
+  // Keep the ORM's declarations at real virtual file paths: its relative
+  // imports and class identities must all resolve to the same installed version.
+  if (pluginDefinitions['@pothos/plugin-drizzle']) {
+    const definitions = pluginDefinitions['@pothos/plugin-drizzle'];
+    definitions.push(
+      ...readDtsFiles(path.join(PACKAGES_DIR, 'selection-mapper'), '@pothos/selection-mapper'),
+    );
+    const ormRoot = path.join(__dirname, '../node_modules/drizzle-orm');
+    const visited = new Set<string>();
+    function collect(relative: string) {
+      if (visited.has(relative)) {
+        return;
+      }
+      visited.add(relative);
+      const content = fs.readFileSync(path.join(ormRoot, relative), 'utf8');
+      definitions.push({ moduleName: `drizzle-orm/${relative.replace(/\.d\.ts$/, '')}`, content });
+      for (const match of content.matchAll(/['"](\.[^'"]+)['"]/g)) {
+        const target = path.posix.normalize(
+          path.posix.join(path.posix.dirname(relative), match[1].replace(/\.js$/, '.d.ts')),
+        );
+        if (fs.existsSync(path.join(ormRoot, target))) {
+          collect(target);
+        }
+      }
+    }
+    for (const entry of ['index.d.ts', 'sqlite-core/index.d.ts', 'sqlite-proxy/index.d.ts']) {
+      collect(entry);
+    }
+    const sqlTypesDirectory = fs.realpathSync(
+      path.join(__dirname, '../node_modules/@types/sql.js'),
+    );
+    definitions.push({
+      moduleName: '@types/emscripten/index',
+      content: fs.readFileSync(path.join(sqlTypesDirectory, '../emscripten/index.d.ts'), 'utf8'),
+    });
+    definitions.push({
+      moduleName: 'sql.js/index',
+      content: fs.readFileSync(
+        path.join(__dirname, '../node_modules/@types/sql.js/index.d.ts'),
+        'utf8',
+      ),
+    });
   }
 
   // Separate core global declarations from module declarations

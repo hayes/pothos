@@ -64,12 +64,14 @@ async function importWithoutAmd(url: string): Promise<unknown> {
 export function fetchCdnModule(name: string): Promise<unknown> {
   let pending = cache.get(name);
   if (!pending) {
-    pending = importWithoutAmd(`${CDN_BASE}/${name}`).catch((err) => {
-      // Drop the cached promise so a transient failure can be retried
-      // by simply re-running the schema.
-      cache.delete(name);
-      throw err;
-    });
+    pending = importWithoutAmd(`${CDN_BASE}/${name === 'sql.js' ? 'sql.js@1.14.1' : name}`).catch(
+      (err) => {
+        // Drop the cached promise so a transient failure can be retried
+        // by simply re-running the schema.
+        cache.delete(name);
+        throw err;
+      },
+    );
     cache.set(name, pending);
   }
   return pending;

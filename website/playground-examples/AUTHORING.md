@@ -166,7 +166,7 @@ The recursive collector, operation sidecars, `type:examples` and `check:playgrou
 | Docs playground button | Opens a lazy full-screen iframe overlay, preserves the docs page, and loads the selected bundle or complete inline schema. |
 | Standalone link | `/playground?example=objects` loads a registered example. |
 | Selected step | `/playground?example=a-guide&step=2` or the explicit `a-guide-step-2` example ID. |
-| Selected operation | `/playground?example=a-guide&op=2` selects the second operation (1-based). This is a URL parameter, not a supported code-fence attribute. |
+| Selected operation | `/playground?example=a-guide&op=2` selects the second operation (1-based). Code fences and include metadata also accept `op="2"`; the action opens that operation with its variables and context. Use `op` or `query`, not both. |
 | Query override | `query` URL parameter is base64-encoded by the overlay; use generated links rather than hand-escaping complex GraphQL. |
 | Embed | `embed=1` hides standalone-only navigation/picker affordances. The docs overlay sets it automatically. |
 | Share | The UI encodes edited files and operation state in a URL hash. Share through the UI; avoid hand-authoring compressed state. Shared code requires explicit trust before execution. |

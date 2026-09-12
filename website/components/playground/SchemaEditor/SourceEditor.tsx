@@ -50,6 +50,7 @@ export function SourceEditor({
   const editorRef = useRef<
     Parameters<NonNullable<Parameters<typeof Editor>[0]['onMount']>>[0] | null
   >(null);
+  const [mountedEditor, setMountedEditor] = useState<typeof editorRef.current>(null);
   const { theme: editorTheme, beforeMount: registerThemes } = useEditorTheme();
 
   useEffect(() => {
@@ -107,6 +108,36 @@ export function SourceEditor({
 
   const expectedPath = `file:///playground/${filename}`;
 
+  useEffect(() => {
+    if (!mountedEditor) {
+      return;
+    }
+    const decorations = mountedEditor.createDecorationsCollection();
+    const showExcerpt = () => {
+      decorations.clear();
+      if (mountedEditor.getModel()?.uri.toString() !== expectedPath || !highlights?.length) {
+        return;
+      }
+      decorations.set(
+        highlights.map(({ start, end }) => ({
+          range: { startLineNumber: start, startColumn: 1, endLineNumber: end, endColumn: 1 },
+          options: {
+            isWholeLine: true,
+            className: 'playground-source-highlight',
+            linesDecorationsClassName: 'playground-source-highlight-gutter',
+          },
+        })),
+      );
+      mountedEditor.revealLineInCenter(highlights[0].start);
+    };
+    showExcerpt();
+    const subscription = mountedEditor.onDidChangeModel(showExcerpt);
+    return () => {
+      subscription.dispose();
+      decorations.clear();
+    };
+  }, [mountedEditor, expectedPath, highlights]);
+
   return (
     <Editor
       height="100%"
@@ -133,16 +164,7 @@ export function SourceEditor({
       beforeMount={registerThemes}
       onMount={(editor) => {
         editorRef.current = editor;
-        if (highlights?.[0]) {
-          const range = highlights[0];
-          editor.setSelection({
-            startLineNumber: range.start,
-            startColumn: 1,
-            endLineNumber: range.end,
-            endColumn: editor.getModel()?.getLineMaxColumn(range.end) ?? 1,
-          });
-          editor.revealLineInCenter(range.start);
-        }
+        setMountedEditor(editor);
         if (!readOnly) {
           setFormatHandler(() => {
             editor.getAction('editor.action.formatDocument')?.run();

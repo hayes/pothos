@@ -647,9 +647,16 @@ Clients can select the common message or the details of a particular failure:
 ```graphql
 query {
   getUser(id: "") {
-    ... on User { id name }
-    ... on Error { message }
-    ... on ValidationError { field }
+    ... on User {
+      id
+      name
+    }
+    ... on Error {
+      message
+    }
+    ... on ValidationError {
+      field
+    }
   }
 }
 ```

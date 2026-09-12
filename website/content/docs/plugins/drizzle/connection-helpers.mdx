@@ -1,0 +1,104 @@
+---
+title: Connection helpers
+description: Paginate attachment rows while returning Media nodes and custom edge fields
+---
+
+An image can appear in several posts, with a different caption in each. The Media row describes
+the image; the PostMedia row describes its attachment to a post. A connection can expose the
+image as its node and the attachment's caption as an edge field:
+
+```graphql
+query PostAttachments {
+  author(id: 1) {
+    postsConnection(first: 1) {
+      nodes {
+        title
+        attachments(first: 2) {
+          edges {
+            caption
+            node {
+              url
+              uploadedBy {
+                fullName
+              }
+            }
+          }
+          pageInfo {
+            endCursor
+            hasNextPage
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+`t.relatedConnection` handles a relation whose rows are the connection's nodes. Use
+`drizzleConnectionHelpers` with `t.connection` when the rows being paginated differ from those
+nodes, or when you need to load the rows yourself. The helper supplies the selection, cursor,
+and result handling that a normal Relay connection field does not have.
+
+## Select the nodes through the attachment
+
+Import `drizzleConnectionHelpers` from `@pothos/plugin-drizzle` and use the builder configured
+with the Drizzle and Relay plugins. The helper targets `postMedia`. Its `select` uses
+`nestedSelection()` to request the Media fields
+selected beneath the connection's nodes; `resolveNode` returns that related Media row:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { postsConnection(first: 1) { nodes { title attachments(first: 2) { edges { caption node { url uploadedBy { fullName } } } pageInfo { endCursor hasNextPage } } } } } }"'>playground-examples/plugin-drizzle/types/attachments.ts#attachment-helper</include>
+
+The connection orders and creates cursors from attachment IDs, not Media IDs. An image shared
+by two posts can therefore have a different caption and connection position in each post.
+The nested uploader selection is still planned from the requested Media fields.
+
+The helper's `args` and `query` options define a `hasCaption` argument. When it is true, the
+connection includes only attachments with a caption. Its default, false, includes all attachments.
+`getArgs()` exposes that argument on the field, and `getQuery()` combines the filter and ordering
+with the requested page and node selection.
+
+## Add the connection and its edge fields
+
+`Media` below is the object ref returned by `builder.drizzleObject('media', ...)`.
+A normal `t.connection` needs an explicit `select` to load the helper's query on the parent.
+Its resolver passes the selected attachment rows to the helper's `resolve` method:
+
+<include cwd lang="typescript" meta='playground example="plugin-drizzle" query="{ author(id: 1) { postsConnection(first: 1) { nodes { title attachments(first: 2, hasCaption: true) { edges { caption node { url } } pageInfo { endCursor hasNextPage } } } } } }"'>playground-examples/plugin-drizzle/types/attachments.ts#attachments-connection</include>
+
+The third argument to `t.connection` configures the Edge type. Each edge retains the selected
+attachment fields, so its `caption` resolver reads the attachment's caption, while `node` returns
+the Media selected by `resolveNode`. A missing caption returns null.
+
+The post has three attachments. Its first unfiltered page of two has `hasNextPage: true`;
+filtering to captioned attachments returns two and has no next page. Pagination uses the same
+`first`/`after` and `last`/`before` arguments as [other connections](./connections#page-through-published-posts).
+
+## Querying the rows in a resolver
+
+The same helper can build a query for a resolver that fetches the attachment rows itself.
+Pass GraphQL resolve `info` to `getQuery`, merge any additional filter with its cursor filter,
+and pass the result to `resolve`:
+
+```ts
+// Alternative resolver for the Post.attachments connection above:
+resolve: async (post, args, ctx, info) => {
+  const query = attachments.getQuery(args, ctx, info);
+  const attachmentRows = await db.query.postMedia.findMany({
+    ...query,
+    where: {
+      AND: [query.where ?? {}, { postId: post.id }],
+    },
+  });
+
+  return attachments.resolve(attachmentRows, args, ctx);
+},
+```
+
+This alternative needs `db` imported from the application's database module and `id` selected
+on Post. Remove the field's relation `select` when using it, so the rows are not also loaded
+through the parent query. Replacing the helper's `where` rather than combining it would discard
+pagination constraints.
+
+If the rows and nodes are the same type, omit `resolveNode` and the node-mapping `select` when
+creating the helper. Its `ref` provides the node type for `t.connection`. Prefer
+`t.relatedConnection` when you can expose that relation directly without custom loading.

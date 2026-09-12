@@ -1,0 +1,98 @@
+---
+title: Async selections
+description: Planning selections that depend on asynchronous request data
+---
+
+Pothos selections are synchronous by default. Set `AsyncSelections: true` when a selection or
+relation query must await request data before returning its query options.
+
+## Async selections
+
+Use the client and relations configured in [Setup](./setup). The context method below supplies
+a preview size loaded asynchronously, for example from account settings:
+
+```ts
+const builder = new SchemaBuilder<{
+  DrizzleRelations: typeof relations;
+  AsyncSelections: true;
+  Context: {
+    previewSize: () => Promise<number>;
+  };
+}>({
+  plugins: [DrizzlePlugin],
+  drizzle: {
+    client: db,
+    getTableConfig,
+    relations,
+  },
+});
+```
+
+With the opt-in, `select` functions, relation `query` callbacks, `relatedCount` `where` callbacks,
+and the `select` and `query` callbacks of `drizzleConnectionHelpers` may be async. Without it they
+are typed as synchronous, and an async callback is a type error.
+
+Pothos waits for these callbacks before executing the planned query. `t.relation`, `t.relatedCount`,
+`t.drizzleField`, `t.drizzleConnection` and `t.relatedConnection` settle their plan before the
+resolver runs, and need no changes.
+
+```ts
+builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    previewPosts: t.field({
+      type: ['posts'],
+      select: async (args, ctx, nestedSelection) => {
+        return {
+          with: {
+            posts: await nestedSelection({
+              where: { published: true },
+              orderBy: { id: 'asc' },
+              limit: await ctx.previewSize(),
+            }),
+          },
+        };
+      },
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
+## Await nested selections
+
+`await` what `nestedSelection` returns before putting it in the selection, and the same for the
+`nestedQuery` passed as the fourth argument of a `t.relatedField` `select`. A selection that
+contains the promise itself will throw, and so will a `select` that returns while a nested
+selection it started is still pending. Include the nested selection in the returned query to
+load its data.
+
+## Connection helpers
+
+Pass `awaitSelections: true` to `drizzleConnectionHelpers(...).getQuery`, and `await` the query it
+returns. Without it, an async selection beneath the field throws, and whether there is one
+depends on the incoming document rather than on the callback you wrote. A connection helper also
+throws when its own `select` or `query` is async, whatever the document asked for:
+
+```ts
+select: async (args, ctx, nestedSelection) => {
+  return {
+    with: {
+      attachments: await attachments.getQuery(args, ctx, nestedSelection, {
+        awaitSelections: true,
+      }),
+    },
+  };
+},
+```
+
+`awaitSelections` is a per-call option, and is available whether or not the schema sets
+`AsyncSelections`.
+
+When `AsyncSelections: true`, also `await` a connection helper's `resolve()` before inspecting or
+spreading its result: an async `query` callback makes resolution asynchronous. Returning its
+result directly from a GraphQL resolver remains supported.
+
+The connection-helper excerpt uses the Post attachments relation and `attachments` helper from
+[Connection helpers](./connection-helpers). Request-context
+methods must be supplied by the application; they are not created by declaring the Context type.

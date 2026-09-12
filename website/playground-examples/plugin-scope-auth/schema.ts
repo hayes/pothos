@@ -1,25 +1,7 @@
-import SchemaBuilder from '@pothos/core';
-import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
+import { builder } from './builder';
+import './nodes';
 
-type Permission = 'readArticle' | 'editArticle';
-type Context = { user: { id: string; permissions: Permission[] } | null };
 const article = { title: 'Getting started', writes: 0 };
-
-// #region scopes
-const builder = new SchemaBuilder<{
-  Context: Context;
-  AuthScopes: { loggedIn: boolean; permission: Permission };
-}>({
-  plugins: [ScopeAuthPlugin],
-  scopeAuth: {
-    authScopes: (context) => ({
-      loggedIn: !!context.user,
-      permission: (permission) => context.user?.permissions.includes(permission) ?? false,
-    }),
-    unauthorizedError: () => new Error('Not authorized'),
-  },
-});
-// #endregion scopes
 
 builder.queryType({
   fields: (t) => ({

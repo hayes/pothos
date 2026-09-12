@@ -1,0 +1,10 @@
+query Aliases {
+  author(id: 1) {
+    newest: posts {
+      title
+    }
+    oldest: posts(oldestFirst: true) {
+      title
+    }
+  }
+}

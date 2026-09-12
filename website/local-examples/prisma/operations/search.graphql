@@ -1,0 +1,5 @@
+query Search {
+  searchPosts(where: { title: { contains: "compost" } }, orderBy: { title: Asc }) {
+    title
+  }
+}

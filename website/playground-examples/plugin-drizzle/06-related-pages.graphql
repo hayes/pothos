@@ -1,0 +1,19 @@
+query RelatedPages {
+  author(id: 1) {
+    postsConnection(first: 1) {
+      totalCount
+      nodes {
+        title
+        mediaConnection(first: 1) {
+          totalCount
+          nodes {
+            url
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+      }
+    }
+  }
+}
