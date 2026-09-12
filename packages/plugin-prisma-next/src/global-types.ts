@@ -59,11 +59,6 @@ type ObjectLevelShape<
   Select,
 > = ShapeFromObjectSelect<Types, M, never, Select>;
 
-/**
- * Excess-property checking fires on a fresh object literal only against a concrete target:
- * against a type parameter `Select`, `{ email: true, emial: true }` satisfies
- * `SelectObjectSpec` structurally and `emial` rides along.
- */
 type UnknownSelectKeys<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -74,23 +69,14 @@ type UnknownSelectKeys<
     ? Exclude<keyof Select, keyof SelectObjectSpec<Types, M>>
     : never;
 
-/**
- * Not a defaulted phantom type parameter: TypeScript checks a parameter default against
- * its constraint at the declaration site, where `Select` is still unresolved.
- */
 type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = [
   UnknownSelectKeys<Types, M, Select>,
 ] extends [never]
   ? unknown
   : {
-      // TypeScript names a missing required property in the diagnostic text.
       [K in UnknownSelectKeys<Types, M, Select> & string as `Unknown key in select: ${K}`]: never;
     };
 
-/**
- * `schema-builder.ts` registers `id.field`'s columns in the ID field's own selection
- * extensions (`PRISMA_NEXT_FIELD_SELECT`) before calling `id.resolve`.
- */
 type IdFieldShape<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
