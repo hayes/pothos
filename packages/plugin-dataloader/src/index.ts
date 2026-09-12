@@ -17,19 +17,10 @@ export * from './util.js';
 
 const pluginName = 'dataloader';
 
-// Resolvers for list fields are allowed to return any Iterable, but the loader wrappers below need
-// to be able to map over the results, so non-array iterables are consumed into an array first.
-// Anything that isn't iterable is passed through unchanged so it fails the way it did before.
-function toResolvedList(value: unknown): unknown[] {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  if (typeof value === 'object' && value !== null && Symbol.iterator in value) {
-    return [...(value as Iterable<unknown>)];
-  }
-
-  return value as unknown[];
+// Resolvers for list fields are allowed to return any Iterable. Strings are deliberately excluded
+// so a string returned where a list was expected is not spread into its characters.
+function isIterableList(value: unknown): value is Iterable<unknown> {
+  return typeof value === 'object' && value !== null && Symbol.iterator in value;
 }
 
 export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
@@ -104,7 +95,33 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
         return result.then((results) => loadResults(results, loader, depth));
       }
 
-      return toResolvedList(result).map((item) => loadResults(item, loader, depth - 1));
+      if (!isIterableList(result)) {
+        // The schema says this position is a list but the value isn't one. Hand it back unchanged
+        // so graphql-js reports that at this position, rather than throwing out of the whole field.
+        return result;
+      }
+
+      const items = Array.isArray(result) ? result : [...result];
+
+      return items.map((item) =>
+        // Only positions that are themselves lists can fail while being consumed. Leaf positions
+        // are never iterated, so they keep propagating the way they always have.
+        depth > 1 ? loadNestedList(item, loader, depth - 1) : loadIfID(item, loader),
+      );
+    }
+
+    // Contains a failure at the list position it happened in, so graphql-js keeps its usual
+    // nullability boundary and the sibling rows survive.
+    function loadNestedList(
+      result: unknown,
+      loader: DataLoader<unknown, unknown>,
+      depth: number,
+    ): unknown {
+      try {
+        return loadResults(result, loader, depth);
+      } catch (error) {
+        return error instanceof Error ? error : new Error(String(error));
+      }
     }
 
     return (parent, args, context, info) =>
