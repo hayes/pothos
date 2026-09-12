@@ -29,4 +29,26 @@ describe('unordered directives', () => {
       tag: [{ value: 'a' }, { value: 'b' }, { value: 'c' }],
     });
   });
+
+  it('supports directives named after Object.prototype members', () => {
+    const builder = new SchemaBuilder<{
+      Directives: {
+        constructor: { locations: 'OBJECT'; args: {} };
+      };
+    }>({
+      plugins: [DirectivesPlugin],
+      directives: { useGraphQLToolsUnorderedDirectives: true },
+    });
+
+    builder.queryType({
+      directives: [{ name: 'constructor', args: {} }],
+      fields: (t) => ({
+        ok: t.boolean({ resolve: () => true }),
+      }),
+    });
+
+    const queryType = builder.toSchema().getQueryType() as GraphQLObjectType;
+
+    expect(queryType.extensions.directives).toEqual({ constructor: [{}] });
+  });
 });

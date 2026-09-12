@@ -150,15 +150,21 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
         return directives;
       }
 
-      return directives.reduce<Record<string, {}[]>>((obj, directive) => {
-        if (obj[directive.name]) {
-          obj[directive.name].push(directive.args ?? {});
-        } else {
-          obj[directive.name] = [directive.args ?? {}];
-        }
+      // Directive names may collide with Object.prototype members (eg. `constructor`), so
+      // accumulate into a Map rather than reading back from a plain object.
+      const byName = new Map<string, {}[]>();
 
-        return obj;
-      }, {});
+      for (const directive of directives) {
+        const args = byName.get(directive.name);
+
+        if (args) {
+          args.push(directive.args ?? {});
+        } else {
+          byName.set(directive.name, [directive.args ?? {}]);
+        }
+      }
+
+      return Object.fromEntries(byName);
     }
 
     if (Array.isArray(directives)) {
