@@ -60,6 +60,41 @@ export function formatIDChunk(value: unknown) {
   }
 }
 
+// A compound ID is a JSON array and stays one: every ID already handed to a client has to keep
+// parsing back into the row it names, byte for byte. JSON on its own cannot carry every column
+// type a compound ID may name -- it throws outright on a bigint, and flattens a Date into a
+// string that comes back out as a string -- so those two are written in a form JSON does hold,
+// and `parseCompoundIDValue` reads back off the column's type. Every other value is written
+// exactly as it was before, so IDs that round tripped before still serialize identically.
+function formatCompoundIDValue(value: unknown) {
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
+
+  if (value instanceof Date) {
+    return Number(value);
+  }
+
+  return value;
+}
+
+function parseCompoundIDValue(value: unknown, field: Column) {
+  if (
+    field.dataType.startsWith('bigint') &&
+    (typeof value === 'string' || typeof value === 'number')
+  ) {
+    return BigInt(value);
+  }
+
+  // the epoch milliseconds `formatCompoundIDValue` wrote. A string here is an ID issued before
+  // this release, which never restored a Date, and is left as it was.
+  if (field.dataType === 'object date' && typeof value === 'number') {
+    return new Date(value);
+  }
+
+  return value;
+}
+
 export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaConfig) {
   if (fields.length === 0) {
     throw new PothosValidationError('Column serializer must have at least one field');
@@ -67,7 +102,9 @@ export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaCon
 
   return (value: Record<string, unknown>) => {
     if (fields.length > 1) {
-      return `${JSON.stringify(fields.map((col) => value[config.columnToTsName(col)]))}`;
+      return `${JSON.stringify(
+        fields.map((col) => formatCompoundIDValue(value[config.columnToTsName(col)])),
+      )}`;
     }
 
     return `${formatIDChunk(value[config.columnToTsName(fields[0])])}`;
@@ -212,7 +249,7 @@ export function getIDParser(fields: readonly Column[], config: PothosDrizzleSche
       const record: Record<string, unknown> = {};
 
       fields.forEach((field, i) => {
-        record[config.columnToTsName(field)] = parsed[i];
+        record[config.columnToTsName(field)] = parseCompoundIDValue(parsed[i], field);
       });
 
       return record;
