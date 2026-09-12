@@ -232,5 +232,7 @@ builder.prismaObjectField('User', 'displayName', (t) =>
 ```
 
 The string form requires that `User` has already been registered as a
-prismaObject. If only a variant exists (see [Variants](./variants)),
-pass the variant's ref or variant name explicitly.
+prismaObject under its contract model name. If only a variant exists (see
+[Variants](./variants)), pass the ref returned by `builder.prismaObject(...)`
+— the variant's GraphQL type name is not accepted in place of the model
+name, and passing it would leave an unimplemented ref behind.

@@ -53,10 +53,13 @@ builder.prismaInterfaceField(personIface, 'displayName', (t) =>
 );
 ```
 
-If you pass the contract model name as a string, the plugin looks up
-the registered interface. If only an interface variant is registered
-(no default), pass the ref or the variant name explicitly — otherwise
-Pothos core throws an unresolved-ref error at schema build.
+If you pass the contract model name as a string, the plugin looks up the
+interface registered under that model name. Variants are not part of that
+lookup — each variant gets its own ref — so pass the ref returned by
+`builder.prismaInterface(...)` to extend one. A variant's GraphQL type name
+is not accepted in place of the model name: the string form would create a
+second, unimplemented ref and Pothos core throws `Missing implementations
+for some references` at schema build.
 
 ## Variants on interfaces
 
