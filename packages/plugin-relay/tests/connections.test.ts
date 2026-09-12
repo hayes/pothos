@@ -19,9 +19,49 @@ describe('resolveArrayConnection', () => {
     expect(result.edges).toEqual([]);
     expect(result.pageInfo.hasNextPage).toBe(false);
   });
+
+  it('returns the rows that exist when a stale before cursor is past the end of the array', () => {
+    // The mirror of the stale `after` case: offset 6 was a valid cursor before the collection
+    // shrank to four rows, so the backward page has to come off the real end of the array.
+    const result = resolveArrayConnection(
+      { args: { before: offsetToCursor(6), last: 4 }, maxSize: 2 },
+      [0, 1, 2, 3],
+    );
+
+    expect(result.edges.map((edge) => edge?.node)).toEqual([2, 3]);
+  });
+
+  it('caps a backward page against the array when a stale before cursor is past the end', () => {
+    const result = resolveArrayConnection(
+      { args: { before: offsetToCursor(3), last: 2 }, maxSize: 1 },
+      [0, 1],
+    );
+
+    expect(result.edges.map((edge) => edge?.node)).toEqual([1]);
+  });
+
+  it('still honours a before cursor that is inside the array', () => {
+    const result = resolveArrayConnection(
+      { args: { before: offsetToCursor(3), last: 2 } },
+      [0, 1, 2, 3, 4],
+    );
+
+    expect(result.edges.map((edge) => edge?.node)).toEqual([1, 2]);
+  });
 });
 
 describe('resolveOffsetConnection', () => {
+  it('returns the rows that exist when a stale before cursor is past totalCount', async () => {
+    const rows = [0, 1, 2, 3];
+
+    const result = await resolveOffsetConnection(
+      { args: { before: offsetToCursor(6), last: 4 }, maxSize: 2, totalCount: rows.length },
+      ({ offset, limit }) => rows.slice(offset, offset + limit),
+    );
+
+    expect(result.edges.map((edge) => edge?.node)).toEqual([2, 3]);
+  });
+
   it('never requests a negative limit when a stale after cursor is past totalCount', async () => {
     let requested: { offset: number; limit: number } | undefined;
 

@@ -66,14 +66,16 @@ export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
     throw new PothosValidationError('Argument "last" must be a non-negative integer');
   }
 
+  const endOfCollection =
+    options.totalCount != null ? Math.max(options.totalCount, 0) : Number.POSITIVE_INFINITY;
+
   let startOffset = after ? afterOffset + 1 : 0;
-  let endOffset = before
-    ? Math.max(beforeOffset, startOffset)
-    : options.totalCount != null
-      ? // A previously valid cursor can point past the end of a collection that has since
-        // shrunk. Clamping to `startOffset` keeps that window empty rather than negative.
-        Math.max(options.totalCount, startOffset)
-      : Number.POSITIVE_INFINITY;
+  // A cursor that was valid before the collection shrank can now point past the end of it, in
+  // either direction. Clamping to the known size keeps the window inside the collection: a stale
+  // `before` cursor still pages off the real end, and a stale `after` cursor yields an empty
+  // window rather than a negative one. `beforeOffset` is already `Infinity` when `before` is
+  // absent, so the same expression covers both.
+  let endOffset = Math.max(Math.min(beforeOffset, endOfCollection), startOffset);
 
   if (first != null) {
     endOffset = Math.min(endOffset, startOffset + first);
