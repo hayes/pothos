@@ -27,7 +27,7 @@ function hasRootType<Types extends SchemaTypes>(
 export function addTypeToSchema<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   type: GraphQLNamedType,
-  rootKind?: RootName,
+  rootKind?: RootName | null,
 ) {
   if (builder.configStore.hasConfig(type.name as never)) {
     return;
@@ -37,7 +37,7 @@ export function addTypeToSchema<Types extends SchemaTypes>(
     // If the builder already defines this operation root, the imported type is added as a normal
     // object type rather than re-declaring (and renaming) the existing root.
     builder.addGraphQLObject(type, {
-      rootKind: rootKind && !hasRootType(builder, rootKind) ? rootKind : undefined,
+      rootKind: rootKind && hasRootType(builder, rootKind) ? null : rootKind,
     });
   } else if (isInterfaceType(type)) {
     builder.addGraphQLInterface(type);

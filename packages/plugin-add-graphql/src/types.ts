@@ -38,10 +38,11 @@ export type AddGraphQLObjectTypeOptions<Types extends SchemaTypes, Shape> = Omit
 > & {
   name?: string;
   /**
-   * The operation root the type should be used for. Defaults to matching the type name against the
-   * default root type names (Query, Mutation and Subscription).
+   * The operation root the type should be used for. `null` marks the type as not being an
+   * operation root. When omitted, the type name is matched against the default root type names
+   * (Query, Mutation and Subscription).
    */
-  rootKind?: RootName;
+  rootKind?: RootName | null;
   fields?: AddGraphQLObjectFieldsShape<Types, Shape>;
 };
 

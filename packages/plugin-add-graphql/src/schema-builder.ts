@@ -108,6 +108,10 @@ function resolveInputType(
 
 const defaultRootNames: RootName[] = ['Query', 'Mutation', 'Subscription'];
 
+function inferRootKind(name: string) {
+  return defaultRootNames.find((rootName) => rootName === name);
+}
+
 proto.addGraphQLObject = function addGraphQLObject<Shape>(
   type: GraphQLObjectType<Shape>,
   {
@@ -172,9 +176,9 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
     },
   };
 
-  const root =
-    rootKind ??
-    (defaultRootNames.includes(type.name as RootName) ? (type.name as RootName) : undefined);
+  // `rootKind: null` marks the type as not being an operation root, and is distinct from omitting
+  // the option, which falls back to inferring the root from the type name.
+  const root = rootKind === undefined ? inferRootKind(type.name) : (rootKind ?? undefined);
 
   switch (root) {
     case 'Query':

@@ -2,4 +2,4 @@
 "@pothos/plugin-add-graphql": patch
 ---
 
-Keep the operation root roles of imported schemas with custom root type names (without re-declaring an operation root the builder already defines), and preserve `deprecationReason` on imported input object fields
+Use the operation root roles of an imported schema instead of inferring them from type names: roots with custom names are now imported as roots, non-root types named `Query`, `Mutation` or `Subscription` are no longer promoted to roots, and an operation root the builder already defines is never re-declared. Also preserve `deprecationReason` on imported input object fields

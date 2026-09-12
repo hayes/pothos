@@ -13,13 +13,6 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
   override beforeBuild(): void {
     const { schema, types } = this.builder.options.add ?? {};
 
-    const allTypes = [
-      ...(Array.isArray(types) ? types : Object.values(types ?? {})),
-      ...Object.values(schema?.getTypeMap() ?? {}).filter(
-        (type) => !builtInTypes.includes(type.name),
-      ),
-    ];
-
     const rootKinds = new Map<GraphQLNamedType, RootName>();
 
     if (schema) {
@@ -36,8 +29,18 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
       }
     }
 
-    for (const type of allTypes) {
-      addTypeToSchema(this.builder, type, rootKinds.get(type));
+    for (const type of Array.isArray(types) ? types : Object.values(types ?? {})) {
+      addTypeToSchema(this.builder, type);
+    }
+
+    const schemaTypes = Object.values(schema?.getTypeMap() ?? {}).filter(
+      (type) => !builtInTypes.includes(type.name),
+    );
+
+    for (const type of schemaTypes) {
+      // The operation roles of the imported schema are known, so types that are not roots are
+      // explicitly marked as such rather than being inferred from their names.
+      addTypeToSchema(this.builder, type, rootKinds.get(type) ?? null);
     }
   }
 }
