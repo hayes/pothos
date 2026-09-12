@@ -311,9 +311,6 @@ describe('t.prismaFieldWithInput typing — optional input arg', () => {
   it('types an optional input as possibly omitted as well as null', () => {
     withInputBuilder.queryType({
       fields: (t) => ({
-        // `argOptions.required: false` makes `input` optional in the schema, so
-        // a query may omit it entirely. GraphQL then hands the resolver
-        // `undefined`, not `null`.
         optionalInput: t.prismaFieldWithInput({
           type: 'User',
           nullable: true,

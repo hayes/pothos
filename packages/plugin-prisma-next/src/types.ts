@@ -696,9 +696,8 @@ export type PrismaNextRootFieldWithInputOptions<
   resolve: (
     parent: ParentShape,
     args: InputShapeFromFields<Args> & {
-      // An optional input arg may be omitted entirely, which GraphQL surfaces
-      // as `undefined` rather than `null`. Mirror the input field map above so
-      // resolvers are forced to handle both absences.
+      // An optional input arg may be omitted entirely, which GraphQL surfaces as
+      // `undefined` rather than `null`.
       [K in InputName]:
         | InputShapeFromFields<Fields>
         | (true extends ArgRequired ? never : null | undefined);

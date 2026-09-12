@@ -87,8 +87,6 @@ describe('plugin interop', () => {
             email: t.input.string({ required: true }),
           },
           resolve: ((_parent: unknown, args: { input?: { email: string } | null }) => {
-            // An omitted optional arg is `undefined`, not `null` — a resolver
-            // that only guards against `null` would throw here.
             seen.push(args.input);
             const email = args.input?.email ?? 'alice@example.com';
             return ctx.ormClient.User.where((u) => u.email.eq(email));
