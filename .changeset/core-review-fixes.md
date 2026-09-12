@@ -10,4 +10,4 @@
 - Keep heterogeneous TypeScript enum members whose string value happens to name a numeric member
 - Omit arguments removed by `onInputFieldConfig` from the `config.args` passed to resolver wrappers
 - Preserve `specifiedByURL` on imported scalars, and accept it as a `scalarType` option
-- Make the no-`Buffer` `encodeBase64`/`decodeBase64` fallback UTF-8 safe
+- Make the no-`Buffer` `encodeBase64`/`decodeBase64` fallback UTF-8 safe, including preserving a leading BOM
