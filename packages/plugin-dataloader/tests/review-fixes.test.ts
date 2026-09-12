@@ -168,3 +168,31 @@ describe('iterable resolver results', () => {
     expect(result.data).toEqual({ users: [{ id: 1 }, { id: 2 }] });
   });
 });
+
+describe('loadableUnion extensions', () => {
+  it('preserves extensions passed by the caller', () => {
+    const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [DataloaderPlugin] });
+
+    const User = builder
+      .objectRef<{ id: number }>('User')
+      .implement({ fields: (t) => ({ id: t.exposeInt('id', { nullable: false }) }) });
+
+    const Result = builder.loadableUnion('Result', {
+      types: [User],
+      resolveType: () => User,
+      load: async (ids: number[]) => ids.map((id) => ({ id })),
+      extensions: { reviewMarker: 'preserved' },
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        result: t.field({ type: Result, nullable: false, resolve: () => 1 }),
+      }),
+    });
+
+    const type = builder.toSchema().getType('Result')!;
+
+    expect(type.extensions.reviewMarker).toBe('preserved');
+    expect(type.extensions.getDataloader).toBeTypeOf('function');
+  });
+});
