@@ -204,16 +204,28 @@ export function resolveArrayConnection<T>(
 
 export { parseCursorConnectionArgs } from '@pothos/core';
 
-type NodeType<T> = T extends readonly (infer N)[] | Promise<readonly (infer N)[] | null> | null
+type NodeType<T> = T extends readonly (infer N)[] | Promise<readonly (infer N)[] | null>
   ? N
   : never;
+
+/**
+ * `null` when the resolver can return `null` (directly or from its promise), `never` otherwise.
+ *
+ * This is kept outside of `Merge`, which collapses `null` out of a union because `null & {}` is
+ * `never`.
+ */
+type ConnectionNullability<U> =
+  U extends NonNullable<U> ? (Promise<null> extends U ? null : never) : null;
 
 export async function resolveCursorConnection<
   U extends Promise<readonly unknown[] | null> | readonly unknown[] | null,
 >(
   options: ResolveCursorConnectionOptions<NodeType<U>>,
   resolve: (params: ResolveCursorConnectionArgs) => U,
-): Promise<Merge<ArrayConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>> {
+): Promise<
+  | Merge<ArrayConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>
+  | ConnectionNullability<U>
+> {
   const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } =
     parseCursorConnectionArgs(options);
 

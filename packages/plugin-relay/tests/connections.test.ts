@@ -51,4 +51,15 @@ describe('resolveCursorConnection', () => {
 
     expect(result.edges.map((edge) => edge?.node.id)).toEqual(['1']);
   });
+
+  it('returns null when the resolver returns null', async () => {
+    const result = await resolveCursorConnection(
+      { args: { first: 1 }, toCursor: (row) => row.id },
+      (): { id: string }[] | null => null,
+    );
+
+    expect(result).toBeNull();
+    // Reading `edges` without guarding throws, so the return type has to stay nullable.
+    expect(() => result!.edges).toThrow(TypeError);
+  });
 });

@@ -6,3 +6,4 @@
 - Clamp offset windows when a stale `after` cursor points past `totalCount`, instead of producing a negative limit and `hasNextPage: true`
 - Group node ids in a `Map` so node types named `constructor`, `toString`, etc. no longer throw when loaded
 - Infer node types from readonly arrays returned by `resolveCursorConnection` resolvers instead of `never`
+- Type the result of `resolveCursorConnection` as nullable when its resolver can return `null`, instead of a non-null connection that threw on unguarded `.edges`
