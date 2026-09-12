@@ -127,6 +127,7 @@ export interface ForbiddenResult {
 }
 
 export interface ResolveStep<Types extends SchemaTypes> {
+  key?: string;
   run: (
     cache: RequestCache<Types>,
     parent: unknown,
