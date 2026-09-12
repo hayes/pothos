@@ -187,3 +187,58 @@ describe('mock resolution', () => {
     expect(first.value).toEqual({ data: { toString: 'original' } });
   });
 });
+
+describe('mock maps that are not plain objects', () => {
+  const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [Mocks] });
+
+  builder.queryType({
+    fields: (t) => ({
+      hello: t.string({ resolve: () => 'original' }),
+    }),
+  });
+
+  type MockMap = NonNullable<NonNullable<Parameters<typeof builder.toSchema>[0]>['mocks']>;
+
+  function queryHello(mocks: MockMap) {
+    return execute({
+      schema: builder.toSchema({ mocks }),
+      document: gql`
+        query {
+          hello
+        }
+      `,
+      contextValue: {},
+    });
+  }
+
+  it('uses mocks served by a Proxy', async () => {
+    const mocks = new Proxy(
+      {},
+      {
+        get: (_target, key) => (key === 'Query' ? { hello: () => 'mocked' } : undefined),
+      },
+    ) as MockMap;
+
+    expect(await queryHello(mocks)).toEqual({ data: { hello: 'mocked' } });
+  });
+
+  it('uses mocks inherited from a user provided prototype', async () => {
+    const mocks = Object.create({
+      Query: { hello: () => 'mocked' },
+    }) as MockMap;
+
+    expect(await queryHello(mocks)).toEqual({ data: { hello: 'mocked' } });
+  });
+
+  it('uses mocks defined as methods on a class', async () => {
+    class QueryMocks {
+      hello() {
+        return 'mocked';
+      }
+    }
+
+    const mocks = { Query: new QueryMocks() } as unknown as MockMap;
+
+    expect(await queryHello(mocks)).toEqual({ data: { hello: 'mocked' } });
+  });
+});
