@@ -335,7 +335,13 @@ export class BuildCache<Types extends SchemaTypes> {
       const argConfigs: Record<string, PothosInputFieldConfig<Types>> = {};
 
       for (const argName of Object.keys(config.args)) {
-        argConfigs[argName] = this.inputFieldConfigs.get(config.args[argName])!;
+        const argConfig = this.inputFieldConfigs.get(config.args[argName]);
+
+        // `onInputFieldConfig` may return null to remove an argument. Those arguments are already
+        // omitted from the built argument map, so keep the configs handed to wrappers in sync.
+        if (argConfig) {
+          argConfigs[argName] = argConfig;
+        }
       }
 
       config.args = argConfigs;
