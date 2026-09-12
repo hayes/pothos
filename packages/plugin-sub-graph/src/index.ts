@@ -8,6 +8,7 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import {
+  GraphQLDirective,
   GraphQLEnumType,
   type GraphQLFieldConfigArgumentMap,
   type GraphQLFieldConfigMap,
@@ -93,7 +94,9 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
     }
 
     return new GraphQLSchema({
-      directives: config.directives,
+      directives: config.directives.map((directive) =>
+        PothosSubGraphPlugin.mapDirective(directive, newTypes, subGraphs),
+      ),
       extensions: config.extensions,
       extensionASTNodes: config.extensionASTNodes,
       assumeValid: false,
@@ -109,6 +112,48 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
           ((isObjectType(type) || isInterfaceType(type)) &&
             hasReturnedInterface(type as GraphQLInterfaceType | GraphQLObjectType)),
       ),
+    });
+  }
+
+  // Directive arguments reference the types of the original schema, and need to be re-pointed at
+  // the types rebuilt for the sub-graph, otherwise the schema ends up with 2 types of the same name
+  static mapDirective(
+    directive: GraphQLDirective,
+    newTypes: Map<string, GraphQLNamedType>,
+    subGraphs: string[],
+  ) {
+    const directiveConfig = directive.toConfig();
+    const newArguments: GraphQLFieldConfigArgumentMap = {};
+    let replacedType = false;
+
+    for (const [argName, argConfig] of Object.entries(directiveConfig.args ?? {})) {
+      const namedType = getNamedType(argConfig.type);
+      const newType = newTypes.get(namedType.name);
+
+      if (!newType || newType === namedType) {
+        newArguments[argName] = argConfig;
+        continue;
+      }
+
+      replacedType = true;
+      newArguments[argName] = {
+        ...argConfig,
+        type: replaceType(
+          argConfig.type,
+          newTypes,
+          `${argName} argument of @${directive.name}`,
+          subGraphs,
+        ),
+      };
+    }
+
+    if (!replacedType) {
+      return directive;
+    }
+
+    return new GraphQLDirective({
+      ...directiveConfig,
+      args: newArguments,
     });
   }
 
