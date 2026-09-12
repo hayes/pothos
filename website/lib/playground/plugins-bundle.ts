@@ -31,13 +31,13 @@ import * as WithInputModule from '@pothos/plugin-with-input';
 import * as ZodModule from '@pothos/plugin-zod';
 import * as DrizzleOrm from 'drizzle-orm';
 import * as DrizzleSqliteCore from 'drizzle-orm/sqlite-core';
-import * as DrizzleSqliteProxy from 'drizzle-orm/sqlite-proxy';
+import { drizzleSqliteProxy } from './drizzle/sqlite-proxy';
 
 export const pluginModules = {
   '@pothos/plugin-drizzle': DrizzleModule,
   'drizzle-orm': DrizzleOrm,
   'drizzle-orm/sqlite-core': DrizzleSqliteCore,
-  'drizzle-orm/sqlite-proxy': DrizzleSqliteProxy,
+  'drizzle-orm/sqlite-proxy': drizzleSqliteProxy,
   '@pothos/plugin-tracing': TracingModule,
   '@pothos/plugin-zod': ZodModule,
   '@pothos/plugin-simple-objects': SimpleObjectsModule,

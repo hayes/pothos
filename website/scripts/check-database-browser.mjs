@@ -46,6 +46,54 @@ const run = async () => {
   await output.filter({ hasText: /\S/ }).waitFor({ state: 'attached' });
   return JSON.parse(await output.textContent());
 };
+// Inspect the same Monaco content a reader sees, through the generic response tabs.
+const inspectQueries = async (surface = page) => {
+  await surface.getByRole('button', { name: 'Queries', exact: true }).click();
+  const tabs = surface.getByRole('tablist', { name: 'Queries sub-tabs' }).getByRole('tab');
+  const names = await tabs.allTextContents();
+  const entries = [];
+  for (const name of names) {
+    await tabs.filter({ hasText: name }).click();
+    const method = name.replace(/^\d+\. /, '');
+    await surface.waitForFunction(
+      (method) =>
+        window.monaco.editor.getEditors().some((editor) => {
+          if (
+            editor.getDomNode()?.offsetParent === null ||
+            !editor.getOption(window.monaco.editor.EditorOption.readOnly)
+          ) {
+            return false;
+          }
+          try {
+            return JSON.parse(editor.getValue()).method === method;
+          } catch {
+            return false;
+          }
+        }),
+      method,
+    );
+    entries.push(
+      await surface.evaluate((method) => {
+        for (const editor of window.monaco.editor.getEditors()) {
+          if (
+            editor.getDomNode()?.offsetParent === null ||
+            !editor.getOption(window.monaco.editor.EditorOption.readOnly)
+          ) {
+            continue;
+          }
+          try {
+            const value = JSON.parse(editor.getValue());
+            if (value.method === method) {
+              return value;
+            }
+          } catch {}
+        }
+      }, method),
+    );
+  }
+  await surface.getByRole('button', { name: 'Response', exact: true }).click();
+  return entries;
+};
 try {
   await page.goto(`${origin}/playground?example=plugin-drizzle`);
   await page.getByRole('button', { name: /schema synced/ }).waitFor();
@@ -95,10 +143,25 @@ try {
     results[`${query.title}.graphql`] = result;
     if (query.title === '01-author') {
       assert.equal(sql.length, 1, 'nested author and posts are loaded by one SQL query');
+      const entries = await inspectQueries();
+      assert.equal(entries.length, 1);
+      assert.equal(entries[0].method, 'db.query.users.findFirst');
+      assert.deepEqual(entries[0].arguments[0].where, { id: 1 });
+      assert.ok(entries[0].arguments[0].with.posts, 'show the nested relation options');
     }
     if (query.title === '02-aliases') {
       assert.equal(sql.length, 2, 'incompatible aliases require a fallback query');
       assert.deepEqual(result.data.author.newest, [...result.data.author.oldest].reverse());
+      const entries = await inspectQueries();
+      assert.deepEqual(
+        entries.map((entry) => entry.method),
+        ['db.query.users.findFirst', 'db.query.users.findMany'],
+      );
+      assert.equal(
+        entries[1].arguments[0].where.RAW.$type,
+        'Function',
+        'fallback callback is represented without evaluating it',
+      );
     }
     console.log('PASS', query.title);
   }
@@ -189,6 +252,17 @@ try {
   assert.deepEqual((await run()).data, { posts: { totalCount: 3 } });
   assert.equal(sql.length, 1, 'root count-only selection skips the row query');
   assert.match(sql[0], /count\(/i);
+  const countEntries = await inspectQueries();
+  assert.equal(countEntries.length, 1, 'capture is replaced on every run');
+  assert.equal(countEntries[0].method, 'db.$count');
+  assert.equal(countEntries[0].arguments[1].$type, 'SQL');
+  await pane('Query', '{ __typename }');
+  await run();
+  assert.equal(
+    await page.getByRole('button', { name: 'Queries', exact: true }).count(),
+    0,
+    'no stale Queries tab for a run without database calls',
+  );
 
   await operation('10-attachments');
   const attachments =
@@ -288,6 +362,11 @@ try {
   await page.waitForTimeout(1000);
   await page.getByRole('button', { name: /schema synced/ }).waitFor();
   assert.equal((await run()).data.author.fullName, 'Maya Chen');
+  assert.equal(
+    (await inspectQueries()).length,
+    1,
+    'reset does not retain captures from an old database',
+  );
   console.log(
     'PASS cursor continuation, backward/empty pages, count-only SQL, viewer isolation, seed edit and reset',
   );
@@ -397,6 +476,16 @@ try {
         }
         if (check === 'aliases') {
           assert.deepEqual(result.data.author.newest, [...result.data.author.oldest].reverse());
+          const entries = await inspectQueries(runtime);
+          assert.deepEqual(
+            entries.map((entry) => entry.method),
+            ['db.query.users.findFirst', 'db.query.users.findMany'],
+          );
+          assert.equal(
+            entries[1].arguments[0].where.RAW.$type,
+            'Function',
+            'fallback callback is represented without evaluating it',
+          );
         }
         if (check === 'viewer') {
           assert.equal(result.data.me.__typename, 'EditorViewer');
@@ -451,6 +540,10 @@ try {
     .first()
     .filter({ hasText: 'Maya Chen' })
     .waitFor({ state: 'attached' });
+  const mobileRuntime = page.frames().find((candidate) => candidate.url().includes('/playground?'));
+  assert.equal((await inspectQueries(mobileRuntime)).length, 1);
+  await mobile.getByRole('button', { name: 'Queries', exact: true }).click();
+  await mobile.getByRole('tablist', { name: 'Queries sub-tabs' }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: '/tmp/pothos-drizzle-mobile.png' });
   console.log('PASS mobile docs action, query and result');
 } finally {

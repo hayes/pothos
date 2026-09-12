@@ -1,7 +1,7 @@
 {
   "id": "plugin-drizzle",
   "title": "A publishing API with Drizzle",
-  "description": "04-pagination: paste endCursor into Variables.after.\n10-attachments: set hasCaption to true, or paste endCursor into after.\n02-aliases: compare SQL in Console.\n03-viewer or 09-variant: change Context userId to 2.\nReset restores the seed.",
+  "description": "04-pagination: paste endCursor into Variables.after.\n10-attachments: set hasCaption to true, or paste endCursor into after.\n02-aliases: compare query options in Queries and SQL in Console.\n03-viewer or 09-variant: change Context userId to 2.\nReset restores the seed.",
   "category": "plugins",
   "difficulty": "intermediate",
   "relatedDocs": ["/docs/plugins/drizzle"],
