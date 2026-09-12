@@ -11,6 +11,7 @@ import {
   type TypeParam,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
+import { isIterableList } from './list-utils.js';
 import type {
   LoadableFieldOptions,
   LoadableGroupFieldOptions,
@@ -85,8 +86,14 @@ fieldBuilderProto.loadable = function loadable<
       const loader = getLoader(args, context, info);
 
       if (Array.isArray(type)) {
+        if (!isIterableList(ids)) {
+          // The field is a list but the resolver didn't return one. Hand the value back so
+          // graphql-js reports that, rather than loading keys that were never asked for.
+          return ids;
+        }
+
         // list resolvers are allowed to return any Iterable, so consume it before mapping
-        const keys = Array.isArray(ids) ? (ids as Key[]) : [...(ids as unknown as Iterable<Key>)];
+        const keys = Array.isArray(ids) ? (ids as Key[]) : [...(ids as Iterable<Key>)];
 
         return rejectErrors(keys.map((id) => (id == null ? id : loader.load(id))));
       }

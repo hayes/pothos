@@ -298,6 +298,66 @@ describe('iterable resolver results', () => {
     expect(result.data).toEqual({ numbers: [1, 2] });
   });
 
+  it('accepts a generator of keys from a t.loadable list field', async () => {
+    const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [DataloaderPlugin] });
+
+    function* keys() {
+      yield 1;
+      yield 2;
+    }
+
+    builder.queryType({
+      fields: (t) => ({
+        numbers: t.loadable({
+          type: ['Int'],
+          nullable: false,
+          load: async (ids: number[]) => ids,
+          resolve: () => keys(),
+        }),
+      }),
+    });
+
+    const result = await graphql({
+      schema: builder.toSchema(),
+      source: '{ numbers }',
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ numbers: [1, 2] });
+  });
+
+  it('does not spread a string returned for a t.loadable list field', async () => {
+    const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [DataloaderPlugin] });
+
+    const load = vi.fn(async (ids: string[]) => ids);
+
+    builder.queryType({
+      fields: (t) => ({
+        names: t.loadable({
+          type: ['String'],
+          nullable: false,
+          load,
+          resolve: () => 'abc' as never,
+        }),
+      }),
+    });
+
+    const result = await graphql({
+      schema: builder.toSchema(),
+      source: '{ names }',
+      contextValue: {},
+    });
+
+    // `names` is non-nullable, so the error nulls the whole response rather than fabricating keys
+    expect(result.data).toBeNull();
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Expected Iterable, but did not find one for field "Query.names".',
+    ]);
+    expect(result.errors?.[0].path).toEqual(['names']);
+    expect(load).not.toHaveBeenCalled();
+  });
+
   it('still supports an iterable of already loaded objects', async () => {
     const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [DataloaderPlugin] });
 

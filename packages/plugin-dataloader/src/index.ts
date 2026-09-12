@@ -10,18 +10,13 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import type DataLoader from 'dataloader';
 import type { GraphQLFieldResolver } from 'graphql';
+import { isIterableList } from './list-utils.js';
 
 export * from './refs/index.js';
 export * from './types.js';
 export * from './util.js';
 
 const pluginName = 'dataloader';
-
-// Resolvers for list fields are allowed to return any Iterable. Strings are deliberately excluded
-// so a string returned where a list was expected is not spread into its characters.
-function isIterableList(value: unknown): value is Iterable<unknown> {
-  return typeof value === 'object' && value !== null && Symbol.iterator in value;
-}
 
 export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapResolve(
