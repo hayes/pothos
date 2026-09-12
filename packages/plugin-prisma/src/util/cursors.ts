@@ -66,8 +66,13 @@ export function parseID(id: string, dataType: string): unknown {
     case 'Boolean':
       return id !== 'false';
     case 'Float':
-    case 'Decimal':
       return Number.parseFloat(id);
+    // A `Decimal` carries more digits than a `number` holds, and `serializeID` writes all of
+    // them out. Reading one back as a float rounded the id to a value the row does not have.
+    // Prisma takes a decimal string wherever it takes a `Decimal`, so hand the digits over
+    // untouched.
+    case 'Decimal':
+      return id;
     case 'DateTime':
       return new Date(id);
     case 'Json':

@@ -62,6 +62,11 @@ class FakeDecimal {
   toFixed() {
     return this.digits;
   }
+
+  // A `Decimal` prints its exact digits, which is what `serializeID` writes into a node id.
+  toString() {
+    return this.digits;
+  }
 }
 
 describe('compound cursors', () => {
@@ -228,5 +233,97 @@ describe('node ids', () => {
       meta: { a: 1 },
       n: 3,
     });
+  });
+});
+
+describe('decimal node ids', () => {
+  // More digits than a `number` holds. The serializer already writes them all out; the parser
+  // used to read them back through `Number.parseFloat` and round them away, so the id named a
+  // value the row does not have.
+  const digits = '0.1234567890123456789012345';
+
+  it('round trips a Decimal id without losing digits', () => {
+    const builder = builderFor([{ name: 'amount', type: 'Decimal', isId: true }]);
+
+    const id = getDefaultIDSerializer(
+      'Model',
+      'amount',
+      builder,
+    )({
+      amount: new FakeDecimal(digits),
+    }) as string;
+
+    expect(id).toBe(digits);
+    expect(getDefaultIDParser('Model', 'amount', builder)(id)).toBe(digits);
+  });
+
+  it('round trips a compound id containing a Decimal without losing digits', () => {
+    const builder = builderFor(
+      [
+        { name: 'amount', type: 'Decimal' },
+        { name: 'n', type: 'Int' },
+      ],
+      { name: null, fields: ['amount', 'n'] },
+    );
+
+    const id = getDefaultIDSerializer(
+      'Model',
+      'amount_n',
+      builder,
+    )({ amount: new FakeDecimal(digits), n: 1 }) as string;
+
+    expect(getDefaultIDParser('Model', 'amount_n', builder)(id)).toEqual({ amount: digits, n: 1 });
+  });
+
+  // A `Float` column really is a double, so it keeps reading back as a number.
+  it('still reads a Float id as a number', () => {
+    const builder = builderFor([{ name: 'views', type: 'Float', isId: true }]);
+
+    expect(getDefaultIDParser('Model', 'views', builder)('1.75')).toBe(1.75);
+  });
+});
+
+// Every id the plugin can already issue and read has to keep the bytes it has: a client holding
+// one hands it straight back, and a stored id has to keep naming the same row.
+describe('ids issued before this release', () => {
+  const intBuilder = builderFor([{ name: 'id', type: 'Int', isId: true }]);
+  const stringBuilder = builderFor([{ name: 'slug', type: 'String', isId: true }]);
+  const compoundBuilder = builderFor(
+    [
+      { name: 'id', type: 'Int' },
+      { name: 'slug', type: 'String' },
+    ],
+    { name: null, fields: ['id', 'slug'] },
+  );
+  const decimalBuilder = builderFor([{ name: 'amount', type: 'Decimal', isId: true }]);
+
+  it('writes an Int id, a String id and a compound id byte for byte as it always has', () => {
+    expect(getDefaultIDSerializer('Model', 'id', intBuilder)({ id: 42 })).toBe('42');
+    expect(getDefaultIDSerializer('Model', 'slug', stringBuilder)({ slug: 'ada' })).toBe('ada');
+    expect(
+      getDefaultIDSerializer('Model', 'id_slug', compoundBuilder)({ id: 42, slug: 'ada' }),
+    ).toBe('["42","ada"]');
+  });
+
+  it('writes a Decimal id byte for byte as it always has', () => {
+    expect(
+      getDefaultIDSerializer('Model', 'amount', decimalBuilder)({ amount: new FakeDecimal('1.5') }),
+    ).toBe('1.5');
+  });
+
+  it('reads an Int id, a String id and a compound id back to exactly what it always did', () => {
+    expect(getDefaultIDParser('Model', 'id', intBuilder)('42')).toBe(42);
+    expect(getDefaultIDParser('Model', 'slug', stringBuilder)('ada')).toBe('ada');
+    expect(getDefaultIDParser('Model', 'id_slug', compoundBuilder)('["42","ada"]')).toEqual({
+      id: 42,
+      slug: 'ada',
+    });
+  });
+
+  // A `Decimal` that a double holds exactly now reads back as its digits rather than as a
+  // `number`. Prisma takes a decimal string wherever it takes a `Decimal`, and the value it
+  // names is the one the old id named.
+  it('reads a Decimal id back to the same value it always named', () => {
+    expect(Number(getDefaultIDParser('Model', 'amount', decimalBuilder)('1.5'))).toBe(1.5);
   });
 });
