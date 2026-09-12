@@ -1,5 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
+import WithInputPlugin from '@pothos/plugin-with-input';
 import { describe, expectTypeOf, it } from 'vitest';
 import prismaNextPlugin from '../src';
 import type { Contract } from './fixtures/sample-contract';
@@ -13,6 +14,11 @@ const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
 const relayBuilder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
+  prismaNext: { contract: null as never },
+});
+
+const withInputBuilder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [WithInputPlugin, prismaNextPlugin],
   prismaNext: { contract: null as never },
 });
 
@@ -295,6 +301,66 @@ describe('t.prismaField typing — resolver shape', () => {
         users: t.prismaField({
           type: ['User'],
           resolve: (() => [] as never) as never,
+        }),
+      }),
+    });
+  });
+});
+
+describe('t.prismaFieldWithInput typing — optional input arg', () => {
+  it('types an optional input as possibly omitted as well as null', () => {
+    withInputBuilder.queryType({
+      fields: (t) => ({
+        // `argOptions.required: false` makes `input` optional in the schema, so
+        // a query may omit it entirely. GraphQL then hands the resolver
+        // `undefined`, not `null`.
+        optionalInput: t.prismaFieldWithInput({
+          type: 'User',
+          nullable: true,
+          argOptions: { required: false },
+          input: { email: t.input.string({ required: true }) },
+          resolve: (_parent, args) => {
+            expectTypeOf(args.input).toEqualTypeOf<{ email: string } | null | undefined>();
+            return null as never;
+          },
+        }),
+      }),
+    });
+  });
+
+  it('rejects a null-only guard, which leaves the omitted case unhandled', () => {
+    withInputBuilder.queryType({
+      fields: (t) => ({
+        nullGuardOnly: t.prismaFieldWithInput({
+          type: 'User',
+          nullable: true,
+          argOptions: { required: false },
+          input: { email: t.input.string({ required: true }) },
+          resolve: (_parent, args) => {
+            const input = args.input;
+            if (input === null) {
+              return null as never;
+            }
+            // @ts-expect-error — `input` is still possibly `undefined`.
+            const email: string = input.email;
+            return email as never;
+          },
+        }),
+      }),
+    });
+  });
+
+  it('keeps a required input free of null and undefined', () => {
+    withInputBuilder.queryType({
+      fields: (t) => ({
+        requiredInput: t.prismaFieldWithInput({
+          type: 'User',
+          nullable: true,
+          input: { email: t.input.string({ required: true }) },
+          resolve: (_parent, args) => {
+            expectTypeOf(args.input).toEqualTypeOf<{ email: string }>();
+            return null as never;
+          },
         }),
       }),
     });
