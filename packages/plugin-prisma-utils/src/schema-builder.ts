@@ -284,6 +284,10 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
             type: fieldType,
           });
         } else if (typeof fieldOption === 'boolean') {
+          if (!fieldOption) {
+            continue;
+          }
+
           fieldDefs[field] = t.field({
             required: false,
             type: this.orderByEnum(),
