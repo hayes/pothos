@@ -38,6 +38,17 @@ describe('resolveOffsetConnection', () => {
     expect(result.edges).toEqual([]);
     expect(result.pageInfo.hasNextPage).toBe(false);
   });
+
+  it('returns null when the resolver returns null', async () => {
+    const result = await resolveOffsetConnection(
+      { args: { first: 1 } },
+      (): { id: string }[] | null => null,
+    );
+
+    expect(result).toBeNull();
+    // Reading `edges` without guarding throws, so the return type has to stay nullable.
+    expect(() => result!.edges).toThrow(TypeError);
+  });
 });
 
 describe('resolveCursorConnection', () => {

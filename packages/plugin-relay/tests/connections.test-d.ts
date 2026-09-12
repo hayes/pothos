@@ -1,5 +1,44 @@
 import { expectTypeOf, it } from 'vitest';
-import { resolveCursorConnection } from '../src';
+import { resolveCursorConnection, resolveOffsetConnection } from '../src';
+
+it('types an offset resolver that cannot return null as a non-null connection', async () => {
+  const result = await resolveOffsetConnection({ args: { first: 1 } }, () => [{ id: '1' }]);
+
+  expectTypeOf(result).not.toBeNullable();
+  expectTypeOf(result.edges[0]?.node).toEqualTypeOf<{ id: string }>();
+});
+
+it('types an offset resolver that can return null as a nullable connection', async () => {
+  const result = await resolveOffsetConnection(
+    { args: { first: 1 } },
+    (): { id: string }[] | null => null,
+  );
+
+  expectTypeOf(result).toBeNullable();
+
+  // @ts-expect-error `result` may be null at runtime, so it has to be guarded first.
+  const unguarded: unknown = result.edges;
+
+  expectTypeOf(unguarded).toBeUnknown();
+
+  if (result) {
+    expectTypeOf(result.edges[0]?.node).toEqualTypeOf<{ id: string }>();
+  }
+});
+
+it('types an async offset resolver that can return null as a nullable connection', async () => {
+  const result = await resolveOffsetConnection(
+    { args: { first: 1 } },
+    async (): Promise<{ id: string }[] | null> => null,
+  );
+
+  expectTypeOf(result).toBeNullable();
+
+  // @ts-expect-error `result` may be null at runtime, so it has to be guarded first.
+  const unguarded: unknown = result.edges;
+
+  expectTypeOf(unguarded).toBeUnknown();
+});
 
 it('types a cursor resolver that cannot return null as a non-null connection', async () => {
   const result = await resolveCursorConnection(

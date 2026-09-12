@@ -36,6 +36,16 @@ interface ResolveArrayConnectionOptions {
   maxSize?: number;
 }
 
+/**
+ * `null` when the resolver can return `null` (directly or from its promise), `never` otherwise.
+ *
+ * This has to be unioned in outside of `Merge`. `Merge` is a homomorphic mapped type intersected
+ * with `{}`, so it distributes over unions and collapses the nullable member away: `null & {}` is
+ * `never`.
+ */
+type ConnectionNullability<U> =
+  U extends NonNullable<U> ? (Promise<null> extends U ? null : never) : null;
+
 const OFFSET_CURSOR_PREFIX = 'OffsetConnection:';
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
@@ -105,15 +115,16 @@ export async function resolveOffsetConnection<
     limit: number;
   }) => U & (MaybePromise<readonly T[] | null> | null),
 ): Promise<
-  Merge<
-    ArrayConnectionShape<
-      SchemaTypes,
-      NonNullable<T>,
-      U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true,
-      T extends NonNullable<T> ? false : { list: false; items: true },
-      false
-    > & { totalCount: C }
-  >
+  | Merge<
+      ArrayConnectionShape<
+        SchemaTypes,
+        NonNullable<T>,
+        false,
+        T extends NonNullable<T> ? false : { list: false; items: true },
+        false
+      > & { totalCount: C }
+    >
+  | ConnectionNullability<U>
 > {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
 
@@ -207,15 +218,6 @@ export { parseCursorConnectionArgs } from '@pothos/core';
 type NodeType<T> = T extends readonly (infer N)[] | Promise<readonly (infer N)[] | null>
   ? N
   : never;
-
-/**
- * `null` when the resolver can return `null` (directly or from its promise), `never` otherwise.
- *
- * This is kept outside of `Merge`, which collapses `null` out of a union because `null & {}` is
- * `never`.
- */
-type ConnectionNullability<U> =
-  U extends NonNullable<U> ? (Promise<null> extends U ? null : never) : null;
 
 export async function resolveCursorConnection<
   U extends Promise<readonly unknown[] | null> | readonly unknown[] | null,
