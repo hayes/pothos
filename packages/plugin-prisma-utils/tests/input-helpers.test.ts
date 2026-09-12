@@ -40,4 +40,22 @@ describe('prismaOrderBy', () => {
 
     expect(Object.keys(inputFields(builder, 'ItemOrderBy'))).toEqual(['id']);
   });
+
+  it('uses the order enum for scalar option callbacks that omit a type', () => {
+    const builder = createBuilder();
+    const OrderBy = builder.prismaOrderBy('Item', {
+      fields: { id: () => ({ description: 'Sort ID' }) },
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        hello: t.string({ args: { order: t.arg({ type: OrderBy }) }, resolve: () => '' }),
+      }),
+    });
+
+    const field = inputFields(builder, 'ItemOrderBy').id;
+
+    expect(field.type.toString()).toBe('OrderBy');
+    expect(field.description).toBe('Sort ID');
+  });
 });

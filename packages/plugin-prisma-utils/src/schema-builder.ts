@@ -275,13 +275,16 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
       for (const [field, fieldOption] of Object.entries(fieldMap)) {
         if (typeof fieldOption === 'function') {
           const { type: fieldType, ...fieldOptions } = (
-            fieldOption as () => PothosSchemaTypes.InputFieldOptions<SchemaTypes>
+            fieldOption as () => Partial<PothosSchemaTypes.InputFieldOptions<SchemaTypes>>
           )();
 
           fieldDefs[field] = t.field({
             required: false,
             ...fieldOptions,
-            type: fieldType,
+            // Scalar field callbacks return options without a `type` (see
+            // `PrismaOrderByFields`), and sort by the order enum. Relation callbacks
+            // provide the nested order-by input themselves.
+            type: fieldType ?? this.orderByEnum(),
           });
         } else if (typeof fieldOption === 'boolean') {
           if (!fieldOption) {
