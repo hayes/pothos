@@ -149,6 +149,22 @@ function buildSchema() {
     resolveNode: (edge) => ({ id: edge.id, name: edge.firstName }),
   });
 
+  const decoratedUsers = prismaConnectionHelpers(builder, 'User', {
+    cursor: 'id',
+    defaultSize: 10,
+    resolveNode: (row) => ({ user: row, decoratedAt: 'decorated' }),
+  });
+
+  const DecoratedUser = builder
+    .objectRef<{ user: { id: string; firstName: string }; decoratedAt: string }>('DecoratedUser')
+    .implement({
+      fields: (t) => ({
+        userId: t.string({ resolve: (parent) => parent.user.id }),
+        firstName: t.string({ resolve: (parent) => parent.user.firstName }),
+        decoratedAt: t.exposeString('decoratedAt'),
+      }),
+    });
+
   // Thunk form for `args` — closes over the InputFieldBuilder lazily.
   const userSearchThunkArgs = prismaConnectionHelpers(builder, 'User', {
     cursor: 'id',
@@ -230,6 +246,20 @@ function buildSchema() {
           );
           const rows = await collection.all();
           return wrap(rows) as never;
+        },
+      }),
+      decoratedUsers: t.connection({
+        type: DecoratedUser,
+        args: decoratedUsers.getArgs(),
+        resolve: async (_p, args, _ctx) => {
+          const { collection, wrap } = await decoratedUsers.applyPagination(
+            ctx.ormClient.User,
+            args,
+            undefined,
+            _ctx,
+          );
+          const rows = await collection.all();
+          return wrap(rows);
         },
       }),
       // Helper-with-callable-totalCount — exercises the callback path
@@ -929,6 +959,80 @@ describe('prismaConnection: end-to-end against real sqlite', () => {
     for (const edge of data.namesOnly.edges) {
       expect(edge.cursor).toBeTruthy();
       expect(edge.node.id).toBeTruthy();
+    }
+  });
+
+  it('prismaConnectionHelpers resolveNode: a wrapper node resolves through the wrapper', async () => {
+    const result = await runQuery(
+      '{ decoratedUsers(first: 10) { edges { cursor node { userId firstName decoratedAt } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const data = result.data as {
+      decoratedUsers: {
+        edges: Array<{
+          cursor: string;
+          node: { userId: string; firstName: string; decoratedAt: string };
+        }>;
+      };
+    };
+
+    expect(data.decoratedUsers.edges).toHaveLength(2);
+    expect(data.decoratedUsers.edges.map((edge) => edge.node.userId)).toEqual(['u-alice', 'u-bob']);
+    for (const edge of data.decoratedUsers.edges) {
+      expect(edge.node.userId).toBeTruthy();
+      expect(edge.node.firstName).toBeTruthy();
+      expect(edge.node.decoratedAt).toBe('decorated');
+    }
+  });
+
+  it('prismaConnectionHelpers resolveNode: cursors still encode the original rows', async () => {
+    const page1 = await runQuery(
+      '{ decoratedUsers(first: 1) { pageInfo { endCursor hasNextPage } edges { cursor node { userId } } } }',
+    );
+    expect(page1.errors).toBeUndefined();
+    const first = page1.data as {
+      decoratedUsers: {
+        pageInfo: { endCursor: string; hasNextPage: boolean };
+        edges: Array<{ cursor: string; node: { userId: string } }>;
+      };
+    };
+
+    expect(first.decoratedUsers.edges).toHaveLength(1);
+    expect(first.decoratedUsers.edges[0]!.node.userId).toBe('u-alice');
+    expect(first.decoratedUsers.edges[0]!.cursor).toBeTruthy();
+    expect(first.decoratedUsers.edges[0]!.cursor).toBe(first.decoratedUsers.pageInfo.endCursor);
+    expect(first.decoratedUsers.pageInfo.hasNextPage).toBe(true);
+
+    const page2 = await runQuery(
+      `{ decoratedUsers(first: 1, after: "${first.decoratedUsers.pageInfo.endCursor}") { edges { node { userId } } } }`,
+    );
+    expect(page2.errors).toBeUndefined();
+    const second = page2.data as {
+      decoratedUsers: { edges: Array<{ node: { userId: string } }> };
+    };
+    expect(second.decoratedUsers.edges).toHaveLength(1);
+    expect(second.decoratedUsers.edges[0]!.node.userId).toBe('u-bob');
+  });
+
+  it('prismaConnectionHelpers resolveNode: an absent transform leaves the original row', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { contract: ctx.contract },
+    });
+
+    const off: boolean = false;
+    const helper = prismaConnectionHelpers(builder, 'User', {
+      cursor: 'id',
+      resolveNode: off ? (row) => ({ user: row }) : undefined,
+    });
+
+    const page = await helper.applyPagination(ctx.ormClient.User, { first: 1 }, undefined, {});
+    const node = page.wrap(await page.collection.all()).edges[0]!.node;
+
+    expect('user' in node).toBe(false);
+    if (!('user' in node)) {
+      expect(node.id).toBe('u-alice');
     }
   });
 

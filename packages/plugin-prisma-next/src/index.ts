@@ -47,7 +47,12 @@ export type {
 // so the plugin owns reconstructed copies. `IncludeRefinementResult` was
 // dropped (see the note in ./types).
 export { all, and, not, or } from '@prisma/orm-family-sql/orm-client';
-export type { PrismaConnectionHelpers } from './connection-helpers.js';
+export type {
+  ConnectionNodeShape,
+  ConnectionWrapRows,
+  PrismaConnectionHelperOptions,
+  PrismaConnectionHelpers,
+} from './connection-helpers.js';
 export { prismaConnectionHelpers } from './connection-helpers.js';
 export { PRISMA_NEXT_MODEL, PRISMA_NEXT_PREPARED, PRISMA_NEXT_SELECT } from './constants.js';
 export type { PreparedFieldExtension, RefineCallback } from './extensions.js';
