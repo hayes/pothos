@@ -146,7 +146,11 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
       max = max(ctx);
     }
 
-    if (max?.complexity || max?.depth || max?.breadth) {
+    if (
+      typeof max?.complexity === 'number' ||
+      typeof max?.depth === 'number' ||
+      typeof max?.breadth === 'number'
+    ) {
       return max;
     }
 
