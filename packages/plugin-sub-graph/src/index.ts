@@ -8,6 +8,7 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import {
+  GraphQLDirective,
   GraphQLEnumType,
   type GraphQLFieldConfigArgumentMap,
   type GraphQLFieldConfigMap,
@@ -93,7 +94,10 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
     }
 
     return new GraphQLSchema({
-      directives: config.directives,
+      description: config.description,
+      directives: config.directives.map((directive) =>
+        PothosSubGraphPlugin.mapDirective(directive, newTypes, subGraphs),
+      ),
       extensions: config.extensions,
       extensionASTNodes: config.extensionASTNodes,
       assumeValid: false,
@@ -109,6 +113,41 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
           ((isObjectType(type) || isInterfaceType(type)) &&
             hasReturnedInterface(type as GraphQLInterfaceType | GraphQLObjectType)),
       ),
+    });
+  }
+
+  static mapDirective(
+    directive: GraphQLDirective,
+    newTypes: Map<string, GraphQLNamedType>,
+    subGraphs: string[],
+  ) {
+    const directiveConfig = directive.toConfig();
+    const newArguments: GraphQLFieldConfigArgumentMap = {};
+    let replacedType = false;
+
+    for (const [argName, argConfig] of Object.entries(directiveConfig.args ?? {})) {
+      const namedType = getNamedType(argConfig.type);
+      const type = replaceType(
+        argConfig.type,
+        newTypes,
+        `${argName} argument of @${directive.name}`,
+        subGraphs,
+      );
+
+      if (newTypes.get(namedType.name) !== namedType) {
+        replacedType = true;
+      }
+
+      newArguments[argName] = { ...argConfig, type };
+    }
+
+    if (!replacedType) {
+      return directive;
+    }
+
+    return new GraphQLDirective({
+      ...directiveConfig,
+      args: newArguments,
     });
   }
 
