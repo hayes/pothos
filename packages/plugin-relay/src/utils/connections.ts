@@ -42,9 +42,11 @@ type IsAny<T> = 0 extends 1 & T ? true : false;
 /**
  * `null` when the resolver can return `null` (directly or from its promise), `never` otherwise.
  *
- * This has to be unioned in outside of `Merge`. `Merge` is a homomorphic mapped type intersected
- * with `{}`, so it distributes over unions and collapses the nullable member away: `null & {}` is
- * `never`.
+ * This is unioned in at the outermost level rather than passed to `ArrayConnectionShape`'s
+ * `Nullable` parameter, because intersecting a possibly-null union with an object type drops the
+ * null member. `resolveOffsetConnection` used to declare this derivation inline and it never
+ * reached callers, because `& { totalCount: C }` was applied on top of it. `Merge` is not the
+ * culprit and does preserve null; the hazard is the intersection, so keep this out of one.
  *
  * `any` is excluded deliberately. It satisfies both branches of every conditional below, and
  * `Promise<null> extends Promise<any>` is true, so an `any`-typed resolver would be reported as
