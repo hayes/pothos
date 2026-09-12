@@ -60,8 +60,6 @@ export function formatIDChunk(value: unknown) {
   }
 }
 
-// A compound ID is plain JSON, which refuses a bigint outright and turns a Date into a string, so
-// those two are written as a decimal string and epoch milliseconds and read back off the column.
 function formatCompoundIDValue(value: unknown) {
   if (typeof value === 'bigint') {
     return value.toString();
@@ -82,7 +80,6 @@ function parseCompoundIDValue(value: unknown, field: Column) {
     return BigInt(value);
   }
 
-  // A Date column's value comes back from the epoch milliseconds `formatCompoundIDValue` wrote.
   if (field.dataType === 'object date' && typeof value === 'number') {
     return new Date(value);
   }
@@ -187,8 +184,6 @@ export function parseSerializedIDColumn(id: string, field: Column): unknown {
 
   try {
     if (field.dataType.startsWith('number')) {
-      // `Number`, not `parseInt`: a `doublePrecision` ID of `1.75` truncates to `1`, and a large
-      // one written as `1e+21` reads as `1`, so the node looked up is a different row or none.
       return Number(id);
     }
 
