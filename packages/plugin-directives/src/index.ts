@@ -20,7 +20,6 @@ function toDirectiveList(directives: DirectiveList | Record<string, object>): Di
     return directives;
   }
 
-  // An array of args in the unordered format is a repeated directive, one entry per args object.
   return Object.keys(directives).flatMap((name) => {
     const args = directives[name];
 
@@ -149,8 +148,6 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
         return directives;
       }
 
-      // Directive names may collide with Object.prototype members (eg. `constructor`), so
-      // accumulate into a Map rather than reading back from a plain object.
       const byName = new Map<string, {}[]>();
 
       for (const directive of directives) {
