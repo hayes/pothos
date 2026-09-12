@@ -1,0 +1,3 @@
+query FindGiraffe($by: GiraffeLookup!) {
+  giraffeName(by: $by)
+}
