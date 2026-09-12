@@ -39,6 +39,9 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
       return {
         ...decoded,
         id: entry.parseId(decoded.id, ctx),
+        // The parsed id may be any shape, and is not usable as an identity. Keep the
+        // decoded global ID so node identity never depends on the parse result.
+        rawId: decoded.id,
       };
     }
 
@@ -55,6 +58,7 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
       return {
         ...decoded,
         id: parseID(decoded.id, ctx),
+        rawId: decoded.id,
       };
     }
   }
