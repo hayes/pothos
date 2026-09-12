@@ -349,7 +349,6 @@ describe('iterable resolver results', () => {
       contextValue: {},
     });
 
-    // `names` is non-nullable, so the error nulls the whole response rather than fabricating keys
     expect(result.data).toBeNull();
     expect(result.errors?.map((error) => error.message)).toEqual([
       'Expected Iterable, but did not find one for field "Query.names".',

@@ -1,8 +1,6 @@
-// Internal helpers shared by the loader wrappers. Not re-exported from the package entry point.
+/** Internal list helpers shared by the loader wrappers. */
 
-// Resolvers for list fields are allowed to return any Iterable. Strings are deliberately excluded
-// so a string returned where a list was expected is not spread into its characters, which would
-// turn a wrong-shaped resolver result into plausible looking keys.
+// Strings are excluded: a string in a list position must not be spread into its characters.
 export function isIterableList(value: unknown): value is Iterable<unknown> {
   return typeof value === 'object' && value !== null && Symbol.iterator in value;
 }

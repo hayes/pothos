@@ -87,12 +87,9 @@ fieldBuilderProto.loadable = function loadable<
 
       if (Array.isArray(type)) {
         if (!isIterableList(ids)) {
-          // The field is a list but the resolver didn't return one. Hand the value back so
-          // graphql-js reports that, rather than loading keys that were never asked for.
           return ids;
         }
 
-        // list resolvers are allowed to return any Iterable, so consume it before mapping
         const keys = Array.isArray(ids) ? (ids as Key[]) : [...(ids as Iterable<Key>)];
 
         return rejectErrors(keys.map((id) => (id == null ? id : loader.load(id))));
