@@ -24,8 +24,6 @@ export class ModelLoader {
 
   builder: PothosSchemaTypes.SchemaBuilder<never>;
 
-  // `MaybePromise` because a node's `id.resolve` may be async and the user's `findUnique` builds
-  // the where from the ID it settles to. The flush loop below waits for it, and only for it.
   findUnique: (model: Record<string, unknown>, ctx: {}) => MaybePromise<unknown>;
 
   modelName: string;
@@ -342,21 +340,15 @@ export class ModelLoader {
       // request with it. The whole batch rejects instead, the way drizzle's loader does; a promise
       // the loop already settled ignores it. Caught rather than chained so the tick still
       // allocates no promise of its own. A failure that surfaces after the loop has finished takes
-      // only the row it belongs to — see the async branch below.
+      // only the row it belongs to.
       try {
         for (const [model, { resolve, reject }] of entry.models) {
           const where = this.findUnique(model as Record<string, unknown>, this.context);
 
-          // A where built from an async `id.resolve` settles a microtask or more later, and
-          // spreading the promise itself would make an unfiltered lookup. Only that row waits:
-          // batch membership was sealed at `stageQuery`, before this loop ran, so nothing here
-          // moves a boundary. A synchronous where never leaves this tick.
+          // A where built from an async `id.resolve` settles later, and spreading the promise
+          // itself would make an unfiltered lookup. A synchronous where never leaves this tick.
           if (isThenable(where)) {
             where.then((settled) => {
-              // Only this row. The loop has run to its end by the time any continuation of it
-              // does, so every model already holds a handler and none of them can be stranded:
-              // the reason the synchronous path rejects the whole batch does not apply here, and
-              // failing a sibling whose own where settled would be failing a row that was fine.
               try {
                 load(settled as {}).then(resolve as () => {}, reject);
               } catch (error) {

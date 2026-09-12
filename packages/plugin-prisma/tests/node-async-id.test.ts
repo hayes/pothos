@@ -8,12 +8,7 @@ import { ModelLoader } from '../src/model-loader';
 import { prisma, queries } from './example/builder';
 import { getDatamodel } from './generated.js';
 
-// `prismaNode`'s `id.resolve` is typed `MaybePromise`, and a node with a custom `findUnique`
-// composes the two: the ID the resolver settles to is what the fallback lookup's `where` is built
-// from. Only the loader path is covered here — `node(id:)` and the exposed ID field both decode
-// the ID before they reach `findUnique`, and never saw the promise.
-
-/** The ID the user's `findUnique` callback was handed, recorded as it actually received it. */
+/** The ID the user's `findUnique` callback was handed. */
 const seen: unknown[] = [];
 
 const builder = new SchemaBuilder<{
@@ -69,7 +64,6 @@ const SyncIdUser = builder.prismaNode('User', {
 
 builder.queryType({
   fields: (t) => ({
-    // A row carrying none of the node's own selection: `name` has to reload it.
     rawAsync: t.field({
       type: AsyncIdUser,
       resolve: () => ({ id: 1 }) as never,
@@ -106,8 +100,6 @@ describe('async custom node IDs on the fallback lookup', () => {
     });
 
     expect(result.errors).toBeUndefined();
-    // The callback's own type promises a string. Unawaited it received the promise the resolver
-    // returned, and `Number(promise)` made the where below `{ id: NaN }`.
     expect(seen).toEqual(['1']);
     expect(loaderWheres()).toEqual([{ id: 1 }]);
     expect(result.data).toMatchObject({ rawAsync: { name: expect.any(String) } });
@@ -129,8 +121,8 @@ describe('async custom node IDs on the fallback lookup', () => {
   });
 });
 
-// The loader's flush loop is what awaits the where, and the microtask a delegate call is issued
-// in is not legible through a real client. The rest of these drive it against a stub delegate.
+// A real client cannot show which microtask a delegate call was issued in, so the rest of these
+// drive the flush loop against a stub delegate.
 
 const ROWS = 5;
 
@@ -143,11 +135,7 @@ let microtasks = 0;
 /** The value of `microtasks` at each delegate call, in the order the flush loop issued them. */
 const issuedAt: number[] = [];
 
-/**
- * How long the stub delegate takes to answer. `never` is only for the synchronous-throw case,
- * where a query the loop never issued is the thing being observed; every other case settles, and
- * is asserted to reach the same outcome whichever of the two settling speeds it runs at.
- */
+/** How long the stub delegate takes to answer. `never` leaves the query pending forever. */
 let delegateSettles: 'immediately' | 'a macrotask later' | 'never' = 'immediately';
 
 const stubClient = {
@@ -189,8 +177,7 @@ const StubUser = stubBuilder.prismaNode('User', {
   id: { resolve: (user) => resolveId(user) as never },
   findUnique: (id) => ({ id: Number(id) }),
   fields: (t) => ({
-    // Nullable so a row that fails shows as its own null beside the rows that loaded, rather
-    // than bubbling up and taking the list with it.
+    // Nullable so a row that fails shows as its own null instead of taking the list with it.
     name: t.string({
       nullable: true,
       select: { name: true },
@@ -212,8 +199,7 @@ const stubSchema = stubBuilder.toSchema();
 
 /**
  * Runs `{ rows { name } }` while counting microtask boundaries from the moment the loader opens
- * its batch: `initLoad` registers the flush on an already-settled tick, so a synchronous
- * `findUnique` issues its delegate call before the first boundary counted here.
+ * its batch.
  */
 async function countMicrotasks() {
   issuedAt.length = 0;
@@ -256,8 +242,7 @@ describe('the flush loop under an async where', () => {
     const result = await countMicrotasks();
 
     expect(result.errors).toBeUndefined();
-    // Zero boundaries crossed: the delegate call is made inside the flush callback itself, which
-    // a blanket `await` over the loop would push past at least one of the ticks counted here.
+    // Zero boundaries crossed: the delegate call is made inside the flush callback itself.
     expect(issuedAt).toEqual(Array.from({ length: ROWS }, () => 0));
   });
 
@@ -272,14 +257,10 @@ describe('the flush loop under an async where', () => {
 
     expect(result.errors).toBeUndefined();
     expect(issuedAt).toHaveLength(ROWS);
-    // Every row waits for its own where, and none of them jumps the flush it belongs to.
     expect(issuedAt.every((at) => at > 0)).toBe(true);
   });
 
-  // A where that rejects does so after the flush loop has run to its end, so every model already
-  // holds a handler and none of them can be stranded. Rejecting the batch there would fail rows
-  // whose own where was fine, and which of them it actually reached would depend on whether their
-  // queries beat the rejection — so both settling speeds are asserted to the same outcome.
+  // Both settling speeds: the outcome must not depend on whether a row's query beat the rejection.
   it.each([
     'immediately',
     'a macrotask later',
@@ -299,7 +280,6 @@ describe('the flush loop under an async where', () => {
 
     expect(result.errors?.map((error) => error.message)).toEqual(['id resolver failed']);
     expect(result.errors?.[0].path).toEqual(['rows', FAILING_ROW - 1, 'name']);
-    // The rows either side of it loaded; only the one that failed is null.
     expect(result.data).toEqual({
       rows: Array.from({ length: ROWS }, (_, index) => ({
         name: index + 1 === FAILING_ROW ? null : `user-${index + 1}`,
@@ -308,11 +288,8 @@ describe('the flush loop under an async where', () => {
   });
 
   it('rejects every model in the batch when findUnique throws synchronously', async () => {
-    // A synchronous throw aborts the loop, so the rows after it were never issued a query at all.
-    // The stub leaves the ones before it pending, so the request can only complete if the whole
-    // batch rejected: without that, the rows the loop never reached hang and take the request
-    // with them. This is the path `rejectBatch` exists for, and the one the async branch above
-    // deliberately does not share.
+    // The stub never settles, so the request can only complete if the whole batch rejected: the
+    // rows the loop never reached would otherwise hang.
     delegateSettles = 'never';
     resolveId = (user) => {
       if (user.id === FAILING_ROW) {
@@ -335,7 +312,6 @@ describe('the flush loop under an async where', () => {
     expect(result.errors?.map((error) => error.message)).toEqual(
       Array.from({ length: ROWS }, () => 'findUnique threw'),
     );
-    // The rows the loop never reached, named explicitly: these are the ones that would hang.
     expect(result.errors?.map((error) => error.path?.[1])).toContain(FAILING_ROW);
     expect(result.errors?.map((error) => error.path?.[1])).toContain(ROWS - 1);
   });

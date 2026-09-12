@@ -116,9 +116,8 @@ schemaBuilderProto.prismaNode = function prismaNode(
   const idParser = fieldName ? getDefaultIDParser(type, fieldName, this) : undefined;
   const typeName = variant ?? name ?? type;
   const nodeRef = new PrismaNodeRef(typeName, type);
-  // The ID `resolve` settles to is what the user's `findUnique` builds its where from, so an async
-  // resolver has to be awaited before the callback is called — its own type promises a string.
-  // The model loader waits on the promise this returns; a synchronous resolver never makes one.
+  // `rawFindUnique` is typed to take a string, so an async `id.resolve` is awaited before the
+  // callback is called; a synchronous resolver never makes a promise.
   const findUnique = rawFindUnique
     ? (parent: unknown, context: {}) => {
         const id = resolve(parent as never, context);
@@ -138,7 +137,6 @@ schemaBuilderProto.prismaNode = function prismaNode(
 
   const ref = this.prismaObject(type, extendedOptions as never);
 
-  // Built once per node type, not per lookup: the query the where is known for.
   const loadWhere = (delegate: PrismaDelegate, query: object, where: {}) =>
     (delegate.findUniqueOrThrow && !nullable
       ? delegate.findUniqueOrThrow({ ...query, where } as never)
@@ -153,8 +151,8 @@ schemaBuilderProto.prismaNode = function prismaNode(
       return record;
     });
 
-  // Loading with a synchronous plan and a synchronous where issues the query in the same tick,
-  // without a promise of its own; only a where the user's `findUnique` settles later waits.
+  // Built once per node type: loading with a synchronous plan and a synchronous where issues the
+  // query in the same tick, without a promise of its own; a where that settles later waits.
   const loadNode = (query: object, id: string, context: SchemaTypes['Context']) => {
     const delegate = getDelegateFromModel(getClient(this, context), type);
     const where = rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) };
