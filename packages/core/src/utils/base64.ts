@@ -31,7 +31,8 @@ export function encodeBase64(value: string): string {
   }
 
   if (typeof localGlobalThis.btoa === 'function') {
-    return localGlobalThis.btoa(value);
+    // `btoa` treats its input as latin1, so encode to UTF-8 bytes first to match the `Buffer` path.
+    return encodeBase64Bytes(new TextEncoder().encode(value));
   }
 
   throw new Error('Unable to locate global `Buffer` or `btoa`');
@@ -49,7 +50,8 @@ export function decodeBase64(value: string): string {
   }
 
   if (typeof localGlobalThis.atob === 'function') {
-    return localGlobalThis.atob(value);
+    // `atob` returns latin1 code units, so decode the bytes as UTF-8 to match the `Buffer` path.
+    return new TextDecoder().decode(decodeBase64Bytes(value));
   }
 
   throw new Error('Unable to locate global `Buffer` or `atob`');
