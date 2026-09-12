@@ -8,7 +8,6 @@ import { ModelLoader } from '../src/model-loader';
 import { prisma, queries } from './example/builder';
 import { getDatamodel } from './generated.js';
 
-/** The ID the user's `findUnique` callback was handed. */
 const seen: unknown[] = [];
 
 const builder = new SchemaBuilder<{
@@ -38,7 +37,6 @@ const AsyncIdUser = builder.prismaNode('User', {
     return { id: Number(id) };
   },
   fields: (t) => ({
-    // Nothing the raw root field below loads, so the row falls back through the model loader.
     name: t.string({
       select: { name: true },
       resolve: (user) => user.name ?? '',
@@ -77,7 +75,6 @@ builder.queryType({
 
 const schema = builder.toSchema();
 
-/** The `where` of every loader lookup the client issued; the parent `findMany`s are excluded. */
 function loaderWheres() {
   return (queries as { action: string; args: { where?: unknown } }[])
     .filter((query) => query.action !== 'findMany')
@@ -121,21 +118,14 @@ describe('async custom node IDs on the fallback lookup', () => {
   });
 });
 
-// A real client cannot show which microtask a delegate call was issued in, so the rest of these
-// drive the flush loop against a stub delegate.
-
 const ROWS = 5;
 
-/** The row whose ID resolver fails in the containment cases below. */
 const FAILING_ROW = 3;
 
-/** Microtask boundaries crossed since the batch that is loading was opened. */
 let microtasks = 0;
 
-/** The value of `microtasks` at each delegate call, in the order the flush loop issued them. */
 const issuedAt: number[] = [];
 
-/** How long the stub delegate takes to answer. `never` leaves the query pending forever. */
 let delegateSettles: 'immediately' | 'a macrotask later' | 'never' = 'immediately';
 
 const stubClient = {
@@ -169,7 +159,6 @@ const stubBuilder = new SchemaBuilder<{
   },
 });
 
-/** The ID resolvers each node below is built with, swapped per test. */
 let resolveId: (user: { id: number }) => unknown = (user) => String(user.id);
 
 const StubUser = stubBuilder.prismaNode('User', {
@@ -177,7 +166,6 @@ const StubUser = stubBuilder.prismaNode('User', {
   id: { resolve: (user) => resolveId(user) as never },
   findUnique: (id) => ({ id: Number(id) }),
   fields: (t) => ({
-    // Nullable so a row that fails shows as its own null instead of taking the list with it.
     name: t.string({
       nullable: true,
       select: { name: true },
@@ -197,10 +185,6 @@ stubBuilder.queryType({
 
 const stubSchema = stubBuilder.toSchema();
 
-/**
- * Runs `{ rows { name } }` while counting microtask boundaries from the moment the loader opens
- * its batch.
- */
 async function countMicrotasks() {
   issuedAt.length = 0;
   microtasks = 0;
@@ -242,7 +226,6 @@ describe('the flush loop under an async where', () => {
     const result = await countMicrotasks();
 
     expect(result.errors).toBeUndefined();
-    // Zero boundaries crossed: the delegate call is made inside the flush callback itself.
     expect(issuedAt).toEqual(Array.from({ length: ROWS }, () => 0));
   });
 
@@ -260,7 +243,6 @@ describe('the flush loop under an async where', () => {
     expect(issuedAt.every((at) => at > 0)).toBe(true);
   });
 
-  // Both settling speeds: the outcome must not depend on whether a row's query beat the rejection.
   it.each([
     'immediately',
     'a macrotask later',
@@ -288,8 +270,6 @@ describe('the flush loop under an async where', () => {
   });
 
   it('rejects every model in the batch when findUnique throws synchronously', async () => {
-    // The stub never settles, so the request can only complete if the whole batch rejected: the
-    // rows the loop never reached would otherwise hang.
     delegateSettles = 'never';
     resolveId = (user) => {
       if (user.id === FAILING_ROW) {

@@ -427,7 +427,6 @@ export type PrismaNodeOptions<
     | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
     'fields' | 'isTypeOf'
   > &
-  // The where may settle later: it is built from an `id.resolve` that is itself a `MaybePromise`.
   (UniqueField extends string
     ? {
         findUnique?: (id: string, context: Types['Context']) => MaybePromise<Model['WhereUnique']>;

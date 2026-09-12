@@ -311,7 +311,6 @@ syncBuilder.prismaObject('User', {
   }),
 });
 
-// A node's `findUnique` is ungated by `AsyncSelections`, as `id.resolve` beside it already is.
 syncBuilder.prismaNode('User', {
   variant: 'SyncFindUniqueUser',
   id: { resolve: (user) => String(user.id) },

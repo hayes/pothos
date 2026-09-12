@@ -335,18 +335,10 @@ export class ModelLoader {
               where: { ...where },
             } as never);
 
-      // A synchronous throw here — `toQuery`, `findUnique`, or the delegate call itself — would
-      // otherwise abort the loop, leaving every model it had not reached pending forever and the
-      // request with it. The whole batch rejects instead, the way drizzle's loader does; a promise
-      // the loop already settled ignores it. Caught rather than chained so the tick still
-      // allocates no promise of its own. A failure that surfaces after the loop has finished takes
-      // only the row it belongs to.
       try {
         for (const [model, { resolve, reject }] of entry.models) {
           const where = this.findUnique(model as Record<string, unknown>, this.context);
 
-          // A where built from an async `id.resolve` settles later, and spreading the promise
-          // itself would make an unfiltered lookup. A synchronous where never leaves this tick.
           if (isThenable(where)) {
             where.then((settled) => {
               try {

@@ -221,7 +221,6 @@ const User = builder.prismaObject('User', {
   }),
 });
 
-// A node whose custom `findUnique` builds its where from an ID the resolver settles later.
 const AsyncIdUser = builder.prismaNode('User', {
   variant: 'AsyncIdUser',
   id: {
@@ -240,7 +239,6 @@ const AsyncIdUser = builder.prismaNode('User', {
   }),
 });
 
-// The same node with the ID resolved in place: the counts the async one is read against.
 const SyncIdUser = builder.prismaNode('User', {
   variant: 'SyncIdUser',
   id: { resolve: (user) => String(user.id) },
@@ -334,8 +332,6 @@ async function count(document: DocumentNode): Promise<Counted> {
     issued = [...queries] as typeof issued;
     batches = initLoad.mock.calls.length;
   } finally {
-    // Restored even when the assertion above throws: a spy left installed counts the next
-    // test's batches too.
     queries.length = 0;
     initLoad.mockRestore();
   }
@@ -388,8 +384,6 @@ describe('model loader batching under async selections', () => {
     const sync = await count(gql`{ rawSyncIdUsers { titles } }`);
     const async = await count(gql`{ rawAsyncIdUsers { titles } }`);
 
-    // The where is awaited inside the flush loop, after `stageQuery` has already chosen the
-    // batch, so an async ID costs the same one batch and one merged selection a sync one does.
     expect(sync).toMatchObject({ batches: 1, loads: ROWS, selections: 1 });
     expect(async).toMatchObject({ batches: 1, loads: ROWS, selections: 1 });
     expect(async.selections).toBe(sync.selections);
