@@ -850,9 +850,12 @@ Fields an Object type inherits from an interface are also subject to the Object 
 policy that runs is the one belonging to the concrete type the field is being resolved on, in
 addition to the policy of the interface that declared the field: both must pass.
 
-`skipInterfaceScopes` on an Object type skips the interfaces it implements when resolving its own
-fields, but does not skip the scopes of the interface that declared an inherited field. Use
-`skipTypeScopes` or `skipInterfaceScopes` on the interface field itself for that.
+`skipInterfaceScopes` opts out of the interface half of that check. On an inherited field it skips
+the scopes of the interface that declared the field as well as the other interfaces the Object type
+implements, and — as for a field declared on the Object type itself — either the field option or the
+Object type's option is enough to skip them. The Object type's own `authScopes` still runs:
+`skipInterfaceScopes` never skips the scopes of the concrete type. Use `skipTypeScopes` on the field
+to skip those as well.
 
 ### Cache keys
 

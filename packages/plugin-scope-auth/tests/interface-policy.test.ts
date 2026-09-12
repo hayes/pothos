@@ -326,6 +326,7 @@ describe('skipTypeScopes and skipInterfaceScopes with inherited interface fields
     fields: (t) => ({
       checked: t.string({ resolve: () => 'ok' }),
       skipsType: t.string({ skipTypeScopes: true, resolve: () => 'ok' }),
+      skipsInterfaces: t.string({ skipInterfaceScopes: true, resolve: () => 'ok' }),
     }),
   });
 
@@ -336,15 +337,53 @@ describe('skipTypeScopes and skipInterfaceScopes with inherited interface fields
     fields: () => ({}),
   });
 
+  const NoSkipObj = builder.objectRef<{ kind: string }>('NoSkipObj').implement({
+    interfaces: [AdminIface],
+    authScopes: { objOk: true },
+    fields: () => ({}),
+  });
+
   builder.queryType({
     fields: (t) => ({
       obj: t.field({ type: SkipObj, nullable: true, resolve: () => ({ kind: 'SkipObj' }) }),
+      noSkipObj: t.field({
+        type: NoSkipObj,
+        nullable: true,
+        resolve: () => ({ kind: 'NoSkipObj' }),
+      }),
     }),
   });
 
   const schema = builder.toSchema();
 
-  it('denies an inherited field on the implementing type scopes', async () => {
+  it('skips the declaring interface scopes for an inherited field when the object sets skipInterfaceScopes', async () => {
+    const result = await run(schema, '{ obj { checked } }', createContext({ objOk: true }));
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ obj: { checked: 'ok' } });
+  });
+
+  it('still runs the declaring interface scopes when the object does not skip them', async () => {
+    const result = await run(schema, '{ noSkipObj { checked } }', createContext({ objOk: true }));
+
+    expect(result.data).toEqual({ noSkipObj: { checked: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Not authorized to read fields for SkipAdminIface',
+    ]);
+  });
+
+  it('skips the declaring interface scopes when the interface field sets skipInterfaceScopes', async () => {
+    const result = await run(
+      schema,
+      '{ noSkipObj { skipsInterfaces } }',
+      createContext({ objOk: true }),
+    );
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ noSkipObj: { skipsInterfaces: 'ok' } });
+  });
+
+  it('keeps enforcing the implementing type scopes when the object skips interface scopes', async () => {
     const result = await run(schema, '{ obj { checked } }', createContext({ admin: true }));
 
     expect(result.data).toEqual({ obj: { checked: null } });
@@ -353,12 +392,21 @@ describe('skipTypeScopes and skipInterfaceScopes with inherited interface fields
     ]);
   });
 
-  it('keeps the declaring interface scopes even when the object skips interface scopes', async () => {
-    const result = await run(schema, '{ obj { checked } }', createContext({ objOk: true }));
+  it('keeps enforcing the implementing type scopes when the interface field skips interface scopes', async () => {
+    const result = await run(schema, '{ noSkipObj { skipsInterfaces } }', createContext());
 
-    expect(result.data).toEqual({ obj: { checked: null } });
+    expect(result.data).toEqual({ noSkipObj: { skipsInterfaces: null } });
     expect(result.errors?.map((error) => error.message)).toEqual([
-      'Not authorized to read fields for SkipAdminIface',
+      'Not authorized to read fields for NoSkipObj',
+    ]);
+  });
+
+  it('keeps enforcing the implementing type scopes when the interface check passes', async () => {
+    const result = await run(schema, '{ noSkipObj { checked } }', createContext({ admin: true }));
+
+    expect(result.data).toEqual({ noSkipObj: { checked: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Not authorized to read fields for NoSkipObj',
     ]);
   });
 
@@ -372,12 +420,12 @@ describe('skipTypeScopes and skipInterfaceScopes with inherited interface fields
   it('resolves when both the interface and the implementing type authorize', async () => {
     const result = await run(
       schema,
-      '{ obj { checked } }',
+      '{ noSkipObj { checked } }',
       createContext({ admin: true, objOk: true }),
     );
 
     expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({ obj: { checked: 'ok' } });
+    expect(result.data).toEqual({ noSkipObj: { checked: 'ok' } });
   });
 });
 
