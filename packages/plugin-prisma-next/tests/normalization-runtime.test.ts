@@ -75,9 +75,6 @@ it('normalizes computed counts across connection, nested relation and node loadi
     isTypeOf: () => true,
     id: { field: 'id' },
     collection: ctx.ormClient.User,
-    // `sub` is annotated for the same reason as the `prismaObject` below:
-    // the `select` option feeds the `const Select` generic that computes the
-    // parent shape, so it can't also contextually type the refinement callback.
     select: {
       posts: (
         sub: RelationRefinementCollection<

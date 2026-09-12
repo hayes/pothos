@@ -16,15 +16,8 @@ type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract
 //
 // ── Negative fixtures ───────────────────────────────────────────────────
 //
-// The string form of the four cross-file helpers must NOT promise
-// columns nobody declared. Only `select` (object-level or field-level)
-// or `t.expose*` creates a column dependency at runtime, so reading a
-// column off the parent without declaring it has to be a type error —
-// otherwise the first symptom is `Cannot return null for non-nullable
-// field User.email` at query time.
-//
-// Each `@ts-expect-error` below must stay *used*: an unused-directive
-// diagnostic is the regression signal if the narrowing stops applying.
+// Each `@ts-expect-error` below is the assertion: an unused-directive
+// diagnostic means the narrowing stopped applying.
 //
 
 builder.prismaObjectField('User', 'undeclaredViaObjectField', (t) =>
@@ -55,8 +48,6 @@ builder.prismaInterfaceFields('User', (t) => ({
   }),
 }));
 
-// `prismaNode` shares the defect and the fix: its parent shape is
-// computed from its own `select` rather than defaulted to the full row.
 builder.prismaNode('User', {
   variant: 'UndeclaredNode',
   id: { field: 'id' },
@@ -69,11 +60,6 @@ builder.prismaNode('User', {
   }),
 });
 
-// …but `id.field` *is* a declaration. `schema-builder.ts` registers those
-// columns in the ID field's own selection extensions
-// (`PRISMA_NEXT_FIELD_SELECT`) before calling `id.resolve`, so the custom ID
-// resolver really does receive them and must not need a redundant
-// object-level `select` to read them.
 builder.prismaNode('User', {
   variant: 'CustomIdResolverNode',
   id: {
@@ -87,7 +73,6 @@ builder.prismaNode('User', {
   fields: (t) => ({ firstName: t.exposeString('firstName') }),
 });
 
-// Every column a compound `id.field` names is declared, not just the first.
 builder.prismaNode('Post', {
   variant: 'CompoundIdResolverNode',
   id: {
@@ -102,8 +87,6 @@ builder.prismaNode('Post', {
   fields: (t) => ({ title: t.exposeString('title') }),
 });
 
-// The widening is scoped to what `id.field` declared — a column outside it is
-// still rejected, which is the whole point of the change.
 builder.prismaNode('User', {
   variant: 'CustomIdResolverUndeclaredNode',
   id: {
@@ -115,8 +98,6 @@ builder.prismaNode('User', {
   fields: (t) => ({ firstName: t.exposeString('firstName') }),
 });
 
-// `id.field` is now an inference site; it must still reject a column the model
-// doesn't have.
 builder.prismaNode('User', {
   variant: 'BadIdFieldNode',
   // @ts-expect-error `nope` is not a column of `User`.
@@ -125,8 +106,6 @@ builder.prismaNode('User', {
   fields: (t) => ({ firstName: t.exposeString('firstName') }),
 });
 
-// `id.field` columns compose with an object-level `select` rather than
-// replacing it.
 builder.prismaNode('User', {
   variant: 'CustomIdResolverSelectNode',
   select: ['email'],
@@ -142,10 +121,6 @@ builder.prismaNode('User', {
   fields: (t) => ({ firstName: t.exposeString('firstName') }),
 });
 
-// Routing `select` through a generic must not cost `prismaNode` its key
-// validation: a misspelled column has to fail at the call site, not turn into
-// a `no such column` at query time — which is the very failure mode this
-// change exists to remove.
 builder.prismaNode('User', {
   variant: 'TypoArraySelectNode',
   // @ts-expect-error `emial` is not a column of `User`.
@@ -173,11 +148,6 @@ builder.prismaNode('User', {
   fields: (t) => ({ firstName: t.exposeString('firstName') }),
 });
 
-// The realistic typo is one bad key among good ones — nobody misspells every
-// key. A generic constraint alone does not catch this: excess-property
-// checking only fires on a fresh literal against a concrete target, and a
-// literal with one valid key already satisfies the constraint. The extra key
-// has to be rejected explicitly, in both the object and the array form.
 builder.prismaNode('User', {
   variant: 'MixedTypoObjectSelectNode',
   // @ts-expect-error `emial` is not a column of `User`, even beside a valid key.
@@ -208,12 +178,7 @@ builder.prismaNode('User', {
 //
 // ── Positive fixtures ───────────────────────────────────────────────────
 //
-// Everything below is correct at runtime today and must keep compiling.
-//
 
-// Field-level `select` layers additively onto the brand-only base — this
-// is the case the narrowing would break if `ShapeFromSelect` failed to
-// compose with `ObjectBaseShape`. Array form:
 builder.prismaObjectField('User', 'declaredArrayForm', (t) =>
   t.string({
     select: ['email'],
@@ -224,7 +189,6 @@ builder.prismaObjectField('User', 'declaredArrayForm', (t) =>
   }),
 );
 
-// …and object form, including relations.
 builder.prismaObjectFields('User', (t) => ({
   declaredObjectForm: t.string({
     select: { email: true, posts: true },
@@ -271,8 +235,8 @@ builder.prismaNode('User', {
   }),
 });
 
-// `t.expose*` is checked against the builder's separate `ExposableShape`
-// generic, not `Shape`, so narrowing `Shape` must leave it alone.
+// `t.expose*` is checked against the builder's separate `ExposableShape` generic,
+// not `Shape`.
 builder.prismaObjectFields('User', (t) => ({
   exposedFirstName: t.exposeString('firstName'),
   exposedId: t.exposeID('id'),
@@ -284,11 +248,10 @@ builder.prismaInterfaceFields('User', (t) => ({
 }));
 
 //
-// ── The ref form is unchanged ───────────────────────────────────────────
+// ── The ref form ────────────────────────────────────────────────────────
 //
-// Passing a ref infers `Shape` from the ref, so it already reported the
-// undeclared read before this change and must still report it — and must
-// still see whatever the registered object declared.
+// Passing a ref infers `Shape` from the ref, so the parent is whatever the
+// registered object declared.
 //
 
 const bareUserRef = builder.prismaObject('User', {
@@ -321,11 +284,9 @@ builder.prismaObjectFields(selectedUserRef, (t) => ({
 //
 // ── Escape hatch ────────────────────────────────────────────────────────
 //
-// `Shape` is the second positional type parameter, so anyone who really
-// wants the old full-row parent can ask for it explicitly. This is the
-// documented unblock for a mid-migration compile error; it opts out of
-// the guarantee, so the `select` must still be declared for the read to
-// work at runtime.
+// `Shape` is the second positional type parameter, so a caller can ask for
+// the full-row parent explicitly. The `select` is still what makes the
+// column present at runtime.
 //
 
 builder.prismaObjectField<'User', Row<Types, 'User'>>('User', 'escapeHatch', (t) =>

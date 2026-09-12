@@ -112,11 +112,8 @@ it('does not execute the root collection when a root scope denies access', async
   expect(captures).toHaveLength(0);
 });
 
-// Type-level fixture, never executed: the cross-file helpers' narrowed parent
-// shape has to survive `withAuth`'s re-parameterization of the field builder,
-// so a helper resolver behind a scope check still has to declare the columns it
-// reads. The `@ts-expect-error` must stay *used* — an unused-directive
-// diagnostic here means the narrowing stopped applying through `withAuth`.
+// Type-level fixture, never executed: the narrowed parent shape has to survive
+// `withAuth`'s re-parameterization of the field builder.
 function _narrowedParentShapeSurvivesWithAuth() {
   const builder = new SchemaBuilder<{
     PrismaNextContract: SampleContract;
