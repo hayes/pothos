@@ -24,13 +24,15 @@ export class PothosTracingPlugin<Types extends SchemaTypes> extends BasePlugin<T
     }
 
     const { wrap, default: defaultConfig } = this.builder.options.tracing;
+    const fieldTracing = fieldConfig.pothosOptions.tracing;
     const tracingValue =
-      fieldConfig.pothosOptions.tracing ??
-      (typeof defaultConfig === 'function'
-        ? (defaultConfig as (config: PothosOutputFieldConfig<Types>) => Types['Tracing'])(
-            fieldConfig,
-          )
-        : defaultConfig);
+      fieldTracing !== undefined
+        ? fieldTracing
+        : typeof defaultConfig === 'function'
+          ? (defaultConfig as (config: PothosOutputFieldConfig<Types>) => Types['Tracing'])(
+              fieldConfig,
+            )
+          : defaultConfig;
 
     return wrapResolver(fieldConfig, tracingValue, wrap, resolver);
   }
