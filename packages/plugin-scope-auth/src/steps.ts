@@ -8,11 +8,6 @@ import type {
   TypeGrantScopes,
 } from './types.js';
 
-/**
- * Step keys identify the policy a step enforces so that step lists merged from more than one type
- * config (an interface and the object that implements it) neither run the same policy twice nor
- * re-add one that was deliberately skipped.
- */
 export function typeAuthScopesStepKey(type: string) {
   return `authScopes:${type}`;
 }

@@ -57,12 +57,6 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     const authorizedOnSubscribe =
       !!this.builder.options.scopeAuth?.authorizeOnSubscribe && typeConfig.kind === 'Subscription';
 
-    // A field declared on an interface is inherited by every type that implements it, and
-    // `fieldConfig.parentType` is always the declaring interface, never the concrete type the field
-    // is being resolved on. Building the step list here would apply only the interface's policy and
-    // silently skip the implementing type's `authScopes`/`grantScopes` (and the `authScopes` of the
-    // other interfaces it implements). Instead dispatch on the concrete type at resolve time and
-    // enforce both the interface's policy and the implementing type's policy.
     if (typeConfig.graphqlKind === 'Interface') {
       return this.createInheritedFieldResolver(
         resolver,
@@ -90,9 +84,6 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
   /**
    * Returns a resolver that resolves the type policy from `info.parentType` (the concrete type the
    * field is being resolved on) rather than from the interface that declared the field.
-   *
-   * The resolver for each concrete type is built once, the first time a field is resolved on that
-   * type, and memoized by type name.
    */
   createInheritedFieldResolver(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
@@ -135,7 +126,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
   /**
    * Resolves the config for the concrete type a field is being resolved on. Types that have no
    * Pothos config (types added to the schema outside of the builder) fall back to the declaring
-   * interface, preserving the previous behavior rather than throwing at resolve time.
+   * interface.
    */
   getOwnerTypeConfig(
     typeName: string,
@@ -348,10 +339,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
 
     const inherited = !!ownerTypeConfig && ownerTypeConfig !== typeConfig;
 
-    // On an inherited field the declaring interface's `authScopes` is an interface check, even
-    // though it arrives as the `typeConfig`'s own scope. `skipInterfaceScopes` opts out of it,
-    // using the same rule as a non-inherited field on an object that implements interfaces
-    // (`createStepsForType` below): either the field option or the concrete type's option.
+    // The declaring interface arrives as `typeConfig`, so its `authScopes` is an interface check.
     const skipDeclaringInterfaceScopes =
       inherited &&
       (skipScopeOptions.skipInterfaceScopes ||
@@ -364,34 +352,16 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         stepsForType.push(
           ...this.createStepsForType(typeConfig, {
             ...skipScopeOptions,
-            // The interface's `grantScopes` still run: `skipInterfaceScopes` opts out of auth
-            // checks, and dropping the grant would newly deny `$granted` interface fields.
             skipTypeScopes: skipScopeOptions.skipTypeScopes || skipDeclaringInterfaceScopes,
-            // The interfaces the declaring interface extends are interface scopes too, so the
-            // concrete type's `skipInterfaceScopes` must reach them as well as the field option.
             skipInterfaceScopes:
               skipScopeOptions.skipInterfaceScopes || skipDeclaringInterfaceScopes,
           }),
         );
       }
 
-      // For a field inherited from an interface, also enforce the policy of the concrete type the
-      // field is being resolved on. Steps the declaring interface already contributed are not
-      // repeated, and `runScopesOnType` is read from the concrete type so that a type running its
-      // scopes in `isTypeOf` does not also run them here.
       if (inherited && this.runTypeScopesOnField(ownerTypeConfig)) {
         const seen = new Set<string | undefined>();
 
-        // When the pass above ran, the declaring interface's own auth check is its decision to
-        // make, including the decision to omit it for `skipTypeScopes` or `skipInterfaceScopes`.
-        // The concrete type implements that interface, so its interface walk below would otherwise
-        // add the check back through a gate the pass above does not share, undoing an explicit opt
-        // out. Seeding the key covers the omitted case; emitted steps are added below.
-        //
-        // `runScopesOnType` on the declaring interface is not such an opt out: it skips the pass
-        // above entirely, moving the interface's scopes off its own fields. An interface has no
-        // `isTypeOf` to move them to, so the concrete type's interface list is the only place left
-        // to enforce them, and the key is deliberately not seeded.
         if (shouldRunTypeScopes) {
           seen.add(typeAuthScopesStepKey(typeConfig.name));
         }
