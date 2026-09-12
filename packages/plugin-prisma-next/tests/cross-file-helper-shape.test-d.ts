@@ -142,6 +142,37 @@ builder.prismaNode('User', {
   fields: (t) => ({ firstName: t.exposeString('firstName') }),
 });
 
+// Routing `select` through a generic must not cost `prismaNode` its key
+// validation: a misspelled column has to fail at the call site, not turn into
+// a `no such column` at query time — which is the very failure mode this
+// change exists to remove.
+builder.prismaNode('User', {
+  variant: 'TypoArraySelectNode',
+  // @ts-expect-error `emial` is not a column of `User`.
+  select: ['emial'],
+  id: { field: 'id' },
+  collection: null as never,
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
+});
+
+builder.prismaNode('User', {
+  variant: 'TypoObjectSelectNode',
+  // @ts-expect-error `nosuchcolumn` is not a column of `User`.
+  select: { nosuchcolumn: true },
+  id: { field: 'id' },
+  collection: null as never,
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
+});
+
+builder.prismaNode('User', {
+  variant: 'TypoRelationSelectNode',
+  // @ts-expect-error `psots` is not a relation of `User`.
+  select: { psots: { limit: 3 } },
+  id: { field: 'id' },
+  collection: null as never,
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
+});
+
 //
 // ── Positive fixtures ───────────────────────────────────────────────────
 //

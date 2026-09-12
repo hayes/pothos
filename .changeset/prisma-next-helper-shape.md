@@ -18,7 +18,9 @@ does. Field-level `select` still layers on additively, `t.expose*` and
 
 `prismaNode`'s custom `id.resolve` additionally receives the columns named by
 `id.field` — single or compound — since those are selected for the ID field
-already, so it needs no redundant object-level `select`.
+already, so it needs no redundant object-level `select`. `prismaNode`'s
+`select` keeps its existing key validation: a misspelled column or relation is
+still rejected at the call site.
 
 Runtime behaviour is unchanged — declaring `select` is still how a field
 adds a column dependency. To opt back into the old parent type, pass `Shape`

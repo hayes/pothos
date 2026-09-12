@@ -17,6 +17,7 @@ import type {
   ObjectBaseShape,
   ParamToModelName,
   ParamToTypeParam,
+  SelectObjectSpec,
   ShapeFromObjectSelect,
 } from './internal-types.js';
 import type { PrismaNextNodeRef } from './node-ref.js';
@@ -277,7 +278,16 @@ declare global {
         ? <
             const Interfaces extends InterfaceParam<Types>[],
             M extends ModelName<Types>,
-            const Select = unknown,
+            // Constrained, unlike `prismaObject`'s `Select`: routing `select`
+            // through a generic must not cost `prismaNode` the key validation
+            // it had when it passed `PrismaNextObjectOptions` through intact.
+            // `undefined` (rather than `unknown`) is the no-select default so
+            // the constraint is satisfiable; `ShapeFromObjectSelect` maps it to
+            // the brand-only base just as it maps `unknown`.
+            const Select extends
+              | readonly (keyof Row<Types, M> & string)[]
+              | SelectObjectSpec<Types, M>
+              | undefined = undefined,
             Shape = ObjectLevelShape<Types, M, Select>,
             IDShape = string,
             const IDFields extends
