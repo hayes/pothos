@@ -98,6 +98,30 @@ export function wrapErrorIfMatches(
   return value;
 }
 
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return (
+    ((typeof value === 'object' && value !== null) || typeof value === 'function') &&
+    typeof (value as PromiseLike<unknown>).then === 'function'
+  );
+}
+
+function wrapItem(
+  item: unknown,
+  pothosErrors: (new (...args: never[]) => unknown)[],
+  onResolvedError?: (error: Error) => void,
+): unknown {
+  if (
+    item !== null &&
+    typeof item === 'object' &&
+    !(item instanceof Error) &&
+    Symbol.iterator in item
+  ) {
+    return [...yieldErrors(item as Iterable<unknown>, pothosErrors, onResolvedError)];
+  }
+
+  return wrapErrorIfMatches(item, pothosErrors, onResolvedError);
+}
+
 export function* yieldErrors(
   result: Iterable<unknown>,
   pothosErrors: (new (...args: never[]) => unknown)[],
@@ -105,15 +129,13 @@ export function* yieldErrors(
 ): Generator<unknown> {
   try {
     for (const item of result) {
-      if (
-        item !== null &&
-        typeof item === 'object' &&
-        !(item instanceof Error) &&
-        Symbol.iterator in item
-      ) {
-        yield [...yieldErrors(item as Iterable<unknown>, pothosErrors, onResolvedError)];
+      if (isThenable(item)) {
+        yield Promise.resolve(item).then(
+          (value) => wrapItem(value, pothosErrors, onResolvedError),
+          (error: unknown) => wrapOrThrow(error, pothosErrors, onResolvedError),
+        );
       } else {
-        yield wrapErrorIfMatches(item, pothosErrors, onResolvedError);
+        yield wrapItem(item, pothosErrors, onResolvedError);
       }
     }
   } catch (error: unknown) {
