@@ -337,8 +337,6 @@ export class BuildCache<Types extends SchemaTypes> {
       for (const argName of Object.keys(config.args)) {
         const argConfig = this.inputFieldConfigs.get(config.args[argName]);
 
-        // `onInputFieldConfig` may return null to remove an argument. Those arguments are already
-        // omitted from the built argument map, so keep the configs handed to wrappers in sync.
         if (argConfig) {
           argConfigs[argName] = argConfig;
         }
@@ -580,8 +578,6 @@ export class BuildCache<Types extends SchemaTypes> {
     return type;
   }
 
-  // `resolveType` callbacks may return a type name, a GraphQLObjectType, or a Pothos ref. graphql
-  // only understands names and object types, so refs are looked up and replaced with their names.
   private normalizeResolvedType(
     result: GraphQLObjectType<unknown, object> | string | null | undefined,
   ) {

@@ -21,7 +21,6 @@ class RemovingPlugin extends BasePlugin<SchemaTypes> {
     config: PothosOutputFieldConfig<SchemaTypes>,
   ) {
     this.seenArgs.push(config.args);
-    // A documented `mapInputFields` consumer: it dereferences every arg config.
     mapInputFields(config.args, this.buildCache, () => null);
 
     return resolve;

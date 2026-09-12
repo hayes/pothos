@@ -109,10 +109,8 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     return filtered.size > 0 ? filtered : null;
   }
 
-  // Input types may be mutually recursive, so a plain memoizing DFS would cache the provisional
-  // `false` it records before descending into a cycle and then treat it as final, hiding mapped
-  // fields that are only reachable through the cycle. Instead collect everything reachable from
-  // `map` and propagate `true` to a fixed point before recording any answer.
+  // Input types may be mutually recursive, so this walks every reachable map and propagates
+  // `true` to a fixed point.
   function checkForMappings(
     map: InputFieldsMapping<Types, T>,
     hasMappings: Map<InputFieldsMapping<Types, T>, boolean>,
@@ -128,7 +126,6 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     while (queue.length > 0) {
       const current = queue.pop()!;
 
-      // Already discovered in this walk, or already resolved by an earlier (completed) walk.
       if (nested.has(current) || hasMappings.has(current)) {
         continue;
       }

@@ -276,7 +276,6 @@ describe('ways to add enums', () => {
       A = Number('not a number'),
     }
 
-    // TypeScript emits `{ A: NaN, NaN: 'A' }` for this, so the reverse entry is keyed "NaN".
     const builder = new SchemaBuilder({});
     const ComputedEnum = builder.enumType(Computed, { name: 'Computed' });
 

@@ -16,7 +16,6 @@ describe('interface resolveType', () => {
 
     animal.implement({
       resolveType: (_parent, _context, _info, type) => {
-        // `getInterfaces` only exists on GraphQLInterfaceType, so this also pins the static type.
         seen.push(type.getInterfaces());
 
         return 'Dog';

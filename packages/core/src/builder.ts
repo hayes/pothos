@@ -547,9 +547,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       InputShape<Types, Name>,
       ParentShape<Types, Name>
     >,
-    // `ScalarRef` is `<Types, Output, Input, Parent>`: the output shape comes first, matching
-    // `OutputRef`/`InputRef`. The option callbacks keep taking the input shape then the parent
-    // shape, which is the order `ScalarTypeOptions` declares.
+    // `ScalarRef` takes the output shape first; `ScalarTypeOptions` takes input then parent.
   ): PothosSchemaTypes.ScalarRef<
     Types,
     OutputShape<Types, Name>,

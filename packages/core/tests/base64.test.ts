@@ -23,18 +23,7 @@ function withoutBuffer<T>(run: () => T): T {
 }
 
 describe('base64 helpers', () => {
-  const samples = [
-    'plain',
-    'Node:é',
-    'Node:東京',
-    '👋 emoji',
-    '',
-    // A leading U+FEFF is a valid character, not an encoding marker to strip. The Buffer path
-    // preserves it, so the fallback must too.
-    '﻿leading BOM',
-    'mid﻿BOM',
-    '﻿',
-  ];
+  const samples = ['plain', 'Node:é', 'Node:東京', '👋 emoji', '', '﻿leading BOM', 'mid﻿BOM', '﻿'];
 
   it('round trips unicode with Buffer available', () => {
     for (const sample of samples) {

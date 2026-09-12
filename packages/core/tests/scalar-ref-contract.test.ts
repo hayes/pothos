@@ -3,7 +3,6 @@ import gql from 'graphql-tag';
 import { expectTypeOf } from 'vitest';
 import SchemaBuilder from '../src';
 
-// An asymmetric scalar: arguments arrive as numbers, resolvers return Dates.
 type Types = { Scalars: { Timestamp: { Input: number; Output: Date } } };
 
 function asymmetricScalarSchema() {
@@ -14,13 +13,11 @@ function asymmetricScalarSchema() {
     parseValue: (value) => Number(value),
   });
 
-  // The ref infers the same shapes as the string name it was created from.
   expectTypeOf(timestamp.$inferType).toEqualTypeOf<Date>();
   expectTypeOf(timestamp.$inferInput).toEqualTypeOf<number>();
 
   builder.queryType({
     fields: (t) => ({
-      // Controls: referenced by name, these have always been correct.
       nameOutput: t.field({
         type: 'Timestamp',
         resolve: () => new Date(0),
@@ -33,7 +30,6 @@ function asymmetricScalarSchema() {
           return args.at.toFixed(0);
         },
       }),
-      // The same scalar referenced by the ref `scalarType` returned.
       refOutput: t.field({
         type: timestamp,
         resolve: () => new Date(0),
@@ -52,8 +48,6 @@ function asymmetricScalarSchema() {
   return builder.toSchema();
 }
 
-// Negative controls. Each `@ts-expect-error` fails the build if the error stops being reported, so
-// these pin that neither the name path nor the ref path became permissive in the other direction.
 function swappedShapeSchema() {
   const builder = new SchemaBuilder<Types>({});
   const timestamp = builder.scalarType('Timestamp', {
@@ -113,8 +107,6 @@ describe('scalar refs', () => {
   });
 
   it('rejects swapped shapes on both the name and the ref path', () => {
-    // The assertions are the `@ts-expect-error` directives above; building the schema just keeps
-    // the fixture live so it cannot rot into dead code.
     expect(swappedShapeSchema().getType('Timestamp')).toBeDefined();
   });
 });
