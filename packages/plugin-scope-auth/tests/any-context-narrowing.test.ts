@@ -5,6 +5,12 @@ import { getDatamodel } from '../prisma/generated';
 import ScopeAuthPlugin from '../src';
 import { db } from './example/db';
 
+// NOTE: the `@ts-expect-error` below is the real assertion for the `$any` narrowing fix, and
+// `pnpm test` does NOT check it — vitest's typecheck reports `Type Errors  no errors` even with
+// the fix reverted. Run `pnpm --filter @pothos/plugin-scope-auth run type` (tsc against
+// tsconfig.type.json) to catch the regression, which surfaces as TS2578 "Unused
+// '@ts-expect-error' directive".
+
 interface Context {
   user: { id: string } | null;
   admin: { id: string } | null;

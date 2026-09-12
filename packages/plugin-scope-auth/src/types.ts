@@ -155,6 +155,9 @@ export type ContextForAuth<
 // With a default strategy of `all`, every key of the scope map must pass, so the contexts for
 // each key are intersected. An explicit `$any` key is the exception: only one of its scopes is
 // guaranteed, so its contexts stay a union instead of being intersected away.
+//
+// This only covers a `$any` at the top level of the map. A `$any` nested inside a `$all` still
+// goes through `ContextForAuthUnion`'s `$all` branch below, which intersects its union away.
 type ContextForAuthAll<Types extends SchemaTypes, Scopes> = Scopes extends (
   // biome-ignore lint/suspicious/noExplicitAny: this is fine
   ...args: any[]
@@ -184,7 +187,9 @@ type ContextForAuthUnion<Types extends SchemaTypes, Scopes> = Scopes extends (
         : Scope extends '$any'
           ? ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]>
           : Scope extends '$all'
-            ? UnionToIntersection<ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]>>
+            ? // Known limitation: a `$any` nested in this map collapses into the intersection,
+              // so its contexts are reported as guaranteed when only one of them is.
+              UnionToIntersection<ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]>>
             : Types['Context']
       : never;
 
