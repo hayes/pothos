@@ -409,12 +409,10 @@ export class SchemaBuilder<Types extends SchemaTypes> {
             ParentShape<Types, Param>
           >(name);
 
-    const typename = ref.name;
-
     ref.updateConfig({
       kind: 'Interface',
       graphqlKind: 'Interface',
-      name: typename,
+      name,
       interfaces: [],
       description: options.description,
       pothosOptions: options as unknown as PothosSchemaTypes.InterfaceTypeOptions,
