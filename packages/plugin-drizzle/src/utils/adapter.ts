@@ -7,7 +7,7 @@ import {
   type QueryVisitor,
   type SelectFn,
 } from '@pothos/selection-mapper';
-import { getColumns, type Table, type TableRelationalConfig } from 'drizzle-orm';
+import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLField, GraphQLNamedType } from 'graphql';
 import type { DrizzleFieldSelection, PathInfo } from '../types.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
@@ -118,25 +118,8 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
       return;
     }
 
-    const entries = Object.entries(columns).filter(([, value]) => value !== undefined);
-
-    // Drizzle picks its selection mode from the first defined entry: naming any column `true`
-    // makes the map an inclusion list, while a map whose entries are all `false` excludes those
-    // columns from every other one. The node tracks named columns, so expand the exclusion.
-    if (entries.length > 0 && entries.every(([, value]) => !value)) {
-      const excluded = new Set(entries.map(([key]) => key));
-
-      for (const key of Object.keys(getColumns(model.table as Table))) {
-        if (!excluded.has(key)) {
-          visit.column(key);
-        }
-      }
-
-      return;
-    }
-
-    for (const [key, value] of entries) {
-      if (value) {
+    for (const key of Object.keys(columns)) {
+      if (columns[key]) {
         visit.column(key);
       }
     }
