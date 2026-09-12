@@ -38,8 +38,8 @@ interface ResolveArrayConnectionOptions {
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
 
-// Unioned into the return types rather than passed as `ArrayConnectionShape`'s `Nullable`:
-// intersecting a possibly-null union with an object type drops the null member.
+// Unioned in, not passed as `ArrayConnectionShape`'s `Nullable`: intersecting a nullable union
+// with an object type drops the `null` member.
 type ConnectionNullability<U> =
   IsAny<U> extends true
     ? never
