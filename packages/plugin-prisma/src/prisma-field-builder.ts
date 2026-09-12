@@ -404,10 +404,16 @@ export class PrismaObjectFieldBuilder<
         // path uses to decide whether to select `_count` at all — rather than deferred behind a
         // thunk, so what lands on the connection is a plain number for every field that reads it,
         // user-defined ones included, and not just for the generated one.
-        const { hasTotalCount } = connectionSelection(context, info);
+        const { hasTotalCount, totalCountOnly } = connectionSelection(context, info);
 
         return Promise.all([
-          resolve({ ...q, ...connectionQuery } as never, parent, args, context, info),
+          // Nothing beneath this connection but `totalCount`, so every row the resolver returned
+          // would be dropped on the floor. The loaded path already passes `[]` here rather than
+          // reading rows it will discard; the fallback does the same, rather than paying for a
+          // page of up to `maxSize` rows per parent that nothing reads.
+          totalCountOnly
+            ? []
+            : resolve({ ...q, ...connectionQuery } as never, parent, args, context, info),
           hasTotalCount
             ? totalCountFromParent(connectionQuery, parent, context, loaderCache, info)
             : undefined,

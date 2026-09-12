@@ -165,6 +165,16 @@ builder.queryType({
       type: User,
       resolve: () => ({ id: 1 }) as never,
     }),
+    // Five unplanned parents, for counting the queries a list of them costs.
+    unplannedUsers: t.field({
+      type: [User],
+      resolve: () => [1, 2, 3, 4, 5].map((id) => ({ id })) as never,
+    }),
+    plannedUsers: t.prismaField({
+      type: [User],
+      resolve: (query) =>
+        prisma.user.findMany({ ...query, where: { id: { in: [1, 2, 3, 4, 5] } } }),
+    }),
     // A parent that corresponds to no row at all, which only the fallback branch can produce: it
     // came from a resolver of the user's own, not from a prisma query.
     ghostUser: t.field({
@@ -328,9 +338,10 @@ describe('relatedConnection fallback totalCount', () => {
 
     expect(result.errors).toBeUndefined();
     expect(connection(result, 'unplannedUser', 'postsWithCount').totalCount).toBe(250);
-    // The plan is `undefined` here — there is nothing under `nodes`/`edges.node` to plan — so the
-    // resolver is handed the recipe's own seed rather than a crash.
-    expect(resolveCalls[0].select).toStrictEqual({ id: true });
+    // `Plan.fromInfo` answers `undefined` here — there is nothing under `nodes`/`edges.node` to
+    // plan — and the fallback returns the recipe's own seed rather than crashing. Nothing reads
+    // the rows, so the resolver is not asked for them; see the query-count test below.
+    expect(resolveCalls).toHaveLength(0);
   });
 });
 
@@ -535,6 +546,30 @@ describe('relatedConnection fallback review follow-ups', () => {
     // Nothing here needs the parent to exist, so nothing errors.
     expect(result.errors).toBeUndefined();
     expect(connection(result, 'ghostUser', 'detachedPosts').edges).toHaveLength(2);
+  });
+
+  it('costs one query per parent for a totalCount-only selection over a list', async () => {
+    const result = await run('{ unplannedUsers { postsWithCount { totalCount } } }');
+
+    expect(result.errors).toBeUndefined();
+    expect(
+      // biome-ignore lint/suspicious/noExplicitAny: reading a result the document's own shape defines
+      (result.data as any).unplannedUsers.map((u: any) => u.postsWithCount.totalCount),
+    ).toStrictEqual([250, 250, 250, 250, 250]);
+
+    // Five counts and nothing else. Before, this also paid for five `Post.findMany` calls of up
+    // to `maxSize + 1` rows each, every row of which was discarded.
+    expect(queries).toHaveLength(5);
+    expect(queries.every((q) => (q as { model: string }).model === 'User')).toBe(true);
+    expect(resolveCalls).toHaveLength(0);
+
+    // Which is what the same unplanned parents cost through the model loader, for a connection
+    // with no custom resolve at all.
+    queries.length = 0;
+    const viaLoader = await run('{ unplannedUsers { plainPosts { totalCount } } }');
+
+    expect(viaLoader.errors).toBeUndefined();
+    expect(queries).toHaveLength(5);
   });
 
   it('does not ask the resolver for rows it would throw away on a totalCount-only selection', async () => {
