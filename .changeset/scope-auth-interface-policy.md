@@ -26,6 +26,10 @@ either the field option or the object type's option suppresses it. The concrete 
 `grantScopes` also still runs, since skipping it would newly deny interface fields that use
 `$granted`.
 
+`skipTypeScopes` on an interface field continues to skip the declaring interface's `authScopes` and
+now also skips the concrete type's. A check skipped by either flag cannot come back through the
+concrete type's list of implemented interfaces.
+
 The implementing type's `grantScopes` now also reach inherited fields, which can newly _authorize_
 an interface field that uses `$granted`.
 
