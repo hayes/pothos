@@ -1,5 +1,13 @@
 # Change Log
 
+## 4.1.6
+
+### Patch Changes
+
+- 1878552: Fix refetching objects in lists resolved to non-array iterables (eg. a Set or a generator), which previously threw instead of updating
+
+  Attempt every unsubscribe when a subscription is cleaned up, instead of stopping at the first rejection and leaking the remaining subscriptions
+
 ## 4.1.5
 
 ### Patch Changes

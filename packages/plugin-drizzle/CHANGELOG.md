@@ -1,5 +1,13 @@
 # @pothos/plugin-drizzle
 
+## 0.19.1
+
+### Patch Changes
+
+- b1b147d: Preserve bigint and Date values in compound node IDs, which previously threw or came back as a string
+
+  Parse numeric node IDs with `Number` rather than `parseInt`, so a non-integer ID no longer truncates
+
 ## 0.19.0
 
 ### Minor Changes
