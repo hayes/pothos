@@ -142,11 +142,6 @@ function normalizeRefinements(refine: RefineConstraint): RefineTuple[] {
   );
 }
 
-/**
- * Boolean constraints may be given as a bare boolean, or as a `[enabled, options]` tuple. In the
- * tuple form the flag itself decides whether the constraint applies, so `[false, { message }]`
- * disables it just like a bare `false`.
- */
 function isFlagEnabled(constraint: Constraint<boolean> | undefined): boolean {
   return Array.isArray(constraint) ? constraint[0] : !!constraint;
 }

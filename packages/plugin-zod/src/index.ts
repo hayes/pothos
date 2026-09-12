@@ -82,9 +82,8 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
   }
 
   /**
-   * Subscriptions resolve arguments twice: once when the source stream is created, and again for
-   * each event. Both are validated, and because graphql coerces the raw arguments separately for
-   * each call, any transform in the validator is applied exactly once to each of them.
+   * graphql coerces the raw arguments separately for the source stream and for each event, so
+   * validating both applies any transform in the validator exactly once to each.
    */
   override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
