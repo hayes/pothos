@@ -21,6 +21,7 @@ type FieldOptions = {
   description?: string;
   deprecationReason?: string;
   extensions?: Readonly<Record<string, unknown>>;
+  astNode?: InputValueDefinitionNode;
 };
 ```
 
@@ -29,6 +30,8 @@ type FieldOptions = {
 
   [Changing Default Nullability](../guide/changing-default-nullability).
 
+- `astNode`: an optional `InputValueDefinitionNode` from `graphql` attached to this schema element.
+  See [AST metadata](./schema-builder#ast-metadata).
 - `description`: string
 - `deprecationReason`: marks the input as deprecated.
 - `extensions`: metadata for tools and plugins.

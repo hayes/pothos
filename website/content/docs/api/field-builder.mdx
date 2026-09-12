@@ -21,6 +21,7 @@ type FieldOptions = {
   deprecationReason?: string;
   resolve: (parent, args, context, info) => ResolveValue;
   extensions?: Readonly<Record<string, unknown>>;
+  astNode?: FieldDefinitionNode;
 };
 ```
 
@@ -28,6 +29,8 @@ type FieldOptions = {
 - `args`: a map of argument names to refs, created with [`t.arg`](./arg-builder) or `builder.args`.
 - `nullable`: defaults to `true`, unless overwritten in SchemaBuilder see
   [Changing Default Nullability](../guide/changing-default-nullability).
+- `astNode`: an optional `FieldDefinitionNode` from `graphql` attached to this schema element.
+  See [AST metadata](./schema-builder#ast-metadata).
 - `description`: string
 - `deprecationReason`: string
 - `resolve`: [Resolver](./field-builder#resolver)
