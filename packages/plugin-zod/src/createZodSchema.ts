@@ -100,17 +100,45 @@ export function refine(
     return validator;
   }
 
-  if (typeof options.refine === 'function') {
-    return validator.refine(options.refine as () => boolean);
+  return normalizeRefinements(options.refine as RefineConstraint).reduce(
+    (prev, [refineFn, opts]) => prev.refine(refineFn, opts),
+    validator,
+  );
+}
+
+type RefineFn = () => boolean;
+type RefineTuple = [refine: RefineFn, options?: { message?: string; path?: string[] }];
+
+/**
+ * `[refineFn, options]` and `[refineFn, refineFn]` are both valid, so an array is only a single
+ * refinement tuple when its second entry (if any) is an options object.
+ */
+function isRefineTuple(refine: unknown[]): refine is RefineTuple {
+  if (typeof refine[0] !== 'function') {
+    return false;
   }
 
-  if (typeof options.refine?.[0] === 'function') {
-    return validator.refine(...(options.refine as [() => boolean, { message?: string }]));
+  return (
+    refine.length < 2 ||
+    (refine.length === 2 &&
+      typeof refine[1] === 'object' &&
+      refine[1] !== null &&
+      !Array.isArray(refine[1]))
+  );
+}
+
+function normalizeRefinements(refine: RefineConstraint): RefineTuple[] {
+  if (typeof refine === 'function') {
+    return [[refine as RefineFn]];
   }
 
-  const refinements = options.refine as [() => boolean, { message?: string }][];
+  if (isRefineTuple(refine)) {
+    return [refine];
+  }
 
-  return refinements.reduce((prev, [refineFn, opts]) => prev.refine(refineFn, opts), validator);
+  return (refine as (RefineFn | RefineTuple)[]).map((constraint) =>
+    typeof constraint === 'function' ? [constraint] : constraint,
+  );
 }
 
 export const createNumberValidator = validatorCreator(
