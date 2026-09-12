@@ -165,8 +165,7 @@ describe('nested list items', () => {
 
     builder.queryType({
       fields: (t) => ({
-        // Nested lists are supported at runtime but are not expressible in
-        // `TypeParam`, so these options are cast.
+        // Nested lists work at runtime but are not expressible in `TypeParam`, hence the cast.
         values: t.field({
           type: [['Int']],
           nullable: { list: true, items: { list: true, items: true } },

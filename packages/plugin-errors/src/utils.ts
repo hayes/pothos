@@ -35,9 +35,7 @@ export const defaultGetListItemResultName: GetTypeName = ({ parentTypeName, fiel
 export const defaultGetListItemUnionName: GetTypeName = ({ parentTypeName, fieldName }) =>
   `${parentTypeName}${capitalize(fieldName)}ItemResult`;
 
-// Proxy invariants require `getPrototypeOf` to return the real prototype of a
-// non-extensible target, which would make the wrapped error visible as an Error
-// again. Wrapping an extensible copy of the error keeps the invariants intact.
+// A non-extensible target forces a Proxy's `getPrototypeOf` to report the target's own prototype.
 function createProxyTarget(target: {}): {} {
   if (Object.isExtensible(target)) {
     return target;
@@ -132,10 +130,6 @@ function isNestedList(item: unknown): item is Iterable<unknown> {
   );
 }
 
-// `depth` is the number of list levels between the items being iterated and the
-// items the generated error union actually covers. Errors are only wrapped at
-// that depth; at any other level they are left alone so they are reported as
-// ordinary errors rather than becoming invalid values for the real item type.
 function wrapItem(
   item: unknown,
   pothosErrors: (new (...args: never[]) => unknown)[],

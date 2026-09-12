@@ -35,9 +35,6 @@ const pluginName = 'errors';
 
 export default pluginName;
 
-// Number of list levels in a field type. The generated item error union sits
-// one level in from the innermost list, so this tells the item wrapper which
-// level of a nested list its error types actually apply to.
 function getListDepth<Types extends SchemaTypes>(type: PothosOutputFieldType<Types>): number {
   let depth = 0;
   let current = type;
@@ -81,6 +78,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         | undefined;
 
       if (errorTypes) {
+        // `pothosItemErrorsDepth` is the number of list levels above the items the union covers.
         const listDepth = getListDepth(fieldConfig.type);
 
         return {
