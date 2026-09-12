@@ -71,6 +71,44 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+    const validateArgs = this.createArgsValidator(fieldConfig);
+
+    if (!validateArgs) {
+      return resolver;
+    }
+
+    return async (parent, rawArgs, context, info) =>
+      resolver(parent, await validateArgs(rawArgs, context, info), context, info);
+  }
+
+  /**
+   * Subscriptions resolve arguments twice: once when the source stream is created, and again for
+   * each event. Both are validated, and because graphql coerces the raw arguments separately for
+   * each call, any transform in the validator is applied exactly once to each of them.
+   */
+  override wrapSubscribe(
+    subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    if (!subscribe) {
+      return subscribe;
+    }
+
+    const validateArgs = this.createArgsValidator(fieldConfig);
+
+    if (!validateArgs) {
+      return subscribe;
+    }
+
+    return async (parent, rawArgs, context, info) =>
+      subscribe(parent, await validateArgs(rawArgs, context, info), context, info);
+  }
+
+  private createArgsValidator(
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ):
+    | ((rawArgs: object, context: Types['Context'], info: GraphQLResolveInfo) => Promise<object>)
+    | null {
     // Only used to check if validation is required
     const argMap = mapInputFields(
       fieldConfig.args,
@@ -80,7 +118,7 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
     );
 
     if (!argMap && !fieldConfig.pothosOptions.validate) {
-      return resolver;
+      return null;
     }
 
     const args: Record<string, zod.ZodType<unknown>> = {};
@@ -124,15 +162,10 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
         }
       };
 
-    return async (parent, rawArgs, context, info) =>
-      resolver(
-        parent,
-        (await (validatorWithErrorHandling
-          ? validatorWithErrorHandling(rawArgs, context, info)
-          : validator.parseAsync(rawArgs))) as object,
-        context,
-        info,
-      );
+    return async (rawArgs, context, info) =>
+      (await (validatorWithErrorHandling
+        ? validatorWithErrorHandling(rawArgs, context, info)
+        : validator.parseAsync(rawArgs))) as object;
   }
 
   createValidator(
