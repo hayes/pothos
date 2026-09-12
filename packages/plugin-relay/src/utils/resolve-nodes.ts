@@ -19,7 +19,6 @@ export async function resolveNodes<Types extends SchemaTypes>(
   globalIDs: ({ id: unknown; typename: string } | null | undefined)[],
 ): Promise<MaybePromise<unknown>[]> {
   const requestCache = getRequestCache(context);
-  // A `Map`, not an object: `constructor` and `toString` are valid GraphQL type names.
   const idsByType = new Map<string, Set<unknown>>();
   const results: Record<string, MaybePromise<unknown>> = {};
 
