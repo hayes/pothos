@@ -9,13 +9,9 @@ import type { ResolverMap } from './types.js';
 
 const pluginName = 'mocks';
 
-// Members of these prototypes are never mocks, they are built-ins that happen to share a name with
-// a type or field (`toString`, `constructor`, `call`, ...).
 const builtInPrototypes: object[] = [Object.prototype, Function.prototype];
 
-// Finds the object in the prototype chain of `map` that defines `key`, without reading the property
-// itself: `Function.prototype.caller` and `Function.prototype.arguments` are accessors that throw on
-// any access.
+// Descriptors, not property reads: `Function.prototype.caller` and `arguments` throw when read.
 function findDeclaringPrototype(map: object, key: string) {
   for (
     let proto: object | null = Object.getPrototypeOf(map) as object | null;
@@ -32,11 +28,6 @@ function findDeclaringPrototype(map: object, key: string) {
   return null;
 }
 
-// Checks whether the value a mock map returned for a key *is* an inherited built-in, rather than
-// whether some prototype happens to define the name: a Proxy or a prototype that supplies its own
-// `toString` mock returns a different value than `Object.prototype.toString`. Only a data property
-// can be compared to the value that was read: comparing an accessor would mean invoking it, which
-// throws for `caller` and `arguments`, so values declared by a built-in accessor are kept.
 function isBuiltInValue(map: object, key: string, value: unknown) {
   const declaration = findDeclaringPrototype(map, key);
 
@@ -48,9 +39,6 @@ function isBuiltInValue(map: object, key: string, value: unknown) {
   );
 }
 
-// Looks a key up in a user provided mock map. Values the map provides are used as is, even when
-// they come from a prototype, a class or a Proxy, but inherited built-ins are ignored so that types
-// and fields the user never mocked keep their original resolvers.
 function lookupMock<T>(map: Record<string, T> | undefined, key: string): T | undefined {
   if (map === undefined) {
     return undefined;
@@ -79,9 +67,6 @@ export class PothosMocksPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
 
     const resolveMock = this.resolveMock(fieldConfig.parentType, fieldConfig.name, mocks);
 
-    // Fields defined on an interface are shared by every type that implements it, and graphql-js
-    // always executes them against the concrete type, so mocks for the object type can only be
-    // resolved when the field is executed. The lookup is cached per concrete type.
     if (fieldConfig.graphqlKind === 'Interface') {
       const resolversByType = new Map<
         string,

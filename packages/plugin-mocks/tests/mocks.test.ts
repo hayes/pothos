@@ -451,7 +451,6 @@ describe('interface field mock lookups', () => {
       });
 
       expect(result.errors).toBeUndefined();
-      // 2 interface fields x 5 items: one lookup per (field, concrete type), not one per resolution
       expect(resolveMock).toHaveBeenCalledTimes(2);
     } finally {
       resolveMock.mockRestore();
