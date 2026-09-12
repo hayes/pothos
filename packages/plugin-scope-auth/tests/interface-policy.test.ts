@@ -47,8 +47,8 @@ function run(schema: GraphQLSchema, source: string, context: Context) {
 }
 
 /**
- * The original report: `Readable` grants `read` and declares `secret`, which requires it. `Denied`
- * implements `Readable` and denies everything, `Allowed` implements it with no policy of its own.
+ * `Readable` grants `read` and declares `secret`, which requires it. `Denied` implements
+ * `Readable` and denies everything, `Allowed` implements it with no policy of its own.
  */
 function createLeakSchema() {
   const builder = createBuilder();
@@ -467,8 +467,6 @@ describe('skipTypeScopes and skipInterfaceScopes with inherited interface fields
 describe('interface level runScopesOnType with inherited fields', () => {
   const builder = createBuilder();
 
-  // `runScopesOnType` on an interface moves its scopes off its own fields. Interfaces have no
-  // `isTypeOf`, so the only place left to enforce them is the interface list of the concrete type.
   const Iface = builder.interfaceRef<{ kind: string }>('RunOnIface').implement({
     runScopesOnType: true,
     authScopes: { admin: true },
