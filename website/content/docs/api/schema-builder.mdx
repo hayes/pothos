@@ -8,6 +8,7 @@ SchemaBuilder is the core class of Pothos. It can be used to build types, and me
 graphql.js Schema. The signatures below summarize the API; placeholder types such as
 `FieldsFunction` stand for types inferred from your schema. See the
 [Schema Builder guide](../guide/schema-builder) for configuration examples.
+The optional `astNode` properties attach [AST metadata](#ast-metadata) for schema tooling.
 
 ## `constructor<SchemaTypes>(options)`
 
@@ -72,6 +73,7 @@ creates the `Query` with a set of Query fields
 
 ```typescript
 type QueryTypeOptions = {
+  astNode?: ObjectTypeDefinitionNode;
   description?: string;
   fields?: FieldsFunction;
 };
@@ -108,6 +110,7 @@ creates the `Mutation` with a set of Mutation fields
 
 ```typescript
 type MutationTypeOptions = {
+  astNode?: ObjectTypeDefinitionNode;
   description?: string;
   fields?: FieldsFunction;
 };
@@ -144,6 +147,7 @@ creates the `Subscription` with a set of Subscription fields
 
 ```typescript
 type SubscriptionTypeOptions = {
+  astNode?: ObjectTypeDefinitionNode;
   description?: string;
   fields?: FieldsFunction;
 };
@@ -181,6 +185,7 @@ add a single field to the `Subscription` type.
 
 ```typescript
 type ObjectTypeOptions = {
+  astNode?: ObjectTypeDefinitionNode;
   description?: string;
   fields?: FieldsFunction;
   interfaces?: Interfaces | (() => Interfaces);
@@ -244,6 +249,7 @@ all types in SchemaTypes, or import the actual implementation of each object typ
 
 ```typescript
 type InterfaceTypeOptions = {
+  astNode?: InterfaceTypeDefinitionNode;
   description?: string;
   resolveType?: (parent: InterfaceShape, context, info, abstractType) =>
     MaybePromise<ObjectParam | string | null | undefined>;
@@ -304,6 +310,7 @@ all types in SchemaTypes, or import the actual implementation of each interface 
 
 ```typescript
 type UnionTypeOptions = {
+  astNode?: UnionTypeDefinitionNode;
   description?: string;
   types: Member[] | (() => Member[]);
   resolveType?: (parent: UnionShape, context, info, abstractType) =>
@@ -329,6 +336,7 @@ type UnionTypeOptions = {
 
 ```typescript
 type EnumTypeOptions = {
+  astNode?: EnumTypeDefinitionNode;
   description?: string;
   values?: Values;
   name?: string;
@@ -340,6 +348,18 @@ type EnumTypeOptions = {
   names\) or a `GraphQLEnumValueConfigMap`. values is only required when param is not an enum
 
 - `name`: required when param is an enum
+
+When `values` is a map, each entry accepts these options:
+
+```typescript
+type EnumValueConfig = {
+  value?: string | number;
+  description?: string;
+  deprecationReason?: string;
+  extensions?: Readonly<Record<string, unknown>>;
+  astNode?: EnumValueDefinitionNode;
+};
+```
 
 ## `addScalarType(name, scalar, options?)`
 
@@ -356,6 +376,7 @@ type EnumTypeOptions = {
 
 ```typescript
 type ScalarTypeOptions = {
+  astNode?: ScalarTypeDefinitionNode;
   description?: string;
   // Serializes an internal value to include in a response.
   serialize?: (value: OutputShape) => unknown;
@@ -385,6 +406,7 @@ GraphQL.js 17 also supports `coerceOutputValue`, `coerceInputValue`, `coerceInpu
 
 ```typescript
 type InputTypeOptions = {
+  astNode?: InputObjectTypeDefinitionNode;
   description?: string;
   fields: InputFieldsFunction;
   isOneOf?: boolean;
@@ -418,6 +440,19 @@ Creates an arguments object which can be used as the `args` option in a field de
 - `fields`: a function that receives an [`ArgBuilder`](./arg-builder), and returns an object of
   field names to field definitions. See [`ArgBuilder`](./arg-builder) for more details.
 
+## AST metadata
+
+Type definitions, output fields, input fields, arguments, and enum values accept an optional
+`astNode` from `graphql`. Use the matching definition-node type shown in the option summaries;
+for example, an object type takes an `ObjectTypeDefinitionNode`, while an enum value takes an
+`EnumValueDefinitionNode`. Pothos attaches the node to the corresponding GraphQL.js schema element
+for tools that read AST metadata. Continue to define fields, values, and resolver behavior through
+the Pothos options; attaching a node does not build those definitions from SDL.
+
+For applied directive metadata, see [Directives](../plugins/directives). GraphQL.js `printSchema`
+does not preserve applied custom directives; see [Printing Schemas](../guide/printing-schemas)
+when choosing an output format for downstream tools.
+
 ## `toSchema(options?)`
 
 Builds a `GraphQLSchema` from the types registered on the builder. The optional object accepts:
@@ -425,7 +460,7 @@ Builds a `GraphQLSchema` from the types registered on the builder. The optional 
 - `directives`: custom `GraphQLDirective` instances to include in the schema.
 - `extensions`: schema metadata.
 - `sortSchema`: defaults to `true`; set to `false` to skip lexicographic sorting.
-- `astNode`: a schema definition AST node.
+- `astNode`: a `SchemaDefinitionNode` from `graphql`; see [AST metadata](#ast-metadata).
 
 Plugins may contribute build-time options. Calling `toSchema` again creates a new schema and
 new plugin instances.
