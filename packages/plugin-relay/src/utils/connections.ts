@@ -72,7 +72,9 @@ export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
         'Argument "last" can only be used in combination with "before" or "first"',
       );
     }
-    startOffset = Math.max(startOffset, endOffset - last);
+    // Cap the backward page size before deriving the start offset so that trimming for
+    // `maxSize` keeps the last requested items rather than sliding the window backwards.
+    startOffset = Math.max(startOffset, endOffset - Math.min(last, maxSize));
   }
 
   const size = first == null && last == null ? defaultSize : endOffset - startOffset;
