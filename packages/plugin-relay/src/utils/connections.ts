@@ -36,23 +36,10 @@ interface ResolveArrayConnectionOptions {
   maxSize?: number;
 }
 
-/** `true` only for `any`, which otherwise matches both branches of a conditional type. */
 type IsAny<T> = 0 extends 1 & T ? true : false;
 
-/**
- * `null` when the resolver can return `null` (directly or from its promise), `never` otherwise.
- *
- * This is unioned in at the outermost level rather than passed to `ArrayConnectionShape`'s
- * `Nullable` parameter, because intersecting a possibly-null union with an object type drops the
- * null member. `resolveOffsetConnection` used to declare this derivation inline and it never
- * reached callers, because `& { totalCount: C }` was applied on top of it. `Merge` is not the
- * culprit and does preserve null; the hazard is the intersection, so keep this out of one.
- *
- * `any` is excluded deliberately. It satisfies both branches of every conditional below, and
- * `Promise<null> extends Promise<any>` is true, so an `any`-typed resolver would be reported as
- * nullable even though such code never sees a null and compiled before nullability was derived
- * at all.
- */
+// Unioned into the return types rather than passed as `ArrayConnectionShape`'s `Nullable`:
+// intersecting a possibly-null union with an object type drops the null member.
 type ConnectionNullability<U> =
   IsAny<U> extends true
     ? never
@@ -88,11 +75,6 @@ export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
     options.totalCount != null ? Math.max(options.totalCount, 0) : Number.POSITIVE_INFINITY;
 
   let startOffset = after ? afterOffset + 1 : 0;
-  // A cursor that was valid before the collection shrank can now point past the end of it, in
-  // either direction. Clamping to the known size keeps the window inside the collection: a stale
-  // `before` cursor still pages off the real end, and a stale `after` cursor yields an empty
-  // window rather than a negative one. `beforeOffset` is already `Infinity` when `before` is
-  // absent, so the same expression covers both.
   let endOffset = Math.max(Math.min(beforeOffset, endOfCollection), startOffset);
 
   if (first != null) {
@@ -104,8 +86,6 @@ export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
         'Argument "last" can only be used in combination with "before" or "first"',
       );
     }
-    // Cap the backward page size before deriving the start offset so that trimming for
-    // `maxSize` keeps the last requested items rather than sliding the window backwards.
     startOffset = Math.max(startOffset, endOffset - Math.min(last, maxSize));
   }
 

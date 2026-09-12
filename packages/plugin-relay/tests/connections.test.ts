@@ -13,7 +13,6 @@ describe('resolveArrayConnection', () => {
   });
 
   it('returns an empty page when a stale after cursor is past the end of the array', () => {
-    // Offset 4 was a valid cursor before the collection shrank to two rows.
     const result = resolveArrayConnection({ args: { after: offsetToCursor(4), first: 2 } }, [0, 1]);
 
     expect(result.edges).toEqual([]);
@@ -21,8 +20,6 @@ describe('resolveArrayConnection', () => {
   });
 
   it('returns the rows that exist when a stale before cursor is past the end of the array', () => {
-    // The mirror of the stale `after` case: offset 6 was a valid cursor before the collection
-    // shrank to four rows, so the backward page has to come off the real end of the array.
     const result = resolveArrayConnection(
       { args: { before: offsetToCursor(6), last: 4 }, maxSize: 2 },
       [0, 1, 2, 3],
@@ -86,7 +83,6 @@ describe('resolveOffsetConnection', () => {
     );
 
     expect(result).toBeNull();
-    // Reading `edges` without guarding throws, so the return type has to stay nullable.
     expect(() => result!.edges).toThrow(TypeError);
   });
 });
@@ -110,7 +106,6 @@ describe('resolveCursorConnection', () => {
     );
 
     expect(result).toBeNull();
-    // Reading `edges` without guarding throws, so the return type has to stay nullable.
     expect(() => result!.edges).toThrow(TypeError);
   });
 });
