@@ -91,3 +91,33 @@ it('preserves nullable items from the cursor resolver result', async () => {
   expectTypeOf(result).not.toBeNullable();
   expectTypeOf(result.edges[0]?.node).toEqualTypeOf<{ id: string } | null>();
 });
+
+// An `any` resolver never returns null as far as the type system is concerned, and it compiled
+// before nullability was derived at all. Deriving it must not make these stop compiling.
+it('leaves an `any` resolver result non-nullable', async () => {
+  // biome-ignore lint/suspicious/noExplicitAny: the point of the fixture
+  const anyRows: () => any = () => [{ id: '1' }];
+
+  const offset = await resolveOffsetConnection({ args: { first: 1 } }, anyRows);
+  const cursor = await resolveCursorConnection(
+    { args: { first: 1 }, toCursor: () => 'x' },
+    anyRows,
+  );
+
+  expectTypeOf(offset).not.toBeNullable();
+  expectTypeOf(cursor).not.toBeNullable();
+});
+
+it('leaves a `Promise<any>` resolver result non-nullable', async () => {
+  // biome-ignore lint/suspicious/noExplicitAny: the point of the fixture
+  const anyRows: () => Promise<any> = async () => [{ id: '1' }];
+
+  const offset = await resolveOffsetConnection({ args: { first: 1 } }, anyRows);
+  const cursor = await resolveCursorConnection(
+    { args: { first: 1 }, toCursor: () => 'x' },
+    anyRows,
+  );
+
+  expectTypeOf(offset).not.toBeNullable();
+  expectTypeOf(cursor).not.toBeNullable();
+});

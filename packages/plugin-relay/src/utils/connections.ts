@@ -36,15 +36,31 @@ interface ResolveArrayConnectionOptions {
   maxSize?: number;
 }
 
+/** `true` only for `any`, which otherwise matches both branches of a conditional type. */
+type IsAny<T> = 0 extends 1 & T ? true : false;
+
 /**
  * `null` when the resolver can return `null` (directly or from its promise), `never` otherwise.
  *
  * This has to be unioned in outside of `Merge`. `Merge` is a homomorphic mapped type intersected
  * with `{}`, so it distributes over unions and collapses the nullable member away: `null & {}` is
  * `never`.
+ *
+ * `any` is excluded deliberately. It satisfies both branches of every conditional below, and
+ * `Promise<null> extends Promise<any>` is true, so an `any`-typed resolver would be reported as
+ * nullable even though such code never sees a null and compiled before nullability was derived
+ * at all.
  */
 type ConnectionNullability<U> =
-  U extends NonNullable<U> ? (Promise<null> extends U ? null : never) : null;
+  IsAny<U> extends true
+    ? never
+    : IsAny<Awaited<U>> extends true
+      ? never
+      : U extends NonNullable<U>
+        ? Promise<null> extends U
+          ? null
+          : never
+        : null;
 
 const OFFSET_CURSOR_PREFIX = 'OffsetConnection:';
 const DEFAULT_MAX_SIZE = 100;
