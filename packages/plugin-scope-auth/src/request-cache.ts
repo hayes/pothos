@@ -25,7 +25,7 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   context;
 
-  mapCache = new Map<{}, MaybePromise<AuthFailure | null>>();
+  mapCache = new Map<{}, Map<boolean, MaybePromise<AuthFailure | null>>>();
 
   scopeCache = new Map<keyof Types['AuthScopes'], Map<unknown, MaybePromise<AuthFailure | null>>>();
 
@@ -395,19 +395,26 @@ export default class RequestCache<Types extends SchemaTypes> {
           };
     }
 
-    if (!this.mapCache.has(map)) {
+    let strategyCache = this.mapCache.get(map);
+
+    if (!strategyCache?.has(forAll)) {
       const result = this.withScopes((scopes) =>
         this.evaluateScopeMapWithScopes(map, scopes, info, forAll),
       );
 
       if (canCache(map)) {
-        this.mapCache.set(map, result);
+        if (!strategyCache) {
+          strategyCache = new Map();
+          this.mapCache.set(map, strategyCache);
+        }
+
+        strategyCache.set(forAll, result);
       }
 
       return result;
     }
 
-    return this.mapCache.get(map)!;
+    return strategyCache.get(forAll)!;
   }
 
   evaluateTypeScopeFunction(
