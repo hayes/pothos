@@ -110,10 +110,6 @@ export function refine(
 type RefineFn = () => boolean;
 type RefineTuple = [refine: RefineFn, options?: { message?: string; path?: string[] }];
 
-/**
- * `[refineFn, options]` and `[refineFn, refineFn]` are both valid, so an array is only a single
- * refinement tuple when its second entry (if any) is an options object.
- */
 function isRefineTuple(refine: unknown[]): refine is RefineTuple {
   if (typeof refine[0] !== 'function') {
     return false;

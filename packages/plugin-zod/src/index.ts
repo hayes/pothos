@@ -81,10 +81,6 @@ export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types
       resolver(parent, await validateArgs(rawArgs, context, info), context, info);
   }
 
-  /**
-   * graphql coerces the raw arguments separately for the source stream and for each event, so
-   * validating both applies any transform in the validator exactly once to each.
-   */
   override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
     fieldConfig: PothosOutputFieldConfig<Types>,
