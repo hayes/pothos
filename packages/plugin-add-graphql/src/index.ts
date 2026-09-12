@@ -2,7 +2,7 @@ import './global-types.js';
 import './schema-builder.js';
 import SchemaBuilder, { BasePlugin, type RootName, type SchemaTypes } from '@pothos/core';
 import { type GraphQLNamedType, GraphQLSchema } from 'graphql';
-import { addTypeToSchema } from './utils.js';
+import { addTypeToSchema, importedNonRootTypes } from './utils.js';
 
 const pluginName = 'addGraphQL';
 
@@ -42,6 +42,29 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
       // explicitly marked as such rather than being inferred from their names.
       addTypeToSchema(this.builder, type, rootKinds.get(type) ?? null);
     }
+  }
+
+  override afterBuild(schema: GraphQLSchema): GraphQLSchema {
+    // `toSchema` falls back to looking up the mutation and subscription roots by name when the
+    // builder defines no root of that kind, which would turn an imported object that happens to be
+    // named Mutation or Subscription into an operation root of the generated schema.
+    const nonRootTypes = importedNonRootTypes(this.builder);
+    const mutation = schema.getMutationType();
+    const subscription = schema.getSubscriptionType();
+    const removeMutation = !!mutation && nonRootTypes.has(mutation.name);
+    const removeSubscription = !!subscription && nonRootTypes.has(subscription.name);
+
+    if (!removeMutation && !removeSubscription) {
+      return schema;
+    }
+
+    const config = schema.toConfig();
+
+    return new GraphQLSchema({
+      ...config,
+      mutation: removeMutation ? undefined : config.mutation,
+      subscription: removeSubscription ? undefined : config.subscription,
+    });
   }
 }
 

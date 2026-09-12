@@ -11,6 +11,13 @@ import {
 
 export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType>());
 
+/**
+ * Names of object types that were imported from a schema, but are not operation roots of that
+ * schema. `builder.toSchema()` falls back to looking up operation roots by name, so these are used
+ * to undo that fallback for imported types.
+ */
+export const importedNonRootTypes = createContextCache(() => new Set<string>());
+
 function hasRootType<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   kind: RootName,
@@ -36,9 +43,13 @@ export function addTypeToSchema<Types extends SchemaTypes>(
   if (isObjectType(type)) {
     // If the builder already defines this operation root, the imported type is added as a normal
     // object type rather than re-declaring (and renaming) the existing root.
-    builder.addGraphQLObject(type, {
-      rootKind: rootKind && hasRootType(builder, rootKind) ? null : rootKind,
-    });
+    const kind = rootKind && hasRootType(builder, rootKind) ? null : rootKind;
+
+    if (kind === null) {
+      importedNonRootTypes(builder).add(type.name);
+    }
+
+    builder.addGraphQLObject(type, { rootKind: kind });
   } else if (isInterfaceType(type)) {
     builder.addGraphQLInterface(type);
   } else if (isUnionType(type)) {
