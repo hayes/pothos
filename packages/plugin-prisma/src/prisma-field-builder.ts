@@ -13,6 +13,7 @@ import {
   ObjectRef,
   type PluginName,
   PothosSchemaError,
+  PothosValidationError,
   RootFieldBuilder,
   type SchemaTypes,
   type ShapeFromTypeParam,
@@ -344,12 +345,15 @@ export class PrismaObjectFieldBuilder<
       parent: unknown,
       context: {},
       loaderCache: ((model: unknown) => ModelLoader) | undefined,
+      info: GraphQLResolveInfo,
     ) => {
+      // Named as the document names it, which is what a reader of the error has in front of them.
+      const field = `${info.parentType.name}.${info.fieldName}`;
       const loader = loaderCache?.(context);
 
       if (!loader) {
         throw new PothosSchemaError(
-          `Unable to load totalCount for ${this.model}.${name}: no loader for the parent type`,
+          `Unable to load totalCount for ${field}: no loader for the parent type`,
         );
       }
 
@@ -366,7 +370,22 @@ export class PrismaObjectFieldBuilder<
           where: loader.findUnique(parent as Record<string, unknown>, context) as never,
           select: { _count: { select: { [name]: countSelect } } },
         } as never) as PromiseLike<{ _count?: Record<string, number> } | null>,
-      ).then((row) => row?._count?.[name] ?? 0);
+      ).then((row) => {
+        const count = row?._count?.[name];
+
+        // The reason this branch exists is that the parent did not come from a prisma query, so
+        // it need not correspond to a row at all. When it does not there is no count to report,
+        // and `totalCount` is a non-nullable Int: answering 0 would put a number the schema
+        // promises is the truth next to a page of edges the resolver did return. Say what
+        // happened instead.
+        if (count === undefined) {
+          throw new PothosValidationError(
+            `Unable to load totalCount for ${field}: no ${loader.modelName} row matches the parent this connection resolved from`,
+          );
+        }
+
+        return count;
+      });
     };
 
     const resolveFallback =
@@ -390,7 +409,7 @@ export class PrismaObjectFieldBuilder<
         return Promise.all([
           resolve({ ...q, ...connectionQuery } as never, parent, args, context, info),
           hasTotalCount
-            ? totalCountFromParent(connectionQuery, parent, context, loaderCache)
+            ? totalCountFromParent(connectionQuery, parent, context, loaderCache, info)
             : undefined,
         ]).then(([result, count]) =>
           wrapConnectionResult(
