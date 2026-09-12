@@ -158,9 +158,6 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         ) => unknown)
       | undefined;
 
-    // How the field wants its fallback planned, when planning from the field's return type is not
-    // enough. A connection records the node type and the path down to it here; `t.relation`
-    // records nothing, since its return type is the model.
     const fallbackPlan = fieldConfig.extensions?.pothosPrismaFallbackPlan as
       | FallbackPlanRecipe
       | undefined;
@@ -217,10 +214,9 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
           fallback.plan,
         );
 
-        // The parent's own loader goes along, as the cache rather than an instance: a fallback
-        // that needs something of the parent the row does not carry — a connection's `totalCount`
-        // — reaches it through the same `findUnique` every other load of this parent uses, and one
-        // that needs nothing never asks for it.
+        // The loader cache rather than a loader: a fallback that needs something of the parent
+        // the row does not carry reaches it through the same `findUnique` every other load of
+        // this parent uses, and one that needs nothing never creates it.
         return isThenable(query)
           ? query.then((resolved) =>
               fallback.resolve(resolved as {}, parent, args, context, info, loaderCache),

@@ -7,12 +7,7 @@ import { prisma, queries } from './example/builder';
 import { getDatamodel } from './generated.js';
 
 // A `relatedConnection` with a custom `resolve` installs a fallback resolver, which runs whenever
-// the parent row was not loaded with the connection's rows on it. The field's return type is the
-// relay wrapper, which has no model, so the fallback cannot be planned from it: the field records
-// what to plan instead — the node type, the paths down to it, and the cursor columns to seed — and
-// the fallback plans that per request. What it hands the user's resolver then has to match what the
-// planned path would have selected, and the page it wraps has to match what the planned path would
-// have paged.
+// the parent row was not loaded with the connection's rows on it.
 const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypesFromClient<typeof prisma>;
 }>({
@@ -37,8 +32,8 @@ interface FallbackQuery {
 
 const resolveCalls: FallbackQuery[] = [];
 
-// A resolver that does not key off the parent at all, which a custom `resolve` is free to do:
-// a page of rows comes back even for a parent that matches no row in the database.
+// A resolver that does not key off the parent at all, so a page of rows comes back even for a
+// parent that matches no row in the database.
 const resolveDetached = (query: FallbackQuery) => {
   resolveCalls.push(query);
 
@@ -136,8 +131,8 @@ const User = builder.prismaObject('User', {
         }),
       },
     ),
-    // No `resolve`: never installs a fallback, so an unplanned parent keeps reloading itself
-    // through the model loader. Here to pin that the recipe changes nothing for it.
+    // No `resolve`: never installs a fallback, so an unplanned parent reloads itself through the
+    // model loader.
     plainPosts: t.relatedConnection('posts', { cursor: 'id', totalCount: true }),
     plainCountWithCustomField: t.relatedConnection(
       'posts',
@@ -175,8 +170,7 @@ builder.queryType({
       resolve: (query) =>
         prisma.user.findMany({ ...query, where: { id: { in: [1, 2, 3, 4, 5] } } }),
     }),
-    // A parent that corresponds to no row at all, which only the fallback branch can produce: it
-    // came from a resolver of the user's own, not from a prisma query.
+    // A parent that corresponds to no row at all.
     ghostUser: t.field({
       type: User,
       resolve: () => ({ id: 999999 }) as never,
@@ -238,8 +232,8 @@ describe('relatedConnection with a custom resolve, unplanned parent', () => {
     }`);
 
     expect(result.errors).toBeUndefined();
-    // `id` is the cursor column the recipe seeds; `title` is what the document asked for beneath
-    // `edges { node }`. Without the seed `formatCursor` would have no column to read.
+    // `id` is the cursor column the recipe seeds, without which `formatCursor` would have no
+    // column to read; `title` is what the document asked for beneath `edges { node }`.
     expect(resolveCalls[0].select).toStrictEqual({ id: true, title: true });
   });
 
@@ -327,7 +321,7 @@ describe('relatedConnection fallback totalCount', () => {
     }`);
 
     expect(result.errors).toBeUndefined();
-    // Only the resolver's own findMany: the count is a thunk and nothing called it.
+    // Only the resolver's own findMany: `totalCount` is unselected, so no count is loaded.
     expect(queries).toStrictEqual([expect.objectContaining({ model: 'Post', action: 'findMany' })]);
   });
 
@@ -338,9 +332,8 @@ describe('relatedConnection fallback totalCount', () => {
 
     expect(result.errors).toBeUndefined();
     expect(connection(result, 'unplannedUser', 'postsWithCount').totalCount).toBe(250);
-    // `Plan.fromInfo` answers `undefined` here — there is nothing under `nodes`/`edges.node` to
-    // plan — and the fallback returns the recipe's own seed rather than crashing. Nothing reads
-    // the rows, so the resolver is not asked for them; see the query-count test below.
+    // `Plan.fromInfo` answers `undefined` here — nothing is selected under `nodes`/`edges.node`
+    // — and the fallback plans the recipe's own seed instead.
     expect(resolveCalls).toHaveLength(0);
   });
 });
@@ -363,9 +356,8 @@ describe('relatedConnection fallback pagination', () => {
 
     expect(result.errors).toBeUndefined();
     const posts = connection(result, 'unplannedUser', 'posts');
-    // The connection query asks for one row plus a probe; the probe has to be sliced off and
-    // reported as a next page. Reading `take` off the plan's selection map instead — which has
-    // none — left every page of every fallback connection reporting `hasNextPage: false`.
+    // The connection query asks for one row plus a probe; the probe is sliced off and reported
+    // as a next page.
     expect(resolveCalls[0].take).toBe(2);
     expect(posts.edges).toHaveLength(1);
     expect(posts.pageInfo.hasNextPage).toBe(true);
@@ -530,9 +522,8 @@ describe('relatedConnection fallback review follow-ups', () => {
       ghostUser { detachedWithCount(first: 2) { totalCount edges { node { id } } } }
     }`);
 
-    // The resolver still returns rows, so a count of 0 would sit next to a non-empty page: a
-    // wrong answer presented as a fact on a non-nullable Int. The field errors instead, naming
-    // what could not be counted.
+    // The resolver still returns rows, so a count of 0 would sit next to a non-empty page on a
+    // non-nullable Int.
     expect(result.errors?.[0]?.message).toMatch(
       /Unable to load totalCount for User\.detachedWithCount/,
     );
@@ -557,14 +548,12 @@ describe('relatedConnection fallback review follow-ups', () => {
       (result.data as any).unplannedUsers.map((u: any) => u.postsWithCount.totalCount),
     ).toStrictEqual([250, 250, 250, 250, 250]);
 
-    // Five counts and nothing else. Before, this also paid for five `Post.findMany` calls of up
-    // to `maxSize + 1` rows each, every row of which was discarded.
+    // Five counts and nothing else.
     expect(queries).toHaveLength(5);
     expect(queries.every((q) => (q as { model: string }).model === 'User')).toBe(true);
     expect(resolveCalls).toHaveLength(0);
 
-    // Which is what the same unplanned parents cost through the model loader, for a connection
-    // with no custom resolve at all.
+    // The same unplanned parents cost as much through the model loader.
     queries.length = 0;
     const viaLoader = await run('{ unplannedUsers { plainPosts { totalCount } } }');
 
@@ -579,8 +568,6 @@ describe('relatedConnection fallback review follow-ups', () => {
 
     expect(result.errors).toBeUndefined();
     expect(connection(result, 'unplannedUser', 'postsWithCount').totalCount).toBe(250);
-    // The loaded path passes `[]` rather than reading rows it will discard; the fallback does the
-    // same rather than paying for a findMany whose rows nothing reads.
     expect(resolveCalls).toHaveLength(0);
     expect(queries).toStrictEqual([
       expect.objectContaining({ model: 'User', action: 'findUnique' }),

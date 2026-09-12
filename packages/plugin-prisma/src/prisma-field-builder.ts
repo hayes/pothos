@@ -51,9 +51,8 @@ import type { FallbackPlanRecipe } from './util/map-query.js';
 
 import type { FieldMap } from './util/relation-map.js';
 
-// The two ways a relay connection exposes its nodes. Shared by the planned path's select function
-// and by the fallback's plan recipe, so the two plan the same selection by construction rather
-// than by two copies of the same guess drifting apart.
+// The two ways a relay connection exposes its nodes, shared by the planned path's select function
+// and the fallback's plan recipe so both plan the same selection.
 const CONNECTION_NODE_PATHS: IndirectPathSegment[][] = [
   [{ name: 'nodes' }],
   [{ name: 'edges' }, { name: 'node' }],
@@ -336,10 +335,9 @@ export class PrismaObjectFieldBuilder<
         (parent as { _count?: Record<string, number> })._count?.[name],
       );
 
-    // The fallback branch's count, which the parent row cannot carry: the rows it pages come from
-    // the user's own resolver, not from a query that could have selected `_count` alongside them.
-    // So the count is asked of the parent, through the same `findUnique` every other load of this
-    // parent uses, and the `_count` select the planned path would have used.
+    // The fallback branch's count: its rows come from the user's own resolver, not from a query
+    // that could have selected `_count` beside them, so the count is asked of the parent through
+    // the same `findUnique` every other load of it uses.
     const totalCountFromParent = (
       connectionQuery: { where?: {} },
       parent: unknown,
@@ -347,7 +345,6 @@ export class PrismaObjectFieldBuilder<
       loaderCache: ((model: unknown) => ModelLoader) | undefined,
       info: GraphQLResolveInfo,
     ) => {
-      // Named as the document names it, which is what a reader of the error has in front of them.
       const field = `${info.parentType.name}.${info.fieldName}`;
       const loader = loaderCache?.(context);
 
@@ -373,11 +370,8 @@ export class PrismaObjectFieldBuilder<
       ).then((row) => {
         const count = row?._count?.[name];
 
-        // The reason this branch exists is that the parent did not come from a prisma query, so
-        // it need not correspond to a row at all. When it does not there is no count to report,
-        // and `totalCount` is a non-nullable Int: answering 0 would put a number the schema
-        // promises is the truth next to a page of edges the resolver did return. Say what
-        // happened instead.
+        // `totalCount` is a non-nullable Int, and a parent the fallback was handed need not be a
+        // row at all, so a parent that matches none has no count to report.
         if (count === undefined) {
           throw new PothosValidationError(
             `Unable to load totalCount for ${field}: no ${loader.modelName} row matches the parent this connection resolved from`,
@@ -399,18 +393,11 @@ export class PrismaObjectFieldBuilder<
         info: GraphQLResolveInfo,
         loaderCache: ((model: unknown) => ModelLoader) | undefined,
       ) => {
-        // What the document asks of this connection, read exactly as the loaded path reads it.
-        // The count is loaded only when `totalCount` is selected — the same signal the planned
-        // path uses to decide whether to select `_count` at all — rather than deferred behind a
-        // thunk, so what lands on the connection is a plain number for every field that reads it,
-        // user-defined ones included, and not just for the generated one.
         const { hasTotalCount, totalCountOnly } = connectionSelection(context, info);
 
         return Promise.all([
           // Nothing beneath this connection but `totalCount`, so every row the resolver returned
-          // would be dropped on the floor. The loaded path already passes `[]` here rather than
-          // reading rows it will discard; the fallback does the same, rather than paying for a
-          // page of up to `maxSize` rows per parent that nothing reads.
+          // would be dropped on the floor; the planned path passes `[]` here too.
           totalCountOnly
             ? []
             : resolve({ ...q, ...connectionQuery } as never, parent, args, context, info),
@@ -422,9 +409,8 @@ export class PrismaObjectFieldBuilder<
             parent,
             result,
             args,
-            // The page size of the *connection* query, probe row included. `q` is the plan's
-            // selection map and has no `take` of its own; reading it there left every page
-            // reporting `hasNextPage: false`.
+            // The page size of the *connection* query, probe row included; `q` is the plan's
+            // selection map and has no `take` of its own.
             connectionQuery.take,
             formatCursor,
             count,
@@ -432,12 +418,10 @@ export class PrismaObjectFieldBuilder<
         );
       });
 
-    // The recipe for planning the fallback's own query. The field's return type is the relay
-    // wrapper, which has no model, so the planner is told the same three things `relationSelect`
-    // already computes for the planned path: the node type (from `ref`, never the wrapper, so a
-    // shared connection object still resolves to one model), the paths down to it, and the cursor
-    // columns to seed so `formatCursor` has something to read. Every value here is static, fixed
-    // where the field is defined; the plan itself is still built per request from `info`.
+    // The field's return type is the relay wrapper, which has no model, so the planner is told
+    // what `relationSelect` computes for the planned path: the node type (from `ref`, never the
+    // wrapper, so a shared connection object still resolves to one model), the paths down to it,
+    // and the cursor columns to seed so `formatCursor` has something to read.
     const fallbackPlan: FallbackPlanRecipe | undefined =
       typeof resolve === 'function'
         ? () => {
