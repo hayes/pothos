@@ -236,7 +236,6 @@ describe('node ids', () => {
 });
 
 describe('decimal node ids', () => {
-  // More digits than a `number` holds.
   const digits = '0.1234567890123456789012345';
 
   it('round trips a Decimal id without losing digits', () => {

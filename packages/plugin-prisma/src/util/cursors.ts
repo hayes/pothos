@@ -67,8 +67,6 @@ export function parseID(id: string, dataType: string): unknown {
       return id !== 'false';
     case 'Float':
       return Number.parseFloat(id);
-    // A `Decimal` carries more digits than a `number` holds, and Prisma takes a decimal string
-    // wherever it takes a `Decimal`, so the digits are handed over untouched.
     case 'Decimal':
       return id;
     case 'DateTime':
