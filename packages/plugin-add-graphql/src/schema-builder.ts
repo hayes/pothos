@@ -36,7 +36,7 @@ import type {
   AddGraphQLUnionTypeOptions,
   EnumValuesWithShape,
 } from './types.js';
-import { addReferencedType, importedNonRootTypes } from './utils.js';
+import { addReferencedType, importedRootKinds } from './utils.js';
 
 const proto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -180,10 +180,10 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
   // the option, which falls back to inferring the root from the type name.
   const root = rootKind === undefined ? inferRootKind(type.name) : (rootKind ?? undefined);
 
-  if (rootKind === null) {
-    // `toSchema` also resolves operation roots by name, so the type is recorded under the name it
-    // is added with to undo that for types that were explicitly marked as not being a root.
-    importedNonRootTypes(this).add(name);
+  if (rootKind !== undefined) {
+    // `toSchema` also resolves operation roots by name, so the role the type is imported with is
+    // recorded under the name it is added with to undo assignments that contradict it.
+    importedRootKinds(this).set(name, rootKind);
   }
 
   switch (root) {

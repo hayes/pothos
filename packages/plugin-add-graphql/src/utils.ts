@@ -12,11 +12,41 @@ import {
 export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType>());
 
 /**
- * Names of object types that were imported from a schema, but are not operation roots of that
- * schema. `builder.toSchema()` falls back to looking up operation roots by name, so these are used
- * to undo that fallback for imported types.
+ * The operation root each imported type was explicitly added as, by the name it was added with.
+ * `null` means the type is explicitly not an operation root. `builder.toSchema()` also resolves
+ * operation roots by name, so this is used to undo assignments that contradict the imported type.
  */
-export const importedNonRootTypes = createContextCache(() => new Set<string>());
+export const importedRootKinds = createContextCache(() => new Map<string, RootName | null>());
+
+/**
+ * `toSchema` resolves the root of each operation by name when the builder has no root of that kind,
+ * which can assign an imported type to an operation it was not imported for, or to a second
+ * operation in addition to its own. The query root is kept when the type was imported as a normal
+ * object type, since a schema without a query root is not valid.
+ */
+export function isUnintendedRoot<Types extends SchemaTypes>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  type: { name: string } | null | undefined,
+  kind: RootName,
+) {
+  if (!type) {
+    return false;
+  }
+
+  const importedKinds = importedRootKinds(builder);
+
+  if (!importedKinds.has(type.name)) {
+    return false;
+  }
+
+  const importedKind = importedKinds.get(type.name);
+
+  if (importedKind === kind) {
+    return false;
+  }
+
+  return importedKind === null ? kind !== 'Query' : true;
+}
 
 function hasRootType<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,

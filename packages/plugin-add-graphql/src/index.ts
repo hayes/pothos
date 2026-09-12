@@ -2,7 +2,7 @@ import './global-types.js';
 import './schema-builder.js';
 import SchemaBuilder, { BasePlugin, type RootName, type SchemaTypes } from '@pothos/core';
 import { type GraphQLNamedType, GraphQLSchema } from 'graphql';
-import { addTypeToSchema, importedNonRootTypes } from './utils.js';
+import { addTypeToSchema, isUnintendedRoot } from './utils.js';
 
 const pluginName = 'addGraphQL';
 
@@ -45,16 +45,17 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   override afterBuild(schema: GraphQLSchema): GraphQLSchema {
-    // `toSchema` falls back to looking up the mutation and subscription roots by name when the
-    // builder defines no root of that kind, which would turn an imported object that happens to be
-    // named Mutation or Subscription into an operation root of the generated schema.
-    const nonRootTypes = importedNonRootTypes(this.builder);
-    const mutation = schema.getMutationType();
-    const subscription = schema.getSubscriptionType();
-    const removeMutation = !!mutation && nonRootTypes.has(mutation.name);
-    const removeSubscription = !!subscription && nonRootTypes.has(subscription.name);
+    // `toSchema` falls back to resolving operation roots by name, which can assign an imported type
+    // to an operation it was not imported for, or to a second operation in addition to its own.
+    const removeQuery = isUnintendedRoot(this.builder, schema.getQueryType(), 'Query');
+    const removeMutation = isUnintendedRoot(this.builder, schema.getMutationType(), 'Mutation');
+    const removeSubscription = isUnintendedRoot(
+      this.builder,
+      schema.getSubscriptionType(),
+      'Subscription',
+    );
 
-    if (!removeMutation && !removeSubscription) {
+    if (!removeQuery && !removeMutation && !removeSubscription) {
       return schema;
     }
 
@@ -62,6 +63,7 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
 
     return new GraphQLSchema({
       ...config,
+      query: removeQuery ? undefined : config.query,
       mutation: removeMutation ? undefined : config.mutation,
       subscription: removeSubscription ? undefined : config.subscription,
     });

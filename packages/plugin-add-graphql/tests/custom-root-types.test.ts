@@ -293,6 +293,72 @@ describe('importing schemas with custom operation root names', () => {
     expect(schema.getType('Mutation')).toBeDefined();
   });
 
+  it('does not also use an imported root for the operation its name matches', () => {
+    const existingSchema = buildSchema(`
+      schema {
+        query: Mutation
+      }
+
+      type Mutation {
+        hello: String
+      }
+    `);
+
+    const builder = new SchemaBuilder({
+      plugins: [AddGraphQLPlugin],
+      add: { schema: existingSchema },
+    });
+
+    const schema = builder.toSchema();
+
+    expect(validateSchema(schema)).toStrictEqual([]);
+    expect(schema.getQueryType()?.name).toBe('Mutation');
+    expect(schema.getMutationType()).toBeUndefined();
+  });
+
+  it('does not also use a standalone import for the operation its name matches', () => {
+    const existingQuery = new GraphQLObjectType({
+      name: 'Mutation',
+      fields: { hello: { type: GraphQLString, resolve: () => 'world' } },
+    });
+
+    const builder = new SchemaBuilder({ plugins: [AddGraphQLPlugin] });
+
+    builder.addGraphQLObject(existingQuery, { rootKind: 'Query' });
+
+    const schema = builder.toSchema();
+
+    expect(validateSchema(schema)).toStrictEqual([]);
+    expect(schema.getQueryType()?.name).toBe('Mutation');
+    expect(schema.getMutationType()).toBeUndefined();
+  });
+
+  it('does not use an imported mutation root as the query root', () => {
+    const existingSchema = buildSchema(`
+      schema {
+        mutation: Query
+      }
+
+      type Query {
+        doIt: String
+      }
+    `);
+
+    const builder = new SchemaBuilder({
+      plugins: [AddGraphQLPlugin],
+      add: { schema: existingSchema },
+    });
+
+    const schema = builder.toSchema();
+
+    expect(schema.getMutationType()?.name).toBe('Query');
+    // the imported schema declares no query root, so neither does the generated one
+    expect(schema.getQueryType()).toBeUndefined();
+    expect(validateSchema(schema).map((error) => error.message)).toStrictEqual([
+      'Query root type must be provided.',
+    ]);
+  });
+
   it('honors an explicit rootKind for standalone imports', () => {
     const existingMutation = new GraphQLObjectType({
       name: 'Ops',
