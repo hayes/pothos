@@ -158,7 +158,9 @@ async function main() {
           ref.error = 'cannot check operation; run build-examples first';
         }
       }
-      if (ref.error) failures.push(ref);
+      if (ref.error) {
+        failures.push(ref);
+      }
     }
   }
 

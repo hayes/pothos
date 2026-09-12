@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { graphql, type GraphQLSchema } from 'graphql';
+import { type GraphQLSchema, graphql } from 'graphql';
 
 export async function checkMediaConnections(schema: GraphQLSchema) {
   const run = async (source: string, variableValues?: Record<string, unknown>) => {

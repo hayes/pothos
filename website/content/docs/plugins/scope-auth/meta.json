@@ -1,7 +1,4 @@
 {
   "title": "Scope auth",
-  "pages": [
-    "index",
-    "relay-nodes"
-  ]
+  "pages": ["index", "relay-nodes"]
 }
