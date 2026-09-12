@@ -15,14 +15,6 @@ import DrizzlePlugin from '../src';
 import { getSchemaConfig } from '../src/utils/config';
 import { getIDParser, getIDSerializer } from '../src/utils/cursors';
 
-/**
- * Node IDs are handed out to clients and come back later, so what a row serializes to has to
- * keep parsing back into that same row -- across releases. Two things are pinned here:
- *
- * - every ID shape that already worked keeps its exact bytes (`already issued IDs` below), and
- * - the shapes that could not round trip -- a bigint (which threw), a Date (which came back as a
- *   string) and a non-integer number (which truncated) -- now do.
- */
 const idTest = pgTable('node_id_values', {
   id: integer().primaryKey(),
   slug: text().notNull(),
@@ -46,7 +38,6 @@ const serialize = (fields: Column[]) => getIDSerializer(fields, config);
 const parse = (fields: Column[]) => getIDParser(fields, config);
 
 describe('already issued IDs', () => {
-  // Pinned byte for byte: any change here invalidates every ID a client already holds.
   it('serializes an integer scalar ID as its digits', () => {
     expect(serialize([idTest.id])({ id: 7 })).toBe('7');
   });
