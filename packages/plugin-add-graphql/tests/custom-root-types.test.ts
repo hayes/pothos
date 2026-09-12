@@ -192,7 +192,6 @@ describe('importing schemas with custom operation root names', () => {
     expect(schema.getQueryType()?.name).toBe('Root');
     expect(schema.getMutationType()).toBeUndefined();
     expect(schema.getSubscriptionType()).toBeUndefined();
-    // the types themselves are still imported, they are just not operation roots
     expect(schema.getType('Mutation')).toBeDefined();
     expect(schema.getType('Subscription')).toBeDefined();
   });
@@ -352,7 +351,6 @@ describe('importing schemas with custom operation root names', () => {
     const schema = builder.toSchema();
 
     expect(schema.getMutationType()?.name).toBe('Query');
-    // the imported schema declares no query root, so neither does the generated one
     expect(schema.getQueryType()).toBeUndefined();
     expect(validateSchema(schema).map((error) => error.message)).toStrictEqual([
       'Query root type must be provided.',

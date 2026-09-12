@@ -11,14 +11,8 @@ import {
 
 export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType>());
 
-/** The operation root each imported type was explicitly added as, by the name it was added with. */
 export const importedRootKinds = createContextCache(() => new Map<string, RootName | null>());
 
-/**
- * Whether the built schema's root for `kind` contradicts the `rootKind` its type was imported with.
- * A query root is exempt when the type was imported as a normal object, since a schema without a
- * query root is not valid.
- */
 export function isUnintendedRoot<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   type: { name: string } | null | undefined,
@@ -66,8 +60,6 @@ export function addTypeToSchema<Types extends SchemaTypes>(
   }
 
   if (isObjectType(type)) {
-    // A root the builder already defines is added as a normal object type rather than re-declaring
-    // (and renaming) the existing root.
     builder.addGraphQLObject(type, {
       rootKind: rootKind && hasRootType(builder, rootKind) ? null : rootKind,
     });
