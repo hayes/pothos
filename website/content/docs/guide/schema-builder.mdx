@@ -19,8 +19,8 @@ The constructor's options object configures runtime behavior. It can include plu
 options, as described in [Using plugins](./using-plugins), and
 [default nullability](./changing-default-nullability) settings.
 
-The playground supplies a sample request ID in its **Context** tab. Change it and run the query
-again to see the resolver receive that value.
+The `requestId` resolver returns the value supplied in the runtime context. Declaring its
+TypeScript type does not supply that value.
 
 ## Building the schema
 

@@ -1,7 +1,7 @@
 {
   "id": "types-nullability",
   "title": "Default nullability",
-  "description": "Run the valid request, then Missing name. Add title: \"Dr\" to the valid input and run again. Inspect schema.graphql for the required fields.",
+  "description": "Run the valid request, then Missing name. Add title: \"Dr\" to the valid input. Inspect schema.graphql for required fields. Make the nickname resolver throw an Error: only nickname becomes null. Remove nullable: true and run again to see data become null. Reset example restores the resolver.",
   "category": "core",
   "relatedDocs": ["/docs/guide/changing-default-nullability"],
   "defaultActiveFile": "schema.ts"

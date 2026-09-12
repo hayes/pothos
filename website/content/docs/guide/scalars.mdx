@@ -36,9 +36,7 @@ This example explicitly rejects string and float literals, even when they repres
 }
 ```
 
-Use the playground operation tabs to compare a valid variable with zero, a negative variable,
-a float literal, and a string literal. The invalid-output operation doubles the largest safe
-integer, so input parsing succeeds but output serialization rejects the result.
+Doubling the largest safe integer passes input parsing, but output serialization rejects the result.
 
 Passing `0`, `-1`, `1.5`, or `"3"` is an error. An output outside the scalar's accepted range is
 also an error; GraphQL applies the field's nullability rules when reporting it.

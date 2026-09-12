@@ -51,7 +51,6 @@ existing optional argument or input field can break client requests. Non-null ou
 change error propagation: if a resolver returns null or throws, GraphQL propagates the null to the
 nearest nullable parent, potentially making the entire response's `data` null.
 
-To observe this in the playground, replace `nickname`'s resolver with
-`() => { throw new Error('Nickname unavailable'); }`. With `nullable: true`, only `nickname` is
-null. Remove that override and run again: the builder's non-null default makes the whole response's
-`data` null. Reset the example to restore the original resolver.
+For example, if `nickname`'s resolver throws `new Error('Nickname unavailable')`,
+`nullable: true` makes only `nickname` null. Without that override, the builder's non-null default
+makes the whole response's `data` null.

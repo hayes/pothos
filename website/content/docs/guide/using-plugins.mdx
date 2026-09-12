@@ -33,7 +33,7 @@ types in through the Generic SchemaTypes used by the Schema builder:
 
 <include cwd lang="typescript" meta='playground example="architecture-plugin-scopes"'>playground-examples/architecture-plugin-scopes/schema.ts#setup</include>
 
-Run the second example to compare `allowed` and `denied`. Change the denied field's scope from `blocked` to `allowed` and run again.
+The second example permits the `allowed` field and denies the `denied` field according to their scopes.
 
 These types can then be used in other parts of the API \(eg. defining the scopes on a field\), but
 the details of how these types are used will be specific to each plugin, and should be covered in

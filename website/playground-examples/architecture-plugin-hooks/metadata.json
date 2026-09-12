@@ -1,7 +1,7 @@
 {
   "id": "architecture-plugin-hooks",
   "title": "Plugin configuration hooks",
-  "description": "Run 01-Inspect to see descriptions and remaining fields and enum values. Change the options in schema.ts, then run again. Run 02-Values to try the added builder method.",
+  "description": "Run 01-Inspect to see descriptions and confirm removeMe fields and enum values are absent. Change nestedOptionsObject.exampleOption in schema.ts and run again. Open Console: preparation runs once despite two toSchema calls. Run 02-Values to try the added builder method.",
   "category": "patterns",
   "relatedDocs": ["/docs/guide/writing-plugins"]
 }

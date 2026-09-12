@@ -11,7 +11,7 @@ for you.
 
 ### Objects and Interfaces
 
-Run the query to compare the shared fields on both types. Change an ID in a query resolver and run again to see `idLength` change.
+The shared `idLength` resolver computes the length of each object's ID.
 
 <include cwd lang="typescript" meta='playground example="architecture-shared-fields"'>playground-examples/architecture-shared-fields/schema.ts#helper</include>
 
@@ -29,7 +29,7 @@ accepts both, you can differentiate the refs by using `ref.kind` which will be e
 
 ### Args
 
-The example mutation passes a reason to one field and omits it from the other. Add a reason to `mutation2` and run again.
+The example mutation passes a reason to one field and omits it from the other.
 
 Args are a little more complicated than fields on objects and interfaces. Pothos infers the shape of args
 for your resolvers, so you can't just add on more args later. Instead, we can define a helper that
@@ -49,7 +49,7 @@ that accepts different builders.
 
 ### Input fields
 
-Run the query, then change either input's reason to see both input types use the helper.
+Both input types use the helper to define their `reason` field.
 
 Input fields are similar to args, and also all need to be present when the type is defined so that
 Pothos can infer the correct types.

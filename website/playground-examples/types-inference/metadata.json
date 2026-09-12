@@ -1,7 +1,7 @@
 {
   "id": "types-inference",
   "title": "Inferring types for helpers",
-  "description": "Run user and getUsers. Change limit from 1 to 2 to see both users. Hover input in toUser and parent in createObjectWithId to inspect the inferred types.",
+  "description": "Run user and getUsers. Change limit from 1 to 2. Hover input in toUser and parent in createObjectWithId to inspect types. Change MyInput.name from t.string to t.int: toUser now returns a numeric name where UserType requires a string, and the schema input changes to Int!.",
   "category": "core",
   "relatedDocs": ["/docs/guide/inferring-types"]
 }
