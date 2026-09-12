@@ -24,9 +24,9 @@ export function PluginsPage() {
           Plugins
         </h1>
         <p className="text-bm-ink-soft leading-[1.5] mt-5 text-[17px] max-w-[640px]">
-          {totalPlugins} plugins for your data layer, auth, tracing, and common schema
-          patterns. Each one adds methods and options to the builder, with the same type inference
-          as the core API.
+          {totalPlugins} plugins for your data layer, auth, tracing, and common schema patterns.
+          Each one adds methods and options to the builder, with the same type inference as the core
+          API.
         </p>
         <p className="text-bm-ink-soft leading-[1.5] mt-4 text-[17px] max-w-[640px]">
           See{' '}

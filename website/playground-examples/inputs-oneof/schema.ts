@@ -2,7 +2,6 @@ import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
-// #region lookup-input
 export const GiraffeLookup = builder.inputType('GiraffeLookup', {
   isOneOf: true,
   fields: (t) => ({
@@ -10,11 +9,9 @@ export const GiraffeLookup = builder.inputType('GiraffeLookup', {
     name: t.string({ required: false }),
   }),
 });
-// #endregion lookup-input
 
 const giraffes = [{ id: '1', name: 'Gina' }];
 
-// #region lookup-query
 builder.queryType({
   fields: (t) => ({
     giraffeName: t.string({
@@ -31,6 +28,5 @@ builder.queryType({
     }),
   }),
 });
-// #endregion lookup-query
 
 export const schema = builder.toSchema();
