@@ -35,7 +35,23 @@ export function valuesFromEnum<Types extends SchemaTypes>(
 ): Record<string, PothosEnumValueConfig<Types>> {
   const result: Record<string, PothosEnumValueConfig<Types>> = {};
 
-  for (const key of Object.keys(Enum).filter((key) => typeof Enum[Enum[key]] !== 'number')) {
+  const isReverseMapping = (key: string) => {
+    const value = Enum[key];
+
+    if (typeof value !== 'string') {
+      return false;
+    }
+
+    const mapped = Enum[value];
+    const numericKey = Number(key);
+
+    return (
+      typeof mapped === 'number' &&
+      (mapped === numericKey || (Number.isNaN(mapped) && Number.isNaN(numericKey)))
+    );
+  };
+
+  for (const key of Object.keys(Enum).filter((key) => !isReverseMapping(key))) {
     result[key] = {
       value: Enum[key],
       pothosOptions: {},

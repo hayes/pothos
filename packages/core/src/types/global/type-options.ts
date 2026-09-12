@@ -2,6 +2,7 @@ import type {
   ConstValueNode,
   EnumTypeDefinitionNode,
   EnumValueDefinitionNode,
+  GraphQLInterfaceType,
   GraphQLIsTypeOfFn,
   GraphQLResolveInfo,
   GraphQLScalarLiteralParser,
@@ -106,7 +107,7 @@ declare global {
           parent: Shape,
           context: Types['Context'],
           info: GraphQLResolveInfo,
-          type: GraphQLUnionType,
+          type: GraphQLInterfaceType,
         ) => MaybePromise<ObjectParam<Types> | string | null | undefined>);
     }
 
@@ -149,6 +150,9 @@ declare global {
       // Converts an external value to a const literal. Used by graphql 17+ when printing default
       // values for this scalar; without it custom-scalar defaults fall back to a generic conversion.
       valueToLiteral?: (value: unknown) => ConstValueNode | undefined;
+      // URL pointing to the specification for this scalar, exposed through introspection and the
+      // `@specifiedBy` directive.
+      specifiedByURL?: string | null;
       astNode?: ScalarTypeDefinitionNode;
     }
 
