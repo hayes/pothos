@@ -63,7 +63,6 @@ class FakeDecimal {
     return this.digits;
   }
 
-  // A `Decimal` prints its exact digits, which is what `serializeID` writes into a node id.
   toString() {
     return this.digits;
   }
@@ -237,9 +236,7 @@ describe('node ids', () => {
 });
 
 describe('decimal node ids', () => {
-  // More digits than a `number` holds. The serializer already writes them all out; the parser
-  // used to read them back through `Number.parseFloat` and round them away, so the id named a
-  // value the row does not have.
+  // More digits than a `number` holds.
   const digits = '0.1234567890123456789012345';
 
   it('round trips a Decimal id without losing digits', () => {
@@ -275,7 +272,6 @@ describe('decimal node ids', () => {
     expect(getDefaultIDParser('Model', 'amount_n', builder)(id)).toEqual({ amount: digits, n: 1 });
   });
 
-  // A `Float` column really is a double, so it keeps reading back as a number.
   it('still reads a Float id as a number', () => {
     const builder = builderFor([{ name: 'views', type: 'Float', isId: true }]);
 
@@ -283,8 +279,6 @@ describe('decimal node ids', () => {
   });
 });
 
-// Every id the plugin can already issue and read has to keep the bytes it has: a client holding
-// one hands it straight back, and a stored id has to keep naming the same row.
 describe('ids issued before this release', () => {
   const intBuilder = builderFor([{ name: 'id', type: 'Int', isId: true }]);
   const stringBuilder = builderFor([{ name: 'slug', type: 'String', isId: true }]);
@@ -320,9 +314,6 @@ describe('ids issued before this release', () => {
     });
   });
 
-  // A `Decimal` that a double holds exactly now reads back as its digits rather than as a
-  // `number`. Prisma takes a decimal string wherever it takes a `Decimal`, and the value it
-  // names is the one the old id named.
   it('reads a Decimal id back to the same value it always named', () => {
     expect(Number(getDefaultIDParser('Model', 'amount', decimalBuilder)('1.5'))).toBe(1.5);
   });
