@@ -176,13 +176,9 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
     },
   };
 
-  // `rootKind: null` marks the type as not being an operation root, and is distinct from omitting
-  // the option, which falls back to inferring the root from the type name.
   const root = rootKind === undefined ? inferRootKind(type.name) : (rootKind ?? undefined);
 
   if (rootKind !== undefined) {
-    // `toSchema` also resolves operation roots by name, so the role the type is imported with is
-    // recorded under the name it is added with to undo assignments that contradict it.
     importedRootKinds(this).set(name, rootKind);
   }
 

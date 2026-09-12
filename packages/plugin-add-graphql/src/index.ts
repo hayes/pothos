@@ -38,15 +38,11 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
     );
 
     for (const type of schemaTypes) {
-      // The operation roles of the imported schema are known, so types that are not roots are
-      // explicitly marked as such rather than being inferred from their names.
       addTypeToSchema(this.builder, type, rootKinds.get(type) ?? null);
     }
   }
 
   override afterBuild(schema: GraphQLSchema): GraphQLSchema {
-    // `toSchema` falls back to resolving operation roots by name, which can assign an imported type
-    // to an operation it was not imported for, or to a second operation in addition to its own.
     const removeQuery = isUnintendedRoot(this.builder, schema.getQueryType(), 'Query');
     const removeMutation = isUnintendedRoot(this.builder, schema.getMutationType(), 'Mutation');
     const removeSubscription = isUnintendedRoot(
