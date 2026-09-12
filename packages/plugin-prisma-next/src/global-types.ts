@@ -14,6 +14,7 @@ import type {
 import type { PothosPrismaNextPlugin } from './index.js';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type {
+  ObjectBaseShape,
   ParamToModelName,
   ParamToTypeParam,
   ShapeFromObjectSelect,
@@ -145,7 +146,28 @@ declare global {
         },
       ) => PrismaNextInterfaceRef<Types, M, Shape>;
 
-      prismaObjectField: <M extends ModelName<Types>, Shape = Row<Types, M>>(
+      /**
+       * Add one field to an already-registered prismaObject from another file.
+       *
+       * Parent shape: passing a `PrismaNextObjectRef` carries the shape the
+       * registered object declared. Passing a model-name *string* can't see
+       * that declaration, so the parent defaults to `ObjectBaseShape` — the
+       * brand and nothing else — matching what the plugin actually loads:
+       * only columns some `select` or `t.expose*` named. Declare the columns
+       * the resolver reads with the field's own `select`, which layers onto
+       * the base additively:
+       *
+       *     builder.prismaObjectField('User', 'emailish', (t) =>
+       *       t.string({ select: ['email'], resolve: (row) => row.email }),
+       *     );
+       *
+       * Escape hatch: `Shape` is the second positional type argument, so a
+       * caller who knowingly wants the full row back can ask for it —
+       * `builder.prismaObjectField<'User', Row<Types, 'User'>>('User', …)`.
+       * That opts out of the guarantee; the `select` is still what makes the
+       * column present at runtime.
+       */
+      prismaObjectField: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fieldName: string,
         field: (
@@ -157,7 +179,15 @@ declare global {
         ) => FieldRef<Types, unknown>,
       ) => void;
 
-      prismaObjectFields: <M extends ModelName<Types>, Shape = Row<Types, M>>(
+      /**
+       * Add fields to an already-registered prismaObject from another file.
+       *
+       * Same parent-shape rule as `prismaObjectField`: a ref carries the declared
+       * shape, a model-name string defaults to `ObjectBaseShape` (brand only),
+       * and each field's own `select` adds the columns its resolver reads.
+       * `Shape` stays the second positional type argument as the escape hatch.
+       */
+      prismaObjectFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fields: (
           t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
@@ -168,7 +198,15 @@ declare global {
         ) => FieldMap,
       ) => void;
 
-      prismaInterfaceField: <M extends ModelName<Types>, Shape = Row<Types, M>>(
+      /**
+       * Add one field to an already-registered prismaInterface from another file.
+       *
+       * Same parent-shape rule as `prismaObjectField`: a ref carries the declared
+       * shape, a model-name string defaults to `ObjectBaseShape` (brand only),
+       * and each field's own `select` adds the columns its resolver reads.
+       * `Shape` stays the second positional type argument as the escape hatch.
+       */
+      prismaInterfaceField: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fieldName: string,
         field: (
@@ -180,7 +218,15 @@ declare global {
         ) => FieldRef<Types, unknown>,
       ) => void;
 
-      prismaInterfaceFields: <M extends ModelName<Types>, Shape = Row<Types, M>>(
+      /**
+       * Add fields to an already-registered prismaInterface from another file.
+       *
+       * Same parent-shape rule as `prismaObjectField`: a ref carries the declared
+       * shape, a model-name string defaults to `ObjectBaseShape` (brand only),
+       * and each field's own `select` adds the columns its resolver reads.
+       * `Shape` stays the second positional type argument as the escape hatch.
+       */
+      prismaInterfaceFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fields: (
           t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
@@ -191,15 +237,25 @@ declare global {
         ) => FieldMap,
       ) => void;
 
+      /**
+       * Register a prismaObject that also implements the Relay `Node` interface.
+       *
+       * The parent shape is computed from `select` exactly as `prismaObject`
+       * computes it (`ObjectLevelShape`), so a resolver only sees columns and
+       * relations something declared. `Select` is the third positional type
+       * argument and `Shape` the fourth, matching `prismaObject`'s ordering.
+       */
       prismaNode: 'relay' extends PluginName
         ? <
             const Interfaces extends InterfaceParam<Types>[],
             M extends ModelName<Types>,
-            Shape = Row<Types, M>,
+            const Select = unknown,
+            Shape = ObjectLevelShape<Types, M, Select>,
             IDShape = string,
           >(
             modelName: M,
-            options: PrismaNextObjectOptions<Types, M, Shape, Interfaces> & {
+            options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
+              select?: Select;
               id: {
                 /** Column name or non-empty tuple for composite primary keys (encoded as a JSON array). */
                 field:

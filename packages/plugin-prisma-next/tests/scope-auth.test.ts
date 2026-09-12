@@ -111,3 +111,32 @@ it('does not execute the root collection when a root scope denies access', async
   expect(result.data).toEqual({ privateUser: null });
   expect(captures).toHaveLength(0);
 });
+
+// Type-level fixture, never executed: the cross-file helpers' narrowed parent
+// shape has to survive `withAuth`'s re-parameterization of the field builder,
+// so a helper resolver behind a scope check still has to declare the columns it
+// reads. The `@ts-expect-error` must stay *used* — an unused-directive
+// diagnostic here means the narrowing stopped applying through `withAuth`.
+function _narrowedParentShapeSurvivesWithAuth() {
+  const builder = new SchemaBuilder<{
+    PrismaNextContract: SampleContract;
+    Context: { admin: boolean };
+    AuthScopes: { admin: boolean };
+  }>({
+    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    relay: {},
+    scopeAuth: { authScopes: ({ admin }) => ({ admin }) },
+    prismaNext: { contract: ctx.contract },
+  });
+
+  builder.prismaObjectFields('User', (t) => ({
+    declaredBehindScope: t.withAuth({ admin: true }).string({
+      select: ['email'],
+      resolve: (row) => row.email,
+    }),
+    undeclaredBehindScope: t.withAuth({ admin: true }).string({
+      // @ts-expect-error The string form's parent carries only declared dependencies.
+      resolve: (row) => row.email,
+    }),
+  }));
+}
