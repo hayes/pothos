@@ -198,8 +198,6 @@ const User = builder.prismaObject('User', {
       },
       resolve: (query, user) => prisma.post.findMany({ ...query, where: { authorId: user.id } }),
     }),
-    // Planned through `fallbackQueryFromInfo` and resolved a row at a time, rather than through
-    // the model loader.
     postsConnection: t.relatedConnection('posts', {
       cursor: 'id',
       query: () => ({ orderBy: { id: 'asc' } }),

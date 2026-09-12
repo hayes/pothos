@@ -120,6 +120,12 @@ export function queryFromInfo<
   return result as QueryFromInfoReturn<Select, Include, Await>;
 }
 
+export type FallbackPlanRecipe = () => {
+  typeName?: string;
+  paths?: PathSegment[][];
+  initial?: SelectionMap;
+};
+
 /**
  * The query for the field `info` resolves, from a plan `plans` holds per `Type@path`. The
  * fallback in `wrapResolve` runs once per row of the list its parent came from, so the plan is
@@ -132,17 +138,28 @@ export function fallbackQueryFromInfo(
   context: object,
   info: GraphQLResolveInfo,
   skipDeferredFragments = true,
+  recipe?: FallbackPlanRecipe,
 ): MaybePromise<SelectionMap> {
   const key = cacheKey(info.parentType.name, info.path);
   let plan = plans.get(key);
 
   if (!plan) {
-    plan = Plan.fromInfo(prismaAdapter, {
+    const { typeName, paths, initial } = recipe?.() ?? {};
+
+    const planned = Plan.fromInfo(prismaAdapter, {
       context,
       info,
+      typeName,
+      paths,
+      initial,
       skipDeferredFragments,
-    }) as MaybePromise<PrismaPlan>;
+    }) as MaybePromise<PrismaPlan> | undefined;
 
+    if (!planned) {
+      return initial ?? {};
+    }
+
+    plan = planned;
     plans.set(key, plan);
   }
 

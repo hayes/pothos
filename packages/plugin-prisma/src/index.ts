@@ -21,7 +21,7 @@ import type { IncludeMap, PrismaModelTypes } from './types.js';
 import { INCLUDE_ALL, type PrismaPlan } from './util/adapter.js';
 import { formatPrismaCursor, parsePrismaCursor } from './util/cursors.js';
 import { getModel, getRefFromModel } from './util/datamodel.js';
-import { fallbackQueryFromInfo, queryFromInfo } from './util/map-query.js';
+import { type FallbackPlanRecipe, fallbackQueryFromInfo, queryFromInfo } from './util/map-query.js';
 import type { FieldMap } from './util/relation-map.js';
 
 export { prismaConnectionHelpers } from './connection-helpers.js';
@@ -148,7 +148,18 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     ) => ModelLoader;
 
     const resolveFallback = fieldConfig.extensions?.pothosPrismaFallback as
-      | ((query: {}, parent: unknown, args: {}, context: {}, info: {}) => unknown)
+      | ((
+          query: {},
+          parent: unknown,
+          args: {},
+          context: {},
+          info: {},
+          loader?: (model: unknown) => ModelLoader,
+        ) => unknown)
+      | undefined;
+
+    const fallbackPlan = fieldConfig.extensions?.pothosPrismaFallbackPlan as
+      | FallbackPlanRecipe
       | undefined;
 
     // The fallback with one settled plan per `Type@path` per request beside it, since it plans
@@ -157,6 +168,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     // request and the builder's own `skipDeferredFragments` is the one that applies.
     const fallback = resolveFallback && {
       resolve: resolveFallback,
+      plan: fallbackPlan,
       plans: createContextCache(() => new Map<string, MaybePromise<PrismaPlan>>()),
     };
 
@@ -199,11 +211,14 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
           context,
           info,
           this.builder.options.prisma.skipDeferredFragments,
+          fallback.plan,
         );
 
         return isThenable(query)
-          ? query.then((resolved) => fallback.resolve(resolved as {}, parent, args, context, info))
-          : fallback.resolve(query, parent, args, context, info);
+          ? query.then((resolved) =>
+              fallback.resolve(resolved as {}, parent, args, context, info, loaderCache),
+            )
+          : fallback.resolve(query, parent, args, context, info, loaderCache);
       }
 
       return loaderCache(context)
