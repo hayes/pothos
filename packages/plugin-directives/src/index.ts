@@ -15,6 +15,22 @@ export * from './types.js';
 
 const pluginName = 'directives';
 
+function toDirectiveList(directives: DirectiveList | Record<string, object>): DirectiveList {
+  if (Array.isArray(directives)) {
+    return directives;
+  }
+
+  // Unordered (graphql-tools) directives use an array of arg objects for repeated directives,
+  // each of which becomes its own entry in the ordered list.
+  return Object.keys(directives).flatMap((name) => {
+    const args = directives[name];
+
+    return Array.isArray(args)
+      ? (args as object[]).map((entry) => ({ name, args: entry }))
+      : [{ name, args }];
+  });
+}
+
 export default pluginName;
 export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
@@ -125,14 +141,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
       return left || right;
     }
 
-    return [
-      ...(Array.isArray(left)
-        ? left
-        : Object.keys(left).map((name) => ({ name, args: left[name] }))),
-      ...(Array.isArray(right)
-        ? right
-        : Object.keys(right).map((name) => ({ name, args: right[name] }))),
-    ];
+    return [...toDirectiveList(left), ...toDirectiveList(right)];
   }
 
   normalizeDirectives(directives: DirectiveList | Record<string, object>) {
