@@ -109,6 +109,10 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     return filtered.size > 0 ? filtered : null;
   }
 
+  // Input types may be mutually recursive, so a plain memoizing DFS would cache the provisional
+  // `false` it records before descending into a cycle and then treat it as final, hiding mapped
+  // fields that are only reachable through the cycle. Instead collect everything reachable from
+  // `map` and propagate `true` to a fixed point before recording any answer.
   function checkForMappings(
     map: InputFieldsMapping<Types, T>,
     hasMappings: Map<InputFieldsMapping<Types, T>, boolean>,
@@ -117,25 +121,59 @@ export function mapInputFields<Types extends SchemaTypes, T>(
       return hasMappings.get(map)!;
     }
 
-    hasMappings.set(map, false);
+    const nested = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>[]>();
+    const results = new Map<InputFieldsMapping<Types, T>, boolean>();
+    const queue = [map];
 
-    let result = false;
+    while (queue.length > 0) {
+      const current = queue.pop()!;
 
-    for (const mapping of map.values()) {
-      if (mapping.value !== null) {
-        result = true;
-      } else if (
-        mapping.kind === 'InputObject' &&
-        mapping.fields.map &&
-        checkForMappings(mapping.fields.map, hasMappings)
-      ) {
-        result = true;
+      // Already discovered in this walk, or already resolved by an earlier (completed) walk.
+      if (nested.has(current) || hasMappings.has(current)) {
+        continue;
+      }
+
+      const children: InputFieldsMapping<Types, T>[] = [];
+      let hasDirectMapping = false;
+
+      for (const mapping of current.values()) {
+        if (mapping.value !== null) {
+          hasDirectMapping = true;
+        } else if (mapping.kind === 'InputObject' && mapping.fields.map) {
+          children.push(mapping.fields.map);
+          queue.push(mapping.fields.map);
+        }
+      }
+
+      nested.set(current, children);
+      results.set(current, hasDirectMapping);
+    }
+
+    let changed = true;
+
+    while (changed) {
+      changed = false;
+
+      for (const [current, children] of nested) {
+        if (results.get(current)) {
+          continue;
+        }
+
+        for (const child of children) {
+          if (results.has(child) ? results.get(child)! : hasMappings.get(child)!) {
+            results.set(current, true);
+            changed = true;
+            break;
+          }
+        }
       }
     }
 
-    hasMappings.set(map, result);
+    for (const [current, result] of results) {
+      hasMappings.set(current, result);
+    }
 
-    return result;
+    return results.get(map)!;
   }
 }
 
