@@ -40,10 +40,6 @@ builder.queryType({
   }),
 });
 
-// `resolveNode` replaces every `edge.node` in place, so `wrap`'s return type has to
-// describe the callback's shape rather than the rows that were passed in. Before the
-// node shape was inferred, `node.id` typed as `string` while the runtime value was
-// `undefined`.
 const wrappedNodes = prismaConnectionHelpers(builder, 'User', {
   cursor: 'id',
   resolveNode: (row) => ({ user: row }),
@@ -60,8 +56,6 @@ export async function wrappedNodeShape() {
   expectTypeOf(result.edges[0]!.cursor).toEqualTypeOf<string>();
 }
 
-// A `resolveNode` returning a union keeps both members on the node, and never collapses
-// back to the row.
 const unionNodes = prismaConnectionHelpers(builder, 'User', {
   cursor: 'id',
   resolveNode: (row): { kind: 'user'; user: typeof row } | { kind: 'empty' } =>
@@ -75,15 +69,11 @@ export async function unionNodeShape() {
   expectTypeOf(result.edges[0]!.node.kind).toEqualTypeOf<'user' | 'empty'>();
 }
 
-// Without `resolveNode` the node is still inferred from the rows handed to `wrap`,
-// including rows the caller narrowed before materializing them.
 const plainNodes = prismaConnectionHelpers(builder, 'User', { cursor: 'id' });
 
 export async function plainNodeShape() {
   const page = await plainNodes.applyPagination(ctx.ormClient.User, { first: 1 }, undefined, {});
 
-  // Exact whole-type equality, not just the node member: the `Node = never` default has
-  // to leave this inference byte-for-byte what it was before the node shape existed.
   const narrowed = page.wrap([{ id: 'a', firstName: 'Alice' }]);
   expectTypeOf(narrowed).toEqualTypeOf<ConnectionPage<{ id: string; firstName: string }>>();
   expectTypeOf(narrowed.edges[0]!.node).toEqualTypeOf<{ id: string; firstName: string }>();
@@ -93,14 +83,6 @@ export async function plainNodeShape() {
   expectTypeOf(rows.edges[0]!.cursor).toEqualTypeOf<string>();
 }
 
-// `resolveNode`'s parameter can only be annotated with the model's full row — the helper
-// is built long before anyone calls `wrap`. So a callback that mentions its parameter
-// would otherwise launder that annotation into the node type and promise columns the
-// caller never loaded. `wrap` therefore demands the full row whenever a `resolveNode` is
-// configured, which is exactly what the callback already claims to receive.
-//
-// Each case below is rejected at the `wrap` call, naming the missing columns, rather than
-// silently producing a node type with `email`/`lastName` on it.
 const narrowRows = [{ id: 'a', firstName: 'Alice' }];
 
 const spreadingNode = prismaConnectionHelpers(builder, 'User', {
@@ -141,17 +123,12 @@ export async function narrowedRowsRejected() {
   // @ts-expect-error the documented wrapper form would put the full row under `.user`.
   wrapper.wrap(narrowRows);
 
-  // The full row satisfies the constraint, so the ordinary path is untouched — the node
-  // type is then true, because the callback really did receive what it was annotated with.
   const full = await spreadingNode.applyPagination(ctx.ormClient.User, { first: 1 }, undefined, {});
   const result = full.wrap(await full.collection.all());
   expectTypeOf(result.edges[0]!.node.extra).toEqualTypeOf<number>();
   expectTypeOf(result.edges[0]!.node.email).toEqualTypeOf<string>();
 }
 
-// A `resolveNode` supplied conditionally may never run. Taking only its return type would
-// promise a transform that didn't happen: at runtime `wrap` leaves the row untouched when
-// the callback is absent, so the node is the callback's result *or* the original row.
 declare const enabled: boolean;
 
 const conditionalNodes = prismaConnectionHelpers(builder, 'User', {
@@ -171,7 +148,6 @@ export async function conditionalNodeShape() {
   // @ts-expect-error the transform may not have run, so the node may still be the raw row.
   node.user;
 
-  // Narrowing is the caller's job, and both branches are reachable.
   if ('user' in node) {
     expectTypeOf(node.user.id).toEqualTypeOf<string>();
   } else {
@@ -179,7 +155,6 @@ export async function conditionalNodeShape() {
   }
 }
 
-// Non-object returns survive inference unchanged.
 const primitiveNode = prismaConnectionHelpers(builder, 'User', {
   cursor: 'id',
   resolveNode: (row) => row.firstName,

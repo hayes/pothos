@@ -36,17 +36,12 @@ import { getRefFromContractModel } from './utils/refs.js';
 import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
 /**
- * The shape `wrap` hands back on each edge. Three cases, and the middle one is easy to miss:
+ * The shape `wrap` hands back on each edge:
  *
- * - **No `resolveNode`** — `Node` finds no inference candidate and stays `never`, so the node
- *   is whatever the caller passed to `wrap`. `Node` defaults to `never` rather than to
- *   `Row<Types, M>` precisely so this holds: a caller who narrows the collection's selection
- *   before materializing it must not be handed the full model row.
- * - **A `resolveNode` that may be absent** (`MaybeAbsent`, from `enabled ? fn : undefined`) —
- *   the transform runs only sometimes, so the node is the callback's result *or* the
- *   untouched row, and the caller has to narrow. Taking only the callback's return type here
- *   would promise a transform that never ran.
- * - **A `resolveNode` that is always there** — the node is its return type.
+ *   - No `resolveNode` (`Node` stays `never`) → the rows the caller passed to `wrap`.
+ *   - A `resolveNode` that is always there → its return type.
+ *   - One that may be absent (`enabled ? fn : undefined`) → either, since the transform
+ *     only sometimes runs.
  *
  * `[Node] extends [never]` is the naked-`never` guard: a bare `Node extends never`
  * distributes and would collapse to `never`.
@@ -58,18 +53,10 @@ export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [N
     : Node;
 
 /**
- * What `wrap` accepts as rows.
- *
- * `resolveNode` is supplied when the helper is built, so its parameter can only be annotated
- * with the model's full row — the shape of the rows actually handed to `wrap` is not known
- * until much later. Reading the node off that callback therefore only tells the truth if the
- * rows really are full rows: a callback that mentions its parameter
- * (`(row) => ({ ...row, extra: 1 })`, or plain `(row) => row`) would otherwise propagate the
- * full-row annotation into the node type and promise columns the caller never loaded.
- *
- * So whenever a callback might run, `wrap` requires the full row — which is what that
- * callback already claims to receive. With no callback at all, rows are unconstrained and a
- * caller may narrow the selection freely.
+ * What `wrap` accepts as rows: the full model row whenever a `resolveNode` might run, since
+ * that callback's parameter is annotated with the full row and a callback that mentions it
+ * would otherwise carry that annotation into the node type. With no callback the rows are
+ * unconstrained, so a caller may narrow the selection freely.
  */
 export type ConnectionWrapRows<Types extends SchemaTypes, M extends ModelName<Types>, Node> = [
   Node,
@@ -179,11 +166,9 @@ export function prismaConnectionHelpers<
 ): PrismaConnectionHelpers<Types, M, Args, Node, false>;
 
 /**
- * No `resolveNode`, or one that may be absent (`enabled ? fn : undefined`). When it may be
- * absent the node is the callback's result *or* the untouched row, because that is what
- * `wrap` actually produces, and the caller has to narrow. When it is absent entirely `Node`
- * has no inference candidate and stays `never`, which collapses the node back to `wrap`'s
- * own row inference.
+ * No `resolveNode`, or one that may be absent (`enabled ? fn : undefined`): the node is the
+ * callback's result or the untouched row. With no callback at all `Node` stays `never` and
+ * the node falls back to `wrap`'s own row inference.
  */
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -324,9 +309,8 @@ export function prismaConnectionHelpers<
           if (totalCount !== undefined) {
             (page as { totalCount?: number }).totalCount = totalCount;
           }
-          // The loop above is what makes the declared node shape true; `page` is still
-          // typed from `rows`, and the conditional can't be resolved against an
-          // unbound `Node` here.
+          // `page` is typed from `rows`, and the conditional can't be resolved against an
+          // unbound `Node` here; the loop above is what makes the declared shape true.
           return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>>;
         },
       });
