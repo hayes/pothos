@@ -1,7 +1,7 @@
 {
   "id": "plugin-drizzle",
   "title": "A publishing API with Drizzle",
-  "description": "Continue 04-pagination with endCursor as Variables.after. In 10-attachments, set hasCaption to true or use endCursor as after. Compare 02-aliases in Queries and its SQL in Console. Change Context userId to 2 in 03-viewer or 09-variant. Reset restores the seed.",
+  "description": "Explore how Pothos turns GraphQL selections into Drizzle queries, with related records, pagination, and private fields. Run a query, then inspect the options in Queries and the SQL in Console.",
   "category": "plugins",
   "difficulty": "intermediate",
   "relatedDocs": ["/docs/plugins/drizzle"],

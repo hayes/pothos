@@ -1,3 +1,5 @@
+# Set hasCaption to true in Variables to keep only captioned attachments.
+# To load the next attachment page, copy its pageInfo.endCursor into after in Variables.
 query Attachments($after: String, $hasCaption: Boolean = false) {
   author(id: 1) {
     postsConnection(first: 1) {

@@ -1,3 +1,4 @@
+# To load the next page, copy pageInfo.endCursor into after in Variables and run again.
 query Pagination($after: String) {
   posts(first: 2, after: $after) {
     totalCount
