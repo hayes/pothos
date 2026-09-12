@@ -149,8 +149,6 @@ function buildSchema() {
     resolveNode: (edge) => ({ id: edge.id, name: edge.firstName }),
   });
 
-  // Wrapper-shaped `resolveNode` — the node is an object holding the row plus
-  // metadata, so none of the row's own columns are reachable on it.
   const decoratedUsers = prismaConnectionHelpers(builder, 'User', {
     cursor: 'id',
     defaultSize: 10,
@@ -250,15 +248,12 @@ function buildSchema() {
           return wrap(rows) as never;
         },
       }),
-      // Wrapper-shaped `resolveNode` end-to-end — the GraphQL node type reads
-      // through the wrapper.
       decoratedUsers: t.connection({
         type: DecoratedUser,
         args: decoratedUsers.getArgs(),
         resolve: async (_p, args, _ctx) => {
-          // `info` is deliberately withheld: the auto-include mapper descends into
-          // `edges.node` and requires that type to be prisma-backed, which a
-          // wrapper node is not.
+          // `info` withheld: the auto-include mapper descends into `edges.node` and
+          // requires that type to be prisma-backed.
           const { collection, wrap } = await decoratedUsers.applyPagination(
             ctx.ormClient.User,
             args,

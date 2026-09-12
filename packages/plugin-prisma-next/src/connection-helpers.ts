@@ -36,15 +36,8 @@ import { getRefFromContractModel } from './utils/refs.js';
 import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
 /**
- * The shape `wrap` hands back on each edge:
- *
- *   - No `resolveNode` (`Node` stays `never`) → the rows the caller passed to `wrap`.
- *   - A `resolveNode` that is always there → its return type.
- *   - One that may be absent (`enabled ? fn : undefined`) → either, since the transform
- *     only sometimes runs.
- *
- * `[Node] extends [never]` is the naked-`never` guard: a bare `Node extends never`
- * distributes and would collapse to `never`.
+ * `[Node]`, not bare `Node`: a naked type parameter distributes over a conditional, and
+ * `never` distributes to `never`.
  */
 export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [Node] extends [never]
   ? WrapRow
@@ -52,12 +45,6 @@ export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [N
     ? Node | WrapRow
     : Node;
 
-/**
- * What `wrap` accepts as rows: the full model row whenever a `resolveNode` might run, since
- * that callback's parameter is annotated with the full row and a callback that mentions it
- * would otherwise carry that annotation into the node type. With no callback the rows are
- * unconstrained, so a caller may narrow the selection freely.
- */
 export type ConnectionWrapRows<Types extends SchemaTypes, M extends ModelName<Types>, Node> = [
   Node,
 ] extends [never]
@@ -69,7 +56,6 @@ export interface PrismaConnectionHelpers<
   M extends ModelName<Types>,
   Args extends InputFieldMap = {},
   Node = never,
-  /** Whether the configured `resolveNode` might not be there at all. */
   MaybeAbsent extends boolean = false,
 > {
   ref: PrismaNextObjectRef<Types, M>;
@@ -98,10 +84,6 @@ export interface PrismaConnectionHelpers<
   connectionOptions<T extends object>(connectionOptions: T): T;
 }
 
-/**
- * Everything about a helper except `resolveNode`, which the overloads below vary so that a
- * definitely-present callback can be told apart from one that may be absent.
- */
 export interface PrismaConnectionHelperOptions<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -147,10 +129,6 @@ export interface PrismaConnectionHelperOptions<
       ) => unknown);
 }
 
-/**
- * A `resolveNode` that is always present: every edge is transformed, so the node is exactly
- * the callback's return type.
- */
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -165,11 +143,6 @@ export function prismaConnectionHelpers<
   },
 ): PrismaConnectionHelpers<Types, M, Args, Node, false>;
 
-/**
- * No `resolveNode`, or one that may be absent (`enabled ? fn : undefined`): the node is the
- * callback's result or the untouched row. With no callback at all `Node` stays `never` and
- * the node falls back to `wrap`'s own row inference.
- */
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -309,8 +282,8 @@ export function prismaConnectionHelpers<
           if (totalCount !== undefined) {
             (page as { totalCount?: number }).totalCount = totalCount;
           }
-          // `page` is typed from `rows`, and the conditional can't be resolved against an
-          // unbound `Node` here; the loop above is what makes the declared shape true.
+          // A conditional type over an unbound type parameter stays deferred, and nothing
+          // checks as assignable to a deferred conditional.
           return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>>;
         },
       });
