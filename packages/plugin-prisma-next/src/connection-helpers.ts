@@ -35,10 +35,6 @@ import {
 import { getRefFromContractModel } from './utils/refs.js';
 import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
-/**
- * `[Node]`, not bare `Node`: a naked type parameter distributes over a conditional, and
- * `never` distributes to `never`.
- */
 export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [Node] extends [never]
   ? WrapRow
   : MaybeAbsent extends true
@@ -282,8 +278,6 @@ export function prismaConnectionHelpers<
           if (totalCount !== undefined) {
             (page as { totalCount?: number }).totalCount = totalCount;
           }
-          // A conditional type over an unbound type parameter stays deferred, and nothing
-          // checks as assignable to a deferred conditional.
           return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>>;
         },
       });

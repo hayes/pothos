@@ -252,8 +252,6 @@ function buildSchema() {
         type: DecoratedUser,
         args: decoratedUsers.getArgs(),
         resolve: async (_p, args, _ctx) => {
-          // `info` withheld: the auto-include mapper descends into `edges.node` and
-          // requires that type to be prisma-backed.
           const { collection, wrap } = await decoratedUsers.applyPagination(
             ctx.ormClient.User,
             args,
