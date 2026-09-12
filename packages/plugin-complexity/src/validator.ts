@@ -45,8 +45,6 @@ export function createComplexityRule({
     return {
       OperationDefinition: {
         enter: (node) => {
-          // Each operation in a document is executed on its own, so limits apply per operation
-          // rather than to the document as a whole.
           state = {
             complexity: 0,
             depth: 0,
