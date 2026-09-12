@@ -9,5 +9,5 @@
 - Honor the `name` option when implementing an interface ref
 - Keep heterogeneous TypeScript enum members whose string value happens to name a numeric member
 - Omit arguments removed by `onInputFieldConfig` from the `config.args` passed to resolver wrappers
-- Preserve `specifiedByURL` on imported scalars, and accept it as a `scalarType` option
+- Preserve `specifiedByURL` on imported scalars, and accept it as a `scalarType` option. **This changes the printed schema and introspection**: a scalar imported with `addScalarType` that carries a specification URL (many `graphql-scalars` exports do, such as `EmailAddressResolver`) now prints as `scalar EmailAddress @specifiedBy(url: "…")` and reports that URL through introspection, where both were previously absent. Expect SDL snapshot tests and schema-diff checks to register the addition.
 - Make the no-`Buffer` `encodeBase64`/`decodeBase64` fallback UTF-8 safe, including preserving a leading BOM
