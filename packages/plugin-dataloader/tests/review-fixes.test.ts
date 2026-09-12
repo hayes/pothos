@@ -1,6 +1,67 @@
 import SchemaBuilder from '@pothos/core';
 import { graphql } from 'graphql';
+import { vi } from 'vitest';
 import DataloaderPlugin from '../src';
+
+describe('nested list output', () => {
+  it('loads ids nested inside a list of lists', async () => {
+    const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [DataloaderPlugin] });
+
+    const load = vi.fn(async (ids: number[]) => ids.map((id) => ({ id })));
+
+    const User = builder.loadableObject('User', {
+      load,
+      fields: (t) => ({ id: t.exposeInt('id', { nullable: false }) }),
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        matrix: t.field({
+          type: t.listRef(t.listRef(User)),
+          resolve: () => [[1, 2], [3]],
+        }),
+      }),
+    });
+
+    const result = await graphql({
+      schema: builder.toSchema(),
+      source: '{ matrix { id } }',
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ matrix: [[{ id: 1 }, { id: 2 }], [{ id: 3 }]] });
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(load.mock.calls[0][0]).toEqual([1, 2, 3]);
+  });
+
+  it('loads ids nested inside iterables of iterables', async () => {
+    const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [DataloaderPlugin] });
+
+    const User = builder.loadableObject('User', {
+      load: async (ids: number[]) => ids.map((id) => ({ id })),
+      fields: (t) => ({ id: t.exposeInt('id', { nullable: false }) }),
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        matrix: t.field({
+          type: t.listRef(t.listRef(User)),
+          resolve: () => Promise.resolve(new Set([new Set([1, 2]), new Set([3])])),
+        }),
+      }),
+    });
+
+    const result = await graphql({
+      schema: builder.toSchema(),
+      source: '{ matrix { id } }',
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ matrix: [[{ id: 1 }, { id: 2 }], [{ id: 3 }]] });
+  });
+});
 
 describe('iterable resolver results', () => {
   it('loads ids from an iterable returned by a list field of loadable objects', async () => {

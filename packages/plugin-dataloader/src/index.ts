@@ -4,7 +4,6 @@ import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   isThenable,
-  type MaybePromise,
   type PothosOutputFieldConfig,
   type SchemaTypes,
   unwrapOutputFieldType,
@@ -38,7 +37,10 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    const isList = fieldConfig.type.kind === 'List';
+    let listDepth = 0;
+    for (let type = fieldConfig.type; type.kind === 'List'; type = type.type) {
+      listDepth += 1;
+    }
 
     const config = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
 
@@ -77,26 +79,30 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
       }
     }
 
-    if (isList) {
-      return (parent, args, context, info) => {
-        const loader = getDataloader(context);
-        const promiseOrResults = resolver(parent, args, context, info) as MaybePromise<
-          Iterable<unknown> | null | undefined
-        >;
+    // Follows the list shape the field was configured with, so that ids nested inside lists of
+    // lists are loaded rather than being treated as already loaded results.
+    function loadResults(
+      result: unknown,
+      loader: DataLoader<unknown, unknown>,
+      depth: number,
+    ): unknown {
+      if (depth === 0) {
+        return loadIfID(result, loader);
+      }
 
-        const loadList = (results: Iterable<unknown> | null | undefined) =>
-          results == null ? results : toResolvedList(results).map((item) => loadIfID(item, loader));
+      if (result == null) {
+        return result;
+      }
 
-        if (isThenable(promiseOrResults)) {
-          return promiseOrResults.then(loadList);
-        }
+      if (isThenable(result)) {
+        return result.then((results) => loadResults(results, loader, depth));
+      }
 
-        return loadList(promiseOrResults);
-      };
+      return toResolvedList(result).map((item) => loadResults(item, loader, depth - 1));
     }
 
     return (parent, args, context, info) =>
-      loadIfID(resolver(parent, args, context, info), getDataloader(context));
+      loadResults(resolver(parent, args, context, info), getDataloader(context), listDepth);
   }
 }
 
