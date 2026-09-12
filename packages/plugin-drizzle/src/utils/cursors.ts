@@ -192,7 +192,10 @@ export function parseSerializedIDColumn(id: string, field: Column): unknown {
 
   try {
     if (field.dataType.startsWith('number')) {
-      return Number.parseInt(id, 10);
+      // `Number`, not `parseInt`: a `doublePrecision` ID of `1.75` truncates to `1`, and a large
+      // one written as `1e+21` reads as `1`, so the node looked up is a different row or none.
+      // An integer's digits parse the same either way.
+      return Number(id);
     }
 
     if (field.dataType.startsWith('bigint')) {

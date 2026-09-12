@@ -1,7 +1,15 @@
 import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { type Column, defineRelations } from 'drizzle-orm';
-import { bigint, getTableConfig, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  doublePrecision,
+  getTableConfig,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import DrizzlePlugin from '../src';
 import { getSchemaConfig } from '../src/utils/config';
@@ -12,8 +20,8 @@ import { getIDParser, getIDSerializer } from '../src/utils/cursors';
  * keep parsing back into that same row -- across releases. Two things are pinned here:
  *
  * - every ID shape that already worked keeps its exact bytes (`already issued IDs` below), and
- * - the shapes that could not round trip -- a bigint (which threw) and a Date (which came back
- *   as a string) -- now do.
+ * - the shapes that could not round trip -- a bigint (which threw), a Date (which came back as a
+ *   string) and a non-integer number (which truncated) -- now do.
  */
 const idTest = pgTable('node_id_values', {
   id: integer().primaryKey(),
@@ -21,6 +29,7 @@ const idTest = pgTable('node_id_values', {
   version: integer().notNull(),
   big: bigint({ mode: 'bigint' }).notNull(),
   at: timestamp().notNull(),
+  fraction: doublePrecision().notNull().unique(),
 });
 
 const relations = defineRelations({ idTest });
@@ -73,6 +82,22 @@ describe('compound node IDs', () => {
   it('round trips a Date', () => {
     const fields = [idTest.id, idTest.at];
     const row = { id: 1, at: new Date('2026-01-01T00:00:00.123Z') };
+
+    expect(parse(fields)(serialize(fields)(row))).toEqual(row);
+  });
+});
+
+describe('numeric node IDs', () => {
+  it('round trips a non-integer scalar ID', () => {
+    const fields = [idTest.fraction];
+    const row = { fraction: 1.75 };
+
+    expect(parse(fields)(serialize(fields)(row))).toEqual(row);
+  });
+
+  it('round trips a scalar ID larger than the integer notation', () => {
+    const fields = [idTest.fraction];
+    const row = { fraction: 1e21 };
 
     expect(parse(fields)(serialize(fields)(row))).toEqual(row);
   });
