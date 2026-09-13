@@ -41,9 +41,6 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
     const imported = importedTypes(this.builder);
 
     for (const type of schemaTypes) {
-      // A type reaches this loop already imported when it also appeared in `add.types`, when the
-      // builder imported it directly, or on a second toSchema() call, since field registrations
-      // persist across builds. Merging it again throws a duplicate field error.
       if (imported.has(type)) {
         continue;
       }

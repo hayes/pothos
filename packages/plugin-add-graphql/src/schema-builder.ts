@@ -182,8 +182,6 @@ export function mergeGraphQLObjectFields<Types extends SchemaTypes, Shape>(
     );
   }
 
-  // objectFields would register these as Object fields. Plugins that only act on root fields,
-  // like complexity limits, skip those, so an imported root field would escape them.
   switch (kind) {
     case 'Query':
       target.queryFields(fields);

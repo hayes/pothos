@@ -12,3 +12,11 @@ regular object. Standalone imports and `add: { types }` continue to infer roots 
 `rootKind` is omitted.
 
 Preserve `deprecationReason` on imported input fields.
+
+Merge fields from imported schema roots into configured types with the same name, retaining the
+configured type's description, extensions, and AST metadata. Merged fields use the destination's
+field kind, so root-field plugins apply. Non-root collisions and `add: { types }` behavior are
+unchanged, and repeated schema builds do not merge the same root again.
+
+Imports that previously dropped fields can now fail with duplicate-field errors. Root collisions
+with non-object types or different operation roots also throw, including on subsequent builds.
