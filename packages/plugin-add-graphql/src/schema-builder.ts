@@ -32,6 +32,7 @@ import type {
   AddGraphQLEnumTypeOptions,
   AddGraphQLInputTypeOptions,
   AddGraphQLInterfaceTypeOptions,
+  AddGraphQLObjectFieldsShape,
   AddGraphQLObjectTypeOptions,
   AddGraphQLUnionTypeOptions,
   EnumValuesWithShape,
@@ -112,6 +113,67 @@ function inferRootKind(name: string) {
   return defaultRootNames.find((rootName) => rootName === name);
 }
 
+function resolveObjectFields<Shape>(
+  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  type: GraphQLObjectType<Shape>,
+  fields?: AddGraphQLObjectFieldsShape<SchemaTypes, Shape>,
+) {
+  return (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, Shape>) => {
+    const existingFields = type.getFields();
+    const newFields = fields?.(t) ?? {};
+    const combinedFields: typeof newFields = {
+      ...newFields,
+    };
+
+    for (const [fieldName, field] of Object.entries(existingFields)) {
+      if (newFields[fieldName] !== undefined) {
+        if (newFields[fieldName] === null) {
+          delete combinedFields[fieldName];
+        }
+
+        continue;
+      }
+
+      const args: Record<string, ArgumentRef<SchemaTypes, unknown>> = {};
+
+      for (const { name, ...arg } of field.args) {
+        const input = resolveInputType(builder, arg.type);
+
+        args[name] = t.arg({
+          ...input,
+          description: arg.description ?? undefined,
+          deprecationReason: arg.deprecationReason ?? undefined,
+          defaultValue: arg.defaultValue,
+          extensions: arg.extensions,
+          astNode: arg.astNode ?? undefined,
+        });
+      }
+
+      combinedFields[fieldName] = t.field({
+        ...resolveOutputType(builder, field.type),
+        args,
+        description: field.description ?? undefined,
+        deprecationReason: field.deprecationReason ?? undefined,
+        extensions: field.extensions,
+        astNode: field.astNode ?? undefined,
+        resolve: (field.resolve ?? defaultFieldResolver) as never,
+        ...(field.subscribe ? { subscribe: field.subscribe } : {}),
+      });
+    }
+
+    return combinedFields as {};
+  };
+}
+
+export function mergeGraphQLObjectFields<Types extends SchemaTypes, Shape>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  type: GraphQLObjectType<Shape>,
+) {
+  const target = builder as never as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
+
+  target.objectFields(type.name as never, resolveObjectFields(target, type) as never);
+}
+
 proto.addGraphQLObject = function addGraphQLObject<Shape>(
   type: GraphQLObjectType<Shape>,
   {
@@ -129,51 +191,7 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
     extensions: { ...type.extensions, ...extensions },
     astNode: type.astNode ?? undefined,
     interfaces: () => type.getInterfaces().map((i) => resolveNullableOutputRef(this, i)) as [],
-    fields: (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, Shape>) => {
-      const existingFields = type.getFields();
-      const newFields = fields?.(t) ?? {};
-      const combinedFields: typeof newFields = {
-        ...newFields,
-      };
-
-      for (const [fieldName, field] of Object.entries(existingFields)) {
-        if (newFields[fieldName] !== undefined) {
-          if (newFields[fieldName] === null) {
-            delete combinedFields[fieldName];
-          }
-
-          continue;
-        }
-
-        const args: Record<string, ArgumentRef<SchemaTypes, unknown>> = {};
-
-        for (const { name, ...arg } of field.args) {
-          const input = resolveInputType(this, arg.type);
-
-          args[name] = t.arg({
-            ...input,
-            description: arg.description ?? undefined,
-            deprecationReason: arg.deprecationReason ?? undefined,
-            defaultValue: arg.defaultValue,
-            extensions: arg.extensions,
-            astNode: arg.astNode ?? undefined,
-          });
-        }
-
-        combinedFields[fieldName] = t.field({
-          ...resolveOutputType(this, field.type),
-          args,
-          description: field.description ?? undefined,
-          deprecationReason: field.deprecationReason ?? undefined,
-          extensions: field.extensions,
-          astNode: field.astNode ?? undefined,
-          resolve: (field.resolve ?? defaultFieldResolver) as never,
-          ...(field.subscribe ? { subscribe: field.subscribe } : {}),
-        });
-      }
-
-      return combinedFields as {};
-    },
+    fields: resolveObjectFields(this, type, fields),
   };
 
   const root = rootKind === undefined ? inferRootKind(type.name) : (rootKind ?? undefined);

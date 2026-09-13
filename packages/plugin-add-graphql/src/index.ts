@@ -1,7 +1,8 @@
 import './global-types.js';
 import './schema-builder.js';
 import SchemaBuilder, { BasePlugin, type RootName, type SchemaTypes } from '@pothos/core';
-import { type GraphQLNamedType, GraphQLSchema } from 'graphql';
+import { type GraphQLNamedType, type GraphQLObjectType, GraphQLSchema } from 'graphql';
+import { mergeGraphQLObjectFields } from './schema-builder.js';
 import { addTypeToSchema, isUnintendedRoot } from './utils.js';
 
 const pluginName = 'addGraphQL';
@@ -38,7 +39,11 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
     );
 
     for (const type of schemaTypes) {
-      addTypeToSchema(this.builder, type, rootKinds.get(type) ?? null);
+      if (rootKinds.has(type) && this.builder.configStore.hasConfig(type.name as never)) {
+        mergeGraphQLObjectFields(this.builder, type as GraphQLObjectType);
+      } else {
+        addTypeToSchema(this.builder, type, rootKinds.get(type) ?? null);
+      }
     }
   }
 
