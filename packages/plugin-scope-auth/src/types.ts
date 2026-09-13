@@ -150,7 +150,21 @@ export type ContextForAuth<
   Scopes,
 > = 'any' extends Types['DefaultAuthStrategy']
   ? ContextForAuthUnion<Types, Scopes>
-  : UnionToIntersection<ContextForAuthUnion<Types, Scopes>>;
+  : ContextForAuthAll<Types, Scopes>;
+
+type ContextForAuthAll<Types extends SchemaTypes, Scopes> = Scopes extends (
+  // biome-ignore lint/suspicious/noExplicitAny: this is fine
+  ...args: any[]
+) => infer R
+  ? ContextForAuthAll<Types, R>
+  : '$any' extends keyof Scopes
+    ? IntersectContexts<ContextForAuthUnion<Types, Omit<Scopes, '$any'>>> &
+        ContextForAuthUnion<Types, Scopes['$any' & keyof Scopes]>
+    : UnionToIntersection<ContextForAuthUnion<Types, Scopes>>;
+
+type IntersectContexts<Contexts> = [Contexts] extends [never]
+  ? unknown
+  : UnionToIntersection<Contexts>;
 
 type ContextForAuthUnion<Types extends SchemaTypes, Scopes> = Scopes extends (
   // biome-ignore lint/suspicious/noExplicitAny: this is fine
@@ -165,7 +179,8 @@ type ContextForAuthUnion<Types extends SchemaTypes, Scopes> = Scopes extends (
         : Scope extends '$any'
           ? ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]>
           : Scope extends '$all'
-            ? UnionToIntersection<ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]>>
+            ? // A nested `$any`'s contexts are reported as guaranteed when only one of them holds.
+              UnionToIntersection<ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]>>
             : Types['Context']
       : never;
 
