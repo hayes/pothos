@@ -2,8 +2,10 @@
 "@pothos/plugin-validation": patch
 ---
 
-Run chained input object schemas in declaration order
-Keep chained input type schemas when the input type also sets a `validate` option
-Continue validator chains after a schema successfully transforms a value to `null`
+Run chained input schemas in declaration order, including when an input type also has a
+`validate` option. Continue the chain after a schema transforms a value to `null`.
 
-Behavior change: chaining `.validate()` on an input type that also passes a `validate` option previously dropped the chained schemas entirely. They now run, in declaration order, followed by the options schema — the same order already used for arguments and input fields. Because the options schema runs last, a chained schema that reshapes the value (so the options schema no longer matches the reshaped value) can now fail at runtime where it previously silently returned the options schema's output. Note that `.validate()` re-types the input ref while the `validate` option does not, so TypeScript still describes the value as the last chained schema's output in that case.
+The `validate` option runs after chained `.validate()` schemas, which were previously skipped
+when both were present. A chain that reshapes a value can now fail the options schema. TypeScript
+still describes the last chained schema's output because the `validate` option does not change
+the input ref's type.
