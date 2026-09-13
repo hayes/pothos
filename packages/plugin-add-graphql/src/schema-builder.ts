@@ -42,7 +42,12 @@ import type {
   AddGraphQLUnionTypeOptions,
   EnumValuesWithShape,
 } from './types.js';
-import { addReferencedType, importedRootKinds, importedTypes } from './utils.js';
+import {
+  addReferencedType,
+  importedRootKinds,
+  importedTypes,
+  preserveInputDefault,
+} from './utils.js';
 
 const proto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -144,14 +149,17 @@ function resolveObjectFields<Shape>(
       for (const { name, ...arg } of field.args) {
         const input = resolveInputType(builder, arg.type);
 
-        args[name] = t.arg({
-          ...input,
-          description: arg.description ?? undefined,
-          deprecationReason: arg.deprecationReason ?? undefined,
-          defaultValue: arg.defaultValue,
-          extensions: arg.extensions,
-          astNode: arg.astNode ?? undefined,
-        });
+        args[name] = preserveInputDefault(
+          t.arg({
+            ...input,
+            description: arg.description ?? undefined,
+            deprecationReason: arg.deprecationReason ?? undefined,
+            defaultValue: arg.defaultValue,
+            extensions: arg.extensions,
+            astNode: arg.astNode ?? undefined,
+          }),
+          arg,
+        );
       }
 
       combinedFields[fieldName] = t.field({
@@ -291,14 +299,17 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
         const args: Record<string, ArgumentRef<SchemaTypes, unknown>> = {};
 
         for (const { name, ...arg } of field.args) {
-          args[name] = t.arg({
-            ...resolveInputType(this, arg.type),
-            description: arg.description ?? undefined,
-            deprecationReason: arg.deprecationReason ?? undefined,
-            defaultValue: arg.defaultValue,
-            extensions: arg.extensions,
-            astNode: arg.astNode ?? undefined,
-          });
+          args[name] = preserveInputDefault(
+            t.arg({
+              ...resolveInputType(this, arg.type),
+              description: arg.description ?? undefined,
+              deprecationReason: arg.deprecationReason ?? undefined,
+              defaultValue: arg.defaultValue,
+              extensions: arg.extensions,
+              astNode: arg.astNode ?? undefined,
+            }),
+            arg,
+          );
         }
 
         combinedFields[fieldName] = t.field({
@@ -410,14 +421,17 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
           continue;
         }
 
-        combinedFields[fieldName] = t.field({
-          ...resolveInputType(this, field.type),
-          description: field.description ?? undefined,
-          deprecationReason: field.deprecationReason ?? undefined,
-          defaultValue: field.defaultValue,
-          extensions: field.extensions,
-          astNode: field.astNode ?? undefined,
-        });
+        combinedFields[fieldName] = preserveInputDefault(
+          t.field({
+            ...resolveInputType(this, field.type),
+            description: field.description ?? undefined,
+            deprecationReason: field.deprecationReason ?? undefined,
+            defaultValue: field.defaultValue,
+            extensions: field.extensions,
+            astNode: field.astNode ?? undefined,
+          }),
+          field,
+        );
       }
 
       return combinedFields as never;
