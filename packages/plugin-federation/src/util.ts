@@ -39,7 +39,14 @@ export function mergeDirectives(
     return [...existing, ...add];
   }
 
-  return [...Object.keys(existing).map((name) => ({ name, args: existing[name] })), ...add];
+  return [
+    ...Object.entries(existing).flatMap(([name, args]) =>
+      Array.isArray(args)
+        ? (args as object[]).map((entry) => ({ name, args: entry }))
+        : [{ name, args }],
+    ),
+    ...add,
+  ];
 }
 
 export const entityMapping = new WeakMap<
