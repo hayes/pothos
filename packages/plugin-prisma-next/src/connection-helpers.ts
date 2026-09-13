@@ -35,10 +35,24 @@ import {
 import { getRefFromContractModel } from './utils/refs.js';
 import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
+export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [Node] extends [never]
+  ? WrapRow
+  : MaybeAbsent extends true
+    ? Node | WrapRow
+    : Node;
+
+export type ConnectionWrapRows<Types extends SchemaTypes, M extends ModelName<Types>, Node> = [
+  Node,
+] extends [never]
+  ? Record<string, unknown>
+  : Row<Types, M>;
+
 export interface PrismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   Args extends InputFieldMap = {},
+  Node = never,
+  MaybeAbsent extends boolean = false,
 > {
   ref: PrismaNextObjectRef<Types, M>;
   /**
@@ -57,13 +71,58 @@ export interface PrismaConnectionHelpers<
   ): MaybePromise<{
     collection: CollectionFor<Types, M>;
     totalCountPromise: Promise<number> | undefined;
-    wrap<WrapRow extends Record<string, unknown>>(
+    wrap<WrapRow extends ConnectionWrapRows<Types, M, Node>>(
       rows: readonly WrapRow[],
       totalCount?: number,
-    ): ConnectionPage<WrapRow>;
+    ): ConnectionPage<ConnectionNodeShape<Node, WrapRow, MaybeAbsent>>;
   }>;
   getArgs(): Args;
   connectionOptions<T extends object>(connectionOptions: T): T;
+}
+
+export interface PrismaConnectionHelperOptions<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Cursor extends CursorSpec<Types, M>,
+  Args extends InputFieldMap,
+> {
+  cursor: Cursor;
+  args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
+  defaultSize?:
+    | number
+    | ((
+        args: import('@pothos/plugin-relay').DefaultConnectionArguments,
+        ctx: Types['Context'],
+      ) => number);
+  maxSize?:
+    | number
+    | ((
+        args: import('@pothos/plugin-relay').DefaultConnectionArguments,
+        ctx: Types['Context'],
+      ) => number);
+  totalCount?:
+    | boolean
+    | ((
+        args: InputShapeFromFields<Args> &
+          import('@pothos/plugin-relay').DefaultConnectionArguments,
+        ctx: Types['Context'],
+        info: GraphQLResolveInfo | undefined,
+      ) => MaybePromise<number>);
+  where?:
+    | import('@prisma/orm-family-sql/orm-client').ShorthandWhereFilter<
+        Types['PrismaNextContract'],
+        NamespaceOf<Types, M>,
+        M
+      >
+    | ((
+        accessor: import('@prisma/orm-family-sql/orm-client').ModelAccessor<
+          Types['PrismaNextContract'],
+          M
+        >,
+        args: InputShapeFromFields<Args> &
+          import('@pothos/plugin-relay').DefaultConnectionArguments,
+        ctx: Types['Context'],
+      ) => unknown);
 }
 
 export function prismaConnectionHelpers<
@@ -71,50 +130,42 @@ export function prismaConnectionHelpers<
   M extends ModelName<Types>,
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap = {},
+  Node = never,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   modelName: M,
-  options: {
-    cursor: Cursor;
-    args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
-    defaultSize?:
-      | number
-      | ((
-          args: import('@pothos/plugin-relay').DefaultConnectionArguments,
-          ctx: Types['Context'],
-        ) => number);
-    maxSize?:
-      | number
-      | ((
-          args: import('@pothos/plugin-relay').DefaultConnectionArguments,
-          ctx: Types['Context'],
-        ) => number);
-    totalCount?:
-      | boolean
-      | ((
-          args: InputShapeFromFields<Args> &
-            import('@pothos/plugin-relay').DefaultConnectionArguments,
-          ctx: Types['Context'],
-          info: GraphQLResolveInfo | undefined,
-        ) => MaybePromise<number>);
-    where?:
-      | import('@prisma/orm-family-sql/orm-client').ShorthandWhereFilter<
-          Types['PrismaNextContract'],
-          NamespaceOf<Types, M>,
-          M
-        >
-      | ((
-          accessor: import('@prisma/orm-family-sql/orm-client').ModelAccessor<
-            Types['PrismaNextContract'],
-            M
-          >,
-          args: InputShapeFromFields<Args> &
-            import('@pothos/plugin-relay').DefaultConnectionArguments,
-          ctx: Types['Context'],
-        ) => unknown);
-    resolveNode?: (edge: Row<Types, M>) => unknown;
+  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
+    resolveNode: (edge: Row<Types, M>) => Node;
   },
-): PrismaConnectionHelpers<Types, M, Args> {
+): PrismaConnectionHelpers<Types, M, Args, Node, false>;
+
+export function prismaConnectionHelpers<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Cursor extends CursorSpec<Types, M>,
+  Args extends InputFieldMap = {},
+  Node = never,
+>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  modelName: M,
+  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
+    resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
+  },
+): PrismaConnectionHelpers<Types, M, Args, Node, true>;
+
+export function prismaConnectionHelpers<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Cursor extends CursorSpec<Types, M>,
+  Args extends InputFieldMap = {},
+  Node = never,
+>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  modelName: M,
+  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
+    resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
+  },
+): PrismaConnectionHelpers<Types, M, Args, Node, boolean> {
   const ref = getRefFromContractModel<Types, M>(modelName, builder);
 
   // `options.args` may be a literal or a thunk `(t) => argMap`; resolve
@@ -211,10 +262,10 @@ export function prismaConnectionHelpers<
         get totalCountPromise() {
           return getTotalCountPromise();
         },
-        wrap<WrapRow extends Record<string, unknown>>(
+        wrap<WrapRow extends ConnectionWrapRows<Types, M, Node>>(
           rows: readonly WrapRow[],
           totalCount?: number,
-        ): ConnectionPage<WrapRow> {
+        ): ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>> {
           const page = buildConnectionPage(rows, pagination);
           // Apply resolveNode after buildConnectionPage so the cursor
           // encoder still sees the original row columns.
@@ -227,7 +278,7 @@ export function prismaConnectionHelpers<
           if (totalCount !== undefined) {
             (page as { totalCount?: number }).totalCount = totalCount;
           }
-          return page;
+          return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>>;
         },
       });
 

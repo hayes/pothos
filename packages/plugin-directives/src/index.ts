@@ -15,6 +15,20 @@ export * from './types.js';
 
 const pluginName = 'directives';
 
+function toDirectiveList(directives: DirectiveList | Record<string, object>): DirectiveList {
+  if (Array.isArray(directives)) {
+    return directives;
+  }
+
+  return Object.keys(directives).flatMap((name) => {
+    const args = directives[name];
+
+    return Array.isArray(args)
+      ? (args as object[]).map((entry) => ({ name, args: entry }))
+      : [{ name, args }];
+  });
+}
+
 export default pluginName;
 export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
@@ -125,14 +139,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
       return left || right;
     }
 
-    return [
-      ...(Array.isArray(left)
-        ? left
-        : Object.keys(left).map((name) => ({ name, args: left[name] }))),
-      ...(Array.isArray(right)
-        ? right
-        : Object.keys(right).map((name) => ({ name, args: right[name] }))),
-    ];
+    return [...toDirectiveList(left), ...toDirectiveList(right)];
   }
 
   normalizeDirectives(directives: DirectiveList | Record<string, object>) {
@@ -141,22 +148,22 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
         return directives;
       }
 
-      return directives.reduce<Record<string, {}[]>>((obj, directive) => {
-        if (obj[directive.name]) {
-          obj[directive.name].push(directive.args ?? {});
+      const byName = new Map<string, {}[]>();
+
+      for (const directive of directives) {
+        const args = byName.get(directive.name);
+
+        if (args) {
+          args.push(directive.args ?? {});
         } else {
-          obj[directive.name] = [directive.args ?? {}];
+          byName.set(directive.name, [directive.args ?? {}]);
         }
+      }
 
-        return obj;
-      }, {});
+      return Object.fromEntries(byName);
     }
 
-    if (Array.isArray(directives)) {
-      return directives;
-    }
-
-    return Object.keys(directives).map((name) => ({ name, args: directives[name] }));
+    return toDirectiveList(directives);
   }
 }
 

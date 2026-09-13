@@ -39,9 +39,7 @@ export function complexityFromQuery(
     {},
   );
 
-  const rootType = options.schema.getType(
-    operation.operation.slice(0, 1).toUpperCase() + operation.operation.slice(1),
-  );
+  const rootType = options.schema.getRootType(operation.operation);
 
   if (!rootType) {
     throw new PothosValidationError(`No root type found for operation ${operation.operation}`);

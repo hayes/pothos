@@ -93,14 +93,10 @@ function complexityFromField(
 }
 
 export function calculateComplexity(ctx: object, info: GraphQLResolveInfo) {
-  const operationName = `${info.operation.operation
-    .slice(0, 1)
-    .toUpperCase()}${info.operation.operation.slice(1)}`;
-
-  const operationType = info.schema.getType(operationName);
+  const operationType = info.schema.getRootType(info.operation.operation);
 
   if (!operationType || !isOutputType(operationType)) {
-    throw new PothosValidationError(`Unsupported operation ${operationName}`);
+    throw new PothosValidationError(`Unsupported operation ${info.operation.operation}`);
   }
 
   return complexityFromSelectionSet(ctx, info, info.operation.selectionSet, operationType);

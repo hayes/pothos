@@ -202,8 +202,22 @@ export default class SubscriptionManager implements AsyncIterator<object> {
       this.resolveNext(true);
     }
 
+    const errors: unknown[] = [];
+
     for (const name of names) {
-      await this.unsubscribeFromName(name);
+      try {
+        await this.unsubscribeFromName(name);
+      } catch (error: unknown) {
+        errors.push(error);
+      }
+    }
+
+    if (errors.length === 1) {
+      throw errors[0];
+    }
+
+    if (errors.length > 1) {
+      throw new AggregateError(errors, 'Failed to unsubscribe from some subscriptions');
     }
   }
 

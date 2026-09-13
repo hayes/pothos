@@ -126,6 +126,10 @@ builder.prismaObjectField(adminUserRef, 'displayName', (t) =>
 );
 ```
 
+A ref hands the resolver the parent shape that ref declared; the string form
+can't see it, so its parent carries only what this field's own `select`
+declared. Either way, `select` is what loads the column.
+
 If only a variant is registered for a model and you try to reference the
 default (e.g. by passing the model name string to `t.relation('user')`
 from somewhere else), the schema build fails with an "unresolved

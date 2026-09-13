@@ -35,8 +35,26 @@ export const defaultGetListItemResultName: GetTypeName = ({ parentTypeName, fiel
 export const defaultGetListItemUnionName: GetTypeName = ({ parentTypeName, fieldName }) =>
   `${parentTypeName}${capitalize(fieldName)}ItemResult`;
 
+function createProxyTarget(target: {}): {} {
+  if (Object.isExtensible(target)) {
+    return target;
+  }
+
+  const copy = Object.create(Object.getPrototypeOf(target) as object | null) as {};
+
+  for (const key of Reflect.ownKeys(target)) {
+    const descriptor = Object.getOwnPropertyDescriptor(target, key);
+
+    if (descriptor) {
+      Object.defineProperty(copy, key, { ...descriptor, configurable: true });
+    }
+  }
+
+  return copy;
+}
+
 export function createErrorProxy(target: {}, ref: unknown, state: { wrapped: boolean }): {} {
-  return new Proxy(target, {
+  return new Proxy(createProxyTarget(target), {
     get(err, val, receiver) {
       if (val === unwrapError) {
         return () => {
@@ -98,25 +116,62 @@ export function wrapErrorIfMatches(
   return value;
 }
 
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return (
+    ((typeof value === 'object' && value !== null) || typeof value === 'function') &&
+    typeof (value as PromiseLike<unknown>).then === 'function'
+  );
+}
+
+function isNestedList(item: unknown): item is Iterable<unknown> {
+  return (
+    item !== null && typeof item === 'object' && !(item instanceof Error) && Symbol.iterator in item
+  );
+}
+
+function wrapItem(
+  item: unknown,
+  pothosErrors: (new (...args: never[]) => unknown)[],
+  onResolvedError?: (error: Error) => void,
+  depth = 0,
+): unknown {
+  if (depth > 0) {
+    return isNestedList(item)
+      ? [...yieldErrors(item, pothosErrors, onResolvedError, depth - 1)]
+      : item;
+  }
+
+  return wrapErrorIfMatches(item, pothosErrors, onResolvedError);
+}
+
 export function* yieldErrors(
   result: Iterable<unknown>,
   pothosErrors: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
+  depth = 0,
 ): Generator<unknown> {
   try {
     for (const item of result) {
-      if (
-        item !== null &&
-        typeof item === 'object' &&
-        !(item instanceof Error) &&
-        Symbol.iterator in item
-      ) {
-        yield [...yieldErrors(item as Iterable<unknown>, pothosErrors, onResolvedError)];
+      if (isThenable(item)) {
+        yield Promise.resolve(item).then(
+          (value) => wrapItem(value, pothosErrors, onResolvedError, depth),
+          (error: unknown) => {
+            if (depth > 0) {
+              throw error;
+            }
+
+            return wrapOrThrow(error, pothosErrors, onResolvedError);
+          },
+        );
       } else {
-        yield wrapErrorIfMatches(item, pothosErrors, onResolvedError);
+        yield wrapItem(item, pothosErrors, onResolvedError, depth);
       }
     }
   } catch (error: unknown) {
+    if (depth > 0) {
+      throw error;
+    }
+
     yield wrapOrThrow(error, pothosErrors, onResolvedError);
   }
 }
@@ -125,10 +180,12 @@ export async function* yieldAsyncErrors(
   result: AsyncIterable<unknown>,
   pothosErrors: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
+  depth = 0,
 ): AsyncGenerator<unknown> {
   try {
     for await (const item of result) {
       if (
+        depth > 0 &&
         item !== null &&
         typeof item === 'object' &&
         !(item instanceof Error) &&
@@ -139,22 +196,20 @@ export async function* yieldAsyncErrors(
           item as AsyncIterable<unknown>,
           pothosErrors,
           onResolvedError,
+          depth - 1,
         )) {
           nestedResults.push(nested);
         }
         yield nestedResults;
-      } else if (
-        item !== null &&
-        typeof item === 'object' &&
-        !(item instanceof Error) &&
-        Symbol.iterator in item
-      ) {
-        yield [...yieldErrors(item as Iterable<unknown>, pothosErrors, onResolvedError)];
       } else {
-        yield wrapErrorIfMatches(item, pothosErrors, onResolvedError);
+        yield wrapItem(item, pothosErrors, onResolvedError, depth);
       }
     }
   } catch (error: unknown) {
+    if (depth > 0) {
+      throw error;
+    }
+
     yield wrapOrThrow(error, pothosErrors, onResolvedError);
   }
 }

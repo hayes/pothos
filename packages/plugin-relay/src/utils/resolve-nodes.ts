@@ -19,7 +19,7 @@ export async function resolveNodes<Types extends SchemaTypes>(
   globalIDs: ({ id: unknown; typename: string } | null | undefined)[],
 ): Promise<MaybePromise<unknown>[]> {
   const requestCache = getRequestCache(context);
-  const idsByType: Record<string, Set<unknown>> = {};
+  const idsByType = new Map<string, Set<unknown>>();
   const results: Record<string, MaybePromise<unknown>> = {};
 
   for (const globalID of globalIDs) {
@@ -35,13 +35,19 @@ export async function resolveNodes<Types extends SchemaTypes>(
       continue;
     }
 
-    idsByType[typename] = idsByType[typename] ?? new Set();
-    idsByType[typename].add(id);
+    let idsForType = idsByType.get(typename);
+
+    if (!idsForType) {
+      idsForType = new Set();
+      idsByType.set(typename, idsForType);
+    }
+
+    idsForType.add(id);
   }
 
   await Promise.all(
-    Object.keys(idsByType).map(async (typename) => {
-      const ids = [...idsByType[typename]];
+    [...idsByType].map(async ([typename, idsForType]) => {
+      const ids = [...idsForType];
 
       const config = builder.configStore.getTypeConfig(typename, 'Object');
       const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, []>;

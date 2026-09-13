@@ -60,6 +60,33 @@ export function formatIDChunk(value: unknown) {
   }
 }
 
+function formatCompoundIDValue(value: unknown) {
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
+
+  if (value instanceof Date) {
+    return Number(value);
+  }
+
+  return value;
+}
+
+function parseCompoundIDValue(value: unknown, field: Column) {
+  if (
+    field.dataType.startsWith('bigint') &&
+    (typeof value === 'string' || typeof value === 'number')
+  ) {
+    return BigInt(value);
+  }
+
+  if (field.dataType === 'object date' && typeof value === 'number') {
+    return new Date(value);
+  }
+
+  return value;
+}
+
 export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaConfig) {
   if (fields.length === 0) {
     throw new PothosValidationError('Column serializer must have at least one field');
@@ -67,7 +94,9 @@ export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaCon
 
   return (value: Record<string, unknown>) => {
     if (fields.length > 1) {
-      return `${JSON.stringify(fields.map((col) => value[config.columnToTsName(col)]))}`;
+      return `${JSON.stringify(
+        fields.map((col) => formatCompoundIDValue(value[config.columnToTsName(col)])),
+      )}`;
     }
 
     return `${formatIDChunk(value[config.columnToTsName(fields[0])])}`;
@@ -155,7 +184,7 @@ export function parseSerializedIDColumn(id: string, field: Column): unknown {
 
   try {
     if (field.dataType.startsWith('number')) {
-      return Number.parseInt(id, 10);
+      return Number(id);
     }
 
     if (field.dataType.startsWith('bigint')) {
@@ -212,7 +241,7 @@ export function getIDParser(fields: readonly Column[], config: PothosDrizzleSche
       const record: Record<string, unknown> = {};
 
       fields.forEach((field, i) => {
-        record[config.columnToTsName(field)] = parsed[i];
+        record[config.columnToTsName(field)] = parseCompoundIDValue(parsed[i], field);
       });
 
       return record;

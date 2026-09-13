@@ -36,6 +36,19 @@ interface ResolveArrayConnectionOptions {
   maxSize?: number;
 }
 
+type IsAny<T> = 0 extends 1 & T ? true : false;
+
+type ConnectionNullability<U> =
+  IsAny<U> extends true
+    ? never
+    : IsAny<Awaited<U>> extends true
+      ? never
+      : U extends NonNullable<U>
+        ? Promise<null> extends U
+          ? null
+          : never
+        : null;
+
 const OFFSET_CURSOR_PREFIX = 'OffsetConnection:';
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
@@ -56,12 +69,11 @@ export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
     throw new PothosValidationError('Argument "last" must be a non-negative integer');
   }
 
+  const endOfCollection =
+    options.totalCount != null ? Math.max(options.totalCount, 0) : Number.POSITIVE_INFINITY;
+
   let startOffset = after ? afterOffset + 1 : 0;
-  let endOffset = before
-    ? Math.max(beforeOffset, startOffset)
-    : options.totalCount != null
-      ? Math.max(options.totalCount, 0)
-      : Number.POSITIVE_INFINITY;
+  let endOffset = Math.max(Math.min(beforeOffset, endOfCollection), startOffset);
 
   if (first != null) {
     endOffset = Math.min(endOffset, startOffset + first);
@@ -72,7 +84,7 @@ export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
         'Argument "last" can only be used in combination with "before" or "first"',
       );
     }
-    startOffset = Math.max(startOffset, endOffset - last);
+    startOffset = Math.max(startOffset, endOffset - Math.min(last, maxSize));
   }
 
   const size = first == null && last == null ? defaultSize : endOffset - startOffset;
@@ -101,15 +113,16 @@ export async function resolveOffsetConnection<
     limit: number;
   }) => U & (MaybePromise<readonly T[] | null> | null),
 ): Promise<
-  Merge<
-    ArrayConnectionShape<
-      SchemaTypes,
-      NonNullable<T>,
-      U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true,
-      T extends NonNullable<T> ? false : { list: false; items: true },
-      false
-    > & { totalCount: C }
-  >
+  | Merge<
+      ArrayConnectionShape<
+        SchemaTypes,
+        NonNullable<T>,
+        false,
+        T extends NonNullable<T> ? false : { list: false; items: true },
+        false
+      > & { totalCount: C }
+    >
+  | ConnectionNullability<U>
 > {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
 
@@ -200,14 +213,19 @@ export function resolveArrayConnection<T>(
 
 export { parseCursorConnectionArgs } from '@pothos/core';
 
-type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
+type NodeType<T> = T extends readonly (infer N)[] | Promise<readonly (infer N)[] | null>
+  ? N
+  : never;
 
 export async function resolveCursorConnection<
   U extends Promise<readonly unknown[] | null> | readonly unknown[] | null,
 >(
   options: ResolveCursorConnectionOptions<NodeType<U>>,
   resolve: (params: ResolveCursorConnectionArgs) => U,
-): Promise<Merge<ArrayConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>> {
+): Promise<
+  | Merge<ArrayConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>
+  | ConnectionNullability<U>
+> {
   const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } =
     parseCursorConnectionArgs(options);
 

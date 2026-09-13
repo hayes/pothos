@@ -135,6 +135,7 @@ schemaBuilderProto.loadableUnion = function loadableUnion<
   const unionRef = this.unionType(name, {
     ...options,
     extensions: {
+      ...options.extensions,
       getDataloader,
       cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,
     },

@@ -163,7 +163,10 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
     extensions: schema.extensions,
     directives: schema.getDirectives(),
     extensionASTNodes: schema.extensionASTNodes,
-    types: [...Object.values(types).filter((type) => type.name !== 'Query'), newQuery],
+    types: [
+      ...Object.values(types).filter((type) => type !== queryType && type.name !== newQuery.name),
+      newQuery,
+    ],
   });
 
   const sorted = lexicographicSortSchema(subGraphSchema);

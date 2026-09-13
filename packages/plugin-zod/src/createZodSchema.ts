@@ -3,6 +3,7 @@ import * as zod from 'zod';
 import type {
   ArrayValidationOptions,
   BaseValidationOptions,
+  Constraint,
   NumberValidationOptions,
   RefineConstraint,
   StringValidationOptions,
@@ -100,17 +101,45 @@ export function refine(
     return validator;
   }
 
-  if (typeof options.refine === 'function') {
-    return validator.refine(options.refine as () => boolean);
+  return normalizeRefinements(options.refine as RefineConstraint).reduce(
+    (prev, [refineFn, opts]) => prev.refine(refineFn, opts),
+    validator,
+  );
+}
+
+type RefineFn = () => boolean;
+type RefineTuple = [refine: RefineFn, options?: { message?: string; path?: string[] }];
+
+function isRefineTuple(refine: unknown[]): refine is RefineTuple {
+  if (typeof refine[0] !== 'function') {
+    return false;
   }
 
-  if (typeof options.refine?.[0] === 'function') {
-    return validator.refine(...(options.refine as [() => boolean, { message?: string }]));
+  return (
+    refine.length < 2 ||
+    (refine.length === 2 &&
+      typeof refine[1] === 'object' &&
+      refine[1] !== null &&
+      !Array.isArray(refine[1]))
+  );
+}
+
+function normalizeRefinements(refine: RefineConstraint): RefineTuple[] {
+  if (typeof refine === 'function') {
+    return [[refine as RefineFn]];
   }
 
-  const refinements = options.refine as [() => boolean, { message?: string }][];
+  if (isRefineTuple(refine)) {
+    return [refine];
+  }
 
-  return refinements.reduce((prev, [refineFn, opts]) => prev.refine(refineFn, opts), validator);
+  return (refine as (RefineFn | RefineTuple)[]).map((constraint) =>
+    typeof constraint === 'function' ? [constraint] : constraint,
+  );
+}
+
+function isFlagEnabled(constraint: Constraint<boolean> | undefined): boolean {
+  return Array.isArray(constraint) ? constraint[0] : !!constraint;
 }
 
 export const createNumberValidator = validatorCreator(
@@ -119,13 +148,13 @@ export const createNumberValidator = validatorCreator(
   (options: NumberValidationOptions) => {
     let validator = zod.number();
 
-    if (options.min) {
+    if (options.min !== undefined) {
       validator = Array.isArray(options.min)
         ? validator.min(Number(options.min[0]), options.min[1])
         : validator.min(Number(options.min));
     }
 
-    if (options.max) {
+    if (options.max !== undefined) {
       validator = Array.isArray(options.max)
         ? validator.max(Number(options.max[0]), options.max[1])
         : validator.max(Number(options.max));
@@ -140,9 +169,10 @@ export const createNumberValidator = validatorCreator(
     ] as const;
 
     for (const constraint of booleanConstraints) {
-      if (options[constraint]) {
-        const value = options[constraint];
-        validator = validator[constraint](Array.isArray(value) ? value[1] : {});
+      const value = options[constraint];
+
+      if (isFlagEnabled(value)) {
+        validator = validator[constraint](Array.isArray(value) ? (value[1] ?? {}) : {});
       }
     }
 
@@ -174,13 +204,13 @@ export const createStringValidator = validatorCreator(
         : validator.length(options.length);
     }
 
-    if (options.minLength) {
+    if (options.minLength !== undefined) {
       validator = Array.isArray(options.minLength)
         ? validator.min(options.minLength[0], options.minLength[1])
         : validator.min(options.minLength);
     }
 
-    if (options.maxLength) {
+    if (options.maxLength !== undefined) {
       validator = Array.isArray(options.maxLength)
         ? validator.max(options.maxLength[0], options.maxLength[1])
         : validator.max(options.maxLength);
@@ -195,10 +225,10 @@ export const createStringValidator = validatorCreator(
     const booleanConstraints = ['email', 'url', 'uuid'] as const;
 
     for (const constraint of booleanConstraints) {
-      if (options[constraint]) {
-        const value = options[constraint];
+      const value = options[constraint];
 
-        validator = validator[constraint](Array.isArray(value) ? value[1] : {});
+      if (isFlagEnabled(value)) {
+        validator = validator[constraint](Array.isArray(value) ? (value[1] ?? {}) : {});
       }
     }
 
@@ -232,13 +262,13 @@ export function createArrayValidator(
       : validator.length(options.length);
   }
 
-  if (options.minLength) {
+  if (options.minLength !== undefined) {
     validator = Array.isArray(options.minLength)
       ? validator.min(options.minLength[0], options.minLength[1])
       : validator.min(options.minLength);
   }
 
-  if (options.maxLength) {
+  if (options.maxLength !== undefined) {
     validator = Array.isArray(options.maxLength)
       ? validator.max(options.maxLength[0], options.maxLength[1])
       : validator.max(options.maxLength);

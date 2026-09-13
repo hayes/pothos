@@ -11,6 +11,7 @@ import SchemaBuilder, {
   type ObjectParam,
   type ObjectRef,
   type OutputType,
+  type RootName,
   type SchemaTypes,
   type TypeParam,
 } from '@pothos/core';
@@ -35,7 +36,7 @@ import type {
   AddGraphQLUnionTypeOptions,
   EnumValuesWithShape,
 } from './types.js';
-import { addReferencedType } from './utils.js';
+import { addReferencedType, importedRootKinds } from './utils.js';
 
 const proto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -105,10 +106,22 @@ function resolveInputType(
   };
 }
 
+const defaultRootNames: RootName[] = ['Query', 'Mutation', 'Subscription'];
+
+function inferRootKind(name: string) {
+  return defaultRootNames.find((rootName) => rootName === name);
+}
+
 proto.addGraphQLObject = function addGraphQLObject<Shape>(
   type: GraphQLObjectType<Shape>,
-  { fields, extensions, ...options }: AddGraphQLObjectTypeOptions<SchemaTypes, Shape> = {},
+  {
+    fields,
+    extensions,
+    rootKind,
+    ...options
+  }: AddGraphQLObjectTypeOptions<SchemaTypes, Shape> = {},
 ) {
+  const name = options.name ?? type.name;
   const typeOptions = {
     ...options,
     description: type.description ?? undefined,
@@ -163,18 +176,24 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
     },
   };
 
-  switch (type.name) {
+  const root = rootKind === undefined ? inferRootKind(type.name) : (rootKind ?? undefined);
+
+  if (rootKind !== undefined) {
+    importedRootKinds(this).set(name, rootKind);
+  }
+
+  switch (root) {
     case 'Query':
-      this.queryType(typeOptions as never);
-      return 'Query' as never;
+      this.queryType({ ...typeOptions, name } as never);
+      return name as never;
     case 'Mutation':
-      this.mutationType(typeOptions as never);
-      return 'Mutation' as never;
+      this.mutationType({ ...typeOptions, name } as never);
+      return name as never;
     case 'Subscription':
-      this.subscriptionType(typeOptions as never);
-      return 'Subscription' as never;
+      this.subscriptionType({ ...typeOptions, name } as never);
+      return name as never;
     default:
-      return this.objectRef<Shape>(options?.name ?? type.name).implement(typeOptions as never);
+      return this.objectRef<Shape>(name).implement(typeOptions as never);
   }
 };
 
@@ -332,6 +351,7 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
         combinedFields[fieldName] = t.field({
           ...resolveInputType(this, field.type),
           description: field.description ?? undefined,
+          deprecationReason: field.deprecationReason ?? undefined,
           defaultValue: field.defaultValue,
           extensions: field.extensions,
           astNode: field.astNode ?? undefined,

@@ -45,7 +45,7 @@ declare global {
       ) => InputObjectRef<
         Types,
         {
-          [K in Ops extends string[] ? Ops[number] : keyof Ops]: InputShapeFromTypeParam<
+          [K in Ops extends readonly string[] ? Ops[number] : keyof Ops]?: InputShapeFromTypeParam<
             Types,
             Type,
             true

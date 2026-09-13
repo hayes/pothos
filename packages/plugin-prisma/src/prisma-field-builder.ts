@@ -12,12 +12,18 @@ import {
   type NormalizeArgs,
   ObjectRef,
   type PluginName,
+  PothosSchemaError,
+  PothosValidationError,
   RootFieldBuilder,
   type SchemaTypes,
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import { type SelectedFieldNode, selectedFieldNames } from '@pothos/selection-mapper';
+import {
+  type IndirectPathSegment,
+  type SelectedFieldNode,
+  selectedFieldNames,
+} from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaRef } from './interface-ref.js';
 import { ModelLoader } from './model-loader.js';
@@ -38,10 +44,17 @@ import {
   prismaCursorConnectionQuery,
   wrapConnectionResult,
 } from './util/cursors.js';
-import { getRefFromModel, getRelation } from './util/datamodel.js';
+import { getDelegateFromModel, getRefFromModel, getRelation } from './util/datamodel.js';
 import { getFieldDescription } from './util/description.js';
+import { getClient } from './util/get-client.js';
+import type { FallbackPlanRecipe } from './util/map-query.js';
 
 import type { FieldMap } from './util/relation-map.js';
+
+const CONNECTION_NODE_PATHS: IndirectPathSegment[][] = [
+  [{ name: 'nodes' }],
+  [{ name: 'edges' }, { name: 'node' }],
+];
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -294,7 +307,7 @@ export class PrismaObjectFieldBuilder<
       // A maybe-promise query starts the nested plan now; its merge waits for the query.
       const nested = nestedQuery(getQuery(args, context), {
         getType: () => typeName!,
-        paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
+        paths: CONNECTION_NODE_PATHS,
       }) as MaybePromise<SelectionMap>;
 
       const { hasTotalCount, totalCountOnly } = connectionSelectionFromNames(getSelection());
@@ -320,19 +333,85 @@ export class PrismaObjectFieldBuilder<
         (parent as { _count?: Record<string, number> })._count?.[name],
       );
 
+    const totalCountFromParent = (
+      connectionQuery: { where?: {} },
+      parent: unknown,
+      context: {},
+      loaderCache: ((model: unknown) => ModelLoader) | undefined,
+      info: GraphQLResolveInfo,
+    ) => {
+      const field = `${info.parentType.name}.${info.fieldName}`;
+      const loader = loaderCache?.(context);
+
+      if (!loader) {
+        throw new PothosSchemaError(
+          `Unable to load totalCount for ${field}: no loader for the parent type`,
+        );
+      }
+
+      const countSelect =
+        this.builder.options.prisma.filterConnectionTotalCount !== false && connectionQuery.where
+          ? { where: connectionQuery.where }
+          : true;
+
+      return Promise.resolve(
+        getDelegateFromModel(
+          getClient(this.builder, context as never),
+          loader.modelName,
+        ).findUnique({
+          where: loader.findUnique(parent as Record<string, unknown>, context) as never,
+          select: { _count: { select: { [name]: countSelect } } },
+        } as never) as PromiseLike<{ _count?: Record<string, number> } | null>,
+      ).then((row) => {
+        const count = row?._count?.[name];
+
+        if (count === undefined) {
+          throw new PothosValidationError(
+            `Unable to load totalCount for ${field}: no ${loader.modelName} row matches the parent this connection resolved from`,
+          );
+        }
+
+        return count;
+      });
+    };
+
     const resolveFallback =
       resolve &&
       ((
-        connectionQuery: {},
-        q: { take: number },
+        connectionQuery: { take: number; where?: {} },
+        q: {},
         parent: unknown,
         args: PothosSchemaTypes.DefaultConnectionArguments,
         context: {},
         info: GraphQLResolveInfo,
-      ) =>
-        Promise.resolve(
-          resolve({ ...q, ...connectionQuery } as never, parent, args, context, info),
-        ).then((result) => wrapConnectionResult(parent, result, args, q.take, formatCursor)));
+        loaderCache: ((model: unknown) => ModelLoader) | undefined,
+      ) => {
+        const { hasTotalCount, totalCountOnly } = connectionSelection(context, info);
+
+        return Promise.all([
+          totalCountOnly
+            ? []
+            : resolve({ ...q, ...connectionQuery } as never, parent, args, context, info),
+          hasTotalCount
+            ? totalCountFromParent(connectionQuery, parent, context, loaderCache, info)
+            : undefined,
+        ]).then(([result, count]) =>
+          wrapConnectionResult(parent, result, args, connectionQuery.take, formatCursor, count),
+        );
+      });
+
+    const fallbackPlan: FallbackPlanRecipe | undefined =
+      typeof resolve === 'function'
+        ? () => {
+            typeName ??= this.builder.configStore.getTypeConfig(ref).name;
+
+            return {
+              typeName,
+              paths: CONNECTION_NODE_PATHS,
+              initial: { select: { ...cursorSelection } },
+            };
+          }
+        : undefined;
 
     const fieldRef = (
       this as unknown as {
@@ -362,20 +441,30 @@ export class PrismaObjectFieldBuilder<
           pothosPrismaFallback:
             resolveFallback &&
             ((
-              q: { take: number },
+              q: {},
               parent: unknown,
               args: PothosSchemaTypes.DefaultConnectionArguments,
               context: {},
               info: GraphQLResolveInfo,
+              loaderCache: ((model: unknown) => ModelLoader) | undefined,
             ) => {
               const connectionQuery = getQuery(args, context);
 
               return isThenable(connectionQuery)
                 ? connectionQuery.then((resolved) =>
-                    resolveFallback(resolved as {}, q, parent, args, context, info),
+                    resolveFallback(
+                      resolved as { take: number },
+                      q,
+                      parent,
+                      args,
+                      context,
+                      info,
+                      loaderCache,
+                    ),
                   )
-                : resolveFallback(connectionQuery, q, parent, args, context, info);
+                : resolveFallback(connectionQuery, q, parent, args, context, info, loaderCache);
             }),
+          pothosPrismaFallbackPlan: fallbackPlan,
         },
         type: ref,
         resolve: (
