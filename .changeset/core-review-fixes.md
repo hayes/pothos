@@ -18,3 +18,6 @@
   Hooks now run for each declaration and owner pair. Plugins generating shared interface output
   types must use `declaringType ?? parentType` for type identity, while owner-specific policies
   should use `parentType`. Unwrapped default field resolvers remain unset in the GraphQL schema.
+
+- Keep default field registrations separate from local declarations. Local fields, including inherited
+  interface fields and fields added after a schema build, take precedence without duplicate-field errors.

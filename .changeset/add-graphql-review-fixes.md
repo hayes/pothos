@@ -12,3 +12,15 @@ regular object. Standalone imports and `add: { types }` continue to infer roots 
 `rootKind` is omitted.
 
 Preserve `deprecationReason` on imported input fields.
+
+Merge fields from imported schema roots into configured types with the same name, retaining the
+configured type's description, extensions, and AST metadata. Configured fields take precedence over
+same-named imported fields, including inherited fields and overrides added after a schema build.
+Non-overlapping imported fields are retained. Explicit
+`addGraphQLObject` field overrides and removals are preserved. Merged fields use the destination's
+field kind, so root-field plugins apply. Non-root collisions and `add: { types }` behavior are
+unchanged, and repeated schema builds do not merge the same root again.
+
+Duplicate local field declarations and collisions through `queryFields()` without a configured
+root keep their existing errors. Root collisions with non-object types or different operation
+roots now throw, including on subsequent builds.

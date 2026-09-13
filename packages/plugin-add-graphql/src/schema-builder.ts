@@ -8,11 +8,16 @@ import SchemaBuilder, {
   type InputType,
   type InputTypeParam,
   ListRef,
+  MutationFieldBuilder,
+  ObjectFieldBuilder,
   type ObjectParam,
   type ObjectRef,
   type OutputType,
+  PothosSchemaError,
+  QueryFieldBuilder,
   type RootName,
   type SchemaTypes,
+  SubscriptionFieldBuilder,
   type TypeParam,
 } from '@pothos/core';
 import {
@@ -32,11 +37,12 @@ import type {
   AddGraphQLEnumTypeOptions,
   AddGraphQLInputTypeOptions,
   AddGraphQLInterfaceTypeOptions,
+  AddGraphQLObjectFieldsShape,
   AddGraphQLObjectTypeOptions,
   AddGraphQLUnionTypeOptions,
   EnumValuesWithShape,
 } from './types.js';
-import { addReferencedType, importedRootKinds } from './utils.js';
+import { addReferencedType, importedRootKinds, importedTypes } from './utils.js';
 
 const proto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -112,6 +118,102 @@ function inferRootKind(name: string) {
   return defaultRootNames.find((rootName) => rootName === name);
 }
 
+function resolveObjectFields<Shape>(
+  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  type: GraphQLObjectType<Shape>,
+  fields?: AddGraphQLObjectFieldsShape<SchemaTypes, Shape>,
+) {
+  return (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, Shape>) => {
+    const existingFields = type.getFields();
+    const newFields = fields?.(t) ?? {};
+    const combinedFields: typeof newFields = {
+      ...newFields,
+    };
+
+    for (const [fieldName, field] of Object.entries(existingFields)) {
+      if (newFields[fieldName] !== undefined) {
+        if (newFields[fieldName] === null) {
+          delete combinedFields[fieldName];
+        }
+
+        continue;
+      }
+
+      const args: Record<string, ArgumentRef<SchemaTypes, unknown>> = {};
+
+      for (const { name, ...arg } of field.args) {
+        const input = resolveInputType(builder, arg.type);
+
+        args[name] = t.arg({
+          ...input,
+          description: arg.description ?? undefined,
+          deprecationReason: arg.deprecationReason ?? undefined,
+          defaultValue: arg.defaultValue,
+          extensions: arg.extensions,
+          astNode: arg.astNode ?? undefined,
+        });
+      }
+
+      combinedFields[fieldName] = t.field({
+        ...resolveOutputType(builder, field.type),
+        args,
+        description: field.description ?? undefined,
+        deprecationReason: field.deprecationReason ?? undefined,
+        extensions: field.extensions,
+        astNode: field.astNode ?? undefined,
+        resolve: (field.resolve ?? defaultFieldResolver) as never,
+        ...(field.subscribe ? { subscribe: field.subscribe } : {}),
+      });
+    }
+
+    return combinedFields as {};
+  };
+}
+
+export function mergeGraphQLObjectFields<Types extends SchemaTypes, Shape>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  type: GraphQLObjectType<Shape>,
+  rootKind: RootName,
+) {
+  const target = builder as never as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
+  const fields = resolveObjectFields(target, type);
+
+  const { kind } = target.configStore.getTypeConfig(type.name);
+
+  if ((kind === 'Query' || kind === 'Mutation' || kind === 'Subscription') && kind !== rootKind) {
+    throw new PothosSchemaError(
+      `Can not merge the imported ${rootKind} root ${type.name} into the ${kind} root with the same name`,
+    );
+  }
+
+  switch (kind) {
+    case 'Query':
+      target.configStore.addFieldDefaults(type.name as never, () =>
+        fields(new QueryFieldBuilder(target) as never),
+      );
+      break;
+    case 'Mutation':
+      target.configStore.addFieldDefaults(type.name as never, () =>
+        fields(new MutationFieldBuilder(target) as never),
+      );
+      break;
+    case 'Subscription':
+      target.configStore.addFieldDefaults(type.name as never, () =>
+        fields(new SubscriptionFieldBuilder(target) as never),
+      );
+      break;
+    case 'Object':
+      target.configStore.addFieldDefaults(type.name as never, () =>
+        fields(new ObjectFieldBuilder(target)),
+      );
+      break;
+    default:
+      throw new PothosSchemaError(
+        `Can not merge the imported root ${type.name} into the ${kind} type with the same name`,
+      );
+  }
+}
+
 proto.addGraphQLObject = function addGraphQLObject<Shape>(
   type: GraphQLObjectType<Shape>,
   {
@@ -129,54 +231,14 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
     extensions: { ...type.extensions, ...extensions },
     astNode: type.astNode ?? undefined,
     interfaces: () => type.getInterfaces().map((i) => resolveNullableOutputRef(this, i)) as [],
-    fields: (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, Shape>) => {
-      const existingFields = type.getFields();
-      const newFields = fields?.(t) ?? {};
-      const combinedFields: typeof newFields = {
-        ...newFields,
-      };
-
-      for (const [fieldName, field] of Object.entries(existingFields)) {
-        if (newFields[fieldName] !== undefined) {
-          if (newFields[fieldName] === null) {
-            delete combinedFields[fieldName];
-          }
-
-          continue;
-        }
-
-        const args: Record<string, ArgumentRef<SchemaTypes, unknown>> = {};
-
-        for (const { name, ...arg } of field.args) {
-          const input = resolveInputType(this, arg.type);
-
-          args[name] = t.arg({
-            ...input,
-            description: arg.description ?? undefined,
-            deprecationReason: arg.deprecationReason ?? undefined,
-            defaultValue: arg.defaultValue,
-            extensions: arg.extensions,
-            astNode: arg.astNode ?? undefined,
-          });
-        }
-
-        combinedFields[fieldName] = t.field({
-          ...resolveOutputType(this, field.type),
-          args,
-          description: field.description ?? undefined,
-          deprecationReason: field.deprecationReason ?? undefined,
-          extensions: field.extensions,
-          astNode: field.astNode ?? undefined,
-          resolve: (field.resolve ?? defaultFieldResolver) as never,
-          ...(field.subscribe ? { subscribe: field.subscribe } : {}),
-        });
-      }
-
-      return combinedFields as {};
-    },
+    fields: resolveObjectFields(this, type, fields),
   };
 
   const root = rootKind === undefined ? inferRootKind(type.name) : (rootKind ?? undefined);
+
+  if (name === type.name) {
+    importedTypes(this).add(type);
+  }
 
   if (rootKind !== undefined) {
     importedRootKinds(this).set(name, rootKind);
