@@ -1,4 +1,10 @@
-import { createContextCache, type RootName, type SchemaTypes } from '@pothos/core';
+import {
+  type ArgumentRef,
+  createContextCache,
+  type InputFieldRef,
+  type RootName,
+  type SchemaTypes,
+} from '@pothos/core';
 import {
   type GraphQLNamedType,
   isEnumType,
@@ -88,4 +94,15 @@ export function addReferencedType<Types extends SchemaTypes>(
   }
 
   builder.configStore.onPrepare(() => addTypeToSchema(builder, type));
+}
+
+// GraphQL 17 stores external values and SDL literals in `default`. Keep that
+// representation intact so GraphQL coerces it using the imported input types.
+export function preserveInputDefault<
+  Ref extends ArgumentRef<SchemaTypes, unknown> | InputFieldRef<SchemaTypes, unknown>,
+>(ref: Ref, source: { defaultValue?: unknown }): Ref {
+  if ('default' in source) {
+    ref.updateConfig((config) => Object.assign({}, config, { default: source.default }));
+  }
+  return ref;
 }
