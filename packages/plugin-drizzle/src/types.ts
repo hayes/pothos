@@ -103,8 +103,6 @@ type AnyRelationTable<Types extends SchemaTypes> =
 
 type DrizzleClientForTypes<Types extends SchemaTypes> = DrizzleClient<
   AnyRelationTable<Types> | SQL | SQLWrapper,
-  // Check the SQL builder's methods without instantiating them with the entire schema union.
-  // Internal callers use SchemaTypes and retain the callable Table contract.
   Table extends AnyRelationTable<Types> ? Table : never
 >;
 

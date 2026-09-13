@@ -5,7 +5,6 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { expectTypeOf, it } from 'vitest';
 import DrizzlePlugin from '../src';
 
-// Keep enough distinct table types to catch schema-wide SQL builder instantiation.
 const tables = {
   table0: pgTable('table0', { id: integer().primaryKey() }),
   table1: pgTable('table1', { id: integer().primaryKey() }),
@@ -113,16 +112,16 @@ new SchemaBuilder<{ DrizzleRelations: typeof relations }>({
 
 it('requires SQL construction methods on large-schema clients', () => {
   type Client = Exclude<typeof builder.options.drizzle.client, (...args: never[]) => unknown>;
-  // @ts-expect-error The client must support selecting from a table.
+  // @ts-expect-error missing from
   const missingFrom: Client = { ...db, select: () => ({}) };
   const missingJoin: Client = {
     ...db,
-    // @ts-expect-error Relation counts require joins.
+    // @ts-expect-error missing innerJoin
     select: () => ({ from: () => ({ where: () => tables.table0 }) }),
   };
   const missingWhere: Client = {
     ...db,
-    // @ts-expect-error Relation predicates require filtering the SQL query.
+    // @ts-expect-error missing where
     select: () => ({ from: () => ({ innerJoin: () => ({ where: () => tables.table0 }) }) }),
   };
   expectTypeOf(missingFrom).toEqualTypeOf<Client>();
