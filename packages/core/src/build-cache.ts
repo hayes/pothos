@@ -89,7 +89,7 @@ export class BuildCache<Types extends SchemaTypes> {
 
   private outputFieldConfigs = new Map<
     PothosOutputFieldConfig<Types>,
-    PothosOutputFieldConfig<Types> | null
+    Map<string, PothosOutputFieldConfig<Types> | null>
   >();
 
   private inputFieldConfigs = new Map<
@@ -304,18 +304,38 @@ export class BuildCache<Types extends SchemaTypes> {
 
   private buildFields(
     fields: Map<string, PothosOutputFieldConfig<Types>>,
+    parentType: string,
   ): GraphQLFieldConfigMap<unknown, object> {
     const built: GraphQLFieldConfigMap<unknown, object> = {};
 
     for (const [fieldName, originalConfig] of fields) {
-      if (!this.outputFieldConfigs.has(originalConfig)) {
-        this.outputFieldConfigs.set(
-          originalConfig,
-          this.plugin.onOutputFieldConfig(originalConfig),
-        );
+      let configsByOwner = this.outputFieldConfigs.get(originalConfig);
+
+      if (!configsByOwner) {
+        configsByOwner = new Map();
+        this.outputFieldConfigs.set(originalConfig, configsByOwner);
       }
 
-      const updatedConfig = this.outputFieldConfigs.get(originalConfig)!;
+      if (!configsByOwner.has(parentType)) {
+        const config =
+          originalConfig.parentType === parentType
+            ? originalConfig
+            : {
+                ...originalConfig,
+                parentType,
+                declaringType: originalConfig.parentType,
+                args: Object.fromEntries(
+                  Object.entries(originalConfig.args).map(([name, arg]) => [
+                    name,
+                    { ...arg, parentType },
+                  ]),
+                ),
+              };
+
+        configsByOwner.set(parentType, this.plugin.onOutputFieldConfig(config));
+      }
+
+      const updatedConfig = configsByOwner.get(parentType)!;
 
       if (!updatedConfig) {
         continue;
@@ -395,14 +415,17 @@ export class BuildCache<Types extends SchemaTypes> {
     return built;
   }
 
-  private getInterfaceFields(type: GraphQLInterfaceType): GraphQLFieldConfigMap<unknown, object> {
+  private getInterfaceFields(
+    type: GraphQLInterfaceType,
+    parentType: string,
+  ): GraphQLFieldConfigMap<unknown, object> {
     const interfaceFields = type
       .getInterfaces()
-      .reduce((all, iface) => Object.assign(all, this.getFields(iface)), {});
+      .reduce((all, iface) => Object.assign(all, this.getInterfaceFields(iface, parentType)), {});
 
     const configs = this.configStore.getFields(type.name, 'Interface');
 
-    const fields = this.buildFields(configs);
+    const fields = this.buildFields(configs, parentType);
 
     return {
       ...interfaceFields,
@@ -413,15 +436,18 @@ export class BuildCache<Types extends SchemaTypes> {
   private getObjectFields(type: GraphQLObjectType): GraphQLFieldConfigMap<unknown, object> {
     const interfaceFields = type
       .getInterfaces()
-      .reduce((all, iface) => Object.assign(all, this.getFields(iface)), {});
+      .reduce((all, iface) => Object.assign(all, this.getInterfaceFields(iface, type.name)), {});
 
-    const objectFields = this.buildFields(this.configStore.getFields(type.name, 'Object'));
+    const objectFields = this.buildFields(
+      this.configStore.getFields(type.name, 'Object'),
+      type.name,
+    );
 
     return { ...interfaceFields, ...objectFields };
   }
 
   private getRootFields(type: GraphQLObjectType): GraphQLFieldConfigMap<unknown, object> {
-    return this.buildFields(this.configStore.getFields(type.name, 'Object'));
+    return this.buildFields(this.configStore.getFields(type.name, 'Object'), type.name);
   }
 
   private getFields(type: GraphQLNamedType): GraphQLFieldConfigMap<unknown, object> {
@@ -435,7 +461,7 @@ export class BuildCache<Types extends SchemaTypes> {
     }
 
     if (type instanceof GraphQLInterfaceType) {
-      return this.getInterfaceFields(type);
+      return this.getInterfaceFields(type, type.name);
     }
 
     throw new PothosSchemaError(`Type ${type.name} does not have fields to resolve`);

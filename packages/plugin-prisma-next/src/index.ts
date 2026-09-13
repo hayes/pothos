@@ -302,7 +302,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       ((typeof selectOpt === 'object' && selectOpt !== null && !Array.isArray(selectOpt)) ||
         typeof selectOpt === 'function');
     const parentTypeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
-    const typeSelect = parentTypeConfig.extensions?.[PRISMA_NEXT_SELECT];
+    const declaringTypeConfig = fieldConfig.declaringType
+      ? this.buildCache.getTypeConfig(fieldConfig.declaringType, 'Interface')
+      : parentTypeConfig;
+    const typeSelect = declaringTypeConfig.extensions?.[PRISMA_NEXT_SELECT];
     const modelName = parentTypeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
     const pluginOptions = readPluginOptions<AnyContract>(this.builder);
     const contract = pluginOptions?.contract;
@@ -316,7 +319,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       typeSelect && !Array.isArray(typeSelect) && typeof typeSelect === 'object'
         ? Object.keys(typeSelect).filter((key) => modelRelations?.[key] !== undefined)
         : [];
-    const typeAlias = objectLevelFieldAlias(parentTypeConfig.name);
+    const typeAlias = objectLevelFieldAlias(declaringTypeConfig.name);
     const hasTypeSelect = typeRelations.length > 0;
     const hasFieldSelect = isObjectOrCallableSelect || !!ext[PRISMA_NEXT_FIELD_SELECT];
     const indirect = ext.pothosIndirectInclude as

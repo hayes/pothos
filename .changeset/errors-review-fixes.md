@@ -8,3 +8,4 @@
   `defaultItem*` options. Generated `*Success` types now include fields from `defaultResultOptions.fields`
   and `defaultItemResultOptions.fields`, changing the SDL where these options are configured.
 - Support frozen declared errors without violating Proxy invariants.
+- Preserve shared error result types for inherited interface fields.

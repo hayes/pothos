@@ -842,6 +842,17 @@ the scope requirements for each interface separately before the field is resolve
 Object types can set `skipInterfaceScopes` to `true` to skip interface checks when resolving fields
 for that Object type.
 
+Inherited fields use the object's `authScopes` and `grantScopes`, along with the policies of the
+interface that declared the field and the other interfaces the object implements. All required
+checks must pass, including when querying through an interface.
+
+`skipInterfaceScopes` on the field or object skips all interface checks, including the declaring
+interface's check. The object's own `authScopes` still runs. `skipTypeScopes` on the field skips the
+object's and declaring interface's own checks. Neither option skips grants.
+
+An interface's `runScopesOnType` does not bypass its policy: implementing objects enforce it on
+both inherited fields and fields they declare themselves.
+
 ### Cache keys
 
 Auth scopes by default are cached based on the identity of the scope parameter. This works great for

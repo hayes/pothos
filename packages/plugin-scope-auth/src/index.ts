@@ -24,6 +24,7 @@ import {
   createResolveStep,
   createTypeAuthScopesStep,
   createTypeGrantScopesStep,
+  typeAuthScopesStepKey,
 } from './steps.js';
 import type { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types.js';
 
@@ -56,26 +57,17 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     const authorizedOnSubscribe =
       !!this.builder.options.scopeAuth?.authorizeOnSubscribe && typeConfig.kind === 'Subscription';
 
-    const nonRoot =
-      (typeConfig.graphqlKind === 'Interface' || typeConfig.graphqlKind === 'Object') &&
-      typeConfig.kind !== 'Query' &&
-      typeConfig.kind !== 'Mutation' &&
-      typeConfig.kind !== 'Subscription';
-
-    const runTypeScopesOnField =
-      !nonRoot ||
-      !(
-        typeConfig.pothosOptions.runScopesOnType ??
-        this.builder.options.scopeAuth?.runScopesOnType ??
-        false
-      );
+    const declaringTypeConfig = fieldConfig.declaringType
+      ? this.buildCache.getTypeConfig(fieldConfig.declaringType, 'Interface')
+      : typeConfig;
 
     const steps = this.createResolveSteps(
       fieldConfig,
-      typeConfig,
+      declaringTypeConfig,
       resolver,
-      runTypeScopesOnField,
+      this.runTypeScopesOnField(declaringTypeConfig),
       authorizedOnSubscribe,
+      typeConfig.kind === 'Object' || typeConfig.kind === 'Interface' ? typeConfig : undefined,
     );
 
     if (steps.length > 1) {
@@ -83,6 +75,30 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     }
 
     return resolver;
+  }
+
+  runTypeScopesOnField(
+    typeConfig:
+      | PothosInterfaceTypeConfig
+      | PothosMutationTypeConfig
+      | PothosObjectTypeConfig
+      | PothosQueryTypeConfig
+      | PothosSubscriptionTypeConfig,
+  ) {
+    const nonRoot =
+      (typeConfig.graphqlKind === 'Interface' || typeConfig.graphqlKind === 'Object') &&
+      typeConfig.kind !== 'Query' &&
+      typeConfig.kind !== 'Mutation' &&
+      typeConfig.kind !== 'Subscription';
+
+    return (
+      !nonRoot ||
+      !(
+        typeConfig.pothosOptions.runScopesOnType ??
+        this.builder.options.scopeAuth?.runScopesOnType ??
+        false
+      )
+    );
   }
 
   override wrapSubscribe(
@@ -237,21 +253,59 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     shouldRunTypeScopes: boolean,
     authorizedOnSubscribe: boolean,
+    ownerTypeConfig?: PothosInterfaceTypeConfig | PothosObjectTypeConfig,
   ): ResolveStep<Types>[] {
-    const stepsForType =
-      shouldRunTypeScopes && !authorizedOnSubscribe
-        ? this.createStepsForType(typeConfig, {
-            skipTypeScopes:
-              ((fieldConfig.graphqlKind === 'Interface' || fieldConfig.graphqlKind === 'Object') &&
-                fieldConfig.pothosOptions.skipTypeScopes) ??
-              false,
+    const skipScopeOptions = {
+      skipTypeScopes:
+        ((fieldConfig.graphqlKind === 'Interface' || fieldConfig.graphqlKind === 'Object') &&
+          fieldConfig.pothosOptions.skipTypeScopes) ??
+        false,
+      skipInterfaceScopes:
+        ((fieldConfig.graphqlKind === 'Interface' || fieldConfig.kind === 'Object') &&
+          fieldConfig.pothosOptions.skipInterfaceScopes) ??
+        false,
+      forField: true,
+    };
+
+    const inherited = !!ownerTypeConfig && ownerTypeConfig !== typeConfig;
+
+    const skipDeclaringInterfaceScopes =
+      inherited &&
+      (skipScopeOptions.skipInterfaceScopes ||
+        (ownerTypeConfig.kind === 'Object' && !!ownerTypeConfig.pothosOptions.skipInterfaceScopes));
+
+    const stepsForType: ResolveStep<Types>[] = [];
+
+    if (!authorizedOnSubscribe) {
+      if (shouldRunTypeScopes) {
+        stepsForType.push(
+          ...this.createStepsForType(typeConfig, {
+            ...skipScopeOptions,
+            skipTypeScopes: skipScopeOptions.skipTypeScopes || skipDeclaringInterfaceScopes,
             skipInterfaceScopes:
-              ((fieldConfig.graphqlKind === 'Interface' || fieldConfig.kind === 'Object') &&
-                fieldConfig.pothosOptions.skipInterfaceScopes) ??
-              false,
-            forField: true,
-          })
-        : [];
+              skipScopeOptions.skipInterfaceScopes || skipDeclaringInterfaceScopes,
+          }),
+        );
+      }
+
+      if (inherited && this.runTypeScopesOnField(ownerTypeConfig)) {
+        const seen = new Set<string | undefined>();
+
+        if (shouldRunTypeScopes) {
+          seen.add(typeAuthScopesStepKey(typeConfig.name));
+        }
+
+        for (const step of stepsForType) {
+          seen.add(step.key);
+        }
+
+        for (const step of this.createStepsForType(ownerTypeConfig, skipScopeOptions)) {
+          if (!step.key || !seen.has(step.key)) {
+            stepsForType.push(step);
+          }
+        }
+      }
+    }
 
     const fieldAuthScopes = fieldConfig.pothosOptions.authScopes;
     const fieldGrantScopes = fieldConfig.pothosOptions.grantScopes;

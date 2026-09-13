@@ -190,6 +190,18 @@ config object with your modifications, rather than modifying the config object t
 This can be done by either using `Object.assign`, or spreading the original config into a new object
 `{...originalConfig, newProp: newValue }`.
 
+Inherited interface fields have a separate output field config for each owning object or interface.
+`onOutputFieldConfig` runs once for each declaration and owner pair in a schema build. On an inherited
+field, `parentType` names the owner and `declaringType` names the interface that originally declared
+the field. Arguments also have their own configs with the owner's `parentType`. `kind` and
+`graphqlKind` still describe the field builder that declared the field, so plugin-specific field
+options keep their original meaning. Resolver and subscriber wrappers receive the owner's config.
+
+Plugins that generate shared output types for interface fields must use
+`config.declaringType ?? config.parentType` for the generated type's identity. Generating a different
+union for each owner would make the object field incompatible with the interface field. Plugins
+that apply type-level behavior should use `parentType` to look up the owner.
+
 Each config object will have the properties expected by the GraphQL for creating the types or fields
 \(although some properties like `resolve` will be added later\), but will also include a number of
 Pothos specific properties. These properties include `graphqlKind` to indicate what kind of GraphQL

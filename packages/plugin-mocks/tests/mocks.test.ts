@@ -407,7 +407,7 @@ describe('mock maps that are not plain objects', () => {
 });
 
 describe('interface field mock lookups', () => {
-  it('resolves the mock once per concrete type instead of once per field resolution', async () => {
+  it('selects inherited field mocks at build time', async () => {
     const builder = new SchemaBuilder<{ Context: {} }>({ plugins: [Mocks] });
 
     const Named = builder.interfaceRef<{ a: string; b: string }>('Named').implement({
@@ -451,7 +451,7 @@ describe('interface field mock lookups', () => {
       });
 
       expect(result.errors).toBeUndefined();
-      expect(resolveMock).toHaveBeenCalledTimes(2);
+      expect(resolveMock).not.toHaveBeenCalled();
     } finally {
       resolveMock.mockRestore();
     }

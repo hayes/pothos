@@ -64,35 +64,13 @@ export class PothosMocksPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
       return resolver;
     }
 
-    const resolveMock = this.resolveMock(fieldConfig.parentType, fieldConfig.name, mocks);
-
-    if (fieldConfig.graphqlKind === 'Interface') {
-      const resolversByType = new Map<
-        string,
-        GraphQLFieldResolver<unknown, Types['Context'], object>
-      >();
-
-      return (parent, args, context, info) => {
-        let mocked = resolversByType.get(info.parentType.name);
-
-        if (mocked === undefined) {
-          mocked =
-            (this.resolveMock(
-              info.parentType.name,
-              fieldConfig.name,
-              mocks,
-            ) as GraphQLFieldResolver<unknown, Types['Context'], object> | null) ??
-            resolveMock ??
-            resolver;
-
-          resolversByType.set(info.parentType.name, mocked);
-        }
-
-        return mocked(parent, args, context, info);
-      };
-    }
-
-    return resolveMock ?? resolver;
+    return (
+      this.resolveMock(fieldConfig.parentType, fieldConfig.name, mocks) ??
+      (fieldConfig.declaringType
+        ? this.resolveMock(fieldConfig.declaringType, fieldConfig.name, mocks)
+        : null) ??
+      resolver
+    );
   }
 
   override wrapSubscribe(
