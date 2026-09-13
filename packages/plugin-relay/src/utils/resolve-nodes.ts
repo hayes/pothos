@@ -34,15 +34,7 @@ function getParsedIDCache(requestCache: RequestCache, typename: string) {
 function rawCacheKey(typename: string, globalID: { id: unknown }) {
   const rawId = getRawGlobalID(globalID);
 
-  if (rawId !== undefined) {
-    return `${typename}:${rawId}`;
-  }
-
-  const { id } = globalID;
-
-  return id !== null && (typeof id === 'object' || typeof id === 'function')
-    ? undefined
-    : `${typename}:${String(id)}`;
+  return rawId === undefined ? undefined : `${typename}:${rawId}`;
 }
 
 interface PendingNodes {
@@ -177,7 +169,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, [], unknown>;
   const parsedCache = getParsedIDCache(requestCache, config.name);
   const setCache = (id: unknown, i: number, value: MaybePromise<unknown>) => {
-    const rawKey = keys ? keys[i] : rawCacheKey(config.name, { id });
+    const rawKey = keys?.[i];
 
     if (rawKey !== undefined) {
       requestCache.byRawID.set(rawKey, value);

@@ -143,7 +143,7 @@ describe('node identity for parsed ids', () => {
     expect(calls).toHaveLength(1);
   });
 
-  it('produces byte-identical cache keys for the default (no `parse`) path', async () => {
+  it('reuses externally primed nodes without id.parse', async () => {
     const builder = new SchemaBuilder<{}>({ plugins: [RelayPlugin] });
 
     const calls: unknown[] = [];
@@ -446,6 +446,50 @@ describe('node identity for parsed ids', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ node: { key: '1', again: { key: '1' } } });
     expect(batches).toEqual([['1'], ['1']]);
+  });
+
+  it.each([
+    false,
+    true,
+  ])('keeps copied parsed IDs separate from raw IDs (reverse: %s)', async (reverse) => {
+    const calls: string[] = [];
+    const builder = new SchemaBuilder<{}>({
+      plugins: [RelayPlugin],
+      relay: {
+        nodeQueryOptions: {
+          resolve: async (_parent, args, context, info): Promise<unknown> =>
+            (await resolveNodes(builder, context, info, [{ ...args.id }]))[0],
+        },
+      },
+    });
+    const User = builder.objectRef<{ key: string }>('User');
+
+    builder.node(User, {
+      isTypeOf: () => true,
+      id: { resolve: (user) => user.key, parse: (id) => `${id}x` },
+      loadOne: (key) => {
+        calls.push(key);
+
+        return { key };
+      },
+      fields: (t) => ({ key: t.exposeString('key') }),
+    });
+    builder.queryType({});
+
+    const result = await graphql({
+      schema: builder.toSchema(),
+      source: `query($a: ID!, $b: ID!) {
+        ${reverse ? 'b: nodes(ids: [$b]) { ... on User { key } }' : ''}
+        a: node(id: $a) { ... on User { key } }
+        ${reverse ? '' : 'b: nodes(ids: [$b]) { ... on User { key } }'}
+      }`,
+      variableValues: { a: encodeGlobalID('User', 'a'), b: encodeGlobalID('User', 'ax') },
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ a: { key: 'ax' }, b: [{ key: 'axx' }] });
+    expect(calls).toEqual(reverse ? ['axx', 'ax'] : ['ax', 'axx']);
   });
 
   it('loads copied decoded IDs without stringifying opaque parsed IDs', async () => {
