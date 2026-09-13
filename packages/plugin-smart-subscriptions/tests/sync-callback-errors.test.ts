@@ -67,3 +67,28 @@ it.each([
     await iterator.return?.().catch(() => {});
   }
 });
+
+it('handles pending async callbacks when a later callback throws', async () => {
+  const { SubscriptionManager } = await import('../src');
+  let emit: ((error: unknown, value: unknown) => void) | undefined;
+  const failure = new Error('sync failure');
+  const manager = new SubscriptionManager({
+    value: {},
+    debounceDelay: null,
+    subscribe: (_name, cb) => {
+      emit = cb;
+    },
+    unsubscribe: () => {},
+  });
+  await manager.next();
+  manager.register({ name: 'change', onValue: () => Promise.reject(new Error('async failure')) });
+  manager.register({
+    name: 'change',
+    filter: () => {
+      throw failure;
+    },
+  });
+  const next = manager.next().catch((error: unknown) => error);
+  emit!(null, {});
+  expect(await next).toBe(failure);
+});
