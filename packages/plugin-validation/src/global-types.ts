@@ -81,14 +81,6 @@ declare global {
       validate<R>(schema: StandardSchemaV1<unknown, R>): InputObjectRef<Types, R>;
     }
 
-    export interface FieldRef<
-      Types extends SchemaTypes,
-      T = unknown,
-      Kind extends FieldKind = FieldKind,
-    > {
-      validate<R>(schema: StandardSchemaV1<unknown, R>): FieldRef<Types, R, Kind>;
-    }
-
     export interface InputFieldRef<Types extends SchemaTypes, T> {
       validate<R>(schema: StandardSchemaV1<unknown, R>): InputFieldRef<Types, R>;
     }

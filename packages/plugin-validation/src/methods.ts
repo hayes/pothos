@@ -1,6 +1,5 @@
 import {
   ArgumentRef,
-  FieldRef,
   type InputFieldMap,
   InputFieldRef,
   InputObjectRef,
@@ -37,26 +36,6 @@ import type * as standardSchema from './standard-schema.js';
     };
   });
   return args as never;
-};
-
-(FieldRef.prototype as FieldRef<SchemaTypes>).validate = function validate(schema) {
-  this.updateConfig((config) => {
-    const extensions = config.extensions ?? {};
-
-    return {
-      ...config,
-      extensions: {
-        ...extensions,
-        '@pothos/plugin-validation': {
-          ...extensions['@pothos/plugin-validation'],
-          schemas: extensions['@pothos/plugin-validation']?.schemas
-            ? [schema, ...extensions['@pothos/plugin-validation'].schemas]
-            : [schema],
-        },
-      },
-    };
-  });
-  return this as never;
 };
 
 (InputFieldRef.prototype as InputFieldRef<SchemaTypes, unknown>).validate = function validate(
