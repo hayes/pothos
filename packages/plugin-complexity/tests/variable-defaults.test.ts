@@ -1,7 +1,7 @@
-import { buildSchema, parse, specifiedRules, validate } from 'graphql';
+import { buildSchema, execute, parse, specifiedRules, validate } from 'graphql';
 import { complexityFromQuery, createComplexityRule } from '../src';
 
-const schema = buildSchema('type Query { count(n: Int): Int }');
+const schema = buildSchema('type Query { count(n: Int): Int other(text: String): Int }');
 schema.getQueryType()!.getFields().count.extensions = {
   complexity: (args: { n?: number | null }) => args.n ?? 1,
 };
@@ -64,4 +64,55 @@ it('coerces nested input defaults and isolates operation defaults', () => {
 
 it('rejects missing required variables', () => {
   expect(() => complexityFromQuery('query($n: Int!) { count(n: $n) }', { schema })).toThrow(/Int!/);
+});
+
+it('does not reject variables required only by an unselected operation', async () => {
+  const document = parse('query A { count } query B($n: Int!) { count(n: $n) }');
+  expect(
+    validate(schema, document, [
+      ...specifiedRules,
+      createComplexityRule({ context: {}, variableValues: {}, maxComplexity: 10 }),
+    ]),
+  ).toEqual([]);
+  expect(await execute({ schema, document, operationName: 'A', rootValue: { count: 1 } })).toEqual({
+    data: { count: 1 },
+  });
+});
+
+it('checks every executable candidate when operationName is omitted', () => {
+  const document = parse(
+    'query A($n: Int!) { count(n: $n) } query B($n: String!) { other(text: $n) }',
+  );
+  const results: number[] = [];
+  const errors = validate(schema, document, [
+    ...specifiedRules,
+    createComplexityRule({
+      context: {},
+      variableValues: { n: 100 },
+      maxComplexity: 10,
+      onResult: (result) => {
+        results.push(result.complexity);
+      },
+    }),
+  ]);
+  expect(results).toEqual([100]);
+  expect(errors).toHaveLength(1);
+  expect(errors[0].extensions.code).toBe('QUERY_COMPLEXITY');
+});
+
+it('checks only the requested operation, including its defaults and variable errors', () => {
+  const document = parse('query A { count } query B($n: Int! = 100) { count(n: $n) }');
+  const rule = (operationName: string, variableValues = {}) =>
+    createComplexityRule({
+      context: {},
+      variableValues,
+      operationName,
+      maxComplexity: 10,
+    });
+  expect(validate(schema, document, [rule('A')])).toEqual([]);
+  expect(validate(schema, document, [rule('B')])[0].extensions.code).toBe('QUERY_COMPLEXITY');
+  expect(validate(schema, document, [rule('B', { n: 'bad' })])[0].message).toMatch(/Int/);
+  expect(validate(schema, document, [rule('Missing')])[0].message).toBe(
+    'Unknown operation named "Missing".',
+  );
 });
