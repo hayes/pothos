@@ -169,11 +169,18 @@ function resolveObjectFields<Shape>(
 export function mergeGraphQLObjectFields<Types extends SchemaTypes, Shape>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   type: GraphQLObjectType<Shape>,
+  rootKind: RootName,
 ) {
   const target = builder as never as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
   const fields = resolveObjectFields(target, type) as never;
 
   const { kind } = target.configStore.getTypeConfig(type.name);
+
+  if ((kind === 'Query' || kind === 'Mutation' || kind === 'Subscription') && kind !== rootKind) {
+    throw new PothosSchemaError(
+      `Can not merge the imported ${rootKind} root ${type.name} into the ${kind} root with the same name`,
+    );
+  }
 
   // objectFields would register these as Object fields. Plugins that only act on root fields,
   // like complexity limits, skip those, so an imported root field would escape them.

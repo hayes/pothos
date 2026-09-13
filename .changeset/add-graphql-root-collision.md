@@ -26,4 +26,8 @@ This can break a build that currently succeeds. A field declared both on the bui
 the colliding imported root now raises the existing `Duplicate field <name> on <Type>` error
 instead of silently keeping the builder's version and dropping the imported one. An imported root
 whose name collides with a type that is not an object now reports `Can not merge the imported root
-<name> into the <kind> type the builder defines with the same name` rather than being dropped.
+<name> into the <kind> type with the same name` rather than being dropped.
+
+An imported root also rejects a collision with a different operation root kind, so imported
+mutation fields cannot become query fields through a name collision. Failed root imports continue
+to report the error on subsequent builds.

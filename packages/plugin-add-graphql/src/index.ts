@@ -49,8 +49,8 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
       }
 
       if (rootKinds.has(type) && this.builder.configStore.hasConfig(type.name as never)) {
+        mergeGraphQLObjectFields(this.builder, type as GraphQLObjectType, rootKinds.get(type)!);
         imported.add(type);
-        mergeGraphQLObjectFields(this.builder, type as GraphQLObjectType);
       } else {
         addTypeToSchema(this.builder, type, rootKinds.get(type) ?? null);
       }

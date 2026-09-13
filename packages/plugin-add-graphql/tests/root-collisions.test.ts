@@ -485,16 +485,35 @@ describe('imported schema roots', () => {
     expect(fieldKinds.get('Query.hello')).toBe('Query');
   });
 
+  it('rejects imported mutations that collide with the configured query root', () => {
+    const builder = createBuilder(
+      new GraphQLSchema({
+        query: objectType('Root', { hello: 'imported' }),
+        mutation: objectType('Query', { mutate: 'mutation result' }),
+      }),
+    );
+    builder.queryType({ fields: (t) => ({ own: t.string({ resolve: () => 'own' }) }) });
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      expect(() => builder.toSchema()).toThrow(
+        'Can not merge the imported Mutation root Query into the Query root with the same name',
+      );
+    }
+  });
+
   it('reports an imported root that collides with a type that is not an object', () => {
     const builder = createBuilder(
       new GraphQLSchema({ query: objectType('Status', { hello: 'imported' }) }),
     );
 
     builder.enumType('Status', { values: ['Active'] as const });
-    builder.queryFields((t) => ({ own: t.string({ resolve: () => 'own' }) }));
+    builder.queryType({ fields: (t) => ({ own: t.string({ resolve: () => 'own' }) }) });
 
     expect(() => builder.toSchema()).toThrowErrorMatchingInlineSnapshot(
       '[PothosSchemaError: Can not merge the imported root Status into the Enum type with the same name]',
+    );
+    expect(() => builder.toSchema()).toThrow(
+      'Can not merge the imported root Status into the Enum type with the same name',
     );
   });
 });
