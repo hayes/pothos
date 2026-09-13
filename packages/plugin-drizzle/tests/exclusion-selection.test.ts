@@ -24,7 +24,7 @@ it.each([
     const db = drizzle({ client, relations });
     const builder = new SchemaBuilder<{ DrizzleRelations: typeof relations }>({
       plugins: [DrizzlePlugin],
-      scopeAuth: { authScopes: {} },
+      scopeAuth: { authScopes: () => ({}) },
       drizzle: { client: db, getTableConfig },
     });
     const User = builder.drizzleObject('users', {
