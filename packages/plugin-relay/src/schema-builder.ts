@@ -523,7 +523,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
                   }
 
                   if (Array.isArray(edges)) {
-                    return edges.map((e) => e?.node);
+                    return edges.map((edge) => completeValue(edge, (resolved) => resolved?.node));
                   }
 
                   if ((edges as AsyncIterable<unknown>)[Symbol.asyncIterator]) {
