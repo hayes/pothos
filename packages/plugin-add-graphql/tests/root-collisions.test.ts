@@ -284,27 +284,75 @@ describe('imported schema roots', () => {
     `);
   });
 
-  it('reports fields defined in both the builder and a colliding root', () => {
-    const withQueryType = createBuilder(
+  it.each([
+    'query',
+    'custom',
+    'object',
+  ] as const)('keeps configured %s fields over imported defaults in either registration order', async (kind) => {
+    for (const localFirst of [false, true]) {
+      const name = kind === 'query' ? 'Query' : 'Existing';
+      const imported = new GraphQLSchema({
+        query: objectType(name, { hello: 'imported', keep: 'kept' }),
+      });
+      const builder = new SchemaBuilder<Types>({ plugins: [AddGraphQLPlugin], add: {} });
+      if (!localFirst) {
+        builder.options.add = { schema: imported };
+      }
+      if (kind === 'object') {
+        const object = builder
+          .objectRef<{}>(name)
+          .implement({ fields: (t) => ({ hello: t.int({ resolve: () => 42 }) }) });
+        builder.queryType({
+          fields: (t) => ({ obj: t.field({ type: object, resolve: () => ({}) }) }),
+        });
+      } else {
+        builder.queryType({ name, fields: (t) => ({ hello: t.int({ resolve: () => 42 }) }) });
+      }
+      if (localFirst) {
+        builder.options.add = { schema: imported };
+      }
+      for (let build = 0; build < 2; build += 1) {
+        const schema = builder.toSchema();
+        expect(validateSchema(schema)).toEqual([]);
+        const result = await execute({
+          schema,
+          document: gql(kind === 'object' ? '{ obj { hello keep } }' : '{ hello keep }'),
+        });
+        expect(result.errors).toBeUndefined();
+        expect(result.data).toEqual(
+          kind === 'object' ? { obj: { hello: 42, keep: 'kept' } } : { hello: 42, keep: 'kept' },
+        );
+      }
+    }
+  });
+
+  it('continues rejecting duplicate fields registered through queryFields or local declarations', () => {
+    const builder = createBuilder(
       new GraphQLSchema({ query: objectType('Query', { hello: 'imported' }) }),
     );
+    builder.queryFields((t) => ({ hello: t.string({ resolve: () => 'local' }) }));
+    expect(() => builder.toSchema()).toThrow('Duplicate field hello on Query');
 
-    withQueryType.queryType({
-      fields: (t) => ({ hello: t.string({ resolve: () => 'own' }) }),
+    const local = new SchemaBuilder<Types>({ plugins: [AddGraphQLPlugin] });
+    local.queryType({ fields: (t) => ({ hello: t.string({ resolve: () => 'one' }) }) });
+    local.queryFields((t) => ({ hello: t.string({ resolve: () => 'two' }) }));
+    expect(() => local.toSchema()).toThrow('Duplicate field hello on Query');
+  });
+
+  it('preserves explicit root overrides and removals when the same schema is imported', async () => {
+    const imported = new GraphQLSchema({
+      query: objectType('Query', { hello: 'imported', remove: 'removed', keep: 'kept' }),
     });
-
-    const withQueryFields = createBuilder(
-      new GraphQLSchema({ query: objectType('Query', { hello: 'imported' }) }),
-    );
-
-    withQueryFields.queryFields((t) => ({ hello: t.string({ resolve: () => 'own' }) }));
-
-    expect(() => withQueryType.toSchema()).toThrowErrorMatchingInlineSnapshot(
-      '[PothosSchemaError: Duplicate field hello on Query]',
-    );
-    expect(() => withQueryFields.toSchema()).toThrowErrorMatchingInlineSnapshot(
-      '[PothosSchemaError: Duplicate field hello on Query]',
-    );
+    const builder = createBuilder(imported);
+    builder.addGraphQLObject(imported.getQueryType()!, {
+      fields: (t) => ({ hello: t.int({ resolve: () => 42 }), remove: null }),
+    });
+    for (let build = 0; build < 2; build += 1) {
+      const schema = builder.toSchema();
+      expect(schema.getQueryType()!.getFields().remove).toBeUndefined();
+      const result = await execute({ schema, document: gql`{ hello keep }` });
+      expect(result).toEqual({ data: { hello: 42, keep: 'kept' } });
+    }
   });
 
   it('adds roots that do not collide with configured types', () => {

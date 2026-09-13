@@ -172,7 +172,11 @@ export function mergeGraphQLObjectFields<Types extends SchemaTypes, Shape>(
   rootKind: RootName,
 ) {
   const target = builder as never as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
-  const fields = resolveObjectFields(target, type) as never;
+  const fields = resolveObjectFields(target, type, () =>
+    Object.fromEntries(
+      [...target.configStore.getFields(type.name).keys()].map((name) => [name, null]),
+    ),
+  ) as never;
 
   const { kind } = target.configStore.getTypeConfig(type.name);
 

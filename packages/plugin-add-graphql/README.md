@@ -57,10 +57,16 @@ export const schema = builder.toSchema();
 Both `{ user { name } }` and `{ otherUser { name } }` work on the resulting schema. The imported
 `user` field keeps its resolver, and the new field returns the same backing shape.
 
-Types are imported only if Pothos has no registered type with that name when the schema is built.
-A Pothos definition takes precedence over an imported definition. When importing a schema with a
-query root, use `queryFields` to add fields; defining a replacement `queryType` causes the imported
-root definition to be skipped. The same rule applies to mutation and subscription roots.
+Non-root types are imported only if Pothos has no registered type with that name. For roots of
+`add.schema`, a configured type with the same name keeps its fields and type metadata, while
+non-overlapping imported fields are added. For example, a field in `queryType({ fields })` overrides
+a same-named imported query field without discarding the imported root's other fields. Mutation
+and subscription roots follow the same rule.
+
+Use `queryFields` to add fields without configuring a replacement root. Those additions must have
+unique names; a collision with an imported field remains an error. To customize an individual
+import explicitly, use `addGraphQLObject` with a `fields` callback as shown below. Duplicate local
+field declarations remain errors.
 
 ## Import selected types
 
