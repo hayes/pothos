@@ -170,8 +170,23 @@ export function mergeGraphQLObjectFields<Types extends SchemaTypes, Shape>(
   type: GraphQLObjectType<Shape>,
 ) {
   const target = builder as never as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
+  const fields = resolveObjectFields(target, type) as never;
 
-  target.objectFields(type.name as never, resolveObjectFields(target, type) as never);
+  // objectFields would register these as Object fields. Plugins that only act on root fields,
+  // like complexity limits, skip those, so an imported root field would escape them.
+  switch (target.configStore.getTypeConfig(type.name).kind) {
+    case 'Query':
+      target.queryFields(fields);
+      break;
+    case 'Mutation':
+      target.mutationFields(fields);
+      break;
+    case 'Subscription':
+      target.subscriptionFields(fields);
+      break;
+    default:
+      target.objectFields(type.name as never, fields);
+  }
 }
 
 proto.addGraphQLObject = function addGraphQLObject<Shape>(

@@ -1,4 +1,8 @@
-import SchemaBuilder from '@pothos/core';
+import SchemaBuilder, {
+  BasePlugin,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
+} from '@pothos/core';
 import {
   buildSchema,
   execute,
@@ -37,6 +41,19 @@ function objectType(name: string, fields: Record<string, string>) {
       ),
   });
 }
+
+const fieldKinds = new Map<string, string>();
+const recordKindPlugin = 'recordKindPlugin' as keyof PothosSchemaTypes.Plugins<SchemaTypes>;
+
+class RecordKindPlugin<T extends SchemaTypes> extends BasePlugin<T> {
+  override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<T>) {
+    fieldKinds.set(`${fieldConfig.parentType}.${fieldConfig.name}`, fieldConfig.kind);
+
+    return fieldConfig;
+  }
+}
+
+SchemaBuilder.registerPlugin(recordKindPlugin, RecordKindPlugin as never);
 
 function createBuilder(schema: GraphQLSchema) {
   return new SchemaBuilder<Types>({
@@ -411,5 +428,20 @@ describe('imported schema roots', () => {
         hello: String
       }"
     `);
+  });
+  it('registers merged root fields with the destination root kind', () => {
+    const builder = new SchemaBuilder<Types>({
+      plugins: [recordKindPlugin, AddGraphQLPlugin],
+      add: { schema: new GraphQLSchema({ query: objectType('Query', { hello: 'imported' }) }) },
+    });
+
+    builder.queryType({
+      fields: (t) => ({ own: t.string({ resolve: () => 'own' }) }),
+    });
+
+    builder.toSchema();
+
+    expect(fieldKinds.get('Query.own')).toBe('Query');
+    expect(fieldKinds.get('Query.hello')).toBe('Query');
   });
 });
