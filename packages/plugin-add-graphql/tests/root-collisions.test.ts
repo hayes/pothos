@@ -392,4 +392,24 @@ describe('imported schema roots', () => {
       }"
     `);
   });
+  it('still imports a root the builder added under a different name', () => {
+    const schema = new GraphQLSchema({ query: objectType('Root', { hello: 'imported' }) });
+    const builder = createBuilder(schema);
+
+    builder.addGraphQLObject(schema.getQueryType()!, { name: 'Copy', rootKind: null });
+
+    expect(printSorted(builder.toSchema())).toMatchInlineSnapshot(`
+      "schema {
+        query: Root
+      }
+
+      type Copy {
+        hello: String
+      }
+
+      type Root {
+        hello: String
+      }"
+    `);
+  });
 });

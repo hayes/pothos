@@ -196,7 +196,9 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
 
   const root = rootKind === undefined ? inferRootKind(type.name) : (rootKind ?? undefined);
 
-  importedTypes(this).add(type);
+  if (name === type.name) {
+    importedTypes(this).add(type);
+  }
 
   if (rootKind !== undefined) {
     importedRootKinds(this).set(name, rootKind);
