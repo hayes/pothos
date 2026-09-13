@@ -838,6 +838,8 @@ in each individual field.
 
 ### Interfaces
 
+Requires core 4.15 or later for owner-specific policies on inherited fields.
+
 Interfaces can define auth scopes on their fields the same way objects do. Fields for a type will
 run checks for each interface it implements separately, meaning that a request would need to satisfy
 the scope requirements for each interface separately before the field is resolved.

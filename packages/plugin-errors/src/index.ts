@@ -93,7 +93,9 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       return fieldConfig;
     }
 
-    const parentTypeName = this.buildCache.getTypeConfig(fieldConfig.parentType).name;
+    const parentTypeName = this.buildCache.getTypeConfig(
+      fieldConfig.declaringType ?? fieldConfig.parentType,
+    ).name;
 
     const itemErrorTypes =
       itemErrorOptions &&

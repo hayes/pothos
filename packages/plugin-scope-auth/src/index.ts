@@ -57,21 +57,17 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     const authorizedOnSubscribe =
       !!this.builder.options.scopeAuth?.authorizeOnSubscribe && typeConfig.kind === 'Subscription';
 
-    if (typeConfig.graphqlKind === 'Interface') {
-      return this.createInheritedFieldResolver(
-        resolver,
-        fieldConfig,
-        typeConfig,
-        authorizedOnSubscribe,
-      );
-    }
+    const declaringTypeConfig = fieldConfig.declaringType
+      ? this.buildCache.getTypeConfig(fieldConfig.declaringType, 'Interface')
+      : typeConfig;
 
     const steps = this.createResolveSteps(
       fieldConfig,
-      typeConfig,
+      declaringTypeConfig,
       resolver,
-      this.runTypeScopesOnField(typeConfig),
+      this.runTypeScopesOnField(declaringTypeConfig),
       authorizedOnSubscribe,
+      typeConfig.kind === 'Object' || typeConfig.kind === 'Interface' ? typeConfig : undefined,
     );
 
     if (steps.length > 1) {
@@ -79,63 +75,6 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     }
 
     return resolver;
-  }
-
-  createInheritedFieldResolver(
-    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: PothosOutputFieldConfig<Types>,
-    declaringTypeConfig: PothosInterfaceTypeConfig,
-    authorizedOnSubscribe: boolean,
-  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    const resolversByType = new Map<
-      string,
-      GraphQLFieldResolver<unknown, Types['Context'], object>
-    >();
-
-    const resolverForType = (typeName: string) => {
-      let cached = resolversByType.get(typeName);
-
-      if (!cached) {
-        const ownerTypeConfig = this.getOwnerTypeConfig(typeName, declaringTypeConfig);
-
-        const steps = this.createResolveSteps(
-          fieldConfig,
-          declaringTypeConfig,
-          resolver,
-          this.runTypeScopesOnField(declaringTypeConfig),
-          authorizedOnSubscribe,
-          ownerTypeConfig,
-        );
-
-        cached = steps.length > 1 ? resolveHelper(steps, this, fieldConfig) : resolver;
-
-        resolversByType.set(typeName, cached);
-      }
-
-      return cached;
-    };
-
-    return (parent, args, context, info) =>
-      resolverForType(info.parentType.name)(parent, args, context, info);
-  }
-
-  getOwnerTypeConfig(
-    typeName: string,
-    declaringTypeConfig: PothosInterfaceTypeConfig,
-  ): PothosInterfaceTypeConfig | PothosObjectTypeConfig {
-    if (typeName === declaringTypeConfig.name) {
-      return declaringTypeConfig;
-    }
-
-    let config: PothosObjectTypeConfig | undefined;
-
-    try {
-      config = this.buildCache.getTypeConfig(typeName, 'Object');
-    } catch {
-      return declaringTypeConfig;
-    }
-
-    return config;
   }
 
   runTypeScopesOnField(

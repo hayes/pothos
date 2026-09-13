@@ -670,7 +670,7 @@ describe('subscriptions with inherited interface fields', () => {
   });
 });
 
-describe('concrete types with no Pothos config', () => {
+describe('policies are selected at schema build time', () => {
   const builder = createBuilder();
 
   const FallbackIface = builder.interfaceRef<{ kind: string }>('FallbackIface').implement({
@@ -682,6 +682,7 @@ describe('concrete types with no Pothos config', () => {
   });
 
   const FallbackObj = builder.objectRef<{ kind: string }>('FallbackObj').implement({
+    authScopes: { objOk: true },
     interfaces: [FallbackIface],
     fields: () => ({}),
   });
@@ -709,15 +710,43 @@ describe('concrete types with no Pothos config', () => {
     } as unknown as GraphQLResolveInfo);
   }
 
-  it('falls back to the declaring interface policy instead of throwing', async () => {
+  it('does not select policies from a caller supplied parent type', async () => {
     await expect(resolveWithParentType('NotAPothosType', createContext())).rejects.toThrow(
       'Not authorized to read fields for FallbackIface',
     );
   });
 
-  it('resolves normally through the fallback when the interface policy passes', async () => {
+  it('does not fall back to interface-only authorization for an unknown runtime parent', async () => {
     await expect(
       resolveWithParentType('NotAPothosType', createContext({ admin: true })),
+    ).rejects.toThrow('Not authorized to read fields for FallbackObj');
+  });
+
+  it('retains the built policy when resolve info names an unknown parent type', async () => {
+    await expect(
+      resolveWithParentType('NotAPothosType', createContext({ admin: true, objOk: true })),
     ).resolves.toBe('ok');
+  });
+});
+
+it('leaves inherited default resolvers unwrapped when there is no authorization work', async () => {
+  const builder = createBuilder();
+  const base = builder.interfaceRef<{ value: string }>('Unprotected').implement({
+    fields: (t) => ({ value: t.string({ resolve: undefined }) }),
+  });
+  const object = builder
+    .objectRef<{ value: string }>('UnprotectedObject')
+    .implement({ interfaces: [base] });
+  builder.queryType({
+    fields: (t) => ({ object: t.field({ type: object, resolve: () => ({ value: 'ok' }) }) }),
+  });
+  const schema = builder.toSchema();
+  for (const name of ['Unprotected', 'UnprotectedObject']) {
+    const field = (schema.getType(name) as GraphQLObjectType).getFields().value;
+    expect(field.resolve).toBeUndefined();
+    expect(field.extensions.pothosResolveWrapped).toBe(false);
+  }
+  expect(await graphql({ schema, source: '{ object { value } }' })).toEqual({
+    data: { object: { value: 'ok' } },
   });
 });

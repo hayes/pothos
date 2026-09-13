@@ -835,12 +835,30 @@ in each individual field.
 
 ### Interfaces
 
+Requires core 4.15 or later for owner-specific policies on inherited fields.
+
 Interfaces can define auth scopes on their fields the same way objects do. Fields for a type will
 run checks for each interface it implements separately, meaning that a request would need to satisfy
 the scope requirements for each interface separately before the field is resolved.
 
 Object types can set `skipInterfaceScopes` to `true` to skip interface checks when resolving fields
 for that Object type.
+
+Fields an Object type inherits from an interface are also subject to the Object type's own
+`authScopes` and `grantScopes`, and to the `authScopes` of the other interfaces it implements. The
+policy that runs is the one belonging to the concrete type the field is being resolved on, in
+addition to the policy of the interface that declared the field: both must pass.
+
+`skipInterfaceScopes` opts out of the interface half of that check. On an inherited field it skips
+the scopes of the interface that declared the field as well as the other interfaces the Object type
+implements, and — as for a field declared on the Object type itself — either the field option or the
+Object type's option is enough to skip them. The Object type's own `authScopes` still runs:
+`skipInterfaceScopes` never skips the scopes of the concrete type. Use `skipTypeScopes` on the field
+to skip those as well.
+
+`runScopesOnType` on an interface moves that interface's scopes off the fields it declares. Since an
+interface has no `isTypeOf`, those scopes are enforced through the interface list of each Object type
+that implements it — for the interface's own fields as well as the Object type's.
 
 ### Cache keys
 

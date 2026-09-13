@@ -11,3 +11,10 @@
 - Omit arguments removed by `onInputFieldConfig` from the `config.args` passed to resolver wrappers
 - Preserve `specifiedByURL` on imported scalars, and accept it as a `scalarType` option. **This changes the printed schema and introspection**: a scalar imported with `addScalarType` that carries a specification URL (many `graphql-scalars` exports do, such as `EmailAddressResolver`) now prints as `scalar EmailAddress @specifiedBy(url: "…")` and reports that URL through introspection, where both were previously absent. Expect SDL snapshot tests and schema-diff checks to register the addition.
 - Make the no-`Buffer` `encodeBase64`/`decodeBase64` fallback UTF-8 safe, including preserving a leading BOM
+
+- Build separate field and argument configs for inherited interface fields. Plugin hooks and
+  resolver wrappers receive the owning type in `parentType` and the original interface in the new
+  `declaringType` property. Field `kind` and `graphqlKind` retain the declaring field builder's kind.
+  Hooks now run for each declaration and owner pair. Plugins generating shared interface output
+  types must use `declaringType ?? parentType` for type identity, while owner-specific policies
+  should use `parentType`. Unwrapped default field resolvers remain unset in the GraphQL schema.

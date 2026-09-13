@@ -119,6 +119,7 @@ export type PothosFieldKindToConfig<Types extends SchemaTypes, Kind extends Fiel
       kind: K;
       graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[K];
       parentType: string;
+      declaringType?: string;
       name: string;
       type: PothosOutputFieldType<Types>;
       args: Record<string, PothosInputFieldConfig<Types>>;
