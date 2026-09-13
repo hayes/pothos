@@ -7,7 +7,7 @@ import {
   type QueryVisitor,
   type SelectFn,
 } from '@pothos/selection-mapper';
-import type { TableRelationalConfig } from 'drizzle-orm';
+import { getColumns, type Table, type TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLField, GraphQLNamedType } from 'graphql';
 import type { DrizzleFieldSelection, PathInfo } from '../types.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
@@ -118,9 +118,18 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
       return;
     }
 
-    for (const key of Object.keys(columns)) {
-      if (columns[key]) {
+    const selected = Object.keys(columns).filter((key) => columns[key]);
+    if (selected.length > 0) {
+      for (const key of selected) {
         visit.column(key);
+      }
+    } else if (Object.values(columns).some((value) => value === false)) {
+      // An exclusion-only projection selects every other column. Resolve it before
+      // merging so another field can still request a column excluded here.
+      for (const key of Object.keys(getColumns(model.table as Table))) {
+        if (columns[key] !== false) {
+          visit.column(key);
+        }
       }
     }
   }
