@@ -9,51 +9,129 @@ import {
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { NodeObjectOptions } from '../types.js';
+import { getRawGlobalID } from './internal.js';
 
-const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
+// Two caches per request: by raw global ID, since `id.parse` may return a fresh object per call and
+// so cannot recognise a repeat of one global ID; and by parsed id, since distinct global IDs may
+// parse to one id. The parsed map keys on the value (SameValueZero), so `{key:1}`/`{key:2}` differ.
+interface RequestCache {
+  byParsedID: Map<string, Map<unknown, MaybePromise<unknown>>>;
+  byRawID: Map<string, MaybePromise<unknown>>;
+}
 
-function nodeCacheKey(typename: string, globalID: { id: unknown; rawId?: string }) {
-  return `${typename}:${globalID.rawId ?? globalID.id}`;
+const getRequestCache = createContextCache(
+  (): RequestCache => ({ byParsedID: new Map(), byRawID: new Map() }),
+);
+
+function getParsedIDCache(requestCache: RequestCache, typename: string) {
+  let cache = requestCache.byParsedID.get(typename);
+
+  if (!cache) {
+    cache = new Map();
+    requestCache.byParsedID.set(typename, cache);
+  }
+
+  return cache;
+}
+
+function rawCacheKey(typename: string, globalID: { id: unknown }) {
+  const rawId = getRawGlobalID(globalID);
+
+  if (rawId !== undefined) {
+    return `${typename}:${rawId}`;
+  }
+
+  const { id } = globalID;
+
+  // Without a parse step the id is its own raw form. Objects have none, and stringifying them would
+  // merge every object id onto one key.
+  return id !== null && (typeof id === 'object' || typeof id === 'function')
+    ? undefined
+    : `${typename}:${String(id)}`;
+}
+
+interface PendingNodes {
+  ids: unknown[];
+  indexes: number[][];
+  rawKeys: string[][];
+  slotByParsedID: Map<unknown, number>;
+  slotByRawKey: Map<string, number>;
 }
 
 export async function resolveNodes<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
-  globalIDs: ({ id: unknown; rawId?: string; typename: string } | null | undefined)[],
+  globalIDs: ({ id: unknown; typename: string } | null | undefined)[],
 ): Promise<MaybePromise<unknown>[]> {
   const requestCache = getRequestCache(context);
-  const idsByType = new Map<string, Map<string, unknown>>();
-  const results = new Map<string, MaybePromise<unknown>>();
+  const results: MaybePromise<unknown>[] = globalIDs.map(() => null);
+  const pendingByType = new Map<string, PendingNodes>();
 
-  for (const globalID of globalIDs) {
+  globalIDs.forEach((globalID, index) => {
     if (globalID == null) {
-      continue;
+      return;
     }
 
     const { id, typename } = globalID;
-    const cacheKey = nodeCacheKey(typename, globalID);
+    const rawKey = rawCacheKey(typename, globalID);
 
-    if (requestCache.has(cacheKey)) {
-      results.set(cacheKey, requestCache.get(cacheKey)!);
-      continue;
+    if (rawKey !== undefined && requestCache.byRawID.has(rawKey)) {
+      results[index] = requestCache.byRawID.get(rawKey)!;
+
+      return;
     }
 
-    let idsForType = idsByType.get(typename);
+    const parsedCache = getParsedIDCache(requestCache, typename);
 
-    if (!idsForType) {
-      idsForType = new Map();
-      idsByType.set(typename, idsForType);
+    if (parsedCache.has(id)) {
+      const value = parsedCache.get(id)!;
+      results[index] = value;
+
+      if (rawKey !== undefined) {
+        requestCache.byRawID.set(rawKey, value);
+      }
+
+      return;
     }
 
-    idsForType.set(cacheKey, id);
-  }
+    let pending = pendingByType.get(typename);
+
+    if (!pending) {
+      pending = {
+        ids: [],
+        indexes: [],
+        rawKeys: [],
+        slotByParsedID: new Map(),
+        slotByRawKey: new Map(),
+      };
+      pendingByType.set(typename, pending);
+    }
+
+    let slot = rawKey === undefined ? undefined : pending.slotByRawKey.get(rawKey);
+
+    if (slot === undefined) {
+      slot = pending.slotByParsedID.get(id);
+
+      if (slot === undefined) {
+        slot = pending.ids.length;
+        pending.slotByParsedID.set(id, slot);
+        pending.ids.push(id);
+        pending.indexes.push([]);
+        pending.rawKeys.push([]);
+      }
+
+      if (rawKey !== undefined) {
+        pending.slotByRawKey.set(rawKey, slot);
+        pending.rawKeys[slot].push(rawKey);
+      }
+    }
+
+    pending.indexes[slot].push(index);
+  });
 
   await Promise.all(
-    [...idsByType].map(async ([typename, idsForType]) => {
-      const ids = [...idsForType.values()];
-      const keys = [...idsForType.keys()];
-
+    [...pendingByType].map(async ([typename, pending]) => {
       const config = builder.configStore.getTypeConfig(typename, 'Object');
       const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, []>;
       const shouldBrandObjects =
@@ -63,24 +141,28 @@ export async function resolveNodes<Types extends SchemaTypes>(
         builder,
         context,
         info,
-        ids,
+        pending.ids,
         typename,
-        keys,
+        pending.rawKeys.map((keys) => keys[0]),
       );
 
-      resultsForType.forEach((val, i) => {
+      resultsForType.forEach((val, slot) => {
         if (shouldBrandObjects) {
           brandWithType(val, typename as OutputType<Types>);
         }
 
-        results.set(keys[i], val);
+        for (const index of pending.indexes[slot]) {
+          results[index] = val;
+        }
+
+        for (const rawKey of pending.rawKeys[slot]) {
+          requestCache.byRawID.set(rawKey, val);
+        }
       });
     }),
   );
 
-  return globalIDs.map((globalID) =>
-    globalID == null ? null : (results.get(nodeCacheKey(globalID.typename, globalID)) ?? null),
-  );
+  return results;
 }
 
 // biome-ignore lint/suspicious/useAwait: ensure that this returns a promise
@@ -90,28 +172,31 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   info: GraphQLResolveInfo,
   ids: readonly unknown[],
   type: OutputType<Types> | string,
-  keys?: readonly string[],
+  keys?: readonly (string | undefined)[],
 ): Promise<unknown[]> {
   const requestCache = getRequestCache(context);
   const config = builder.configStore.getTypeConfig(type, 'Object');
   const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, [], unknown>;
-  const cacheKey = (id: unknown, i: number) => keys?.[i] ?? `${config.name}:${id}`;
+  const parsedCache = getParsedIDCache(requestCache, config.name);
+  const setCache = (id: unknown, i: number, value: MaybePromise<unknown>) => {
+    requestCache.byRawID.set(keys?.[i] ?? `${config.name}:${id}`, value);
+    parsedCache.set(id, value);
+  };
 
   if (options.loadMany) {
     const loadManyPromise = Promise.resolve(options.loadMany(ids as unknown[], context));
 
     return Promise.all(
       ids.map((id, i) => {
-        const key = cacheKey(id, i);
         const entryPromise = loadManyPromise
           .then((results: readonly unknown[]) => results[i])
           .then((result: unknown) => {
-            requestCache.set(key, result);
+            setCache(id, i, result);
 
             return result;
           });
 
-        requestCache.set(key, entryPromise);
+        setCache(id, i, entryPromise);
 
         return entryPromise;
       }),
@@ -121,16 +206,15 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   if (options.loadOne) {
     return Promise.all(
       ids.map((id, i) => {
-        const key = cacheKey(id, i);
         const entryPromise = Promise.resolve(options.loadOne!(id, context)).then(
           (result: unknown) => {
-            requestCache.set(key, result);
+            setCache(id, i, result);
 
             return result;
           },
         );
 
-        requestCache.set(key, entryPromise);
+        setCache(id, i, entryPromise);
 
         return entryPromise;
       }),

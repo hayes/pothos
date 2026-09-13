@@ -20,12 +20,26 @@ function getParseGlobalID(typename: string, info: PartialResolveInfo) {
     | undefined;
 }
 
+// Decoded global IDs are handed to user resolvers as `args`, so the raw id `resolveNodes` keys its
+// cache on travels beside them rather than as a property they would see (and could spread away).
+const rawGlobalIDs = new WeakMap<object, string>();
+
+function withRawGlobalID<T extends object>(globalID: T, rawId: string): T {
+  rawGlobalIDs.set(globalID, rawId);
+
+  return globalID;
+}
+
+export function getRawGlobalID(globalID: object): string | undefined {
+  return rawGlobalIDs.get(globalID);
+}
+
 export function internalNormalizeGlobalIDShape(
   typename: string,
   id: unknown,
   ctx: object,
   info: PartialResolveInfo,
-): { id: unknown; rawId?: string; typename: string } {
+): { id: unknown; typename: string } {
   const parseID = getParseGlobalID(typename, info);
 
   if (!parseID) {
@@ -34,7 +48,7 @@ export function internalNormalizeGlobalIDShape(
 
   const rawId = String(id);
 
-  return { typename, id: parseID(rawId, ctx), rawId };
+  return withRawGlobalID({ typename, id: parseID(rawId, ctx) }, rawId);
 }
 
 export function internalDecodeGlobalID<Types extends SchemaTypes>(
@@ -59,11 +73,7 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
     }
 
     if (entry.parseId) {
-      return {
-        ...decoded,
-        id: entry.parseId(decoded.id, ctx),
-        rawId: decoded.id,
-      };
+      return withRawGlobalID({ ...decoded, id: entry.parseId(decoded.id, ctx) }, decoded.id);
     }
 
     return decoded;
@@ -73,11 +83,7 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
     const parseID = getParseGlobalID(decoded.typename, info);
 
     if (parseID) {
-      return {
-        ...decoded,
-        id: parseID(decoded.id, ctx),
-        rawId: decoded.id,
-      };
+      return withRawGlobalID({ ...decoded, id: parseID(decoded.id, ctx) }, decoded.id);
     }
   }
 
