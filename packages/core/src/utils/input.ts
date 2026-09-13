@@ -88,9 +88,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
         return;
       }
 
-      const hasNestedMappings = mapping.fields.map
-        ? checkForMappings(mapping.fields.map, hasMappings)
-        : false;
+      const hasNestedMappings = mapping.fields.map ? checkForMappings(mapping.fields.map) : false;
 
       if (mapping.value !== null || hasNestedMappings) {
         const filteredTypeFields = mapping.fields.map ? filterMapped(mapping.fields.map) : null;
@@ -109,66 +107,57 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     return filtered.size > 0 ? filtered : null;
   }
 
-  function checkForMappings(
-    map: InputFieldsMapping<Types, T>,
-    hasMappings: Map<InputFieldsMapping<Types, T>, boolean>,
-  ): boolean {
-    if (hasMappings.has(map)) {
-      return hasMappings.get(map)!;
-    }
+  function checkForMappings(map: InputFieldsMapping<Types, T>): boolean {
+    const openDepths = new Map<InputFieldsMapping<Types, T>, number>();
+    const pending: InputFieldsMapping<Types, T>[] = [];
 
-    const nested = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>[]>();
-    const results = new Map<InputFieldsMapping<Types, T>, boolean>();
-    const queue = [map];
-
-    while (queue.length > 0) {
-      const current = queue.pop()!;
-
-      if (nested.has(current) || hasMappings.has(current)) {
-        continue;
+    // A map reached while still open is in the same cycle as the map reaching it, so both share
+    // one answer. Those maps wait in `pending` until the map that opened the cycle resolves,
+    // instead of caching an answer read from a cycle that has not finished.
+    function visit(map: InputFieldsMapping<Types, T>): {
+      result: boolean;
+      openDepth: number;
+    } {
+      if (hasMappings.has(map)) {
+        return { result: hasMappings.get(map)!, openDepth: Number.POSITIVE_INFINITY };
       }
 
-      const children: InputFieldsMapping<Types, T>[] = [];
-      let hasDirectMapping = false;
+      if (openDepths.has(map)) {
+        return { result: false, openDepth: openDepths.get(map)! };
+      }
 
-      for (const mapping of current.values()) {
+      const depth = pending.length;
+
+      openDepths.set(map, depth);
+      pending.push(map);
+
+      let result = false;
+      let openDepth = Number.POSITIVE_INFINITY;
+
+      for (const mapping of map.values()) {
         if (mapping.value !== null) {
-          hasDirectMapping = true;
+          result = true;
         } else if (mapping.kind === 'InputObject' && mapping.fields.map) {
-          children.push(mapping.fields.map);
-          queue.push(mapping.fields.map);
+          const nested = visit(mapping.fields.map);
+
+          result ||= nested.result;
+          openDepth = Math.min(openDepth, nested.openDepth);
         }
       }
 
-      nested.set(current, children);
-      results.set(current, hasDirectMapping);
-    }
-
-    let changed = true;
-
-    while (changed) {
-      changed = false;
-
-      for (const [current, children] of nested) {
-        if (results.get(current)) {
-          continue;
-        }
-
-        for (const child of children) {
-          if (results.has(child) ? results.get(child)! : hasMappings.get(child)!) {
-            results.set(current, true);
-            changed = true;
-            break;
-          }
-        }
+      if (openDepth < depth) {
+        return { result, openDepth };
       }
+
+      for (const resolved of pending.splice(depth)) {
+        openDepths.delete(resolved);
+        hasMappings.set(resolved, result);
+      }
+
+      return { result, openDepth: Number.POSITIVE_INFINITY };
     }
 
-    for (const [current, result] of results) {
-      hasMappings.set(current, result);
-    }
-
-    return results.get(map)!;
+    return visit(map).result;
   }
 }
 
