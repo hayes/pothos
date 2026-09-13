@@ -188,16 +188,16 @@ export function mergeGraphQLObjectFields<Types extends SchemaTypes, Shape>(
 
   switch (kind) {
     case 'Query':
-      target.queryFields(fields);
+      target.configStore.onPrepare(() => target.queryFields(fields));
       break;
     case 'Mutation':
-      target.mutationFields(fields);
+      target.configStore.onPrepare(() => target.mutationFields(fields));
       break;
     case 'Subscription':
-      target.subscriptionFields(fields);
+      target.configStore.onPrepare(() => target.subscriptionFields(fields));
       break;
     case 'Object':
-      target.objectFields(type.name as never, fields);
+      target.configStore.onPrepare(() => target.objectFields(type.name as never, fields));
       break;
     default:
       throw new PothosSchemaError(

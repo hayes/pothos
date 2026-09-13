@@ -47,6 +47,36 @@ function objectType(
   });
 }
 
+const lateFieldsPlugin = 'lateFieldsPlugin' as keyof PothosSchemaTypes.Plugins<SchemaTypes>;
+class LateFieldsPlugin extends BasePlugin<SchemaTypes> {
+  override beforeBuild() {
+    this.builder.queryField('hello', (t) => t.int({ resolve: () => 42 }));
+  }
+}
+SchemaBuilder.registerPlugin(lateFieldsPlugin, LateFieldsPlugin);
+
+it.each([
+  false,
+  true,
+])('preserves overrides from beforeBuild hooks (import first: %s)', async (importFirst) => {
+  const builder = new SchemaBuilder({
+    plugins: importFirst
+      ? [AddGraphQLPlugin, lateFieldsPlugin]
+      : [lateFieldsPlugin, AddGraphQLPlugin],
+    add: {
+      schema: new GraphQLSchema({
+        query: objectType('Query', { hello: 'imported', keep: 'kept' }),
+      }),
+    },
+  });
+  builder.queryType({});
+  const schema = builder.toSchema();
+  expect(validateSchema(schema)).toEqual([]);
+  expect(await execute({ schema, document: gql`{ hello keep }` })).toEqual({
+    data: { hello: 42, keep: 'kept' },
+  });
+});
+
 const fieldKinds = new Map<string, string>();
 const recordKindPlugin = 'recordKindPlugin' as keyof PothosSchemaTypes.Plugins<SchemaTypes>;
 
