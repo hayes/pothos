@@ -219,6 +219,44 @@ describe('node identity for parsed ids', () => {
     expect(batches).toEqual([[{ key: 1 }, { key: 2 }]]);
   });
 
+  it.each([
+    false,
+    true,
+  ])('dedupes numeric shape IDs without parsing (reverse: %s)', async (reverse) => {
+    const calls: unknown[] = [];
+    const builder = new SchemaBuilder<{}>({ plugins: [RelayPlugin] });
+    const User = builder.objectRef<{ key: string }>('User');
+
+    builder.node(User, {
+      isTypeOf: () => true,
+      id: { resolve: (user) => user.key },
+      loadOne: (id) => {
+        calls.push(id);
+
+        return { key: String(id) };
+      },
+      fields: (t) => ({ key: t.exposeString('key') }),
+    });
+    builder.queryType({
+      fields: (t) => ({ shape: t.node({ id: () => ({ type: User, id: 1 }) }) }),
+    });
+
+    const result = await graphql({
+      schema: builder.toSchema(),
+      source: `query($id: ID!) {
+        ${reverse ? 'node(id: $id) { ... on User { key } }' : ''}
+        shape { ... on User { key } }
+        ${reverse ? '' : 'node(id: $id) { ... on User { key } }'}
+      }`,
+      variableValues: { id: encodeGlobalID('User', '1') },
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ shape: { key: '1' }, node: { key: '1' } });
+    expect(calls).toHaveLength(1);
+  });
+
   describe('a GlobalIDShape and a global ID string for the same node', () => {
     function build() {
       const builder = new SchemaBuilder<{}>({ plugins: [RelayPlugin] });

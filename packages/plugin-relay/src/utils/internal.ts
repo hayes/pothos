@@ -41,7 +41,7 @@ export function internalNormalizeGlobalIDShape(
   const parseID = getParseGlobalID(typename, info);
 
   if (!parseID) {
-    return { typename, id };
+    return withRawGlobalID({ typename, id }, String(id));
   }
 
   const rawId = String(id);
@@ -74,7 +74,7 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
       return withRawGlobalID({ ...decoded, id: entry.parseId(decoded.id, ctx) }, decoded.id);
     }
 
-    return decoded;
+    return withRawGlobalID(decoded, decoded.id);
   }
 
   if (parseIdsForTypes) {
@@ -85,5 +85,5 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
     }
   }
 
-  return decoded;
+  return withRawGlobalID(decoded, decoded.id);
 }
