@@ -428,7 +428,11 @@ schemaBuilder.prismaCreate = function prismaCreate<
     ...options,
     extensions: {
       ...options.extensions,
-      pothosPrismaInput: true,
+      pothosPrismaInput: {
+        nullableFields: new Set(
+          model.fields.filter((field) => !field.isRequired).map((field) => field.name),
+        ),
+      },
     },
     fields: (t) => {
       const fieldDefs: InputFieldMap = {};
@@ -476,7 +480,11 @@ schemaBuilder.prismaCreateMany = function prismaCreateMany(
     ...options,
     extensions: {
       ...options.extensions,
-      pothosPrismaInput: true,
+      pothosPrismaInput: {
+        nullableFields: new Set(
+          model.fields.filter((field) => !field.isRequired).map((field) => field.name),
+        ),
+      },
     },
     fields: (t) => {
       const fieldDefs: InputFieldMap = {};
