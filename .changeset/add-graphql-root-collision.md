@@ -29,5 +29,5 @@ whose name collides with a type that is not an object now reports `Can not merge
 <name> into the <kind> type with the same name` rather than being dropped.
 
 An imported root also rejects a collision with a different operation root kind, so imported
-mutation fields cannot become query fields through a name collision. Failed root imports continue
-to report the error on subsequent builds.
+mutation fields cannot become query fields through a name collision. Invalid root-kind and non-object collisions
+continue to report errors on subsequent builds.
