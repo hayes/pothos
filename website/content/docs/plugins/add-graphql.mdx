@@ -27,7 +27,8 @@ Non-root types are imported only if Pothos has no registered type with that name
 `add.schema`, a configured type with the same name keeps its fields and type metadata, while
 non-overlapping imported fields are added. For example, a field in `queryType({ fields })` overrides
 a same-named imported query field without discarding the imported root's other fields. Mutation
-and subscription roots follow the same rule.
+and subscription roots follow the same rule. Inherited interface fields also take precedence, and
+local overrides can be added before or after building the schema.
 
 Use `queryFields` to add fields without configuring a replacement root. Those additions must have
 unique names; a collision with an imported field remains an error. To customize an individual

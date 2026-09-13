@@ -53,7 +53,7 @@ class LateFieldsPlugin extends BasePlugin<SchemaTypes> {
     this.builder.queryField('hello', (t) => t.int({ resolve: () => 42 }));
   }
 }
-SchemaBuilder.registerPlugin(lateFieldsPlugin, LateFieldsPlugin);
+SchemaBuilder.registerPlugin(lateFieldsPlugin, LateFieldsPlugin as never);
 
 it.each([
   false,
@@ -74,6 +74,93 @@ it.each([
   expect(validateSchema(schema)).toEqual([]);
   expect(await execute({ schema, document: gql`{ hello keep }` })).toEqual({
     data: { hello: 42, keep: 'kept' },
+  });
+});
+
+it.each([
+  false,
+  true,
+])('preserves inherited local fields (own override: %s)', async (ownOverride) => {
+  const builder = new SchemaBuilder({
+    plugins: [AddGraphQLPlugin],
+    add: {
+      schema: new GraphQLSchema({
+        query: objectType('Existing', { hello: 'imported', keep: 'kept' }),
+      }),
+    },
+  });
+  const base = builder.interfaceRef<{}>('Base');
+  builder.interfaceType(base, { fields: (t) => ({ hello: t.int({ resolve: () => 42 }) }) });
+  const child = builder.interfaceRef<{}>('Child');
+  builder.interfaceType(child, { interfaces: [base], fields: () => ({}) });
+  const existing = builder.objectRef<{}>('Existing');
+  builder.objectType(existing, {
+    interfaces: [child, base],
+    fields: ownOverride ? (t) => ({ hello: t.int({ resolve: () => 43 }) }) : () => ({}),
+  });
+  builder.queryType({ fields: (t) => ({ obj: t.field({ type: existing, resolve: () => ({}) }) }) });
+  for (let build = 0; build < 2; build += 1) {
+    const schema = builder.toSchema();
+    expect(validateSchema(schema)).toEqual([]);
+    expect(await execute({ schema, document: gql`{ obj { hello keep } }` })).toEqual({
+      data: { obj: { hello: ownOverride ? 43 : 42, keep: 'kept' } },
+    });
+  }
+});
+
+it.each([
+  false,
+  true,
+])('preserves interfaces implemented by beforeBuild hooks (import first: %s)', async (importFirst) => {
+  const pluginName = `lateInterface${importFirst}` as keyof PothosSchemaTypes.Plugins<SchemaTypes>;
+  const builder = new SchemaBuilder({
+    plugins: importFirst ? [AddGraphQLPlugin, pluginName] : [pluginName, AddGraphQLPlugin],
+    add: {
+      schema: new GraphQLSchema({
+        query: objectType('Existing', { hello: 'imported', keep: 'kept' }),
+      }),
+    },
+  });
+  const base = builder.interfaceRef<{}>('Base');
+  const child = builder.interfaceRef<{}>('Child');
+  class LateInterfacePlugin extends BasePlugin<SchemaTypes> {
+    override beforeBuild() {
+      builder.interfaceType(base, { fields: (t) => ({ hello: t.int({ resolve: () => 42 }) }) });
+      builder.interfaceType(child, { interfaces: [base], fields: () => ({}) });
+    }
+  }
+  SchemaBuilder.registerPlugin(pluginName, LateInterfacePlugin as never);
+  const existing = builder.objectRef<{}>('Existing');
+  builder.objectType(existing, { interfaces: [child, base], fields: () => ({}) });
+  builder.queryType({ fields: (t) => ({ obj: t.field({ type: existing, resolve: () => ({}) }) }) });
+  const schema = builder.toSchema();
+  expect(validateSchema(schema)).toEqual([]);
+  expect(await execute({ schema, document: gql`{ obj { hello keep } }` })).toEqual({
+    data: { obj: { hello: 42, keep: 'kept' } },
+  });
+});
+
+it('allows local overrides to be added after a schema build', async () => {
+  const builder = new SchemaBuilder({
+    plugins: [AddGraphQLPlugin],
+    add: {
+      schema: new GraphQLSchema({
+        query: objectType('Query', { hello: 'imported', keep: 'kept' }),
+      }),
+    },
+  });
+  builder.queryType({});
+  const first = builder.toSchema();
+  expect(await execute({ schema: first, document: gql`{ hello keep }` })).toEqual({
+    data: { hello: 'imported', keep: 'kept' },
+  });
+  builder.queryField('hello', (t) => t.int({ resolve: () => 42 }));
+  const second = builder.toSchema();
+  expect(await execute({ schema: second, document: gql`{ hello keep }` })).toEqual({
+    data: { hello: 42, keep: 'kept' },
+  });
+  expect(await execute({ schema: first, document: gql`{ hello keep }` })).toEqual({
+    data: { hello: 'imported', keep: 'kept' },
   });
 });
 

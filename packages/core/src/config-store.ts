@@ -1,5 +1,6 @@
 import { PothosSchemaError } from './errors.js';
 import { BaseTypeRef } from './refs/base.js';
+import type { FieldRef } from './refs/field.js';
 import { InputObjectRef } from './refs/input-object.js';
 import { InterfaceRef } from './refs/interface.js';
 import { MutationRef } from './refs/mutation.js';
@@ -22,6 +23,10 @@ export class ConfigStore<Types extends SchemaTypes> {
   typeConfigs = new Map<string, PothosTypeConfig>();
 
   private fields = new Map<string, Map<string, PothosFieldConfig<Types>>>();
+
+  private fieldDefaults = new Map<string, Map<string, PothosFieldConfig<Types>>>();
+
+  private pendingFieldDefaults: (() => [string, Map<string, PothosFieldConfig<Types>>])[] = [];
 
   private refs = new Set<BaseTypeRef<Types>>();
 
@@ -60,6 +65,26 @@ export class ConfigStore<Types extends SchemaTypes> {
       }
 
       ref.addFields(fields);
+    });
+  }
+
+  addFieldDefaults(param: ConfigurableRef<Types>, fields: () => FieldMap) {
+    this.onTypeConfig(param, (config) => {
+      if (config.graphqlKind !== 'Object' && config.graphqlKind !== 'Interface') {
+        throw new PothosSchemaError(`Can not add field defaults to ${config.name}`);
+      }
+      this.pendingFieldDefaults.push(() => {
+        const defaults = new Map<string, PothosFieldConfig<Types>>();
+        for (const [name, field] of Object.entries(fields())) {
+          if (field) {
+            defaults.set(
+              name,
+              (field as FieldRef<Types>).getConfig(name, this.getTypeConfig(config.name)),
+            );
+          }
+        }
+        return [config.name, defaults];
+      });
     });
   }
 
@@ -314,7 +339,38 @@ export class ConfigStore<Types extends SchemaTypes> {
       );
     }
 
-    return fields as Map<string, Extract<PothosFieldConfig<Types>, { graphqlKind: T }>>;
+    const defaults = this.fieldDefaults.get(name);
+    if (!defaults?.size) {
+      return fields as Map<string, Extract<PothosFieldConfig<Types>, { graphqlKind: T }>>;
+    }
+
+    const inherited = new Set<string>();
+    const seen = new Set([name]);
+    const configs = [typeConfig];
+    for (const config of configs) {
+      if (config.kind !== 'Object' && config.kind !== 'Interface') {
+        continue;
+      }
+      for (const iface of config.interfaces) {
+        const ifaceConfig = this.getTypeConfig(iface);
+        if (seen.has(ifaceConfig.name)) {
+          continue;
+        }
+        seen.add(ifaceConfig.name);
+        configs.push(ifaceConfig);
+        for (const fieldName of this.fields.get(ifaceConfig.name)?.keys() ?? []) {
+          inherited.add(fieldName);
+        }
+        for (const fieldName of this.fieldDefaults.get(ifaceConfig.name)?.keys() ?? []) {
+          inherited.add(fieldName);
+        }
+      }
+    }
+
+    return new Map([
+      ...[...defaults].filter(([fieldName]) => !inherited.has(fieldName)),
+      ...fields,
+    ]) as Map<string, Extract<PothosFieldConfig<Types>, { graphqlKind: T }>>;
   }
 
   prepareForBuild() {
@@ -331,6 +387,15 @@ export class ConfigStore<Types extends SchemaTypes> {
     for (const fn of pendingActions) {
       fn();
     }
+
+    const builtDefaults: [string, Map<string, PothosFieldConfig<Types>>][] = [];
+    for (const buildDefaults of this.pendingFieldDefaults) {
+      builtDefaults.push(buildDefaults());
+    }
+    for (const [name, fields] of builtDefaults) {
+      this.fieldDefaults.set(name, new Map([...(this.fieldDefaults.get(name) ?? []), ...fields]));
+    }
+    this.pendingFieldDefaults = [];
 
     if (this.pendingTypeConfigResolutions.size > 0) {
       throw new PothosSchemaError(

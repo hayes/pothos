@@ -8,12 +8,16 @@ import SchemaBuilder, {
   type InputType,
   type InputTypeParam,
   ListRef,
+  MutationFieldBuilder,
+  ObjectFieldBuilder,
   type ObjectParam,
   type ObjectRef,
   type OutputType,
   PothosSchemaError,
+  QueryFieldBuilder,
   type RootName,
   type SchemaTypes,
+  SubscriptionFieldBuilder,
   type TypeParam,
 } from '@pothos/core';
 import {
@@ -172,11 +176,7 @@ export function mergeGraphQLObjectFields<Types extends SchemaTypes, Shape>(
   rootKind: RootName,
 ) {
   const target = builder as never as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
-  const fields = resolveObjectFields(target, type, () =>
-    Object.fromEntries(
-      [...target.configStore.getFields(type.name).keys()].map((name) => [name, null]),
-    ),
-  ) as never;
+  const fields = resolveObjectFields(target, type);
 
   const { kind } = target.configStore.getTypeConfig(type.name);
 
@@ -188,16 +188,24 @@ export function mergeGraphQLObjectFields<Types extends SchemaTypes, Shape>(
 
   switch (kind) {
     case 'Query':
-      target.configStore.onPrepare(() => target.queryFields(fields));
+      target.configStore.addFieldDefaults(type.name as never, () =>
+        fields(new QueryFieldBuilder(target) as never),
+      );
       break;
     case 'Mutation':
-      target.configStore.onPrepare(() => target.mutationFields(fields));
+      target.configStore.addFieldDefaults(type.name as never, () =>
+        fields(new MutationFieldBuilder(target) as never),
+      );
       break;
     case 'Subscription':
-      target.configStore.onPrepare(() => target.subscriptionFields(fields));
+      target.configStore.addFieldDefaults(type.name as never, () =>
+        fields(new SubscriptionFieldBuilder(target) as never),
+      );
       break;
     case 'Object':
-      target.configStore.onPrepare(() => target.objectFields(type.name as never, fields));
+      target.configStore.addFieldDefaults(type.name as never, () =>
+        fields(new ObjectFieldBuilder(target)),
+      );
       break;
     default:
       throw new PothosSchemaError(
