@@ -409,12 +409,10 @@ export class SchemaBuilder<Types extends SchemaTypes> {
             ParentShape<Types, Param>
           >(name);
 
-    const typename = ref.name;
-
     ref.updateConfig({
       kind: 'Interface',
       graphqlKind: 'Interface',
-      name: typename,
+      name,
       interfaces: [],
       description: options.description,
       pothosOptions: options as unknown as PothosSchemaTypes.InterfaceTypeOptions,
@@ -549,12 +547,23 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       InputShape<Types, Name>,
       ParentShape<Types, Name>
     >,
-  ): PothosSchemaTypes.ScalarRef<Types, InputShape<Types, Name>, ParentShape<Types, Name>> {
-    const ref = new ScalarRef<Types, InputShape<Types, Name>, ParentShape<Types, Name>>(name, {
+  ): PothosSchemaTypes.ScalarRef<
+    Types,
+    OutputShape<Types, Name>,
+    InputShape<Types, Name>,
+    ParentShape<Types, Name>
+  > {
+    const ref = new ScalarRef<
+      Types,
+      OutputShape<Types, Name>,
+      InputShape<Types, Name>,
+      ParentShape<Types, Name>
+    >(name, {
       kind: 'Scalar',
       graphqlKind: 'Scalar',
       name,
       description: options.description,
+      specifiedByURL: options.specifiedByURL,
       parseLiteral: options.parseLiteral,
       parseValue: options.parseValue,
       serialize: options.serialize as GraphQLScalarSerializer<OutputShape<Types, Name>>,

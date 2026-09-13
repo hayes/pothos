@@ -88,9 +88,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
         return;
       }
 
-      const hasNestedMappings = mapping.fields.map
-        ? checkForMappings(mapping.fields.map, hasMappings)
-        : false;
+      const hasNestedMappings = mapping.fields.map ? checkForMappings(mapping.fields.map) : false;
 
       if (mapping.value !== null || hasNestedMappings) {
         const filteredTypeFields = mapping.fields.map ? filterMapped(mapping.fields.map) : null;
@@ -109,33 +107,57 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     return filtered.size > 0 ? filtered : null;
   }
 
-  function checkForMappings(
-    map: InputFieldsMapping<Types, T>,
-    hasMappings: Map<InputFieldsMapping<Types, T>, boolean>,
-  ): boolean {
-    if (hasMappings.has(map)) {
-      return hasMappings.get(map)!;
-    }
+  function checkForMappings(map: InputFieldsMapping<Types, T>): boolean {
+    const openDepths = new Map<InputFieldsMapping<Types, T>, number>();
+    const pending: InputFieldsMapping<Types, T>[] = [];
 
-    hasMappings.set(map, false);
-
-    let result = false;
-
-    for (const mapping of map.values()) {
-      if (mapping.value !== null) {
-        result = true;
-      } else if (
-        mapping.kind === 'InputObject' &&
-        mapping.fields.map &&
-        checkForMappings(mapping.fields.map, hasMappings)
-      ) {
-        result = true;
+    // A map reached while still open is in the same cycle as the map reaching it, so both share
+    // one answer. Those maps wait in `pending` until the map that opened the cycle resolves,
+    // instead of caching an answer read from a cycle that has not finished.
+    function visit(map: InputFieldsMapping<Types, T>): {
+      result: boolean;
+      openDepth: number;
+    } {
+      if (hasMappings.has(map)) {
+        return { result: hasMappings.get(map)!, openDepth: Number.POSITIVE_INFINITY };
       }
+
+      if (openDepths.has(map)) {
+        return { result: false, openDepth: openDepths.get(map)! };
+      }
+
+      const depth = pending.length;
+
+      openDepths.set(map, depth);
+      pending.push(map);
+
+      let result = false;
+      let openDepth = Number.POSITIVE_INFINITY;
+
+      for (const mapping of map.values()) {
+        if (mapping.value !== null) {
+          result = true;
+        } else if (mapping.kind === 'InputObject' && mapping.fields.map) {
+          const nested = visit(mapping.fields.map);
+
+          result ||= nested.result;
+          openDepth = Math.min(openDepth, nested.openDepth);
+        }
+      }
+
+      if (openDepth < depth) {
+        return { result, openDepth };
+      }
+
+      for (const resolved of pending.splice(depth)) {
+        openDepths.delete(resolved);
+        hasMappings.set(resolved, result);
+      }
+
+      return { result, openDepth: Number.POSITIVE_INFINITY };
     }
 
-    hasMappings.set(map, result);
-
-    return result;
+    return visit(map).result;
   }
 }
 
