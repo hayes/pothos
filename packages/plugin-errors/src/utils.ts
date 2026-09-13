@@ -36,7 +36,18 @@ export const defaultGetListItemUnionName: GetTypeName = ({ parentTypeName, field
   `${parentTypeName}${capitalize(fieldName)}ItemResult`;
 
 function createProxyTarget(target: {}): {} {
-  if (Object.isExtensible(target)) {
+  const hasFixedMethod = Reflect.ownKeys(target).some((key) => {
+    const descriptor = Object.getOwnPropertyDescriptor(target, key)!;
+    return (
+      key !== 'constructor' &&
+      descriptor.configurable === false &&
+      descriptor.writable === false &&
+      typeof descriptor.value === 'function'
+    );
+  });
+  // A get trap cannot bind a fixed own method while using the original as its
+  // proxy target. A configurable copy leaves those invariants intact.
+  if (Object.isExtensible(target) && !hasFixedMethod) {
     return target;
   }
 
@@ -54,8 +65,9 @@ function createProxyTarget(target: {}): {} {
 }
 
 export function createErrorProxy(target: {}, ref: unknown, state: { wrapped: boolean }): {} {
+  const methods = new WeakMap<object, unknown>();
   return new Proxy(createProxyTarget(target), {
-    get(err, val, receiver) {
+    get(_err, val) {
       if (val === unwrapError) {
         return () => {
           state.wrapped = false;
@@ -66,7 +78,21 @@ export function createErrorProxy(target: {}, ref: unknown, state: { wrapped: boo
         return ref;
       }
 
-      return Reflect.get(err, val, receiver) as unknown;
+      // Private fields live on the original instance, including when the proxy target
+      // is a descriptor copy of a frozen error.
+      const value: unknown = Reflect.get(target, val, target);
+      if (typeof value !== 'function' || val === 'constructor') {
+        return value;
+      }
+      let bound = methods.get(value);
+      if (!bound) {
+        bound = value.bind(target);
+        methods.set(value, bound);
+      }
+      return bound;
+    },
+    set(_err, key, value) {
+      return Reflect.set(target, key, value, target);
     },
     getPrototypeOf(err) {
       const proto = Reflect.getPrototypeOf(err) as {};
