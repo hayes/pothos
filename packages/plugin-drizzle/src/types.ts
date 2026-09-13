@@ -64,7 +64,10 @@ export interface PathInfo {
   segments: FieldPathInfo[];
 }
 
-export type DrizzleClient<TCountSource = Table | SQL | SQLWrapper> = {
+export type DrizzleClient<
+  TCountSource = Table | SQL | SQLWrapper,
+  TTable = Extract<TCountSource, Table>,
+> = {
   readonly _: {
     readonly relations: AnyRelations;
   };
@@ -78,11 +81,8 @@ export type DrizzleClient<TCountSource = Table | SQL | SQLWrapper> = {
   $count: (source: TCountSource, filter?: SQL) => SQL<number>;
   /** Core SQL construction used for relation predicates and counts; it does not execute a query. */
   select: (fields: Record<string, SQL>) => {
-    from(table: Extract<TCountSource, Table>): {
-      innerJoin(
-        table: Extract<TCountSource, Table>,
-        on: SQL,
-      ): { where: (filter?: SQL) => SQLWrapper };
+    from(table: TTable): {
+      innerJoin(table: TTable, on: SQL): { where: (filter?: SQL) => SQLWrapper };
       where: (filter?: SQL) => SQLWrapper;
     };
   };
@@ -102,7 +102,8 @@ type AnyRelationTable<Types extends SchemaTypes> =
   Types['DrizzleRelations'][keyof Types['DrizzleRelations']]['table'];
 
 type DrizzleClientForTypes<Types extends SchemaTypes> = DrizzleClient<
-  AnyRelationTable<Types> | SQL | SQLWrapper
+  AnyRelationTable<Types> | SQL | SQLWrapper,
+  Table extends AnyRelationTable<Types> ? Table : never
 >;
 
 type DrizzlePluginBaseOptions = {
