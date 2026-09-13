@@ -1,5 +1,37 @@
 # @pothos/plugin-prisma-next
 
+## 0.1.1
+
+### Patch Changes
+
+- 8178e96: Narrow resolver parent types for `prismaObjectField`, `prismaObjectFields`,
+  `prismaInterfaceField`, and `prismaInterfaceFields` when called with a model-name string. Parents
+  now include only declared selections instead of every model column. Ref-based calls are unchanged.
+  `prismaNode` parents likewise reflect its `select`; custom `id.resolve` callbacks also receive the
+  single or compound columns named by `id.field`.
+
+  Field-level selections remain additive, and `t.expose*`, `t.relation`, and selection-key validation
+  are unchanged. Runtime loading is unchanged. To supply the full row type explicitly, use
+  `builder.prismaObjectField<'User', Row<Types, 'User'>>('User', …)`.
+
+- 15ae360: Infer connection node types from `prismaConnectionHelpers.resolveNode`. With a custom
+  `resolveNode`, `wrap` now requires full model rows and returns the callback's output type. Passing
+  narrowed rows to such a helper is now a type error.
+
+  A conditional `resolveNode` produces a union of its output and the original row. Helpers without
+  `resolveNode` still infer nodes from the rows passed to `wrap`. The new fourth type parameter on
+  `PrismaConnectionHelpers` is optional, so existing type references remain valid.
+
+  Runtime behavior is unchanged; cursors still use the original rows.
+
+- a5eb463: Type an optional `prismaFieldWithInput` input as possibly `undefined`, matching the omitted-arg value GraphQL passes to the resolver
+  Correct the cross-file field helper docs: extend a variant with its ref, not its variant-name string
+  Preserve interface selections on inherited fields, using the declaring interface's selection aliases
+  and the owning type's model for fallback loading.
+- Updated dependencies [da938c5]
+  - @pothos/core@4.15.0
+  - @pothos/selection-mapper@0.1.0
+
 ## 0.1.0
 
 ### Minor Changes

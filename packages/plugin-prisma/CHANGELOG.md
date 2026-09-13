@@ -1,5 +1,25 @@
 # Change Log
 
+## 4.17.0
+
+### Minor Changes
+
+- 269b554: Await async `prismaNode` ID resolvers before passing their results to a custom `findUnique`.
+  Custom `findUnique` callbacks can now return promises. A rejected lookup fails only its own row;
+  synchronous lookup timing and batching are unchanged.
+
+### Patch Changes
+
+- 263e092: Keep Decimal node ids exact instead of rounding them through a float when parsing
+- 7f4e1b0: Fix `relatedConnection` fields with a custom `resolve` when the parent row was not preloaded:
+  - Plan the fallback query from the connection's node type and cursor selections.
+  - Await async node IDs and custom unique lookups before loading fallback counts.
+  - Load `totalCount` only when selected and make it available to custom connection fields. A parent
+    that does not exist now produces an error naming the field and model instead of a zero count.
+  - Compute `hasNextPage` from the requested page size and remove the extra probe row.
+  - Skip the custom row resolver for selections that request only `totalCount`.
+  - @pothos/selection-mapper@0.1.0
+
 ## 4.16.0
 
 ### Minor Changes

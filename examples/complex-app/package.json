@@ -1,7 +1,7 @@
 {
   "private": true,
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.1.55",
+  "version": "2.1.56",
   "name": "@pothos-examples/complex-app",
   "type": "module",
   "engines": {

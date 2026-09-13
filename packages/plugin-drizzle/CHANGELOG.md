@@ -1,5 +1,17 @@
 # @pothos/plugin-drizzle
 
+## 0.19.1
+
+### Patch Changes
+
+- fc8e577: Fix excessive type instantiation when constructing a schema builder with many Drizzle tables, while retaining checks for required client methods.
+- b1b147d: Preserve bigint and Date values in compound node IDs, which previously threw or came back as a string
+
+  Parse numeric node IDs with `Number` rather than `parseInt`, so a non-integer ID no longer truncates
+
+- eb771cc: Pass the drizzle table, rather than its relational config, to connection helper `orderBy` callbacks
+  - @pothos/selection-mapper@0.1.0
+
 ## 0.19.0
 
 ### Minor Changes

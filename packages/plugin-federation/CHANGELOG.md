@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 4.5.2
+
+### Patch Changes
+
+- 85a0624: Fix duplicate type error in toSubGraphSchema when using a custom query root name
+
 ## 4.5.1
 
 ### Patch Changes
