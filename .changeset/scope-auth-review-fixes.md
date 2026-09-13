@@ -2,8 +2,13 @@
 '@pothos/plugin-scope-auth': minor
 ---
 
-Cache scope map results per strategy so a map shared between `$any` and `$all` is not resolved by whichever field executes first
-Keep a top-level `$any` narrowed to a union of its auth contexts when the default strategy is `all`, instead of intersecting them. This is a type-only change, but it is a compile break: a resolver that read a context guaranteed only by the other branch of the `$any` (`context.user.id` under `t.withAuth({ $any: { user: true, admin: true } })`) compiled before and no longer does. It ships as a patch because the old type claimed a guarantee runtime never made, and such resolvers throw whenever the other scope is the one that authorized the request. A `$any` nested inside a `$all` is still intersected, unchanged from before.
+Cache scope-map results separately for `$any` and `$all`, so shared maps are evaluated with the
+correct strategy regardless of field order.
+
+With the `all` default strategy, a top-level `$any` now narrows auth contexts to a union rather
+than an intersection. Resolvers that relied on context available in only another branch may no
+longer compile; runtime authorization is unchanged. A `$any` nested in `$all` still uses an
+intersection.
 
 Apply implementing-object policies to inherited interface fields, alongside the declaring
 interface's policy. This requires core 4.15 or later. Authorization steps are built with each
