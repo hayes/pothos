@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.5.3
+
+### Patch Changes
+
+- b42ec8d: Retain GraphQL 17 argument and input-field defaults when filtering externally built schemas.
+
 ## 4.5.2
 
 ### Patch Changes

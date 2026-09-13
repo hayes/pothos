@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.9.3
+
+### Patch Changes
+
+- 84d9a87: Read wrapped error getters and call error methods on the original instance so private fields work, including sealed and frozen errors. Preserve constructor identity and proxy invariants for fixed own methods.
+
 ## 4.9.2
 
 ### Patch Changes

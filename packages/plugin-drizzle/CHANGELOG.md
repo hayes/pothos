@@ -1,5 +1,12 @@
 # @pothos/plugin-drizzle
 
+## 0.19.2
+
+### Patch Changes
+
+- 221a523: Honor exclusion-only column projections when planning Drizzle selections.
+  - @pothos/selection-mapper@0.1.0
+
 ## 0.19.1
 
 ### Patch Changes

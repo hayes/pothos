@@ -1,5 +1,12 @@
 # @giraphql/plugin-complexity
 
+## 4.2.3
+
+### Patch Changes
+
+- a63e279: Detect cyclic fragment traversal and report it through GraphQL validation errors. Memoize each selection set and type within one calculation while adding its cost for every occurrence, so compact repeated-fragment documents no longer cause exponential work or evade timely complexity validation.
+- 5f57a15: Coerce operation variables before standalone and validation-rule complexity calculations, including variable and nested input defaults. Defaulted limits now contribute their actual cost; invalid variables produce GraphQL errors instead of a misleading complexity result. Preserve GraphQL 16 and 17 variable-value representations.
+
 ## 4.2.2
 
 ### Patch Changes

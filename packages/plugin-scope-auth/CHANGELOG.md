@@ -1,5 +1,12 @@
 # Change Log
 
+## 4.2.1
+
+### Patch Changes
+
+- 477c1ef: Cache the names returned by a type grant function, then install those grants at every response path where the object appears. Reusing an object across aliases or list positions no longer denies fields after the first occurrence.
+- f86b430: When the same object appears under granted and ungranted response paths, cache the type authorization function result and evaluate its grant requirements at each path. This prevents a granted sibling from authorizing an ungranted sibling while preserving one function invocation per object.
+
 ## 4.2.0
 
 ### Minor Changes

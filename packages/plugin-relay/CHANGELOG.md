@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.8.1
+
+### Patch Changes
+
+- f05382e: Await each array edge before reading its node in nodesOnConnection. Promise-valued edges now produce the same nodes as the edges field, preserve nullable edges, and report rejected edges at their individual list positions.
+
 ## 4.8.0
 
 ### Minor Changes

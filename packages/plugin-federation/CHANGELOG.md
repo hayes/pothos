@@ -1,5 +1,12 @@
 # @pothos/plugin-federation
 
+## 4.5.3
+
+### Patch Changes
+
+- ae887db: Preserve repeated directives in unordered extension metadata when merging federation directives.
+- 0dcc9f9: Remap output type references when replacing the federation query root, allowing fields and unions to reference conventional or custom query roots without duplicate types.
+
 ## 4.5.2
 
 ### Patch Changes

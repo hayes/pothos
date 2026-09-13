@@ -1,5 +1,12 @@
 # @pothos/plugin-add-graphql
 
+## 4.3.3
+
+### Patch Changes
+
+- 82c4721: Preserve GraphQL 17 SDL and external-value defaults when importing arguments and input fields.
+- 8b71b75: Import fields whose names match Object.prototype properties unless explicitly overridden or removed.
+
 ## 4.3.2
 
 ### Patch Changes
