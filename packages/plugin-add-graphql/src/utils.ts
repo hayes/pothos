@@ -61,6 +61,8 @@ export function addTypeToSchema<Types extends SchemaTypes>(
     return;
   }
 
+  importedTypes(builder).add(type);
+
   if (isObjectType(type)) {
     builder.addGraphQLObject(type, {
       rootKind: rootKind && hasRootType(builder, rootKind) ? null : rootKind,

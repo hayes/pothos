@@ -366,4 +366,30 @@ describe('imported schema roots', () => {
       expect(printSorted(builder.toSchema())).toBe(first);
     }
   });
+  it('imports a root supplied through add.types only once', () => {
+    const schema = new GraphQLSchema({ query: objectType('Query', { hello: 'imported' }) });
+    const builder = new SchemaBuilder<Types>({
+      plugins: [AddGraphQLPlugin],
+      add: { schema, types: [schema.getQueryType()!] },
+    });
+
+    expect(printSorted(builder.toSchema())).toMatchInlineSnapshot(`
+      "type Query {
+        hello: String
+      }"
+    `);
+  });
+
+  it('imports a root the builder already added directly only once', () => {
+    const schema = new GraphQLSchema({ query: objectType('Query', { hello: 'imported' }) });
+    const builder = createBuilder(schema);
+
+    builder.addGraphQLObject(schema.getQueryType()!, {});
+
+    expect(printSorted(builder.toSchema())).toMatchInlineSnapshot(`
+      "type Query {
+        hello: String
+      }"
+    `);
+  });
 });

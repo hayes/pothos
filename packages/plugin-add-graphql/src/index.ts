@@ -41,15 +41,15 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
     const imported = importedTypes(this.builder);
 
     for (const type of schemaTypes) {
-      // beforeBuild runs again on every toSchema() call, but field registrations persist, so
-      // merging an already imported root a second time throws a duplicate field error.
+      // A type reaches this loop already imported when it also appeared in `add.types`, when the
+      // builder imported it directly, or on a second toSchema() call, since field registrations
+      // persist across builds. Merging it again throws a duplicate field error.
       if (imported.has(type)) {
         continue;
       }
 
-      imported.add(type);
-
       if (rootKinds.has(type) && this.builder.configStore.hasConfig(type.name as never)) {
+        imported.add(type);
         mergeGraphQLObjectFields(this.builder, type as GraphQLObjectType);
       } else {
         addTypeToSchema(this.builder, type, rootKinds.get(type) ?? null);

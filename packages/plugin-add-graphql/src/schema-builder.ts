@@ -37,7 +37,7 @@ import type {
   AddGraphQLUnionTypeOptions,
   EnumValuesWithShape,
 } from './types.js';
-import { addReferencedType, importedRootKinds } from './utils.js';
+import { addReferencedType, importedRootKinds, importedTypes } from './utils.js';
 
 const proto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -195,6 +195,8 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
   };
 
   const root = rootKind === undefined ? inferRootKind(type.name) : (rootKind ?? undefined);
+
+  importedTypes(this).add(type);
 
   if (rootKind !== undefined) {
     importedRootKinds(this).set(name, rootKind);
