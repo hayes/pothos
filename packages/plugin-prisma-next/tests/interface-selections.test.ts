@@ -62,6 +62,14 @@ it.each([
   builder.queryType({
     fields: (t) => ({
       users: t.prismaField({ type: [user], resolve: () => ctx.ormClient.User }),
+      ...(provider
+        ? {
+            unplanned: t.field({
+              type: [user],
+              resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }] as never,
+            }),
+          }
+        : {}),
       viaInterface: t.field({
         type: [published],
         resolve: async (_parent, _args, context, info) => {
@@ -82,6 +90,7 @@ it.each([
     document: parse(`{
       users { id total published ownTotal }
       viaInterface { total published ... on User { id ownTotal } }
+      ${provider ? 'unplanned { id total published ownTotal }' : ''}
     }`),
   });
   expect(result.errors).toBeUndefined();
@@ -89,5 +98,9 @@ it.each([
     { id: 'u-alice', total: 2, published: 1, ownTotal: 2 },
     { id: 'u-bob', total: 2, published: 1, ownTotal: 2 },
   ];
-  expect(result.data).toEqual({ users, viaInterface: users });
+  expect(result.data).toEqual({
+    users,
+    viaInterface: users,
+    ...(provider ? { unplanned: users } : {}),
+  });
 });
