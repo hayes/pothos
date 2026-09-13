@@ -9,10 +9,17 @@ import {
   type GraphQLResolveInfo,
   GraphQLSchema,
   GraphQLUnionType,
+  isIntrospectionType,
   isObjectType,
+  isOutputType,
   lexicographicSortSchema,
 } from 'graphql';
 import { ExternalEntityRef } from './external-ref.js';
+import {
+  type OutputTypeMap,
+  replaceOutputFields,
+  replaceOutputType,
+} from './replace-output-types.js';
 import {
   type FieldSet,
   type Selection,
@@ -128,6 +135,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
 
   const hasEntities = entityTypes.length > 0;
 
+  const replacements: OutputTypeMap = new Map();
   const newQuery: GraphQLObjectType = new GraphQLObjectType({
     name: queryType?.name ?? 'Query',
     description: queryType?.description,
@@ -138,7 +146,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
         ...EntityType.toConfig(),
         types: entityTypes
           .filter(isObjectType)
-          .map((type) => (type === queryType ? newQuery : type)),
+          .map((type) => replaceOutputType(type, replacements)),
       });
       return {
         ...(hasEntities && {
@@ -151,20 +159,29 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
           ...serviceField,
           resolve: () => ({ sdl }),
         },
-        ...queryType?.toConfig().fields,
+        ...replaceOutputFields(queryType?.toConfig().fields ?? {}, replacements),
       };
     },
   });
 
+  if (queryType) {
+    replacements.set(queryType, newQuery);
+  }
+  const mutation = schema.getMutationType();
+  const subscription = schema.getSubscriptionType();
   const subGraphSchema = new GraphQLSchema({
     query: newQuery,
-    mutation: schema.getMutationType(),
-    subscription: schema.getSubscriptionType(),
+    mutation: mutation && replaceOutputType(mutation, replacements),
+    subscription: subscription && replaceOutputType(subscription, replacements),
     extensions: schema.extensions,
     directives: schema.getDirectives(),
     extensionASTNodes: schema.extensionASTNodes,
     types: [
-      ...Object.values(types).filter((type) => type !== queryType && type.name !== newQuery.name),
+      ...Object.values(types)
+        .filter(
+          (type) => !isIntrospectionType(type) && type !== queryType && type.name !== newQuery.name,
+        )
+        .map((type) => (isOutputType(type) ? replaceOutputType(type, replacements) : type)),
       newQuery,
     ],
   });
