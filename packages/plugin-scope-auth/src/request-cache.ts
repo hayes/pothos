@@ -31,7 +31,7 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   typeCache = new Map<string, Map<unknown, MaybePromise<AuthFailure | null>>>();
 
-  typeGrants = new Map<string, Map<unknown, MaybePromise<null>>>();
+  typeGrants = new Map<string, Map<unknown, MaybePromise<readonly string[]>>>();
 
   grantCache = new Map<string, Set<string>>();
 
@@ -125,25 +125,20 @@ export default class RequestCache<Types extends SchemaTypes> {
     cb: () => MaybePromise<readonly string[]>,
   ) {
     if (!this.typeGrants.has(type)) {
-      this.typeGrants.set(type, new Map<string, Promise<null>>());
+      this.typeGrants.set(type, new Map());
     }
 
     const cache = this.typeGrants.get(type)!;
 
     if (!cache.has(parent)) {
-      const result = cb();
-
-      if (isThenable(result)) {
-        cache.set(
-          parent,
-          result.then((resolved) => this.saveGrantedScopes(resolved, path)),
-        );
-      } else {
-        cache.set(parent, this.saveGrantedScopes(result, path));
-      }
+      cache.set(parent, cb());
     }
 
-    return cache.get(parent)!;
+    const scopes = cache.get(parent)!;
+
+    return isThenable(scopes)
+      ? scopes.then((resolved) => this.saveGrantedScopes(resolved, path))
+      : this.saveGrantedScopes(scopes, path);
   }
 
   evaluateScopeLoader<T extends keyof Types['AuthScopes']>(
