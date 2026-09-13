@@ -429,10 +429,10 @@ export type PrismaNodeOptions<
   > &
   (UniqueField extends string
     ? {
-        findUnique?: (id: string, context: Types['Context']) => Model['WhereUnique'];
+        findUnique?: (id: string, context: Types['Context']) => MaybePromise<Model['WhereUnique']>;
       }
     : {
-        findUnique: (id: string, context: Types['Context']) => Model['WhereUnique'];
+        findUnique: (id: string, context: Types['Context']) => MaybePromise<Model['WhereUnique']>;
       }) & {
     id: Omit<
       FieldOptionsFromKind<

@@ -311,6 +311,24 @@ syncBuilder.prismaObject('User', {
   }),
 });
 
+syncBuilder.prismaNode('User', {
+  variant: 'SyncFindUniqueUser',
+  id: { resolve: (user) => String(user.id) },
+  findUnique: (id) => ({ id: Number(id) }),
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
+syncBuilder.prismaNode('User', {
+  variant: 'AsyncFindUniqueUser',
+  id: { resolve: async (user) => String(user.id) },
+  findUnique: async (id) => ({ id: Number(id) }),
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
 // The shapes above reach `CheckAsyncSelection` only if the option's own type lets them through,
 // which hides what the check itself answers. Asked directly, it answers `unknown` for a callback
 // it accepts and the diagnostic for one it rejects.
