@@ -53,6 +53,10 @@ builder.prismaInterfaceField(personIface, 'displayName', (t) =>
 );
 ```
 
+As with [`prismaObjectField`](./objects#extending-prisma-objects), the string
+form's parent carries only the dependencies that field declared, so `select`
+is required for the resolver to read a column.
+
 If you pass the contract model name as a string, the plugin looks up
 the registered interface. If only an interface variant is registered
 (no default), pass the ref or the variant name explicitly — otherwise

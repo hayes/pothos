@@ -14,8 +14,10 @@ import type {
 import type { PothosPrismaNextPlugin } from './index.js';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type {
+  ObjectBaseShape,
   ParamToModelName,
   ParamToTypeParam,
+  SelectObjectSpec,
   ShapeFromObjectSelect,
 } from './internal-types.js';
 import type { PrismaNextNodeRef } from './node-ref.js';
@@ -56,6 +58,34 @@ type ObjectLevelShape<
   M extends ModelName<Types>,
   Select,
 > = ShapeFromObjectSelect<Types, M, never, Select>;
+
+type UnknownSelectKeys<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Select,
+> = Select extends readonly unknown[]
+  ? never
+  : Select extends object
+    ? Exclude<keyof Select, keyof SelectObjectSpec<Types, M>>
+    : never;
+
+type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = [
+  UnknownSelectKeys<Types, M, Select>,
+] extends [never]
+  ? unknown
+  : {
+      [K in UnknownSelectKeys<Types, M, Select> & string as `Unknown key in select: ${K}`]: never;
+    };
+
+type IdFieldShape<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  IDFields,
+> = IDFields extends readonly (infer K extends keyof Row<Types, M>)[]
+  ? Pick<Row<Types, M>, K>
+  : IDFields extends keyof Row<Types, M>
+    ? Pick<Row<Types, M>, IDFields>
+    : unknown;
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -145,7 +175,7 @@ declare global {
         },
       ) => PrismaNextInterfaceRef<Types, M, Shape>;
 
-      prismaObjectField: <M extends ModelName<Types>, Shape = Row<Types, M>>(
+      prismaObjectField: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fieldName: string,
         field: (
@@ -157,7 +187,7 @@ declare global {
         ) => FieldRef<Types, unknown>,
       ) => void;
 
-      prismaObjectFields: <M extends ModelName<Types>, Shape = Row<Types, M>>(
+      prismaObjectFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fields: (
           t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
@@ -168,7 +198,7 @@ declare global {
         ) => FieldMap,
       ) => void;
 
-      prismaInterfaceField: <M extends ModelName<Types>, Shape = Row<Types, M>>(
+      prismaInterfaceField: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fieldName: string,
         field: (
@@ -180,7 +210,7 @@ declare global {
         ) => FieldRef<Types, unknown>,
       ) => void;
 
-      prismaInterfaceFields: <M extends ModelName<Types>, Shape = Row<Types, M>>(
+      prismaInterfaceFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fields: (
           t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
@@ -195,16 +225,25 @@ declare global {
         ? <
             const Interfaces extends InterfaceParam<Types>[],
             M extends ModelName<Types>,
-            Shape = Row<Types, M>,
+            const Select extends
+              | readonly (keyof Row<Types, M> & string)[]
+              | SelectObjectSpec<Types, M>
+              | undefined = undefined,
+            Shape = ObjectLevelShape<Types, M, Select>,
             IDShape = string,
+            const IDFields extends
+              | (keyof Row<Types, M> & string)
+              | readonly [
+                  keyof Row<Types, M> & string,
+                  ...(keyof Row<Types, M> & string)[],
+                ] = keyof Row<Types, M> & string,
           >(
             modelName: M,
-            options: PrismaNextObjectOptions<Types, M, Shape, Interfaces> & {
+            options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
+              select?: Select;
               id: {
                 /** Column name or non-empty tuple for composite primary keys (encoded as a JSON array). */
-                field:
-                  | (keyof Row<Types, M> & string)
-                  | readonly [keyof Row<Types, M> & string, ...(keyof Row<Types, M> & string)[]];
+                field: IDFields;
                 description?: string;
                 /** Restore nonstandard ORM values such as Temporal and Decimal IDs. */
                 codecs?: {
@@ -213,12 +252,15 @@ declare global {
                   >;
                 };
                 parse?: (id: string, ctx: Types['Context']) => IDShape;
-                resolve?: (parent: Shape, ctx: Types['Context']) => string | number;
+                resolve?: (
+                  parent: Shape & IdFieldShape<Types, M, IDFields>,
+                  ctx: Types['Context'],
+                ) => string | number;
               };
               collection:
                 | CollectionFor<Types, M>
                 | ((ctx: Types['Context']) => CollectionFor<Types, M>);
-            },
+            } & { select?: ExactSelectCheck<Types, M, Select> },
           ) => PrismaNextNodeRef<Types, M, Shape, IDShape>
         : '@pothos/plugin-relay is required to use this method';
     }

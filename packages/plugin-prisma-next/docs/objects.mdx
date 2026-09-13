@@ -231,6 +231,31 @@ builder.prismaObjectField('User', 'displayName', (t) =>
 );
 ```
 
+The `select` is what makes those columns load, and the types say so: the
+string form can't see what another file declared, so its `user` parameter
+carries only the dependencies this field declared — reading an unselected
+column is a compile error instead of an `undefined` at query time. Passing a
+ref instead gives you whatever the registered object declared.
+
+If you need the old full-row parent back — mid-migration, say — `Shape` is
+the second type argument:
+
+```ts
+import type { Row } from '@pothos/plugin-prisma-next';
+
+type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
+
+builder.prismaObjectField<'User', Row<Types, 'User'>>('User', 'displayName', (t) =>
+  t.string({
+    select: ['firstName', 'lastName'],
+    resolve: (user) => `${user.firstName} ${user.lastName}`,
+  }),
+);
+```
+
+That only relaxes the type. The column still has to be selected to be there
+at runtime, so prefer declaring `select` over reaching for the escape hatch.
+
 The string form requires that `User` has already been registered as a
 prismaObject. If only a variant exists (see [Variants](./variants)),
 pass the variant's ref or variant name explicitly.

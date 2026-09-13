@@ -56,8 +56,10 @@ interface, along with the standard global-ID encoding/decoding.
   Accepts either a static `Collection` or a `(ctx) => Collection`
   callback. The callback form is what you'll usually want — it lets
   you scope the query to the per-request context.
-- **`fields`**, **`isTypeOf`**, **`interfaces`**, …: same options as
-  `prismaObject`. A user-provided `isTypeOf` is respected without overriding a false result.
+- **`select`**, **`fields`**, **`isTypeOf`**, **`interfaces`**, …: same options as
+  `prismaObject`, including how `select` shapes the parent a field resolver
+  sees — a resolver only gets the columns and relations something declared.
+  A user-provided `isTypeOf` is respected without overriding a false result.
   The plugin does not install a brand-only predicate on concrete model types.
 
 ### Loading
