@@ -29,7 +29,10 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   scopeCache = new Map<keyof Types['AuthScopes'], Map<unknown, MaybePromise<AuthFailure | null>>>();
 
-  typeCache = new Map<string, Map<unknown, MaybePromise<AuthFailure | null>>>();
+  typeCache = new Map<
+    string,
+    Map<unknown, (info: GraphQLResolveInfo) => MaybePromise<AuthFailure | null>>
+  >();
 
   typeGrants = new Map<string, Map<unknown, MaybePromise<null>>>();
 
@@ -434,39 +437,39 @@ export default class RequestCache<Types extends SchemaTypes> {
     if (!cache.has(parent)) {
       let result: ReturnType<TypeAuthScopesFunction<Types, unknown>>;
 
-      if (this.treatErrorsAsUnauthorized) {
-        try {
-          result = authScopes(parent, this.context);
-        } catch (error: unknown) {
-          cache.set(parent, {
-            kind: AuthScopeFailureType.AuthScopeFunction,
-            error: error as Error,
-          });
-
-          return cache.get(parent)!;
-        }
-      } else {
+      try {
         result = authScopes(parent, this.context);
-      }
-
-      if (isThenable(result)) {
-        let promise: Promise<AuthFailure | null> = result.then((resolved) =>
-          this.evaluateScopeMap(resolved, info),
-        );
-
-        if (this.treatErrorsAsUnauthorized) {
-          promise = promise.catch((error: unknown) => ({
-            kind: AuthScopeFailureType.AuthScopeFunction,
-            error: error as Error,
-          }));
+      } catch (error: unknown) {
+        if (!this.treatErrorsAsUnauthorized) {
+          throw error;
         }
 
-        cache.set(parent, promise);
-      } else {
-        cache.set(parent, this.evaluateScopeMap(result, info));
+        cache.set(parent, () => ({
+          kind: AuthScopeFailureType.AuthScopeFunction,
+          error: error as Error,
+        }));
+
+        return cache.get(parent)!(info);
       }
+
+      // Cache the function result, but evaluate grants against each response path.
+      // evaluateScopeMap still caches maps whose outcome is independent of the path.
+      cache.set(parent, (currentInfo) => {
+        if (isThenable(result)) {
+          const promise = result.then((resolved) => this.evaluateScopeMap(resolved, currentInfo));
+
+          return this.treatErrorsAsUnauthorized
+            ? promise.catch((error: unknown) => ({
+                kind: AuthScopeFailureType.AuthScopeFunction,
+                error: error as Error,
+              }))
+            : promise;
+        }
+
+        return this.evaluateScopeMap(result, currentInfo);
+      });
     }
 
-    return cache.get(parent)!;
+    return cache.get(parent)!(info);
   }
 }
