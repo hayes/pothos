@@ -268,6 +268,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
           newArguments[argConfig.name] = {
             description: argConfig.description,
             defaultValue: argConfig.defaultValue,
+            ...('default' in argConfig ? { default: argConfig.default } : {}),
             extensions: argConfig.extensions,
             astNode: argConfig.astNode,
             deprecationReason: argConfig.deprecationReason,
@@ -330,6 +331,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
           extensions: fieldConfig.extensions,
           astNode: fieldConfig.astNode,
           defaultValue: fieldConfig.defaultValue,
+          ...('default' in fieldConfig ? { default: fieldConfig.default } : {}),
           deprecationReason: fieldConfig.deprecationReason,
           type: replaceType(
             fieldConfig.type,
