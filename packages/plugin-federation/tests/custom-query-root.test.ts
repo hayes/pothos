@@ -44,9 +44,7 @@ describe('federation', () => {
       const queryType = schema.getQueryType()!;
 
       expect(queryType.name).toBe('Root');
-      // The rebuilt root must be the only type registered under its name.
       expect(schema.getType('Root')).toBe(queryType);
-      // Federation fields are only added to the rebuilt root.
       expect(Object.keys(queryType.getFields())).toEqual(
         expect.arrayContaining(['_entities', '_service', 'user']),
       );

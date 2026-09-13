@@ -202,8 +202,6 @@ export default class SubscriptionManager implements AsyncIterator<object> {
       this.resolveNext(true);
     }
 
-    // The manager is already stopped and its registrations cleared, so a failed cleanup can never
-    // be retried.
     const errors: unknown[] = [];
 
     for (const name of names) {
