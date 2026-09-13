@@ -1092,6 +1092,9 @@ importers:
       '@pothos/core':
         specifier: workspace:*
         version: link:../core
+      '@pothos/plugin-add-graphql':
+        specifier: workspace:*
+        version: link:../plugin-add-graphql
       '@pothos/plugin-errors':
         specifier: workspace:*
         version: link:../plugin-errors
