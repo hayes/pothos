@@ -1,5 +1,15 @@
 # @pothos/plugin-tracing
 
+## 1.1.4
+
+### Patch Changes
+
+- 08b1788: Preserve explicit `tracing: null` field options instead of using the builder default, and handle
+  aliases such as `constructor` correctly when looking up parent spans.
+
+  The shared context cache at `Symbol.for('Pothos.tracing.spanCache')` now stores a `Map`. If multiple
+  versions of `@pothos/plugin-tracing` share a context, upgrade them together.
+
 ## 1.1.3
 
 ### Patch Changes

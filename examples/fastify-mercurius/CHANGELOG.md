@@ -1,5 +1,12 @@
 # @pothos-examples/fastify-mercurius
 
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [da938c5]
+  - @pothos/core@4.15.0
+
 ## 1.0.3
 
 ### Patch Changes
