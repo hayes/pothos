@@ -201,8 +201,8 @@ Plugins that generate shared output types for interface fields must use
 `config.declaringType ?? config.parentType` for the generated type's identity. Generating a different
 union for each owner would make the object field incompatible with the interface field. Plugins
 that apply type-level behavior should use `parentType` to look up the owner. Before core 4.15,
-`parentType` named the declaring interface even when building an inherited object field; plugins
-that rely on owner-specific configs should require core 4.15 or later.
+`parentType` named the declaring interface even when building an inherited object field.
+Owner-specific configs are available in core 4.15 and later.
 
 Each config object will have the properties expected by the GraphQL for creating the types or fields
 \(although some properties like `resolve` will be added later\), but will also include a number of
