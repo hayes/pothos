@@ -268,7 +268,15 @@ export default class SubscriptionManager implements AsyncIterator<object> {
       return;
     }
 
-    const { allowed, promises } = this.filterValue(name, value);
+    let filtered: ReturnType<SubscriptionManager['filterValue']>;
+    try {
+      filtered = this.filterValue(name, value);
+    } catch (error) {
+      this.handleError(error);
+      return;
+    }
+
+    const { allowed, promises } = filtered;
 
     if (promises) {
       promises.catch((error) => this.handleError(error));
