@@ -131,7 +131,7 @@ function resolveObjectFields<Shape>(
     };
 
     for (const [fieldName, field] of Object.entries(existingFields)) {
-      if (newFields[fieldName] !== undefined) {
+      if (Object.hasOwn(newFields, fieldName) && newFields[fieldName] !== undefined) {
         if (newFields[fieldName] === null) {
           delete combinedFields[fieldName];
         }
@@ -280,7 +280,7 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
       };
 
       for (const [fieldName, field] of Object.entries(existingFields)) {
-        if (newFields[fieldName] !== undefined) {
+        if (Object.hasOwn(newFields, fieldName) && newFields[fieldName] !== undefined) {
           if (newFields[fieldName] === null) {
             delete combinedFields[fieldName];
           }
@@ -402,7 +402,7 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
       };
 
       for (const [fieldName, field] of Object.entries(existingFields)) {
-        if (newFields[fieldName] !== undefined) {
+        if (Object.hasOwn(newFields, fieldName) && newFields[fieldName] !== undefined) {
           if (newFields[fieldName] === null) {
             delete combinedFields[fieldName];
           }
