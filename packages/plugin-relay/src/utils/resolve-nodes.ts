@@ -185,7 +185,12 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, [], unknown>;
   const parsedCache = getParsedIDCache(requestCache, config.name);
   const setCache = (id: unknown, i: number, value: MaybePromise<unknown>) => {
-    requestCache.byRawID.set(keys?.[i] ?? `${config.name}:${id}`, value);
+    const rawKey = keys ? keys[i] : rawCacheKey(config.name, { id });
+
+    if (rawKey !== undefined) {
+      requestCache.byRawID.set(rawKey, value);
+    }
+
     parsedCache.set(id, value);
   };
 

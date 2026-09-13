@@ -1,6 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import { type GraphQLResolveInfo, graphql } from 'graphql';
-import RelayPlugin, { encodeGlobalID, resolveUncachedNodesForType } from '../src';
+import RelayPlugin, { encodeGlobalID, resolveNodes, resolveUncachedNodesForType } from '../src';
 
 describe('node identity for parsed ids', () => {
   it('keeps parsed object ids distinct', async () => {
@@ -446,6 +446,51 @@ describe('node identity for parsed ids', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ node: { key: '1', again: { key: '1' } } });
     expect(batches).toEqual([['1'], ['1']]);
+  });
+
+  it('loads copied decoded IDs without stringifying opaque parsed IDs', async () => {
+    const calls: unknown[] = [];
+    const builder = new SchemaBuilder<{}>({
+      plugins: [RelayPlugin],
+      relay: {
+        nodeQueryOptions: {
+          resolve: async (_parent, args, context, info): Promise<unknown> =>
+            (await resolveNodes(builder, context, info, [{ ...args.id }]))[0],
+        },
+      },
+    });
+    const User = builder.objectRef<{ id: number }>('User');
+
+    builder.node(User, {
+      isTypeOf: () => true,
+      id: {
+        resolve: (user) => user.id,
+        parse: (id) => ({
+          key: Number(id),
+          toString() {
+            throw new Error('Parsed IDs must not be stringified');
+          },
+        }),
+      },
+      loadOne: (id) => {
+        calls.push(id.key);
+
+        return { id: id.key };
+      },
+      fields: (t) => ({ key: t.exposeInt('id') }),
+    });
+    builder.queryType({});
+
+    const result = await graphql({
+      schema: builder.toSchema(),
+      source: 'query($id: ID!) { node(id: $id) { ... on User { key } } }',
+      variableValues: { id: encodeGlobalID('User', '7') },
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ node: { key: 7 } });
+    expect(calls).toEqual([7]);
   });
 
   describe('the raw id used for caching stays out of user-facing args', () => {
