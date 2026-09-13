@@ -354,25 +354,27 @@ export class PrismaObjectFieldBuilder<
           ? { where: connectionQuery.where }
           : true;
 
-      return Promise.resolve(
-        getDelegateFromModel(
-          getClient(this.builder, context as never),
-          loader.modelName,
-        ).findUnique({
-          where: loader.findUnique(parent as Record<string, unknown>, context) as never,
-          select: { _count: { select: { [name]: countSelect } } },
-        } as never) as PromiseLike<{ _count?: Record<string, number> } | null>,
-      ).then((row) => {
-        const count = row?._count?.[name];
+      return completeValue(loader.findUnique(parent as Record<string, unknown>, context), (where) =>
+        Promise.resolve(
+          getDelegateFromModel(
+            getClient(this.builder, context as never),
+            loader.modelName,
+          ).findUnique({
+            where: where as never,
+            select: { _count: { select: { [name]: countSelect } } },
+          } as never) as PromiseLike<{ _count?: Record<string, number> } | null>,
+        ).then((row) => {
+          const count = row?._count?.[name];
 
-        if (count === undefined) {
-          throw new PothosValidationError(
-            `Unable to load totalCount for ${field}: no ${loader.modelName} row matches the parent this connection resolved from`,
-          );
-        }
+          if (count === undefined) {
+            throw new PothosValidationError(
+              `Unable to load totalCount for ${field}: no ${loader.modelName} row matches the parent this connection resolved from`,
+            );
+          }
 
-        return count;
-      });
+          return count;
+        }),
+      );
     };
 
     const resolveFallback =
