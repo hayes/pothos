@@ -1,9 +1,14 @@
-import type { TableRelationalConfig } from 'drizzle-orm';
+import { defineRelations } from 'drizzle-orm';
+import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { drizzleAdapter } from '../src/utils/adapter';
 import type { PothosDrizzleSchemaConfig } from '../src/utils/config';
 import { omitUndefinedKeys } from '../src/utils/selections';
 
-const fakeTable = { name: 'users', relations: {} } as unknown as TableRelationalConfig;
+const users = sqliteTable('users', {
+  firstName: text('first_name'),
+  passwordHash: text('password_hash'),
+});
+const table = defineRelations({ users }).users;
 const fakeConfig = {
   getPrimaryKey: () => [],
   columnToTsName: () => '',
@@ -36,7 +41,7 @@ describe('selections', () => {
     'limit',
     'offset',
   ])('omits an undefined %s from merged selections', (key) => {
-    const node = adapter.createNode(fakeTable);
+    const node = adapter.createNode(table);
 
     adapter.mergeQuery(node, { [key]: undefined });
 
@@ -44,10 +49,10 @@ describe('selections', () => {
   });
 
   it('treats an undefined property as equivalent to an absent one when merging', () => {
-    const withUndefined = adapter.createNode(fakeTable);
+    const withUndefined = adapter.createNode(table);
     adapter.mergeQuery(withUndefined, { orderBy: undefined, where: undefined });
 
-    const withoutKeys = adapter.createNode(fakeTable);
+    const withoutKeys = adapter.createNode(table);
     adapter.mergeQuery(withoutKeys, {});
 
     expect(adapter.canMergeQuery(withUndefined, {})).toBe(true);
@@ -55,7 +60,7 @@ describe('selections', () => {
   });
 
   it('ignores columns set to false instead of adding them to the selection', () => {
-    const node = adapter.createNode(fakeTable);
+    const node = adapter.createNode(table);
 
     adapter.mergeQuery(node, {
       columns: {
@@ -73,7 +78,7 @@ describe('selections', () => {
   });
 
   it('still allows a column to be added later if another field requests it', () => {
-    const node = adapter.createNode(fakeTable);
+    const node = adapter.createNode(table);
 
     adapter.mergeQuery(node, {
       columns: {
@@ -87,11 +92,11 @@ describe('selections', () => {
       },
     });
 
-    expect(node.columns).toEqual(new Set(['passwordHash']));
+    expect(node.columns).toEqual(new Set(['firstName', 'passwordHash']));
   });
 
-  it('treats columns object with only falsy entries as an empty selection', () => {
-    const node = adapter.createNode(fakeTable);
+  it('selects the remaining columns when the projection only excludes columns', () => {
+    const node = adapter.createNode(table);
 
     adapter.mergeQuery(node, {
       columns: {
@@ -99,6 +104,6 @@ describe('selections', () => {
       },
     });
 
-    expect(node.columns?.size).toBe(0);
+    expect(node.columns).toEqual(new Set(['firstName']));
   });
 });
