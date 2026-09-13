@@ -11,9 +11,6 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { NodeObjectOptions } from '../types.js';
 import { getRawGlobalID } from './internal.js';
 
-// Two caches per request: by raw global ID, since `id.parse` may return a fresh object per call and
-// so cannot recognise a repeat of one global ID; and by parsed id, since distinct global IDs may
-// parse to one id. The parsed map keys on the value (SameValueZero), so `{key:1}`/`{key:2}` differ.
 interface RequestCache {
   byParsedID: Map<string, Map<unknown, MaybePromise<unknown>>>;
   byRawID: Map<string, MaybePromise<unknown>>;
@@ -43,8 +40,6 @@ function rawCacheKey(typename: string, globalID: { id: unknown }) {
 
   const { id } = globalID;
 
-  // Without a parse step the id is its own raw form. Objects have none, and stringifying them would
-  // merge every object id onto one key.
   return id !== null && (typeof id === 'object' || typeof id === 'function')
     ? undefined
     : `${typename}:${String(id)}`;
@@ -136,9 +131,6 @@ export async function resolveNodes<Types extends SchemaTypes>(
       const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, []>;
       const shouldBrandObjects =
         options.brandLoadedObjects ?? builder.options.relay?.brandLoadedObjects ?? true;
-      // Matches the loader `resolveUncachedNodesForType` will pick. The `*WithoutCache` loaders opt
-      // out of the request cache, so their results must not be cached under the other raw ids
-      // either.
       const cachesResults = !!(options.loadMany ?? options.loadOne);
 
       const resultsForType = await resolveUncachedNodesForType(

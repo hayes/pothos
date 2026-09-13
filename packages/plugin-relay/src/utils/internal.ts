@@ -20,8 +20,6 @@ function getParseGlobalID(typename: string, info: PartialResolveInfo) {
     | undefined;
 }
 
-// Decoded global IDs are handed to user resolvers as `args`, so the raw id `resolveNodes` keys its
-// cache on travels beside them rather than as a property they would see (and could spread away).
 const rawGlobalIDs = new WeakMap<object, string>();
 
 function withRawGlobalID<T extends object>(globalID: T, rawId: string): T {
