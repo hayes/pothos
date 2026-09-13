@@ -41,10 +41,10 @@ it('honors explicit replacement and removal of prototype-named fields', () => {
   builder.addGraphQLInterface(original.getType('Named') as GraphQLInterfaceType, {
     fields: (t) => ({ toString: t.string({ description: 'replacement' }), constructor: null }),
   });
-  const Item = builder.addGraphQLObject(original.getType('Item') as GraphQLObjectType, {
+  const Item = builder.addGraphQLObject<{}>(original.getType('Item') as GraphQLObjectType, {
     fields: (t) => ({ toString: t.string({ resolve: () => 'replacement' }), constructor: null }),
   });
-  const Filter = builder.addGraphQLInput(original.getType('Filter') as GraphQLInputObjectType, {
+  const Filter = builder.addGraphQLInput<{}>(original.getType('Filter') as GraphQLInputObjectType, {
     fields: (t) => ({ toString: t.string({ description: 'replacement' }), constructor: null }),
   });
   builder.queryType({
