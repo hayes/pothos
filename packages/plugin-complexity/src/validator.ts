@@ -33,6 +33,7 @@ export function createComplexityRule({
       breadth: 0,
     };
 
+    let failed = false;
     const schema = validationContext.getSchema();
     const fragments: Record<string, FragmentDefinitionNode> = {};
 
@@ -45,6 +46,7 @@ export function createComplexityRule({
     return {
       OperationDefinition: {
         enter: (node) => {
+          failed = false;
           state = {
             complexity: 0,
             depth: 0,
@@ -59,22 +61,33 @@ export function createComplexityRule({
             );
           }
 
-          const complexity = complexityFromSelectionSet(
-            context,
-            {
-              fragments,
-              variableValues: asVariableValues(variableValues),
-              schema,
-            },
-            node.selectionSet,
-            type,
-          );
+          try {
+            const complexity = complexityFromSelectionSet(
+              context,
+              {
+                fragments,
+                variableValues: asVariableValues(variableValues),
+                schema,
+              },
+              node.selectionSet,
+              type,
+            );
 
-          state.complexity += complexity.complexity;
-          state.depth = Math.max(state.depth, complexity.depth);
-          state.breadth = Math.max(state.breadth, complexity.breadth);
+            state.complexity += complexity.complexity;
+            state.depth = Math.max(state.depth, complexity.depth);
+            state.breadth = Math.max(state.breadth, complexity.breadth);
+          } catch (error) {
+            if (!(error instanceof PothosValidationError)) {
+              throw error;
+            }
+            failed = true;
+            validationContext.reportError(error);
+          }
         },
         leave: () => {
+          if (failed) {
+            return;
+          }
           const errors: GraphQLError[] = [];
           const reportError = (error: GraphQLError) => {
             errors.push(error);

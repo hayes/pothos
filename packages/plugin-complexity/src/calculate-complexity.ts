@@ -36,6 +36,7 @@ function complexityFromField(
   info: PartialInfo,
   selection: FieldNode,
   type: GraphQLNamedType,
+  traversal: Traversal,
 ): ComplexityResult {
   let depth = 1;
   let breadth = 1;
@@ -77,6 +78,7 @@ function complexityFromField(
       info,
       selection.selectionSet,
       getNamedType(field.type),
+      traversal,
     );
 
     complexity += subSelection.complexity * Math.max(fieldMultiplier, 0);
@@ -113,6 +115,7 @@ function complexityFromFragment(
   info: PartialInfo,
   fragment: FragmentDefinitionNode | InlineFragmentNode,
   type: GraphQLNamedType,
+  traversal: Traversal,
 ): ComplexityResult {
   const fragmentType = fragment.typeCondition
     ? info.schema.getType(fragment.typeCondition.name.value)
@@ -128,7 +131,12 @@ function complexityFromFragment(
     );
   }
 
-  return complexityFromSelectionSet(ctx, info, fragment.selectionSet, fragmentType);
+  return complexityFromSelectionSet(ctx, info, fragment.selectionSet, fragmentType, traversal);
+}
+
+interface Traversal {
+  active: Set<SelectionSetNode>;
+  results: Map<SelectionSetNode, Map<GraphQLNamedType, ComplexityResult>>;
 }
 
 export function complexityFromSelectionSet(
@@ -136,7 +144,19 @@ export function complexityFromSelectionSet(
   info: PartialInfo,
   selectionSet: SelectionSetNode,
   type: GraphQLNamedType,
+  traversal: Traversal = { active: new Set(), results: new Map() },
 ): ComplexityResult {
+  const cached = traversal.results.get(selectionSet)?.get(type);
+
+  if (cached) {
+    return cached;
+  }
+
+  if (traversal.active.has(selectionSet)) {
+    throw new PothosValidationError('Cannot calculate complexity of a cyclic fragment');
+  }
+
+  traversal.active.add(selectionSet);
   const result = {
     depth: 0,
     breadth: 0,
@@ -146,7 +166,7 @@ export function complexityFromSelectionSet(
   for (const selection of selectionSet.selections) {
     let selectionResult: ComplexityResult;
     if (selection.kind === Kind.FIELD) {
-      selectionResult = complexityFromField(ctx, info, selection, type);
+      selectionResult = complexityFromField(ctx, info, selection, type, traversal);
     } else if (selection.kind === Kind.FRAGMENT_SPREAD) {
       const fragment = info.fragments[selection.name.value];
 
@@ -154,15 +174,21 @@ export function complexityFromSelectionSet(
         throw new PothosValidationError(`Missing fragment ${selection.name.value}`);
       }
 
-      selectionResult = complexityFromFragment(ctx, info, fragment, type);
+      selectionResult = complexityFromFragment(ctx, info, fragment, type, traversal);
     } else {
-      selectionResult = complexityFromFragment(ctx, info, selection, type);
+      selectionResult = complexityFromFragment(ctx, info, selection, type, traversal);
     }
 
     result.complexity += selectionResult.complexity;
     result.breadth += selectionResult.breadth;
     result.depth = Math.max(result.depth, selectionResult.depth);
   }
+
+  traversal.active.delete(selectionSet);
+  if (!traversal.results.has(selectionSet)) {
+    traversal.results.set(selectionSet, new Map());
+  }
+  traversal.results.get(selectionSet)!.set(type, result);
 
   return result;
 }
