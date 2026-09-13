@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.15.1
+
+### Patch Changes
+
+- d0a521b: Preserve lazy enum values supplied by plugin configuration hooks on GraphQL 17.
+
 ## 4.15.0
 
 ### Minor Changes

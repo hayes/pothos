@@ -1,5 +1,11 @@
 # @pothos/plugin-validation
 
+## 4.3.4
+
+### Patch Changes
+
+- 2755121: Remove the accidental output FieldRef.validate method, which never ran validation and incorrectly changed the inferred result type. Use input validation chains or an output field's validate option to validate its arguments.
+
 ## 4.3.3
 
 ### Patch Changes

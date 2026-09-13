@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.1.7
+
+### Patch Changes
+
+- a20e239: Route synchronous filter and cache-invalidation failures through subscription error handling. A thrown callback now rejects the pending iterator and removes event listeners instead of escaping into the event producer and leaving the subscription open.
+
 ## 4.1.6
 
 ### Patch Changes

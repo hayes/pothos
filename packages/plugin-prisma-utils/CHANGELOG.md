@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 1.3.6
+
+### Patch Changes
+
+- d24614e: Preserve explicit nulls for nullable model fields in prismaCreate and prismaCreateMany inputs.
+
 ## 1.3.5
 
 ### Patch Changes
