@@ -8,7 +8,7 @@ import {
   parse,
 } from 'graphql';
 import { complexityFromSelectionSet } from './calculate-complexity.js';
-import { asVariableValues } from './variable-values.js';
+import { complexityVariableValues } from './variable-values.js';
 
 export function complexityFromQuery(
   query: DocumentNode | string,
@@ -45,10 +45,20 @@ export function complexityFromQuery(
     throw new PothosValidationError(`No root type found for operation ${operation.operation}`);
   }
 
+  const variables = complexityVariableValues(
+    options.schema,
+    operation.variableDefinitions ?? [],
+    options.variables ?? {},
+  );
+
+  if ('errors' in variables) {
+    throw variables.errors[0];
+  }
+
   const info = {
     schema: options.schema,
     fragments,
-    variableValues: asVariableValues(options.variables ?? {}),
+    variableValues: variables.variableValues,
   };
 
   return complexityFromSelectionSet(options.ctx ?? {}, info, operation.selectionSet, rootType);
