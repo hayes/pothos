@@ -344,4 +344,26 @@ describe('imported schema roots', () => {
       }"
     `);
   });
+  it('builds the same schema on repeated toSchema calls', () => {
+    const merged = createBuilder(
+      new GraphQLSchema({ query: objectType('Query', { hello: 'imported' }) }),
+    );
+
+    merged.queryType({
+      fields: (t) => ({ own: t.string({ resolve: () => 'own' }) }),
+    });
+
+    const promoted = createBuilder(
+      new GraphQLSchema({
+        query: objectType('Query', { hello: 'imported' }),
+        mutation: objectType('Mutation', { doIt: 'imported' }),
+      }),
+    );
+
+    for (const builder of [merged, promoted]) {
+      const first = printSorted(builder.toSchema());
+
+      expect(printSorted(builder.toSchema())).toBe(first);
+    }
+  });
 });

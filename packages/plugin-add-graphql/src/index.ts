@@ -3,7 +3,7 @@ import './schema-builder.js';
 import SchemaBuilder, { BasePlugin, type RootName, type SchemaTypes } from '@pothos/core';
 import { type GraphQLNamedType, type GraphQLObjectType, GraphQLSchema } from 'graphql';
 import { mergeGraphQLObjectFields } from './schema-builder.js';
-import { addTypeToSchema, isUnintendedRoot } from './utils.js';
+import { addTypeToSchema, importedTypes, isUnintendedRoot } from './utils.js';
 
 const pluginName = 'addGraphQL';
 
@@ -38,7 +38,17 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
       (type) => !builtInTypes.includes(type.name),
     );
 
+    const imported = importedTypes(this.builder);
+
     for (const type of schemaTypes) {
+      // beforeBuild runs again on every toSchema() call, but field registrations persist, so
+      // merging an already imported root a second time throws a duplicate field error.
+      if (imported.has(type)) {
+        continue;
+      }
+
+      imported.add(type);
+
       if (rootKinds.has(type) && this.builder.configStore.hasConfig(type.name as never)) {
         mergeGraphQLObjectFields(this.builder, type as GraphQLObjectType);
       } else {

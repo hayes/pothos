@@ -13,6 +13,8 @@ export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType
 
 export const importedRootKinds = createContextCache(() => new Map<string, RootName | null>());
 
+export const importedTypes = createContextCache(() => new Set<GraphQLNamedType>());
+
 export function isUnintendedRoot<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   type: { name: string } | null | undefined,
