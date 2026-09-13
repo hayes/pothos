@@ -14,6 +14,29 @@ export function internalEncodeGlobalID<Types extends SchemaTypes>(
   return encodeGlobalID(typename, id);
 }
 
+function getParseGlobalID(typename: string, info: PartialResolveInfo) {
+  return info.schema.getType(typename)?.extensions?.pothosParseGlobalID as
+    | ((id: string, ctx: object) => unknown)
+    | undefined;
+}
+
+export function internalNormalizeGlobalIDShape(
+  typename: string,
+  id: unknown,
+  ctx: object,
+  info: PartialResolveInfo,
+): { id: unknown; rawId?: string; typename: string } {
+  const parseID = getParseGlobalID(typename, info);
+
+  if (!parseID) {
+    return { typename, id };
+  }
+
+  const rawId = String(id);
+
+  return { typename, id: parseID(rawId, ctx), rawId };
+}
+
 export function internalDecodeGlobalID<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   globalID: string,
@@ -39,6 +62,7 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
       return {
         ...decoded,
         id: entry.parseId(decoded.id, ctx),
+        rawId: decoded.id,
       };
     }
 
@@ -46,15 +70,13 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
   }
 
   if (parseIdsForTypes) {
-    const parseID = info.schema.getType(decoded.typename)?.extensions?.pothosParseGlobalID as (
-      id: string,
-      ctx: object,
-    ) => string;
+    const parseID = getParseGlobalID(decoded.typename, info);
 
     if (parseID) {
       return {
         ...decoded,
         id: parseID(decoded.id, ctx),
+        rawId: decoded.id,
       };
     }
   }
