@@ -1,10 +1,11 @@
 import { PothosValidationError } from '@pothos/core';
 import { type FragmentDefinitionNode, GraphQLError, Kind, type ValidationRule } from 'graphql';
 import { complexityFromSelectionSet } from './calculate-complexity.js';
-import { asVariableValues } from './variable-values.js';
+import { complexityVariableValues } from './variable-values.js';
 
 export function createComplexityRule({
   variableValues,
+  operationName,
   context,
   maxComplexity,
   maxBreadth,
@@ -14,6 +15,7 @@ export function createComplexityRule({
 }: {
   context: object;
   variableValues: Record<string, unknown>;
+  operationName?: string | null;
   maxComplexity?: number;
   maxDepth?: number;
   maxBreadth?: number;
@@ -37,16 +39,31 @@ export function createComplexityRule({
     const schema = validationContext.getSchema();
     const fragments: Record<string, FragmentDefinitionNode> = {};
 
+    let operationCount = 0;
+    let matchingOperation = false;
     for (const def of validationContext.getDocument().definitions) {
       if (def.kind === Kind.FRAGMENT_DEFINITION) {
         fragments[def.name.value] = def;
+      } else if (def.kind === Kind.OPERATION_DEFINITION) {
+        operationCount += 1;
+        matchingOperation ||= def.name?.value === operationName;
       }
+    }
+
+    if (operationName != null && !matchingOperation) {
+      validationContext.reportError(
+        new GraphQLError(`Unknown operation named "${operationName}".`),
+      );
+      return {};
     }
 
     return {
       OperationDefinition: {
         enter: (node) => {
-          failed = false;
+          failed = operationName != null && node.name?.value !== operationName;
+          if (failed) {
+            return;
+          }
           state = {
             complexity: 0,
             depth: 0,
@@ -61,12 +78,29 @@ export function createComplexityRule({
             );
           }
 
+          const variables = complexityVariableValues(
+            schema,
+            node.variableDefinitions ?? [],
+            variableValues,
+          );
+          if ('errors' in variables) {
+            failed = true;
+            // Without an operation name, invalid variables may belong only to an
+            // unselected operation. Execution will reject them if that operation is chosen.
+            if (operationName != null || operationCount === 1) {
+              for (const error of variables.errors) {
+                validationContext.reportError(error);
+              }
+            }
+            return;
+          }
+
           try {
             const complexity = complexityFromSelectionSet(
               context,
               {
                 fragments,
-                variableValues: asVariableValues(variableValues),
+                variableValues: variables.variableValues,
                 schema,
               },
               node.selectionSet,

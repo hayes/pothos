@@ -1,18 +1,29 @@
-import { type GraphQLResolveInfo, versionInfo } from 'graphql';
+import {
+  type GraphQLError,
+  type GraphQLResolveInfo,
+  type GraphQLSchema,
+  getVariableValues,
+  type VariableDefinitionNode,
+  versionInfo,
+} from 'graphql';
 
-// graphql 16 and 17 disagree on the shape of `GraphQLResolveInfo['variableValues']`, which is the
-// value `getArgumentValues` reads when resolving field arguments:
-//   - graphql 16: a flat `{ [variableName]: coercedValue }` map
-//   - graphql 17: `{ sources, coerced }`, where the coerced map lives under `.coerced`
-// The complexity plugin builds a synthetic resolve-info (it inspects queries without executing
-// them), so it has to produce whichever shape the installed graphql version expects. The cast is
-// required because the static type only ever reflects one major at a time.
-export function asVariableValues(
-  coerced: Record<string, unknown>,
-): GraphQLResolveInfo['variableValues'] {
-  if (versionInfo.major >= 17) {
-    return { sources: {}, coerced } as unknown as GraphQLResolveInfo['variableValues'];
+export function complexityVariableValues(
+  schema: GraphQLSchema,
+  definitions: readonly VariableDefinitionNode[],
+  inputs: Record<string, unknown>,
+): { errors: readonly GraphQLError[] } | { variableValues: GraphQLResolveInfo['variableValues'] } {
+  const result = getVariableValues(schema, definitions, inputs);
+
+  if (result.errors) {
+    return { errors: result.errors };
   }
 
-  return coerced as unknown as GraphQLResolveInfo['variableValues'];
+  // GraphQL 16 returns a flat coerced map; GraphQL 17 returns values with source metadata.
+  return {
+    variableValues:
+      versionInfo.major >= 17
+        ? (result as unknown as { variableValues: GraphQLResolveInfo['variableValues'] })
+            .variableValues
+        : (result as unknown as { coerced: GraphQLResolveInfo['variableValues'] }).coerced,
+  };
 }

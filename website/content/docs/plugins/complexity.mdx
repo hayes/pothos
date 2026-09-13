@@ -188,3 +188,38 @@ const complexity = complexityFromQuery(query, {
   variables: {},
 });
 ```
+
+
+### `createComplexityRule(options)`
+
+Use this validation rule with GraphQL's `specifiedRules` to enforce `maxComplexity`, `maxDepth`,
+or `maxBreadth` during validation. Supply the request's `context` and raw `variableValues`;
+operation variable defaults and input defaults are applied before complexity callbacks run.
+
+Pass `operationName` when the request selects a named operation. Only that operation is measured,
+and an unknown name or invalid variables for it produce validation errors. Without `operationName`,
+all operations whose variables can be coerced are measured independently. In a multi-operation
+document, variable errors for other possible operations are left to GraphQL execution to report for
+the selected operation. A single operation's variable errors are reported during validation.
+
+```typescript
+import { type GraphQLSchema, parse, specifiedRules, validate } from 'graphql';
+import { createComplexityRule } from '@pothos/plugin-complexity';
+
+function validateRequest(
+  schema: GraphQLSchema,
+  query: string,
+  context: object,
+  variableValues: Record<string, unknown>,
+  operationName?: string,
+) {
+  return validate(schema, parse(query), [
+    ...specifiedRules,
+    createComplexityRule({ context, variableValues, operationName, maxComplexity: 500 }),
+  ]);
+}
+```
+
+These validation results depend on the request's variables, context, and operation name. Do not
+reuse them across requests based only on the query text. `complexityFromQuery` also applies variable
+defaults and throws for invalid variables; it measures the first operation in the document.
