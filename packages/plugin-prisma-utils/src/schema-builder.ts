@@ -430,7 +430,11 @@ schemaBuilder.prismaCreate = function prismaCreate<
       ...options.extensions,
       pothosPrismaInput: {
         nullableFields: new Set(
-          model.fields.filter((field) => !field.isRequired).map((field) => field.name),
+          model.fields
+            .filter(
+              (field) => !field.isRequired && field.kind !== 'object' && field.type !== 'Json',
+            )
+            .map((field) => field.name),
         ),
       },
     },
@@ -482,7 +486,11 @@ schemaBuilder.prismaCreateMany = function prismaCreateMany(
       ...options.extensions,
       pothosPrismaInput: {
         nullableFields: new Set(
-          model.fields.filter((field) => !field.isRequired).map((field) => field.name),
+          model.fields
+            .filter(
+              (field) => !field.isRequired && field.kind !== 'object' && field.type !== 'Json',
+            )
+            .map((field) => field.name),
         ),
       },
     },

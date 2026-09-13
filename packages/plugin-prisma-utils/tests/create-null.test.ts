@@ -38,3 +38,30 @@ it.each([
     omitted: '{}',
   });
 });
+
+it('omits null optional relation inputs instead of passing null to Prisma', async () => {
+  const builder = new SchemaBuilder<{ PrismaTypes: PrismaTypes }>({
+    plugins: [PrismaPlugin, PrismaUtils],
+    prisma: { client: {} as never, dmmf: getDatamodel() },
+  });
+  const Profile = builder.prismaCreate('Profile', { fields: { bio: 'String' } });
+  const Relation = builder.prismaCreateRelation('User', 'profile', {
+    fields: { create: Profile },
+  });
+  const User = builder.prismaCreate('User', { fields: { name: 'String', profile: Relation } });
+  builder.queryType({
+    fields: (t) => ({
+      create: t.string({
+        args: { input: t.arg({ type: User, required: true }) },
+        resolve: (_parent, { input }) => JSON.stringify(input),
+      }),
+    }),
+  });
+  const result = await graphql({
+    schema: builder.toSchema(),
+    source: '{ create(input: { name: null, profile: null }) }',
+    contextValue: {},
+  });
+  expect(result.errors).toBeUndefined();
+  expect(result.data).toEqual({ create: '{"name":null}' });
+});
