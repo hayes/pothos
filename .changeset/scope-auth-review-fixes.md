@@ -11,8 +11,7 @@ longer compile; runtime authorization is unchanged. A `$any` nested in `$all` st
 intersection.
 
 Apply implementing-object policies to inherited interface fields, alongside the declaring
-interface's policy. This requires core 4.15 or later. Authorization steps are built with each
-owner's field config; fields without authorization work retain the default resolver fast path.
+interface's policy. Fields without authorization checks or grants keep their default resolver.
 
 **Inherited fields can newly deny access** when the object's `authScopes` or another implemented
 interface's `authScopes` denies. The same policy applies when querying through an interface.
