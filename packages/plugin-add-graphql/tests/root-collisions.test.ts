@@ -29,9 +29,14 @@ interface Types {
 
 const DateTime = new GraphQLScalarType({ name: 'DateTime' });
 
-function objectType(name: string, fields: Record<string, string>) {
+function objectType(
+  name: string,
+  fields: Record<string, string>,
+  options: { description?: string; extensions?: Record<string, unknown> } = {},
+) {
   return new GraphQLObjectType({
     name,
+    ...options,
     fields: () =>
       Object.fromEntries(
         Object.entries(fields).map(([fieldName, value]) => [
@@ -66,6 +71,28 @@ function printSorted(schema: GraphQLSchema) {
   expect(validateSchema(schema)).toHaveLength(0);
 
   return printSchema(lexicographicSortSchema(schema));
+}
+
+function documentedQueryRoot() {
+  return objectType(
+    'Query',
+    { hello: 'imported' },
+    { description: 'imported query doc', extensions: { importedExt: true } },
+  );
+}
+
+function buildDocumentedRootBothWays() {
+  const withQueryType = createBuilder(new GraphQLSchema({ query: documentedQueryRoot() }));
+
+  withQueryType.queryType({
+    fields: (t) => ({ own: t.string({ resolve: () => 'own' }) }),
+  });
+
+  const withQueryFields = createBuilder(new GraphQLSchema({ query: documentedQueryRoot() }));
+
+  withQueryFields.queryFields((t) => ({ own: t.string({ resolve: () => 'own' }) }));
+
+  return { fromQueryType: withQueryType.toSchema(), fromQueryFields: withQueryFields.toSchema() };
 }
 
 describe('imported schema roots', () => {
@@ -121,22 +148,35 @@ describe('imported schema roots', () => {
     `);
   });
 
-  it('builds the same schema for queryType and queryFields', () => {
-    const withQueryType = createBuilder(
-      new GraphQLSchema({ query: objectType('Query', { hello: 'imported' }) }),
+  it('merges the same root fields for queryType and queryFields', () => {
+    const { fromQueryType, fromQueryFields } = buildDocumentedRootBothWays();
+
+    expect(Object.keys(fromQueryType.getQueryType()!.getFields())).toEqual(
+      Object.keys(fromQueryFields.getQueryType()!.getFields()),
     );
+    expect(printSorted(fromQueryType)).toMatchInlineSnapshot(`
+      "type Query {
+        hello: String
+        own: String
+      }"
+    `);
+    expect(printSorted(fromQueryFields)).toMatchInlineSnapshot(`
+      """"imported query doc"""
+      type Query {
+        hello: String
+        own: String
+      }"
+    `);
+  });
 
-    withQueryType.queryType({
-      fields: (t) => ({ own: t.string({ resolve: () => 'own' }) }),
-    });
+  it('leaves the type options of a merged root to the configured type', () => {
+    const { fromQueryType, fromQueryFields } = buildDocumentedRootBothWays();
 
-    const withQueryFields = createBuilder(
-      new GraphQLSchema({ query: objectType('Query', { hello: 'imported' }) }),
-    );
+    expect(fromQueryType.getQueryType()!.description).toBeUndefined();
+    expect(fromQueryType.getQueryType()!.extensions).not.toHaveProperty('importedExt');
 
-    withQueryFields.queryFields((t) => ({ own: t.string({ resolve: () => 'own' }) }));
-
-    expect(printSorted(withQueryType.toSchema())).toBe(printSorted(withQueryFields.toSchema()));
+    expect(fromQueryFields.getQueryType()!.description).toBe('imported query doc');
+    expect(fromQueryFields.getQueryType()!.extensions).toHaveProperty('importedExt', true);
   });
 
   it('resolves fields merged from a colliding root', async () => {
@@ -443,5 +483,18 @@ describe('imported schema roots', () => {
 
     expect(fieldKinds.get('Query.own')).toBe('Query');
     expect(fieldKinds.get('Query.hello')).toBe('Query');
+  });
+
+  it('reports an imported root that collides with a type that is not an object', () => {
+    const builder = createBuilder(
+      new GraphQLSchema({ query: objectType('Status', { hello: 'imported' }) }),
+    );
+
+    builder.enumType('Status', { values: ['Active'] as const });
+    builder.queryFields((t) => ({ own: t.string({ resolve: () => 'own' }) }));
+
+    expect(() => builder.toSchema()).toThrowErrorMatchingInlineSnapshot(
+      '[PothosSchemaError: Can not merge the imported root Status into the Enum type with the same name]',
+    );
   });
 });
