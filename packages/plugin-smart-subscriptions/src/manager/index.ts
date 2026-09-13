@@ -240,18 +240,25 @@ export default class SubscriptionManager implements AsyncIterator<object> {
 
     const promises: Promise<void>[] = [];
 
-    for (const options of optionsList) {
-      const currentAllowed = !options.filter || options.filter(value);
+    try {
+      for (const options of optionsList) {
+        const currentAllowed = !options.filter || options.filter(value);
 
-      allowed ||= currentAllowed;
+        allowed ||= currentAllowed;
 
-      if (currentAllowed && options.onValue) {
-        const promise = options.onValue(value);
+        if (currentAllowed && options.onValue) {
+          const promise = options.onValue(value);
 
-        if (promise) {
-          promises.push(promise);
+          if (promise) {
+            promises.push(promise);
+          }
         }
       }
+    } catch (error) {
+      // Earlier callbacks may already be running when a later callback throws.
+      // Consume their rejections while the synchronous failure closes the subscription.
+      Promise.all(promises).catch(() => {});
+      throw error;
     }
 
     return { allowed, promises: Promise.all(promises) };
@@ -268,7 +275,15 @@ export default class SubscriptionManager implements AsyncIterator<object> {
       return;
     }
 
-    const { allowed, promises } = this.filterValue(name, value);
+    let filtered: ReturnType<SubscriptionManager['filterValue']>;
+    try {
+      filtered = this.filterValue(name, value);
+    } catch (error) {
+      this.handleError(error);
+      return;
+    }
+
+    const { allowed, promises } = filtered;
 
     if (promises) {
       promises.catch((error) => this.handleError(error));
