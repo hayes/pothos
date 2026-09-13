@@ -111,9 +111,9 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     const openDepths = new Map<InputFieldsMapping<Types, T>, number>();
     const pending: InputFieldsMapping<Types, T>[] = [];
 
-    // A map reached while still open is in the same cycle as the map reaching it, so both share
-    // one answer. Those maps wait in `pending` until the map that opened the cycle resolves,
-    // instead of caching an answer read from a cycle that has not finished.
+    // Tarjan's SCC rule: `openDepth` is the shallowest still-open map this subtree reaches, and a
+    // map commits only once nothing beneath it reaches shallower. Everything spliced off `pending`
+    // is then one cycle, so the single answer computed for it holds for every member.
     function visit(map: InputFieldsMapping<Types, T>): {
       result: boolean;
       openDepth: number;
