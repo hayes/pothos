@@ -411,6 +411,43 @@ describe('node identity for parsed ids', () => {
     expect(result.data).toEqual({ nodes: [{ at: dates[0] }, { at: dates[1] }] });
   });
 
+  it('does not cache results from loaders that opt out of the request cache', async () => {
+    const builder = new SchemaBuilder<{}>({ plugins: [RelayPlugin] });
+
+    const batches: unknown[][] = [];
+
+    const User = builder.objectRef<{ id: string }>('User');
+
+    builder.node(User, {
+      isTypeOf: () => true,
+      id: { resolve: (user) => user.id },
+      loadManyWithoutCache: (ids) => {
+        batches.push([...ids]);
+
+        return ids.map((id) => ({ id: id as string }));
+      },
+      fields: (t) => ({
+        key: t.exposeString('id'),
+        again: t.node({ id: (user) => encodeGlobalID('User', user.id) }),
+      }),
+    });
+
+    builder.queryType({});
+
+    const result = await graphql({
+      schema: builder.toSchema(),
+      source: `query($id: ID!) {
+        node(id: $id) { ... on User { key again { ... on User { key } } } }
+      }`,
+      variableValues: { id: encodeGlobalID('User', '1') },
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ node: { key: '1', again: { key: '1' } } });
+    expect(batches).toEqual([['1'], ['1']]);
+  });
+
   describe('the raw id used for caching stays out of user-facing args', () => {
     it('is absent from a globalID arg', async () => {
       const builder = new SchemaBuilder<{}>({ plugins: [RelayPlugin] });

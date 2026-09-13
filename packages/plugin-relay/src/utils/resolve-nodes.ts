@@ -136,6 +136,10 @@ export async function resolveNodes<Types extends SchemaTypes>(
       const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, []>;
       const shouldBrandObjects =
         options.brandLoadedObjects ?? builder.options.relay?.brandLoadedObjects ?? true;
+      // Matches the loader `resolveUncachedNodesForType` will pick. The `*WithoutCache` loaders opt
+      // out of the request cache, so their results must not be cached under the other raw ids
+      // either.
+      const cachesResults = !!(options.loadMany ?? options.loadOne);
 
       const resultsForType = await resolveUncachedNodesForType(
         builder,
@@ -155,8 +159,10 @@ export async function resolveNodes<Types extends SchemaTypes>(
           results[index] = val;
         }
 
-        for (const rawKey of pending.rawKeys[slot]) {
-          requestCache.byRawID.set(rawKey, val);
+        if (cachesResults) {
+          for (const rawKey of pending.rawKeys[slot]) {
+            requestCache.byRawID.set(rawKey, val);
+          }
         }
       });
     }),
