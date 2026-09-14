@@ -179,7 +179,15 @@ export function createInputValueMapper<Types extends SchemaTypes, T, Args extend
       }
 
       if (fieldVal === null || fieldVal === undefined) {
-        mapped[fieldName] = fieldVal;
+        const result = completeValue(
+          mapField(fieldVal, field, addFieldIssues(), ...args),
+          (value) => {
+            mapped[fieldName] = value;
+          },
+        );
+        if (isThenable(result)) {
+          promises.push(result);
+        }
         return;
       }
 
