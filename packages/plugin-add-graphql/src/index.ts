@@ -31,7 +31,7 @@ export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugi
     }
 
     for (const type of Array.isArray(types) ? types : Object.values(types ?? {})) {
-      addTypeToSchema(this.builder, type);
+      addTypeToSchema(this.builder, type, rootKinds.get(type));
     }
 
     const schemaTypes = Object.values(schema?.getTypeMap() ?? {}).filter(
