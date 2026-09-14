@@ -282,71 +282,77 @@ export default class RequestCache<Types extends SchemaTypes> {
 
     const promises: Promise<AuthFailure | null>[] = [];
 
-    if ($granted) {
-      const result = !!info && this.testGrantedScopes($granted, info.path);
+    try {
+      if ($granted) {
+        const result = !!info && this.testGrantedScopes($granted, info.path);
 
-      if (result && !forAll) {
-        return null;
-      }
+        if (result && !forAll) {
+          return null;
+        }
 
-      if (!result) {
-        problems.push({
-          kind: AuthScopeFailureType.GrantedScope,
-          scope: $granted,
-        });
+        if (!result) {
+          problems.push({
+            kind: AuthScopeFailureType.GrantedScope,
+            scope: $granted,
+          });
 
-        if (forAll) {
-          return failure;
+          if (forAll) {
+            return failure;
+          }
         }
       }
-    }
 
-    if ($any) {
-      const anyResult = this.evaluateScopeMap($any, info, false);
+      if ($any) {
+        const anyResult = this.evaluateScopeMap($any, info, false);
 
-      if (isThenable(anyResult)) {
-        promises.push(anyResult);
-      } else if (anyResult === null && !forAll) {
-        return null;
-      } else if (anyResult) {
-        problems.push(anyResult);
+        if (isThenable(anyResult)) {
+          promises.push(anyResult);
+        } else if (anyResult === null && !forAll) {
+          return null;
+        } else if (anyResult) {
+          problems.push(anyResult);
 
-        if (forAll) {
-          return failure;
+          if (forAll) {
+            return failure;
+          }
         }
       }
-    }
 
-    if ($all) {
-      const allResult = this.evaluateScopeMap($all, info, true);
+      if ($all) {
+        const allResult = this.evaluateScopeMap($all, info, true);
 
-      if (isThenable(allResult)) {
-        promises.push(allResult);
-      } else if (allResult === null && !forAll) {
-        return resolveAndReturn(null);
-      } else if (allResult) {
-        problems.push(allResult);
+        if (isThenable(allResult)) {
+          promises.push(allResult);
+        } else if (allResult === null && !forAll) {
+          return resolveAndReturn(null);
+        } else if (allResult) {
+          problems.push(allResult);
 
-        if (forAll) {
-          return resolveAndReturn(failure);
+          if (forAll) {
+            return resolveAndReturn(failure);
+          }
         }
       }
-    }
 
-    for (const [loaderName, arg] of loaderList) {
-      const result = this.evaluateScopeLoader(scopes, loaderName, arg);
+      for (const [loaderName, arg] of loaderList) {
+        const result = this.evaluateScopeLoader(scopes, loaderName, arg);
 
-      if (isThenable(result)) {
-        promises.push(result);
-      } else if (result === null && !forAll) {
-        return resolveAndReturn(null);
-      } else if (result) {
-        problems.push(result);
+        if (isThenable(result)) {
+          promises.push(result);
+        } else if (result === null && !forAll) {
+          return resolveAndReturn(null);
+        } else if (result) {
+          problems.push(result);
 
-        if (forAll) {
-          return resolveAndReturn(failure);
+          if (forAll) {
+            return resolveAndReturn(failure);
+          }
         }
       }
+    } catch (error) {
+      // Earlier loaders may already be running when a later loader throws.
+      Promise.all(promises).catch(() => {});
+      throw error;
     }
 
     if (promises.length === 0) {
