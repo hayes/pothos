@@ -8,6 +8,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
   type TypeParam,
+  unwrapOutputListParam,
 } from '@pothos/core';
 import { defaultFieldResolver } from 'graphql';
 import { providesMap } from './external-ref.js';
@@ -69,7 +70,7 @@ export class PothosFederationPlugin<Types extends SchemaTypes> extends BasePlugi
       {}
     >['ExtendedEntity'];
 
-    const ref = Array.isArray(options.type) ? options.type[0] : options.type;
+    const ref = unwrapOutputListParam(options.type);
     const resolve = (
       fieldConfig.kind === 'ExternalEntity' ? (defaultFieldResolver as never) : fieldConfig.resolve
     )!;
