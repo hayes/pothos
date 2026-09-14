@@ -81,7 +81,7 @@ async function resolveEntry(query: object): Promise<EntryShape> {
 }
 
 function planFor(context: object, info: GraphQLResolveInfo, typeName: string, path: string[]) {
-  return queryFromInfo({ config: getSchemaConfig(builder), context, info, typeName, path });
+  return queryFromInfo({ config: getSchemaConfig(builder), context, info, typeName, path })();
 }
 
 builder.queryType({
@@ -101,8 +101,7 @@ builder.queryType({
             info,
             typeName: 'SelectUser',
             path: ['selectUser'],
-            select: { columns: { firstName: true } },
-          }),
+          })({ columns: { firstName: true } }),
         ),
     }),
     allColumns: t.field({
@@ -120,8 +119,7 @@ builder.queryType({
             info,
             typeName: 'User',
             path: ['user'],
-            select: { with: { posts: true } },
-          }),
+          })({ with: { posts: true } }),
         ),
     }),
   }),

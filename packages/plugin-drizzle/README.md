@@ -227,35 +227,42 @@ without arguments can pass no options to `query`; fields with filters pass those
 
 #### Building a query from resolve info
 
-Use `builder.drizzleQueryFromInfo` to build a selection inside a regular resolver, including
-when the Drizzle object is nested inside a payload. Pass a table name or Drizzle object/interface
-ref, along with the resolver's `context` and `info`:
+Use `t.drizzleQueryFromInfo` inside a regular field resolver to plan its GraphQL selection,
+including when the Drizzle object is nested inside a payload. Pass a table name or Drizzle
+object/interface ref, along with the resolver's `context` and `info`. The returned `query()`
+function merges your selection and query options with the planned selection:
 
 ```ts
-const query = await builder.drizzleQueryFromInfo('users', {
-  context,
-  info,
-  path: ['user'],
-  select: { columns: { id: true } },
-});
-
-const user = await db.query.users.findFirst({
-  ...query,
-  where: { id: userId },
-});
+builder.queryFields((t) => ({
+  user: t.field({
+    type: User,
+    nullable: true,
+    args: { id: t.arg.int({ required: true }) },
+    resolve: async (_root, args, context, info) => {
+      const query = await t.drizzleQueryFromInfo('users', { context, info });
+      return db.query.users.findFirst(
+        query({
+          columns: { id: true },
+          where: { id: args.id },
+        }),
+      );
+    },
+  }),
+}));
 ```
 
-Here `path: ['user']` selects the `user` field inside the resolver's result. Omit `path` when
-resolving the Drizzle object directly. `paths` accepts multiple paths. Use a Drizzle ref instead
-of a table name to select a specific variant of that table's GraphQL type.
+Pass `path: ['user']` when the resolver returns a payload containing a `user` field. `paths`
+accepts multiple paths. Use a Drizzle ref instead of a table name to select a specific variant
+of that table's GraphQL type.
 
-The builder checks the context and selection against its schema and table. Explicit columns and
-relations retain their types when passed into Drizzle; columns omitted from `select` are not
-statically guaranteed, even if the GraphQL selection loads them.
+The field builder checks the context and selection against its schema and table. Pass the
+result of `query(options)` directly to Drizzle, just as with `t.drizzleField`. Explicit columns
+and relations retain their types; columns omitted from `query()` are not statically guaranteed,
+even if the GraphQL selection loads them.
 
-With `AsyncSelections: true`, the result may be a promise: await it before passing it to Drizzle.
-Otherwise the result is typed as synchronous, consistent with the schema's selection callbacks.
-There is no per-call async option.
+With `AsyncSelections: true`, await `t.drizzleQueryFromInfo` to finish planning before calling
+`query()`. Without it, the helper is typed as synchronous, consistent with the schema's selection
+callbacks. The returned `query()` function is always synchronous. There is no per-call async option.
 
 #### `drizzleFieldWithInput`
 

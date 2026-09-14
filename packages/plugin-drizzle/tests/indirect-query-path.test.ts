@@ -76,7 +76,7 @@ builder.queryType({
             info,
             typeName: 'User',
             paths: [['nodes'], ['edges', 'node']],
-          }),
+          })(),
           limit: 1,
         })) as UsersPageShape['nodes'],
       }),

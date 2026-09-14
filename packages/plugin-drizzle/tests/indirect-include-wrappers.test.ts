@@ -102,7 +102,7 @@ builder.queryType({
       type: UserWrapper,
       resolve: async (_root, _args, context, info) => {
         const user = await db.query.users.findFirst({
-          ...queryFromInfo({ config: getSchemaConfig(builder), context, info }),
+          ...queryFromInfo({ config: getSchemaConfig(builder), context, info })(),
           where: { id: 1 },
         });
 

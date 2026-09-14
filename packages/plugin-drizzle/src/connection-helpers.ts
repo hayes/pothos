@@ -246,15 +246,18 @@ export function drizzleConnectionHelpers<
     const nestedSelection: NestedSelection =
       typeof nestedSelectionOrInfo === 'function'
         ? nestedSelectionOrInfo
-        : (select, path) =>
-            queryFromInfo({
+        : (select, path) => {
+            const query = queryFromInfo({
               info: nestedSelectionOrInfo,
               context: ctx,
               config,
               awaitSelections: true,
-              select: select as SelectionMap,
               path,
             });
+            return isThenable(query)
+              ? query.then((build) => build(select as SelectionMap))
+              : query(select as SelectionMap);
+          };
     // Both callbacks start now; the query waits for whichever of them is async.
     const nestedSelect: MaybePromise<Record<string, unknown> | true> = select
       ? select((sel) => nestedSelection(sel as SelectionMap, ['edges', 'node']) as never, args, ctx)

@@ -24,10 +24,20 @@ const PrivateUser = builder.drizzleObject('users', {
 });
 
 const row = { id: 1, username: 'public', firstName: 'private', lastName: null };
-const Payload = builder.objectRef<{ user: typeof row }>('UserPayload').implement({
-  fields: (t) => ({ user: t.field({ type: User, resolve: (payload) => payload.user }) }),
-});
 const queries: unknown[] = [];
+const Payload = builder.objectRef<{ user: typeof row }>('UserPayload').implement({
+  fields: (t) => ({
+    user: t.field({ type: User, resolve: (payload) => payload.user }),
+    plannedUser: t.field({
+      type: User,
+      resolve: (payload, _args, context, info) => {
+        const query = t.drizzleQueryFromInfo(User, { context, info });
+        queries.push(query());
+        return payload.user;
+      },
+    }),
+  }),
+});
 
 builder.queryType({
   fields: (t) => ({
@@ -35,7 +45,7 @@ builder.queryType({
       type: User,
       args: { useRef: t.arg.boolean() },
       resolve: (_root, args, context, info) => {
-        queries.push(builder.drizzleQueryFromInfo(args.useRef ? User : 'users', { context, info }));
+        queries.push(t.drizzleQueryFromInfo(args.useRef ? User : 'users', { context, info })());
         return row;
       },
     }),
@@ -43,12 +53,11 @@ builder.queryType({
       type: Payload,
       resolve: (_root, _args, context, info) => {
         queries.push(
-          builder.drizzleQueryFromInfo('users', {
+          t.drizzleQueryFromInfo('users', {
             context,
             info,
             path: ['user'],
-            select: { columns: { lastName: true } },
-          }),
+          })({ columns: { lastName: true } }),
         );
         return { user: row };
       },
@@ -56,7 +65,19 @@ builder.queryType({
     privateUser: t.field({
       type: PrivateUser,
       resolve: (_root, _args, context, info) => {
-        queries.push(builder.drizzleQueryFromInfo(PrivateUser, { context, info }));
+        queries.push(t.drizzleQueryFromInfo(PrivateUser, { context, info })());
+        return row;
+      },
+    }),
+  }),
+});
+builder.mutationType({
+  fields: (t) => ({
+    user: t.field({
+      type: User,
+      resolve: (_root, _args, context, info) => {
+        const query = t.drizzleQueryFromInfo('users', { context, info });
+        queries.push(query({ columns: { lastName: true } }));
         return row;
       },
     }),
@@ -103,4 +124,26 @@ it('uses the supplied variant ref to resolve field selections', async () => {
   expect(result.errors).toBeUndefined();
   expect(result.data).toEqual({ privateUser: { name: 'private' } });
   expect(queries).toMatchObject([{ columns: { id: true, firstName: true } }]);
+});
+
+it('exposes the helper on ordinary object field builders', async () => {
+  const result = await execute({
+    schema,
+    contextValue: {},
+    document: gql`{ payload { plannedUser { name } } }`,
+  });
+  expect(result.errors).toBeUndefined();
+  expect(result.data).toEqual({ payload: { plannedUser: { name: 'public' } } });
+  expect(queries[1]).toMatchObject({ columns: { id: true, username: true } });
+});
+
+it('exposes the helper on mutation field builders', async () => {
+  const result = await execute({
+    schema,
+    contextValue: {},
+    document: gql`mutation { user { name } }`,
+  });
+  expect(result.errors).toBeUndefined();
+  expect(result.data).toEqual({ user: { name: 'public' } });
+  expect(queries).toMatchObject([{ columns: { id: true, username: true, lastName: true } }]);
 });

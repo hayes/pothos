@@ -39,6 +39,7 @@ import type {
   ShapeFromConnection,
   ShapeFromIdColumns,
 } from './types.js';
+import type { QueryFromInfoBuilder } from './utils/map-query.js';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -59,31 +60,6 @@ declare global {
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
-      drizzleQueryFromInfo: <
-        Type extends keyof Types['DrizzleRelations'] | DrizzleRef<Types>,
-        const Selection extends DBQueryConfig<
-          'one',
-          Types['DrizzleRelations'],
-          Types['DrizzleRelations'][Type extends DrizzleRef<Types, infer Table>
-            ? Table
-            : Type & keyof Types['DrizzleRelations']]
-        > = {},
-      >(
-        type: Type,
-        options: {
-          context: Types['Context'];
-          info: GraphQLResolveInfo;
-          path?: PathSegment[];
-          paths?: PathSegment[][];
-          select?: Selection;
-        },
-      ) => MaybeAsyncSelection<
-        Types,
-        Omit<Selection, 'columns'> & {
-          columns: Selection extends { columns: infer Columns extends {} } ? Columns : {};
-        }
-      >;
-
       drizzleObject: <
         const Interfaces extends InterfaceParam<Types>[],
         Table extends keyof Types['DrizzleRelations'],
@@ -243,6 +219,27 @@ declare global {
       ParentShape,
       Kind extends FieldKind = FieldKind,
     > {
+      drizzleQueryFromInfo: <Type extends keyof Types['DrizzleRelations'] | DrizzleRef<Types>>(
+        type: Type,
+        options: {
+          context: Types['Context'];
+          info: GraphQLResolveInfo;
+          path?: PathSegment[];
+          paths?: PathSegment[][];
+        },
+      ) => MaybeAsyncSelection<
+        Types,
+        QueryFromInfoBuilder<
+          DBQueryConfig<
+            'many',
+            Types['DrizzleRelations'],
+            Types['DrizzleRelations'][Type extends DrizzleRef<Types, infer Table>
+              ? Table
+              : Type & keyof Types['DrizzleRelations']]
+          >
+        >
+      >;
+
       drizzleField: <
         Args extends InputFieldMap,
         Param extends

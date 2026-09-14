@@ -21,6 +21,7 @@ export * from './types.js';
 export { drizzleTableName } from './types.js';
 export { drizzleClientCache, getSchemaConfig } from './utils/config.js';
 export {
+  type QueryFromInfoBuilder,
   type QueryFromInfoOptions,
   type QueryFromInfoResult,
   type QueryFromInfoReturn,

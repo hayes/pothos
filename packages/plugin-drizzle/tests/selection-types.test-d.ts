@@ -221,43 +221,47 @@ it('types the nested selection as the query it returns', () => {
   expectTypeOf(builder).not.toBeAny();
 });
 
-it('preserves builder query selections when passed to Drizzle', async () => {
+it('preserves callable field builder query selections when passed to Drizzle', async () => {
+  const t = {} as Parameters<Parameters<typeof builder.queryFields>[0]>[0];
   const info = {} as GraphQLResolveInfo;
-  const query = builder.drizzleQueryFromInfo('users', {
-    context: {},
-    info,
-    select: { columns: { id: true }, with: { posts: { columns: { title: true } } } },
-  });
-  const rows = await db.query.users.findMany(query);
+  const query = t.drizzleQueryFromInfo('users', { context: {}, info });
+  const rows = await db.query.users.findMany(
+    query({
+      columns: { id: true },
+      with: { posts: { columns: { title: true } } },
+      where: { id: 1 },
+      limit: 5,
+    }),
+  );
   expectTypeOf(rows[0].id).toEqualTypeOf<number>();
   expectTypeOf(rows[0].posts[0].title).toEqualTypeOf<string>();
   // @ts-expect-error Unselected root column.
   rows[0].username;
   // @ts-expect-error Unselected relation column.
   rows[0].posts[0].content;
-  const relationOnly = builder.drizzleQueryFromInfo('users', {
-    context: {},
-    info,
-    select: { with: { posts: true } },
-  });
-  const related = await db.query.users.findMany(relationOnly);
+  const related = await db.query.users.findMany(query({ with: { posts: true } }));
   // @ts-expect-error Omitted columns do not guarantee all root columns.
   related[0].username;
   expectTypeOf(related[0].posts[0].title).toEqualTypeOf<string>();
-  expectTypeOf(builder.drizzleQueryFromInfo(Post, { context: {}, info })).toMatchTypeOf<{
-    columns: {};
-  }>();
+  expectTypeOf(query()).toMatchTypeOf<{ columns: {} }>();
+  const postQuery = t.drizzleQueryFromInfo(Post, { context: {}, info });
+  const postRows = await db.query.posts.findMany(postQuery({ columns: { postId: true } }));
+  expectTypeOf(postRows[0].postId).toEqualTypeOf<number>();
+  // @ts-expect-error The ref binds the query to the posts table.
+  postQuery({ columns: { username: true } });
   // @ts-expect-error Unknown table.
-  builder.drizzleQueryFromInfo('missing', { context: {}, info });
-  builder.drizzleQueryFromInfo('users', {
-    context: {},
-    info,
-    // @ts-expect-error Unknown column.
-    select: { columns: { missing: true } },
-  });
+  t.drizzleQueryFromInfo('missing', { context: {}, info });
+  // @ts-expect-error Unknown column.
+  query({ columns: { missing: true } });
+  // @ts-expect-error Unknown relation.
+  query({ with: { missing: true } });
+  // @ts-expect-error Invalid filter value for a numeric column.
+  query({ where: { id: 'wrong' } });
+  // @ts-expect-error Selections are passed to the returned callable.
+  t.drizzleQueryFromInfo('users', { context: {}, info, select: { columns: { id: true } } });
 });
 
-it('widens builder queries for schemas with async selections', () => {
+it('widens callable queries for schemas with async selections', async () => {
   const asyncBuilder = new SchemaBuilder<{
     DrizzleRelations: DrizzleRelations;
     AsyncSelections: true;
@@ -267,36 +271,47 @@ it('widens builder queries for schemas with async selections', () => {
     drizzle: { client: () => db, getTableConfig, relations },
     scopeAuth: { authScopes: () => ({}) },
   });
+  const t = {} as Parameters<Parameters<typeof asyncBuilder.queryFields>[0]>[0];
   const info = {} as GraphQLResolveInfo;
-  asyncBuilder.drizzleQueryFromInfo('users', {
+  t.drizzleQueryFromInfo('users', {
     info,
     // @ts-expect-error The builder's context type is required.
     context: {},
   });
-  const query = asyncBuilder.drizzleQueryFromInfo('users', {
+  const pendingQuery = t.drizzleQueryFromInfo('users', {
     context: { tenantId: 1 },
     info,
-    select: { columns: { id: true } },
   });
-  expectTypeOf(query).toEqualTypeOf<MaybePromise<Awaited<typeof query>>>();
-  expectTypeOf<Awaited<typeof query>>().toMatchTypeOf<{ columns: { readonly id: true } }>();
-  // @ts-expect-error Async-enabled queries must be awaited before passing them to Drizzle.
-  db.query.users.findMany(query);
+  expectTypeOf(pendingQuery).toEqualTypeOf<MaybePromise<Awaited<typeof pendingQuery>>>();
+  // @ts-expect-error Async-enabled query builders must be awaited before calling them.
+  pendingQuery({ columns: { id: true } });
+  const query = await pendingQuery;
+  const rows = await db.query.users.findMany(query({ columns: { id: true }, where: { id: 1 } }));
+  expectTypeOf(rows[0].id).toEqualTypeOf<number>();
+  // @ts-expect-error Awaiting the builder retains the column selection.
+  rows[0].username;
 });
 
-it('types standalone queries and their explicit async option', async () => {
+it('types standalone callable queries and their explicit async option', async () => {
   const options = { config: getSchemaConfig(builder), context: {}, info: {} as GraphQLResolveInfo };
-  const query = queryFromInfo({ ...options, select: { columns: { id: true } } });
-  const rows = await db.query.users.findMany(query);
+  const query = queryFromInfo(options);
+  const rows = await db.query.users.findMany(query({ columns: { id: true } }));
   expectTypeOf(rows[0].id).toEqualTypeOf<number>();
   // @ts-expect-error Unselected column.
   rows[0].username;
-  expectTypeOf(queryFromInfo(options)).toMatchTypeOf<{ columns: {} }>();
-  expectTypeOf(queryFromInfo({ ...options, awaitSelections: true })).toEqualTypeOf<
-    MaybePromise<ReturnType<typeof queryFromInfo<{}, false>>>
-  >();
+  expectTypeOf(query()).toMatchTypeOf<{ columns: {} }>();
+  const pendingQuery = queryFromInfo({ ...options, awaitSelections: true });
+  expectTypeOf(pendingQuery).toEqualTypeOf<MaybePromise<typeof query>>();
+  // @ts-expect-error Async opt-in requires awaiting the builder before calling it.
+  pendingQuery();
+  const settledQuery = await pendingQuery;
+  const selected = settledQuery({ columns: { id: true }, with: { posts: true } });
+  const related = await db.query.users.findMany(selected);
+  expectTypeOf(related[0].posts[0].title).toEqualTypeOf<string>();
   const flag = true as boolean;
   expectTypeOf(queryFromInfo({ ...options, awaitSelections: flag })).toEqualTypeOf<
-    MaybePromise<ReturnType<typeof queryFromInfo<{}, false>>>
+    MaybePromise<typeof query>
   >();
+  // @ts-expect-error Selections belong on the returned function.
+  queryFromInfo({ ...options, select: { columns: { id: true } } });
 });

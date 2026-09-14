@@ -163,7 +163,7 @@ async function resolveEntries(
   });
 
   const user = await db.query.users.findFirst({
-    ...query,
+    ...query(),
     where: { id: 1 },
   });
 
@@ -257,7 +257,7 @@ async function resolveLimitedEntries(
       info,
       typeName: 'LimitedUser',
       path: ['appointment'],
-    }),
+    })(),
     where: { id: 1 },
   });
 

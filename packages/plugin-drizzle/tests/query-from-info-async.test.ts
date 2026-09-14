@@ -36,16 +36,15 @@ builder.queryType({
       args: { awaitSelections: t.arg.boolean(), builderHelper: t.arg.boolean() },
       resolve: async (_root, args, context, info) => {
         const query = args.builderHelper
-          ? builder.drizzleQueryFromInfo(User, { context, info, select: { columns: { id: true } } })
+          ? t.drizzleQueryFromInfo(User, { context, info })
           : queryFromInfo({
               config: getSchemaConfig(builder),
               context,
               info,
-              select: { columns: { id: true } },
               awaitSelections: args.awaitSelections ?? false,
             });
         wasAsync.push(isThenable(query));
-        planned.push(await query);
+        planned.push((await query)({ columns: { id: true } }));
         return { id: 1, username: 'test', firstName: null, lastName: null };
       },
     }),
@@ -93,7 +92,7 @@ it.each([
   expect(planned).toMatchObject([{ columns: { id: true } }]);
 });
 
-it('infers async planning through the builder helper', async () => {
+it('infers async planning through the field builder helper', async () => {
   const result = await execute({
     schema,
     contextValue: {},
