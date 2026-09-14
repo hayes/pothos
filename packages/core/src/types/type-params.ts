@@ -93,8 +93,8 @@ export type OutputType<Types extends SchemaTypes> =
   | (new (
       // biome-ignore lint/suspicious/noExplicitAny: this is fine
       ...args: any[]
-      // biome-ignore lint/suspicious/noExplicitAny: this is fine
-    ) => any)
+      // `any` here would erase the contextual return type used to infer resolver literals.
+    ) => unknown)
   | {
       [outputShapeKey]: unknown;
     };
