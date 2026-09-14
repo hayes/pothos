@@ -435,7 +435,9 @@ schemaBuilderProto.prismaNode = function prismaNode<
             extraColumns: idFields,
           }),
         idFields,
-        ...(idOpts.codecs
+        // Default IDs use tagged values, so matching must preserve their byte and scalar types.
+        // Custom parsers or ID resolvers still own their raw format and matching semantics.
+        ...((!idOpts.parse && !idOpts.resolve) || idOpts.codecs
           ? {
               keyForValues: (values: readonly unknown[]) =>
                 encodeCursorTuple(
