@@ -1,4 +1,5 @@
 import './global-types.js';
+import * as GraphQL from 'graphql';
 import {
   type ArgumentNode,
   astFromValue,
@@ -254,6 +255,23 @@ function fieldNodes(
   });
 }
 
+// GraphQL 17 defaults contain external values or literals; legacy defaultValue
+// contains an already-coerced internal value and must use astFromValue instead.
+function inputDefaultNode(field: GraphQLArgument | GraphQLInputField): ConstValueNode | undefined {
+  const defaultInput = (field as { default?: { value?: unknown; literal?: ConstValueNode } })
+    .default;
+  if (defaultInput) {
+    const { valueToLiteral } = GraphQL as typeof GraphQL & {
+      valueToLiteral: (value: unknown, type: GraphQLArgument['type']) => ConstValueNode | undefined;
+    };
+    return defaultInput.literal ?? valueToLiteral(defaultInput.value, field.type);
+  }
+
+  return field.defaultValue === undefined
+    ? undefined
+    : (astFromValue(field.defaultValue, field.type) as ConstValueNode | undefined);
+}
+
 function inputFieldNodes(
   fields: GraphQLInputFieldMap,
   schema: GraphQLSchema,
@@ -261,14 +279,12 @@ function inputFieldNodes(
   return Object.keys(fields).map((fieldName) => {
     const field: GraphQLInputField = fields[fieldName];
 
-    const defaultValueNode = astFromValue(field.defaultValue, field.type) as ConstValueNode;
-
     field.astNode ||= {
       kind: Kind.INPUT_VALUE_DEFINITION,
       description: field.description ? { kind: Kind.STRING, value: field.description } : undefined,
       name: { kind: Kind.NAME, value: fieldName },
       type: typeNode(field.type),
-      defaultValue: field.defaultValue === undefined ? undefined : defaultValueNode,
+      defaultValue: inputDefaultNode(field),
       directives: directiveNodes(
         field.extensions?.directives as DirectiveList,
         field.deprecationReason ?? null,
@@ -285,14 +301,12 @@ function argumentNodes(
   schema: GraphQLSchema,
 ): InputValueDefinitionNode[] {
   return args.map((arg): InputValueDefinitionNode => {
-    const defaultValueNode = astFromValue(arg.defaultValue, arg.type) as ConstValueNode;
-
     arg.astNode ||= {
       kind: Kind.INPUT_VALUE_DEFINITION,
       description: arg.description ? { kind: Kind.STRING, value: arg.description } : undefined,
       name: { kind: Kind.NAME, value: arg.name },
       type: typeNode(arg.type),
-      defaultValue: arg.defaultValue === undefined ? undefined : defaultValueNode,
+      defaultValue: inputDefaultNode(arg),
       directives: directiveNodes(
         arg.extensions?.directives as DirectiveList,
         arg.deprecationReason ?? null,

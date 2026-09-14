@@ -53,6 +53,7 @@
     "@envelop/rate-limiter": "^10.0.1",
     "@graphql-tools/utils": "^11.0.1",
     "@pothos/core": "workspace:*",
+    "@pothos/plugin-add-graphql": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql-rate-limit": "^3.3.0",
     "graphql-tag": "^2.12.6"

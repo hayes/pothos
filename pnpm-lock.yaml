@@ -655,6 +655,9 @@ importers:
       '@pothos/core':
         specifier: workspace:*
         version: link:../core
+      '@pothos/plugin-add-graphql':
+        specifier: workspace:*
+        version: link:../plugin-add-graphql
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
@@ -773,6 +776,9 @@ importers:
       '@pothos/core':
         specifier: workspace:*
         version: link:../core
+      '@pothos/plugin-add-graphql':
+        specifier: workspace:*
+        version: link:../plugin-add-graphql
       '@pothos/plugin-directives':
         specifier: workspace:*
         version: link:../plugin-directives
