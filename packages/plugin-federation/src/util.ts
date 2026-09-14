@@ -63,7 +63,7 @@ export const entityMapping = new WeakMap<
 >();
 
 // biome-ignore lint/suspicious/noExplicitAny: this is fine
-export const usedDirectives = new Map<PothosSchemaTypes.SchemaBuilder<any>, Set<string>>();
+export const usedDirectives = new WeakMap<PothosSchemaTypes.SchemaBuilder<any>, Set<string>>();
 
 export function getUsedDirectives<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
