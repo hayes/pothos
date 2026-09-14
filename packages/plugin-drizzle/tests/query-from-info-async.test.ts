@@ -36,15 +36,16 @@ builder.queryType({
       args: { awaitSelections: t.arg.boolean(), builderHelper: t.arg.boolean() },
       resolve: async (_root, args, context, info) => {
         const query = args.builderHelper
-          ? t.drizzleQueryFromInfo(User, { context, info })
+          ? t.drizzleQueryFromInfo(User, { context, info, columns: { id: true } })
           : queryFromInfo({
               config: getSchemaConfig(builder),
               context,
               info,
+              columns: { id: true },
               awaitSelections: args.awaitSelections ?? false,
             });
         wasAsync.push(isThenable(query));
-        planned.push((await query)({ columns: { id: true } }));
+        planned.push(await query);
         return { id: 1, username: 'test', firstName: null, lastName: null };
       },
     }),

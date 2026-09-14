@@ -101,10 +101,9 @@ builder.queryType({
     wrapper: t.field({
       type: UserWrapper,
       resolve: async (_root, _args, context, info) => {
-        const user = await db.query.users.findFirst({
-          ...queryFromInfo({ config: getSchemaConfig(builder), context, info })(),
-          where: { id: 1 },
-        });
+        const user = await db.query.users.findFirst(
+          queryFromInfo({ config: getSchemaConfig(builder), context, info, where: { id: 1 } }),
+        );
 
         if (!user) {
           throw new Error('User 1 not found');

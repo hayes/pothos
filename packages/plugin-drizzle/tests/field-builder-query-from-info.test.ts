@@ -32,7 +32,7 @@ const Payload = builder.objectRef<{ user: typeof row }>('UserPayload').implement
       type: User,
       resolve: (payload, _args, context, info) => {
         const query = t.drizzleQueryFromInfo(User, { context, info });
-        queries.push(query());
+        queries.push(query);
         return payload.user;
       },
     }),
@@ -45,7 +45,7 @@ builder.queryType({
       type: User,
       args: { useRef: t.arg.boolean() },
       resolve: (_root, args, context, info) => {
-        queries.push(t.drizzleQueryFromInfo(args.useRef ? User : 'users', { context, info })());
+        queries.push(t.drizzleQueryFromInfo(args.useRef ? User : 'users', { context, info }));
         return row;
       },
     }),
@@ -57,7 +57,8 @@ builder.queryType({
             context,
             info,
             path: ['user'],
-          })({ columns: { lastName: true } }),
+            columns: { lastName: true },
+          }),
         );
         return { user: row };
       },
@@ -65,7 +66,7 @@ builder.queryType({
     privateUser: t.field({
       type: PrivateUser,
       resolve: (_root, _args, context, info) => {
-        queries.push(t.drizzleQueryFromInfo(PrivateUser, { context, info })());
+        queries.push(t.drizzleQueryFromInfo(PrivateUser, { context, info }));
         return row;
       },
     }),
@@ -76,8 +77,9 @@ builder.mutationType({
     user: t.field({
       type: User,
       resolve: (_root, _args, context, info) => {
-        const query = t.drizzleQueryFromInfo('users', { context, info });
-        queries.push(query({ columns: { lastName: true } }));
+        queries.push(
+          t.drizzleQueryFromInfo('users', { context, info, columns: { lastName: true } }),
+        );
         return row;
       },
     }),

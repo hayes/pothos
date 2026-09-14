@@ -80,12 +80,7 @@ builder.queryField('user', (t) =>
       id: t.arg.int({ required: true }),
     },
     resolve: async (query, _root, args, _ctx, _info) => {
-      const drizzleQuery = db.query.users.findFirst({
-        ...query,
-        where: {
-          id: args.id,
-        },
-      });
+      const drizzleQuery = db.query.users.findFirst(query({ where: { id: args.id } }));
 
       const result = await drizzleQuery;
 

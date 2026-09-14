@@ -68,18 +68,20 @@ builder.queryType({
     }),
     usersPage: t.field({
       type: UsersPage,
-      resolve: async (_root, _args, context, info) => ({
-        nodes: (await db.query.users.findMany({
-          ...queryFromInfo({
-            config: getSchemaConfig(builder),
-            context,
-            info,
-            typeName: 'User',
-            paths: [['nodes'], ['edges', 'node']],
-          })(),
-          limit: 1,
-        })) as UsersPageShape['nodes'],
-      }),
+      resolve: async (_root, _args, context, info) => {
+        return {
+          nodes: (await db.query.users.findMany(
+            queryFromInfo({
+              config: getSchemaConfig(builder),
+              context,
+              info,
+              typeName: 'User',
+              paths: [['nodes'], ['edges', 'node']],
+              limit: 1,
+            }),
+          )) as UsersPageShape['nodes'],
+        };
+      },
     }),
   }),
 });

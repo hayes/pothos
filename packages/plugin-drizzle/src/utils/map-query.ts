@@ -14,44 +14,47 @@ export interface QueryFromInfoOptions<Await extends boolean = false> {
   typeName?: string;
   path?: PathSegment[];
   paths?: PathSegment[][];
-  /** Whether the caller will await the query builder. Async selections otherwise throw. */
+  /** Whether the caller will await the query. Async selections otherwise throw. */
   awaitSelections?: Await;
 }
 
-/** Only explicitly selected columns are guaranteed on the resulting rows. */
-export type QueryFromInfoResult<T> = Omit<T, 'columns'> & {
+/** Only explicitly selected columns are guaranteed; planning metadata is not part of the query. */
+export type QueryFromInfoResult<T> = Omit<T, keyof QueryFromInfoOptions<boolean> | 'columns'> & {
   columns: T extends { columns: infer Columns extends {} } ? Columns : {};
 };
 
-/** Merge the caller's selection and query options with the planned GraphQL selection. */
-export interface QueryFromInfoBuilder<Query extends object = DBQueryConfig<'many'>> {
-  (): QueryFromInfoResult<{}>;
-  <const Selection extends Query>(select: Selection): QueryFromInfoResult<Selection>;
-}
-
 /** A boolean async option must account for promises, just like Prisma's helper. */
-export type QueryFromInfoReturn<Await extends boolean> = [Await] extends [false]
-  ? QueryFromInfoBuilder
-  : MaybePromise<QueryFromInfoBuilder>;
+export type QueryFromInfoReturn<T, Await extends boolean> = [Await] extends [false]
+  ? QueryFromInfoResult<T>
+  : MaybePromise<QueryFromInfoResult<T>>;
 
-/** Plan once, then return the same synchronous query wrapper used by Drizzle field resolvers. */
-export function queryFromInfo<Await extends boolean = false>({
+/** Merge query options with the GraphQL selection and return a query ready for Drizzle. */
+export function queryFromInfo<const T extends object, Await extends boolean = false>({
+  config,
+  context,
+  info,
+  typeName,
+  path,
+  paths,
   awaitSelections,
-  ...options
-}: QueryFromInfoOptions<Await>): QueryFromInfoReturn<Await> {
-  const plan = planFromInfo(options);
-  const wrap = (settled: DrizzlePlan | undefined): QueryFromInfoBuilder =>
-    ((select?: SelectionMap) => queryFromPlan(settled, select)) as QueryFromInfoBuilder;
+  ...selection
+}: QueryFromInfoOptions<Await> &
+  T &
+  Record<
+    Exclude<keyof T, keyof QueryFromInfoOptions<Await> | keyof DBQueryConfig<'many'>>,
+    never
+  >): QueryFromInfoReturn<T, Await> {
+  const plan = planFromInfo({ config, context, info, typeName, path, paths });
   const query = isThenable(plan)
-    ? plan.then((settled) => wrap(settled as DrizzlePlan | undefined))
-    : wrap(plan);
+    ? plan.then((settled) => queryFromPlan(settled as DrizzlePlan | undefined, selection))
+    : queryFromPlan(plan, selection);
 
   return checkAwaitSelections(
     query,
     awaitSelections,
     'queryFromInfo',
-    `${options.info.parentType.name}.${options.info.fieldName}`,
-  ) as QueryFromInfoReturn<Await>;
+    `${info.parentType.name}.${info.fieldName}`,
+  ) as QueryFromInfoReturn<T, Await>;
 }
 
 /**

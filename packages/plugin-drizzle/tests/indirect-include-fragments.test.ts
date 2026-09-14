@@ -154,18 +154,16 @@ async function resolveEntries(
   info: GraphQLResolveInfo,
   path: (string | { name: string; type?: string })[],
 ): Promise<(AppointmentEntryShape | OtherEntryShape)[]> {
-  const query = queryFromInfo({
-    config: getSchemaConfig(builder),
-    context,
-    info,
-    typeName: 'User',
-    path,
-  });
-
-  const user = await db.query.users.findFirst({
-    ...query(),
-    where: { id: 1 },
-  });
+  const user = await db.query.users.findFirst(
+    queryFromInfo({
+      config: getSchemaConfig(builder),
+      context,
+      info,
+      typeName: 'User',
+      path,
+      where: { id: 1 },
+    }),
+  );
 
   if (!user) {
     throw new Error('Expected user 1 to exist');
@@ -250,16 +248,16 @@ async function resolveLimitedEntries(
   context: object,
   info: GraphQLResolveInfo,
 ): Promise<(AppointmentEntryShape | VariantEntryShape)[]> {
-  const user = await db.query.users.findFirst({
-    ...queryFromInfo({
+  const user = await db.query.users.findFirst(
+    queryFromInfo({
       config: getSchemaConfig(builder),
       context,
       info,
       typeName: 'LimitedUser',
       path: ['appointment'],
-    })(),
-    where: { id: 1 },
-  });
+      where: { id: 1 },
+    }),
+  );
 
   if (!user) {
     throw new Error('Expected user 1 to exist');

@@ -2,6 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute } from '@pothos/test-utils';
+import type { DBQueryConfig } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import type { GraphQLResolveInfo } from 'graphql';
 import { gql } from 'graphql-tag';
@@ -68,20 +69,29 @@ const Entry = builder.objectRef<EntryShape>('Entry').implement({
 
 const plannedQueries: unknown[] = [];
 
-async function resolveEntry(query: object): Promise<EntryShape> {
+async function resolveEntry(
+  query: DBQueryConfig<'one', DrizzleRelations, DrizzleRelations['users']>,
+): Promise<EntryShape> {
   plannedQueries.push(query);
 
-  const user = await db.query.users.findFirst({ ...query, where: { id: 1 } });
+  const user = await db.query.users.findFirst(query);
 
   if (!user) {
     throw new Error('User 1 not found');
   }
 
-  return { kind: 'entry', user };
+  return { kind: 'entry', user: user as EntryShape['user'] };
 }
 
 function planFor(context: object, info: GraphQLResolveInfo, typeName: string, path: string[]) {
-  return queryFromInfo({ config: getSchemaConfig(builder), context, info, typeName, path })();
+  return queryFromInfo({
+    config: getSchemaConfig(builder),
+    context,
+    info,
+    typeName,
+    path,
+    where: { id: 1 },
+  });
 }
 
 builder.queryType({
@@ -101,7 +111,9 @@ builder.queryType({
             info,
             typeName: 'SelectUser',
             path: ['selectUser'],
-          })({ columns: { firstName: true } }),
+            columns: { firstName: true },
+            where: { id: 1 },
+          }),
         ),
     }),
     allColumns: t.field({
@@ -119,7 +131,9 @@ builder.queryType({
             info,
             typeName: 'User',
             path: ['user'],
-          })({ with: { posts: true } }),
+            with: { posts: true },
+            where: { id: 1 },
+          }),
         ),
     }),
   }),
@@ -153,7 +167,7 @@ describe('queryFromInfo with paths that select nothing', () => {
 
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ entry: { kind: 'entry' } });
-    expect(plannedQueries).toEqual([expected]);
+    expect(plannedQueries).toEqual([{ ...expected, where: { id: 1 } }]);
     expect(drizzleLogs).toHaveLength(1);
   });
 });

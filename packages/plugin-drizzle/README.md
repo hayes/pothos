@@ -227,10 +227,9 @@ without arguments can pass no options to `query`; fields with filters pass those
 
 #### Building a query from resolve info
 
-Use `t.drizzleQueryFromInfo` inside a regular field resolver to plan its GraphQL selection,
-including when the Drizzle object is nested inside a payload. Pass a table name or Drizzle
-object/interface ref, along with the resolver's `context` and `info`. The returned `query()`
-function merges your selection and query options with the planned selection:
+Use `t.drizzleQueryFromInfo` inside a regular field resolver to combine its GraphQL selection
+with Drizzle query options. Pass a table name or Drizzle object/interface ref, along with the
+resolver's `context` and `info`. Pass the result directly to Drizzle:
 
 ```ts
 builder.queryFields((t) => ({
@@ -238,15 +237,15 @@ builder.queryFields((t) => ({
     type: User,
     nullable: true,
     args: { id: t.arg.int({ required: true }) },
-    resolve: async (_root, args, context, info) => {
-      const query = await t.drizzleQueryFromInfo('users', { context, info });
-      return db.query.users.findFirst(
-        query({
+    resolve: (_root, args, context, info) =>
+      db.query.users.findFirst(
+        t.drizzleQueryFromInfo('users', {
+          context,
+          info,
           columns: { id: true },
           where: { id: args.id },
         }),
-      );
-    },
+      ),
   }),
 }));
 ```
@@ -255,14 +254,26 @@ Pass `path: ['user']` when the resolver returns a payload containing a `user` fi
 accepts multiple paths. Use a Drizzle ref instead of a table name to select a specific variant
 of that table's GraphQL type.
 
-The field builder checks the context and selection against its schema and table. Pass the
-result of `query(options)` directly to Drizzle, just as with `t.drizzleField`. Explicit columns
-and relations retain their types; columns omitted from `query()` are not statically guaranteed,
-even if the GraphQL selection loads them.
+The field builder checks the context and query options against its schema and table. Explicit
+columns and relations retain their types; omitted columns are not statically guaranteed, even
+if the GraphQL selection loads them. Put filters, selections, ordering, and limits inside the
+helper call so they are merged with the planned selection.
 
-With `AsyncSelections: true`, await `t.drizzleQueryFromInfo` to finish planning before calling
-`query()`. Without it, the helper is typed as synchronous, consistent with the schema's selection
-callbacks. The returned `query()` function is always synchronous. There is no per-call async option.
+With `AsyncSelections: true`, await the result before passing it to Drizzle:
+
+```ts
+resolve: async (_root, args, context, info) =>
+  db.query.users.findFirst(
+    await t.drizzleQueryFromInfo('users', {
+      context,
+      info,
+      where: { id: args.id },
+    }),
+  ),
+```
+
+Without `AsyncSelections`, the helper is typed as synchronous, consistent with the schema's
+selection callbacks. There is no per-call async option.
 
 #### `drizzleFieldWithInput`
 
