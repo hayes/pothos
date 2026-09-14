@@ -1,5 +1,11 @@
 # @pothos/plugin-validation
 
+## 4.3.5
+
+### Patch Changes
+
+- 1ac1be3: Run chained argument and input-field validators on null and omitted values so their transformed output matches the resolver type. Preserve optional behavior for validators supplied through the validate option.
+
 ## 4.3.4
 
 ### Patch Changes

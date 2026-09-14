@@ -1,5 +1,12 @@
 # @pothos/plugin-federation
 
+## 4.5.4
+
+### Patch Changes
+
+- f69f166: Allow unused federation builders and their schema configurations to be garbage collected by tracking used directives with weak builder keys.
+- af64ce9: Preserve federation provides selections when external entity references are wrapped in ListRef, including nested lists.
+
 ## 4.5.3
 
 ### Patch Changes

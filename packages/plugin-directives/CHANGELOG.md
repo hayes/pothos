@@ -1,5 +1,12 @@
 # Change Log
 
+## 4.3.3
+
+### Patch Changes
+
+- 4cc43ca: Preserve GraphQL 17 external and literal defaults in generated argument and input-field AST nodes so directive-aware SDL retains the executable schema's defaults.
+- b98560b: Avoid mutating shared directive option arrays while generating deprecation annotations, preserving other fields' directives and supporting frozen arrays.
+
 ## 4.3.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.20.1
+
+### Patch Changes
+
+- b6a5708: Match binary primary keys by byte content when loading missing selections, including binary components of compound keys.
+
 ## 0.20.0
 
 ### Minor Changes
