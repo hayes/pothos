@@ -4,9 +4,7 @@ import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute } from '@pothos/test-utils';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { gql } from 'graphql-tag';
-import DrizzlePlugin from '../src';
-import { getSchemaConfig } from '../src/utils/config';
-import { queryFromInfo } from '../src/utils/map-query';
+import DrizzlePlugin, { getSchemaConfig, queryFromInfo } from '../src';
 import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
 
 // Types carrying `pothosIndirectInclude` with `paths`: the selection under the matched paths is
@@ -103,16 +101,15 @@ builder.queryType({
     wrapper: t.field({
       type: UserWrapper,
       resolve: async (_root, _args, context, info) => {
-        const user = await db.query.users.findFirst({
-          ...queryFromInfo({ config: getSchemaConfig(builder), context, info }),
-          where: { id: 1 },
-        });
+        const user = await db.query.users.findFirst(
+          queryFromInfo({ config: getSchemaConfig(builder), context, info, where: { id: 1 } }),
+        );
 
         if (!user) {
           throw new Error('User 1 not found');
         }
 
-        return { user };
+        return { user: user as { username: string } };
       },
     }),
     profileWrapper: t.drizzleField({

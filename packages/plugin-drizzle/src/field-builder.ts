@@ -14,7 +14,7 @@ import type { DrizzleConnectionFieldOptions } from './types.js';
 import type { DrizzlePlan } from './utils/adapter.js';
 import { getSchemaConfig } from './utils/config.js';
 import { resolveDrizzleCursorConnection } from './utils/cursors.js';
-import { planFromInfo, queryFromPlan } from './utils/map-query.js';
+import { planFromInfo, queryFromInfo, queryFromPlan } from './utils/map-query.js';
 import { getRefFromModel } from './utils/refs.js';
 import type { SelectionMap } from './utils/selections.js';
 
@@ -241,3 +241,14 @@ fieldBuilderProto.drizzleConnection = function drizzleConnection<
 
   return fieldRef;
 } as never;
+
+fieldBuilderProto.drizzleQueryFromInfo = function drizzleQueryFromInfo(type, options) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this.builder) : type;
+
+  return queryFromInfo({
+    ...options,
+    config: getSchemaConfig(this.builder),
+    typeName: this.builder.configStore.getTypeConfig(ref).name,
+    awaitSelections: true,
+  }) as never;
+};

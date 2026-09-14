@@ -248,10 +248,11 @@ export function drizzleConnectionHelpers<
         ? nestedSelectionOrInfo
         : (select, path) =>
             queryFromInfo({
+              ...(select as SelectionMap),
               info: nestedSelectionOrInfo,
               context: ctx,
               config,
-              select: select as SelectionMap,
+              awaitSelections: true,
               path,
             });
     // Both callbacks start now; the query waits for whichever of them is async.

@@ -4,9 +4,7 @@ import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute } from '@pothos/test-utils';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { gql } from 'graphql-tag';
-import DrizzlePlugin, { type PathInfo } from '../src';
-import { getSchemaConfig } from '../src/utils/config';
-import { queryFromInfo } from '../src/utils/map-query';
+import DrizzlePlugin, { getSchemaConfig, type PathInfo, queryFromInfo } from '../src';
 import { clearDrizzleLogs, type DrizzleRelations, db, relations } from './example/db';
 
 // `pathInfo.path` handed to relation `query` callbacks starts with the root field whether the
@@ -70,18 +68,20 @@ builder.queryType({
     }),
     usersPage: t.field({
       type: UsersPage,
-      resolve: async (_root, _args, context, info) => ({
-        nodes: await db.query.users.findMany({
-          ...queryFromInfo({
-            config: getSchemaConfig(builder),
-            context,
-            info,
-            typeName: 'User',
-            paths: [['nodes'], ['edges', 'node']],
-          }),
-          limit: 1,
-        }),
-      }),
+      resolve: async (_root, _args, context, info) => {
+        return {
+          nodes: (await db.query.users.findMany(
+            queryFromInfo({
+              config: getSchemaConfig(builder),
+              context,
+              info,
+              typeName: 'User',
+              paths: [['nodes'], ['edges', 'node']],
+              limit: 1,
+            }),
+          )) as UsersPageShape['nodes'],
+        };
+      },
     }),
   }),
 });

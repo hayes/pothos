@@ -4,6 +4,7 @@ import type {
   FieldNullability,
   InputFieldMap,
   InterfaceParam,
+  MaybeAsyncSelection,
   NormalizeArgs,
   OutputType,
   PluginName,
@@ -11,12 +12,14 @@ import type {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
+import type { PathSegment } from '@pothos/selection-mapper';
 import type {
   BuildQueryResult,
   DBQueryConfig,
   TableRelationalConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
 import type { PothosDrizzlePlugin } from './index.js';
 import type { DrizzleInterfaceRef, DrizzleRef } from './interface-ref.js';
@@ -36,6 +39,7 @@ import type {
   ShapeFromConnection,
   ShapeFromIdColumns,
 } from './types.js';
+import type { QueryFromInfoResult } from './utils/map-query.js';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -215,6 +219,32 @@ declare global {
       ParentShape,
       Kind extends FieldKind = FieldKind,
     > {
+      drizzleQueryFromInfo: <
+        Table extends keyof Types['DrizzleRelations'],
+        const Selection extends DBQueryConfig<
+          'many',
+          Types['DrizzleRelations'],
+          Types['DrizzleRelations'][Table]
+        > = {},
+      >(
+        type: Table | DrizzleRef<Types, Table>,
+        // The concrete query intersection contextually types callbacks while Selection retains literals.
+        options: Selection &
+          DBQueryConfig<'many', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]> &
+          Record<
+            Exclude<
+              keyof Selection,
+              keyof DBQueryConfig<'many'> | 'context' | 'info' | 'path' | 'paths'
+            >,
+            never
+          > & {
+            context: Types['Context'];
+            info: GraphQLResolveInfo;
+            path?: PathSegment[];
+            paths?: PathSegment[][];
+          },
+      ) => MaybeAsyncSelection<Types, QueryFromInfoResult<Selection>>;
+
       drizzleField: <
         Args extends InputFieldMap,
         Param extends
