@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-next
 
+## 0.1.2
+
+### Patch Changes
+
+- 138b2ea: Match binary node IDs by their byte content so distinct Buffer IDs load the correct records and Uint8Array IDs round trip through node lookups. Preserve custom ID parser and resolver matching.
+
 ## 0.1.1
 
 ### Patch Changes
