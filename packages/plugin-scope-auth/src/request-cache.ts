@@ -16,9 +16,7 @@ import {
 } from './types.js';
 import { cacheKey, canCache } from './util.js';
 
-const contextCache = createContextCache(
-  (ctx, builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) => new RequestCache(builder, ctx),
-);
+const contextCache = createContextCache(() => new WeakMap<object, RequestCache<SchemaTypes>>());
 
 export default class RequestCache<Types extends SchemaTypes> {
   builder;
@@ -58,7 +56,13 @@ export default class RequestCache<Types extends SchemaTypes> {
     context: T['Context'],
     builder: PothosSchemaTypes.SchemaBuilder<T>,
   ): RequestCache<T> {
-    return contextCache(context, builder as never) as never;
+    const caches = contextCache(context);
+
+    if (!caches.has(builder)) {
+      caches.set(builder, new RequestCache(builder, context) as never);
+    }
+
+    return caches.get(builder) as never;
   }
 
   static clearForContext<T extends SchemaTypes>(context: T['Context']): void {
