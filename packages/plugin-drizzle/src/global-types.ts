@@ -220,17 +220,17 @@ declare global {
       Kind extends FieldKind = FieldKind,
     > {
       drizzleQueryFromInfo: <
-        Type extends keyof Types['DrizzleRelations'] | DrizzleRef<Types>,
+        Table extends keyof Types['DrizzleRelations'],
         const Selection extends DBQueryConfig<
           'many',
           Types['DrizzleRelations'],
-          Types['DrizzleRelations'][Type extends DrizzleRef<Types, infer Table>
-            ? Table
-            : Type & keyof Types['DrizzleRelations']]
+          Types['DrizzleRelations'][Table]
         > = {},
       >(
-        type: Type,
+        type: Table | DrizzleRef<Types, Table>,
+        // The concrete query intersection contextually types callbacks while Selection retains literals.
         options: Selection &
+          DBQueryConfig<'many', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]> &
           Record<
             Exclude<
               keyof Selection,

@@ -349,3 +349,79 @@ it('types standalone flat queries and their explicit async option', async () => 
     MaybePromise<typeof empty>
   >();
 });
+
+it('contextually types ordering and nested filters from the table', () => {
+  const t = {} as Parameters<Parameters<typeof builder.queryFields>[0]>[0];
+  const info = {} as GraphQLResolveInfo;
+  t.drizzleQueryFromInfo('users', {
+    context: {},
+    info,
+    where: { id: 1, posts: { title: 'hello' } },
+    orderBy: (table, { desc }) => {
+      expectTypeOf(table).toEqualTypeOf<DrizzleRelations['users']['table']>();
+      return desc(table.id);
+    },
+    with: { posts: { where: { title: 'hello' }, orderBy: { title: 'desc' } } },
+  });
+  t.drizzleQueryFromInfo('users', { context: {}, info, orderBy: { username: 'asc' } });
+  // @ts-expect-error Ordering directions are validated.
+  t.drizzleQueryFromInfo('users', { context: {}, info, orderBy: { username: 'wrong' } });
+  // @ts-expect-error Ordering columns belong to the selected table.
+  t.drizzleQueryFromInfo('users', { context: {}, info, orderBy: { missing: 'asc' } });
+});
+
+it('infers query callbacks inside direct Drizzle calls for table names and refs', async () => {
+  const t = {} as Parameters<Parameters<typeof builder.queryFields>[0]>[0];
+  const info = {} as GraphQLResolveInfo;
+  const user = await db.query.users.findFirst(
+    t.drizzleQueryFromInfo('users', {
+      context: {},
+      info,
+      columns: { id: true },
+      where: { id: 1, posts: { title: 'hello' } },
+      orderBy: (table, { desc }) => {
+        expectTypeOf(table).toEqualTypeOf<DrizzleRelations['users']['table']>();
+        // @ts-expect-error Callback columns come from users.
+        table.postId;
+        return desc(table.id);
+      },
+      extras: {
+        nextId: (table, { sql }) => {
+          expectTypeOf(table).toEqualTypeOf<DrizzleRelations['users']['table']>();
+          return sql<number>`${table.id} + 1`;
+        },
+      },
+      with: {
+        posts: {
+          columns: { title: true },
+          orderBy: (table, { asc }) => {
+            expectTypeOf(table).toEqualTypeOf<DrizzleRelations['posts']['table']>();
+            return asc(table.title);
+          },
+        },
+      },
+    }),
+  );
+  expectTypeOf(user!.id).toEqualTypeOf<number>();
+  expectTypeOf(user!.nextId).toEqualTypeOf<number>();
+  expectTypeOf(user!.posts[0].title).toEqualTypeOf<string>();
+  // @ts-expect-error Callback inference preserves the selected row shape.
+  user!.username;
+  const post = await db.query.posts.findFirst(
+    t.drizzleQueryFromInfo(Post, {
+      context: {},
+      info,
+      columns: { postId: true },
+      where: { postId: 1 },
+      orderBy: (table, { desc }) => {
+        expectTypeOf(table).toEqualTypeOf<DrizzleRelations['posts']['table']>();
+        return desc(table.postId);
+      },
+    }),
+  );
+  expectTypeOf(post!.postId).toEqualTypeOf<number>();
+  // @ts-expect-error Filters use the ref's table.
+  t.drizzleQueryFromInfo(Post, { context: {}, info, where: { postId: 'wrong' } });
+  // @ts-expect-error Relation filters use the related table.
+  t.drizzleQueryFromInfo('users', { context: {}, info, where: { posts: { postId: 'wrong' } } });
+});
