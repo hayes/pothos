@@ -242,6 +242,10 @@ export class ModelLoader {
 
                   return (
                     actual === expected ||
+                    (actual instanceof Uint8Array &&
+                      expected instanceof Uint8Array &&
+                      actual.length === expected.length &&
+                      actual.every((byte, index) => byte === expected[index])) ||
                     (actual instanceof Date &&
                       expected instanceof Date &&
                       actual.getTime() === expected.getTime())
