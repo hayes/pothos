@@ -179,7 +179,7 @@ function directiveNodes(
 
   const directives = rawDirectives ?? [];
   const directiveList = Array.isArray(directives)
-    ? directives
+    ? [...directives]
     : Object.keys(directives).flatMap((name) =>
         Array.isArray(directives[name])
           ? (directives[name] as object[]).map((args) => ({
