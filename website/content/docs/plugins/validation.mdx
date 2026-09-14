@@ -85,6 +85,11 @@ builder.queryType({
 });
 ```
 
+Chained `.validate(schema)` calls receive omitted (`undefined`) and explicit `null` values.
+Use a nullish schema when those inputs are allowed; a transform can supply a default, and the
+resolver receives its inferred output. Validators passed in the `validate` option continue to
+skip nullish values. Input type validators run only when an input object is present.
+
 #### Data Transformation with Argument Validation
 
 When using the chaining API, you can transform data as part of the validation process:

@@ -35,7 +35,9 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
           ...extensions,
           '@pothos/plugin-validation': {
             ...extensions['@pothos/plugin-validation'],
-            schemas: optionsSchema ? [optionsSchema, ...existingSchemas] : existingSchemas,
+            schemas: optionsSchema
+              ? [allowNullish(optionsSchema), ...existingSchemas]
+              : existingSchemas,
           },
         },
       };
@@ -83,7 +85,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
       const baseSchemas = field.extensions?.['@pothos/plugin-validation']?.schemas ?? [];
       const argOptionsSchema = field.kind === 'Arg' && field.pothosOptions.validate;
       const fieldSchemas = argOptionsSchema
-        ? [...baseSchemas.slice().reverse(), argOptionsSchema]
+        ? [...baseSchemas.slice().reverse(), allowNullish(argOptionsSchema)]
         : baseSchemas.slice().reverse();
 
       const fieldTypeName = unwrapInputFieldType(field.type);
@@ -138,3 +140,15 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
 SchemaBuilder.registerPlugin(pluginName, PothosValidationPlugin);
 
 export default pluginName;
+
+// Option validators historically apply only to present values. Chained validators
+// also receive nullish values because their output determines the resolver type.
+function allowNullish(schema: StandardSchemaV1): StandardSchemaV1 {
+  return {
+    '~standard': {
+      ...schema['~standard'],
+      validate: (value) =>
+        value === null || value === undefined ? { value } : schema['~standard'].validate(value),
+    },
+  };
+}
