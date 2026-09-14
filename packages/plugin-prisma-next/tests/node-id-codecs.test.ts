@@ -19,6 +19,7 @@ async function roundTrip(
   codecs?: Record<string, CursorValueCodec>,
   parseId?: (id: string) => unknown,
   extraRows: Record<string, unknown>[] = [],
+  resolveId?: (row: Record<string, unknown>) => string | number,
 ) {
   const compared: unknown[] = [];
   const col = {
@@ -52,7 +53,12 @@ async function roundTrip(
     prismaNext: { contract: contract as SampleContract },
   });
   const ref = builder.prismaNode('User', {
-    id: { field: fields.length === 1 ? fields[0] : fields, codecs, parse: parseId },
+    id: {
+      field: fields.length === 1 ? fields[0] : fields,
+      codecs,
+      parse: parseId,
+      resolve: resolveId,
+    },
     collection,
     fields: (t: { exposeString(name: string): unknown }) => ({
       firstName: t.exposeString('firstName'),
@@ -207,4 +213,45 @@ it('distinct Date node IDs within a second stay distinct', async () => {
     undefined,
     [{ id: new Date('2026-09-10T01:02:03.002Z'), firstName: 'Bob' }],
   );
+});
+
+it.each([
+  ['Buffer', (value: number) => Buffer.from([value])],
+  ['Uint8Array', (value: number) => new Uint8Array([value])],
+] as const)('round trips distinct %s scalar node IDs without UTF-8 collisions', async (_, bytes) => {
+  await roundTrip({ id: bytes(255), firstName: 'Alice' }, ['id'], undefined, undefined, [
+    { id: bytes(254), firstName: 'Bob' },
+  ]);
+});
+
+it.each([
+  ['Buffer', (value: number) => Buffer.from([value])],
+  ['Uint8Array', (value: number) => new Uint8Array([value])],
+] as const)('round trips %s components in compound node IDs', async (_, bytes) => {
+  await roundTrip(
+    { id: bytes(255), email: 'same', firstName: 'Alice' },
+    ['id', 'email'],
+    undefined,
+    undefined,
+    [{ id: bytes(254), email: 'same', firstName: 'Bob' }],
+  );
+});
+
+it('preserves raw byte string matching for a custom scalar parser', async () => {
+  expect(
+    await roundTrip(
+      { id: Buffer.from('alice'), firstName: 'Alice' },
+      ['id'],
+      undefined,
+      (id) => id,
+    ),
+  ).toEqual(['alice']);
+});
+
+it('preserves raw scalar matching for a custom ID resolver without a parser', async () => {
+  expect(
+    await roundTrip({ id: 42, firstName: 'Alice' }, ['id'], undefined, undefined, [], (row) =>
+      String(row.id),
+    ),
+  ).toEqual(['42']);
 });
