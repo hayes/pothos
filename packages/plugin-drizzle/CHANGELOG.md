@@ -1,5 +1,14 @@
 # @pothos/plugin-drizzle
 
+## 0.20.0
+
+### Minor Changes
+
+- 6cca61e: Add t.drizzleQueryFromInfo with table-aware query options and context types and async return
+  inference from AsyncSelections. The helper merges query options with GraphQL selections and
+  returns a query ready to pass directly to Drizzle. Export standalone queryFromInfo and
+  getSchemaConfig as a fallback, with explicit awaitSelections behavior.
+
 ## 0.19.2
 
 ### Patch Changes
