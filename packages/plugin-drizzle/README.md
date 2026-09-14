@@ -225,6 +225,38 @@ Adding `posts { title }` loads the public posts through the same root resolver.
 For a list field, use `type: ['users']` and `db.query.users.findMany(query())`. A plain lookup
 without arguments can pass no options to `query`; fields with filters pass those options to it.
 
+#### Building a query from resolve info
+
+Use `builder.drizzleQueryFromInfo` to build a selection inside a regular resolver, including
+when the Drizzle object is nested inside a payload. Pass a table name or Drizzle object/interface
+ref, along with the resolver's `context` and `info`:
+
+```ts
+const query = await builder.drizzleQueryFromInfo('users', {
+  context,
+  info,
+  path: ['user'],
+  select: { columns: { id: true } },
+});
+
+const user = await db.query.users.findFirst({
+  ...query,
+  where: { id: userId },
+});
+```
+
+Here `path: ['user']` selects the `user` field inside the resolver's result. Omit `path` when
+resolving the Drizzle object directly. `paths` accepts multiple paths. Use a Drizzle ref instead
+of a table name to select a specific variant of that table's GraphQL type.
+
+The builder checks the context and selection against its schema and table. Explicit columns and
+relations retain their types when passed into Drizzle; columns omitted from `select` are not
+statically guaranteed, even if the GraphQL selection loads them.
+
+With `AsyncSelections: true`, the result may be a promise: await it before passing it to Drizzle.
+Otherwise the result is typed as synchronous, consistent with the schema's selection callbacks.
+There is no per-call async option.
+
 #### `drizzleFieldWithInput`
 
 With the [with-input plugin](https://pothos-graphql.dev/docs/plugins/with-input),

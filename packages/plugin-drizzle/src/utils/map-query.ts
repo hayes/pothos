@@ -1,11 +1,15 @@
-import { isThenable } from '@pothos/core';
+import { isThenable, type MaybePromise } from '@pothos/core';
 import { type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import { type DrizzlePlan, drizzleAdapter } from './adapter.js';
+import { checkAwaitSelections } from './await-selections.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
 import type { SelectionMap } from './selections.js';
 
-export interface QueryFromInfoOptions<T extends SelectionMap> {
+export interface QueryFromInfoOptions<
+  T extends SelectionMap = SelectionMap,
+  Await extends boolean = false,
+> {
   config: PothosDrizzleSchemaConfig;
   context: object;
   info: GraphQLResolveInfo;
@@ -13,27 +17,47 @@ export interface QueryFromInfoOptions<T extends SelectionMap> {
   select?: T;
   path?: PathSegment[];
   paths?: PathSegment[][];
+  /** Whether the caller will await the query. Async selections otherwise throw. */
+  awaitSelections?: Await;
 }
 
-export function queryFromInfo<T extends SelectionMap>({
+/** Only explicitly selected columns are guaranteed on the resulting rows. */
+export type QueryFromInfoResult<T> = Omit<T, 'columns'> & {
+  columns: T extends { columns: infer Columns extends {} } ? Columns : {};
+};
+
+/** A boolean async option must account for promises, just like Prisma's helper. */
+export type QueryFromInfoReturn<T extends SelectionMap, Await extends boolean> = [Await] extends [
+  false,
+]
+  ? QueryFromInfoResult<T>
+  : MaybePromise<QueryFromInfoResult<T>>;
+
+/** Build a query synchronously unless the caller opts into awaiting async selections. */
+export function queryFromInfo<const T extends SelectionMap = {}, Await extends boolean = false>({
   config,
   select,
+  awaitSelections,
   ...options
-}: QueryFromInfoOptions<T>): T {
+}: QueryFromInfoOptions<T, Await>): QueryFromInfoReturn<T, Await> {
   const plan = Plan.fromInfo(drizzleAdapter(config), {
     ...options,
     // A `select` without `columns` merges as "no columns yet", not "every column".
     initial: select ? { columns: {}, ...select } : undefined,
   });
 
-  if (!plan) {
-    // Nothing is planned under the paths: the caller gets its own selection back untouched.
-    return (select ?? {}) as T;
-  }
+  const query = plan
+    ? isThenable(plan)
+      ? plan.then((settled) => (settled as DrizzlePlan).query())
+      : plan.query()
+    : (select ?? {});
 
-  return (
-    isThenable(plan) ? plan.then((settled) => (settled as DrizzlePlan).query()) : plan.query()
-  ) as T;
+  return checkAwaitSelections(
+    query,
+    awaitSelections,
+    'queryFromInfo',
+    `${options.info.parentType.name}.${options.info.fieldName}`,
+  ) as QueryFromInfoReturn<T, Await>;
 }
 
 /**
@@ -45,7 +69,9 @@ export function queryFromInfo<T extends SelectionMap>({
 export function planFromInfo({
   config,
   ...options
-}: Omit<QueryFromInfoOptions<SelectionMap>, 'select'>): DrizzlePlan | undefined {
+}: Omit<QueryFromInfoOptions<SelectionMap>, 'select' | 'awaitSelections'>):
+  | DrizzlePlan
+  | undefined {
   return Plan.fromInfo(drizzleAdapter(config), options);
 }
 

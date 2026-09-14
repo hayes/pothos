@@ -251,6 +251,7 @@ export function drizzleConnectionHelpers<
               info: nestedSelectionOrInfo,
               context: ctx,
               config,
+              awaitSelections: true,
               select: select as SelectionMap,
               path,
             });

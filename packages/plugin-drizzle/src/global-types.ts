@@ -4,6 +4,7 @@ import type {
   FieldNullability,
   InputFieldMap,
   InterfaceParam,
+  MaybeAsyncSelection,
   NormalizeArgs,
   OutputType,
   PluginName,
@@ -11,12 +12,14 @@ import type {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
+import type { PathSegment } from '@pothos/selection-mapper';
 import type {
   BuildQueryResult,
   DBQueryConfig,
   TableRelationalConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
 import type { PothosDrizzlePlugin } from './index.js';
 import type { DrizzleInterfaceRef, DrizzleRef } from './interface-ref.js';
@@ -56,6 +59,31 @@ declare global {
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
+      drizzleQueryFromInfo: <
+        Type extends keyof Types['DrizzleRelations'] | DrizzleRef<Types>,
+        const Selection extends DBQueryConfig<
+          'one',
+          Types['DrizzleRelations'],
+          Types['DrizzleRelations'][Type extends DrizzleRef<Types, infer Table>
+            ? Table
+            : Type & keyof Types['DrizzleRelations']]
+        > = {},
+      >(
+        type: Type,
+        options: {
+          context: Types['Context'];
+          info: GraphQLResolveInfo;
+          path?: PathSegment[];
+          paths?: PathSegment[][];
+          select?: Selection;
+        },
+      ) => MaybeAsyncSelection<
+        Types,
+        Omit<Selection, 'columns'> & {
+          columns: Selection extends { columns: infer Columns extends {} } ? Columns : {};
+        }
+      >;
+
       drizzleObject: <
         const Interfaces extends InterfaceParam<Types>[],
         Table extends keyof Types['DrizzleRelations'],

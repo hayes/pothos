@@ -19,7 +19,13 @@ export { drizzleConnectionHelpers } from './connection-helpers.js';
 export { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
 export * from './types.js';
 export { drizzleTableName } from './types.js';
-export { drizzleClientCache } from './utils/config.js';
+export { drizzleClientCache, getSchemaConfig } from './utils/config.js';
+export {
+  type QueryFromInfoOptions,
+  type QueryFromInfoResult,
+  type QueryFromInfoReturn,
+  queryFromInfo,
+} from './utils/map-query.js';
 
 const pluginName = 'drizzle';
 

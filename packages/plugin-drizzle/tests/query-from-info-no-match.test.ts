@@ -5,9 +5,7 @@ import { execute } from '@pothos/test-utils';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import type { GraphQLResolveInfo } from 'graphql';
 import { gql } from 'graphql-tag';
-import DrizzlePlugin from '../src';
-import { getSchemaConfig } from '../src/utils/config';
-import { queryFromInfo } from '../src/utils/map-query';
+import DrizzlePlugin, { getSchemaConfig, queryFromInfo } from '../src';
 import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
 
 // `queryFromInfo` with `path`/`paths` that select nothing: the caller gets back its own selection,

@@ -18,6 +18,7 @@ import { DrizzleObjectRef } from './object-ref.js';
 import type { DrizzleNodeOptions } from './types.js';
 import { getSchemaConfig } from './utils/config.js';
 import { getIDParser, getIDSerializer } from './utils/cursors.js';
+import { queryFromInfo } from './utils/map-query.js';
 import { getRefFromModel } from './utils/refs.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -221,4 +222,15 @@ schemaBuilderProto.drizzleObjectFields = function drizzleObjectFields(type, fiel
 
 schemaBuilderProto.drizzleInterfaceFields = function drizzleInterfaceFields(type, fields) {
   addDrizzleFields(this, type as never, fields as never, 'Interface');
+};
+
+schemaBuilderProto.drizzleQueryFromInfo = function drizzleQueryFromInfo(type, options) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
+
+  return queryFromInfo({
+    ...options,
+    config: getSchemaConfig(this),
+    typeName: this.configStore.getTypeConfig(ref).name,
+    awaitSelections: true,
+  }) as never;
 };

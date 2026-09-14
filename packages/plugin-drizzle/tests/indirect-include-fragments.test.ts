@@ -4,9 +4,7 @@ import { execute } from '@pothos/test-utils';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import type { DocumentNode, GraphQLResolveInfo } from 'graphql';
 import { gql } from 'graphql-tag';
-import DrizzlePlugin from '../src';
-import { getSchemaConfig } from '../src/utils/config';
-import { queryFromInfo } from '../src/utils/map-query';
+import DrizzlePlugin, { getSchemaConfig, queryFromInfo } from '../src';
 import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
 import type { posts, users } from './example/db/schema';
 
@@ -173,7 +171,7 @@ async function resolveEntries(
     throw new Error('Expected user 1 to exist');
   }
 
-  return [{ kind: 'appointment', user }, { kind: 'other' }];
+  return [{ kind: 'appointment', user: user as AppointmentEntryShape['user'] }, { kind: 'other' }];
 }
 
 async function resolveEntriesWithVariant(
@@ -268,8 +266,8 @@ async function resolveLimitedEntries(
   }
 
   return [
-    { kind: 'appointment', user },
-    { kind: 'variant', user },
+    { kind: 'appointment', user: user as AppointmentEntryShape['user'] },
+    { kind: 'variant', user: user as VariantEntryShape['user'] },
   ];
 }
 
