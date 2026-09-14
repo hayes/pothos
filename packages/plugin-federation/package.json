@@ -55,6 +55,7 @@
     "@apollo/subgraph": "2.13.3",
     "@graphql-tools/utils": "^11.0.1",
     "@pothos/core": "workspace:*",
+    "@pothos/plugin-add-graphql": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "axios": "^1.15.0",
