@@ -70,7 +70,13 @@ import type {
   SubscriptionFieldThunk,
   ValuesFromEnum,
 } from './types/index.js';
-import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils/index.js';
+import {
+  isThenable,
+  normalizeEnumValues,
+  valuesFromEnum,
+  verifyInterfaces,
+  verifyRef,
+} from './utils/index.js';
 
 export class SchemaBuilder<Types extends SchemaTypes> {
   $inferSchemaTypes!: Types;
@@ -497,6 +503,36 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     ref.addTypes(options.types);
 
     return ref;
+  }
+
+  unionTypeExhaustive<MemberRecord extends Record<string, ObjectParam<Types>>, ResolveType>(
+    name: string,
+    options: PothosSchemaTypes.UnionTypeExhaustiveOptions<Types, MemberRecord, ResolveType>,
+  ): PothosSchemaTypes.UnionRef<
+    Types,
+    AbstractReturnShape<Types, MemberRecord[keyof MemberRecord], ResolveType>,
+    ParentShape<Types, MemberRecord[keyof MemberRecord]>
+  > {
+    type Member = MemberRecord[keyof MemberRecord];
+
+    const { types, resolveType, ...restOptions } = options;
+    const toMember = (key: keyof MemberRecord) =>
+      (typeof types === 'function' ? types() : types)[key];
+
+    return this.unionType<Member, ResolveType>(name, {
+      ...restOptions,
+      types:
+        typeof types === 'function'
+          ? () => Object.values(types()) as Member[]
+          : (Object.values(types) as Member[]),
+      resolveType:
+        resolveType &&
+        (((...a) => {
+          const key = resolveType(...a);
+
+          return isThenable(key) ? key.then((key) => toMember(key)) : toMember(key);
+        }) as PothosSchemaTypes.UnionTypeOptions<Types, Member, ResolveType>['resolveType']),
+    });
   }
 
   enumType<Param extends EnumParam, const Values extends EnumValues<Types>>(

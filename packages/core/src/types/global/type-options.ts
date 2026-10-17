@@ -127,6 +127,24 @@ declare global {
         ) => MaybePromise<Member | string | null | undefined>);
     }
 
+    export interface UnionTypeExhaustiveOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      MemberRecord extends Record<string, ObjectParam<Types>> = Record<string, ObjectParam<Types>>,
+      ResolveType = unknown,
+    > extends Omit<
+        UnionTypeOptions<Types, MemberRecord[keyof MemberRecord], ResolveType>,
+        'types' | 'resolveType'
+      > {
+      types: MemberRecord | (() => MemberRecord);
+      resolveType?: ResolveType &
+        ((
+          parent: ParentShape<Types, MemberRecord[keyof MemberRecord]>,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+          type: GraphQLUnionType,
+        ) => MaybePromise<keyof MemberRecord>);
+    }
+
     export interface ScalarTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       ScalarInputShape = unknown,
