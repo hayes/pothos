@@ -23,6 +23,25 @@ as a GraphQL field. You can return an object reference or the member's GraphQL t
 You can also use registered classes or object type names declared in `SchemaTypes` in the `types`
 array. See the [Objects guide](./objects#different-ways-to-define-object-types) for these alternatives.
 
+### Strict resolveType
+
+By default, `resolveType` accepts any string, and a name that isn't a member only fails at runtime.
+Set `StrictResolveType: true` in `SchemaTypes` to only accept the union's members. Type names are
+then accepted only for members listed by name in `types`:
+
+```ts
+const builder = new SchemaBuilder<{ StrictResolveType: true }>({});
+
+builder.unionType('Pet', {
+  types: [Cat, Dog],
+  resolveType: (pet) => (pet.kind === 'cat' ? Cat : Dog),
+});
+```
+
+Members with the same backing type can't be told apart, so give each member its own shape, for
+example with a `kind` discriminant. Interface `resolveType` is limited to object refs and object
+type names declared in `SchemaTypes`.
+
 ## Using Union Types
 
 Use the union reference as a field's return type. A list can contain values for any of its members.
