@@ -23,42 +23,35 @@ as a GraphQL field. You can return an object reference or the member's GraphQL t
 You can also use registered classes or object type names declared in `SchemaTypes` in the `types`
 array. See the [Objects guide](./objects#different-ways-to-define-object-types) for these alternatives.
 
-### Members as a record
-
-`types` can also be a record. `resolveType` then returns a key of the record, which TypeScript
-checks even when members share a backing type:
-
-```ts
-const Pet = builder.unionType('Pet', {
-  types: { cat: Cat, dog: Dog },
-  resolveType: (pet) => pet.type, // 'cat' | 'dog'
-});
-```
-
 ### Strict resolveType
 
 By default, `resolveType` accepts any string, and a name that isn't a member only fails at runtime.
 Refs that share a backing type are also the same TypeScript type, so returning `Dog` from a union
 of `Cat` alone type-checks when both are backed by the same model.
 
-Set `StrictResolveType: true` in `SchemaTypes` to rule both out. `builder.unionType` (and the
-dataloader plugin's `loadableUnion`) must then list members as a record or by name, and
-`resolveType` must return one of them:
+Set `StrictResolveType: true` in `SchemaTypes` to rule both out, and give `types` as a record.
+`resolveType` then returns one of the record's keys, which TypeScript checks even when members
+share a backing type:
 
 ```ts
-const builder = new SchemaBuilder<{
-  StrictResolveType: true;
-  Objects: { Cat: Animal; Dog: Animal };
-}>({});
+const builder = new SchemaBuilder<{ StrictResolveType: true }>({});
+
+const Cat = builder.objectRef<Animal>('Cat');
+const Dog = builder.objectRef<Animal>('Dog');
 
 builder.unionType('Pet', {
-  types: ['Cat', 'Dog'],
-  resolveType: (pet) => (pet.type === 'cat' ? 'Cat' : 'Dog'),
+  types: { cat: Cat, dog: Dog },
+  resolveType: (pet) => pet.type, // must be 'cat' | 'dog'
 });
 ```
 
-The flag doesn't change interfaces, or unions whose `resolveType` a plugin provides, such as the
-errors plugin's error unions.
+Several keys can point at the same member, so the keys can match a discriminant in your data
+directly. With the flag on, an array of refs in `types` is a type error. An array of object type
+names declared in `SchemaTypes` also works, with `resolveType` returning one of those names. The
+dataloader plugin's `loadableUnion` is checked the same way and takes names.
+
+The record form also works without the flag. The flag doesn't change interfaces, or unions whose
+`resolveType` a plugin provides, such as the errors plugin's error unions.
 
 ## Using Union Types
 
