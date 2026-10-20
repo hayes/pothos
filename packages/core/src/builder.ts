@@ -70,7 +70,13 @@ import type {
   SubscriptionFieldThunk,
   ValuesFromEnum,
 } from './types/index.js';
-import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils/index.js';
+import {
+  normalizeEnumValues,
+  normalizeUnionOptions,
+  valuesFromEnum,
+  verifyInterfaces,
+  verifyRef,
+} from './utils/index.js';
 
 export class SchemaBuilder<Types extends SchemaTypes> {
   $inferSchemaTypes!: Types;
@@ -463,38 +469,49 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     }));
   }
 
-  unionType<Member extends ObjectParam<Types>, ResolveType>(
+  unionType<MemberRecord extends Record<string, ObjectParam<Types>>, ResolveType>(
+    name: string,
+    options: PothosSchemaTypes.UnionTypeRecordOptions<Types, MemberRecord, ResolveType>,
+  ): PothosSchemaTypes.UnionRef<
+    Types,
+    AbstractReturnShape<Types, MemberRecord[keyof MemberRecord], ResolveType>,
+    ParentShape<Types, MemberRecord[keyof MemberRecord]>
+  >;
+  unionType<Member extends ObjectParam<Types> & Types['resolveTypeMembers'], ResolveType>(
     name: string,
     options: PothosSchemaTypes.UnionTypeOptions<Types, Member, ResolveType>,
   ): PothosSchemaTypes.UnionRef<
     Types,
     AbstractReturnShape<Types, Member, ResolveType>,
     ParentShape<Types, Member>
-  > {
-    const ref = new UnionRef<
-      Types,
-      AbstractReturnShape<Types, Member, ResolveType>,
-      ParentShape<Types, Member>
-    >(name, {
+  >;
+  unionType(
+    name: string,
+    options:
+      | PothosSchemaTypes.UnionTypeOptions<Types>
+      | PothosSchemaTypes.UnionTypeRecordOptions<Types>,
+  ): PothosSchemaTypes.UnionRef<Types, unknown, unknown> {
+    const unionOptions = normalizeUnionOptions(options);
+    const ref = new UnionRef<Types, unknown, unknown>(name, {
       kind: 'Union',
       graphqlKind: 'Union',
       name,
       types: [],
-      description: options.description,
-      resolveType: options.resolveType as GraphQLTypeResolver<unknown, object>,
-      pothosOptions: options as unknown as PothosSchemaTypes.UnionTypeOptions,
-      extensions: options.extensions,
-      astNode: options.astNode,
+      description: unionOptions.description,
+      resolveType: unionOptions.resolveType as GraphQLTypeResolver<unknown, object>,
+      pothosOptions: unionOptions as unknown as PothosSchemaTypes.UnionTypeOptions,
+      extensions: unionOptions.extensions,
+      astNode: unionOptions.astNode,
     });
 
-    if (Array.isArray(options.types)) {
-      for (const type of options.types) {
+    if (Array.isArray(unionOptions.types)) {
+      for (const type of unionOptions.types) {
         verifyRef(type);
       }
     }
 
     this.configStore.addTypeRef(ref);
-    ref.addTypes(options.types);
+    ref.addTypes(unionOptions.types);
 
     return ref;
   }

@@ -23,24 +23,40 @@ as a GraphQL field. You can return an object reference or the member's GraphQL t
 You can also use registered classes or object type names declared in `SchemaTypes` in the `types`
 array. See the [Objects guide](./objects#different-ways-to-define-object-types) for these alternatives.
 
-### Strict resolveType
+### Members as a record
 
-By default, `resolveType` accepts any string, and a name that isn't a member only fails at runtime.
-Set `StrictResolveType: true` in `SchemaTypes` to only accept the union's members. Type names are
-then accepted only for members listed by name in `types`:
+`types` can also be a record. `resolveType` then returns a key of the record, which TypeScript
+checks even when members share a backing type:
 
 ```ts
-const builder = new SchemaBuilder<{ StrictResolveType: true }>({});
-
-builder.unionType('Pet', {
-  types: [Cat, Dog],
-  resolveType: (pet) => (pet.kind === 'cat' ? Cat : Dog),
+const Pet = builder.unionType('Pet', {
+  types: { cat: Cat, dog: Dog },
+  resolveType: (pet) => pet.type, // 'cat' | 'dog'
 });
 ```
 
-Members with the same backing type can't be told apart, so give each member its own shape, for
-example with a `kind` discriminant. Interface `resolveType` is limited to object refs and object
-type names declared in `SchemaTypes`.
+### Strict resolveType
+
+By default, `resolveType` accepts any string, and a name that isn't a member only fails at runtime.
+Refs that share a backing type are also the same TypeScript type, so returning `Dog` from a union
+of `Cat` alone type-checks when both are backed by the same model.
+
+Set `StrictResolveType: true` in `SchemaTypes` to rule both out. Unions must then list their
+members as a record or by name, and `resolveType` must return one of them:
+
+```ts
+const builder = new SchemaBuilder<{
+  StrictResolveType: true;
+  Objects: { Cat: Animal; Dog: Animal };
+}>({});
+
+builder.unionType('Pet', {
+  types: ['Cat', 'Dog'],
+  resolveType: (pet) => (pet.type === 'cat' ? 'Cat' : 'Dog'),
+});
+```
+
+Interface `resolveType` is limited to object type names declared in `SchemaTypes`.
 
 ## Using Union Types
 

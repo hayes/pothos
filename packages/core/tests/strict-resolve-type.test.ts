@@ -1,101 +1,111 @@
 import { execute } from 'graphql';
 import gql from 'graphql-tag';
-import SchemaBuilder from '../src';
+import SchemaBuilder, { type SchemaTypes } from '../src';
 
-interface Cat {
-  kind: 'cat';
+// Cat and Dog share a backing type, so their refs are the same TypeScript type.
+interface Animal {
+  type: 'cat' | 'dog';
   name: string;
 }
 
-interface Dog {
-  kind: 'dog';
-  name: string;
-}
+const petsQuery = gql`
+  {
+    pets {
+      __typename
+      ... on Cat {
+        name
+      }
+      ... on Dog {
+        name
+      }
+    }
+  }
+`;
 
-interface Bird {
-  kind: 'bird';
-  name: string;
-}
+const pets: Animal[] = [
+  { type: 'cat', name: 'Tom' },
+  { type: 'dog', name: 'Rex' },
+];
 
-describe('StrictResolveType', () => {
-  it('limits union resolveType to the members', async () => {
-    const builder = new SchemaBuilder<{ StrictResolveType: true }>({});
+const petsResult = {
+  data: {
+    pets: [
+      { __typename: 'Cat', name: 'Tom' },
+      { __typename: 'Dog', name: 'Rex' },
+    ],
+  },
+};
 
-    const CatRef = builder.objectRef<Cat>('Cat').implement({
+describe('union types as a record', () => {
+  it('resolves the key returned by resolveType', async () => {
+    const builder = new SchemaBuilder({});
+
+    const Cat = builder.objectRef<Animal>('Cat').implement({
       fields: (t) => ({ name: t.exposeString('name') }),
     });
-    const DogRef = builder.objectRef<Dog>('Dog').implement({
-      fields: (t) => ({ name: t.exposeString('name') }),
-    });
-    const BirdRef = builder.objectRef<Bird>('Bird').implement({
+    const Dog = builder.objectRef<Animal>('Dog').implement({
       fields: (t) => ({ name: t.exposeString('name') }),
     });
 
     const Pet = builder.unionType('Pet', {
-      types: [CatRef, DogRef],
-      resolveType: (pet) => (pet.kind === 'cat' ? CatRef : DogRef),
-    });
-
-    builder.unionType('PetName', {
-      types: [CatRef, DogRef],
-      // @ts-expect-error a type name is not accepted when the members are refs
-      resolveType: (pet) => (pet.kind === 'cat' ? 'Cat' : 'Dog'),
+      types: { cat: Cat, dog: Dog },
+      resolveType: (pet) => pet.type,
     });
 
     builder.unionType('MissingMember', {
-      types: [CatRef],
-      // @ts-expect-error Bird is not a member
-      resolveType: () => BirdRef,
+      // @ts-expect-error dog is not a key of types (reported against the array overload)
+      types: { cat: Cat },
+      resolveType: (pet) => pet.type,
     });
 
     builder.queryType({
-      fields: (t) => ({
-        pets: t.field({
-          type: [Pet],
-          resolve: () => [
-            { kind: 'cat' as const, name: 'Tom' },
-            { kind: 'dog' as const, name: 'Rex' },
-          ],
-        }),
-      }),
+      fields: (t) => ({ pets: t.field({ type: [Pet], resolve: () => pets }) }),
     });
 
-    const result = await execute({
-      schema: builder.toSchema(),
-      document: gql`
-        {
-          pets {
-            __typename
-            ... on Cat {
-              name
-            }
-            ... on Dog {
-              name
-            }
-          }
-        }
-      `,
-    });
-
-    expect(result).toEqual({
-      data: {
-        pets: [
-          { __typename: 'Cat', name: 'Tom' },
-          { __typename: 'Dog', name: 'Rex' },
-        ],
-      },
-    });
+    expect(await execute({ schema: builder.toSchema(), document: petsQuery })).toEqual(petsResult);
   });
 
-  it('accepts the names of members listed by name', () => {
+  it('accepts a thunk and an async resolveType', async () => {
+    const builder = new SchemaBuilder({});
+
+    const Pet = builder.unionType('Pet', {
+      types: () => ({ cat: Cat, dog: Dog }),
+      resolveType: async (pet) => pet.type,
+    });
+
+    const Cat = builder.objectRef<Animal>('Cat').implement({
+      fields: (t) => ({ name: t.exposeString('name') }),
+    });
+    const Dog = builder.objectRef<Animal>('Dog').implement({
+      fields: (t) => ({ name: t.exposeString('name') }),
+    });
+
+    builder.queryType({
+      fields: (t) => ({ pets: t.field({ type: [Pet], resolve: () => pets }) }),
+    });
+
+    expect(await execute({ schema: builder.toSchema(), document: petsQuery })).toEqual(petsResult);
+  });
+});
+
+describe('StrictResolveType', () => {
+  it('accepts union members as a record or by name', () => {
     const builder = new SchemaBuilder<{
       StrictResolveType: true;
-      Objects: { Cat: Cat; Dog: Dog; Bird: Bird };
+      Objects: { Cat: Animal; Dog: Animal; Bird: Animal };
     }>({});
 
-    builder.unionType('Pet', {
+    const Cat = builder.objectRef<Animal>('Cat');
+    const Dog = builder.objectRef<Animal>('Dog');
+
+    builder.unionType('PetRecord', {
+      types: { cat: Cat, dog: Dog },
+      resolveType: (pet) => pet.type,
+    });
+
+    builder.unionType('PetNames', {
       types: ['Cat', 'Dog'],
-      resolveType: (pet) => (pet.kind === 'cat' ? 'Cat' : 'Dog'),
+      resolveType: (pet) => (pet.type === 'cat' ? 'Cat' : 'Dog'),
     });
 
     builder.unionType('MissingMember', {
@@ -103,39 +113,62 @@ describe('StrictResolveType', () => {
       // @ts-expect-error Bird is an object type, but not a member
       resolveType: () => 'Bird',
     });
+
+    builder.unionType('PetRefs', {
+      // @ts-expect-error refs can't be told apart by type, so a list must use names
+      types: [Cat, Dog],
+    });
   });
 
-  it('limits interface resolveType to object types', () => {
+  it('limits interface resolveType to object type names', () => {
     const builder = new SchemaBuilder<{
       StrictResolveType: true;
-      Objects: { Cat: Cat };
+      Objects: { Cat: Animal };
     }>({});
 
-    const DogRef = builder.objectRef<Dog>('Dog');
+    const Dog = builder.objectRef<Animal>('Dog');
 
-    builder.interfaceRef<Cat | Dog>('Pet').implement({
-      resolveType: (pet) => (pet.kind === 'cat' ? 'Cat' : DogRef),
+    builder.interfaceRef<Animal>('Pet').implement({
+      resolveType: () => 'Cat',
     });
 
-    builder.interfaceRef<Cat | Dog>('Named').implement({
-      // @ts-expect-error a type name must be an object type declared in SchemaTypes
+    builder.interfaceRef<Animal>('Named').implement({
+      // @ts-expect-error Dog is not declared in SchemaTypes
       resolveType: () => 'Dog',
+    });
+
+    builder.interfaceRef<Animal>('Owned').implement({
+      // @ts-expect-error refs can't be told apart by type
+      resolveType: () => Dog,
     });
   });
 
-  it('accepts any string by default', () => {
+  it('keeps the wider types in code that is generic over SchemaTypes', () => {
+    // Plugins build unions against a generic Types, which must accept refs and names either way
+    function addUnion<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>) {
+      const Cat = builder.objectRef<Animal>('Cat');
+
+      builder.unionType('Pet', { types: [Cat], resolveType: () => Cat });
+      builder.unionType('Named', { types: [Cat], resolveType: () => 'Cat' });
+      builder.interfaceRef<Animal>('Owned').implement({ resolveType: () => Cat });
+    }
+
+    addUnion(new SchemaBuilder<{ StrictResolveType: true }>({}));
+  });
+
+  it('is off by default', () => {
     const builder = new SchemaBuilder({});
 
-    const CatRef = builder.objectRef<Cat>('Cat');
-    const DogRef = builder.objectRef<Dog>('Dog');
+    const Cat = builder.objectRef<Animal>('Cat');
+    const Dog = builder.objectRef<Animal>('Dog');
 
     builder.unionType('Pet', {
-      types: [CatRef, DogRef],
-      resolveType: (pet) => (pet.kind === 'cat' ? 'Cat' : 'Dog'),
+      types: [Cat, Dog],
+      resolveType: (pet) => (pet.type === 'cat' ? Cat : 'Dog'),
     });
 
-    builder.interfaceRef<Cat | Dog>('Named').implement({
-      resolveType: () => 'Dog',
+    builder.interfaceRef<Animal>('Named').implement({
+      resolveType: () => Dog,
     });
   });
 });
