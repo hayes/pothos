@@ -28,7 +28,6 @@ export * from './enums.js';
 export * from './input.js';
 export * from './params.js';
 export * from './sort-classes.js';
-export * from './unions.js';
 
 export function assertNever(value: never): never {
   throw new TypeError(`Unexpected value: ${value}`);

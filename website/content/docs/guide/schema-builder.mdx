@@ -60,9 +60,8 @@ The generic can also configure:
 - `Scalars`: the values resolvers receive and return for each scalar; see [Scalars](./scalars).
 - `DefaultFieldNullability` and `DefaultInputFieldRequiredness`: defaults for output and input
   fields. Set their matching constructor options too; see [Default nullability](./changing-default-nullability).
-- `StrictResolveType`: when `true`, unions list their members as a record or by name, and
-  `resolveType` on unions and interfaces must return one of the possible types; see
-  [Unions](./unions#strict-resolvetype).
+- `StrictResolveType`: when `true`, unions list their members as a record or by name, and their
+  `resolveType` must return a member; see [Unions](./unions#strict-resolvetype).
 - Plugin-specific types, such as the context-dependent scopes used by the scope auth plugin.
 
 Each entry is optional unless a plugin requires it. For the complete list, see the

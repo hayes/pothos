@@ -108,12 +108,7 @@ declare global {
           context: Types['Context'],
           info: GraphQLResolveInfo,
           type: GraphQLInterfaceType,
-        ) => MaybePromise<
-          | (ObjectParam<Types> & ResolveTypeMode<Types>['members'])
-          | ResolveTypeMode<Types>['names']
-          | null
-          | undefined
-        >);
+        ) => MaybePromise<ObjectParam<Types> | string | null | undefined>);
     }
 
     export interface UnionTypeOptions<

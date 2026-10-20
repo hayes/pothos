@@ -7,6 +7,7 @@ import type {
   ObjectParam,
   OutputType,
   PluginName,
+  ResolveTypeMode,
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
@@ -116,7 +117,7 @@ declare global {
 
       loadableUnion: <
         Key extends bigint | number | string,
-        Member extends ObjectParam<Types>,
+        Member extends ObjectParam<Types> & ResolveTypeMode<Types>['members'],
         CacheKey = Key,
         Shape = ShapeFromTypeParam<Types, Member, false>,
       >(

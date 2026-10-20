@@ -1,4 +1,4 @@
-import { execute } from 'graphql';
+import { execute, type GraphQLUnionType } from 'graphql';
 import gql from 'graphql-tag';
 import SchemaBuilder, { type SchemaTypes } from '../src';
 
@@ -86,6 +86,33 @@ describe('union types as a record', () => {
 
     expect(await execute({ schema: builder.toSchema(), document: petsQuery })).toEqual(petsResult);
   });
+
+  it('accepts several keys for one member', async () => {
+    const builder = new SchemaBuilder({});
+
+    const Cat = builder.objectRef<Animal>('Cat').implement({
+      fields: (t) => ({ name: t.exposeString('name') }),
+    });
+    const Dog = builder.objectRef<Animal>('Dog').implement({
+      fields: (t) => ({ name: t.exposeString('name') }),
+    });
+
+    const Pet = builder.unionType('Pet', {
+      types: { cat: Cat, kitten: Cat, dog: Dog },
+      resolveType: (pet) => (pet.name === 'Rex' ? 'dog' : pet.name === 'Tom' ? 'kitten' : null),
+    });
+
+    builder.queryType({
+      fields: (t) => ({ pets: t.field({ type: [Pet], resolve: () => pets }) }),
+    });
+
+    const schema = builder.toSchema();
+
+    expect((schema.getType('Pet') as GraphQLUnionType).getTypes().map((type) => type.name)).toEqual(
+      ['Cat', 'Dog'],
+    );
+    expect(await execute({ schema, document: petsQuery })).toEqual(petsResult);
+  });
 });
 
 describe('StrictResolveType', () => {
@@ -120,26 +147,31 @@ describe('StrictResolveType', () => {
     });
   });
 
-  it('limits interface resolveType to object type names', () => {
+  it('checks async resolveType', () => {
     const builder = new SchemaBuilder<{
       StrictResolveType: true;
-      Objects: { Cat: Animal };
+      Objects: { Cat: Animal; Dog: Animal; Bird: Animal };
     }>({});
+
+    builder.unionType('Pet', {
+      types: ['Cat', 'Dog'],
+      resolveType: async () => 'Cat' as const,
+    });
+
+    builder.unionType('MissingMember', {
+      types: ['Cat', 'Dog'],
+      // @ts-expect-error Bird is not a member
+      resolveType: async () => 'Bird' as const,
+    });
+  });
+
+  it('does not change interfaces', () => {
+    const builder = new SchemaBuilder<{ StrictResolveType: true }>({});
 
     const Dog = builder.objectRef<Animal>('Dog');
 
-    builder.interfaceRef<Animal>('Pet').implement({
-      resolveType: () => 'Cat',
-    });
-
     builder.interfaceRef<Animal>('Named').implement({
-      // @ts-expect-error Dog is not declared in SchemaTypes
-      resolveType: () => 'Dog',
-    });
-
-    builder.interfaceRef<Animal>('Owned').implement({
-      // @ts-expect-error refs can't be told apart by type
-      resolveType: () => Dog,
+      resolveType: (pet) => (pet.type === 'dog' ? Dog : 'Cat'),
     });
   });
 
@@ -151,6 +183,7 @@ describe('StrictResolveType', () => {
       builder.unionType('Pet', { types: [Cat], resolveType: () => Cat });
       builder.unionType('Named', { types: [Cat], resolveType: () => 'Cat' });
       builder.interfaceRef<Animal>('Owned').implement({ resolveType: () => Cat });
+      builder.unionType('Keyed', { types: { cat: Cat }, resolveType: () => 'cat' });
     }
 
     addUnion(new SchemaBuilder<{ StrictResolveType: true }>({}));

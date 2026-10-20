@@ -72,12 +72,45 @@ import type {
   ValuesFromEnum,
 } from './types/index.js';
 import {
+  isThenable,
   normalizeEnumValues,
-  normalizeUnionOptions,
   valuesFromEnum,
   verifyInterfaces,
   verifyRef,
 } from './utils/index.js';
+
+// Passes a record's members on as a list, and maps the key resolveType returns back to its member.
+// A thunk may return a record or an array; Object.values works on both, and type names never
+// collide with array indexes.
+function recordUnionOptions<Types extends SchemaTypes>({
+  types,
+  resolveType,
+  ...options
+}: PothosSchemaTypes.UnionTypeRecordOptions<Types>) {
+  let members: Record<string, ObjectParam<Types>> | undefined;
+  const getMembers = () => {
+    members ??= typeof types === 'function' ? types() : types;
+
+    return members;
+  };
+  const memberList = () => [...new Set(Object.values(getMembers()))];
+  const toMember = (result: unknown) =>
+    typeof result === 'string' && Object.hasOwn(getMembers(), result)
+      ? getMembers()[result]
+      : result;
+
+  return {
+    ...options,
+    types: typeof types === 'function' ? memberList : memberList(),
+    resolveType:
+      resolveType &&
+      ((...args: Parameters<typeof resolveType>) => {
+        const result = resolveType(...args);
+
+        return isThenable(result) ? result.then(toMember) : toMember(result);
+      }),
+  } as PothosSchemaTypes.UnionTypeOptions<Types>;
+}
 
 export class SchemaBuilder<Types extends SchemaTypes> {
   $inferSchemaTypes!: Types;
@@ -492,7 +525,9 @@ export class SchemaBuilder<Types extends SchemaTypes> {
       | PothosSchemaTypes.UnionTypeOptions<Types>
       | PothosSchemaTypes.UnionTypeRecordOptions<Types>,
   ): PothosSchemaTypes.UnionRef<Types, unknown, unknown> {
-    const unionOptions = normalizeUnionOptions(options);
+    const unionOptions = Array.isArray(options.types)
+      ? (options as PothosSchemaTypes.UnionTypeOptions<Types>)
+      : recordUnionOptions(options as PothosSchemaTypes.UnionTypeRecordOptions<Types>);
     const ref = new UnionRef<Types, unknown, unknown>(name, {
       kind: 'Union',
       graphqlKind: 'Union',

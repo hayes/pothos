@@ -327,6 +327,21 @@ type UnionTypeOptions = {
   class, or its GraphQL type name. If omitted, GraphQL uses
   `__typename` or member `isTypeOf` checks. See [Unions](../guide/unions).
 
+`types` can also be a record, or a function returning one. `resolveType` then returns one of its
+keys:
+
+```typescript
+type UnionTypeRecordOptions = {
+  types: Record<string, Member> | (() => Record<string, Member>);
+  resolveType?: (parent: UnionShape, context, info, abstractType) =>
+    MaybePromise<keyof types | null | undefined>;
+};
+```
+
+With `StrictResolveType: true` in `SchemaTypes`, an array of `types` may only contain type names,
+and `resolveType` may only return members. See
+[Strict resolveType](../guide/unions#strict-resolvetype).
+
 ## `enumType(param, options)`
 
 - `param`: A string name of the enum or a typescript enum
