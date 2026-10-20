@@ -63,6 +63,7 @@ import type {
   QueryFieldsShape,
   QueryFieldThunk,
   RecursivelyNormalizeNullableFields,
+  ResolveTypeMode,
   ScalarName,
   SchemaTypes,
   ShapeFromEnumValues,
@@ -477,7 +478,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     AbstractReturnShape<Types, MemberRecord[keyof MemberRecord], ResolveType>,
     ParentShape<Types, MemberRecord[keyof MemberRecord]>
   >;
-  unionType<Member extends ObjectParam<Types> & Types['resolveTypeMembers'], ResolveType>(
+  unionType<Member extends ObjectParam<Types> & ResolveTypeMode<Types>['members'], ResolveType>(
     name: string,
     options: PothosSchemaTypes.UnionTypeOptions<Types, Member, ResolveType>,
   ): PothosSchemaTypes.UnionRef<

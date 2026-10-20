@@ -33,14 +33,6 @@ export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
   InferredFieldOptionsKind: InferredFieldOptionsKind;
   Root: object;
   Context: object;
-  /**
-   * Intersected with the types `resolveType` may return. Set from `StrictResolveType` by
-   * `ExtendDefaultTypes`; plugin code typed against a generic `Types` is checked against these
-   * wider defaults, so it keeps accepting refs and strings.
-   */
-  resolveTypeMembers: unknown;
-  /** The names `resolveType` may return in addition to its members. */
-  resolveTypeNames: string;
 }
 
 /**
@@ -53,6 +45,20 @@ export type MaybeAsyncSelection<
   Types extends SchemaTypes,
   T,
 > = true extends Types['AsyncSelections'] ? MaybePromise<T> : T;
+
+/**
+ * What `resolveType` may return, by `StrictResolveType`: `members` is intersected with the
+ * possible types, and `names` are the extra strings accepted. Refs that share a backing type are
+ * the same TypeScript type, so strict mode only accepts names. Looked up rather than a
+ * conditional type, so that a generic `Types` (as in plugins) gets the wider union of both modes.
+ */
+interface ResolveTypeModes {
+  true: { members: string; names: never };
+  false: { members: unknown; names: string };
+}
+
+export type ResolveTypeMode<Types extends SchemaTypes> =
+  ResolveTypeModes[`${Types['StrictResolveType']}`];
 
 /**
  * What the runtime treats as async: `isThenable` accepts any object with a callable `then`, and

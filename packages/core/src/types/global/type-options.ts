@@ -25,7 +25,7 @@ import type {
   SubscriptionFieldsShape,
   ValidateInterfaces,
 } from '../builder-options.js';
-import type { RootName, SchemaTypes } from '../schema-types.js';
+import type { ResolveTypeMode, RootName, SchemaTypes } from '../schema-types.js';
 import type { InterfaceParam, ObjectParam, ParentShape } from '../type-params.js';
 import type { MaybePromise } from '../utils.js';
 
@@ -109,8 +109,8 @@ declare global {
           info: GraphQLResolveInfo,
           type: GraphQLInterfaceType,
         ) => MaybePromise<
-          | (ObjectParam<Types> & Types['resolveTypeMembers'])
-          | Types['resolveTypeNames']
+          | (ObjectParam<Types> & ResolveTypeMode<Types>['members'])
+          | ResolveTypeMode<Types>['names']
           | null
           | undefined
         >);
@@ -129,7 +129,7 @@ declare global {
           context: Types['Context'],
           info: GraphQLResolveInfo,
           type: GraphQLUnionType,
-        ) => MaybePromise<NoInfer<Member> | Types['resolveTypeNames'] | null | undefined>);
+        ) => MaybePromise<NoInfer<Member> | ResolveTypeMode<Types>['names'] | null | undefined>);
     }
 
     export interface UnionTypeRecordOptions<

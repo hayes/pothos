@@ -104,9 +104,6 @@ declare global {
         : false;
       AsyncSelections: PartialTypes['AsyncSelections'] extends true ? true : false;
       StrictResolveType: PartialTypes['StrictResolveType'] extends true ? true : false;
-      // Refs that share a backing type are the same TypeScript type, so strict mode only accepts names
-      resolveTypeMembers: PartialTypes['StrictResolveType'] extends true ? string : unknown;
-      resolveTypeNames: PartialTypes['StrictResolveType'] extends true ? never : string;
       outputShapes: {
         [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {
           Output: infer T;
