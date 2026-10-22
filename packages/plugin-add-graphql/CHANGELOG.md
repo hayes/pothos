@@ -1,5 +1,11 @@
 # @pothos/plugin-add-graphql
 
+## 4.3.4
+
+### Patch Changes
+
+- 76637b4: Preserve custom query, mutation, and subscription root roles when the same types are imported through both `add.schema` and `add.types`.
+
 ## 4.3.3
 
 ### Patch Changes
