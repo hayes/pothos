@@ -72,6 +72,11 @@ declare global {
        * promise it did not ask for.
        */
       AsyncSelections: boolean;
+      /**
+       * Whether `resolveType` on unions and interfaces is limited to the possible types. `false`
+       * by default: any string is accepted as a type name, and checked only at runtime.
+       */
+      StrictResolveType: boolean;
       InferredFieldOptionsKind: InferredFieldOptionsKind;
     }
 
@@ -98,6 +103,7 @@ declare global {
         ? true
         : false;
       AsyncSelections: PartialTypes['AsyncSelections'] extends true ? true : false;
+      StrictResolveType: PartialTypes['StrictResolveType'] extends true ? true : false;
       outputShapes: {
         [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {
           Output: infer T;

@@ -411,3 +411,26 @@ describe('loadableUnion extensions', () => {
     expect(type.extensions.getDataloader).toBeTypeOf('function');
   });
 });
+
+describe('loadableUnion with StrictResolveType', () => {
+  it('only accepts members by name', () => {
+    const builder = new SchemaBuilder<{
+      StrictResolveType: true;
+      Objects: { Cat: { id: number }; Dog: { id: number } };
+    }>({ plugins: [DataloaderPlugin] });
+
+    const Cat = builder.objectRef<{ id: number }>('Cat');
+
+    builder.loadableUnion('Pet', {
+      types: ['Cat', 'Dog'],
+      resolveType: () => 'Cat',
+      load: async (ids: number[]) => ids.map((id) => ({ id })),
+    });
+
+    builder.loadableUnion('PetRefs', {
+      // @ts-expect-error refs that share a backing type can't be told apart, so names are required
+      types: [Cat],
+      load: async (ids: number[]) => ids.map((id) => ({ id })),
+    });
+  });
+});

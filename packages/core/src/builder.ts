@@ -63,6 +63,7 @@ import type {
   QueryFieldsShape,
   QueryFieldThunk,
   RecursivelyNormalizeNullableFields,
+  ResolveTypeMode,
   ScalarName,
   SchemaTypes,
   ShapeFromEnumValues,
@@ -70,7 +71,46 @@ import type {
   SubscriptionFieldThunk,
   ValuesFromEnum,
 } from './types/index.js';
-import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils/index.js';
+import {
+  isThenable,
+  normalizeEnumValues,
+  valuesFromEnum,
+  verifyInterfaces,
+  verifyRef,
+} from './utils/index.js';
+
+// Passes a record's members on as a list, and maps the key resolveType returns back to its member.
+// A thunk may return a record or an array; Object.values works on both, and type names never
+// collide with array indexes.
+function recordUnionOptions<Types extends SchemaTypes>({
+  types,
+  resolveType,
+  ...options
+}: PothosSchemaTypes.UnionTypeRecordOptions<Types>) {
+  let members: Record<string, ObjectParam<Types>> | undefined;
+  const getMembers = () => {
+    members ??= typeof types === 'function' ? types() : types;
+
+    return members;
+  };
+  const memberList = () => [...new Set(Object.values(getMembers()))];
+  const toMember = (result: unknown) =>
+    typeof result === 'string' && Object.hasOwn(getMembers(), result)
+      ? getMembers()[result]
+      : result;
+
+  return {
+    ...options,
+    types: typeof types === 'function' ? memberList : memberList(),
+    resolveType:
+      resolveType &&
+      ((...args: Parameters<typeof resolveType>) => {
+        const result = resolveType(...args);
+
+        return isThenable(result) ? result.then(toMember) : toMember(result);
+      }),
+  } as PothosSchemaTypes.UnionTypeOptions<Types>;
+}
 
 export class SchemaBuilder<Types extends SchemaTypes> {
   $inferSchemaTypes!: Types;
@@ -463,38 +503,51 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     }));
   }
 
-  unionType<Member extends ObjectParam<Types>, ResolveType>(
+  unionType<MemberRecord extends Record<string, ObjectParam<Types>>, ResolveType>(
+    name: string,
+    options: PothosSchemaTypes.UnionTypeRecordOptions<Types, MemberRecord, ResolveType>,
+  ): PothosSchemaTypes.UnionRef<
+    Types,
+    AbstractReturnShape<Types, MemberRecord[keyof MemberRecord], ResolveType>,
+    ParentShape<Types, MemberRecord[keyof MemberRecord]>
+  >;
+  unionType<Member extends ObjectParam<Types> & ResolveTypeMode<Types>['members'], ResolveType>(
     name: string,
     options: PothosSchemaTypes.UnionTypeOptions<Types, Member, ResolveType>,
   ): PothosSchemaTypes.UnionRef<
     Types,
     AbstractReturnShape<Types, Member, ResolveType>,
     ParentShape<Types, Member>
-  > {
-    const ref = new UnionRef<
-      Types,
-      AbstractReturnShape<Types, Member, ResolveType>,
-      ParentShape<Types, Member>
-    >(name, {
+  >;
+  unionType(
+    name: string,
+    options:
+      | PothosSchemaTypes.UnionTypeOptions<Types>
+      | PothosSchemaTypes.UnionTypeRecordOptions<Types>,
+  ): PothosSchemaTypes.UnionRef<Types, unknown, unknown> {
+    const unionOptions = Array.isArray(options.types)
+      ? (options as PothosSchemaTypes.UnionTypeOptions<Types>)
+      : recordUnionOptions(options as PothosSchemaTypes.UnionTypeRecordOptions<Types>);
+    const ref = new UnionRef<Types, unknown, unknown>(name, {
       kind: 'Union',
       graphqlKind: 'Union',
       name,
       types: [],
-      description: options.description,
-      resolveType: options.resolveType as GraphQLTypeResolver<unknown, object>,
-      pothosOptions: options as unknown as PothosSchemaTypes.UnionTypeOptions,
-      extensions: options.extensions,
-      astNode: options.astNode,
+      description: unionOptions.description,
+      resolveType: unionOptions.resolveType as GraphQLTypeResolver<unknown, object>,
+      pothosOptions: unionOptions as unknown as PothosSchemaTypes.UnionTypeOptions,
+      extensions: unionOptions.extensions,
+      astNode: unionOptions.astNode,
     });
 
-    if (Array.isArray(options.types)) {
-      for (const type of options.types) {
+    if (Array.isArray(unionOptions.types)) {
+      for (const type of unionOptions.types) {
         verifyRef(type);
       }
     }
 
     this.configStore.addTypeRef(ref);
-    ref.addTypes(options.types);
+    ref.addTypes(unionOptions.types);
 
     return ref;
   }
