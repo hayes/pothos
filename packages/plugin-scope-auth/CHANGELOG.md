@@ -1,5 +1,12 @@
 # Change Log
 
+## 4.2.2
+
+### Patch Changes
+
+- 13ac232: Isolate authorization caches by schema builder when multiple schemas share a request context.
+- 9f234e9: Consume pending scope-loader rejections when another loader throws synchronously, including nested scope maps, while preserving the synchronous authorization error.
+
 ## 4.2.1
 
 ### Patch Changes
