@@ -1,5 +1,5 @@
-import { drizzle } from 'drizzle-orm/sqlite-proxy';
-import initSqlJs, { type SqlValue } from 'sql.js';
+import { drizzle, type SqliteProxyExecutors } from 'drizzle-orm/sqlite-proxy';
+import initSqlJs, { type QueryExecResult, type SqlValue } from 'sql.js';
 import { relations } from './tables';
 
 // sql.js executes real SQLite in WebAssembly. Keep the serialized database
@@ -35,7 +35,7 @@ INSERT INTO postMedia VALUES
 (4, 2, 3, NULL);
 `;
 
-async function execute(sql: string, params: SqlValue[]) {
+async function execute(sql: string, params: SqlValue[]): Promise<QueryExecResult> {
   const SQL = await sqlite;
   const connection = new SQL.Database(saved);
   try {
@@ -52,49 +52,20 @@ async function execute(sql: string, params: SqlValue[]) {
   }
 }
 
-async function all(sql: string, params: SqlValue[], rowMode?: 'array'): Promise<SqlValue[][]>;
-async function all(
-  sql: string,
-  params: SqlValue[],
-  rowMode: 'object',
-): Promise<Record<string, SqlValue>[]>;
-async function all(
-  sql: string,
-  params: SqlValue[],
-  rowMode?: 'array' | 'object',
-): Promise<SqlValue[][] | Record<string, SqlValue>[]>;
-async function all(
-  sql: string,
-  params: SqlValue[],
-  rowMode: 'array' | 'object' = 'array',
-): Promise<SqlValue[][] | Record<string, SqlValue>[]> {
-  const { columns, values } = await execute(sql, params);
+// Drizzle asks for rows as arrays by default, or as objects keyed by column for raw queries.
+function shapeRows({ columns, values }: QueryExecResult, rowMode?: 'array' | 'object') {
   return rowMode === 'object'
     ? values.map((row) => Object.fromEntries(columns.map((column, i) => [column, row[i]])))
     : values;
 }
 
-async function get(
-  sql: string,
-  params: SqlValue[],
-  rowMode?: 'array',
-): Promise<SqlValue[] | undefined>;
-async function get(
-  sql: string,
-  params: SqlValue[],
-  rowMode: 'object',
-): Promise<Record<string, SqlValue> | undefined>;
-async function get(
-  sql: string,
-  params: SqlValue[],
-  rowMode?: 'array' | 'object',
-): Promise<SqlValue[] | Record<string, SqlValue> | undefined>;
-async function get(
-  sql: string,
-  params: SqlValue[],
-  rowMode: 'array' | 'object' = 'array',
-): Promise<SqlValue[] | Record<string, SqlValue> | undefined> {
-  return (await all(sql, params, rowMode))[0];
-}
-
-export const db = drizzle({ all, get, run: execute }, { relations });
+export const db = drizzle(
+  {
+    all: async (sql: string, params: SqlValue[], rowMode?: 'array' | 'object') =>
+      shapeRows(await execute(sql, params), rowMode),
+    get: async (sql: string, params: SqlValue[], rowMode?: 'array' | 'object') =>
+      shapeRows(await execute(sql, params), rowMode)[0],
+    run: execute,
+  } as SqliteProxyExecutors,
+  { relations },
+);
