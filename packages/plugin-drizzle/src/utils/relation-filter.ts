@@ -12,6 +12,7 @@ import {
   type Relation,
   relationToSQL,
   type SQL,
+  type SQLChunk,
   type SQLWrapper,
   sql,
   type Table,
@@ -19,6 +20,7 @@ import {
 import { SQLiteTable } from 'drizzle-orm/sqlite-core';
 
 import type { DrizzleClient } from '../types.js';
+import { normalizeSQL } from './sql.js';
 
 /** The public client's SQL construction capability. */
 export type RelationQueryBuilder = Pick<DrizzleClient, 'select'>;
@@ -79,12 +81,12 @@ export function buildRelationFilter(
   const throughTable = relation.throughTable as Table | undefined;
   // `filter` correlates the parent to the target, or to the junction table when there is one, in
   // which case `joinCondition` is what carries the junction the rest of the way to the target.
-  const { filter, joinCondition } = relationToSQL(
-    relation,
-    parentTable,
-    targetTable,
-    throughTable,
-  ) as { filter: SQL; joinCondition?: SQL };
+  const relationSQL = relationToSQL(relation, parentTable, targetTable, throughTable) as {
+    filter: SQL | SQLChunk[];
+    joinCondition?: SQL | SQLChunk[];
+  };
+  const filter = normalizeSQL(relationSQL.filter);
+  const joinCondition = normalizeSQL(relationSQL.joinCondition);
 
   if (!throughTable || !joinCondition) {
     // Without a junction table every related row is a distinct target row, so the two counts are
@@ -153,12 +155,12 @@ function targetIdentityInRelation(
   }
 
   const matchedTable = aliasedTable(targetTable, alias);
-  const { filter, joinCondition } = relationToSQL(
-    relation,
-    parentTable,
-    matchedTable,
-    throughTable,
-  ) as { filter: SQL; joinCondition: SQL };
+  const relationSQL = relationToSQL(relation, parentTable, matchedTable, throughTable) as {
+    filter: SQL | SQLChunk[];
+    joinCondition: SQL | SQLChunk[];
+  };
+  const filter = normalizeSQL(relationSQL.filter);
+  const joinCondition = normalizeSQL(relationSQL.joinCondition);
   const fields = Object.fromEntries(
     key.map((column, i) => [String(i), sql`${aliasedTableColumn(column, alias)}`]),
   );

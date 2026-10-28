@@ -28,10 +28,12 @@ import {
   type BuildQueryResult,
   type DBQueryConfig,
   type InferSelectModel,
+  is,
   Many,
   type Relation,
   relationsFilterToSQL,
-  type SQL,
+  SQL,
+  type SQLChunk,
   type Table,
   type TableRelationalConfig,
   type TablesRelationalConfig,
@@ -61,6 +63,7 @@ import { pathInfoFor } from './utils/path-info.js';
 import { getRefFromModel } from './utils/refs.js';
 import { buildRelationFilter, type RelationQueryBuilder } from './utils/relation-filter.js';
 import type { SelectionMap } from './utils/selections.js';
+import { normalizeSQL } from './utils/sql.js';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -71,14 +74,14 @@ const RootBuilder: {
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
 
-// drizzle-orm declares two parameters, but the implementation also takes the table's relations
-// and the full relational config, which lets a `where` filter on related tables.
+// Older Drizzle declarations omit the relational config parameters supported at runtime.
+// RC5 also changes the result from SQL to an object containing optional SQL chunks.
 type RelationsFilterToSQL = (
   table: Table,
   filter: unknown,
   tableRelations?: TableRelationalConfig['relations'],
   tablesRelations?: TablesRelationalConfig,
-) => SQL | undefined;
+) => SQL | { sql?: SQLChunk[] } | undefined;
 
 export class DrizzleObjectFieldBuilder<
   Types extends SchemaTypes,
@@ -239,14 +242,14 @@ export class DrizzleObjectFieldBuilder<
         return countRows();
       }
 
-      return countRows(
-        (relationsFilterToSQL as RelationsFilterToSQL)(
-          relatedTable.table as Table,
-          where,
-          relatedTable.relations,
-          schemaConfig.relations,
-        ),
+      const filter = (relationsFilterToSQL as RelationsFilterToSQL)(
+        relatedTable.table as Table,
+        where,
+        relatedTable.relations,
+        schemaConfig.relations,
       );
+
+      return countRows(normalizeSQL(is(filter, SQL) ? filter : filter?.sql));
     };
 
     interface ConnectionFieldQuery {
