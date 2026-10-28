@@ -94,7 +94,7 @@ async function get(
   params: SqlValue[],
   rowMode: 'array' | 'object' = 'array',
 ): Promise<SqlValue[] | Record<string, SqlValue> | undefined> {
-  return rowMode === 'object' ? (await all(sql, params, 'object'))[0] : (await all(sql, params))[0];
+  return (await all(sql, params, rowMode))[0];
 }
 
 export const db = drizzle({ all, get, run: execute }, { relations });
