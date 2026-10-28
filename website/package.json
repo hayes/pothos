@@ -51,7 +51,7 @@
     "@vercel/analytics": "^1.6.1",
     "class-variance-authority": "^0.7.1",
     "dataloader": "^2.2.3",
-    "drizzle-orm": "1.0.0-rc.2",
+    "drizzle-orm": "1.0.0-rc.5",
     "esbuild-wasm": "^0.27.1",
     "fumadocs-core": "16.7.15",
     "fumadocs-docgen": "^3.0.10",

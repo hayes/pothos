@@ -1,37 +1,6 @@
 import { execute } from '@pothos/test-utils';
-import type { SQL, SQLChunk } from 'drizzle-orm';
 import { gql } from 'graphql-tag';
-import { vi } from 'vitest';
 import { schema } from './relation-shapes/schema';
-
-// Exercise RC5's helper return shapes even when the workspace installs an older supported
-// Drizzle version. Query construction and execution still use the real SQLite driver.
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const original = await importOriginal<typeof import('drizzle-orm')>();
-  const chunks = (value: SQL | SQLChunk[] | undefined) =>
-    Array.isArray(value) ? value : value?.queryChunks;
-
-  return {
-    ...original,
-    relationToSQL: (...args: Parameters<typeof original.relationToSQL>) => {
-      const result = original.relationToSQL(...args);
-
-      return {
-        ...result,
-        filter: chunks(result.filter),
-        joinCondition: chunks(result.joinCondition),
-      };
-    },
-    relationsFilterToSQL: (...args: Parameters<typeof original.relationsFilterToSQL>) => {
-      const result = original.relationsFilterToSQL(...args) as
-        | SQL
-        | { sql?: SQLChunk[] }
-        | undefined;
-
-      return original.is(result, original.SQL) ? { sql: chunks(result) } : (result ?? {});
-    },
-  };
-});
 
 async function query(document: string) {
   const result = await execute({ schema, document: gql(document), contextValue: {} });

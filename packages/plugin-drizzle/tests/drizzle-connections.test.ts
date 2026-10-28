@@ -759,7 +759,7 @@ describe('drizzle connections', () => {
 
     expect(drizzleLogs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "postId", (select json_object('id', "id", 'name', "name") as "r" from (select "d1"."id" as "id", "d1"."name" as "name" from "categories" as "d1" where "d0"."category_id" = "d1"."id" limit ?) as "t") as "category" from "posts" as "d0" where (((("d0"."published" = ?) and (exists (select * from "categories" as "f0" where (("d0"."category_id" = "f0"."id") and ("f0"."name" = ?)) limit 1)))) and ("d0"."id" > ?)) order by "d0"."id" asc limit ? -- params: [1, 1, "entertainment", 6, 4]",
+        "Query: select "d0"."id" as "postId", (select json_object('id', "id", 'name', "name") as "r" from (select "d1"."id" as "id", "d1"."name" as "name" from "categories" as "d1" where "d0"."category_id" = "d1"."id" limit ?) as "t") as "category" from "posts" as "d0" where (((("d0"."published" = ?) and (exists (select * from "categories" as "f0" where (("d0"."category_id" = "f0"."id") and ("f0"."name" = ?)))))) and ("d0"."id" > ?)) order by "d0"."id" asc limit ? -- params: [1, 1, "entertainment", 6, 4]",
       ]
     `);
 

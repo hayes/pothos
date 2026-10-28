@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/sqlite-proxy';
-import initSqlJs from 'sql.js';
+import initSqlJs, { type SqlValue } from 'sql.js';
 import { relations } from './tables';
 
 // sql.js executes real SQLite in WebAssembly. Keep the serialized database
@@ -35,23 +35,66 @@ INSERT INTO postMedia VALUES
 (4, 2, 3, NULL);
 `;
 
-export const db = drizzle(
-  async (sql, params, method) => {
-    const SQL = await sqlite;
-    const connection = new SQL.Database(saved);
-    try {
-      if (!saved) {
-        connection.run(seed);
-      }
-      connection.run('PRAGMA foreign_keys = ON');
-      console.log('SQL', sql, params);
-      const result = connection.exec(sql, params);
-      saved = connection.export();
-      const rows = result[0]?.values ?? [];
-      return { rows: method === 'get' ? rows[0] : rows };
-    } finally {
-      connection.close();
+async function execute(sql: string, params: SqlValue[]) {
+  const SQL = await sqlite;
+  const connection = new SQL.Database(saved);
+  try {
+    if (!saved) {
+      connection.run(seed);
     }
-  },
-  { relations },
-);
+    connection.run('PRAGMA foreign_keys = ON');
+    console.log('SQL', sql, params);
+    const result = connection.exec(sql, params);
+    saved = connection.export();
+    return result[0] ?? { columns: [], values: [] };
+  } finally {
+    connection.close();
+  }
+}
+
+async function all(sql: string, params: SqlValue[], rowMode?: 'array'): Promise<SqlValue[][]>;
+async function all(
+  sql: string,
+  params: SqlValue[],
+  rowMode: 'object',
+): Promise<Record<string, SqlValue>[]>;
+async function all(
+  sql: string,
+  params: SqlValue[],
+  rowMode?: 'array' | 'object',
+): Promise<SqlValue[][] | Record<string, SqlValue>[]>;
+async function all(
+  sql: string,
+  params: SqlValue[],
+  rowMode: 'array' | 'object' = 'array',
+): Promise<SqlValue[][] | Record<string, SqlValue>[]> {
+  const { columns, values } = await execute(sql, params);
+  return rowMode === 'object'
+    ? values.map((row) => Object.fromEntries(columns.map((column, i) => [column, row[i]])))
+    : values;
+}
+
+async function get(
+  sql: string,
+  params: SqlValue[],
+  rowMode?: 'array',
+): Promise<SqlValue[] | undefined>;
+async function get(
+  sql: string,
+  params: SqlValue[],
+  rowMode: 'object',
+): Promise<Record<string, SqlValue> | undefined>;
+async function get(
+  sql: string,
+  params: SqlValue[],
+  rowMode?: 'array' | 'object',
+): Promise<SqlValue[] | Record<string, SqlValue> | undefined>;
+async function get(
+  sql: string,
+  params: SqlValue[],
+  rowMode: 'array' | 'object' = 'array',
+): Promise<SqlValue[] | Record<string, SqlValue> | undefined> {
+  return rowMode === 'object' ? (await all(sql, params, 'object'))[0] : (await all(sql, params))[0];
+}
+
+export const db = drizzle({ all, get, run: execute }, { relations });
