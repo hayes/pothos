@@ -70,7 +70,7 @@ describe('fragments on interfaces implemented by drizzle objects', () => {
     `);
     expect(onObject.logs).toMatchInlineSnapshot(`
       [
-        "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('id', "id", 'name', "name")) as "r" from (select "d1"."id" as "id", "d1"."name" as "name" from "roles" as "d1" inner join "user_roles" as "tr0" on "tr0"."role_id" = "d1"."id" where "d0"."id" = "tr0"."user_id") as "t"), jsonb_array()) as "roles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        "Query: select "d0"."id" as "id", (select json_group_array(json_object('id', "id", 'name', "name")) as "r" from (select "d1"."id" as "id", "d1"."name" as "name" from "roles" as "d1" inner join "user_roles" as "tr0" on "tr0"."role_id" = "d1"."id" where "d0"."id" = "tr0"."user_id") as "t") as "roles" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
       ]
     `);
 

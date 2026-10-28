@@ -1,5 +1,5 @@
-import { drizzle } from 'drizzle-orm/sqlite-proxy';
-import initSqlJs from 'sql.js';
+import { drizzle, type SqliteProxyExecutors } from 'drizzle-orm/sqlite-proxy';
+import initSqlJs, { type QueryExecResult, type SqlValue } from 'sql.js';
 import { relations } from './tables';
 
 // sql.js executes real SQLite in WebAssembly. Keep the serialized database
@@ -35,23 +35,37 @@ INSERT INTO postMedia VALUES
 (4, 2, 3, NULL);
 `;
 
-export const db = drizzle(
-  async (sql, params, method) => {
-    const SQL = await sqlite;
-    const connection = new SQL.Database(saved);
-    try {
-      if (!saved) {
-        connection.run(seed);
-      }
-      connection.run('PRAGMA foreign_keys = ON');
-      console.log('SQL', sql, params);
-      const result = connection.exec(sql, params);
-      saved = connection.export();
-      const rows = result[0]?.values ?? [];
-      return { rows: method === 'get' ? rows[0] : rows };
-    } finally {
-      connection.close();
+async function execute(sql: string, params: SqlValue[]): Promise<QueryExecResult> {
+  const SQL = await sqlite;
+  const connection = new SQL.Database(saved);
+  try {
+    if (!saved) {
+      connection.run(seed);
     }
-  },
+    connection.run('PRAGMA foreign_keys = ON');
+    console.log('SQL', sql, params);
+    const result = connection.exec(sql, params);
+    saved = connection.export();
+    return result[0] ?? { columns: [], values: [] };
+  } finally {
+    connection.close();
+  }
+}
+
+// Drizzle asks for rows as arrays by default, or as objects keyed by column for raw queries.
+function shapeRows({ columns, values }: QueryExecResult, rowMode?: 'array' | 'object') {
+  return rowMode === 'object'
+    ? values.map((row) => Object.fromEntries(columns.map((column, i) => [column, row[i]])))
+    : values;
+}
+
+export const db = drizzle(
+  {
+    all: async (sql: string, params: SqlValue[], rowMode?: 'array' | 'object') =>
+      shapeRows(await execute(sql, params), rowMode),
+    get: async (sql: string, params: SqlValue[], rowMode?: 'array' | 'object') =>
+      shapeRows(await execute(sql, params), rowMode)[0],
+    run: execute,
+  } as SqliteProxyExecutors,
   { relations },
 );

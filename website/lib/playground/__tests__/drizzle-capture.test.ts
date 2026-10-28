@@ -11,9 +11,8 @@ const relations = defineRelations({ users });
 beforeEach(resetExtensionPanels);
 
 it('captures relational options without changing SQL or returned rows', async () => {
-  const driver = vi.fn(async (..._args: unknown[]) => ({
-    rows: [[JSON.stringify({ id: 1, name: 'Maya' })]],
-  }));
+  const all = vi.fn(async (..._args: unknown[]) => [[1, 'Maya']]);
+  const driver = { all, get: vi.fn(), run: vi.fn() };
   const normal = drizzle(driver, { relations });
   const inspected = drizzleSqliteProxy.drizzle(driver, { relations });
   const options = { columns: { id: true, name: true }, where: { id: 1 }, limit: 2 } as const;
@@ -21,7 +20,7 @@ it('captures relational options without changing SQL or returned rows', async ()
   const actual = await inspected.query.users.findMany(options);
   expect(actual).toEqual(expected);
   expect(actual).toEqual([{ id: 1, name: 'Maya' }]);
-  expect(driver.mock.calls[1]).toEqual(driver.mock.calls[0]);
+  expect(all.mock.calls[1]).toEqual(all.mock.calls[0]);
   const panel = getExtensionPanels()[0];
   expect(panel.name).toBe('Queries');
   expect(panel.tabs).toHaveLength(1);
@@ -59,7 +58,10 @@ it('snapshots arguments, preserves the query object, and starts fresh after rese
 });
 
 it('records count arguments and preserves synchronous API failures', () => {
-  const db = drizzleSqliteProxy.drizzle(async () => ({ rows: [] }), { relations });
+  const db = drizzleSqliteProxy.drizzle(
+    { all: vi.fn(), get: vi.fn(), run: vi.fn() },
+    { relations },
+  );
   db.$count(users, eq(users.id, 1));
   const entry = JSON.parse(getExtensionPanels()[0].tabs![0].content);
   expect(entry.method).toBe('db.$count');

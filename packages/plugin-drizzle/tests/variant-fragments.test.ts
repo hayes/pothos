@@ -466,7 +466,7 @@ describe('fragments on variants and non-model interfaces', () => {
       expect(result.data).toEqual({ postsViewer: { id: '1' } });
       expect(drizzleLogs).toMatchInlineSnapshot(`
         [
-          "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('postId', "postId", 'slug', "slug", 'title', "title", 'content', "content", 'published', "published", 'authorId', "authorId", 'categoryId', "categoryId", 'createdAt', "createdAt", 'updatedAt', "updatedAt")) as "r" from (select "d1"."id" as "postId", "d1"."slug" as "slug", "d1"."title" as "title", "d1"."content" as "content", "d1"."published" as "published", "d1"."author_id" as "authorId", "d1"."category_id" as "categoryId", "d1"."createdAt" as "createdAt", "d1"."createdAt" as "updatedAt" from "posts" as "d1" where "d0"."id" = "d1"."author_id" limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [3, 1, 1]",
+          "Query: select "d0"."id" as "id", (select json_group_array(json_object('postId', "postId", 'slug', "slug", 'title', "title", 'content', "content", 'published', "published", 'authorId', "authorId", 'categoryId', "categoryId", 'createdAt', "createdAt", 'updatedAt', "updatedAt")) as "r" from (select "d1"."id" as "postId", "d1"."slug" as "slug", "d1"."title" as "title", "d1"."content" as "content", "d1"."published" as "published", "d1"."author_id" as "authorId", "d1"."category_id" as "categoryId", "d1"."createdAt" as "createdAt", "d1"."createdAt" as "updatedAt" from "posts" as "d1" where "d0"."id" = "d1"."author_id" limit ?) as "t") as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [3, 1, 1]",
         ]
       `);
     });
@@ -649,8 +649,8 @@ describe('fragments on variants and non-model interfaces', () => {
       // The variant's type-level select is planned; the field loads its own posts.
       expect(logs[0]).toMatchInlineSnapshot(`
         [
-          "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1]",
-          "Query: select "d0"."id" as "id", coalesce((select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" limit ?) as "t"), jsonb_array()) as "posts" from "users" as "d0" where "d0"."id" in (?) -- params: [3, 1]",
+          "Query: select "d0"."id" as "id", (select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" limit ?) as "t") as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1]",
+          "Query: select "d0"."id" as "id", (select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" limit ?) as "t") as "posts" from "users" as "d0" where "d0"."id" in (?) -- params: [3, 1]",
         ]
       `);
     });

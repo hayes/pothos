@@ -19,8 +19,8 @@ fields. Drizzle Post is not a Relay node; User is the public refetchable node.
 
 ## Browser: Drizzle
 
-`plugin-drizzle` contains `schema.ts`, `tables.ts`, `database.ts`, and seven operations. The actual
-workspace plugin and pinned Drizzle 1.0.0-rc.2 execute SQLite through SQL.js 1.14.1. SQLite runs in
+`plugin-drizzle` contains `schema.ts`, `tables.ts`, `database.ts`, and ten operations. The actual
+workspace plugin and pinned Drizzle 1.0.0-rc.5 execute SQLite through SQL.js 1.14.1. SQLite runs in
 WebAssembly, with no remote database, credentials, or mock ORM. Each SQL statement uses a short-lived
 connection; the schema retains the serialized database and releases the WASM connection in finally.
 Rebuilding or resetting the example creates fresh seeded state. This lightweight bridge does not

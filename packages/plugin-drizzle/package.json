@@ -59,8 +59,8 @@
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "drizzle-kit": "1.0.0-rc.2",
-    "drizzle-orm": "1.0.0-rc.2",
+    "drizzle-kit": "1.0.0-rc.5",
+    "drizzle-orm": "1.0.0-rc.5",
     "graphql-scalars": "^1.25.0",
     "graphql-tag": "^2.12.6",
     "postgres": "^3.4.9"

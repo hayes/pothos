@@ -34,6 +34,10 @@ function buildSchema(filterConnectionTotalCount: boolean) {
         totalCount: true,
         query: () => ({ orderBy: { postId: 'asc' } }),
       }),
+      emptyFilterPostsConnection: t.relatedConnection('posts', {
+        totalCount: true,
+        query: () => ({ where: {}, orderBy: { postId: 'asc' } }),
+      }),
       filteredPostsConnection: t.relatedConnection('posts', {
         totalCount: true,
         query: () => ({ where: { published: 1 }, orderBy: { postId: 'asc' } }),

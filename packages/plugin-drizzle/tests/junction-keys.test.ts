@@ -2,6 +2,7 @@ import { execute } from '@pothos/test-utils';
 import { aliasedTable, eq, inArray, relationToSQL, sql } from 'drizzle-orm';
 import { gql } from 'graphql-tag';
 import { buildRelationFilter } from '../src/utils/relation-filter';
+import { normalizeSQL } from '../src/utils/sql';
 import {
   client,
   db,
@@ -98,8 +99,8 @@ describe('many-to-many target identity lookup', () => {
     const [{ count: joined }] = await db
       .select({ count: sql<number>`count(distinct ${tags.id})` })
       .from(posts)
-      .innerJoin(postTags, filter!)
-      .innerJoin(tags, joinCondition!)
+      .innerJoin(postTags, normalizeSQL(filter!))
+      .innerJoin(tags, normalizeSQL(joinCondition!))
       .where(eq(posts.id, POST_ID));
     const directLookup = await db.$count(
       tags,
