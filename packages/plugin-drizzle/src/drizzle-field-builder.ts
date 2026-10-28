@@ -75,7 +75,7 @@ const RootBuilder: {
 } = RootFieldBuilder as never;
 
 // Older Drizzle declarations omit the relational config parameters supported at runtime.
-// RC5 also changes the result from SQL to an object containing optional SQL chunks.
+// Supported versions return either SQL or an object containing optional SQL chunks.
 type RelationsFilterToSQL = (
   table: Table,
   filter: unknown,

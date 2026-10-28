@@ -244,6 +244,22 @@ describe('relation shapes the count has to reproduce', () => {
   });
 
   describe('a plain foreign key relation', () => {
+    it('counts every related row with an empty field where', async () => {
+      const all = await db.$count(posts, eq(posts.authorId, USER_ID));
+
+      const data = await query(`
+        {
+          user(id: ${USER_ID}) {
+            emptyFilterPostsConnection(first: 1) { totalCount }
+          }
+        }
+      `);
+
+      expect(data).toMatchObject({
+        user: { emptyFilterPostsConnection: { totalCount: all } },
+      });
+    });
+
     it('counts every related row without a field where', async () => {
       const all = await db.$count(posts, eq(posts.authorId, USER_ID));
 
