@@ -1,5 +1,11 @@
 # @pothos/plugin-drizzle
 
+## 0.20.2
+
+### Patch Changes
+
+- 363f584: Support Drizzle ORM RC5's SQL chunk return values when building relation predicates and filtered connection counts, while retaining compatibility with earlier supported Drizzle versions.
+
 ## 0.20.1
 
 ### Patch Changes
