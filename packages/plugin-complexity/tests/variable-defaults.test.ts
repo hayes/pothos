@@ -7,10 +7,10 @@ schema.getQueryType()!.getFields().count.extensions = {
 };
 const query = 'query($n: Int = 1000) { count(n: $n) }';
 
-it('includes operation defaults in standalone complexity calculations', () => {
-  expect(complexityFromQuery(query, { schema }).complexity).toBe(1000);
-  expect(complexityFromQuery(query, { schema, variables: { n: 4 } }).complexity).toBe(4);
-  expect(complexityFromQuery(query, { schema, variables: { n: null } }).complexity).toBe(1);
+it('includes operation defaults in standalone complexity calculations', async () => {
+  expect((await complexityFromQuery(query, { schema })).complexity).toBe(1000);
+  expect((await complexityFromQuery(query, { schema, variables: { n: 4 } })).complexity).toBe(4);
+  expect((await complexityFromQuery(query, { schema, variables: { n: null } })).complexity).toBe(1);
 });
 
 it('enforces limits against defaults when used as a validation rule', () => {
@@ -33,7 +33,7 @@ it('reports invalid supplied variables instead of calculating a misleading cost'
   expect(errors[0].message).toMatch(/Int|variable/i);
 });
 
-it('coerces nested input defaults and isolates operation defaults', () => {
+it('coerces nested input defaults and isolates operation defaults', async () => {
   const inputSchema = buildSchema(
     'input Limit { size: Int = 7 } type Query { count(limit: Limit): Int }',
   );
@@ -41,9 +41,11 @@ it('coerces nested input defaults and isolates operation defaults', () => {
     complexity: (args: { limit?: { size: number } }) => args.limit?.size ?? 1,
   };
   expect(
-    complexityFromQuery('query($limit: Limit = {}) { count(limit: $limit) }', {
-      schema: inputSchema,
-    }).complexity,
+    (
+      await complexityFromQuery('query($limit: Limit = {}) { count(limit: $limit) }', {
+        schema: inputSchema,
+      })
+    ).complexity,
   ).toBe(7);
   const results: number[] = [];
   validate(

@@ -76,7 +76,8 @@ const schema = builder.toSchema({
 ### How complexity is calculated
 
 Complexity is calculated before resolving any root level fields (query, mutation,
-subscription), and is based purely on the shape of the query before execution begins.
+subscription), and uses the query shape, mapped arguments, and context. Runtime limits are checked
+before root resolvers run or a subscription source is acquired.
 
 The complexity of a query is the sum of the complexity of each selected field. If a field has
 sub-selections, the complexity of its sub-selections are multiplied by a fields multiplier, and then
@@ -130,6 +131,15 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
+
+Argument-dependent complexity calculations wait for asynchronous argument mappers (for example,
+asynchronous validation schemas) before passing transformed arguments to the complexity callback.
+The callback itself returns a synchronous complexity value. Argument mapping can run separately
+for complexity calculation and execution, so mappers should be pure and deterministic. Static
+complexity does not need to run argument mappers.
+
+Runtime checks cache the calculation, including a pending promise, in the request context. Use a
+fresh context for each operation.
 
 A fields complexity can also be based on the fields arguments, or the context value:
 
@@ -190,12 +200,15 @@ query cost estimates the operation rather than measuring the records actually re
 
 ### `complexityFromQuery(query, options)`
 
-Returns the query complexity for a given GraphQL query.
+Returns the query complexity for a given GraphQL query as `MaybePromise<ComplexityResult>`.
+Synchronous mappings still produce a synchronous result; asynchronous mappings produce a promise.
+The TypeScript return type includes both, so callers should `await` the result or narrow it before
+accessing its properties. Rejected mappings propagate to the caller.
 
 ```typescript
 import { complexityFromQuery } from '@pothos/plugin-complexity';
 
-const complexity = complexityFromQuery(query, {
+const complexity = await complexityFromQuery(query, {
   schema: schema,
   // Complexity can be calculated based on the context and arguments,
   // so you may need to provide valid values for the context and arguments.
@@ -211,6 +224,13 @@ const complexity = complexityFromQuery(query, {
 Use this validation rule with GraphQL's `specifiedRules` to enforce `maxComplexity`, `maxDepth`,
 or `maxBreadth` during validation. Supply the request's `context` and raw `variableValues`;
 operation variable defaults and input defaults are applied before complexity callbacks run.
+
+GraphQL validation rules are synchronous. This rule reports a validation error if calculation is
+asynchronous, handles any later promise rejection, and skips `onResult` and custom validation.
+For asynchronous mappings, first validate the document with `specifiedRules`, then await
+`complexityFromQuery` and compare its result with your limits before executing. The helper measures
+only the first operation, so this approach requires a single-operation document or selecting that
+operation into its own document first.
 
 Pass `operationName` when the request selects a named operation. Only that operation is measured,
 and an unknown name or invalid variables for it produce validation errors. Without `operationName`,
