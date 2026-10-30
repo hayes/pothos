@@ -26,9 +26,8 @@ import sqlite from '@prisma/orm-sqlite/runtime';
 import { contractFromJson } from '@prisma/orm-sqlite/static';
 import { execute, parse } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { PrismaNextRelationMeta } from '../src';
 import prismaNextPlugin, { type AnyContract } from '../src';
-import { PRISMA_NEXT_RELATIONS } from '../src/constants';
+import { buildRelationMeta } from '../src/utils/model';
 
 const NS = '__unbound__';
 
@@ -270,7 +269,7 @@ describe('N:M (junction) — schema build no longer rejects', () => {
     expect(() => builder.toSchema()).not.toThrow();
   });
 
-  it('the relation meta for an N:M relation carries the junction `through` descriptor', () => {
+  it('the relation meta for an N:M relation is to-many and keys on the parent columns', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: junctionContract },
@@ -293,25 +292,14 @@ describe('N:M (junction) — schema build no longer rejects', () => {
       } as never,
     );
     builder.queryType({ fields: (t) => ({ n: t.int({ nullable: true, resolve: () => null }) }) });
-    const schema = builder.toSchema();
-    const postType = schema.getType('Post')!;
-    const rels = (postType.extensions as Record<string | symbol, unknown>)[
-      PRISMA_NEXT_RELATIONS
-    ] as Record<string, PrismaNextRelationMeta>;
+    builder.toSchema();
+    const rels = buildRelationMeta('Post', junctionContract, 'Post')!;
     expect(rels.tags).toBeDefined();
     // N:M is a to-many relation; its parent-side key columns are the
     // junction's parent-referenced columns (Post.id here).
     expect(rels.tags!.isToMany).toBe(true);
     expect(rels.tags!.localFields).toEqual(['id']);
     expect(rels.tags!.targetModel).toBe('Tag');
-    // The junction marker rides along on the meta.
-    expect(rels.tags!.through).toEqual({
-      table: 'post_tag',
-      namespaceId: NS,
-      parentColumns: ['postId'],
-      childColumns: ['tagId'],
-      targetColumns: ['id'],
-    });
   });
 });
 

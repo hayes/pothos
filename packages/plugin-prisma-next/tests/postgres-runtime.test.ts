@@ -20,7 +20,22 @@ const url =
 const contract = contractFromJson<Contract>(
   JSON.parse(readFileSync(new URL('./postgres/contract.json', import.meta.url), 'utf8')),
 );
-const client = postgres({ contract, url, verifyMarker: false });
+let statements = 0;
+const client = postgres({
+  contract,
+  url,
+  verifyMarker: false,
+  middleware: [
+    {
+      name: 'pothos-test-statement-count',
+      familyId: 'sql',
+      beforeEncode() {
+        statements += 1;
+        return Promise.resolve();
+      },
+    },
+  ],
+});
 const raw = new Client({ connectionString: url });
 
 function createSchema(orm = client.orm) {
@@ -151,6 +166,18 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
     await client.close();
     await raw.query('DROP TABLE IF EXISTS pothos_next_entry, pothos_next_account');
     await raw.end();
+  });
+
+  it('plans nested includes and counts into one statement', async () => {
+    statements = 0;
+    const result = await graphql({
+      schema: createSchema(),
+      source: `{
+        accounts { name count entries { id account { name entries { id } count } } }
+      }`,
+    });
+    expect(result.errors).toBeUndefined();
+    expect(statements).toBe(1);
   });
 
   it('preserves included wide numbers, decimal, bytes and temporal precision', async () => {
