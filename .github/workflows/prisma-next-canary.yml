@@ -9,6 +9,9 @@ on:
 env:
   CI: true
 
+permissions:
+  contents: read
+
 jobs:
   latest-orm:
     if: ${{ github.event_name != 'schedule' || github.repository == 'hayes/pothos' }}
@@ -29,6 +32,18 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      prisma-next-mysql:
+        image: mysql:8.4
+        ports:
+          - '5478:3306'
+        env:
+          MYSQL_ROOT_PASSWORD: prisma
+          MYSQL_DATABASE: prisma_next
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -pprisma"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout
@@ -75,8 +90,9 @@ jobs:
         id: generate
         working-directory: packages/plugin-prisma-next
         run: |
-          node tests/fixtures/generate.mts
-          node tests/postgres/generate.mts
+          for contract in fixtures postgres mysql namespaces inheritance; do
+            node "tests/${contract}/generate.mts"
+          done
 
       - name: Type check
         id: type
@@ -89,6 +105,8 @@ jobs:
         continue-on-error: true
         working-directory: packages/plugin-prisma-next
         run: pnpm test
+        env:
+          POTHOS_PRISMA_NEXT_MYSQL_URL: mysql://root:prisma@127.0.0.1:5478/prisma_next?allowPublicKeyRetrieval=true
 
       - name: Report drift
         if: ${{ always() }}
