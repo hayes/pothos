@@ -25,8 +25,9 @@ export function captureStatement({ sql, params }: { sql: string; params: readonl
 const captureMiddleware = {
   name: 'pothos-playground-capture',
   familyId: 'sql' as const,
-  async beforeEncode(plan: { sql: string; params: readonly unknown[] }) {
+  beforeEncode(plan: { sql: string; params: readonly unknown[] }) {
     captureStatement(plan);
+    return Promise.resolve();
   },
 };
 
