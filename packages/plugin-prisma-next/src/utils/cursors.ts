@@ -15,7 +15,12 @@ import type { AnyContract } from '../types.js';
 import type { MapperCollection } from './adapter.js';
 import { getCollectionPaginationState } from './collection-state.js';
 import { resolveContractModel } from './contract.js';
-import { getModelUniqueKeys } from './model.js';
+import {
+  type ColumnCodec,
+  getColumnCodec,
+  getModelUniqueKeys,
+  type PrismaNextCodecContext,
+} from './model.js';
 
 // Per-column accessor shape. orm-client's `ModelAccessor` exposes the
 // same methods; the local interface avoids the literal-contract generics
@@ -26,9 +31,14 @@ interface ComparableColumn {
   lt(v: unknown): unknown;
   isNull(): import('@prisma/orm-family-sql/relational-core/ast').AnyExpression;
   isNotNull(): unknown;
-  asc(): unknown;
-  desc(): unknown;
+  asc(options?: { nulls?: 'first' | 'last' }): OrderByItem;
+  desc(options?: { nulls?: 'first' | 'last' }): OrderByItem;
 }
+
+/** Resolve a connection's `orderBy` option against the model accessor for this request. */
+export type RequestOrderBy = (
+  model: Record<string, ComparableColumn>,
+) => OrderByItem | readonly OrderByItem[];
 
 /** Use a codec for ORM scalar objects such as Temporal or Decimal values. */
 export interface CursorValueCodec<Value = unknown> {
@@ -43,7 +53,10 @@ export type CursorField =
       direction?: 'asc' | 'desc';
       /** Placement in the forward order; nullable model fields default to last. */
       nulls?: 'first' | 'last';
-      codec?: CursorValueCodec;
+      /** `'column'` uses the column's codec from `prismaNext.context`. */
+      codec?: CursorValueCodec | 'column';
+      /** @internal Filled in by `validateCursor` when the plugin has the client's `context`. */
+      columnCodec?: ColumnCodec;
     };
 export type CursorInput = CursorField | readonly CursorField[];
 
@@ -66,6 +79,7 @@ export function validateCursor(
   contract: AnyContract,
   modelName: string,
   cursor: CursorInput,
+  context?: PrismaNextCodecContext,
 ): CursorInput {
   const fields = normalizeCursor(cursor);
   if (!fields.length || new Set(fields).size !== fields.length) {
@@ -95,10 +109,20 @@ export function validateCursor(
   }
   return cursorFields(cursor).map((field) => {
     const name = typeof field === 'string' ? field : field.field;
-    return model.fields[name]!.nullable
+    const columnCodec = getColumnCodec(contract, modelName, name, context);
+    const nullable = model.fields[name]!.nullable;
+    if (typeof field !== 'string' && field.codec === 'column' && !columnCodec) {
+      throw new PothosSchemaError(
+        `Connection cursor '${modelName}.${name}' uses codec: 'column', which requires prismaNext.context.`,
+      );
+    }
+    return nullable || columnCodec
       ? {
           ...(typeof field === 'string' ? { field } : field),
-          nulls: typeof field === 'string' ? 'last' : (field.nulls ?? 'last'),
+          ...(nullable
+            ? { nulls: typeof field === 'string' ? 'last' : (field.nulls ?? 'last') }
+            : {}),
+          ...(columnCodec ? { columnCodec } : {}),
         }
       : field;
   });
@@ -115,13 +139,44 @@ export function validateCursor(
  */
 const CURSOR_PREFIX = 'PNC:';
 
+/** Wraps a column codec's stored form, so it never reads as a JSON column's own value. */
+const COLUMN_CODEC_KEY = '$pothosColumnValue';
+
+function isClassInstance(value: unknown): value is object {
+  if (!value || typeof value !== 'object' || value instanceof Date || value instanceof Uint8Array) {
+    return false;
+  }
+  const proto = Object.getPrototypeOf(value);
+  return proto !== null && proto !== Object.prototype && !Array.isArray(value);
+}
+
+function encodeCursorValue(field: CursorField, value: unknown): unknown {
+  const spec = typeof field === 'string' ? { field } : field;
+  if (value === null || value === undefined) {
+    return value;
+  }
+  if (spec.codec && spec.codec !== 'column') {
+    return spec.codec.encode(value as never);
+  }
+  if (!isClassInstance(value)) {
+    return value;
+  }
+  if (spec.columnCodec) {
+    return { [COLUMN_CODEC_KEY]: spec.columnCodec.toStored(value) };
+  }
+  // The shared encoding keeps a decimal's digits; any other object couldn't start the next page.
+  if (typeof (value as { toFixed?: unknown }).toFixed !== 'function') {
+    throw new PothosValidationError(
+      `Cursor column '${spec.field}' holds an object value. Set prismaNext.context, or give the column an explicit codec.`,
+    );
+  }
+  return value;
+}
+
 export function encodeCursor(cursor: CursorInput, row: Record<string, unknown>): string {
-  const values = cursorFields(cursor).map((field) => {
-    const value = row[typeof field === 'string' ? field : field.field];
-    return value !== null && typeof field !== 'string' && field.codec
-      ? field.codec.encode(value as never)
-      : value;
-  });
+  const values = cursorFields(cursor).map((field) =>
+    encodeCursorValue(field, row[typeof field === 'string' ? field : field.field]),
+  );
   const payload = values.length === 1 ? encodeCursorChunk(values[0]) : encodeCursorTuple(values);
 
   return encodeBase64(`${CURSOR_PREFIX}${payload}`);
@@ -193,11 +248,24 @@ export function decodeCursor(spec: CursorInput, cursor: string): Record<string, 
   cursorFields(spec).forEach((field, i) => {
     const col = typeof field === 'string' ? field : field.field;
     try {
-      if (values[i] !== null && typeof field !== 'string' && field.codec) {
+      if (
+        values[i] !== null &&
+        typeof field !== 'string' &&
+        field.codec &&
+        field.codec !== 'column'
+      ) {
         if (typeof values[i] !== 'string') {
           throw new Error('Codec cursor must contain a string');
         }
         out[col] = field.codec.decode(values[i]);
+      } else if (
+        typeof field !== 'string' &&
+        field.columnCodec &&
+        values[i] &&
+        typeof values[i] === 'object' &&
+        Object.hasOwn(values[i], COLUMN_CODEC_KEY)
+      ) {
+        out[col] = field.columnCodec.fromStored(values[i][COLUMN_CODEC_KEY]);
       } else {
         out[col] = values[i];
       }
@@ -298,13 +366,59 @@ export function buildPaginationParams(
   };
 }
 
-/** Connection bases may be ordered, but cannot carry a limit, offset, or cursor. */
+/** Connection bases may be ordered, but cannot carry a limit, offset, cursor, or distinct. */
 export function assertUnpaginatedCollection(collection: unknown): void {
-  if (getCollectionPaginationState(collection).paginated) {
+  const { paginated, distinct } = getCollectionPaginationState(collection);
+  if (paginated) {
     throw new PothosValidationError(
       'Connection resolvers must return an unpaginated Collection without cursor(), limit(), or offset().',
     );
   }
+  if (distinct) {
+    throw new PothosValidationError(
+      'Connection resolvers cannot return a Collection with distinct() or distinctOn(): the rows a page keeps would depend on the columns the selection adds.',
+    );
+  }
+}
+
+/**
+ * The cursor for this request with `orderBy` applied. Each item names a cursor column, in cursor
+ * order, and sets its direction and null placement; columns it doesn't name keep their defaults.
+ * Collections are immutable, so asking one for its accessor leaves the base untouched.
+ */
+function applyOrderByOption(
+  base: MapperCollection,
+  cursor: CursorInput,
+  orderBy: RequestOrderBy,
+): CursorInput {
+  const fields = cursorFields(cursor);
+  const cols = normalizeCursor(cursor);
+  let items: readonly OrderByItem[] = [];
+  base.orderBy((c: Record<string, ComparableColumn>) => {
+    const selected = orderBy(c);
+    items = selected instanceof OrderByItem ? [selected] : selected;
+    if (
+      items.length > cols.length ||
+      items.some(
+        (item, i) =>
+          !(item instanceof OrderByItem) || !deepEqual(item.expr, c[cols[i]!]!.asc().expr),
+      )
+    ) {
+      throw new PothosValidationError(
+        `Connection orderBy must order by the cursor's columns in cursor order (${cols.join(', ')}).`,
+      );
+    }
+    return c[cols[0]!]!.asc();
+  });
+  return fields.map((field, i) => {
+    const item = items[i];
+    if (!item) {
+      return field;
+    }
+    const spec = typeof field === 'string' ? { field } : field;
+    const nulls = item.nulls ?? spec.nulls;
+    return { ...spec, direction: item.dir, ...(nulls ? { nulls } : {}) };
+  });
 }
 
 function applyToCollection<C extends MapperCollection>(
@@ -316,18 +430,9 @@ function applyToCollection<C extends MapperCollection>(
   const nulls = cursorFields(cursor).map((field) =>
     typeof field === 'string' ? undefined : field.nulls,
   );
-  const orderSelectors = cols.flatMap((col, i) => {
-    const valueOrder = (c: Record<string, ComparableColumn>) =>
-      inverted !== (directions[i] === 'desc') ? c[col]!.desc() : c[col]!.asc();
-    return nulls[i]
-      ? [
-          (c: Record<string, ComparableColumn>) =>
-            inverted !== (nulls[i] === 'first')
-              ? OrderByItem.desc(c[col]!.isNull())
-              : OrderByItem.asc(c[col]!.isNull()),
-          valueOrder,
-        ]
-      : [valueOrder];
+  const orderSelectors = cols.map((col, i) => (c: Record<string, ComparableColumn>) => {
+    const forward = c[col]![directions[i]!](nulls[i] ? { nulls: nulls[i]! } : undefined);
+    return inverted ? forward.reverse() : forward;
   });
   // RC22 appends orderBy entries and exposes no public reset. Compare the existing
   // prefix to the order produced by public accessors; append only missing entries.
@@ -384,10 +489,14 @@ export function applyCursorPagination<C extends MapperCollection>(
   baseCollection: C,
   cursor: CursorInput,
   args: import('@pothos/plugin-relay').DefaultConnectionArguments,
-  options?: { defaultSize?: number; maxSize?: number },
+  options?: { defaultSize?: number; maxSize?: number; orderBy?: RequestOrderBy | undefined },
 ): CursorPaginationResult<C> {
   assertUnpaginatedCollection(baseCollection);
-  const params = buildPaginationParams(cursor, args, options);
+  const params = buildPaginationParams(
+    options?.orderBy ? applyOrderByOption(baseCollection, cursor, options.orderBy) : cursor,
+    args,
+    options,
+  );
   return {
     ...params,
     collection: applyToCollection(baseCollection, params),

@@ -19,4 +19,10 @@ namespace public {
     account Account @relation(fields: [accountId], references: [id])
     @@map("pothos_next_entry")
   }
+
+  model Event {
+    at TimestamptzTemporal @id
+    label String
+    @@map("pothos_next_event")
+  }
 }
