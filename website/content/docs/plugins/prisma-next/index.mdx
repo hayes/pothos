@@ -9,7 +9,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
   This plugin is **pre-release**. It targets a release candidate of Prisma ORM 8 (formerly Prisma
   Next) and is pinned to exactly `8.0.0-rc.22`: other versions, including newer release candidates,
   are not supported. Both Prisma ORM 8 and this plugin's API can change in any release, without a
-  migration path. MongoDB is not supported.
+  migration path. MySQL support is read-only, and MongoDB is not supported.
 </Callout>
 
 This plugin provides tighter integration with [Prisma ORM 8](https://github.com/prisma/orm),
@@ -34,6 +34,8 @@ Prisma 7 and `@prisma/client`. The two are mutually exclusive.
   loaded
 - 📚 Supports multiple GraphQL types based on the same contract model
   (variants)
+- 🧬 Maps native ORM inheritance to GraphQL interfaces, and duplicate model names across
+  namespaces to qualified `ns.Model` names
 
 ## Example
 

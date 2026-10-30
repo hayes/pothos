@@ -34,8 +34,10 @@ Provider-enabled planning selects a non-null primary or unique key on model rows
 Providers supply unpaginated model Collections, preserving application filters
 and transaction bindings. Missing identities, excluded rows, missing providers,
 and batch errors reject the affected fields. Scalar, Date, bytes, and Decimal
-identity values are supported; opaque object identities are rejected pending an upstream public stable-row-identity
-or input-mapped bulk lookup primitive.
+identity values are supported, and `prismaNext.context` keys other object values
+through their column codecs. Without it, an object value needs a string `toJSON()`;
+anything else is rejected. Fields a row already satisfies with its own columns skip
+the loader, so hand-built and deleted rows resolve.
 
 With a provider, deferred fragments are omitted by default and load when GraphQL
 executes them. `skipDeferredFragments: false` keeps eager loading. Without a
@@ -60,8 +62,10 @@ multi-parent loads; without a provider the adapter rejects the plan before SQL.
 For a fallback field, its relation selection takes precedence over conflicting
 type prerequisites while compatible dependencies remain. Other fields retain
 their own mappings. Separate variant fields can load conflicting prerequisites
-in independent batches. Conflicting prerequisites on an object and its implemented
-interface still fail before SQL; move differing filters into field-level selections.
+in independent batches, as can an object and its implemented interface; without a
+provider those conflicts fail before SQL. Same-source consumers with equal arguments
+are one branch, because a callback `query` builds a new closure per walk. Identical
+to-many aliases share a subquery when every consumer of the relation merges.
 Function-form to-one selections are rejected with guidance to use declarative
 selects or relation fields: public combine only supports to-many relations.
 
@@ -122,7 +126,13 @@ included values, Temporal cursors and transactions. Type tests cover returns,
 nullability and aggregate types. Incremental execution and scope-auth have runtime
 coverage. See [release status](./RELEASE-STATUS.md).
 
-MongoDB requires its own real adapter: its contract/Collection family differs
-from SQL. The shared GraphQL walker is reusable, but widening SQL types cannot
-supply missing Mongo operations. Bare model names must be unique across contract
-namespaces; Pothos variants do not imply native ORM inheritance support.
+MongoDB is rejected at schema build. On RC22 its Collections have no `combine`,
+`cursor` or aggregates, and silently ignore include refinements and `where`
+callbacks, so an adapter couldn't push relation arguments or connections down.
+MySQL runs reads in CI, and its contracts' empty aggregate map turns count options
+into compile errors.
+
+Model keys are bare when unique and `ns.Model` otherwise, resolved in
+`utils/contract.ts`. A native inheritance hierarchy shares one planner model:
+interfaces select the discriminator, and variant returns must be
+`orm.Base.variant(value)`. Pothos variants remain same-model views.

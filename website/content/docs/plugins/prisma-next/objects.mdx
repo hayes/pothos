@@ -196,11 +196,10 @@ fields keep their own selection values. For example, a field can override a
 type's `author` filter without changing the author seen by other fields.
 
 Separate `t.variant` fields can also load different type prerequisites in
-independent batches. An object and its implemented interface must still have
-compatible type-level prerequisites: conflicting filters required on that same
-type are rejected before SQL. Move those filters to field-level `select`
-declarations or the `query` option on `t.relation` so the loader can resolve them
-independently.
+independent batches, and so can an object and its implemented interface when their
+type-level prerequisites conflict. Every inherited field on that object goes through
+the loader, so prefer field-level `select` declarations when the extra query matters.
+Without a provider, these conflicts are rejected before SQL.
 
 Function-form relation selections require the ORM's `combine()` API and work
 only for to-many relations. For a to-one relation, use a declarative selection:

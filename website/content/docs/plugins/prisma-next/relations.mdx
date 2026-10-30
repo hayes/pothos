@@ -253,4 +253,6 @@ Compatible selections of the same to-one relation share an include. Prisma ORM
 one compatible group, and a multi-row fallback query loads each remaining group
 with its own nested selections. Aliases receive independent values, including
 filtered `null` results. Without a provider, incompatible refinements are rejected
-before SQL. Independent to-many consumers continue to use combine slots.
+before SQL. Independent to-many consumers continue to use combine slots, and aliases
+of the same field with the same arguments share one subquery when nothing else reads
+that relation.

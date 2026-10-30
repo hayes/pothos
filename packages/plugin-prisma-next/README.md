@@ -16,8 +16,9 @@ which targets Prisma 7 and `@prisma/client`.
 
 The plugin depends on Prisma's shared SQL family, not a database dialect. Your
 application supplies its Collection and owns the driver, connection, and
-transaction. PostgreSQL and SQLite use the same Pothos configuration. MongoDB
-uses a different upstream query API and is not supported.
+transaction. PostgreSQL and SQLite use the same Pothos configuration. MySQL is a
+read-only preview. MongoDB has a different upstream query API and is rejected when
+the schema is built.
 
 The plugin applies GraphQL selections before executing a returned Collection.
 Root resolvers return a Collection (or null for a nullable field). Configure

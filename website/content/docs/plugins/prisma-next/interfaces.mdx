@@ -43,7 +43,7 @@ than the interface it implements.
 `t.prismaField`, `t.prismaConnection` and `t.relation` accept an interface ref as
 their `type`, and plan its fields like an object's. A bare `t.relation` to a model
 that is registered as an interface returns that interface. Implementing types need
-an `isTypeOf` so each row can be routed to one:
+an `isTypeOf`, or the interface a `resolveType`, so each row can be routed to one:
 
 ```ts
 builder.queryType({
@@ -56,8 +56,48 @@ builder.queryType({
 });
 ```
 
-`isTypeOf` only sees the columns the query loaded. Check a brand added with
-`ref.addBrand` when the columns it needs might not be selected.
+`isTypeOf` and `resolveType` receive the row as loaded for that type, typed from its `select`.
+List the columns they read there.
+
+## Native inheritance
+
+A base model with variants in the contract maps to an interface plus one object per variant.
+The interface always selects the discriminator and resolves each row to its variant's type, and
+variants get their base's columns and relations with no extra configuration:
+
+```ts
+const task = builder.prismaInterface('Task', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    owner: t.relation('owner'),
+  }),
+});
+
+builder.prismaObject('Bug', {
+  interfaces: [task],
+  fields: (t) => ({
+    severity: t.exposeInt('severity'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    tasks: t.prismaField({
+      type: [task],
+      resolve: (_root, _args, ctx) => ctx.db.orm.Task,
+    }),
+    bugs: t.prismaField({
+      type: ['Bug'],
+      resolve: (_root, _args, ctx) => ctx.db.orm.Task.variant('bug'),
+    }),
+  }),
+});
+```
+
+Fragments such as `... on Bug` plan into the base query. Returning a variant type requires
+`orm.Base.variant(value)`: `orm.Bug` is unfiltered in Prisma, so it's rejected. A variant given a
+custom `name` or `variant` needs its own `resolveType` on the interface. Relations targeting a
+variant model and `prismaNode` on a variant aren't supported yet.
 
 ## Extending an interface
 

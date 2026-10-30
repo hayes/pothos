@@ -9,7 +9,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
   This plugin is **pre-release**. It targets a release candidate of Prisma ORM 8 (formerly Prisma
   Next) and is pinned to exactly `8.0.0-rc.22`: other versions, including newer release candidates,
   are not supported. Both Prisma ORM 8 and this plugin's API can change in any release, without a
-  migration path. MongoDB is not supported.
+  migration path. MySQL support is read-only, and MongoDB is not supported.
 </Callout>
 
 ```package-install
@@ -118,10 +118,12 @@ Set on `builder.options.prismaNext`:
 ```ts
 prismaNext: {
   contract,                    // required
-  // Enables batched fallback loading. Map each model that needs a fallback by its bare name.
-  // Clients with namespaces, such as PostgreSQL, keep their models under the namespace:
-  // `{ User: ctx.db.orm.public.User }`.
-  collections: (ctx) => ({ User: ctx.db.orm.User, Post: ctx.db.orm.Post }),
+  // Enables batched fallback loading. Pass the client's `orm`, or a map of only the models
+  // that need a fallback, such as `{ User: ctx.db.orm.public.User }`.
+  collections: (ctx) => ctx.db.orm,
+  // The client's `context`. Lets object-valued columns such as Temporal values work in
+  // cursors and fallback identities through their column codecs.
+  context: client.context,
   skipDeferredFragments: true, // default with collections; false keeps eager loading
   defaultConnectionSize: 20,   // default `first:` for all connections
   maxConnectionSize: 100,      // hard cap on connection page size
@@ -131,6 +133,34 @@ prismaNext: {
 `defaultConnectionSize` / `maxConnectionSize` flow through both
 `t.prismaConnection` and `t.relatedConnection`. They're overridden by
 per-field `defaultSize` / `maxSize` options when those are set.
+
+### Databases
+
+| Database | Status |
+| --- | --- |
+| PostgreSQL, SQLite | Tested for reads, writes, aggregates and connections |
+| MySQL (preview) | Reads only. MySQL contracts have no aggregates, so `totalCount: true`, `t.relationCount` and `t.relationAggregate` are compile errors, and Prisma's `create`, `update` and `delete` need a `returning` capability MySQL lacks |
+| MongoDB | Rejected when the schema is built. Prisma's Mongo Collections have no `combine`, cursor or aggregates, and don't apply include refinements |
+
+`postgresServerless().connect()` is tested against a local PostgreSQL server; Workers and
+Hyperdrive themselves aren't run.
+
+### Models in several namespaces
+
+A model name that's unique in the contract stays bare. One defined in several namespaces is
+written `'ns.Model'`, and autocompletes that way. Its default GraphQL type name is `ns_Model`, and
+its relations stay within its namespace:
+
+```ts
+builder.prismaObject('billing.User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+```
+
+A bare name that is ambiguous, or a qualified name for a unique model, is a type error, and throws
+when the schema is built.
 
 ## TypeScript integration
 
@@ -146,6 +176,11 @@ runtime Temporal implementation/polyfill is a separate application dependency.
 Pothos itself does not load Temporal or select database codecs.
 
 ## Selection and transaction lifetime
+
+A resolver can also return a row built by hand or one that no longer exists, such as the result
+of a delete, from a plain `t.field`. Fields satisfied by the row's own columns resolve without a
+query. With `collections` configured, a field needing anything else loads it by the row's identity,
+and fails on its own if that row is gone.
 
 Return the unexecuted Collection from `t.prismaField` and
 `t.prismaFieldWithInput`. The plugin applies the initial selection plan before
