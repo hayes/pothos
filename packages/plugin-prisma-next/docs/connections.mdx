@@ -75,9 +75,20 @@ resolve: (_parent, args, ctx) => ctx.db.orm.Post.orderBy((post) =>
 An unordered Collection supports both directions automatically. Prisma's
 `orderBy()` appends entries and has no public reset, so a preordered Collection
 must already use the reversed order for backward pagination. Incompatible or
-extra order entries are rejected. Nullable fields also require the matching
-explicit null-rank expression; returning an unordered Collection lets the plugin
-construct that ordering.
+extra order entries are rejected, and so is a Collection using `distinct()` or
+`distinctOn()`. A nullable field's preorder must state its null placement, such
+as `post.score.desc({ nulls: 'last' })`.
+
+To choose the direction per request, use the `orderBy` option rather than
+ordering the Collection. It names the cursor's columns in cursor order, and the
+plugin reverses it for backward pages:
+
+```ts
+cursor: ['createdAt', 'id'],
+args: { newest: t.arg.boolean() },
+orderBy: (post, args) => (args.newest ? post.createdAt.desc() : post.createdAt.asc()),
+resolve: (_parent, _args, ctx) => ctx.db.orm.Post,
+```
 
 Specify direction per column for descending or mixed ordering:
 
@@ -85,8 +96,15 @@ Specify direction per column for descending or mixed ordering:
 cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
 ```
 
-For object-valued ORM scalars, supply a reversible codec. For example, with a
-Temporal implementation installed by the application:
+For object-valued ORM scalars such as Temporal values, pass the client's context
+as `prismaNext.context` and use the column's own codec:
+
+```ts
+cursor: [{ field: 'createdAt', direction: 'desc', codec: 'column' }, 'id'],
+```
+
+An application codec overrides it. For example, with a Temporal implementation
+installed by the application:
 
 ```ts
 cursor: [
@@ -102,8 +120,7 @@ cursor: [
 ],
 ```
 
-Pothos does not infer codecs from database dialects. Use the matching codec for
-the column's actual ORM value type. Ordinary strings, numbers, bigint, Date and
+Ordinary strings, numbers, bigint, Date and
 bytes use the shared tagged encoding without an application codec.
 
 ### Options
@@ -113,6 +130,7 @@ bytes use the shared tagged encoding without an application codec.
 | `type` | model name or ref | the connection's node type |
 | `cursor` | column descriptor or tuple | complete unique ordering, directions and optional scalar codecs |
 | `args` | input args | extra args for filtering / sorting |
+| `orderBy` | `(model, args, ctx) => item \| item[]` | direction and null placement for this request |
 | `defaultSize` | `number \| (args, ctx) => number` | default `first:` value |
 | `maxSize` | `number \| (args, ctx) => number` | hard cap on page size |
 | `totalCount` | `boolean \| (parent, args, ctx, info) => number` | enable totalCount (see below) |
@@ -167,8 +185,9 @@ Same as `t.prismaConnection`, with one addition:
   Accepts a literal `ShorthandWhereFilter` or a callback
   `(accessor, args, ctx) => predicate`.
 
-The `where` is filter-only at the type level — `limit`/`offset`/`orderBy`
-are owned by cursor pagination and rejected as options.
+The `where` is filter-only at the type level — `limit`/`offset` are owned by
+cursor pagination and rejected as options. `orderBy` works as it does on
+`t.prismaConnection`.
 
 ## `prismaConnectionHelpers`
 

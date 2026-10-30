@@ -215,8 +215,15 @@ export type PrismaNextCollections<TContract extends AnyContract> = {
   >;
 };
 
+type OrderByItem = import('@prisma/orm-family-sql/relational-core/ast').OrderByItem;
+
 export interface PrismaNextPluginOptions<TContract extends AnyContract, Context = object> {
   readonly contract: TContract;
+  /**
+   * The client's `context`. Lets object-valued columns such as Temporal values work in cursors
+   * and fallback identities through their column codecs.
+   */
+  readonly context?: import('./utils/model.js').PrismaNextCodecContext;
   /** Base model collections for batched fallback loads, including request filters/transactions. */
   readonly collections?:
     | PrismaNextCollections<TContract>
@@ -717,7 +724,10 @@ export type CursorColumn<Types extends SchemaTypes, M extends ModelName<Types>> 
         field: Key;
         direction?: 'asc' | 'desc';
         nulls?: 'first' | 'last';
-        codec: import('./utils/cursors.js').CursorValueCodec<NonNullable<Row<Types, M>[Key]>>;
+        /** `'column'` uses the column's codec from `prismaNext.context`. */
+        codec:
+          | import('./utils/cursors.js').CursorValueCodec<NonNullable<Row<Types, M>[Key]>>
+          | 'column';
       };
 }[keyof Row<Types, M> & string];
 
@@ -778,6 +788,15 @@ export type PrismaNextConnectionFieldOptions<
           ctx: Types['Context'],
         ) => number);
     args?: Args;
+    /**
+     * Direction and null placement for this request. Each item names a cursor column, in cursor
+     * order; backward pages reverse it.
+     */
+    orderBy?: (
+      model: ModelAccessor<Types['PrismaNextContract'], M>,
+      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+      context: Types['Context'],
+    ) => OrderByItem | readonly OrderByItem[];
     totalCount?:
       | boolean
       | ((
@@ -847,6 +866,15 @@ export type PrismaNextRelatedConnectionOptions<
           ctx: Types['Context'],
         ) => number);
     args?: Args;
+    /**
+     * Direction and null placement for this request. Each item names a cursor column, in cursor
+     * order; backward pages reverse it.
+     */
+    orderBy?: (
+      model: ModelAccessor<Types['PrismaNextContract'], RelatedModel<Types, ParentModel, RelName>>,
+      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+      context: Types['Context'],
+    ) => OrderByItem | readonly OrderByItem[];
     totalCount?:
       | boolean
       | ((
