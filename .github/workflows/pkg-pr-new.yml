@@ -17,10 +17,10 @@ jobs:
         with:
           run_install: false
 
-      - name: Use Node.js 22
+      - name: Use Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
@@ -36,4 +36,8 @@ jobs:
       - name: Build
         run: pnpm turbo build
 
-      - run: pnpm dlx pkg-pr-new publish --compact './packages/plugin-*' './packages/core' './packages/tracing-*'
+      # pkg-pr-new skips private packages. This only changes the runner's checkout.
+      - name: Include the private Prisma Next plugin
+        run: node scripts/prisma-next-preview.mjs
+
+      - run: pnpm dlx pkg-pr-new publish --compact './packages/plugin-*' './packages/core' './packages/selection-mapper' './packages/tracing-*'
