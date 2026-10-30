@@ -251,7 +251,7 @@ function addBranch(
   // selection namespace, but only share the include when its query agrees.
   if (!relation.meta.isToMany) {
     for (const existing of relation.branches.values()) {
-      if (!deepEqual(existing.args, args) || !sameRefine(existing.refine, spec.refine)) {
+      if (!deepEqual(existing.args, args) || !sameBranchRefine(existing, spec)) {
         throw new SelectionConflict(
           name,
           `Relation "${name}" is to-one and has incompatible queries under aliases "${selectBranchAlias(existing.alias, existing.slot)}" and "${id}". ` +
@@ -511,17 +511,15 @@ function sameRefine(a: PrismaNextRefine | undefined, b: PrismaNextRefine | undef
   );
 }
 
-function sameBranchRefine(branch: PrismaNextBranch, spec: PrismaNextSpec): boolean {
+function sameBranchRefine(
+  branch: Pick<PrismaNextSpec, 'source' | 'refine'>,
+  spec: PrismaNextSpec,
+): boolean {
   return (
     sameRefine(branch.refine, spec.refine) ||
-    !!(
-      branch.source &&
-      branch.source === spec.source &&
-      branch.refine &&
-      spec.refine &&
-      !declarativeRefines.has(branch.refine) &&
-      !declarativeRefines.has(spec.refine)
-    )
+    // One schema definition with equal arguments compiles to the same query, even though a
+    // callback `query` returns a new closure on every walk.
+    !!(branch.source && branch.source === spec.source && branch.refine && spec.refine)
   );
 }
 
@@ -829,6 +827,31 @@ function compileFieldSelection(
   return (args, _ctx, nested) => compile(raw, args as PrismaNextArgs, nested);
 }
 
+/** Merge a type's selection, setting aside relation entries that conflict with what's merged. */
+function mergeTypeEntries(
+  node: PrismaNextNode,
+  spec: PrismaNextSpec,
+  alias: string,
+  typeName: string,
+  deferred: Map<string, PrismaNextSpec['relations']>,
+) {
+  mergeSpec(node, { columns: spec.columns }, alias);
+  for (const [name, entry] of Object.entries(spec.relations ?? {})) {
+    const copy = createPrismaNextNode(node.model);
+    try {
+      mergeSpec(copy, serializeNode(node), alias);
+      mergeSpec(copy, { relations: { [name]: entry } }, alias);
+      validateIncludes(copy);
+      mergeSpec(node, { relations: { [name]: entry } }, alias);
+    } catch (error) {
+      if (!(error instanceof SelectionConflict)) {
+        throw error;
+      }
+      deferred.set(typeName, { ...deferred.get(typeName), [name]: entry });
+    }
+  }
+}
+
 /**
  * The type's `PRISMA_NEXT_SELECT`, `string[]` or an object of columns and relation entries,
  * compiled once to a spec slotted under `:object:<Type>`.
@@ -836,6 +859,7 @@ function compileFieldSelection(
 function compileTypeSelection(
   type: GraphQLNamedType,
   model: PrismaNextModel | undefined,
+  deferred?: Map<string, PrismaNextSpec['relations']>,
 ): PrismaNextSpec | undefined {
   if (!model) {
     return undefined;
@@ -850,27 +874,36 @@ function compileTypeSelection(
     }
     visited.add(current);
     // Inherited fields retain their defining interface's resolver and slot namespace.
-    // Load those prerequisites even when the GraphQL return type is concrete.
-    if ('getInterfaces' in current) {
-      for (const iface of current.getInterfaces()) {
-        collect(iface);
-      }
+    // Load those prerequisites even when the GraphQL return type is concrete. A loader can
+    // serve a conflict separately, so there the concrete type's own selection goes first.
+    const interfaces = 'getInterfaces' in current ? current.getInterfaces() : [];
+    if (!deferred) {
+      interfaces.forEach(collect);
     }
     const raw = current.extensions?.[PRISMA_NEXT_SELECT] as RawSelect | undefined;
-    if (!raw) {
-      return;
+    if (raw) {
+      hasSelection = true;
+      const alias = objectLevelFieldAlias(current.name);
+      const spec = withSelectionSource(
+        compileSelect(raw, {
+          model,
+          owner: current.name,
+          label: 'prismaObject select',
+          alias,
+          // A type-level function entry runs with no field arguments.
+          fn: (value) => (sub, ctx) => value(sub, {}, ctx) as Record<string, unknown>,
+        }),
+        current,
+      );
+      if (deferred) {
+        mergeTypeEntries(node, spec, alias, current.name, deferred);
+      } else {
+        mergeSpec(node, spec, alias);
+      }
     }
-    hasSelection = true;
-    const alias = objectLevelFieldAlias(current.name);
-    const spec = compileSelect(raw, {
-      model,
-      owner: current.name,
-      label: 'prismaObject select',
-      alias,
-      // A type-level function entry runs with no field arguments.
-      fn: (value) => (sub, ctx) => value(sub, {}, ctx) as Record<string, unknown>,
-    });
-    mergeSpec(node, withSelectionSource(spec, current), alias);
+    if (deferred) {
+      interfaces.forEach(collect);
+    }
   };
   collect(type);
   return hasSelection ? serializeNode(node) : undefined;
@@ -890,6 +923,12 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
   // Provider-enabled plans can leave deferred fields for the model loader.
   override readonly skipDeferredFragments: boolean;
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSpec | null>();
+  private readonly typePrerequisites = new WeakMap<GraphQLNamedType, PrismaNextSpec | null>();
+  /** Interface prerequisites a concrete type can't share a row with, by interface name. */
+  private readonly deferredPrerequisites = new WeakMap<
+    GraphQLNamedType,
+    Map<string, PrismaNextSpec['relations']>
+  >();
   private readonly fieldSelections = new WeakMap<
     GraphQLField<unknown, unknown>,
     PrismaNextSpec | PrismaNextSelectFn | null
@@ -914,7 +953,7 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
 
     if (spec === undefined) {
       const model = this.modelFor(type);
-      spec = compileTypeSelection(type, model) ?? null;
+      spec = this.typePrerequisite(type) ?? null;
       if (this.fallback && model) {
         spec = {
           ...spec,
@@ -925,6 +964,38 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     }
 
     return spec ?? undefined;
+  }
+
+  /** The type's own selection, without the identity columns fallback loading adds to it. */
+  typePrerequisite(type: GraphQLNamedType): PrismaNextSpec | undefined {
+    let spec = this.typePrerequisites.get(type);
+
+    if (spec === undefined) {
+      const deferred = this.fallback ? new Map<string, PrismaNextSpec['relations']>() : undefined;
+      spec = compileTypeSelection(type, this.modelFor(type), deferred) ?? null;
+      this.typePrerequisites.set(type, spec);
+      if (deferred?.size) {
+        this.deferredPrerequisites.set(type, deferred);
+      }
+    }
+
+    return spec ?? undefined;
+  }
+
+  /** What a field inherited from an interface needs beyond the row its concrete type loads. */
+  private inheritedPrerequisites(field: GraphQLField<unknown, unknown>, type: WalkedType) {
+    this.typePrerequisite(type);
+    const deferred = this.deferredPrerequisites.get(type);
+    if (!deferred || !('getInterfaces' in type)) {
+      return undefined;
+    }
+    for (const iface of type.getInterfaces()) {
+      const relations = deferred.get(iface.name);
+      if (relations && iface.getFields()[field.name]) {
+        return relations;
+      }
+    }
+    return undefined;
   }
 
   // A `GraphQLField` belongs to one type (`type.getFields()`), so the compile is cached on it.
@@ -942,6 +1013,23 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
               return isThenable(spec) ? Promise.resolve(spec).then(finish) : finish(spec);
             }
           : withSelectionSource(compiled, field);
+      const inherited = this.fallback ? this.inheritedPrerequisites(field, type) : undefined;
+      if (inherited) {
+        const own = selection;
+        const withInherited = (value: PrismaNextSpec): PrismaNextSpec => ({
+          ...value,
+          relations: { ...inherited, ...value.relations },
+        });
+        selection =
+          typeof own === 'function'
+            ? (...args) => {
+                const spec = own(...args);
+                const finish = (value: PrismaNextSpec | false | null | undefined) =>
+                  value ? withInherited(value) : value;
+                return isThenable(spec) ? Promise.resolve(spec).then(finish) : finish(spec);
+              }
+            : withInherited(own);
+      }
       this.fieldSelections.set(field, selection);
     }
 
@@ -1144,6 +1232,12 @@ function emitRelation(
       : parent.include(name);
   }
 
+  const merged = functions.length === 0 ? mergeToManyBranches(branches, meta.target) : undefined;
+
+  if (merged) {
+    return parent.include(name, (rel) => emitBranch(merged, rel, meta.target, ctx));
+  }
+
   return parent.include(name, (rel) => {
     // Combine spec keys are namespaced with `:` (GraphQL-forbidden), so
     // collisions with reserved JS object keys can't be forged from user
@@ -1174,6 +1268,66 @@ function emitRelation(
 
     return rel.combine(combined);
   });
+}
+
+/** Whether a field alias below `spec` already belongs to another field at the same position. */
+function reusesChildAlias(
+  spec: PrismaNextSpec,
+  path: string,
+  owners: Map<string, unknown>,
+): boolean {
+  for (const [name, entries] of Object.entries(spec.relations ?? {})) {
+    for (const entry of Array.isArray(entries) ? entries : [entries]) {
+      if (entry === true || typeof entry === 'function') {
+        continue;
+      }
+      const position = `${path}|${entry.alias}`;
+      const owner = entry.source ?? ('fn' in entry ? entry.fn : entry.refine) ?? name;
+      if (owners.has(position) && owners.get(position) !== owner) {
+        return true;
+      }
+      owners.set(position, owner);
+      if (isBranch(entry) && reusesChildAlias(entry, `${position}|${name}`, owners)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Consumers of one to-many relation with the same query can read one include's rows. Their child
+ * selections share those rows, so a child alias used differently keeps the branches separate.
+ */
+function mergeToManyBranches(
+  branches: readonly PrismaNextSpec[],
+  target: PrismaNextModel,
+): PrismaNextSpec | undefined {
+  const [first] = branches;
+  if (
+    !branches.every(
+      (branch) => deepEqual(branch.args ?? {}, first.args ?? {}) && sameBranchRefine(first, branch),
+    )
+  ) {
+    return undefined;
+  }
+  const owners = new Map<string, unknown>();
+  if (branches.some((branch) => reusesChildAlias(branch, '', owners))) {
+    return undefined;
+  }
+  const shared = createPrismaNextNode(target);
+  try {
+    for (const branch of branches) {
+      mergeSpec(shared, { columns: branch.columns, relations: branch.relations }, branch.alias);
+    }
+    validateIncludes(shared);
+  } catch (error) {
+    if (error instanceof SelectionConflict) {
+      return undefined;
+    }
+    throw error;
+  }
+  return { ...serializeNode(shared), refine: first.refine };
 }
 
 function emitBranch(

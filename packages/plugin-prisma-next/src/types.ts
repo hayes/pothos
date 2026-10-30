@@ -35,6 +35,7 @@ import type {
   DefaultCollectionTypeState,
   DefaultModelRow,
   ModelAccessor,
+  ModelCallbackTools,
   NumericFieldNames,
   ShorthandWhereFilter,
 } from '@prisma/orm-family-sql/orm-client';
@@ -318,9 +319,13 @@ export type DefaultRelationNullable<
 export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
   where?:
     | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, M>
-    | ((accessor: ModelAccessor<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>) => unknown);
+    | ((
+        accessor: ModelAccessor<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>,
+        tools: ModelCallbackTools<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>,
+      ) => unknown);
   orderBy?: (
     accessor: ModelAccessor<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>,
+    tools: ModelCallbackTools<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>,
   ) => unknown;
   limit?: number;
   offset?: number;
@@ -409,6 +414,11 @@ type RelationAggregateWhere<
       >,
       args: InputShapeFromFields<Args>,
       context: Types['Context'],
+      tools: ModelCallbackTools<
+        Types['PrismaNextContract'],
+        RelatedModel<Types, M, R>,
+        NamespaceOf<Types, RelatedModel<Types, M, R>>
+      >,
     ) => unknown);
 
 /**
@@ -881,6 +891,11 @@ export type PrismaNextRelatedConnectionOptions<
           >,
           args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
           context: Types['Context'],
+          tools: ModelCallbackTools<
+            Types['PrismaNextContract'],
+            RelatedModel<Types, ParentModel, RelName>,
+            NamespaceOf<Types, RelatedModel<Types, ParentModel, RelName>>
+          >,
         ) => unknown);
   };
 
