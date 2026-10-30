@@ -18,7 +18,12 @@ import { PrismaNextObjectRef } from './object-ref.js';
 import { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 import type { ModelName, PrismaNextObjectOptions } from './types.js';
 import { createApply } from './utils/apply.js';
-import { resolveContractModel } from './utils/contract.js';
+import {
+  defaultTypeName,
+  modelDiscriminator,
+  relatedModelKey,
+  resolveContractModel,
+} from './utils/contract.js';
 import { CURSOR_PAYLOAD_MAX_BYTES, type CursorValueCodec } from './utils/cursors.js';
 import { getModelUniqueKeys } from './utils/model.js';
 import { enqueueNodeLoad, pathKey } from './utils/node-batch.js';
@@ -41,6 +46,12 @@ const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBu
  * registration reuses the cached one, so sibling `t.relation` and string-form helpers resolve to
  * the same instance.
  */
+function withDiscriminatorSelected(select: unknown, field: string) {
+  return Array.isArray(select)
+    ? [...select, field]
+    : { ...(select as object | undefined), [field]: true };
+}
+
 function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Types>>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   modelName: M,
@@ -48,9 +59,9 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
   kind: 'interface' | 'object',
 ) {
   const isInterface = kind === 'interface';
-  const typeName =
-    (options as { variant?: string }).variant ?? options.name ?? (modelName as string);
-  const isVariant = typeName !== (modelName as string);
+  const defaultName = defaultTypeName(modelName as string);
+  const typeName = (options as { variant?: string }).variant ?? options.name ?? defaultName;
+  const isVariant = typeName !== defaultName;
   const ref = isVariant
     ? isInterface
       ? new PrismaNextInterfaceRef<Types, M>(typeName, modelName)
@@ -64,12 +75,26 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
   }
 
   const contract = readPluginOptions<Types['PrismaNextContract']>(builder)?.contract;
+  const discriminator =
+    isInterface && contract ? modelDiscriminator(contract, modelName as string) : undefined;
+  const select = discriminator
+    ? withDiscriminatorSelected(options.select, discriminator.field)
+    : options.select;
   const config = {
+    // An implementation of a hierarchy's interface is named by the discriminator value.
+    ...(discriminator
+      ? {
+          resolveType: (row: Record<string, unknown>) => {
+            const variant = discriminator.variants[row[discriminator.field] as string];
+            return variant && defaultTypeName(relatedModelKey(contract!, variant));
+          },
+        }
+      : {}),
     ...(options as object),
     extensions: {
       ...(options.extensions as Record<string, unknown> | undefined),
       [PRISMA_NEXT_MODEL]: modelName,
-      ...(options.select !== undefined ? { [PRISMA_NEXT_SELECT]: options.select } : {}),
+      ...(select !== undefined ? { [PRISMA_NEXT_SELECT]: select } : {}),
     },
     name: typeName,
     fields: options.fields

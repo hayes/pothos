@@ -7,6 +7,7 @@ import type {
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 import type {
+  BareModelName,
   IsToMany,
   ModelName,
   NamespaceOf,
@@ -14,6 +15,7 @@ import type {
   RelationKeys,
   RelationRefinementCollection,
   Row,
+  VariantModelKeys,
 } from './types.js';
 
 /**
@@ -124,19 +126,19 @@ export type SelectRelationDeclarative<
     | ShorthandWhereFilter<
         Types['PrismaNextContract'],
         NamespaceOf<Types, RelatedModel<Types, M, R>>,
-        RelatedModel<Types, M, R>
+        BareModelName<RelatedModel<Types, M, R>>
       >
     | ((
         accessor: ModelAccessor<
           Types['PrismaNextContract'],
-          RelatedModel<Types, M, R>,
+          BareModelName<RelatedModel<Types, M, R>>,
           NamespaceOf<Types, RelatedModel<Types, M, R>>
         >,
       ) => unknown);
   readonly orderBy?: (
     accessor: ModelAccessor<
       Types['PrismaNextContract'],
-      RelatedModel<Types, M, R>,
+      BareModelName<RelatedModel<Types, M, R>>,
       NamespaceOf<Types, RelatedModel<Types, M, R>>
     >,
   ) => unknown;
@@ -218,9 +220,14 @@ type SimpleColumnShape<Types extends SchemaTypes, M extends ModelName<Types>, S>
  * has declared a dependency on. Defaulting the parent type to the
  * full `Row<M>` would lie about what's actually present.
  */
-export type ObjectBaseShape<Types extends SchemaTypes, M extends ModelName<Types>> = {
-  readonly [prismaModelKey]?: M;
-};
+// A variant's shape extends its base's, so the base's brand admits its variants. The conditional
+// keeps TypeScript from comparing two shapes by their `M` alone, which would reject that.
+export type ObjectBaseShape<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+> = M extends string ? ModelBrand<M | VariantModelKeys<Types['PrismaNextContract'], M>> : never;
+
+type ModelBrand<Key> = { readonly [prismaModelKey]?: Key };
 
 /**
  * Validates an array-form `select: ['firstName', ...]` so typos surface
