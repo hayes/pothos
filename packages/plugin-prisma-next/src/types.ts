@@ -148,6 +148,15 @@ export type Row<Types extends SchemaTypes, M extends ModelName<Types>> = Default
   M
 >;
 
+/**
+ * The parent of a callback on a field that doesn't declare its columns (`authScopes`, `totalCount`
+ * and similar on relations, connections and aggregates). The row only holds what the query
+ * happened to load, so any column may be missing.
+ */
+export type PartialRow<Types extends SchemaTypes, M extends ModelName<Types>> = Partial<
+  Row<Types, M>
+>;
+
 // The namespace id that owns model `M` (ADR 221). For single-namespace
 // contracts this resolves to the sole namespace (e.g. `'__unbound__'`).
 export type NsIdOf<TContract extends AnyContract, M extends string> = {
@@ -360,7 +369,7 @@ export type PrismaNextRelationOptions<
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
-    Row<Types, ParentModel>,
+    PartialRow<Types, ParentModel>,
     RelationRef<Types, ParentModel, RelName, RelatedShape>,
     Nullable,
     Args,
@@ -428,7 +437,7 @@ type RelationAggregateBaseOptions<
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
-    Row<Types, ParentModel>,
+    PartialRow<Types, ParentModel>,
     TypeParam<Types>,
     Nullable,
     Args,
@@ -718,7 +727,6 @@ export type CursorColumn<Types extends SchemaTypes, M extends ModelName<Types>> 
     | bigint
     | boolean
     | Date
-    | Uint8Array
     ?
         | Key
         | {
@@ -805,7 +813,7 @@ export type PrismaNextConnectionFieldOptions<
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
       info: GraphQLResolveInfo,
-    ) => MaybePromise<ConnectionCollection<Types, M>>;
+    ) => MaybePromise<ConnectionCollection<Types, M> | (Nullable extends true ? null : never)>;
     /** Sentinel for plugin-prisma porters: chain `.where(...)` on the collection inside `resolve` instead. */
     query?: 'plugin-prisma-next: chain `.where(...)` on the collection inside `resolve` instead of passing a `query` option';
   };
@@ -821,7 +829,7 @@ export type PrismaNextRelatedConnectionOptions<
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
-    Row<Types, ParentModel>,
+    PartialRow<Types, ParentModel>,
     PrismaNextObjectRef<Types, RelatedModel<Types, ParentModel, RelName>, RelatedShape>,
     Nullable,
     InputFieldsFromShape<Types, PothosSchemaTypes.DefaultConnectionArguments, 'Arg'> &
@@ -835,7 +843,7 @@ export type PrismaNextRelatedConnectionOptions<
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
       Types,
-      Row<Types, ParentModel>,
+      PartialRow<Types, ParentModel>,
       PrismaNextObjectRef<Types, RelatedModel<Types, ParentModel, RelName>, RelatedShape>,
       Nullable,
       false,
@@ -863,7 +871,7 @@ export type PrismaNextRelatedConnectionOptions<
     totalCount?:
       | boolean
       | ((
-          parent: Row<Types, ParentModel>,
+          parent: PartialRow<Types, ParentModel>,
           args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
           context: Types['Context'],
           info: GraphQLResolveInfo,

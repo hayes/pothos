@@ -135,3 +135,53 @@ function _narrowedParentShapeSurvivesWithAuth() {
     }),
   }));
 }
+
+it('only hands relation and expose authScopes the columns the query loaded', async () => {
+  const seen: Record<string, unknown> = {};
+  const builder = new SchemaBuilder<{
+    PrismaNextContract: SampleContract;
+    AuthScopes: { open: boolean };
+  }>({
+    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    relay: {},
+    scopeAuth: { authScopes: () => ({ open: true }) },
+    prismaNext: { contract: ctx.contract },
+  });
+  builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+  builder.prismaObject('User', {
+    fields: (t) => ({
+      posts: t.relation('posts', {
+        authScopes: (user) => {
+          seen.relationEmail = user.email;
+          return true;
+        },
+      }),
+      firstName: t.exposeString('firstName', {
+        authScopes: (user) => {
+          seen.exposedOwn = user.firstName;
+          seen.exposedOther = user.email;
+          return true;
+        },
+      }),
+    }),
+  });
+  builder.queryType({
+    fields: (t) => ({
+      users: t.prismaField({
+        type: ['User'],
+        resolve: () => ctx.ormClient.User.where({ id: 'u-alice' }),
+      }),
+    }),
+  });
+  const result = await execute({
+    schema: builder.toSchema(),
+    document: parse('{ users { firstName posts { id } } }'),
+    contextValue: {},
+  });
+  expect(result.errors).toBeUndefined();
+  expect(seen).toEqual({
+    relationEmail: undefined,
+    exposedOwn: 'Alice',
+    exposedOther: undefined,
+  });
+});

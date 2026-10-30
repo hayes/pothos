@@ -61,6 +61,8 @@ function cursorDirections(cursor: CursorInput): readonly ('asc' | 'desc')[] {
   );
 }
 
+const BYTES_CODEC = /\/(bytea|bytes|blob)@/;
+
 /** Require a non-null unique key so equal sort values never disappear between pages. */
 export function validateCursor(
   contract: AnyContract,
@@ -84,6 +86,14 @@ export function validateCursor(
     if (!model.fields[field]) {
       throw new PothosSchemaError(
         `Connection cursor '${modelName}.${field}' must be a model field.`,
+      );
+    }
+  }
+  for (const field of fields) {
+    const type = model.fields[field]!.type as { codecId?: string } | undefined;
+    if (type?.codecId && BYTES_CODEC.test(type.codecId)) {
+      throw new PothosSchemaError(
+        `Connection cursor '${modelName}.${field}' is a bytes column, which the ORM can't order. Use a different cursor column.`,
       );
     }
   }

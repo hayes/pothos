@@ -4,6 +4,7 @@ import type {
   ModelAccessor,
   ShorthandWhereFilter,
 } from '@prisma/orm-family-sql/orm-client';
+import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 import type {
   IsToMany,
@@ -32,9 +33,13 @@ export type ParamToModelName<Types extends SchemaTypes, Param> =
     ? Param
     : Param extends [infer M extends ModelName<Types>]
       ? M
-      : Param extends PrismaNextObjectRef<Types, infer M extends ModelName<Types>, unknown>
+      : Param extends
+            | PrismaNextObjectRef<Types, infer M extends ModelName<Types>, unknown>
+            | PrismaNextInterfaceRef<Types, infer M extends ModelName<Types>, unknown>
         ? M
-        : Param extends [PrismaNextObjectRef<Types, infer M extends ModelName<Types>, unknown>]
+        : Param extends
+              | [PrismaNextObjectRef<Types, infer M extends ModelName<Types>, unknown>]
+              | [PrismaNextInterfaceRef<Types, infer M extends ModelName<Types>, unknown>]
           ? M
           : never;
 
@@ -43,14 +48,17 @@ export type ParamToModelName<Types extends SchemaTypes, Param> =
  * type-param the field-builder hands to `this.field({...})`. Same
  * load-bearing constraint as `ParamToModelName` above.
  */
-export type ParamToTypeParam<Types extends SchemaTypes, Param, Shape> =
-  Param extends PrismaNextObjectRef<Types, ModelName<Types>, unknown>
+export type ParamToTypeParam<Types extends SchemaTypes, Param, Shape> = Param extends
+  | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
+  | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
+  ? Param
+  : Param extends
+        | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
+        | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>]
     ? Param
-    : Param extends [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
-      ? Param
-      : Param extends [unknown]
-        ? [PrismaNextObjectRef<Types, ParamToModelName<Types, Param>, Shape>]
-        : PrismaNextObjectRef<Types, ParamToModelName<Types, Param>, Shape>;
+    : Param extends [unknown]
+      ? [PrismaNextObjectRef<Types, ParamToModelName<Types, Param>, Shape>]
+      : PrismaNextObjectRef<Types, ParamToModelName<Types, Param>, Shape>;
 
 export type RelationRef<
   Types extends SchemaTypes,
