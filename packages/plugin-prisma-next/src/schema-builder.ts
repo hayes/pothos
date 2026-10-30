@@ -18,7 +18,9 @@ import { PrismaNextObjectRef } from './object-ref.js';
 import { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 import type { ModelName, PrismaNextObjectOptions } from './types.js';
 import { createApply } from './utils/apply.js';
+import { resolveContractModel } from './utils/contract.js';
 import { CURSOR_PAYLOAD_MAX_BYTES, type CursorValueCodec } from './utils/cursors.js';
+import { getModelUniqueKeys } from './utils/model.js';
 import { enqueueNodeLoad, pathKey } from './utils/node-batch.js';
 import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options.js';
 import {
@@ -334,6 +336,21 @@ schemaBuilderProto.prismaNode = function prismaNode<
   const nodeMapperOpts = mapperOptionsFromPluginOpts(pluginOpts);
   const nodeModelName = modelName as string;
   const contract = pluginOpts.contract;
+  const identityKeys = getModelUniqueKeys(contract, nodeModelName);
+  // A null or repeated ID encodes rows that can never load back, or load as another row.
+  if (identityKeys && !identityKeys.some((key) => key.every((field) => idFields.includes(field)))) {
+    throw new PothosSchemaError(
+      `prismaNode '${nodeModelName}' id.field must include every field of a non-null primary or unique key.`,
+    );
+  }
+  const nullableIdField = idFields.find(
+    (field) => resolveContractModel(contract, nodeModelName)?.fields[field]?.nullable !== false,
+  );
+  if (nullableIdField) {
+    throw new PothosSchemaError(
+      `prismaNode '${nodeModelName}' id.field '${nullableIdField}' must be a non-null model field.`,
+    );
+  }
 
   const normalizeId = (id: IDShape): IDShape => {
     let parsed: unknown = id;

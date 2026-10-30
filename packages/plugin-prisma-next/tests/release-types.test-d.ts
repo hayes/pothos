@@ -107,3 +107,39 @@ builder.prismaObject('Post', {
     }),
   }),
 });
+
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    query: t.relation('author', {
+      query: {
+        where: (user, tools) => {
+          expectTypeOf(tools.fns).not.toBeAny();
+          return user.id.neq('x');
+        },
+      },
+    }),
+    invalidQuery: t.relation('author', {
+      query: {
+        // @ts-expect-error Unknown query options are rejected.
+        take: 1,
+      },
+    }),
+  }),
+});
+
+builder.prismaObject('User', {
+  variant: 'UserTools',
+  fields: (t) => ({
+    total: t.relationCount('posts', {
+      where: (post, _args, _ctx, tools) => {
+        expectTypeOf(tools.fns).not.toBeAny();
+        return post.id.neq('x');
+      },
+    }),
+    missingField: t.relationCount('posts', {
+      // @ts-expect-error Accessors only expose model fields.
+      where: (post) => post.missing.neq('x'),
+    }),
+  }),
+});

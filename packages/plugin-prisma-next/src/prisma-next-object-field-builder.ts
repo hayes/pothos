@@ -47,6 +47,7 @@ import {
   buildPaginationParams,
   normalizeCursor,
   validateCursor,
+  validateCursorArgs,
 } from './utils/cursors.js';
 import { readPluginOptions, resolveSizeOption } from './utils/options.js';
 import { getRefFromContractModel } from './utils/refs.js';
@@ -488,8 +489,13 @@ export class PrismaNextObjectFieldBuilder<
         }
         const refined =
           typeof where === 'function'
-            ? (sub.where((accessor: unknown) =>
-                (where as (a: unknown, args: unknown, c: unknown) => unknown)(accessor, args, ctx),
+            ? (sub.where((accessor: unknown, tools: unknown) =>
+                (where as (a: unknown, args: unknown, c: unknown, t: unknown) => unknown)(
+                  accessor,
+                  args,
+                  ctx,
+                  tools,
+                ),
               ) as MapperCollection)
             : (sub.where(where) as MapperCollection);
         return { [name]: reduce(refined) };
@@ -635,6 +641,17 @@ export class PrismaNextObjectFieldBuilder<
     // combine slots are `<alias>:rows` and `<alias>:count`; the per-field overlay lifts them
     // onto `parent.rows` / `parent.count` for the resolver.
     const select: PrismaNextSelectFn = (args, ctx, nested, selectedFieldNode) => {
+      try {
+        validateCursorArgs(
+          cursorOpt,
+          args as import('@pothos/plugin-relay').DefaultConnectionArguments,
+        );
+      } catch (error) {
+        if (error instanceof PothosValidationError) {
+          return {};
+        }
+        throw error;
+      }
       const filter = (rel: MapperCollection) =>
         refine != null ? (refine(rel, args, ctx) as MapperCollection) : rel;
       const selectedFields = selectedFieldNode();
@@ -699,15 +716,22 @@ export class PrismaNextObjectFieldBuilder<
         context: unknown,
         info: GraphQLResolveInfo,
       ) => {
+        // Planning skipped an invalid page so only this field fails.
+        validateCursorArgs(
+          cursorOpt,
+          args as import('@pothos/plugin-relay').DefaultConnectionArguments,
+        );
         // When the connection shares its relation with another consumer
         // (a sibling `t.relation`, a type-level select, a count), the
         // per-field overlay surfaces `<alias>:rows` (and `<alias>:count`)
         // onto `parent` as `rows` / `count`. When it is the relation's only
         // consumer the include took the single-consumer fast path and the
         // rows are the relation value itself.
-        const p = parent as { rows?: unknown; count?: unknown; [key: string]: unknown };
+        // Lifted slots are own properties of the overlay; the row, including a model column or
+        // relation that is itself named `rows` or `count`, sits on its prototype.
+        const p = parent as { [key: string]: unknown };
         const rows = connectionNeedsRows(context as object, info)
-          ? p.rows !== undefined
+          ? Object.hasOwn(p, 'rows')
             ? p.rows
             : p[relationName]
           : [];
@@ -734,7 +758,7 @@ export class PrismaNextObjectFieldBuilder<
         );
         const page = buildConnectionPage(rows as Record<string, unknown>[], pagination);
         if (totalCountFlag) {
-          if (p.count !== undefined) {
+          if (Object.hasOwn(p, 'count')) {
             (page as { totalCount?: number }).totalCount = p.count as number;
           }
         } else if (
@@ -778,6 +802,9 @@ export class PrismaNextObjectFieldBuilder<
   // Defaults to nullable when localFields aren't recorded (e.g. embed
   // relations) — safer than asserting non-null.
   #isToOneRelationNullable(meta: ContractRelation): boolean {
+    if ('nullable' in meta && typeof meta.nullable === 'boolean') {
+      return meta.nullable;
+    }
     const local = 'on' in meta ? meta.on.localFields : undefined;
     if (!local || local.length === 0) {
       return true;
