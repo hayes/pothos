@@ -4,6 +4,7 @@
  */
 
 import * as fs from 'node:fs';
+import { createRequire } from 'node:module';
 import * as path from 'node:path';
 
 const PACKAGES_DIR = path.join(__dirname, '../../packages');
@@ -12,6 +13,7 @@ const OUTPUT_FILE = path.join(__dirname, '../lib/playground/pothos-types.ts');
 interface TypeDefinition {
   moduleName: string;
   content: string;
+  filePath?: string;
 }
 
 const CORE_PACKAGES = ['core'];
@@ -35,7 +37,102 @@ const PLUGIN_PACKAGES: string[] = [
   'plugin-tracing',
   'plugin-zod',
   'plugin-drizzle',
+  'plugin-prisma-next',
 ];
+
+/**
+ * Add the published ORM declarations reached by the plugin and the example's contract at their real
+ * package paths. Only that closure ships; the returned `paths` map each subpath to its file.
+ */
+function addPrismaNextTypes(definitions: TypeDefinition[]): Record<string, string[]> {
+  const paths: Record<string, string[]> = {};
+  const visited = new Set<string>();
+  const importPattern = /(?:from\s+|import\s*\(\s*|import\s+)['"]([^'"]+)['"]/g;
+
+  function resolvePackage(specifier: string, from: string) {
+    const [scope, name, ...rest] = specifier.split('/');
+    const searchPaths = createRequire(path.join(from, 'noop.js')).resolve.paths(specifier) ?? [];
+    const found = searchPaths
+      .map((base) => path.join(base, scope, name))
+      .find((candidate) => fs.existsSync(path.join(candidate, 'package.json')));
+    if (!found) {
+      return undefined;
+    }
+    const root = fs.realpathSync(found);
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+    const entry = manifest.exports?.[rest.length ? `./${rest.join('/')}` : '.'];
+    const target = typeof entry === 'string' ? entry : (entry?.types ?? entry?.default);
+    return typeof target === 'string'
+      ? {
+          root,
+          name: `${scope}/${name}`,
+          file: path.posix.normalize(target.replace(/\.mjs$/, '.d.mts')),
+        }
+      : undefined;
+  }
+
+  function visit(root: string, name: string, relative: string) {
+    const absolute = path.join(root, relative);
+    if (visited.has(absolute) || !fs.existsSync(absolute)) {
+      return;
+    }
+    visited.add(absolute);
+    const content = fs.readFileSync(absolute, 'utf8');
+    definitions.push({
+      moduleName: `${name}/${relative}`,
+      content,
+      filePath: `file:///node_modules/${name}/${relative}`,
+    });
+    scan(content, path.dirname(absolute), { root, name, directory: path.posix.dirname(relative) });
+  }
+
+  function scan(
+    content: string,
+    from: string,
+    owner?: { root: string; name: string; directory: string },
+  ) {
+    for (const [, specifier] of content.matchAll(importPattern)) {
+      if (specifier.startsWith('.') && owner) {
+        visit(
+          owner.root,
+          owner.name,
+          path.posix.join(owner.directory, specifier.replace(/\.mjs$/, '.d.mts')),
+        );
+      } else if (specifier.startsWith('@prisma/orm-')) {
+        const target = resolvePackage(specifier, from);
+        if (target) {
+          paths[specifier] = [`node_modules/${target.name}/${target.file}`];
+          visit(target.root, target.name, target.file);
+        }
+      }
+    }
+  }
+
+  const pluginDirectory = path.join(PACKAGES_DIR, 'plugin-prisma-next');
+  for (const definition of [...definitions]) {
+    scan(definition.content, pluginDirectory);
+  }
+  // The playground's implementation of `node:sqlite`, which Monaco has no Node types for.
+  definitions.push({
+    moduleName: 'node-sqlite',
+    filePath: 'file:///node_modules/@types/node-sqlite/index.d.ts',
+    content: `declare module 'node:sqlite' {
+  export class DatabaseSync {
+    constructor(path: string);
+    exec(sql: string): void;
+    close(): void;
+  }
+}
+`,
+  });
+  const example = path.join(__dirname, '../playground-examples/plugin-prisma-next');
+  for (const entry of fs.readdirSync(example, { recursive: true })) {
+    if (String(entry).endsWith('.ts')) {
+      scan(fs.readFileSync(path.join(example, String(entry)), 'utf8'), path.join(__dirname, '..'));
+    }
+  }
+  return paths;
+}
 
 function readDtsFiles(packagePath: string, moduleName: string): TypeDefinition[] {
   const dtsPath = path.join(packagePath, 'dts');
@@ -428,6 +525,9 @@ function main() {
     });
   }
 
+  const prismaNext = pluginDefinitions['@pothos/plugin-prisma-next'];
+  const prismaNextPaths = prismaNext ? addPrismaNextTypes(prismaNext) : {};
+
   // Separate core global declarations from module declarations
   const coreGlobals = coreDefinitions.filter((d) => d.content.includes('declare global'));
   const coreModules = coreDefinitions.filter((d) => !d.content.includes('declare global'));
@@ -442,7 +542,12 @@ function main() {
 export interface TypeDefinition {
   moduleName: string;
   content: string;
+  // The virtual path, for declarations that keep their package-relative location.
+  filePath?: string;
 }
+
+// Compiler paths for published packages whose subpath exports Monaco can't resolve.
+export const pluginTypePaths: Record<string, Record<string, string[]>> = ${JSON.stringify({ '@pothos/plugin-prisma-next': prismaNextPaths }, null, 2)};
 
 // Core Pothos types (always loaded)
 export const coreTypeDefinitions: TypeDefinition[] = ${JSON.stringify(orderedCore, null, 2)};
