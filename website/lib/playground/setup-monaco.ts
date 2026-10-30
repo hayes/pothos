@@ -1,6 +1,11 @@
 import type { Monaco } from '@monaco-editor/react';
 import { monacoLogger } from './logger';
-import { coreTypeDefinitions, getAllPluginNames, getPluginTypeDefinitions } from './pothos-types';
+import {
+  coreTypeDefinitions,
+  getAllPluginNames,
+  getPluginTypeDefinitions,
+  pluginTypePaths,
+} from './pothos-types';
 
 interface MonacoDisposable {
   dispose(): void;
@@ -119,7 +124,7 @@ export function setupMonacoForPothos(monacoInstance: Monaco): void {
 }
 
 function loadTypeDefinitions(
-  typeDefs: Array<{ moduleName: string; content: string }>,
+  typeDefs: Array<{ moduleName: string; content: string; filePath?: string }>,
 ): MonacoDisposable[] {
   if (!monaco) {
     return [];
@@ -127,6 +132,15 @@ function loadTypeDefinitions(
 
   const disposables: MonacoDisposable[] = [];
   for (const typeDef of typeDefs) {
+    if (typeDef.filePath) {
+      disposables.push(
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(
+          typeDef.content,
+          typeDef.filePath,
+        ),
+      );
+      continue;
+    }
     const moduleParts = typeDef.moduleName.split('/');
     const hasGlobalDeclaration = typeDef.content.includes('declare global');
 
@@ -306,6 +320,15 @@ export function loadPluginTypes(code: string): void {
       if (!pluginDisposables.has(pluginName) && allPluginNames.includes(pluginName)) {
         const pluginTypes = getPluginTypeDefinitions(pluginName);
         const disposables = loadTypeDefinitions(pluginTypes);
+        const paths = pluginTypePaths[pluginName];
+        if (paths && monaco) {
+          const defaults = monaco.languages.typescript.typescriptDefaults;
+          defaults.setCompilerOptions({
+            ...defaults.getCompilerOptions(),
+            baseUrl: 'file:///',
+            paths,
+          });
+        }
         pluginDisposables.set(pluginName, disposables);
         monacoLogger.debug(`Loaded ${pluginTypes.length} type definitions for ${pluginName}`);
       }
