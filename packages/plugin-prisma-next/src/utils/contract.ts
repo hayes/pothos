@@ -1,4 +1,4 @@
-import { PothosSchemaError } from '@pothos/core';
+import { PothosSchemaError, PothosValidationError } from '@pothos/core';
 import { resolveDomainModel } from '@prisma/orm-framework/contract/resolve-domain-model';
 import type { ContractModelBase } from '@prisma/orm-framework/contract/types';
 import type { AnyContract } from '../types.js';
@@ -19,6 +19,27 @@ export function resolveContractModel(
   contract: AnyContract,
   modelKey: string,
 ): ContractModelBase | undefined {
+  const model = lookupModel(contract, modelKey);
+  const base = baseModelRef(model);
+  if (!base) {
+    return model;
+  }
+  // A variant's contract entry holds only its own fields. Its rows, identity and relations also
+  // come from its base model, which is what the ORM queries it through.
+  const parent = resolveContractModel(contract, relatedModelKey(contract, base))!;
+  return {
+    ...model!,
+    fields: { ...parent.fields, ...model!.fields },
+    relations: { ...parent.relations, ...model!.relations },
+    storage: parent.storage,
+  };
+}
+
+function baseModelRef(model: ContractModelBase | undefined) {
+  return (model as { base?: { model: string; namespace: string } } | undefined)?.base;
+}
+
+function lookupModel(contract: AnyContract, modelKey: string): ContractModelBase | undefined {
   const separator = modelKey.indexOf('.');
   if (separator >= 0) {
     const model = modelKey.slice(separator + 1);
@@ -47,6 +68,51 @@ export function relatedModelKey(
   return namespacesWithModel(contract, to.model).length > 1
     ? `${to.namespace}.${to.model}`
     : to.model;
+}
+
+/** The model a variant inherits from, following `@@base`; any other model is its own root. */
+export function rootModelKey(contract: AnyContract, modelKey: string): string {
+  const base = baseModelRef(lookupModel(contract, modelKey));
+  return base ? rootModelKey(contract, relatedModelKey(contract, base)) : modelKey;
+}
+
+/** The discriminator a hierarchy's base model routes rows with, and its variants by value. */
+export function modelDiscriminator(
+  contract: AnyContract,
+  modelKey: string,
+): { field: string; variants: Record<string, { model: string; namespace: string }> } | undefined {
+  const model = lookupModel(contract, modelKey) as
+    | {
+        discriminator?: { field: string };
+        variants?: Record<string, { model: string; namespace: string }>;
+      }
+    | undefined;
+  return model?.discriminator && model.variants
+    ? { field: model.discriminator.field, variants: model.variants }
+    : undefined;
+}
+
+/**
+ * A variant model's collection must be its base narrowed with `.variant()`. The ORM's own
+ * `orm.Bug` accessor isn't filtered by the discriminator and can't include inherited relations.
+ */
+export function assertVariantCollection(
+  contract: AnyContract,
+  modelKey: string,
+  collection: { modelName?: string; state?: { variantValue?: unknown } },
+): void {
+  const root = rootModelKey(contract, modelKey);
+  if (root === modelKey) {
+    return;
+  }
+  const value = Object.entries(modelDiscriminator(contract, root)?.variants ?? {}).find(
+    ([, variant]) => relatedModelKey(contract, variant) === modelKey,
+  )?.[0];
+  if (collection.state?.variantValue !== value) {
+    throw new PothosValidationError(
+      `Fields returning variant model '${modelKey}' must return a Collection from orm.${root}.variant('${value}').`,
+    );
+  }
 }
 
 /** The GraphQL name a model's default type takes; `.` isn't valid in one. */
