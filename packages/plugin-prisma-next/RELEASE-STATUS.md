@@ -6,29 +6,36 @@ tests and application examples, and production code has no database-dialect bran
 
 ## Deliberate boundaries
 
-- **MongoDB:** unsupported. Its Collection API has no refinement, `combine` or cursor support, so
-  it needs a separate adapter.
+- **MongoDB:** rejected at schema build. On RC22 against MongoDB 8, Collections have no `combine`,
+  `cursor` or aggregates, and `include('rel', refine)` and `where(callback)` silently return
+  unfiltered rows.
+- **MySQL (preview):** reads run in CI against MySQL 8.4. Contracts declare no aggregates, so count
+  options are compile errors with a clear runtime error for untyped callers, and ORM writes need the
+  `returning` capability.
+- **Serverless Postgres:** tested against a local server. Workers and Hyperdrive are not run. Other
+  drivers carry no validation claim.
 - **Fallback loading:** needs application-supplied unpaginated model Collections and non-null
-  primary or unique identities. Opaque object identities are rejected; scalar, Date, bytes and
-  Decimal keys work. Without a provider, incompatible to-one refinements are rejected before SQL.
-- **Conflicting prerequisites:** differing prerequisites on an object and its implemented interface
-  are rejected before SQL; move the differing filters to fields. Separate variant fields can load
-  different prerequisites in batches.
+  primary or unique identities. Object identities use column codecs through `prismaNext.context`,
+  or a string `toJSON()`. Without a provider, incompatible to-one refinements and conflicting
+  object and interface prerequisites are rejected before SQL.
 - **To-one selections:** function-form to-one selections are unsupported because Prisma throws
   `ORM.INCLUDE_UNSUPPORTED`. Use declarative selects or relation fields.
-- **Namespaces and inheritance:** bare model names must be unique, and native inheritance isn't
-  exposed. GraphQL variants are same-model views.
+- **Inheritance:** variant returns need `orm.Base.variant(value)`. Relations targeting a variant
+  model, `prismaNode` on a variant, and hierarchies across namespaces are not implemented or tested.
+  Custom variant type names need a user `resolveType`.
 - **Preordered connections:** existing ordering must match the requested page's query direction,
-  because Prisma has no public ordering reset. Unordered Collections work in both directions.
-- **Drivers:** only SQLite and PostgreSQL are tested. Matching types are not runtime certification.
+  because Prisma has no public ordering reset. Use the `orderBy` option or an unordered Collection
+  to support both directions. Bytes columns can't be cursors, because their accessors have no order.
+- **Cursors from clients:** type-mismatched values in a forged cursor aren't rejected. They only
+  affect the forger's own page.
 - **Inputs, descriptions and subscriptions:** there is no generated input companion, and no
   automatic mapping from contract comments or database change streams.
 
 ## Upstream compatibility seams
 
 - `src/types.ts` reconstructs include-refinement types that Prisma doesn't export.
-- `src/utils/collection-state.ts` reads the `@internal` Collection `state`, because `orderBy`
-  appends and there is no public reset or pagination accessor.
+- `src/utils/collection-state.ts` reads the `@internal` Collection `state` to validate pagination
+  and preordered prefixes, because `orderBy` appends and there is no public reset or accessor.
 - Test fixture generators map the `@internal/*` specifiers the programmatic emitter leaves in
   declarations. This stays outside production code.
 
@@ -37,7 +44,8 @@ Regenerate fixtures and rerun the integration tests whenever the pin changes.
 ## Verification
 
 Run PostgreSQL on port 5456 with database `prisma_next` and user and password `prisma`, or set
-`POTHOS_PRISMA_NEXT_DATABASE_URL`. CI provisions this in `node.js.yml` and `changesets.yml`.
+`POTHOS_PRISMA_NEXT_DATABASE_URL`. CI provisions this in `node.js.yml` and `changesets.yml`. Set
+`POTHOS_PRISMA_NEXT_MYSQL_URL` to run the MySQL tests; `node.js.yml` provisions MySQL 8.4.
 
 ```sh
 pnpm --filter @pothos/plugin-prisma-next... build
