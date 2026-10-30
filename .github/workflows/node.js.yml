@@ -27,6 +27,18 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      prisma-next-mysql:
+        image: mysql:8.4
+        ports:
+          - '5478:3306'
+        env:
+          MYSQL_ROOT_PASSWORD: prisma
+          MYSQL_DATABASE: prisma_next
+        options: >-
+          --health-cmd "mysqladmin ping -uroot -pprisma"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
       # Label used to access the service container
       postgres:
         # Docker Hub image
@@ -74,3 +86,5 @@ jobs:
 
       - name: Run build
         run: pnpm run ci
+        env:
+          POTHOS_PRISMA_NEXT_MYSQL_URL: mysql://root:prisma@127.0.0.1:5478/prisma_next?allowPublicKeyRetrieval=true

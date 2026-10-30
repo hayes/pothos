@@ -52,7 +52,11 @@ import {
 } from './utils/cursors.js';
 import { readPluginOptions, resolveSizeOption } from './utils/options.js';
 import { getRefForContractModel, getRefFromContractModel } from './utils/refs.js';
-import { connectionNeedsRows, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
+import {
+  connectionNeedsRows,
+  relatedCount,
+  wrapConnectionOptionsWithTotalCount,
+} from './utils/total-count.js';
 
 function isToManyCardinality(cardinality: string): boolean {
   return cardinality !== '1:1' && cardinality !== 'N:1';
@@ -686,7 +690,7 @@ export class PrismaNextObjectFieldBuilder<
         (field) => field !== 'totalCount' && field !== '__typename',
       );
       const count = {
-        fn: (sub: MapperCollection) => ({ count: filter(sub).count() }),
+        fn: (sub: MapperCollection) => ({ count: relatedCount(filter(sub)) }),
         args: args as Record<string, unknown>,
       };
       if (!wantsRows) {

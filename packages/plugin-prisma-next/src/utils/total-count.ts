@@ -1,4 +1,4 @@
-import { ObjectRef, type SchemaTypes } from '@pothos/core';
+import { ObjectRef, PothosValidationError, type SchemaTypes } from '@pothos/core';
 import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 
@@ -47,6 +47,25 @@ export function buildTotalCountPromise(
 }
 
 /**
+ * The row count of an include refinement.
+ *
+ * @internal
+ */
+export function relatedCount(collection: unknown): unknown {
+  const { count } = collection as { count?: unknown };
+  if (typeof count !== 'function') {
+    throw missingCountAggregate();
+  }
+  return count.call(collection);
+}
+
+function missingCountAggregate() {
+  return new PothosValidationError(
+    "totalCount requires the ORM's count aggregate, which this contract's database target does not provide.",
+  );
+}
+
+/**
  * The row count of `collection`, through the orm-client's aggregate builder. Deferred the same
  * way `buildTotalCountPromise` defers a callback, so a synchronous throw becomes a rejection.
  *
@@ -57,11 +76,16 @@ export function aggregateCount(collection: unknown): Promise<number> {
     (
       collection as {
         aggregate: (
-          fn: (a: { count: () => unknown }) => Record<string, unknown>,
+          fn: (a: { count?: () => unknown }) => Record<string, unknown>,
         ) => Promise<Record<string, number>>;
       }
     )
-      .aggregate((a) => ({ total: a.count() }))
+      .aggregate((a) => {
+        if (typeof a.count !== 'function') {
+          throw missingCountAggregate();
+        }
+        return { total: a.count() };
+      })
       .then((r) => r.total),
   );
 }

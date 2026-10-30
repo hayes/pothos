@@ -43,9 +43,10 @@ to 8.0.0-rc.22. Concrete drivers appear only in tests and application examples.
 
 ## Deliberate initial-release boundaries
 
-- **MongoDB:** unsupported. Its Collection/contract family cannot execute the SQL
-  adapter's refinement/combine operations. Shared GraphQL planning is reusable,
-  but a real Mongo implementation and tests are required.
+- **MongoDB:** unsupported, and a non-SQL contract now fails at schema build. Measured
+  on RC22 against MongoDB 8: Collections have no `combine`, `cursor` or aggregates, and
+  `include('rel', refine)` and `where(callback)` silently ignore their callback and
+  return unfiltered rows, so relation arguments and connections cannot be pushed down.
 - **Fallback configuration:** requires application-supplied unpaginated model
   Collections and non-null primary/unique identities. Opaque object identities
   remain unsupported pending an upstream public identity or input-mapped bulk
@@ -62,9 +63,14 @@ to 8.0.0-rc.22. Concrete drivers appear only in tests and application examples.
   query direction. Prisma has no public ordering reset, so a forward-ordered
   Collection cannot also serve backward pages. Unordered Collections work in
   both directions. Nullable sort fields still require a non-null unique tie-breaker.
-- **Additional/serverless drivers:** no validation claim beyond the tested SQL
-  runtimes. No dialect-specific code prevents other compatible drivers, but
-  matching types alone is not runtime certification.
+- **MySQL (preview):** CI runs reads against MySQL 8.4 at RC22: relation includes,
+  combined branches, per-parent pages and backward pages all work. RC22 MySQL
+  contracts declare no aggregates, so `totalCount`, `t.relationCount` and
+  `t.relationAggregate` fail with a clear error at request time. ORM `create`,
+  `update` and `delete` need the `returning` capability, which MySQL lacks.
+- **Serverless Postgres:** `postgresServerless().connect()` is tested against a local
+  PostgreSQL server, building the schema with that connection's `orm`. Workers and
+  Hyperdrive themselves are not run. Other drivers carry no validation claim.
 - **GraphQL input generation:** no equivalent of the separate Prisma-utils
   companion plugin. Standard Pothos inputs and with-input remain available.
 - **Descriptions and native subscriptions:** explicit descriptions work; no new
