@@ -52,8 +52,8 @@
     "@pothos/plugin-relay": "*",
     "@pothos/plugin-with-input": "*",
     "graphql": "^16.10.0 || ^17.0.0",
-    "@prisma/orm-framework": "8.0.0-rc.9",
-    "@prisma/orm-family-sql": "8.0.0-rc.9"
+    "@prisma/orm-framework": "8.0.0-rc.22",
+    "@prisma/orm-family-sql": "8.0.0-rc.22"
   },
   "peerDependenciesMeta": {
     "@pothos/plugin-relay": {
@@ -69,14 +69,15 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/orm-framework": "8.0.0-rc.9",
-    "@prisma/orm-family-sql": "8.0.0-rc.9",
-    "@prisma/orm-sqlite": "8.0.0-rc.9",
-    "@prisma/orm-postgres": "8.0.0-rc.9",
+    "@prisma/orm-framework": "8.0.0-rc.22",
+    "@prisma/orm-family-sql": "8.0.0-rc.22",
+    "@prisma/orm-sqlite": "8.0.0-rc.22",
+    "@prisma/orm-postgres": "8.0.0-rc.22",
     "pg": "8.22.0",
     "@types/pg": "8.20.4",
     "@js-temporal/polyfill": "^0.5.1",
-    "@pothos/plugin-scope-auth": "workspace:*"
+    "@pothos/plugin-scope-auth": "workspace:*",
+    "@prisma/cli-engine": "0.9.0"
   },
   "engines": {
     "node": ">=24"

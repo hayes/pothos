@@ -12,11 +12,11 @@ npm install --save @pothos/plugin-prisma-next
 Install the shared Prisma framework and SQL family at the supported version:
 
 ```sh
-npm install @prisma/orm-framework@8.0.0-rc.9 @prisma/orm-family-sql@8.0.0-rc.9
+npm install @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22
 ```
 
 Your application chooses its runtime, for example
-`@prisma/orm-postgres@8.0.0-rc.9` or `@prisma/orm-sqlite@8.0.0-rc.9`.
+`@prisma/orm-postgres@8.0.0-rc.22` or `@prisma/orm-sqlite@8.0.0-rc.22`.
 The Pothos plugin does not choose a driver or inspect the database dialect.
 Use Node.js 24 or later for this integration's supported runtime.
 
@@ -49,13 +49,15 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import prismaNextPlugin from '@pothos/plugin-prisma-next';
 import sqlite from '@prisma/orm-sqlite/runtime';
+import { contractFromJson } from '@prisma/orm-sqlite/static';
 
 import contractJson from './prisma/contract.json' with { type: 'json' };
 import type { Contract } from './prisma/contract';
 
 // Connect the orm-client.
-const client = sqlite<Contract>({
-  contractJson,
+const contract = contractFromJson<Contract>(contractJson);
+const client = sqlite({
+  contract,
   path: './app.db',
 });
 await client.connect();
@@ -69,7 +71,7 @@ const builder = new SchemaBuilder<{
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
   prismaNext: {
-    contract: contractJson as Contract,
+    contract,
   },
 });
 ```
@@ -183,7 +185,7 @@ const builder = new SchemaBuilder<{
   Context: { db: ReturnType<typeof sqlite<Contract>> };
 }>({
   plugins: [prismaNextPlugin],
-  prismaNext: { contract: contractJson as Contract },
+  prismaNext: { contract },
 });
 
 // Resolvers reach the client via `ctx.db.orm.<Model>`:

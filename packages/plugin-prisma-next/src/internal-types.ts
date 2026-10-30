@@ -1,6 +1,6 @@
 import type { SchemaTypes } from '@pothos/core';
 import type {
-  Collection,
+  HasRow,
   ModelAccessor,
   ShorthandWhereFilter,
 } from '@prisma/orm-family-sql/orm-client';
@@ -14,25 +14,6 @@ import type {
   RelationRefinementCollection,
   Row,
 } from './types.js';
-
-/**
- * prisma-next's `IncludeScalar<R>` is declared internally and not
- * exported. We structurally match `kind: 'includeScalar'` and recover
- * the result generic by reading the value at the type's symbol-keyed
- * brand (`RowSelection<T>` declares `[RowType]: T` where `RowType` is
- * a unique symbol). The brand isn't exported either, but `Extract<keyof V,
- * symbol>` finds it generically so the result type narrows correctly:
- *   - `count()` → `IncludeScalar<number>` → `number`
- *   - aggregate results retain their target/extension codec's output type
- */
-type AnyIncludeScalar = { readonly kind: 'includeScalar' };
-type SymbolKey<V> = Extract<keyof V, symbol>;
-type IncludeScalarResult<V> =
-  SymbolKey<V> extends never
-    ? number | null
-    : V extends { [K in SymbolKey<V>]: infer R }
-      ? R
-      : number | null;
 
 /**
  * Maps a `t.prismaField`-style `type` parameter (string model name,
@@ -106,10 +87,11 @@ export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape e
  * gatekeep, so future combine-spec value kinds added by prisma-next
  * just type as `unknown` until we add a mapping here.
  */
-export type SpecValueResult<V> = V extends AnyIncludeScalar
-  ? IncludeScalarResult<V>
-  : V extends Collection<infer _C, infer _M, infer Row, infer _S>
-    ? readonly Row[]
+export type SpecValueResult<V> =
+  V extends HasRow<infer R>
+    ? V extends { readonly kind: 'includeScalar' | 'includeCombine' }
+      ? R
+      : readonly R[]
     : unknown;
 
 /** Standard union-to-intersection for merging function-form inner-key results. */

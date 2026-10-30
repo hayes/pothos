@@ -6,7 +6,7 @@ prisma-next, makes it easier to define types backed by your contract, helps
 solve N+1 queries for relations, and ships Relay integrations for nodes and
 connections.
 
-> **Initial release.** This plugin targets Prisma ORM `8.0.0-rc.9`. The upstream
+> **Initial release.** This plugin targets Prisma ORM `8.0.0-rc.22`. The upstream
 > API is still a release candidate, so use the exact supported version.
 > This is separate from `@pothos/plugin-prisma`, which targets `@prisma/client`.
 
@@ -45,10 +45,12 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import prismaNextPlugin from '@pothos/plugin-prisma-next';
 import sqlite from '@prisma/orm-sqlite/runtime';
+import { contractFromJson } from '@prisma/orm-sqlite/static';
 import contractJson from './prisma/contract.json' with { type: 'json' };
 import type { Contract } from './prisma/contract';
 
-const client = sqlite<Contract>({ contractJson, path: './app.db' });
+const contract = contractFromJson<Contract>(contractJson);
+const client = sqlite({ contract, path: './app.db' });
 await client.connect();
 
 const builder = new SchemaBuilder<{
@@ -58,7 +60,7 @@ const builder = new SchemaBuilder<{
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
   prismaNext: {
-    contract: contractJson as Contract,
+    contract,
     collections: (ctx) => ctx.db.orm,
   },
 });
