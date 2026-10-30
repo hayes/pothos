@@ -38,6 +38,27 @@ that implements a `prismaInterface` benefits from auto-include. The
 schema build fails fast if a prismaObject claims a different model
 than the interface it implements.
 
+## Returning an interface
+
+`t.prismaField`, `t.prismaConnection` and `t.relation` accept an interface ref as
+their `type`, and plan its fields like an object's. A bare `t.relation` to a model
+that is registered as an interface returns that interface. Implementing types need
+an `isTypeOf` so each row can be routed to one:
+
+```ts
+builder.queryType({
+  fields: (t) => ({
+    people: t.prismaField({
+      type: [personIface],
+      resolve: (_root, _args, ctx) => ctx.db.orm.User,
+    }),
+  }),
+});
+```
+
+`isTypeOf` only sees the columns the query loaded, so select what it reads on the
+fields that are always requested, or check a brand added with `ref.addBrand`.
+
 ## Extending an interface
 
 `prismaInterfaceField` and `prismaInterfaceFields` extend an interface

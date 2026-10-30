@@ -65,16 +65,9 @@ function buildSchema() {
 
   builder.queryType({
     fields: (t) => ({
-      // Return rows typed as the interface via a hand-rolled
-      // `t.field`. `t.prismaField` doesn't currently accept interface
-      // refs (resolveModelAndRef expects PrismaNextObjectRef), so we
-      // use the underlying orm directly and let isTypeOf dispatch.
-      users: t.field({
+      users: t.prismaField({
         type: [userIface],
-        resolve: async () => {
-          const rows = await ctx.ormClient.User.all().toArray();
-          return rows as never;
-        },
+        resolve: () => ctx.ormClient.User,
       }),
       admins: t.field({ type: [adminRef], resolve: () => [] }),
       regulars: t.field({ type: [regularRef], resolve: () => [] }),
