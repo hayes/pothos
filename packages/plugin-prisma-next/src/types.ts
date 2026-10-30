@@ -281,7 +281,7 @@ type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<Sta
 // constraint — pass it bare (intersecting with the wide `AnyContract` would
 // collapse the concrete model's field/relation accessors to `never`). Bind the
 // row + state to the model's namespace so this matches `db.orm.<M>` exactly,
-// which is what `ModelCollection`/`orm` produce in 0.14.0.
+// which is what `ModelCollection`/`orm` produce.
 export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>> = Collection<
   Types['PrismaNextContract'],
   BareModelName<M>,

@@ -47,7 +47,7 @@ export type {
   UniqueConstraintCriterion,
 } from '@prisma/orm-family-sql/orm-client';
 // `IncludeRefinementCollection` and `IsToManyRelation` are re-exported via
-// `export * from './types'` below — orm-client made them internal in 0.14.0,
+// `export * from './types'` below — orm-client keeps them internal,
 // so the plugin owns reconstructed copies. `IncludeRefinementResult` was
 // dropped (see the note in ./types).
 export { all, and, not, or } from '@prisma/orm-family-sql/orm-client';

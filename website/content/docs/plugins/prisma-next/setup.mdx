@@ -5,6 +5,13 @@ description: Setting up the Prisma Next plugin
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
+<Callout type="warn" title="Experimental: do not use in production">
+  This plugin is **pre-release**. It targets a release candidate of Prisma ORM 8 (formerly Prisma
+  Next) and is pinned to exactly `8.0.0-rc.22`: other versions, including newer release candidates,
+  are not supported. Both Prisma ORM 8 and this plugin's API can change in any release, without a
+  migration path. MongoDB is not supported.
+</Callout>
+
 ```package-install
 npm install --save @pothos/plugin-prisma-next
 ```
@@ -20,6 +27,28 @@ Your application chooses its runtime, for example
 The Pothos plugin does not choose a driver or inspect the database dialect.
 Use Node.js 24 or later for this integration's supported runtime.
 
+### Matching the Prisma CLI
+
+Prisma numbers its CLI and ORM packages separately, so `prisma@8.0.0-rc.29` is not the same release
+as `@prisma/orm-postgres@8.0.0-rc.22`. Today `prisma@latest orm init` installs this pair, but that
+CLI still bundles `@prisma/orm-toolchain@8.0.0-rc.21`, and `prisma contract emit` fails with
+`CLI.UNEXPECTED`. Until a CLI release ships the matching toolchain, override it. With pnpm:
+
+```json
+{
+  "pnpm": {
+    "overrides": {
+      "@prisma/orm-toolchain": "8.0.0-rc.22"
+    }
+  }
+}
+```
+
+With the override, the generated scaffold's `temporal.UpdatedAtString` also fails to emit, so replace
+that field in the scaffolded contract. Don't downgrade the ORM packages to `8.0.0-rc.21` instead:
+the plugin's peers are pinned, and Prisma refuses to run with two installed copies of the ORM
+(`RUNTIME.MULTIPLE_ORM_COPIES`).
+
 <Callout type="info">
   `@pothos/plugin-relay` and `@pothos/plugin-with-input` are optional peers —
   install them only if you use Relay connections / `prismaFieldWithInput`.
@@ -27,14 +56,14 @@ Use Node.js 24 or later for this integration's supported runtime.
 
 ## Setup
 
-The plugin needs your prisma-next contract at type-check time and at runtime.
+The plugin needs your Prisma contract at type-check time and at runtime.
 Both come from the same JSON file emitted by `prisma contract emit`.
 
 ### Generate your contract
 
-Run prisma-next's contract emit step against your schema. The output is a JSON
+Run Prisma's contract emit step against your schema. The output is a JSON
 file plus a `.d.ts` carrying the contract type. Check the
-[prisma-next docs](https://github.com/prisma/orm) for the up-to-date
+[Prisma ORM docs](https://www.prisma.io/docs/orm) for the up-to-date
 command — this plugin treats the contract as the source of truth for model
 names, relation names, column types, and FK metadata.
 
@@ -89,7 +118,10 @@ Set on `builder.options.prismaNext`:
 ```ts
 prismaNext: {
   contract,                    // required
-  collections: (ctx) => ctx.db.orm, // enables batched fallback loading
+  // Enables batched fallback loading. Map each model that needs a fallback by its bare name.
+  // Clients with namespaces, such as PostgreSQL, keep their models under the namespace:
+  // `{ User: ctx.db.orm.public.User }`.
+  collections: (ctx) => ({ User: ctx.db.orm.User, Post: ctx.db.orm.Post }),
   skipDeferredFragments: true, // default with collections; false keeps eager loading
   defaultConnectionSize: 20,   // default `first:` for all connections
   maxConnectionSize: 100,      // hard cap on connection page size
@@ -124,8 +156,7 @@ Configure `collections` with a model-name map or a context callback returning th
 map. A partial map is allowed, but every model that needs a fallback must have an
 entry. For example, `collections: (ctx) => ({ User: ctx.db.orm.User, Post:
 ctx.db.orm.Post.where({ tenantId: ctx.tenantId }) })` preserves application filters.
-For a namespaced client, map bare model names explicitly, such as
-`{ User: ctx.db.orm.public.User }`. Model names must be globally unique.
+Model names must be globally unique.
 
 The loader reloads parent rows in batches using their primary key, or a non-null
 unique key when no primary key is available. Identity columns are selected
