@@ -3,6 +3,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import postgres from '@prisma/orm-postgres/runtime';
+import { contractFromJson } from '@prisma/orm-postgres/static';
 import { graphql } from 'graphql';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -16,26 +17,10 @@ Object.assign(globalThis, { Temporal });
 const url =
   process.env.POTHOS_PRISMA_NEXT_DATABASE_URL ??
   'postgresql://prisma:prisma@localhost:5456/prisma_next';
-const contract = JSON.parse(
-  readFileSync(new URL('./postgres/contract.json', import.meta.url), 'utf8'),
-) as Contract;
-// RC9's programmatic emitter omits defaults required by its JSON deserializer.
-for (const namespace of Object.values(contract.storage.namespaces)) {
-  for (const table of Object.values(namespace.entries.table)) {
-    const serialized = table as unknown as {
-      uniques?: unknown[];
-      foreignKeys?: unknown[];
-      indexes?: { unique?: boolean }[];
-    };
-    serialized.uniques ??= [];
-    serialized.foreignKeys ??= [];
-    serialized.indexes ??= [];
-    for (const index of serialized.indexes) {
-      index.unique ??= false;
-    }
-  }
-}
-const client = postgres<Contract>({ contractJson: contract, url, verifyMarker: false });
+const contract = contractFromJson<Contract>(
+  JSON.parse(readFileSync(new URL('./postgres/contract.json', import.meta.url), 'utf8')),
+);
+const client = postgres({ contract, url, verifyMarker: false });
 const raw = new Client({ connectionString: url });
 
 function createSchema(orm = client.orm) {

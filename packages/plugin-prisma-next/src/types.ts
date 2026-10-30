@@ -81,11 +81,13 @@ type RelationsOfModel<TContract extends AnyContract, M extends string> =
 // `[RowType]: T`) that can't be matched outside the package, so it is not
 // re-exported.
 // Revisit these reconstructions when upstream exports the refinement types.
-// RC9 still keeps them internal. Aggregate reducer names must follow the emitted
+// RC22 still keeps them internal. Aggregate reducer names must follow the emitted
 // contract because targets and extensions can contribute new operations.
 type IncludeRefinementTerminals =
   | 'all'
   | 'first'
+  | 'firstOrThrow'
+  | 'whereUnique'
   | 'aggregate'
   | 'groupBy'
   | 'create'

@@ -138,8 +138,8 @@ describe('prisma-next orm-client M:N (upstream canary)', () => {
     // The pin, observed against orm-client 0.14.0:
     expect(inc.relatedModelName).toBe('Tag');
     expect(inc.relatedTableName).toBe('tag');
-    expect(inc.localColumn).toBe('id');
-    expect(inc.targetColumn).toBe('id');
+    expect(inc.localColumns).toEqual(['id']);
+    expect(inc.targetColumns).toEqual(['id']);
 
     // Junction support has landed upstream: the cardinality is preserved
     // (no longer dropped to undefined) and a fully-resolved `through`
