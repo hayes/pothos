@@ -1,0 +1,13 @@
+query PublishedPosts {
+  posts(first: 2) {
+    totalCount
+    edges {
+      node {
+        title
+        author {
+          fullName
+        }
+      }
+    }
+  }
+}
