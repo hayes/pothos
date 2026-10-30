@@ -7,7 +7,12 @@
 import { PothosSchemaError } from '@pothos/core';
 import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
 import type { AnyContract } from '../types.js';
-import { relatedModelKey, resolveContractModel } from './contract.js';
+import {
+  modelDiscriminator,
+  relatedModelKey,
+  resolveContractModel,
+  rootModelKey,
+} from './contract.js';
 
 /**
  * Junction descriptor for an N:M relation, mirroring prisma-next's
@@ -119,7 +124,14 @@ export function buildColumnSet(
   if (!fields) {
     return undefined;
   }
-  return new Set(Object.keys(fields));
+  // A base collection selects its variants' columns, leaving them absent on other variants' rows.
+  const variants = Object.values(modelDiscriminator(contract, modelName)?.variants ?? {});
+  return new Set([
+    ...Object.keys(fields),
+    ...variants.flatMap((variant) =>
+      Object.keys(resolveContractModel(contract, relatedModelKey(contract, variant))?.fields ?? {}),
+    ),
+  ]);
 }
 
 const registries = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
@@ -170,8 +182,12 @@ export function getIdentityFields(contract: AnyContract, modelName: string): str
   return getModelUniqueKeys(contract, modelName)?.[0] ?? [];
 }
 
-/** The one `PrismaNextModel` for `name` under `contract`. */
-export function getModel(contract: AnyContract, name: string): PrismaNextModel {
+/**
+ * The one `PrismaNextModel` for `name` under `contract`. A variant shares its base's model: one
+ * query loads the hierarchy, so `... on Bug` beneath a `Task` plans into that query.
+ */
+export function getModel(contract: AnyContract, key: string): PrismaNextModel {
+  const name = rootModelKey(contract, key);
   let models = registries.get(contract);
 
   if (!models) {

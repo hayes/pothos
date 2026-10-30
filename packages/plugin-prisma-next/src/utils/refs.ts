@@ -38,6 +38,11 @@ export function getRefFromContractModel<
   }
   let ref = cache.get(modelName as string);
   if (!ref) {
+    // A model registered only as an interface is what its relations and root fields return.
+    const iface = interfaceRefMap.get(builder)?.get(modelName as string);
+    if (iface) {
+      return iface as unknown as PrismaNextObjectRef<Types, M, Shape>;
+    }
     ref = new PrismaNextObjectRef(
       defaultTypeName(modelName as string),
       modelName,

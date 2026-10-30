@@ -25,7 +25,12 @@ import { ModelLoader } from './model-loader.js';
 import type { AnyContract } from './types.js';
 import { fieldAliasPrefix, objectLevelFieldAlias, prismaNextAdapter } from './utils/adapter.js';
 import { createApply } from './utils/apply.js';
-import { collectionForModel, resolveContractModel } from './utils/contract.js';
+import {
+  assertVariantCollection,
+  collectionForModel,
+  resolveContractModel,
+  rootModelKey,
+} from './utils/contract.js';
 import { buildRelationMeta, type PrismaNextRelationMeta } from './utils/model.js';
 import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options.js';
 
@@ -117,7 +122,9 @@ async function materializeCollection(
   context: unknown,
   mapperOpts: ReturnType<typeof mapperOptionsFromPluginOpts>,
   wantsList: boolean,
+  modelName: string,
 ): Promise<unknown> {
+  assertVariantCollection(contract, modelName, collection as never);
   const apply = createApply({ info, contract, context, mapperOpts });
   // A promise only when a select callback beneath the field was async.
   let applied = (await apply(collection)) as {
@@ -207,10 +214,19 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return typeConfig;
     }
     let model = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+    const opts = readPluginOptions<AnyContract>(this.builder);
     for (const iface of typeConfig.interfaces) {
       const ifaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
       const ifaceModel = ifaceConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
       if (ifaceModel) {
+        if (
+          model &&
+          opts?.contract &&
+          rootModelKey(opts.contract, model) === rootModelKey(opts.contract, ifaceModel)
+        ) {
+          // A variant keeps its own model when it implements its hierarchy's interface.
+          continue;
+        }
         if (model && model !== ifaceModel) {
           throw new PothosSchemaError(
             `prismaObject '${typeConfig.name}' is based on model '${model}' but implements ` +
@@ -228,7 +244,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // schema-build time so the walker doesn't probe the contract per
     // request. Unknown-cardinality rejection also fires here (fail-fast),
     // not on first request.
-    const opts = readPluginOptions<AnyContract>(this.builder);
     const relations: Record<string, PrismaNextRelationMeta> | undefined = opts?.contract
       ? buildRelationMeta(model, opts.contract, typeConfig.name)
       : undefined;
@@ -281,7 +296,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
               'Return the collection before executing it so the complete GraphQL selection can be applied.',
           );
         }
-        return materializeCollection(result, info, contract, context, mapperOpts, prepared.isList);
+        return materializeCollection(
+          result,
+          info,
+          contract,
+          context,
+          mapperOpts,
+          prepared.isList,
+          prepared.modelName,
+        );
       };
     }
 
@@ -440,7 +463,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
             collectionForModel(
               contract,
               typeof collections === 'function' ? collections(context) : collections,
-              modelName,
+              rootModelKey(contract, modelName),
             ) as never,
           pluginOptions.skipDeferredFragments ?? true,
         );

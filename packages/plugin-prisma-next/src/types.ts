@@ -33,6 +33,7 @@ import type {
   CollectionTypeState,
   DefaultCollectionTypeState,
   DefaultModelRow,
+  HasTypeState,
   ModelAccessor,
   NumericFieldNames,
   ShorthandWhereFilter,
@@ -101,12 +102,19 @@ export type ModelKeys<TContract extends AnyContract> = {
   }[keyof TContract['domain']['namespaces'][Ns]['models'] & string];
 }[keyof TContract['domain']['namespaces'] & string];
 
-type RelationsOfModel<TContract extends AnyContract, M extends string> =
+type OwnRelationsOfModel<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends {
     readonly relations: infer Rels extends Record<string, unknown>;
   }
     ? Rels
     : Record<string, never>;
+
+// A variant also has the relations of the model it inherits from.
+type RelationsOfModel<TContract extends AnyContract, M extends string> = [
+  BaseModelKey<TContract, M>,
+] extends [never]
+  ? OwnRelationsOfModel<TContract, M>
+  : OwnRelationsOfModel<TContract, M> & OwnRelationsOfModel<TContract, BaseModelKey<TContract, M>>;
 
 // The current ORM declares these internally without exporting them.
 // `IncludeRefinementCollection` and `IsToManyRelation` reconstruct faithfully
@@ -179,11 +187,71 @@ export type ModelName<Types extends SchemaTypes> = Types['PrismaNextContract'] e
     : ModelNameSentinel
   : ModelNameSentinel;
 
-export type Row<Types extends SchemaTypes, M extends ModelName<Types>> = DefaultModelRow<
-  Types['PrismaNextContract'],
-  BareModelName<M>,
-  NsIdOf<Types['PrismaNextContract'], M>
->;
+/** The key of the model a variant inherits from; `never` for any other model. */
+export type BaseModelKey<TContract extends AnyContract, M extends string> =
+  ModelDefOf<TContract, M> extends {
+    readonly base: {
+      readonly model: infer Base extends string;
+      readonly namespace: infer Ns extends string;
+    };
+  }
+    ? ModelKey<TContract, Ns, Base>
+    : never;
+
+// A variant's contract entry holds only its own fields; its rows also carry its base's.
+export type Row<Types extends SchemaTypes, M extends ModelName<Types>> = [
+  BaseModelKey<Types['PrismaNextContract'], M>,
+] extends [never]
+  ? DefaultModelRow<
+      Types['PrismaNextContract'],
+      BareModelName<M>,
+      NsIdOf<Types['PrismaNextContract'], M>
+    >
+  : DefaultModelRow<
+      Types['PrismaNextContract'],
+      BareModelName<M>,
+      NsIdOf<Types['PrismaNextContract'], M>
+    > &
+      DefaultModelRow<
+        Types['PrismaNextContract'],
+        BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>,
+        NsIdOf<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>
+      >;
+
+/** The keys of the models that inherit from `M`; `never` for any other model. */
+export type VariantModelKeys<TContract extends AnyContract, M extends string> =
+  ModelDefOf<TContract, M> extends { readonly variants: infer Variants }
+    ? {
+        [Value in keyof Variants]: Variants[Value] extends {
+          readonly model: infer Variant extends string;
+          readonly namespace: infer Ns extends string;
+        }
+          ? ModelKey<TContract, Ns, Variant>
+          : never;
+      }[keyof Variants]
+    : never;
+
+/** The discriminator value that selects variant model `M` on its base. */
+type VariantValue<TContract extends AnyContract, M extends string> =
+  ModelDefOf<TContract, BaseModelKey<TContract, M>> extends {
+    readonly variants: infer Variants;
+  }
+    ? {
+        [Value in keyof Variants]: Variants[Value] extends { readonly model: BareModelName<M> }
+          ? Value
+          : never;
+      }[keyof Variants]
+    : never;
+
+/** A variant model loads through its base: `orm.Task.variant('bug')`, not the unfiltered `orm.Bug`. */
+export type VariantCollection<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+> = HasTypeState<{
+  readonly variantValue: VariantValue<Types['PrismaNextContract'], M>;
+}> & {
+  readonly modelName: BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>;
+};
 
 // The namespace id that owns model `M` (ADR 221). For single-namespace
 // contracts this resolves to the sole namespace (e.g. `'__unbound__'`).
@@ -251,10 +319,11 @@ type CollectionMutationTerminals =
 //   mutation INPUT shapes (`CreateInput`/`conflictOn` unique-constraints).
 //   `Collection` is invariant in its contract param, so without omitting them a
 //   raw `Collection<Contract, …>` would not unify; the read surface is identical.
-export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Types>> = Omit<
-  CollectionFor<Types, M>,
-  CollectionMutationTerminals
->;
+export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Types>> = [
+  BaseModelKey<Types['PrismaNextContract'], M>,
+] extends [never]
+  ? Omit<CollectionFor<Types, M>, CollectionMutationTerminals>
+  : VariantCollection<Types, M>;
 
 /** Existing ordering must match a prefix of the cursor order for the requested direction. */
 export type ConnectionCollection<
@@ -872,7 +941,7 @@ export type PrismaNextConnectionFieldOptions<
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
       info: GraphQLResolveInfo,
-    ) => MaybePromise<ConnectionCollection<Types, M>>;
+    ) => MaybePromise<ConnectionCollection<Types, NoInfer<M>>>;
     /** Sentinel for plugin-prisma porters: chain `.where(...)` on the collection inside `resolve` instead. */
     query?: 'plugin-prisma-next: chain `.where(...)` on the collection inside `resolve` instead of passing a `query` option';
   };
