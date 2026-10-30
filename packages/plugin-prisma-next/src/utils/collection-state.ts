@@ -1,5 +1,5 @@
 /**
- * RC9 has no public pagination/order reset. Read its state only to validate
+ * RC22 still has no public pagination/order reset (`state` is `@internal`). Read its state only to validate
  * supplied Collections; keep this compatibility check together on ORM upgrades.
  */
 export function getCollectionPaginationState(collection: unknown): {

@@ -3,7 +3,7 @@
 This implementation combines eager selection planning with optional multi-row
 fallback loading. Pothos has no SQLite/PostgreSQL-specific behavior.
 Production dependencies are the Prisma ORM 8 framework and SQL family, pinned
-to 8.0.0-rc.9. Concrete drivers appear only in tests and application examples.
+to 8.0.0-rc.22. Concrete drivers appear only in tests and application examples.
 
 ## Review findings and disposition
 

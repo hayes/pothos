@@ -1,6 +1,6 @@
 # Prisma ORM 8 integration notes
 
-Current target: 8.0.0-rc.9. Earlier observations are retained in git history.
+Current target: 8.0.0-rc.22. Earlier observations are retained in git history.
 Nested includes, N:M reads and rows-plus-count combinations are supported; the
 old blanket multi-query/rejection claims are obsolete.
 

@@ -126,6 +126,7 @@
             "relations": {
               "account": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "accountId"
@@ -184,66 +185,72 @@
               "columns": {
                 "id": {
                   "codecId": "pg/text@1",
-                  "nativeType": "text",
+                  "dataType": "pg/text",
                   "nullable": false
                 },
                 "name": {
                   "codecId": "pg/text@1",
-                  "nativeType": "text",
+                  "dataType": "pg/text",
                   "nullable": false
                 }
               },
+              "foreignKeys": [],
+              "indexes": [],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
-              }
+              },
+              "uniques": []
             },
             "pothos_next_entry": {
               "columns": {
                 "accountId": {
                   "codecId": "pg/text@1",
-                  "nativeType": "text",
+                  "dataType": "pg/text",
                   "nullable": false
                 },
                 "amount": {
                   "codecId": "pg/float8@1",
-                  "nativeType": "float8",
+                  "dataType": "pg/float8",
                   "nullable": false
                 },
                 "createdAt": {
                   "codecId": "pg/timestamptz-temporal@1",
-                  "nativeType": "timestamptz",
+                  "dataType": "pg/timestamptz",
                   "nullable": false
                 },
                 "exact": {
                   "codecId": "pg/numeric@1",
-                  "nativeType": "numeric",
+                  "dataType": "pg/numeric",
                   "nullable": false
                 },
                 "id": {
                   "codecId": "pg/text@1",
-                  "nativeType": "text",
+                  "dataType": "pg/text",
                   "nullable": false
                 },
                 "payload": {
                   "codecId": "pg/bytea@1",
-                  "nativeType": "bytea",
+                  "dataType": "pg/bytea",
                   "nullable": false
                 },
                 "sortLabel": {
                   "codecId": "pg/text@1",
-                  "nativeType": "text",
+                  "dataType": "pg/text",
                   "nullable": true
                 },
                 "wide": {
                   "codecId": "pg/int8@1",
-                  "nativeType": "int8",
+                  "dataType": "pg/int8",
                   "nullable": false
                 }
               },
               "foreignKeys": [
                 {
+                  "index": {
+                    "name": "pothos_next_entry_accountId_idx_cbfb3085"
+                  },
                   "source": {
                     "columns": [
                       "accountId"
@@ -266,14 +273,16 @@
                     "accountId"
                   ],
                   "name": "pothos_next_entry_accountId_idx_cbfb3085",
-                  "prefix": "pothos_next_entry_accountId_idx"
+                  "prefix": "pothos_next_entry_accountId_idx",
+                  "unique": false
                 }
               ],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
-              }
+              },
+              "uniques": []
             }
           }
         },
@@ -281,11 +290,13 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "baff9b060adc3636183b14bcc2126e5d44c04a3ed0565dcb23797919ea43d41a"
+    "storageHash": "167e09c4125b90ad1e4999f7b9311cc83c42beb5c426a947f528c91ac892418d"
   },
   "capabilities": {
     "postgres": {
       "distinctOn": true,
+      "forKeyShare": true,
+      "forNoKeyUpdate": true,
       "jsonAgg": true,
       "lateral": true,
       "limit": true,
@@ -296,7 +307,14 @@
       "checkConstraint": true,
       "defaultInInsert": true,
       "enums": true,
+      "forShare": true,
+      "forUpdate": true,
+      "insertOnConflictSkip": true,
+      "insertOnConflictWithoutTarget": true,
       "lateral": true,
+      "lockNowait": true,
+      "lockOf": true,
+      "lockSkipLocked": true,
       "returning": true,
       "scalarList": true
     }

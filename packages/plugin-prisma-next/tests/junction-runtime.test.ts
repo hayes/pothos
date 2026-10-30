@@ -23,6 +23,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import SchemaBuilder from '@pothos/core';
 import sqlite from '@prisma/orm-sqlite/runtime';
+import { contractFromJson } from '@prisma/orm-sqlite/static';
 import { execute, parse } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { PrismaNextRelationMeta } from '../src';
@@ -62,7 +63,7 @@ const junctionContract = {
               tags: {
                 to: { namespace: NS, model: 'Tag' },
                 cardinality: 'N:M',
-                on: { localFields: ['id'], targetFields: ['id'] },
+                on: { localFields: ['id'], targetFields: ['postId'] },
                 through: {
                   table: 'post_tag',
                   namespaceId: NS,
@@ -102,8 +103,8 @@ const junctionContract = {
           table: {
             post: {
               columns: {
-                id: { codecId: 'sqlite/text@1', nativeType: 'text', nullable: false },
-                title: { codecId: 'sqlite/text@1', nativeType: 'text', nullable: false },
+                id: { codecId: 'sqlite/text@1', dataType: 'sqlite/text', nullable: false },
+                title: { codecId: 'sqlite/text@1', dataType: 'sqlite/text', nullable: false },
               },
               foreignKeys: [],
               indexes: [],
@@ -112,8 +113,8 @@ const junctionContract = {
             },
             tag: {
               columns: {
-                id: { codecId: 'sqlite/text@1', nativeType: 'text', nullable: false },
-                name: { codecId: 'sqlite/text@1', nativeType: 'text', nullable: false },
+                id: { codecId: 'sqlite/text@1', dataType: 'sqlite/text', nullable: false },
+                name: { codecId: 'sqlite/text@1', dataType: 'sqlite/text', nullable: false },
               },
               foreignKeys: [],
               indexes: [],
@@ -122,19 +123,15 @@ const junctionContract = {
             },
             post_tag: {
               columns: {
-                postId: { codecId: 'sqlite/text@1', nativeType: 'text', nullable: false },
-                tagId: { codecId: 'sqlite/text@1', nativeType: 'text', nullable: false },
+                postId: { codecId: 'sqlite/text@1', dataType: 'sqlite/text', nullable: false },
+                tagId: { codecId: 'sqlite/text@1', dataType: 'sqlite/text', nullable: false },
               },
               foreignKeys: [
                 {
-                  constraint: true,
-                  index: true,
                   source: { columns: ['postId'], namespaceId: NS, tableName: 'post_tag' },
                   target: { columns: ['id'], namespaceId: NS, tableName: 'post' },
                 },
                 {
-                  constraint: true,
-                  index: true,
                   source: { columns: ['tagId'], namespaceId: NS, tableName: 'post_tag' },
                   target: { columns: ['id'], namespaceId: NS, tableName: 'tag' },
                 },
@@ -227,7 +224,7 @@ async function createJunctionRuntime(): Promise<JunctionRuntime> {
   `);
   rawDb.close();
 
-  const client = sqlite({ contractJson: junctionContract as never });
+  const client = sqlite({ contract: contractFromJson(junctionContract) as never });
   const runtime = await client.connect({ path: dbPath });
 
   return {

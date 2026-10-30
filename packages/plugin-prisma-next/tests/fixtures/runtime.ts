@@ -9,27 +9,13 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import sqlite from '@prisma/orm-sqlite/runtime';
-import type { AfterQueryResult } from '@prisma/orm-framework/components/runtime';
-import type { SqlExecutionPlan } from '@prisma/orm-family-sql/relational-core/plan';
+import { contractFromJson } from '@prisma/orm-sqlite/static';
 import type { Runtime, SqlMiddleware } from '@prisma/orm-family-sql/runtime';
 import type { Contract as SampleContractType } from './sample-contract';
 
-const sampleContractJson = JSON.parse(
-  readFileSync(fileURLToPath(new URL('./sample-contract.json', import.meta.url)), 'utf8'),
-) as SampleContractType;
-
-// RC9's serializer omits default-valued index flags and empty unique arrays,
-// while its runtime validates those properties before hydrating the contract.
-// Restore only those defaults when consuming the emitted fixture.
-for (const namespace of Object.values(sampleContractJson.storage.namespaces)) {
-  for (const table of Object.values(namespace.entries.table ?? {})) {
-    const serialized = table as unknown as { uniques?: unknown[]; foreignKeys?: unknown[]; indexes?: { unique?: boolean }[] };
-    serialized.uniques ??= [];
-    serialized.foreignKeys ??= [];
-    serialized.indexes ??= [];
-    for (const index of serialized.indexes ?? []) index.unique ??= false;
-  }
-}
+const sampleContractJson = contractFromJson<SampleContractType>(
+  JSON.parse(readFileSync(fileURLToPath(new URL('./sample-contract.json', import.meta.url)), 'utf8')),
+);
 
 export type SampleContract = SampleContractType;
 
@@ -49,21 +35,24 @@ export function withCapture<T>(
   return captureStore.run(captures, fn);
 }
 
+const captureSlot = Symbol('pothos-test-capture');
+
 const captureMiddleware: SqlMiddleware = {
   name: 'pothos-test-capture',
   familyId: 'sql',
-  async beforeQuery(plan: SqlExecutionPlan) {
+  async beforeEncode(plan, ctx) {
     const captures = captureStore.getStore();
     if (!captures) return;
-    captures.push({ sql: plan.sql, params: plan.params });
+    const capture: CapturedExecution = { sql: plan.sql, params: plan.params };
+    captures.push(capture);
+    ctx.state(captureSlot)['capture'] = capture;
   },
-  async afterQuery(_plan: SqlExecutionPlan, result: AfterQueryResult) {
-    const captures = captureStore.getStore();
-    if (!captures || captures.length === 0) return;
-    const last = captures[captures.length - 1];
-    if (!last) return;
-    last.rowCount = result.rowCount;
-    last.latencyMs = result.latencyMs;
+  async activityEnded(_activity, result, ctx) {
+    if (result.kind !== 'statement') return;
+    const capture = ctx.state(captureSlot)['capture'] as CapturedExecution | undefined;
+    if (!capture) return;
+    if (result.returns === 'rows') capture.rowCount = result.rowCount;
+    capture.latencyMs = result.latencyMs;
   },
 };
 
@@ -84,8 +73,8 @@ export async function createTestRuntime(): Promise<TestRuntimeContext> {
   seedData(rawDb);
   rawDb.close();
 
-  const client = sqlite<SampleContract>({
-    contractJson: sampleContractJson,
+  const client = sqlite({
+    contract: sampleContractJson,
     middleware: [captureMiddleware],
   });
   const runtime = await client.connect({ path: dbPath });

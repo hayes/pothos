@@ -96,6 +96,10 @@ builder.prismaObject('Post', {
           author.countBigInt();
           // @ts-expect-error Mutation terminals cannot execute inside an include refinement.
           author.createAndCount({});
+          // @ts-expect-error firstOrThrow is a terminal, unavailable inside an include refinement.
+          author.firstOrThrow();
+          // @ts-expect-error whereUnique is unavailable inside an include refinement.
+          author.whereUnique({ id: 'x' });
           return { rows: author.select('firstName') };
         },
       },

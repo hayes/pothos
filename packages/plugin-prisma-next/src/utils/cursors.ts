@@ -329,7 +329,7 @@ function applyToCollection<C extends MapperCollection>(
         ]
       : [valueOrder];
   });
-  // RC9 appends orderBy entries and exposes no public reset. Compare the existing
+  // RC22 appends orderBy entries and exposes no public reset. Compare the existing
   // prefix to the order produced by public accessors; append only missing entries.
   const existing = getCollectionPaginationState(baseCollection).orderBy;
   const ordered = baseCollection.orderBy(

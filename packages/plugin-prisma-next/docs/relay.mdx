@@ -21,7 +21,7 @@ const builder = new SchemaBuilder<{
 }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
-  prismaNext: { contract: contractJson as Contract },
+  prismaNext: { contract },
 });
 ```
 
