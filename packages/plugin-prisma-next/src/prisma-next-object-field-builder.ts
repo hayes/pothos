@@ -40,7 +40,7 @@ import type {
 import type { MapperCollection, PrismaNextSelectFn, PrismaNextSpec } from './utils/adapter.js';
 import { rebrandForVariant } from './utils/branding.js';
 import { compileWhere } from './utils/compile-query.js';
-import { resolveContractModel } from './utils/contract.js';
+import { relatedModelKey, resolveContractModel } from './utils/contract.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
@@ -334,7 +334,11 @@ export class PrismaNextObjectFieldBuilder<
     > & { extensions?: Record<string, unknown> };
     const meta = this.#getRelationMeta(name as string);
     const targetRef =
-      opts.type ?? (getRefFromContractModel(meta.to.model as never, this.builder) as never);
+      opts.type ??
+      (getRefFromContractModel(
+        relatedModelKey(this.contract as AnyContract, meta.to) as never,
+        this.builder,
+      ) as never);
     const isToMany = isToManyCardinality(meta.cardinality);
     const defaultNullable = isToMany ? false : this.#isToOneRelationNullable(meta);
 
@@ -578,9 +582,10 @@ export class PrismaNextObjectFieldBuilder<
           `'${this.modelName as string}.${name}' has cardinality '${meta.cardinality}'.`,
       );
     }
-    const cursorOpt = validateCursor(this.contract as AnyContract, meta.to.model, options.cursor);
+    const relatedKey = relatedModelKey(this.contract as AnyContract, meta.to);
+    const cursorOpt = validateCursor(this.contract as AnyContract, relatedKey, options.cursor);
     const targetRef =
-      options.type ?? getRefFromContractModel(meta.to.model as never, this.builder as never);
+      options.type ?? getRefFromContractModel(relatedKey as never, this.builder as never);
 
     const self = this as unknown as {
       connection: (cfg: object, c?: object, e?: object) => unknown;
@@ -613,7 +618,7 @@ export class PrismaNextObjectFieldBuilder<
     const fallbackDefault = pluginOpts?.defaultConnectionSize;
     const fallbackMax = pluginOpts?.maxConnectionSize;
     // The GraphQL type the rows are walked as: a variant ref names itself, not its model.
-    const relatedTypeName = (targetRef as { name?: string }).name ?? meta.to.model;
+    const relatedTypeName = (targetRef as { name?: string }).name ?? relatedKey;
 
     // Field-level pothosIndirectInclude — declares how the connection
     // wraps related rows, for downstream plugins (plugin-errors interop

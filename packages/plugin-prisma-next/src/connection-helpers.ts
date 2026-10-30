@@ -10,6 +10,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   AnyContract,
+  BareModelName,
   CollectionFor,
   ConnectionCollection,
   CursorSpec,
@@ -112,12 +113,12 @@ export interface PrismaConnectionHelperOptions<
     | import('@prisma/orm-family-sql/orm-client').ShorthandWhereFilter<
         Types['PrismaNextContract'],
         NamespaceOf<Types, M>,
-        M
+        BareModelName<M>
       >
     | ((
         accessor: import('@prisma/orm-family-sql/orm-client').ModelAccessor<
           Types['PrismaNextContract'],
-          M
+          BareModelName<M>
         >,
         args: InputShapeFromFields<Args> &
           import('@pothos/plugin-relay').DefaultConnectionArguments,

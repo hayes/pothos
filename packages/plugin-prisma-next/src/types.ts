@@ -30,7 +30,6 @@ import type {
 import type {
   AggregateBuilder,
   Collection,
-  CollectionModelName,
   CollectionTypeState,
   DefaultCollectionTypeState,
   DefaultModelRow,
@@ -59,11 +58,48 @@ export type AnyContract = Contract<SqlStorage>;
 // internal `ScannedModelDef` and keeps the hand-rolled indexed-access strategy
 // (deferred resolution unifies cleanly where `RelationsOf` collapses to
 // `Record<string, never>` in generic positions).
-export type ModelDefOf<TContract extends AnyContract, M extends string> = {
+export type ModelDefOf<
+  TContract extends AnyContract,
+  M extends string,
+> = M extends `${infer Ns}.${infer Bare}`
+  ? TContract['domain']['namespaces'][Ns]['models'][Bare]
+  : {
+      [Ns in keyof TContract['domain']['namespaces']]: M extends keyof TContract['domain']['namespaces'][Ns]['models']
+        ? TContract['domain']['namespaces'][Ns]['models'][M]
+        : never;
+    }[keyof TContract['domain']['namespaces']];
+
+/** A model key is a bare name, or `namespace.Model` for a name several namespaces share. */
+export type BareModelName<M extends string> = M extends `${string}.${infer Bare}` ? Bare : M;
+
+type NamespacesWithModel<TContract extends AnyContract, M extends string> = {
   [Ns in keyof TContract['domain']['namespaces']]: M extends keyof TContract['domain']['namespaces'][Ns]['models']
-    ? TContract['domain']['namespaces'][Ns]['models'][M]
+    ? Ns & string
     : never;
 }[keyof TContract['domain']['namespaces']];
+
+type IsUnion<T, U = T> = T extends unknown ? ([U] extends [T] ? false : true) : never;
+
+/**
+ * The key of model `M` in namespace `Ns`: bare, unless another namespace shares its name. A
+ * relation's `to.namespace` may be a branded `NamespaceId`, so the key spells the plain id.
+ */
+export type ModelKey<TContract extends AnyContract, Ns extends string, M extends string> =
+  IsUnion<NamespacesWithModel<TContract, M>> extends true
+    ? `${{
+        [Key in NamespacesWithModel<TContract, M>]: Ns extends Key ? Key : never;
+      }[NamespacesWithModel<TContract, M>]}.${M}`
+    : M;
+
+export type ModelKeys<TContract extends AnyContract> = {
+  [Ns in keyof TContract['domain']['namespaces'] & string]: {
+    [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]: ModelKey<
+      TContract,
+      Ns,
+      M
+    >;
+  }[keyof TContract['domain']['namespaces'][Ns]['models'] & string];
+}[keyof TContract['domain']['namespaces'] & string];
 
 type RelationsOfModel<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends {
@@ -136,7 +172,7 @@ type ModelNameSentinel =
   'Set PrismaNextContract on SchemaTypes: new SchemaBuilder<{ PrismaNextContract: typeof contract }>(...)';
 
 export type ModelName<Types extends SchemaTypes> = Types['PrismaNextContract'] extends AnyContract
-  ? CollectionModelName<Types['PrismaNextContract']> extends infer N extends string
+  ? ModelKeys<Types['PrismaNextContract']> extends infer N extends string
     ? string extends N
       ? ModelNameSentinel
       : N
@@ -145,16 +181,16 @@ export type ModelName<Types extends SchemaTypes> = Types['PrismaNextContract'] e
 
 export type Row<Types extends SchemaTypes, M extends ModelName<Types>> = DefaultModelRow<
   Types['PrismaNextContract'],
-  M
+  BareModelName<M>,
+  NsIdOf<Types['PrismaNextContract'], M>
 >;
 
 // The namespace id that owns model `M` (ADR 221). For single-namespace
 // contracts this resolves to the sole namespace (e.g. `'__unbound__'`).
-export type NsIdOf<TContract extends AnyContract, M extends string> = {
-  [Ns in keyof TContract['domain']['namespaces']]: M extends keyof TContract['domain']['namespaces'][Ns]['models']
-    ? Ns & string
-    : never;
-}[keyof TContract['domain']['namespaces']];
+export type NsIdOf<
+  TContract extends AnyContract,
+  M extends string,
+> = M extends `${infer Ns}.${string}` ? Ns : NamespacesWithModel<TContract, M>;
 
 export type NamespaceOf<Types extends SchemaTypes, M extends ModelName<Types>> = NsIdOf<
   Types['PrismaNextContract'],
@@ -177,8 +213,12 @@ type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<Sta
 // which is what `ModelCollection`/`orm` produce in 0.14.0.
 export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>> = Collection<
   Types['PrismaNextContract'],
-  M,
-  DefaultModelRow<Types['PrismaNextContract'], M, NsIdOf<Types['PrismaNextContract'], M>>,
+  BareModelName<M>,
+  DefaultModelRow<
+    Types['PrismaNextContract'],
+    BareModelName<M>,
+    NsIdOf<Types['PrismaNextContract'], M>
+  >,
   WithNsId<DefaultCollectionTypeState, NsIdOf<Types['PrismaNextContract'], M>>
 >;
 
@@ -223,12 +263,22 @@ export type ConnectionCollection<
 > = ResolverCollection<Types, M>;
 
 export type PrismaNextCollections<TContract extends AnyContract> = {
-  [M in CollectionModelName<TContract>]?: Collection<
+  [M in ModelKeys<TContract>]?: Collection<
     TContract,
-    M,
-    DefaultModelRow<TContract, M, NsIdOf<TContract, M>>,
+    BareModelName<M>,
+    DefaultModelRow<TContract, BareModelName<M>, NsIdOf<TContract, M>>,
     WithNsId<DefaultCollectionTypeState, NsIdOf<TContract, M>>
   >;
+} & {
+  // A namespaced ORM client (`orm.<namespace>.<Model>`) can be passed as is.
+  [Ns in keyof TContract['domain']['namespaces'] & string]?: {
+    [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]?: Collection<
+      TContract,
+      M,
+      DefaultModelRow<TContract, M, Ns>,
+      WithNsId<DefaultCollectionTypeState, Ns>
+    >;
+  };
 };
 
 export interface PrismaNextPluginOptions<TContract extends AnyContract, Context = object> {
@@ -262,9 +312,12 @@ export type RelatedModel<
 > = RelationsOfModel<Types['PrismaNextContract'], M>[R] extends {
   // ADR 221: relation targets are `CrossReference` objects, not bare model
   // names. The literal model name lives at `.to.model`.
-  readonly to: { readonly model: infer To extends ModelName<Types> };
+  readonly to: {
+    readonly model: infer To extends string;
+    readonly namespace: infer Ns extends string;
+  };
 }
-  ? To
+  ? ModelKey<Types['PrismaNextContract'], Ns, To> & ModelName<Types>
   : never;
 
 export type IsToMany<
@@ -317,10 +370,16 @@ export type DefaultRelationNullable<
 
 export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
   where?:
-    | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, M>
-    | ((accessor: ModelAccessor<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>) => unknown);
+    | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>
+    | ((
+        accessor: ModelAccessor<
+          Types['PrismaNextContract'],
+          BareModelName<M>,
+          NamespaceOf<Types, M>
+        >,
+      ) => unknown);
   orderBy?: (
-    accessor: ModelAccessor<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>,
+    accessor: ModelAccessor<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
   ) => unknown;
   limit?: number;
   offset?: number;
@@ -344,8 +403,12 @@ export type RelationRefinementCollection<
   R extends RelationKeys<Types, M>,
 > = IncludeRefinementCollection<
   Types['PrismaNextContract'],
-  RelatedModel<Types, M, R>,
-  DefaultModelRow<Types['PrismaNextContract'], RelatedModel<Types, M, R>>,
+  BareModelName<RelatedModel<Types, M, R>>,
+  DefaultModelRow<
+    Types['PrismaNextContract'],
+    BareModelName<RelatedModel<Types, M, R>>,
+    NamespaceOf<Types, RelatedModel<Types, M, R>>
+  >,
   DefaultCollectionTypeState,
   IsToMany<Types, M, R>
 >;
@@ -387,7 +450,7 @@ export type RelationNumericField<
 > =
   string extends ModelName<Types>
     ? string
-    : NumericFieldNames<Types['PrismaNextContract'], RelatedModel<Types, M, R>>;
+    : NumericFieldNames<Types['PrismaNextContract'], BareModelName<RelatedModel<Types, M, R>>>;
 
 /** A `where` refine on the related rows, before the aggregate runs. */
 type RelationAggregateWhere<
@@ -399,12 +462,12 @@ type RelationAggregateWhere<
   | ShorthandWhereFilter<
       Types['PrismaNextContract'],
       NamespaceOf<Types, RelatedModel<Types, M, R>>,
-      RelatedModel<Types, M, R>
+      BareModelName<RelatedModel<Types, M, R>>
     >
   | ((
       accessor: ModelAccessor<
         Types['PrismaNextContract'],
-        RelatedModel<Types, M, R>,
+        BareModelName<RelatedModel<Types, M, R>>,
         NamespaceOf<Types, RelatedModel<Types, M, R>>
       >,
       args: InputShapeFromFields<Args>,
@@ -459,8 +522,12 @@ type AggregateMethod<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   Op extends string,
-> = Op extends keyof AggregateBuilder<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>
-  ? AggregateBuilder<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>[Op]
+> = Op extends keyof AggregateBuilder<
+  Types['PrismaNextContract'],
+  BareModelName<M>,
+  NamespaceOf<Types, M>
+>
+  ? AggregateBuilder<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>[Op]
   : never;
 
 export type RelationAggregateField<
@@ -872,12 +939,12 @@ export type PrismaNextRelatedConnectionOptions<
       | ShorthandWhereFilter<
           Types['PrismaNextContract'],
           NamespaceOf<Types, RelatedModel<Types, ParentModel, RelName>>,
-          RelatedModel<Types, ParentModel, RelName>
+          BareModelName<RelatedModel<Types, ParentModel, RelName>>
         >
       | ((
           accessor: ModelAccessor<
             Types['PrismaNextContract'],
-            RelatedModel<Types, ParentModel, RelName>
+            BareModelName<RelatedModel<Types, ParentModel, RelName>>
           >,
           args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
           context: Types['Context'],

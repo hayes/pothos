@@ -2,6 +2,7 @@ import { PothosSchemaError, type SchemaTypes } from '@pothos/core';
 import { PrismaNextInterfaceRef } from '../interface-ref.js';
 import { PrismaNextObjectRef } from '../object-ref.js';
 import type { ModelName, Row } from '../types.js';
+import { defaultTypeName } from './contract.js';
 
 // Per-builder ref cache. Keys are the *default* type name for a model
 // (which is the contract model name). Variants are NOT cached — they
@@ -37,11 +38,10 @@ export function getRefFromContractModel<
   }
   let ref = cache.get(modelName as string);
   if (!ref) {
-    ref = new PrismaNextObjectRef(modelName as string, modelName) as PrismaNextObjectRef<
-      SchemaTypes,
-      never,
-      never
-    >;
+    ref = new PrismaNextObjectRef(
+      defaultTypeName(modelName as string),
+      modelName,
+    ) as PrismaNextObjectRef<SchemaTypes, never, never>;
     cache.set(modelName as string, ref);
   }
   return ref as unknown as PrismaNextObjectRef<Types, M, Shape>;
@@ -62,11 +62,10 @@ export function getInterfaceRefFromContractModel<
   }
   let ref = cache.get(modelName as string);
   if (!ref) {
-    ref = new PrismaNextInterfaceRef(modelName as string, modelName) as PrismaNextInterfaceRef<
-      SchemaTypes,
-      never,
-      never
-    >;
+    ref = new PrismaNextInterfaceRef(
+      defaultTypeName(modelName as string),
+      modelName,
+    ) as PrismaNextInterfaceRef<SchemaTypes, never, never>;
     cache.set(modelName as string, ref);
   }
   return ref as unknown as PrismaNextInterfaceRef<Types, M, Shape>;

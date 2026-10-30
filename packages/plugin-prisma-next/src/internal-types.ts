@@ -6,6 +6,7 @@ import type {
 } from '@prisma/orm-family-sql/orm-client';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 import type {
+  BareModelName,
   IsToMany,
   ModelName,
   NamespaceOf,
@@ -116,19 +117,19 @@ export type SelectRelationDeclarative<
     | ShorthandWhereFilter<
         Types['PrismaNextContract'],
         NamespaceOf<Types, RelatedModel<Types, M, R>>,
-        RelatedModel<Types, M, R>
+        BareModelName<RelatedModel<Types, M, R>>
       >
     | ((
         accessor: ModelAccessor<
           Types['PrismaNextContract'],
-          RelatedModel<Types, M, R>,
+          BareModelName<RelatedModel<Types, M, R>>,
           NamespaceOf<Types, RelatedModel<Types, M, R>>
         >,
       ) => unknown);
   readonly orderBy?: (
     accessor: ModelAccessor<
       Types['PrismaNextContract'],
-      RelatedModel<Types, M, R>,
+      BareModelName<RelatedModel<Types, M, R>>,
       NamespaceOf<Types, RelatedModel<Types, M, R>>
     >,
   ) => unknown;
