@@ -54,7 +54,7 @@ plugin selects parent join columns even when GraphQL did not ask for them.
 Prisma resolves N:M junctions from the contract's `through` metadata.
 
 Independent to-many consumers use combine slots. Compatible to-one consumers
-merge. RC9 rejects incompatible to-one combinations (`ORM.INCLUDE_UNSUPPORTED`).
+merge. Prisma rejects incompatible to-one combinations (`ORM.INCLUDE_UNSUPPORTED`).
 With a provider, compatibility checks leave conflicting consumers for separate
 multi-parent loads; without a provider the adapter rejects the plan before SQL.
 For a fallback field, its relation selection takes precedence over conflicting
@@ -120,7 +120,7 @@ for custom projections, including lossless/custom aggregate operations.
 SQLite and PostgreSQL tests exercise the same plugin. PostgreSQL covers lossless
 included values, Temporal cursors and transactions. Type tests cover returns,
 nullability and aggregate types. Incremental execution and scope-auth have runtime
-coverage. See [release status](./docs/release-status.md).
+coverage. See [release status](./RELEASE-STATUS.md).
 
 MongoDB requires its own real adapter: its contract/Collection family differs
 from SQL. The shared GraphQL walker is reusable, but widening SQL types cannot

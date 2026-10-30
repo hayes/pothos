@@ -2,18 +2,22 @@
 
 Pothos plugin for [Prisma ORM 8](https://github.com/prisma/orm)
 (formerly Prisma Next), the fluent collection-based ORM client. Provides tighter integration with
-prisma-next, makes it easier to define types backed by your contract, helps
+Prisma, makes it easier to define types backed by your contract, helps
 solve N+1 queries for relations, and ships Relay integrations for nodes and
 connections.
 
-> **Initial release.** This plugin targets Prisma ORM `8.0.0-rc.22`. The upstream
-> API is still a release candidate, so use the exact supported version.
-> This is separate from `@pothos/plugin-prisma`, which targets `@prisma/client`.
+> [!WARNING]
+> **Experimental: do not use in production.** This plugin is pre-release and pinned to exactly
+> Prisma ORM `8.0.0-rc.22`; other versions, including newer release candidates, are not supported.
+> Both Prisma ORM 8 and this plugin's API can change in any release, without a migration path.
+
+This is separate from [`@pothos/plugin-prisma`](https://pothos-graphql.dev/docs/plugins/prisma),
+which targets Prisma 7 and `@prisma/client`.
 
 The plugin depends on Prisma's shared SQL family, not a database dialect. Your
 application supplies its Collection and owns the driver, connection, and
 transaction. PostgreSQL and SQLite use the same Pothos configuration. MongoDB
-uses a different upstream query API and is not supported in 0.1.
+uses a different upstream query API and is not supported.
 
 The plugin applies GraphQL selections before executing a returned Collection.
 Root resolvers return a Collection (or null for a nullable field). Configure
@@ -23,12 +27,12 @@ and conflicting to-one refinements are rejected.
 
 Mutation resolvers write through the application client, then return a Collection
 for the result. Keep the transaction active through GraphQL execution and throw
-on execution errors when rollback is required. See the [mutation example](./docs/objects.mdx)
-and [transaction guidance](./docs/setup.mdx#selection-and-transaction-lifetime).
+on execution errors when rollback is required. See the [mutation example](https://pothos-graphql.dev/docs/plugins/prisma-next/objects)
+and [transaction guidance](https://pothos-graphql.dev/docs/plugins/prisma-next/setup#selection-and-transaction-lifetime).
 
 ## Features
 
-- 🎨 Quickly define GraphQL types backed by your prisma-next contract.
+- 🎨 Quickly define GraphQL types backed by your Prisma contract.
 - 🦺 Strong type-safety throughout the entire API.
 - 🤝 Automatically resolve relationships from the GraphQL selection set.
 - 🎣 Auto-include the columns/relations needed to resolve a query — no N+1s.
@@ -61,7 +65,7 @@ const builder = new SchemaBuilder<{
   relay: {},
   prismaNext: {
     contract,
-    collections: (ctx) => ctx.db.orm,
+    collections: (ctx) => ({ User: ctx.db.orm.User }),
   },
 });
 
@@ -86,4 +90,4 @@ builder.queryType({
 });
 ```
 
-Full documentation: [Prisma ORM plugin](./docs/index.mdx).
+Full documentation: [Prisma Next plugin](https://pothos-graphql.dev/docs/plugins/prisma-next).

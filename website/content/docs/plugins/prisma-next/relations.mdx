@@ -1,6 +1,6 @@
 ---
 title: Relations
-description: Adding relations to prisma-next-backed types
+description: Adding relations to Prisma-backed types
 ---
 
 You can add fields for relations using the `t.relation` method:
@@ -195,7 +195,7 @@ manual casts.
 
 ## Many-to-many
 
-As of prisma-next 0.14.0, N:M relations authored with
+N:M relations authored with
 `rel.manyToMany({ through, from, to })` are **supported directly** —
 expose them with `t.relation` like any other relation:
 
@@ -204,7 +204,7 @@ builder.prismaObject('Post', {
   fields: (t) => ({
     id: t.exposeID('id'),
     // N:M relation. The contract carries a `through` junction block;
-    // prisma-next's orm-client resolves the junction join internally.
+    // Prisma's orm-client resolves the junction join internally.
     tags: t.relation('tags'),
   }),
 });
@@ -219,13 +219,13 @@ builder.prismaObject('Tag', {
 
 A query like `{ posts { tags { label } } }` resolves through the
 normal `t.relation` machinery — no special handling and no junction
-model in your schema. Under the hood, prisma-next emits the
+model in your schema. Under the hood, Prisma emits the
 junction query from the contract's `through` block; the plugin just
 detects the junction (the relation meta carries a `through`
 descriptor) and lets `.include('tags')` flow through. This is pinned
 end-to-end against real SQLite in `tests/junction-runtime.test.ts`,
 with an upstream canary in `tests/prisma-next-m-n-upstream-pin.test.ts`
-that fails loudly if a future prisma-next changes the junction
+that fails loudly if a future Prisma release changes the junction
 contract shape.
 
 If you'd rather expose the join rows themselves (e.g. the junction
@@ -248,7 +248,7 @@ that the relation was not loaded.
 ## Independent to-one refinements
 
 Compatible selections of the same to-one relation share an include. Prisma ORM
-RC9 rejects `combine()` on to-one includes (`ORM.INCLUDE_UNSUPPORTED`). Configure
+8 rejects `combine()` on to-one includes (`ORM.INCLUDE_UNSUPPORTED`). Configure
 `prismaNext.collections` to handle incompatible filters: the initial query loads
 one compatible group, and a multi-row fallback query loads each remaining group
 with its own nested selections. Aliases receive independent values, including
