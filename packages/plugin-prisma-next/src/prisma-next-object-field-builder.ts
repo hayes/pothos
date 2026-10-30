@@ -24,6 +24,7 @@ import type {
   AnyContract,
   CursorSpec,
   DefaultRelationNullable,
+  HasAggregates,
   ModelName,
   PrismaNextRelatedConnectionOptions,
   PrismaNextRelationAggregateOptions,
@@ -418,7 +419,8 @@ export class PrismaNextObjectFieldBuilder<
    * Result is non-nullable `number` (a count over an empty set is 0).
    */
   relationCount<
-    RelName extends ToManyRelationKeys<Types, M>,
+    // No relation is accepted on a target without aggregates, such as MySQL.
+    RelName extends HasAggregates<Types> extends true ? ToManyRelationKeys<Types, M> : never,
     Nullable extends boolean = false,
     Args extends InputFieldMap = {},
   >(

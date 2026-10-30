@@ -17,6 +17,7 @@ import type {
   ModelName,
   NamespaceOf,
   Row,
+  TotalCountFlag,
 } from './types.js';
 import { compileWhere } from './utils/compile-query.js';
 import {
@@ -102,7 +103,7 @@ export interface PrismaConnectionHelperOptions<
         ctx: Types['Context'],
       ) => number);
   totalCount?:
-    | boolean
+    | TotalCountFlag<Types>
     | ((
         args: InputShapeFromFields<Args> &
           import('@pothos/plugin-relay').DefaultConnectionArguments,
