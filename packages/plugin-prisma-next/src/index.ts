@@ -17,7 +17,6 @@ import {
   PRISMA_NEXT_FIELD_SELECT,
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_PREPARED,
-  PRISMA_NEXT_RELATIONS,
   PRISMA_NEXT_SELECT,
 } from './constants.js';
 import type { PreparedFieldExtension } from './extensions.js';
@@ -26,7 +25,7 @@ import type { AnyContract } from './types.js';
 import { fieldAliasPrefix, objectLevelFieldAlias, prismaNextAdapter } from './utils/adapter.js';
 import { createApply } from './utils/apply.js';
 import { resolveContractModel } from './utils/contract.js';
-import { buildRelationMeta, type PrismaNextRelationMeta } from './utils/model.js';
+import { buildRelationMeta } from './utils/model.js';
 import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options.js';
 
 export type {
@@ -83,7 +82,6 @@ export type {
   PrismaNextModel,
   PrismaNextRelation,
   PrismaNextRelationMeta,
-  PrismaNextRelationThrough,
 } from './utils/model.js';
 export { getInterfaceRefFromContractModel, getRefFromContractModel } from './utils/refs.js';
 
@@ -229,15 +227,14 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // request. Unknown-cardinality rejection also fires here (fail-fast),
     // not on first request.
     const opts = readPluginOptions<AnyContract>(this.builder);
-    const relations: Record<string, PrismaNextRelationMeta> | undefined = opts?.contract
-      ? buildRelationMeta(model, opts.contract, typeConfig.name)
-      : undefined;
+    if (opts?.contract) {
+      buildRelationMeta(model, opts.contract, typeConfig.name);
+    }
     return {
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
         [PRISMA_NEXT_MODEL]: model,
-        ...(relations !== undefined ? { [PRISMA_NEXT_RELATIONS]: relations } : {}),
       },
     };
   }
@@ -312,6 +309,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const collections = pluginOptions?.collections;
     const modelRelations =
       contract && modelName ? resolveContractModel(contract, modelName)?.relations : undefined;
+    const relationNames = Object.keys(modelRelations ?? {});
     const toOneRelations = Object.entries(modelRelations ?? {})
       .filter(([, relation]) => relation.cardinality !== '1:N' && relation.cardinality !== 'N:M')
       .map(([name]) => name);
@@ -354,10 +352,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       // still surface their inherited row props via overlay. Adding a
       // top-level property on the overlay shadows that level only.
       const overlay = normalizeParentForType(parent, typeRelations, typeAlias);
-      // `for...in` over `p` walks the prototype chain so we still find combine slots when
-      // `parent` is a variant wrapper from `rebrandForVariant` (which puts the row on the
-      // prototype). It never yields a shadowed name twice, so no visited set is needed.
-      for (const key in hasFieldSelect ? p : {}) {
+      // Combine slots only exist on relations. Scanning other keys would let the contents of a
+      // JSON column, whose keys can match a client-chosen alias, overwrite selected values.
+      // `p[key]` walks the prototype chain, so variant wrappers still find their row's slots.
+      for (const key of hasFieldSelect ? relationNames : []) {
         const slot = p[key];
         if (slot && typeof slot === 'object' && !Array.isArray(slot)) {
           liftSlots(overlay, slot, scopes);
@@ -411,18 +409,31 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       typeof ext.pothosExposedField === 'string' ||
       typeof selectOpt === 'function' ||
       (selectOpt != null && typeof selectOpt === 'object' && Object.keys(selectOpt).length > 0);
-    // Use the eager adapter so its type selection includes inherited prerequisites,
-    // but not the identity columns added solely to make fallback loading possible.
-    const dependencyAdapter = prismaNextAdapter(contract);
+    // Inherited prerequisites count, but not the identity columns added solely to make
+    // fallback loading possible.
+    const dependencyAdapter = prismaNextAdapter(contract, true);
+    const ownColumns =
+      typeof ext.pothosExposedField === 'string'
+        ? [ext.pothosExposedField]
+        : Array.isArray(selectOpt)
+          ? (selectOpt as string[])
+          : undefined;
     return (parent, args, context, info) => {
       if (!parent || typeof parent !== 'object') {
         return resolveLoaded(parent, args, context, info);
       }
-      if (!hasFieldDependencies) {
-        const dependencies = dependencyAdapter.typeSelection(info.parentType);
-        if (!dependencies?.columns?.length && !Object.keys(dependencies?.relations ?? {}).length) {
-          return resolveLoaded(parent, args, context, info);
-        }
+      const dependencies = dependencyAdapter.typePrerequisite(info.parentType);
+      const row = parent as Record<string, unknown>;
+      const typeDependenciesLoaded =
+        !Object.keys(dependencies?.relations ?? {}).length &&
+        (dependencies?.columns ?? []).every((column) => row[column] !== undefined);
+      // A resolver may return a row that no longer exists or was built by hand, such as the
+      // result of a delete. Fields satisfied by its own columns must not touch the database.
+      if (
+        typeDependenciesLoaded &&
+        (!hasFieldDependencies || ownColumns?.every((column) => row[column] !== undefined))
+      ) {
+        return resolveLoaded(parent, args, context, info);
       }
       const mapping = getLoaderMapping(context as object, info.path, info.parentType.name, parent);
       if (mapping) {

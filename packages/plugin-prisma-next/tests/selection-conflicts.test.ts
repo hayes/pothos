@@ -122,13 +122,58 @@ it('pins the public ORM limitation even for one function-form to-one combine slo
   ).toThrowError(expect.objectContaining({ code: 'ORM.INCLUDE_UNSUPPORTED' }));
 });
 
-it.each([
-  false,
-  true,
-])('rejects conflicting interface and concrete type prerequisites before SQL (provider: %s)', async (provider) => {
+it('loads conflicting interface and concrete type prerequisites in separate batches', async () => {
   const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
     plugins: [prismaNextPlugin],
-    prismaNext: { contract: ctx.contract, ...(provider ? { collections: ctx.ormClient } : {}) },
+    prismaNext: { contract: ctx.contract, collections: ctx.ormClient },
+  });
+  const iface = builder.prismaInterface('Post', {
+    name: 'PostBase',
+    select: { author: { where: { firstName: 'Alice' } } },
+    fields: (t) => ({
+      baseAuthor: t.string({
+        nullable: true,
+        resolve: (post) => post.author?.firstName ?? null,
+      }),
+    }),
+  });
+  builder.prismaObject('Post', {
+    interfaces: [iface],
+    select: { author: { where: { firstName: 'Bob' } } },
+    fields: (t) => ({
+      ownAuthor: t.string({
+        nullable: true,
+        resolve: (post) => post.author?.firstName ?? null,
+      }),
+    }),
+  });
+  builder.queryType({
+    fields: (t) => ({
+      posts: t.prismaField({
+        type: ['Post'],
+        resolve: () => ctx.ormClient.Post.orderBy((post) => post.id.asc()),
+      }),
+    }),
+  });
+  const captures: CapturedExecution[] = [];
+  const result = await withCapture(captures, async () =>
+    execute({
+      schema: builder.toSchema(),
+      contextValue: {},
+      document: parse('{ posts { baseAuthor ownAuthor } }'),
+    }),
+  );
+  expect(result.errors).toBeUndefined();
+  const posts = result.data?.posts as { baseAuthor: string | null; ownAuthor: string | null }[];
+  expect(new Set(posts.map((post) => post.baseAuthor))).toEqual(new Set(['Alice', null]));
+  expect(new Set(posts.map((post) => post.ownAuthor))).toEqual(new Set(['Bob', null]));
+  expect(captures).toHaveLength(2);
+});
+
+it('rejects conflicting interface and concrete type prerequisites before SQL without a provider', async () => {
+  const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+    plugins: [prismaNextPlugin],
+    prismaNext: { contract: ctx.contract },
   });
   const iface = builder.prismaInterface('Post', {
     name: 'PostBase',
