@@ -14,6 +14,8 @@ import type {
   InputFieldsFromShape,
   InputShapeFromFields,
   InterfaceParam,
+  InterfaceRef,
+  InterfaceTypeOptions,
   MaybePromise,
   ObjectRef,
   ObjectTypeOptions,
@@ -396,23 +398,6 @@ export type ToManyRelationKeys<Types extends SchemaTypes, M extends ModelName<Ty
         [R in RelationKeys<Types, M>]: IsToMany<Types, M, R> extends true ? R : never;
       }[RelationKeys<Types, M>];
 
-// TODO: drop in favor of orm-client's `IsToOneRelationNullable` once exported.
-type AnyFieldNullable<
-  TContract extends AnyContract,
-  M extends string,
-  Locals extends readonly string[],
-> = Locals[number] extends infer F extends string
-  ? ModelDefOf<TContract, M> extends {
-      readonly fields: infer Fields extends Record<string, { readonly nullable: boolean }>;
-    }
-    ? F extends keyof Fields
-      ? Fields[F]['nullable'] extends true
-        ? true
-        : false
-      : false
-    : false
-  : false;
-
 export type DefaultRelationNullable<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -421,11 +406,9 @@ export type DefaultRelationNullable<
   IsToMany<Types, M, R> extends true
     ? false
     : RelationsOfModel<Types['PrismaNextContract'], M>[R] extends {
-          readonly on: { readonly localFields: infer Locals extends readonly string[] };
+          readonly nullable: infer Nullable extends boolean;
         }
-      ? true extends AnyFieldNullable<Types['PrismaNextContract'], M, Locals>
-        ? true
-        : false
+      ? Nullable
       : true;
 
 export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
@@ -445,11 +428,7 @@ export interface RelationQueryLiteral<Types extends SchemaTypes, M extends Model
       ) => unknown);
   orderBy?: (
     accessor: ModelAccessor<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
-    tools: ModelCallbackTools<
-      Types['PrismaNextContract'],
-      BareModelName<M>,
-      NamespaceOf<Types, M>
-    >,
+    tools: ModelCallbackTools<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
   ) => unknown;
   limit?: number;
   offset?: number;
@@ -592,11 +571,22 @@ export type PrismaNextRelationCountOptions<
   ParentShape = ObjectBaseShape<Types, ParentModel>,
 > = RelationAggregateBaseOptions<Types, ParentModel, RelName, number, Nullable, Args, ParentShape>;
 
-/** Aggregate operations are provided by the emitted contract, including extensions. */
-export type RelationAggregateOp<Types extends SchemaTypes> = keyof ExtractAggregateTypes<
+/** MySQL contracts emit `Record<string, never>`: the target has no aggregate operations. */
+export type HasAggregates<Types extends SchemaTypes> = string extends keyof ExtractAggregateTypes<
   Types['PrismaNextContract']
-> &
-  string;
+>
+  ? false
+  : true;
+
+/** `totalCount: true` runs a count aggregate, so it needs a target that has them. */
+export type TotalCountFlag<Types extends SchemaTypes> =
+  HasAggregates<Types> extends true ? boolean : false;
+
+/** Aggregate operations are provided by the emitted contract, including extensions. */
+export type RelationAggregateOp<Types extends SchemaTypes> =
+  HasAggregates<Types> extends true
+    ? keyof ExtractAggregateTypes<Types['PrismaNextContract']> & string
+    : never;
 
 type AggregateMethod<
   Types extends SchemaTypes,
@@ -732,7 +722,28 @@ export type PrismaNextObjectOptions<
   M extends ModelName<Types>,
   Shape,
   Interfaces extends InterfaceParam<Types>[],
-> = Omit<ObjectTypeOptions<Types, ObjectRef<Types, Shape>, Shape, Interfaces>, 'fields'> & {
+> = Omit<
+  ObjectTypeOptions<Types, ObjectRef<Types, Shape>, Shape, Interfaces>,
+  'fields' | 'isTypeOf'
+> &
+  PrismaNextTypeOptions<Types, M, Shape> & {
+    /** Receives the row as loaded for this type, so read columns listed in `select`. */
+    isTypeOf?: (
+      row: Shape,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => MaybePromise<boolean>;
+  };
+
+export type PrismaNextInterfaceOptions<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Shape,
+  Interfaces extends InterfaceParam<Types>[],
+> = Omit<InterfaceTypeOptions<Types, InterfaceRef<Types, Shape>, Shape, Interfaces>, 'fields'> &
+  PrismaNextTypeOptions<Types, M, Shape>;
+
+type PrismaNextTypeOptions<Types extends SchemaTypes, M extends ModelName<Types>, Shape> = {
   name?: string;
   /** Synonym for `name` that communicates intent: multiple GraphQL types backed by the same contract model. Wins over `name` when both are set. */
   variant?: string;
@@ -948,12 +959,12 @@ export type PrismaNextConnectionFieldOptions<
      * order; backward pages reverse it.
      */
     orderBy?: (
-      model: ModelAccessor<Types['PrismaNextContract'], M>,
+      model: ModelAccessor<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
     ) => OrderByItem | readonly OrderByItem[];
     totalCount?:
-      | boolean
+      | TotalCountFlag<Types>
       | ((
           parent: ParentShape,
           args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
@@ -1033,7 +1044,7 @@ export type PrismaNextRelatedConnectionOptions<
       context: Types['Context'],
     ) => OrderByItem | readonly OrderByItem[];
     totalCount?:
-      | boolean
+      | TotalCountFlag<Types>
       | ((
           parent: ParentShape,
           args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,

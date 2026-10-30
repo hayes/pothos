@@ -37,7 +37,9 @@ describe.skipIf(!url)('MySQL', () => {
             orderBy: (book) => book.id.asc(),
           }),
         }),
+        // @ts-expect-error MySQL contracts have no aggregates.
         bookCount: t.relationCount('books'),
+        // @ts-expect-error MySQL contracts have no aggregates.
         bookTotals: t.relatedConnection('books', { cursor: 'id', totalCount: true }),
         bookPages: t.relatedConnection('books', { cursor: 'id' }),
       }),
@@ -63,6 +65,7 @@ describe.skipIf(!url)('MySQL', () => {
         authorTotals: t.prismaConnection({
           type: 'Author',
           cursor: 'id',
+          // @ts-expect-error MySQL contracts have no aggregates.
           totalCount: true,
           resolve: () => client.orm.Author,
         }),

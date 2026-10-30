@@ -59,14 +59,15 @@ builder.queryType({
   }),
 });
 
-// A composite FK is optional if any local component is nullable.
+// A to-one relation's nullability comes from the contract's `nullable` flag.
 type PostModel = Contract['domain']['namespaces']['__unbound__']['models']['Post'];
 type MixedNullablePost = Omit<PostModel, 'fields' | 'relations'> & {
   fields: Omit<PostModel['fields'], 'authorId'> & {
     authorId: Omit<PostModel['fields']['authorId'], 'nullable'> & { nullable: true };
   };
   relations: Omit<PostModel['relations'], 'author'> & {
-    author: Omit<PostModel['relations']['author'], 'on'> & {
+    author: Omit<PostModel['relations']['author'], 'on' | 'nullable'> & {
+      nullable: true;
       on: { localFields: readonly ['id', 'authorId']; targetFields: readonly ['id', 'email'] };
     };
   };
@@ -86,6 +87,33 @@ type MixedTypes = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Mix
 expectTypeOf<
   import('../src/types').DefaultRelationNullable<MixedTypes, 'Post', 'author'>
 >().toEqualTypeOf<true>();
+
+// `isTypeOf` reads the type's selected columns without a cast.
+builder.prismaObject('Comment', {
+  select: ['body'],
+  isTypeOf: (row) => row.body.length > 0,
+  fields: () => ({}),
+});
+builder.prismaObject('Comment', {
+  select: ['body'],
+  // @ts-expect-error Only selected columns are on the row.
+  isTypeOf: (row) => row.createdAt !== null,
+  fields: () => ({}),
+});
+
+// Interfaces use `resolveType`, and have no `isTypeOf`.
+builder.prismaInterface('Comment', {
+  variant: 'CommentInterface',
+  select: ['body'],
+  resolveType: (row) => (row.body.length > 0 ? 'Comment' : null),
+  fields: () => ({}),
+});
+builder.prismaInterface('Comment', {
+  variant: 'CommentInterfaceInvalid',
+  // @ts-expect-error `isTypeOf` belongs to object types.
+  isTypeOf: () => true,
+  fields: () => ({}),
+});
 
 builder.prismaObject('Post', {
   fields: (t) => ({

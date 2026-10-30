@@ -94,7 +94,8 @@ If you have multiple node types backed by the same model
 builder.prismaNode('Post', {
   id: { field: 'id' },
   collection: (ctx) => ctx.db.orm.Post,
-  isTypeOf: (row) => (row as { published: number }).published === 1,
+  select: ['published'],
+  isTypeOf: (row) => row.published === 1,
   fields: (t) => ({ ... }),
 });
 
@@ -102,7 +103,8 @@ builder.prismaNode('Post', {
   variant: 'DraftPost',
   id: { field: 'id' },
   collection: (ctx) => ctx.db.orm.Post,
-  isTypeOf: (row) => (row as { published: number }).published === 0,
+  select: ['published'],
+  isTypeOf: (row) => row.published === 0,
   fields: (t) => ({ ... }),
 });
 ```
