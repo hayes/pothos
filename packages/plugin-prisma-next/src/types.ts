@@ -174,7 +174,7 @@ type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<Sta
 // constraint — pass it bare (intersecting with the wide `AnyContract` would
 // collapse the concrete model's field/relation accessors to `never`). Bind the
 // row + state to the model's namespace so this matches `db.orm.<M>` exactly,
-// which is what `ModelCollection`/`orm` produce in 0.14.0.
+// which is what `ModelCollection`/`orm` produce.
 export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>> = Collection<
   Types['PrismaNextContract'],
   M,
@@ -244,8 +244,8 @@ export interface PrismaNextPluginOptions<TContract extends AnyContract, Context 
 }
 
 // Hand-rolled indexed access into the contract's relation map. orm-client DOES
-// export equivalent helpers (`RelationNames<C, M>` / `RelatedModelName`), and at
-// 0.14.0 they stay precise through generic positions — their `ExactRecord` only
+// export equivalent helpers (`RelationNames<C, M>` / `RelatedModelName`), and
+// they stay precise through generic positions — their `ExactRecord` only
 // collapses when the contract itself is the wide `AnyContract`, which the
 // `ModelName` sentinel already guards. TODO(prisma-next bump): consider swapping
 // `RelationKeys`/`RelatedModel` to the public `RelationNames`/`RelatedModelName`
