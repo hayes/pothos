@@ -307,6 +307,18 @@ export function assertUnpaginatedCollection(collection: unknown): void {
   }
 }
 
+/** A null can only mark a position on a column the validated spec gave a null placement. */
+function decodeBoundary(cursor: CursorInput, value: string): Record<string, unknown> {
+  const boundary = decodeCursor(cursor, value);
+  for (const field of cursorFields(cursor)) {
+    const col = typeof field === 'string' ? field : field.field;
+    if (boundary[col] === null && (typeof field === 'string' || !field.nulls)) {
+      throw new PothosValidationError(`Invalid cursor value for ${col}.`);
+    }
+  }
+  return boundary;
+}
+
 function applyToCollection<C extends MapperCollection>(
   baseCollection: C,
   params: CursorPaginationParams,
@@ -360,7 +372,7 @@ function applyToCollection<C extends MapperCollection>(
     // `hasOrderBy` type gate). The decoded boundary is the same column→
     // value map the hand-rolled predicate consumes; native builds the
     // strict seek predicate internally.
-    const boundary = decodeCursor(cursor, nativeAfter ? after! : before!);
+    const boundary = decodeBoundary(cursor, nativeAfter ? after! : before!);
     return withOrder.cursor(boundary).limit(limit) as C;
   }
 
@@ -369,15 +381,29 @@ function applyToCollection<C extends MapperCollection>(
   let collection: MapperCollection = withOrder;
   if (after) {
     collection = collection.where(
-      buildLexicographicPredicate(cols, decodeCursor(cursor, after), 'gt', directions, nulls),
+      buildLexicographicPredicate(cols, decodeBoundary(cursor, after), 'gt', directions, nulls),
     );
   }
   if (before) {
     collection = collection.where(
-      buildLexicographicPredicate(cols, decodeCursor(cursor, before), 'lt', directions, nulls),
+      buildLexicographicPredicate(cols, decodeBoundary(cursor, before), 'lt', directions, nulls),
     );
   }
   return collection.limit(limit) as C;
+}
+
+/** Throws what pagination would, without touching a collection, so planning can leave it to the field. */
+export function validateCursorArgs(
+  cursor: CursorInput,
+  args: import('@pothos/plugin-relay').DefaultConnectionArguments,
+): void {
+  const { before, after } = buildPaginationParams(cursor, args);
+  if (after) {
+    decodeBoundary(cursor, after);
+  }
+  if (before) {
+    decodeBoundary(cursor, before);
+  }
 }
 
 export function applyCursorPagination<C extends MapperCollection>(

@@ -10,25 +10,6 @@ import type { AnyContract } from '../types.js';
 import { resolveContractModel } from './contract.js';
 
 /**
- * Junction descriptor for an N:M relation, mirroring prisma-next's
- * `ContractRelationThrough`. Present only on many-to-many relations; the
- * walker uses its presence as the "this is a junction relation" flag and
- * carries the columns for any future junction-aware stitching.
- */
-export interface PrismaNextRelationThrough {
-  /** Junction table name. */
-  readonly table: string;
-  /** Namespace that owns the junction table. */
-  readonly namespaceId: string;
-  /** Junction FK columns → parent. */
-  readonly parentColumns: readonly string[];
-  /** Junction FK columns → target. */
-  readonly childColumns: readonly string[];
-  /** Target PK columns referenced by `childColumns`. */
-  readonly targetColumns: readonly string[];
-}
-
-/**
  * Per-relation metadata baked into the type's extension at schema
  * build. Cardinality detection runs here once, fail-fast.
  */
@@ -44,13 +25,6 @@ export interface PrismaNextRelationMeta {
   readonly localFields: readonly string[];
   /** Target model name in the contract. */
   readonly targetModel: string;
-  /**
-   * Junction descriptor for N:M relations; `undefined` for reference and
-   * embed relations. Its presence marks the relation as a junction join
-   * (prisma-next emits the junction query internally from the contract's
-   * `through`, so the walker just needs to know it exists).
-   */
-  readonly through?: PrismaNextRelationThrough;
 }
 
 /** A relation as the adapter sees it: the metadata plus the target model itself. */
@@ -103,9 +77,6 @@ export function buildRelationMeta(
       // joins against.
       localFields: 'on' in rel ? rel.on.localFields : [],
       targetModel: rel.to.model,
-      // N:M relations carry a `through`; the union narrows to
-      // `ContractManyToManyRelation` on the cardinality check.
-      ...(rel.cardinality === 'N:M' ? { through: rel.through } : {}),
     };
   }
   return out;
