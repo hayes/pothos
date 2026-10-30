@@ -7,7 +7,7 @@
 import { PothosSchemaError } from '@pothos/core';
 import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
 import type { AnyContract } from '../types.js';
-import { resolveContractModel } from './contract.js';
+import { relatedModelKey, resolveContractModel } from './contract.js';
 
 /**
  * Junction descriptor for an N:M relation, mirroring prisma-next's
@@ -102,7 +102,7 @@ export function buildRelationMeta(
       // has no direct FK, but it does have the keyed columns the junction
       // joins against.
       localFields: 'on' in rel ? rel.on.localFields : [],
-      targetModel: rel.to.model,
+      targetModel: relatedModelKey(contract, rel.to),
       // N:M relations carry a `through`; the union narrows to
       // `ContractManyToManyRelation` on the cardinality check.
       ...(rel.cardinality === 'N:M' ? { through: rel.through } : {}),
