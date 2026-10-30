@@ -1,0 +1,16 @@
+// use prisma-8
+model Author {
+  id Int @id
+  name String
+  books Book[]
+  @@map("pothos_next_author")
+}
+
+model Book {
+  id Int @id
+  authorId Int
+  title String
+  pages Int
+  author Author @relation(fields: [authorId], references: [id])
+  @@map("pothos_next_book")
+}

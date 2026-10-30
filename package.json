@@ -86,6 +86,7 @@
       "sqlite3"
     ],
     "overrides": {
+      "arktype": "2.2.9",
       "graphql": "^17.0.1"
     }
   }

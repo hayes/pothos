@@ -7,6 +7,7 @@ settings:
 overrides:
   graphql: ^17.0.1
   '@whatwg-node/fetch': 0.8.8
+  arktype: 2.2.9
 
 patchedDependencies:
   '@changesets/assemble-release-plan@6.0.9':
@@ -939,6 +940,9 @@ importers:
       '@prisma/orm-framework':
         specifier: 8.0.0-rc.22
         version: 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-mysql':
+        specifier: 8.0.0-rc.22
+        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@prisma/orm-postgres':
         specifier: 8.0.0-rc.22
         version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
@@ -948,6 +952,9 @@ importers:
       '@types/pg':
         specifier: 8.20.4
         version: 8.20.4
+      mariadb:
+        specifier: ^3.5.4
+        version: 3.5.4
       pg:
         specifier: 8.22.0
         version: 8.22.0
@@ -1786,14 +1793,8 @@ packages:
     resolution: {integrity: sha512-vyrkEHG1jrukmzTPtyWB4NLPauUw5bQeg4uhn8f+1SSynmrOcyvlb1GKQjjgoBzElLdfXCRYX8UnBlhklOHYRQ==}
     engines: {node: '>=8'}
 
-  '@ark/schema@0.56.2':
-    resolution: {integrity: sha512-Qx4D2JFbBWpntiHZaTv7bGG4H/M2rigiknezKg/WVyDSaLdE4YCcWAOoFB7pjjDqHbbV2OqRfntm1nnXvwMexg==}
-
   '@ark/schema@0.56.8':
     resolution: {integrity: sha512-R05TOe85oQBGFFw2zKMuZpqkXibLKuC/aJt6VwFn5Cjc4x3NkWfhvGRpRDycNkj3ddcHnOPtIsmjVowJO9Yxdw==}
-
-  '@ark/util@0.56.2':
-    resolution: {integrity: sha512-9kU2sUE38FZEGG7l3hamYMBieLYEJh2L1mrYD2eXpT+78EnQSV1bhjxJhnxGBMSTbtwpBSDNSK+K60WvaI/DTQ==}
 
   '@ark/util@0.56.8':
     resolution: {integrity: sha512-XLiQyGfpJcws1zCtp2Cva8s1oheCdFn1Rt6JSyC4NnkDrpwCJnlaiawuuOc1Z97vMH+jEzW5vyyf0xOju5wUQA==}
@@ -4463,6 +4464,14 @@ packages:
       typescript:
         optional: true
 
+  '@prisma/orm-mysql@8.0.0-rc.22':
+    resolution: {integrity: sha512-16B3bUipWoZ5BasQPwAtydL7ijQurheEDpbAWeQPM12/Us/V+dQEi/hM0p/xWcbSeSs5AzkrLq/mxEqNG6u/kw==}
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   '@prisma/orm-postgres@8.0.0-rc.22':
     resolution: {integrity: sha512-z5yqcLLTIo4eMU+mAn2ojJZYk4LdOgyY35KEicFjOgxddQaf32yE1d5HuWDDZ3QomYsmz1tLX+8P7trAARuu7Q==}
     peerDependencies:
@@ -4474,6 +4483,14 @@ packages:
 
   '@prisma/orm-sqlite@8.0.0-rc.22':
     resolution: {integrity: sha512-RhowhHLThKLtz4y2Bt53eFJ60zcFTGKT1RZt5U3r3SJdZQ94ZinZA5uA0K2+2yl+jTE0zusjNmNNTpUqodTCmg==}
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma/orm-target-mysql@8.0.0-rc.22':
+    resolution: {integrity: sha512-esk8Mf14lEkEufl8lRgkOJRv3WGoApePEw/46hxA+3dvgaWk1Dhkj2b8IVsLsrNxfDNDv7jKZYqUZaUJ/wkxGg==}
     peerDependencies:
       typescript: '>=5.9'
     peerDependenciesMeta:
@@ -5610,6 +5627,9 @@ packages:
   '@types/express@5.0.6':
     resolution: {integrity: sha512-sKYVuV7Sv9fbPIt/442koC7+IIwK5olP1KWeD88e/idgoJqDm3JV/YUiPwkoKK92ylff2MGxSz1CSjsXelx0YA==}
 
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
   '@types/hast@3.0.4':
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
 
@@ -6237,12 +6257,6 @@ packages:
 
   arkregex@0.0.14:
     resolution: {integrity: sha512-G3I/uCtWE0IKQiPh0qqmmAFDdtjZKZQ5mNPR6gJBeAMZ7VqYCpoaDeXnLju2Zo6ywExtmxZJELeVFb0MPDjPyA==}
-
-  arkregex@0.0.8:
-    resolution: {integrity: sha512-PJcx6G1kQTgLKPUbeYlYecDRaKq15AMSGVajlKFYWlPeJRQL+j3dKE6tyMs40HZ99djS1l9Vhl3ezAHy9JBIqQ==}
-
-  arktype@2.2.3:
-    resolution: {integrity: sha512-7W+0RLTUNJiBFIIZXwOQxSR8Z273IAd6IvqBeG9+gHnQKFsIx2C0iOtGTmMrPnlX4qLXyc5+ll7A0BIj9WrbTg==}
 
   arktype@2.2.9:
     resolution: {integrity: sha512-Cja0IMEn19rB35on9da1i1z6QMasuS7ULffXbetCry09jvCGYT8Bi1KgYiqri5FymF4nQAXkM90yksYkgSK2EA==}
@@ -7249,7 +7263,7 @@ packages:
       '@upstash/redis': '>=1.34.7'
       '@vercel/postgres': '>=0.8.0'
       '@xata.io/client': '*'
-      arktype: '>=2.0.0'
+      arktype: 2.2.9
       better-sqlite3: '>=9.3.0'
       bun-types: '*'
       effect: '>=4.0.0'
@@ -9130,6 +9144,10 @@ packages:
     resolution: {integrity: sha512-NxVFwLAnrd9i7KUBxC4DrUhmgjzOs+1Qm50D3oF1/oL+r1NpZ4gA7xvG0/zJ8evR7zIKn4vLf7qTNduWFtCrRw==}
     engines: {node: 20 || >=22}
 
+  lru-cache@11.5.3:
+    resolution: {integrity: sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==}
+    engines: {node: 20 || >=22}
+
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
@@ -9178,6 +9196,10 @@ packages:
   make-fetch-happen@15.0.5:
     resolution: {integrity: sha512-uCbIa8jWWmQZt4dSnEStkVC6gdakiinAm4PiGsywIkguF0eWMdcjDz0ECYhUolFU3pFLOev9VNPCEygydXnddg==}
     engines: {node: ^20.17.0 || >=22.9.0}
+
+  mariadb@3.5.4:
+    resolution: {integrity: sha512-3m0vdfgRkjle5/9hHl4R7rlVvnDA7QfuFSNkdIAQNROWKOS0J3b9IQK9HaZSCGEVKiDUbFXFiINfC+cmR5P/aA==}
+    engines: {node: '>= 20.0.0'}
 
   markdown-extensions@2.0.0:
     resolution: {integrity: sha512-o5vL7aDWatOTX8LzaS1WMoaoxIiLRQJuIKKe2wAw6IeULDHaqbiqiggmx+pKvZDb1Sj+pE46Sn1T7lCqfFtg1Q==}
@@ -12545,15 +12567,9 @@ snapshots:
     dependencies:
       tslib: 2.0.3
 
-  '@ark/schema@0.56.2':
-    dependencies:
-      '@ark/util': 0.56.2
-
   '@ark/schema@0.56.8':
     dependencies:
       '@ark/util': 0.56.8
-
-  '@ark/util@0.56.2': {}
 
   '@ark/util@0.56.8': {}
 
@@ -15347,7 +15363,7 @@ snapshots:
       '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
       '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@standard-schema/spec': 1.1.0
-      arktype: 2.2.3
+      arktype: 2.2.9
       pathe: 2.0.3
       pluralize: 8.0.0
       tinyglobby: 0.2.17
@@ -15363,12 +15379,28 @@ snapshots:
   '@prisma/orm-framework@8.0.0-rc.22(typescript@7.0.2)':
     dependencies:
       '@standard-schema/spec': 1.1.0
-      arktype: 2.2.3
+      arktype: 2.2.9
       pathe: 2.0.3
       tinyglobby: 0.2.17
       uniku: 0.5.0
     optionalDependencies:
       typescript: 7.0.2
+
+  '@prisma/orm-mysql@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+    dependencies:
+      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-target-mysql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      arktype: 2.2.9
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - '@prisma/cli-engine'
+      - magicast
+      - typanion
+      - vite
 
   '@prisma/orm-postgres@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
@@ -15378,7 +15410,7 @@ snapshots:
       '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@types/node': 26.1.2
       '@types/pg': 8.20.4
-      arktype: 2.2.3
+      arktype: 2.2.9
       pathe: 2.0.3
       pg: 8.22.0
       temporal-polyfill: 1.0.6
@@ -15409,6 +15441,22 @@ snapshots:
       - typanion
       - vite
 
+  '@prisma/orm-target-mysql@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+    dependencies:
+      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@standard-schema/spec': 1.1.0
+      arktype: 2.2.9
+      mariadb: 3.5.4
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - '@prisma/cli-engine'
+      - magicast
+      - typanion
+      - vite
+
   '@prisma/orm-target-postgres@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
       '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
@@ -15417,7 +15465,7 @@ snapshots:
       '@standard-schema/spec': 1.1.0
       '@types/node': 26.1.2
       '@types/pg': 8.20.4
-      arktype: 2.2.3
+      arktype: 2.2.9
       pathe: 2.0.3
       pg: 8.22.0
       pg-connection-string: 2.14.0
@@ -15440,7 +15488,7 @@ snapshots:
       '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
       '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@standard-schema/spec': 1.1.0
-      arktype: 2.2.3
+      arktype: 2.2.9
       pathe: 2.0.3
     optionalDependencies:
       typescript: 7.0.2
@@ -15455,7 +15503,7 @@ snapshots:
       '@prisma/cli-engine': 0.9.0(@prisma/management-api-sdk@1.72.0)
       '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
       '@vercel/detect-agent': 1.2.5
-      arktype: 2.2.3
+      arktype: 2.2.9
       c12: 3.3.4
       ci-info: 4.4.0
       clipanion: 4.0.0-rc.4(typanion@3.14.0)
@@ -16550,6 +16598,8 @@ snapshots:
       '@types/express-serve-static-core': 5.1.0
       '@types/serve-static': 2.2.0
 
+  '@types/geojson@7946.0.16': {}
+
   '@types/hast@3.0.4':
     dependencies:
       '@types/unist': 3.0.3
@@ -17206,16 +17256,6 @@ snapshots:
   arkregex@0.0.14:
     dependencies:
       '@ark/util': 0.56.8
-
-  arkregex@0.0.8:
-    dependencies:
-      '@ark/util': 0.56.2
-
-  arktype@2.2.3:
-    dependencies:
-      '@ark/schema': 0.56.2
-      '@ark/util': 0.56.2
-      arkregex: 0.0.8
 
   arktype@2.2.9:
     dependencies:
@@ -20383,6 +20423,8 @@ snapshots:
 
   lru-cache@11.3.5: {}
 
+  lru-cache@11.5.3: {}
+
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
@@ -20442,6 +20484,14 @@ snapshots:
       ssri: 13.0.1
     transitivePeerDependencies:
       - supports-color
+
+  mariadb@3.5.4:
+    dependencies:
+      '@types/geojson': 7946.0.16
+      '@types/node': 25.6.0
+      denque: 2.1.0
+      iconv-lite: 0.7.2
+      lru-cache: 11.5.3
 
   markdown-extensions@2.0.0: {}
 
@@ -23846,7 +23896,7 @@ snapshots:
       picomatch: 4.0.4
       postcss: 8.5.9
       rollup: 4.60.1
-      tinyglobby: 0.2.16
+      tinyglobby: 0.2.17
     optionalDependencies:
       '@types/node': 25.6.0
       fsevents: 2.3.3
@@ -23863,7 +23913,7 @@ snapshots:
       picomatch: 4.0.4
       postcss: 8.5.9
       rollup: 4.60.1
-      tinyglobby: 0.2.16
+      tinyglobby: 0.2.17
     optionalDependencies:
       '@types/node': 26.1.2
       fsevents: 2.3.3
