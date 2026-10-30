@@ -16,7 +16,13 @@ import {
   prismaNextAdapter,
 } from './utils/adapter.js';
 import { getCollectionPaginationState } from './utils/collection-state.js';
-import { getIdentityFields, type PrismaNextModel } from './utils/model.js';
+import {
+  type ColumnCodec,
+  getColumnCodec,
+  getIdentityFields,
+  type PrismaNextCodecContext,
+  type PrismaNextModel,
+} from './utils/model.js';
 
 type Row = Record<string, unknown>;
 type Played = PlayedPlan<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
@@ -38,6 +44,7 @@ interface KeyColumn {
 export class ModelLoader {
   private readonly adapter;
   private readonly identity: readonly string[];
+  private readonly codecs: Map<string, ColumnCodec | undefined>;
   private readonly selections = new Map<string, MaybePromise<Played>>();
   private readonly staged = new Set<Batch>();
 
@@ -47,9 +54,16 @@ export class ModelLoader {
     private readonly modelName: string,
     private readonly collection: () => MapperCollection | undefined,
     private readonly skipDeferredFragments: boolean,
+    codecContext?: PrismaNextCodecContext,
   ) {
     this.adapter = prismaNextAdapter(contract, true);
     this.identity = getIdentityFields(contract, modelName);
+    this.codecs = new Map(
+      this.identity.map((field) => [
+        field,
+        getColumnCodec(contract, modelName, field, codecContext),
+      ]),
+    );
   }
 
   loadSelection(info: GraphQLResolveInfo, parent: object): Promise<Row> {
@@ -114,19 +128,25 @@ export class ModelLoader {
       this.identity.map((field) => {
         const value = row[field];
         if (
-          value &&
-          typeof value === 'object' &&
-          !(value instanceof Date) &&
-          !(value instanceof Uint8Array)
+          !value ||
+          typeof value !== 'object' ||
+          value instanceof Date ||
+          value instanceof Uint8Array
         ) {
-          // Opaque codec objects can all stringify as {}, which would join unrelated rows.
-          if (typeof (value as { toFixed?: unknown }).toFixed !== 'function') {
-            throw new PothosValidationError(
-              `Fallback identity '${this.modelName}.${field}' has an unsupported object value. Use a scalar, Date, bytes, or Decimal identity.`,
-            );
-          }
+          return value;
         }
-        return value;
+        const codec = this.codecs.get(field);
+        if (codec) {
+          return JSON.stringify(codec.toStored(value));
+        }
+        // Opaque objects can all stringify as {}, which would join unrelated rows.
+        const json = (value as { toJSON?: () => unknown }).toJSON?.();
+        if (typeof json !== 'string') {
+          throw new PothosValidationError(
+            `Fallback identity '${this.modelName}.${field}' has an object value with no stable form. Set prismaNext.context so its column codec can compare it.`,
+          );
+        }
+        return json;
       }),
     );
   }

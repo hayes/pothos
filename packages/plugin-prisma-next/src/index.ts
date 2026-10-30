@@ -438,6 +438,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           modelName,
           () => (typeof collections === 'function' ? collections(context) : collections)[modelName],
           pluginOptions.skipDeferredFragments ?? true,
+          pluginOptions.context,
         );
         loaders.set(modelName, loader);
       }

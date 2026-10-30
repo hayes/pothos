@@ -11,6 +11,10 @@
     "pothos_next_entry": {
       "model": "Entry",
       "namespace": "public"
+    },
+    "pothos_next_event": {
+      "model": "Event",
+      "namespace": "public"
     }
   },
   "domain": {
@@ -171,6 +175,37 @@
               "namespaceId": "public",
               "table": "pothos_next_entry"
             }
+          },
+          "Event": {
+            "fields": {
+              "at": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "label": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "at": {
+                  "column": "at"
+                },
+                "label": {
+                  "column": "label"
+                }
+              },
+              "namespaceId": "public",
+              "table": "pothos_next_event"
+            }
           }
         }
       }
@@ -283,6 +318,28 @@
                 ]
               },
               "uniques": []
+            },
+            "pothos_next_event": {
+              "columns": {
+                "at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": false
+                },
+                "label": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "at"
+                ]
+              },
+              "uniques": []
             }
           }
         },
@@ -290,7 +347,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "167e09c4125b90ad1e4999f7b9311cc83c42beb5c426a947f528c91ac892418d"
+    "storageHash": "121d0deb7ce70c8871f8be3e8708efb1ddeb05e1f080faec39b50987b7d2386b"
   },
   "capabilities": {
     "postgres": {
