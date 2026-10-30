@@ -65,7 +65,8 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     // `admin` returns null unless the row is actually an admin.
     admin: t.variant(adminUserRef, {
-      isNull: (user) => !(user as { isAdmin: boolean }).isAdmin,
+      select: ['isAdmin'],
+      isNull: (user) => !user.isAdmin,
     }),
   }),
 });
@@ -85,7 +86,7 @@ otherwise pull:
 ```ts
 admin: t.variant(adminUserRef, {
   select: ['isAdmin'],
-  isNull: (user) => !(user as { isAdmin: boolean }).isAdmin,
+  isNull: (user) => !user.isAdmin,
 }),
 ```
 
