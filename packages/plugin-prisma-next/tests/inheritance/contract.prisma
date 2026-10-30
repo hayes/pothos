@@ -1,0 +1,33 @@
+// use prisma-8
+
+model User {
+  id    String @id
+  email String @unique
+  tasks Task[]
+
+  @@map("user")
+}
+
+model Task {
+  id      String @id
+  title   String
+  type    String
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  @@discriminator(type)
+  @@map("task")
+}
+
+model Bug {
+  severity String
+
+  @@base(Task, "bug")
+}
+
+model Feature {
+  priority Int
+
+  @@base(Task, "feature")
+  @@map("feature")
+}

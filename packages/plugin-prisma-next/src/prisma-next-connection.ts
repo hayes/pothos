@@ -16,6 +16,7 @@ import type {
 } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { createApply } from './utils/apply.js';
+import { assertVariantCollection } from './utils/contract.js';
 import {
   applyCursorPagination,
   assertUnpaginatedCollection,
@@ -168,6 +169,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
           return null;
         }
         assertUnpaginatedCollection(userCollection);
+        assertVariantCollection(contract, ref.modelName as string, userCollection as never);
         const needsRows = connectionNeedsRows(context as object, info);
         const apply = createApply({
           info,
