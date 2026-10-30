@@ -1,5 +1,99 @@
 {
-  "01-relations.graphql": {},
-  "02-connection.graphql": {},
-  "03-root-connection.graphql": {}
+  "01-relations.graphql": {
+    "data": {
+      "users": [
+        {
+          "fullName": "Maya Chen",
+          "posts": [
+            {
+              "title": "Starting a seed library",
+              "author": {
+                "email": "maya@example.com"
+              }
+            },
+            {
+              "title": "A guide to composting",
+              "author": {
+                "email": "maya@example.com"
+              }
+            }
+          ]
+        },
+        {
+          "fullName": "Leo Silva",
+          "posts": [
+            {
+              "title": "Watering through summer",
+              "author": {
+                "email": "leo@example.com"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "02-connection.graphql": {
+    "data": {
+      "users": [
+        {
+          "fullName": "Maya Chen",
+          "postConnection": {
+            "totalCount": 3,
+            "pageInfo": {
+              "hasNextPage": true
+            },
+            "edges": [
+              {
+                "node": {
+                  "title": "Starting a seed library"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "fullName": "Leo Silva",
+          "postConnection": {
+            "totalCount": 1,
+            "pageInfo": {
+              "hasNextPage": false
+            },
+            "edges": [
+              {
+                "node": {
+                  "title": "Watering through summer"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "03-root-connection.graphql": {
+    "data": {
+      "posts": {
+        "totalCount": 3,
+        "edges": [
+          {
+            "node": {
+              "title": "Starting a seed library",
+              "author": {
+                "fullName": "Maya Chen"
+              }
+            }
+          },
+          {
+            "node": {
+              "title": "A guide to composting",
+              "author": {
+                "fullName": "Maya Chen"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
 }

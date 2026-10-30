@@ -53,11 +53,14 @@ const config = {
     }
     if (!isServer) {
       webpackConfig.plugins.push(
-        new webpack.NormalModuleReplacementPlugin(/^node:(crypto|fs\/promises|sqlite)$/, (resource) => {
-          resource.request = fileURLToPath(
-            new URL(browserNodeModules[resource.request], import.meta.url),
-          );
-        }),
+        new webpack.NormalModuleReplacementPlugin(
+          /^node:(crypto|fs\/promises|sqlite)$/,
+          (resource) => {
+            resource.request = fileURLToPath(
+              new URL(browserNodeModules[resource.request], import.meta.url),
+            );
+          },
+        ),
       );
     }
     return webpackConfig;

@@ -1,13 +1,32 @@
 import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadPlaygroundCases } from './playground-cases.mjs';
+
+// The plugin and website resolve different pnpm peer variants of the ORM, whose unique symbols are
+// distinct types. Point both at the website's copy, as the playground's bundler config does.
+async function ormPaths(root) {
+  const entries = await Promise.all(
+    ['@prisma/orm-family-sql', '@prisma/orm-framework', '@prisma/orm-sqlite'].map(async (name) => {
+      const directory = join(root, 'node_modules', name);
+      const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'));
+      return Object.entries(manifest.exports)
+        .filter(([, target]) => typeof target === 'string')
+        .map(([subpath, target]) => [
+          `${name}${subpath.slice(1)}`,
+          [join(directory, target.replace(/\.mjs$/, '.d.mts'))],
+        ]);
+    }),
+  );
+  return Object.fromEntries(entries.flat());
+}
 
 // Each example is a separate application. Plugin declaration merging must stay
 // within its own program, just as it does in a fresh playground project.
 export async function typecheckPlaygroundCases(examples, root = process.cwd()) {
   const fixture = await mkdtemp(join(root, '.playground-typecheck-'));
+  const prismaPaths = await ormPaths(root);
   let sourceCount = 0;
   try {
     for (const [index, example] of examples.entries()) {
@@ -44,6 +63,8 @@ export async function typecheckPlaygroundCases(examples, root = process.cwd()) {
             paths: {
               'drizzle-orm': [join(root, 'node_modules/drizzle-orm')],
               'drizzle-orm/*': [join(root, 'node_modules/drizzle-orm/*')],
+              'node:sqlite': [join(root, 'lib/playground/prisma-next/node-sqlite.ts')],
+              ...prismaPaths,
             },
           },
           files,
