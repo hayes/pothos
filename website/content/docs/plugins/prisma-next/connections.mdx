@@ -40,7 +40,7 @@ The resolver returns the base `Collection`. The plugin:
 compound cursors, pass a tuple:
 
 ```ts
-cursor: ['createdAt', 'id'] as const,
+cursor: ['createdAt', 'id'],
 ```
 
 Both columns ship into every row's SELECT automatically. Cursor fields must
@@ -174,7 +174,7 @@ builder.prismaObject('User', {
 
 The pagination happens INSIDE the `.include('posts', cb => …)` callback
 on the parent collection — so the parent and the page rows ship as one
-orm-client plan whenever prisma-next's planner can collapse it. The upstream planner chooses the SQL strategy; combined rows and counts can
+orm-client plan whenever Prisma's planner can collapse it. The upstream planner chooses the SQL strategy; combined rows and counts can
 execute in one statement.
 
 ### Options

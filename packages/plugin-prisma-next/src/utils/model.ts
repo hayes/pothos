@@ -56,7 +56,7 @@ export function buildRelationMeta(
   }
   const out: Record<string, PrismaNextRelationMeta> = {};
   for (const [name, rel] of Object.entries(rels)) {
-    // N:M is a to-many junction relation. As of prisma-next 0.14.0 the
+    // N:M is a to-many junction relation. The
     // orm-client resolves the junction join internally from the
     // relation's `through` block (see tests/prisma-next-m-n-upstream-pin),
     // so `.include('<n:m rel>')` flattens the related rows in a single

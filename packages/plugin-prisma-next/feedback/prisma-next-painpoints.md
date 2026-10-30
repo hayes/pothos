@@ -12,7 +12,7 @@ terminal omissions, reducers and type-state behavior on each upstream upgrade.
 
 ## To-one composition
 
-RC9 rejects combine on to-one includes with ORM.INCLUDE_UNSUPPORTED. Compatible
+Prisma rejects combine on to-one includes with ORM.INCLUDE_UNSUPPORTED. Compatible
 consumers merge; independent incompatible filters fail before execution. A public
 named/combined to-one projection would close this gap within complete planning.
 
@@ -24,10 +24,8 @@ this compatibility debt. The helper does not inspect the database dialect.
 
 ## Programmatic contract emission
 
-RC9's control emitter leaves internal package specifiers in emitted declarations.
-Test generators map these to public exports. Serialized JSON also omits empty
-structural defaults required by its runtime deserializer; fixture loaders restore
-them. Both workarounds stay outside production plugin code.
+The control emitter leaves internal package specifiers in emitted declarations.
+Test generators map these to public exports, outside production plugin code.
 
 ## Family, identity and codecs
 
