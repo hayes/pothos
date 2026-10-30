@@ -30,7 +30,6 @@ import type {
 import type {
   AggregateBuilder,
   Collection,
-  CollectionModelName,
   CollectionTypeState,
   DefaultCollectionTypeState,
   DefaultModelRow,
@@ -39,8 +38,6 @@ import type {
   ModelAccessor,
   ModelCallbackTools,
   NumericFieldNames,
-  RelatedModelName,
-  RelationNames,
   ShorthandWhereFilter,
 } from '@prisma/orm-family-sql/orm-client';
 import type { Contract } from '@prisma/orm-framework/contract/types';
@@ -65,18 +62,62 @@ export type AnyContract = Contract<SqlStorage>;
 // internal `ScannedModelDef` and keeps the hand-rolled indexed-access strategy
 // (deferred resolution unifies cleanly where `RelationsOf` collapses to
 // `Record<string, never>` in generic positions).
-export type ModelDefOf<TContract extends AnyContract, M extends string> = {
+export type ModelDefOf<
+  TContract extends AnyContract,
+  M extends string,
+> = M extends `${infer Ns}.${infer Bare}`
+  ? TContract['domain']['namespaces'][Ns]['models'][Bare]
+  : {
+      [Ns in keyof TContract['domain']['namespaces']]: M extends keyof TContract['domain']['namespaces'][Ns]['models']
+        ? TContract['domain']['namespaces'][Ns]['models'][M]
+        : never;
+    }[keyof TContract['domain']['namespaces']];
+
+/** A model key is a bare name, or `namespace.Model` for a name several namespaces share. */
+export type BareModelName<M extends string> = M extends `${string}.${infer Bare}` ? Bare : M;
+
+type NamespacesWithModel<TContract extends AnyContract, M extends string> = {
   [Ns in keyof TContract['domain']['namespaces']]: M extends keyof TContract['domain']['namespaces'][Ns]['models']
-    ? TContract['domain']['namespaces'][Ns]['models'][M]
+    ? Ns & string
     : never;
 }[keyof TContract['domain']['namespaces']];
 
-type RelationsOfModel<TContract extends AnyContract, M extends string> =
+type IsUnion<T, U = T> = T extends unknown ? ([U] extends [T] ? false : true) : never;
+
+/**
+ * The key of model `M` in namespace `Ns`: bare, unless another namespace shares its name. A
+ * relation's `to.namespace` may be a branded `NamespaceId`, so the key spells the plain id.
+ */
+export type ModelKey<TContract extends AnyContract, Ns extends string, M extends string> =
+  IsUnion<NamespacesWithModel<TContract, M>> extends true
+    ? `${{
+        [Key in NamespacesWithModel<TContract, M>]: Ns extends Key ? Key : never;
+      }[NamespacesWithModel<TContract, M>]}.${M}`
+    : M;
+
+export type ModelKeys<TContract extends AnyContract> = {
+  [Ns in keyof TContract['domain']['namespaces'] & string]: {
+    [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]: ModelKey<
+      TContract,
+      Ns,
+      M
+    >;
+  }[keyof TContract['domain']['namespaces'][Ns]['models'] & string];
+}[keyof TContract['domain']['namespaces'] & string];
+
+type OwnRelationsOfModel<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends {
     readonly relations: infer Rels extends Record<string, unknown>;
   }
     ? Rels
     : Record<string, never>;
+
+// A variant also has the relations of the model it inherits from.
+type RelationsOfModel<TContract extends AnyContract, M extends string> = [
+  BaseModelKey<TContract, M>,
+] extends [never]
+  ? OwnRelationsOfModel<TContract, M>
+  : OwnRelationsOfModel<TContract, M> & OwnRelationsOfModel<TContract, BaseModelKey<TContract, M>>;
 
 // The current ORM declares these internally without exporting them.
 // `IncludeRefinementCollection` and `IsToManyRelation` reconstruct faithfully
@@ -142,25 +183,85 @@ type ModelNameSentinel =
   'Set PrismaNextContract on SchemaTypes: new SchemaBuilder<{ PrismaNextContract: typeof contract }>(...)';
 
 export type ModelName<Types extends SchemaTypes> = Types['PrismaNextContract'] extends AnyContract
-  ? CollectionModelName<Types['PrismaNextContract']> extends infer N extends string
+  ? ModelKeys<Types['PrismaNextContract']> extends infer N extends string
     ? string extends N
       ? ModelNameSentinel
       : N
     : ModelNameSentinel
   : ModelNameSentinel;
 
-export type Row<Types extends SchemaTypes, M extends ModelName<Types>> = DefaultModelRow<
-  Types['PrismaNextContract'],
-  M
->;
+/** The key of the model a variant inherits from; `never` for any other model. */
+export type BaseModelKey<TContract extends AnyContract, M extends string> =
+  ModelDefOf<TContract, M> extends {
+    readonly base: {
+      readonly model: infer Base extends string;
+      readonly namespace: infer Ns extends string;
+    };
+  }
+    ? ModelKey<TContract, Ns, Base>
+    : never;
+
+// A variant's contract entry holds only its own fields; its rows also carry its base's.
+export type Row<Types extends SchemaTypes, M extends ModelName<Types>> = [
+  BaseModelKey<Types['PrismaNextContract'], M>,
+] extends [never]
+  ? DefaultModelRow<
+      Types['PrismaNextContract'],
+      BareModelName<M>,
+      NsIdOf<Types['PrismaNextContract'], M>
+    >
+  : DefaultModelRow<
+      Types['PrismaNextContract'],
+      BareModelName<M>,
+      NsIdOf<Types['PrismaNextContract'], M>
+    > &
+      DefaultModelRow<
+        Types['PrismaNextContract'],
+        BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>,
+        NsIdOf<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>
+      >;
+
+/** The keys of the models that inherit from `M`; `never` for any other model. */
+export type VariantModelKeys<TContract extends AnyContract, M extends string> =
+  ModelDefOf<TContract, M> extends { readonly variants: infer Variants }
+    ? {
+        [Value in keyof Variants]: Variants[Value] extends {
+          readonly model: infer Variant extends string;
+          readonly namespace: infer Ns extends string;
+        }
+          ? ModelKey<TContract, Ns, Variant>
+          : never;
+      }[keyof Variants]
+    : never;
+
+/** The discriminator value that selects variant model `M` on its base. */
+type VariantValue<TContract extends AnyContract, M extends string> =
+  ModelDefOf<TContract, BaseModelKey<TContract, M>> extends {
+    readonly variants: infer Variants;
+  }
+    ? {
+        [Value in keyof Variants]: Variants[Value] extends { readonly model: BareModelName<M> }
+          ? Value
+          : never;
+      }[keyof Variants]
+    : never;
+
+/** A variant model loads through its base: `orm.Task.variant('bug')`, not the unfiltered `orm.Bug`. */
+export type VariantCollection<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+> = HasTypeState<{
+  readonly variantValue: VariantValue<Types['PrismaNextContract'], M>;
+}> & {
+  readonly modelName: BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>;
+};
 
 // The namespace id that owns model `M` (ADR 221). For single-namespace
 // contracts this resolves to the sole namespace (e.g. `'__unbound__'`).
-export type NsIdOf<TContract extends AnyContract, M extends string> = {
-  [Ns in keyof TContract['domain']['namespaces']]: M extends keyof TContract['domain']['namespaces'][Ns]['models']
-    ? Ns & string
-    : never;
-}[keyof TContract['domain']['namespaces']];
+export type NsIdOf<
+  TContract extends AnyContract,
+  M extends string,
+> = M extends `${infer Ns}.${string}` ? Ns : NamespacesWithModel<TContract, M>;
 
 export type NamespaceOf<Types extends SchemaTypes, M extends ModelName<Types>> = NsIdOf<
   Types['PrismaNextContract'],
@@ -183,8 +284,12 @@ type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<Sta
 // which is what `ModelCollection`/`orm` produce in 0.14.0.
 export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>> = Collection<
   Types['PrismaNextContract'],
-  M,
-  DefaultModelRow<Types['PrismaNextContract'], M, NsIdOf<Types['PrismaNextContract'], M>>,
+  BareModelName<M>,
+  DefaultModelRow<
+    Types['PrismaNextContract'],
+    BareModelName<M>,
+    NsIdOf<Types['PrismaNextContract'], M>
+  >,
   WithNsId<DefaultCollectionTypeState, NsIdOf<Types['PrismaNextContract'], M>>
 >;
 
@@ -192,13 +297,22 @@ export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>>
 // model's base rows, from `db.orm.M` to a filtered or ordered one. It's the receiver upstream uses
 // for its own collection helpers, so it doesn't depend on the contract's mutation input types,
 // which `Types['PrismaNextContract']` computes differently from the raw `db.orm` contract.
-export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Types>> = HasRow<
-  DefaultModelRow<Types['PrismaNextContract'], M, NsIdOf<Types['PrismaNextContract'], M>>
-> &
-  HasTypeState<{
-    readonly variantValue: undefined;
-    readonly nsId: NsIdOf<Types['PrismaNextContract'], M>;
-  }> & { readonly modelName: M };
+// A variant model must come from `orm.Base.variant(value)`.
+export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Types>> = [
+  BaseModelKey<Types['PrismaNextContract'], M>,
+] extends [never]
+  ? HasRow<
+      DefaultModelRow<
+        Types['PrismaNextContract'],
+        BareModelName<M>,
+        NsIdOf<Types['PrismaNextContract'], M>
+      >
+    > &
+      HasTypeState<{
+        readonly variantValue: undefined;
+        readonly nsId: NsIdOf<Types['PrismaNextContract'], M>;
+      }> & { readonly modelName: BareModelName<M> }
+  : VariantCollection<Types, M>;
 
 /** Existing ordering must match a prefix of the cursor order for the requested direction. */
 export type ConnectionCollection<
@@ -207,12 +321,22 @@ export type ConnectionCollection<
 > = ResolverCollection<Types, M>;
 
 export type PrismaNextCollections<TContract extends AnyContract> = {
-  [M in CollectionModelName<TContract>]?: Collection<
+  [M in ModelKeys<TContract>]?: Collection<
     TContract,
-    M,
-    DefaultModelRow<TContract, M, NsIdOf<TContract, M>>,
+    BareModelName<M>,
+    DefaultModelRow<TContract, BareModelName<M>, NsIdOf<TContract, M>>,
     WithNsId<DefaultCollectionTypeState, NsIdOf<TContract, M>>
   >;
+} & {
+  // A namespaced ORM client (`orm.<namespace>.<Model>`) can be passed as is.
+  [Ns in keyof TContract['domain']['namespaces'] & string]?: {
+    [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]?: Collection<
+      TContract,
+      M,
+      DefaultModelRow<TContract, M, Ns>,
+      WithNsId<DefaultCollectionTypeState, Ns>
+    >;
+  };
 };
 
 type OrderByItem = import('@prisma/orm-family-sql/relational-core/ast').OrderByItem;
@@ -234,16 +358,27 @@ export interface PrismaNextPluginOptions<TContract extends AnyContract, Context 
   readonly maxConnectionSize?: number;
 }
 
-export type RelationKeys<Types extends SchemaTypes, M extends ModelName<Types>> = RelationNames<
-  Types['PrismaNextContract'],
-  M
->;
+// Hand-rolled because upstream's `RelationNames`/`RelatedModelName` take a bare name in one
+// namespace, and neither qualified `ns.Model` keys nor a variant's inherited relations fit.
+export type RelationKeys<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+> = keyof RelationsOfModel<Types['PrismaNextContract'], M> & string;
 
 export type RelatedModel<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   R extends RelationKeys<Types, M>,
-> = RelatedModelName<Types['PrismaNextContract'], M, R> & ModelName<Types>;
+> = RelationsOfModel<Types['PrismaNextContract'], M>[R] extends {
+  // ADR 221: relation targets are `CrossReference` objects, not bare model
+  // names. The literal model name lives at `.to.model`.
+  readonly to: {
+    readonly model: infer To extends string;
+    readonly namespace: infer Ns extends string;
+  };
+}
+  ? ModelKey<Types['PrismaNextContract'], Ns, To> & ModelName<Types>
+  : never;
 
 export type IsToMany<
   Types extends SchemaTypes,
@@ -295,14 +430,26 @@ export type DefaultRelationNullable<
 
 export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
   where?:
-    | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, M>
+    | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>
     | ((
-        accessor: ModelAccessor<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>,
-        tools: ModelCallbackTools<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>,
+        accessor: ModelAccessor<
+          Types['PrismaNextContract'],
+          BareModelName<M>,
+          NamespaceOf<Types, M>
+        >,
+        tools: ModelCallbackTools<
+          Types['PrismaNextContract'],
+          BareModelName<M>,
+          NamespaceOf<Types, M>
+        >,
       ) => unknown);
   orderBy?: (
-    accessor: ModelAccessor<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>,
-    tools: ModelCallbackTools<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>,
+    accessor: ModelAccessor<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
+    tools: ModelCallbackTools<
+      Types['PrismaNextContract'],
+      BareModelName<M>,
+      NamespaceOf<Types, M>
+    >,
   ) => unknown;
   limit?: number;
   offset?: number;
@@ -326,8 +473,12 @@ export type RelationRefinementCollection<
   R extends RelationKeys<Types, M>,
 > = IncludeRefinementCollection<
   Types['PrismaNextContract'],
-  RelatedModel<Types, M, R>,
-  DefaultModelRow<Types['PrismaNextContract'], RelatedModel<Types, M, R>>,
+  BareModelName<RelatedModel<Types, M, R>>,
+  DefaultModelRow<
+    Types['PrismaNextContract'],
+    BareModelName<RelatedModel<Types, M, R>>,
+    NamespaceOf<Types, RelatedModel<Types, M, R>>
+  >,
   DefaultCollectionTypeState,
   IsToMany<Types, M, R>
 >;
@@ -372,7 +523,7 @@ export type RelationNumericField<
 > =
   string extends ModelName<Types>
     ? string
-    : NumericFieldNames<Types['PrismaNextContract'], RelatedModel<Types, M, R>>;
+    : NumericFieldNames<Types['PrismaNextContract'], BareModelName<RelatedModel<Types, M, R>>>;
 
 /** A `where` refine on the related rows, before the aggregate runs. */
 type RelationAggregateWhere<
@@ -384,12 +535,12 @@ type RelationAggregateWhere<
   | ShorthandWhereFilter<
       Types['PrismaNextContract'],
       NamespaceOf<Types, RelatedModel<Types, M, R>>,
-      RelatedModel<Types, M, R>
+      BareModelName<RelatedModel<Types, M, R>>
     >
   | ((
       accessor: ModelAccessor<
         Types['PrismaNextContract'],
-        RelatedModel<Types, M, R>,
+        BareModelName<RelatedModel<Types, M, R>>,
         NamespaceOf<Types, RelatedModel<Types, M, R>>
       >,
       args: InputShapeFromFields<Args>,
@@ -451,8 +602,12 @@ type AggregateMethod<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   Op extends string,
-> = Op extends keyof AggregateBuilder<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>
-  ? AggregateBuilder<Types['PrismaNextContract'], M, NamespaceOf<Types, M>>[Op]
+> = Op extends keyof AggregateBuilder<
+  Types['PrismaNextContract'],
+  BareModelName<M>,
+  NamespaceOf<Types, M>
+>
+  ? AggregateBuilder<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>[Op]
   : never;
 
 export type RelationAggregateField<
@@ -810,7 +965,9 @@ export type PrismaNextConnectionFieldOptions<
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
       info: GraphQLResolveInfo,
-    ) => MaybePromise<ConnectionCollection<Types, M> | (Nullable extends true ? null : never)>;
+    ) => MaybePromise<
+      ConnectionCollection<Types, NoInfer<M>> | (Nullable extends true ? null : never)
+    >;
     /** Sentinel for plugin-prisma porters: chain `.where(...)` on the collection inside `resolve` instead. */
     query?: 'plugin-prisma-next: chain `.where(...)` on the collection inside `resolve` instead of passing a `query` option';
   };
@@ -887,12 +1044,12 @@ export type PrismaNextRelatedConnectionOptions<
       | ShorthandWhereFilter<
           Types['PrismaNextContract'],
           NamespaceOf<Types, RelatedModel<Types, ParentModel, RelName>>,
-          RelatedModel<Types, ParentModel, RelName>
+          BareModelName<RelatedModel<Types, ParentModel, RelName>>
         >
       | ((
           accessor: ModelAccessor<
             Types['PrismaNextContract'],
-            RelatedModel<Types, ParentModel, RelName>
+            BareModelName<RelatedModel<Types, ParentModel, RelName>>
           >,
           args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
           context: Types['Context'],
