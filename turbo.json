@@ -26,7 +26,7 @@
     "test": {
       "dependsOn": ["generate", "^build"],
       "outputs": [],
-      "passThroughEnv": ["POTHOS_PRISMA_NEXT_MYSQL_URL"]
+      "env": ["POTHOS_PRISMA_NEXT_MYSQL_URL", "POTHOS_PRISMA_NEXT_DATABASE_URL"]
     }
   }
 }
