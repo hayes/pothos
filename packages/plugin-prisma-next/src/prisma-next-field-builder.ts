@@ -1,8 +1,9 @@
 import { RootFieldBuilder, type SchemaTypes } from '@pothos/core';
 import { PRISMA_NEXT_PREPARED } from './constants.js';
 import type { PreparedFieldExtension } from './extensions.js';
+import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextObjectRef } from './object-ref.js';
-import { getRefFromContractModel } from './utils/refs.js';
+import { getRefForContractModel } from './utils/refs.js';
 
 type TypeParam =
   | string
@@ -25,9 +26,12 @@ function resolveModelAndRef(
   const isList = Array.isArray(type);
   const inner = (isList ? type[0] : type) as
     | string
-    | PrismaNextObjectRef<SchemaTypes, never, never>;
+    | PrismaNextObjectRef<SchemaTypes, never, never>
+    | PrismaNextInterfaceRef<SchemaTypes, never, never>;
   const ref =
-    inner instanceof PrismaNextObjectRef ? inner : getRefFromContractModel(inner as never, builder);
+    inner instanceof PrismaNextObjectRef || inner instanceof PrismaNextInterfaceRef
+      ? inner
+      : getRefForContractModel(inner as never, builder);
   const modelName = ref.modelName as string;
   // typeName diverges from modelName on variant prismaObjects. The
   // plugin records both on PRISMA_NEXT_PREPARED so wrapResolve can

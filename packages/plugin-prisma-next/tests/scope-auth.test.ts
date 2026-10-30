@@ -135,3 +135,57 @@ function _narrowedParentShapeSurvivesWithAuth() {
     }),
   }));
 }
+
+it('loads declared columns and the exposed column for authScopes', async () => {
+  const seen: Record<string, unknown> = {};
+  const builder = new SchemaBuilder<{
+    PrismaNextContract: SampleContract;
+    AuthScopes: { open: boolean };
+  }>({
+    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    relay: {},
+    scopeAuth: { authScopes: () => ({ open: true }) },
+    prismaNext: { contract: ctx.contract },
+  });
+  builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+  builder.prismaObject('User', {
+    select: ['email'],
+    fields: (t) => ({
+      posts: t.relation('posts', {
+        authScopes: (user) => {
+          seen.relationEmail = user.email;
+          return true;
+        },
+      }),
+      firstName: t.exposeString('firstName', {
+        authScopes: (user) => {
+          seen.exposedOwn = user.firstName;
+          seen.exposedDeclared = user.email;
+          // @ts-expect-error lastName isn't loaded for this field
+          seen.undeclared = user.lastName;
+          return true;
+        },
+      }),
+    }),
+  });
+  builder.queryType({
+    fields: (t) => ({
+      users: t.prismaField({
+        type: ['User'],
+        resolve: () => ctx.ormClient.User.where({ id: 'u-alice' }),
+      }),
+    }),
+  });
+  const result = await execute({
+    schema: builder.toSchema(),
+    document: parse('{ users { firstName posts { id } } }'),
+    contextValue: {},
+  });
+  expect(result.errors).toBeUndefined();
+  expect(seen).toEqual({
+    relationEmail: 'alice@example.com',
+    exposedOwn: 'Alice',
+    exposedDeclared: 'alice@example.com',
+    undeclared: undefined,
+  });
+});

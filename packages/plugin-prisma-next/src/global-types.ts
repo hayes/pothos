@@ -276,7 +276,9 @@ declare global {
           | ModelName<Types>
           | [ModelName<Types>]
           | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-          | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>],
+          | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
+          | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
+          | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
         Nullable extends FieldNullability<Type>,
         ResolveReturnShape,
         M extends ModelName<Types> = ParamToModelName<Types, Param>,
@@ -301,7 +303,9 @@ declare global {
               | ModelName<Types>
               | [ModelName<Types>]
               | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>],
+              | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
+              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
+              | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
             Nullable extends FieldNullability<Type>,
             ResolveReturnShape,
             Fields extends InputFieldMap = {},
@@ -337,7 +341,9 @@ declare global {
               | ModelName<Types>
               | [ModelName<Types>]
               | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>],
+              | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
+              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
+              | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
             Nullable extends boolean,
             ResolveReturnShape,
             ConnectionInterfaces extends InterfaceParam<Types>[] = [],
