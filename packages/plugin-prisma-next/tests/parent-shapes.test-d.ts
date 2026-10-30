@@ -38,11 +38,63 @@ builder.prismaObject('User', {
       // @ts-expect-error nothing was selected, so no column is known to be loaded
       isNull: (user) => user.email === '',
     }),
-    // Relation fields load only the relation, so other columns are optional in their callbacks.
+    // Relation fields load only the relation, so their callbacks can't read undeclared columns.
     connection: t.relatedConnection('posts', {
       cursor: 'id',
-      totalCount: (user) => {
-        expectTypeOf(user.email).toEqualTypeOf<string | undefined>();
+      // @ts-expect-error email isn't declared by the type's select
+      totalCount: (user) => user.email.length,
+    }),
+    relation: t.relation('posts', {
+      // @ts-expect-error t.relation installs its own resolver
+      resolve: () => [],
+    }),
+    count: t.relationCount('posts', {
+      // @ts-expect-error unknown options are rejected
+      unknownOption: true,
+    }),
+    missingCursor:
+      // @ts-expect-error a connection requires a cursor
+      t.relatedConnection('posts', {}),
+    variantExcess: t.variant(adminRef, {
+      // @ts-expect-error unknown columns are rejected
+      select: ['nope'],
+    }),
+    variantUnknownOption: t.variant(adminRef, {
+      // @ts-expect-error unknown options are rejected
+      unknownOption: true,
+    }),
+    exposed: t.exposeString('firstName', {
+      // @ts-expect-error unknown options are rejected
+      unknownOption: true,
+    }),
+  }),
+});
+
+// Columns the type declares are inferred on every callback, with no annotation.
+builder.prismaObject('Comment', {
+  select: ['authorId'],
+  fields: (t) => ({
+    connectionCount: t.relation('author', {
+      description: 'author',
+    }),
+    variant: t.variant('Comment', {
+      select: ['body'],
+      isNull: (comment) => {
+        expectTypeOf(comment.authorId).toEqualTypeOf<string>();
+        expectTypeOf(comment.body).toEqualTypeOf<string>();
+        return false;
+      },
+    }),
+  }),
+});
+builder.prismaObject('Post', {
+  variant: 'DeclaredPost',
+  select: ['authorId'],
+  fields: (t) => ({
+    comments: t.relatedConnection('comments', {
+      cursor: 'id',
+      totalCount: (post) => {
+        expectTypeOf(post.authorId).toEqualTypeOf<string>();
         return 0;
       },
     }),

@@ -37,11 +37,12 @@ async function run(
 }
 
 describe('partial parent rows', () => {
-  it('only hands a totalCount callback the columns the query loaded', async () => {
+  it('loads the columns a type declares for a totalCount callback', async () => {
     const seen: unknown[] = [];
     const builder = createBuilder();
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('User', {
+      select: ['email'],
       fields: (t) => ({
         firstName: t.exposeString('firstName'),
         posts: t.relatedConnection('posts', {
@@ -63,7 +64,7 @@ describe('partial parent rows', () => {
     });
     const data = await run(builder.toSchema(), '{ users { firstName posts { totalCount } } }');
     expect(data).toEqual({ users: [{ firstName: 'Alice', posts: { totalCount: 7 } }] });
-    expect(seen).toEqual([undefined]);
+    expect(seen).toEqual(['alice@example.com']);
   });
 
   it('forces a variant select into the row for isNull, whatever the query selects', async () => {
