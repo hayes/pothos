@@ -36,6 +36,13 @@ export function readPluginOptions<Contract = unknown>(builder: {
 }): FullPrismaNextPluginOptions<Contract> | undefined {
   const options = (builder.options as { prismaNext?: FullPrismaNextPluginOptions<Contract> })
     .prismaNext;
+  const family = (options?.contract as { targetFamily?: unknown } | undefined)?.targetFamily;
+  if (family !== undefined && family !== 'sql') {
+    throw new PothosSchemaError(
+      `prismaNext.contract targets the '${String(family)}' family, but @pothos/plugin-prisma-next only supports SQL contracts. ` +
+        'Selection planning needs refined and combined relation includes, which that family does not provide.',
+    );
+  }
   if (options?.skipDeferredFragments && !options.collections) {
     throw new PothosSchemaError(
       'prismaNext.skipDeferredFragments requires prismaNext.collections for fallback loading.',
