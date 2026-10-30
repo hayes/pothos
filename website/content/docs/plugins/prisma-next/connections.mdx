@@ -40,7 +40,7 @@ The resolver returns the base `Collection`. The plugin:
 compound cursors, pass a tuple:
 
 ```ts
-cursor: ['createdAt', 'id'] as const,
+cursor: ['createdAt', 'id'],
 ```
 
 Both columns ship into every row's SELECT automatically. Cursor fields must
