@@ -194,7 +194,7 @@ export function prismaConnectionHelpers<
   const pluginOpts = readPluginOptions<AnyContract>(builder);
   const mapperOpts = mapperOptionsFromPluginOpts(pluginOpts);
   const cursorSpec = pluginOpts
-    ? validateCursor(pluginOpts.contract, modelName, options.cursor)
+    ? validateCursor(pluginOpts.contract, modelName, options.cursor, pluginOpts.context)
     : options.cursor;
 
   return {

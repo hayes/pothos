@@ -282,8 +282,8 @@ describe('t.relatedConnection where option — filter-only at the type level', (
         }),
         brokenOrder: t.relatedConnection('posts', {
           cursor: 'id',
-          // @ts-expect-error — orderBy owned by cursor, not on the option
-          orderBy: (p) => p.id.asc(),
+          // @ts-expect-error — orderBy returns order items, not a column
+          orderBy: (p) => p.id,
         }),
       }),
     });

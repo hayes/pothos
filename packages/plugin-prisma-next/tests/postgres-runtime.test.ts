@@ -152,6 +152,11 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         amount double precision NOT NULL, wide bigint NOT NULL, exact numeric NOT NULL,
         payload bytea NOT NULL, "createdAt" timestamptz NOT NULL, "sortLabel" text
       );
+      CREATE TABLE pothos_next_event (at timestamptz PRIMARY KEY, label text NOT NULL);
+      INSERT INTO pothos_next_event VALUES
+        ('2026-09-10T12:00:00.000001Z', 'one'),
+        ('2026-09-10T12:00:00.000002Z', 'two'),
+        ('2026-09-10T12:00:00.000003Z', 'three');
       INSERT INTO pothos_next_account VALUES ('a', 'Alice'), ('b', 'Bob');
       INSERT INTO pothos_next_entry (id, "accountId", amount, wide, exact, payload, "createdAt") VALUES
         ('e1', 'a', 1.25, 9007199254740993, 12345678901234567890.125,
@@ -164,7 +169,9 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
 
   afterAll(async () => {
     await client.close();
-    await raw.query('DROP TABLE IF EXISTS pothos_next_entry, pothos_next_account');
+    await raw.query(
+      'DROP TABLE IF EXISTS pothos_next_event, pothos_next_entry, pothos_next_account',
+    );
     await raw.end();
   });
 
@@ -255,6 +262,137 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
     });
     expect(second.errors).toBeUndefined();
     expect(second.data).toMatchObject({ timeline: { edges: [{ node: { id: 'e1' } }] } });
+  });
+
+  describe('column codecs from the client context', () => {
+    function eventSchema() {
+      const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+        plugins: [RelayPlugin, prismaNextPlugin],
+        relay: {},
+        prismaNext: {
+          contract,
+          context: client.context,
+          collections: { Event: client.orm.public.Event },
+        },
+      });
+      const Event = builder.prismaObject('Event', {
+        fields: (t) => ({
+          label: t.string({ select: ['label'], resolve: (event) => event.label }),
+          exposed: t.exposeString('label'),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          events: t.prismaConnection({
+            type: 'Event',
+            cursor: [{ field: 'at', codec: 'column' }],
+            resolve: () => client.orm.public.Event,
+          }),
+          keyed: t.field({
+            type: [Event],
+            resolve: () =>
+              ['2026-09-10T12:00:00.000003Z', '2026-09-10T12:00:00.000001Z'].map((at) => ({
+                at: globalThis.Temporal.Instant.from(at),
+              })) as never,
+          }),
+        }),
+      });
+      return builder.toSchema();
+    }
+
+    it('pages over a Temporal column without an application codec', async () => {
+      const schema = eventSchema();
+      const first = await graphql({
+        schema,
+        source: '{ events(first: 1) { edges { node { label } } pageInfo { endCursor } } }',
+        contextValue: {},
+      });
+      expect(first.errors).toBeUndefined();
+      expect(first.data).toMatchObject({ events: { edges: [{ node: { label: 'one' } }] } });
+      const page = first.data?.events as { pageInfo: { endCursor: string } };
+      const second = await graphql({
+        schema,
+        source:
+          'query ($after: String!) { events(first: 1, after: $after) { edges { node { label } } } }',
+        variableValues: { after: page.pageInfo.endCursor },
+        contextValue: {},
+      });
+      expect(second.errors).toBeUndefined();
+      // The microsecond between rows survives the cursor.
+      expect(second.data).toMatchObject({ events: { edges: [{ node: { label: 'two' } }] } });
+    });
+
+    it('batches fallback loads keyed by Temporal identities', async () => {
+      const result = await graphql({
+        schema: eventSchema(),
+        source: '{ keyed { label } }',
+        contextValue: {},
+      });
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ keyed: [{ label: 'three' }, { label: 'one' }] });
+    });
+
+    it('requires the context for codec: column', () => {
+      const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+        plugins: [RelayPlugin, prismaNextPlugin],
+        relay: {},
+        prismaNext: { contract },
+      });
+      builder.prismaObject('Event', { fields: (t) => ({ label: t.exposeString('label') }) });
+      expect(() =>
+        builder.queryType({
+          fields: (t) => ({
+            events: t.prismaConnection({
+              type: 'Event',
+              cursor: [{ field: 'at', codec: 'column' }],
+              resolve: () => client.orm.public.Event,
+            }),
+          }),
+        }),
+      ).not.toThrow();
+      expect(() => builder.toSchema()).toThrow(/requires prismaNext.context/);
+    });
+  });
+
+  it('applies native null placement and the orderBy option in both directions', async () => {
+    await raw.query(
+      `UPDATE pothos_next_entry SET "sortLabel" = CASE id WHEN 'e1' THEN 'x' ELSE NULL END`,
+    );
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { contract },
+    });
+    builder.prismaObject('Entry', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        entries: t.prismaConnection({
+          type: 'Entry',
+          cursor: ['sortLabel', 'id'],
+          args: { nullsFirst: t.arg.boolean() },
+          orderBy: (entry, args) =>
+            entry.sortLabel.asc({ nulls: args.nullsFirst ? 'first' : 'last' }),
+          resolve: () => client.orm.public.Entry,
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const ids = async (query: string) => {
+      const result = await graphql({
+        schema,
+        source: `{ ${query} { edges { node { id } } } }`,
+        contextValue: {},
+      });
+      expect(result.errors).toBeUndefined();
+      return (result.data?.entries as { edges: { node: { id: string } }[] }).edges.map(
+        (edge) => edge.node.id,
+      );
+    };
+    expect(await ids('entries(first: 5)')).toEqual(['e1', 'e2']);
+    expect(await ids('entries(first: 5, nullsFirst: true)')).toEqual(['e2', 'e1']);
+    expect(await ids('entries(last: 5)')).toEqual(['e1', 'e2']);
+    expect(await ids('entries(last: 1, nullsFirst: true)')).toEqual(['e1']);
+    await raw.query(`UPDATE pothos_next_entry SET "sortLabel" = NULL`);
   });
 
   it('executes the complete selection inside the caller transaction', async () => {

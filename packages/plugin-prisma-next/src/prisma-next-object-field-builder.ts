@@ -46,6 +46,7 @@ import {
   buildConnectionPage,
   buildPaginationParams,
   normalizeCursor,
+  type RequestOrderBy,
   validateCursor,
   validateCursorArgs,
 } from './utils/cursors.js';
@@ -595,7 +596,13 @@ export class PrismaNextObjectFieldBuilder<
           `'${this.modelName as string}.${name}' has cardinality '${meta.cardinality}'.`,
       );
     }
-    const cursorOpt = validateCursor(this.contract as AnyContract, meta.to.model, options.cursor);
+    const pluginOpts = readPluginOptions(this.builder);
+    const cursorOpt = validateCursor(
+      this.contract as AnyContract,
+      meta.to.model,
+      options.cursor,
+      pluginOpts?.context,
+    );
     const targetRef =
       options.type ?? getRefForContractModel(meta.to.model as never, this.builder as never);
 
@@ -622,11 +629,14 @@ export class PrismaNextObjectFieldBuilder<
       defaultSize,
       maxSize,
       where: _where,
+      orderBy,
       totalCount: _totalCount,
       extensions: userExtensions,
       ...rest
-    } = options as typeof options & { where?: unknown };
-    const pluginOpts = readPluginOptions(this.builder);
+    } = options as typeof options & {
+      where?: unknown;
+      orderBy?: (model: never, args: unknown, ctx: unknown) => ReturnType<RequestOrderBy>;
+    };
     const fallbackDefault = pluginOpts?.defaultConnectionSize;
     const fallbackMax = pluginOpts?.maxConnectionSize;
     // The GraphQL type the rows are walked as: a variant ref names itself, not its model.
@@ -693,6 +703,7 @@ export class PrismaNextObjectFieldBuilder<
               {
                 ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
                 ...(resolvedMax !== undefined ? { maxSize: resolvedMax } : {}),
+                orderBy: orderBy && ((model) => orderBy(model as never, args, ctx)),
               },
             ).collection,
         },

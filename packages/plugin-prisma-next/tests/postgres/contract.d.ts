@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-framework/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'167e09c4125b90ad1e4999f7b9311cc83c42beb5c426a947f528c91ac892418d'>;
+  StorageHashBase<'121d0deb7ce70c8871f8be3e8708efb1ddeb05e1f080faec39b50987b7d2386b'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -326,12 +326,18 @@ export namespace Models {
     account: public_Account;
     readonly [RelationKeys]?: 'account';
   };
+  export type public_Event = {
+    at: FieldOutputTypes['public']['Event']['at'];
+    label: FieldOutputTypes['public']['Event']['label'];
+    readonly [RelationKeys]?: never;
+  };
 }
 
 export declare const models: {
   public: {
     Account: Models.public_Account;
     Entry: Models.public_Entry;
+    Event: Models.public_Event;
   };
 };
 
@@ -449,6 +455,26 @@ type ContractBase = Omit<
                 },
               ];
             };
+            readonly pothos_next_event: {
+              columns: {
+                readonly at: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly label: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['at'] };
+              uniques: readonly [];
+              indexes: readonly [];
+              foreignKeys: readonly [];
+            };
           };
         };
       };
@@ -467,6 +493,10 @@ type ContractBase = Omit<
     readonly pothos_next_entry: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'Entry';
+    };
+    readonly pothos_next_event: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'Event';
     };
   };
   readonly domain: {
@@ -570,6 +600,30 @@ type ContractBase = Omit<
                 readonly payload: { readonly column: 'payload' };
                 readonly sortLabel: { readonly column: 'sortLabel' };
                 readonly wide: { readonly column: 'wide' };
+              };
+            };
+          };
+          readonly Event: {
+            readonly fields: {
+              readonly at: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly label: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'pothos_next_event';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly at: { readonly column: 'at' };
+                readonly label: { readonly column: 'label' };
               };
             };
           };

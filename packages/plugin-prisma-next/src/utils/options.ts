@@ -1,5 +1,6 @@
 import { PothosSchemaError } from '@pothos/core';
 import type { MapperCollection } from './adapter.js';
+import type { PrismaNextCodecContext } from './model.js';
 
 /** @internal */
 export function resolveSizeOption<Args, Ctx>(
@@ -25,6 +26,7 @@ export interface MapperPluginOptions {
 /** @internal */
 export interface FullPrismaNextPluginOptions<Contract = unknown> extends MapperPluginOptions {
   contract: Contract;
+  context?: PrismaNextCodecContext;
   collections?:
     | Record<string, MapperCollection | undefined>
     | ((context: unknown) => Record<string, MapperCollection | undefined>);
