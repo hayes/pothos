@@ -76,7 +76,7 @@ const task = builder.prismaInterface('Task', {
 builder.prismaObject('Bug', {
   interfaces: [task],
   fields: (t) => ({
-    severity: t.exposeInt('severity'),
+    severity: t.exposeString('severity'),
   }),
 });
 
