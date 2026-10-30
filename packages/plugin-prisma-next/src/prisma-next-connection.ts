@@ -21,6 +21,7 @@ import {
   buildConnectionPage,
   type CursorInput,
   normalizeCursor,
+  type RequestOrderBy,
   validateCursor,
 } from './utils/cursors.js';
 import {
@@ -79,6 +80,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
     maxSize,
     resolve,
     totalCount,
+    orderBy,
     query: _querySentinel,
     ...rest
   } = options as {
@@ -90,6 +92,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
     totalCount?:
       | boolean
       | ((parent: unknown, args: unknown, ctx: unknown, info: GraphQLResolveInfo) => unknown);
+    orderBy?: (model: never, args: unknown, ctx: unknown) => ReturnType<RequestOrderBy>;
     query?: unknown;
     [k: string]: unknown;
   };
@@ -119,7 +122,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   const mapperOpts = mapperOptionsFromPluginOpts(opts);
   const cursorCols = normalizeCursor(cursor as CursorInput);
   const contract = opts.contract;
-  const cursorSpec = validateCursor(contract, ref.modelName, cursor as CursorInput);
+  const cursorSpec = validateCursor(contract, ref.modelName, cursor as CursorInput, opts.context);
 
   return this.connection(
     {
@@ -181,7 +184,10 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         };
         // Validate supplied ordering even for count-only selections. Preparing the
         // page Collection is lazy; no rows are fetched unless they were requested.
-        const pagination = applyCursorPagination(applied, cursorSpec, relayArgs, sizes);
+        const pagination = applyCursorPagination(applied, cursorSpec, relayArgs, {
+          ...sizes,
+          orderBy: orderBy && ((model) => orderBy(model as never, args, context)),
+        });
 
         const rowsPromise = needsRows
           ? Promise.resolve().then(() =>
