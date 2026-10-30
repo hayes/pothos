@@ -224,7 +224,7 @@ export class PrismaNextObjectFieldBuilder<
             Omit<
               PothosSchemaTypes.ObjectFieldOptions<
                 Types,
-                Partial<ExposableShape> & Pick<ExposableShape, Name & keyof ExposableShape>,
+                Shape & Pick<ExposableShape, Name & keyof ExposableShape>,
                 Type,
                 Nullable,
                 {},
@@ -255,7 +255,7 @@ export class PrismaNextObjectFieldBuilder<
       args?: Args;
       select?: readonly Selected[];
       isNull?: (
-        parent: Pick<Row<Types, M>, Selected>,
+        parent: Shape & Pick<Row<Types, M>, Selected>,
         args: import('@pothos/core').InputShapeFromFields<Args>,
         ctx: Types['Context'],
         info: GraphQLResolveInfo,
@@ -323,7 +323,7 @@ export class PrismaNextObjectFieldBuilder<
     RelatedShape = Row<Types, RelatedModel<Types, M, RelName>>,
   >(
     name: RelName,
-    options?: PrismaNextRelationOptions<Types, M, RelName, Nullable, Args, RelatedShape>,
+    options?: PrismaNextRelationOptions<Types, M, RelName, Nullable, Args, RelatedShape, Shape>,
   ): FieldRef<Types, unknown> {
     const opts = (options ?? {}) as PrismaNextRelationOptions<
       Types,
@@ -413,7 +413,7 @@ export class PrismaNextObjectFieldBuilder<
     Args extends InputFieldMap = {},
   >(
     name: RelName,
-    options?: PrismaNextRelationCountOptions<Types, M, RelName, Nullable, Args>,
+    options?: PrismaNextRelationCountOptions<Types, M, RelName, Nullable, Args, Shape>,
   ): FieldRef<Types, Nullable extends true ? number | null : number, 'PrismaNextObject'> {
     return this.#aggregateField(name as string, 'count', undefined, options ?? {}, false) as never;
   }
@@ -434,7 +434,16 @@ export class PrismaNextObjectFieldBuilder<
     Args extends InputFieldMap = {},
   >(
     name: RelName,
-    options: PrismaNextRelationAggregateOptions<Types, M, RelName, Op, Nullable, Args, Field>,
+    options: PrismaNextRelationAggregateOptions<
+      Types,
+      M,
+      RelName,
+      Op,
+      Nullable,
+      Args,
+      Field,
+      Shape
+    >,
   ): FieldRef<
     Types,
     Nullable extends true
@@ -527,7 +536,8 @@ export class PrismaNextObjectFieldBuilder<
           Nullable,
           Args,
           Cursor,
-          RelatedShape
+          RelatedShape,
+          Shape
         >,
         connectionOptions?:
           | PothosSchemaTypes.ConnectionObjectOptions<

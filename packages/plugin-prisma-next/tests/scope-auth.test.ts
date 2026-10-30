@@ -136,7 +136,7 @@ function _narrowedParentShapeSurvivesWithAuth() {
   }));
 }
 
-it('only hands relation and expose authScopes the columns the query loaded', async () => {
+it('loads declared columns and the exposed column for authScopes', async () => {
   const seen: Record<string, unknown> = {};
   const builder = new SchemaBuilder<{
     PrismaNextContract: SampleContract;
@@ -149,6 +149,7 @@ it('only hands relation and expose authScopes the columns the query loaded', asy
   });
   builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
   builder.prismaObject('User', {
+    select: ['email'],
     fields: (t) => ({
       posts: t.relation('posts', {
         authScopes: (user) => {
@@ -159,7 +160,9 @@ it('only hands relation and expose authScopes the columns the query loaded', asy
       firstName: t.exposeString('firstName', {
         authScopes: (user) => {
           seen.exposedOwn = user.firstName;
-          seen.exposedOther = user.email;
+          seen.exposedDeclared = user.email;
+          // @ts-expect-error lastName isn't loaded for this field
+          seen.undeclared = user.lastName;
           return true;
         },
       }),
@@ -180,8 +183,9 @@ it('only hands relation and expose authScopes the columns the query loaded', asy
   });
   expect(result.errors).toBeUndefined();
   expect(seen).toEqual({
-    relationEmail: undefined,
+    relationEmail: 'alice@example.com',
     exposedOwn: 'Alice',
-    exposedOther: undefined,
+    exposedDeclared: 'alice@example.com',
+    undeclared: undefined,
   });
 });
