@@ -6,6 +6,7 @@
  */
 import { PothosSchemaError } from '@pothos/core';
 import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
+import { type Codec, readContractValue } from '@prisma/orm-framework/components/codec';
 import type { AnyContract } from '../types.js';
 import { resolveContractModel } from './contract.js';
 
@@ -170,4 +171,45 @@ export function getModel(contract: AnyContract, name: string): PrismaNextModel {
   }
 
   return model;
+}
+
+/** A column's values to and from the JSON form its contract stores. */
+export interface ColumnCodec {
+  toStored(value: unknown): unknown;
+  fromStored(stored: unknown): unknown;
+}
+
+/** The `context` of a Prisma client, which holds the contract's column codecs. */
+export interface PrismaNextCodecContext {
+  readonly contractCodecs: {
+    forColumn(namespaceId: string, table: string, column: string): unknown;
+  };
+}
+
+/** The codec the client built for a model field's column. */
+export function getColumnCodec(
+  contract: AnyContract,
+  modelName: string,
+  field: string,
+  context: PrismaNextCodecContext | undefined,
+): ColumnCodec | undefined {
+  const storage = resolveContractModel(contract, modelName)?.storage as
+    | { table?: string; namespaceId?: string; fields?: Record<string, { column?: string }> }
+    | undefined;
+  if (!context || !storage?.table || !storage.namespaceId) {
+    return undefined;
+  }
+  const column = storage.fields?.[field]?.column ?? field;
+  const codec = context.contractCodecs.forColumn(storage.namespaceId, storage.table, column) as
+    | Codec
+    | undefined;
+  if (!codec) {
+    return undefined;
+  }
+  const table = resolveStorageTable(contract.storage, storage.table, storage.namespaceId)?.table;
+  const typeParams = (table?.columns[column] as { typeParams?: unknown } | undefined)?.typeParams;
+  return {
+    toStored: (value) => codec.dataType.toContract(codec.toDataTypeValue(value)),
+    fromStored: (stored) => readContractValue(codec, stored as never, typeParams),
+  };
 }

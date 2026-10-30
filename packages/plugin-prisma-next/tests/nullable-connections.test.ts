@@ -1,6 +1,5 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import { execute, parse } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
@@ -197,8 +196,7 @@ it('bypasses application codecs for null cursor values', () => {
 
 it('accepts a complete explicit nullable order without appending duplicate entries', async () => {
   const base = ctx.ormClient.Post.where({ title: 'nullable-sort' }).orderBy([
-    (p) => OrderByItem.asc(p.score.isNull()),
-    (p) => p.score.asc(),
+    (p) => p.score.asc({ nulls: 'last' }),
     (p) => p.id.asc(),
   ]);
   const pagination = applyCursorPagination(
