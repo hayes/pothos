@@ -60,6 +60,14 @@ export const PLUGINS: PluginEntry[] = [
     order: 1,
   },
   {
+    slug: 'prisma-next',
+    name: 'Prisma Next',
+    description: 'Experimental: build queries from GraphQL selections using Prisma ORM 8',
+    icon: '◈',
+    category: 'data',
+    order: 5,
+  },
+  {
     slug: 'drizzle',
     name: 'Drizzle',
     description: 'Build queries from GraphQL selections using Drizzle’s relational query builder',

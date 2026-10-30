@@ -1,17 +1,18 @@
 > Historical feedback from the pre-release integration. Current findings and
-> limitations are maintained in [prisma-next-painpoints.md](./prisma-next-painpoints.md).
+> limitations are maintained in [prisma-next-painpoints.md](./prisma-next-painpoints.md). Items
+> marked "Resolved" no longer apply as of Prisma ORM `8.0.0-rc.22`.
 
 Stuff I hit building the Pothos plugin. Long-form with file refs is in prisma-next-painpoints.md.
 
 Missing features:
 
-- Many-to-many isn't implemented end-to-end. Not clear what the runtime API will look like or how it fits into the plugin. Today the plugin rejects M:N at schema build and routes users to explicit junction models. This is the most-asked-about gap for anyone coming from plugin-prisma.
+- Resolved for reads: the plugin supports `through` relations, though implicit N:M in PSL still needs an explicit join model. Original note: many-to-many isn't implemented end-to-end. Not clear what the runtime API will look like or how it fits into the plugin. Today the plugin rejects M:N at schema build and routes users to explicit junction models. This is the most-asked-about gap for anyone coming from plugin-prisma.
 
 Typing stuff that needed workarounds:
 
 - No filter-only refinement view on Collection. Need a callback type that doesn't widen back to the full chain after .where(...). Today the plugin gates this with type-level Omit, but it's brittle — anything that exposes a raw refine callback eventually breaks.
 
-- No way to reverse an OrderByItem. Backward cursor pagination needs to flip orderBy direction; there's no API to invert opaque OrderByItems. The plugin has to own orderBy emission entirely, which means t.relatedConnection is where-only — a user-supplied orderBy can't be safely reversed.
+- Resolved: `OrderByItem.reverse()` exists and also flips null placement. Original note: no way to reverse an OrderByItem. Backward cursor pagination needs to flip orderBy direction; there's no API to invert opaque OrderByItems. The plugin has to own orderBy emission entirely, which means t.relatedConnection is where-only — a user-supplied orderBy can't be safely reversed.
 
 - where / take / orderBy / skip are chain methods, not separate options. Means user-facing options end up as one big callback returning a refined Collection. Would prefer discrete option fields so the plugin can decide per-field-shape which ones a user can set.
 
@@ -23,6 +24,6 @@ Typing stuff that needed workarounds:
 
 Internal query optimizations I don't care about as much:
 
-- Depth-2+ includes fall back to multi-query. { users { posts { author } } } emits 3 SQL statements on SQLite. Correctness is fine via the multi-query stitch, just extra round-trips.
+- Resolved on SQLite, now one statement. Original note: depth-2+ includes fall back to multi-query. { users { posts { author } } } emits 3 SQL statements on SQLite. Correctness is fine via the multi-query stitch, just extra round-trips.
 
-- combine + count fall back to multi-query. Hits every count field and any connection with totalCount: true. Same story — correctness fine, just extra round-trips. Test capture counts are >= 1 instead of === 1 for both.
+- Resolved on SQLite, now one statement. Original note: combine + count fall back to multi-query. Hits every count field and any connection with totalCount: true. Same story — correctness fine, just extra round-trips. Test capture counts are >= 1 instead of === 1 for both.

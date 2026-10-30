@@ -1,28 +1,28 @@
 ---
 title: Prisma Next plugin
-description: A Pothos plugin for the new prisma-next ORM client
+description: An experimental Pothos plugin for the Prisma ORM 8 collection client
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-<Callout type="warn">
-  Initial 0.1 release targeting Prisma ORM `8.0.0-rc.22` (formerly Prisma Next).
-  Pin the upstream packages to this exact release candidate. The plugin uses
-  the shared SQL family and has no database-dialect configuration; MongoDB's
-  separate Collection API is not supported.
+<Callout type="warn" title="Experimental: do not use in production">
+  This plugin is **pre-release**. It targets a release candidate of Prisma ORM 8 (formerly Prisma
+  Next) and is pinned to exactly `8.0.0-rc.22`: other versions, including newer release candidates,
+  are not supported. Both Prisma ORM 8 and this plugin's API can change in any release, without a
+  migration path. MongoDB is not supported.
 </Callout>
 
-This plugin provides tighter integration with [prisma-next](https://github.com/prisma/orm),
+This plugin provides tighter integration with [Prisma ORM 8](https://github.com/prisma/orm),
 the new fluent collection-based ORM client. It makes it easier to define
 GraphQL types backed by your contract, helps solve N+1 queries for relations,
 and ships Relay integrations for nodes and connections.
 
-This is a separate package from `@pothos/plugin-prisma`, which targets the
-existing Prisma client. The two are mutually exclusive.
+This is a separate package from [`@pothos/plugin-prisma`](/docs/plugins/prisma), which targets
+Prisma 7 and `@prisma/client`. The two are mutually exclusive.
 
 ## Features
 
-- 🎨 Quickly define GraphQL types based on your prisma-next contract
+- 🎨 Quickly define GraphQL types based on your Prisma contract
 - 🦺 Strong type-safety throughout the entire API
 - 🤝 Automatically resolve relationships defined in the contract
 - 🎣 Automatic query optimization — the plugin reads the GraphQL selection
