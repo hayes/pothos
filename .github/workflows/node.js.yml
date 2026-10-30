@@ -85,6 +85,43 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run build
+        if: ${{ matrix.node != 22 }}
         run: pnpm run ci
         env:
           POTHOS_PRISMA_NEXT_MYSQL_URL: mysql://root:prisma@127.0.0.1:5478/prisma_next?allowPublicKeyRetrieval=true
+
+      # Prisma ORM 8 supports Node 24 and up, so the plugin is only tested there.
+      - name: Run build without Prisma Next tests
+        if: ${{ matrix.node == 22 }}
+        run: |
+          pnpm turbo run build generate --concurrency=4
+          pnpm turbo run test type --concurrency=4 --filter='!@pothos/plugin-prisma-next'
+          pnpm run lint:ci
+
+  prisma-next-consumer:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: false
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm turbo run build --filter='@pothos/plugin-prisma-next...'
+
+      - name: Check the packed plugin from a fresh project
+        run: node scripts/prisma-next-consumer-check.mjs
