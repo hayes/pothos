@@ -25,7 +25,7 @@ import { ModelLoader } from './model-loader.js';
 import type { AnyContract } from './types.js';
 import { fieldAliasPrefix, objectLevelFieldAlias, prismaNextAdapter } from './utils/adapter.js';
 import { createApply } from './utils/apply.js';
-import { resolveContractModel } from './utils/contract.js';
+import { collectionForModel, resolveContractModel } from './utils/contract.js';
 import { buildRelationMeta, type PrismaNextRelationMeta } from './utils/model.js';
 import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options.js';
 
@@ -436,7 +436,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           context as object,
           contract,
           modelName,
-          () => (typeof collections === 'function' ? collections(context) : collections)[modelName],
+          () =>
+            collectionForModel(
+              contract,
+              typeof collections === 'function' ? collections(context) : collections,
+              modelName,
+            ) as never,
           pluginOptions.skipDeferredFragments ?? true,
         );
         loaders.set(modelName, loader);

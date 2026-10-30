@@ -18,6 +18,7 @@ import { PrismaNextObjectRef } from './object-ref.js';
 import { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 import type { ModelName, PrismaNextObjectOptions } from './types.js';
 import { createApply } from './utils/apply.js';
+import { defaultTypeName } from './utils/contract.js';
 import { CURSOR_PAYLOAD_MAX_BYTES, type CursorValueCodec } from './utils/cursors.js';
 import { enqueueNodeLoad, pathKey } from './utils/node-batch.js';
 import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options.js';
@@ -46,9 +47,9 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
   kind: 'interface' | 'object',
 ) {
   const isInterface = kind === 'interface';
-  const typeName =
-    (options as { variant?: string }).variant ?? options.name ?? (modelName as string);
-  const isVariant = typeName !== (modelName as string);
+  const defaultName = defaultTypeName(modelName as string);
+  const typeName = (options as { variant?: string }).variant ?? options.name ?? defaultName;
+  const isVariant = typeName !== defaultName;
   const ref = isVariant
     ? isInterface
       ? new PrismaNextInterfaceRef<Types, M>(typeName, modelName)
