@@ -3,6 +3,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import postgres from '@prisma/orm-postgres/runtime';
+import postgresServerless from '@prisma/orm-postgres/serverless';
 import { contractFromJson } from '@prisma/orm-postgres/static';
 import { graphql } from 'graphql';
 import { Client } from 'pg';
@@ -218,6 +219,19 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         { name: 'Bob', count: 0, amount: null, entries: [] },
       ],
     });
+  });
+
+  it('runs planned selections on a per-request serverless connection', async () => {
+    await using connection = await postgresServerless({ contract }).connect({ url });
+    const result = await graphql({
+      schema: createSchema(connection.orm),
+      source: '{ accounts { name count entries { id account { name } } } }',
+      contextValue: {},
+    });
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.accounts).toEqual(
+      expect.arrayContaining([expect.objectContaining({ count: expect.any(Number) })]),
+    );
   });
 
   it('continues a connection with the same count and no repeated rows', async () => {
