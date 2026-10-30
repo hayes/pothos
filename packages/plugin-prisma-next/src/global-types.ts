@@ -28,6 +28,7 @@ import type {
   CursorSpec,
   ModelName,
   PrismaNextConnectionFieldOptions,
+  PrismaNextInterfaceOptions,
   PrismaNextObjectFieldOptions,
   PrismaNextObjectOptions,
   PrismaNextPluginOptions,
@@ -170,7 +171,7 @@ declare global {
         Shape = ObjectLevelShape<Types, M, Select>,
       >(
         modelName: M,
-        options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
+        options: Omit<PrismaNextInterfaceOptions<Types, M, Shape, Interfaces>, 'select'> & {
           select?: Select;
         },
       ) => PrismaNextInterfaceRef<Types, M, Shape>;
