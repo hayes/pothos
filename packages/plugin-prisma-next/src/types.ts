@@ -34,15 +34,20 @@ import type {
   CollectionTypeState,
   DefaultCollectionTypeState,
   DefaultModelRow,
+  HasRow,
+  HasTypeState,
   ModelAccessor,
   ModelCallbackTools,
   NumericFieldNames,
+  RelatedModelName,
+  RelationNames,
   ShorthandWhereFilter,
 } from '@prisma/orm-family-sql/orm-client';
 import type { Contract } from '@prisma/orm-framework/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
 import type {
   ExtractModel,
+  ObjectBaseShape,
   ParamToModelName,
   RelationRef,
   SelectObjectSpec,
@@ -183,39 +188,17 @@ export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>>
   WithNsId<DefaultCollectionTypeState, NsIdOf<Types['PrismaNextContract'], M>>
 >;
 
-// Mutation terminals (`create`/`update`/`delete`/`upsert` family). The plugin
-// only READS a resolver-returned collection (layers `.select`/`.include` and
-// materializes); it never calls these.
-type CollectionMutationTerminals =
-  | 'create'
-  | 'createAll'
-  | 'createAndCount'
-  | 'upsert'
-  | 'update'
-  | 'updateAll'
-  | 'updateAndCount'
-  | 'delete'
-  | 'deleteAll'
-  | 'deleteAndCount';
-
-// What a `t.prismaField`/`prismaNode` resolver may return for model `M`: the
-// model-scoped `CollectionFor<Types, M>` with the mutation terminals omitted.
-//
-// - Model-scoped: it IS `CollectionFor<Types, M>`, so returning another model's
-//   collection from an `M` field is a type error.
-// - Permissive about construction: omitting the mutation terminals makes the
-//   type LESS demanding, so any value carrying the read surface unifies —
-//   `db.orm.M` or a filtered collection (the plugin only reads it). This is also what makes a cast-free return work at
-//   all: the ONLY part of `Collection` that `Types['PrismaNextContract']` (a
-//   constrained copy of the user's contract, forced by the `SchemaTypes`
-//   constraint) computes differently from the raw `db.orm` contract is the
-//   mutation INPUT shapes (`CreateInput`/`conflictOn` unique-constraints).
-//   `Collection` is invariant in its contract param, so without omitting them a
-//   raw `Collection<Contract, …>` would not unify; the read surface is identical.
-export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Types>> = Omit<
-  CollectionFor<Types, M>,
-  CollectionMutationTerminals
->;
+// What a `t.prismaField`/`prismaNode` resolver may return for model `M`: any collection of that
+// model's base rows, from `db.orm.M` to a filtered or ordered one. It's the receiver upstream uses
+// for its own collection helpers, so it doesn't depend on the contract's mutation input types,
+// which `Types['PrismaNextContract']` computes differently from the raw `db.orm` contract.
+export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Types>> = HasRow<
+  DefaultModelRow<Types['PrismaNextContract'], M, NsIdOf<Types['PrismaNextContract'], M>>
+> &
+  HasTypeState<{
+    readonly variantValue: undefined;
+    readonly nsId: NsIdOf<Types['PrismaNextContract'], M>;
+  }> & { readonly modelName: M };
 
 /** Existing ordering must match a prefix of the cursor order for the requested direction. */
 export type ConnectionCollection<
@@ -244,29 +227,16 @@ export interface PrismaNextPluginOptions<TContract extends AnyContract, Context 
   readonly maxConnectionSize?: number;
 }
 
-// Hand-rolled indexed access into the contract's relation map. orm-client DOES
-// export equivalent helpers (`RelationNames<C, M>` / `RelatedModelName`), and at
-// 0.14.0 they stay precise through generic positions — their `ExactRecord` only
-// collapses when the contract itself is the wide `AnyContract`, which the
-// `ModelName` sentinel already guards. TODO(prisma-next bump): consider swapping
-// `RelationKeys`/`RelatedModel` to the public `RelationNames`/`RelatedModelName`
-// to track upstream (verify type-test precision first).
-export type RelationKeys<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-> = keyof RelationsOfModel<Types['PrismaNextContract'], M> & string;
+export type RelationKeys<Types extends SchemaTypes, M extends ModelName<Types>> = RelationNames<
+  Types['PrismaNextContract'],
+  M
+>;
 
 export type RelatedModel<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   R extends RelationKeys<Types, M>,
-> = RelationsOfModel<Types['PrismaNextContract'], M>[R] extends {
-  // ADR 221: relation targets are `CrossReference` objects, not bare model
-  // names. The literal model name lives at `.to.model`.
-  readonly to: { readonly model: infer To extends ModelName<Types> };
-}
-  ? To
-  : never;
+> = RelatedModelName<Types['PrismaNextContract'], M, R> & ModelName<Types>;
 
 export type IsToMany<
   Types extends SchemaTypes,
@@ -362,10 +332,13 @@ export type PrismaNextRelationOptions<
   Nullable extends boolean,
   Args extends InputFieldMap,
   RelatedShape,
+  // What the type's `select` declared. Callback parents don't claim any other column, because it's
+  // only loaded when the query happens to select it.
+  ParentShape = ObjectBaseShape<Types, ParentModel>,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
-    Row<Types, ParentModel>,
+    ParentShape,
     RelationRef<Types, ParentModel, RelName, RelatedShape>,
     Nullable,
     Args,
@@ -435,10 +408,11 @@ type RelationAggregateBaseOptions<
   Result,
   Nullable extends boolean,
   Args extends InputFieldMap,
+  ParentShape = ObjectBaseShape<Types, ParentModel>,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
-    Row<Types, ParentModel>,
+    ParentShape,
     TypeParam<Types>,
     Nullable,
     Args,
@@ -457,7 +431,8 @@ export type PrismaNextRelationCountOptions<
   RelName extends RelationKeys<Types, ParentModel>,
   Nullable extends boolean,
   Args extends InputFieldMap,
-> = RelationAggregateBaseOptions<Types, ParentModel, RelName, number, Nullable, Args>;
+  ParentShape = ObjectBaseShape<Types, ParentModel>,
+> = RelationAggregateBaseOptions<Types, ParentModel, RelName, number, Nullable, Args, ParentShape>;
 
 /** Aggregate operations are provided by the emitted contract, including extensions. */
 export type RelationAggregateOp<Types extends SchemaTypes> = keyof ExtractAggregateTypes<
@@ -560,13 +535,15 @@ export type PrismaNextRelationAggregateOptions<
   Field extends
     | RelationAggregateField<Types, RelatedModel<Types, ParentModel, RelName>, Op>
     | undefined = undefined,
+  ParentShape = ObjectBaseShape<Types, ParentModel>,
 > = RelationAggregateBaseOptions<
   Types,
   ParentModel,
   RelName,
   RelationAggregateResult<Types, RelatedModel<Types, ParentModel, RelName>, Op, Field>,
   Nullable,
-  Args
+  Args,
+  ParentShape
 > & { op: Op; field?: Field } & (NoInfer<Field> extends string
     ? { field: Field }
     : AggregateOperation<Types['PrismaNextContract'], Op> extends { readonly withoutInput: unknown }
@@ -728,7 +705,6 @@ export type CursorColumn<Types extends SchemaTypes, M extends ModelName<Types>> 
     | bigint
     | boolean
     | Date
-    | Uint8Array
     ?
         | Key
         | {
@@ -815,7 +791,7 @@ export type PrismaNextConnectionFieldOptions<
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
       info: GraphQLResolveInfo,
-    ) => MaybePromise<ConnectionCollection<Types, M>>;
+    ) => MaybePromise<ConnectionCollection<Types, M> | (Nullable extends true ? null : never)>;
     /** Sentinel for plugin-prisma porters: chain `.where(...)` on the collection inside `resolve` instead. */
     query?: 'plugin-prisma-next: chain `.where(...)` on the collection inside `resolve` instead of passing a `query` option';
   };
@@ -828,10 +804,11 @@ export type PrismaNextRelatedConnectionOptions<
   Args extends InputFieldMap,
   Cursor extends CursorSpec<Types, RelatedModel<Types, ParentModel, RelName>>,
   RelatedShape = unknown,
+  ParentShape = ObjectBaseShape<Types, ParentModel>,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
-    Row<Types, ParentModel>,
+    ParentShape,
     PrismaNextObjectRef<Types, RelatedModel<Types, ParentModel, RelName>, RelatedShape>,
     Nullable,
     InputFieldsFromShape<Types, PothosSchemaTypes.DefaultConnectionArguments, 'Arg'> &
@@ -845,7 +822,7 @@ export type PrismaNextRelatedConnectionOptions<
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
       Types,
-      Row<Types, ParentModel>,
+      ParentShape,
       PrismaNextObjectRef<Types, RelatedModel<Types, ParentModel, RelName>, RelatedShape>,
       Nullable,
       false,
@@ -873,7 +850,7 @@ export type PrismaNextRelatedConnectionOptions<
     totalCount?:
       | boolean
       | ((
-          parent: Row<Types, ParentModel>,
+          parent: ParentShape,
           args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
           context: Types['Context'],
           info: GraphQLResolveInfo,

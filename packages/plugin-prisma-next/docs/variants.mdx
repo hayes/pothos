@@ -65,7 +65,8 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     // `admin` returns null unless the row is actually an admin.
     admin: t.variant(adminUserRef, {
-      isNull: (user) => !(user as { isAdmin: boolean }).isAdmin,
+      select: ['isAdmin'],
+      isNull: (user) => !user.isAdmin,
     }),
   }),
 });
@@ -78,19 +79,10 @@ the variant.
 
 ### Forcing extra columns
 
-`t.variant` accepts a `select` option (column-array form) when the
-variant's resolver needs columns the GraphQL selection set wouldn't
-otherwise pull:
-
-```ts
-admin: t.variant(adminUserRef, {
-  select: ['isAdmin'],
-  isNull: (user) => !(user as { isAdmin: boolean }).isAdmin,
-}),
-```
-
-The selected columns are forced into the parent row's SELECT
-regardless of what the client asks for.
+`select` (column-array form) forces columns into the parent row's SELECT
+regardless of what the client asks for. It also sets what `isNull` can read:
+its parent only has the listed columns, because any other column is only
+loaded when the query happens to select it.
 
 ## Returning a variant from `t.prismaField`
 

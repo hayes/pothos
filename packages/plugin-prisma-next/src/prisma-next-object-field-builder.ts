@@ -50,7 +50,7 @@ import {
   validateCursorArgs,
 } from './utils/cursors.js';
 import { readPluginOptions, resolveSizeOption } from './utils/options.js';
-import { getRefFromContractModel } from './utils/refs.js';
+import { getRefForContractModel, getRefFromContractModel } from './utils/refs.js';
 import { connectionNeedsRows, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
 function isToManyCardinality(cardinality: string): boolean {
@@ -225,7 +225,7 @@ export class PrismaNextObjectFieldBuilder<
             Omit<
               PothosSchemaTypes.ObjectFieldOptions<
                 Types,
-                ExposableShape,
+                Shape & Pick<ExposableShape, Name & keyof ExposableShape>,
                 Type,
                 Nullable,
                 {},
@@ -247,15 +247,16 @@ export class PrismaNextObjectFieldBuilder<
     Variant extends PrismaNextObjectRef<Types, M, unknown> | M,
     Args extends InputFieldMap = {},
     Nullable extends boolean = false,
+    Selected extends keyof Row<Types, M> & string = never,
   >(
     variant: Variant,
     options: {
       description?: string;
       nullable?: Nullable;
       args?: Args;
-      select?: readonly (keyof Row<Types, M> & string)[];
+      select?: readonly Selected[];
       isNull?: (
-        parent: Row<Types, M>,
+        parent: Shape & Pick<Row<Types, M>, Selected>,
         args: import('@pothos/core').InputShapeFromFields<Args>,
         ctx: Types['Context'],
         info: GraphQLResolveInfo,
@@ -323,7 +324,7 @@ export class PrismaNextObjectFieldBuilder<
     RelatedShape = Row<Types, RelatedModel<Types, M, RelName>>,
   >(
     name: RelName,
-    options?: PrismaNextRelationOptions<Types, M, RelName, Nullable, Args, RelatedShape>,
+    options?: PrismaNextRelationOptions<Types, M, RelName, Nullable, Args, RelatedShape, Shape>,
   ): FieldRef<Types, unknown> {
     const opts = (options ?? {}) as PrismaNextRelationOptions<
       Types,
@@ -335,7 +336,7 @@ export class PrismaNextObjectFieldBuilder<
     > & { extensions?: Record<string, unknown> };
     const meta = this.#getRelationMeta(name as string);
     const targetRef =
-      opts.type ?? (getRefFromContractModel(meta.to.model as never, this.builder) as never);
+      opts.type ?? (getRefForContractModel(meta.to.model as never, this.builder) as never);
     const isToMany = isToManyCardinality(meta.cardinality);
     const defaultNullable = isToMany ? false : this.#isToOneRelationNullable(meta);
 
@@ -413,7 +414,7 @@ export class PrismaNextObjectFieldBuilder<
     Args extends InputFieldMap = {},
   >(
     name: RelName,
-    options?: PrismaNextRelationCountOptions<Types, M, RelName, Nullable, Args>,
+    options?: PrismaNextRelationCountOptions<Types, M, RelName, Nullable, Args, Shape>,
   ): FieldRef<Types, Nullable extends true ? number | null : number, 'PrismaNextObject'> {
     return this.#aggregateField(name as string, 'count', undefined, options ?? {}, false) as never;
   }
@@ -434,7 +435,16 @@ export class PrismaNextObjectFieldBuilder<
     Args extends InputFieldMap = {},
   >(
     name: RelName,
-    options: PrismaNextRelationAggregateOptions<Types, M, RelName, Op, Nullable, Args, Field>,
+    options: PrismaNextRelationAggregateOptions<
+      Types,
+      M,
+      RelName,
+      Op,
+      Nullable,
+      Args,
+      Field,
+      Shape
+    >,
   ): FieldRef<
     Types,
     Nullable extends true
@@ -532,7 +542,8 @@ export class PrismaNextObjectFieldBuilder<
           Nullable,
           Args,
           Cursor,
-          RelatedShape
+          RelatedShape,
+          Shape
         >,
         connectionOptions?:
           | PothosSchemaTypes.ConnectionObjectOptions<
@@ -586,7 +597,7 @@ export class PrismaNextObjectFieldBuilder<
     }
     const cursorOpt = validateCursor(this.contract as AnyContract, meta.to.model, options.cursor);
     const targetRef =
-      options.type ?? getRefFromContractModel(meta.to.model as never, this.builder as never);
+      options.type ?? getRefForContractModel(meta.to.model as never, this.builder as never);
 
     const self = this as unknown as {
       connection: (cfg: object, c?: object, e?: object) => unknown;

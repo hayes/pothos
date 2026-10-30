@@ -6,6 +6,7 @@ import {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
+import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextObjectRef } from './object-ref.js';
 import type {
   AnyContract,
@@ -28,7 +29,7 @@ import {
   readPluginOptions,
   resolveSizeOption,
 } from './utils/options.js';
-import { getRefFromContractModel } from './utils/refs.js';
+import { getRefForContractModel } from './utils/refs.js';
 import {
   buildTotalCountPromise,
   connectionNeedsRows,
@@ -94,9 +95,9 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
     [k: string]: unknown;
   };
   const ref =
-    type instanceof PrismaNextObjectRef
+    type instanceof PrismaNextObjectRef || type instanceof PrismaNextInterfaceRef
       ? type
-      : getRefFromContractModel(type as never, this.builder as never);
+      : getRefForContractModel(type as never, this.builder as never);
   const totalCountResolver =
     typeof totalCount === 'function'
       ? (totalCount as (
@@ -158,8 +159,11 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
               i: GraphQLResolveInfo,
             ) => unknown
           )(parent, args, context, info),
-        )) as MapperCollection;
+        )) as MapperCollection | null;
 
+        if (userCollection == null) {
+          return null;
+        }
         assertUnpaginatedCollection(userCollection);
         const needsRows = connectionNeedsRows(context as object, info);
         const apply = createApply({

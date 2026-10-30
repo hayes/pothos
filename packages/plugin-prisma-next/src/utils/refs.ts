@@ -47,6 +47,21 @@ export function getRefFromContractModel<
   return ref as unknown as PrismaNextObjectRef<Types, M, Shape>;
 }
 
+/** The default ref for a bare model name: its `prismaInterface` when registered as one. */
+export function getRefForContractModel<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Shape = Row<Types, M>,
+>(
+  modelName: M,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+): PrismaNextObjectRef<Types, M, Shape> | PrismaNextInterfaceRef<Types, M, Shape> {
+  const iface = interfaceRefMap.get(builder)?.get(modelName as string);
+  return iface
+    ? (iface as unknown as PrismaNextInterfaceRef<Types, M, Shape>)
+    : getRefFromContractModel<Types, M, Shape>(modelName, builder);
+}
+
 export function getInterfaceRefFromContractModel<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
