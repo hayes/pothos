@@ -1,0 +1,110 @@
+name: Prisma Next canary
+
+# Separate from PR checks: a new ORM RC should report drift, not block unrelated work.
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+env:
+  CI: true
+
+jobs:
+  latest-orm:
+    if: ${{ github.event_name != 'schedule' || github.repository == 'hayes/pothos' }}
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+
+    services:
+      prisma-next-postgres:
+        image: postgres:18.2
+        ports:
+          - '5456:5432'
+        env:
+          POSTGRES_USER: prisma
+          POSTGRES_PASSWORD: prisma
+          POSTGRES_DB: prisma_next
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: false
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Move the plugin to the latest ORM
+        id: versions
+        run: |
+          latest="$(npm view @prisma/orm-framework dist-tags.latest)"
+          pinned="$(node -p "require('./packages/plugin-prisma-next/package.json').peerDependencies['@prisma/orm-framework']")"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "pinned=$pinned" >> "$GITHUB_OUTPUT"
+          LATEST="$latest" node -e "
+            const { readFileSync, writeFileSync } = require('node:fs');
+            const path = 'packages/plugin-prisma-next/package.json';
+            const manifest = JSON.parse(readFileSync(path, 'utf8'));
+            for (const deps of [manifest.peerDependencies, manifest.devDependencies]) {
+              for (const name of Object.keys(deps)) {
+                if (name.startsWith('@prisma/orm-')) deps[name] = process.env.LATEST;
+              }
+            }
+            writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n');
+          "
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build
+        run: pnpm turbo run build --filter='@pothos/plugin-prisma-next...'
+
+      - name: Regenerate contract fixtures
+        id: generate
+        working-directory: packages/plugin-prisma-next
+        run: |
+          node tests/fixtures/generate.mts
+          node tests/postgres/generate.mts
+
+      - name: Type check
+        id: type
+        continue-on-error: true
+        working-directory: packages/plugin-prisma-next
+        run: pnpm type
+
+      - name: Test
+        id: test
+        continue-on-error: true
+        working-directory: packages/plugin-prisma-next
+        run: pnpm test
+
+      - name: Report drift
+        if: ${{ always() }}
+        env:
+          PINNED: ${{ steps.versions.outputs.pinned }}
+          LATEST: ${{ steps.versions.outputs.latest }}
+          GENERATE: ${{ steps.generate.outcome }}
+          TYPE: ${{ steps.type.outcome }}
+          TEST: ${{ steps.test.outcome }}
+        run: |
+          {
+            echo "## Prisma ORM canary: ${PINNED} → ${LATEST}"
+            echo "| Step | Result |"
+            echo "| --- | --- |"
+            echo "| Regenerate fixtures | ${GENERATE} |"
+            echo "| Type check | ${TYPE} |"
+            echo "| Tests | ${TEST} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$GENERATE" = success ] && [ "$TYPE" = success ] && [ "$TEST" = success ]

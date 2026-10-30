@@ -1,0 +1,124 @@
+name: Prisma Next preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build, test and pack without publishing
+        type: boolean
+        default: true
+
+env:
+  CI: true
+
+jobs:
+  publish:
+    # Real publishes only come from main; any branch can dry run.
+    if: ${{ inputs.dry_run || github.ref == 'refs/heads/main' }}
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    services:
+      prisma-next-postgres:
+        image: postgres:18.2
+        ports:
+          - '5456:5432'
+        env:
+          POSTGRES_USER: prisma
+          POSTGRES_PASSWORD: prisma
+          POSTGRES_DB: prisma_next
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: false
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build, type check and test
+        run: pnpm turbo run build type test --filter='@pothos/plugin-prisma-next...'
+
+      - name: Check the plugin's published dependencies
+        id: dependencies
+        run: |
+          core_version="$(node -p "require('./packages/core/package.json').version")"
+          npm view "@pothos/core@${core_version}" version | grep -q . || {
+            echo "::error::@pothos/core@${core_version} is not on npm. Release it first."
+            exit 1
+          }
+
+          # The mapper is a real dependency, so a preview needs the mapper source it was tested with.
+          mapper_version="$(node -p "require('./packages/selection-mapper/package.json').version")"
+          compare="$(mktemp -d)"
+          mkdir "$compare/local" "$compare/published"
+          pnpm --filter @pothos/selection-mapper pack --pack-destination "$compare/local"
+          npm pack "@pothos/selection-mapper@${mapper_version}" --pack-destination "$compare/published"
+          tar -xzf "$compare"/local/*.tgz -C "$compare/local"
+          tar -xzf "$compare"/published/*.tgz -C "$compare/published"
+          if diff -r "$compare/local/package/src" "$compare/published/package/src"; then
+            echo "mapper_version=" >> "$GITHUB_OUTPUT"
+          else
+            echo "mapper_version=${mapper_version}-next.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set preview versions
+        env:
+          MAPPER_VERSION: ${{ steps.dependencies.outputs.mapper_version }}
+        run: >-
+          node scripts/prisma-next-preview.mjs
+          --version "0.2.0-next.${GITHUB_RUN_NUMBER}"
+          ${MAPPER_VERSION:+--mapper-version "$MAPPER_VERSION"}
+
+      - name: Check the packed plugin from a fresh project
+        run: node scripts/prisma-next-consumer-check.mjs
+
+      - name: Creating .npmrc
+        if: ${{ !inputs.dry_run }}
+        run: |
+          cat << EOF > "$HOME/.npmrc"
+            email=michael@hayes.io
+            //registry.npmjs.org/:_authToken=$NPM_TOKEN
+          EOF
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish
+        env:
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+          MAPPER_VERSION: ${{ steps.dependencies.outputs.mapper_version }}
+        run: |
+          if [ -n "$MAPPER_VERSION" ]; then
+            pnpm --filter @pothos/selection-mapper publish --tag next --no-git-checks ${DRY_RUN:+"$DRY_RUN"}
+          fi
+          pnpm --filter @pothos/plugin-prisma-next publish --tag next --no-git-checks ${DRY_RUN:+"$DRY_RUN"}
+
+      # npm's docs don't say how a brand-new package's first `--tag` publish treats `latest`.
+      - name: Report dist-tags
+        if: ${{ !inputs.dry_run }}
+        run: |
+          {
+            echo '## @pothos/plugin-prisma-next dist-tags'
+            echo '```json'
+            npm view @pothos/plugin-prisma-next dist-tags --json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
