@@ -35,6 +35,18 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      prisma-next-mysql:
+        image: mysql:8.4
+        ports:
+          - '5478:3306'
+        env:
+          MYSQL_ROOT_PASSWORD: prisma
+          MYSQL_DATABASE: prisma_next
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -pprisma"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout
@@ -56,7 +68,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build, type check and test
-        run: pnpm turbo run build type test --filter='@pothos/plugin-prisma-next...'
+        run: |
+          pnpm turbo run build --filter='@pothos/plugin-prisma-next...'
+          pnpm turbo run type test --filter=@pothos/plugin-prisma-next --filter=@pothos/selection-mapper
+        env:
+          POTHOS_PRISMA_NEXT_MYSQL_URL: mysql://root:prisma@127.0.0.1:5478/prisma_next?allowPublicKeyRetrieval=true
 
       - name: Check the plugin's published dependencies
         id: dependencies
@@ -107,10 +123,19 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
           MAPPER_VERSION: ${{ steps.dependencies.outputs.mapper_version }}
         run: |
-          if [ -n "$MAPPER_VERSION" ]; then
+          # A re-run keeps GITHUB_RUN_NUMBER, so skip versions an earlier attempt already published.
+          published() {
+            npm view "$1@$2" version 2>/dev/null | grep -q .
+          }
+          if [ -n "$MAPPER_VERSION" ] && ! published @pothos/selection-mapper "$MAPPER_VERSION"; then
             pnpm --filter @pothos/selection-mapper publish --tag next --no-git-checks ${DRY_RUN:+"$DRY_RUN"}
           fi
-          pnpm --filter @pothos/plugin-prisma-next publish --tag next --no-git-checks ${DRY_RUN:+"$DRY_RUN"}
+          plugin_version="$(node -p "require('./packages/plugin-prisma-next/package.json').version")"
+          if published @pothos/plugin-prisma-next "$plugin_version"; then
+            echo "@pothos/plugin-prisma-next@${plugin_version} is already on npm."
+          else
+            pnpm --filter @pothos/plugin-prisma-next publish --tag next --no-git-checks ${DRY_RUN:+"$DRY_RUN"}
+          fi
 
       # npm's docs don't say how a brand-new package's first `--tag` publish treats `latest`.
       - name: Report dist-tags

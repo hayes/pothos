@@ -35,7 +35,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: prisma
           MYSQL_DATABASE: prisma_next
         options: >-
-          --health-cmd "mysqladmin ping -uroot -pprisma"
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -pprisma"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
