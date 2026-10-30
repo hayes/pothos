@@ -56,6 +56,12 @@ with an error to report a source failure, or `callback(null, value)` for an even
 `debounceDelay: null` disables debouncing. Other values enable the plugin's default debounce
 window; the current implementation does not use the supplied numeric value as a custom delay. Both `subscribe` and `unsubscribe` callbacks may return promises.
 
+Make `unsubscribe` safe to call for an already removed or not-yet-created source. If cancellation
+happens while an asynchronous `subscribe` is pending, the plugin calls `unsubscribe` immediately,
+then again after setup settles to release any source created late. Cancellation does not wait for
+the `subscribe` promise, which may represent the stream's entire lifetime. A replacement subscription
+with the same name starts after the previous registration and its cleanup finish.
+
 ### Async iterator sources
 
 If your event service already returns async iterators, use `subscribeOptionsFromIterator` as an
