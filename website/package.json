@@ -10,6 +10,7 @@
     "start": "next start",
     "bundle-types": "tsx scripts/bundle-types.ts",
     "build-examples": "tsx scripts/build-playground-examples.ts",
+    "generate:prisma-next": "node scripts/generate-prisma-next-contract.mts",
     "check-playground-refs": "tsx scripts/check-playground-references.ts",
     "type": "pnpm run codegen && tsc --noEmit",
     "type:only": "tsc --noEmit",
@@ -30,6 +31,7 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "@noble/hashes": "2.4.0",
     "@pothos/core": "workspace:^",
     "@pothos/plugin-add-graphql": "workspace:^",
     "@pothos/plugin-complexity": "workspace:^",
