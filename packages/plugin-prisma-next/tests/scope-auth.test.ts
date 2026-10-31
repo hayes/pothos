@@ -541,3 +541,117 @@ describe('rows a connection helper wraps', () => {
     expect(result.statements).toHaveLength(1);
   });
 });
+
+// With `runScopesOnType`, type-level authScopes run from `isTypeOf`, on the row the parent field
+// resolved. Two implementations of an interface, reached from a root list and from a relation.
+const adminPostSelects = {
+  'the same relation': true,
+  'no relation': undefined,
+  'the relation with other arguments': { where: { published: 1 } },
+} as const;
+
+describe.each(orders)('runScopesOnType through an interface (%s)', (order, plugins) => {
+  function runScopesSchema(
+    seen: unknown[],
+    adminPosts: (typeof adminPostSelects)[keyof typeof adminPostSelects],
+  ) {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType: true },
+      prismaNext: { client: ctx.client },
+    });
+    const Person = builder.prismaInterface('User', {
+      select: ['email'],
+      resolveType: (user) => (user.email === 'alice@example.com' ? 'Admin' : 'Member'),
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    const record = (
+      typename: string,
+      user: { email: string; posts?: readonly { id: string }[] },
+    ) => {
+      seen.push([typename, user.email, user.posts?.map((post) => post.id).sort()]);
+      return true;
+    };
+    builder.prismaObject('User', {
+      variant: 'Member',
+      interfaces: [Person],
+      select: { email: true, posts: true },
+      authScopes: (user) => record('Member', user),
+    });
+    builder.prismaObject('User', {
+      variant: 'Admin',
+      interfaces: [Person],
+      select: adminPosts === undefined ? { email: true } : { email: true, posts: adminPosts },
+      authScopes: (user) => record('Admin', user),
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => ({ id: t.exposeID('id'), author: t.relation('author') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        people: t.prismaField({
+          type: [Person],
+          resolve: () => ctx.orm.User.orderBy((user) => user.id.asc()),
+        }),
+        posts: t.prismaField({
+          type: ['Post'],
+          resolve: () => ctx.orm.Post.where({ id: 'p-bob1' }),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  async function run(adminPosts: (typeof adminPostSelects)[keyof typeof adminPostSelects]) {
+    const seen: unknown[] = [];
+    const schema = runScopesSchema(seen, adminPosts);
+    const root = await runCaptured(schema, '{ people { __typename firstName } }');
+    expect(root.errors).toBeUndefined();
+    expect(root.data).toEqual({
+      people: [
+        { __typename: 'Admin', firstName: 'Alice' },
+        { __typename: 'Member', firstName: 'Bob' },
+      ],
+    });
+    const rootSeen = seen.splice(0);
+    const relation = await runCaptured(schema, '{ posts { author { __typename firstName } } }');
+    expect(relation.errors).toBeUndefined();
+    expect(relation.data).toEqual({
+      posts: [{ author: { __typename: 'Member', firstName: 'Bob' } }],
+    });
+    return { rootSeen, relationSeen: seen };
+  }
+
+  const memberSeen = ['Member', 'bob@example.com', ['p-bob-draft', 'p-bob1']];
+
+  it.each([
+    ['the same relation', ['p-draft1', 'p-hello']],
+    // The row is shared, so Admin also sees the posts Member's select loads.
+    ['no relation', expect.anything()],
+  ] as const)('loads the relation an implementation selects when the other selects %s', async (key, adminPostIds) => {
+    const { rootSeen, relationSeen } = await run(adminPostSelects[key]);
+    expect(rootSeen).toEqual([['Admin', 'alice@example.com', adminPostIds], memberSeen]);
+    expect(relationSeen).toEqual([memberSeen]);
+  });
+
+  it('implementations selecting one to-many relation with different arguments', async () => {
+    const { rootSeen, relationSeen } = await run(
+      adminPostSelects['the relation with other arguments'],
+    );
+    if (order === 'prismaNext first') {
+      expect(rootSeen).toEqual([['Admin', 'alice@example.com', ['p-hello']], memberSeen]);
+      expect(relationSeen).toEqual([memberSeen]);
+    } else {
+      // Documents a limitation: listed first, scope-auth's `isTypeOf` wraps this plugin's, so it
+      // reads the shared row, which keeps each implementation's copy of the relation apart.
+      expect(rootSeen).toEqual([
+        ['Admin', 'alice@example.com', undefined],
+        ['Member', 'bob@example.com', undefined],
+      ]);
+      expect(relationSeen).toEqual([['Member', 'bob@example.com', undefined]]);
+    }
+  });
+});
