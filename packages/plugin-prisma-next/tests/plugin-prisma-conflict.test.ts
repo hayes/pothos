@@ -19,6 +19,16 @@ describe('loading @pothos/plugin-prisma in the same program', () => {
     expect(SchemaBuilder.prototype.prismaObject).toBe(prismaObject);
   });
 
+  it('names the method and both causes when a prisma* method is replaced', async () => {
+    const { default: SchemaBuilder } = await import('@pothos/core');
+    await import('../src');
+    expect(() => {
+      SchemaBuilder.prototype.prismaObject = (() => {}) as never;
+    }).toThrow(
+      /Cannot replace prismaObject: .*cannot be used in the same program, and only one copy of @pothos\/plugin-prisma-next can be installed/,
+    );
+  });
+
   it('fails to import plugin-prisma-next after plugin-prisma', async () => {
     await import(pluginPrisma);
     await expect(import('../src')).rejects.toThrow(conflict);

@@ -1,10 +1,8 @@
 # Prisma Plugin for Pothos
 
 > [!NOTE]
-> This plugin targets Prisma ORM 7 with `@prisma/client` and `schema.prisma` generators. npm's
-> `latest` tag for `prisma` now installs Prisma ORM 8, a rewrite with no generators or
-> `@prisma/client`, so install `prisma@^7` explicitly. For Prisma ORM 8, see the experimental
-> [Prisma Next plugin](https://pothos-graphql.dev/docs/plugins/prisma-next).
+> This plugin supports Prisma ORM 7 only; install `prisma@^7`. For Prisma ORM 8, see
+> [Prisma Next](https://pothos-graphql.dev/docs/plugins/prisma-next).
 
 The Prisma plugin defines GraphQL types from Prisma models and builds selections for the data
 requested by a GraphQL query. It supports relations, counts, type variants, and Relay nodes and

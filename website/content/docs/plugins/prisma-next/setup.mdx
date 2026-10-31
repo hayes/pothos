@@ -171,7 +171,7 @@ builder.prismaObject('User', {
 Write checks that fail closed, return rows from `t.prismaField` or relations, or list
 `prismaNextPlugin` first: the row is then reloaded before `authScopes`, even when access is
 denied. List it first too if you use `runScopesOnType` and a type's `authScopes` reads a relation
-from its `select`, or the relation is missing on rows loaded through an interface.
+from its `select`; otherwise the relation is missing on rows loaded through an interface.
 
 ## Databases
 
