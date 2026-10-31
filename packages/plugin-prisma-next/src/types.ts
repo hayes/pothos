@@ -59,7 +59,7 @@ export type AnyContract = Contract<SqlStorage>;
 
 // Mirrors orm-client's internal `ScannedModelDef`; upstream's `RelationsOf` collapses to
 // `Record<string, never>` in generic positions.
-export type ModelDefOf<
+type ModelDefOf<
   TContract extends AnyContract,
   M extends string,
 > = M extends `${infer Ns}.${infer Bare}`
@@ -71,7 +71,7 @@ export type ModelDefOf<
     }[keyof TContract['domain']['namespaces']];
 
 /** A model key is a bare name, or `namespace.Model` for a name several namespaces share. */
-export type BareModelName<M extends string> = M extends `${string}.${infer Bare}` ? Bare : M;
+type BareModelName<M extends string> = M extends `${string}.${infer Bare}` ? Bare : M;
 
 type NamespacesWithModel<TContract extends AnyContract, M extends string> = {
   [Ns in keyof TContract['domain']['namespaces']]: M extends keyof TContract['domain']['namespaces'][Ns]['models']
@@ -82,14 +82,14 @@ type NamespacesWithModel<TContract extends AnyContract, M extends string> = {
 export type IsUnion<T, U = T> = T extends unknown ? ([U] extends [T] ? false : true) : never;
 
 /** Bare unless another namespace shares the name. `to.namespace` may be a branded `NamespaceId`. */
-export type ModelKey<TContract extends AnyContract, Ns extends string, M extends string> =
+type ModelKey<TContract extends AnyContract, Ns extends string, M extends string> =
   IsUnion<NamespacesWithModel<TContract, M>> extends true
     ? `${{
         [Key in NamespacesWithModel<TContract, M>]: Ns extends Key ? Key : never;
       }[NamespacesWithModel<TContract, M>]}.${M}`
     : M;
 
-export type ModelKeys<TContract extends AnyContract> = {
+type ModelKeys<TContract extends AnyContract> = {
   [Ns in keyof TContract['domain']['namespaces'] & string]: {
     [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]: ModelKey<
       TContract,
@@ -141,7 +141,7 @@ type IncludeRefinementScalarMethods<C extends AnyContract, M extends string> =
   | keyof AggregateBuilder<C, M>
   | 'combine';
 
-export type IncludeRefinementCollection<
+type IncludeRefinementCollection<
   TContract extends AnyContract,
   ModelName extends string,
   RowShape,
@@ -167,7 +167,7 @@ export type ModelName<Types extends SchemaTypes> = Types['PrismaNextContract'] e
   : ModelNameSentinel;
 
 /** `never` for models that aren't variants. */
-export type BaseModelKey<TContract extends AnyContract, M extends string> =
+type BaseModelKey<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends {
     readonly base: {
       readonly model: infer Base extends string;
@@ -221,31 +221,21 @@ type VariantValue<TContract extends AnyContract, M extends string> =
     : never;
 
 /** `orm.Task.variant('bug')`: the variant's own accessor (`orm.Bug`) isn't filtered. */
-export type VariantCollection<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-> = HasTypeState<{
+type VariantCollection<Types extends SchemaTypes, M extends ModelName<Types>> = HasTypeState<{
   readonly variantValue: VariantValue<Types['PrismaNextContract'], M>;
 }> & {
   readonly modelName: BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>;
 };
 
-export type NsIdOf<
-  TContract extends AnyContract,
-  M extends string,
-> = M extends `${infer Ns}.${string}` ? Ns : NamespacesWithModel<TContract, M>;
-
-export type NamespaceOf<Types extends SchemaTypes, M extends ModelName<Types>> = NsIdOf<
-  Types['PrismaNextContract'],
-  M
->;
+type NsIdOf<TContract extends AnyContract, M extends string> = M extends `${infer Ns}.${string}`
+  ? Ns
+  : NamespacesWithModel<TContract, M>;
 
 // orm-client's `WithNsId` isn't exported; needed so `CollectionFor` matches `db.orm.<Model>`.
 type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<State, 'nsId'> & {
   readonly nsId: NsId;
 };
 
-// Intersecting the contract with `AnyContract` would collapse the model's accessors to `never`.
 export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>> = Collection<
   Types['PrismaNextContract'],
   BareModelName<M>,
@@ -275,20 +265,21 @@ export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Ty
       }> & { readonly modelName: BareModelName<M> }
   : VariantCollection<Types, M>;
 
-/** Existing ordering must match a prefix of the cursor order for the requested direction. */
+/** What a connection's `resolve` returns: the collection the plugin pages. */
 export type ConnectionCollection<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
 > = ResolverCollection<Types, M>;
 
 // A contract typed only as `AnyContract` has no model keys to check collections against.
-export type PrismaNextCollections<TContract extends AnyContract> =
+type PrismaNextCollections<TContract extends AnyContract> =
   string extends keyof TContract['domain']['namespaces'] ? object : TypedCollections<TContract>;
 
 // Collections are matched by model name and by the contract on their `ctx` (upstream's
-// `CollectionBase.ctx`, marked `@internal` in rc.22 but also read by Prisma's public types), not
+// `CollectionBase.ctx`, internal in rc.22 but also read by Prisma's public types), not
 // structurally: comparing each `Collection` against one built from `TContract` costs more than the
-// rest of the builder setup, while comparing the contract to itself is an identity check.
+// rest of the builder setup, while comparing the contract to itself is an identity check. No
+// at-sign tag in this comment: `stripInternal` would drop the interface from the d.ts.
 interface CollectionOfModel<TContract extends AnyContract, M extends string> {
   readonly modelName: M;
   readonly ctx: { readonly context: { readonly contract: TContract } };
@@ -405,13 +396,29 @@ export type DefaultRelationNullable<
 
 /** A relation's `where`: a shorthand filter object, or the ORM's predicate callback. */
 export type RelationWhere<Types extends SchemaTypes, M extends ModelName<Types>> =
-  | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>
-  | RelationPredicate<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>;
+  | ShorthandWhereFilter<
+      Types['PrismaNextContract'],
+      NsIdOf<Types['PrismaNextContract'], M>,
+      BareModelName<M>
+    >
+  | RelationPredicate<
+      Types['PrismaNextContract'],
+      NsIdOf<Types['PrismaNextContract'], M>,
+      BareModelName<M>
+    >;
 
 /** One ordering of a relation's rows, as the ORM's `orderBy` takes it. */
 export type RelationOrderSelector<Types extends SchemaTypes, M extends ModelName<Types>> = (
-  accessor: ModelAccessor<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
-  tools: ModelCallbackTools<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
+  accessor: ModelAccessor<
+    Types['PrismaNextContract'],
+    BareModelName<M>,
+    NsIdOf<Types['PrismaNextContract'], M>
+  >,
+  tools: ModelCallbackTools<
+    Types['PrismaNextContract'],
+    BareModelName<M>,
+    NsIdOf<Types['PrismaNextContract'], M>
+  >,
 ) => OrderByItem;
 
 /** A relation's `orderBy`: a selector, or several applied in order. */
@@ -419,7 +426,7 @@ export type RelationOrderBy<Types extends SchemaTypes, M extends ModelName<Types
   | RelationOrderSelector<Types, M>
   | readonly RelationOrderSelector<Types, M>[];
 
-export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
+interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
   where?: RelationWhere<Types, M>;
   orderBy?: RelationOrderBy<Types, M>;
   limit?: number;
@@ -430,7 +437,7 @@ export interface RelationQueryLiteral<Types extends SchemaTypes, M extends Model
  * What a connection applies before paging. `orderBy` sets each cursor column's direction and null
  * placement, in cursor order; backward pages reverse it.
  */
-export interface ConnectionQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
+interface ConnectionQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
   where?: RelationWhere<Types, M>;
   orderBy?: RelationOrderBy<Types, M>;
 }
@@ -468,7 +475,7 @@ export type RelationRefinementCollection<
   DefaultModelRow<
     Types['PrismaNextContract'],
     BareModelName<RelatedModel<Types, M, R>>,
-    NamespaceOf<Types, RelatedModel<Types, M, R>>
+    NsIdOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
   >,
   DefaultCollectionTypeState,
   IsToMany<Types, M, R>
@@ -510,7 +517,7 @@ type ExactRelationQuery<Query> = Query extends (...args: never[]) => unknown
   : { [K in Exclude<keyof Query, keyof RelationQueryLiteral<SchemaTypes, never>>]: never };
 
 /** Names the conflict in the error for `nullable: false` beside `isNull`. */
-export interface VariantIsNullRequiresNullable {
+interface VariantIsNullRequiresNullable {
   readonly 'isNull can resolve the field to null, so nullable: false is not allowed': true;
 }
 
@@ -581,21 +588,21 @@ type RelationAggregateWhere<
 > =
   | ShorthandWhereFilter<
       Types['PrismaNextContract'],
-      NamespaceOf<Types, RelatedModel<Types, M, R>>,
+      NsIdOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>,
       BareModelName<RelatedModel<Types, M, R>>
     >
   | ((
       accessor: ModelAccessor<
         Types['PrismaNextContract'],
         BareModelName<RelatedModel<Types, M, R>>,
-        NamespaceOf<Types, RelatedModel<Types, M, R>>
+        NsIdOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
       >,
       args: InputShapeFromFields<Args>,
       context: Types['Context'],
       tools: ModelCallbackTools<
         Types['PrismaNextContract'],
         BareModelName<RelatedModel<Types, M, R>>,
-        NamespaceOf<Types, RelatedModel<Types, M, R>>
+        NsIdOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
       >,
     ) => Condition);
 
@@ -653,9 +660,13 @@ type AggregateMethod<
 > = Op extends keyof AggregateBuilder<
   Types['PrismaNextContract'],
   BareModelName<M>,
-  NamespaceOf<Types, M>
+  NsIdOf<Types['PrismaNextContract'], M>
 >
-  ? AggregateBuilder<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>[Op]
+  ? AggregateBuilder<
+      Types['PrismaNextContract'],
+      BareModelName<M>,
+      NsIdOf<Types['PrismaNextContract'], M>
+    >[Op]
   : never;
 
 export type RelationAggregateField<
@@ -665,54 +676,51 @@ export type RelationAggregateField<
 > =
   AggregateMethod<Types, M, Op> extends (...args: infer Args) => unknown ? Args[0] & string : never;
 
-type StorageFieldCodec<C extends AnyContract, M extends string, F extends string> =
+/** A model's fields, its table entry, and the storage column each field maps to. */
+type ModelTable<C extends AnyContract, M extends string> =
   ModelDefOf<C, M> extends {
+    readonly fields: infer Fields;
     readonly storage: {
       readonly namespaceId: infer Ns extends keyof C['storage']['namespaces'];
       readonly table: infer Table extends string;
-      readonly fields: infer Fields;
+      readonly fields: infer StorageFields;
     };
   }
-    ? F extends keyof Fields
-      ? Fields[F] extends { readonly column: infer Column extends string }
-        ? C['storage']['namespaces'][Ns]['entries']['table'] extends infer Tables
-          ? Table extends keyof Tables
-            ? Tables[Table] extends { readonly columns: infer Columns }
-              ? Column extends keyof Columns
-                ? Columns[Column] extends { readonly codecId: infer Id extends string }
-                  ? Id
-                  : never
-                : never
-              : never
-            : never
-          : never
+    ? C['storage']['namespaces'][Ns]['entries']['table'] extends infer Tables
+      ? Table extends keyof Tables
+        ? {
+            readonly fields: Fields;
+            readonly table: Tables[Table];
+            readonly storageFields: StorageFields;
+          }
+        : never
+      : never
+    : never;
+
+type StorageFieldCodec<C extends AnyContract, M extends string, F extends string> =
+  ModelTable<C, M> extends {
+    readonly table: { readonly columns: infer Columns };
+    readonly storageFields: infer Storage;
+  }
+    ? F extends keyof Storage
+      ? Storage[F] extends { readonly column: infer Column }
+        ? ColumnCodec<Columns, Column>
         : never
       : never
     : never;
 
 /** The fields mapped to a model's primary key columns; `never` when its table declares none. */
 type PrimaryKeyFields<C extends AnyContract, M extends string> =
-  ModelDefOf<C, M> extends {
-    readonly storage: {
-      readonly namespaceId: infer Ns extends keyof C['storage']['namespaces'];
-      readonly table: infer Table extends string;
-      readonly fields: infer Fields;
+  ModelTable<C, M> extends {
+    readonly table: {
+      readonly primaryKey: { readonly columns: infer Columns extends readonly string[] };
     };
+    readonly storageFields: infer Storage;
   }
-    ? C['storage']['namespaces'][Ns]['entries']['table'] extends infer Tables
-      ? Table extends keyof Tables
-        ? Tables[Table] extends {
-            readonly primaryKey: { readonly columns: infer Columns extends readonly string[] };
-          }
-          ? {
-              [F in keyof Fields]: Fields[F] extends { readonly column: Columns[number] }
-                ? F
-                : never;
-            }[keyof Fields] &
-              string
-          : never
-        : never
-      : never
+    ? {
+        [F in keyof Storage]: Storage[F] extends { readonly column: Columns[number] } ? F : never;
+      }[keyof Storage] &
+        string
     : never;
 
 /** The key the loader reloads a model's rows by. A variant shares its base's key. */
@@ -733,7 +741,7 @@ export type ModelReturnShape<Types extends SchemaTypes, M extends ModelName<Type
   : Pick<Row<Types, M>, IdentityFields<Types, M> & keyof Row<Types, M>> & Partial<Row<Types, M>>;
 
 /** The field naming a base model's variant; `never` for other models. */
-export type DiscriminatorField<Types extends SchemaTypes, M extends ModelName<Types>> =
+type DiscriminatorField<Types extends SchemaTypes, M extends ModelName<Types>> =
   ModelDefOf<Types['PrismaNextContract'], M> extends {
     readonly discriminator: { readonly field: infer F extends string };
   }
@@ -984,35 +992,26 @@ type OrderableFields<C extends AnyContract, M extends string> = keyof OrderableF
   string;
 
 type OrderableFieldMap<C extends AnyContract, M extends string> =
-  ModelDefOf<C, M> extends {
+  ModelTable<C, M> extends {
     readonly fields: infer Fields;
-    readonly storage: {
-      readonly namespaceId: infer Ns extends keyof C['storage']['namespaces'];
-      readonly table: infer Table extends string;
-      readonly fields: infer Storage;
-    };
+    readonly table: { readonly columns: infer Columns };
+    readonly storageFields: infer Storage;
   }
-    ? C['storage']['namespaces'][Ns]['entries']['table'] extends infer Tables
-      ? Table extends keyof Tables
-        ? Tables[Table] extends { readonly columns: infer Columns }
-          ? {
-              [F in keyof Fields & string as OrderableCodec<
-                C,
-                ColumnCodec<
-                  Columns,
-                  F extends keyof Storage
-                    ? Storage[F] extends { readonly column: infer Column }
-                      ? Column
-                      : F
-                    : F
-                >
-              > extends true
-                ? F
-                : never]: true;
-            }
-          : {}
-        : {}
-      : {}
+    ? {
+        [F in keyof Fields & string as OrderableCodec<
+          C,
+          ColumnCodec<
+            Columns,
+            F extends keyof Storage
+              ? Storage[F] extends { readonly column: infer Column }
+                ? Column
+                : F
+              : F
+          >
+        > extends true
+          ? F
+          : never]: true;
+      }
     : {};
 
 type ColumnCodec<Columns, Column> = Column extends keyof Columns
@@ -1069,6 +1068,37 @@ export type CursorSpec<Types extends SchemaTypes, M extends ModelName<Types>> =
   | CursorColumn<Types, M>
   | readonly [CursorColumn<Types, M>, ...CursorColumn<Types, M>[]];
 
+/** The paging options `prismaConnection` and `relatedConnection` share. */
+type ConnectionPagingOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Args extends InputFieldMap,
+  Cursor,
+> = {
+  cursor: Cursor & ExactCursor<Cursor>;
+  defaultSize?:
+    | number
+    | ((
+        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+        ctx: Types['Context'],
+      ) => number);
+  maxSize?:
+    | number
+    | ((
+        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+        ctx: Types['Context'],
+      ) => number);
+  args?: Args;
+  totalCount?:
+    | TotalCountFlag<Types>
+    | ((
+        parent: ParentShape,
+        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => MaybePromise<number>);
+};
+
 export type PrismaNextConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
@@ -1104,39 +1134,22 @@ export type PrismaNextConnectionFieldOptions<
       ResolveReturnShape
     >,
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
-  > & {
+  > &
+  ConnectionPagingOptions<Types, ParentShape, Args, Cursor> & {
     type: Param;
-    cursor: Cursor & ExactCursor<Cursor>;
-    defaultSize?:
-      | number
-      | ((
-          args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-          ctx: Types['Context'],
-        ) => number);
-    maxSize?:
-      | number
-      | ((
-          args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-          ctx: Types['Context'],
-        ) => number);
-    args?: Args;
     /**
      * Direction and null placement for this request. Each item names a cursor column, in cursor
      * order; backward pages reverse it.
      */
     orderBy?: (
-      model: ModelAccessor<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
+      model: ModelAccessor<
+        Types['PrismaNextContract'],
+        BareModelName<M>,
+        NsIdOf<Types['PrismaNextContract'], M>
+      >,
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
     ) => OrderByItem | readonly OrderByItem[];
-    totalCount?:
-      | TotalCountFlag<Types>
-      | ((
-          parent: ParentShape,
-          args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<number>);
     resolve: (
       parent: ParentShape,
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
@@ -1182,31 +1195,10 @@ export type PrismaNextRelatedConnectionOptions<
       unknown
     >,
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
-  > & {
-    cursor: Cursor & ExactCursor<Cursor>;
+  > &
+  ConnectionPagingOptions<Types, ParentShape, Args, Cursor> & {
     type?: PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
-    defaultSize?:
-      | number
-      | ((
-          args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-          ctx: Types['Context'],
-        ) => number);
-    maxSize?:
-      | number
-      | ((
-          args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-          ctx: Types['Context'],
-        ) => number);
-    args?: Args;
     query?: ConnectionQuery<Types, RelatedModel<Types, ParentModel, RelName>, Args>;
-    totalCount?:
-      | TotalCountFlag<Types>
-      | ((
-          parent: ParentShape,
-          args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<number>);
   };
 
 /**
@@ -1239,7 +1231,7 @@ type FieldSelectFunctionArray<Types extends SchemaTypes, ParentShape> =
     ? readonly [] | readonly [K, ...K[]]
     : never;
 
-export type PrismaNextFieldSelect<Types extends SchemaTypes, ParentShape, Args> =
+type PrismaNextFieldSelect<Types extends SchemaTypes, ParentShape, Args> =
   | FieldSelectArray<Types, ParentShape>
   | ((
       args: Args,
