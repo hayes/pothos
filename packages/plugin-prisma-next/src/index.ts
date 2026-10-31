@@ -198,7 +198,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const model = getModel(this.config.contract, modelName);
     if (select !== undefined && typeof select !== 'function') {
       validateStaticSelect(select, model, `${declaring.name}.${fieldConfig.name}`);
-    } else if (typeof exposed === 'string' && model.columns && !model.columns.has(exposed)) {
+    } else if (typeof exposed === 'string' && !model.columns.has(exposed)) {
       throw new PothosSchemaError(
         `Field '${declaring.name}.${fieldConfig.name}' exposes '${exposed}', which is not a column on model ${model.name}.`,
       );
@@ -559,7 +559,7 @@ function readingOwnSlots<Types extends SchemaTypes>(
 function validateStaticSelect(raw: RawSelect, model: PrismaNextModel, owner: string) {
   const { columns, relations } = splitSelect(raw, model);
   for (const column of columns) {
-    if (model.columns && !model.columns.has(column)) {
+    if (!model.columns.has(column)) {
       throw new PothosSchemaError(
         `select on '${owner}': '${column}' is not a column or relation on model ${model.name}.`,
       );

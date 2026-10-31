@@ -242,10 +242,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
   assertContractModel(contract, nodeModelName);
   const identityKeys = getModelUniqueKeys(contract, nodeModelName);
   // IDs must be unique and non-null to load back as the same row.
-  if (
-    idFields.length === 0 ||
-    (identityKeys && !identityKeys.some((key) => key.every((field) => idFields.includes(field))))
-  ) {
+  if (identityKeys && !identityKeys.some((key) => key.every((field) => idFields.includes(field)))) {
     throw new PothosSchemaError(
       `prismaNode '${nodeModelName}' id.field must include every field of a non-null primary or unique key.`,
     );
