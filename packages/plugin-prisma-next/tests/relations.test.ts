@@ -703,6 +703,26 @@ describe('to-one consumers', () => {
     );
   });
 
+  it('rejects a function-form selection on a to-one relation from a select callback', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        label: t.string({
+          select: () => ({ author: (author) => ({ rows: author.select('firstName') }) }),
+          resolve: () => 'unexpected',
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({ posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }) }),
+    });
+    const result = await run(builder.toSchema(), '{ posts { label } }');
+    expect(result.errors?.[0].message).toMatch(
+      "select on 'Post': the function form of to-one relation 'author' requires combine()",
+    );
+    expect(result.statements).toHaveLength(0);
+  });
+
   it('rejects a count of a to-one relation when the schema is built', () => {
     const builder = createBuilder();
     builder.prismaObject('Post', {

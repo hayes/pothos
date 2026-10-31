@@ -363,16 +363,13 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     }
     for (const [name, { rows, computed }] of includes) {
       const relation = relationOf(model, name);
-      result = result.include(name, (rel) =>
-        this.emitRelation(rel, name, relation, rows, computed, ctx),
-      );
+      result = result.include(name, (rel) => this.emitRelation(rel, relation, rows, computed, ctx));
     }
     return result;
   }
 
   private emitRelation(
     rel: MapperCollection,
-    name: string,
     relation: PrismaNextRelation,
     rows: [string, PrismaNextQuery][],
     computed: [string, ComputedSelection][],
@@ -391,13 +388,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
       const refined = query.args?.[REFINE]?.(narrowed) ?? narrowed;
       return this.emitLevel(refined, query, relation.target, ctx);
     };
+    // `compileSelect` keeps computed values off to-one relations.
     if (!relation.isToMany) {
-      if (computed.length > 0) {
-        throw new PothosValidationError(
-          `Function-form selection on to-one relation "${name}" requires combine(), which the ORM supports only for to-many relations (ORM.INCLUDE_UNSUPPORTED). ` +
-            'Use a relation field with query options or a declarative select instead.',
-        );
-      }
       return load(rows[0][1]);
     }
     const shared = computed.length === 0 ? this.shareRows(relation.target, rows) : undefined;
