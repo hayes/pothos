@@ -47,12 +47,12 @@ function schema() {
     fields: (t) => ({
       user: t.prismaField({
         type: 'User',
-        resolve: () => ctx.ormClient.User.where({ id: 'u-alice' }),
+        resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
       }),
       privateUser: t.withAuth({ admin: true }).prismaField({
         type: 'User',
         nullable: true,
-        resolve: () => ctx.ormClient.User.where({ id: 'u-alice' }),
+        resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
       }),
     }),
   });
@@ -99,8 +99,8 @@ it('denies protected model fields without affecting the public sibling', async (
 });
 
 it('does not execute the root collection when a root scope denies access', async () => {
-  const captures: CapturedExecution[] = [];
-  const result = await withCapture(captures, async () =>
+  const statements: CapturedExecution[] = [];
+  const result = await withCapture(statements, async () =>
     execute({
       schema: schema(),
       document: parse('{ privateUser { firstName } }'),
@@ -109,7 +109,7 @@ it('does not execute the root collection when a root scope denies access', async
   );
   expect(result.errors).toHaveLength(1);
   expect(result.data).toEqual({ privateUser: null });
-  expect(captures).toHaveLength(0);
+  expect(statements).toHaveLength(0);
 });
 
 function _narrowedParentShapeSurvivesWithAuth() {
@@ -172,7 +172,7 @@ it('loads declared columns and the exposed column for authScopes', async () => {
     fields: (t) => ({
       users: t.prismaField({
         type: ['User'],
-        resolve: () => ctx.ormClient.User.where({ id: 'u-alice' }),
+        resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
       }),
     }),
   });
