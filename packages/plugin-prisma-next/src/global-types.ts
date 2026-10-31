@@ -38,23 +38,6 @@ import type {
   Row,
 } from './types.js';
 
-/**
- * Shape inferred from a `prismaObject`'s `select` option.
- *
- * Carries only what the user has explicitly declared as a dependency,
- * plus the `[prismaModelKey]?: M` brand the field builder uses to
- * recognise prismaObject parents. Defaulting to the full `Row<M>`
- * would lie about what's actually loaded at runtime — the plugin only
- * pulls columns that some `select` or `t.expose*` named.
- *
- *   - undefined select → brand only.
- *   - Array form `['col', ...]` → brand + picked columns.
- *   - Object form `{ col: true, rel: true, … }` → brand + columns +
- *     relations + function-form keys (counts, aggregates).
- *
- * Field-level `select` on individual `t.field` declarations layers
- * additively on top of this via `ShapeFromSelect`.
- */
 type ObjectLevelShape<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -62,13 +45,8 @@ type ObjectLevelShape<
 > = ShapeFromObjectSelect<Types, M, never, Select>;
 
 /**
- * Checks for the type-level `select` of `prismaObject` / `prismaInterface` / `prismaNode`, merged
- * onto the options beside a plain `select?: Select`. `Select` stays an unconstrained `const`
- * generic so a function-form relation entry (`(sub) => ({ … })`) doesn't pin it to a default
- * before inference, and the plain property stays its only inference site: inferring through an
- * intersection would split a union `Select` (`readonly ['id'] | { id: true }`) into one member.
- * This property supplies the contextual type (autocomplete, a typed `sub`) and rejects unknown
- * object keys and array entries.
+ * Merged beside a plain `select?: Select`, which stays the only inference site: inferring through
+ * an intersection would narrow a union `Select` to one member. This adds completions and checks.
  */
 type TypeSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = {
   select?: (readonly (keyof Row<Types, M> & string)[] | SelectObjectSpec<Types, M>) &
@@ -105,15 +83,8 @@ declare global {
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      // `Extract<…, AnyContract>` drops the optional `undefined` (so this
-      // satisfies the `SchemaTypes` constraint that `PrismaNextContract` is an
-      // `AnyContract`) while resolving to exactly the user's contract — unlike
-      // `& object`, which produced a distinct `Contract & object` type that,
-      // because orm-client's `Collection` is invariant in its contract param,
-      // degraded the contract-derived method types. Cast-free resolvers that
-      // return `db.orm.<M>` are accepted via the model-scoped `ResolverCollection`
-      // in `./types` (which omits the mutation terminals — the only part of the
-      // surface the constrained contract copy computes differently).
+      // `Extract` drops `undefined` but keeps the user's exact contract; `& object` would make a
+      // new type, and `Collection` is invariant in its contract.
       PrismaNextContract: undefined extends PartialTypes['PrismaNextContract']
         ? AnyContract
         : Extract<PartialTypes['PrismaNextContract'], AnyContract>;
@@ -123,9 +94,7 @@ declare global {
       PrismaNextObject: 'Object';
     }
 
-    // Empty fallbacks so scope-auth-typed references compile when
-    // plugin-scope-auth isn't loaded. plugin-scope-auth declaration-merges
-    // real fields onto these.
+    // Filled in by plugin-scope-auth when it's loaded.
     export interface ScopeAuthFieldAuthScopes<
       Types extends SchemaTypes,
       Parent,
@@ -242,10 +211,10 @@ declare global {
             options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
               select?: Select;
               id: {
-                /** Column name or non-empty tuple for composite primary keys (encoded as a JSON array). */
+                /** A column, or a tuple of columns for a composite key. */
                 field: IDFields;
                 description?: string;
-                /** Restore nonstandard ORM values such as Temporal and Decimal IDs. */
+                /** Codecs for object-valued ID columns such as Temporal or Decimal values. */
                 codecs?: {
                   [Key in keyof Row<Types, M>]?: import('./utils/cursors.js').CursorValueCodec<
                     Row<Types, M>[Key]

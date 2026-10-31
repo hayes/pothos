@@ -1,14 +1,3 @@
-/**
- * Per-request batching for `prismaNode.load`.
- *
- * Calls that share a `(typeName, pathKey(info.path))` originated from
- * the same schema location in the same operation and so share a
- * selection set by GraphQL semantics — coalesce into one orm-client
- * query that uses `Collection.where(idIn).all()`. Different paths get
- * separate batches.
- *
- * @internal
- */
 import { createContextCache, encodeCursorTuple } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { Apply } from './apply.js';
@@ -19,8 +8,7 @@ interface Path {
   readonly typename: string | undefined;
 }
 
-// Numeric segments (list indexes) drop so all elements of a list share
-// one key. Aliases become the segment (`a: node` → `Query.a`).
+// Loads at one path share a selection set, so they batch together; list indexes are dropped.
 export function pathKey(path: Path): string {
   const segments: string[] = [];
   let p: Path | undefined = path;
@@ -35,8 +23,7 @@ export function pathKey(path: Path): string {
 }
 
 function scalarIdKey(value: unknown): string {
-  // Date.toString() omits milliseconds. Keep the legacy string key for custom
-  // parsers while using the shared lossless encoding for native Date values.
+  // Date.toString() drops milliseconds.
   return value instanceof Date ? encodeCursorTuple([value]) : String(value);
 }
 
@@ -74,9 +61,6 @@ interface BatchState<IDShape> {
   scheduled: boolean;
 }
 
-// Each group stores its own runner — the user's load callback varies
-// by prismaNode type, so interleaved types must each run with their
-// own runner, not the first one that arrived.
 const batchCache = createContextCache(
   (_ctx: object): BatchState<unknown> => ({ groups: new Map(), scheduled: false }),
 );
@@ -118,8 +102,6 @@ export function enqueueNodeLoad<IDShape>(
 }
 
 async function flush<IDShape>(state: BatchState<IDShape>, context: unknown): Promise<void> {
-  // Snapshot then clear so any further enqueues from sync resolvers
-  // after our resolutions start a fresh batch.
   const groups = state.groups;
   state.groups = new Map();
   state.scheduled = false;
@@ -131,7 +113,6 @@ async function flush<IDShape>(state: BatchState<IDShape>, context: unknown): Pro
         const ids = entries.map((e) => e.parsedId);
         const base = runner.collection(context);
         const filtered = base.where(runner.buildIdPredicate(ids));
-        // `apply` is a promise only when a select callback beneath the field was async.
         const applied = (await apply(filtered)) as unknown as {
           all: () => Promise<readonly unknown[]>;
         };

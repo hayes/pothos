@@ -1,13 +1,6 @@
 import type { RefineCallback } from '../extensions.js';
 
-/**
- * Compile a relation-where option into a refine callback. Used by
- * `t.relatedConnection`'s `where` option and by
- * `prismaConnectionHelpers`'s `where` option to apply a filter to the
- * relation/base collection before pagination.
- *
- * @internal
- */
+/** @internal */
 export function compileWhere(where: unknown): RefineCallback | undefined {
   if (where === undefined) {
     return undefined;

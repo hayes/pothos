@@ -9,12 +9,8 @@ function namespacesWithModel(contract: AnyContract, model: string): string[] {
     .map(([id]) => id);
 }
 
-/**
- * Resolve a model definition by its key, delegating to the ORM's `resolveDomainModel`. A key is a
- * bare model name, or `namespace.Model` for a name several namespaces share: the ORM's resolver
- * would pick the first of those, silently loading another model's fields.
- * Mirrors the type-level `ModelDefOf` in `../types`.
- */
+// Keys are `namespace.Model` for names several namespaces share; `resolveDomainModel` would
+// pick the first match.
 export function resolveContractModel(
   contract: AnyContract,
   modelKey: string,
@@ -24,8 +20,7 @@ export function resolveContractModel(
   if (!base) {
     return model;
   }
-  // A variant's contract entry holds only its own fields. Its rows, identity and relations also
-  // come from its base model, which is what the ORM queries it through.
+  // A variant's contract entry holds only its own fields; the rest come from its base.
   const parent = resolveContractModel(contract, relatedModelKey(contract, base))!;
   return {
     ...model!,
@@ -60,7 +55,6 @@ function lookupModel(contract: AnyContract, modelKey: string): ContractModelBase
   return resolveDomainModel(contract.domain, modelKey)?.model;
 }
 
-/** The key of a relation's target: bare, unless other namespaces share its name. */
 export function relatedModelKey(
   contract: AnyContract,
   to: { readonly model: string; readonly namespace: string },
@@ -70,13 +64,11 @@ export function relatedModelKey(
     : to.model;
 }
 
-/** The model a variant inherits from, following `@@base`; any other model is its own root. */
 export function rootModelKey(contract: AnyContract, modelKey: string): string {
   const base = baseModelRef(lookupModel(contract, modelKey));
   return base ? rootModelKey(contract, relatedModelKey(contract, base)) : modelKey;
 }
 
-/** The discriminator a hierarchy's base model routes rows with, and its variants by value. */
 export function modelDiscriminator(
   contract: AnyContract,
   modelKey: string,
@@ -92,11 +84,6 @@ export function modelDiscriminator(
     : undefined;
 }
 
-/**
- * Where a variant model sits in its hierarchy: its root model, the discriminator field and value
- * that narrow the root to it, and whether its rows live in the root's table (single-table
- * inheritance) rather than a table of their own. Undefined for a model that is not a variant.
- */
 export function variantOf(
   contract: AnyContract,
   modelKey: string,
@@ -123,9 +110,8 @@ export function variantOf(
 }
 
 /**
- * The discriminator value a relation to `targetModel` is narrowed to when its GraphQL type is
- * backed by `typeModel`: a variant of the relation's base target. Undefined when no narrowing
- * applies. A type from the same hierarchy that the relation can't return is a schema error.
+ * The variant a relation is narrowed to when its GraphQL type is backed by a variant of its
+ * target. Throws for a type from the hierarchy the relation can't return.
  */
 export function relationVariant(
   contract: AnyContract,
@@ -149,10 +135,7 @@ export function relationVariant(
   );
 }
 
-/**
- * A variant model's collection must be its base narrowed with `.variant()`. The ORM's own
- * `orm.Bug` accessor isn't filtered by the discriminator and can't include inherited relations.
- */
+// The ORM's `orm.Bug` isn't filtered by the discriminator and can't include inherited relations.
 export function assertVariantCollection(
   contract: AnyContract,
   modelKey: string,
@@ -166,15 +149,11 @@ export function assertVariantCollection(
   }
 }
 
-/** The GraphQL name a model's default type takes; `.` isn't valid in one. */
 export function defaultTypeName(modelKey: string): string {
   return modelKey.replace('.', '_');
 }
 
-/**
- * A model's fallback collection: a `collections` entry under its key, or the model on a namespaced
- * ORM client (`orm.<namespace>.<Model>`), so `collections: (ctx) => ctx.db.orm` works either way.
- */
+/** Looks up the model key, then `<namespace>.<Model>`, so a namespaced ORM client works as is. */
 export function collectionForModel(
   contract: AnyContract,
   collections: object,

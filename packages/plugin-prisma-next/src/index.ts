@@ -54,10 +54,6 @@ export type {
   ShorthandWhereFilter,
   UniqueConstraintCriterion,
 } from '@prisma/orm-family-sql/orm-client';
-// `IncludeRefinementCollection` and `IsToManyRelation` are re-exported via
-// `export * from './types'` below — orm-client keeps them internal,
-// so the plugin owns reconstructed copies. `IncludeRefinementResult` was
-// dropped (see the note in ./types).
 export { all, and, not, or } from '@prisma/orm-family-sql/orm-client';
 export type {
   ConnectionNodeShape,
@@ -102,12 +98,6 @@ const pluginName = 'prismaNext';
 
 export default pluginName;
 
-/**
- * Duck-typed Collection detection. The orm-client's `Collection`
- * carries `.select` / `.include` / `.where` / `.all`. We require all
- * four — `.select` + `.all` alone would misdetect a user-defined DTO
- * that coincidentally exposes those method names.
- */
 function isOrmCollection(value: unknown): boolean {
   if (value == null || typeof value !== 'object') {
     return false;
@@ -132,29 +122,21 @@ async function materializeCollection(
 ): Promise<unknown> {
   assertVariantCollection(contract, modelName, collection as never);
   const apply = createApply({ info, contract, context, mapperOpts });
-  // A promise only when a select callback beneath the field was async.
   let applied = (await apply(collection)) as {
     all: () => Promise<readonly unknown[]>;
     limit?: (n: number) => unknown;
   };
-  // Single-row fields: inject `.limit(1)` so we don't pull the whole
-  // collection just to read row 0. List fields take whatever the user
-  // returned.
   if (!wantsList && typeof applied.limit === 'function') {
     applied = applied.limit(1) as typeof applied;
   }
-  // `.all()` resolves to a real array on every orm-client adapter
-  // we target — no async-iterable fallback path.
   const rows = (await applied.all()) as readonly unknown[];
   return wantsList ? rows : (rows[0] ?? null);
 }
 
-// Inherited by variant wrappers so later resolvers can still read the original combine maps.
+// The original row, kept on wrappers and overlays so its combine maps stay readable.
 const sourceRow = Symbol('prismaNextSourceRow');
 
-// A shared to-one include scopes child consumers, while the single-include fast
-// path keeps them local. Candidates record those explicit planner alternatives;
-// they are carried with the row, never reconstructed from a GraphQL response path.
+// Slot prefixes a row's children may be under: a shared to-one include scopes them by consumer.
 const rowScopes = Symbol('prismaNextRowScopes');
 type ScopedRow = { [sourceRow]?: object; [rowScopes]?: readonly string[] };
 
@@ -193,7 +175,7 @@ function liftSlots(overlay: object, slot: object, scopes: readonly string[]) {
   }
 }
 
-/** Present type-level selections without modifying the shared ORM row or its combine maps. */
+/** Lifts type-level combine slots onto an overlay, leaving the shared row untouched. */
 function normalizeParentForType(
   parent: object,
   relations: readonly string[],
@@ -212,11 +194,7 @@ function normalizeParentForType(
   return overlay;
 }
 
-/**
- * A field a plan walked on an interface (`tasks { owner }`) is recorded under the interface,
- * while it resolves on the row's concrete type. The interface's mapping answers for it when the
- * concrete type shares the interface's model hierarchy and recorded nothing of its own.
- */
+/** Fields planned on an interface are recorded there but resolve on the concrete type. */
 function inheritedMapping(
   context: object,
   info: GraphQLResolveInfo,
@@ -277,13 +255,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (model === undefined) {
       return typeConfig;
     }
-    // Precompute per-relation metadata + the model's column set at
-    // schema-build time so the walker doesn't probe the contract per
-    // request. Unknown-cardinality rejection also fires here (fail-fast),
-    // not on first request.
     if (opts?.contract) {
       buildRelationMeta(model, opts.contract, typeConfig.name);
-      // Builds the planner's model too, so a contract it can't represent fails the build.
+      // Fails the schema build for a contract the planner can't represent.
       getModel(opts.contract, model);
     }
     return {
@@ -315,8 +289,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
     if (ext[PRISMA_NEXT_PREPARED]) {
       const prepared = ext[PRISMA_NEXT_PREPARED] as PreparedFieldExtension;
-      // Resolve plugin options once at schema-build time — `wrapResolve`
-      // runs per field; the returned closure runs per request.
       const opts = readPluginOptions<AnyContract>(this.builder);
       if (!opts) {
         throw new PothosSchemaError('t.prismaField requires builder.options.prismaNext to be set.');
@@ -358,15 +330,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       };
     }
 
-    // Object-form `select` on a `t.field` (or `t.relation` and friends),
-    // or a selection the plugin's sugar precompiled (`t.relatedConnection`):
-    // install an overlay wrap that lifts namespaced combine slots onto
-    // top-level properties on a per-resolve cloned parent.
-    //
-    // Fully dynamic — works for any spec shape (true / declarative /
-    // function-form / outer callback). The scan finds combine maps on
-    // parent and lifts keys with prefix `<alias>:`. Single-include
-    // (no combine) values pass through untouched.
+    // Fields with a `select` resolve against an overlay of the parent with their `<alias>:`
+    // combine slots lifted onto it.
     const pothosOpts = (fieldConfig as unknown as { pothosOptions?: { select?: unknown } })
       .pothosOptions;
     const selectOpt = pothosOpts?.select;
@@ -415,31 +380,21 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       if (!needsNormalization || parent == null || typeof parent !== 'object') {
         return baseResolver(parent, args, context, info);
       }
-      // The prefix the adapter wrote the combine slot under. `:` is GraphQL-forbidden, so it
-      // cannot collide with a user-defined alias or relation name.
       const alias = info.fieldNodes[0]?.alias?.value ?? info.fieldName;
       const scopes = childScopes(parent, alias);
       const p = ((parent as { [sourceRow]?: object })[sourceRow] ?? parent) as Record<
         string,
         unknown
       >;
-      // Object.create(parent) preserves the prototype chain so variant
-      // re-brands (which use Object.create to attach a type brand)
-      // still surface their inherited row props via overlay. Adding a
-      // top-level property on the overlay shadows that level only.
       const overlay = normalizeParentForType(parent, typeRelations, typeAlias);
-      // Combine slots only exist on relations. Scanning other keys would let the contents of a
-      // JSON column, whose keys can match a client-chosen alias, overwrite selected values.
-      // `p[key]` walks the prototype chain, so variant wrappers still find their row's slots.
+      // Only relations are scanned: a JSON column's keys could match a client-chosen alias.
       for (const key of hasFieldSelect ? relationNames : []) {
         const slot = p[key];
         if (slot && typeof slot === 'object' && !Array.isArray(slot)) {
           liftSlots(overlay, slot, scopes);
         }
       }
-      // Scope model rows before other plugins transform the field's return shape.
-      // Errors success wrappers, for example, expose this same row via a data
-      // field even though their declared GraphQL return type is a union.
+      // Scoped before other plugins (errors result wrappers) transform the return value.
       if (hasFieldSelect) {
         for (const name of toOneRelations) {
           const value = overlay[name];
@@ -459,7 +414,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           return value;
         }
         if (Array.isArray(value)) {
-          // To-many branches own their rows; descendants use local namespaces.
           return value.some(
             (row) => row && typeof row === 'object' && (row as ScopedRow)[rowScopes],
           )
@@ -485,8 +439,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       typeof ext.pothosExposedField === 'string' ||
       typeof selectOpt === 'function' ||
       (selectOpt != null && typeof selectOpt === 'object' && Object.keys(selectOpt).length > 0);
-    // Inherited prerequisites count, but not the identity columns added solely to make
-    // fallback loading possible.
+    // Excludes the identity columns that are only added for fallback loading.
     const dependencyAdapter = prismaNextAdapter(contract, true);
     const ownColumns =
       typeof ext.pothosExposedField === 'string'
@@ -503,8 +456,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       const typeDependenciesLoaded =
         !Object.keys(dependencies?.relations ?? {}).length &&
         (dependencies?.columns ?? []).every((column) => row[column] !== undefined);
-      // A resolver may return a row that no longer exists or was built by hand, such as the
-      // result of a delete. Fields satisfied by its own columns must not touch the database.
+      // The row may not exist anymore (the result of a delete), so fields satisfied by its own
+      // columns don't query.
       if (
         typeDependenciesLoaded &&
         (!hasFieldDependencies || ownColumns?.every((column) => row[column] !== undefined))

@@ -1,9 +1,3 @@
-/**
- * `AnyContract = Contract<SqlStorage>` because orm-client's `Collection`
- * type requires SQL storage and the mapper emits SQL-shaped calls
- * (`combine`, callback-form `.where`). Mongo support would need a
- * parallel mapper + field builders, not a generalization of this one.
- */
 import type {
   FieldKind,
   FieldMap,
@@ -59,12 +53,8 @@ import type { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-bu
 
 export type AnyContract = Contract<SqlStorage>;
 
-// prisma-next ADR 221 moved model defs from a flat `contract.models` map to
-// `contract.domain.namespaces.<nsId>.models`. Scan every namespace so single-
-// and multi-namespace contracts both resolve. This mirrors orm-client's
-// internal `ScannedModelDef` and keeps the hand-rolled indexed-access strategy
-// (deferred resolution unifies cleanly where `RelationsOf` collapses to
-// `Record<string, never>` in generic positions).
+// Mirrors orm-client's internal `ScannedModelDef`; upstream's `RelationsOf` collapses to
+// `Record<string, never>` in generic positions.
 export type ModelDefOf<
   TContract extends AnyContract,
   M extends string,
@@ -87,10 +77,7 @@ type NamespacesWithModel<TContract extends AnyContract, M extends string> = {
 
 type IsUnion<T, U = T> = T extends unknown ? ([U] extends [T] ? false : true) : never;
 
-/**
- * The key of model `M` in namespace `Ns`: bare, unless another namespace shares its name. A
- * relation's `to.namespace` may be a branded `NamespaceId`, so the key spells the plain id.
- */
+/** Bare unless another namespace shares the name. `to.namespace` may be a branded `NamespaceId`. */
 export type ModelKey<TContract extends AnyContract, Ns extends string, M extends string> =
   IsUnion<NamespacesWithModel<TContract, M>> extends true
     ? `${{
@@ -108,9 +95,8 @@ export type ModelKeys<TContract extends AnyContract> = {
   }[keyof TContract['domain']['namespaces'][Ns]['models'] & string];
 }[keyof TContract['domain']['namespaces'] & string];
 
-// A model without relations emits `Record<string, never>`. Its index signature would make every
-// string a relation key — and, intersected into a variant's relations, admit any name — so it is
-// dropped. A loose contract's relation map keeps its (non-`never`) index signature.
+// A model without relations emits `Record<string, never>`, whose index signature would make every
+// string a relation key, so it is dropped.
 type OwnRelationsOfModel<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends {
     readonly relations: infer Rels extends Record<string, unknown>;
@@ -122,24 +108,14 @@ type OwnRelationsOfModel<TContract extends AnyContract, M extends string> =
       : Rels
     : {};
 
-// A variant also has the relations of the model it inherits from.
 type RelationsOfModel<TContract extends AnyContract, M extends string> = [
   BaseModelKey<TContract, M>,
 ] extends [never]
   ? OwnRelationsOfModel<TContract, M>
   : OwnRelationsOfModel<TContract, M> & OwnRelationsOfModel<TContract, BaseModelKey<TContract, M>>;
 
-// The current ORM declares these internally without exporting them.
-// `IncludeRefinementCollection` and `IsToManyRelation` reconstruct faithfully
-// from the public `Collection` type and the contract's relation cardinality, so
-// the plugin keeps re-exporting them. `IncludeRefinementResult` is *not*
-// reproduced — it unions orm-client's `IncludeScalar`/`IncludeCombine`, which
-// brand their result through a module-private symbol (`RowSelection<T>`'s
-// `[RowType]: T`) that can't be matched outside the package, so it is not
-// re-exported.
-// Revisit these reconstructions when upstream exports the refinement types.
-// RC22 still keeps them internal. Aggregate reducer names must follow the emitted
-// contract because targets and extensions can contribute new operations.
+// orm-client doesn't export its include refinement types, so these are reconstructed.
+// `IncludeRefinementResult` can't be: it brands results with a module-private symbol.
 type IncludeRefinementTerminals =
   | 'all'
   | 'first'
@@ -185,10 +161,8 @@ export type IsToManyRelation<
     : false
   : false;
 
-// When `PrismaNextContract` is left at the loose `AnyContract` default,
-// `CollectionModelName` collapses to a wide `string`. Rewriting to a
-// sentinel literal makes autocomplete point at the setup step instead
-// of silently typing every relation-name arg as `string`.
+// Without a `PrismaNextContract`, model names would widen to `string`; the sentinel points
+// autocomplete at the missing setup instead.
 type ModelNameSentinel =
   'Set PrismaNextContract on SchemaTypes: new SchemaBuilder<{ PrismaNextContract: typeof contract }>(...)';
 
@@ -200,7 +174,7 @@ export type ModelName<Types extends SchemaTypes> = Types['PrismaNextContract'] e
     : ModelNameSentinel
   : ModelNameSentinel;
 
-/** The key of the model a variant inherits from; `never` for any other model. */
+/** `never` for models that aren't variants. */
 export type BaseModelKey<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends {
     readonly base: {
@@ -231,7 +205,6 @@ export type Row<Types extends SchemaTypes, M extends ModelName<Types>> = [
         NsIdOf<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>
       >;
 
-/** The keys of the models that inherit from `M`; `never` for any other model. */
 export type VariantModelKeys<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends { readonly variants: infer Variants }
     ? {
@@ -244,7 +217,6 @@ export type VariantModelKeys<TContract extends AnyContract, M extends string> =
       }[keyof Variants]
     : never;
 
-/** The discriminator value that selects variant model `M` on its base. */
 type VariantValue<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, BaseModelKey<TContract, M>> extends {
     readonly variants: infer Variants;
@@ -256,7 +228,7 @@ type VariantValue<TContract extends AnyContract, M extends string> =
       }[keyof Variants]
     : never;
 
-/** A variant model loads through its base: `orm.Task.variant('bug')`, not the unfiltered `orm.Bug`. */
+/** `orm.Task.variant('bug')`: the variant's own accessor (`orm.Bug`) isn't filtered. */
 export type VariantCollection<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -266,8 +238,6 @@ export type VariantCollection<
   readonly modelName: BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>;
 };
 
-// The namespace id that owns model `M` (ADR 221). For single-namespace
-// contracts this resolves to the sole namespace (e.g. `'__unbound__'`).
 export type NsIdOf<
   TContract extends AnyContract,
   M extends string,
@@ -278,20 +248,12 @@ export type NamespaceOf<Types extends SchemaTypes, M extends ModelName<Types>> =
   M
 >;
 
-// orm-client binds each `db.orm.<Model>` collection to its namespace through
-// `WithNsId` (which it does not export). Reconstruct it so `CollectionFor`
-// unifies with the namespace-bound collections users hand the plugin
-// (`db.orm.User` etc.) without a cast.
+// orm-client's `WithNsId` isn't exported; needed so `CollectionFor` matches `db.orm.<Model>`.
 type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<State, 'nsId'> & {
   readonly nsId: NsId;
 };
 
-// `PrismaNextContract` is constrained to `AnyContract` on `SchemaTypes`
-// (see global-types), so it already satisfies orm-client's `Collection`
-// constraint — pass it bare (intersecting with the wide `AnyContract` would
-// collapse the concrete model's field/relation accessors to `never`). Bind the
-// row + state to the model's namespace so this matches `db.orm.<M>` exactly,
-// which is what `ModelCollection`/`orm` produce.
+// Intersecting the contract with `AnyContract` would collapse the model's accessors to `never`.
 export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>> = Collection<
   Types['PrismaNextContract'],
   BareModelName<M>,
@@ -303,11 +265,8 @@ export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>>
   WithNsId<DefaultCollectionTypeState, NsIdOf<Types['PrismaNextContract'], M>>
 >;
 
-// What a `t.prismaField`/`prismaNode` resolver may return for model `M`: any collection of that
-// model's base rows, from `db.orm.M` to a filtered or ordered one. It's the receiver upstream uses
-// for its own collection helpers, so it doesn't depend on the contract's mutation input types,
-// which `Types['PrismaNextContract']` computes differently from the raw `db.orm` contract.
-// A variant model must come from `orm.Base.variant(value)`.
+// Upstream's receiver type for collection helpers: it doesn't depend on mutation input types,
+// which `Types['PrismaNextContract']` computes differently from `db.orm`.
 export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Types>> = [
   BaseModelKey<Types['PrismaNextContract'], M>,
 ] extends [never]
@@ -338,7 +297,6 @@ export type PrismaNextCollections<TContract extends AnyContract> = {
     WithNsId<DefaultCollectionTypeState, NsIdOf<TContract, M>>
   >;
 } & {
-  // A namespaced ORM client (`orm.<namespace>.<Model>`) can be passed as is.
   [Ns in keyof TContract['domain']['namespaces'] & string]?: {
     [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]?: Collection<
       TContract,
@@ -353,10 +311,7 @@ type OrderByItem = import('@prisma/orm-family-sql/relational-core/ast').OrderByI
 
 export interface PrismaNextPluginOptions<TContract extends AnyContract, Context = object> {
   readonly contract: TContract;
-  /**
-   * The client's `context`. Lets object-valued columns such as Temporal values work in cursors
-   * and fallback identities through their column codecs.
-   */
+  /** The client's `context`; its codecs encode object-valued columns in cursors and identities. */
   readonly context?: import('./utils/model.js').PrismaNextCodecContext;
   /** Base model collections for batched fallback loads, including request filters/transactions. */
   readonly collections?:
@@ -368,10 +323,7 @@ export interface PrismaNextPluginOptions<TContract extends AnyContract, Context 
   readonly maxConnectionSize?: number;
 }
 
-// Hand-rolled because upstream's `RelationNames`/`RelatedModelName` resolve one model's own
-// relations. A qualified `ns.Model` key works there once split into its bare name and namespace id,
-// but a variant also has its base's relations, which upstream omits (`never` for a variant that
-// declares none of its own).
+// Upstream's `RelationNames` omits the relations a variant inherits from its base.
 export type RelationKeys<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -382,8 +334,6 @@ export type RelatedModel<
   M extends ModelName<Types>,
   R extends RelationKeys<Types, M>,
 > = RelationsOfModel<Types['PrismaNextContract'], M>[R] extends {
-  // ADR 221: relation targets are `CrossReference` objects, not bare model
-  // names. The literal model name lives at `.to.model`.
   readonly to: {
     readonly model: infer To extends string;
     readonly namespace: infer Ns extends string;
@@ -407,9 +357,7 @@ export type IsToMany<
   R extends RelationKeys<Types, M>,
 > = IsToManyRelation<Types['PrismaNextContract'], M, R>;
 
-// Falls back to wide `RelationKeys` when the contract is loose — without
-// literal cardinality info, the narrowing would collapse to `never` and
-// reject every call. The runtime cardinality check still fires.
+// A loose contract has no literal cardinality, so this falls back to every relation.
 export type ToManyRelationKeys<Types extends SchemaTypes, M extends ModelName<Types>> =
   string extends RelationKeys<Types, M>
     ? RelationKeys<Types, M>
@@ -488,8 +436,7 @@ export type PrismaNextRelationOptions<
   Nullable extends boolean,
   Args extends InputFieldMap,
   RelatedShape,
-  // What the type's `select` declared. Callback parents don't claim any other column, because it's
-  // only loaded when the query happens to select it.
+  // Only what the type's `select` declared; other columns load only if the query selects them.
   ParentShape = ObjectBaseShape<Types, ParentModel>,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
@@ -507,13 +454,7 @@ export type PrismaNextRelationOptions<
   query?: RelationQuery<Types, ParentModel, RelName, Args>;
 };
 
-/**
- * Numeric columns of a relation's target model — the only valid
- * `field` arg for `sum`/`avg`/`min`/`max`. Falls back to the wide
- * column union when the contract is loose (mirrors `ToManyRelationKeys`'s
- * loose-contract handling so a missing contract doesn't collapse to
- * `never` and reject every call).
- */
+/** Falls back to every column when the contract is loose. */
 export type RelationNumericField<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -523,7 +464,6 @@ export type RelationNumericField<
     ? string
     : NumericFieldNames<Types['PrismaNextContract'], BareModelName<RelatedModel<Types, M, R>>>;
 
-/** A `where` refine on the related rows, before the aggregate runs. */
 type RelationAggregateWhere<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -550,13 +490,6 @@ type RelationAggregateWhere<
       >,
     ) => unknown);
 
-/**
- * Shared option surface for the field-level relation-aggregate helpers
- * (`t.relationCount` / `t.relationAggregate`). Strips the inferred field
- * keys (`type`, `resolve`, `select`) the helper owns, then re-adds an
- * optional `where` and `args`. Result type (`number` vs `number | null`)
- * is fixed by the helper, not the option type.
- */
 type RelationAggregateBaseOptions<
   Types extends SchemaTypes,
   ParentModel extends ModelName<Types>,
@@ -580,7 +513,6 @@ type RelationAggregateBaseOptions<
   where?: RelationAggregateWhere<Types, ParentModel, RelName, Args>;
 };
 
-/** Options for `t.relationCount(relation, options?)`. Result is always `number`. */
 export type PrismaNextRelationCountOptions<
   Types extends SchemaTypes,
   ParentModel extends ModelName<Types>,
@@ -601,7 +533,6 @@ export type HasAggregates<Types extends SchemaTypes> = string extends keyof Extr
 export type TotalCountFlag<Types extends SchemaTypes> =
   HasAggregates<Types> extends true ? boolean : false;
 
-/** Aggregate operations are provided by the emitted contract, including extensions. */
 export type RelationAggregateOp<Types extends SchemaTypes> =
   HasAggregates<Types> extends true
     ? keyof ExtractAggregateTypes<Types['PrismaNextContract']> & string
@@ -717,8 +648,7 @@ export type PrismaNextRelationAggregateOptions<
   ParentShape
 > & {
   op: Op;
-  // The `NoInfer` alternative is the contextual type editors complete from: while `field` is
-  // being typed, `Field` isn't inferred yet and sits at its `undefined` default.
+  // The `NoInfer` alternative gives editors completions while `Field` is still uninferred.
   field?:
     | Field
     | NoInfer<RelationAggregateField<Types, RelatedModel<Types, ParentModel, RelName>, Op>>;
@@ -771,30 +701,13 @@ export type PrismaNextInterfaceOptions<
 
 type PrismaNextTypeOptions<Types extends SchemaTypes, M extends ModelName<Types>, Shape> = {
   name?: string;
-  /** Synonym for `name` that communicates intent: multiple GraphQL types backed by the same contract model. Wins over `name` when both are set. */
+  /** Alias for `name` when several types share a model; takes precedence over `name`. */
   variant?: string;
-  /**
-   * Columns and relations to always load when this type is selected,
-   * independent of GraphQL field selection. Accepts the legacy
-   * column-name array form or the object form (matching `t.field`'s
-   * select):
-   *
-   *   - Array: `select: ['firstName', 'email']` (columns only)
-   *   - Object: `select: { firstName: true, posts: true }` — columns
-   *     + relations; relations get auto-included on every row, visible
-   *     to any field's resolver via `parent[rel]`.
-   *
-   * Function values for relations work too: `select: { posts: (sub) => ({...}) }`
-   * — inner keys become flat properties on each row.
-   */
+  /** Columns and relations to always load for this type, as a column array or a `select` object. */
   select?: readonly (keyof Row<Types, M> & string)[] | SelectObjectSpec<Types, M>;
   fields?: (
-    // ExposableShape passed explicitly as Row<Types, M> rather than
-    // relying on the class default. Monaco's TS doesn't aggressively
-    // expand the default `Row<Types, M>` when Types is a complex
-    // SchemaTypes, leaving ExposableShape opaque inside ExposeNullability
-    // — which then takes the strict branch and demands `nullable: true`
-    // on every column.
+    // Passed explicitly: Monaco leaves the defaulted `Row<Types, M>` opaque, which makes
+    // `t.expose*` demand `nullable: true` on every column.
     t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }, Row<Types, M>>,
   ) => FieldMap;
 };
@@ -807,10 +720,7 @@ export type PrismaNextRootFieldOptions<
   Nullable extends FieldNullability<Type>,
   Args extends InputFieldMap,
   ResolveReturnShape,
-  // The field's model, derived from `Param`. A defaulted generic (not an inline
-  // `ParamToModelName<Types, Param>` in the resolve return) so the resolver
-  // isn't an inference source for `Param` — that would pin `Param` to the bare
-  // model name and reject the `[Model]` array form passed to `type`.
+  // A defaulted generic so `resolve` doesn't infer `Param` as the bare model and reject `[Model]`.
   M extends ModelName<Types> = ParamToModelName<Types, Param>,
 > = Omit<
   FieldOptionsFromKind<
@@ -826,16 +736,12 @@ export type PrismaNextRootFieldOptions<
   'type' | 'resolve' | InferredFieldOptionKeys
 > & {
   type: Param;
-  // Resolver returns a `Collection` (the plugin auto-applies
-  // the selection mapper and materializes via `.all()`, picking
-  // single-row vs list based on the GraphQL return type).
   resolve: (
     parent: ParentShape,
     args: InputShapeFromFields<Args>,
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) => MaybePromise<
-    // Only collections preserve the selection needed for nested GraphQL fields.
     | ResolverCollection<Types, NoInfer<M>>
     | Extract<ShapeFromTypeParam<Types, Type, Nullable>, null | undefined>
   >;
@@ -896,7 +802,7 @@ export type PrismaNextRootFieldWithInputOptions<
   >;
 };
 
-/** Columns whose codec can be ordered (bytes, for one, can't); a variant adds its base's. */
+/** Columns whose codec can be ordered (not bytes, for example). */
 type OrderableColumn<Types extends SchemaTypes, M extends ModelName<Types>> =
   | OrderableFieldNames<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>
   | BaseOrderableColumn<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>;
@@ -965,8 +871,6 @@ export type PrismaNextConnectionFieldOptions<
   >,
   'type' | 'resolve' | 'args' | InferredFieldOptionKeys
 > &
-  // Nullability generics pinned to `false` to match sister plugins;
-  // loosening would need extra type params through `t.prismaConnection`.
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
       Types,
@@ -1020,7 +924,7 @@ export type PrismaNextConnectionFieldOptions<
     ) => MaybePromise<
       ConnectionCollection<Types, NoInfer<M>> | (Nullable extends true ? null : never)
     >;
-    /** Sentinel for plugin-prisma porters: chain `.where(...)` on the collection inside `resolve` instead. */
+    /** Not supported: chain `.where(...)` on the collection in `resolve` instead. */
     query?: 'plugin-prisma-next: chain `.where(...)` on the collection inside `resolve` instead of passing a `query` option';
   };
 
@@ -1043,8 +947,6 @@ export type PrismaNextRelatedConnectionOptions<
       (InputFieldMap extends Args ? {} : Args),
     unknown
   >,
-  // `resolve` is stripped — t.relatedConnection installs its own
-  // resolver. A user-passed resolve would be silently clobbered.
   'type' | 'args' | 'resolve' | InferredFieldOptionKeys
 > &
   Omit<
@@ -1119,22 +1021,8 @@ export type PrismaNextRelatedConnectionOptions<
   };
 
 /**
- * Strongly-typed object-form select spec. Resolves `M` from
- * `ParentShape`'s `[prismaModelKey]?: M` brand so keys auto-complete to
- * the parent model's columns + relations, and `sub` in function-form
- * entries is typed as the real prisma-next refinement collection for
- * the relation.
- *
- *   - `true` for columns (load onto parent.col) or simple relation includes
- *   - function `(sub) => { [userKey]: prismaNextValue }` for multi-variant
- *     loads — each inner key surfaces as a parent property via the
- *     per-field overlay wrap. Inner values can be refined Collections
- *     (→ readonly Row[]) or `IncludeScalar` returns from `.count()` /
- *     `.aggregate(…)` / future SQL primitives.
- *
- * The `sub` callback receives the real prisma-next refinement
- * collection; the plugin doesn't intercept `.where`, `.count`, etc. —
- * those pass through to the orm-client unchanged.
+ * `true` loads a column or includes a relation. A function `(sub) => ({ key: value })` receives
+ * the relation's refinement collection, and each returned key becomes a property on the parent.
  */
 export type PrismaNextSelectSpec<Types extends SchemaTypes, ParentShape> =
   ExtractModel<Types, ParentShape> extends infer M
@@ -1143,12 +1031,7 @@ export type PrismaNextSelectSpec<Types extends SchemaTypes, ParentShape> =
       : never
     : never;
 
-// Array-form column keys come from the model's full Row, NOT from the
-// parent shape. The parent shape is what's already been declared as a
-// dependency; the field-level `select` is what _adds_ new ones, so
-// constraining it to current-parent keys would block every valid
-// column on a freshly-typed prismaObject (parent starts as just the
-// brand sentinel).
+// Keys come from the full row, not the parent shape: the field's `select` adds to the shape.
 type FieldSelectArray<Types extends SchemaTypes, ParentShape> =
   ExtractModel<Types, ParentShape> extends infer M
     ? M extends ModelName<Types>
