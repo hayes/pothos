@@ -25,6 +25,7 @@ import { getIdentityFields, type PrismaNextModel, rawKey } from './utils/model.j
 import {
   COMPUTE,
   type Compute,
+  materializeRows,
   type PrismaNextQuery,
   REFINE,
   type Refine,
@@ -328,7 +329,7 @@ export class ModelLoader {
     if (loading.length === 0) {
       return;
     }
-    const rows = await query.all();
+    const rows = materializeRows(await query.all(), batch.root.model);
     const byKey = new Map(rows.map((row) => [key(fields.map((field) => row[field])), row]));
     for (const { request, key } of loading) {
       const row = byKey.get(key);

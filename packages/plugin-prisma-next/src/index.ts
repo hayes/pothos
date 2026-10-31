@@ -150,7 +150,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   ): PothosOutputFieldConfig<Types> {
     const extensions = fieldConfig.extensions ?? {};
     if (extensions[PRISMA_NEXT_FIELD_SELECT] !== undefined) {
-      return fieldConfig;
+      return readingViews(fieldConfig);
     }
     const declaring = this.buildCache.getTypeConfig(declaringType(fieldConfig));
     const modelName = declaring.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
@@ -178,7 +178,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
             ? EMPTY
             : undefined;
     return selection
-      ? { ...fieldConfig, extensions: { ...extensions, [PRISMA_NEXT_FIELD_SELECT]: selection } }
+      ? readingViews({
+          ...fieldConfig,
+          extensions: { ...extensions, [PRISMA_NEXT_FIELD_SELECT]: selection },
+        })
       : fieldConfig;
   }
 
@@ -236,7 +239,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   /**
    * A field resolves with its parent once the columns it reads are there and, for a planned
    * selection, the plan that loaded the parent included it; otherwise the loader reloads the
-   * parent with what the field needs. The parent is handed over as the field's view of it: the
+   * parent with what the field needs. The field's resolver gets its view of the parent: the
    * combine slots its own and its type's selections were planned into, lifted onto the row.
    */
   override wrapResolve(
@@ -302,6 +305,22 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
             ...typeScopes,
             mapping?.position && scopeOf(mapping.position),
           ]) as Record<string, unknown>);
+    // The plugins wrapped inside this one (scope-auth's type checks among them) get the row
+    // itself; the field's own resolver reads its view.
+    const readsView = viewReaders.has(fieldConfig.resolve as never);
+    const handOver = (
+      row: object,
+      own: object,
+      args: object,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => {
+      if (own === row || !readsView) {
+        return resolver(own, args, context, info);
+      }
+      pendingViews.set(info, { row, view: own });
+      return resolver(row, args, context, info);
+    };
 
     let keyless: boolean | undefined;
 
@@ -328,7 +347,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           const own = view(parent, mapping);
           if (!loaded || loaded(own as Record<string, unknown>, args, context, info)) {
             setRowMappings(context, info, mapping.nested);
-            return resolver(own, args, context, info);
+            return handOver(parent, own, args, context, info);
           }
           reason = 'conflict';
         }
@@ -341,9 +360,40 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return config
         .loader(context, modelName)
         .loadSelection(info, parent)
-        .then((loadedRow) => resolver(view(loadedRow.row, loadedRow.mapping), args, context, info));
+        .then((loadedRow) =>
+          handOver(loadedRow.row, view(loadedRow.row, loadedRow.mapping), args, context, info),
+        );
     };
   }
+}
+
+/** Each field's view of its parent, set by `wrapResolve` for the resolver `readingViews` wraps. */
+const pendingViews = new WeakMap<GraphQLResolveInfo, { row: object; view: object }>();
+const viewReaders = new WeakSet<GraphQLFieldResolver<unknown, unknown>>();
+
+/**
+ * A planned field's resolver, reading its view of the parent. `wrapResolve` hands the plugins it
+ * wraps the row itself, so per-row work there (scope-auth's cached type checks) sees one object
+ * shaped like its type, while the field still reads the slots it was planned into.
+ */
+function readingViews<Types extends SchemaTypes>(
+  fieldConfig: PothosOutputFieldConfig<Types>,
+): PothosOutputFieldConfig<Types> {
+  const { resolve } = fieldConfig;
+  if (!resolve || viewReaders.has(resolve as never)) {
+    return fieldConfig;
+  }
+  const reader: GraphQLFieldResolver<unknown, unknown> = (parent, args, context, info) => {
+    const pending = pendingViews.get(info);
+    return resolve(
+      pending && pending.row === parent ? pending.view : parent,
+      args as never,
+      context as never,
+      info,
+    );
+  };
+  viewReaders.add(reader);
+  return { ...fieldConfig, resolve: reader as never };
 }
 
 /** What a static `select` names is checked when the schema is built, not on first use. */
