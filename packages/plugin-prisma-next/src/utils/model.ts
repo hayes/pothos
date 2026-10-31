@@ -33,15 +33,11 @@ export interface PrismaNextRelation {
 export interface PrismaNextModel {
   readonly name: string;
   readonly relations: Record<string, PrismaNextRelation>;
-  /** Undefined when the contract doesn't describe the model. */
-  readonly columns: ReadonlySet<string> | undefined;
+  readonly columns: ReadonlySet<string>;
 }
 
-function buildColumnSet(modelName: string, contract: AnyContract): ReadonlySet<string> | undefined {
-  const fields = resolveContractModel(contract, modelName)?.fields;
-  if (!fields) {
-    return undefined;
-  }
+function buildColumnSet(modelName: string, contract: AnyContract): ReadonlySet<string> {
+  const fields = resolveContractModel(contract, modelName)?.fields ?? {};
   // A base collection selects its variants' columns, leaving them absent on other variants' rows.
   const variants = Object.values(modelDiscriminator(contract, modelName)?.variants ?? {});
   return new Set([

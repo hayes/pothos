@@ -417,7 +417,7 @@ function compileSelect(
         )(sub, args, ctx);
         // Computed values are lifted onto the parent row beside its columns and relations.
         const clash = Object.keys(values).find(
-          (key) => model!.columns?.has(key) || Object.hasOwn(model!.relations, key),
+          (key) => model!.columns.has(key) || Object.hasOwn(model!.relations, key),
         );
         if (clash !== undefined) {
           throw new PothosValidationError(

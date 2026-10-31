@@ -246,7 +246,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   ) {
     const { deferred } = this.typeSelectionOf(type);
     const iface =
-      deferred.size > 0 && 'getInterfaces' in type
+      deferred.size > 0
         ? type.getInterfaces().find((i) => deferred.has(i.name) && i.getFields()[field.name])
         : undefined;
     if (!iface) {
@@ -266,7 +266,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
       visit.allColumns();
     } else {
       for (const column of query.columns ?? []) {
-        if (model.columns && !model.columns.has(column)) {
+        if (!model.columns.has(column)) {
           throw new PothosValidationError(
             `select: '${column}' is not a column or relation on ${model.name}. Check for a typo, or register the field via the contract.`,
           );

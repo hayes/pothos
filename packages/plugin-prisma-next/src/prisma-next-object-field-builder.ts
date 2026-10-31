@@ -57,7 +57,7 @@ import {
   relatedCount,
   selectsRows,
 } from './utils/connections.js';
-import { relationVariant, resolveContractModel } from './utils/contract.js';
+import { assertContractModel, relationVariant } from './utils/contract.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
@@ -403,7 +403,7 @@ export class PrismaNextObjectFieldBuilder<
           ? false
           : query !== undefined ||
             variant !== undefined ||
-            this.#isToOneRelationNullable(this.#getRelationMeta(relationName))),
+            isNullableToOne(this.#getRelationMeta(relationName))),
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECT]: select,
@@ -761,10 +761,7 @@ export class PrismaNextObjectFieldBuilder<
   }
 
   #getRelationMeta(relationName: string): ContractRelation {
-    const model = resolveContractModel(this.contract as AnyContract, this.modelName as string);
-    if (!model) {
-      throw new PothosSchemaError(`Model '${this.modelName as string}' not found in contract.`);
-    }
+    const model = assertContractModel(this.contract as AnyContract, this.modelName as string);
     const rel = model.relations[relationName];
     if (!rel) {
       throw new PothosSchemaError(
@@ -774,29 +771,7 @@ export class PrismaNextObjectFieldBuilder<
     }
     return rel;
   }
-
-  // Nullable if any FK column is, or when the FK columns aren't recorded (embeds).
-  #isToOneRelationNullable(meta: ContractRelation): boolean {
-    if ('nullable' in meta && typeof meta.nullable === 'boolean') {
-      return meta.nullable;
-    }
-    const local = 'on' in meta ? meta.on.localFields : undefined;
-    if (!local || local.length === 0) {
-      return true;
-    }
-    const fields = resolveContractModel(
-      this.contract as AnyContract,
-      this.modelName as string,
-    )?.fields;
-    if (!fields) {
-      return true;
-    }
-    for (const fk of local) {
-      const f = fields[fk];
-      if (!f || f.nullable !== false) {
-        return true;
-      }
-    }
-    return false;
-  }
 }
+
+// An embed records no nullability; its row may be absent.
+const isNullableToOne = (meta: ContractRelation) => ('nullable' in meta ? meta.nullable : true);
