@@ -349,7 +349,7 @@ describe('async callbacks', () => {
     const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
       at: ['Viewer', 'posts'],
     });
-    const plan = await Plan.forParentRow(withSelects(['posts'], deferred), {}, info);
+    const plan = await Plan.forParentRow(withSelects(['posts'], deferred), { context: {}, info });
 
     // The type-level `posts: { take: 5 }` conflicts with the field's `take: 2`, merged first.
     expect(adapter.toQuery(plan.root)).toEqual({
@@ -514,7 +514,7 @@ describe('a plan that throws after a callback started', () => {
         { at: ['Viewer', 'posts'] },
       );
 
-      expect(() => Plan.forParentRow(failing, {}, info)).toThrow('sync');
+      expect(() => Plan.forParentRow(failing, { context: {}, info })).toThrow('sync');
       expect(calls).toBe(2);
     });
   });
@@ -567,7 +567,7 @@ describe('the synchronous path', () => {
       at: ['Viewer', 'posts'],
     });
 
-    expect(countPromises(() => Plan.forParentRow(adapter, {}, info)).promises).toBe(0);
+    expect(countPromises(() => Plan.forParentRow(adapter, { context: {}, info })).promises).toBe(0);
     expect(
       countPromises(() =>
         Plan.fromInfo(adapter, {

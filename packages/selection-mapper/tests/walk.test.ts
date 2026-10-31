@@ -906,7 +906,7 @@ describe('Plan.forParentRow', () => {
       at: ['Viewer', 'posts'],
     });
 
-    const plan = Plan.forParentRow(adapter, {}, info);
+    const plan = Plan.forParentRow(adapter, { context: {}, info });
 
     // The type-level `posts: { take: 5 }` conflicts with the field's own `take: 2` and is left out.
     expect(adapter.toQuery(plan.root)).toEqual({
@@ -929,7 +929,7 @@ describe('Plan.forParentRow', () => {
 
     expect(info.fieldNodes).toHaveLength(2);
 
-    const plan = Plan.forParentRow(adapter, {}, info);
+    const plan = Plan.forParentRow(adapter, { context: {}, info });
 
     expect(adapter.toQuery(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
@@ -948,7 +948,7 @@ describe('Plan.forParentRow', () => {
       },
     );
 
-    const plan = Plan.forParentRow(adapter, {}, info);
+    const plan = Plan.forParentRow(adapter, { context: {}, info });
 
     expect(adapter.toQuery(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
@@ -1099,9 +1099,11 @@ describe('plan.query(select)', () => {
     const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
       at: ['Viewer', 'posts'],
     });
-    const plain = Plan.forParentRow(adapter, {}, info);
-    const seeded = Plan.forParentRow(adapter, {}, info, undefined, {
-      select: { posts: { take: 1 } },
+    const plain = Plan.forParentRow(adapter, { context: {}, info });
+    const seeded = Plan.forParentRow(adapter, {
+      context: {},
+      info,
+      initial: { select: { posts: { take: 1 } } },
     });
 
     expect(adapter.toQuery(plain.root)).toEqual({ select: { posts: { take: 2 }, id: true } });

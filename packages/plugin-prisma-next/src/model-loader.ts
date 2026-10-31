@@ -112,7 +112,11 @@ export class ModelLoader {
     const plans = this.plansFor(info).parent;
     let selection = plans.get(key);
     if (!selection) {
-      selection = Plan.forParentRow(this.adapter, this.context, info, undefined, this.initial);
+      selection = Plan.forParentRow(this.adapter, {
+        context: this.context,
+        info,
+        initial: this.initial,
+      });
       plans.set(key, selection);
     }
     const load = (played: Played) => {
