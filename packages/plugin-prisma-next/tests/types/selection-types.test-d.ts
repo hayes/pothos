@@ -187,6 +187,136 @@ builder.prismaNode('User', {
   fields: (t) => ({ postCount: t.int({ resolve: (user) => user.postCount }) }),
 });
 
+// A field `select` may be a function of the field's args and context, sync or async: what it
+// returns narrows the parent and is checked like a literal select.
+builder.prismaObject('User', {
+  variant: 'FieldSelectFunctions',
+  fields: (t) => ({
+    columns: t.string({
+      select: () => ['email'],
+      resolve: (user) => {
+        expectTypeOf(user.email).toEqualTypeOf<string>();
+        // @ts-expect-error `lastName` isn't selected
+        return user.lastName;
+      },
+    }),
+    asyncColumns: t.string({ select: async () => ['email'], resolve: (user) => user.email }),
+    objectForm: t.string({
+      select: () => ({ email: true, posts: true }),
+      resolve: (user) => `${user.email}${user.posts.length}`,
+    }),
+    asyncObjectForm: t.string({
+      select: async () => ({ email: true }),
+      resolve: (user) => user.email,
+    }),
+    computed: t.int({
+      args: { published: t.arg.int({ required: true }) },
+      select: (args) => ({
+        posts: (sub) => ({ postCount: sub.where({ published: args.published }).count() }),
+      }),
+      resolve: (user) => user.postCount,
+    }),
+    // Columns only some branches select may be missing.
+    branches: t.string({
+      args: { formal: t.arg.boolean({ required: true }) },
+      select: (args) => (args.formal ? ['lastName'] : ['firstName']),
+      resolve: (user) => {
+        expectTypeOf(user.lastName).toEqualTypeOf<string | undefined>();
+        expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
+        return '';
+      },
+    }),
+    columnTypo: t.string({
+      // @ts-expect-error `emial` isn't a column
+      select: () => ['emial'],
+      resolve: () => '',
+    }),
+    objectTypo: t.string({
+      // @ts-expect-error `emial` isn't a column
+      select: () => ({ emial: true }),
+      resolve: () => '',
+    }),
+    asyncTypo: t.string({
+      // @ts-expect-error `emial` isn't a column
+      select: async () => ['emial'],
+      resolve: () => '',
+    }),
+  }),
+});
+
+// Implementations of a same-model prismaInterface load its `select`, so they can read it too.
+const EmailInterface = builder.prismaInterface('User', {
+  name: 'EmailInterface',
+  select: ['email'],
+  fields: (t) => ({ email: t.string({ resolve: (user) => user.email }) }),
+});
+const EmailAndNameInterface = builder.prismaInterface('User', {
+  name: 'EmailAndNameInterface',
+  interfaces: [EmailInterface],
+  select: ['firstName'],
+  fields: (t) => ({ label: t.string({ resolve: (user) => `${user.firstName} ${user.email}` }) }),
+});
+builder.prismaObject('User', {
+  variant: 'InheritsInterfaceSelect',
+  interfaces: [EmailAndNameInterface, EmailInterface],
+  select: ['lastName'],
+  fields: (t) => ({
+    label: t.string({
+      resolve: (user) => {
+        expectTypeOf(user.email).toEqualTypeOf<string>();
+        expectTypeOf(user.firstName).toEqualTypeOf<string>();
+        return user.lastName;
+      },
+    }),
+  }),
+});
+builder.prismaNode('User', {
+  variant: 'NodeInheritsInterfaceSelect',
+  interfaces: [EmailInterface],
+  id: { field: 'id' },
+  collection,
+  fields: (t) => ({ email: t.string({ resolve: (user) => user.email }) }),
+});
+builder.prismaObject('Post', {
+  variant: 'OtherModelInterface',
+  // @ts-expect-error a User interface's select can't back a Post object
+  interfaces: [EmailInterface],
+  fields: () => ({}),
+});
+
+// A field returning a type resolves to a row of its model carrying the key the loader reloads it
+// by, whatever the type selects.
+const PlainUser = builder.prismaObject('User', {
+  variant: 'PlainUser',
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
+const EmailUser = builder.prismaObject('User', {
+  variant: 'EmailUser',
+  select: ['email'],
+  fields: (t) => ({ email: t.exposeString('email') }),
+});
+builder.prismaObject('Post', {
+  variant: 'ReturnsRows',
+  fields: (t) => ({
+    selectedAuthor: t.field({
+      type: PlainUser,
+      select: { author: true },
+      resolve: (post) => post.author,
+    }),
+    keyOnly: t.field({ type: EmailUser, resolve: () => ({ id: 'u-1' }) }),
+    rows: t.field({ type: [PlainUser], resolve: () => orm.User.all() }),
+    // @ts-expect-error an empty object has no key to reload it by
+    empty: t.field({ type: PlainUser, resolve: () => ({}) }),
+    // @ts-expect-error a row without its key can't be reloaded
+    keyless: t.field({ type: EmailUser, resolve: () => ({ email: 'a@b.c' }) }),
+    // @ts-expect-error an unexecuted collection is for prismaField
+    collection: t.field({ type: PlainUser, resolve: () => orm.User }),
+  }),
+});
+builder.queryField('firstUser', (t) =>
+  t.field({ type: PlainUser, nullable: true, resolve: () => orm.User.first() }),
+);
+
 // A required to-one relation is non-null when selected; a filtered selection can be null.
 builder.prismaObject('Post', {
   variant: 'ToOneSelects',

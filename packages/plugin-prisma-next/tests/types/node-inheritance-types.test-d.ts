@@ -46,8 +46,35 @@ const CompoundNode = builder.prismaNode('Post', {
 });
 const ParsedNode = builder.prismaNode('Post', {
   variant: 'ParsedNode',
-  id: { field: 'id', parse: (id) => ({ id }) },
+  id: { field: 'id', parse: (id) => id.toLowerCase() },
   fields: (t) => ({ title: t.exposeString('title') }),
+});
+// `id.parse` returns the values the node is loaded by: the column's value, or a tuple.
+builder.prismaNode('Post', {
+  variant: 'WrongParseNode',
+  // @ts-expect-error a single `id` column loads by a string, not an object
+  id: { field: 'id', parse: (id) => ({ id }) },
+  fields: () => ({}),
+});
+builder.prismaNode('Post', {
+  variant: 'WrongTypeParseNode',
+  // @ts-expect-error `id` is a string column
+  id: { field: 'id', parse: (id) => Number(id) },
+  fields: () => ({}),
+});
+builder.prismaNode('Post', {
+  variant: 'CompoundParseNode',
+  id: {
+    field: ['authorId', 'id'],
+    parse: (id) => [id, id],
+  },
+  fields: () => ({}),
+});
+builder.prismaNode('Post', {
+  variant: 'NullableIdNode',
+  // @ts-expect-error a nullable column can't identify a node
+  id: { field: 'score' },
+  fields: () => ({}),
 });
 // globalID arguments receive the node's decoded ID: column values, or what `id.parse` returns.
 builder.queryField('decodedIds', (t) =>
@@ -58,7 +85,7 @@ builder.queryField('decodedIds', (t) =>
     },
     resolve: (_root, args) => {
       expectTypeOf(args.compound.id).toEqualTypeOf<[string, string]>();
-      expectTypeOf(args.parsed.id).toEqualTypeOf<{ id: string }>();
+      expectTypeOf(args.parsed.id).toEqualTypeOf<string>();
       return '';
     },
   }),
