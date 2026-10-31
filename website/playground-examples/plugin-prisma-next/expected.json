@@ -39,7 +39,7 @@
         {
           "fullName": "Maya Chen",
           "postConnection": {
-            "totalCount": 3,
+            "totalCount": 2,
             "pageInfo": {
               "hasNextPage": true
             },
@@ -78,9 +78,9 @@
         "edges": [
           {
             "node": {
-              "title": "Starting a seed library",
+              "title": "Watering through summer",
               "author": {
-                "fullName": "Maya Chen"
+                "fullName": "Leo Silva"
               }
             }
           },
