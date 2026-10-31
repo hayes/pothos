@@ -25,7 +25,9 @@ builder.prismaNode('Post', {
 - `id.parse` / `id.resolve`: custom parsing and serialization of the ID. By default IDs are
   encoded with the client's column codecs and decoded back to the column's values, which is also
   what `t.arg.globalID({ for: NodeRef })` receives. An encoded ID can be at most 2048
-  characters, so a row with a very long string key fails its `id` field.
+  characters, so a row with a very long string key fails its `id` field. If `id.resolve` returns
+  anything other than the key's own value (for example `comment:${id}`), also provide `id.parse`
+  to turn it back into the key's values; otherwise `node(id:)` finds no row and returns `null`.
 - `collection`: the Collection nodes load from, or a function of the context returning one, to
   apply per-request filters. Defaults to the model's collection on the plugin's `client`.
 
