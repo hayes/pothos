@@ -50,6 +50,30 @@ describe('prismaInterface', () => {
     return builder.toSchema();
   }
 
+  it('hands interface field builders the Interface kind', () => {
+    const builder = createBuilder();
+    const kinds: string[] = [];
+    const User = builder.prismaInterface('User', {
+      fields: (t) => {
+        kinds.push(t.graphqlKind);
+        return { id: t.exposeID('id') };
+      },
+    });
+    builder.prismaInterfaceField(User, 'email', (t) => {
+      kinds.push(t.graphqlKind);
+      return t.exposeString('email');
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => {
+        kinds.push(t.graphqlKind);
+        return { id: t.exposeID('id') };
+      },
+    });
+    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    builder.toSchema();
+    expect(kinds.sort()).toEqual(['Interface', 'Interface', 'Object']);
+  });
+
   it('declares interface fields and the objects implementing it', () => {
     const sdl = printSchema(schema());
     expect(sdl).toMatch(
