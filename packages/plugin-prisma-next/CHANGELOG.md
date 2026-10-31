@@ -1,7 +1,5 @@
 # @pothos/plugin-prisma-next
 
-Versions up to and including 0.1.2 were never published to npm.
-
 ## 0.1.2
 
 ### Patch Changes
@@ -78,3 +76,7 @@ Versions up to and including 0.1.2 were never published to npm.
 - Updated dependencies [1358f71]
   - @pothos/core@4.14.0
   - @pothos/selection-mapper@0.1.0
+
+## 0.1.0 (unpublished)
+
+Initial fork from `@pothos/plugin-drizzle` and conversion to prisma-next. See README.md for status.

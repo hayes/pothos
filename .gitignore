@@ -56,6 +56,3 @@ CLAUDE.md
 # Claude Code local runtime artifacts
 .claude/scheduled_tasks.lock
 .claude/worktrees/
-
-# Temporary fixtures from website/scripts/type-playground-examples.mjs
-website/.playground-typecheck-*/
