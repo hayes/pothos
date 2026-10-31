@@ -39,8 +39,6 @@ export interface MapperCollection {
   combine(spec: Record<string, unknown>): MapperCollection;
   where(input: unknown): MapperCollection;
   orderBy(input: unknown): MapperCollection;
-  /** Keyset seek strictly past the boundary in the `orderBy` direction; requires a prior `orderBy`. */
-  cursor(cursorValues: Record<string, unknown>): MapperCollection;
   limit(n: number): MapperCollection;
   offset(n: number): MapperCollection;
   variant(value: string): MapperCollection;

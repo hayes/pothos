@@ -101,9 +101,9 @@ builder.prismaObject('User', {
     publishedPostCount: t.field({
       type: 'Int',
       select: {
-        posts: (posts) => ({ posts: posts.where({ published: 1 }).count() }),
+        posts: (posts) => ({ publishedCount: posts.where({ published: 1 }).count() }),
       },
-      resolve: (user) => user.posts,
+      resolve: (user) => user.publishedCount,
     }),
   }),
 });

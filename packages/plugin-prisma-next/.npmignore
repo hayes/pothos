@@ -5,4 +5,3 @@ babel.config.js
 *.tsbuildinfo
 tsconfig.*
 ARCHITECTURE.md
-feedback

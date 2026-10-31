@@ -17,6 +17,7 @@ const Person = builder.prismaInterface('User', {
 
 builder.prismaObject('User', {
   interfaces: [Person],
+  isTypeOf: () => true,
   fields: (t) => ({
     email: t.exposeString('email'),
   }),
