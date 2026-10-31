@@ -8,6 +8,7 @@ import {
   PothosValidationError,
   parseCursorConnectionArgs,
 } from '@pothos/core';
+import type { DefaultConnectionArguments } from '@pothos/plugin-relay';
 import { deepEqual } from '@pothos/selection-mapper';
 import { and, or } from '@prisma/orm-family-sql/orm-client';
 import { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
@@ -15,12 +16,7 @@ import type { AnyContract } from '../types.js';
 import type { MapperCollection } from './adapter.js';
 import { getCollectionPaginationState } from './collection-state.js';
 import { resolveContractModel } from './contract.js';
-import {
-  type ColumnCodec,
-  getColumnCodec,
-  getModelUniqueKeys,
-  type PrismaNextCodecContext,
-} from './model.js';
+import { type FieldCodecs, getModelUniqueKeys } from './model.js';
 
 // The subset of orm-client's `ModelAccessor` used here, without its contract generics.
 interface ComparableColumn {
@@ -37,12 +33,6 @@ export type RequestOrderBy = (
   model: Record<string, ComparableColumn>,
 ) => OrderByItem | readonly OrderByItem[];
 
-/** For object-valued columns such as Temporal or Decimal values. */
-export interface CursorValueCodec<Value = unknown> {
-  encode(value: Value): string;
-  decode(value: string): Value;
-}
-
 export type CursorField =
   | string
   | {
@@ -50,10 +40,6 @@ export type CursorField =
       direction?: 'asc' | 'desc';
       /** Placement in the forward order; nullable model fields default to last. */
       nulls?: 'first' | 'last';
-      /** `'column'` uses the column's codec from `prismaNext.context`. */
-      codec?: CursorValueCodec | 'column';
-      /** @internal Filled in by `validateCursor` when the plugin has the client's `context`. */
-      columnCodec?: ColumnCodec;
     };
 export type CursorInput = CursorField | readonly CursorField[];
 
@@ -61,8 +47,12 @@ function cursorFields(cursor: CursorInput): readonly CursorField[] {
   return typeof cursor === 'string' || !Array.isArray(cursor) ? [cursor as CursorField] : cursor;
 }
 
+function fieldName(field: CursorField): string {
+  return typeof field === 'string' ? field : field.field;
+}
+
 export function normalizeCursor(cursor: CursorInput): readonly string[] {
-  return cursorFields(cursor).map((field) => (typeof field === 'string' ? field : field.field));
+  return cursorFields(cursor).map(fieldName);
 }
 
 function cursorDirections(cursor: CursorInput): readonly ('asc' | 'desc')[] {
@@ -78,7 +68,6 @@ export function validateCursor(
   contract: AnyContract,
   modelName: string,
   cursor: CursorInput,
-  context?: PrismaNextCodecContext,
 ): CursorInput {
   const fields = normalizeCursor(cursor);
   if (!fields.length || new Set(fields).size !== fields.length) {
@@ -99,9 +88,7 @@ export function validateCursor(
         `Connection cursor '${modelName}.${field}' must be a model field.`,
       );
     }
-  }
-  for (const field of fields) {
-    const type = model.fields[field]!.type as { codecId?: string } | undefined;
+    const type = model.fields[field].type as { codecId?: string } | undefined;
     if (type?.codecId && BYTES_CODEC.test(type.codecId)) {
       throw new PothosSchemaError(
         `Connection cursor '${modelName}.${field}' is a bytes column, which the ORM can't order. Use a different cursor column.`,
@@ -114,147 +101,173 @@ export function validateCursor(
       `Connection cursor for '${modelName}' must include every field of a non-null primary or unique key. Add a unique tie-breaker such as id.`,
     );
   }
-  return cursorFields(cursor).map((field) => {
-    const name = typeof field === 'string' ? field : field.field;
-    const columnCodec = getColumnCodec(contract, modelName, name, context);
-    const nullable = model.fields[name]!.nullable;
-    if (typeof field !== 'string' && field.codec === 'column' && !columnCodec) {
-      throw new PothosSchemaError(
-        `Connection cursor '${modelName}.${name}' uses codec: 'column', which requires prismaNext.context.`,
-      );
-    }
-    return nullable || columnCodec
+  return cursorFields(cursor).map((field) =>
+    model.fields[fieldName(field)]!.nullable
       ? {
           ...(typeof field === 'string' ? { field } : field),
-          ...(nullable
-            ? { nulls: typeof field === 'string' ? 'last' : (field.nulls ?? 'last') }
-            : {}),
-          ...(columnCodec ? { columnCodec } : {}),
+          nulls: typeof field === 'string' ? 'last' : (field.nulls ?? 'last'),
         }
-      : field;
+      : field,
+  );
+}
+
+/** Bounds the work spent decoding user-supplied cursors and IDs. */
+const PAYLOAD_MAX_BYTES = 2 * 1024;
+
+// Values are held in their column codec's stored form; nulls bypass codecs.
+function encodeValues(fields: readonly string[], values: readonly unknown[], codecs: FieldCodecs) {
+  const encoded = values.map((value, i) => {
+    const codec = value == null ? undefined : codecs(fields[i]!);
+    return codec ? codec.encode(value) : value;
   });
+  return encoded.length === 1 ? encodeCursorChunk(encoded[0]) : encodeCursorTuple(encoded);
+}
+
+// Messages never echo the payload, which logs often capture verbatim.
+interface DecodeErrors {
+  payload(): Error;
+  width(got: number): Error;
+  value(field: string): Error;
+}
+
+/** Keys come from `fields`, never the payload, so a payload can't inject `__proto__`. */
+function decodeValues(
+  fields: readonly string[],
+  payload: string,
+  codecs: FieldCodecs,
+  errors: DecodeErrors,
+): Record<string, unknown> {
+  let decoded: unknown;
+  try {
+    decoded = decodeCursorChunk(payload);
+  } catch {
+    throw errors.payload();
+  }
+  // Dispatched on `fields`: a single JSON column can decode to an array too.
+  const values = fields.length === 1 ? [decoded] : decoded;
+  if (!Array.isArray(values) || values.length !== fields.length) {
+    throw errors.width(Array.isArray(values) ? values.length : 1);
+  }
+  const out = Object.create(null) as Record<string, unknown>;
+  fields.forEach((field, i) => {
+    const codec = values[i] == null ? undefined : codecs(field);
+    try {
+      out[field] = codec ? codec.decode(values[i]) : values[i];
+    } catch {
+      throw errors.value(field);
+    }
+  });
+  return out;
 }
 
 /** Like plugin-prisma's `GPC:`; multi-column cursors are a positional `T:` tuple of chunks. */
 const CURSOR_PREFIX = 'PNC:';
 
-/** Wrapped so a codec's encoded form can't be mistaken for a JSON column's value. */
-const COLUMN_CODEC_KEY = '$pothosColumnValue';
-
-function isClassInstance(value: unknown): value is object {
-  if (!value || typeof value !== 'object' || value instanceof Date || value instanceof Uint8Array) {
-    return false;
-  }
-  const proto = Object.getPrototypeOf(value);
-  return proto !== null && proto !== Object.prototype && !Array.isArray(value);
-}
-
-function encodeCursorValue(field: CursorField, value: unknown): unknown {
-  const spec = typeof field === 'string' ? { field } : field;
-  if (value === null || value === undefined) {
-    return value;
-  }
-  if (spec.codec && spec.codec !== 'column') {
-    return spec.codec.encode(value as never);
-  }
-  if (!isClassInstance(value)) {
-    return value;
-  }
-  if (spec.columnCodec) {
-    return { [COLUMN_CODEC_KEY]: spec.columnCodec.toStored(value) };
-  }
-  // The shared encoding keeps a decimal's digits; any other object couldn't start the next page.
-  if (typeof (value as { toFixed?: unknown }).toFixed !== 'function') {
-    throw new PothosValidationError(
-      `Cursor column '${spec.field}' holds an object value. Set prismaNext.context, or give the column an explicit codec.`,
-    );
-  }
-  return value;
-}
-
-export function encodeCursor(cursor: CursorInput, row: Record<string, unknown>): string {
-  const values = cursorFields(cursor).map((field) =>
-    encodeCursorValue(field, row[typeof field === 'string' ? field : field.field]),
+export function encodeCursor(
+  cursor: CursorInput,
+  row: Record<string, unknown>,
+  codecs: FieldCodecs,
+): string {
+  const fields = normalizeCursor(cursor);
+  return encodeBase64(
+    `${CURSOR_PREFIX}${encodeValues(
+      fields,
+      fields.map((field) => row[field]),
+      codecs,
+    )}`,
   );
-  const payload = values.length === 1 ? encodeCursorChunk(values[0]) : encodeCursorTuple(values);
-
-  return encodeBase64(`${CURSOR_PREFIX}${payload}`);
 }
 
-/** @internal Bounds the work spent decoding user-supplied cursors and IDs. */
-export const CURSOR_PAYLOAD_MAX_BYTES = 2 * 1024;
-
-/** Keys come from `cols`, never the payload, so a cursor can't inject `__proto__`. */
-export function decodeCursor(spec: CursorInput, cursor: string): Record<string, unknown> {
-  const cols = normalizeCursor(spec);
-  if (cursor.length > CURSOR_PAYLOAD_MAX_BYTES) {
-    throw new PothosValidationError(
-      `Invalid cursor: payload exceeds ${CURSOR_PAYLOAD_MAX_BYTES} bytes.`,
-    );
+export function decodeCursor(
+  cursor: CursorInput,
+  value: string,
+  codecs: FieldCodecs,
+): Record<string, unknown> {
+  // The cursor is left out of messages, which logs often capture verbatim.
+  if (value.length > PAYLOAD_MAX_BYTES) {
+    throw new PothosValidationError(`Invalid cursor: payload exceeds ${PAYLOAD_MAX_BYTES} bytes.`);
   }
-
   let payload: string;
   try {
-    payload = decodeBase64(cursor);
+    payload = decodeBase64(value);
   } catch {
-    // The cursor is left out of the message, which logs often capture verbatim.
     throw new PothosValidationError('Invalid cursor: not valid base64.');
   }
-
   if (!payload.startsWith(CURSOR_PREFIX)) {
     throw new PothosValidationError('Invalid cursor: not a cursor from this plugin.');
   }
+  const fields = normalizeCursor(cursor);
+  return decodeValues(fields, payload.slice(CURSOR_PREFIX.length), codecs, {
+    payload: () =>
+      new PothosValidationError('Invalid cursor: payload is not a tagged cursor chunk.'),
+    width: (got) =>
+      new PothosValidationError(
+        `Invalid cursor: expected ${fields.length} value(s) for ${fields.join(', ')}, got ${got}.`,
+      ),
+    value: invalidCursorValue,
+  });
+}
 
-  let decoded: unknown;
+function invalidCursorValue(field: string) {
+  return new PothosValidationError(`Invalid cursor value for ${field}.`);
+}
+
+/** Tags node IDs that aren't plain strings, so they decode back to their own type. */
+const ID_PREFIX = 'PNI:';
+
+export function encodeNodeId(
+  modelName: string,
+  fields: readonly string[],
+  row: Record<string, unknown>,
+  codecs: FieldCodecs,
+): string {
+  const values = fields.map((field) => {
+    if (row[field] == null) {
+      throw new PothosValidationError(
+        `prismaNode '${modelName}' row is missing id field '${field}'.`,
+      );
+    }
+    return row[field];
+  });
+  let payload: string;
   try {
-    decoded = decodeCursorChunk(payload.slice(CURSOR_PREFIX.length));
+    payload = encodeValues(fields, values, codecs);
   } catch {
-    throw new PothosValidationError('Invalid cursor: payload is not a tagged cursor chunk.');
+    throw new PothosValidationError(`prismaNode '${modelName}' row has an invalid id value.`);
   }
+  // A string stays readable unless it could be mistaken for a tagged payload.
+  return payload.startsWith('S:') && !payload.startsWith(`S:${ID_PREFIX}`)
+    ? payload.slice(2)
+    : `${ID_PREFIX}${payload}`;
+}
 
-  // Dispatched on `cols`: a single JSON column can decode to an array too.
-  const values = cols.length === 1 ? [decoded] : decoded;
-
-  if (!Array.isArray(values) || values.length !== cols.length) {
+/** The ID's values, a tuple for a compound ID. */
+export function parseNodeId(
+  modelName: string,
+  fields: readonly string[],
+  id: string,
+  codecs: FieldCodecs,
+): unknown {
+  if (id.length > PAYLOAD_MAX_BYTES) {
     throw new PothosValidationError(
-      `Invalid cursor: expected ${cols.length} value(s) for ${cols.join(', ')}, got ${
-        Array.isArray(values) ? values.length : 1
-      }.`,
+      `prismaNode '${modelName}' ID payload exceeds ${PAYLOAD_MAX_BYTES} bytes.`,
     );
   }
-
-  const out = Object.create(null) as Record<string, unknown>;
-
-  cursorFields(spec).forEach((field, i) => {
-    const col = typeof field === 'string' ? field : field.field;
-    try {
-      if (
-        values[i] !== null &&
-        typeof field !== 'string' &&
-        field.codec &&
-        field.codec !== 'column'
-      ) {
-        if (typeof values[i] !== 'string') {
-          throw new Error('Codec cursor must contain a string');
-        }
-        out[col] = field.codec.decode(values[i]);
-      } else if (
-        typeof field !== 'string' &&
-        field.columnCodec &&
-        values[i] &&
-        typeof values[i] === 'object' &&
-        Object.hasOwn(values[i], COLUMN_CODEC_KEY)
-      ) {
-        out[col] = field.columnCodec.fromStored(values[i][COLUMN_CODEC_KEY]);
-      } else {
-        out[col] = values[i];
-      }
-    } catch {
-      throw new PothosValidationError(`Invalid cursor value for ${col}.`);
-    }
-  });
-
-  return out;
+  const values = decodeValues(
+    fields,
+    id.startsWith(ID_PREFIX) ? id.slice(ID_PREFIX.length) : encodeCursorChunk(id),
+    codecs,
+    {
+      payload: () => new PothosValidationError(`prismaNode '${modelName}' ID payload is invalid.`),
+      width: (got) =>
+        new PothosValidationError(
+          `prismaNode '${modelName}' composite ID expected ${fields.length} values, got ${got}.`,
+        ),
+      value: (field) =>
+        new PothosValidationError(`prismaNode '${modelName}' ID has an invalid ${field} value.`),
+    },
+  );
+  return fields.length === 1 ? values[fields[0]!] : fields.map((field) => values[field]);
 }
 
 // Lexicographic "row > cursor" as an OR-chain of equality-prefixed comparisons.
@@ -303,44 +316,44 @@ export interface CursorPaginationParams {
   limit: number;
   expectedSize: number;
   inverted: boolean;
+  codecs: FieldCodecs;
   hasNextPage: (resultSize: number) => boolean;
   hasPreviousPage: (resultSize: number) => boolean;
 }
 
 export interface CursorPaginationResult<C extends MapperCollection> extends CursorPaginationParams {
   collection: C;
-  encodeRowCursor: (row: Record<string, unknown>) => string;
+}
+
+export interface PaginationOptions {
+  codecs: FieldCodecs;
+  defaultSize?: number;
+  maxSize?: number;
 }
 
 export function buildPaginationParams(
   cursor: CursorInput,
-  args: import('@pothos/plugin-relay').DefaultConnectionArguments,
-  options?: { defaultSize?: number; maxSize?: number },
-): CursorPaginationParams & { encodeRowCursor: (row: Record<string, unknown>) => string } {
-  const cols = normalizeCursor(cursor);
-  if (!cols.length || new Set(cols).size !== cols.length) {
-    throw new PothosValidationError(
-      'A connection cursor must contain distinct columns and cannot be empty.',
-    );
-  }
+  args: DefaultConnectionArguments,
+  options: PaginationOptions,
+): CursorPaginationParams {
   const { before, after, limit, expectedSize, inverted, hasPreviousPage, hasNextPage } =
     parseCursorConnectionArgs({
       args,
-      ...(options?.defaultSize !== undefined ? { defaultSize: options.defaultSize } : {}),
-      ...(options?.maxSize !== undefined ? { maxSize: options.maxSize } : {}),
+      ...(options.defaultSize !== undefined ? { defaultSize: options.defaultSize } : {}),
+      ...(options.maxSize !== undefined ? { maxSize: options.maxSize } : {}),
     });
   return {
     cursor,
     directions: cursorDirections(cursor),
-    cols,
+    cols: normalizeCursor(cursor),
     before,
     after,
     limit,
     expectedSize,
     inverted,
+    codecs: options.codecs,
     hasPreviousPage,
     hasNextPage,
-    encodeRowCursor: (row) => encodeCursor(cursor, row),
   };
 }
 
@@ -396,12 +409,16 @@ function applyOrderByOption(
 }
 
 /** A null can only mark a position on a column the validated spec gave a null placement. */
-function decodeBoundary(cursor: CursorInput, value: string): Record<string, unknown> {
-  const boundary = decodeCursor(cursor, value);
+function decodeBoundary(
+  cursor: CursorInput,
+  value: string,
+  codecs: FieldCodecs,
+): Record<string, unknown> {
+  const boundary = decodeCursor(cursor, value, codecs);
   for (const field of cursorFields(cursor)) {
-    const col = typeof field === 'string' ? field : field.field;
+    const col = fieldName(field);
     if (boundary[col] === null && (typeof field === 'string' || !field.nulls)) {
-      throw new PothosValidationError(`Invalid cursor value for ${col}.`);
+      throw invalidCursorValue(col);
     }
   }
   return boundary;
@@ -411,7 +428,7 @@ function applyToCollection<C extends MapperCollection>(
   baseCollection: C,
   params: CursorPaginationParams,
 ): C {
-  const { cols, cursor, directions, before, after, limit, inverted } = params;
+  const { cols, cursor, directions, before, after, limit, inverted, codecs } = params;
 
   const nulls = cursorFields(cursor).map((field) =>
     typeof field === 'string' ? undefined : field.nulls,
@@ -447,7 +464,7 @@ function applyToCollection<C extends MapperCollection>(
   const nativeBefore = !!before && !after && inverted;
 
   if (!nulls.some(Boolean) && !dualBound && (nativeAfter || nativeBefore)) {
-    const boundary = decodeBoundary(cursor, nativeAfter ? after! : before!);
+    const boundary = decodeBoundary(cursor, nativeAfter ? after! : before!, codecs);
     return withOrder.cursor(boundary).limit(limit) as C;
   }
 
@@ -455,12 +472,24 @@ function applyToCollection<C extends MapperCollection>(
   let collection: MapperCollection = withOrder;
   if (after) {
     collection = collection.where(
-      buildLexicographicPredicate(cols, decodeBoundary(cursor, after), 'gt', directions, nulls),
+      buildLexicographicPredicate(
+        cols,
+        decodeBoundary(cursor, after, codecs),
+        'gt',
+        directions,
+        nulls,
+      ),
     );
   }
   if (before) {
     collection = collection.where(
-      buildLexicographicPredicate(cols, decodeBoundary(cursor, before), 'lt', directions, nulls),
+      buildLexicographicPredicate(
+        cols,
+        decodeBoundary(cursor, before, codecs),
+        'lt',
+        directions,
+        nulls,
+      ),
     );
   }
   return collection.limit(limit) as C;
@@ -469,26 +498,27 @@ function applyToCollection<C extends MapperCollection>(
 /** Throws what pagination would, without a collection. */
 export function validateCursorArgs(
   cursor: CursorInput,
-  args: import('@pothos/plugin-relay').DefaultConnectionArguments,
+  args: DefaultConnectionArguments,
+  codecs: FieldCodecs,
 ): void {
-  const { before, after } = buildPaginationParams(cursor, args);
+  const { before, after } = buildPaginationParams(cursor, args, { codecs });
   if (after) {
-    decodeBoundary(cursor, after);
+    decodeBoundary(cursor, after, codecs);
   }
   if (before) {
-    decodeBoundary(cursor, before);
+    decodeBoundary(cursor, before, codecs);
   }
 }
 
 export function applyCursorPagination<C extends MapperCollection>(
   baseCollection: C,
   cursor: CursorInput,
-  args: import('@pothos/plugin-relay').DefaultConnectionArguments,
-  options?: { defaultSize?: number; maxSize?: number; orderBy?: RequestOrderBy | undefined },
+  args: DefaultConnectionArguments,
+  options: PaginationOptions & { orderBy?: RequestOrderBy | undefined },
 ): CursorPaginationResult<C> {
   assertUnpaginatedCollection(baseCollection);
   const params = buildPaginationParams(
-    options?.orderBy ? applyOrderByOption(baseCollection, cursor, options.orderBy) : cursor,
+    options.orderBy ? applyOrderByOption(baseCollection, cursor, options.orderBy) : cursor,
     args,
     options,
   );
@@ -513,14 +543,11 @@ export interface ConnectionPage<Row> {
 /** Edge cursors are lazy, non-enumerable getters, so selecting only `nodes` skips encoding. */
 export function buildConnectionPage<Row extends Record<string, unknown>>(
   rows: readonly Row[],
-  pagination: CursorPaginationParams & {
-    encodeRowCursor: (row: Record<string, unknown>) => string;
-  },
+  pagination: CursorPaginationParams,
 ): ConnectionPage<Row> {
   const needsCopy = pagination.inverted || rows.length > pagination.expectedSize;
   const trimmed: Row[] = needsCopy ? rows.slice(0, pagination.expectedSize) : (rows as Row[]);
   const ordered = pagination.inverted ? trimmed.reverse() : trimmed;
-  const { encodeRowCursor } = pagination;
 
   const edges = ordered.map((node) => {
     let cached: string | undefined;
@@ -529,9 +556,7 @@ export function buildConnectionPage<Row extends Record<string, unknown>>(
       enumerable: false,
       configurable: true,
       get() {
-        if (cached === undefined) {
-          cached = encodeRowCursor(node);
-        }
+        cached ??= encodeCursor(pagination.cursor, node, pagination.codecs);
         return cached;
       },
     });

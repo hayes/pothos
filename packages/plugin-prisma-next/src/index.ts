@@ -4,7 +4,6 @@ import './prisma-next-field-builder.js';
 import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
-  createContextCache,
   isThenable,
   type PothosOutputFieldConfig,
   PothosSchemaError,
@@ -27,34 +26,19 @@ import {
   PRISMA_NEXT_SELECT,
 } from './constants.js';
 import type { PreparedFieldExtension } from './extensions.js';
-import { ModelLoader } from './model-loader.js';
 import type { AnyContract } from './types.js';
-import { fieldAliasPrefix, objectLevelFieldAlias, prismaNextAdapter } from './utils/adapter.js';
-import { createApply } from './utils/apply.js';
 import {
-  assertVariantCollection,
-  collectionForModel,
-  resolveContractModel,
-  rootModelKey,
-} from './utils/contract.js';
-import { buildRelationMeta, getModel } from './utils/model.js';
-import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options.js';
+  fieldAliasPrefix,
+  type MapperCollection,
+  objectLevelFieldAlias,
+  prismaNextAdapter,
+} from './utils/adapter.js';
+import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
+import { assertVariantCollection, resolveContractModel, rootModelKey } from './utils/contract.js';
+import { applySelectionToCollection } from './utils/map-query.js';
+import { getModel } from './utils/model.js';
 import { variantTypeNames } from './utils/variant-types.js';
 
-export type {
-  AggregateBuilder,
-  AggregateResult,
-  AggregateSpec,
-  Collection,
-  CreateInput,
-  GroupedCollection,
-  ModelAccessor,
-  RelationFilterAccessor,
-  RelationPredicate,
-  ShorthandWhereFilter,
-  UniqueConstraintCriterion,
-} from '@prisma/orm-family-sql/orm-client';
-export { all, and, not, or } from '@prisma/orm-family-sql/orm-client';
 export type {
   ConnectionNodeShape,
   ConnectionWrapRows,
@@ -62,37 +46,33 @@ export type {
   PrismaConnectionHelpers,
 } from './connection-helpers.js';
 export { prismaConnectionHelpers } from './connection-helpers.js';
-export { PRISMA_NEXT_MODEL, PRISMA_NEXT_PREPARED, PRISMA_NEXT_SELECT } from './constants.js';
-export type { PreparedFieldExtension, RefineCallback } from './extensions.js';
 export { PrismaNextInterfaceRef, prismaInterfaceKey } from './interface-ref.js';
 export { PrismaNextNodeRef, relayIDShapeKey } from './node-ref.js';
 export { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 export { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
-export * from './types.js';
-export {
-  type MapperCollection,
-  type PrismaNextSpec,
-  prismaNextAdapter,
-} from './utils/adapter.js';
-export type { Apply } from './utils/apply.js';
-export { createApply } from './utils/apply.js';
-export { rebrandForVariant } from './utils/branding.js';
-export {
-  type CursorValueCodec,
-  decodeCursor as parsePrismaNextCursor,
-  encodeCursor as formatPrismaNextCursor,
-} from './utils/cursors.js';
-export {
-  type ApplySelectionOptions,
-  applySelectionToCollection,
-  type IndirectInclude,
-} from './utils/map-query.js';
 export type {
-  PrismaNextModel,
-  PrismaNextRelation,
-  PrismaNextRelationMeta,
-} from './utils/model.js';
-export { getInterfaceRefFromContractModel, getRefFromContractModel } from './utils/refs.js';
+  AnyContract,
+  CollectionFor,
+  ConnectionCollection,
+  CursorSpec,
+  ModelName,
+  PrismaNextClient,
+  PrismaNextConnectionFieldOptions,
+  PrismaNextExecutionContext,
+  PrismaNextInterfaceOptions,
+  PrismaNextObjectFieldOptions,
+  PrismaNextObjectOptions,
+  PrismaNextPluginOptions,
+  PrismaNextRelatedConnectionOptions,
+  PrismaNextRelationAggregateOptions,
+  PrismaNextRelationCountOptions,
+  PrismaNextRelationOptions,
+  PrismaNextRequestClient,
+  PrismaNextRootFieldOptions,
+  PrismaNextRootFieldWithInputOptions,
+  ResolverCollection,
+  Row,
+} from './types.js';
 
 const pluginName = 'prismaNext';
 
@@ -112,24 +92,27 @@ function isOrmCollection(value: unknown): boolean {
 }
 
 async function materializeCollection(
-  collection: unknown,
+  collection: MapperCollection,
   info: GraphQLResolveInfo,
-  contract: AnyContract,
-  context: unknown,
-  mapperOpts: ReturnType<typeof mapperOptionsFromPluginOpts>,
+  config: PrismaNextConfig,
+  context: object,
   wantsList: boolean,
   modelName: string,
 ): Promise<unknown> {
-  assertVariantCollection(contract, modelName, collection as never);
-  const apply = createApply({ info, contract, context, mapperOpts });
-  let applied = (await apply(collection)) as {
+  assertVariantCollection(config.contract, modelName, collection);
+  let applied = (await applySelectionToCollection(
+    collection,
+    info,
+    config,
+    context,
+  )) as unknown as {
     all: () => Promise<readonly unknown[]>;
-    limit?: (n: number) => unknown;
+    limit: (n: number) => unknown;
   };
-  if (!wantsList && typeof applied.limit === 'function') {
+  if (!wantsList) {
     applied = applied.limit(1) as typeof applied;
   }
-  const rows = (await applied.all()) as readonly unknown[];
+  const rows = await applied.all();
   return wantsList ? rows : (rows[0] ?? null);
 }
 
@@ -222,23 +205,21 @@ function inheritedMapping(
 }
 
 export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  private readonly loaders = createContextCache(() => new Map<string, ModelLoader>());
+  private get config() {
+    return getPluginConfig(this.builder);
+  }
 
   override onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
     if (typeConfig.kind !== 'Object' && typeConfig.kind !== 'Interface') {
       return typeConfig;
     }
+    const { contract } = this.config;
     let model = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    const opts = readPluginOptions<AnyContract>(this.builder);
     for (const iface of typeConfig.interfaces) {
       const ifaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
       const ifaceModel = ifaceConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
       if (ifaceModel) {
-        if (
-          model &&
-          opts?.contract &&
-          rootModelKey(opts.contract, model) === rootModelKey(opts.contract, ifaceModel)
-        ) {
+        if (model && rootModelKey(contract, model) === rootModelKey(contract, ifaceModel)) {
           // A variant keeps its own model when it implements its hierarchy's interface.
           continue;
         }
@@ -255,11 +236,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (model === undefined) {
       return typeConfig;
     }
-    if (opts?.contract) {
-      buildRelationMeta(model, opts.contract, typeConfig.name);
-      // Fails the schema build for a contract the planner can't represent.
-      getModel(opts.contract, model);
-    }
+    // Fails the schema build for a contract the planner can't represent.
+    getModel(contract, model);
     return {
       ...typeConfig,
       extensions: {
@@ -270,12 +248,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   override afterBuild(schema: GraphQLSchema): GraphQLSchema {
-    const contract = readPluginOptions<AnyContract>(this.builder)?.contract;
-    if (contract) {
-      for (const type of Object.values(schema.getTypeMap())) {
-        if (isInterfaceType(type) && type.extensions?.[PRISMA_NEXT_DISCRIMINATED]) {
-          variantTypeNames(contract, schema, type);
-        }
+    const { contract } = this.config;
+    for (const type of Object.values(schema.getTypeMap())) {
+      if (isInterfaceType(type) && type.extensions?.[PRISMA_NEXT_DISCRIMINATED]) {
+        variantTypeNames(contract, schema, type);
       }
     }
     return schema;
@@ -286,29 +262,13 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const ext = (fieldConfig.extensions ?? {}) as Record<string | symbol, unknown>;
+    const config = this.config;
+    const { contract } = config;
 
     if (ext[PRISMA_NEXT_PREPARED]) {
       const prepared = ext[PRISMA_NEXT_PREPARED] as PreparedFieldExtension;
-      const opts = readPluginOptions<AnyContract>(this.builder);
-      if (!opts) {
-        throw new PothosSchemaError('t.prismaField requires builder.options.prismaNext to be set.');
-      }
-      const mapperOpts = mapperOptionsFromPluginOpts(opts);
-      const contract = opts.contract;
       return async (parent, args, context, info) => {
-        const raw = (
-          resolver as unknown as (
-            parent: unknown,
-            args: unknown,
-            context: unknown,
-            info: GraphQLResolveInfo,
-          ) => unknown
-        )(parent, args, context, info);
-        const result =
-          raw && typeof (raw as { then?: unknown }).then === 'function'
-            ? await (raw as Promise<unknown>)
-            : raw;
-
+        const result = await resolver(parent, args, context, info);
         if (result == null) {
           return result;
         }
@@ -319,11 +279,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           );
         }
         return materializeCollection(
-          result,
+          result as MapperCollection,
           info,
-          contract,
+          config,
           context,
-          mapperOpts,
           prepared.isList,
           prepared.modelName,
         );
@@ -345,18 +304,17 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       : parentTypeConfig;
     const typeSelect = declaringTypeConfig.extensions?.[PRISMA_NEXT_SELECT];
     const modelName = parentTypeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    const pluginOptions = readPluginOptions<AnyContract>(this.builder);
-    const contract = pluginOptions?.contract;
-    const collections = pluginOptions?.collections;
-    const modelRelations =
-      contract && modelName ? resolveContractModel(contract, modelName)?.relations : undefined;
-    const relationNames = Object.keys(modelRelations ?? {});
-    const toOneRelations = Object.entries(modelRelations ?? {})
+    if (!modelName) {
+      return resolver;
+    }
+    const modelRelations = resolveContractModel(contract, modelName)?.relations ?? {};
+    const relationNames = Object.keys(modelRelations);
+    const toOneRelations = Object.entries(modelRelations)
       .filter(([, relation]) => relation.cardinality !== '1:N' && relation.cardinality !== 'N:M')
       .map(([name]) => name);
     const typeRelations =
       typeSelect && !Array.isArray(typeSelect) && typeof typeSelect === 'object'
-        ? Object.keys(typeSelect).filter((key) => modelRelations?.[key] !== undefined)
+        ? Object.keys(typeSelect).filter((key) => modelRelations[key] !== undefined)
         : [];
     const typeAlias = objectLevelFieldAlias(declaringTypeConfig.name);
     const hasTypeSelect = typeRelations.length > 0;
@@ -366,10 +324,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       | undefined;
     const isSameRow = !!indirect && !indirect.path?.length && !indirect.paths?.length;
     const needsNormalization = hasTypeSelect || hasFieldSelect || isSameRow;
-    if (!needsNormalization && !(modelName && collections)) {
-      return resolver;
-    }
-    const baseResolver = resolver;
 
     const resolveLoaded: GraphQLFieldResolver<unknown, Types['Context'], object> = (
       parent,
@@ -378,7 +332,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       info,
     ) => {
       if (!needsNormalization || parent == null || typeof parent !== 'object') {
-        return baseResolver(parent, args, context, info);
+        return resolver(parent, args, context, info);
       }
       const alias = info.fieldNodes[0]?.alias?.value ?? info.fieldName;
       const scopes = childScopes(parent, alias);
@@ -408,7 +362,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           }
         }
       }
-      const result = baseResolver(overlay, args, context, info);
+      const result = resolver(overlay, args, context, info);
       const finish = (value: unknown) => {
         if (!value || typeof value !== 'object' || value instanceof Error) {
           return value;
@@ -430,28 +384,28 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       };
       return isThenable(result) ? Promise.resolve(result).then(finish) : finish(result);
     };
-    if (!modelName || !collections || !contract) {
-      return resolveLoaded;
-    }
     const hasFieldDependencies =
       isSameRow ||
       !!ext[PRISMA_NEXT_FIELD_SELECT] ||
       typeof ext.pothosExposedField === 'string' ||
       typeof selectOpt === 'function' ||
       (selectOpt != null && typeof selectOpt === 'object' && Object.keys(selectOpt).length > 0);
-    // Excludes the identity columns that are only added for fallback loading.
-    const dependencyAdapter = prismaNextAdapter(contract, true);
+    const adapter = prismaNextAdapter(contract);
+    const fieldSelect = ext[PRISMA_NEXT_FIELD_SELECT];
     const ownColumns =
       typeof ext.pothosExposedField === 'string'
         ? [ext.pothosExposedField]
         : Array.isArray(selectOpt)
           ? (selectOpt as string[])
-          : undefined;
+          : typeof fieldSelect === 'object' && fieldSelect !== null && !('relations' in fieldSelect)
+            ? (fieldSelect as { columns?: string[] }).columns
+            : undefined;
     return (parent, args, context, info) => {
       if (!parent || typeof parent !== 'object') {
         return resolveLoaded(parent, args, context, info);
       }
-      const dependencies = dependencyAdapter.typePrerequisite(info.parentType);
+      // Excludes the identity columns that are only added for fallback loading.
+      const dependencies = adapter.typePrerequisite(info.parentType);
       const row = parent as Record<string, unknown>;
       const typeDependenciesLoaded =
         !Object.keys(dependencies?.relations ?? {}).length &&
@@ -465,33 +419,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         return resolveLoaded(parent, args, context, info);
       }
       const mapping =
-        getLoaderMapping(context as object, info.path, info.parentType.name, parent) ??
-        inheritedMapping(context as object, info, parent, contract);
+        getLoaderMapping(context, info.path, info.parentType.name, parent) ??
+        inheritedMapping(context, info, parent, contract);
       if (mapping) {
-        setRowMappings(context as object, info, mapping.nested);
+        setRowMappings(context, info, mapping.nested);
         return resolveLoaded(parent, args, context, info);
       }
-      const loaders = this.loaders(context as object);
-      let loader = loaders.get(modelName);
-      if (!loader) {
-        loader = new ModelLoader(
-          context as object,
-          contract,
-          modelName,
-          () =>
-            collectionForModel(
-              contract,
-              typeof collections === 'function' ? collections(context) : collections,
-              rootModelKey(contract, modelName),
-            ) as never,
-          pluginOptions.skipDeferredFragments ?? true,
-          pluginOptions.context,
-        );
-        loaders.set(modelName, loader);
-      }
-      return loader
+      return config
+        .loader(context, modelName)
         .loadSelection(info, parent)
-        .then((row) => resolveLoaded(row, args, context, info));
+        .then((loaded) => resolveLoaded(loaded, args, context, info));
     };
   }
 }

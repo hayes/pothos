@@ -9,17 +9,18 @@ import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
-  AnyContract,
   BareModelName,
   CollectionFor,
   ConnectionCollection,
   CursorSpec,
+  ExactCursor,
   ModelName,
   NamespaceOf,
   Row,
   TotalCountFlag,
 } from './types.js';
 import { compileWhere } from './utils/compile-query.js';
+import { connectionSizes, getPluginConfig } from './utils/config.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
@@ -29,11 +30,6 @@ import {
   validateCursor,
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
-import {
-  mapperOptionsFromPluginOpts,
-  readPluginOptions,
-  resolveSizeOption,
-} from './utils/options.js';
 import { getRefFromContractModel } from './utils/refs.js';
 import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
@@ -84,7 +80,7 @@ export interface PrismaConnectionHelperOptions<
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap,
 > {
-  cursor: Cursor;
+  cursor: Cursor & NoInfer<ExactCursor<Cursor>>;
   args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
   defaultSize?:
     | number
@@ -185,11 +181,8 @@ export function prismaConnectionHelpers<
   const totalCountFlag = options.totalCount === true || totalCountResolver !== undefined;
 
   const cursorCols = normalizeCursor(options.cursor as CursorInput);
-  const pluginOpts = readPluginOptions<AnyContract>(builder);
-  const mapperOpts = mapperOptionsFromPluginOpts(pluginOpts);
-  const cursorSpec = pluginOpts
-    ? validateCursor(pluginOpts.contract, modelName, options.cursor, pluginOpts.context)
-    : options.cursor;
+  const config = getPluginConfig(builder);
+  const cursorSpec = validateCursor(config.contract, modelName, options.cursor);
 
   return {
     ref,
@@ -200,33 +193,21 @@ export function prismaConnectionHelpers<
         : connectionOptions;
     },
     applyPagination(collection, args, info, ctx) {
-      const defaultSize =
-        resolveSizeOption(options.defaultSize, args, ctx) ?? pluginOpts?.defaultConnectionSize;
-      const maxSize =
-        resolveSizeOption(options.maxSize, args, ctx) ?? pluginOpts?.maxConnectionSize;
       const whereRefine = compileWhere(options.where);
       const filteredBase = whereRefine
         ? (whereRefine(collection, args, ctx) as CollectionFor<Types, M>)
         : collection;
       const pagination = applyCursorPagination(filteredBase as never, cursorSpec, args, {
-        ...(defaultSize !== undefined ? { defaultSize } : {}),
-        ...(maxSize !== undefined ? { maxSize } : {}),
+        ...connectionSizes(config, options, args, ctx),
+        codecs: config.codecs(ctx, modelName),
       });
 
-      const prepared =
-        info && pluginOpts
-          ? (applySelectionToCollection(
-              pagination.collection as never,
-              info,
-              pluginOpts.contract,
-              ctx,
-              {
-                paths: [['edges', 'node'], ['nodes']],
-                extraColumns: cursorCols,
-                ...mapperOpts,
-              },
-            ) as unknown as MaybePromise<CollectionFor<Types, M>>)
-          : (pagination.collection as unknown as CollectionFor<Types, M>);
+      const prepared = (info
+        ? applySelectionToCollection(pagination.collection, info, config, ctx, {
+            paths: [['edges', 'node'], ['nodes']],
+            extraColumns: cursorCols,
+          })
+        : pagination.collection) as unknown as MaybePromise<CollectionFor<Types, M>>;
 
       // Counted before pagination but after `where`, so it matches the paged rows.
       let totalCountPromise: Promise<number> | undefined;

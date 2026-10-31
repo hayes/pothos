@@ -272,7 +272,7 @@ export function variantRelationProblem(
         relation: name,
         message:
           `Relation "${name}" is declared on variant '${meta.variant}' of model ${model.name}, so it loads only from a collection narrowed with .variant('${meta.variant}'). ` +
-          `Return orm.${model.name}.variant('${meta.variant}') (or a relation typed as that variant), or set prismaNext.collections so the field loads separately.`,
+          `Return orm.${model.name}.variant('${meta.variant}') (or a relation typed as that variant).`,
       };
     }
     if (variantModel !== undefined && meta.variant === undefined) {
@@ -280,7 +280,7 @@ export function variantRelationProblem(
         relation: name,
         message:
           `Relation "${name}" is inherited from model ${model.name} and can't be included beneath a relation to variant model '${variantModel}': ` +
-          'the ORM loads those rows through the variant model, which only has its own relations. Set prismaNext.collections so the field loads separately.',
+          'the ORM loads those rows through the variant model, which only has its own relations.',
       };
     }
     for (const entry of Array.isArray(entries) ? entries : [entries]) {
@@ -831,7 +831,7 @@ function mergeTypeEntries(
 function compileTypeSelection(
   type: GraphQLNamedType,
   model: PrismaNextModel | undefined,
-  deferred?: Map<string, PrismaNextSpec['relations']>,
+  deferred: Map<string, PrismaNextSpec['relations']>,
 ): PrismaNextSpec | undefined {
   if (!model) {
     return undefined;
@@ -846,11 +846,8 @@ function compileTypeSelection(
     }
     visited.add(current);
     // Inherited fields keep their interface's resolver and slot, so interface selections are
-    // loaded too. With a loader for conflicts, the concrete type's own selection goes first.
+    // loaded too, after the concrete type's own selection; conflicts go to the loader.
     const interfaces = 'getInterfaces' in current ? current.getInterfaces() : [];
-    if (!deferred) {
-      interfaces.forEach(collect);
-    }
     const raw = current.extensions?.[PRISMA_NEXT_SELECT] as RawSelect | undefined;
     if (raw) {
       hasSelection = true;
@@ -865,15 +862,9 @@ function compileTypeSelection(
         }),
         current,
       );
-      if (deferred) {
-        mergeTypeEntries(node, spec, alias, current.name, deferred);
-      } else {
-        mergeSpec(node, spec, alias);
-      }
+      mergeTypeEntries(node, spec, alias, current.name, deferred);
     }
-    if (deferred) {
-      interfaces.forEach(collect);
-    }
+    interfaces.forEach(collect);
   };
   collect(type);
   return hasSelection ? serializeNode(node) : undefined;
@@ -881,7 +872,7 @@ function compileTypeSelection(
 
 /**
  * To-many consumers get separate combine slots. To-one consumers must share a compatible query;
- * with `fallback` (a collections provider) conflicting fields are loaded in a separate batch.
+ * conflicting fields are loaded in a separate batch.
  */
 export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, PrismaNextNode> {
   override readonly skipDeferredFragments: boolean;
@@ -897,12 +888,9 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     PrismaNextSpec | PrismaNextSelectFn | null
   >();
 
-  constructor(
-    readonly contract: AnyContract,
-    readonly fallback = false,
-  ) {
+  constructor(readonly contract: AnyContract) {
     super();
-    this.skipDeferredFragments = fallback;
+    this.skipDeferredFragments = true;
   }
 
   modelFor(type: GraphQLNamedType): PrismaNextModel | undefined {
@@ -917,7 +905,7 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     if (spec === undefined) {
       const model = this.modelFor(type);
       spec = this.typePrerequisite(type) ?? null;
-      if (this.fallback && model) {
+      if (model) {
         spec = {
           ...spec,
           columns: [...(spec?.columns ?? []), ...getIdentityFields(this.contract, model.name)],
@@ -934,10 +922,10 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     let spec = this.typePrerequisites.get(type);
 
     if (spec === undefined) {
-      const deferred = this.fallback ? new Map<string, PrismaNextSpec['relations']>() : undefined;
+      const deferred = new Map<string, PrismaNextSpec['relations']>();
       spec = compileTypeSelection(type, this.modelFor(type), deferred) ?? null;
       this.typePrerequisites.set(type, spec);
-      if (deferred?.size) {
+      if (deferred.size) {
         this.deferredPrerequisites.set(type, deferred);
       }
     }
@@ -975,7 +963,7 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
               return isThenable(spec) ? Promise.resolve(spec).then(finish) : finish(spec);
             }
           : withSelectionSource(compiled, field);
-      const inherited = this.fallback ? this.inheritedPrerequisites(field, type) : undefined;
+      const inherited = this.inheritedPrerequisites(field, type);
       if (inherited) {
         const own = selection;
         const withInherited = (value: PrismaNextSpec): PrismaNextSpec => ({
@@ -1003,7 +991,7 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
   }
 
   mergeQuery(node: PrismaNextNode, spec: PrismaNextSpec, options?: MergeOptions) {
-    if (this.fallback && options?.lenient) {
+    if (options?.lenient) {
       // Parent-row loads keep the field's own query and drop conflicting type-level entries.
       mergeSpec(node, { columns: spec.columns }, spec.alias ?? options.alias);
       for (const [name, entries] of Object.entries(spec.relations ?? {})) {
@@ -1034,9 +1022,6 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     spec: PrismaNextSpec,
     options?: MergeOptions,
   ): boolean {
-    if (!this.fallback) {
-      return true;
-    }
     // Relations the ORM can't include on this level are left for the loader.
     return (
       !this.conflict(node, spec, options) &&
@@ -1048,7 +1033,7 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     node: PrismaNextNode,
     spec: PrismaNextSpec,
   ): TypeLevelConflict | undefined {
-    return this.fallback ? this.conflict(node, spec) : undefined;
+    return this.conflict(node, spec);
   }
 
   private conflict(
@@ -1076,15 +1061,13 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
 }
 
 const adapters = new WeakMap<AnyContract, PrismaNextAdapter>();
-const fallbackAdapters = new WeakMap<AnyContract, PrismaNextAdapter>();
 
-export function prismaNextAdapter(contract: AnyContract, fallback = false): PrismaNextAdapter {
-  const cache = fallback ? fallbackAdapters : adapters;
-  let adapter = cache.get(contract);
+export function prismaNextAdapter(contract: AnyContract): PrismaNextAdapter {
+  let adapter = adapters.get(contract);
 
   if (!adapter) {
-    adapter = new PrismaNextAdapter(contract, fallback);
-    cache.set(contract, adapter);
+    adapter = new PrismaNextAdapter(contract);
+    adapters.set(contract, adapter);
   }
 
   return adapter;

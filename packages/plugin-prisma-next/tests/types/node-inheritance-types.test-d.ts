@@ -8,7 +8,7 @@ import type { Contract as InheritanceContract } from '../inheritance/contract';
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
-  prismaNext: { contract: null as never },
+  prismaNext: { client: null as never },
 });
 const collection = null as never;
 
@@ -35,7 +35,7 @@ builder.prismaNode('User', {
   collection,
   fields: (t) => ({ email: t.string({ resolve: (user) => user.email }) }),
 });
-builder.prismaNode('Post', {
+const CompoundNode = builder.prismaNode('Post', {
   variant: 'CompoundNode',
   id: {
     field: ['authorId', 'id'],
@@ -44,6 +44,25 @@ builder.prismaNode('Post', {
   collection,
   fields: (t) => ({ title: t.exposeString('title') }),
 });
+const ParsedNode = builder.prismaNode('Post', {
+  variant: 'ParsedNode',
+  id: { field: 'id', parse: (id) => ({ id }) },
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+// globalID arguments receive the node's decoded ID: column values, or what `id.parse` returns.
+builder.queryField('decodedIds', (t) =>
+  t.string({
+    args: {
+      compound: t.arg.globalID({ for: CompoundNode, required: true }),
+      parsed: t.arg.globalID({ for: ParsedNode, required: true }),
+    },
+    resolve: (_root, args) => {
+      expectTypeOf(args.compound.id).toEqualTypeOf<[string, string]>();
+      expectTypeOf(args.parsed.id).toEqualTypeOf<{ id: string }>();
+      return '';
+    },
+  }),
+);
 builder.prismaNode('User', {
   variant: 'UndeclaredIdResolver',
   id: {
@@ -68,7 +87,7 @@ expectTypeOf<ModelName<Types>>().toEqualTypeOf<'Bug' | 'Feature' | 'Task' | 'Use
 const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
-  prismaNext: { contract: null as never },
+  prismaNext: { client: null as never },
 });
 declare const orm: { Task: CollectionFor<Types, 'Task'> };
 const task = inheritance.prismaInterface('Task', {

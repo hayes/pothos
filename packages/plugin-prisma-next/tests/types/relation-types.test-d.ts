@@ -12,7 +12,7 @@ const builder = new SchemaBuilder<{
 }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
-  prismaNext: { contract: null as never },
+  prismaNext: { client: null as never },
 });
 
 builder.prismaObject('User', {
@@ -165,7 +165,7 @@ builder.prismaObject('User', {
 // A to-one relation is nullable when its contract relation is, as Bug.reviewer is.
 const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
   plugins: [prismaNextPlugin],
-  prismaNext: { contract: null as never },
+  prismaNext: { client: null as never },
 });
 inheritance.prismaObject('Bug', {
   select: { reviewer: true, owner: true },

@@ -12,14 +12,9 @@ import {
 const db = useSampleDb();
 const allPostIds = ['p-hello', 'p-draft1', 'p-bob1', 'p-bob-draft'];
 
-function schema(
-  options: SampleOptions & { defer?: boolean; contract?: typeof sampleContract } = {},
-) {
-  const { defer, contract, ...pluginOptions } = options;
-  const builder = createBuilder({ collections: db.orm, ...pluginOptions });
-  if (contract) {
-    Object.assign(builder.options.prismaNext!, { contract });
-  }
+function schema(options: SampleOptions & { defer?: boolean } = {}) {
+  const { defer, ...pluginOptions } = options;
+  const builder = createBuilder(pluginOptions);
   builder.prismaObject('User', {
     select: ['lastName'],
     fields: (t) => ({
@@ -157,7 +152,10 @@ describe('fallback loading through collections', () => {
     const contract = structuredClone(sampleContract);
     const post = contract.storage.namespaces.__unbound__.entries.table.post;
     (post.primaryKey as unknown as { columns: string[] }).columns = ['authorId', 'id'];
-    const result = await run(schema({ contract }), '{ posts { nobody { id } alice { name } } }');
+    const result = await run(
+      schema({ client: () => db.client, contract }),
+      '{ posts { nobody { id } alice { name } } }',
+    );
     expect(result.errors).toBeUndefined();
     expect(result.data.posts).toEqual([
       ...[0, 1].map(() => ({ nobody: null, alice: null })),
@@ -171,8 +169,7 @@ describe('fallback loading through collections', () => {
     const contract = structuredClone(sampleContract);
     const post = contract.storage.namespaces.__unbound__.entries.table.post;
     (post.primaryKey as unknown as { columns: string[] }).columns = ['authorId', 'id'];
-    const builder = createBuilder({ collections: db.orm });
-    Object.assign(builder.options.prismaNext!, { contract });
+    const builder = createBuilder({ client: () => db.client, contract });
     const Post = builder.prismaObject('Post', {
       fields: (t) => ({ title: t.exposeString('title') }),
     });
@@ -205,12 +202,13 @@ describe('fallback loading through collections', () => {
     expect(result.statements[0].params).toEqual(expect.arrayContaining(['p-hello', 'p-draft1']));
   });
 
-  it('accepts a per-model provider computed from the request context', async () => {
+  it('loads through a client computed from the request context', async () => {
     const contexts: unknown[] = [];
     const builder = createBuilder<{ tenant: string }>({
-      collections: (context) => {
+      // Without `context`, like a transaction: codecs come from its collections.
+      client: (context) => {
         contexts.push(context);
-        return { Post: db.orm.Post.where({ authorId: context.tenant }) };
+        return { orm: { Post: db.orm.Post.where({ authorId: context.tenant }) } };
       },
     });
     const Post = builder.prismaObject('Post', {
@@ -240,10 +238,12 @@ describe('fallback loading through collections', () => {
   });
 });
 
-describe('provider failures', () => {
-  it('fails each parent whose row the provider excludes', async () => {
+describe('client failures', () => {
+  const clientWith = (orm: object) => () => ({ orm });
+
+  it('fails each parent whose row the client excludes', async () => {
     const result = await run(
-      schema({ collections: { Post: db.orm.Post.where({ authorId: 'u-alice' }) } }),
+      schema({ client: clientWith({ Post: db.orm.Post.where({ authorId: 'u-alice' }) }) }),
       '{ posts { nobody { id } alice { name } } }',
     );
     expect(result.errors?.map((error) => error.path)).toEqual([
@@ -255,20 +255,20 @@ describe('provider failures', () => {
     );
   });
 
-  it('reports a missing provider entry for every parent without hanging the batch', async () => {
+  it('reports a missing collection for every parent without hanging the batch', async () => {
     const result = await run(
-      schema({ collections: {} }),
+      schema({ client: clientWith({ User: db.orm.User }) }),
       '{ posts { nobody { id } alice { name } } }',
     );
     expect(result.errors).toHaveLength(4);
     expect(
-      result.errors?.every((error) => /Missing prismaNext.collections entry/.test(error.message)),
+      result.errors?.every((error) => /has no collection for 'Post'/.test(error.message)),
     ).toBe(true);
   });
 
-  it('rejects a paginated provider before executing a truncated batch', async () => {
+  it('rejects a paginated collection before executing a truncated batch', async () => {
     const result = await run(
-      schema({ collections: { Post: db.orm.Post.limit(1) } }),
+      schema({ client: clientWith({ Post: db.orm.Post.limit(1) }) }),
       '{ posts { nobody { id } alice { name } } }',
     );
     expect(result.errors).toHaveLength(4);
@@ -279,7 +279,7 @@ describe('provider failures', () => {
 
 describe('provenance', () => {
   it('does not let a reloaded row claim coverage for a sibling resolved later', async () => {
-    const builder = createBuilder({ collections: db.orm });
+    const builder = createBuilder();
     const User = builder.prismaObject('User', {
       fields: (t) => ({ name: t.exposeString('firstName') }),
     });
@@ -301,7 +301,7 @@ describe('provenance', () => {
   });
 
   it('keeps different field definitions apart, and batches repeated paths and parents', async () => {
-    const builder = createBuilder({ collections: db.orm });
+    const builder = createBuilder();
     const One = builder.prismaObject('User', {
       variant: 'One',
       fields: (t) => ({ count: t.relationCount('posts', { where: { published: 1 } }) }),
@@ -341,7 +341,7 @@ describe('provenance', () => {
   });
 
   it('keeps nested field definitions apart while merging the same outer relation', async () => {
-    const builder = createBuilder({ collections: db.orm });
+    const builder = createBuilder();
     const User = builder.prismaObject('User', {
       fields: (t) => ({
         published: t.relationCount('posts', { where: { published: 1 } }),
@@ -371,7 +371,7 @@ describe('provenance', () => {
   });
 
   it('batches function selections with different args per connection path', async () => {
-    const builder = createBuilder({ collections: db.orm });
+    const builder = createBuilder();
     const User = builder.prismaObject('User', {
       fields: (t) => ({
         count: t.relationCount('posts', {
@@ -421,7 +421,7 @@ describe('provenance', () => {
 
 describe('type prerequisites', () => {
   it('batches a field override that conflicts with its type select across parents', async () => {
-    const builder = createBuilder({ collections: db.orm });
+    const builder = createBuilder();
     builder.prismaObject('Post', {
       select: { title: true, author: { where: { firstName: 'Alice' } } },
       fields: (t) => ({
@@ -453,7 +453,7 @@ describe('type prerequisites', () => {
   });
 
   it('batches conflicting same-row variant prerequisites independently', async () => {
-    const builder = createBuilder({ collections: db.orm });
+    const builder = createBuilder();
     const BobPost = builder.prismaObject('Post', {
       variant: 'BobPost',
       select: { author: { where: { firstName: 'Bob' } } },
@@ -517,7 +517,7 @@ describe('deferred fragments', () => {
   });
 
   it('keeps path-local aliases apart when deferred selections are loaded', async () => {
-    const builder = createBuilder({ collections: db.orm });
+    const builder = createBuilder();
     builder.prismaObject('User', {
       fields: (t) => ({
         published: t.relationCount('posts', { where: { published: 1 } }),

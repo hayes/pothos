@@ -12,7 +12,7 @@ declare const orm: { User: CollectionFor<Types, 'User'>; Post: CollectionFor<Typ
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
-  prismaNext: { contract: null as never },
+  prismaNext: { client: null as never },
 });
 
 const SummaryRef = builder.prismaObject('Post', {
@@ -88,20 +88,7 @@ builder.queryType({
     }),
     nullableCursor: t.prismaConnection({
       type: 'Post',
-      cursor: [
-        {
-          field: 'score',
-          nulls: 'first',
-          codec: {
-            encode: (value) => {
-              expectTypeOf(value).toEqualTypeOf<number>();
-              return String(value);
-            },
-            decode: Number,
-          },
-        },
-        'id',
-      ],
+      cursor: [{ field: 'score', nulls: 'first' }, 'id'],
       resolve: () => orm.Post,
     }),
     nullable: t.prismaConnection({
@@ -149,70 +136,36 @@ builder.queryType({
   }),
 });
 
-// Object-valued and bytes columns: a Temporal column needs a codec; bytes can't order a cursor.
+// Cursor values use the client's column codecs, so Temporal columns need nothing extra; bytes
+// columns can't order a cursor.
 declare const client: PostgresClient<PostgresContract>;
 const postgres = new SchemaBuilder<{ PrismaNextContract: PostgresContract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
-  prismaNext: { contract: null as never, context: client.context },
-});
-new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
-  prismaNext: {
-    contract: null as never,
-    // @ts-expect-error a client's context holds contractCodecs
-    context: {},
-  },
+  prismaNext: { client },
 });
 postgres.queryType({
   fields: (t) => ({
-    column: t.prismaConnection({
+    temporal: t.prismaConnection({
       type: 'Entry',
-      cursor: [{ field: 'createdAt', codec: 'column' }, 'id'],
-      resolve: () => client.orm.public.Entry,
-    }),
-    explicit: t.prismaConnection({
-      type: 'Entry',
-      cursor: [
-        {
-          field: 'createdAt',
-          codec: {
-            encode: (value) => value.toZonedDateTimeISO('UTC').toString(),
-            decode: (value) => globalThis.Temporal.Instant.from(value),
-          },
-        },
-        'id',
-      ],
+      cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
       resolve: () => client.orm.public.Entry,
     }),
     bare: t.prismaConnection({
       type: 'Entry',
-      // @ts-expect-error a Temporal column needs a codec
       cursor: ['createdAt', 'id'],
       resolve: () => client.orm.public.Entry,
     }),
-    missingCodec: t.prismaConnection({
+    codec: t.prismaConnection({
       type: 'Entry',
-      // @ts-expect-error the codec property is required for a Temporal column
-      cursor: [{ field: 'createdAt' }, 'id'],
-      resolve: () => client.orm.public.Entry,
-    }),
-    wrongCodec: t.prismaConnection({
-      type: 'Entry',
-      // @ts-expect-error only 'column' names a built-in codec
-      cursor: [{ field: 'createdAt', codec: 'columns' }, 'id'],
+      // @ts-expect-error cursor columns take no codec
+      cursor: [{ field: 'createdAt', codec: 'column' }, 'id'],
       resolve: () => client.orm.public.Entry,
     }),
     bytes: t.prismaConnection({
       type: 'Entry',
       // @ts-expect-error a bytes column can't order a cursor
       cursor: ['payload', 'id'],
-      resolve: () => client.orm.public.Entry,
-    }),
-    bytesWithCodec: t.prismaConnection({
-      type: 'Entry',
-      // @ts-expect-error a bytes column can't order a cursor, even with a codec
-      cursor: [{ field: 'payload', codec: 'column' }, 'id'],
       resolve: () => client.orm.public.Entry,
     }),
   }),

@@ -23,7 +23,7 @@ Return an unpaginated Collection. The plugin adds the selection for `edges.node`
 orders and pages it by the cursor, and builds the connection.
 
 - `cursor`: a column, or a list of columns compared in order. Each entry is a column name or
-  `{ field, direction, nulls, codec }`. The columns must include a complete non-null primary or
+  `{ field, direction, nulls }`. The columns must include a complete non-null primary or
   unique key, so add `id` as a tie-breaker after non-unique or nullable columns.
 - `orderBy`: `(model, args, ctx) => ordering`, to choose directions per request.
 - `defaultSize` / `maxSize`: page sizes, defaulting to the plugin's
@@ -53,27 +53,8 @@ orderBy: (post, args) => (args.newest ? post.createdAt.desc() : post.createdAt.a
 resolve: (_root, _args, ctx) => ctx.db.orm.Post,
 ```
 
-Strings, numbers, bigints, and dates work as cursor values without configuration. For
-object-valued columns such as Temporal values, set the plugin's `context` option and use
-`codec: 'column'`, or pass your own codec:
-
-```ts
-cursor: [{ field: 'createdAt', direction: 'desc', codec: 'column' }, 'id'],
-```
-
-```ts
-cursor: [
-  {
-    field: 'createdAt',
-    direction: 'desc',
-    codec: {
-      encode: (value) => value.toString(),
-      decode: (value) => Temporal.Instant.from(value),
-    },
-  },
-  'id',
-],
-```
+Cursor values are encoded with the client's column codecs, so any orderable column works,
+including Temporal and decimal columns. Bytes columns can't be cursor columns.
 
 A Collection that is already ordered must match the start of the cursor's order for the requested
 direction, because Prisma can't reset an ordering. Reverse it yourself for backward pages, or use

@@ -39,7 +39,6 @@ builder.prismaObject('User', {
 
 builder.prismaNode('Post', {
   id: { field: 'id' },
-  collection: (ctx) => ctx.db.orm.Post,
   fields: (t) => ({
     title: t.exposeString('title'),
     author: t.relation('author'),
