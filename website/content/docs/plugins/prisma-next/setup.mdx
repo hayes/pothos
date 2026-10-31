@@ -10,8 +10,8 @@ npm install --save @pothos/plugin-prisma-next
 ```
 
 Install the Prisma framework and SQL family at the supported version, plus the runtime for your
-database, such as `@prisma/orm-postgres` or `@prisma/orm-sqlite`. The plugin requires Node.js 24
-or later.
+database, such as `@prisma/orm-postgres` or `@prisma/orm-sqlite`. The plugin requires Node.js
+22.18 or a later 22.x release, or Node.js 24 or later.
 
 ```sh
 npm install @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22 @prisma/orm-sqlite@8.0.0-rc.22
@@ -20,10 +20,27 @@ npm install @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22
 `@pothos/plugin-relay` and `@pothos/plugin-with-input` are optional. Install them to use nodes and
 connections, or `t.prismaFieldWithInput`.
 
-### Prisma CLI toolchain
+### Prisma CLI
 
-The current `prisma` CLI bundles `@prisma/orm-toolchain@8.0.0-rc.21`, and `prisma contract emit`
-fails against the rc.22 ORM packages. Override the toolchain version, for example with pnpm:
+Install the `prisma` CLI as a dev dependency. The CLI is versioned separately from the ORM
+packages; the plugin is tested with `prisma@8.0.0-rc.29`:
+
+```sh
+npm install --save-dev prisma@8.0.0-rc.29
+```
+
+That CLI depends on `@prisma/orm-toolchain@8.0.0-rc.21`, and `prisma contract emit` fails against
+the rc.22 ORM packages. Override the toolchain version in `package.json`. With npm:
+
+```json
+{
+  "overrides": {
+    "@prisma/orm-toolchain": "8.0.0-rc.22"
+  }
+}
+```
+
+With pnpm:
 
 ```json
 {
@@ -35,9 +52,12 @@ fails against the rc.22 ORM packages. Override the toolchain version, for exampl
 }
 ```
 
-With the override, the scaffold's `temporal.UpdatedAtString` field does not emit; replace it in
-the scaffolded contract. Don't downgrade the ORM packages instead: Prisma refuses to run with two
-copies of the ORM installed.
+Yarn uses `resolutions` with the same entry. Don't downgrade the ORM packages instead: Prisma
+refuses to run with two copies of the ORM installed.
+
+Start from `prisma orm init`, for example `npx prisma orm init --target postgres`. It scaffolds a
+contract and a `prisma.config.ts` that exports `definePrismaConfig(...)`, which the CLI requires;
+a Prisma 7 style config is rejected.
 
 ## Configure the builder
 
@@ -123,12 +143,30 @@ prismaNext: {
 - `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes, overridden per
   field with `defaultSize` and `maxSize`.
 
+## With scope-auth
+
+The [scope-auth plugin](../scope-auth#plugin-order) is usually listed first, so its checks run
+before this plugin loads anything a field is missing. A type's `authScopes` function, and a
+field's, then receives the parent as its resolver returned it. Rows loaded by `t.prismaField`,
+relations, connections and other planned fields include the columns from the type's `select`,
+but a row returned from a plain `t.field`, such as `{ id }`, does not: the plugin reloads it only
+after scope-auth has run, so the columns read in `authScopes` can be `undefined`, and a check such
+as `user.role !== 'banned'` passes.
+
+- Don't rely on `select` columns in `authScopes` for a type that can be returned from a resolver
+  this plugin doesn't plan. Return rows from `t.prismaField` or relations, or return complete
+  rows, and write checks that fail closed on a missing value (`user.role === 'member'`).
+- Alternatively, list `prismaNextPlugin` before `ScopeAuthPlugin`. The parent is then reloaded
+  before `authScopes` runs, so the columns are there, but the reload query runs even when the
+  check denies access.
+
 ## Databases
 
 - **PostgreSQL and SQLite** are supported.
 - **MySQL** supports reads only. Its contracts have no aggregates, so `totalCount: true`,
   `t.relationCount`, and `t.relationAggregate` are type errors, and Prisma's writes require a
-  `returning` capability MySQL lacks.
+  `returning` capability MySQL lacks. MySQL is not covered by CI: its tests run only when a MySQL
+  database is configured locally.
 - **MongoDB** is not supported, and is rejected when the schema is built.
 
 ## Namespaced models
@@ -179,5 +217,7 @@ callback returns.
 
 - Set `PrismaNextContract` on the builder's types. Without it, model names autocomplete to a
   message explaining what to configure.
+- Use `"moduleResolution": "nodenext"` or `"bundler"`. Prisma's ORM packages are ESM-only, so
+  `node16` in a CommonJS project fails to typecheck the plugin's and the emitted contract's types.
 - Temporal columns need global Temporal types. On TypeScript versions without them, install
   `temporal-spec` and add `import type {} from 'temporal-spec/global'`.

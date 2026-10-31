@@ -257,19 +257,21 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
       continue;
     }
 
-    const types = fragmentTypesOf(plan, type, fragment);
+    const { types, expansion } = fragmentTypesOf(plan, type, fragment);
     // A fragment on an abstract type of no model enters its implementations only if it selects
-    // fields of its own; nested fragments are classified separately.
-    const enters =
-      !isExpansion(plan, type, fragment) || selectsFields(fragment.selectionSet.selections);
+    // fields of its own. One that does not stays on `type`, so a fragment nested in it is
+    // classified against `type` exactly as it would be without the wrapper.
+    const enters = !expansion || selectsFields(fragment.selectionSet.selections);
 
-    for (const as of types) {
-      if (as !== type && enters) {
-        enterVariant(plan, type, as);
+    if (enters) {
+      for (const as of types) {
+        if (as !== type) {
+          enterVariant(plan, type, as);
+        }
       }
     }
 
-    for (const as of types.length > 0 ? types : [type]) {
+    for (const as of enters && types.length > 0 ? types : [type]) {
       enterVariants(plan, as, fragment.selectionSet.selections, visited);
     }
   }
@@ -303,7 +305,7 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
       continue;
     }
 
-    const types = fragmentTypesOf(plan, type, fragment);
+    const { types } = fragmentTypesOf(plan, type, fragment);
 
     for (const as of types.length > 0 ? types : [type]) {
       walkSelections(
@@ -342,31 +344,27 @@ function applicableFragment<Model, Query, NodeType extends NodeBase<Model>>(
  * so a fragment on any other object type cannot apply to them. An interface accepts a fragment on
  * an interface it implements, walked as itself, and a fragment on another type of the same model,
  * walked as that type, so that type's own selection is planned for the rows that resolve to it.
- * A fragment on an abstract type of no model (`... on Node` beneath a model interface) is walked
- * as each implementation of `type` it contains.
+ * A fragment on an abstract type of no model (`... on Node` beneath a model interface) is an
+ * expansion: it is walked as each implementation of `type` it contains.
  */
 function fragmentTypesOf<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   type: WalkedType,
   fragment: Fragment,
-): WalkedType[] {
+): { types: WalkedType[]; expansion: boolean } {
   if (!fragment.typeCondition) {
-    return [type];
+    return { types: [type], expansion: false };
   }
 
   const { schema } = plan.info;
   const condition = schema.getType(fragment.typeCondition.name.value)!;
 
-  if (condition === type) {
-    return [type];
-  }
-
-  if (isAbstractType(condition) && schema.isSubType(condition, type)) {
-    return [type];
+  if (condition === type || (isAbstractType(condition) && schema.isSubType(condition, type))) {
+    return { types: [type], expansion: false };
   }
 
   if (!isInterfaceType(type)) {
-    return [];
+    return { types: [], expansion: false };
   }
 
   const model = plan.adapter.modelFor(type);
@@ -375,36 +373,22 @@ function fragmentTypesOf<Model, Query, NodeType extends NodeBase<Model>>(
     (isObjectType(condition) || isInterfaceType(condition)) &&
     plan.adapter.modelFor(condition) === model
   ) {
-    return [condition];
+    return { types: [condition], expansion: false };
   }
 
   if (isAbstractType(condition)) {
-    return schema
-      .getPossibleTypes(type)
-      .filter(
-        (possible) =>
-          schema.isSubType(condition, possible) && plan.adapter.modelFor(possible) === model,
-      );
+    return {
+      types: schema
+        .getPossibleTypes(type)
+        .filter(
+          (possible) =>
+            schema.isSubType(condition, possible) && plan.adapter.modelFor(possible) === model,
+        ),
+      expansion: plan.adapter.modelFor(condition) !== model,
+    };
   }
 
-  return [];
-}
-
-function isExpansion<Model, Query, NodeType extends NodeBase<Model>>(
-  plan: Plan<Model, Query, NodeType>,
-  type: WalkedType,
-  fragment: Fragment,
-): boolean {
-  if (!fragment.typeCondition || !isInterfaceType(type)) {
-    return false;
-  }
-  const condition = plan.info.schema.getType(fragment.typeCondition.name.value)!;
-  return (
-    condition !== type &&
-    isAbstractType(condition) &&
-    !plan.info.schema.isSubType(condition, type) &&
-    plan.adapter.modelFor(condition) !== plan.adapter.modelFor(type)
-  );
+  return { types: [], expansion: false };
 }
 
 function selectsFields(selections: readonly SelectionNode[]): boolean {

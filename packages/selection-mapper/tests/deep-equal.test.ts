@@ -64,4 +64,58 @@ describe('deepEqual', () => {
     expect(deepEqual(new Point(1), new Point(1))).toBe(true);
     expect(deepEqual(new Point(1), new Point(2))).toBe(false);
   });
+
+  it('compares opaque instances symmetrically, and only with the same prototype', () => {
+    // An `equals` that accepts property bags, like Temporal's.
+    class Bag {
+      #year: number;
+      constructor(year: number) {
+        this.#year = year;
+      }
+      valueOf(): never {
+        throw new TypeError('use equals');
+      }
+      equals(other: { year?: number }) {
+        return other instanceof Bag ? this.#year === other.#year : other?.year === this.#year;
+      }
+    }
+    class Other {
+      valueOf(): never {
+        throw new TypeError('use equals');
+      }
+      equals() {
+        return true;
+      }
+    }
+
+    expect(deepEqual(new Bag(2020), { year: 2020 })).toBe(false);
+    expect(deepEqual({ year: 2020 }, new Bag(2020))).toBe(false);
+    expect(deepEqual(new Other(), new Bag(2020))).toBe(false);
+    expect(deepEqual(new Bag(2020), new Other())).toBe(false);
+    expect(deepEqual(new Bag(2020), new Bag(2020))).toBe(true);
+  });
+
+  it('compares typed arrays by type and bytes', () => {
+    expect(deepEqual(new Uint8Array([1, 2]), new Uint8Array([1, 2]))).toBe(true);
+    expect(deepEqual(new Uint8Array([1, 2]), new Uint8Array([1, 3]))).toBe(false);
+    expect(deepEqual(new Uint8Array([1, 2]), new Uint8Array([1, 2, 3]))).toBe(false);
+    expect(deepEqual(new Uint8Array([1, 2]), new Int8Array([1, 2]))).toBe(false);
+    expect(deepEqual(new Uint8Array([1, 2]), { 0: 1, 1: 2 })).toBe(false);
+    expect(deepEqual(new Uint8Array([0, 1, 2]).subarray(1), new Uint8Array([1, 2]))).toBe(true);
+
+    const big = new Uint8Array(4_000_000);
+    expect(deepEqual(big, new Uint8Array(4_000_000))).toBe(true);
+  });
+
+  it('compares cyclic values without overflowing the stack', () => {
+    const left: Record<string, unknown> = { x: 1 };
+    left.self = left;
+    const right: Record<string, unknown> = { x: 1 };
+    right.self = right;
+    const different: Record<string, unknown> = { x: 2 };
+    different.self = different;
+
+    expect(deepEqual(left, right)).toBe(true);
+    expect(deepEqual(left, different)).toBe(false);
+  });
 });
