@@ -96,6 +96,15 @@ describe('models sharing a name across namespaces', () => {
     );
   });
 
+  it('rejects a qualified name in a namespace without that model', () => {
+    const builder = createBuilder();
+    builder.prismaObject('nsc.User' as never, { fields: () => ({}) });
+    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    expect(() => builder.toSchema()).toThrow(
+      "Model 'nsc.User' not found in the prismaNext contract.",
+    );
+  });
+
   it('rejects a qualified name for a model only one namespace has', () => {
     const builder = createBuilder();
     builder.prismaObject('nsa.Post' as never, { fields: () => ({}) });

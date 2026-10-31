@@ -359,6 +359,56 @@ describe('page sizes', () => {
     });
   });
 
+  it.each([
+    [
+      'a zero maxConnectionSize',
+      { maxConnectionSize: 0 },
+      {},
+      /maxSize must be a positive integer, got 0/,
+    ],
+    [
+      'a negative defaultSize',
+      {},
+      { defaultSize: -1 },
+      /defaultSize must be a positive integer, got -1/,
+    ],
+    ['a fractional maxSize', {}, { maxSize: 1.5 }, /maxSize must be a positive integer, got 1.5/],
+  ])('rejects %s when the schema is built', (_name, options, sizes, message) => {
+    const builder = createBuilder(options);
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaConnection({
+          type: 'Post',
+          cursor: 'id',
+          ...sizes,
+          resolve: () => db.orm.Post,
+        }),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow(message);
+  });
+
+  it('rejects a size callback result that is not a positive integer before SQL', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaConnection({
+          type: 'Post',
+          cursor: 'id',
+          defaultSize: () => Number.NaN,
+          resolve: () => db.orm.Post,
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ posts { edges { node { id } } } }');
+    expect(result.errors?.[0].message).toBe(
+      'Connection defaultSize callback must return a positive integer, got NaN.',
+    );
+    expect(result.statements).toHaveLength(0);
+  });
+
   it('applies per-field sizes to related connections', async () => {
     const result = await query(
       '{ users { a: sized { nodes { id } } b: sized(first: 5) { nodes { id } } } }',
@@ -439,12 +489,11 @@ describe('base collections', () => {
     ['distinct', () => db.orm.Post.distinct('title'), /distinct/],
   ])('rejects a base with %s before SQL', async (_name, base, message) => {
     const statements: CapturedExecution[] = [];
-    await withCapture(statements, () => {
-      expect(() => helper().applyPagination(base() as never, { first: 1 }, undefined, {})).toThrow(
-        message,
-      );
-      return Promise.resolve();
-    });
+    await withCapture(statements, () =>
+      expect(
+        helper().applyPagination(base() as never, { first: 1 }, undefined, {}),
+      ).rejects.toThrow(message),
+    );
     expect(statements).toHaveLength(0);
   });
 
@@ -474,12 +523,11 @@ describe('base collections', () => {
     ],
   ])('rejects a base ordered by %s instead of silently reordering', async (_name, base, args) => {
     const statements: CapturedExecution[] = [];
-    await withCapture(statements, () => {
-      expect(() => helper().applyPagination(base() as never, args, undefined, {})).toThrow(
+    await withCapture(statements, () =>
+      expect(helper().applyPagination(base() as never, args, undefined, {})).rejects.toThrow(
         /must match a prefix/,
-      );
-      return Promise.resolve();
-    });
+      ),
+    );
     expect(statements).toHaveLength(0);
   });
 

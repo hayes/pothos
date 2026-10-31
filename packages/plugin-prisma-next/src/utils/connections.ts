@@ -1,9 +1,17 @@
-import { ObjectRef, PothosValidationError, type SchemaTypes } from '@pothos/core';
+import {
+  ObjectRef,
+  PothosSchemaError,
+  PothosValidationError,
+  type SchemaTypes,
+} from '@pothos/core';
 import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextConfig } from './config.js';
 
 type SizeOption = number | ((args: never, ctx: never) => number);
+
+const isPageSize = (size: unknown): size is number =>
+  Number.isInteger(size) && (size as number) > 0;
 
 /** Any selection besides `totalCount` (including extension fields) loads rows. */
 export function connectionNeedsRows(context: object, info: GraphQLResolveInfo): boolean {
@@ -24,13 +32,36 @@ export function connectionSettings<Count extends (...args: never[]) => unknown>(
     totalCount,
   }: { defaultSize?: SizeOption; maxSize?: SizeOption; totalCount?: boolean | Count },
 ) {
-  const resolve = (option: SizeOption | undefined, args: object, ctx: object) =>
-    typeof option === 'function' ? option(args as never, ctx as never) : option;
+  for (const [name, size] of [
+    ['defaultSize', defaultSize ?? config.defaultConnectionSize],
+    ['maxSize', maxSize ?? config.maxConnectionSize],
+  ] as const) {
+    if (typeof size === 'number' && !isPageSize(size)) {
+      throw new PothosSchemaError(`Connection ${name} must be a positive integer, got ${size}.`);
+    }
+  }
+  const resolve = (
+    name: string,
+    option: SizeOption | undefined,
+    args: object,
+    ctx: object,
+  ): number | undefined => {
+    if (typeof option !== 'function') {
+      return option;
+    }
+    const size = option(args as never, ctx as never);
+    if (!isPageSize(size)) {
+      throw new PothosValidationError(
+        `Connection ${name} callback must return a positive integer, got ${size}.`,
+      );
+    }
+    return size;
+  };
   return {
     sizes(args: object, ctx: object): { defaultSize?: number; maxSize?: number } {
       const sizes = {
-        defaultSize: resolve(defaultSize, args, ctx) ?? config.defaultConnectionSize,
-        maxSize: resolve(maxSize, args, ctx) ?? config.maxConnectionSize,
+        defaultSize: resolve('defaultSize', defaultSize, args, ctx) ?? config.defaultConnectionSize,
+        maxSize: resolve('maxSize', maxSize, args, ctx) ?? config.maxConnectionSize,
       };
       return {
         ...(sizes.defaultSize === undefined ? {} : { defaultSize: sizes.defaultSize }),

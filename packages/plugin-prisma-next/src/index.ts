@@ -30,8 +30,8 @@ import {
   PRISMA_NEXT_SELECT,
 } from './constants.js';
 import { getPluginConfig } from './utils/config.js';
-import { rootModelKey } from './utils/contract.js';
-import { getIdentityFields, getModel } from './utils/model.js';
+import { assertContractModel, rootModelKey } from './utils/contract.js';
+import { getIdentityFields, getModel, type PrismaNextModel } from './utils/model.js';
 import {
   compileFieldSelect,
   type PrismaNextQuery,
@@ -123,8 +123,14 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (model === undefined) {
       return typeConfig;
     }
-    // Fails the schema build for a contract the planner can't represent.
-    getModel(contract, model);
+    // Fails the schema build for a model or contract the planner can't represent.
+    assertContractModel(contract, model);
+    const ownSelect = typeConfig.extensions?.[PRISMA_NEXT_SELECT] as RawSelect | undefined;
+    if (ownSelect) {
+      validateStaticSelect(ownSelect, getModel(contract, model), typeConfig.name);
+    } else {
+      getModel(contract, model);
+    }
     return {
       ...typeConfig,
       extensions: { ...typeConfig.extensions, [PRISMA_NEXT_MODEL]: model },
@@ -152,14 +158,17 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       select?: Parameters<typeof compileFieldSelect>[1];
     };
     const exposed = extensions.pothosExposedField;
+    const model = getModel(this.config.contract, modelName);
+    if (select !== undefined && typeof select !== 'function') {
+      validateStaticSelect(select, model, `${declaring.name}.${fieldConfig.name}`);
+    } else if (typeof exposed === 'string' && model.columns && !model.columns.has(exposed)) {
+      throw new PothosSchemaError(
+        `Field '${declaring.name}.${fieldConfig.name}' exposes '${exposed}', which is not a column on model ${model.name}.`,
+      );
+    }
     const selection =
       select !== undefined
-        ? compileFieldSelect(
-            this.config.contract,
-            select,
-            getModel(this.config.contract, modelName),
-            declaring.name,
-          )
+        ? compileFieldSelect(this.config.contract, select, model, declaring.name)
         : typeof exposed === 'string'
           ? { columns: [exposed] }
           : declaring.extensions?.[PRISMA_NEXT_SELECT]
@@ -287,6 +296,25 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         .loadSelection(info, parent)
         .then((loadedRow) => resolver(view(loadedRow.row, loadedRow.mapping), args, context, info));
     };
+  }
+}
+
+/** What a static `select` names is checked when the schema is built, not on first use. */
+function validateStaticSelect(raw: RawSelect, model: PrismaNextModel, owner: string) {
+  const { columns, relations } = splitSelect(raw, model);
+  for (const column of columns) {
+    if (model.columns && !model.columns.has(column)) {
+      throw new PothosSchemaError(
+        `select on '${owner}': '${column}' is not a column or relation on model ${model.name}.`,
+      );
+    }
+  }
+  for (const [name, value] of relations) {
+    if (typeof value === 'function' && !model.relations[name]!.isToMany) {
+      throw new PothosSchemaError(
+        `select on '${owner}': the function form of to-one relation '${name}' requires combine(), which the ORM supports only for to-many relations. Use a relation field with query options or a declarative select instead.`,
+      );
+    }
   }
 }
 

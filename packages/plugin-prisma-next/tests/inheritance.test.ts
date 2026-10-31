@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import { loadContract, run, useDatabase } from './fixtures/helpers';
 import type { Contract } from './inheritance/contract';
 
@@ -361,5 +361,57 @@ describe('native model inheritance', () => {
     expect(() => builder.toSchema()).toThrow(
       /t\.relation\('reviews'\) on 'User' targets model 'Bug' but its type is backed by model 'Feature'/,
     );
+  });
+
+  it('rejects a relation typed as a model outside its hierarchy', () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const user = builder.prismaObject('User', {
+      fields: (t) => ({ email: t.exposeString('email') }),
+    });
+    builder.prismaObjectField('User', 'tasks', (t) => t.relation('tasks', { type: user as never }));
+    builder.queryType({
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+    });
+    expect(() => builder.toSchema()).toThrow(
+      /t\.relation\('tasks'\) on 'User' targets model 'Task' but its type is backed by unrelated model 'User'/,
+    );
+  });
+
+  it.each([
+    [
+      'names no variant',
+      { id: 't9', title: 'plain', type: 'task' },
+      /type="task", which names no variant of model 'Task'/,
+    ],
+    ['was loaded without', { id: 't1', title: 'bug1' }, /loaded without its discriminator 'type'/],
+  ])('reports an interface row whose discriminator %s', async (_name, row, message) => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const task = builderTask(builder);
+    builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    builder.queryType({
+      fields: (t) => ({ task: t.field({ type: task, resolve: () => row as never }) }),
+    });
+    const result = await run(builder.toSchema(), '{ task { title } }');
+    expect(result.errors?.[0].message).toMatch(message);
+  });
+
+  it("encodes a column a variant keeps in its own table through that column's codec", async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: db.client },
+    });
+    const pages = prismaConnectionHelpers(builder, 'Feature', { cursor: ['priority', 'id'] });
+    const page = await pages.applyPagination(db.orm.Task.variant('feature'), {}, undefined, {});
+    // The integer codec refuses a value it doesn't hold; without it the value encodes as is.
+    expect(() => page.wrap([{ id: 't2', priority: { value: 'opaque' } } as never])).toThrow();
+    expect(page.wrap([{ id: 't2', priority: 5 } as never]).edges).toHaveLength(1);
   });
 });

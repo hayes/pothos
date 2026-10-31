@@ -103,6 +103,23 @@ describe('cursor values', () => {
     expect(seen).toEqual(['n-3', 'n-6', 'n-2', 'n-5', 'n-1', 'n-4']);
   });
 
+  it('issues only cursors it accepts back, up to the size cap', async () => {
+    const { read, cursorOf } = pages('id');
+    // `PNC:S:` and 1530 characters is 1536 bytes: exactly 2048 characters of base64.
+    const atCap = await cursorOf({ id: 'x'.repeat(1530) });
+    expect(atCap).toHaveLength(2048);
+    expect((await read(db.orm.Post, { first: 1, after: atCap })).edges).toEqual([]);
+    await expect(cursorOf({ id: 'x'.repeat(1531) })).rejects.toThrow(
+      'Cannot encode a cursor over id: it is 2052 characters, over the 2048-character limit for cursors.',
+    );
+  });
+
+  it('refuses to encode a row missing a cursor column, but encodes a null', async () => {
+    const { cursorOf } = pages(['score', 'id']);
+    await expect(cursorOf({ score: 1 })).rejects.toThrow(/missing cursor column 'id'/);
+    await expect(cursorOf({ id: 'p', score: null })).resolves.toEqual(expect.any(String));
+  });
+
   it('refuses to encode a value its column codec does not hold', async () => {
     class Instant {}
     const { cursorOf } = pages(['createdAt', 'id']);
