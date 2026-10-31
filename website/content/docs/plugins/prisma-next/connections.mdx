@@ -73,6 +73,8 @@ Limitations:
 - A nullable column's existing ordering must state its null placement, such as
   `post.score.desc({ nulls: 'last' })`.
 - Bytes columns can't be cursor columns.
+- An encoded cursor can be at most 2048 characters, about 1.5 KB of raw column values. Selecting
+  the cursor of a row with longer values fails that field; pages that don't select it still work.
 - Cursors come from clients. A cursor value whose type doesn't match its column isn't rejected;
   it only changes the page returned to that client.
 

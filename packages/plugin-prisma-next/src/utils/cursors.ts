@@ -258,9 +258,10 @@ export function encodeNodeId(
     payload.startsWith('S:') && !payload.startsWith(`S:${ID_PREFIX}`)
       ? payload.slice(2)
       : `${ID_PREFIX}${payload}`;
+  // Measured after tagging, as parseNodeId measures what comes back.
   if (id.length > PAYLOAD_MAX_LENGTH) {
     throw new PothosValidationError(
-      `prismaNode '${modelName}' ID is ${id.length} characters, over the ${PAYLOAD_MAX_LENGTH}-character limit for IDs it can load back.`,
+      `prismaNode '${modelName}' ID is ${id.length} characters once encoded${id.startsWith(ID_PREFIX) ? ` (tagged with '${ID_PREFIX}')` : ''}, over the ${PAYLOAD_MAX_LENGTH}-character limit for IDs it can load back.`,
     );
   }
   return id;
@@ -557,7 +558,10 @@ export interface ConnectionPage<Row> {
   totalCount?: number;
 }
 
-/** Edge cursors are lazy, non-enumerable getters, so selecting only `nodes` skips encoding. */
+/**
+ * Cursors are encoded lazily (edge cursors are non-enumerable getters, `pageInfo`'s are
+ * enumerable ones), so a selection without them skips encoding.
+ */
 export function buildConnectionPage<Row extends Record<string, unknown>>(
   rows: readonly Row[],
   pagination: CursorPaginationParams,
@@ -583,9 +587,14 @@ export function buildConnectionPage<Row extends Record<string, unknown>>(
 
   return {
     edges,
+    // Lazy too, so a row whose cursor can't be encoded only fails a client that selects it.
     pageInfo: {
-      startCursor: edges[0]?.cursor ?? null,
-      endCursor: edges[edges.length - 1]?.cursor ?? null,
+      get startCursor() {
+        return edges[0]?.cursor ?? null;
+      },
+      get endCursor() {
+        return edges[edges.length - 1]?.cursor ?? null;
+      },
       hasPreviousPage: pagination.hasPreviousPage(rows.length),
       hasNextPage: pagination.hasNextPage(rows.length),
     },

@@ -22,6 +22,7 @@ import type {
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import { aggregateCount, connectionSettings } from './utils/connections.js';
+import { assertVariantCollection } from './utils/contract.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
@@ -199,6 +200,7 @@ export function prismaConnectionHelpers<
     info: GraphQLResolveInfo | undefined,
     ctx: Types['Context'],
   ) {
+    assertVariantCollection(config.contract, modelName, collection as never);
     const filteredBase = (options.where === undefined
       ? collection
       : (collection as unknown as MapperCollection).where(

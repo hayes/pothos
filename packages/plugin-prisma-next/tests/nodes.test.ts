@@ -3,7 +3,14 @@ import RelayPlugin from '@pothos/plugin-relay';
 import { execute, type GraphQLObjectType, parse } from 'graphql';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import prismaNextPlugin from '../src';
-import { createBuilder, globalId, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
+import {
+  createBuilder,
+  globalId,
+  run,
+  sampleContract,
+  useCollisionDb,
+  useSampleDb,
+} from './fixtures/helpers';
 
 const db = useSampleDb();
 
@@ -127,11 +134,40 @@ describe('Relay nodes', () => {
     builder.queryType({
       fields: (t) => ({
         person: t.field({ type: Person, resolve: () => ({ id: 'x'.repeat(2049) }) as never }),
+        tagged: t.field({
+          type: Person,
+          resolve: () => ({ id: `PNI:${'x'.repeat(2039)}` }) as never,
+        }),
       }),
     });
     const result = await run(builder.toSchema(), '{ person { id } }');
     expect(result.errors?.[0].message).toBe(
-      "prismaNode 'User' ID is 2049 characters, over the 2048-character limit for IDs it can load back.",
+      "prismaNode 'User' ID is 2049 characters once encoded, over the 2048-character limit for IDs it can load back.",
+    );
+    // A string that looks tagged is tagged itself, which the message says.
+    const tagged = await run(builder.toSchema(), '{ tagged { id } }');
+    expect(tagged.errors?.[0].message).toBe(
+      "prismaNode 'User' ID is 2049 characters once encoded (tagged with 'PNI:'), over the 2048-character limit for IDs it can load back.",
+    );
+  });
+
+  it('explains a missing contextValue when encoding an ID', async () => {
+    const builder = createBuilder({ client: () => db.client, contract: sampleContract });
+    const Person = builder.prismaNode('User', {
+      id: { field: 'id' },
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        person: t.field({ type: Person, resolve: () => ({ id: 'u-alice' }) as never }),
+      }),
+    });
+    const result = await execute({
+      schema: builder.toSchema(),
+      document: parse('{ person { id } }'),
+    });
+    expect(result.errors?.[0].message).toMatch(
+      /^@pothos\/plugin-prisma-next requires an object contextValue \(resolving 'User\.id'\)/,
     );
   });
 

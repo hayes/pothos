@@ -8,6 +8,7 @@ import type {
   PrismaNextRequestClient,
 } from '../types.js';
 import { type MapperCollection, PrismaNextAdapter } from './adapter.js';
+import { isPageSize } from './connections.js';
 import { collectionForModel, relatedModelKey, rootModelKey } from './contract.js';
 import { type FieldCodecs, getColumnCodec } from './model.js';
 
@@ -63,6 +64,13 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
       `The prismaNext contract targets the '${String(family)}' family, but @pothos/plugin-prisma-next only supports SQL contracts. ` +
         'Selection planning needs refined and combined relation includes, which that family does not provide.',
     );
+  }
+
+  for (const name of ['defaultConnectionSize', 'maxConnectionSize'] as const) {
+    const size = options[name];
+    if (size !== undefined && !isPageSize(size)) {
+      throw new PothosSchemaError(`prismaNext.${name} must be a positive integer, got ${size}.`);
+    }
   }
 
   const client: (ctx: object) => RequestClient =

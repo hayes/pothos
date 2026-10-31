@@ -16,12 +16,14 @@ import { PrismaNextObjectRef } from './object-ref.js';
 import { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 import type { ModelName, PrismaNextObjectOptions } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { getPluginConfig } from './utils/config.js';
+import { assertContextObject, getPluginConfig } from './utils/config.js';
 import {
   assertContractModel,
+  assertVariantCollection,
   defaultTypeName,
   modelDiscriminator,
   resolveContractModel,
+  rootModelKey,
 } from './utils/contract.js';
 import { encodeNodeId, parseNodeId } from './utils/cursors.js';
 import { getModelUniqueKeys } from './utils/model.js';
@@ -268,8 +270,10 @@ schemaBuilderProto.prismaNode = function prismaNode<
         : () => collectionOpt as MapperCollection;
   const parseId =
     idOpts.parse ??
-    ((id: string, ctx: Types['Context']) =>
-      parseNodeId(nodeModelName, idFields, id, config.codecs(ctx, nodeModelName)));
+    ((id: string, ctx: Types['Context']) => {
+      assertContextObject(ctx);
+      return parseNodeId(nodeModelName, idFields, id, config.codecs(ctx, nodeModelName));
+    });
   const nodeRef = new PrismaNextNodeRef<Types, M, unknown, unknown>(typeName, modelName, {
     parseId,
   });
@@ -281,7 +285,12 @@ schemaBuilderProto.prismaNode = function prismaNode<
       extensions: { [PRISMA_NEXT_FIELD_SELECT]: { columns: idFields } },
       ...(idOpts.description !== undefined ? { description: idOpts.description } : {}),
       parse: parseId,
-      resolve: (parent: unknown, _args: object, ctx: Types['Context']) => {
+      resolve: (
+        parent: unknown,
+        _args: object,
+        ctx: Types['Context'],
+        info?: GraphQLResolveInfo,
+      ) => {
         if (idOpts.resolve) {
           return idOpts.resolve(parent, ctx);
         }
@@ -294,6 +303,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
               )
             : String(values[0]);
         }
+        assertContextObject(ctx, info);
         return encodeNodeId(nodeModelName, idFields, row, config.codecs(ctx, nodeModelName));
       },
     },
@@ -303,15 +313,23 @@ schemaBuilderProto.prismaNode = function prismaNode<
           `prismaNode '${nodeModelName}' composite ID expected ${idFields.length} values, got ${Array.isArray(id) ? id.length : 'a non-array value'}.`,
         );
       }
-      return config
-        .loader(context, nodeModelName)
-        .loadNode(
-          info,
-          typeName,
-          idFields,
-          isComposite ? (id as unknown[]) : [id],
-          collection && (() => collection(context)),
-        );
+      return config.loader(context, nodeModelName).loadNode(
+        info,
+        typeName,
+        idFields,
+        isComposite ? (id as unknown[]) : [id],
+        collection &&
+          (() => {
+            const found = collection(context);
+            // The loader narrows a root collection to the node's variant itself.
+            assertVariantCollection(
+              contract,
+              rootModelKey(contract, nodeModelName),
+              found as never,
+            );
+            return found;
+          }),
+      );
     },
   });
 

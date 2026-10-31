@@ -255,6 +255,29 @@ describe('models validated when the schema is built', () => {
     );
     expect(result.statements).toHaveLength(0);
   });
+
+  it('rejects a Collection of another model in prismaConnectionHelpers', async () => {
+    const helper = prismaConnectionHelpers(createBuilder(), 'Post', { cursor: 'id' });
+    await expect(
+      helper.applyPagination(db.orm.User as never, { first: 1 }, undefined, {}),
+    ).rejects.toThrow("Fields returning model 'Post' must return a Collection of that model");
+  });
+
+  it('rejects a Collection of another model from a prismaNode collection option', async () => {
+    const builder = createBuilder();
+    builder.prismaNode('User', {
+      id: { field: 'id' },
+      collection: () => db.orm.Post as never,
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    const id = Buffer.from('User:u-alice').toString('base64');
+    const result = await run(builder.toSchema(), `{ node(id: "${id}") { id } }`);
+    expect(result.errors?.[0].message).toBe(
+      "Fields returning model 'User' must return a Collection of that model, not orm.Post.",
+    );
+    expect(result.statements).toHaveLength(0);
+  });
 });
 
 describe('contracts', () => {

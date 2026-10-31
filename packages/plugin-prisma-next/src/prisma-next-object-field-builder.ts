@@ -47,7 +47,12 @@ import type {
 } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
-import { connectionNeedsRows, connectionSettings, relatedCount } from './utils/connections.js';
+import {
+  argsKey,
+  connectionNeedsRows,
+  connectionSettings,
+  relatedCount,
+} from './utils/connections.js';
 import {
   collectionForModel,
   relationVariant,
@@ -626,16 +631,19 @@ export class PrismaNextObjectFieldBuilder<
     // What depends on the request (the cursor arguments, and the size, `where` and `orderBy`
     // callbacks) is checked once per request and set of arguments, which every parent row shares,
     // by building the page on the related model's collection without running it.
-    const planErrors = createContextCache(() => new Map<string, { error: unknown } | null>());
+    // Keyed on the args object too, so a row's LOADED check and resolve serialize it once.
+    const planErrors = createContextCache(() => ({
+      byValue: new Map<string, { error: unknown } | null>(),
+      byArgs: new WeakMap<object, { error: unknown } | null>(),
+    }));
     const planError = (args: object, ctx: object) => {
-      const errors = planErrors(ctx);
-      let key: string | undefined;
-      try {
-        key = JSON.stringify(args);
-      } catch {
-        key = undefined;
+      const { byValue, byArgs } = planErrors(ctx);
+      let failure = byArgs.get(args);
+      if (failure !== undefined) {
+        return failure;
       }
-      let failure = key === undefined ? undefined : errors.get(key);
+      const key = argsKey(args);
+      failure = key === undefined ? undefined : byValue.get(key);
       if (failure === undefined) {
         failure = null;
         try {
@@ -657,9 +665,10 @@ export class PrismaNextObjectFieldBuilder<
           failure = { error };
         }
         if (key !== undefined) {
-          errors.set(key, failure);
+          byValue.set(key, failure);
         }
       }
+      byArgs.set(args, failure);
       return failure;
     };
     // A request that can't be planned plans nothing, so the error surfaces on this field when it
