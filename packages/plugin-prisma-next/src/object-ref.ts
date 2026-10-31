@@ -9,6 +9,12 @@ import type { ModelName, Row } from './types.js';
 
 export const prismaModelKey = Symbol.for('Pothos.prismaNextModelKey');
 
+type WithBrand<T> = T & { [typeBrandKey]: string };
+// The index signature keeps a shape of optional keys alone (a type without `select`) from being a
+// weak type, which a row sharing none of its keys would fail.
+type Brandable<Shape> = Shape & Record<string, unknown>;
+type Branded<V> = V extends readonly unknown[] ? { [K in keyof V]: WithBrand<V[K]> } : WithBrand<V>;
+
 export class PrismaNextObjectRef<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -16,7 +22,7 @@ export class PrismaNextObjectRef<
 > extends ObjectRef<Types, Shape> {
   declare readonly [prismaModelKey]: M;
 
-  declare readonly [abstractReturnShapeKey]: Shape & { [typeBrandKey]: string };
+  declare readonly [abstractReturnShapeKey]: WithBrand<Shape>;
 
   readonly modelName: M;
 
@@ -25,15 +31,12 @@ export class PrismaNextObjectRef<
     this.modelName = modelName;
   }
 
-  addBrand<V extends Shape | Shape[]>(value: V): V {
-    if (Array.isArray(value)) {
-      for (const v of value) {
-        brandWithType(v as object, this.name as never);
-      }
-      return value;
+  /** Brands rows (or a list of them) as this type, for abstract positions such as unions. */
+  addBrand<V extends Brandable<Shape> | readonly Brandable<Shape>[]>(value: V): Branded<V> {
+    for (const row of Array.isArray(value) ? value : [value]) {
+      brandWithType(row as object, this.name as never);
     }
-    brandWithType(value as object, this.name as never);
-    return value;
+    return value as Branded<V>;
   }
 
   hasBrand(value: unknown) {

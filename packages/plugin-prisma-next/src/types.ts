@@ -35,6 +35,7 @@ import type {
   ModelCallbackTools,
   NumericFieldNames,
   OrderableFieldNames,
+  RelationPredicate,
   ShorthandWhereFilter,
 } from '@prisma/orm-family-sql/orm-client';
 import type { Contract } from '@prisma/orm-framework/contract/types';
@@ -402,21 +403,13 @@ export type DefaultRelationNullable<
       ? Nullable
       : true;
 
+/** A relation's `where`: a shorthand filter object, or the ORM's predicate callback. */
+export type RelationWhere<Types extends SchemaTypes, M extends ModelName<Types>> =
+  | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>
+  | RelationPredicate<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>;
+
 export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
-  where?:
-    | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>
-    | ((
-        accessor: ModelAccessor<
-          Types['PrismaNextContract'],
-          BareModelName<M>,
-          NamespaceOf<Types, M>
-        >,
-        tools: ModelCallbackTools<
-          Types['PrismaNextContract'],
-          BareModelName<M>,
-          NamespaceOf<Types, M>
-        >,
-      ) => unknown);
+  where?: RelationWhere<Types, M>;
   orderBy?: (
     accessor: ModelAccessor<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
     tools: ModelCallbackTools<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
