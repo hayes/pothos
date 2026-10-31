@@ -1,7 +1,8 @@
 import SchemaBuilder from '@pothos/core';
 import { execute, parse } from 'graphql';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import prismaNextPlugin from '../src';
+import { PrismaNextAdapter } from '../src/utils/adapter';
 import {
   createBuilder,
   deferSchema,
@@ -682,7 +683,7 @@ describe('models without a key', () => {
 });
 
 describe('fallback isolation', () => {
-  function isolationSchema() {
+  function isolationSchema(calls = { ok: 0, guarded: 0, refined: 0 }) {
     const builder = createBuilder<{ allow?: boolean }>();
     const User = builder.prismaObject('User', {
       fields: (t) => ({
@@ -693,14 +694,34 @@ describe('fallback isolation', () => {
             where: args.published == null ? undefined : { published: args.published },
           }),
         }),
+        ok: t.relationCount('posts', {
+          nullable: true,
+          where: (post) => {
+            calls.ok += 1;
+            return post.published.eq(1);
+          },
+        }),
         guarded: t.relationCount('posts', {
           nullable: true,
           where: (post, _args, ctx) => {
+            calls.guarded += 1;
             if (!ctx.allow) {
               throw new Error('not allowed');
             }
             return post.published.eq(1);
           },
+        }),
+        guardedPosts: t.relation('posts', {
+          nullable: true,
+          query: (_args, ctx) => ({
+            where: (post) => {
+              calls.refined += 1;
+              if (!ctx.allow) {
+                throw new Error('posts not allowed');
+              }
+              return post.published.eq(1);
+            },
+          }),
         }),
       }),
     });
@@ -715,6 +736,52 @@ describe('fallback isolation', () => {
     });
     return builder.toSchema();
   }
+
+  /** Sheets resolved by hand, so each field loads through its own fallback plan. */
+  function sheetSchema(sheets: { id: unknown }[], calls = { rows: 0 }) {
+    const builder = new SchemaBuilder<{
+      Context: { allow?: boolean };
+      PrismaNextContract: typeof collision.contract;
+    }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: collision.client },
+    });
+    const Sheet = builder.prismaObject('Sheet', {
+      fields: (t) => ({
+        name: t.exposeString('name', { nullable: true }),
+        rowCount: t.relationCount('rows', {
+          nullable: true,
+          where: (row) => {
+            calls.rows += 1;
+            return row.label.eq('r10');
+          },
+        }),
+        noteCount: t.relationCount('notes', {
+          nullable: true,
+          where: (note, _args, ctx) => {
+            if (!ctx.allow) {
+              throw new Error('notes not allowed');
+            }
+            return note.id.eq(20);
+          },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        sheets: t.field({ type: [Sheet], resolve: () => sheets as never }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  /** The errors as path and message, in path order. */
+  const errorsOf = (result: {
+    errors?: readonly { path?: readonly unknown[]; message: string }[];
+  }) =>
+    result.errors
+      ?.map((error) => [error.path?.join('.') ?? '', error.message] as const)
+      .sort(([a], [b]) => a.localeCompare(b));
 
   it('plans each execution sharing a context with its own variables', async () => {
     const schema = isolationSchema();
@@ -740,6 +807,115 @@ describe('fallback isolation', () => {
       { name: 'Alice', guarded: null },
       { name: 'Bob', guarded: null },
     ]);
+  });
+
+  it('runs the callbacks of plans merged with a failing one once, in one statement', async () => {
+    const calls = { ok: 0, guarded: 0, refined: 0 };
+    const result = await run(
+      isolationSchema(calls),
+      '{ plainUsers { name ok guarded guardedPosts { id } } }',
+    );
+    expect(errorsOf(result)).toEqual([
+      ['plainUsers.0.guarded', 'not allowed'],
+      ['plainUsers.0.guardedPosts', 'posts not allowed'],
+      ['plainUsers.1.guarded', 'not allowed'],
+      ['plainUsers.1.guardedPosts', 'posts not allowed'],
+    ]);
+    expect(result.data.plainUsers).toEqual([
+      { name: 'Alice', ok: 1, guarded: null, guardedPosts: null },
+      { name: 'Bob', ok: 1, guarded: null, guardedPosts: null },
+    ]);
+    expect(calls).toEqual({ ok: 1, guarded: 1, refined: 1 });
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('loads every merged plan in one statement when no callback throws', async () => {
+    const calls = { ok: 0, guarded: 0, refined: 0 };
+    const result = await run(
+      isolationSchema(calls),
+      '{ plainUsers { name ok guarded guardedPosts { id } } }',
+      { context: { allow: true } },
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.plainUsers).toEqual([
+      { name: 'Alice', ok: 1, guarded: 1, guardedPosts: [{ id: 'p-hello' }] },
+      { name: 'Bob', ok: 1, guarded: 1, guardedPosts: [{ id: 'p-bob1' }] },
+    ]);
+    expect(calls).toEqual({ ok: 1, guarded: 1, refined: 1 });
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('issues no statement when the codecs reject every parent', async () => {
+    const result = await run(sheetSchema([{ id: '1' }]), '{ sheets { name rowCount } }');
+    expect(result.data.sheets).toEqual([{ name: null, rowCount: null }]);
+    expect(result.errors?.map((error) => error.path?.join('.'))).toEqual([
+      'sheets.0.name',
+      'sheets.0.rowCount',
+    ]);
+    expect(result.statements).toHaveLength(0);
+  });
+
+  it('isolates a failing callback in a batch with a parent the codecs reject', async () => {
+    const calls = { rows: 0 };
+    const result = await run(
+      sheetSchema([{ id: 1 }, { id: '1' }], calls),
+      '{ sheets { name rowCount noteCount } }',
+    );
+    expect(result.data.sheets).toEqual([
+      { name: 's1', rowCount: 1, noteCount: null },
+      { name: null, rowCount: null, noteCount: null },
+    ]);
+    expect(errorsOf(result)?.map(([path]) => path)).toEqual([
+      'sheets.0.noteCount',
+      'sheets.1.name',
+      'sheets.1.noteCount',
+      'sheets.1.rowCount',
+    ]);
+    expect(errorsOf(result)?.[0]).toEqual(['sheets.0.noteCount', 'notes not allowed']);
+    expect(calls.rows).toBe(1);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('retries each plan alone when the merged query fails outside a callback', async () => {
+    const emit = PrismaNextAdapter.prototype.emit;
+    const spy = vi.spyOn(PrismaNextAdapter.prototype, 'emit').mockImplementation(function (
+      this: PrismaNextAdapter,
+      ...args
+    ) {
+      if (Object.keys(args[1].computed ?? {}).some((key) => key.startsWith('notes'))) {
+        throw new Error('cannot build notes');
+      }
+      return emit.apply(this, args);
+    });
+    try {
+      const calls = { rows: 0 };
+      const result = await run(
+        sheetSchema([{ id: 1 }, { id: '1' }], calls),
+        '{ sheets { name rowCount noteCount } }',
+        { context: { allow: true } },
+      );
+      expect(result.data.sheets).toEqual([
+        { name: 's1', rowCount: 1, noteCount: null },
+        { name: null, rowCount: null, noteCount: null },
+      ]);
+      expect(errorsOf(result)).toEqual([
+        ['sheets.0.noteCount', 'cannot build notes'],
+        ['sheets.1.name', expect.any(String)],
+        ['sheets.1.noteCount', expect.any(String)],
+        ['sheets.1.rowCount', expect.any(String)],
+      ]);
+      // The rejected parent was dropped before the retry: it is reported once per field.
+      expect(
+        errorsOf(result)
+          ?.slice(1)
+          .map(([, message]) => message),
+      ).not.toContain('cannot build notes');
+      expect(calls.rows).toBe(1);
+      // One statement each for the two plans that build.
+      expect(result.statements).toHaveLength(2);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('fails only the parent whose identity the codecs reject', async () => {

@@ -364,9 +364,10 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ viewer: { username: expect.stringMatching(/^@./) } });
+      // Named narrows the nested fragment to NormalViewer, so its type-level select is entered.
       expect(drizzleLogs).toMatchInlineSnapshot(`
         [
-          "Query: select "d0"."id" as "id", "d0"."username" as "username" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+          "Query: select "d0"."id" as "id", "d0"."first_name" as "firstName", "d0"."username" as "username" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
         ]
       `);
     });

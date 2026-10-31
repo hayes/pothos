@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { Position, SelectFn, WalkedType } from '../src';
 import { getLoaderMapping, Plan } from '../src';
 import {
+  createModels,
+  createSchema,
   FakeAdapter,
   type FakeMap,
   mappingOf,
@@ -601,7 +603,7 @@ describe('fragments', () => {
     expect(getLoaderMapping(context, pathOf('person', 'name'), 'Viewer')).toBeNull();
   });
 
-  it('enters a variant nested in a model-less abstract fragment as it does without the wrapper', async () => {
+  it('enters a variant nested in a model-less abstract fragment that selects no fields', async () => {
     const plan = async (query: string) =>
       queryFromInfo(adapter, { context: {}, info: await resolveInfo(schema, query) });
 
@@ -615,6 +617,49 @@ describe('fragments', () => {
     expect(await plan('{ person { ... on Node { ... on Viewer { email } } } }')).toEqual(
       await plan('{ person { ... on Viewer { email } } }'),
     );
+  });
+
+  it('enters only the variants a field-less model-less fragment narrows a nested fragment to', async () => {
+    // Person is implemented by User (Node and Named), Viewer and Admin (Named only), and Viewer
+    // and Admin have conflicting type-level selections. `... on Named` nested in `... on Node`
+    // can only apply to User, so neither Viewer nor Admin is entered.
+    const narrowModels = createModels('User', 'Post');
+    narrowModels.User.relations = { posts: narrowModels.Post };
+    const narrowSchema = createSchema(
+      /* GraphQL */ `
+        type Query { person: Person }
+        interface Node { id: ID }
+        interface Named { name: String }
+        interface Person { id: ID, posts(take: Int): [Post] }
+        type User implements Person & Node & Named { id: ID, name: String, posts(take: Int): [Post] }
+        type Viewer implements Person & Named { id: ID, name: String, posts(take: Int): [Post] }
+        type Admin implements Person & Named { id: ID, name: String, posts(take: Int): [Post] }
+        type Post { id: ID }
+      `,
+      {
+        User: { model: 'User' },
+        Viewer: { model: 'User', select: { select: { id: true, posts: { take: 5 } } } },
+        Admin: { model: 'User', select: { select: { posts: { take: 1 } } } },
+        Person: { model: 'User', select: { select: { id: true } } },
+        Post: { model: 'Post' },
+      },
+    );
+    const narrowAdapter = new FakeAdapter(narrowModels);
+    const plan = async (query: string) =>
+      queryFromInfo(narrowAdapter, { context: {}, info: await resolveInfo(narrowSchema, query) });
+    const direct = await plan('{ person { ... on User { name } } }');
+
+    expect(await plan('{ person { ... on Node { ... on Named { name } } } }')).toEqual(direct);
+    expect(
+      await plan(
+        'query { person { ...F } } fragment F on Node { ...G } fragment G on Named { name }',
+      ),
+    ).toEqual(direct);
+    expect(await plan('{ person { ... on Node { ... { ... on Named { name } } } } }')).toEqual(
+      direct,
+    );
+    // Without the narrowing wrapper, both Viewer and Admin are entered and conflict.
+    await expect(plan('{ person { ... on Named { name } } }')).rejects.toThrow(/conflict/);
   });
 
   it('walks a fragment on an interface the type implements as the type', async () => {
