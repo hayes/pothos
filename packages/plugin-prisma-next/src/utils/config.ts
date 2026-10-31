@@ -129,7 +129,6 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
       return (field) => getColumnCodec(contract, context, modelName, field);
     },
     loader: (ctx, modelName) => {
-      assertContextObject(ctx);
       const byModel = loaders(ctx);
       let loader = byModel.get(modelName);
       if (!loader) {

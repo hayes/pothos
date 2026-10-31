@@ -9,7 +9,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextObjectRef } from './object-ref.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { getPluginConfig } from './utils/config.js';
+import { assertContextObject, getPluginConfig } from './utils/config.js';
 import { assertVariantCollection } from './utils/contract.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
@@ -56,6 +56,7 @@ function prismaFieldConfig(
     ...options,
     type: isList ? [ref] : ref,
     resolve: async (parent: unknown, args: unknown, context: object, info: GraphQLResolveInfo) => {
+      assertContextObject(context, info);
       const collection = await resolve(parent, args, context, info);
       if (collection == null) {
         return collection;
