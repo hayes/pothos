@@ -15,7 +15,6 @@ import type {
 import type { PothosPrismaNextPlugin } from './index.js';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type {
-  ExactSelectCheck,
   FieldParentShape,
   InterfaceSelectShape,
   ModelInterfaceRefKey,
@@ -23,7 +22,7 @@ import type {
   ObjectBaseShape,
   ParamToModelName,
   ParamToTypeParam,
-  SelectColumnCheck,
+  SelectCheck,
   SelectObjectSpec,
   ShapeFromObjectSelect,
 } from './internal-types.js';
@@ -68,12 +67,7 @@ type FieldParam<Types extends SchemaTypes> =
  */
 type TypeSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = {
   select?: (readonly (keyof Row<Types, M> & string)[] | SelectObjectSpec<Types, M>) &
-    NoInfer<
-      ExactSelectCheck<Types, M, Select> &
-        (Select extends readonly unknown[]
-          ? { readonly [K in keyof Select]: SelectColumnCheck<Types, M, Select[K]> }
-          : unknown)
-    >;
+    NoInfer<SelectCheck<Types, M, Select>>;
 };
 
 /** Node IDs must load back as the same row, so they can't use a nullable column. */
