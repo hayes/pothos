@@ -180,7 +180,6 @@ export class PrismaNextObjectFieldBuilder<
     ResolveReturnShape,
     Name extends ExposableColumn<Types, ExposableShape, Type, Nullable>,
   >(
-    // Positional so `Name extends ExposableColumn<…>` is inferred from the call site.
     name: Name,
     ...args: NormalizeArgs<
       [

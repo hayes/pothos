@@ -136,11 +136,10 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
    * a relation or computed entry conflicting with what is already there is set aside, and the
    * fields that interface declares carry it instead, so they load separately.
    *
-   * An interface also loads what its implementations' selections need, since a row loaded as the
-   * interface reaches their `isTypeOf`, type-level auth and fields without a fragment entering
-   * them: their columns, to-many relations and computed values (planned into the implementation's
-   * own slots), and to-one relations, which the ORM includes once, so implementations must agree on
-   * one the interface doesn't select.
+   * An interface also loads its implementations' selections, since its rows reach their
+   * `isTypeOf`, auth and fields without a fragment. To-many relations and computed values go in
+   * each implementation's own slots; the ORM includes a to-one relation once, so implementations
+   * must agree on any the interface doesn't select.
    */
   private typeSelectionOf(type: GraphQLNamedType) {
     let selection = this.typeSelections.get(type);
