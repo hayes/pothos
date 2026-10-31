@@ -71,12 +71,14 @@ builder.prismaObject('Org', {
   fields: (t) => ({
     users: t.relatedConnection('users', {
       cursor: 'id',
-      orderBy: (user) => user.orgId.asc(),
-      where: (user, _args, _ctx, tools) => {
-        expectTypeOf(tools).toEqualTypeOf<ModelCallbackTools<Contract, 'User', 'nsa'>>();
-        // @ts-expect-error `name` is a column of the other namespace's User
-        user.name;
-        return user.orgId.eq(1);
+      query: {
+        orderBy: (user) => user.orgId.asc(),
+        where: (user, tools) => {
+          expectTypeOf(tools).toEqualTypeOf<ModelCallbackTools<Contract, 'User', 'nsa'>>();
+          // @ts-expect-error `name` is a column of the other namespace's User
+          user.name;
+          return user.orgId.eq(1);
+        },
       },
     }),
     userCount: t.relationCount('users', {
@@ -88,7 +90,7 @@ builder.prismaObject('Org', {
     badOrder: t.relatedConnection('users', {
       cursor: 'id',
       // @ts-expect-error `name` is a column of the other namespace's User
-      orderBy: (user) => user.name.asc(),
+      query: { orderBy: (user) => user.name.asc() },
     }),
   }),
 });
@@ -105,12 +107,12 @@ builder.queryType({
 });
 prismaConnectionHelpers(builder, 'nsa.User', {
   cursor: 'id',
-  where: (user) => user.orgId.eq(1),
+  query: { where: (user) => user.orgId.eq(1) },
 });
 prismaConnectionHelpers(builder, 'nsb.User', {
   cursor: 'id',
   // @ts-expect-error `orgId` belongs to the other namespace's User
-  where: (user) => user.orgId.eq(1),
+  query: { where: (user) => user.orgId.eq(1) },
 });
 
 // Every generated namespace reference relocated, so default-namespace assumptions can't pass.
@@ -137,10 +139,12 @@ const tenant = new SchemaBuilder<{ PrismaNextContract: TenantContract }>({
 expectTypeOf<Row<TenantTypes, 'Post'>['score']>().toEqualTypeOf<number | null>();
 prismaConnectionHelpers(tenant, 'Post', {
   cursor: 'id',
-  where: (post) => {
-    // @ts-expect-error accessors keep numeric scalar types outside the default namespace
-    post.score.gt('not a number');
-    return post.score.gt(1.5);
+  query: {
+    where: (post) => {
+      // @ts-expect-error accessors keep numeric scalar types outside the default namespace
+      post.score.gt('not a number');
+      return post.score.gt(1.5);
+    },
   },
 });
 tenant.prismaObject('User', {

@@ -27,14 +27,35 @@ builder.prismaObject('User', {
       cursor: ['title', 'id'],
       type: SummaryRef,
       args: { newest: t.arg.boolean() },
-      where: (post, _args, _ctx) => post.authorId.eq('me'),
-      orderBy: (post, args) => {
+      query: (args, _ctx) => {
         expectTypeOf(args.newest).toEqualTypeOf<boolean | null | undefined>();
-        return post.title.desc();
+        return {
+          where: (post) => post.authorId.eq('me'),
+          orderBy: (post) => (args.newest ? post.title.desc() : post.title.asc()),
+        };
       },
       totalCount: (user) => user.email.length,
     }),
-    published: t.relatedConnection('posts', { cursor: 'id', where: { published: 1 } }),
+    published: t.relatedConnection('posts', { cursor: 'id', query: { where: { published: 1 } } }),
+    pair: t.relatedConnection('posts', {
+      cursor: ['title', 'id'],
+      query: { orderBy: [(post) => post.title.desc(), (post) => post.id.desc()] },
+    }),
+    notACondition: t.relatedConnection('posts', {
+      cursor: 'id',
+      // @ts-expect-error a where callback returns a condition
+      query: { where: () => 42 },
+    }),
+    unknownQueryKey: t.relatedConnection('posts', {
+      cursor: 'id',
+      // @ts-expect-error the connection args own the page size
+      query: { where: { published: 1 }, limit: 5 },
+    }),
+    topLevelWhere: t.relatedConnection('posts', {
+      cursor: 'id',
+      // @ts-expect-error filters go in `query`
+      where: { published: 1 },
+    }),
     // @ts-expect-error a connection requires a cursor
     missingCursor: t.relatedConnection('posts', {}),
     badCursor: t.relatedConnection('posts', {
@@ -49,7 +70,7 @@ builder.prismaObject('User', {
     notAnItem: t.relatedConnection('posts', {
       cursor: 'id',
       // @ts-expect-error orderBy returns order items, not a column
-      orderBy: (post) => post.id,
+      query: { orderBy: (post) => post.id },
     }),
     resolver: t.relatedConnection('posts', {
       cursor: 'id',
@@ -170,13 +191,51 @@ postgres.queryType({
   }),
 });
 
+// prismaConnectionHelpers options: refs, `query`, and callbacks that see the field's args.
+const UserNode = builder.prismaInterface('User', {
+  name: 'UserNode',
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
+const byInterface = prismaConnectionHelpers(builder, UserNode, { cursor: 'id' });
+expectTypeOf(byInterface.ref).toEqualTypeOf(UserNode);
+const byObject = prismaConnectionHelpers(builder, SummaryRef, { cursor: 'id' });
+expectTypeOf(byObject.ref).toEqualTypeOf(SummaryRef);
+prismaConnectionHelpers(builder, 'User', {
+  cursor: [{ field: 'firstName', direction: 'desc' }, 'id'],
+  args: (t) => ({ q: t.string(), size: t.int() }),
+  defaultSize: (args) => args.size ?? 10,
+  maxSize: (args, _ctx) => (args.q ? 5 : 50),
+  totalCount: (args) => (args.q ? 1 : 2),
+  query: (args) => ({
+    where: (user, tools) => {
+      expectTypeOf(tools).not.toBeAny();
+      return args.q ? user.firstName.eq(args.q) : user.id.neq('');
+    },
+    orderBy: (user) => user.firstName.asc(),
+  }),
+});
+prismaConnectionHelpers(builder, 'User', {
+  cursor: 'id',
+  // @ts-expect-error a where callback returns a condition
+  query: { where: () => 'oops' },
+});
+prismaConnectionHelpers(builder, 'User', {
+  // @ts-expect-error not a column of User
+  cursor: 'slug',
+});
+prismaConnectionHelpers(builder, 'User', {
+  cursor: 'id',
+  // @ts-expect-error filters go in `query`
+  where: { id: 'u' },
+});
+
 // prismaConnectionHelpers: `resolveNode` decides the node shape; cursors still read the rows.
 export async function helperShapes() {
   const wrapper = prismaConnectionHelpers(builder, 'User', {
     cursor: 'id',
     resolveNode: (user) => ({ user }),
   });
-  const page = await wrapper.applyPagination(orm.User, { first: 1 }, undefined, {});
+  const page = await wrapper.applyPagination(orm.User, { first: 1 }, {});
   const result = page.wrap(await page.collection.all());
   expectTypeOf(result.edges[0]!.node.user.id).toEqualTypeOf<string>();
   expectTypeOf(result.edges[0]!.cursor).toEqualTypeOf<string>();
@@ -188,16 +247,16 @@ export async function helperShapes() {
     resolveNode: (user): { kind: 'user'; user: typeof user } | { kind: 'empty' } =>
       user.firstName ? { kind: 'user', user } : { kind: 'empty' },
   });
-  const unionPage = await union.applyPagination(orm.User, { first: 1 }, undefined, {});
+  const unionPage = await union.applyPagination(orm.User, { first: 1 }, {});
   expectTypeOf(unionPage.wrap(await unionPage.collection.all()).edges[0]!.node.kind).toEqualTypeOf<
     'user' | 'empty'
   >();
 
   const plain = prismaConnectionHelpers(builder, 'User', {
     cursor: 'id',
-    where: (user) => user.firstName.eq('Alice'),
+    query: { where: (user) => user.firstName.eq('Alice') },
   });
-  const plainPage = await plain.applyPagination(orm.User, { first: 1 }, undefined, {});
+  const plainPage = await plain.applyPagination(orm.User, { first: 1 }, {});
   expectTypeOf(plainPage.wrap([{ id: 'a', firstName: 'Alice' }]).edges[0]!.node).toEqualTypeOf<{
     id: string;
     firstName: string;
@@ -211,7 +270,7 @@ export async function helperShapes() {
     cursor: 'id',
     resolveNode: (user) => ({ ...user, extra: 1 }),
   });
-  const spreadPage = await spreading.applyPagination(orm.User, { first: 1 }, undefined, {});
+  const spreadPage = await spreading.applyPagination(orm.User, { first: 1 }, {});
   // @ts-expect-error a spreading callback would claim columns these rows lack
   spreadPage.wrap(narrowRows);
   // @ts-expect-error the wrapper form would put the full row under `.user`
@@ -225,7 +284,7 @@ export async function helperShapes() {
     cursor: 'id',
     resolveNode: enabled ? (user) => ({ user }) : undefined,
   });
-  const conditionalPage = await conditional.applyPagination(orm.User, {}, undefined, {});
+  const conditionalPage = await conditional.applyPagination(orm.User, {}, {});
   const node = conditionalPage.wrap(await conditionalPage.collection.all()).edges[0]!.node;
   // @ts-expect-error the transform may not have run
   node.user;
@@ -239,7 +298,7 @@ export async function helperShapes() {
     cursor: 'id',
     resolveNode: (user) => user.firstName,
   });
-  const primitivePage = await primitive.applyPagination(orm.User, {}, undefined, {});
+  const primitivePage = await primitive.applyPagination(orm.User, {}, {});
   expectTypeOf(
     primitivePage.wrap(await primitivePage.collection.all()).edges[0]!.node,
   ).toEqualTypeOf<string>();
@@ -248,7 +307,7 @@ export async function helperShapes() {
     cursor: 'id',
     resolveNode: (user) => Promise.resolve({ user }),
   });
-  const promisedPage = await promised.applyPagination(orm.User, {}, undefined, {});
+  const promisedPage = await promised.applyPagination(orm.User, {}, {});
   const promisedNode = promisedPage.wrap(await promisedPage.collection.all()).edges[0]!.node;
   expectTypeOf((await promisedNode).user.id).toEqualTypeOf<string>();
 }

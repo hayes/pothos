@@ -203,9 +203,11 @@ describe('relation queries', () => {
         }),
         conn: t.relatedConnection('posts', {
           cursor: 'id',
-          where: (post, _args, _ctx, orm) => {
-            tools.connection = orm.fns;
-            return post.id.neq('x');
+          query: {
+            where: (post, orm) => {
+              tools.connection = orm.fns;
+              return post.id.neq('x');
+            },
           },
         }),
       }),

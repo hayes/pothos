@@ -1,5 +1,4 @@
 import {
-  createContextCache,
   decodeBase64,
   decodeCursorChunk,
   encodeBase64,
@@ -15,7 +14,6 @@ import { type AnyExpression, OrderByItem } from '@prisma/orm-family-sql/relation
 import type { AnyContract } from '../types.js';
 import type { MapperCollection } from './adapter.js';
 import { getCollectionPaginationState } from './collection-state.js';
-import { argsKey } from './connections.js';
 import { resolveContractModel } from './contract.js';
 import { type FieldCodecs, getModelUniqueKeys } from './model.js';
 
@@ -32,9 +30,10 @@ interface ComparableColumn {
 
 export type RequestOrderBy = (
   model: Record<string, ComparableColumn>,
+  tools: unknown,
 ) => OrderByItem | readonly OrderByItem[];
 
-export type CursorField =
+type CursorField =
   | string
   | {
       field: string;
@@ -44,23 +43,16 @@ export type CursorField =
     };
 export type CursorInput = CursorField | readonly CursorField[];
 
-function cursorFields(cursor: CursorInput): readonly CursorField[] {
-  return typeof cursor === 'string' || !Array.isArray(cursor) ? [cursor as CursorField] : cursor;
+/** A cursor column as `validateCursor` returns it. */
+interface CursorColumnOrder {
+  readonly field: string;
+  readonly direction: 'asc' | 'desc';
+  readonly nulls?: 'first' | 'last';
 }
 
-function fieldName(field: CursorField): string {
-  return typeof field === 'string' ? field : field.field;
-}
+export type CursorOrder = readonly CursorColumnOrder[];
 
-export function normalizeCursor(cursor: CursorInput): readonly string[] {
-  return cursorFields(cursor).map(fieldName);
-}
-
-function cursorDirections(cursor: CursorInput): readonly ('asc' | 'desc')[] {
-  return cursorFields(cursor).map((field) =>
-    typeof field === 'string' ? 'asc' : (field.direction ?? 'asc'),
-  );
-}
+export const cursorColumns = (order: CursorOrder): string[] => order.map(({ field }) => field);
 
 const BYTES_CODEC = /\/(bytea|bytes|blob)@/;
 
@@ -69,8 +61,10 @@ export function validateCursor(
   contract: AnyContract,
   modelName: string,
   cursor: CursorInput,
-): CursorInput {
-  const fields = normalizeCursor(cursor);
+): CursorOrder {
+  const entries = (Array.isArray(cursor) ? cursor : [cursor]) as readonly CursorField[];
+  const columns = entries.map((entry) => (typeof entry === 'string' ? { field: entry } : entry));
+  const fields = columns.map(({ field }) => field);
   if (!fields.length || new Set(fields).size !== fields.length) {
     throw new PothosSchemaError(
       'A connection cursor must contain distinct columns and cannot be empty.',
@@ -102,14 +96,10 @@ export function validateCursor(
       `Connection cursor for '${modelName}' must include every field of a non-null primary or unique key. Add a unique tie-breaker such as id.`,
     );
   }
-  return cursorFields(cursor).map((field) =>
-    model.fields[fieldName(field)]!.nullable
-      ? {
-          ...(typeof field === 'string' ? { field } : field),
-          nulls: typeof field === 'string' ? 'last' : (field.nulls ?? 'last'),
-        }
-      : field,
-  );
+  return columns.map(({ field, direction = 'asc', nulls }) => {
+    const placement = nulls ?? (model.fields[field]!.nullable ? 'last' : undefined);
+    return placement ? { field, direction, nulls: placement } : { field, direction };
+  });
 }
 
 /**
@@ -127,7 +117,6 @@ function encodeValues(fields: readonly string[], values: readonly unknown[], cod
   return encoded.length === 1 ? encodeCursorChunk(encoded[0]) : encodeCursorTuple(encoded);
 }
 
-// Messages never echo the payload, which logs often capture verbatim.
 interface DecodeErrors {
   payload(): Error;
   width(got: number): Error;
@@ -176,24 +165,14 @@ const CURSOR_PREFIX = 'PNC:';
  * `desc` with nulls last. A request's `orderBy` can change both, and the same values seek a
  * different position under another ordering.
  */
-export function cursorOrderingSignature(cursor: CursorInput): string {
-  return cursorFields(cursor)
-    .map((field) =>
-      typeof field === 'string'
-        ? 'a'
-        : `${field.direction === 'desc' ? 'd' : 'a'}${field.nulls ? field.nulls[0] : ''}`,
-    )
-    .join('');
+function orderingSignature(order: CursorOrder): string {
+  return order.map(({ direction, nulls }) => `${direction[0]}${nulls?.[0] ?? ''}`).join('');
 }
 
-export function encodeCursor(
-  cursor: CursorInput,
-  row: Record<string, unknown>,
-  codecs: FieldCodecs,
-): string {
-  const fields = normalizeCursor(cursor);
+function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: FieldCodecs) {
+  const fields = cursorColumns(order);
   const encoded = encodeBase64(
-    `${CURSOR_PREFIX}${cursorOrderingSignature(cursor)}:${encodeValues(
+    `${CURSOR_PREFIX}${orderingSignature(order)}:${encodeValues(
       fields,
       fields.map((field) => {
         // A null is a value; a missing column would encode as one and page from the wrong place.
@@ -219,13 +198,13 @@ export function encodeCursor(
  * `checkOrdering: false` accepts a cursor issued under any ordering, for a check made before a
  * request's `orderBy` is known; the page itself always checks it.
  */
-export function decodeCursor(
-  cursor: CursorInput,
+function decodeCursor(
+  order: CursorOrder,
   value: string,
   codecs: FieldCodecs,
   { checkOrdering = true }: { checkOrdering?: boolean } = {},
 ): Record<string, unknown> {
-  // The cursor is left out of messages, which logs often capture verbatim.
+  // Messages never echo the payload, which logs often capture verbatim.
   if (value.length > PAYLOAD_MAX_LENGTH) {
     throw new PothosValidationError(
       `Invalid cursor: longer than ${PAYLOAD_MAX_LENGTH} characters.`,
@@ -245,12 +224,12 @@ export function decodeCursor(
   if (separator === -1 || !/^(?:[ad][fl]?)+$/.test(signature)) {
     throw new PothosValidationError('Invalid cursor: payload is not a tagged cursor chunk.');
   }
-  if (checkOrdering && signature !== cursorOrderingSignature(cursor)) {
+  if (checkOrdering && signature !== orderingSignature(order)) {
     throw new PothosValidationError(
       'Invalid cursor: it was issued under a different ordering of this connection. Request the first page again with the new ordering.',
     );
   }
-  const fields = normalizeCursor(cursor);
+  const fields = cursorColumns(order);
   return decodeValues(fields, payload.slice(separator + 1), codecs, {
     payload: () =>
       new PothosValidationError('Invalid cursor: payload is not a tagged cursor chunk.'),
@@ -334,45 +313,43 @@ export function parseNodeId(
 
 // Lexicographic "row > cursor" as an OR-chain of equality-prefixed comparisons.
 function buildLexicographicPredicate(
-  cols: readonly string[],
+  order: CursorOrder,
   values: Record<string, unknown>,
   op: 'gt' | 'lt',
-  directions: readonly ('asc' | 'desc')[],
-  nulls: readonly ('first' | 'last' | undefined)[],
 ): (c: Record<string, ComparableColumn>) => unknown {
   return (c) => {
-    const clauses = cols.map((_, i) => {
-      const equalities = cols
+    const clauses = order.map(({ field, direction, nulls }, i) => {
+      const equalities = order
         .slice(0, i)
-        .map((col) => (values[col] === null ? c[col]!.isNull() : c[col]!.eq(values[col])));
-      const col = c[cols[i]!]!;
-      const v = values[cols[i]!];
-      const greater = (op === 'gt') !== (directions[i] === 'desc');
+        .map(({ field: prev }) =>
+          values[prev] === null ? c[prev]!.isNull() : c[prev]!.eq(values[prev]),
+        );
+      const col = c[field]!;
+      const v = values[field];
+      const greater = (op === 'gt') !== (direction === 'desc');
       // Null placement is independent of direction: a null boundary admits all non-null values
       // at this position or none.
-      const includesNull = (op === 'gt') === (nulls[i] === 'last');
-      const compFinal =
-        nulls[i] && v === null
-          ? includesNull
-            ? and(col.isNull() as never, col.isNotNull() as never)
-            : col.isNotNull()
-          : nulls[i] && includesNull
-            ? or((greater ? col.gt(v) : col.lt(v)) as never, col.isNull() as never)
-            : greater
-              ? col.gt(v)
-              : col.lt(v);
+      const includesNull = !!nulls && (op === 'gt') === (nulls === 'last');
+      let comparison: unknown;
+      if (v === null) {
+        // Only a column with a null placement accepts a null boundary (`decodeBoundary`).
+        comparison = includesNull
+          ? and(col.isNull() as never, col.isNotNull() as never)
+          : col.isNotNull();
+      } else {
+        const beyond = greater ? col.gt(v) : col.lt(v);
+        comparison = includesNull ? or(beyond as never, col.isNull() as never) : beyond;
+      }
       return equalities.length === 0
-        ? compFinal
-        : and(...(equalities as never[]), compFinal as never);
+        ? comparison
+        : and(...(equalities as never[]), comparison as never);
     });
     return clauses.length === 1 ? clauses[0] : or(...(clauses as never[]));
   };
 }
 
 export interface CursorPaginationParams {
-  cursor: CursorInput;
-  directions: readonly ('asc' | 'desc')[];
-  cols: readonly string[];
+  cursor: CursorOrder;
   before: string | undefined;
   after: string | undefined;
   limit: number;
@@ -383,18 +360,18 @@ export interface CursorPaginationParams {
   hasPreviousPage: (resultSize: number) => boolean;
 }
 
-export interface CursorPaginationResult<C extends MapperCollection> extends CursorPaginationParams {
+interface CursorPaginationResult<C extends MapperCollection> extends CursorPaginationParams {
   collection: C;
 }
 
-export interface PaginationOptions {
+interface PaginationOptions {
   codecs: FieldCodecs;
   defaultSize?: number;
   maxSize?: number;
 }
 
 export function buildPaginationParams(
-  cursor: CursorInput,
+  cursor: CursorOrder,
   args: PothosSchemaTypes.DefaultConnectionArguments,
   options: PaginationOptions,
 ): CursorPaginationParams {
@@ -406,8 +383,6 @@ export function buildPaginationParams(
     });
   return {
     cursor,
-    directions: cursorDirections(cursor),
-    cols: normalizeCursor(cursor),
     before,
     after,
     limit,
@@ -437,14 +412,13 @@ export function assertUnpaginatedCollection(collection: unknown): void {
 /** Columns the request's `orderBy` doesn't name keep their default direction and nulls. */
 function applyOrderByOption(
   base: MapperCollection,
-  cursor: CursorInput,
+  order: CursorOrder,
   orderBy: RequestOrderBy,
-): CursorInput {
-  const fields = cursorFields(cursor);
-  const cols = normalizeCursor(cursor);
+): CursorOrder {
+  const cols = cursorColumns(order);
   let items: readonly OrderByItem[] = [];
-  base.orderBy((c: Record<string, ComparableColumn>) => {
-    const selected = orderBy(c);
+  base.orderBy((c: Record<string, ComparableColumn>, tools: unknown) => {
+    const selected = orderBy(c, tools);
     items = selected instanceof OrderByItem ? [selected] : selected;
     if (
       items.length > cols.length ||
@@ -459,29 +433,27 @@ function applyOrderByOption(
     }
     return c[cols[0]!]!.asc();
   });
-  return fields.map((field, i) => {
+  return order.map((column, i) => {
     const item = items[i];
     if (!item) {
-      return field;
+      return column;
     }
-    const spec = typeof field === 'string' ? { field } : field;
-    const nulls = item.nulls ?? spec.nulls;
-    return { ...spec, direction: item.dir, ...(nulls ? { nulls } : {}) };
+    const nulls = item.nulls ?? column.nulls;
+    return { field: column.field, direction: item.dir, ...(nulls ? { nulls } : {}) };
   });
 }
 
 /** A null can only mark a position on a column the validated spec gave a null placement. */
 function decodeBoundary(
-  cursor: CursorInput,
+  order: CursorOrder,
   value: string,
   codecs: FieldCodecs,
   options?: { checkOrdering?: boolean },
 ): Record<string, unknown> {
-  const boundary = decodeCursor(cursor, value, codecs, options);
-  for (const field of cursorFields(cursor)) {
-    const col = fieldName(field);
-    if (boundary[col] === null && (typeof field === 'string' || !field.nulls)) {
-      throw invalidCursorValue(col);
+  const boundary = decodeCursor(order, value, codecs, options);
+  for (const { field, nulls } of order) {
+    if (boundary[field] === null && !nulls) {
+      throw invalidCursorValue(field);
     }
   }
   return boundary;
@@ -490,16 +462,17 @@ function decodeBoundary(
 function applyToCollection<C extends MapperCollection>(
   baseCollection: C,
   params: CursorPaginationParams,
+  checkOrdering: boolean,
 ): C {
-  const { cols, cursor, directions, before, after, limit, inverted, codecs } = params;
+  const { cursor, before, after, limit, inverted, codecs } = params;
 
-  const nulls = cursorFields(cursor).map((field) =>
-    typeof field === 'string' ? undefined : field.nulls,
+  const orderSelectors = cursor.map(
+    ({ field, direction, nulls }) =>
+      (c: Record<string, ComparableColumn>) => {
+        const forward = c[field]![direction](nulls ? { nulls } : undefined);
+        return inverted ? forward.reverse() : forward;
+      },
   );
-  const orderSelectors = cols.map((col, i) => (c: Record<string, ComparableColumn>) => {
-    const forward = c[col]![directions[i]!](nulls[i] ? { nulls: nulls[i]! } : undefined);
-    return inverted ? forward.reverse() : forward;
-  });
   // orderBy() appends and can't be reset, so only the entries missing from the existing
   // prefix are added.
   const existing = getCollectionPaginationState(baseCollection).orderBy;
@@ -527,22 +500,18 @@ function applyToCollection<C extends MapperCollection>(
   if (after) {
     collection = collection.where(
       buildLexicographicPredicate(
-        cols,
-        decodeBoundary(cursor, after, codecs),
+        cursor,
+        decodeBoundary(cursor, after, codecs, { checkOrdering }),
         'gt',
-        directions,
-        nulls,
       ),
     );
   }
   if (before) {
     collection = collection.where(
       buildLexicographicPredicate(
-        cols,
-        decodeBoundary(cursor, before, codecs),
+        cursor,
+        decodeBoundary(cursor, before, codecs, { checkOrdering }),
         'lt',
-        directions,
-        nulls,
       ),
     );
   }
@@ -554,7 +523,7 @@ function applyToCollection<C extends MapperCollection>(
  * run, so with one (`checkOrdering: false`) the page checks the cursor's ordering instead.
  */
 export function validateCursorArgs(
-  cursor: CursorInput,
+  cursor: CursorOrder,
   args: PothosSchemaTypes.DefaultConnectionArguments,
   codecs: FieldCodecs,
   options?: { checkOrdering?: boolean },
@@ -570,9 +539,13 @@ export function validateCursorArgs(
 
 export function applyCursorPagination<C extends MapperCollection>(
   baseCollection: C,
-  cursor: CursorInput,
+  cursor: CursorOrder,
   args: PothosSchemaTypes.DefaultConnectionArguments,
-  options: PaginationOptions & { orderBy?: RequestOrderBy | undefined },
+  options: PaginationOptions & {
+    orderBy?: RequestOrderBy | undefined;
+    /** False seeks with a cursor from any ordering, for a caller that checks it afterwards. */
+    checkOrdering?: boolean;
+  },
 ): CursorPaginationResult<C> {
   assertUnpaginatedCollection(baseCollection);
   const params = buildPaginationParams(
@@ -582,34 +555,7 @@ export function applyCursorPagination<C extends MapperCollection>(
   );
   return {
     ...params,
-    collection: applyToCollection(baseCollection, params),
-  };
-}
-
-/**
- * The ordering a request's `orderBy` chose for each set of connection arguments, recorded while
- * the page is planned so the resolver encodes cursors under it. Keyed on the args object and on
- * their value, as planning and resolving may see different objects for the same arguments.
- */
-export function createRequestOrderings() {
-  const cache = createContextCache(() => ({
-    byArgs: new WeakMap<object, CursorInput>(),
-    byValue: new Map<string, CursorInput>(),
-  }));
-  return {
-    set(args: object, ctx: object, cursor: CursorInput) {
-      const { byArgs, byValue } = cache(ctx);
-      byArgs.set(args, cursor);
-      const key = argsKey(args);
-      if (key !== undefined) {
-        byValue.set(key, cursor);
-      }
-    },
-    get(args: object, ctx: object): CursorInput | undefined {
-      const { byArgs, byValue } = cache(ctx);
-      const key = byArgs.has(args) ? undefined : argsKey(args);
-      return byArgs.get(args) ?? (key === undefined ? undefined : byValue.get(key));
-    },
+    collection: applyToCollection(baseCollection, params, options.checkOrdering ?? true),
   };
 }
 

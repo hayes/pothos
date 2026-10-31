@@ -147,7 +147,7 @@ describe('rows the plugin loaded', () => {
           type: helper.ref,
           args: helper.getArgs(),
           resolve: async (_root, args, context, info) => {
-            const page = await helper.applyPagination(db.orm.User, args, info, context);
+            const page = await helper.applyPagination(db.orm.User, args, context, info);
             const rows = await page.collection.all();
             onRows(rows);
             return page.wrap(rows);
@@ -322,7 +322,7 @@ describe('rows the plugin loaded', () => {
         total: t.int({ resolve: (user) => user.total }),
         postsPage: t.relatedConnection('posts', {
           cursor: 'id',
-          where: { published: 1 },
+          query: { where: { published: 1 } },
           totalCount: true,
         }),
       }),

@@ -162,7 +162,7 @@ builder.queryFields((t) => {
   // @ts-expect-error the cursor names a column of the ref's model
   prismaConnectionHelpers(builder, Viewer, { cursor: 'title' });
   // @ts-expect-error a ref's model takes that model's collection
-  byRef.applyPagination(orm.Post, {}, undefined, {});
+  byRef.applyPagination(orm.Post, {}, {});
 
   const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
     plugins: [RelayPlugin, prismaNextPlugin],

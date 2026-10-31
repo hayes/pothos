@@ -62,7 +62,7 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
       publishedConnection: t.relatedConnection('posts', {
         cursor: 'id',
         totalCount: true,
-        where: { published: 1 },
+        query: { where: { published: 1 } },
       }),
       basic: t.variant(UserBasic),
     }),
