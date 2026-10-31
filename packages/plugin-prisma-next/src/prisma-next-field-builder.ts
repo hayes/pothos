@@ -6,7 +6,7 @@ import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import { assertVariantCollection } from './utils/contract.js';
 import { applySelectionToCollection } from './utils/map-query.js';
-import { getRefForContractModel } from './utils/refs.js';
+import { getRefFromContractModel } from './utils/refs.js';
 
 type Ref =
   | PrismaNextObjectRef<SchemaTypes, never, never>
@@ -41,7 +41,7 @@ function prismaFieldConfig(
   const ref =
     inner instanceof PrismaNextObjectRef || inner instanceof PrismaNextInterfaceRef
       ? inner
-      : getRefForContractModel(inner as never, builder);
+      : getRefFromContractModel(inner as never, builder);
   const modelName = ref.modelName as string;
 
   return {
