@@ -187,7 +187,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (extensions[PRISMA_NEXT_FIELD_SELECT] !== undefined) {
       return readingOwnSlots(fieldConfig);
     }
-    const declaring = this.buildCache.getTypeConfig(declaringType(fieldConfig));
+    const declaring = this.buildCache.getTypeConfig(
+      fieldConfig.declaringType ?? fieldConfig.parentType,
+    );
     const modelName = declaring.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
     if (modelName === undefined) {
       return fieldConfig;
@@ -430,7 +432,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { contract } = this.config;
     const model = getModel(contract, modelName);
-    const declaring = declaringType(fieldConfig);
+    const declaring = fieldConfig.declaringType ?? fieldConfig.parentType;
     const typeSelects = this.typeSelects(fieldConfig.parentType, modelName).map(
       ({ name, raw }) => ({ name, ...splitSelect(raw, model) }),
     );
@@ -594,10 +596,6 @@ function keylessReloadError(
       `Add a primary or unique key to '${modelName}', or load its rows through prisma fields ` +
       'without @defer fragments or conflicting selections of the same relation.',
   );
-}
-
-function declaringType(fieldConfig: { parentType: string }) {
-  return (fieldConfig as { declaringType?: string }).declaringType ?? fieldConfig.parentType;
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosPrismaNextPlugin);
