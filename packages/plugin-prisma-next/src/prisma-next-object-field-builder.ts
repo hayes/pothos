@@ -423,7 +423,7 @@ export class PrismaNextObjectFieldBuilder<
     name: RelName,
     options?: PrismaNextRelationCountOptions<Types, M, RelName, Nullable, Args, Shape>,
   ): FieldRef<Types, Nullable extends true ? number | null : number, 'PrismaNextObject'> {
-    return this.#aggregateField(name as string, 'count', undefined, options ?? {}, false) as never;
+    return this.#aggregateField(name as string, 'count', undefined, options ?? {}) as never;
   }
 
   /**
@@ -461,13 +461,7 @@ export class PrismaNextObjectFieldBuilder<
       op: string;
       field?: string;
     };
-    return this.#aggregateField(
-      name as string,
-      op,
-      field,
-      rest,
-      op !== 'count' && op !== 'countBigInt',
-    ) as never;
+    return this.#aggregateField(name as string, op, field, rest) as never;
   }
 
   #aggregateField(
@@ -475,7 +469,6 @@ export class PrismaNextObjectFieldBuilder<
     op: string,
     field: string | undefined,
     options: Record<string, unknown>,
-    nullableDefault: boolean,
   ): FieldRef<Types, unknown, 'PrismaNextObject'> {
     if (!this.#relation(name).isToMany) {
       throw new PothosSchemaError(
@@ -503,7 +496,8 @@ export class PrismaNextObjectFieldBuilder<
     return this.field({
       ...rest,
       type: options.type ?? (op === 'count' ? 'Int' : 'Float'),
-      nullable: nullable ?? nullableDefault,
+      // Counts are never null; other aggregates are null over no rows.
+      nullable: nullable ?? (op !== 'count' && op !== 'countBigInt'),
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECT]: select,
