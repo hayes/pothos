@@ -57,7 +57,12 @@ export { prismaConnectionHelpers } from './connection-helpers.js';
 export { PrismaNextInterfaceRef, prismaInterfaceKey } from './interface-ref.js';
 export type { SelectObjectSpec } from './internal-types.js';
 export { PrismaNextNodeRef, relayIDShapeKey } from './node-ref.js';
-export { type ModelBrand, PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
+export {
+  type ModelBrand,
+  PrismaNextObjectRef,
+  prismaContractKey,
+  prismaModelKey,
+} from './object-ref.js';
 export { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 export type {
   AnyContract,

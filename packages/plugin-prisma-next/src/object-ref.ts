@@ -8,6 +8,8 @@ import {
 import type { ModelName, ModelReturnShape, Row } from './types.js';
 
 export const prismaModelKey = Symbol.for('Pothos.prismaNextModelKey');
+/** Type-only: the contract a ref's builder was created with. */
+export const prismaContractKey = Symbol.for('Pothos.prismaNextContractKey');
 
 /** Marks a row shape with its model. An interface so declaration emit can name it. */
 export interface ModelBrand<M> {
@@ -26,6 +28,8 @@ export class PrismaNextObjectRef<
   Shape = Row<Types, M>,
 > extends ObjectRef<Types, ModelReturnShape<Types, M>, Shape> {
   declare readonly [prismaModelKey]: M;
+
+  declare readonly [prismaContractKey]: Types['PrismaNextContract'];
 
   declare readonly [abstractReturnShapeKey]: WithBrand<Shape>;
 

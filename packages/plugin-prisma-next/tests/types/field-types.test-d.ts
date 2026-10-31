@@ -253,3 +253,46 @@ export const modelWidens: PrismaNextObjectFieldBuilder<Types, 'User' | 'Post', N
 export const modelNarrows: UserFieldBuilder<Narrow, Narrow> = twoModels;
 // @ts-expect-error the schema types must match
 export const typesDiffer: UserFieldBuilder<Narrow, Narrow> = otherTypes;
+
+// A root field's `type` takes refs of this builder's contract, not refs of another builder's.
+{
+  const other = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
+    plugins: [RelayPlugin, prismaNextPlugin],
+    relay: {},
+    prismaNext: { client: null as never },
+  });
+  const OtherUser = other.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+  const OtherIface = other.prismaInterface('User', {
+    fields: (t) => ({ id: t.exposeID('id') }),
+  });
+  const OwnUser = builder.prismaObject('User', {
+    variant: 'RootRefUser',
+    fields: (t) => ({ id: t.exposeID('id') }),
+  });
+  const OwnPost = builder.prismaInterface('Post', {
+    name: 'RootRefPost',
+    fields: (t) => ({ id: t.exposeID('id') }),
+  });
+  const OwnNode = builder.prismaNode('User', {
+    variant: 'RootRefNode',
+    id: { field: 'id' },
+    fields: (t) => ({ email: t.exposeString('email') }),
+  });
+  builder.queryFields((t) => ({
+    ownUser: t.prismaField({ type: OwnUser, nullable: true, resolve: () => null }),
+    ownUsers: t.prismaField({ type: [OwnUser], resolve: () => orm.User }),
+    ownPosts: t.prismaField({ type: [OwnPost], resolve: () => orm.Post }),
+    ownNodes: t.prismaField({ type: [OwnNode], resolve: () => orm.User }),
+    ownPostConnection: t.prismaConnection({
+      type: OwnPost,
+      cursor: 'id',
+      resolve: () => orm.Post,
+    }),
+    // @ts-expect-error a ref of another builder's contract
+    otherUser: t.prismaField({ type: OtherUser, nullable: true, resolve: () => null }),
+    // @ts-expect-error a list of another builder's refs
+    otherUsers: t.prismaField({ type: [OtherUser], resolve: () => orm.User }),
+    // @ts-expect-error an interface ref of another builder's contract
+    otherConn: t.prismaConnection({ type: OtherIface, cursor: 'id', resolve: () => orm.User }),
+  }));
+}

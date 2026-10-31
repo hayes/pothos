@@ -10,7 +10,12 @@ import type {
 } from '@pothos/core';
 import type { HasRow } from '@prisma/orm-family-sql/orm-client';
 import type { prismaInterfaceKey } from './interface-ref.js';
-import type { ModelBrand, PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
+import type {
+  ModelBrand,
+  PrismaNextObjectRef,
+  prismaContractKey,
+  prismaModelKey,
+} from './object-ref.js';
 import type {
   DefaultRelationNullable,
   IdentityFields,
@@ -29,16 +34,19 @@ import type {
 /**
  * A model ref, read by the model key the plugin's refs declare. Checking a `type` against
  * `PrismaNextObjectRef<Types, ModelName<Types>>` would build the ref class (and its return shape)
- * over the union of every model in the contract.
+ * over the union of every model in the contract. The contract key keeps a ref from a builder of
+ * another contract out.
  */
-export interface ModelObjectRefKey<M> extends OutputRefShape<unknown> {
+export interface ModelObjectRefKey<M, C = unknown> extends OutputRefShape<unknown> {
   readonly [prismaModelKey]: M;
+  readonly [prismaContractKey]: C;
   readonly modelName: M;
 }
 
 /** The interface counterpart of {@link ModelObjectRefKey}. */
-export interface ModelInterfaceRefKey<M> extends OutputRefShape<unknown> {
+export interface ModelInterfaceRefKey<M, C = unknown> extends OutputRefShape<unknown> {
   readonly [prismaInterfaceKey]: M;
+  readonly [prismaContractKey]: C;
   readonly modelName: M;
 }
 
