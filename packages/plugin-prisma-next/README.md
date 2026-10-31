@@ -8,8 +8,10 @@ resolvers return.
 > **Experimental.** This plugin targets Prisma ORM `8.0.0-rc.22` exactly. Other versions are not
 > supported, and the API of both Prisma ORM 8 and this plugin may change in any release.
 
-For Prisma 7 and `@prisma/client`, use
-[`@pothos/plugin-prisma`](https://pothos-graphql.dev/docs/plugins/prisma).
+For Prisma ORM 7 and `@prisma/client`, use
+[`@pothos/plugin-prisma`](https://pothos-graphql.dev/docs/plugins/prisma). The two plugins can't be
+used in the same program: both add `prismaObject`, `prismaField` and the other `prisma*` methods
+to the builder, and importing both throws an error.
 
 ## Example
 

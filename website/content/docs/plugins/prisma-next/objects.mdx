@@ -131,8 +131,8 @@ authorName: t.string({
 A filtered to-one relation can be `null` even when its foreign key is required.
 
 A field's `select` can also be a function of the field's arguments and context, sync or async,
-returning either form. When its branches select different columns, or it returns an array variable rather than a
-literal, those columns are optional on the parent:
+returning either form. Columns that only some of its branches select are optional on the parent,
+as are the columns of an array variable it returns instead of a literal:
 
 ```ts
 email: t.string({
@@ -141,9 +141,6 @@ email: t.string({
   resolve: (user) => user.email ?? null,
 }),
 ```
-
-When a field's relation filter conflicts with another selection of the same to-one relation, the
-field is loaded in a separate batched query.
 
 ## Adding fields
 
