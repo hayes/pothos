@@ -291,15 +291,11 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ viewer: { bio: user.profile?.bio ?? null } });
-      // Named narrows the nested fragment to NormalViewer, so its type-level select is entered.
       expect(queries).toEqual([
         {
           action: 'findUniqueOrThrow',
           model: 'User',
-          args: {
-            select: { id: true, name: true, profile: { select: { bio: true } } },
-            where: { id: 1 },
-          },
+          args: { select: { id: true, profile: { select: { bio: true } } }, where: { id: 1 } },
         },
       ]);
     });

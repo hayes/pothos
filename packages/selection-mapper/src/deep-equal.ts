@@ -59,9 +59,10 @@ function equal(left: unknown, right: unknown, ancestors: Ancestors | undefined):
   }
 
   const leftOpaque = isOpaque(left);
+  const rightOpaque = isOpaque(right);
 
-  if (leftOpaque || isOpaque(right)) {
-    return leftOpaque && opaqueEqual(left, right);
+  if (leftOpaque || rightOpaque) {
+    return leftOpaque && rightOpaque && opaqueEqual(left, right);
   }
 
   const lValue = left.valueOf?.();
@@ -137,12 +138,13 @@ function isOpaque(value: object) {
 }
 
 /**
- * An opaque `left` equals `right` only when `right` is opaque too, shares its prototype, and
- * `left.equals` says so. The shared prototype keeps the comparison symmetric: an `equals` that
- * accepts property bags or strings (Temporal's does) never makes an instance equal a plain object.
+ * Two opaque values are equal only when they share a prototype and `left.equals` says so. The
+ * shared prototype keeps the comparison symmetric: an `equals` that accepts property bags or
+ * strings (Temporal's does) never makes an instance equal a plain object. An `equals` that throws
+ * is a bug in the value's class, so its error reaches the caller.
  */
 function opaqueEqual(left: object, right: object) {
-  if (Object.getPrototypeOf(left) !== Object.getPrototypeOf(right) || !isOpaque(right)) {
+  if (Object.getPrototypeOf(left) !== Object.getPrototypeOf(right)) {
     return false;
   }
 
@@ -152,11 +154,7 @@ function opaqueEqual(left: object, right: object) {
     return false;
   }
 
-  try {
-    return equals.call(left, right) === true;
-  } catch {
-    return false;
-  }
+  return equals.call(left, right) === true;
 }
 
 function comparedKeys(value: Record<string, unknown>) {
