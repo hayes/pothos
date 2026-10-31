@@ -1,6 +1,6 @@
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import { createBuilder, run, type SampleOptions, useSampleDb } from './fixtures/helpers';
+import { createBuilder, run, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
 
@@ -176,11 +176,8 @@ describe('prismaInterface', () => {
 });
 
 describe('inherited selections', () => {
-  it.each([
-    false,
-    true,
-  ])('loads interface selections through concrete and interface roots (provider: %s)', async (provider) => {
-    const builder = createBuilder(provider ? { collections: db.orm } : {});
+  it('loads interface selections through concrete and interface roots', async () => {
+    const builder = createBuilder();
     const Totals = builder.prismaInterface('User', {
       name: 'UserTotals',
       select: { posts: (sub) => ({ total: sub.count() }) },
@@ -220,19 +217,19 @@ describe('inherited selections', () => {
       `{
         users { id total published ownTotal }
         viaInterface { total published ... on User { id ownTotal } }
-        ${provider ? 'unplanned { id total published ownTotal }' : ''}
+        unplanned { id total published ownTotal }
       }`,
     );
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({
       users,
       viaInterface: users,
-      ...(provider ? { unplanned: users } : {}),
+      unplanned: users,
     });
   });
 
   it('loads interface prerequisites for fields without their own selection', async () => {
-    const builder = createBuilder({ collections: db.orm });
+    const builder = createBuilder();
     const Named = builder.prismaInterface('User', {
       name: 'NamedUser',
       select: ['firstName'],
@@ -249,8 +246,8 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  function conflicting(options: SampleOptions) {
-    const builder = createBuilder(options);
+  function conflicting() {
+    const builder = createBuilder();
     const Base = builder.prismaInterface('Post', {
       name: 'PostBase',
       select: { author: { where: { firstName: 'Alice' } } },
@@ -277,10 +274,7 @@ describe('inherited selections', () => {
   }
 
   it('loads conflicting interface and object prerequisites in separate batches', async () => {
-    const result = await run(
-      conflicting({ collections: db.orm }),
-      '{ posts { baseAuthor ownAuthor } }',
-    );
+    const result = await run(conflicting(), '{ posts { baseAuthor ownAuthor } }');
     expect(result.errors).toBeUndefined();
     expect(result.data.posts).toEqual([
       { baseAuthor: null, ownAuthor: 'Bob' },
@@ -289,11 +283,5 @@ describe('inherited selections', () => {
       { baseAuthor: 'Alice', ownAuthor: null },
     ]);
     expect(result.statements).toHaveLength(2);
-  });
-
-  it('rejects conflicting interface and object prerequisites before SQL without a provider', async () => {
-    const result = await run(conflicting({}), '{ posts { baseAuthor ownAuthor } }');
-    expect(result.errors?.[0].message).toMatch(/to-one and has incompatible queries/);
-    expect(result.statements).toHaveLength(0);
   });
 });

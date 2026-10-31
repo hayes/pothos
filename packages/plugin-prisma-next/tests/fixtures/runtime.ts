@@ -42,15 +42,17 @@ export const captureMiddleware: SqlMiddleware = {
 type SqliteContract = Parameters<typeof sqlite>[0]['contract'];
 
 export interface SqliteRuntime<C extends SqliteContract> {
+  client: ReturnType<typeof sqlite<C>>;
   orm: ReturnType<typeof sqlite<C>>['orm'];
   contract: C;
   cleanup: () => Promise<void>;
 }
 
-export async function createSqliteRuntime<C extends SqliteContract>(
+/** The database opens on the first query. */
+export function createSqliteRuntime<C extends SqliteContract>(
   contract: C,
   ddl: string,
-): Promise<SqliteRuntime<C>> {
+): SqliteRuntime<C> {
   const dir = mkdtempSync(join(tmpdir(), 'pothos-prisma-next-'));
   const path = join(dir, 'test.db');
   const db = new DatabaseSync(path);
@@ -71,13 +73,13 @@ export async function createSqliteRuntime<C extends SqliteContract>(
   db.exec(ddl);
   db.close();
 
-  const client = sqlite<C>({ contract, middleware: [captureMiddleware] });
-  const runtime = await client.connect({ path });
+  const client = sqlite<C>({ contract, path, middleware: [captureMiddleware] });
   return {
+    client,
     orm: client.orm,
     contract,
     cleanup: async () => {
-      await runtime.close();
+      await client.close();
       rmSync(dir, { recursive: true, force: true });
     },
   };
@@ -113,6 +115,6 @@ export const sampleDdl = `
 
 export type TestRuntimeContext = SqliteRuntime<SampleContract>;
 
-export function createTestRuntime(): Promise<TestRuntimeContext> {
+export function createTestRuntime(): TestRuntimeContext {
   return createSqliteRuntime(sampleContract, sampleDdl);
 }

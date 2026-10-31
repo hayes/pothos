@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-framework/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'121d0deb7ce70c8871f8be3e8708efb1ddeb05e1f080faec39b50987b7d2386b'>;
+  StorageHashBase<'5cea077c9e93fa53c63cb679e633fa425564b044951fc0353b4752b1854b79cf'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -331,6 +331,13 @@ export namespace Models {
     label: FieldOutputTypes['public']['Event']['label'];
     readonly [RelationKeys]?: never;
   };
+  export type public_Token = {
+    bin: FieldOutputTypes['public']['Token']['bin'];
+    id: FieldOutputTypes['public']['Token']['id'];
+    label: FieldOutputTypes['public']['Token']['label'];
+    wide: FieldOutputTypes['public']['Token']['wide'];
+    readonly [RelationKeys]?: never;
+  };
 }
 
 export declare const models: {
@@ -338,6 +345,7 @@ export declare const models: {
     Account: Models.public_Account;
     Entry: Models.public_Entry;
     Event: Models.public_Event;
+    Token: Models.public_Token;
   };
 };
 
@@ -475,6 +483,41 @@ type ContractBase = Omit<
               indexes: readonly [];
               foreignKeys: readonly [];
             };
+            readonly pothos_next_token: {
+              columns: {
+                readonly bin: {
+                  readonly dataType: 'pg/bytea';
+                  readonly codecId: 'pg/bytea@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly id: {
+                  readonly dataType: 'pg/numeric';
+                  readonly codecId: 'pg/numeric@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly label: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly wide: {
+                  readonly dataType: 'pg/int8';
+                  readonly codecId: 'pg/int8@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [
+                { readonly columns: readonly ['wide'] },
+                { readonly columns: readonly ['bin'] },
+              ];
+              indexes: readonly [];
+              foreignKeys: readonly [];
+            };
           };
         };
       };
@@ -497,6 +540,10 @@ type ContractBase = Omit<
     readonly pothos_next_event: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'Event';
+    };
+    readonly pothos_next_token: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'Token';
     };
   };
   readonly domain: {
@@ -624,6 +671,37 @@ type ContractBase = Omit<
               readonly fields: {
                 readonly at: { readonly column: 'at' };
                 readonly label: { readonly column: 'label' };
+              };
+            };
+          };
+          readonly Token: {
+            readonly fields: {
+              readonly bin: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bytea@1' };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/numeric@1' };
+              };
+              readonly label: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly wide: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int8@1' };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'pothos_next_token';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly bin: { readonly column: 'bin' };
+                readonly id: { readonly column: 'id' };
+                readonly label: { readonly column: 'label' };
+                readonly wide: { readonly column: 'wide' };
               };
             };
           };

@@ -58,6 +58,17 @@ type TypeSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Sele
     >;
 };
 
+/** A node ID's decoded values: the column's value, or a tuple for a compound ID. */
+type IdValues<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  IDFields,
+> = IDFields extends readonly (keyof Row<Types, M>)[]
+  ? { -readonly [K in keyof IDFields]: Row<Types, M>[IDFields[K] & keyof Row<Types, M>] }
+  : IDFields extends keyof Row<Types, M>
+    ? Row<Types, M>[IDFields]
+    : never;
+
 type IdFieldShape<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -199,13 +210,13 @@ declare global {
             M extends ModelName<Types>,
             const Select = unknown,
             Shape = ObjectLevelShape<Types, M, Select>,
-            IDShape = string,
             const IDFields extends
               | (keyof Row<Types, M> & string)
               | readonly [
                   keyof Row<Types, M> & string,
                   ...(keyof Row<Types, M> & string)[],
                 ] = keyof Row<Types, M> & string,
+            IDShape = IdValues<Types, M, IDFields>,
           >(
             modelName: M,
             options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
@@ -214,20 +225,15 @@ declare global {
                 /** A column, or a tuple of columns for a composite key. */
                 field: IDFields;
                 description?: string;
-                /** Codecs for object-valued ID columns such as Temporal or Decimal values. */
-                codecs?: {
-                  [Key in keyof Row<Types, M>]?: import('./utils/cursors.js').CursorValueCodec<
-                    Row<Types, M>[Key]
-                  >;
-                };
+                /** Replaces the default decoding; IDs are then the plain value or a JSON tuple. */
                 parse?: (id: string, ctx: Types['Context']) => IDShape;
                 resolve?: (
                   parent: Shape & IdFieldShape<Types, M, IDFields>,
                   ctx: Types['Context'],
                 ) => string | number;
               };
-              // A variant's nodes load through `orm.Base.variant(value)`.
-              collection:
+              /** Defaults to the client's collection; a variant's loads through `orm.Base.variant(value)`. */
+              collection?:
                 | ResolverCollection<Types, M>
                 | ((ctx: Types['Context']) => ResolverCollection<Types, M>);
             } & TypeSelectCheck<Types, M, Select>,

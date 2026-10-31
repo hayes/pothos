@@ -25,4 +25,12 @@ namespace public {
     label String
     @@map("pothos_next_event")
   }
+
+  model Token {
+    id Decimal @id
+    wide BigInt @unique
+    bin Bytes @unique
+    label String
+    @@map("pothos_next_token")
+  }
 }

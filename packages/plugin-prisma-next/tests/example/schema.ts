@@ -1,7 +1,7 @@
 import { createBuilder, type SampleOptions, type TestRuntimeContext } from '../fixtures/helpers';
 
 export function buildExampleSchema(db: TestRuntimeContext, options: SampleOptions = {}) {
-  const builder = createBuilder(options);
+  const builder = createBuilder({ client: db.client, ...options });
 
   const UserBasic = builder.prismaObject('User', {
     variant: 'UserBasic',
@@ -13,7 +13,6 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
 
   const User = builder.prismaNode('User', {
     id: { field: 'id' },
-    collection: () => db.orm.User,
     fields: (t) => ({
       firstName: t.exposeString('firstName'),
       lastName: t.exposeString('lastName'),

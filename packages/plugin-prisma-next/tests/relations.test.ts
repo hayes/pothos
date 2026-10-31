@@ -37,7 +37,7 @@ describe('includes', () => {
     function schema() {
       const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
         plugins: [prismaNextPlugin],
-        prismaNext: { contract: collision.contract },
+        prismaNext: { client: collision.client },
       });
       builder.prismaObject('Profile', {
         fields: (t) => ({ id: t.exposeID('id'), owner: t.relation('owner') }),
@@ -69,7 +69,7 @@ describe('includes', () => {
     });
   });
 
-  it('reports a relation reached from a parent the plugin did not load', async () => {
+  it('reports a relation reached from a parent row that does not exist', async () => {
     const builder = createBuilder();
     const User = builder.prismaObject('User', {
       fields: (t) => ({ id: t.exposeID('id'), posts: t.relation('posts') }),
@@ -81,7 +81,8 @@ describe('includes', () => {
       }),
     });
     const result = await run(builder.toSchema(), '{ rawUser { id posts { id } } }');
-    expect(result.errors?.[0].message).toMatch(/User\.posts.*not loaded by t\.prismaField/);
+    expect(result.errors?.[0].message).toMatch(/could not find model 'User'/);
+    expect(result.errors?.[0].path).toEqual(['rawUser', 'posts']);
   });
 });
 
@@ -91,7 +92,7 @@ describe('many-to-many relations', () => {
   function schema() {
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof junctionContract }>({
       plugins: [prismaNextPlugin],
-      prismaNext: { contract: junctionContract },
+      prismaNext: { client: junction.client },
     });
     const b = builder as unknown as {
       prismaObject(name: string, options: { fields: (t: never) => object }): unknown;
@@ -233,7 +234,7 @@ describe('counts and aggregates', () => {
         Amount: { Input: number; Output: number };
         BigInt: { Input: bigint; Output: bigint };
       };
-    }>({ plugins: [prismaNextPlugin], prismaNext: { contract: db.contract } });
+    }>({ plugins: [prismaNextPlugin], prismaNext: { client: db.client } });
     builder.addScalarType(
       'Amount',
       new GraphQLScalarType({ name: 'Amount', serialize: (value) => Number(value).toFixed(2) }),
@@ -382,7 +383,7 @@ describe('aliases of one to-many relation', () => {
 
   it('keeps consumers apart when one child alias names different fields', async () => {
     const result = await run(
-      schema({ collections: db.orm }),
+      schema(),
       '{ users { a: posts { x: comments { id } } b: posts { x: commentTotal } } }',
     );
     expect(result.errors).toBeUndefined();
@@ -392,11 +393,8 @@ describe('aliases of one to-many relation', () => {
     });
   });
 
-  it.each([
-    false,
-    true,
-  ])('merges one callback-query field selected through fragments (provider: %s)', async (provider) => {
-    const s = schema(provider ? { collections: db.orm } : {});
+  it('merges one callback-query field selected through fragments', async () => {
+    const s = schema();
     const toOne = await run(s, '{ posts { id author { id } ... on Post { author { email } } } }');
     expect(toOne.errors).toBeUndefined();
     expect(toOne.data.posts[0]).toEqual({
@@ -630,17 +628,8 @@ describe('to-one consumers', () => {
     expect(result.data.posts).toEqual([{ a: { v: published }, b: { v: drafts } }]);
   });
 
-  it('rejects incompatible to-one refinements before SQL without a provider', async () => {
-    const result = await run(schema(), '{ posts { alice { id } bob { firstName } } }');
-    expect(result.errors?.[0].message).toMatch(/to-one.*incompatible/);
-    expect(result.statements).toHaveLength(0);
-  });
-
-  it.each([
-    false,
-    true,
-  ])('rejects function-form selections on a to-one relation before SQL (provider: %s)', async (provider) => {
-    const builder = createBuilder(provider ? { collections: db.orm } : {});
+  it('rejects function-form selections on a to-one relation before SQL', async () => {
+    const builder = createBuilder();
     builder.prismaObject('Post', {
       fields: (t) => ({
         label: t.string({

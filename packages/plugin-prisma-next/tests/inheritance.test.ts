@@ -19,11 +19,11 @@ const db = useDatabase(
 `,
 );
 
-function createSchema(collections = false) {
+function createSchema() {
   const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
     plugins: [RelayPlugin, prismaNextPlugin],
     relay: {},
-    prismaNext: { contract, ...(collections ? { collections: db.orm } : {}) },
+    prismaNext: { client: db.client },
   });
   const task = builder.prismaInterface('Task', {
     fields: (t) => ({
@@ -66,11 +66,11 @@ function createSchema(collections = false) {
   return builder.toSchema();
 }
 
-function createVariantSchema(collections = false) {
+function createVariantSchema() {
   const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
     plugins: [RelayPlugin, prismaNextPlugin],
     relay: {},
-    prismaNext: { contract, ...(collections ? { collections: db.orm } : {}) },
+    prismaNext: { client: db.client },
   });
   const task = builder.prismaInterface('Task', {
     fields: (t) => ({
@@ -189,7 +189,7 @@ describe('native model inheritance', () => {
 
   it('fills variant fallbacks through the base collection', async () => {
     const result = await run(
-      createSchema(true),
+      createSchema(),
       '{ tasks { id ... on Bug { owner { email } severity } } }',
     );
     expect(result.errors).toBeUndefined();
@@ -199,31 +199,19 @@ describe('native model inheritance', () => {
     ]);
   });
 
-  it.each([
-    false,
-    true,
-  ])('loads a relation a variant declares through orm.Task.variant() (provider: %s)', async (collections) => {
-    const result = await run(
-      createVariantSchema(collections),
-      '{ bugs { title reviewer { email } } }',
-    );
+  it('loads a relation a variant declares through orm.Task.variant()', async () => {
+    const result = await run(createVariantSchema(), '{ bugs { title reviewer { email } } }');
     expect(result.data).toEqual({ bugs: [{ title: 'bug1', reviewer: { email } }] });
     expect(result.statements).toHaveLength(1);
   });
 
-  it('loads a variant-declared relation beneath the base interface through the loader only', async () => {
+  it('loads a variant-declared relation beneath the base interface through the loader', async () => {
     const source = '{ tasks { title ... on Bug { reviewer { email } } } }';
-    const result = await run(createVariantSchema(true), source);
+    const result = await run(createVariantSchema(), source);
     expect(result.data).toEqual({
       tasks: [{ title: 'bug1', reviewer: { email } }, { title: 'feat1' }],
     });
     expect(result.statements).toHaveLength(2);
-
-    const unnarrowed = await run(createVariantSchema(), source);
-    expect(unnarrowed.errors?.[0]?.message).toMatch(
-      /Relation "reviewer" is declared on variant 'bug'.*orm\.Task\.variant\('bug'\)/,
-    );
-    expect(unnarrowed.statements).toHaveLength(0);
   });
 
   it('narrows a relation and connection typed as a variant to that variant', async () => {
@@ -248,16 +236,13 @@ describe('native model inheritance', () => {
     expect(result.data.users).toEqual([{ reviews: [{ title: 'bug1', severity: 'high' }] }]);
   });
 
-  it('loads relations a variant target inherits through the loader only', async () => {
+  it('loads relations a variant target inherits through the loader', async () => {
     const source = '{ users { reviews { title owner { email } reviewer { email } } } }';
-    const result = await run(createVariantSchema(true), source);
+    const result = await run(createVariantSchema(), source);
+    expect(result.errors).toBeUndefined();
     expect(result.data.users).toEqual([
       { reviews: [{ title: 'bug1', owner: { email }, reviewer: { email } }] },
     ]);
-    const withoutProvider = await run(createVariantSchema(), source);
-    expect(withoutProvider.errors?.[0]?.message).toMatch(
-      /Relation "owner" is inherited from model Task.*variant model 'Bug'/,
-    );
   });
 
   it('plans fragments on Node for the implementations that are nodes', async () => {
@@ -269,19 +254,13 @@ describe('native model inheritance', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it('refuses to encode a node ID for a row without its id field', async () => {
+  it('reports a node row without its id field', async () => {
     const result = await run(createVariantSchema(), '{ orphanFeature { id } }');
-    expect(result.errors?.[0]?.message).toMatch(/row is missing id field 'id'/);
+    expect(result.errors?.[0]?.message).toMatch(/identity field 'Feature\.id'/);
   });
 
-  it.each([
-    false,
-    true,
-  ])('does not reload inherited fields the interface query loaded (provider: %s)', async (collections) => {
-    const result = await run(
-      createVariantSchema(collections),
-      '{ users { tasks { owner { email } } } }',
-    );
+  it('does not reload inherited fields the interface query loaded', async () => {
+    const result = await run(createVariantSchema(), '{ users { tasks { owner { email } } } }');
     expect(result.data.users).toEqual([{ tasks: [{ owner: { email } }, { owner: { email } }] }]);
     expect(result.statements).toHaveLength(1);
   });
@@ -298,7 +277,7 @@ describe('native model inheritance', () => {
     ) {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
         plugins: [prismaNextPlugin],
-        prismaNext: { contract },
+        prismaNext: { client: db.client },
       });
       const task = builderTask(builder, resolveType);
       register(builder, task);
@@ -366,7 +345,7 @@ describe('native model inheritance', () => {
   it('rejects a relation typed as a variant of another branch of its hierarchy', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [prismaNextPlugin],
-      prismaNext: { contract },
+      prismaNext: { client: db.client },
     });
     const task = builder.prismaInterface('Task', {
       fields: (t) => ({ title: t.exposeString('title') }),

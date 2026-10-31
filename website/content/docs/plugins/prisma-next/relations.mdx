@@ -96,10 +96,9 @@ relations.
 
 ## Loading without a parent query
 
-With [`collections`](./setup#plugin-options) configured, a row returned from a plain `t.field`
-can resolve relations and other selections it is missing, as long as it includes its primary or
-unique key. These loads are batched across parents. Without `collections`, the data must already
-be on the row.
+A row returned from a plain `t.field` can resolve relations and other selections it is missing,
+as long as it includes its primary or unique key. They are loaded through the plugin's
+[`client`](./setup#plugin-options), batched across parents.
 
 The same loader handles conflicting filters on one to-one relation, which Prisma can't include
-together. Without `collections`, those conflicts are rejected before any query runs.
+together.

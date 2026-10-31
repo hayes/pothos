@@ -1,5 +1,8 @@
+import SchemaBuilder from '@pothos/core';
+import RelayPlugin from '@pothos/plugin-relay';
 import { execute, type GraphQLObjectType, parse } from 'graphql';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
+import prismaNextPlugin from '../src';
 import { createBuilder, globalId, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
@@ -105,7 +108,7 @@ describe('Relay nodes', () => {
   });
 
   it.each([
-    ['malformed', 'MARKER-not-json', /ID payload is invalid/],
+    ['malformed', 'PNI:MARKER-not-a-chunk', /ID payload is invalid/],
     ['short', JSON.stringify(['MARKER']), /expected 2 values, got 1/],
   ])('rejects a %s compound ID without echoing it', async (_name, payload, message) => {
     const result = await query('query ($id: ID!) { node(id: $id) { id } }', {
@@ -203,7 +206,7 @@ describe('node declarations', () => {
       const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
         plugins: [RelayPlugin, prismaNextPlugin],
         relay: {},
-        prismaNext: { contract: collision.contract },
+        prismaNext: { client: collision.client },
       });
       builder.prismaNode('Note', {
         id: { field },
@@ -217,14 +220,53 @@ describe('node declarations', () => {
     expect(() => node('id')).not.toThrow();
   });
 
-  it('requires a collection', () => {
-    expect(() =>
-      // @ts-expect-error `collection` is required
-      createBuilder().prismaNode('User', {
-        id: { field: 'id' },
-        fields: (t) => ({ firstName: t.exposeString('firstName') }),
+  it("loads through the client's collection by default", async () => {
+    const builder = createBuilder();
+    builder.prismaNode('User', {
+      id: { field: 'id' },
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({});
+    const result = await run(
+      builder.toSchema(),
+      'query ($id: ID!) { node(id: $id) { ... on User { firstName } } }',
+      { variables: { id: globalId('User', 'u-bob') } },
+    );
+    expect(result.data).toEqual({ node: { firstName: 'Bob' } });
+  });
+
+  it('decodes IDs for globalID arguments that name the node', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: collision.client },
+    });
+    const Note = builder.prismaNode('Note', {
+      id: { field: 'id' },
+      fields: (t) => ({ text: t.exposeString('text', { nullable: true }) }),
+    });
+    const seen: unknown[] = [];
+    builder.queryType({
+      fields: (t) => ({
+        note: t.prismaField({ type: Note, resolve: () => collision.orm.Note.where({ id: 20 }) }),
+        echo: t.string({
+          args: { id: t.arg.globalID({ for: Note, required: true }) },
+          resolve: (_root, args) => {
+            expectTypeOf(args.id.id).toEqualTypeOf<number>();
+            seen.push(args.id.id);
+            return args.id.typename;
+          },
+        }),
       }),
-    ).toThrow(/requires a `collection` option/);
+    });
+    const schema = builder.toSchema();
+    const note = await run(schema, '{ note { id } }');
+    const result = await run(schema, 'query ($id: ID!) { echo(id: $id) node(id: $id) { id } }', {
+      variables: { id: note.data.note.id },
+    });
+    expect(result.errors).toBeUndefined();
+    expect(result.data.echo).toBe('Note');
+    expect(seen).toEqual([20]);
   });
 
   it('keeps a user isTypeOf, sync or async', async () => {
@@ -280,132 +322,100 @@ describe('ID values', () => {
   }
 
   async function roundTrip(
+    model: 'User' | 'Post',
     rows: Record<string, unknown>[],
     id: Record<string, unknown> & { field: string | string[] },
   ) {
     const { collection, compared } = recordingCollection(rows);
     const builder = createBuilder();
-    const Person = builder.prismaNode('User', {
+    const Node = builder.prismaNode(model, {
       id: id as never,
       collection: collection as never,
-      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+      fields: (t) => ({ label: t.string({ resolve: (row) => (row as { label: string }).label }) }),
     });
     builder.queryType({
-      fields: (t) => ({ people: t.field({ type: [Person], resolve: () => rows as never }) }),
+      fields: (t) => ({ nodeList: t.field({ type: [Node], resolve: () => rows as never }) }),
     });
     const s = builder.toSchema();
     const listed = await execute({
       schema: s,
-      document: parse('{ people { id } }'),
+      document: parse('{ nodeList { id } }'),
       contextValue: {},
     });
     expect(listed.errors).toBeUndefined();
-    const ids = (listed.data as { people: { id: string }[] }).people.map((person) => person.id);
+    const ids = (listed.data as { nodeList: { id: string }[] }).nodeList.map((node) => node.id);
     expect(new Set(ids).size).toBe(rows.length);
     const loaded = await execute({
       schema: s,
-      document: parse('query ($ids: [ID!]!) { nodes(ids: $ids) { ... on User { firstName } } }'),
+      document: parse(`query ($ids: [ID!]!) { nodes(ids: $ids) { ... on ${model} { label } } }`),
       variableValues: { ids },
       contextValue: {},
     });
     expect(loaded.errors).toBeUndefined();
-    expect(loaded.data).toEqual({ nodes: rows.map(({ firstName }) => ({ firstName })) });
+    expect(loaded.data).toEqual({ nodes: rows.map(({ label }) => ({ label })) });
     return compared;
   }
 
-  class Precise {
-    constructor(readonly text: string) {}
-  }
-  const preciseCodec = {
-    encode: (value: Precise) => value.text,
-    decode: (text: string) => new Precise(text),
-  };
-  const bytes = (n: number) => new Uint8Array([n]);
-
-  it('keeps numbers, bigints and dates their own type', async () => {
-    expect(await roundTrip([{ id: 42, firstName: 'A' }], { field: 'id' })).toEqual([42]);
-    const date = new Date('2026-09-10T01:02:03.456Z');
+  it('keeps dates their own type, and IDs distinct that differ by a millisecond', async () => {
+    const first = new Date('2026-09-10T01:02:03.001Z');
+    const second = new Date('2026-09-10T01:02:03.002Z');
     const compared = await roundTrip(
-      [{ id: BigInt('9007199254740993'), email: date, firstName: 'A' }],
-      { field: ['id', 'email'] },
-    );
-    expect(compared).toEqual([BigInt('9007199254740993'), date]);
-  });
-
-  it('keeps IDs distinct that differ by a millisecond or by bytes that are not UTF-8', async () => {
-    await roundTrip(
+      'Post',
       [
-        { id: new Date('2026-09-10T01:02:03.001Z'), firstName: 'A' },
-        { id: new Date('2026-09-10T01:02:03.002Z'), firstName: 'B' },
+        { id: 'p', createdAt: first, label: 'A' },
+        { id: 'p', createdAt: second, label: 'B' },
       ],
-      { field: 'id' },
+      { field: ['id', 'createdAt'] },
     );
-    await roundTrip(
+    expect(compared).toEqual(['p', first, 'p', second]);
+    const parsed = await roundTrip(
+      'Post',
       [
-        { id: new Date('2026-09-10T01:02:03.001Z'), firstName: 'A' },
-        { id: new Date('2026-09-10T01:02:03.002Z'), firstName: 'B' },
+        { id: 'p', createdAt: first, label: 'A' },
+        { id: 'p', createdAt: second, label: 'B' },
       ],
       {
-        field: 'id',
-        parse: (id: string) => new Date(id),
-        resolve: (row: { id: Date }) => row.id.toISOString(),
+        field: ['id', 'createdAt'],
+        parse: (id: string) => {
+          const [postId, at] = JSON.parse(id) as [string, string];
+          return [postId, new Date(at)];
+        },
+        resolve: (row: { id: string; createdAt: Date }) =>
+          JSON.stringify([row.id, row.createdAt.toISOString()]),
       },
     );
-    for (const wrap of [bytes, (n: number) => Buffer.from([n])]) {
-      await roundTrip(
-        [
-          { id: wrap(255), firstName: 'A' },
-          { id: wrap(254), firstName: 'B' },
-        ],
-        { field: 'id' },
-      );
-      await roundTrip(
-        [
-          { id: wrap(255), email: 'same', firstName: 'A' },
-          { id: wrap(254), email: 'same', firstName: 'B' },
-        ],
-        { field: ['id', 'email'] },
-      );
-    }
+    expect(parsed).toEqual(['p', first, 'p', second]);
   });
 
   it('escapes a string ID shaped like a typed payload', async () => {
-    expect(await roundTrip([{ id: 'PNI:N:42', firstName: 'A' }], { field: 'id' })).toEqual([
+    expect(await roundTrip('User', [{ id: 'PNI:N:42', label: 'A' }], { field: 'id' })).toEqual([
       'PNI:N:42',
     ]);
   });
 
-  it('decodes custom scalar IDs through their codec', async () => {
-    const compared = await roundTrip(
-      [
-        { id: new Precise('first'), firstName: 'A' },
-        { id: new Precise('second'), firstName: 'B' },
-      ],
-      { field: 'id', codecs: { id: preciseCodec } },
-    );
-    expect(compared).toEqual([new Precise('first'), new Precise('second')]);
-    expect(compared[0]).toBeInstanceOf(Precise);
-  });
-
   it('keeps the raw value for a custom parser or id resolver', async () => {
-    expect(await roundTrip([{ id: 42, firstName: 'A' }], { field: 'id', parse: Number })).toEqual([
-      42,
-    ]);
     expect(
-      await roundTrip([{ id: Buffer.from('alice'), firstName: 'A' }], {
+      await roundTrip('User', [{ id: 'alice', label: 'A' }], {
         field: 'id',
-        parse: (id: string) => id,
+        parse: (id: string) => id.toLowerCase(),
       }),
     ).toEqual(['alice']);
     expect(
-      await roundTrip([{ id: 42, firstName: 'A' }], {
+      await roundTrip('User', [{ id: 'u-42', label: 'A' }], {
         field: 'id',
-        resolve: (row: { id: number }) => String(row.id),
+        parse: (id: string) => `u-${id}`,
+        resolve: (row: { id: string }) => row.id.slice(2),
+      }),
+    ).toEqual(['u-42']);
+    expect(
+      await roundTrip('User', [{ id: '42', label: 'A' }], {
+        field: 'id',
+        resolve: (row: { id: string }) => `${row.id}`,
       }),
     ).toEqual(['42']);
   });
 
-  it('requires a codec for a custom scalar ID instead of serializing it as JSON', async () => {
+  it('refuses to encode an ID value its column codec does not hold', async () => {
     const builder = createBuilder();
     const Person = builder.prismaNode('User', {
       id: { field: 'id' },
@@ -420,34 +430,23 @@ describe('ID values', () => {
       }),
     });
     const result = await run(builder.toSchema(), '{ person { id } }');
-    expect(result.errors?.[0].message).toBe(
-      "prismaNode 'User' requires an id.codecs entry for custom scalar field 'id'.",
-    );
+    expect(result.errors?.[0].message).toBe("prismaNode 'User' row has an invalid id value.");
   });
 
-  it('rejects an ID its codec cannot decode before running the collection', async () => {
+  it('rejects an ID its column codec cannot decode before running the collection', async () => {
     const builder = createBuilder();
-    builder.prismaNode('User', {
-      id: {
-        field: 'id',
-        codecs: {
-          id: {
-            encode: String,
-            decode: (id: string) => {
-              throw new Error(`Private payload: ${id}`);
-            },
-          },
-        },
-      },
+    builder.prismaNode('Post', {
+      id: { field: ['id', 'createdAt'] },
       collection: (() => {
         throw new Error('The query should not run');
       }) as never,
-      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+      fields: (t) => ({ title: t.exposeString('title') }),
     });
     builder.queryType({});
     const result = await run(builder.toSchema(), 'query ($id: ID!) { node(id: $id) { id } }', {
-      variables: { id: globalId('User', 'private-value') },
+      variables: { id: globalId('Post', 'PNI:T:["S:p","S:MARKER"]') },
     });
-    expect(result.errors?.[0].message).toBe("prismaNode 'User' ID has an invalid id value.");
+    expect(result.errors?.[0].message).toBe("prismaNode 'Post' ID has an invalid createdAt value.");
+    expect(result.statements).toHaveLength(0);
   });
 });

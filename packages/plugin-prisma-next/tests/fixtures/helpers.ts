@@ -3,6 +3,7 @@ import SchemaBuilder from '@pothos/core';
 import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
 import { contractFromJson as postgresContractFromJson } from '@prisma/orm-postgres/static';
+import sqlite from '@prisma/orm-sqlite/runtime';
 import {
   type ExecutionResult,
   execute,
@@ -13,7 +14,7 @@ import {
   parse,
   specifiedDirectives,
 } from 'graphql';
-import { afterAll, beforeAll } from 'vitest';
+import { afterAll } from 'vitest';
 import prismaNextPlugin, { type PrismaNextPluginOptions } from '../../src';
 import type { Contract as CollisionContract } from './collision-contract';
 import {
@@ -54,36 +55,46 @@ export function loadPostgresContract<C>(url: URL): C {
   return postgresContractFromJson(JSON.parse(readFileSync(url, 'utf8'))) as unknown as C;
 }
 
-/** Registers a fresh seeded database for the enclosing test file. */
+/** A fresh seeded database for the enclosing test file. */
 export function useDatabase<C extends Parameters<typeof createSqliteRuntime>[0]>(
   contract: C,
   ddl: string,
 ): SqliteRuntime<C> {
-  const db = {} as SqliteRuntime<C>;
-  beforeAll(async () => {
-    Object.assign(db, await createSqliteRuntime(contract, ddl));
-  });
-  afterAll(async () => {
-    await db.cleanup?.();
-  });
+  const db = createSqliteRuntime(contract, ddl);
+  afterAll(() => db.cleanup());
   return db;
 }
 
-export const useSampleDb = () => useDatabase(sampleContract, sampleDdl);
+let sampleDb: SqliteRuntime<SampleContract> | undefined;
+
+/** The sample database `createBuilder` uses unless it is given a client. */
+export function useSampleDb() {
+  sampleDb = useDatabase(sampleContract, sampleDdl);
+  return sampleDb;
+}
 export const useCollisionDb = () => useDatabase(collisionContract, collisionDdl);
 
 export type SampleOptions<Context = object> = Omit<
   PrismaNextPluginOptions<SampleContract, Context>,
-  'contract'
->;
+  'client' | 'contract'
+> & {
+  client?: PrismaNextPluginOptions<SampleContract, Context>['client'];
+  /** Used with a client function. */
+  contract?: SampleContract;
+};
 
-export function createBuilder<Context extends object = object>(
-  options: SampleOptions<Context> = {},
-) {
+export function createBuilder<Context extends object = object>({
+  client = sampleDb?.client ?? sqlite({ contract: sampleContract }),
+  contract = sampleContract,
+  ...options
+}: SampleOptions<Context> = {}) {
   return new SchemaBuilder<{ PrismaNextContract: SampleContract; Context: Context }>({
     plugins: [ErrorsPlugin, RelayPlugin, prismaNextPlugin],
     relay: { nodesOnConnection: true },
-    prismaNext: { contract: sampleContract, ...options },
+    prismaNext:
+      typeof client === 'function'
+        ? { client, contract, ...options }
+        : { client, ...options },
   });
 }
 

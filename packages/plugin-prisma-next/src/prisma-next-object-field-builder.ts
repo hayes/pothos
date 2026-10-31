@@ -46,6 +46,7 @@ import {
 } from './utils/adapter.js';
 import { rebrandForVariant } from './utils/branding.js';
 import { compileWhere } from './utils/compile-query.js';
+import { connectionSizes, getPluginConfig } from './utils/config.js';
 import {
   relatedModelKey,
   relationVariant,
@@ -61,7 +62,6 @@ import {
   validateCursor,
   validateCursorArgs,
 } from './utils/cursors.js';
-import { readPluginOptions, resolveSizeOption } from './utils/options.js';
 import { getRefForContractModel, getRefFromContractModel } from './utils/refs.js';
 import {
   connectionNeedsRows,
@@ -575,14 +575,9 @@ export class PrismaNextObjectFieldBuilder<
           `'${this.modelName as string}.${name}' has cardinality '${meta.cardinality}'.`,
       );
     }
-    const pluginOpts = readPluginOptions(this.builder);
+    const config = getPluginConfig(this.builder);
     const relatedKey = relatedModelKey(this.contract as AnyContract, meta.to);
-    const cursorOpt = validateCursor(
-      this.contract as AnyContract,
-      relatedKey,
-      options.cursor,
-      pluginOpts?.context,
-    );
+    const cursorOpt = validateCursor(this.contract as AnyContract, relatedKey, options.cursor);
     const targetRef =
       options.type ?? getRefForContractModel(relatedKey as never, this.builder as never);
     const variant = relationVariant(
@@ -624,8 +619,6 @@ export class PrismaNextObjectFieldBuilder<
       where?: unknown;
       orderBy?: (model: never, args: unknown, ctx: unknown) => ReturnType<RequestOrderBy>;
     };
-    const fallbackDefault = pluginOpts?.defaultConnectionSize;
-    const fallbackMax = pluginOpts?.maxConnectionSize;
     const relatedTypeName = (targetRef as { name?: string }).name ?? relatedKey;
 
     const pothosIndirectInclude: IndirectInclude = {
@@ -636,10 +629,12 @@ export class PrismaNextObjectFieldBuilder<
 
     // Combine slots `<alias>:rows` and `<alias>:count` are lifted onto the parent by the overlay.
     const select: PrismaNextSelectFn = (args, ctx, nested, selectedFieldNode) => {
+      const codecs = config.codecs(ctx, relatedKey);
       try {
         validateCursorArgs(
           cursorOpt,
           args as import('@pothos/plugin-relay').DefaultConnectionArguments,
+          codecs,
         );
       } catch (error) {
         if (error instanceof PothosValidationError) {
@@ -663,8 +658,6 @@ export class PrismaNextObjectFieldBuilder<
       if (!wantsRows) {
         return wantsTotalCount ? { relations: { [relationName]: count } } : {};
       }
-      const resolvedDefault = resolveSizeOption(defaultSize, args, ctx) ?? fallbackDefault;
-      const resolvedMax = resolveSizeOption(maxSize, args, ctx) ?? fallbackMax;
       const selection = nested(
         {
           slot: 'rows',
@@ -680,8 +673,8 @@ export class PrismaNextObjectFieldBuilder<
               cursorOpt,
               args as import('@pothos/plugin-relay').DefaultConnectionArguments,
               {
-                ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
-                ...(resolvedMax !== undefined ? { maxSize: resolvedMax } : {}),
+                ...connectionSizes(config, { defaultSize, maxSize }, args, ctx),
+                codecs,
                 orderBy: orderBy && ((model) => orderBy(model as never, args, ctx)),
               },
             ).collection,
@@ -713,10 +706,12 @@ export class PrismaNextObjectFieldBuilder<
         context: unknown,
         info: GraphQLResolveInfo,
       ) => {
+        const codecs = config.codecs(context as object, relatedKey);
         // Planning ignores invalid cursor args, so the error surfaces on this field only.
         validateCursorArgs(
           cursorOpt,
           args as import('@pothos/plugin-relay').DefaultConnectionArguments,
+          codecs,
         );
         // Lifted slots are own properties of the overlay; the row (which may have its own
         // `rows` or `count` column) is its prototype.
@@ -737,15 +732,10 @@ export class PrismaNextObjectFieldBuilder<
             `relatedConnection '${info.parentType.name}.${info.fieldName}' expected an array on parent, got ${typeof rows}.`,
           );
         }
-        const resolvedDefault = resolveSizeOption(defaultSize, args, context) ?? fallbackDefault;
-        const resolvedMax = resolveSizeOption(maxSize, args, context) ?? fallbackMax;
         const pagination = buildPaginationParams(
           cursorOpt,
           args as import('@pothos/plugin-relay').DefaultConnectionArguments,
-          {
-            ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
-            ...(resolvedMax !== undefined ? { maxSize: resolvedMax } : {}),
-          },
+          { ...connectionSizes(config, { defaultSize, maxSize }, args, context), codecs },
         );
         const page = buildConnectionPage(rows as Record<string, unknown>[], pagination);
         if (totalCountFlag) {

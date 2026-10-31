@@ -41,8 +41,8 @@ copies of the ORM installed.
 
 ## Configure the builder
 
-Emit your contract with `prisma contract emit`. The JSON file is passed to the plugin, and its
-`.d.ts` provides model, relation, and column types.
+Emit your contract with `prisma contract emit`. The client you create from it is passed to the
+plugin, and the contract's `.d.ts` provides model, relation, and column types.
 
 ```ts
 import SchemaBuilder from '@pothos/core';
@@ -68,22 +68,26 @@ const builder = new SchemaBuilder<{
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
   prismaNext: {
-    contract,
+    client,
   },
 });
 ```
 
-The client can also be created per request and passed in context:
+To load through a client chosen per request, such as a transaction, pass a function of the
+context. The contract is then passed as well, since the schema is built before any request:
 
 ```ts
-import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
+import type { SqliteQueryMembers } from '@prisma/orm-sqlite/runtime';
 
 const builder = new SchemaBuilder<{
   PrismaNextContract: Contract;
-  Context: { db: SqliteClient<Contract> };
+  Context: { db: SqliteQueryMembers<Contract> };
 }>({
   plugins: [prismaNextPlugin],
-  prismaNext: { contract },
+  prismaNext: {
+    client: (ctx) => ctx.db,
+    contract,
+  },
 });
 
 builder.queryType({
@@ -100,27 +104,21 @@ builder.queryType({
 
 ```ts
 prismaNext: {
-  contract,
-  collections: (ctx) => ctx.db.orm,
-  context: client.context,
+  client,
   skipDeferredFragments: true,
   defaultConnectionSize: 20,
   maxConnectionSize: 100,
 }
 ```
 
-- `contract`: the contract from `contractFromJson`. Required.
-- `collections`: Collections used to load selections a parent query couldn't include, such as
-  conflicting to-one filters, deferred fragments, and rows returned from a plain `t.field`. Pass
-  the client's `orm`, or a map of only the models that need it, such as
-  `(ctx) => ({ User: ctx.db.orm.User, Post: ctx.db.orm.Post.where({ authorId: ctx.tenantId }) })`.
-  Collections must be unpaginated. Rows are reloaded in batches by primary key, or a non-null
-  unique key.
-- `context`: the client's `context`. Lets object-valued columns, such as Temporal values, be used
-  in cursors and loader identities through their column codecs.
-- `skipDeferredFragments`: with `collections`, `@defer` fragments are left out of the initial
-  query and loaded when executed. Set to `false` to load them eagerly. Without `collections`,
-  they always load eagerly.
+- `client`: the Prisma client, or `(ctx) => client` together with `contract`. Required. The
+  plugin uses its `orm` to load what a parent query couldn't include, such as conflicting to-one
+  filters, deferred fragments, rows returned from a plain `t.field`, and `node(id:)` lookups.
+  These loads are batched and match rows by primary key, or a non-null unique key. Cursors, node
+  IDs and those keys encode values with the client's column codecs, so Temporal, decimal and
+  other object-valued columns work as is.
+- `skipDeferredFragments`: `@defer` fragments are left out of the initial query and loaded when
+  executed. Set to `false` to load them eagerly.
 - `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes, overridden per
   field with `defaultSize` and `maxSize`.
 
@@ -135,8 +133,7 @@ prismaNext: {
 ## Namespaced models
 
 A model name that is unique in the contract is used as is. A name defined in several namespaces is
-written `'ns.Model'`; its default GraphQL name is `ns_Model`. Use the same keys in a `collections`
-map.
+written `'ns.Model'`; its default GraphQL name is `ns_Model`.
 
 ```ts
 builder.prismaObject('billing.User', {
@@ -172,9 +169,9 @@ const result = await client.transaction(async (tx) => {
 });
 ```
 
-GraphQL reports errors in the result rather than rejecting, so throw to roll back. The
-`collections` option must return Collections from the same transaction; the plugin can't detect a
-provider that uses a different client. Finish executing, including deferred results, before the
+GraphQL reports errors in the result rather than rejecting, so throw to roll back. Pass
+`client: (ctx) => ctx.db` so the plugin's own loads run in the same transaction; it can't detect a
+client from another connection. Finish executing, including deferred results, before the
 callback returns.
 
 ## TypeScript

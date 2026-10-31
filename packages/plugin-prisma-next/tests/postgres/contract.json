@@ -15,6 +15,10 @@
     "pothos_next_event": {
       "model": "Event",
       "namespace": "public"
+    },
+    "pothos_next_token": {
+      "model": "Token",
+      "namespace": "public"
     }
   },
   "domain": {
@@ -206,6 +210,57 @@
               "namespaceId": "public",
               "table": "pothos_next_event"
             }
+          },
+          "Token": {
+            "fields": {
+              "bin": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bytea@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "label": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "wide": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int8@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "bin": {
+                  "column": "bin"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "label": {
+                  "column": "label"
+                },
+                "wide": {
+                  "column": "wide"
+                }
+              },
+              "namespaceId": "public",
+              "table": "pothos_next_token"
+            }
           }
         }
       }
@@ -340,6 +395,49 @@
                 ]
               },
               "uniques": []
+            },
+            "pothos_next_token": {
+              "columns": {
+                "bin": {
+                  "codecId": "pg/bytea@1",
+                  "dataType": "pg/bytea",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/numeric@1",
+                  "dataType": "pg/numeric",
+                  "nullable": false
+                },
+                "label": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "wide": {
+                  "codecId": "pg/int8@1",
+                  "dataType": "pg/int8",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "wide"
+                  ]
+                },
+                {
+                  "columns": [
+                    "bin"
+                  ]
+                }
+              ]
             }
           }
         },
@@ -347,7 +445,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "121d0deb7ce70c8871f8be3e8708efb1ddeb05e1f080faec39b50987b7d2386b"
+    "storageHash": "5cea077c9e93fa53c63cb679e633fa425564b044951fc0353b4752b1854b79cf"
   },
   "capabilities": {
     "postgres": {

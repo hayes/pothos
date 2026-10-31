@@ -172,11 +172,14 @@ describe('object registration', () => {
   });
 });
 
+// For schemas that are built but never executed.
+const noClient = () => ({ orm: {} });
+
 describe('contracts', () => {
   it('rejects a contract from a non-SQL family', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: never }>({
       plugins: [prismaNextPlugin],
-      prismaNext: { contract: { targetFamily: 'mongo' } as never },
+      prismaNext: { client: noClient, contract: { targetFamily: 'mongo' } as never },
     });
     builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
     expect(() => builder.toSchema()).toThrow(/only supports SQL contracts/);
@@ -247,7 +250,7 @@ describe('contracts', () => {
     } as unknown as AnyContract;
     const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
       plugins: [prismaNextPlugin],
-      prismaNext: { contract },
+      prismaNext: { client: noClient, contract },
     });
     const untyped = builder as unknown as {
       prismaObject(
@@ -276,12 +279,15 @@ describe('contracts', () => {
 });
 
 describe('options validated when the schema is built', () => {
-  it('requires collections before skipping deferred fragments', () => {
-    expect(() =>
-      createBuilder({ skipDeferredFragments: true }).prismaObject('User', {
-        fields: (t) => ({ id: t.exposeID('id') }),
-      }),
-    ).toThrow(/requires prismaNext.collections/);
+  it('requires a client, and a contract beside a client function', () => {
+    const define = (prismaNext: object) =>
+      new SchemaBuilder<{ PrismaNextContract: typeof sampleContract }>({
+        plugins: [prismaNextPlugin],
+        prismaNext: prismaNext as never,
+      }).prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    expect(() => define({})).toThrow(/requires prismaNext\.client/);
+    expect(() => define({ client: noClient })).toThrow(/prismaNext\.contract is required/);
+    expect(() => define({ client: noClient, contract: sampleContract })).not.toThrow();
   });
 
   it('ignores a plugin-prisma style `query` passed to prismaConnection from untyped code', async () => {
@@ -326,7 +332,7 @@ describe('options validated when the schema is built', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof contract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
       relay: {},
-      prismaNext: { contract },
+      prismaNext: { client: noClient, contract },
     });
     expect(() => prismaConnectionHelpers(builder, 'Post', { cursor: 'score' })).toThrow(
       /non-null primary or unique key/,
@@ -343,7 +349,7 @@ describe('options validated when the schema is built', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
       relay: {},
-      prismaNext: { contract },
+      prismaNext: { client: noClient, contract },
     });
     expect(() =>
       prismaConnectionHelpers(builder, 'Entry' as never, { cursor: ['payload', 'id'] as never }),

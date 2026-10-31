@@ -20,11 +20,12 @@ export function mutationCases(client: TestClient, raw: Client, contract: Contrac
     }>({
       plugins: [prismaNextPlugin, WithInputPlugin],
       prismaNext: {
-        contract,
-        collections: (context) => {
+        // The request context carries the transaction's `orm`.
+        client: (context) => {
           providerCalls += 1;
-          return { Account: context.orm.public.Account, Entry: context.orm.public.Entry };
+          return context;
         },
+        contract,
       },
     });
     builder.prismaObject('Account', {
@@ -157,7 +158,8 @@ export function mutationCases(client: TestClient, raw: Client, contract: Contrac
             'write:Second',
             'completed:Second',
           ]);
-          expect(fixture.providerCalls()).toBe(2);
+          // The client is read once per request.
+          expect(fixture.providerCalls()).toBe(1);
           // An independent connection cannot see either uncommitted mutation.
           expect(
             (await raw.query('SELECT name FROM pothos_next_account WHERE id = $1', ['a'])).rows,

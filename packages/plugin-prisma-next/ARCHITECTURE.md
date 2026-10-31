@@ -2,7 +2,8 @@
 
 Production code depends on `@prisma/orm-framework` and `@prisma/orm-family-sql` (pinned to
 `8.0.0-rc.22`). It never constructs a client, inspects a dialect, or chooses a driver; applications
-supply Collections and own connections and transactions. Concrete drivers appear only in tests and
+pass their client (or a per-request client such as a transaction) and own connections and
+transactions. Concrete drivers appear only in tests and
 examples.
 
 ## Selection planning
@@ -17,42 +18,42 @@ examples.
   GraphQL names); type prerequisites and field selections have separate namespaces. Immutable
   overlays route each resolver to its values without mutating shared rows.
 - Compatible to-one consumers merge. Prisma rejects `combine` on to-one includes
-  (`ORM.INCLUDE_UNSUPPORTED`), so incompatible ones go to the loader, or are rejected before SQL
-  without a provider. Function-form to-one selections are always rejected.
+  (`ORM.INCLUDE_UNSUPPORTED`), so incompatible ones go to the loader. Function-form to-one selections are always rejected.
 - Same-source consumers with equal bound arguments are one branch (callback `query` builds a new
   closure per walk). Matching aliases alone don't establish compatibility.
 
 ## Fallback loader
 
-Enabled by `prismaNext.collections`. Unmapped fields compile a `Plan.forParentRow` with their
+Loads through `prismaNext.client`'s `orm`. Unmapped fields compile a `Plan.forParentRow` with their
 dependencies and compatible type prerequisites. Compatible plans share a batch; each batch queries
-all parent identities (`IN` or compound `OR`) and fans rows back by tagged identity. Per-row/path
+all parent identities (`IN` or compound `OR`) and fans rows back by identity. `node(id:)` lookups
+use the same loader, batched per type and path. Per-row/path
 mappings keep one fallback result from claiming another parent's coverage.
 
-- Identities are a non-null primary or unique key, selected automatically. Scalar, Date, bytes and
-  Decimal values work directly; other objects go through column codecs (`prismaNext.context`) or a
-  string `toJSON()`.
-- Provider Collections must be unpaginated. Missing identities, excluded rows, missing providers
+- Identities are a non-null primary or unique key, selected automatically, and compared by the
+  column codec's stored form and its data type's `equalityKey` (decimals `0.5` and `0.50` match).
+- Loader Collections must be unpaginated. Missing identities, excluded rows, missing collections
   and batch errors fail only the affected fields.
 - Fields a row already satisfies skip the loader, so hand-built and deleted rows resolve.
-- Deferred fragments are skipped by default with a provider and loaded on execution.
+- Deferred fragments are skipped by default and loaded on execution.
 
 ## Connections
 
 - Base Collections must be unpaginated and not `distinct`. Cursors describe the full ordering
-  (directions, null placement, codecs) and must contain a complete non-null unique key; no
+  (directions, null placement) and must contain a complete non-null unique key; no
   tie-breaker is added implicitly.
 - Prisma's `orderBy` appends with no public reset, so an existing ordering must be a prefix of the
   query order for the requested direction; missing entries are appended. The state is read, never
   mutated.
 - Single-bound pages over non-null keys use native cursor seeking; others use lexicographic
-  predicates with explicit null handling. Values use the shared tagged encoding from core.
+  predicates with explicit null handling. Cursor and node ID values are held in their column
+  codec's stored form, in the shared tagged encoding from core.
 - Related connections paginate inside the include. Counts use the filtered, pre-pagination
   Collection and only run when selected.
 
 ## Nodes, aggregates, inheritance, namespaces
 
-- Node loads batch per request, type and path, and brand rows for abstract resolution. Concrete
+- Node loads go through the fallback loader and brand rows for abstract resolution. Concrete
   types don't get a brand-only `isTypeOf`. Cursor validation and identity selection share one
   unique-key helper.
 - Aggregate operations, fields and result types derive from the contract's `AggregateTypes`.
@@ -70,6 +71,8 @@ Recheck these on every Prisma upgrade:
   public accessor or `orderBy` reset.
 - `src/utils/contract.ts` reads the `@internal` `state.variantValue` to require
   `orm.Base.variant(value)` for variant returns.
+- `src/utils/config.ts` reads a collection's `@internal` `ctx.context` for the codecs of a
+  per-request client that doesn't expose `context`, such as a transaction.
 - Test fixture generators map the `@internal/*` specifiers the emitter leaves in declarations.
 
 When the pin changes, regenerate the fixtures and rerun the integration tests.

@@ -30,7 +30,7 @@ const builder = new SchemaBuilder<{
   Context: { db: typeof client };
 }>({
   plugins: [prismaNextPlugin],
-  prismaNext: { contract },
+  prismaNext: { client },
 });
 
 builder.prismaObject('User', {

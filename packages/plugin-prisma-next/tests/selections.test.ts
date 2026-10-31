@@ -7,6 +7,7 @@ import {
   deferSchema,
   run,
   runIncremental,
+  type SampleOptions,
   useSampleDb,
 } from './fixtures/helpers';
 
@@ -22,13 +23,15 @@ describe('directives and fragments', () => {
       { no: false },
     );
     expect(skipped.data.users[0]).toEqual({ firstName: 'Alice' });
-    expect(columnsOf(skipped.statements[0].sql, 'user')).toEqual(new Set(['firstName']));
+    expect(columnsOf(skipped.statements[0].sql, 'user')).toEqual(new Set(['firstName', 'id']));
 
     const kept = await example(
       'query ($yes: Boolean!) { users { firstName @skip(if: false) email @include(if: $yes) } }',
       { yes: true },
     );
-    expect(columnsOf(kept.statements[0].sql, 'user')).toEqual(new Set(['firstName', 'email']));
+    expect(columnsOf(kept.statements[0].sql, 'user')).toEqual(
+      new Set(['firstName', 'email', 'id']),
+    );
   });
 
   it('drops inline fragments and fragment spreads excluded by directives', async () => {
@@ -40,7 +43,7 @@ describe('directives and fragments', () => {
       { skip: true },
     );
     expect(result.data.users[0]).toEqual({ firstName: 'Alice' });
-    expect(columnsOf(result.statements[0].sql, 'user')).toEqual(new Set(['firstName']));
+    expect(columnsOf(result.statements[0].sql, 'user')).toEqual(new Set(['firstName', 'id']));
   });
 
   it('unions one relation selected through several fragments into one subquery', async () => {
@@ -61,12 +64,12 @@ describe('directives and fragments', () => {
     });
     const [{ sql }] = result.statements;
     expect(postSubqueries(sql)).toBe(1);
-    expect(columnsOf(sql, 'post')).toEqual(new Set(['title', 'published', 'authorId']));
+    expect(columnsOf(sql, 'post')).toEqual(new Set(['title', 'published', 'authorId', 'id']));
   });
 
-  it('plans deferred fragments into the initial query without a provider', async () => {
+  it('plans deferred fragments into the initial query when skipDeferredFragments is false', async () => {
     const result = await runIncremental(
-      deferSchema(createExampleBuilder()),
+      deferSchema(createExampleBuilder({ skipDeferredFragments: false })),
       '{ users { id ... @defer { firstName posts { title } } } }',
     );
     expect(result.initial.errors).toBeUndefined();
@@ -81,8 +84,8 @@ describe('directives and fragments', () => {
   });
 });
 
-function createExampleBuilder() {
-  const builder = createBuilder();
+function createExampleBuilder(options: SampleOptions = {}) {
+  const builder = createBuilder(options);
   builder.prismaObject('User', {
     fields: (t) => ({
       id: t.exposeID('id'),

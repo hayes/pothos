@@ -2,7 +2,7 @@
 import { Collection } from '@prisma/orm-family-sql/orm-client';
 import sqlite from '@prisma/orm-sqlite/runtime';
 import { describe, expect, it } from 'vitest';
-import { sampleContract } from './fixtures/helpers';
+import { createSqliteRuntime, sampleContract, sampleDdl } from './fixtures/helpers';
 
 describe('orm-client', () => {
   it('rejects a combine inside a to-one include', () => {
@@ -13,6 +13,21 @@ describe('orm-client', () => {
         return author.combine({ rows: author.select('firstName') });
       }),
     ).toThrowError(expect.objectContaining({ code: 'ORM.INCLUDE_UNSUPPORTED' }));
+  });
+
+  it("a client's collections carry its execution context, which a transaction doesn't expose", async () => {
+    const db = createSqliteRuntime(sampleContract, sampleDdl);
+    try {
+      await db.client.transaction((tx) => {
+        expect('context' in tx).toBe(false);
+        expect((tx.orm.User as unknown as { ctx: { context: unknown } }).ctx.context).toBe(
+          db.client.context,
+        );
+        return Promise.resolve();
+      });
+    } finally {
+      await db.cleanup();
+    }
   });
 
   it('Collection.include() on an N:M relation keeps the cardinality and carries the `through` junction descriptor', () => {

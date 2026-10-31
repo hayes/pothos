@@ -49,29 +49,31 @@ describe('example schema', () => {
     expect(result.errors).toBeUndefined();
     const [{ sql }] = result.statements;
     expect(columnsOf(sql, 'user')).toEqual(new Set(['firstName', 'id']));
-    expect(columnsOf(sql, 'post')).toEqual(new Set(['published', 'authorId']));
+    expect(columnsOf(sql, 'post')).toEqual(new Set(['published', 'authorId', 'id']));
   });
 
   it('hoists the columns a computed field declares', async () => {
     const result = await query('{ users { fullName } }');
     expect(result.data.users).toEqual([{ fullName: 'Alice Andrews' }, { fullName: 'Bob Brown' }]);
-    expect(columnsOf(result.statements[0].sql, 'user')).toEqual(new Set(['firstName', 'lastName']));
+    expect(columnsOf(result.statements[0].sql, 'user')).toEqual(
+      new Set(['firstName', 'lastName', 'id']),
+    );
   });
 
-  it('selects no extra columns for a field without dependencies', async () => {
+  it('selects only the identity column beside a field without dependencies', async () => {
     const result = await query('{ users { constant firstName } }');
     expect(result.data.users).toEqual([
       { constant: 'constant', firstName: 'Alice' },
       { constant: 'constant', firstName: 'Bob' },
     ]);
-    expect(columnsOf(result.statements[0].sql, 'user')).toEqual(new Set(['firstName']));
+    expect(columnsOf(result.statements[0].sql, 'user')).toEqual(new Set(['firstName', 'id']));
   });
 
   it('always selects the join columns of included relations', async () => {
     const result = await query('{ posts { title author { email } } }');
     expect(result.errors).toBeUndefined();
     const { sql } = result.statements[0];
-    expect(columnsOf(sql, 'post')).toEqual(new Set(['title', 'authorId']));
+    expect(columnsOf(sql, 'post')).toEqual(new Set(['title', 'authorId', 'id']));
     expect(result.data.posts[0]).toEqual({
       title: 'Hello, Pothos',
       author: { email: 'alice@example.com' },

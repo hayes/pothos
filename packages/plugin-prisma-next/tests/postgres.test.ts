@@ -34,10 +34,14 @@ const client = postgres({
 });
 const raw = new Client({ connectionString: url });
 
-function createSchema(orm = client.orm) {
-  const builder = new SchemaBuilder<{
-    PrismaNextContract: Contract;
-  }>({ plugins: [RelayPlugin, prismaNextPlugin], relay: {}, prismaNext: { contract } });
+/** `db` may be a connection or transaction, which the plugin also loads through. */
+function createSchema(db: { orm: typeof client.orm } = client) {
+  const { orm } = db;
+  const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+    plugins: [RelayPlugin, prismaNextPlugin],
+    relay: {},
+    prismaNext: { client: () => db, contract },
+  });
   builder.prismaNode('Account', {
     id: { field: 'id' },
     collection: () => orm.public.Account,
@@ -81,17 +85,7 @@ function createSchema(orm = client.orm) {
       }),
       timeline: t.prismaConnection({
         type: 'Entry',
-        cursor: [
-          {
-            field: 'createdAt',
-            direction: 'desc',
-            codec: {
-              encode: (value) => String(value),
-              decode: (value) => globalThis.Temporal.Instant.from(String(value)),
-            },
-          },
-          'id',
-        ],
+        cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
         resolve: () => orm.public.Entry,
       }),
       entries: t.prismaConnection({
@@ -119,7 +113,7 @@ function nullableConnectionSchema(nulls: 'first' | 'last', direction: 'asc' | 'd
   const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
     plugins: [RelayPlugin, prismaNextPlugin],
     relay: {},
-    prismaNext: { contract },
+    prismaNext: { client },
   });
   const cursor = [{ field: 'sortLabel', direction, nulls }, 'id'] as const;
   builder.prismaObject('Entry', { fields: (t) => ({ id: t.exposeID('id') }) });
@@ -159,6 +153,13 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         payload bytea NOT NULL, "createdAt" timestamptz NOT NULL, "sortLabel" text
       );
       CREATE TABLE pothos_next_event (at timestamptz PRIMARY KEY, label text NOT NULL);
+      CREATE TABLE pothos_next_token (
+        id numeric(10, 2) PRIMARY KEY, wide bigint NOT NULL UNIQUE, bin bytea NOT NULL UNIQUE,
+        label text NOT NULL
+      );
+      INSERT INTO pothos_next_token VALUES
+        (0.5, 9007199254740993, decode('ff', 'hex'), 'half'),
+        (1.5, 9007199254740995, decode('fe', 'hex'), 'one and a half');
       INSERT INTO pothos_next_event VALUES
         ('2026-09-10T12:00:00.000001Z', 'one'),
         ('2026-09-10T12:00:00.000002Z', 'two'),
@@ -176,7 +177,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
   afterAll(async () => {
     await client.close();
     await raw.query(
-      'DROP TABLE IF EXISTS pothos_next_event, pothos_next_entry, pothos_next_account',
+      'DROP TABLE IF EXISTS pothos_next_token, pothos_next_event, pothos_next_entry, pothos_next_account',
     );
     await raw.end();
   });
@@ -188,6 +189,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       source: `{
         accounts { name count entries { id account { name entries { id } count } } }
       }`,
+      contextValue: {},
     });
     expect(result.errors).toBeUndefined();
     expect(statements).toBe(1);
@@ -229,7 +231,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
   it('runs planned selections on a per-request serverless connection', async () => {
     await using connection = await postgresServerless({ contract }).connect({ url });
     const result = await graphql({
-      schema: createSchema(connection.orm),
+      schema: createSchema(connection),
       source: '{ accounts { name count entries { id account { name } } } }',
       contextValue: {},
     });
@@ -262,7 +264,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
     });
   });
 
-  it('round trips Temporal cursor values through an application-provided codec', async () => {
+  it('round trips Temporal cursor values through the column codec', async () => {
     const schema = createSchema();
     const first = await graphql({
       schema,
@@ -313,11 +315,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
         plugins: [RelayPlugin, prismaNextPlugin],
         relay: {},
-        prismaNext: {
-          contract,
-          context: client.context,
-          collections: { Event: client.orm.public.Event },
-        },
+        prismaNext: { client },
       });
       const Event = builder.prismaObject('Event', {
         fields: (t) => ({
@@ -329,7 +327,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         fields: (t) => ({
           events: t.prismaConnection({
             type: 'Event',
-            cursor: [{ field: 'at', codec: 'column' }],
+            cursor: 'at',
             resolve: () => client.orm.public.Event,
           }),
           keyed: t.field({
@@ -375,26 +373,78 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ keyed: [{ label: 'three' }, { label: 'one' }] });
     });
+  });
 
-    it('requires the context for codec: column', () => {
+  describe('identities and IDs through column codecs', () => {
+    function tokenSchema() {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
         plugins: [RelayPlugin, prismaNextPlugin],
         relay: {},
-        prismaNext: { contract },
+        prismaNext: { client },
       });
-      builder.prismaObject('Event', { fields: (t) => ({ label: t.exposeString('label') }) });
-      expect(() =>
-        builder.queryType({
-          fields: (t) => ({
-            events: t.prismaConnection({
-              type: 'Event',
-              cursor: [{ field: 'at', codec: 'column' }],
-              resolve: () => client.orm.public.Event,
-            }),
+      const Token = builder.prismaNode('Token', {
+        id: { field: 'id' },
+        fields: (t) => ({ label: t.exposeString('label') }),
+      });
+      const ByWide = builder.prismaNode('Token', {
+        variant: 'TokenByWide',
+        id: { field: 'wide' },
+        fields: (t) => ({ label: t.exposeString('label') }),
+      });
+      const ByBin = builder.prismaNode('Token', {
+        variant: 'TokenByBin',
+        id: { field: 'bin' },
+        fields: (t) => ({ label: t.exposeString('label') }),
+      });
+      const tokens = () => client.orm.public.Token.orderBy((token) => token.label.asc());
+      builder.queryType({
+        fields: (t) => ({
+          tokens: t.prismaField({ type: [Token], resolve: tokens }),
+          byWide: t.prismaField({ type: [ByWide], resolve: tokens }),
+          byBin: t.prismaField({ type: [ByBin], resolve: tokens }),
+          // The database reads these back as 0.50 and 1.50.
+          written: t.field({
+            type: [Token],
+            resolve: () => [{ id: '0.5' }, { id: '1.5' }] as never,
           }),
         }),
-      ).not.toThrow();
-      expect(() => builder.toSchema()).toThrow(/requires prismaNext.context/);
+      });
+      return builder.toSchema();
+    }
+
+    it('matches reloaded decimal identities written in another form', async () => {
+      const result = await graphql({
+        schema: tokenSchema(),
+        source: '{ written { label } }',
+        contextValue: {},
+      });
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ written: [{ label: 'half' }, { label: 'one and a half' }] });
+    });
+
+    it.each([
+      ['tokens', 'Token'],
+      ['byWide', 'TokenByWide'],
+      ['byBin', 'TokenByBin'],
+    ])('round trips decimal, wide integer and bytes node IDs (%s)', async (field, type) => {
+      const schema = tokenSchema();
+      const listed = await graphql({ schema, source: `{ ${field} { id } }`, contextValue: {} });
+      expect(listed.errors).toBeUndefined();
+      const ids = (listed.data?.[field] as { id: string }[]).map((token) => token.id);
+      expect(new Set(ids).size).toBe(2);
+      const loaded = await graphql({
+        schema,
+        source: `query ($ids: [ID!]!) { nodes(ids: $ids) { __typename ... on ${type} { label } } }`,
+        variableValues: { ids },
+        contextValue: {},
+      });
+      expect(loaded.errors).toBeUndefined();
+      expect(loaded.data).toEqual({
+        nodes: [
+          { __typename: type, label: 'half' },
+          { __typename: type, label: 'one and a half' },
+        ],
+      });
     });
   });
 
@@ -405,7 +455,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
       relay: {},
-      prismaNext: { contract },
+      prismaNext: { client },
     });
     builder.prismaObject('Entry', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
@@ -445,7 +495,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       client.transaction(async (tx) => {
         await tx.orm.public.Account.where({ id: 'a' }).update({ name: 'In transaction' });
         const result = await graphql({
-          schema: createSchema(tx.orm),
+          schema: createSchema(tx),
           source: '{ accounts { name count entries { account { name } } } }',
           contextValue: {},
         });
@@ -473,15 +523,15 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
     let providerCalls = 0;
     const builder = new SchemaBuilder<{
       PrismaNextContract: Contract;
-      Context: { orm: typeof client.orm };
+      Context: { tx: { orm: typeof client.orm } };
     }>({
       plugins: [prismaNextPlugin],
       prismaNext: {
-        contract,
-        collections: (context) => {
+        client: (context) => {
           providerCalls += 1;
-          return { Account: context.orm.public.Account, Entry: context.orm.public.Entry };
+          return context.tx;
         },
+        contract,
       },
     });
     builder.prismaObject('Account', {
@@ -503,7 +553,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       fields: (t) => ({
         entries: t.prismaField({
           type: ['Entry'],
-          resolve: (_parent, _args, context) => context.orm.public.Entry,
+          resolve: (_parent, _args, context) => context.tx.orm.public.Entry,
         }),
       }),
     });
@@ -515,7 +565,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         const result = await graphql({
           schema,
           source: '{ entries { original { name } current { name } } }',
-          contextValue: { orm: tx.orm },
+          contextValue: { tx },
         });
         expect(result.errors).toBeUndefined();
         expect(result.data).toEqual({

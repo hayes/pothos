@@ -13,7 +13,7 @@ describe('plugin-with-input', () => {
     const seen: unknown[] = [];
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [WithInputPlugin, prismaNextPlugin],
-      prismaNext: { contract: db.contract },
+      prismaNext: { client: db.client },
     });
     builder.prismaObject('User', {
       fields: (t) => ({ id: t.exposeID('id'), firstName: t.exposeString('firstName') }),

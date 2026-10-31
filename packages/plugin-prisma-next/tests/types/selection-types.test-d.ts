@@ -2,9 +2,12 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import WithInputPlugin from '@pothos/plugin-with-input';
 import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
+import type { PostgresClient } from '@prisma/orm-postgres/runtime';
+import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, { type CollectionFor, type ModelName, type Row } from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
+import type { Contract as PostgresContract } from '../postgres/contract';
 
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
 type UserRow = DefaultModelRow<Contract, 'User'>;
@@ -13,7 +16,7 @@ type PostRow = DefaultModelRow<Contract, 'Post'>;
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
-  prismaNext: { contract: null as never },
+  prismaNext: { client: null as never },
 });
 const collection = null as never;
 declare const orm: { User: CollectionFor<Types, 'User'>; Post: CollectionFor<Types, 'Post'> };
@@ -335,14 +338,14 @@ builder.queryType({
 builder.prismaObject('Tag', { fields: () => ({}) });
 
 // Without PrismaNextContract, model names collapse to a sentinel.
-new SchemaBuilder({ plugins: [prismaNextPlugin], prismaNext: { contract: null as never } })
+new SchemaBuilder({ plugins: [prismaNextPlugin], prismaNext: { client: null as never } })
   // @ts-expect-error without PrismaNextContract, model names collapse to a sentinel
   .prismaObject('User', { fields: () => ({}) });
 
 // prismaFieldWithInput: an optional input may be omitted as well as null.
 const withInput = new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [WithInputPlugin, prismaNextPlugin],
-  prismaNext: { contract: null as never },
+  prismaNext: { client: null as never },
 });
 withInput.queryType({
   fields: (t) => ({
@@ -373,30 +376,77 @@ withInput.queryType({
   }),
 });
 
-// collections: a Collection per model, possibly filtered, or a function of the context.
-type Context = { orm: typeof orm; tenantId: string };
+// client: the client itself, or a function of the request context that returns one (such as a
+// transaction) beside the contract.
+type Context = { db: typeof db; tenantId: string };
+declare const db: { orm: typeof orm; context: { contract: Contract; contractCodecs: Codecs } };
+type Codecs = { forColumn(namespaceId: string, table: string, column: string): unknown };
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: db },
+});
+declare const sqliteClient: SqliteClient<Contract>;
+declare const postgresClient: PostgresClient<PostgresContract>;
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: sqliteClient },
+});
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
   plugins: [prismaNextPlugin],
   prismaNext: {
-    contract: null as never,
-    collections: (context) => {
+    client: () => null as unknown as Parameters<Parameters<typeof sqliteClient.transaction>[0]>[0],
+    contract: sqliteClient.contract,
+  },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  // @ts-expect-error a client of another contract
+  prismaNext: { client: postgresClient },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: {
+    client: (context) => {
       expectTypeOf(context).toEqualTypeOf<Context>();
-      return {
-        User: context.orm.User,
-        Post: context.orm.Post.where({ authorId: context.tenantId }),
-      };
+      return { orm: context.db.orm };
     },
+    contract: db.context.contract,
+  },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
+  plugins: [prismaNextPlugin],
+  // @ts-expect-error a client function needs the contract for building the schema
+  prismaNext: { client: (context) => context.db },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  // @ts-expect-error the client is required
+  prismaNext: {},
+});
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  // @ts-expect-error a client's contract already describes the schema
+  prismaNext: { client: db, contract: db.context.contract },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: {
+    client: db,
+    // @ts-expect-error unknown options are rejected
+    collections: db.orm,
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [prismaNextPlugin],
   prismaNext: {
-    contract: null as never,
-    collections: {
-      // @ts-expect-error a provider returns the Collection of its declared model
-      User: orm.Post,
-      // @ts-expect-error materialized rows can't receive a fallback selection
-      Post: [{ id: 'p' }],
-    },
+    // @ts-expect-error the client needs its execution context
+    client: { orm: db.orm },
+  },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: {
+    // @ts-expect-error a client's collections belong to the contract's models
+    client: { orm: { User: orm.Post }, context: db.context },
   },
 });

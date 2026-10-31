@@ -1,6 +1,7 @@
 import { PothosSchemaError } from '@pothos/core';
 import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
 import { type Codec, readContractValue } from '@prisma/orm-framework/components/codec';
+import { canonicalStringify } from '@prisma/orm-framework/utils/canonical-stringify';
 import type { AnyContract } from '../types.js';
 import {
   modelDiscriminator,
@@ -206,28 +207,55 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
   return model;
 }
 
+/** A column codec; cursors, IDs and loader identities hold values in its stored JSON form. */
 export interface ColumnCodec {
-  toStored(value: unknown): unknown;
-  fromStored(stored: unknown): unknown;
+  encode(value: unknown): unknown;
+  decode(stored: unknown): unknown;
+  /** Equal for values the column's data type holds equal, such as the decimals 0.5 and 0.50. */
+  key(value: unknown): string;
 }
 
-/** A Prisma client's `context`, which holds the column codecs. */
-export interface PrismaNextCodecContext {
+/** The part of a client's execution context that holds the column codecs. */
+export interface CodecContext {
   readonly contractCodecs: {
     forColumn(namespaceId: string, table: string, column: string): unknown;
   };
 }
 
+export type FieldCodecs = (field: string) => ColumnCodec | undefined;
+
+const codecCache = new WeakMap<CodecContext, Map<string, ColumnCodec | null>>();
+
 export function getColumnCodec(
   contract: AnyContract,
+  context: CodecContext,
   modelName: string,
   field: string,
-  context: PrismaNextCodecContext | undefined,
+): ColumnCodec | undefined {
+  let codecs = codecCache.get(context);
+  if (!codecs) {
+    codecs = new Map();
+    codecCache.set(context, codecs);
+  }
+  const cacheKey = `${modelName}\0${field}`;
+  let columnCodec = codecs.get(cacheKey);
+  if (columnCodec === undefined) {
+    columnCodec = createColumnCodec(contract, context, modelName, field) ?? null;
+    codecs.set(cacheKey, columnCodec);
+  }
+  return columnCodec ?? undefined;
+}
+
+function createColumnCodec(
+  contract: AnyContract,
+  context: CodecContext,
+  modelName: string,
+  field: string,
 ): ColumnCodec | undefined {
   const storage = resolveContractModel(contract, modelName)?.storage as
     | { table?: string; namespaceId?: string; fields?: Record<string, { column?: string }> }
     | undefined;
-  if (!context || !storage?.table || !storage.namespaceId) {
+  if (!storage?.table || !storage.namespaceId) {
     return undefined;
   }
   const column = storage.fields?.[field]?.column ?? field;
@@ -239,8 +267,18 @@ export function getColumnCodec(
   }
   const table = resolveStorageTable(contract.storage, storage.table, storage.namespaceId)?.table;
   const typeParams = (table?.columns[column] as { typeParams?: unknown } | undefined)?.typeParams;
+  const encode = (value: unknown) => codec.dataType.toContract(codec.toDataTypeValue(value));
   return {
-    toStored: (value) => codec.dataType.toContract(codec.toDataTypeValue(value)),
-    fromStored: (stored) => readContractValue(codec, stored as never, typeParams),
+    encode,
+    decode: (stored) => readContractValue(codec, stored as never, typeParams),
+    key: (value) => {
+      const stored = encode(value);
+      return codec.dataType.equalityKey?.(stored) ?? canonicalStringify(stored);
+    },
   };
+}
+
+/** Identity for a value whose column has no codec. */
+export function rawKey(value: unknown): string {
+  return canonicalStringify(value);
 }

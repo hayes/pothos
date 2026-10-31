@@ -22,7 +22,7 @@ describe.skipIf(!url)('MySQL', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
       relay: {},
-      prismaNext: { contract },
+      prismaNext: { client },
     });
     builder.prismaObject('Author', {
       fields: (t) => ({
