@@ -29,7 +29,8 @@ expectTypeOf<Row<Types, 'User'>>().toEqualTypeOf<{
   email: string;
 }>();
 
-// A resolver's parent holds the brand and the columns its field and type declare, nothing else.
+// A resolver's parent holds the brand, the primary key (always loaded) and the columns its field
+// and type declare, nothing else.
 builder.prismaObject('User', {
   variant: 'FieldSelects',
   fields: (t) => ({
@@ -45,6 +46,12 @@ builder.prismaObject('User', {
     nothing: t.string({
       // @ts-expect-error no select means no columns on the parent
       resolve: (user) => user.email,
+    }),
+    key: t.id({
+      resolve: (user) => {
+        expectTypeOf(user.id).toEqualTypeOf<string>();
+        return user.id;
+      },
     }),
     typo: t.string({
       // @ts-expect-error `frstName` isn't a column, even beside a valid one
@@ -187,8 +194,19 @@ builder.prismaNode('User', {
   fields: (t) => ({ postCount: t.int({ resolve: (user) => user.postCount }) }),
 });
 
+// Every type's selection loads the primary key, so a parent passes through to another type of
+// its model without a `select`.
+const UserKeyOnly = builder.prismaObject('User', { variant: 'UserKeyOnly', fields: () => ({}) });
+builder.prismaObject('User', {
+  variant: 'PassThrough',
+  fields: (t) => ({
+    same: t.field({ type: UserKeyOnly, resolve: (user) => user }),
+  }),
+});
+
 // A field `select` may be a function of the field's args and context, sync or async: what it
 // returns narrows the parent and is checked like a literal select.
+declare const someColumns: ('email' | 'firstName')[];
 builder.prismaObject('User', {
   variant: 'FieldSelectFunctions',
   fields: (t) => ({
@@ -225,6 +243,87 @@ builder.prismaObject('User', {
         expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
         return '';
       },
+    }),
+    // Overlapping branches keep apart, so a column only one of them selects may be missing.
+    overlapping: t.string({
+      args: { full: t.arg.boolean({ required: true }) },
+      select: (args) => (args.full ? ['email', 'firstName'] : ['email']),
+      resolve: (user) => {
+        expectTypeOf(user.email).toEqualTypeOf<string | undefined>();
+        expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
+        return '';
+      },
+    }),
+    emptyBranch: t.string({
+      args: { full: t.arg.boolean({ required: true }) },
+      select: (args) => (args.full ? ['lastName'] : []),
+      resolve: (user) => {
+        expectTypeOf(user.lastName).toEqualTypeOf<string | undefined>();
+        return '';
+      },
+    }),
+    statementBranches: t.string({
+      args: { full: t.arg.boolean({ required: true }) },
+      select: (args) => {
+        if (args.full) {
+          return ['email', 'firstName'];
+        }
+        return ['email'];
+      },
+      resolve: (user) => {
+        expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
+        return '';
+      },
+    }),
+    asyncOverlapping: t.string({
+      args: { full: t.arg.boolean({ required: true }) },
+      select: async (args) => (args.full ? ['email', 'firstName'] : ['email']),
+      resolve: (user) => {
+        expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
+        return '';
+      },
+    }),
+    singleBranch: t.string({
+      select: () => ['email', 'firstName'],
+      resolve: (user) => {
+        expectTypeOf(user.email).toEqualTypeOf<string>();
+        expectTypeOf(user.firstName).toEqualTypeOf<string>();
+        return '';
+      },
+    }),
+    asyncSingleBranch: t.string({
+      select: async () => ['email', 'firstName'],
+      resolve: (user) => {
+        expectTypeOf(user.firstName).toEqualTypeOf<string>();
+        return '';
+      },
+    }),
+    // An array variable may hold any of its columns.
+    variable: t.string({
+      select: () => someColumns,
+      resolve: (user) => {
+        expectTypeOf(user.email).toEqualTypeOf<string | undefined>();
+        return '';
+      },
+    }),
+    relationQuery: t.int({
+      select: () => ({ posts: { limit: 2, where: { published: 1 } } }),
+      resolve: (user) => user.posts.length,
+    }),
+    relationQueryValue: t.int({
+      // @ts-expect-error `limit` takes a number
+      select: () => ({ posts: { limit: 'x' } }),
+      resolve: () => 1,
+    }),
+    asyncRelationQueryValue: t.int({
+      // @ts-expect-error `limit` takes a number
+      select: async () => ({ posts: { limit: 'x' } }),
+      resolve: () => 1,
+    }),
+    columnValue: t.int({
+      // @ts-expect-error a column takes `true`
+      select: () => ({ email: { limit: 1 } }),
+      resolve: () => 1,
     }),
     columnTypo: t.string({
       // @ts-expect-error `emial` isn't a column

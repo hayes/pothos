@@ -182,5 +182,12 @@ inheritance.queryType({
       cursor: ['title', 'id'],
       resolve: () => orm.Task.variant('bug'),
     }),
+    // The interface routes a row by its discriminator before any field runs, so a plain field
+    // returning it needs `type` beside the key.
+    taskByKey: t.field({ type: task, resolve: () => ({ id: 't1', type: 'bug' as const }) }),
+    // @ts-expect-error a key-only row has no discriminator to route by
+    taskWithoutType: t.field({ type: task, resolve: () => ({ id: 't1' }) }),
+    // A variant's own type needs no discriminator.
+    bugByKey: t.field({ type: bug, resolve: () => ({ id: 't1' }) }),
   }),
 });

@@ -16,6 +16,7 @@ import type { PothosPrismaNextPlugin } from './index.js';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type {
   ExactSelectCheck,
+  FieldParentShape,
   InterfaceSelectShape,
   ObjectBaseShape,
   ParamToModelName,
@@ -24,7 +25,7 @@ import type {
   ShapeFromObjectSelect,
 } from './internal-types.js';
 import type { PrismaNextNodeRef } from './node-ref.js';
-import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
+import type { PrismaNextObjectRef } from './object-ref.js';
 import type { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 import type {
   AnyContract,
@@ -229,14 +230,14 @@ declare global {
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fieldName: string,
         field: (
-          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
+          t: PrismaNextObjectFieldBuilder<Types, M, FieldParentShape<Types, M, Shape>>,
         ) => FieldRef<Types, unknown>,
       ) => void;
 
       prismaObjectFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fields: (
-          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
+          t: PrismaNextObjectFieldBuilder<Types, M, FieldParentShape<Types, M, Shape>>,
         ) => FieldMap,
       ) => void;
 
@@ -244,14 +245,14 @@ declare global {
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fieldName: string,
         field: (
-          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
+          t: PrismaNextObjectFieldBuilder<Types, M, FieldParentShape<Types, M, Shape>>,
         ) => FieldRef<Types, unknown>,
       ) => void;
 
       prismaInterfaceFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fields: (
-          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
+          t: PrismaNextObjectFieldBuilder<Types, M, FieldParentShape<Types, M, Shape>>,
         ) => FieldMap,
       ) => void;
 
