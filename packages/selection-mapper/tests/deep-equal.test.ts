@@ -95,6 +95,19 @@ describe('deepEqual', () => {
     expect(deepEqual(new Bag(2020), new Bag(2020))).toBe(true);
   });
 
+  it('lets an error thrown by equals reach the caller', () => {
+    class Broken {
+      valueOf(): never {
+        throw new TypeError('use equals');
+      }
+      equals(): never {
+        throw new Error('broken equals');
+      }
+    }
+
+    expect(() => deepEqual(new Broken(), new Broken())).toThrow('broken equals');
+  });
+
   it('compares typed arrays by type and bytes', () => {
     expect(deepEqual(new Uint8Array([1, 2]), new Uint8Array([1, 2]))).toBe(true);
     expect(deepEqual(new Uint8Array([1, 2]), new Uint8Array([1, 3]))).toBe(false);

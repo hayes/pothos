@@ -21,7 +21,13 @@ import {
   resolveType,
 } from './matches.js';
 import type { Node } from './node.js';
-import type { EntryOptions, MergeOptions, Position, WalkedType } from './types.js';
+import type {
+  EntryOptions,
+  MergeOptions,
+  Position,
+  TypeLevelConflict,
+  WalkedType,
+} from './types.js';
 import { type Branch, walkBranches, walkField } from './walk.js';
 
 // Shared, since neither carries anything per merge.
@@ -33,6 +39,10 @@ const LENIENT: MergeOptions = Object.freeze({ lenient: true });
  * variant's, a nested selection's relation query, or a field's. A play folds the list into a
  * node; nothing is merged, accepted or rejected before then.
  *
+ * `expanded` marks a merge collected beneath a fragment that expands (see `fragmentTypesOf` in
+ * walk.ts): true when only a play that expands such fragments takes it, false when only a play
+ * that does not, absent when both do.
+ *
  * A record holds its query by reference, so a select function that mutates the query it returned
  * after returning it changes what a later play builds — a bug in the select function. Nothing
  * copies it: a query is opaque to this package, which could only copy one by round-tripping it
@@ -41,8 +51,15 @@ const LENIENT: MergeOptions = Object.freeze({ lenient: true });
 export type RootMerge<Query> =
   | { kind: 'type'; query: Query }
   | { kind: 'query'; query: Query }
-  | { kind: 'variant'; type: WalkedType; variant: WalkedType; query: Query }
-  | { kind: 'field'; key: string; alias: string; query: Query; mapping: Mapping };
+  | { kind: 'variant'; type: WalkedType; variant: WalkedType; query: Query; expanded?: boolean }
+  | {
+      kind: 'field';
+      key: string;
+      alias: string;
+      query: Query;
+      mapping: Mapping;
+      expanded?: boolean;
+    };
 
 /**
  * A plan played: the node its merges built and the mappings the accepted merges recorded. A play
@@ -81,6 +98,9 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /** The traversal's whole output: every merge it collected, in the order it collected them. */
   private readonly merges: RootMerge<Query>[] = [];
+
+  /** Whether some merge is taken only by a play that expands fragments. */
+  private expands = false;
 
   /**
    * The play `settle` ran, which a later play takes whole when the seed conflicts with none of
@@ -234,6 +254,10 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /** Appends one merge to the list a play folds. The traversal's only way to add to a plan. */
   collect(merge: RootMerge<Query>) {
+    if ((merge.kind === 'variant' || merge.kind === 'field') && merge.expanded) {
+      this.expands = true;
+    }
+
     this.merges.push(merge);
   }
 
@@ -291,27 +315,47 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * of a synchronous one.
    */
   play(seed?: Query): PlayedPlan<Model, Query, NodeType> {
-    const { adapter } = this;
-    const root = adapter.createNode(this.model);
     const settled = this.reusable(seed);
-    // Merged before anything else, so on a conflict it wins. A settled play already holds the
-    // plan's own `initial`, so reusing one merges the seed and nothing else: `mergeQuery` is not
-    // required to be idempotent.
-    const first = settled ? seed : (seed ?? this.initial);
-
-    if (first) {
-      adapter.mergeQuery(root, first);
-    }
 
     if (settled) {
-      // Every merge that play took still fits and every merge it left out still does not, so
-      // the node it built is taken whole.
-      adapter.mergeNode(root, settled.root);
+      const root = this.adapter.createNode(this.model);
+
+      // A settled play already holds the plan's own `initial`, so reusing one merges the seed and
+      // nothing else: `mergeQuery` is not required to be idempotent. Every merge that play took
+      // still fits and every merge it left out still does not, so its node is taken whole.
+      if (seed) {
+        this.adapter.mergeQuery(root, seed);
+      }
+
+      this.adapter.mergeNode(root, settled.root);
 
       return { plan: this, root, mappings: settled.mappings };
     }
 
+    const first = seed ?? this.initial;
+
+    // A fragment that expands enters every variant it covers. When their type-level selections
+    // conflict, the plan is played with each such fragment treated as one that cannot apply, so
+    // its fields load on their own instead of the field failing.
+    return (this.expands && this.fold(first, true)) || this.fold(first, false)!;
+  }
+
+  /**
+   * The merges a play that does or does not expand fragments takes, folded into a fresh node
+   * behind `first`, which is merged before anything else so on a conflict it wins. Undefined when
+   * an expanding play meets a type-level conflict; a play that does not expand throws it.
+   */
+  private fold(
+    first: Query | undefined,
+    expanded: boolean,
+  ): PlayedPlan<Model, Query, NodeType> | undefined {
+    const { adapter } = this;
+    const root = adapter.createNode(this.model);
     const mappings: Mappings = {};
+
+    if (first) {
+      adapter.mergeQuery(root, first);
+    }
 
     for (const merge of this.merges) {
       switch (merge.kind) {
@@ -321,10 +365,29 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
         case 'query':
           adapter.mergeQuery(root, merge.query, AS_QUERY);
           break;
-        case 'variant':
-          this.mergeVariant(root, merge.type, merge.variant, merge.query);
+        case 'variant': {
+          if (merge.expanded === !expanded) {
+            break;
+          }
+
+          const conflict = adapter.firstConflict(root, merge.query);
+
+          if (conflict) {
+            if (expanded) {
+              return undefined;
+            }
+
+            throw variantConflict(merge.type, merge.variant, conflict);
+          }
+
+          adapter.mergeQuery(root, merge.query);
           break;
+        }
         case 'field': {
+          if (merge.expanded === !expanded) {
+            break;
+          }
+
           // One options object for the pair: `mergeQuery` reads only the alias, and
           // `canMergeQuery` only the `ignoreArgs` beside it.
           const options: MergeOptions = { ignoreArgs: true, alias: merge.alias };
@@ -410,34 +473,28 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       ? this.played
       : undefined;
   }
+}
 
-  /**
-   * Unlike a field-level select, a type-level selection has no per-field fallback, so a relation
-   * argument or a computed value that conflicts with what is already in the node is an error
-   * rather than a rejection.
-   */
-  private mergeVariant(node: NodeType, type: WalkedType, variant: WalkedType, selection: Query) {
-    const conflict = this.adapter.firstConflict(node, selection);
+/**
+ * Unlike a field-level select, a type-level selection has no per-field fallback, so a relation
+ * argument or a computed value that conflicts with what is already in the node is an error rather
+ * than a rejection.
+ */
+function variantConflict(type: WalkedType, variant: WalkedType, conflict: TypeLevelConflict) {
+  switch (conflict.kind) {
+    case 'relation':
+      return new PothosValidationError(
+        `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${conflict.name}". Move the relation arguments to a field-level select on one of the types.`,
+      );
+    case 'extra':
+      return new PothosValidationError(
+        `Type-level selections of ${type.name} and ${variant.name} conflict on extra "${conflict.name}". Define the extra with the same function on both types, or move it to a field-level select on one of the types.`,
+      );
+    default: {
+      const unknown: never = conflict.kind;
 
-    if (conflict) {
-      switch (conflict.kind) {
-        case 'relation':
-          throw new PothosValidationError(
-            `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${conflict.name}". Move the relation arguments to a field-level select on one of the types.`,
-          );
-        case 'extra':
-          throw new PothosValidationError(
-            `Type-level selections of ${type.name} and ${variant.name} conflict on extra "${conflict.name}". Define the extra with the same function on both types, or move it to a field-level select on one of the types.`,
-          );
-        default: {
-          const unknown: never = conflict.kind;
-
-          throw new PothosValidationError(`Unknown type-level conflict ${unknown as string}`);
-        }
-      }
+      return new PothosValidationError(`Unknown type-level conflict ${unknown as string}`);
     }
-
-    this.adapter.mergeQuery(node, selection);
   }
 }
 
