@@ -4,20 +4,6 @@
  * `{}` when the condition is false.
  */
 export function deepEqual(left: unknown, right: unknown): boolean {
-  return equal(left, right, undefined);
-}
-
-/**
- * The pairs of objects being compared on the path from the root, so a cyclic value compares
- * equal where the same pair comes round again instead of recursing forever.
- */
-interface Ancestors {
-  left: object;
-  right: object;
-  parent: Ancestors | undefined;
-}
-
-function equal(left: unknown, right: unknown, ancestors: Ancestors | undefined): boolean {
   if (left === right) {
     return true;
   }
@@ -25,14 +11,6 @@ function equal(left: unknown, right: unknown, ancestors: Ancestors | undefined):
   if (!(left && right && typeof left === 'object' && typeof right === 'object')) {
     return false;
   }
-
-  for (let pair = ancestors; pair; pair = pair.parent) {
-    if (pair.left === left && pair.right === right) {
-      return true;
-    }
-  }
-
-  const path: Ancestors = { left, right, parent: ancestors };
 
   if (Array.isArray(left) || Array.isArray(right)) {
     if (!Array.isArray(left) || !Array.isArray(right)) {
@@ -46,7 +24,7 @@ function equal(left: unknown, right: unknown, ancestors: Ancestors | undefined):
     }
 
     for (let i = 0; i < length; i += 1) {
-      if (!equal(left[i], right[i], path)) {
+      if (!deepEqual(left[i], right[i])) {
         return false;
       }
     }
@@ -86,7 +64,7 @@ function equal(left: unknown, right: unknown, ancestors: Ancestors | undefined):
 
   for (const key of keys) {
     if (
-      !equal((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key], path)
+      !deepEqual((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key])
     ) {
       return false;
     }
@@ -140,8 +118,7 @@ function isOpaque(value: object) {
 /**
  * Two opaque values are equal only when they share a prototype and `left.equals` says so. The
  * shared prototype keeps the comparison symmetric: an `equals` that accepts property bags or
- * strings (Temporal's does) never makes an instance equal a plain object. An `equals` that throws
- * is a bug in the value's class, so its error reaches the caller.
+ * strings (Temporal's does) never makes an instance equal a plain object.
  */
 function opaqueEqual(left: object, right: object) {
   if (Object.getPrototypeOf(left) !== Object.getPrototypeOf(right)) {
