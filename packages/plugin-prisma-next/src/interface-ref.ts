@@ -1,5 +1,5 @@
 import { InterfaceRef, type SchemaTypes } from '@pothos/core';
-import type { ModelName, Row } from './types.js';
+import type { ModelName, ModelReturnShape, Row } from './types.js';
 
 export const prismaInterfaceKey = Symbol.for('Pothos.prismaNextInterfaceKey');
 
@@ -7,7 +7,7 @@ export class PrismaNextInterfaceRef<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   Shape = Row<Types, M>,
-> extends InterfaceRef<Types, Shape, Shape> {
+> extends InterfaceRef<Types, ModelReturnShape<Types, M>, Shape> {
   declare readonly [prismaInterfaceKey]: M;
   readonly modelName: M;
 

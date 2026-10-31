@@ -27,7 +27,6 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   AnyContract,
   CursorSpec,
-  DefaultRelationNullable,
   HasAggregates,
   ModelName,
   PrismaNextRelatedConnectionOptions,
@@ -38,8 +37,12 @@ import type {
   RelationAggregateField,
   RelationAggregateOp,
   RelationAggregateResult,
+  RelationFieldShape,
   RelationKeys,
+  RelationNullable,
+  RelationQuery,
   Row,
+  ShapeFromConnection,
   ToManyRelationKeys,
 } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
@@ -306,13 +309,23 @@ export class PrismaNextObjectFieldBuilder<
 
   relation<
     RelName extends RelationKeys<Types, M>,
-    Nullable extends boolean = DefaultRelationNullable<Types, M, RelName>,
+    Query extends RelationQuery<Types, M, RelName, Args> | undefined,
+    Nullable extends boolean = RelationNullable<Types, M, RelName, Query>,
     Args extends InputFieldMap = {},
     RelatedShape = Row<Types, RelatedModel<Types, M, RelName>>,
   >(
     name: RelName,
-    options?: PrismaNextRelationOptions<Types, M, RelName, Nullable, Args, RelatedShape, Shape>,
-  ): FieldRef<Types, unknown> {
+    options?: PrismaNextRelationOptions<
+      Types,
+      M,
+      RelName,
+      Nullable,
+      Args,
+      RelatedShape,
+      Shape,
+      Query
+    >,
+  ): FieldRef<Types, RelationFieldShape<Types, M, RelName, Nullable>, 'PrismaNextObject'> {
     const opts = (options ?? {}) as PrismaNextRelationOptions<
       Types,
       M,
@@ -363,18 +376,20 @@ export class PrismaNextObjectFieldBuilder<
     return this.field({
       ...rest,
       type: relation.isToMany ? [targetRef] : targetRef,
+      // A query can filter a to-one relation's row out.
       nullable:
         nullable ??
         (relation.isToMany
           ? false
-          : this.#isToOneRelationNullable(this.#getRelationMeta(relationName))),
+          : query !== undefined ||
+            this.#isToOneRelationNullable(this.#getRelationMeta(relationName))),
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECT]: select,
         [PRISMA_NEXT_LOADED]: (view: Record<string, unknown>) => view[relationName] !== undefined,
       },
       resolve: (parent: Record<string, unknown>) => parent[relationName],
-    } as never) as FieldRef<Types, unknown>;
+    } as never) as never;
   }
 
   /** Exposes the row count of a to-many relation as an `Int`. */
@@ -515,7 +530,17 @@ export class PrismaNextObjectFieldBuilder<
               EdgeInterfaces
             >
           | ObjectRef<Types, unknown>,
-      ) => FieldRef<Types, unknown>
+      ) => FieldRef<
+        Types,
+        ShapeFromConnection<
+          PothosSchemaTypes.ConnectionShapeHelper<
+            Types,
+            Row<Types, RelatedModel<Types, M, RelName>>,
+            Nullable
+          >
+        >,
+        'PrismaNextObject'
+      >
     : '@pothos/plugin-relay is required to use this method' = function relatedConnection(
     this: PrismaNextObjectFieldBuilder<SchemaTypes, ModelName<SchemaTypes>>,
     name: string,

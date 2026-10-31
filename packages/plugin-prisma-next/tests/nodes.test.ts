@@ -226,7 +226,7 @@ describe('node declarations', () => {
         prismaNext: { client: collision.client },
       });
       builder.prismaNode('Note', {
-        id: { field },
+        id: { field: field as never },
         collection: () => collision.orm.Note,
         fields: (t) => ({ text: t.exposeString('text', { nullable: true }) }),
       });

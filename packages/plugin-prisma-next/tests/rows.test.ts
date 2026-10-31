@@ -49,7 +49,7 @@ describe('rows a resolver returns', () => {
       fields: (t) => ({ label: t.string({ resolve: (user) => labels.get(user) }) }),
     });
     builder.queryType({
-      fields: (t) => ({ user: t.field({ type: User, resolve: () => parent as never }) }),
+      fields: (t) => ({ user: t.field({ type: User, resolve: () => parent }) }),
     });
     const result = execute({
       schema: builder.toSchema(),
@@ -70,10 +70,10 @@ describe('rows a resolver returns', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        stale: t.field({ type: Post, resolve: () => ({ id: 'p-hello', title: 'kept' }) as never }),
+        stale: t.field({ type: Post, resolve: () => ({ id: 'p-hello', title: 'kept' }) }),
         deleted: t.field({
           type: Post,
-          resolve: () => ({ id: 'gone', title: 'deleted' }) as never,
+          resolve: () => ({ id: 'gone', title: 'deleted' }),
         }),
       }),
     });
@@ -109,7 +109,7 @@ describe('rows a resolver returns', () => {
         rebuilt: t.field({
           type: User,
           select: { author: true },
-          resolve: (post) => ({ id: post.author.id }) as never,
+          resolve: (post) => ({ id: post.author.id }),
         }),
       }),
     });
@@ -398,7 +398,7 @@ describe('model members named like plugin slots', () => {
         sheet: t.prismaField({ type: 'Sheet', resolve: () => collision.orm.Sheet }),
         handBuilt: t.field({
           type: Sheet,
-          resolve: () => ({ id: 1, name: 's1', count: 99, notes: [] }) as never,
+          resolve: () => ({ id: 1, name: 's1', count: 99, notes: [] }),
         }),
       }),
     });
