@@ -36,7 +36,6 @@ import type {
   HasTypeState,
   ModelAccessor,
   ModelCallbackTools,
-  OrderableFieldNames,
   RelationPredicate,
   ShorthandWhereFilter,
 } from '@prisma/orm-family-sql/orm-client';
@@ -286,21 +285,18 @@ export type ConnectionCollection<
 export type PrismaNextCollections<TContract extends AnyContract> =
   string extends keyof TContract['domain']['namespaces'] ? object : TypedCollections<TContract>;
 
+// Collections are matched by model name only: comparing each `Collection` against one built from
+// `TContract` structurally costs more than the rest of the builder setup. The contract itself is
+// still compared through `context.contract`.
+interface CollectionOfModel<M extends string> {
+  readonly modelName: M;
+}
+
 type TypedCollections<TContract extends AnyContract> = {
-  [M in ModelKeys<TContract>]?: Collection<
-    TContract,
-    BareModelName<M>,
-    DefaultModelRow<TContract, BareModelName<M>, NsIdOf<TContract, M>>,
-    WithNsId<DefaultCollectionTypeState, NsIdOf<TContract, M>>
-  >;
+  [M in ModelKeys<TContract>]?: CollectionOfModel<BareModelName<M>>;
 } & {
   [Ns in keyof TContract['domain']['namespaces'] & string]?: {
-    [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]?: Collection<
-      TContract,
-      M,
-      DefaultModelRow<TContract, M, Ns>,
-      WithNsId<DefaultCollectionTypeState, Ns>
-    >;
+    [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]?: CollectionOfModel<M>;
   };
 };
 
@@ -972,16 +968,72 @@ export type PrismaNextRootFieldWithInputOptions<
     >;
   };
 
-/** Columns whose codec can be ordered (not bytes, for example). */
+/**
+ * The fields of a model whose column's codec can be ordered (not bytes, for example): upstream's
+ * `OrderableFieldNames`, read from the model's table in one pass instead of resolving each field's
+ * storage column through the ORM's per-field helpers. Shaped `keyof ... & string` like upstream's:
+ * the cursor options constrain their `Cursor` parameter by these columns while the model is still
+ * generic, and only a constraint that reduces to `string` keeps the inferred cursor a literal.
+ */
+type OrderableFields<C extends AnyContract, M extends string> = keyof OrderableFieldMap<C, M> &
+  string;
+
+type OrderableFieldMap<C extends AnyContract, M extends string> =
+  ModelDefOf<C, M> extends {
+    readonly fields: infer Fields;
+    readonly storage: {
+      readonly namespaceId: infer Ns extends keyof C['storage']['namespaces'];
+      readonly table: infer Table extends string;
+      readonly fields: infer Storage;
+    };
+  }
+    ? C['storage']['namespaces'][Ns]['entries']['table'] extends infer Tables
+      ? Table extends keyof Tables
+        ? Tables[Table] extends { readonly columns: infer Columns }
+          ? {
+              [F in keyof Fields & string as OrderableCodec<
+                C,
+                ColumnCodec<
+                  Columns,
+                  F extends keyof Storage
+                    ? Storage[F] extends { readonly column: infer Column }
+                      ? Column
+                      : F
+                    : F
+                >
+              > extends true
+                ? F
+                : never]: true;
+            }
+          : {}
+        : {}
+      : {}
+    : {};
+
+type ColumnCodec<Columns, Column> = Column extends keyof Columns
+  ? Columns[Column] extends { readonly codecId: infer Id }
+    ? Id
+    : never
+  : never;
+
+// Upstream's `IsOrderable`: the codec's traits include `order`.
+type OrderableCodec<C extends AnyContract, Id> = Id extends keyof ExtractCodecTypes<C>
+  ? ExtractCodecTypes<C>[Id] extends { readonly traits: infer Traits }
+    ? ['order'] extends [Traits]
+      ? true
+      : false
+    : false
+  : false;
+
 type OrderableColumn<Types extends SchemaTypes, M extends ModelName<Types>> =
-  | OrderableFieldNames<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>
+  | OrderableFields<Types['PrismaNextContract'], M>
   | BaseOrderableColumn<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>;
 
 type BaseOrderableColumn<TContract extends AnyContract, Base extends string> = [Base] extends [
   never,
 ]
   ? never
-  : OrderableFieldNames<TContract, BareModelName<Base>, NsIdOf<TContract, Base>>;
+  : OrderableFields<TContract, Base>;
 
 /** Cursor columns define the complete, deterministic ordering of a connection. */
 export type CursorColumn<Types extends SchemaTypes, M extends ModelName<Types>> = {
@@ -1219,7 +1271,8 @@ export type PrismaNextObjectFieldOptions<
   > & {
     select?: Select &
       PrismaNextFieldSelect<Types, ParentShape, InputShapeFromFields<Args>> &
-      ValidateFieldSelect<Types, ParentShape, Select>;
+      // Checked, not inferred from: inferring `Select` into it walks every branch of the check.
+      NoInfer<ValidateFieldSelect<Types, ParentShape, Select>>;
   };
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
