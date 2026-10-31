@@ -499,10 +499,8 @@ describe.each(orders)('field-level authScopes on a reloaded parent (%s)', (_, pl
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
-      DefaultFieldNullability: true;
     }>({
       plugins: [...plugins],
-      defaultFieldNullability: true,
       scopeAuth: { authScopes: () => ({ ok: true }) },
       prismaNext: { client: ctx.client },
     });
