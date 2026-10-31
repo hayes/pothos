@@ -34,18 +34,11 @@ function buildSchema() {
       firstName: t.exposeString('firstName'),
       lastName: t.exposeString('lastName'),
       email: t.exposeString('email'),
-      // Computed field with `select` — declares which row columns the
-      // resolver depends on. The mapper reads `select` and unions the
-      // keys into the parent collection's `.select(...)`. The `user`
-      // arg is narrowed to just `firstName | lastName` so accessing
-      // un-selected columns is a TS error.
       fullName: t.string({
         select: ['firstName', 'lastName'],
         resolve: (user) => `${user.firstName} ${user.lastName}`,
       }),
       posts: t.relation('posts'),
-      // Function-form select on a plain t.field is the canonical way
-      // to count a relation.
       postCount: t.field({
         type: 'Int',
         select: {
@@ -53,8 +46,6 @@ function buildSchema() {
         },
         resolve: ((parent: { posts: number }) => parent.posts) as never,
       } as never),
-      // Filtered count — only published posts. Exercises the mapper's
-      // `rel.where(...).count()` emission via function-form select.
       publishedPostCount: t.field({
         type: 'Int',
         select: {
@@ -64,9 +55,6 @@ function buildSchema() {
         },
         resolve: ((parent: { posts: number }) => parent.posts) as never,
       } as never),
-      // Callback-form where via function-form select. The select
-      // function receives (sub, args, ctx) — same plumbing the
-      // walker uses for every function-form select.
       postCountByPublishedFlag: t.field({
         type: 'Int',
         args: { flag: t.arg.int({ required: true }) },
@@ -84,7 +72,6 @@ function buildSchema() {
         },
         resolve: ((parent: { posts: number }) => parent.posts) as never,
       } as never),
-      // Callback form for select — varies columns by an arg.
       greeting: t.string({
         args: { formal: t.arg.boolean({ required: true }) },
         select: (args) => (args.formal ? ['lastName'] : ['firstName']),
@@ -93,9 +80,6 @@ function buildSchema() {
             ? `Greetings, ${(user as { lastName?: string }).lastName ?? ''}`
             : `Hi, ${(user as { firstName?: string }).firstName ?? ''}`,
       }),
-      // Direct t.field({ select: { posts: true }, resolve }) generalises
-      // the (removed) t.relatedField — preload the relation, compute a
-      // custom value from the rows.
       firstPostTitle: t.field({
         type: 'String',
         nullable: true,
@@ -103,9 +87,6 @@ function buildSchema() {
         resolve: ((parent: { posts: { title: string }[] }) =>
           parent.posts[0]?.title ?? null) as never,
       } as never),
-      // t.relationAggregate via function-form select: emit an
-      // IncludeScalar (sum/avg/min/max/count) inside the parent's
-      // combine spec.
       publishedPostCountAgg: t.field({
         type: 'Int',
         nullable: true,
@@ -118,9 +99,7 @@ function buildSchema() {
         },
         resolve: ((parent: { posts: number | null }) => parent.posts) as never,
       } as never),
-      // Same shape but exercises ecosystem-option passthrough:
-      // description + custom extensions must survive the builder's
-      // destructure-and-spread.
+      // Description and extensions must pass through.
       firstPostTitleWithMeta: t.field({
         type: 'String',
         nullable: true,
@@ -130,9 +109,6 @@ function buildSchema() {
         resolve: ((parent: { posts: { title: string }[] }) =>
           parent.posts[0]?.title ?? null) as never,
       } as never),
-      // Field-level relation-aggregate sugar (t.relationCount /
-      // t.relationAggregate) — thin wrappers over function-form select.
-      // relationCount → number; sum/avg/min/max → number | null.
       relCount: t.relationCount('posts'),
       relCountPublished: t.relationCount('posts', { where: { published: 1 } }),
       relCountByFlag: t.relationCount('posts', {
@@ -142,7 +118,6 @@ function buildSchema() {
       relSumPublished: t.relationAggregate('posts', { op: 'sum', field: 'published' }),
       relMaxPublished: t.relationAggregate('posts', { op: 'max', field: 'published' }),
       relMinPublished: t.relationAggregate('posts', { op: 'min', field: 'published' }),
-      // Object-form select with multiple aggregate slots in one combine.
       postStats: t.field({
         type: 'String',
         select: {
@@ -166,16 +141,12 @@ function buildSchema() {
           }`) as never,
       } as never),
       comments: t.relation('comments'),
-      // Sibling-aliased relations targeting the same `posts` relation
-      // with different filters — exercises the mapper's combine grouping.
       drafts: t.relation('posts', {
         query: { where: (p) => p.published.eq(0) },
       }),
       publishedPosts: t.relation('posts', {
         query: { where: (p) => p.published.eq(1) },
       }),
-      // Single field with args — used below to exercise GraphQL query-
-      // level aliases hitting the same schema field with different args.
       postsByPublished: t.relation('posts', {
         args: { published: t.arg.int({ required: true }) },
         query: (args) => ({ where: (p) => p.published.eq(args.published) }),
@@ -203,10 +174,6 @@ function buildSchema() {
     }),
   });
 
-  // Variant: a second prismaObject for the User model under a different
-  // GraphQL type name. Variant carries its own field set (here, just a
-  // narrow shape with `posts`). The mapper must descend through
-  // `t.variant(userBasicRef)` and preload the variant's nested relations.
   const userBasicRef = builder.prismaObject('User', {
     name: 'UserBasic',
     fields: (t) => ({
@@ -217,9 +184,6 @@ function buildSchema() {
   });
   builder.prismaObjectField('User', 'basicView', (t) => t.variant(userBasicRef));
 
-  // Cross-file extension helpers — `prismaObjectField` adds a single
-  // field to the already-registered `Comment` type without re-opening
-  // the original `prismaObject` call.
   builder.prismaObjectField('Comment', 'shoutBody', (t) =>
     t.string({
       select: ['body'],
@@ -227,7 +191,6 @@ function buildSchema() {
     }),
   );
 
-  // `prismaObjectFields` adds multiple fields. Exercises the same path.
   builder.prismaObjectFields('User', (t) => ({
     initials: t.string({
       select: ['firstName', 'lastName'],
@@ -237,9 +200,6 @@ function buildSchema() {
 
   builder.queryType({
     fields: (t) => ({
-      // Standard Pothos resolver signature: (parent, args, ctx, info).
-      // The plugin auto-detects an orm-client Collection in the return
-      // value and applies selection + materializes via `.all()`.
       users: t.prismaField({
         type: ['User'],
         resolve: (() => ctx.ormClient.User) as never,
@@ -255,9 +215,6 @@ function buildSchema() {
         resolve: ((_parent: unknown, args: { email: string }) =>
           ctx.ormClient.User.where((u) => u.email.eq(args.email))) as never,
       }),
-      // Same as `users`, but pass the ref returned by prismaObject as the
-      // `type` instead of the model name string. Exercises the ref-resolution
-      // path in prisma-next-field-builder.
       usersByRef: t.prismaField({
         type: [userRef],
         resolve: (() => ctx.ormClient.User) as never,
@@ -289,9 +246,6 @@ describe('runtime: end-to-end against real sqlite', () => {
   });
 
   it('exposes fields added via prismaObjectField / prismaObjectFields cross-file helpers', async () => {
-    // `initials` was added via `prismaObjectFields('User', …)`; `shoutBody`
-    // via `prismaObjectField('Comment', …)`. Both should resolve as if
-    // declared in the original `prismaObject` `fields:` thunk.
     const { result } = await runQuery(
       '{ users { id initials posts { id comments { id shoutBody } } } }',
     );
@@ -335,15 +289,7 @@ describe('runtime: end-to-end against real sqlite', () => {
     expect(captures).toHaveLength(1);
   });
 
-  it('depth-2+ nested includes resolve in a single query (Issue A fixed upstream)', async () => {
-    // Previously (prisma-next ≤0.7) `hasNestedIncludes` in
-    // `collection-dispatch.ts` unconditionally routed any nested include
-    // through `dispatchWithMultiQueryIncludes`, so depth-2
-    // (`users { posts { author … } }`) emitted three SELECTs — one per
-    // relation level — the N+1 fan-out. As of prisma-next 0.14.0 this is
-    // fixed: the whole tree collapses into a single nested-include
-    // statement. The plugin gets this for free — it only builds the
-    // `.include()` tree; prisma-next picks the execution strategy.
+  it('resolves depth-2 nested includes in a single query', async () => {
     const { result, captures } = await runQuery(
       '{ users { id posts { id author { id firstName } } } }',
     );
@@ -357,7 +303,6 @@ describe('runtime: end-to-end against real sqlite', () => {
     const alice = data.users.find((u) => u.id === 'u-alice');
     expect(alice?.posts[0]?.author?.firstName).toBeTruthy();
 
-    // Single statement now — the depth-2 tree resolves in one nested SELECT.
     expect(captures.length).toBe(1);
   });
 
@@ -367,27 +312,17 @@ describe('runtime: end-to-end against real sqlite', () => {
     const data = result.data as { users: Array<{ id: string; postCount: number }> };
     const counts = Object.fromEntries(data.users.map((u) => [u.id, u.postCount]));
     expect(counts).toEqual({ 'u-alice': 2, 'u-bob': 2 });
-    // Upstream short-circuit (`hasComplexIncludeDescriptors` in
-    // prisma-next's orm-client) means `combine + count` falls back to
-    // a multi-query plan rather than collapsing to one SQL statement.
-    // Tracked as Issue B in the prisma-next handoff. When the upstream
-    // fix lands, this expectation tightens to `toHaveLength(1)`.
+    // orm-client may split `combine` + `count` into more than one statement.
     expect(captures.length).toBeGreaterThanOrEqual(1);
   });
 
   it('exposes a function-form aggregate scalar (filtered count) via t.field+select', async () => {
-    // `publishedPostCountAgg` writes the aggregate inline via
-    // `sub.where(p => p.published.eq(1)).count()` inside a function-
-    // form `select` — same primitive used internally; any orm-client
-    // scalar (count / sum / avg / min / max) flows through the same
-    // mapper → combine path.
     const { result } = await runQuery('{ users { id publishedPostCountAgg } }');
     expect(result.errors).toBeUndefined();
     const data = result.data as {
       users: Array<{ id: string; publishedPostCountAgg: number | null }>;
     };
     const byId = Object.fromEntries(data.users.map((u) => [u.id, u.publishedPostCountAgg]));
-    // Alice: 1 published (p-hello), 1 draft (p-draft1). Bob: 1 of each.
     expect(byId).toEqual({ 'u-alice': 1, 'u-bob': 1 });
   });
 
@@ -417,7 +352,6 @@ describe('runtime: end-to-end against real sqlite', () => {
         { all: u.relCount, pub: u.relCountPublished, zero: u.zero, one: u.one },
       ]),
     );
-    // Each user has 2 posts: 1 published (published=1), 1 draft (published=0).
     expect(byId).toEqual({
       'u-alice': { all: 2, pub: 1, zero: 1, one: 1 },
       'u-bob': { all: 2, pub: 1, zero: 1, one: 1 },
@@ -443,7 +377,6 @@ describe('runtime: end-to-end against real sqlite', () => {
         { sum: u.relSumPublished, max: u.relMaxPublished, min: u.relMinPublished },
       ]),
     );
-    // published values across each user's 2 posts: {0, 1}. sum=1, max=1, min=0.
     expect(byId).toEqual({
       'u-alice': { sum: 1, max: 1, min: 0 },
       'u-bob': { sum: 1, max: 1, min: 0 },
@@ -455,8 +388,6 @@ describe('runtime: end-to-end against real sqlite', () => {
     expect(result.errors).toBeUndefined();
     const data = result.data as { users: Array<{ id: string; postStats: string }> };
     const byId = Object.fromEntries(data.users.map((u) => [u.id, u.postStats]));
-    // total/sumPublished/maxPublished: each user has 2 posts, sum of
-    // published = 1, max published = 1.
     expect(byId).toEqual({ 'u-alice': '2/1/1', 'u-bob': '2/1/1' });
   });
 
@@ -475,9 +406,6 @@ describe('runtime: end-to-end against real sqlite', () => {
   });
 
   it('t.variant preloads nested relations on the variant prismaObject', async () => {
-    // Without mapper registration of the variant the nested `posts`
-    // relation under `basicView` would not preload and the resolver
-    // would throw "reached from a parent not loaded by t.prismaField".
     const { result, captures } = await runQuery(
       '{ users { id basicView { id firstName posts { id title } } } }',
     );
@@ -491,8 +419,6 @@ describe('runtime: end-to-end against real sqlite', () => {
     const alice = data.users.find((u) => u.id === 'u-alice');
     expect(alice?.basicView.firstName).toBe('Alice');
     expect(alice?.basicView.posts.map((p) => p.id).sort()).toEqual(['p-draft1', 'p-hello']);
-    // Single query for users + variant's posts — the variant's selection
-    // set merged into the parent's include just like an inline fragment.
     expect(captures).toHaveLength(1);
   });
 
@@ -517,8 +443,6 @@ describe('runtime: end-to-end against real sqlite', () => {
   });
 
   it('function-form select where callback receives accessor + args + ctx', async () => {
-    // Two aliases of the same field with different args — the mapper must
-    // pass each alias's resolved args into the callback for each branch.
     const { result } = await runQuery(`{
       users {
         id
@@ -531,7 +455,6 @@ describe('runtime: end-to-end against real sqlite', () => {
       users: Array<{ id: string; published: number; drafts: number }>;
     };
     const byId = Object.fromEntries(data.users.map((u) => [u.id, { p: u.published, d: u.drafts }]));
-    // Each user has 1 published + 1 draft post in the seed.
     expect(byId).toEqual({
       'u-alice': { p: 1, d: 1 },
       'u-bob': { p: 1, d: 1 },
@@ -547,7 +470,6 @@ describe('runtime: end-to-end against real sqlite', () => {
     const counts = Object.fromEntries(
       data.users.map((u) => [u.id, { all: u.postCount, published: u.publishedPostCount }]),
     );
-    // Alice has 2 posts (1 draft, 1 published), Bob has 2 (1 draft, 1 published).
     expect(counts).toEqual({
       'u-alice': { all: 2, published: 1 },
       'u-bob': { all: 2, published: 1 },
@@ -575,9 +497,6 @@ describe('runtime: end-to-end against real sqlite', () => {
       ],
     });
     expect(captures).toHaveLength(1);
-    // Confirm both selected columns ended up on the SQL — the SELECT
-    // list should include firstName and lastName even though the
-    // GraphQL query only asked for `fullName`.
     const sql = captures[0]!.sql;
     expect(sql).toMatch(/firstName/);
     expect(sql).toMatch(/lastName/);
@@ -598,11 +517,6 @@ describe('runtime: end-to-end against real sqlite', () => {
   });
 
   it('hoists depth-2 nested relations through prismaField', async () => {
-    // The mapper traverses Query.users → User.posts → Post.author and
-    // emits an .include('posts', rel => rel.include('author')) chain on
-    // the base User collection. Data correctness is what's asserted
-    // here; query count is >= 1 because depth-2 nested includes fall
-    // back to multi-query upstream (Issue A in the prisma-next handoff).
     const { result, captures } = await runQuery(
       '{ users { id posts { id title author { id firstName } } } }',
     );
@@ -615,8 +529,6 @@ describe('runtime: end-to-end against real sqlite', () => {
     };
     const alice = data.users.find((u) => u.id === 'u-alice');
     expect(alice?.posts).toHaveLength(2);
-    // Every post.author for Alice's posts is Alice — verifies the
-    // depth-2 stitch landed correctly.
     for (const post of alice?.posts ?? []) {
       expect(post.author).toEqual({ id: 'u-alice', firstName: 'Alice' });
     }
@@ -624,11 +536,6 @@ describe('runtime: end-to-end against real sqlite', () => {
   });
 
   it('handles GraphQL query-level aliases of the same schema field with different args', async () => {
-    // One schema field (`postsByPublished(published: Int!)`) selected
-    // twice via GraphQL aliases with different arg values. The mapper
-    // keys `rowFields` by alias, runs the query callback per alias with
-    // that alias's resolved args, and returns the right rows under each
-    // alias key.
     const { result } = await runQuery(`{
       users {
         id
@@ -653,13 +560,6 @@ describe('runtime: end-to-end against real sqlite', () => {
   });
 
   it('mixes schema-level sibling fields with query-level aliases in one query', async () => {
-    // Three different schema fields backing `posts` (the unrefined
-    // `posts`, plus the filtered `drafts` and `publishedPosts`) PLUS
-    // two GraphQL aliases of `postsByPublished` with different args —
-    // all in one selection set. The mapper collects them all under
-    // the single `posts` relation group and emits one combine with
-    // five branches keyed by alias. Data correctness verifies each
-    // branch lands on its own parent key.
     const { result } = await runQuery(`{
       users {
         id
@@ -704,12 +604,7 @@ describe('runtime: end-to-end against real sqlite', () => {
     const alice = data.users.find((u) => u.id === 'u-alice');
     expect(alice?.drafts.map((p) => p.id)).toEqual(['p-draft1']);
     expect(alice?.publishedPosts.map((p) => p.id)).toEqual(['p-hello']);
-    // The mapper emits a single combine() branch for the two aliases
-    // and the data lifts onto separate parent keys correctly. The
-    // captured SQL count is currently >1 because prisma-next's orm-
-    // client short-circuits combine into multi-query (Issue B in the
-    // handoff). When the upstream fix lands this tightens to
-    // `toHaveLength(1)`.
+    // orm-client may split `combine` into more than one statement.
     expect(captures.length).toBeGreaterThanOrEqual(1);
   });
 });

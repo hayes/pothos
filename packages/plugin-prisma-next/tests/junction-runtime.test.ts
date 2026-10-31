@@ -1,21 +1,6 @@
 /**
- * End-to-end N:M (junction) support, both structural and against real
- * sqlite.
- *
- * N:M relations only ever exist in TS-authored contracts — PSL/.prisma
- * emit rejects implicit m2m and decomposes explicit joins into plain
- * 1:N hops, so the emit-based `sample-contract.json` fixture can't carry
- * one. This file hand-authors a minimal contract shaped like what
- * `rel.manyToMany(...)` lowers to under prisma-next 0.14.0's ADR-221
- * structure (models under `domain.namespaces.<ns>.models`, an N:M
- * relation with a `through` block, the junction table under
- * `storage.namespaces.<ns>.entries.table`) and drives it through the
- * plugin.
- *
- * The marker hashes are echoed from the contract's own
- * storageHash/profileHash (see createJunctionRuntime), so the runtime's
- * contract-marker verify matches by construction — the hash values
- * don't need to be "real", only internally consistent.
+ * N:M relations only exist in TS-authored contracts (PSL decomposes explicit joins into plain 1:N
+ * hops), so this hand-authors the shape `rel.manyToMany(...)` lowers to.
  */
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -31,12 +16,8 @@ import { buildRelationMeta } from '../src/utils/model';
 
 const NS = '__unbound__';
 
-// Hand-authored contract: Post ⇄ Tag via the `post_tag` junction. The
-// shape mirrors `rel.manyToMany`'s lowering — the N:M relation declares
-// `on` (the parent/target key columns) plus a `through` block, and the
-// junction table is registered under storage so prisma-next can resolve
-// the join. Scalars are sqlite codecs (text/integer) matching the raw
-// CREATE TABLE below.
+// Post ⇄ Tag through `post_tag`. The junction table must be registered under storage so
+// prisma-next can resolve the join.
 const junctionContract = {
   schemaVersion: 1,
   targetFamily: 'sql',
@@ -166,9 +147,7 @@ async function createJunctionRuntime(): Promise<JunctionRuntime> {
 
   const rawDb = new DatabaseSync(dbPath);
   rawDb.exec('PRAGMA foreign_keys = ON');
-  // Marker table mirrors prisma-next 0.16.0's sqlite control adapter (see
-  // tests/fixtures/runtime.ts for the column rationale). The runtime
-  // reads it under `space = 'app'`.
+  // The marker table prisma-next's sqlite control adapter reads, under `space = 'app'`.
   rawDb.exec(`
     CREATE TABLE _prisma_marker (
       space TEXT PRIMARY KEY NOT NULL,
@@ -212,8 +191,7 @@ async function createJunctionRuntime(): Promise<JunctionRuntime> {
       ('t-graphql', 'graphql'),
       ('t-db', 'database')
   `);
-  // p-hello → intro, graphql ; p-orm → graphql, database (graphql is
-  // shared so the junction fan-out is exercised both ways).
+  // graphql is shared so the junction fans out both ways.
   rawDb.exec(`
     INSERT INTO post_tag (postId, tagId) VALUES
       ('p-hello', 't-intro'),
@@ -240,7 +218,7 @@ async function createJunctionRuntime(): Promise<JunctionRuntime> {
   };
 }
 
-describe('N:M (junction) — schema build no longer rejects', () => {
+describe('N:M (junction) — schema build', () => {
   it('an N:M relation exposed via t.relation builds without throwing', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
       plugins: [prismaNextPlugin],
@@ -260,7 +238,6 @@ describe('N:M (junction) — schema build no longer rejects', () => {
       {
         fields: (t: never) => ({
           id: (t as { exposeID: (n: string) => unknown }).exposeID('id'),
-          // The to-many junction relation.
           tags: (t as { relation: (n: string) => unknown }).relation('tags'),
         }),
       } as never,
@@ -295,8 +272,6 @@ describe('N:M (junction) — schema build no longer rejects', () => {
     builder.toSchema();
     const rels = buildRelationMeta('Post', junctionContract, 'Post')!;
     expect(rels.tags).toBeDefined();
-    // N:M is a to-many relation; its parent-side key columns are the
-    // junction's parent-referenced columns (Post.id here).
     expect(rels.tags!.isToMany).toBe(true);
     expect(rels.tags!.localFields).toEqual(['id']);
     expect(rels.tags!.targetModel).toBe('Tag');
@@ -371,8 +346,6 @@ describe('N:M (junction) — end-to-end against real sqlite', () => {
   });
 
   it('honors a nested refine (where) on the junction relation', async () => {
-    // `t.relation` with a declarative `query.where` filters the joined
-    // rows — confirms the junction collection still accepts refinements.
     const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: rt.contract },

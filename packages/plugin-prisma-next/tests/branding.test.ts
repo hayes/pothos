@@ -4,8 +4,6 @@ import { rebrandForVariant } from '../src/utils/branding';
 
 describe('rebrandForVariant — Object.create wrap invariant', () => {
   it('two sibling variants leave the parent brand untouched', () => {
-    // Order-of-resolution test — sibling t.variant fields resolve in
-    // unspecified order. Neither branding should mutate the parent.
     const parent = { id: 1, role: 'admin' };
     const adminWrapper = rebrandForVariant(parent, 'AdminUser') as Record<symbol, unknown>;
     const basicWrapper = rebrandForVariant(parent, 'BasicUser') as Record<symbol, unknown>;
@@ -24,8 +22,6 @@ describe('rebrandForVariant — Object.create wrap invariant', () => {
   });
 
   it('returns the parent unchanged if already branded with the same variant', () => {
-    // Recursive variant chains through the same type — don't keep
-    // stacking wrappers.
     const parent = { id: 1 };
     const first = rebrandForVariant(parent, 'X') as Record<symbol, unknown>;
     const second = rebrandForVariant(first, 'X');

@@ -7,7 +7,6 @@ import type { Contract } from './fixtures/sample-contract';
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [prismaNextPlugin],
-  // Runtime args don't matter here — these tests never call .toSchema().
   prismaNext: { contract: null as never },
 });
 
@@ -30,8 +29,6 @@ describe('prismaObject + select narrowing', () => {
         fullName: t.string({
           select: ['firstName', 'lastName'],
           resolve: (user) => {
-            // Parent carries the selected columns plus the brand
-            // sentinel (so the field builder can still extract M).
             expectTypeOf(user.firstName).toEqualTypeOf<string>();
             expectTypeOf(user.lastName).toEqualTypeOf<string>();
             return `${user.firstName} ${user.lastName}`;
@@ -46,7 +43,7 @@ describe('prismaObject + select narrowing', () => {
       fields: (t) => ({
         leakyEmail: t.string({
           select: ['firstName'],
-          // @ts-expect-error — `email` was not in select, narrowed parent rejects it
+          // @ts-expect-error `email` is not selected
           resolve: (user) => user.email,
         }),
       }),
@@ -56,11 +53,8 @@ describe('prismaObject + select narrowing', () => {
   it('rejects reading columns when no `select` is provided', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
-        // Without a `select`, the parent only carries the brand
-        // sentinel — accessing any column is a type error. Custom
-        // resolvers must declare what they depend on.
         anything: t.string({
-          // @ts-expect-error — no select means no columns on parent
+          // @ts-expect-error no select means no columns on the parent
           resolve: (user) => user.email,
         }),
       }),
@@ -71,13 +65,9 @@ describe('prismaObject + select narrowing', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         typo: t.string({
-          // @ts-expect-error — 'frstName' is not a column on User
+          // @ts-expect-error 'frstName' is not a column on User
           select: ['firstName', 'frstName'],
-          // The typo makes the validated select array contain `never`,
-          // which knocks every column off the parent type; return a
-          // literal to keep the surrounding type-check focused on the
-          // intended error (the misspelled key, not a downstream
-          // cascading failure).
+          // The typo leaves no columns on the parent, so don't read any.
           resolve: () => '',
         }),
       }),
@@ -85,17 +75,12 @@ describe('prismaObject + select narrowing', () => {
   });
 
   it('merges object-level select into the field-level parent', () => {
-    // `prismaObject({ select: { email: true } })` declares `email`
-    // as always-loaded. Any field's resolver — even one without its
-    // own `select` — can read it. A field that adds `firstName` gets
-    // BOTH columns.
     builder.prismaObject('User', {
       variant: 'UserWithEmail',
       select: { email: true },
       fields: (t) => ({
         domain: t.string({
           resolve: (user) => {
-            // No field-level select — parent inherits the object-level.
             expectTypeOf(user.email).toEqualTypeOf<string>();
             return user.email.split('@')[1] ?? '';
           },
@@ -103,8 +88,6 @@ describe('prismaObject + select narrowing', () => {
         signature: t.string({
           select: ['firstName'],
           resolve: (user) => {
-            // Field-level select adds `firstName`; `email` stays from
-            // the type-level select.
             expectTypeOf(user.email).toEqualTypeOf<string>();
             expectTypeOf(user.firstName).toEqualTypeOf<string>();
             return `${user.firstName} <${user.email}>`;
@@ -121,7 +104,6 @@ describe('t.relation typing', () => {
       fields: (t) => ({
         posts: t.relation('posts', {
           query: {
-            // `p` is typed against Post — `published` is a Post column.
             where: (p) => p.published.eq(1),
           },
         }),
@@ -132,7 +114,7 @@ describe('t.relation typing', () => {
   it('rejects non-existent relation names', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
-        // @ts-expect-error — 'pets' is not a relation on User
+        // @ts-expect-error 'pets' is not a relation on User
         pets: t.relation('pets'),
       }),
     });
@@ -143,7 +125,7 @@ describe('t.relation typing', () => {
       fields: (t) => ({
         posts: t.relation('posts', {
           query: {
-            // @ts-expect-error — `nonexistent` is not a column on Post
+            // @ts-expect-error `nonexistent` is not a column on Post
             where: (p) => p.nonexistent.eq(1),
           },
         }),
@@ -156,8 +138,7 @@ describe('t.relatedConnection — type-level constraints', () => {
   it('rejects to-one relations', () => {
     builder.prismaObject('Post', {
       fields: (t) => ({
-        // `author` is N:1 (to-one) — relatedConnection requires to-many.
-        // @ts-expect-error — author is not a to-many relation
+        // @ts-expect-error author is not a to-many relation
         authorConn: t.relatedConnection('author', { cursor: 'id' }),
       }),
     });
@@ -166,7 +147,6 @@ describe('t.relatedConnection — type-level constraints', () => {
   it('accepts to-many relations', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
-        // posts is 1:N (to-many) — should compile cleanly.
         postsConn: t.relatedConnection('posts', { cursor: 'id' }),
       }),
     });
@@ -202,7 +182,7 @@ describe('t.relationCount field helper', () => {
   it('rejects an unknown relation name', () => {
     builder.prismaObject('User', {
       variant: 'RelCountBadRel',
-      // @ts-expect-error — `nope` is not a relation on User
+      // @ts-expect-error `nope` is not a relation on User
       fields: (t) => ({ x: t.relationCount('nope') }),
     });
   });
@@ -210,24 +190,17 @@ describe('t.relationCount field helper', () => {
 
 describe('missing PrismaNextContract augmentation', () => {
   it('narrows ModelName to a sentinel when no contract is augmented', () => {
-    // Builder without `PrismaNextContract` in SchemaTypes — falls back
-    // to the default `AnyContract`, so the model-name union collapses
-    // to a sentinel literal that surfaces in IDE autocomplete.
     const looseBuilder = new SchemaBuilder({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: null as never },
     });
-    // @ts-expect-error — 'User' isn't assignable to the sentinel string;
-    // the error mentions setting PrismaNextContract on SchemaTypes.
+    // @ts-expect-error without PrismaNextContract, model names collapse to a sentinel
     looseBuilder.prismaObject('User', { fields: () => ({}) });
   });
 });
 
 describe('t.relatedConnection RelatedShape inference', () => {
   it('infers RelatedShape from a custom prismaObject ref passed via type', () => {
-    // A second prismaObject for Post under a different GraphQL type.
-    // The ref carries a custom Shape that t.relatedConnection.type
-    // should propagate to nested type inference (e.g. resolver shape).
     const postSummaryRef = relayBuilder.prismaObject('Post', {
       name: 'PostSummary',
       fields: (t) => ({
@@ -244,7 +217,6 @@ describe('t.relatedConnection RelatedShape inference', () => {
         }),
       }),
     });
-    // No runtime assertion — successful compile is the test.
     expectTypeOf(postSummaryRef).toMatchTypeOf<object>();
   });
 });
@@ -277,12 +249,12 @@ describe('t.relatedConnection where option — filter-only at the type level', (
       fields: (t) => ({
         broken: t.relatedConnection('posts', {
           cursor: 'id',
-          // @ts-expect-error — take owned by cursor, not on the option
+          // @ts-expect-error the connection args own `limit`
           limit: 5,
         }),
         brokenOrder: t.relatedConnection('posts', {
           cursor: 'id',
-          // @ts-expect-error — orderBy returns order items, not a column
+          // @ts-expect-error orderBy returns order items, not a column
           orderBy: (p) => p.id,
         }),
       }),
@@ -292,10 +264,6 @@ describe('t.relatedConnection where option — filter-only at the type level', (
 
 describe('t.prismaField typing — resolver shape', () => {
   it('accepts a resolver returning rows of the model shape', () => {
-    // Standard Pothos resolver signature: (parent, args, ctx, info).
-    // Resolver may return rows directly OR an orm-client Collection —
-    // the plugin auto-detects via duck-typing and materializes via
-    // `.all()` (single-row vs list determined by the field type).
     builder.queryType({
       fields: (t) => ({
         users: t.prismaField({
@@ -338,7 +306,7 @@ describe('t.prismaFieldWithInput typing — optional input arg', () => {
             if (input === null) {
               return null as never;
             }
-            // @ts-expect-error — `input` is still possibly `undefined`.
+            // @ts-expect-error `input` is still possibly `undefined`
             const email: string = input.email;
             return email as never;
           },
@@ -394,7 +362,7 @@ describe('t.relationAggregate field helper', () => {
       variant: 'RelAggMissingField',
       fields: (t) => ({
         id: t.exposeID('id'),
-        // @ts-expect-error — sum requires a `field`
+        // @ts-expect-error sum requires a `field`
         broken: t.relationAggregate('posts', { op: 'sum' }),
       }),
     });
@@ -407,7 +375,7 @@ describe('t.relationAggregate field helper', () => {
         id: t.exposeID('id'),
         broken: t.relationAggregate('posts', {
           op: 'sum',
-          // @ts-expect-error — `title` is a text column, not numeric
+          // @ts-expect-error `title` is not numeric
           field: 'title',
         }),
       }),
@@ -438,8 +406,6 @@ describe('function-form select — aggregate result narrowing', () => {
       variant: 'MultiCountUser',
       fields: (t) => ({
         id: t.exposeID('id'),
-        // Two `sub.count()` invocations inside the same function-form
-        // select — both should narrow to `number`, not `number | null`.
         postStats: t.field({
           type: 'Int',
           select: {
@@ -463,9 +429,7 @@ describe('function-form select — aggregate result narrowing', () => {
       variant: 'AvgUser',
       fields: (t) => ({
         id: t.exposeID('id'),
-        // sum/avg/min/max can be null when the relation has no rows —
-        // SQL aggregates over an empty set return NULL. The plugin
-        // surfaces that as `number | null`.
+        // Aggregates over an empty relation are null.
         avgPost: t.field({
           type: 'Float',
           nullable: true,
@@ -490,7 +454,7 @@ describe('prismaObject — variant typing', () => {
 
   it('rejects a non-string variant', () => {
     builder.prismaObject('User', {
-      // @ts-expect-error — variant must be a string
+      // @ts-expect-error variant must be a string
       variant: 42,
       fields: (t) => ({ id: t.exposeID('id') }),
     });
@@ -512,7 +476,7 @@ describe('builder option — db option is gone', () => {
       plugins: [prismaNextPlugin],
       prismaNext: {
         contract: null as never,
-        // @ts-expect-error — the `db` option was removed from the public API.
+        // @ts-expect-error the `db` option is not part of the public API
         db: null as never,
       },
     });
@@ -535,7 +499,7 @@ describe('t.relatedConnection — resolve is stripped', () => {
       fields: (t) => ({
         posts: t.relatedConnection('posts', {
           cursor: 'id',
-          // @ts-expect-error — resolve is owned by the plugin; user resolve would be dropped silently
+          // @ts-expect-error resolve is owned by the plugin
           resolve: () => [],
         }),
       }),
@@ -550,7 +514,7 @@ describe('t.prismaConnection — `query` sentinel rejects plugin-prisma porting 
         users: t.prismaConnection({
           type: 'User',
           cursor: 'id',
-          // @ts-expect-error — `query` is a typed sentinel for plugin-prisma porters
+          // @ts-expect-error `query` is not supported on prismaConnection
           query: () => ({ where: {} }),
           resolve: (() => null as never) as never,
         }),
@@ -575,7 +539,7 @@ describe('PrismaNextConnectionFieldOptions — edgesNullable pinned to false', (
         users: t.prismaConnection({
           type: 'User',
           cursor: 'id',
-          // @ts-expect-error — generic pinned to false; matches sister plugins
+          // @ts-expect-error edges are always non-null
           edgesNullable: true,
           resolve: (() => null as never) as never,
         }),
