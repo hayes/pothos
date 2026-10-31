@@ -3,11 +3,13 @@ import type {
   ExposeNullability,
   FieldNullability,
   MaybePromise,
+  OutputRefShape,
+  parentShapeKey,
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
 import type { HasRow } from '@prisma/orm-family-sql/orm-client';
-import type { PrismaNextInterfaceRef } from './interface-ref.js';
+import type { prismaInterfaceKey } from './interface-ref.js';
 import type { ModelBrand, PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 import type {
   DefaultRelationNullable,
@@ -24,6 +26,22 @@ import type {
   VariantModelKeys,
 } from './types.js';
 
+/**
+ * A model ref, read by the model key the plugin's refs declare. Checking a `type` against
+ * `PrismaNextObjectRef<Types, ModelName<Types>>` would build the ref class (and its return shape)
+ * over the union of every model in the contract.
+ */
+export interface ModelObjectRefKey<M> extends OutputRefShape<unknown> {
+  readonly [prismaModelKey]: M;
+  readonly modelName: M;
+}
+
+/** The interface counterpart of {@link ModelObjectRefKey}. */
+export interface ModelInterfaceRefKey<M> extends OutputRefShape<unknown> {
+  readonly [prismaInterfaceKey]: M;
+  readonly modelName: M;
+}
+
 // Public on purpose (no internal JSDoc tag, even in a comment): `stripInternal` would drop it from
 // the d.ts that the public `prismaField` signatures reference.
 export type ParamToModelName<Types extends SchemaTypes, Param> =
@@ -32,26 +50,24 @@ export type ParamToModelName<Types extends SchemaTypes, Param> =
     : Param extends [infer M extends ModelName<Types>]
       ? M
       : Param extends
-            | PrismaNextObjectRef<Types, infer M extends ModelName<Types>, unknown>
-            | PrismaNextInterfaceRef<Types, infer M extends ModelName<Types>, unknown>
+            | ModelObjectRefKey<infer M extends ModelName<Types>>
+            | ModelInterfaceRefKey<infer M extends ModelName<Types>>
         ? M
         : Param extends
-              | [PrismaNextObjectRef<Types, infer M extends ModelName<Types>, unknown>]
-              | [PrismaNextInterfaceRef<Types, infer M extends ModelName<Types>, unknown>]
+              | [ModelObjectRefKey<infer M extends ModelName<Types>>]
+              | [ModelInterfaceRefKey<infer M extends ModelName<Types>>]
           ? M
           : never;
 
 export type ParamToTypeParam<Types extends SchemaTypes, Param, Shape> = Param extends
-  | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-  | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
+  | ModelObjectRefKey<string>
+  | ModelInterfaceRefKey<string>
+  | [ModelObjectRefKey<string>]
+  | [ModelInterfaceRefKey<string>]
   ? Param
-  : Param extends
-        | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
-        | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>]
-    ? Param
-    : Param extends [unknown]
-      ? [PrismaNextObjectRef<Types, ParamToModelName<Types, Param>, Shape>]
-      : PrismaNextObjectRef<Types, ParamToModelName<Types, Param>, Shape>;
+  : Param extends [unknown]
+    ? [PrismaNextObjectRef<Types, ParamToModelName<Types, Param>, Shape>]
+    : PrismaNextObjectRef<Types, ParamToModelName<Types, Param>, Shape>;
 
 export type RelationRef<
   Types extends SchemaTypes,
@@ -90,7 +106,11 @@ export type InterfaceSelectShape<
 > = [Interfaces] extends [readonly unknown[]]
   ? UnionToIntersection<
       Interfaces[number] extends infer I
-        ? I extends PrismaNextInterfaceRef<Types, infer IM, infer Shape>
+        ? // Read through the ref's keys: inferring against the class compares its whole structure.
+          I extends {
+            readonly [prismaInterfaceKey]: infer IM extends string;
+            readonly [parentShapeKey]: infer Shape;
+          }
           ? M extends IM | VariantModelKeys<Types['PrismaNextContract'], IM>
             ? Shape
             : {}
@@ -240,7 +260,10 @@ type ValidateSelectValue<Types extends SchemaTypes, ParentShape, Select> =
   ExtractModel<Types, ParentShape> extends infer M
     ? M extends ModelName<Types>
       ? Select extends readonly string[]
-        ? { readonly [K in keyof Select]: SelectColumnCheck<Types, M, Select[K]> }
+        ? // Only an invalid array is mapped entry by entry, to name the unknown columns.
+          Select extends readonly (keyof Row<Types, M>)[]
+          ? unknown
+          : { readonly [K in keyof Select]: SelectColumnCheck<Types, M, Select[K]> }
         : ExactSelectCheck<Types, M, Select>
       : Select
     : Select;

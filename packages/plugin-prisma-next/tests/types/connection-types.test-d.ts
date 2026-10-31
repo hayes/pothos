@@ -2,7 +2,12 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { PostgresClient } from '@prisma/orm-postgres/runtime';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, { type CollectionFor, prismaConnectionHelpers } from '../../src';
+import prismaNextPlugin, {
+  type CollectionFor,
+  type CursorSpec,
+  type ModelName,
+  prismaConnectionHelpers,
+} from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as PostgresContract } from '../postgres/contract';
 
@@ -196,6 +201,28 @@ postgres.queryType({
       resolve: () => client.orm.public.Entry,
     }),
   }),
+});
+
+// The connection signatures infer the model and the cursor together. The cursor must still infer
+// as written, not widen to `CursorSpec`, so `ExactCursor` sees each entry's keys.
+declare function inferCursor<M extends ModelName<Types>, C extends CursorSpec<Types, M>>(
+  model: M,
+  cursor: C,
+): C;
+expectTypeOf(inferCursor('Post', 'title')).toEqualTypeOf<'title'>();
+expectTypeOf(inferCursor('Post', ['title', 'id'])).toEqualTypeOf<['title', 'id']>();
+builder.prismaObject('User', {
+  variant: 'CursorEntryKeys',
+  fields: (t) => ({
+    posts: t.relatedConnection('posts', {
+      // @ts-expect-error cursor entries take only `field`, `direction` and `nulls`
+      cursor: [{ field: 'title', dir: 'asc' }, 'id'],
+    }),
+  }),
+});
+prismaConnectionHelpers(builder, 'Post', {
+  // @ts-expect-error cursor entries take only `field`, `direction` and `nulls`
+  cursor: [{ field: 'title', dir: 'asc' }, 'id'],
 });
 
 // prismaConnectionHelpers options: refs, `query`, and callbacks that see the field's args.

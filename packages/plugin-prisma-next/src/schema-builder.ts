@@ -128,7 +128,7 @@ schemaBuilderProto.prismaObject = function prismaObject<
   modelName: M,
   options: PrismaNextObjectOptions<Types, M, unknown, never[]>,
 ) {
-  return definePrismaNextType(this, modelName, options, 'object') as never;
+  return definePrismaNextType<Types, M>(this, modelName, options, 'object') as never;
 } as never;
 
 schemaBuilderProto.prismaInterface = function prismaInterface<
@@ -139,7 +139,7 @@ schemaBuilderProto.prismaInterface = function prismaInterface<
   modelName: M,
   options: PrismaNextObjectOptions<Types, M, unknown, never[]>,
 ) {
-  return definePrismaNextType(this, modelName, options, 'interface') as never;
+  return definePrismaNextType<Types, M>(this, modelName, options, 'interface') as never;
 } as never;
 
 /**

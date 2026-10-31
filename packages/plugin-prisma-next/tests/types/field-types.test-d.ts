@@ -4,6 +4,7 @@ import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type CollectionFor,
+  type PrismaNextObjectFieldBuilder,
   type PrismaNextObjectRef,
   prismaConnectionHelpers,
   type Row,
@@ -197,3 +198,58 @@ builder.prismaObject('User', {
 expectTypeOf<ExposableColumn<Types, UserRow, 'String', true>>().toEqualTypeOf<
   'id' | 'firstName' | 'lastName' | 'email'
 >();
+
+// The field builder's `in out` annotations (Types, M, ExposableShape) don't change what it is
+// assignable to: helpers typed with the default, `any` or a wider `Shape` still take `t`.
+type UserFieldBuilder<Shape = unknown, Exposable = UserRow> = PrismaNextObjectFieldBuilder<
+  Types,
+  'User',
+  Shape,
+  Exposable
+>;
+const idOf = (t: UserFieldBuilder) => t.exposeID('id');
+// biome-ignore lint/suspicious/noExplicitAny: helpers are commonly typed with an `any` shape
+const idOfAny = (t: UserFieldBuilder<any>) => t.exposeID('id');
+// biome-ignore lint/suspicious/noExplicitAny: helpers are commonly typed with an `any` shape
+const idOfAnyRow = (t: UserFieldBuilder<unknown, any>) => t.exposeID('id');
+const idOfWide = (t: UserFieldBuilder<{ id: string }>) => t.exposeID('id');
+builder.prismaObject('User', {
+  variant: 'FieldHelpers',
+  fields: (t) => ({ a: idOf(t), b: idOfAny(t), c: idOfAnyRow(t), d: idOfWide(t) }),
+});
+builder.prismaObject('User', {
+  variant: 'SelectFieldHelpers',
+  select: ['firstName'],
+  fields: (t) => ({ a: idOf(t), b: idOfAny(t), c: idOfAnyRow(t), d: idOfWide(t) }),
+});
+builder.prismaObjectFields('User', (t) => ({ a: idOf(t), b: idOfWide(t) }));
+builder.prismaObject('Post', {
+  variant: 'OtherModelHelper',
+  // @ts-expect-error a User helper doesn't take a Post builder
+  fields: (t) => ({ a: idOf(t) }),
+});
+
+// Builder to builder: Shape and ExposableShape still compare structurally; M and Types don't widen.
+type Narrow = { a: 1; b: 2 };
+type Wide = { a: 1 };
+declare const narrowShape: UserFieldBuilder<Narrow, Narrow>;
+declare const wideShape: UserFieldBuilder<Wide, Narrow>;
+declare const wideExposable: UserFieldBuilder<Narrow, Wide>;
+declare const twoModels: PrismaNextObjectFieldBuilder<Types, 'User' | 'Post', Narrow, Narrow>;
+declare const otherTypes: PrismaNextObjectFieldBuilder<
+  Types & { Extra: 1 },
+  'User',
+  Narrow,
+  Narrow
+>;
+export const shapeWidens: UserFieldBuilder<Wide, Narrow> = narrowShape;
+// @ts-expect-error a builder for a wider shape isn't one for a narrower shape
+export const shapeNarrows: UserFieldBuilder<Narrow, Narrow> = wideShape;
+export const exposableWidens: UserFieldBuilder<Narrow, Wide> = narrowShape;
+export const exposableNarrows: UserFieldBuilder<Narrow, Narrow> = wideExposable;
+export const modelWidens: PrismaNextObjectFieldBuilder<Types, 'User' | 'Post', Narrow, Narrow> =
+  narrowShape;
+// @ts-expect-error a builder for several models isn't one for a single model
+export const modelNarrows: UserFieldBuilder<Narrow, Narrow> = twoModels;
+// @ts-expect-error the schema types must match
+export const typesDiffer: UserFieldBuilder<Narrow, Narrow> = otherTypes;
