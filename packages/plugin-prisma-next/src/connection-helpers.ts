@@ -19,7 +19,7 @@ import type {
   TotalCountFlag,
 } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { getPluginConfig } from './utils/config.js';
+import { assertContextObject, getPluginConfig } from './utils/config.js';
 import {
   aggregateCount,
   CONNECTION_NODE_PATHS,
@@ -202,6 +202,7 @@ export function prismaConnectionHelpers<
     ctx: Types['Context'],
     info: GraphQLResolveInfo | undefined,
   ) {
+    assertContextObject(ctx, info);
     assertVariantCollection(config.contract, modelName, collection as never);
     const { where, orderBy } = connectionQuery(options.query, args, ctx as object);
     const filteredBase = (where === undefined
