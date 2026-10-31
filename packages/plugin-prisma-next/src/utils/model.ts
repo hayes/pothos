@@ -4,6 +4,7 @@ import { type Codec, readContractValue } from '@prisma/orm-framework/components/
 import { canonicalStringify } from '@prisma/orm-framework/utils/canonical-stringify';
 import type { AnyContract } from '../types.js';
 import {
+  fieldStorage,
   modelDiscriminator,
   relatedModelKey,
   resolveContractModel,
@@ -205,18 +206,18 @@ function createColumnCodec(
   modelName: string,
   field: string,
 ): ColumnCodec | undefined {
-  const storage = resolveContractModel(contract, modelName)?.storage;
-  if (!storage?.table || !storage.namespaceId) {
+  const storage = fieldStorage(contract, modelName, field);
+  if (!storage) {
     return undefined;
   }
-  const column = storage.fields?.[field]?.column ?? field;
-  const codec = context.contractCodecs.forColumn(storage.namespaceId, storage.table, column) as
+  const { namespaceId, column } = storage;
+  const codec = context.contractCodecs.forColumn(namespaceId, storage.table, column) as
     | Codec
     | undefined;
   if (!codec) {
     return undefined;
   }
-  const table = resolveStorageTable(contract.storage, storage.table, storage.namespaceId)?.table;
+  const table = resolveStorageTable(contract.storage, storage.table, namespaceId)?.table;
   const typeParams = (table?.columns[column] as { typeParams?: unknown } | undefined)?.typeParams;
   const encode = (value: unknown) => codec.dataType.toContract(codec.toDataTypeValue(value));
   return {

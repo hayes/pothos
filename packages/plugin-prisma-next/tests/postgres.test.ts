@@ -446,6 +446,44 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         ],
       });
     });
+
+    it('serializes a compound ID with a wide integer for a custom id.parse', async () => {
+      const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+        plugins: [RelayPlugin, prismaNextPlugin],
+        relay: {},
+        prismaNext: { client },
+      });
+      const Token = builder.prismaNode('Token', {
+        id: {
+          field: ['wide', 'label'],
+          parse: (id) => {
+            const [wide, label] = JSON.parse(id) as [string, string];
+            return [BigInt(wide), label];
+          },
+        },
+        fields: (t) => ({ label: t.exposeString('label') }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          tokens: t.prismaField({
+            type: [Token],
+            resolve: () => client.orm.public.Token.orderBy((token) => token.label.asc()),
+          }),
+        }),
+      });
+      const schema = builder.toSchema();
+      const listed = await graphql({ schema, source: '{ tokens { id } }', contextValue: {} });
+      expect(listed.errors).toBeUndefined();
+      const [{ id }] = listed.data?.tokens as { id: string }[];
+      const loaded = await graphql({
+        schema,
+        source: 'query ($id: ID!) { node(id: $id) { ... on Token { label } } }',
+        variableValues: { id },
+        contextValue: {},
+      });
+      expect(loaded.errors).toBeUndefined();
+      expect(loaded.data).toEqual({ node: { label: 'half' } });
+    });
   });
 
   it('applies native null placement and the orderBy option in both directions', async () => {

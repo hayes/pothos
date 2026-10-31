@@ -215,6 +215,48 @@ describe('object registration', () => {
 // For schemas that are built but never executed.
 const noClient = () => ({ orm: {} });
 
+describe('models validated when the schema is built', () => {
+  it.each([
+    [
+      'prismaObject',
+      (builder: ReturnType<typeof createBuilder>) =>
+        builder.prismaObject('Usr' as never, { fields: () => ({}) }),
+    ],
+    [
+      'prismaInterface',
+      (builder: ReturnType<typeof createBuilder>) =>
+        builder.prismaInterface('Usr' as never, { fields: () => ({}) }),
+    ],
+    [
+      'prismaNode',
+      (builder: ReturnType<typeof createBuilder>) =>
+        builder.prismaNode('Usr' as never, { id: { field: 'id' }, fields: () => ({}) } as never),
+    ],
+  ])('rejects an unknown model in %s', (_name, define) => {
+    const builder = createBuilder();
+    expect(() => {
+      define(builder);
+      ok(builder);
+      builder.toSchema();
+    }).toThrow("Model 'Usr' not found in the prismaNext contract.");
+  });
+
+  it('rejects a prismaField returning a Collection of another model', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.Post as never }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { id } }');
+    expect(result.errors?.[0].message).toBe(
+      "Fields returning model 'User' must return a Collection of that model, not orm.Post.",
+    );
+    expect(result.statements).toHaveLength(0);
+  });
+});
+
 describe('contracts', () => {
   it('rejects a contract from a non-SQL family', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: never }>({
