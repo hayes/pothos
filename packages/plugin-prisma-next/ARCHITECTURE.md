@@ -3,8 +3,11 @@
 Production code depends on `@prisma/orm-framework` and `@prisma/orm-family-sql` (pinned to
 `8.0.0-rc.22`). It never constructs a client, inspects a dialect, or chooses a driver; applications
 pass their client (or a per-request client such as a transaction) and own connections and
-transactions. Concrete drivers appear only in tests and
-examples.
+transactions. Concrete drivers appear only in tests and examples.
+
+The builder methods share their names with `@pothos/plugin-prisma`, and both plugins install them
+on the shared core prototypes. `src/utils/claim-methods.ts` throws when the other plugin is
+already registered or later assigns one of them, so loading both fails at import.
 
 ## Selection planning
 
@@ -26,12 +29,13 @@ examples.
   it; a row whose slots belong to one type keeps that type's rows and computed values.
 - Every reader gets a view of the row: its columns, plus the rows and values its scopes loaded,
   later scopes winning. `isTypeOf` and `resolveType` get their type's view (its interfaces'
-  `select`s, then its own). Every plugin around a field gets the parent the field declares (its
-  type's view plus the field's own `select`), through `wrapArgMappers`, which wraps every plugin's
-  `wrapResolve` whatever their order; a reload stays in this plugin's `wrapResolve`, so plugins
-  listed before it run before the reload. A field helper's resolver (`t.relation`, counts,
-  aggregates, connections) also reads its own slots. Views are cached per row and scopes, so
-  per-row caches (scope-auth) see one parent, and slot objects are never visible.
+  `select`s, then its own); a field gets its type's view plus its own `select`, and a field
+  helper (`t.relation`, counts, aggregates, connections) also reads its own slots. Views are
+  cached per row and scopes, so per-row caches (scope-auth) see one parent, and slot objects are
+  never visible.
+- The field's view reaches every plugin around it through `wrapArgMappers`, whatever the plugin
+  order. A reload stays in this plugin's `wrapResolve`, so plugins listed before it run before the
+  reload, and a plugin that wraps `isTypeOf` outside this one sees the statement row, not a view.
 - An interface loads its implementations' type-level selections too, since their `isTypeOf` reads
   rows loaded as the interface: to-many relations and computed values in their own slots, and
   to-one relations merged, so implementations selecting one differently fail the schema build.
@@ -45,8 +49,8 @@ examples.
 Loads through `prismaNext.client`'s `orm`. Unmapped fields compile a `Plan.forParentRow` with their
 dependencies and compatible type prerequisites. Compatible plans share a batch; each batch queries
 all parent identities (`IN` or compound `OR`) and fans rows back by identity. `node(id:)` lookups
-use the same loader, batched per type and path. Per-row/path
-mappings keep one fallback result from claiming another parent's coverage.
+use the same loader, batched per type and path. Per-row and per-path mappings keep one fallback
+result from claiming another parent's coverage.
 
 - Identities are a non-null primary or unique key, selected automatically, and compared by the
   column codec's stored form and its data type's `equalityKey` (decimals `0.5` and `0.50` match).
@@ -67,15 +71,19 @@ mappings keep one fallback result from claiming another parent's coverage.
 - Pages always seek with lexicographic keyset predicates with explicit null handling. Cursor and
   node ID values are held in their column codec's stored form, in the shared tagged encoding
   from core.
-- Related connections paginate inside the include. Counts use the filtered, pre-pagination
-  Collection and only run when selected.
+- A cursor carries a signature of the ordering that issued it (each column's direction and null
+  placement), and is rejected under any other ordering.
+- Cursor and page-size arguments are validated before planning. Invalid ones fail only their
+  field, and no statement runs for it.
+- Related connections paginate inside the include. Counts use the pre-pagination Collection,
+  filtered by `query.where` unless `filterConnectionTotalCount` is false, and only run when
+  `totalCount` is selected.
 
 ## Nodes, aggregates, inheritance, namespaces
 
-- Node loads go through the fallback loader and brand rows for abstract resolution. Concrete
-  types don't get a brand-only `isTypeOf`. Cursor validation and identity selection share one
-  unique-key helper.
+- Node loads go through the fallback loader and brand rows for abstract resolution.
 - Aggregate operations, fields and result types derive from the contract's `AggregateTypes`.
+  `relationCount` and `relationAggregate` on an unknown or to-one relation fail the schema build.
 - A native inheritance hierarchy shares one planner model. Interfaces select the discriminator;
   variant returns must be `orm.Base.variant(value)`. Pothos variants remain same-model views.
 - Model keys are bare when unique and `ns.Model` otherwise, resolved in `src/utils/contract.ts`.
@@ -118,5 +126,6 @@ pnpm --filter @pothos/plugin-prisma-next type
 pnpm --filter @pothos/plugin-prisma-next test
 ```
 
-Type checking includes an isolated scope-auth project so its global option augmentation doesn't
-leak into other tests.
+`pnpm type` also checks two isolated projects: `tsconfig.scope-auth.json`, so scope-auth's global
+option augmentation doesn't leak into other tests, and `tsconfig.missing-plugins.json`, which
+checks the methods that need relay, with-input or scope-auth without loading those plugins.
