@@ -1,6 +1,7 @@
 import {
   type CompatibleTypes,
   completeValue,
+  createContextCache,
   type ExposeNullability,
   type FieldKind,
   type FieldRef,
@@ -571,24 +572,29 @@ export class PrismaNextObjectFieldBuilder<
       paths: [[{ name: 'edges' }, { name: 'node' }], [{ name: 'nodes' }]],
     };
     const cursorColumns = normalizeCursor(cursorOpt);
-    const validArgs = (args: object, ctx: object) => {
-      try {
-        validateCursorArgs(
-          cursorOpt,
-          args as DefaultConnectionArguments,
-          config.codecs(ctx, relatedKey),
-        );
-        return true;
-      } catch (error) {
-        if (error instanceof PothosValidationError) {
-          return false;
+    // Checked once per request and set of paging args, which every parent row shares.
+    const cursorErrors = createContextCache(() => new Map<string, PothosValidationError | null>());
+    const cursorError = (args: DefaultConnectionArguments, ctx: object) => {
+      const errors = cursorErrors(ctx);
+      const key = JSON.stringify([args.first, args.last, args.before, args.after]);
+      let error = errors.get(key);
+      if (error === undefined) {
+        try {
+          validateCursorArgs(cursorOpt, args, config.codecs(ctx, relatedKey));
+          error = null;
+        } catch (thrown) {
+          if (!(thrown instanceof PothosValidationError)) {
+            throw thrown;
+          }
+          error = thrown;
         }
-        throw error;
+        errors.set(key, error);
       }
+      return error;
     };
     // An invalid cursor plans nothing, so the error surfaces on this field when it resolves.
     const select: PrismaNextSelectFn = (args, ctx, nested, selectedFields, position) => {
-      if (!validArgs(args, ctx)) {
+      if (cursorError(args as DefaultConnectionArguments, ctx)) {
         return {};
       }
       const filter = (rel: MapperCollection) =>
@@ -642,7 +648,7 @@ export class PrismaNextObjectFieldBuilder<
           ctx: object,
           info: GraphQLResolveInfo,
         ) =>
-          !validArgs(args, ctx) ||
+          !!cursorError(args as DefaultConnectionArguments, ctx) ||
           ((!connectionNeedsRows(ctx, info) || view[name] !== undefined) &&
             (!settings.countsRows(ctx, info) || Object.hasOwn(view, 'count'))),
       },
@@ -652,14 +658,16 @@ export class PrismaNextObjectFieldBuilder<
         context: object,
         info: GraphQLResolveInfo,
       ) => {
-        const codecs = config.codecs(context, relatedKey);
-        validateCursorArgs(cursorOpt, args, codecs);
+        const error = cursorError(args, context);
+        if (error) {
+          throw error;
+        }
         const rows = connectionNeedsRows(context, info) ? parent[name] : [];
         const page = buildConnectionPage(
           rows as Record<string, unknown>[],
           buildPaginationParams(cursorOpt, args, {
             ...settings.sizes(args, context),
-            codecs,
+            codecs: config.codecs(context, relatedKey),
           }),
         );
         if (settings.countsRows(context, info)) {
