@@ -35,13 +35,27 @@ interface Request {
   reject: (error: unknown) => void;
 }
 
+/** The requests one plan staged into a batch. */
+interface Part {
+  root: PrismaNextNode;
+  requests: Request[];
+}
+
 interface Batch {
-  /** Set for node loads, which batch per type and path; parent loads merge compatible plans. */
-  group: string | undefined;
+  /**
+   * Set for node loads, which batch per plan (one per type and path of an execution); parent
+   * loads merge compatible plans.
+   */
+  group: PrismaNextNode | undefined;
   root: PrismaNextNode;
   fields: readonly string[];
   collection: (() => MapperCollection) | undefined;
-  requests: Request[];
+  parts: Part[];
+}
+
+interface Plans {
+  parent: Map<string, MaybePromise<Played>>;
+  node: Map<string, MaybePromise<Played>>;
 }
 
 interface KeyColumn {
@@ -59,8 +73,12 @@ export class ModelLoader {
   private readonly variant: string | undefined;
   /** A variant's rows load through the base narrowed to it, which can include its relations. */
   private readonly initial: PrismaNextQuery | undefined;
-  private readonly parentPlans = new Map<string, MaybePromise<Played>>();
-  private readonly nodePlans = new Map<string, MaybePromise<Played>>();
+  /**
+   * Plans depend on the operation and its variables (arguments, `@skip`/`@include`), so they are
+   * cached per execution: `info.variableValues` is built once per execution, which keeps a context
+   * shared between operations from reusing another operation's plan.
+   */
+  private readonly plans = new WeakMap<object, Plans>();
   private readonly staged = new Set<Batch>();
 
   constructor(
@@ -75,16 +93,26 @@ export class ModelLoader {
       this.variant === undefined ? undefined : { args: { variant: { value: this.variant } } };
   }
 
+  private plansFor(info: GraphQLResolveInfo): Plans {
+    let plans = this.plans.get(info.variableValues);
+    if (!plans) {
+      plans = { parent: new Map(), node: new Map() };
+      this.plans.set(info.variableValues, plans);
+    }
+    return plans;
+  }
+
   /** The parent row reloaded with what `info`'s field needs, and the field's mapping in that load. */
   loadSelection(
     info: GraphQLResolveInfo,
     parent: object,
   ): Promise<{ row: Row; mapping: Mapping | undefined }> {
     const key = cacheKey(info.parentType.name, info.path);
-    let selection = this.parentPlans.get(key);
+    const plans = this.plansFor(info).parent;
+    let selection = plans.get(key);
     if (!selection) {
       selection = Plan.forParentRow(this.adapter, this.context, info, undefined, this.initial);
-      this.parentPlans.set(key, selection);
+      plans.set(key, selection);
     }
     const load = (played: Played) => {
       const values = this.identity.map((field) => {
@@ -118,8 +146,9 @@ export class ModelLoader {
     collection: (() => MapperCollection) | undefined,
   ): Promise<Row | null> {
     // Keyed on the type, not the model: variants of one model have their own selection.
-    const group = cacheKey(typeName, info.path);
-    let selection = this.nodePlans.get(group);
+    const key = cacheKey(typeName, info.path);
+    const plans = this.plansFor(info).node;
+    let selection = plans.get(key);
     if (!selection) {
       const plan = Plan.fromInfo(this.adapter, {
         context: this.context,
@@ -128,11 +157,11 @@ export class ModelLoader {
         initial: this.initial,
       }) as MaybePromise<PrismaNextPlan>;
       selection = completeValue(plan, (settled) => settled.play());
-      this.nodePlans.set(group, selection);
+      plans.set(key, selection);
     }
     const load = (played: Played) => {
       setLoaderMappings(this.context, info, played.mappings);
-      return this.stage(group, played.root, fields, collection, values, true).then((row) => {
+      return this.stage(played.root, played.root, fields, collection, values, true).then((row) => {
         if (row) {
           brandWithType(row, typeName as OutputType<SchemaTypes>);
         }
@@ -143,7 +172,7 @@ export class ModelLoader {
   }
 
   private stage(
-    group: string | undefined,
+    group: PrismaNextNode | undefined,
     root: PrismaNextNode,
     fields: readonly string[],
     collection: (() => MapperCollection) | undefined,
@@ -155,37 +184,66 @@ export class ModelLoader {
         ? candidate.group === undefined && this.adapter.canMergeNode(candidate.root, root)
         : candidate.group === group,
     );
-    if (batch) {
-      if (group === undefined) {
-        this.adapter.mergeNode(batch.root, root);
-      }
-    } else {
-      const created: Batch = {
-        group,
-        root: this.adapter.createNode(root.model),
-        fields,
-        collection,
-        requests: [],
-      };
-      this.adapter.mergeNode(created.root, root);
-      for (const field of fields) {
-        created.root.columns?.add(field);
-      }
+    if (!batch) {
+      const created = this.createBatch(group, root.model, [], fields, collection);
       this.staged.add(created);
       // A macrotask, so async select callbacks can join the batch.
       setTimeout(() => {
         this.staged.delete(created);
-        this.flush(created).catch((error) => {
-          for (const request of created.requests) {
-            request.reject(error);
-          }
-        });
+        this.run(created);
       }, 0);
       batch = created;
     }
-    const target = batch;
+    let part = batch.parts.find((candidate) => candidate.root === root);
+    if (!part) {
+      part = { root, requests: [] };
+      batch.parts.push(part);
+      this.adapter.mergeNode(batch.root, root);
+    }
+    const target = part;
     return new Promise((resolve, reject) => {
       target.requests.push({ values, optional, resolve, reject });
+    });
+  }
+
+  private createBatch(
+    group: PrismaNextNode | undefined,
+    model: PrismaNextNode['model'],
+    parts: Part[],
+    fields: readonly string[],
+    collection: (() => MapperCollection) | undefined,
+  ): Batch {
+    const root = this.adapter.createNode(model);
+    for (const part of parts) {
+      this.adapter.mergeNode(root, part.root);
+    }
+    for (const field of fields) {
+      root.columns?.add(field);
+    }
+    return { group, root, fields, collection, parts };
+  }
+
+  /**
+   * Loads a batch, failing only the requests an error belongs to: a plan whose query can't be
+   * built (a throwing `where` callback, say) is retried on its own, so the plans merged with it
+   * still load.
+   */
+  private run(batch: Batch): void {
+    this.flush(batch).catch((error: unknown) => {
+      if (error instanceof PlanError && batch.parts.length > 1) {
+        for (const part of batch.parts) {
+          this.run(
+            this.createBatch(batch.group, batch.root.model, [part], batch.fields, batch.collection),
+          );
+        }
+        return;
+      }
+      const cause = error instanceof PlanError ? error.cause : error;
+      for (const part of batch.parts) {
+        for (const request of part.requests) {
+          request.reject(cause);
+        }
+      }
     });
   }
 
@@ -211,7 +269,20 @@ export class ModelLoader {
           return codec ? codec.key(value) : rawKey(value);
         }),
       );
-    const keyed = batch.requests.map((request) => ({ request, key: key(request.values) }));
+    // A parent whose identity the codecs reject fails alone.
+    const keyed: { request: Request; key: string }[] = [];
+    for (const part of batch.parts) {
+      for (const request of part.requests) {
+        try {
+          keyed.push({ request, key: key(request.values) });
+        } catch (error) {
+          request.reject(error);
+        }
+      }
+    }
+    if (keyed.length === 0) {
+      return;
+    }
     const distinct = [...new Map(keyed.map(({ request, key }) => [key, request.values])).values()];
     const filtered = base.where((model: Record<string, KeyColumn>) =>
       fields.length === 1
@@ -222,12 +293,17 @@ export class ModelLoader {
             ),
           ),
     );
-    const query = this.adapter.emit(
-      filtered,
-      this.adapter.toQuery(batch.root),
-      batch.root.model,
-      this.context,
-    ) as MapperCollection & { all(): Promise<readonly Row[]> };
+    let query: MapperCollection & { all(): Promise<readonly Row[]> };
+    try {
+      query = this.adapter.emit(
+        filtered,
+        this.adapter.toQuery(batch.root),
+        batch.root.model,
+        this.context,
+      ) as typeof query;
+    } catch (error) {
+      throw new PlanError(error);
+    }
     const rows = await query.all();
     const byKey = new Map(rows.map((row) => [key(fields.map((field) => row[field])), row]));
     for (const { request, key } of keyed) {
@@ -243,4 +319,9 @@ export class ModelLoader {
       }
     }
   }
+}
+
+/** Building a batch's query failed, which one of its merged plans may be to blame for. */
+class PlanError {
+  constructor(readonly cause: unknown) {}
 }
