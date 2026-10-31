@@ -5,6 +5,7 @@ import type { ModelBrand, PrismaNextObjectRef, prismaModelKey } from './object-r
 import type {
   BareModelName,
   DefaultRelationNullable,
+  IdentityFields,
   IsToMany,
   ModelName,
   NamespaceOf,
@@ -154,17 +155,39 @@ type SimpleColumnShape<Types extends SchemaTypes, M extends ModelName<Types>, S>
   [K in keyof S & keyof Row<Types, M> as S[K] extends true ? K : never]: Row<Types, M>[K];
 };
 
-// Only the model brand: columns are present only when a `select` declares them. The brand admits
-// variants, and the conditional stops TypeScript comparing two shapes by `M` alone.
+/**
+ * The model brand and the primary key, which every type's selection loads. Other columns are
+ * present only when a `select` declares them. The brand admits variants, and the conditional stops
+ * TypeScript comparing two shapes by `M` alone.
+ */
 export type ObjectBaseShape<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-> = M extends string ? ModelBrand<M | VariantModelKeys<Types['PrismaNextContract'], M>> : never;
+  Columns = unknown,
+> = M extends string
+  ? ModelBrand<M | VariantModelKeys<Types['PrismaNextContract'], M>> &
+      Normalize<Pick<Row<Types, M>, IdentityFields<Types, M> & keyof Row<Types, M>> & Columns>
+  : never;
+
+/**
+ * A type's shape as its fields' parent. A base model's brand admits its variants, so it's narrowed
+ * to the model here; other shapes already name only theirs.
+ */
+export type FieldParentShape<Types extends SchemaTypes, M extends ModelName<Types>, Shape> = [
+  VariantModelKeys<Types['PrismaNextContract'], M>,
+] extends [never]
+  ? Shape
+  : Shape & ModelBrand<M>;
 
 export type ValidateFieldSelect<Types extends SchemaTypes, ParentShape, Select> = Select extends (
   ...args: infer Args
 ) => infer Result
-  ? (...args: Args) => MaybePromise<ValidateSelectValue<Types, ParentShape, Awaited<Result>>>
+  ? (
+      ...args: Args
+    ) => MaybePromise<
+      ValidateSelectValue<Types, ParentShape, Awaited<Result>> &
+        InvalidSelectValueCheck<Types, ExtractModel<Types, ParentShape>, Awaited<Result>>
+    >
   : ValidateSelectValue<Types, ParentShape, Select>;
 
 type ValidateSelectValue<Types extends SchemaTypes, ParentShape, Select> =
@@ -207,6 +230,28 @@ export type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Type
       [K in UnknownSelectKeys<Types, M, Select> & string as `Unknown key in select: ${K}`]: never;
     };
 
+/**
+ * A function's inferred result is only reliably checked for unknown keys, so a relation's
+ * `{ limit: 'x' }` needs naming here.
+ */
+type InvalidSelectValueCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = [
+  M,
+] extends [never]
+  ? unknown
+  : Select extends readonly unknown[]
+    ? unknown
+    : {
+          [K in keyof Select & keyof SelectObjectSpec<Types, M>]: Select[K] extends NonNullable<
+            SelectObjectSpec<Types, M>[K]
+          >
+            ? never
+            : K;
+        }[keyof Select & keyof SelectObjectSpec<Types, M>] extends infer Invalid extends string
+      ? [Invalid] extends [never]
+        ? unknown
+        : { [K in Invalid as `Invalid value in select: ${K}`]: never }
+      : unknown;
+
 type Normalize<T> = { [K in keyof T]: T[K] } & {};
 
 /** A to-one relation is nullable when the contract says so or a `where` can filter it out. */
@@ -238,7 +283,14 @@ export type ShapeFromSelect<Types extends SchemaTypes, ParentShape, Select> = un
           ParentShape &
             Partial<UnionToIntersection<ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>>>
         >
-      : ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>
+      : // An array that isn't a tuple (a variable) may hold any subset of its columns.
+        Awaited<Result> extends readonly unknown[]
+        ? number extends Awaited<Result>['length']
+          ? Normalize<
+              ParentShape & Partial<ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>>
+            >
+          : ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>
+        : ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>
     : ShapeFromSelectValue<Types, ParentShape, Select>;
 
 type IsUnion<T, U = T> = T extends unknown ? ([U] extends [T] ? false : true) : never;
@@ -268,13 +320,14 @@ export type ShapeFromObjectSelect<
 > = unknown extends Select
   ? ObjectBaseShape<Types, M>
   : // The brand stays a named interface beside the columns, so exported refs can be emitted.
-    ObjectBaseShape<Types, M> &
-      (Select extends readonly (infer K extends keyof Row<Types, M>)[]
-        ? Normalize<Pick<Row<Types, M>, K>>
+    ObjectBaseShape<
+      Types,
+      M,
+      Select extends readonly (infer K extends keyof Row<Types, M>)[]
+        ? Pick<Row<Types, M>, K>
         : Select extends Record<string, unknown>
-          ? Normalize<
-              SimpleColumnShape<Types, M, Select> &
-                SimpleRelationShape<Types, M, Select> &
-                FunctionFormShape<Types, M, Select>
-            >
-          : unknown);
+          ? SimpleColumnShape<Types, M, Select> &
+              SimpleRelationShape<Types, M, Select> &
+              FunctionFormShape<Types, M, Select>
+          : unknown
+    >;
