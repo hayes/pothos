@@ -514,7 +514,7 @@ describe('rows a connection helper wraps', () => {
         users: t.connection({
           type: User,
           resolve: async (_root, args, context, info) => {
-            const page = await helper.applyPagination(ctx.orm.User, args, info, context);
+            const page = await helper.applyPagination(ctx.orm.User, args, context, info);
             return page.wrap(await page.collection.all()) as never;
           },
         }),
