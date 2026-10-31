@@ -320,20 +320,32 @@ export function loadPluginTypes(code: string): void {
       if (!pluginDisposables.has(pluginName) && allPluginNames.includes(pluginName)) {
         const pluginTypes = getPluginTypeDefinitions(pluginName);
         const disposables = loadTypeDefinitions(pluginTypes);
-        const paths = pluginTypePaths[pluginName];
-        if (paths && monaco) {
-          const defaults = monaco.languages.typescript.typescriptDefaults;
-          defaults.setCompilerOptions({
-            ...defaults.getCompilerOptions(),
-            baseUrl: 'file:///',
-            paths,
-          });
-        }
         pluginDisposables.set(pluginName, disposables);
         monacoLogger.debug(`Loaded ${pluginTypes.length} type definitions for ${pluginName}`);
       }
     }
+    applyPluginTypePaths();
   }, 500); // 500ms debounce
+}
+
+// Some plugins' types import packages through `paths`. Keep only the loaded plugins' entries, so
+// an unloaded plugin's mappings and `baseUrl` don't outlive it in later examples.
+function applyPluginTypePaths(): void {
+  if (!monaco) {
+    return;
+  }
+  const paths = Object.assign(
+    {},
+    ...Array.from(pluginDisposables.keys(), (name) => pluginTypePaths[name] ?? {}),
+  );
+  const defaults = monaco.languages.typescript.typescriptDefaults;
+  const { baseUrl: _baseUrl, paths: currentPaths, ...options } = defaults.getCompilerOptions();
+  if (JSON.stringify(currentPaths ?? {}) === JSON.stringify(paths)) {
+    return;
+  }
+  defaults.setCompilerOptions(
+    Object.keys(paths).length > 0 ? { ...options, baseUrl: 'file:///', paths } : options,
+  );
 }
 
 export function extractPluginImports(code: string): Set<string> {

@@ -11,7 +11,7 @@ resolvers return.
 For Prisma ORM 7 and `@prisma/client`, use
 [`@pothos/plugin-prisma`](https://pothos-graphql.dev/docs/plugins/prisma). The two plugins can't be
 used in the same program: both add `prismaObject`, `prismaField` and the other `prisma*` methods
-to the builder, and importing both throws an error.
+to the builder. Importing both throws an error, and their type declarations conflict (TS2717).
 
 ## Example
 
@@ -24,39 +24,20 @@ import contractJson from './prisma/contract.json' with { type: 'json' };
 import type { Contract } from './prisma/contract';
 
 const contract = contractFromJson<Contract>(contractJson);
-const client = sqlite({ contract, path: './app.db' });
-await client.connect();
+const db = sqlite({ contract, path: './app.db' });
+await db.connect();
 
 const builder = new SchemaBuilder<{
   PrismaNextContract: Contract;
-  Context: { db: typeof client };
+  Context: { db: typeof db };
 }>({
   plugins: [prismaNextPlugin],
-  prismaNext: { client },
-});
-
-builder.prismaObject('User', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    posts: t.relation('posts'),
-  }),
-});
-
-builder.queryType({
-  fields: (t) => ({
-    users: t.prismaField({
-      type: ['User'],
-      resolve: (_root, _args, ctx) => ctx.db.orm.User,
-    }),
-  }),
+  prismaNext: { client: db },
 });
 ```
 
-## Examples
-
-These come from the
+The rest comes from the
 [Prisma Next playground example](https://pothos-graphql.dev/playground?example=plugin-prisma-next).
-
 An object with a computed field, a filtered relation and a related connection:
 
 ```ts
@@ -103,17 +84,6 @@ posts: t.prismaConnection({
   // Chooses the direction per request; the plugin reverses it for backward pages.
   orderBy: (post, args) => (args.newestFirst ? post.id.desc() : post.id.asc()),
   resolve: () => db.orm.Post.where({ published: 1 }),
-}),
-```
-
-A connection over a relation, loaded with its parent:
-
-```ts
-// Pages through the relation inside that same query.
-postConnection: t.relatedConnection('posts', {
-  cursor: 'id',
-  query: { where: { published: 1 } },
-  totalCount: true,
 }),
 ```
 
