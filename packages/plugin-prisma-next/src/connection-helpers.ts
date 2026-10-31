@@ -53,8 +53,10 @@ export interface PrismaConnectionHelpers<
   Args extends InputFieldMap = {},
   Node = never,
   MaybeAbsent extends boolean = false,
+  Shape = Row<Types, M>,
 > {
-  ref: PrismaNextObjectRef<Types, M>;
+  /** The ref passed in, or the model's default ref for a model name. */
+  ref: PrismaNextObjectRef<Types, M, Shape>;
   /**
    * Without `info`, relations selected under the connection aren't preloaded. Returns a promise
    * when a `select` callback beneath the connection is async.
@@ -116,13 +118,14 @@ export function prismaConnectionHelpers<
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
+  Shape = Row<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  modelName: M,
+  refOrModel: M | PrismaNextObjectRef<Types, M, Shape>,
   options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
     resolveNode: (edge: Row<Types, M>) => Node;
   },
-): PrismaConnectionHelpers<Types, M, Args, Node, false>;
+): PrismaConnectionHelpers<Types, M, Args, Node, false, Shape>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -130,13 +133,14 @@ export function prismaConnectionHelpers<
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
+  Shape = Row<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  modelName: M,
+  refOrModel: M | PrismaNextObjectRef<Types, M, Shape>,
   options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
     resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
-): PrismaConnectionHelpers<Types, M, Args, Node, true>;
+): PrismaConnectionHelpers<Types, M, Args, Node, true, Shape>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -144,17 +148,20 @@ export function prismaConnectionHelpers<
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
+  Shape = Row<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  modelName: M,
+  refOrModel: M | PrismaNextObjectRef<Types, M, Shape>,
   options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
     resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
-): PrismaConnectionHelpers<Types, M, Args, Node, boolean> {
-  const ref = getRefFromContractModel<Types, M>(modelName, builder) as PrismaNextObjectRef<
-    Types,
-    M
-  >;
+): PrismaConnectionHelpers<Types, M, Args, Node, boolean, Shape> {
+  const ref = (
+    typeof refOrModel === 'string'
+      ? getRefFromContractModel<Types, M>(refOrModel, builder)
+      : refOrModel
+  ) as PrismaNextObjectRef<Types, M, Shape>;
+  const modelName = ref.modelName;
 
   let resolvedArgs: Args | undefined;
   const resolveArgs = (): Args => {

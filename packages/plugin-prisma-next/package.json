@@ -25,7 +25,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "type": "tsc --project tsconfig.type.json && tsc --project tsconfig.scope-auth.json",
+    "type": "tsc --project tsconfig.type.json && tsc --project tsconfig.scope-auth.json && tsc --project tsconfig.missing-plugins.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
     "build:clean": "git clean -dfX esm lib",
     "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",

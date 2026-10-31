@@ -1,4 +1,5 @@
 import {
+  createContextCache,
   decodeBase64,
   decodeCursorChunk,
   encodeBase64,
@@ -14,6 +15,7 @@ import { type AnyExpression, OrderByItem } from '@prisma/orm-family-sql/relation
 import type { AnyContract } from '../types.js';
 import type { MapperCollection } from './adapter.js';
 import { getCollectionPaginationState } from './collection-state.js';
+import { argsKey } from './connections.js';
 import { resolveContractModel } from './contract.js';
 import { type FieldCodecs, getModelUniqueKeys } from './model.js';
 
@@ -162,8 +164,27 @@ function decodeValues(
   return out;
 }
 
-/** Like plugin-prisma's `GPC:`; multi-column cursors are a positional `T:` tuple of chunks. */
+/**
+ * Like plugin-prisma's `GPC:`; multi-column cursors are a positional `T:` tuple of chunks. The
+ * ordering's signature follows the prefix, so a cursor only seeks under the ordering that issued
+ * it: `PNC:<signature>:<chunk>`.
+ */
 const CURSOR_PREFIX = 'PNC:';
+
+/**
+ * Per cursor column, its direction (`a`/`d`) and any null placement (`f`/`l`): `adl` is `asc`, then
+ * `desc` with nulls last. A request's `orderBy` can change both, and the same values seek a
+ * different position under another ordering.
+ */
+export function cursorOrderingSignature(cursor: CursorInput): string {
+  return cursorFields(cursor)
+    .map((field) =>
+      typeof field === 'string'
+        ? 'a'
+        : `${field.direction === 'desc' ? 'd' : 'a'}${field.nulls ? field.nulls[0] : ''}`,
+    )
+    .join('');
+}
 
 export function encodeCursor(
   cursor: CursorInput,
@@ -172,7 +193,7 @@ export function encodeCursor(
 ): string {
   const fields = normalizeCursor(cursor);
   const encoded = encodeBase64(
-    `${CURSOR_PREFIX}${encodeValues(
+    `${CURSOR_PREFIX}${cursorOrderingSignature(cursor)}:${encodeValues(
       fields,
       fields.map((field) => {
         // A null is a value; a missing column would encode as one and page from the wrong place.
@@ -194,10 +215,15 @@ export function encodeCursor(
   return encoded;
 }
 
+/**
+ * `checkOrdering: false` accepts a cursor issued under any ordering, for a check made before a
+ * request's `orderBy` is known; the page itself always checks it.
+ */
 export function decodeCursor(
   cursor: CursorInput,
   value: string,
   codecs: FieldCodecs,
+  { checkOrdering = true }: { checkOrdering?: boolean } = {},
 ): Record<string, unknown> {
   // The cursor is left out of messages, which logs often capture verbatim.
   if (value.length > PAYLOAD_MAX_LENGTH) {
@@ -214,8 +240,18 @@ export function decodeCursor(
   if (!payload.startsWith(CURSOR_PREFIX)) {
     throw new PothosValidationError('Invalid cursor: not a cursor from this plugin.');
   }
+  const separator = payload.indexOf(':', CURSOR_PREFIX.length);
+  const signature = payload.slice(CURSOR_PREFIX.length, separator);
+  if (separator === -1 || !/^(?:[ad][fl]?)+$/.test(signature)) {
+    throw new PothosValidationError('Invalid cursor: payload is not a tagged cursor chunk.');
+  }
+  if (checkOrdering && signature !== cursorOrderingSignature(cursor)) {
+    throw new PothosValidationError(
+      'Invalid cursor: it was issued under a different ordering of this connection. Request the first page again with the new ordering.',
+    );
+  }
   const fields = normalizeCursor(cursor);
-  return decodeValues(fields, payload.slice(CURSOR_PREFIX.length), codecs, {
+  return decodeValues(fields, payload.slice(separator + 1), codecs, {
     payload: () =>
       new PothosValidationError('Invalid cursor: payload is not a tagged cursor chunk.'),
     width: (got) =>
@@ -439,8 +475,9 @@ function decodeBoundary(
   cursor: CursorInput,
   value: string,
   codecs: FieldCodecs,
+  options?: { checkOrdering?: boolean },
 ): Record<string, unknown> {
-  const boundary = decodeCursor(cursor, value, codecs);
+  const boundary = decodeCursor(cursor, value, codecs, options);
   for (const field of cursorFields(cursor)) {
     const col = fieldName(field);
     if (boundary[col] === null && (typeof field === 'string' || !field.nulls)) {
@@ -512,18 +549,22 @@ function applyToCollection<C extends MapperCollection>(
   return collection.limit(limit) as C;
 }
 
-/** Throws what pagination would, without a collection. */
+/**
+ * Throws what pagination would, without a collection. A request's `orderBy` needs a collection to
+ * run, so with one (`checkOrdering: false`) the page checks the cursor's ordering instead.
+ */
 export function validateCursorArgs(
   cursor: CursorInput,
   args: PothosSchemaTypes.DefaultConnectionArguments,
   codecs: FieldCodecs,
+  options?: { checkOrdering?: boolean },
 ): void {
   const { before, after } = buildPaginationParams(cursor, args, { codecs });
   if (after) {
-    decodeBoundary(cursor, after, codecs);
+    decodeBoundary(cursor, after, codecs, options);
   }
   if (before) {
-    decodeBoundary(cursor, before, codecs);
+    decodeBoundary(cursor, before, codecs, options);
   }
 }
 
@@ -542,6 +583,33 @@ export function applyCursorPagination<C extends MapperCollection>(
   return {
     ...params,
     collection: applyToCollection(baseCollection, params),
+  };
+}
+
+/**
+ * The ordering a request's `orderBy` chose for each set of connection arguments, recorded while
+ * the page is planned so the resolver encodes cursors under it. Keyed on the args object and on
+ * their value, as planning and resolving may see different objects for the same arguments.
+ */
+export function createRequestOrderings() {
+  const cache = createContextCache(() => ({
+    byArgs: new WeakMap<object, CursorInput>(),
+    byValue: new Map<string, CursorInput>(),
+  }));
+  return {
+    set(args: object, ctx: object, cursor: CursorInput) {
+      const { byArgs, byValue } = cache(ctx);
+      byArgs.set(args, cursor);
+      const key = argsKey(args);
+      if (key !== undefined) {
+        byValue.set(key, cursor);
+      }
+    },
+    get(args: object, ctx: object): CursorInput | undefined {
+      const { byArgs, byValue } = cache(ctx);
+      const key = byArgs.has(args) ? undefined : argsKey(args);
+      return byArgs.get(args) ?? (key === undefined ? undefined : byValue.get(key));
+    },
   };
 }
 
