@@ -50,6 +50,7 @@ builder.queryType({
 });
 ```
 
-PostgreSQL and SQLite are supported, MySQL supports reads only, and MongoDB is not supported.
+PostgreSQL and SQLite are supported, MySQL supports reads only (not covered by CI), and MongoDB is
+not supported.
 
 Full documentation: [Prisma Next plugin](https://pothos-graphql.dev/docs/plugins/prisma-next).
