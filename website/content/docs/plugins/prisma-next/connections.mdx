@@ -120,8 +120,12 @@ cursor: [
 ],
 ```
 
-Ordinary strings, numbers, bigint, Date and
-bytes use the shared tagged encoding without an application codec.
+Ordinary strings, numbers, bigint and Date values use the shared tagged encoding without an
+application codec. Bytes columns can't be cursor columns, because the ORM can't order them: they
+are a type error and are rejected when the schema is built.
+
+Cursors come from clients, so treat them as untrusted input. A cursor value whose type doesn't
+match its column isn't rejected yet; it only changes the page returned to that client.
 
 ### Options
 
