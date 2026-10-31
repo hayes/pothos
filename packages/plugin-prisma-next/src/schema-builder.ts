@@ -159,7 +159,7 @@ function addPrismaNextFields(
       : getRefFromContractModel(
           modelName as never,
           builder,
-          kind === 'Interface' ? 'interface' : undefined,
+          kind === 'Interface' ? 'interface' : 'object',
         );
   const build = () =>
     fields(
