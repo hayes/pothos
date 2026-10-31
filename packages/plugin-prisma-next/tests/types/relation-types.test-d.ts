@@ -183,6 +183,22 @@ inheritance.prismaObject('Bug', {
   }),
 });
 
+// A to-one relation typed as a variant of its target filters out rows of other variants, so it
+// is nullable unless `nullable` says otherwise.
+const bugRef = inheritance.prismaObject('Bug', { variant: 'NoteBug', fields: () => ({}) });
+const taskRef = inheritance.prismaObject('Task', { variant: 'NoteTask', fields: () => ({}) });
+inheritance.prismaObject('Note', {
+  fields: (t) => {
+    const task = t.relation('task', { type: taskRef });
+    expectTypeOf(task.$inferType).not.toBeNullable();
+    const bug = t.relation('task', { type: bugRef });
+    expectTypeOf(bug.$inferType).toBeNullable();
+    const requiredBug = t.relation('task', { type: bugRef, nullable: false });
+    expectTypeOf(requiredBug.$inferType).not.toBeNullable();
+    return { task, bug, requiredBug };
+  },
+});
+
 // A relation field's shape is the related rows. A `query` can filter a to-one relation's row out,
 // so it makes the field nullable unless `nullable` says otherwise.
 builder.prismaObject('Post', {
