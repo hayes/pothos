@@ -472,6 +472,43 @@ describe('orderBy', () => {
     expect(result.errors?.[0].message).toMatch(/cursor's columns in cursor order/);
     expect(result.statements).toHaveLength(0);
   });
+
+  const mismatch = /^Invalid cursor: it was issued under a different ordering/;
+
+  it("rejects a cursor from another request's ordering before SQL", async () => {
+    const down = await query('{ orderedPosts(first: 1, newest: true) { pageInfo { endCursor } } }');
+    const cursor = down.data.orderedPosts.pageInfo.endCursor;
+    const up = await query(
+      'query ($after: String) { orderedPosts(first: 1, after: $after) { edges { node { id } } } }',
+      { after: cursor },
+    );
+    expect(up.errors?.map((error) => error.message)).toEqual([expect.stringMatching(mismatch)]);
+    expect(up.statements).toHaveLength(0);
+    // The same ordering still accepts it.
+    const again = await query(
+      'query ($after: String) { orderedPosts(first: 1, newest: true, after: $after) { edges { node { id } } } }',
+      { after: cursor },
+    );
+    expect(ids(again.data.orderedPosts)).toEqual(['p-draft1']);
+  });
+
+  it("rejects a related connection cursor from another request's ordering", async () => {
+    const first = await query(
+      '{ users { down: ordered(first: 1, newest: true) { pageInfo { endCursor } } } }',
+    );
+    const cursor = first.data.users[0].down.pageInfo.endCursor;
+    const next = await query(
+      'query ($after: String) { users { down: ordered(first: 1, newest: true, after: $after) { edges { node { id } } } up: ordered(first: 1, after: $after) { edges { node { id } } } } }',
+      { after: cursor },
+    );
+    expect(ids(next.data.users[0].down)).toEqual(['p-draft1']);
+    expect(next.data.users[0].up).toBeNull();
+    expect(next.errors?.[0].message).toMatch(mismatch);
+    expect(next.errors?.map((error) => error.path)).toEqual([
+      ['users', 0, 'up'],
+      ['users', 1, 'up'],
+    ]);
+  });
 });
 
 describe('related connection planning errors', () => {
@@ -958,6 +995,40 @@ describe('prismaConnectionHelpers', () => {
     const result = await run(builder.toSchema(), '{ users { edges { node { id } } } }');
     expect(result.errors).toBeUndefined();
     expect(count).not.toHaveBeenCalled();
+  });
+
+  it('pages a named type when given its ref instead of the model name', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const Card = builder.prismaObject('User', {
+      variant: 'UserCard',
+      fields: (t) => ({ name: t.exposeString('firstName') }),
+    });
+    const pages = prismaConnectionHelpers(builder, Card, { cursor: 'id' });
+    expect(pages.ref).toBe(Card);
+    builder.queryType({
+      fields: (t) => ({
+        cards: t.connection({
+          type: pages.ref,
+          resolve: async (_root, args, context, info) => {
+            const result = await pages.applyPagination(db.orm.User, args, info, context);
+            return result.wrap(await result.collection.all());
+          },
+        }),
+      }),
+    });
+    const first = await run(
+      builder.toSchema(),
+      '{ cards(first: 1) { pageInfo { endCursor } edges { node { __typename name } } } }',
+    );
+    expect(first.errors).toBeUndefined();
+    expect(first.data.cards.edges).toEqual([{ node: { __typename: 'UserCard', name: 'Alice' } }]);
+    const second = await run(
+      builder.toSchema(),
+      'query ($after: String) { cards(first: 1, after: $after) { edges { node { name } } } }',
+      { variables: { after: first.data.cards.pageInfo.endCursor } },
+    );
+    expect(second.data.cards.edges).toEqual([{ node: { name: 'Bob' } }]);
   });
 });
 

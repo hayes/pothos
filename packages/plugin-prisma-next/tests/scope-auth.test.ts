@@ -57,9 +57,15 @@ function schema() {
     scopeAuth: { authScopes: ({ admin }) => ({ admin }) },
     prismaNext: { client: ctx.client },
   });
+  const AdminView = builder.prismaObject('User', {
+    variant: 'AdminView',
+    fields: (t) => ({ email: t.exposeString('email') }),
+  });
   builder.prismaObject('User', {
     fields: (t) => ({
       firstName: t.exposeString('firstName'),
+      // t.variant takes other plugins' field options.
+      adminView: t.variant(AdminView, { nullable: true, authScopes: { admin: true } }),
       email: t.withAuth({ admin: true }).exposeString('email', { nullable: true }),
       posts: t.withAuth({ admin: true }).relation('posts', { nullable: true }),
       postCount: t.withAuth({ admin: true }).relationCount('posts', { nullable: true }),
@@ -89,7 +95,7 @@ it('preserves selections and scope checks on prisma-specific field helpers', asy
   const result = await execute({
     schema: schema(),
     document: parse(
-      '{ user { email posts { title } postCount postConnection(first: 1) { edges { node { title } } } } }',
+      '{ user { email adminView { email } posts { title } postCount postConnection(first: 1) { edges { node { title } } } } }',
     ),
     contextValue: { admin: true },
   });
@@ -97,6 +103,7 @@ it('preserves selections and scope checks on prisma-specific field helpers', asy
   expect(result.data).toEqual({
     user: {
       email: 'alice@example.com',
+      adminView: { email: 'alice@example.com' },
       posts: [{ title: 'Hello, Pothos' }, { title: 'Draft #1' }],
       postCount: 2,
       postConnection: { edges: [{ node: { title: 'Draft #1' } }] },
@@ -108,15 +115,16 @@ it('denies protected model fields without affecting the public sibling', async (
   const result = await execute({
     schema: schema(),
     document: parse(
-      '{ user { firstName email posts { title } postCount postConnection { edges { node { title } } } } }',
+      '{ user { firstName email adminView { email } posts { title } postCount postConnection { edges { node { title } } } } }',
     ),
     contextValue: { admin: false },
   });
-  expect(result.errors).toHaveLength(4);
+  expect(result.errors).toHaveLength(5);
   expect(result.data).toEqual({
     user: {
       firstName: 'Alice',
       email: null,
+      adminView: null,
       posts: null,
       postCount: null,
       postConnection: null,

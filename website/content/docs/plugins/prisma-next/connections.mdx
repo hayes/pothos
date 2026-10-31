@@ -53,6 +53,11 @@ orderBy: (post, args) => (args.newest ? post.createdAt.desc() : post.createdAt.a
 resolve: (_root, _args, ctx) => ctx.db.orm.Post,
 ```
 
+A cursor records the ordering it was issued under: each column's direction and null placement.
+Under another ordering the same values point somewhere else, so a cursor from one ordering is
+rejected under another (for example after the client flips `newest`) with an `Invalid cursor`
+error and no query. Start again from the first page when the ordering changes.
+
 Cursor values are encoded with the client's column codecs, so any orderable column works,
 including Temporal and decimal columns. Bytes columns can't be cursor columns.
 
@@ -98,7 +103,9 @@ paging.
 
 ## Connection helpers
 
-`prismaConnectionHelpers` applies the same pagination to a custom connection field:
+`prismaConnectionHelpers` applies the same pagination to a custom connection field. It takes a
+model name, or the ref of a `prismaObject` (including a variant or a named type) whose type the
+connection's nodes use:
 
 ```ts
 import { prismaConnectionHelpers } from '@pothos/plugin-prisma-next';

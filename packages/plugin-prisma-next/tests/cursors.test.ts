@@ -105,12 +105,23 @@ describe('cursor values', () => {
 
   it('issues only cursors it accepts back, up to the size cap', async () => {
     const { read, cursorOf } = pages('id');
-    // `PNC:S:` and 1530 characters is 1536 bytes: exactly 2048 characters of base64.
-    const atCap = await cursorOf({ id: 'x'.repeat(1530) });
+    // `PNC:a:S:` and 1528 characters is 1536 bytes: exactly 2048 characters of base64.
+    const atCap = await cursorOf({ id: 'x'.repeat(1528) });
     expect(atCap).toHaveLength(2048);
     expect((await read(db.orm.Post, { first: 1, after: atCap })).edges).toEqual([]);
-    await expect(cursorOf({ id: 'x'.repeat(1531) })).rejects.toThrow(
+    await expect(cursorOf({ id: 'x'.repeat(1529) })).rejects.toThrow(
       'Cannot encode a cursor over id: it is 2052 characters, over the 2048-character limit for cursors.',
+    );
+  });
+
+  it('accepts a cursor only under the null placement it was issued for', async () => {
+    const nullsFirst = pages([{ field: 'score', nulls: 'first' }, 'id']);
+    const nullsLast = pages([{ field: 'score', nulls: 'last' }, 'id']);
+    const cursor = await nullsFirst.cursorOf({ id: 'n-1', score: null });
+    const base = db.orm.Post.where({ title: 'nullable-sort' });
+    expect(idsOf(await nullsFirst.read(base, { first: 1, after: cursor }))).toEqual(['n-4']);
+    await expect(nullsLast.read(base, { first: 1, after: cursor })).rejects.toThrow(
+      /^Invalid cursor: it was issued under a different ordering/,
     );
   });
 
@@ -225,8 +236,9 @@ describe('rejected cursors', () => {
     ['not base64', 'posts', `!!!${marker}`],
     ['from another plugin', 'posts', raw(`GPC:S:${marker}`)],
     ['not a tagged chunk', 'posts', raw(`PNC:{"${marker}":1}`)],
-    ['wider than the cursor', 'dated', raw(`PNC:T:["S:${marker}","S:b","S:c"]`)],
-    ['over the size cap', 'posts', raw(`PNC:S:${marker}${'x'.repeat(4000)}`)],
+    ['without an ordering signature', 'posts', raw(`PNC:S:${marker}`)],
+    ['wider than the cursor', 'dated', raw(`PNC:aa:T:["S:${marker}","S:b","S:c"]`)],
+    ['over the size cap', 'posts', raw(`PNC:a:S:${marker}${'x'.repeat(4000)}`)],
   ])('rejects a cursor %s without echoing it', async (_name, field, cursor) => {
     const result = await run(
       schema(),
@@ -243,8 +255,8 @@ describe('rejected cursors', () => {
     const page = await run(schema(), '{ dated(first: 1) { pageInfo { endCursor } } }');
     const [, payload] = Buffer.from(page.data.dated.pageInfo.endCursor, 'base64')
       .toString()
-      .match(/^PNC:T:(.*)$/)!;
-    const wider = raw(`PNC:T:${JSON.stringify([...JSON.parse(payload), 'S:extra'])}`);
+      .match(/^PNC:aa:T:(.*)$/)!;
+    const wider = raw(`PNC:aa:T:${JSON.stringify([...JSON.parse(payload), 'S:extra'])}`);
     const result = await run(
       schema(),
       'query ($c: String) { dated(after: $c) { edges { cursor } } }',
@@ -254,22 +266,30 @@ describe('rejected cursors', () => {
   });
 
   it('rejects a single-value cursor where a compound one is expected', async () => {
+    const result = await run(
+      schema(),
+      'query ($c: String) { dated(after: $c) { edges { cursor } } }',
+      { variables: { c: raw('PNC:aa:S:p-hello') } },
+    );
+    expect(result.errors?.[0].message).toMatch(/Invalid cursor.*expected 2 value/);
+  });
+
+  it("rejects another connection's cursor, whose ordering differs", async () => {
     const page = await run(schema(), '{ posts(first: 1) { pageInfo { endCursor } } }');
     const result = await run(
       schema(),
       'query ($c: String) { dated(after: $c) { edges { cursor } } }',
-      {
-        variables: { c: page.data.posts.pageInfo.endCursor },
-      },
+      { variables: { c: page.data.posts.pageInfo.endCursor } },
     );
-    expect(result.errors?.[0].message).toMatch(/Invalid cursor.*expected 2 value/);
+    expect(result.errors?.[0].message).toMatch(/Invalid cursor: it was issued under a different/);
+    expect(result.statements).toHaveLength(0);
   });
 
   it('hides a codec decoding error and the cursor payload', async () => {
     const result = await run(
       schema(),
       'query ($c: String) { dated(after: $c) { edges { cursor } } }',
-      { variables: { c: raw(`PNC:T:["S:${marker}","S:p"]`) } },
+      { variables: { c: raw(`PNC:aa:T:["S:${marker}","S:p"]`) } },
     );
     expect(result.errors?.[0].message).toBe('Invalid cursor value for createdAt.');
     expect(result.statements).toHaveLength(0);
@@ -280,7 +300,7 @@ describe('rejected cursors', () => {
       schema(),
       'query ($c: String) { posts(after: $c) { edges { cursor } } }',
       {
-        variables: { c: raw('PNC:O:{"__proto__":{"polluted":1}}') },
+        variables: { c: raw('PNC:a:O:{"__proto__":{"polluted":1}}') },
       },
     );
     expect(result.data).toBeDefined();
@@ -329,12 +349,16 @@ describe('rejected cursors', () => {
       const nullText = page.data.byText.edges.find(
         (edge: { node: { id: string } }) => edge.node.id === '21',
       ).cursor;
+      // Re-signed for `bySheet`'s ordering, so the null itself is what's rejected.
+      const resigned = raw(
+        Buffer.from(nullText, 'base64')
+          .toString()
+          .replace(/^PNC:[adfl]+:/, 'PNC:aa:'),
+      );
       const result = await run(
         s,
         'query ($c: String) { bySheet(after: $c) { edges { cursor } } }',
-        {
-          variables: { c: nullText },
-        },
+        { variables: { c: resigned } },
       );
       expect(result.errors?.[0].message).toBe('Invalid cursor value for sheetId.');
     });
