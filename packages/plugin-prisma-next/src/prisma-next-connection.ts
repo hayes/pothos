@@ -160,14 +160,11 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         if (countResult.status === 'rejected') {
           throw countResult.reason;
         }
-        const page = buildConnectionPage(
+        return buildConnectionPage(
           rowsResult.value as readonly Record<string, unknown>[],
           pagination,
+          countResult.value as number | undefined,
         );
-        if (countResult.value !== undefined) {
-          (page as { totalCount?: number }).totalCount = countResult.value as number;
-        }
-        return page;
       }) as never,
     } as never,
     settings.connectionOptions(connectionOptions),
