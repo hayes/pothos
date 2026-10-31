@@ -149,8 +149,8 @@ describe('Relay nodes', () => {
   });
 
   it.each([
-    ['malformed', 'PNI:MARKER-not-a-chunk', /ID payload is invalid/],
-    ['short', JSON.stringify(['MARKER']), /expected 2 values, got 1/],
+    ['malformed', 'PNI:MARKER-not-a-chunk', /ID: malformed payload/],
+    ['short', JSON.stringify(['MARKER']), /expected 2 value\(s\), got 1/],
   ])('rejects a %s compound ID without echoing it', async (_name, payload, message) => {
     const result = await query('query ($id: ID!) { node(id: $id) { id } }', {
       id: globalId('PostByAuthor', payload),
@@ -483,7 +483,7 @@ describe('ID values', () => {
       variables: { id: globalId('Post', 'u-alice:p-hello') },
     });
     expect(result.errors?.[0].message).toBe(
-      "prismaNode 'Post' composite ID expected 2 values, got 1.",
+      "Invalid prismaNode 'Post' ID: expected 2 value(s), got 1.",
     );
     expect(result.statements).toHaveLength(0);
   });
@@ -503,7 +503,7 @@ describe('ID values', () => {
       }),
     });
     const result = await run(builder.toSchema(), '{ person { id } }');
-    expect(result.errors?.[0].message).toBe("prismaNode 'User' row has an invalid id value.");
+    expect(result.errors?.[0].message).toBe('sqlite/text JSON value must be a string');
   });
 
   it('rejects an ID its column codec cannot decode before running the collection', async () => {
@@ -519,7 +519,9 @@ describe('ID values', () => {
     const result = await run(builder.toSchema(), 'query ($id: ID!) { node(id: $id) { id } }', {
       variables: { id: globalId('Post', 'PNI:T:["S:p","S:MARKER"]') },
     });
-    expect(result.errors?.[0].message).toBe("prismaNode 'Post' ID has an invalid createdAt value.");
+    expect(result.errors?.[0].message).toBe(
+      "Invalid prismaNode 'Post' ID: invalid createdAt value.",
+    );
     expect(result.statements).toHaveLength(0);
   });
 });
