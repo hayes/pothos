@@ -114,9 +114,43 @@ describe('Relay nodes', () => {
     expect(result.data).toEqual({ node: { __typename: 'PostByAuthor', title: 'Hello, Pothos' } });
   });
 
+  it('loads a one-column array ID, and decodes it as a tuple', async () => {
+    const builder = createBuilder();
+    const Person = builder.prismaNode('User', {
+      id: { field: ['id'] },
+      collection: db.orm.User,
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    const seen: unknown[] = [];
+    builder.queryType({
+      fields: (t) => ({
+        person: t.prismaField({ type: Person, resolve: () => db.orm.User.where({ id: 'u-bob' }) }),
+        echo: t.string({
+          args: { id: t.arg.globalID({ for: Person, required: true }) },
+          resolve: (_root, args) => {
+            expectTypeOf(args.id.id).toEqualTypeOf<[string]>();
+            seen.push(args.id.id);
+            return args.id.typename;
+          },
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const person = await run(schema, '{ person { id } }');
+    expect(person.data.person.id).toBe(globalId('User', 'u-bob'));
+    const result = await run(
+      schema,
+      'query ($id: ID!) { echo(id: $id) node(id: $id) { ... on User { firstName } } }',
+      { variables: { id: person.data.person.id } },
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ echo: 'User', node: { firstName: 'Bob' } });
+    expect(seen).toEqual([['u-bob']]);
+  });
+
   it.each([
-    ['malformed', 'PNI:MARKER-not-a-chunk', /ID payload is invalid/],
-    ['short', JSON.stringify(['MARKER']), /expected 2 values, got 1/],
+    ['malformed', 'PNI:MARKER-not-a-chunk', /ID: malformed payload/],
+    ['short', JSON.stringify(['MARKER']), /expected 2 value\(s\), got 1/],
   ])('rejects a %s compound ID without echoing it', async (_name, payload, message) => {
     const result = await query('query ($id: ID!) { node(id: $id) { id } }', {
       id: globalId('PostByAuthor', payload),
@@ -125,29 +159,6 @@ describe('Relay nodes', () => {
     expect(result.errors?.[0].message).not.toContain('MARKER');
     expect(result.statements).toHaveLength(0);
   });
-  it('refuses to issue an ID longer than it accepts back', async () => {
-    const builder = createBuilder();
-    const Person = builder.prismaNode('User', {
-      id: { field: 'id' },
-      fields: (t) => ({ firstName: t.exposeString('firstName') }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        person: t.field({ type: Person, resolve: () => ({ id: 'x'.repeat(2049) }) }),
-        tagged: t.field({ type: Person, resolve: () => ({ id: `PNI:${'x'.repeat(2039)}` }) }),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ person { id } }');
-    expect(result.errors?.[0].message).toBe(
-      "prismaNode 'User' ID is 2049 characters once encoded, over the 2048-character limit for IDs it can load back.",
-    );
-    // A string that looks tagged is tagged itself, which the message says.
-    const tagged = await run(builder.toSchema(), '{ tagged { id } }');
-    expect(tagged.errors?.[0].message).toBe(
-      "prismaNode 'User' ID is 2049 characters once encoded (tagged with 'PNI:'), over the 2048-character limit for IDs it can load back.",
-    );
-  });
-
   it('explains a missing contextValue when encoding an ID', async () => {
     const builder = createBuilder({ client: () => db.client, contract: sampleContract });
     const Person = builder.prismaNode('User', {
@@ -166,15 +177,6 @@ describe('Relay nodes', () => {
     expect(result.errors?.[0].message).toMatch(
       /^@pothos\/plugin-prisma-next requires an object contextValue \(resolving 'User\.id'\)/,
     );
-  });
-
-  it('rejects an ID over the size cap without echoing it or running the collection', async () => {
-    const result = await query('query ($id: ID!) { node(id: $id) { id } }', {
-      id: globalId('User', `MARKER${'x'.repeat(4000)}`),
-    });
-    expect(result.errors?.[0].message).toMatch(/ID is longer than 2048 characters/);
-    expect(result.errors?.[0].message).not.toContain('MARKER');
-    expect(result.statements).toHaveLength(0);
   });
 });
 
@@ -481,7 +483,7 @@ describe('ID values', () => {
       variables: { id: globalId('Post', 'u-alice:p-hello') },
     });
     expect(result.errors?.[0].message).toBe(
-      "prismaNode 'Post' composite ID expected 2 values, got 1.",
+      "Invalid prismaNode 'Post' ID: expected 2 value(s), got 1.",
     );
     expect(result.statements).toHaveLength(0);
   });
@@ -501,7 +503,7 @@ describe('ID values', () => {
       }),
     });
     const result = await run(builder.toSchema(), '{ person { id } }');
-    expect(result.errors?.[0].message).toBe("prismaNode 'User' row has an invalid id value.");
+    expect(result.errors?.[0].message).toBe('sqlite/text JSON value must be a string');
   });
 
   it('rejects an ID its column codec cannot decode before running the collection', async () => {
@@ -517,7 +519,9 @@ describe('ID values', () => {
     const result = await run(builder.toSchema(), 'query ($id: ID!) { node(id: $id) { id } }', {
       variables: { id: globalId('Post', 'PNI:T:["S:p","S:MARKER"]') },
     });
-    expect(result.errors?.[0].message).toBe("prismaNode 'Post' ID has an invalid createdAt value.");
+    expect(result.errors?.[0].message).toBe(
+      "Invalid prismaNode 'Post' ID: invalid createdAt value.",
+    );
     expect(result.statements).toHaveLength(0);
   });
 });

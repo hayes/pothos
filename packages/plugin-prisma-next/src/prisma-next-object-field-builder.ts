@@ -57,7 +57,7 @@ import {
   relatedCount,
   selectsRows,
 } from './utils/connections.js';
-import { relationVariant, resolveContractModel } from './utils/contract.js';
+import { assertContractModel, relationVariant } from './utils/contract.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
@@ -180,7 +180,6 @@ export class PrismaNextObjectFieldBuilder<
     ResolveReturnShape,
     Name extends ExposableColumn<Types, ExposableShape, Type, Nullable>,
   >(
-    // Positional so `Name extends ExposableColumn<…>` is inferred from the call site.
     name: Name,
     ...args: NormalizeArgs<
       [
@@ -403,7 +402,7 @@ export class PrismaNextObjectFieldBuilder<
           ? false
           : query !== undefined ||
             variant !== undefined ||
-            this.#isToOneRelationNullable(this.#getRelationMeta(relationName))),
+            isNullableToOne(this.#getRelationMeta(relationName))),
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECT]: select,
@@ -423,7 +422,7 @@ export class PrismaNextObjectFieldBuilder<
     name: RelName,
     options?: PrismaNextRelationCountOptions<Types, M, RelName, Nullable, Args, Shape>,
   ): FieldRef<Types, Nullable extends true ? number | null : number, 'PrismaNextObject'> {
-    return this.#aggregateField(name as string, 'count', undefined, options ?? {}, false) as never;
+    return this.#aggregateField(name as string, 'count', undefined, options ?? {}) as never;
   }
 
   /**
@@ -461,13 +460,7 @@ export class PrismaNextObjectFieldBuilder<
       op: string;
       field?: string;
     };
-    return this.#aggregateField(
-      name as string,
-      op,
-      field,
-      rest,
-      op !== 'count' && op !== 'countBigInt',
-    ) as never;
+    return this.#aggregateField(name as string, op, field, rest) as never;
   }
 
   #aggregateField(
@@ -475,7 +468,6 @@ export class PrismaNextObjectFieldBuilder<
     op: string,
     field: string | undefined,
     options: Record<string, unknown>,
-    nullableDefault: boolean,
   ): FieldRef<Types, unknown, 'PrismaNextObject'> {
     if (!this.#relation(name).isToMany) {
       throw new PothosSchemaError(
@@ -503,7 +495,8 @@ export class PrismaNextObjectFieldBuilder<
     return this.field({
       ...rest,
       type: options.type ?? (op === 'count' ? 'Int' : 'Float'),
-      nullable: nullable ?? nullableDefault,
+      // Counts are never null; other aggregates are null over no rows.
+      nullable: nullable ?? (op !== 'count' && op !== 'countBigInt'),
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECT]: select,
@@ -761,10 +754,7 @@ export class PrismaNextObjectFieldBuilder<
   }
 
   #getRelationMeta(relationName: string): ContractRelation {
-    const model = resolveContractModel(this.contract as AnyContract, this.modelName as string);
-    if (!model) {
-      throw new PothosSchemaError(`Model '${this.modelName as string}' not found in contract.`);
-    }
+    const model = assertContractModel(this.contract as AnyContract, this.modelName as string);
     const rel = model.relations[relationName];
     if (!rel) {
       throw new PothosSchemaError(
@@ -774,29 +764,7 @@ export class PrismaNextObjectFieldBuilder<
     }
     return rel;
   }
-
-  // Nullable if any FK column is, or when the FK columns aren't recorded (embeds).
-  #isToOneRelationNullable(meta: ContractRelation): boolean {
-    if ('nullable' in meta && typeof meta.nullable === 'boolean') {
-      return meta.nullable;
-    }
-    const local = 'on' in meta ? meta.on.localFields : undefined;
-    if (!local || local.length === 0) {
-      return true;
-    }
-    const fields = resolveContractModel(
-      this.contract as AnyContract,
-      this.modelName as string,
-    )?.fields;
-    if (!fields) {
-      return true;
-    }
-    for (const fk of local) {
-      const f = fields[fk];
-      if (!f || f.nullable !== false) {
-        return true;
-      }
-    }
-    return false;
-  }
 }
+
+// An embed records no nullability; its row may be absent.
+const isNullableToOne = (meta: ContractRelation) => ('nullable' in meta ? meta.nullable : true);

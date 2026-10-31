@@ -67,13 +67,9 @@ export function connectionSettings<Count extends (...args: never[]) => unknown>(
   };
   return {
     sizes(args: object, ctx: object): { defaultSize?: number; maxSize?: number } {
-      const sizes = {
+      return {
         defaultSize: resolve('defaultSize', defaultSize, args, ctx) ?? config.defaultConnectionSize,
         maxSize: resolve('maxSize', maxSize, args, ctx) ?? config.maxConnectionSize,
-      };
-      return {
-        ...(sizes.defaultSize === undefined ? {} : { defaultSize: sizes.defaultSize }),
-        ...(sizes.maxSize === undefined ? {} : { maxSize: sizes.maxSize }),
       };
     },
     /**

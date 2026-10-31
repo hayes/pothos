@@ -1,7 +1,6 @@
 import {
   brandWithType,
   completeValue,
-  isThenable,
   type MaybePromise,
   type OutputType,
   PothosValidationError,
@@ -29,8 +28,6 @@ type Played = PlayedPlan<PrismaNextModel, PrismaNextQuery>;
 
 interface Request {
   values: readonly unknown[];
-  /** Node loads resolve a missing row to null; a parent row must be found. */
-  optional: boolean;
   resolve: (row: Row | null) => void;
   reject: (error: unknown) => void;
 }
@@ -43,8 +40,8 @@ interface Part {
 
 interface Batch {
   /**
-   * Set for node loads, which batch per plan (one per type and path of an execution); parent
-   * loads merge compatible plans.
+   * Set for node loads, which batch per plan (one per type and path of an execution) and resolve
+   * a missing row to null; parent loads merge compatible plans, and their rows must be found.
    */
   group: PrismaNextNode | undefined;
   root: PrismaNextNode;
@@ -129,17 +126,15 @@ export class ModelLoader {
         }
         return value;
       });
-      return this.stage(undefined, played.root, this.identity, undefined, values, false).then(
-        (row) => {
-          const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
-          if (mapping) {
-            setRowFieldMapping(this.context, info, mapping, row!);
-          }
-          return { row: row!, mapping };
-        },
-      );
+      return this.stage(played.root, this.identity, undefined, values, false).then((row) => {
+        const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
+        if (mapping) {
+          setRowFieldMapping(this.context, info, mapping, row!);
+        }
+        return { row: row!, mapping };
+      });
     };
-    return isThenable(selection) ? Promise.resolve(selection).then(load) : load(selection);
+    return completeValue(selection, load) as Promise<{ row: Row; mapping: Mapping | undefined }>;
   }
 
   /** The row of a Relay node, planned for `info`'s selection on `typeName`, or null. */
@@ -166,32 +161,31 @@ export class ModelLoader {
     }
     const load = (played: Played) => {
       setLoaderMappings(this.context, info, played.mappings);
-      return this.stage(played.root, played.root, fields, collection, values, true).then((row) => {
+      return this.stage(played.root, fields, collection, values, true).then((row) => {
         if (row) {
           brandWithType(row, typeName as OutputType<SchemaTypes>);
         }
         return row;
       });
     };
-    return isThenable(selection) ? Promise.resolve(selection).then(load) : load(selection);
+    return completeValue(selection, load) as Promise<Row | null>;
   }
 
   private stage(
-    group: PrismaNextNode | undefined,
     root: PrismaNextNode,
     fields: readonly string[],
     collection: (() => MapperCollection) | undefined,
     values: readonly unknown[],
-    optional: boolean,
+    node: boolean,
   ): Promise<Row | null> {
     let batch = [...this.staged].find((candidate) =>
-      group === undefined
-        ? candidate.group === undefined && this.adapter.canMergeNode(candidate.root, root)
-        : candidate.group === group,
+      node
+        ? candidate.group === root
+        : candidate.group === undefined && this.adapter.canMergeNode(candidate.root, root),
     );
     if (!batch) {
       const created: Batch = {
-        group,
+        group: node ? root : undefined,
         root: this.adapter.createNode(root.model),
         fields,
         collection,
@@ -201,10 +195,17 @@ export class ModelLoader {
         created.root.columns?.add(field);
       }
       this.staged.add(created);
-      // A macrotask, so async select callbacks can join the batch.
+      // A macrotask, so async select callbacks can join the batch. An error building or running
+      // its statement fails every request in it.
       setTimeout(() => {
         this.staged.delete(created);
-        this.run(created);
+        this.flush(created).catch((error: unknown) => {
+          for (const part of created.parts) {
+            for (const request of part.requests) {
+              request.reject(error);
+            }
+          }
+        });
       }, 0);
       batch = created;
     }
@@ -216,18 +217,7 @@ export class ModelLoader {
     }
     const target = part;
     return new Promise((resolve, reject) => {
-      target.requests.push({ values, optional, resolve, reject });
-    });
-  }
-
-  /** Loads a batch. An error building or running its statement fails every request in it. */
-  private run(batch: Batch): void {
-    this.flush(batch).catch((error: unknown) => {
-      for (const part of batch.parts) {
-        for (const request of part.requests) {
-          request.reject(error);
-        }
-      }
+      target.requests.push({ values, resolve, reject });
     });
   }
 
@@ -287,7 +277,7 @@ export class ModelLoader {
     const byKey = new Map(rows.map((row) => [key(fields.map((field) => row[field])), row]));
     for (const { request, key } of keyed) {
       const row = byKey.get(key);
-      if (row || request.optional) {
+      if (row || batch.group) {
         request.resolve(row ?? null);
       } else {
         request.reject(

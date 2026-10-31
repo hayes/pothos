@@ -246,6 +246,35 @@ describe('field select forms', () => {
     expect(malformed.errors?.[0].message).toMatch(/unrecognized value shape/);
     expect(malformed.statements).toHaveLength(0);
   });
+
+  it('rejects a computed value named like a column or relation of the parent', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        email: t.exposeString('email'),
+        shadowed: t.string({
+          select: { posts: (sub) => ({ email: sub.count() }) },
+          resolve: (user) => String(user.email),
+        }),
+        relation: t.string({
+          select: { posts: (sub) => ({ comments: sub.count() }) },
+          resolve: () => 'x',
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+    });
+    const schema = builder.toSchema();
+    const shadowed = await run(schema, '{ users { email shadowed } }');
+    expect(shadowed.errors?.[0].message).toBe(
+      "select on User: 'posts' computes 'email', which is a column or relation of model User. Give the computed value another name.",
+    );
+    const relation = await run(schema, '{ users { relation } }');
+    expect(relation.errors?.[0].message).toMatch(
+      /computes 'comments', which is a column or relation/,
+    );
+  });
 });
 
 describe('async selects', () => {

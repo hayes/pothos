@@ -1,5 +1,6 @@
 import { completeValue, PothosSchemaError, PothosValidationError } from '@pothos/core';
 import {
+  type MergeOptions,
   type Node,
   NodeAdapter,
   type Plan,
@@ -135,11 +136,10 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
    * a relation or computed entry conflicting with what is already there is set aside, and the
    * fields that interface declares carry it instead, so they load separately.
    *
-   * An interface also loads what its implementations' selections need, since a row loaded as the
-   * interface reaches their `isTypeOf`, type-level auth and fields without a fragment entering
-   * them: their columns, to-many relations and computed values (planned into the implementation's
-   * own slots), and to-one relations, which the ORM includes once, so implementations must agree on
-   * one the interface doesn't select.
+   * An interface also loads its implementations' selections, since its rows reach their
+   * `isTypeOf`, auth and fields without a fragment. To-many relations and computed values go in
+   * each implementation's own slots; the ORM includes a to-one relation once, so implementations
+   * must agree on any the interface doesn't select.
    */
   private typeSelectionOf(type: GraphQLNamedType) {
     let selection = this.typeSelections.get(type);
@@ -246,7 +246,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   ) {
     const { deferred } = this.typeSelectionOf(type);
     const iface =
-      deferred.size > 0 && 'getInterfaces' in type
+      deferred.size > 0
         ? type.getInterfaces().find((i) => deferred.has(i.name) && i.getFields()[field.name])
         : undefined;
     if (!iface) {
@@ -266,7 +266,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
       visit.allColumns();
     } else {
       for (const column of query.columns ?? []) {
-        if (model.columns && !model.columns.has(column)) {
+        if (!model.columns.has(column)) {
           throw new PothosValidationError(
             `select: '${column}' is not a column or relation on ${model.name}. Check for a typo, or register the field via the contract.`,
           );
@@ -288,7 +288,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   override canMergeQuery(
     node: PrismaNextNode,
     query: PrismaNextQuery,
-    options?: Parameters<NodeAdapter<PrismaNextModel, PrismaNextQuery>['canMergeQuery']>[2],
+    options?: MergeOptions,
   ): boolean {
     return (
       super.canMergeQuery(node, query, options) &&
@@ -363,16 +363,13 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     }
     for (const [name, { rows, computed }] of includes) {
       const relation = relationOf(model, name);
-      result = result.include(name, (rel) =>
-        this.emitRelation(rel, name, relation, rows, computed, ctx),
-      );
+      result = result.include(name, (rel) => this.emitRelation(rel, relation, rows, computed, ctx));
     }
     return result;
   }
 
   private emitRelation(
     rel: MapperCollection,
-    name: string,
     relation: PrismaNextRelation,
     rows: [string, PrismaNextQuery][],
     computed: [string, ComputedSelection][],
@@ -391,13 +388,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
       const refined = query.args?.[REFINE]?.(narrowed) ?? narrowed;
       return this.emitLevel(refined, query, relation.target, ctx);
     };
+    // `compileSelect` keeps computed values off to-one relations.
     if (!relation.isToMany) {
-      if (computed.length > 0) {
-        throw new PothosValidationError(
-          `Function-form selection on to-one relation "${name}" requires combine(), which the ORM supports only for to-many relations (ORM.INCLUDE_UNSUPPORTED). ` +
-            'Use a relation field with query options or a declarative select instead.',
-        );
-      }
       return load(rows[0][1]);
     }
     const shared = computed.length === 0 ? this.shareRows(relation.target, rows) : undefined;

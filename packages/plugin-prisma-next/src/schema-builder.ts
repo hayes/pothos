@@ -1,7 +1,6 @@
 import SchemaBuilder, {
   PothosSchemaError,
   PothosValidationError,
-  RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
@@ -15,12 +14,8 @@ import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextNodeRef } from './node-ref.js';
 import { PrismaNextObjectRef } from './object-ref.js';
 import { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
-// Installs the root field methods, which `claimPrismaMethods` below must see.
-import './prisma-next-connection.js';
-import './prisma-next-field-builder.js';
 import type { ModelName, PrismaNextObjectOptions } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { claimPrismaMethods } from './utils/claim-methods.js';
 import { assertContextObject, getPluginConfig } from './utils/config.js';
 import {
   assertContractModel,
@@ -159,7 +154,7 @@ function addPrismaNextFields(
       : getRefFromContractModel(
           modelName as never,
           builder,
-          kind === 'Interface' ? 'interface' : undefined,
+          kind === 'Interface' ? 'interface' : 'object',
         );
   const build = () =>
     fields(
@@ -240,16 +235,14 @@ schemaBuilderProto.prismaNode = function prismaNode<
   const idFields: readonly string[] = Array.isArray(idOpts.field)
     ? idOpts.field
     : [idOpts.field as string];
-  const isComposite = idFields.length > 1;
+  // A one-column array still types as a tuple.
+  const isComposite = Array.isArray(idOpts.field);
   const config = getPluginConfig(this);
   const { contract } = config;
   assertContractModel(contract, nodeModelName);
   const identityKeys = getModelUniqueKeys(contract, nodeModelName);
   // IDs must be unique and non-null to load back as the same row.
-  if (
-    idFields.length === 0 ||
-    (identityKeys && !identityKeys.some((key) => key.every((field) => idFields.includes(field))))
-  ) {
+  if (identityKeys && !identityKeys.some((key) => key.every((field) => idFields.includes(field)))) {
     throw new PothosSchemaError(
       `prismaNode '${nodeModelName}' id.field must include every field of a non-null primary or unique key.`,
     );
@@ -273,7 +266,13 @@ schemaBuilderProto.prismaNode = function prismaNode<
     idOpts.parse ??
     ((id: string, ctx: Types['Context']) => {
       assertContextObject(ctx);
-      return parseNodeId(nodeModelName, idFields, id, config.codecs(ctx, nodeModelName));
+      return parseNodeId(
+        nodeModelName,
+        idFields,
+        id,
+        config.codecs(ctx, nodeModelName),
+        isComposite,
+      );
     });
   const objectRef = this.prismaObject(modelName as never, rest as never);
   const typeName = objectRef.name;
@@ -310,9 +309,10 @@ schemaBuilderProto.prismaNode = function prismaNode<
       },
     },
     loadWithoutCache: (id: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
+      assertContextObject(context, info);
       if (isComposite && (!Array.isArray(id) || id.length !== idFields.length)) {
         throw new PothosValidationError(
-          `prismaNode '${nodeModelName}' composite ID expected ${idFields.length} values, got ${Array.isArray(id) ? id.length : 'a non-array value'}.`,
+          `Invalid prismaNode '${nodeModelName}' ID: expected ${idFields.length} value(s), got ${Array.isArray(id) ? id.length : 'a non-array value'}.`,
         );
       }
       return config.loader(context, nodeModelName).loadNode(
@@ -337,18 +337,3 @@ schemaBuilderProto.prismaNode = function prismaNode<
 
   return nodeRef as never;
 } as never;
-
-claimPrismaMethods(schemaBuilderProto, [
-  'prismaObject',
-  'prismaInterface',
-  'prismaObjectField',
-  'prismaObjectFields',
-  'prismaInterfaceField',
-  'prismaInterfaceFields',
-  'prismaNode',
-]);
-claimPrismaMethods(RootFieldBuilder.prototype, [
-  'prismaField',
-  'prismaFieldWithInput',
-  'prismaConnection',
-]);
