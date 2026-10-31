@@ -50,8 +50,6 @@ export interface ModelInterfaceRefKey<M, C = unknown> extends OutputRefShape<unk
   readonly modelName: M;
 }
 
-// Public on purpose (no internal JSDoc tag, even in a comment): `stripInternal` would drop it from
-// the d.ts that the public `prismaField` signatures reference.
 export type ParamToModelName<Types extends SchemaTypes, Param> =
   Param extends ModelName<Types>
     ? Param
@@ -96,7 +94,7 @@ export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape e
   : never;
 
 /** A collection in a combine spec loads `readonly Row[]`; a scalar reducer loads its result. */
-export type SpecValueResult<V> =
+type SpecValueResult<V> =
   V extends HasRow<infer R>
     ? V extends { readonly kind: 'includeScalar' | 'includeCombine' }
       ? R
@@ -218,7 +216,7 @@ export type ValidateFieldSelect<Types extends SchemaTypes, ParentShape, Select> 
   : ValidateSelectValue<Types, ParentShape, Select>;
 
 /** Names an unknown column in an error, where a plain `never` would only say "not assignable". */
-export interface UnknownSelectColumn<Column> {
+interface UnknownSelectColumn<Column> {
   readonly 'Unknown column in select': Column;
 }
 
@@ -241,7 +239,7 @@ export type SelectColumnCheck<
     : keyof Row<Types, M> & string;
 
 /** Names the requested type when no column fits it, where `never` would only say "not assignable". */
-export interface NoExposableColumn<Type> {
+interface NoExposableColumn<Type> {
   readonly 'No column of this model can be exposed as': Type;
 }
 
@@ -267,14 +265,21 @@ export type ExposeColumnNullability<
 type ValidateSelectValue<Types extends SchemaTypes, ParentShape, Select> =
   ExtractModel<Types, ParentShape> extends infer M
     ? M extends ModelName<Types>
-      ? Select extends readonly string[]
-        ? // Only an invalid array is mapped entry by entry, to name the unknown columns.
-          Select extends readonly (keyof Row<Types, M>)[]
-          ? unknown
-          : { readonly [K in keyof Select]: SelectColumnCheck<Types, M, Select[K]> }
-        : ExactSelectCheck<Types, M, Select>
+      ? SelectCheck<Types, M, Select>
       : Select
     : Select;
+
+/** Checks a field's or a type's `select`, which is inferred from the literal rather than checked. */
+export type SelectCheck<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Select,
+> = Select extends readonly string[]
+  ? // Only an invalid array is mapped entry by entry, to name the unknown columns.
+    Select extends readonly (keyof Row<Types, M>)[]
+    ? unknown
+    : { readonly [K in keyof Select]: SelectColumnCheck<Types, M, Select[K]> }
+  : ExactSelectCheck<Types, M, Select>;
 
 type UnknownSelectKeys<
   Types extends SchemaTypes,
@@ -294,8 +299,8 @@ type UnknownSelectKeys<
           }[keyof Select & RelationKeys<Types, M> & string]
     : never;
 
-/** `Select` is inferred from the literal rather than checked, so its keys and values need checking. */
-export type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = ([
+/** An object `select`'s unknown keys and invalid values. */
+type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = ([
   UnknownSelectKeys<Types, M, Select>,
 ] extends [never]
   ? unknown
