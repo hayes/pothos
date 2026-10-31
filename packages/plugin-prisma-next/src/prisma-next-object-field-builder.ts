@@ -7,7 +7,10 @@ import {
   type FieldRef,
   type InferredFieldOptionKeys,
   type InputFieldMap,
+  type InputShapeFromFields,
+  type InterfaceParam,
   type NormalizeArgs,
+  type ObjectRef,
   type PluginName,
   PothosSchemaError,
   PothosValidationError,
@@ -16,7 +19,6 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import type { DefaultConnectionArguments } from '@pothos/plugin-relay';
 import type { IndirectInclude } from '@pothos/selection-mapper';
 import type { ContractRelation } from '@prisma/orm-framework/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
@@ -183,11 +185,7 @@ export class PrismaNextObjectFieldBuilder<
     >
   ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaNextObject'> {
     const [options = {} as never] = args;
-    return (
-      this as unknown as {
-        exposeField: (name: never, options: never) => FieldRef<Types, unknown, 'PrismaNextObject'>;
-      }
-    ).exposeField(name as never, options as never) as FieldRef<
+    return this.exposeField<Type, Nullable, never>(name as never, options) as FieldRef<
       Types,
       ShapeFromTypeParam<Types, Type, Nullable>,
       'PrismaNextObject'
@@ -244,7 +242,7 @@ export class PrismaNextObjectFieldBuilder<
       select?: readonly Selected[];
       isNull?: (
         parent: Shape & Pick<Row<Types, M>, Selected>,
-        args: import('@pothos/core').InputShapeFromFields<Args>,
+        args: InputShapeFromFields<Args>,
         ctx: Types['Context'],
         info: GraphQLResolveInfo,
       ) => boolean | Promise<boolean>;
@@ -476,8 +474,8 @@ export class PrismaNextObjectFieldBuilder<
           RelatedModel<Types, M, RelName>
         >,
         RelatedShape = unknown,
-        ConnectionInterfaces extends import('@pothos/core').InterfaceParam<Types>[] = [],
-        EdgeInterfaces extends import('@pothos/core').InterfaceParam<Types>[] = [],
+        ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+        EdgeInterfaces extends InterfaceParam<Types>[] = [],
       >(
         name: RelName,
         options: PrismaNextRelatedConnectionOptions<
@@ -499,7 +497,7 @@ export class PrismaNextObjectFieldBuilder<
               unknown,
               ConnectionInterfaces
             >
-          | import('@pothos/core').ObjectRef<Types, unknown>,
+          | ObjectRef<Types, unknown>,
         edgeOptions?:
           | PothosSchemaTypes.ConnectionEdgeObjectOptions<
               Types,
@@ -508,7 +506,7 @@ export class PrismaNextObjectFieldBuilder<
               unknown,
               EdgeInterfaces
             >
-          | import('@pothos/core').ObjectRef<Types, unknown>,
+          | ObjectRef<Types, unknown>,
       ) => FieldRef<Types, unknown>
     : '@pothos/plugin-relay is required to use this method' = function relatedConnection(
     this: PrismaNextObjectFieldBuilder<SchemaTypes, ModelName<SchemaTypes>>,
@@ -574,7 +572,7 @@ export class PrismaNextObjectFieldBuilder<
     const cursorColumns = normalizeCursor(cursorOpt);
     // Checked once per request and set of paging args, which every parent row shares.
     const cursorErrors = createContextCache(() => new Map<string, PothosValidationError | null>());
-    const cursorError = (args: DefaultConnectionArguments, ctx: object) => {
+    const cursorError = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: object) => {
       const errors = cursorErrors(ctx);
       const key = JSON.stringify([args.first, args.last, args.before, args.after]);
       let error = errors.get(key);
@@ -594,7 +592,7 @@ export class PrismaNextObjectFieldBuilder<
     };
     // An invalid cursor plans nothing, so the error surfaces on this field when it resolves.
     const select: PrismaNextSelectFn = (args, ctx, nested, selectedFields, position) => {
-      if (cursorError(args as DefaultConnectionArguments, ctx)) {
+      if (cursorError(args as PothosSchemaTypes.DefaultConnectionArguments, ctx)) {
         return {};
       }
       const filter = (rel: MapperCollection) =>
@@ -619,11 +617,16 @@ export class PrismaNextObjectFieldBuilder<
             relation,
             identity,
             (rel) =>
-              applyCursorPagination(filter(rel), cursorOpt, args as DefaultConnectionArguments, {
-                ...settings.sizes(args, ctx),
-                codecs: config.codecs(ctx, relatedKey),
-                orderBy: orderBy && ((model) => orderBy(model as never, args, ctx)),
-              }).collection,
+              applyCursorPagination(
+                filter(rel),
+                cursorOpt,
+                args as PothosSchemaTypes.DefaultConnectionArguments,
+                {
+                  ...settings.sizes(args, ctx),
+                  codecs: config.codecs(ctx, relatedKey),
+                  orderBy: orderBy && ((model) => orderBy(model as never, args, ctx)),
+                },
+              ).collection,
             variant,
           ),
         },
@@ -648,13 +651,13 @@ export class PrismaNextObjectFieldBuilder<
           ctx: object,
           info: GraphQLResolveInfo,
         ) =>
-          !!cursorError(args as DefaultConnectionArguments, ctx) ||
+          !!cursorError(args as PothosSchemaTypes.DefaultConnectionArguments, ctx) ||
           ((!connectionNeedsRows(ctx, info) || view[name] !== undefined) &&
             (!settings.countsRows(ctx, info) || Object.hasOwn(view, 'count'))),
       },
       resolve: async (
         parent: Record<string, unknown>,
-        args: DefaultConnectionArguments,
+        args: PothosSchemaTypes.DefaultConnectionArguments,
         context: object,
         info: GraphQLResolveInfo,
       ) => {
@@ -676,7 +679,7 @@ export class PrismaNextObjectFieldBuilder<
       },
     };
     return (
-      this as unknown as { connection: (cfg: object, c?: object, e?: object) => unknown }
+      this as typeof this & { connection: (cfg: object, c?: object, e?: object) => unknown }
     ).connection(connectionConfig, settings.connectionOptions(connectionOptions), edgeOptions);
   } as never;
 

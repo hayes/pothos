@@ -16,8 +16,8 @@ import type {
   VariantModelKeys,
 } from './types.js';
 
-// Must not be marked `@internal`: `stripInternal` would drop it from the d.ts that the public
-// `prismaField` signatures reference.
+// Public on purpose (no internal JSDoc tag, even in a comment): `stripInternal` would drop it from
+// the d.ts that the public `prismaField` signatures reference.
 export type ParamToModelName<Types extends SchemaTypes, Param> =
   Param extends ModelName<Types>
     ? Param

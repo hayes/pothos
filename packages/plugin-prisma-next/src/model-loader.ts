@@ -139,7 +139,7 @@ export class ModelLoader {
       setLoaderMappings(this.context, info, played.mappings);
       return this.stage(group, played.root, fields, collection, values, true).then((row) => {
         if (row) {
-          brandWithType(row, typeName as unknown as OutputType<SchemaTypes>);
+          brandWithType(row, typeName as OutputType<SchemaTypes>);
         }
         return row;
       });
