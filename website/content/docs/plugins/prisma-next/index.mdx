@@ -5,64 +5,38 @@ description: An experimental Pothos plugin for the Prisma ORM 8 collection clien
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-<Callout type="warn" title="Experimental: do not use in production">
-  This plugin is **pre-release**. It targets a release candidate of Prisma ORM 8 (formerly Prisma
-  Next) and is pinned to exactly `8.0.0-rc.22`: other versions, including newer release candidates,
-  are not supported. Both Prisma ORM 8 and this plugin's API can change in any release, without a
-  migration path. MySQL support is read-only, and MongoDB is not supported.
+<Callout type="warn" title="Experimental">
+  This plugin targets Prisma ORM `8.0.0-rc.22` exactly. Other versions are not supported, and the
+  API of both Prisma ORM 8 and this plugin may change in any release.
 </Callout>
 
-This plugin provides tighter integration with [Prisma ORM 8](https://github.com/prisma/orm),
-the new fluent collection-based ORM client. It makes it easier to define
-GraphQL types backed by your contract, helps solve N+1 queries for relations,
-and ships Relay integrations for nodes and connections.
+The Prisma Next plugin defines GraphQL types from the models in a
+[Prisma ORM 8](https://github.com/prisma/orm) contract and applies the selections a query needs to
+the Collections your resolvers return. It supports relations, counts, variants, interfaces, and
+Relay nodes and connections.
 
-This is a separate package from [`@pothos/plugin-prisma`](/docs/plugins/prisma), which targets
-Prisma 7 and `@prisma/client`. The two are mutually exclusive.
-
-## Features
-
-- 🎨 Quickly define GraphQL types based on your Prisma contract
-- 🦺 Strong type-safety throughout the entire API
-- 🤝 Automatically resolve relationships defined in the contract
-- 🎣 Automatic query optimization — the plugin reads the GraphQL selection
-  set and applies `.select(...)` / `.include(...)` onto your collection
-  before it runs (solves common N+1 issues)
-- 💅 Types and fields in GraphQL aren't tied to the column names in your
-  database
-- 🔀 Relay integration for nodes and connections that can be efficiently
-  loaded
-- 📚 Supports multiple GraphQL types based on the same contract model
-  (variants)
-- 🧬 Maps native ORM inheritance to GraphQL interfaces, and duplicate model names across
-  namespaces to qualified `ns.Model` names
+It is a separate package from [`@pothos/plugin-prisma`](/docs/plugins/prisma), which targets
+Prisma 7 and `@prisma/client`.
 
 ## Example
 
+Using the [builder setup](/docs/plugins/prisma-next/setup), with a `userId` in context:
+
 ```ts
-// Define a GraphQL type backed by a contract model.
 builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
-    bio: t.string({
-      // Force-load the `profile` relation when this field is queried.
-      select: { profile: true },
-      resolve: (user) => user.profile?.bio ?? null,
-    }),
-    // Load `posts` as a list field — nested selections drive .select.
     posts: t.relation('posts', {
       args: { oldestFirst: t.arg.boolean() },
       query: (args) => ({
-        orderBy: (p) => (args.oldestFirst ? p.createdAt.asc() : p.createdAt.desc()),
+        orderBy: (post) => (args.oldestFirst ? post.createdAt.asc() : post.createdAt.desc()),
       }),
     }),
-    // Relay connection over `posts` with cursor pagination.
     postsConnection: t.relatedConnection('posts', { cursor: 'id' }),
   }),
 });
 
-// Create a Relay node backed by a contract model.
 builder.prismaNode('Post', {
   id: { field: 'id' },
   collection: (ctx) => ctx.db.orm.Post,
@@ -76,16 +50,15 @@ builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
       type: 'User',
-      // Return the orm-client Collection. The plugin auto-applies the
-      // selection from `info` and materializes via `.all()`.
-      resolve: (_root, _args, ctx) =>
-        ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)),
+      resolve: (_root, _args, ctx) => ctx.db.orm.User.where((user) => user.id.eq(ctx.userId)),
     }),
   }),
 });
 ```
 
-Given this schema, a query like:
+The `me` resolver returns an unexecuted Collection. The plugin adds the `select` and `include`
+calls for the requested fields, so this query loads the user, posts, and authors in one
+Collection call:
 
 ```graphql
 query {
@@ -101,26 +74,9 @@ query {
 }
 ```
 
-resolves with a single orm-client call. Nested relations stitch into the
-parent `.include(...)` chain automatically.
+Aliases of the same relation with different arguments, such as `posts` and
+`oldPosts: posts(oldestFirst: true)`, are loaded in the same call.
 
-A query with multiple aliases that need different filters:
-
-```graphql
-query {
-  me {
-    email
-    posts {
-      title
-    }
-    oldPosts: posts(oldestFirst: true) {
-      title
-    }
-  }
-}
-```
-
-still resolves through one parent call, but the two `posts` consumers land
-in one `.include('posts', cb => cb.combine({...}))` — each alias gets its
-own combine slot so they don't collide. Prisma chooses the SQL execution
-strategy; combining consumers does not inherently require multiple statements.
+See [Setup](/docs/plugins/prisma-next/setup), [Objects](/docs/plugins/prisma-next/objects),
+[Relations](/docs/plugins/prisma-next/relations), and
+[Connections](/docs/plugins/prisma-next/connections).

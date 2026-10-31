@@ -3,19 +3,9 @@ title: Relations
 description: Adding relations to Prisma-backed types
 ---
 
-You can add fields for relations using the `t.relation` method:
+`t.relation` exposes a relation from the contract:
 
 ```ts
-builder.queryType({
-  fields: (t) => ({
-    me: t.prismaField({
-      type: 'User',
-      resolve: (_root, _args, ctx) =>
-        ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)),
-    }),
-  }),
-});
-
 builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -33,226 +23,83 @@ builder.prismaObject('Post', {
 });
 ```
 
-`t.relation` defines a field that can be pre-loaded by a parent resolver.
-At schema-build time, the plugin compiles every `t.relation` call into a
-`pothosOptions.select: { [relName]: true }` entry. When the parent
-`t.prismaField` resolves, the walker reads `info` and emits an
-`.include(relName, cb => …)` call on the user-returned collection. Inside
-the include callback, nested `t.relation` declarations stitch their own
-`.include(...)` calls, and so on.
+Relations are loaded with `.include(...)` on the parent's Collection, so `{ me { posts { author { id } } } }`
+runs as one Collection call. Prisma decides how many SQL statements that takes.
 
-For the query:
-
-```graphql
-query {
-  me {
-    posts {
-      author {
-        id
-      }
-    }
-  }
-}
-```
-
-the `me` resolver's collection ships as something like:
-
-```ts
-ctx.db.orm.User
-  .where((u) => u.id.eq(ctx.userId))
-  .select('id')                                  // (id is required for FK stitching)
-  .include('posts', (posts) =>
-    posts.select('id', 'authorId').include('author', (author) =>
-      author.select('id'),
-    ),
-  )
-  .all();
-```
-
-The plugin supplies one complete include plan. Prisma chooses its SQL execution
-strategy. Nested relations can execute in one statement; the number of statements
-depends on the Collection, target capabilities, and upstream planner.
-
-## Cardinality and nullability
-
-- `t.relation` infers list-vs-single from the relation's cardinality in
-  the contract (`1:1` / `N:1` → single; `1:N` → list).
-- Single relations default to non-null when none of the FK columns on the
-  parent are nullable; nullable otherwise. Pass `nullable: true` to
+- To-many relations are non-null lists.
+- To-one relations are non-null when their foreign key columns are non-null. Pass `nullable` to
   override.
-- To-many relations default to non-null (an empty list rather than null).
 
-## Filters, sorting, arguments
+## Filtering and sorting
 
-To refine a relation include, pass `query`:
+`query` accepts `{ where, orderBy, limit, offset }`, or a function of the field's arguments and
+context returning one:
 
 ```ts
-builder.prismaObject('User', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    posts: t.relation('posts', {
-      args: {
-        oldestFirst: t.arg.boolean(),
-      },
-      query: (args) => ({
-        orderBy: (p) =>
-          args.oldestFirst ? p.createdAt.asc() : p.createdAt.desc(),
-      }),
-    }),
+posts: t.relation('posts', {
+  args: { oldestFirst: t.arg.boolean() },
+  query: (args) => ({
+    orderBy: (post) => (args.oldestFirst ? post.createdAt.asc() : post.createdAt.desc()),
   }),
-});
-```
-
-`query` accepts either a literal `{ where, orderBy, limit, offset }` or a
-function returning one. The function receives the field's resolved args
-and the request context — it can't read the parent because the relation
-hasn't loaded yet.
-
-Both forms compile to a declarative refine on the include — the walker
-stays on the single-consumer fast path (no `.combine` wrap) when only
-one field touches the relation.
-
-## Counts, aggregates, custom mappings
-
-For the common cases — counting a relation or reducing it to a scalar —
-use `t.relationCount` and `t.relationAggregate`. Both compile
-to a function-form `select` (the lower-level primitive shown further
-down), so the SQL path and `where` refinement are identical; they just
-save you the boilerplate:
-
-```ts
-builder.prismaObject('User', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    // Plain count → non-nullable `Int`.
-    postCount: t.relationCount('posts'),
-    // Filtered count. `where` takes a literal…
-    publishedPostCount: t.relationCount('posts', { where: { published: 1 } }),
-    // …or an accessor callback with args in scope.
-    postCountByFlag: t.relationCount('posts', {
-      args: { flag: t.arg.int({ required: true }) },
-      where: (p, args) => p.published.eq(args.flag),
-    }),
-    // sum / avg / min / max take a numeric `field`. These reduce over an
-    // empty set to NULL, so they're exposed nullable by default; `count`
-    // stays non-nullable.
-    totalViews: t.relationAggregate('posts', { op: 'sum', field: 'views' }),
-    maxViews: t.relationAggregate('posts', { op: 'max', field: 'views' }),
-  }),
-});
-```
-
-Aggregate operations and compatible fields come from the emitted contract's
-`AggregateTypes`. `count` defaults to GraphQL Int; other numeric reducers default
-to Float, so fractional sum/min/max results are not truncated or rejected as Int.
-Pass `type` to choose a compatible scalar. Non-number results require it:
-
-```ts
-largeCount: t.relationAggregate('posts', { op: 'countBigInt', type: 'BigInt' }),
-smallestTitle: t.relationAggregate('posts', {
-  op: 'min', field: 'title', type: 'String',
 }),
 ```
 
-Register custom scalars such as `BigInt` with their matching Pothos input/output
-types. Available operations vary with the contract, not Pothos dialect branches:
-for example PostgreSQL contracts can provide `avgDecimal`. `count`/`countBigInt`
-may also receive a field to count its non-null values. Use a lossless operation
-and scalar when values could exceed GraphQL Int or JavaScript number precision.
-
-When you need something the sugars don't cover — multiple aggregate
-slots in one combine, or a custom mapping over the loaded rows — drop to
-the function-form `select` directly:
+## Counts and aggregates
 
 ```ts
 builder.prismaObject('User', {
   fields: (t) => ({
-    // Custom mapping over loaded rows. The `posts: true` form widens
-    // `parent.posts` to the loaded row array.
-    firstPostTitle: t.field({
+    postCount: t.relationCount('posts'),
+    publishedPostCount: t.relationCount('posts', { where: { published: 1 } }),
+    postCountByState: t.relationCount('posts', {
+      args: { published: t.arg.int({ required: true }) },
+      where: (post, args) => post.published.eq(args.published),
+    }),
+    totalScore: t.relationAggregate('posts', { op: 'sum', field: 'score' }),
+    firstTitle: t.relationAggregate('posts', { op: 'min', field: 'title', type: 'String' }),
+  }),
+});
+```
+
+Operations and fields come from the contract's aggregate types. `count` is a non-null `Int`;
+other operations are nullable `Float`s by default. Pass `type` for non-numeric results, or for a
+lossless operation such as `countBigInt` with a `BigInt` scalar.
+
+For anything else, use a field `select`. A function receives the relation's Collection, and each
+key it returns is added to the parent:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    latestPostTitle: t.field({
       type: 'String',
       nullable: true,
       select: { posts: true },
-      resolve: (parent) => parent.posts[0]?.title ?? null,
+      resolve: (user) => user.posts[0]?.title ?? null,
     }),
-    // Multiple reducers in one combine slot.
     postStats: t.field({
       type: 'String',
       select: {
-        posts: (sub) => ({ total: sub.count(), views: sub.sum('views') }),
+        posts: (posts) => ({ total: posts.count(), score: posts.sum('score') }),
       },
-      resolve: (parent) => `${parent.posts.total} posts / ${parent.posts.views} views`,
+      resolve: (user) => `${user.total} posts, score ${user.score}`,
     }),
   }),
 });
 ```
 
-The function form's inner keys (`{ total: sub.count() }` above) land on
-the row at namespaced slots; the plugin's per-field overlay surfaces them
-as flat keys on the resolver's parent, and `ShapeFromSelect` widens the
-inferred parent shape accordingly so resolvers stay type-safe without
-manual casts.
-
 ## Many-to-many
 
-N:M relations authored with
-`rel.manyToMany({ through, from, to })` are **supported directly** —
-expose them with `t.relation` like any other relation:
+Relations defined with `rel.manyToMany({ through, from, to })` work with `t.relation` like any
+other relation. To expose columns on the junction itself, model it as its own model and use two
+relations.
 
-```ts
-builder.prismaObject('Post', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    // N:M relation. The contract carries a `through` junction block;
-    // Prisma's orm-client resolves the junction join internally.
-    tags: t.relation('tags'),
-  }),
-});
+## Loading without a parent query
 
-builder.prismaObject('Tag', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    label: t.exposeString('label'),
-  }),
-});
-```
+With [`collections`](./setup#plugin-options) configured, a row returned from a plain `t.field`
+can resolve relations and other selections it is missing, as long as it includes its primary or
+unique key. These loads are batched across parents. Without `collections`, the data must already
+be on the row.
 
-A query like `{ posts { tags { label } } }` resolves through the
-normal `t.relation` machinery — no special handling and no junction
-model in your schema. Under the hood, Prisma emits the
-junction query from the contract's `through` block; the plugin just
-detects the junction (the relation meta carries a `through`
-descriptor) and lets `.include('tags')` flow through. This is pinned
-end-to-end against real SQLite in `tests/junction-runtime.test.ts`,
-with an upstream canary in `tests/prisma-next-m-n-upstream-pin.test.ts`
-that fails loudly if a future Prisma release changes the junction
-contract shape.
-
-If you'd rather expose the join rows themselves (e.g. the junction
-carries its own columns like `addedAt`), model the junction as a
-regular contract model with two hops —
-`Post --1:N--> PostTag <--N:1-- Tag` — and walk it explicitly with
-`t.relation('postTags')` then `t.relation('tag')`. Both styles work;
-pick the implicit `tags` relation when you only need the far side,
-the explicit junction model when you need its attributes.
-
-## Reaching a relation without a prismaField
-
-With `prismaNext.collections` configured, a model row reached through a regular
-`t.field` can load missing selections when it carries its primary or unique key.
-The loader batches requests across parents. Prefer `t.prismaField` for root
-collections so the plugin can preload compatible fields together. Without a
-provider, relation data must already be present; otherwise the resolver reports
-that the relation was not loaded.
-
-## Independent to-one refinements
-
-Compatible selections of the same to-one relation share an include. Prisma ORM
-8 rejects `combine()` on to-one includes (`ORM.INCLUDE_UNSUPPORTED`). Configure
-`prismaNext.collections` to handle incompatible filters: the initial query loads
-one compatible group, and a multi-row fallback query loads each remaining group
-with its own nested selections. Aliases receive independent values, including
-filtered `null` results. Without a provider, incompatible refinements are rejected
-before SQL. Independent to-many consumers continue to use combine slots, and aliases
-of the same field with the same arguments share one subquery when nothing else reads
-that relation.
+The same loader handles conflicting filters on one to-one relation, which Prisma can't include
+together. Without `collections`, those conflicts are rejected before any query runs.

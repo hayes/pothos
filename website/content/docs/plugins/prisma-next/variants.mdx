@@ -3,162 +3,65 @@ title: Variants
 description: Multiple GraphQL types backed by the same contract model
 ---
 
-A "variant" is a second GraphQL type that's backed by the same contract
-model. Useful when you want to expose the same row under different
-shapes — e.g. a public view and an admin view of `User`, or a
-discriminated `Post` / `DraftPost` pair backed by one `Post` table.
-
-## Declaring a variant
-
-Pass `variant` (or the legacy `name`) on `prismaObject`:
+A variant is an additional GraphQL type for a model. Define one with `variant` instead of `name`:
 
 ```ts
-const userRef = builder.prismaObject('User', {
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
-  }),
-});
-
-const adminUserRef = builder.prismaObject('User', {
-  variant: 'AdminUser',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    email: t.exposeString('email'),
-    permissions: t.exposeString('permissions'),
-    auditLog: t.relation('auditLog'),
+    drafts: t.relation('posts', { query: { where: { published: 0 } } }),
   }),
 });
 ```
 
-`User` and `AdminUser` are now distinct GraphQL types — both backed by
-the `User` contract model. Each has its own field set and its own
-auto-include behavior.
+Use the returned ref wherever the variant is needed. The model name always refers to the
+primary type, so register one with `prismaObject('User', ...)` if any field refers to `'User'`.
 
-## Reaching a variant from a related field
-
-Pass the variant's ref via `type`:
+Return a variant from a relation with `type`:
 
 ```ts
-builder.prismaObject('Tenant', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    admins: t.relation('users', {
-      type: adminUserRef,
-    }),
-  }),
-});
+author: t.relation('author', { type: Viewer }),
 ```
 
-The relation walks the AdminUser type's selection set, so AdminUser's
-fields drive the include — including any nested `t.relation('auditLog')`
-that doesn't exist on the base `User` type.
+Or from a root field:
 
-## Variant fields on the same row — `t.variant`
+```ts
+builder.queryFields((t) => ({
+  viewer: t.prismaField({
+    type: Viewer,
+    nullable: true,
+    resolve: (_root, _args, ctx) => ctx.db.orm.User.where((user) => user.id.eq(ctx.userId)),
+  }),
+}));
+```
 
-If you want a field that re-exposes the same row under a different type
-without an extra DB load, use `t.variant`:
+## Variant fields
+
+`t.variant` exposes the same row as another variant, without another query. `isNull` returns
+`null` instead; it can only read columns listed in `select`:
 
 ```ts
 builder.prismaObject('User', {
   fields: (t) => ({
-    id: t.exposeID('id'),
-    // `admin` returns null unless the row is actually an admin.
-    admin: t.variant(adminUserRef, {
-      select: ['isAdmin'],
-      isNull: (user) => !user.isAdmin,
+    viewer: t.variant(Viewer, {
+      select: ['id'],
+      isNull: (user, _args, ctx) => user.id !== ctx.userId,
     }),
   }),
 });
 ```
 
-`t.variant` walks the target type's selection set on the same parent row
-(no relation include), then returns a re-branded view of the parent. The
-optional `isNull` predicate lets you return null for rows that aren't
-the variant.
+## Adding fields
 
-### Forcing extra columns
-
-`select` (column-array form) forces columns into the parent row's SELECT
-regardless of what the client asks for. It also sets what `isNull` can read:
-its parent only has the listed columns, because any other column is only
-loaded when the query happens to select it.
-
-## Returning a variant from `t.prismaField`
+Pass the variant's ref to `prismaObjectField` or `prismaObjectFields`:
 
 ```ts
-builder.queryType({
-  fields: (t) => ({
-    me: t.prismaField({
-      type: adminUserRef,
-      nullable: true,
-      resolve: (_root, _args, ctx) =>
-        ctx.db.orm.User.where((u) => u.id.eq(ctx.userId)),
-    }),
-  }),
-});
-```
-
-Plain `t.prismaField` with a variant ref — selections drive the auto-
-include, the resolver returns rows shaped as AdminUser.
-
-## Extending a variant
-
-`prismaObjectField` / `prismaObjectFields` work on variant refs the same
-way they work on default refs. The string form (passing the contract model
-name) always resolves the ref keyed under that model name, so it can never
-reach a variant. Pass the variant's ref to extend a variant:
-
-```ts
-builder.prismaObjectField(adminUserRef, 'displayName', (t) =>
+builder.prismaObjectField(Viewer, 'displayName', (t) =>
   t.string({
     select: ['firstName', 'lastName'],
     resolve: (user) => `${user.firstName} ${user.lastName}`,
   }),
 );
 ```
-
-A ref hands the resolver the parent shape that ref declared; the string form
-can't see it, so its parent carries only what this field's own `select`
-declared. Either way, `select` is what loads the column.
-
-If only a variant is registered for a model and you try to reference the
-default (e.g. by passing the model name string to `t.relation('user')`
-from somewhere else), the schema build fails with an "unresolved
-ObjectRef" error from Pothos core. Either register a default
-`prismaObject('User', ...)` alongside the variant, or pass the variant
-ref explicitly everywhere.
-
-## Brands for abstract positions
-
-When a contract-backed row reaches an abstract GraphQL position
-(interface, union, Relay `Node`), GraphQL needs to know which concrete
-type to resolve it as. The plugin doesn't auto-brand rows on every
-`t.prismaField` — rows pass through unbranded — but it exposes
-`addBrand` / `hasBrand` on every prisma ref for the cases that need it:
-
-```ts
-const userRef = builder.prismaObject('User', { ... });
-
-// In a custom resolver that returns rows into a union / interface:
-builder.queryType({
-  fields: (t) => ({
-    search: t.field({
-      type: [SearchResult],   // a union of User | Post | …
-      resolve: async (_root, _args, ctx) => {
-        const users = await ctx.db.orm.User.where(...).all();
-        return userRef.addBrand(users);   // stamp the User brand
-      },
-    }),
-  }),
-});
-```
-
-`prismaNode` brands rows automatically inside its batch loader, so you
-don't need to call `addBrand` for rows returned via `node(id:)`. And
-`t.variant` handles its own re-brand via `rebrandForVariant`. The
-manual `addBrand` is for the boundary cases — a custom resolver
-emitting rows directly into an abstract position.
-
-`ref.hasBrand(row)` tests whether a row carries the brand; the plugin
-uses it internally as the fallback `isTypeOf` on prismaNode types.
