@@ -15,9 +15,18 @@ model Task {
   type    String
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id])
+  notes   Note[]
 
   @@discriminator(type)
   @@map("task")
+}
+
+model Note {
+  id     String @id
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id])
+
+  @@map("note")
 }
 
 model Bug {
