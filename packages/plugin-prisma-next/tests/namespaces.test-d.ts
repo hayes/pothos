@@ -1,12 +1,13 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
+import type { ModelCallbackTools } from '@prisma/orm-family-sql/orm-client';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, { type ModelName, type Row } from '../src';
+import prismaNextPlugin, { type ModelName, prismaConnectionHelpers, type Row } from '../src';
 import type { Contract } from './namespaces/contract';
 
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
 
-expectTypeOf<ModelName<Types>>().toEqualTypeOf<'nsa.User' | 'nsb.User' | 'Post'>();
+expectTypeOf<ModelName<Types>>().toEqualTypeOf<'nsa.User' | 'nsb.User' | 'Post' | 'Org'>();
 expectTypeOf<Row<Types, 'nsb.User'>>().toEqualTypeOf<{ id: string; name: string }>();
 expectTypeOf<Row<Types, 'nsa.User'>>().toEqualTypeOf<{ id: number; orgId: number }>();
 
@@ -60,9 +61,37 @@ builder.prismaObject('Post', {
   fields: (t) => ({
     orgId: t.int({
       resolve: (row) => {
-        expectTypeOf(row.user).toEqualTypeOf<Row<Types, 'nsa.User'> | null>();
-        return row.user?.orgId ?? 0;
+        // `Post.user` is required, so the selected row isn't nullable.
+        expectTypeOf(row.user).toEqualTypeOf<Row<Types, 'nsa.User'>>();
+        return row.user.orgId;
       },
+    }),
+  }),
+});
+
+// A relation whose target is a qualified model key gets that model's accessors and tools.
+builder.prismaObject('Org', {
+  fields: (t) => ({
+    users: t.relatedConnection('users', {
+      cursor: 'id',
+      orderBy: (user) => user.orgId.asc(),
+      where: (user, _args, _ctx, tools) => {
+        expectTypeOf(tools).toEqualTypeOf<ModelCallbackTools<Contract, 'User', 'nsa'>>();
+        // @ts-expect-error `name` is a column of the other namespace's User.
+        user.name;
+        return user.orgId.eq(1);
+      },
+    }),
+    userCount: t.relationCount('users', {
+      where: (user, _args, _ctx, tools) => {
+        expectTypeOf(tools).toEqualTypeOf<ModelCallbackTools<Contract, 'User', 'nsa'>>();
+        return user.orgId.gt(0);
+      },
+    }),
+    badOrder: t.relatedConnection('users', {
+      cursor: 'id',
+      // @ts-expect-error `name` is a column of the other namespace's User.
+      orderBy: (user) => user.name.asc(),
     }),
   }),
 });
@@ -82,4 +111,16 @@ builder.queryType({
     // @ts-expect-error The other namespace's collection returns a different model.
     b: t.prismaField({ type: ['nsb.User'], resolve: () => orm.nsa.User }),
   }),
+});
+
+// Connection helper callbacks resolve columns in the qualified model's namespace.
+prismaConnectionHelpers(builder, 'nsa.User', {
+  cursor: 'id',
+  where: (user) => user.orgId.eq(1),
+});
+
+prismaConnectionHelpers(builder, 'nsb.User', {
+  cursor: 'id',
+  // @ts-expect-error `orgId` belongs to the other namespace's User.
+  where: (user) => user.orgId.eq(1),
 });

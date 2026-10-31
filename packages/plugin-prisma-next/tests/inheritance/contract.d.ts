@@ -19,7 +19,7 @@ import type {
 } from '@prisma/orm-framework/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'9888c9d0adcc13163c4e3de6e0fca2206d7bf734b3188f65a4d91448645d5244'>;
+  StorageHashBase<'27f614e2942ab093133c0ba565e421d735d1b1124155c3ccb07f07530e0d3df5'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'260b8608d1aacaf1f690779a6cff39a12947c599597c5ba464ca75b9e775df53'>;
@@ -186,9 +186,11 @@ export namespace Models {
     ownerId: FieldOutputTypes['__unbound__']['Task']['ownerId'];
     title: FieldOutputTypes['__unbound__']['Task']['title'];
     type: 'bug';
+    reviewerId: FieldOutputTypes['__unbound__']['Bug']['reviewerId'];
     severity: FieldOutputTypes['__unbound__']['Bug']['severity'];
     owner: User;
-    readonly [RelationKeys]?: 'owner';
+    reviewer: User | null;
+    readonly [RelationKeys]?: 'owner' | 'reviewer';
   };
   export type Feature = {
     id: FieldOutputTypes['__unbound__']['Task']['id'];
@@ -210,8 +212,9 @@ export namespace Models {
   export type User = {
     email: FieldOutputTypes['__unbound__']['User']['email'];
     id: FieldOutputTypes['__unbound__']['User']['id'];
+    reviews: Bug[];
     tasks: AnyTask[];
-    readonly [RelationKeys]?: 'tasks';
+    readonly [RelationKeys]?: 'reviews' | 'tasks';
   };
   export type AnyTask = Bug | Feature;
 }
@@ -287,6 +290,12 @@ type ContractBase = Omit<
                   readonly dataType: 'sqlite/text';
                   readonly codecId: 'sqlite/text@1';
                   readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly reviewerId: {
+                  readonly dataType: 'sqlite/text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: true;
                   readonly many: false;
                 };
                 readonly severity: {
@@ -379,16 +388,36 @@ type ContractBase = Omit<
         readonly models: {
           readonly Bug: {
             readonly fields: {
+              readonly reviewerId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
               readonly severity: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
               };
             };
-            readonly relations: Record<string, never>;
+            readonly relations: {
+              readonly reviewer: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['reviewerId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
             readonly storage: {
               readonly table: 'task';
               readonly namespaceId: '__unbound__';
-              readonly fields: { readonly severity: { readonly column: 'severity' } };
+              readonly fields: {
+                readonly reviewerId: { readonly column: 'reviewerId' };
+                readonly severity: { readonly column: 'severity' };
+              };
             };
             readonly base: {
               readonly namespace: '__unbound__' & NamespaceId;
@@ -480,6 +509,17 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly reviews: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Bug';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['reviewerId'];
+                };
+              };
               readonly tasks: {
                 readonly to: {
                   readonly namespace: '__unbound__' & NamespaceId;

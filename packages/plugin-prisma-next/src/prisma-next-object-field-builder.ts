@@ -38,10 +38,20 @@ import type {
   Row,
   ToManyRelationKeys,
 } from './types.js';
-import type { MapperCollection, PrismaNextSelectFn, PrismaNextSpec } from './utils/adapter.js';
+import {
+  type MapperCollection,
+  narrowToVariant,
+  type PrismaNextSelectFn,
+  type PrismaNextSpec,
+} from './utils/adapter.js';
 import { rebrandForVariant } from './utils/branding.js';
 import { compileWhere } from './utils/compile-query.js';
-import { relatedModelKey, resolveContractModel } from './utils/contract.js';
+import {
+  relatedModelKey,
+  relationVariant,
+  resolveContractModel,
+  variantOf,
+} from './utils/contract.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
@@ -347,6 +357,14 @@ export class PrismaNextObjectFieldBuilder<
         relatedModelKey(this.contract as AnyContract, meta.to) as never,
         this.builder,
       ) as never);
+    // Fails the schema build for a type from the relation's hierarchy that it can't return; a
+    // variant of its base target is narrowed to while planning.
+    relationVariant(
+      this.contract as AnyContract,
+      `t.relation('${name as string}') on '${this.modelName as string}'`,
+      relatedModelKey(this.contract as AnyContract, meta.to),
+      (targetRef as { modelName?: string }).modelName,
+    );
     const isToMany = isToManyCardinality(meta.cardinality);
     const defaultNullable = isToMany ? false : this.#isToOneRelationNullable(meta);
 
@@ -616,6 +634,14 @@ export class PrismaNextObjectFieldBuilder<
     );
     const targetRef =
       options.type ?? getRefForContractModel(relatedKey as never, this.builder as never);
+    // A connection typed as a variant of its base target pages through that variant's rows.
+    const variant = relationVariant(
+      this.contract as AnyContract,
+      `t.relatedConnection('${name}') on '${this.modelName as string}'`,
+      relatedKey,
+      (targetRef as { modelName?: string }).modelName,
+    );
+    const targetVariant = variantOf(this.contract as AnyContract, relatedKey);
 
     const self = this as unknown as {
       connection: (cfg: object, c?: object, e?: object) => unknown;
@@ -686,13 +712,15 @@ export class PrismaNextObjectFieldBuilder<
       }
       const filter = (rel: MapperCollection) =>
         refine != null ? (refine(rel, args, ctx) as MapperCollection) : rel;
+      const narrow = (rel: MapperCollection) =>
+        variant === undefined ? rel : narrowToVariant(rel, variant);
       const selectedFields = selectedFieldNode();
       const wantsTotalCount = totalCountFlag && selectedFields.has('totalCount');
       const wantsRows = [...selectedFields].some(
         (field) => field !== 'totalCount' && field !== '__typename',
       );
       const count = {
-        fn: (sub: MapperCollection) => ({ count: relatedCount(filter(sub)) }),
+        fn: (sub: MapperCollection) => ({ count: relatedCount(filter(narrow(sub))) }),
         args: args as Record<string, unknown>,
       };
       if (!wantsRows) {
@@ -703,6 +731,11 @@ export class PrismaNextObjectFieldBuilder<
       const selection = nested(
         {
           slot: 'rows',
+          ...(targetVariant
+            ? { variant: targetVariant.value, variantModel: relatedKey }
+            : variant !== undefined
+              ? { variant }
+              : {}),
           columns: cursorCols,
           // The user's `where` comes BEFORE cursor pagination so the cursor over-fetch
           // (`limit(N+1)`) runs on the matching set.

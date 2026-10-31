@@ -119,7 +119,8 @@ export interface PrismaConnectionHelperOptions<
     | ((
         accessor: import('@prisma/orm-family-sql/orm-client').ModelAccessor<
           Types['PrismaNextContract'],
-          BareModelName<M>
+          BareModelName<M>,
+          NamespaceOf<Types, M>
         >,
         args: InputShapeFromFields<Args> &
           import('@pothos/plugin-relay').DefaultConnectionArguments,

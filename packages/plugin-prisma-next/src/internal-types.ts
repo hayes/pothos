@@ -8,6 +8,7 @@ import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 import type {
   BareModelName,
+  DefaultRelationNullable,
   IsToMany,
   ModelName,
   NamespaceOf,
@@ -196,7 +197,7 @@ type SimpleRelationShape<Types extends SchemaTypes, M extends ModelName<Types>, 
     | true
     | SelectRelationDeclarative<Types, M, K>
     ? K
-    : never]: RelationShape<Types, M, K>;
+    : never]: RelationShape<Types, M, K, S[K]>;
 };
 
 /**
@@ -239,33 +240,62 @@ type ModelBrand<Key> = { readonly [prismaModelKey]?: Key };
  * is what _adds_ new column dependencies. Resolving against the parent
  * would reject every valid column on a freshly-typed prismaObject.
  */
-export type ValidateFieldSelect<
-  Types extends SchemaTypes,
-  ParentShape,
-  Select,
-> = Select extends readonly string[]
-  ? ExtractModel<Types, ParentShape> extends infer M
+export type ValidateFieldSelect<Types extends SchemaTypes, ParentShape, Select> =
+  ExtractModel<Types, ParentShape> extends infer M
     ? M extends ModelName<Types>
-      ? {
-          readonly [K in keyof Select]: Select[K] extends keyof Row<Types, M> & string
-            ? Select[K]
-            : never;
-        }
+      ? Select extends readonly string[]
+        ? {
+            readonly [K in keyof Select]: Select[K] extends keyof Row<Types, M> & string
+              ? Select[K]
+              : never;
+          }
+        : ExactSelectCheck<Types, M, Select>
       : Select
-    : Select
-  : Select;
+    : Select;
+
+type UnknownSelectKeys<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Select,
+> = Select extends readonly unknown[]
+  ? never
+  : Select extends object
+    ? Exclude<keyof Select, keyof SelectObjectSpec<Types, M>>
+    : never;
+
+/**
+ * Rejects object-form select keys that are neither columns nor relations of `M`. A literal with an
+ * unknown key would otherwise pass, because `Select` is inferred from it rather than checked.
+ */
+export type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = [
+  UnknownSelectKeys<Types, M, Select>,
+] extends [never]
+  ? unknown
+  : {
+      [K in UnknownSelectKeys<Types, M, Select> & string as `Unknown key in select: ${K}`]: never;
+    };
 
 type Normalize<T> = { [K in keyof T]: T[K] } & {};
 
-/** Map each relation key in an object-form select to its loaded shape. */
+/**
+ * Map each relation key in an object-form select to its loaded shape. A to-one relation is
+ * nullable when the contract says so, or when a `where` refinement can filter its row out.
+ */
 type RelationShape<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   R extends RelationKeys<Types, M>,
+  Entry = true,
 > =
   IsToMany<Types, M, R> extends true
     ? readonly Row<Types, RelatedModel<Types, M, R>>[]
-    : Row<Types, RelatedModel<Types, M, R>> | null;
+    :
+        | Row<Types, RelatedModel<Types, M, R>>
+        | ('where' extends keyof Entry
+            ? null
+            : DefaultRelationNullable<Types, M, R> extends false
+              ? never
+              : null);
 
 /**
  * Compute a field's resolver `parent` shape from the existing parent
@@ -290,7 +320,9 @@ export type ShapeFromSelect<Types extends SchemaTypes, ParentShape, Select> = un
         ? Normalize<ParentShape & Pick<Row<Types, M>, K>>
         : Select extends Record<string, unknown>
           ? Normalize<
-              ParentShape &
+              // A field's own relation selection replaces the type's: it is loaded separately,
+              // so a field-level `where` can leave it null where the type's include couldn't.
+              Omit<ParentShape, keyof SimpleRelationShape<Types, M, Select>> &
                 SimpleColumnShape<Types, M, Select> &
                 SimpleRelationShape<Types, M, Select> &
                 FunctionFormShape<Types, M, Select>

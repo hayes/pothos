@@ -24,6 +24,7 @@ import {
 import { type GraphQLField, type GraphQLNamedType, getNamedType } from 'graphql';
 import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_MODEL, PRISMA_NEXT_SELECT } from '../constants.js';
 import type { AnyContract } from '../types.js';
+import { relationVariant } from './contract.js';
 import {
   getIdentityFields,
   getModel,
@@ -71,6 +72,10 @@ export interface MapperCollection {
   cursor(cursorValues: Record<string, unknown>): MapperCollection;
   limit(n: number): MapperCollection;
   offset(n: number): MapperCollection;
+  /** Narrows a hierarchy's base collection to one variant by discriminator value. */
+  variant?(value: string): MapperCollection;
+  /** The ORM's collection state; read for the variant a collection is narrowed to. */
+  readonly state?: { readonly variantValue?: unknown };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -116,6 +121,18 @@ export interface PrismaNextSpec {
   /** The field's arguments: two consumers of one slot must agree on them. */
   args?: PrismaNextArgs;
   refine?: PrismaNextRefine;
+  /**
+   * The discriminator value the level's collection is narrowed to. On a relation branch the
+   * emitter narrows the include with `.variant(value)`; on a root it records how the caller's
+   * collection was narrowed. Relations a variant declares need it.
+   */
+  variant?: string;
+  /**
+   * Set on a branch of a relation that targets a variant model: the ORM loads its rows through
+   * that model's own accessor, which is never narrowed with `.variant()` and can't include the
+   * relations its base declares.
+   */
+  variantModel?: string;
   columns?: readonly string[];
   relations?: Record<string, PrismaNextRelationEntry | PrismaNextRelationEntry[]>;
 }
@@ -165,6 +182,10 @@ export interface PrismaNextNode {
   /** Set by `merge` under `options.asQuery` on a nested plan's root; the parent's branch carries them. */
   slot?: string;
   refine?: PrismaNextRefine;
+  /** See `PrismaNextSpec.variant`. */
+  variant?: string;
+  /** See `PrismaNextSpec.variantModel`. */
+  variantModel?: string;
 }
 
 export function createPrismaNextNode(model: PrismaNextModel): PrismaNextNode {
@@ -251,7 +272,11 @@ function addBranch(
   // selection namespace, but only share the include when its query agrees.
   if (!relation.meta.isToMany) {
     for (const existing of relation.branches.values()) {
-      if (!deepEqual(existing.args, args) || !sameBranchRefine(existing, spec)) {
+      if (
+        !deepEqual(existing.args, args) ||
+        !sameBranchRefine(existing, spec) ||
+        existing.node.variant !== spec.variant
+      ) {
         throw new SelectionConflict(
           name,
           `Relation "${name}" is to-one and has incompatible queries under aliases "${selectBranchAlias(existing.alias, existing.slot)}" and "${id}". ` +
@@ -271,7 +296,11 @@ function addBranch(
       node: createPrismaNextNode(relation.meta.target),
     };
     relation.branches.set(id, branch);
-  } else if (!deepEqual(branch.args, args) || !sameBranchRefine(branch, spec)) {
+  } else if (
+    !deepEqual(branch.args, args) ||
+    !sameBranchRefine(branch, spec) ||
+    branch.node.variant !== spec.variant
+  ) {
     throw new SelectionConflict(
       name,
       `Relation "${name}" is selected twice under alias "${id}" with different queries. Alias one of the selections.`,
@@ -314,6 +343,57 @@ function validateIncludes(node: PrismaNextNode): void {
 }
 
 /**
+ * The first relation in `spec` the ORM can't include where it sits: one a variant declares on a
+ * level not narrowed to that variant (`narrowed`), or one a base model declares beneath a relation
+ * that targets a variant model (`variantModel`), which the ORM loads through the variant's own
+ * accessor.
+ */
+export function variantRelationProblem(
+  spec: PrismaNextSpec,
+  model: PrismaNextModel,
+  narrowed = spec.variant,
+  variantModel = spec.variantModel,
+): { relation: string; message: string } | undefined {
+  for (const [name, entries] of Object.entries(spec.relations ?? {})) {
+    const meta = model.relations[name];
+    if (!meta) {
+      continue;
+    }
+    if (meta.variant !== undefined && meta.variant !== narrowed) {
+      return {
+        relation: name,
+        message:
+          `Relation "${name}" is declared on variant '${meta.variant}' of model ${model.name}, so it loads only from a collection narrowed with .variant('${meta.variant}'). ` +
+          `Return orm.${model.name}.variant('${meta.variant}') (or a relation typed as that variant), or set prismaNext.collections so the field loads separately.`,
+      };
+    }
+    if (variantModel !== undefined && meta.variant === undefined) {
+      return {
+        relation: name,
+        message:
+          `Relation "${name}" is inherited from model ${model.name} and can't be included beneath a relation to variant model '${variantModel}': ` +
+          'the ORM loads those rows through the variant model, which only has its own relations. Set prismaNext.collections so the field loads separately.',
+      };
+    }
+    for (const entry of Array.isArray(entries) ? entries : [entries]) {
+      if (entry === true || typeof entry === 'function' || 'fn' in entry) {
+        continue;
+      }
+      const problem = variantRelationProblem(
+        entry,
+        meta.target,
+        entry.variant ?? meta.targetVariant?.value,
+        entry.variantModel ?? meta.targetVariant?.model,
+      );
+      if (problem) {
+        return problem;
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
  * A function-form entry merged into `relation`. `options.fn` binds the field's arguments into a
  * fresh closure per compile, so one relation selected twice under the same alias (under `nodes`
  * and under `edges { node }` of a connection, say) arrives as two different functions. Comparing
@@ -346,6 +426,20 @@ function addFunction(
 
 /** `spec` into `node`, relation entries slotted under `alias` unless they carry one. */
 function mergeSpec(node: PrismaNextNode, spec: PrismaNextSpec, alias: string | undefined) {
+  if (spec.variant !== undefined) {
+    if (node.variant !== undefined && node.variant !== spec.variant) {
+      throw new SelectionConflict(
+        '',
+        `Cannot narrow one selection to both variant "${node.variant}" and "${spec.variant}".`,
+      );
+    }
+    node.variant = spec.variant;
+  }
+
+  if (spec.variantModel !== undefined) {
+    node.variantModel = spec.variantModel;
+  }
+
   if (spec.columns) {
     for (const column of spec.columns) {
       node.columns.add(column);
@@ -406,6 +500,14 @@ function serializeNode(node: PrismaNextNode): PrismaNextSpec {
 
   if (node.refine) {
     spec.refine = node.refine;
+  }
+
+  if (node.variant !== undefined) {
+    spec.variant = node.variant;
+  }
+
+  if (node.variantModel !== undefined) {
+    spec.variantModel = node.variantModel;
   }
 
   if (node.columns.size > 0) {
@@ -721,6 +823,9 @@ function compileFieldSelection(
   // the query alone) and for a wrapper such as an errors-plugin result type (the walker follows
   // its include; the adapter cannot without the schema, so it descends).
   const returnModel = modelFor(getNamedType(field.type));
+  const returnModelKey = getNamedType(field.type).extensions?.[PRISMA_NEXT_MODEL] as
+    | string
+    | undefined;
   const indirect = ext.pothosIndirectInclude;
   const owner = parentModel?.name ?? '(unknown model)';
 
@@ -773,8 +878,24 @@ function compileFieldSelection(
             if (replay) {
               return branches[slot];
             }
+            // A relation to a hierarchy's base, typed as one of its variants, loads that variant.
+            const variant =
+              returnModel === relation.target
+                ? relationVariant(
+                    adapter.contract,
+                    `Field '${field.name}'`,
+                    relation.targetModel,
+                    returnModelKey,
+                  )
+                : undefined;
+            const target = relation.targetVariant;
+            const seed: PrismaNextSpec | undefined = target
+              ? { ...query, variant: target.value, variantModel: target.model }
+              : variant !== undefined
+                ? { ...query, variant }
+                : query;
             const selection = (
-              returnModel && returnModel !== relation.target ? (query ?? {}) : nested(query)
+              returnModel && returnModel !== relation.target ? (query ?? {}) : nested(seed)
             ) as PrismaNextSpec | PromiseLike<PrismaNextSpec>;
             if (isThenable(selection)) {
               pending.push(
@@ -935,7 +1056,7 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
   >();
 
   constructor(
-    private readonly contract: AnyContract,
+    readonly contract: AnyContract,
     readonly fallback = false,
   ) {
     super();
@@ -1081,7 +1202,12 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     if (!this.fallback) {
       return true;
     }
-    return !this.conflict(node, spec, options);
+    // A relation the ORM can't include on this level is left for the loader, which narrows its
+    // collection to the variant.
+    return (
+      !this.conflict(node, spec, options) &&
+      !variantRelationProblem(spec, node.model, node.variant, node.variantModel)
+    );
   }
 
   override firstConflict(
@@ -1201,6 +1327,19 @@ function emitRelation(
   }
 
   const list = Array.isArray(entries) ? entries : [entries];
+  // The ORM reads a single-table variant's rows through the base table without filtering them.
+  const variant = meta.targetVariant?.sharesTable ? meta.targetVariant : undefined;
+  const include = (refine?: (rel: MapperCollection) => MapperCollection) =>
+    variant
+      ? parent.include(name, (rel) => {
+          const narrowed = rel.where((row: Record<string, { eq(value: unknown): unknown }>) =>
+            row[variant.field].eq(variant.value),
+          );
+          return refine ? refine(narrowed) : narrowed;
+        })
+      : refine
+        ? parent.include(name, refine)
+        : parent.include(name);
   const branches = list.filter(isBranch);
   const functions = list.filter(
     (entry): entry is PrismaNextFnEntry | PrismaNextSpecFn => !isBranch(entry) && entry !== true,
@@ -1218,7 +1357,7 @@ function emitRelation(
     for (const branch of branches) {
       mergeSpec(shared, scopeChildConsumers(branch), branch.alias);
     }
-    return parent.include(name, (rel) =>
+    return include((rel) =>
       emitBranch({ ...serializeNode(shared), refine: branches[0].refine }, rel, meta.target, ctx),
     );
   }
@@ -1227,18 +1366,16 @@ function emitRelation(
     const branch = branches[0];
 
     // No branch (a bare `true` entry): a no-refine include so the relation still preloads.
-    return branch
-      ? parent.include(name, (rel) => emitBranch(branch, rel, meta.target, ctx))
-      : parent.include(name);
+    return branch ? include((rel) => emitBranch(branch, rel, meta.target, ctx)) : include();
   }
 
   const merged = functions.length === 0 ? mergeToManyBranches(branches, meta.target) : undefined;
 
   if (merged) {
-    return parent.include(name, (rel) => emitBranch(merged, rel, meta.target, ctx));
+    return include((rel) => emitBranch(merged, rel, meta.target, ctx));
   }
 
-  return parent.include(name, (rel) => {
+  return include((rel) => {
     // Combine spec keys are namespaced with `:` (GraphQL-forbidden), so
     // collisions with reserved JS object keys can't be forged from user
     // input. A plain object is safe.
@@ -1306,7 +1443,10 @@ function mergeToManyBranches(
   const [first] = branches;
   if (
     !branches.every(
-      (branch) => deepEqual(branch.args ?? {}, first.args ?? {}) && sameBranchRefine(first, branch),
+      (branch) =>
+        deepEqual(branch.args ?? {}, first.args ?? {}) &&
+        sameBranchRefine(first, branch) &&
+        branch.variant === first.variant,
     )
   ) {
     return undefined;
@@ -1327,7 +1467,22 @@ function mergeToManyBranches(
     }
     throw error;
   }
-  return { ...serializeNode(shared), refine: first.refine };
+  return {
+    ...serializeNode(shared),
+    refine: first.refine,
+    ...(first.variant !== undefined ? { variant: first.variant } : {}),
+    ...(first.variantModel !== undefined ? { variantModel: first.variantModel } : {}),
+  };
+}
+
+/** `collection.variant(value)`, for a collection of a hierarchy's base model. */
+export function narrowToVariant(collection: MapperCollection, value: string): MapperCollection {
+  if (typeof collection.variant !== 'function') {
+    throw new PothosValidationError(
+      `Cannot narrow a collection to variant '${value}': it has no variant() method.`,
+    );
+  }
+  return collection.variant(value);
 }
 
 function emitBranch(
@@ -1339,5 +1494,15 @@ function emitBranch(
   // `refine` (compiled from the user's declarative refine or `query`
   // option) runs before the inner descent so the filter applies to
   // the row set the inner selection columns are read against.
-  return emit(branch.refine ? (branch.refine(rel) ?? rel) : rel, branch, target, ctx);
+  // A variant model's own accessor is already the variant; only a base collection narrows.
+  const narrowed =
+    branch.variant === undefined || branch.variantModel !== undefined
+      ? rel
+      : narrowToVariant(rel, branch.variant);
+  return emit(
+    branch.refine ? (branch.refine(narrowed) ?? narrowed) : narrowed,
+    branch,
+    target,
+    ctx,
+  );
 }

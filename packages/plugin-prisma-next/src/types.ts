@@ -40,6 +40,7 @@ import type {
   ModelAccessor,
   ModelCallbackTools,
   NumericFieldNames,
+  OrderableFieldNames,
   ShorthandWhereFilter,
 } from '@prisma/orm-family-sql/orm-client';
 import type { Contract } from '@prisma/orm-framework/contract/types';
@@ -107,12 +108,19 @@ export type ModelKeys<TContract extends AnyContract> = {
   }[keyof TContract['domain']['namespaces'][Ns]['models'] & string];
 }[keyof TContract['domain']['namespaces'] & string];
 
+// A model without relations emits `Record<string, never>`. Its index signature would make every
+// string a relation key — and, intersected into a variant's relations, admit any name — so it is
+// dropped. A loose contract's relation map keeps its (non-`never`) index signature.
 type OwnRelationsOfModel<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends {
     readonly relations: infer Rels extends Record<string, unknown>;
   }
-    ? Rels
-    : Record<string, never>;
+    ? string extends keyof Rels
+      ? [Rels[string]] extends [never]
+        ? {}
+        : Rels
+      : Rels
+    : {};
 
 // A variant also has the relations of the model it inherits from.
 type RelationsOfModel<TContract extends AnyContract, M extends string> = [
@@ -360,8 +368,10 @@ export interface PrismaNextPluginOptions<TContract extends AnyContract, Context 
   readonly maxConnectionSize?: number;
 }
 
-// Hand-rolled because upstream's `RelationNames`/`RelatedModelName` take a bare name in one
-// namespace, and neither qualified `ns.Model` keys nor a variant's inherited relations fit.
+// Hand-rolled because upstream's `RelationNames`/`RelatedModelName` resolve one model's own
+// relations. A qualified `ns.Model` key works there once split into its bare name and namespace id,
+// but a variant also has its base's relations, which upstream omits (`never` for a variant that
+// declares none of its own).
 export type RelationKeys<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -381,6 +391,15 @@ export type RelatedModel<
 }
   ? ModelKey<Types['PrismaNextContract'], Ns, To> & ModelName<Types>
   : never;
+
+/** A relation's `type` may be the target model's ref or a variant's, which narrows the load. */
+export type RelationTypeModel<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  R extends RelationKeys<Types, M>,
+> =
+  | RelatedModel<Types, M, R>
+  | (VariantModelKeys<Types['PrismaNextContract'], RelatedModel<Types, M, R>> & ModelName<Types>);
 
 export type IsToMany<
   Types extends SchemaTypes,
@@ -484,7 +503,7 @@ export type PrismaNextRelationOptions<
   'type' | 'resolve' | InferredFieldOptionKeys
 > & {
   description?: string | false;
-  type?: PrismaNextObjectRef<Types, RelatedModel<Types, ParentModel, RelName>, RelatedShape>;
+  type?: PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
   query?: RelationQuery<Types, ParentModel, RelName, Args>;
 };
 
@@ -526,7 +545,7 @@ type RelationAggregateWhere<
       context: Types['Context'],
       tools: ModelCallbackTools<
         Types['PrismaNextContract'],
-        RelatedModel<Types, M, R>,
+        BareModelName<RelatedModel<Types, M, R>>,
         NamespaceOf<Types, RelatedModel<Types, M, R>>
       >,
     ) => unknown);
@@ -696,11 +715,18 @@ export type PrismaNextRelationAggregateOptions<
   Nullable,
   Args,
   ParentShape
-> & { op: Op; field?: Field } & (NoInfer<Field> extends string
+> & {
+  op: Op;
+  // The `NoInfer` alternative is the contextual type editors complete from: while `field` is
+  // being typed, `Field` isn't inferred yet and sits at its `undefined` default.
+  field?:
+    | Field
+    | NoInfer<RelationAggregateField<Types, RelatedModel<Types, ParentModel, RelName>, Op>>;
+} & (NoInfer<Field> extends string
     ? { field: Field }
     : AggregateOperation<Types['PrismaNextContract'], Op> extends { readonly withoutInput: unknown }
-      ? { field?: undefined }
-      : { field: never }) &
+      ? { field?: RelationAggregateField<Types, RelatedModel<Types, ParentModel, RelName>, Op> }
+      : { field: RelationAggregateField<Types, RelatedModel<Types, ParentModel, RelName>, Op> }) &
   (NonNullable<
     RelationAggregateResult<Types, RelatedModel<Types, ParentModel, RelName>, Op, Field>
   > extends number
@@ -870,14 +896,30 @@ export type PrismaNextRootFieldWithInputOptions<
   >;
 };
 
+/** Columns whose codec can be ordered (bytes, for one, can't); a variant adds its base's. */
+type OrderableColumn<Types extends SchemaTypes, M extends ModelName<Types>> =
+  | OrderableFieldNames<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>
+  | BaseOrderableColumn<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>;
+
+type BaseOrderableColumn<TContract extends AnyContract, Base extends string> = [Base] extends [
+  never,
+]
+  ? never
+  : OrderableFieldNames<TContract, BareModelName<Base>, NsIdOf<TContract, Base>>;
+
 /** Cursor columns define the complete, deterministic ordering of a connection. */
 export type CursorColumn<Types extends SchemaTypes, M extends ModelName<Types>> = {
-  [Key in keyof Row<Types, M> & string]: NonNullable<Row<Types, M>[Key]> extends
-    | string
-    | number
-    | bigint
-    | boolean
-    | Date
+  [Key in keyof Row<Types, M> & string]: Key extends OrderableColumn<Types, M>
+    ? CursorColumnEntry<Types, M, Key>
+    : never;
+}[keyof Row<Types, M> & string];
+
+type CursorColumnEntry<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Key extends keyof Row<Types, M> & string,
+> =
+  NonNullable<Row<Types, M>[Key]> extends string | number | bigint | boolean | Date
     ?
         | Key
         | {
@@ -895,7 +937,6 @@ export type CursorColumn<Types extends SchemaTypes, M extends ModelName<Types>> 
           | import('./utils/cursors.js').CursorValueCodec<NonNullable<Row<Types, M>[Key]>>
           | 'column';
       };
-}[keyof Row<Types, M> & string];
 
 export type CursorSpec<Types extends SchemaTypes, M extends ModelName<Types>> =
   | CursorColumn<Types, M>
@@ -1020,7 +1061,7 @@ export type PrismaNextRelatedConnectionOptions<
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
   > & {
     cursor: Cursor;
-    type?: PrismaNextObjectRef<Types, RelatedModel<Types, ParentModel, RelName>, RelatedShape>;
+    type?: PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
     defaultSize?:
       | number
       | ((
@@ -1039,7 +1080,11 @@ export type PrismaNextRelatedConnectionOptions<
      * order; backward pages reverse it.
      */
     orderBy?: (
-      model: ModelAccessor<Types['PrismaNextContract'], RelatedModel<Types, ParentModel, RelName>>,
+      model: ModelAccessor<
+        Types['PrismaNextContract'],
+        BareModelName<RelatedModel<Types, ParentModel, RelName>>,
+        NamespaceOf<Types, RelatedModel<Types, ParentModel, RelName>>
+      >,
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
     ) => OrderByItem | readonly OrderByItem[];
@@ -1060,13 +1105,14 @@ export type PrismaNextRelatedConnectionOptions<
       | ((
           accessor: ModelAccessor<
             Types['PrismaNextContract'],
-            BareModelName<RelatedModel<Types, ParentModel, RelName>>
+            BareModelName<RelatedModel<Types, ParentModel, RelName>>,
+            NamespaceOf<Types, RelatedModel<Types, ParentModel, RelName>>
           >,
           args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
           context: Types['Context'],
           tools: ModelCallbackTools<
             Types['PrismaNextContract'],
-            RelatedModel<Types, ParentModel, RelName>,
+            BareModelName<RelatedModel<Types, ParentModel, RelName>>,
             NamespaceOf<Types, RelatedModel<Types, ParentModel, RelName>>
           >,
         ) => unknown);

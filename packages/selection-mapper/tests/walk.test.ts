@@ -580,6 +580,27 @@ describe('fragments', () => {
     });
   });
 
+  it('walks a fragment on a model-less abstract type as each implementation it contains', async () => {
+    const named = new (class extends FakeAdapter {
+      override fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
+        return field.name === 'name'
+          ? { select: { name: true } }
+          : super.fieldSelection(field, type);
+      }
+    })(models);
+    const context = {};
+    // Person does not implement Named, but its implementation User does.
+    const info = await resolveInfo(schema, '{ person { ... on Named { name } } }');
+
+    // User has no type-level selection (every column), so the query itself is unchanged; the
+    // field is planned for User rows and mapped for them alone.
+    queryFromInfo(named, { context, info });
+    expect(mappingOf(getLoaderMapping(context, pathOf('person', 'name'), 'User'))).toEqual({
+      nested: {},
+    });
+    expect(getLoaderMapping(context, pathOf('person', 'name'), 'Viewer')).toBeNull();
+  });
+
   it('walks a fragment on an interface the type implements as the type', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { ... on Person { posts(take: 1) { id } } } }');

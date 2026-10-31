@@ -1,9 +1,10 @@
 // use prisma-8
 
 model User {
-  id    String @id
-  email String @unique
-  tasks Task[]
+  id      String @id
+  email   String @unique
+  tasks   Task[]
+  reviews Bug[]
 
   @@map("user")
 }
@@ -20,7 +21,9 @@ model Task {
 }
 
 model Bug {
-  severity String
+  severity   String
+  reviewerId String?
+  reviewer   User?   @relation(fields: [reviewerId], references: [id])
 
   @@base(Task, "bug")
 }

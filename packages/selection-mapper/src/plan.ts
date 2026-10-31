@@ -162,15 +162,24 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * replaces the parent the field resolver sees, so besides the field's own selection it
    * carries the parent type's type-level selection. The field is what the row is loaded for, so
    * it is merged first and a type-level relation whose arguments conflict with it is left out.
+   * `initial`, when given, is merged before anything else (how the loader's collection is
+   * narrowed, say).
    */
   static forParentRow<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
     adapter: Adapter<Model, Query, NodeType>,
     context: object,
     info: GraphQLResolveInfo,
     skipDeferredFragments?: boolean,
+    initial?: Query,
   ): PlayedPlan<Model, Query, NodeType> {
     const type = info.parentType;
-    const plan = new Plan(adapter, { context, info, skipDeferredFragments }, type);
+    const plan = new Plan(
+      adapter,
+      { context, info, skipDeferredFragments },
+      type,
+      undefined,
+      initial,
+    );
 
     try {
       // Every node selecting the field (one per fragment it appears under) plans into the same

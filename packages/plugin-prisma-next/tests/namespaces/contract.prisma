@@ -4,6 +4,7 @@ namespace nsa {
   model User {
     id    Int    @id
     orgId Int
+    org   Org    @relation(fields: [orgId], references: [id])
     posts Post[]
 
     @@map("user")
@@ -16,6 +17,13 @@ namespace nsa {
     user   User   @relation(fields: [userId], references: [id])
 
     @@map("post")
+  }
+
+  model Org {
+    id    Int    @id
+    users User[]
+
+    @@map("org")
   }
 }
 

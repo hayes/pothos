@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-framework/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'4c344341a99c0a15ef15347452e43da24e862239ab581eff62e02718a43af74e'>;
+  StorageHashBase<'10ee7f9188fe4eff3401811eaf4661af3668560d2cc3f055bc5f2323d8c1cb31'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -308,6 +308,11 @@ export type StorageColumnInputTypes = ColumnTypesFromStorage<
 >;
 
 export namespace Models {
+  export type nsa_Org = {
+    id: FieldOutputTypes['nsa']['Org']['id'];
+    users: nsa_User[];
+    readonly [RelationKeys]?: 'users';
+  };
   export type nsa_Post = {
     id: FieldOutputTypes['nsa']['Post']['id'];
     title: FieldOutputTypes['nsa']['Post']['title'];
@@ -318,8 +323,9 @@ export namespace Models {
   export type nsa_User = {
     id: FieldOutputTypes['nsa']['User']['id'];
     orgId: FieldOutputTypes['nsa']['User']['orgId'];
+    org: nsa_Org;
     posts: nsa_Post[];
-    readonly [RelationKeys]?: 'posts';
+    readonly [RelationKeys]?: 'org' | 'posts';
   };
   export type nsb_User = {
     id: FieldOutputTypes['nsb']['User']['id'];
@@ -330,6 +336,7 @@ export namespace Models {
 
 export declare const models: {
   nsa: {
+    Org: Models.nsa_Org;
     Post: Models.nsa_Post;
     User: Models.nsa_User;
   };
@@ -356,6 +363,20 @@ type ContractBase = Omit<
         readonly kind: 'postgres-schema';
         readonly entries: {
           readonly table: {
+            readonly org: {
+              columns: {
+                readonly id: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [];
+              foreignKeys: readonly [];
+            };
             readonly post: {
               columns: {
                 readonly id: {
@@ -419,8 +440,28 @@ type ContractBase = Omit<
               };
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [];
-              indexes: readonly [];
-              foreignKeys: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'user_orgId_idx_c5e5aabe';
+                  readonly prefix: 'user_orgId_idx';
+                  readonly columns: readonly ['orgId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'nsa' & NamespaceId;
+                    readonly tableName: 'user';
+                    readonly columns: readonly ['orgId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'nsa' & NamespaceId;
+                    readonly tableName: 'org';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
             };
           };
         };
@@ -468,12 +509,36 @@ type ContractBase = Omit<
   readonly roots: {
     readonly 'nsa.user': { readonly namespace: 'nsa' & NamespaceId; readonly model: 'User' };
     readonly 'nsb.user': { readonly namespace: 'nsb' & NamespaceId; readonly model: 'User' };
+    readonly org: { readonly namespace: 'nsa' & NamespaceId; readonly model: 'Org' };
     readonly post: { readonly namespace: 'nsa' & NamespaceId; readonly model: 'Post' };
   };
   readonly domain: {
     readonly namespaces: {
       readonly nsa: {
         readonly models: {
+          readonly Org: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+            };
+            readonly relations: {
+              readonly users: {
+                readonly to: { readonly namespace: 'nsa' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['orgId'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'org';
+              readonly namespaceId: 'nsa';
+              readonly fields: { readonly id: { readonly column: 'id' } };
+            };
+          };
           readonly Post: {
             readonly fields: {
               readonly id: {
@@ -522,6 +587,15 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly org: {
+                readonly to: { readonly namespace: 'nsa' & NamespaceId; readonly model: 'Org' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['orgId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
               readonly posts: {
                 readonly to: { readonly namespace: 'nsa' & NamespaceId; readonly model: 'Post' };
                 readonly cardinality: '1:N';

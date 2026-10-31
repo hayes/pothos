@@ -12,8 +12,15 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import { getLoaderMapping, setRowMappings } from '@pothos/selection-mapper';
-import { type GraphQLFieldResolver, type GraphQLResolveInfo, getNamedType } from 'graphql';
 import {
+  type GraphQLFieldResolver,
+  type GraphQLResolveInfo,
+  type GraphQLSchema,
+  getNamedType,
+  isInterfaceType,
+} from 'graphql';
+import {
+  PRISMA_NEXT_DISCRIMINATED,
   PRISMA_NEXT_FIELD_SELECT,
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_PREPARED,
@@ -30,8 +37,9 @@ import {
   resolveContractModel,
   rootModelKey,
 } from './utils/contract.js';
-import { buildRelationMeta } from './utils/model.js';
+import { buildRelationMeta, getModel } from './utils/model.js';
 import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options.js';
+import { variantTypeNames } from './utils/variant-types.js';
 
 export type {
   AggregateBuilder,
@@ -204,6 +212,37 @@ function normalizeParentForType(
   return overlay;
 }
 
+/**
+ * A field a plan walked on an interface (`tasks { owner }`) is recorded under the interface,
+ * while it resolves on the row's concrete type. The interface's mapping answers for it when the
+ * concrete type shares the interface's model hierarchy and recorded nothing of its own.
+ */
+function inheritedMapping(
+  context: object,
+  info: GraphQLResolveInfo,
+  parent: object,
+  contract: AnyContract,
+) {
+  const model = info.parentType.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+  if (!model) {
+    return null;
+  }
+  for (const iface of info.parentType.getInterfaces()) {
+    const ifaceModel = iface.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+    if (
+      ifaceModel &&
+      iface.getFields()[info.fieldName] &&
+      rootModelKey(contract, ifaceModel) === rootModelKey(contract, model)
+    ) {
+      const mapping = getLoaderMapping(context, info.path, iface.name, parent);
+      if (mapping) {
+        return mapping;
+      }
+    }
+  }
+  return null;
+}
+
 export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   private readonly loaders = createContextCache(() => new Map<string, ModelLoader>());
 
@@ -244,6 +283,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // not on first request.
     if (opts?.contract) {
       buildRelationMeta(model, opts.contract, typeConfig.name);
+      // Builds the planner's model too, so a contract it can't represent fails the build.
+      getModel(opts.contract, model);
     }
     return {
       ...typeConfig,
@@ -252,6 +293,18 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         [PRISMA_NEXT_MODEL]: model,
       },
     };
+  }
+
+  override afterBuild(schema: GraphQLSchema): GraphQLSchema {
+    const contract = readPluginOptions<AnyContract>(this.builder)?.contract;
+    if (contract) {
+      for (const type of Object.values(schema.getTypeMap())) {
+        if (isInterfaceType(type) && type.extensions?.[PRISMA_NEXT_DISCRIMINATED]) {
+          variantTypeNames(contract, schema, type);
+        }
+      }
+    }
+    return schema;
   }
 
   override wrapResolve(
@@ -458,7 +511,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       ) {
         return resolveLoaded(parent, args, context, info);
       }
-      const mapping = getLoaderMapping(context as object, info.path, info.parentType.name, parent);
+      const mapping =
+        getLoaderMapping(context as object, info.path, info.parentType.name, parent) ??
+        inheritedMapping(context as object, info, parent, contract);
       if (mapping) {
         setRowMappings(context as object, info, mapping.nested);
         return resolveLoaded(parent, args, context, info);
