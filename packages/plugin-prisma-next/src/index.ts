@@ -127,13 +127,18 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return typeConfig;
     }
     const { contract } = this.config;
-    let model = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+    const ownModel = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+    let model = ownModel;
     for (const iface of typeConfig.interfaces) {
       const ifaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
       const ifaceModel = ifaceConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
       if (ifaceModel) {
-        if (model && rootModelKey(contract, model) === rootModelKey(contract, ifaceModel)) {
-          // A variant keeps its own model when it implements its hierarchy's interface.
+        const root = model && rootModelKey(contract, model);
+        if (root !== undefined && root === rootModelKey(contract, ifaceModel)) {
+          // A type keeps the most specific model of its hierarchy: its own, or a variant's.
+          if (model === root && ifaceModel !== root && !ownModel) {
+            model = ifaceModel;
+          }
           continue;
         }
         if (model && model !== ifaceModel) {
