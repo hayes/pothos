@@ -16,11 +16,6 @@ export class PrismaNextObjectRef<
 > extends ObjectRef<Types, Shape> {
   declare readonly [prismaModelKey]: M;
 
-  // Signals to Pothos core that when this ref appears in an abstract
-  // position (Node interface, union, prismaInterface), rows are
-  // expected to carry the type brand. Users opt in by calling
-  // `ref.addBrand(row)` at the boundary that returns the row into an
-  // abstract position.
   declare readonly [abstractReturnShapeKey]: Shape & { [typeBrandKey]: string };
 
   readonly modelName: M;

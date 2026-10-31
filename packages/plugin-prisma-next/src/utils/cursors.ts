@@ -22,9 +22,7 @@ import {
   type PrismaNextCodecContext,
 } from './model.js';
 
-// Per-column accessor shape. orm-client's `ModelAccessor` exposes the
-// same methods; the local interface avoids the literal-contract generics
-// the real type requires.
+// The subset of orm-client's `ModelAccessor` used here, without its contract generics.
 interface ComparableColumn {
   eq(v: unknown): unknown;
   gt(v: unknown): unknown;
@@ -35,12 +33,11 @@ interface ComparableColumn {
   desc(options?: { nulls?: 'first' | 'last' }): OrderByItem;
 }
 
-/** Resolve a connection's `orderBy` option against the model accessor for this request. */
 export type RequestOrderBy = (
   model: Record<string, ComparableColumn>,
 ) => OrderByItem | readonly OrderByItem[];
 
-/** Use a codec for ORM scalar objects such as Temporal or Decimal values. */
+/** For object-valued columns such as Temporal or Decimal values. */
 export interface CursorValueCodec<Value = unknown> {
   encode(value: Value): string;
   decode(value: string): Value;
@@ -138,18 +135,10 @@ export function validateCursor(
   });
 }
 
-/**
- * `PNC:` namespaces this plugin's cursors the way `GPC:` and `DC:` namespace the prisma and
- * drizzle plugins'. What follows it is `@pothos/core`'s tagged chunk encoding, which all three
- * plugins share: a cursor over one column is that column's chunk (`I:42`, `D:1700000000123`),
- * and one over several is a `T:` tuple of chunks, positional, in the order `cols` gives.
- *
- * Every chunk carries its own type tag, so nothing is inferred from the payload's shape: a
- * bigint needs no envelope and a string column holding ISO-8601 shaped text stays a string.
- */
+/** Like plugin-prisma's `GPC:`; multi-column cursors are a positional `T:` tuple of chunks. */
 const CURSOR_PREFIX = 'PNC:';
 
-/** Wraps a column codec's stored form, so it never reads as a JSON column's own value. */
+/** Wrapped so a codec's encoded form can't be mistaken for a JSON column's value. */
 const COLUMN_CODEC_KEY = '$pothosColumnValue';
 
 function isClassInstance(value: unknown): value is object {
@@ -192,27 +181,10 @@ export function encodeCursor(cursor: CursorInput, row: Record<string, unknown>):
   return encodeBase64(`${CURSOR_PREFIX}${payload}`);
 }
 
-/**
- * Cap on user-supplied cursor + composite-ID payloads to deny
- * `JSON.parse(huge)` DoS. 2 KiB covers realistic compound cursors
- * with significant headroom.
- *
- * @internal
- */
+/** @internal Bounds the work spent decoding user-supplied cursors and IDs. */
 export const CURSOR_PAYLOAD_MAX_BYTES = 2 * 1024;
 
-/**
- * The cursor's values, keyed by `cols`.
- *
- * The keys come from `cols`, never from the cursor, so a `__proto__` or `constructor` key cannot
- * reach the output or the predicate builder below: the payload is positional and carries no keys
- * of its own. The result still has a null prototype as a second line of defence.
- *
- * A cursor of the wrong width is rejected rather than left to compare a column against
- * `undefined` (or to hand the ORM a `cursor()` boundary it cannot use). A cursor minted for a
- * different ordering of the same width reads as a position in this one, which is what the prisma
- * and drizzle plugins do with theirs.
- */
+/** Keys come from `cols`, never the payload, so a cursor can't inject `__proto__`. */
 export function decodeCursor(spec: CursorInput, cursor: string): Record<string, unknown> {
   const cols = normalizeCursor(spec);
   if (cursor.length > CURSOR_PAYLOAD_MAX_BYTES) {
@@ -225,8 +197,7 @@ export function decodeCursor(spec: CursorInput, cursor: string): Record<string, 
   try {
     payload = decodeBase64(cursor);
   } catch {
-    // Don't interpolate the cursor into the message — log-aggregation
-    // systems often capture error.message verbatim.
+    // The cursor is left out of the message, which logs often capture verbatim.
     throw new PothosValidationError('Invalid cursor: not valid base64.');
   }
 
@@ -241,8 +212,7 @@ export function decodeCursor(spec: CursorInput, cursor: string): Record<string, 
     throw new PothosValidationError('Invalid cursor: payload is not a tagged cursor chunk.');
   }
 
-  // Dispatched on `cols`, not on what came back: a single column holding a JSON value decodes to
-  // an array too, and that is one value rather than a tuple.
+  // Dispatched on `cols`: a single JSON column can decode to an array too.
   const values = cols.length === 1 ? [decoded] : decoded;
 
   if (!Array.isArray(values) || values.length !== cols.length) {
@@ -287,9 +257,7 @@ export function decodeCursor(spec: CursorInput, cursor: string): Record<string, 
   return out;
 }
 
-// Lexicographic "row > cursor" (or < for `lt`) as an OR-chain of
-// equality-prefixed comparisons. Single-column case collapses to one
-// comparison.
+// Lexicographic "row > cursor" as an OR-chain of equality-prefixed comparisons.
 function buildLexicographicPredicate(
   cols: readonly string[],
   values: Record<string, unknown>,
@@ -305,8 +273,8 @@ function buildLexicographicPredicate(
       const col = c[cols[i]!]!;
       const v = values[cols[i]!];
       const greater = (op === 'gt') !== (directions[i] === 'desc');
-      // Null placement is independent of the value's asc/desc direction. A null
-      // boundary either admits all non-null values or none at this tuple position.
+      // Null placement is independent of direction: a null boundary admits all non-null values
+      // at this position or none.
       const includesNull = (op === 'gt') === (nulls[i] === 'last');
       const compFinal =
         nulls[i] && v === null
@@ -391,11 +359,7 @@ export function assertUnpaginatedCollection(collection: unknown): void {
   }
 }
 
-/**
- * The cursor for this request with `orderBy` applied. Each item names a cursor column, in cursor
- * order, and sets its direction and null placement; columns it doesn't name keep their defaults.
- * Collections are immutable, so asking one for its accessor leaves the base untouched.
- */
+/** Columns the request's `orderBy` doesn't name keep their default direction and nulls. */
 function applyOrderByOption(
   base: MapperCollection,
   cursor: CursorInput,
@@ -456,8 +420,8 @@ function applyToCollection<C extends MapperCollection>(
     const forward = c[col]![directions[i]!](nulls[i] ? { nulls: nulls[i]! } : undefined);
     return inverted ? forward.reverse() : forward;
   });
-  // RC22 appends orderBy entries and exposes no public reset. Compare the existing
-  // prefix to the order produced by public accessors; append only missing entries.
+  // orderBy() appends and can't be reset, so only the entries missing from the existing
+  // prefix are added.
   const existing = getCollectionPaginationState(baseCollection).orderBy;
   const ordered = baseCollection.orderBy(
     orderSelectors.length === 1 ? orderSelectors[0]! : orderSelectors,
@@ -483,16 +447,11 @@ function applyToCollection<C extends MapperCollection>(
   const nativeBefore = !!before && !after && inverted;
 
   if (!nulls.some(Boolean) && !dualBound && (nativeAfter || nativeBefore)) {
-    // Native keyset path. orderBy MUST precede cursor() (the orm's
-    // `hasOrderBy` type gate). The decoded boundary is the same column→
-    // value map the hand-rolled predicate consumes; native builds the
-    // strict seek predicate internally.
     const boundary = decodeBoundary(cursor, nativeAfter ? after! : before!);
     return withOrder.cursor(boundary).limit(limit) as C;
   }
 
-  // Hand-rolled lexicographic predicate path: dual bounds, or a single
-  // bound whose direction doesn't match the active order.
+  // `cursor()` takes one boundary in the order's direction; anything else needs a predicate.
   let collection: MapperCollection = withOrder;
   if (after) {
     collection = collection.where(
@@ -507,7 +466,7 @@ function applyToCollection<C extends MapperCollection>(
   return collection.limit(limit) as C;
 }
 
-/** Throws what pagination would, without touching a collection, so planning can leave it to the field. */
+/** Throws what pagination would, without a collection. */
 export function validateCursorArgs(
   cursor: CursorInput,
   args: import('@pothos/plugin-relay').DefaultConnectionArguments,
@@ -551,21 +510,13 @@ export interface ConnectionPage<Row> {
   pageInfo: PageInfo;
 }
 
-/**
- * Each edge's `cursor` is a memoizing, non-enumerable getter — clients
- * selecting only `nodes` skip the JSON+base64 per row. The non-
- * enumerable flag also keeps JSON.stringify(page) from forcing every
- * encoder; pageInfo.startCursor/endCursor still hit the first/last.
- */
+/** Edge cursors are lazy, non-enumerable getters, so selecting only `nodes` skips encoding. */
 export function buildConnectionPage<Row extends Record<string, unknown>>(
   rows: readonly Row[],
   pagination: CursorPaginationParams & {
     encodeRowCursor: (row: Record<string, unknown>) => string;
   },
 ): ConnectionPage<Row> {
-  // Skip the slice in the common forward + full-page case — neither
-  // over-fetch trimming nor shielding from the in-place reverse() is
-  // needed. The orm-client's array passes through.
   const needsCopy = pagination.inverted || rows.length > pagination.expectedSize;
   const trimmed: Row[] = needsCopy ? rows.slice(0, pagination.expectedSize) : (rows as Row[]);
   const ordered = pagination.inverted ? trimmed.reverse() : trimmed;

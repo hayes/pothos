@@ -33,16 +33,12 @@ function resolveModelAndRef(
       ? inner
       : getRefForContractModel(inner as never, builder);
   const modelName = ref.modelName as string;
-  // typeName diverges from modelName on variant prismaObjects. The
-  // plugin records both on PRISMA_NEXT_PREPARED so wrapResolve can
-  // descend into the right return-type config at request time.
   const typeName = (ref as { name?: string }).name ?? modelName;
   return { modelName, typeName, typeParam: isList ? [ref] : ref };
 }
 
 const rootFieldBuilderProto = RootFieldBuilder.prototype as unknown as Record<string, unknown>;
 
-/** The field config `prismaField` and `prismaFieldWithInput` build; they differ only in target. */
 function preparedFieldConfig(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   options: PrismaFieldInternalOptions,

@@ -1,16 +1,3 @@
-/**
- * How prisma-next's builder-chain query format maps onto `@pothos/selection-mapper`.
- *
- * The walker plans a selection set into a tree of `PrismaNextNode`s (the adapter's own node
- * type: columns, and relations holding alias-keyed branches and function-form entries) through
- * `PrismaNextSpec` maps, and `emit` turns the serialized root into `.select(...)` /
- * `.include(rel, ...)` / `.combine({...})` calls on the resolver's collection.
- *
- * Every relation consumer gets its own combine slot (`<alias>:<slot>`, or
- * `:object:<Type>:<slot>` for a type-level select), while compatible to-one consumers share one include. The adapter
- * extends `Adapter` directly and checks compatibility before accepting a field selection.
- * Loader mappings record accepted consumers; per-resolve overlays present their combine slots.
- */
 import { isThenable, PothosValidationError } from '@pothos/core';
 import {
   Adapter,
@@ -34,28 +21,14 @@ import {
 
 type TypeLevelConflict = { kind: 'relation'; name: string } | { kind: 'extra'; name: string };
 
-// ---------------------------------------------------------------------------------------------
-// The builder surface.
-// ---------------------------------------------------------------------------------------------
-
 /**
- * Loose structural shape the emitter chains into. The real orm-client
- * `Collection` is fully typed, but the plugin only knows the model
- * name and columns at runtime — so a fully-typed Collection would
- * collapse `.select(name)` to `keyof never`. Add a method here when
- * orm-client adds one the emitter needs.
+ * Loose shape of orm-client's `Collection`: the typed one collapses `.select(name)` to
+ * `keyof never` when the model is only known at runtime.
  */
 export interface MapperCollection {
   select(...fields: string[]): MapperCollection;
   include(name: string, refine?: (rel: MapperCollection) => MapperCollection): MapperCollection;
   combine(spec: Record<string, unknown>): MapperCollection;
-  /**
-   * In-`include` scalar reducers. `count()` reduces a to-many relation
-   * to its row count; `sum`/`avg`/`min`/`max(field)` reduce it to the
-   * aggregate of a numeric column (`null` over an empty set). All four
-   * return prisma-next `IncludeScalar` brands that flow into a parent
-   * `combine({...})` spec, exactly like `count()`.
-   */
   count(): unknown;
   sum(field: string): unknown;
   avg(field: string): unknown;
@@ -63,93 +36,54 @@ export interface MapperCollection {
   max(field: string): unknown;
   where(input: unknown): MapperCollection;
   orderBy(input: unknown): MapperCollection;
-  /**
-   * Native keyset seek. Requires a prior `orderBy(...)` (the real
-   * orm-client type-gates this on `hasOrderBy`); seeks strictly past
-   * the given column→value boundary in the active orderBy direction
-   * (`>` for asc, `<` for desc). Single boundary only.
-   */
+  /** Keyset seek strictly past the boundary in the `orderBy` direction; requires a prior `orderBy`. */
   cursor(cursorValues: Record<string, unknown>): MapperCollection;
   limit(n: number): MapperCollection;
   offset(n: number): MapperCollection;
-  /** Narrows a hierarchy's base collection to one variant by discriminator value. */
   variant?(value: string): MapperCollection;
-  /** The ORM's collection state; read for the variant a collection is narrowed to. */
   readonly state?: { readonly variantValue?: unknown };
 }
 
-// ---------------------------------------------------------------------------------------------
-// Spec: the `Query` the walker passes around.
-// ---------------------------------------------------------------------------------------------
-
 export type PrismaNextArgs = Record<string, unknown>;
 
-/** Refines the relation collection before the branch's own selection is emitted onto it. */
 export type PrismaNextRefine = (rel: MapperCollection) => MapperCollection | null | undefined;
 
-/**
- * A function-form entry: the combine entries one consumer adds to a relation, each keyed
- * `<alias>:<key>` in the combine spec. Runs at emit time against the relation collection.
- */
+/** Returns combine entries for a relation; each is emitted under `<alias>:<key>`. */
 export type PrismaNextSpecFn = (sub: MapperCollection, ctx: object) => Record<string, unknown>;
 
-/** A function-form entry with the slot namespace it runs under (the serialized form). */
 export interface PrismaNextFnEntry {
-  /** Stable schema definition owning a callback compiled separately for each path. */
+  /** The field definition the callback came from; callbacks are recompiled per path. */
   source?: object;
   fn: PrismaNextSpecFn;
   alias?: string;
-  /** The field arguments the function was bound to, so two selections under one alias compare. */
   args?: PrismaNextArgs;
 }
 
-/**
- * A selection on one level. On a relation entry it is one branch: its own nested selection,
- * the refine and args applied before the descent, and the slot it answers to (`<alias>:<slot>`,
- * `slot` defaulting to the relation name; a connection uses `rows`).
- */
+/** A relation branch answers to combine slot `<alias>:<slot>` (`slot` defaults to the relation). */
 export interface PrismaNextSpec {
-  /** Stable schema definition owning this relation query, preserved through batch merging. */
   source?: object;
-  /**
-   * The slot namespace when the walker gives no field key: a type-level select carries
-   * `:object:<Type>`; a serialized branch carries the field alias it was walked under, so a
-   * spec round-trips through `merge` without a key.
-   */
+  /** Slot namespace when the walker gives no field key (`:object:<Type>` for type selects). */
   alias?: string;
   slot?: string;
-  /** The field's arguments: two consumers of one slot must agree on them. */
+  /** Consumers of one slot must agree on these. */
   args?: PrismaNextArgs;
   refine?: PrismaNextRefine;
-  /**
-   * The discriminator value the level's collection is narrowed to. On a relation branch the
-   * emitter narrows the include with `.variant(value)`; on a root it records how the caller's
-   * collection was narrowed. Relations a variant declares need it.
-   */
+  /** Discriminator value this level is narrowed to; relations declared on a variant need it. */
   variant?: string;
   /**
-   * Set on a branch of a relation that targets a variant model: the ORM loads its rows through
-   * that model's own accessor, which is never narrowed with `.variant()` and can't include the
-   * relations its base declares.
+   * Set when the relation targets a variant model: the ORM loads it through that model's own
+   * accessor, which can't be narrowed or include relations declared on the base.
    */
   variantModel?: string;
   columns?: readonly string[];
   relations?: Record<string, PrismaNextRelationEntry | PrismaNextRelationEntry[]>;
 }
 
-/**
- * What a relation key holds: `true` (include, nothing beneath), a branch, or a function-form
- * entry. An array lists several consumers of one relation from one field (a connection: its
- * rows branch and its count).
- */
+/** An array holds several consumers from one field (a connection's rows and its count). */
 export type PrismaNextRelationEntry = true | PrismaNextSpec | PrismaNextSpecFn | PrismaNextFnEntry;
 
 export type PrismaNextSelectFn = SelectFn<PrismaNextSpec>;
 export type PrismaNextPlan = Plan<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
-
-// ---------------------------------------------------------------------------------------------
-// Node: the accumulator.
-// ---------------------------------------------------------------------------------------------
 
 export interface PrismaNextBranch {
   source?: object;
@@ -179,12 +113,10 @@ export interface PrismaNextNode {
   model: PrismaNextModel;
   columns: Set<string>;
   relations: Map<string, PrismaNextRelationAcc>;
-  /** Set by `merge` under `options.asQuery` on a nested plan's root; the parent's branch carries them. */
+  /** Set by `merge` under `options.asQuery`; the parent's branch carries them. */
   slot?: string;
   refine?: PrismaNextRefine;
-  /** See `PrismaNextSpec.variant`. */
   variant?: string;
-  /** See `PrismaNextSpec.variantModel`. */
   variantModel?: string;
 }
 
@@ -192,18 +124,7 @@ export function createPrismaNextNode(model: PrismaNextModel): PrismaNextNode {
   return { model, columns: new Set(), relations: new Map() };
 }
 
-// ---------------------------------------------------------------------------------------------
-// Slot naming.
-// ---------------------------------------------------------------------------------------------
-
-/**
- * Combine-slot key separator. `:` is forbidden by GraphQL's Name
- * grammar (/^[_A-Za-z][_0-9A-Za-z]*$/), so combine keys produced by
- * the walker can NEVER collide with user-provided GraphQL aliases or
- * relation names. Object-level selects prefix with `:object:<typeName>`
- * so variants sharing a row but declaring distinct object-level selects
- * route to distinct combine slots.
- */
+// `:` can't appear in a GraphQL name, so combine keys never collide with aliases or relation names.
 const COMBINE_SEPARATOR = ':';
 const OBJECT_LEVEL_PREFIX = `${COMBINE_SEPARATOR}object${COMBINE_SEPARATOR}`;
 
@@ -211,19 +132,13 @@ export function objectLevelFieldAlias(typeName: string): string {
   return `${OBJECT_LEVEL_PREFIX}${typeName}`;
 }
 
-/** Combine slot key = `<graphqlFieldAlias>:<specKey>`; the per-field overlay reads it back. */
 export function selectBranchAlias(fieldAlias: string, specKey: string): string {
   return `${fieldAlias}${COMBINE_SEPARATOR}${specKey}`;
 }
 
-/** The prefix a combine slot carries for one field alias. */
 export function fieldAliasPrefix(fieldAlias: string): string {
   return `${fieldAlias}${COMBINE_SEPARATOR}`;
 }
-
-// ---------------------------------------------------------------------------------------------
-// Merge.
-// ---------------------------------------------------------------------------------------------
 
 function getOrCreateRelation(node: PrismaNextNode, name: string): PrismaNextRelationAcc {
   let relation = node.relations.get(name);
@@ -240,8 +155,7 @@ function getOrCreateRelation(node: PrismaNextNode, name: string): PrismaNextRela
     relation = { meta, branches: new Map(), functions: new Map() };
     node.relations.set(name, relation);
 
-    // Including a relation reads its parent-side FK columns, so prisma-next's nested-stitch
-    // works at depth 2+ even when the GraphQL query didn't ask for them.
+    // prisma-next stitches nested includes on the parent-side FK columns.
     for (const column of meta.localFields) {
       node.columns.add(column);
     }
@@ -251,11 +165,8 @@ function getOrCreateRelation(node: PrismaNextNode, name: string): PrismaNextRela
 }
 
 /**
- * A slot already present is unioned with the new selection: the walker applies one field once
- * per node that selects it (every `info.fieldNodes` entry; two fragments selecting the same
- * field), and those are the same field with the same arguments by GraphQL's own merge rules.
- * The same slot reached with other arguments (the same alias under `edges.node` and `nodes`
- * with different arguments) cannot share one include, so it is refused.
+ * The walker applies a field once per field node, so a repeated slot is unioned. The same slot
+ * with different arguments (one alias under both `edges.node` and `nodes`) can't share an include.
  */
 function addBranch(
   relation: PrismaNextRelationAcc,
@@ -268,8 +179,7 @@ function addBranch(
   const args = spec.args ?? {};
   let branch = relation.branches.get(id);
 
-  // The ORM supports one include for a to-one relation. Keep every consumer's
-  // selection namespace, but only share the include when its query agrees.
+  // The ORM allows one include per to-one relation, so every consumer must agree on its query.
   if (!relation.meta.isToMany) {
     for (const existing of relation.branches.values()) {
       if (
@@ -321,7 +231,7 @@ class SelectionConflict extends PothosValidationError {
   }
 }
 
-/** Check the shared to-one includes too: their child namespaces meet only at emission. */
+/** Consumers of a shared to-one include only meet at emission, so check their merged children. */
 function validateIncludes(node: PrismaNextNode): void {
   for (const relation of node.relations.values()) {
     if (!relation.meta.isToMany && relation.branches.size > 1 && relation.functions.size === 0) {
@@ -343,10 +253,8 @@ function validateIncludes(node: PrismaNextNode): void {
 }
 
 /**
- * The first relation in `spec` the ORM can't include where it sits: one a variant declares on a
- * level not narrowed to that variant (`narrowed`), or one a base model declares beneath a relation
- * that targets a variant model (`variantModel`), which the ORM loads through the variant's own
- * accessor.
+ * The first relation the ORM can't include where it sits: a variant's relation on a level not
+ * narrowed to that variant, or a base relation beneath a relation targeting a variant model.
  */
 export function variantRelationProblem(
   spec: PrismaNextSpec,
@@ -394,12 +302,8 @@ export function variantRelationProblem(
 }
 
 /**
- * A function-form entry merged into `relation`. `options.fn` binds the field's arguments into a
- * fresh closure per compile, so one relation selected twice under the same alias (under `nodes`
- * and under `edges { node }` of a connection, say) arrives as two different functions. Comparing
- * field definition and bound arguments identifies duplicates without equating different
- * fields that happen to use the same response alias. Unknown callbacks compare by identity.
- * Conflicts get separate fallback batches rather than keeping the first function for both.
+ * Callbacks are recompiled per path (a connection's `nodes` and `edges.node`), so duplicates are
+ * matched on their source definition and arguments rather than function identity.
  */
 function addFunction(
   relation: PrismaNextRelationAcc,
@@ -424,7 +328,6 @@ function addFunction(
   }
 }
 
-/** `spec` into `node`, relation entries slotted under `alias` unless they carry one. */
 function mergeSpec(node: PrismaNextNode, spec: PrismaNextSpec, alias: string | undefined) {
   if (spec.variant !== undefined) {
     if (node.variant !== undefined && node.variant !== spec.variant) {
@@ -549,22 +452,9 @@ function serializeNode(node: PrismaNextNode): PrismaNextSpec {
   return spec;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Compiling the plugin's `select` option shapes into specs.
-// ---------------------------------------------------------------------------------------------
-
-/**
- * The public `select` shape on `t.field` / `prismaObject`: a column array, or an object whose
- * keys are columns (`true`) or relations (`true`, a declarative refine, or a function-form
- * entry).
- */
+/** Column names, or an object of columns (`true`) and relations (`true`, a refine, or a fn). */
 export type RawSelect = readonly string[] | Record<string, unknown>;
 
-/**
- * Declarative refine: `{ where?, orderBy?, limit?, offset? }`. Matches
- * the surface of the legacy `query` option. No scalar terminals
- * allowed by construction — anything else must go through function-form.
- */
 interface DeclarativeRefineSpec {
   where?: unknown | ((accessor: unknown) => unknown);
   orderBy?: (accessor: unknown) => unknown;
@@ -577,9 +467,6 @@ function isDeclarativeRefineSpec(value: unknown): value is DeclarativeRefineSpec
     return false;
   }
   const o = value as Record<string, unknown>;
-  // At least one of the declarative keys must be present, and the
-  // object can only contain declarative keys (so a function-returning
-  // object that happens to have a `where` property isn't misread).
   const hasAny = 'where' in o || 'orderBy' in o || 'limit' in o || 'offset' in o;
   if (!hasAny) {
     return false;
@@ -592,12 +479,7 @@ function isDeclarativeRefineSpec(value: unknown): value is DeclarativeRefineSpec
   return true;
 }
 
-/**
- * Compile a declarative refine into a callback the emitter applies to
- * the refinement collection. Where/orderBy callbacks receive the
- * model accessor; static `where` objects pass through to `.where()`
- * directly.
- */
+// Compiled refines keep their spec so equal declarative refines compare equal.
 const declarativeRefines = new WeakMap<PrismaNextRefine, DeclarativeRefineSpec>();
 
 function sameRefine(a: PrismaNextRefine | undefined, b: PrismaNextRefine | undefined): boolean {
@@ -619,8 +501,7 @@ function sameBranchRefine(
 ): boolean {
   return (
     sameRefine(branch.refine, spec.refine) ||
-    // One schema definition with equal arguments compiles to the same query, even though a
-    // callback `query` returns a new closure on every walk.
+    // A callback `query` returns a new closure on every walk; the same source means the same query.
     !!(branch.source && branch.source === spec.source && branch.refine && spec.refine)
   );
 }
@@ -647,26 +528,16 @@ export function compileDeclarativeRefine(spec: DeclarativeRefineSpec): PrismaNex
 }
 
 interface CompileOptions {
-  /** The model the keys are classified against. */
   model: PrismaNextModel | undefined;
-  /** Where the select came from, for error messages. */
+  /** Used in error messages. */
   owner: string;
-  /** The prefix of the error messages (`select` or `prismaObject select`). */
   label: string;
-  /** The slot namespace for entries that need one before the walker assigns a field alias. */
   alias?: string;
-  /** The field's arguments, recorded on every branch. */
   args?: PrismaNextArgs;
-  /**
-   * How a relation entry that includes rows (`true` or a declarative refine) gets its branch:
-   * the nested selection beneath the field when it can be walked, an empty branch otherwise.
-   */
   branch?: (relation: PrismaNextRelation, query: PrismaNextSpec | undefined) => PrismaNextSpec;
-  /** How a function-form entry is bound to the field's args and context. */
   fn?: (value: (...args: unknown[]) => unknown) => PrismaNextSpecFn;
 }
 
-/** Turns one `select` value into a spec. Throws on a key that is neither column nor relation. */
 export function compileSelect(raw: RawSelect, options: CompileOptions): PrismaNextSpec {
   const columns: string[] = [];
   const spec: PrismaNextSpec = options.alias === undefined ? {} : { alias: options.alias };
@@ -735,10 +606,6 @@ export function compileSelect(raw: RawSelect, options: CompileOptions): PrismaNe
       };
       hasRelations = true;
     } else {
-      // Anything that isn't true/false/declarative/function is a
-      // malformed spec. Most common cause: a typo in declarative-keys
-      // like `{ posts: { whre: ... } }`, which silently dropped before
-      // this guard.
       throw new PothosValidationError(
         `${label}: '${key}' has an unrecognized value shape. Use \`true\`, ` +
           '`{ where?, orderBy?, limit?, offset? }`, or a function ' +
@@ -758,7 +625,6 @@ export function compileSelect(raw: RawSelect, options: CompileOptions): PrismaNe
   return spec;
 }
 
-/** A select object whose entries are all columns: compiled once, no select function needed. */
 function isStaticColumns(raw: Record<string, unknown>, model: PrismaNextModel | undefined) {
   return (
     Object.values(raw).every((value) => value === true || !value) &&
@@ -773,7 +639,7 @@ interface FieldSelectExtensions {
   [PRISMA_NEXT_FIELD_SELECT]?: PrismaNextSpec | PrismaNextSelectFn;
 }
 
-/** Preserve schema definition identity across paths without changing the identity of nested consumers. */
+/** Tags entries with the type that declared them, so recompiled callbacks still compare equal. */
 function withSelectionSource(spec: PrismaNextSpec, source: object): PrismaNextSpec {
   if (!spec.relations) {
     return spec;
@@ -795,12 +661,6 @@ function withSelectionSource(spec: PrismaNextSpec, source: object): PrismaNextSp
   };
 }
 
-/**
- * The selection of one field of `parentModel`: the columns of `t.expose*` (`pothosExposedField`),
- * the `select` option (`pothosOptions.select`: columns, or relations that need a select function
- * so the nested selection beneath the field can be walked), and `t.variant` (a field-level
- * indirect include without a path: the variant type's selection set is walked on the same row).
- */
 function compileFieldSelection(
   field: GraphQLField<unknown, unknown>,
   parentModel: PrismaNextModel | undefined,
@@ -819,9 +679,7 @@ function compileFieldSelection(
     | RawSelect
     | ((...args: unknown[]) => unknown)
     | undefined;
-  // The model the field returns directly. Undefined for a scalar (a nested selection there is
-  // the query alone) and for a wrapper such as an errors-plugin result type (the walker follows
-  // its include; the adapter cannot without the schema, so it descends).
+  // Undefined for scalars and for wrappers such as errors-plugin result types.
   const returnModel = modelFor(getNamedType(field.type));
   const returnModelKey = getNamedType(field.type).extensions?.[PRISMA_NEXT_MODEL] as
     | string
@@ -832,8 +690,7 @@ function compileFieldSelection(
   const withColumns = (spec: PrismaNextSpec, extra: readonly string[]): PrismaNextSpec =>
     extra.length === 0 ? spec : { ...spec, columns: [...extra, ...(spec.columns ?? [])] };
 
-  // t.variant: the same-row redirect into the named type's selection set, with the forced
-  // column reads of its `select` option applied to the same level.
+  // t.variant: walk the variant type's selection on the same row.
   if (indirect && !indirect.path?.length && !indirect.paths?.length) {
     const forced = Array.isArray(raw) ? (raw as readonly string[]) : [];
 
@@ -871,8 +728,7 @@ function compileFieldSelection(
           owner,
           label: 'select',
           args,
-          // The nested selection is walked as the field's return type, so when that type is
-          // known to be backed by another model than the relation's, the entry is a bare include.
+          // A return type backed by a different model than the relation's gets a bare include.
           branch: (relation, query) => {
             const slot = index++;
             if (replay) {
@@ -918,8 +774,7 @@ function compileFieldSelection(
         exposed,
       );
     const spec = build();
-    // The compiler spreads each branch into its relation entry. Rebuild with settled
-    // branches so no promise is spread, without invoking nested selections a second time.
+    // Rebuild with the settled branches rather than calling `nested` again.
     return pending.length === 0
       ? spec
       : Promise.all(pending).then(() => {
@@ -948,7 +803,7 @@ function compileFieldSelection(
   return (args, _ctx, nested) => compile(raw, args as PrismaNextArgs, nested);
 }
 
-/** Merge a type's selection, setting aside relation entries that conflict with what's merged. */
+/** Relation entries that conflict with what's already merged are set aside in `deferred`. */
 function mergeTypeEntries(
   node: PrismaNextNode,
   spec: PrismaNextSpec,
@@ -973,10 +828,6 @@ function mergeTypeEntries(
   }
 }
 
-/**
- * The type's `PRISMA_NEXT_SELECT`, `string[]` or an object of columns and relation entries,
- * compiled once to a spec slotted under `:object:<Type>`.
- */
 function compileTypeSelection(
   type: GraphQLNamedType,
   model: PrismaNextModel | undefined,
@@ -994,9 +845,8 @@ function compileTypeSelection(
       return;
     }
     visited.add(current);
-    // Inherited fields retain their defining interface's resolver and slot namespace.
-    // Load those prerequisites even when the GraphQL return type is concrete. A loader can
-    // serve a conflict separately, so there the concrete type's own selection goes first.
+    // Inherited fields keep their interface's resolver and slot, so interface selections are
+    // loaded too. With a loader for conflicts, the concrete type's own selection goes first.
     const interfaces = 'getInterfaces' in current ? current.getInterfaces() : [];
     if (!deferred) {
       interfaces.forEach(collect);
@@ -1011,7 +861,6 @@ function compileTypeSelection(
           owner: current.name,
           label: 'prismaObject select',
           alias,
-          // A type-level function entry runs with no field arguments.
           fn: (value) => (sub, ctx) => value(sub, {}, ctx) as Record<string, unknown>,
         }),
         current,
@@ -1030,22 +879,15 @@ function compileTypeSelection(
   return hasSelection ? serializeNode(node) : undefined;
 }
 
-// ---------------------------------------------------------------------------------------------
-// The adapter, one per contract.
-// ---------------------------------------------------------------------------------------------
-
 /**
- * To-many consumers get separate combine slots; to-one consumers share a compatible query
- * or, with a Collection provider, leave conflicting fields for a fallback batch. Without a
- * provider they fail validation while merging. The contract and the compiled
- * selections cached against the schema's types and fields, are this object's own state.
+ * To-many consumers get separate combine slots. To-one consumers must share a compatible query;
+ * with `fallback` (a collections provider) conflicting fields are loaded in a separate batch.
  */
 export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, PrismaNextNode> {
-  // Provider-enabled plans can leave deferred fields for the model loader.
   override readonly skipDeferredFragments: boolean;
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSpec | null>();
   private readonly typePrerequisites = new WeakMap<GraphQLNamedType, PrismaNextSpec | null>();
-  /** Interface prerequisites a concrete type can't share a row with, by interface name. */
+  /** Interface selections that conflict with the concrete type's, by interface name. */
   private readonly deferredPrerequisites = new WeakMap<
     GraphQLNamedType,
     Map<string, PrismaNextSpec['relations']>
@@ -1087,7 +929,7 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     return spec ?? undefined;
   }
 
-  /** The type's own selection, without the identity columns fallback loading adds to it. */
+  /** `typeSelection` without the identity columns added for fallback loading. */
   typePrerequisite(type: GraphQLNamedType): PrismaNextSpec | undefined {
     let spec = this.typePrerequisites.get(type);
 
@@ -1119,7 +961,6 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     return undefined;
   }
 
-  // A `GraphQLField` belongs to one type (`type.getFields()`), so the compile is cached on it.
   fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
     let selection = this.fieldSelections.get(field);
 
@@ -1161,15 +1002,9 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     return createPrismaNextNode(model);
   }
 
-  /**
-   * The slot namespace is the spec's own (`:object:<Type>`, or a serialized spec's field alias)
-   * or the response key of the field the traversal is merging. A relation query is the branch's
-   * refine and slot; its columns (a connection's cursor) are read on the relation.
-   */
   mergeQuery(node: PrismaNextNode, spec: PrismaNextSpec, options?: MergeOptions) {
     if (this.fallback && options?.lenient) {
-      // Parent-row loads prioritize the field's own query over incompatible
-      // type-level prerequisites, matching the shared mapper's loader contract.
+      // Parent-row loads keep the field's own query and drop conflicting type-level entries.
       mergeSpec(node, { columns: spec.columns }, spec.alias ?? options.alias);
       for (const [name, entries] of Object.entries(spec.relations ?? {})) {
         for (const entry of Array.isArray(entries) ? entries : [entries]) {
@@ -1202,8 +1037,7 @@ export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, 
     if (!this.fallback) {
       return true;
     }
-    // A relation the ORM can't include on this level is left for the loader, which narrows its
-    // collection to the variant.
+    // Relations the ORM can't include on this level are left for the loader.
     return (
       !this.conflict(node, spec, options) &&
       !variantRelationProblem(spec, node.model, node.variant, node.variantModel)
@@ -1256,15 +1090,10 @@ export function prismaNextAdapter(contract: AnyContract, fallback = false): Pris
   return adapter;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Emission: a serialized spec as builder calls.
-// ---------------------------------------------------------------------------------------------
-
 function isBranch(entry: PrismaNextRelationEntry): entry is PrismaNextSpec {
   return typeof entry === 'object' && !('fn' in entry);
 }
 
-/** Emits a serialized spec (every relation entry carries its alias) as a chain on `collection`. */
 export function emit(
   collection: MapperCollection,
   spec: PrismaNextSpec,
@@ -1288,12 +1117,7 @@ export function emit(
   return acc;
 }
 
-/**
- * Sharing a to-one row must not also share its consumers' child queries. Scope
- * the immediate child slots by their parent consumer; a further shared to-one
- * include adds another level when it is emitted. A to-many include owns its
- * rows, so its descendants keep their local namespaces.
- */
+/** Consumers sharing a to-one include keep separate child slots, prefixed by their own alias. */
 function scopeChildConsumers(branch: PrismaNextSpec): PrismaNextSpec {
   if (!branch.relations) {
     return branch;
@@ -1308,11 +1132,6 @@ function scopeChildConsumers(branch: PrismaNextSpec): PrismaNextSpec {
   return { ...branch, relations };
 }
 
-// Single-consumer fast path: `.include(rel, cb => …)` direct — at most one branch and no
-// function-form entry. Several branches or any function-form entry goes through
-// `.combine({...})` for collision-free aliasing. The single-consumer path avoids
-// an unnecessary combine. Function-form to-one slots require an ORM combine result, which
-// the public include API cannot return; reject them rather than dropping their values.
 function emitRelation(
   parent: MapperCollection,
   name: string,
@@ -1365,7 +1184,6 @@ function emitRelation(
   if (branches.length <= 1 && functions.length === 0) {
     const branch = branches[0];
 
-    // No branch (a bare `true` entry): a no-refine include so the relation still preloads.
     return branch ? include((rel) => emitBranch(branch, rel, meta.target, ctx)) : include();
   }
 
@@ -1376,9 +1194,6 @@ function emitRelation(
   }
 
   return include((rel) => {
-    // Combine spec keys are namespaced with `:` (GraphQL-forbidden), so
-    // collisions with reserved JS object keys can't be forged from user
-    // input. A plain object is safe.
     const combined: Record<string, unknown> = {};
 
     for (const branch of branches) {
@@ -1432,10 +1247,7 @@ function reusesChildAlias(
   return false;
 }
 
-/**
- * Consumers of one to-many relation with the same query can read one include's rows. Their child
- * selections share those rows, so a child alias used differently keeps the branches separate.
- */
+/** To-many consumers with the same query share an include, unless a child alias is reused. */
 function mergeToManyBranches(
   branches: readonly PrismaNextSpec[],
   target: PrismaNextModel,
@@ -1475,7 +1287,6 @@ function mergeToManyBranches(
   };
 }
 
-/** `collection.variant(value)`, for a collection of a hierarchy's base model. */
 export function narrowToVariant(collection: MapperCollection, value: string): MapperCollection {
   if (typeof collection.variant !== 'function') {
     throw new PothosValidationError(
@@ -1491,10 +1302,7 @@ function emitBranch(
   target: PrismaNextModel,
   ctx: object,
 ) {
-  // `refine` (compiled from the user's declarative refine or `query`
-  // option) runs before the inner descent so the filter applies to
-  // the row set the inner selection columns are read against.
-  // A variant model's own accessor is already the variant; only a base collection narrows.
+  // A variant model's own accessor is already narrowed.
   const narrowed =
     branch.variant === undefined || branch.variantModel !== undefined
       ? rel

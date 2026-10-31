@@ -258,9 +258,8 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
     }
 
     const types = fragmentTypesOf(plan, type, fragment);
-    // A fragment on an abstract type of no model is walked as each implementation it contains,
-    // but enters one only for fields it selects there itself: one that just holds further
-    // fragments selects nothing of those implementations.
+    // A fragment on an abstract type of no model enters its implementations only if it selects
+    // fields of its own; nested fragments are classified separately.
     const enters =
       !isExpansion(plan, type, fragment) || selectsFields(fragment.selectionSet.selections);
 
@@ -343,8 +342,8 @@ function applicableFragment<Model, Query, NodeType extends NodeBase<Model>>(
  * so a fragment on any other object type cannot apply to them. An interface accepts a fragment on
  * an interface it implements, walked as itself, and a fragment on another type of the same model,
  * walked as that type, so that type's own selection is planned for the rows that resolve to it.
- * A fragment on an abstract type of no model (`... on Node` beneath a model interface) applies to
- * the rows of each implementation of `type` it contains, so it is walked as each of those.
+ * A fragment on an abstract type of no model (`... on Node` beneath a model interface) is walked
+ * as each implementation of `type` it contains.
  */
 function fragmentTypesOf<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -391,7 +390,6 @@ function fragmentTypesOf<Model, Query, NodeType extends NodeBase<Model>>(
   return [];
 }
 
-/** Whether `fragment` is walked as the implementations of `type` its abstract condition contains. */
 function isExpansion<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   type: WalkedType,
@@ -409,7 +407,6 @@ function isExpansion<Model, Query, NodeType extends NodeBase<Model>>(
   );
 }
 
-/** Whether `selections` holds a field of its own, other than an introspection field. */
 function selectsFields(selections: readonly SelectionNode[]): boolean {
   return selections.some(
     (selection) => selection.kind === Kind.FIELD && !selection.name.value.startsWith('__'),
