@@ -94,6 +94,43 @@ describe('rows a resolver returns', () => {
     expect(missing.errors).toBeUndefined();
     expect(missing.data.stale).toEqual({ title: 'kept', content: 'Welcome.' });
   });
+  it('loads what a planned field reads when its resolver hands back a different row', async () => {
+    const builder = createBuilder();
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relation('posts'),
+        postCount: t.relationCount('posts'),
+      }),
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        title: t.exposeString('title'),
+        // Planned beneath the author include, but resolved with a row the resolver builds.
+        rebuilt: t.field({
+          type: User,
+          select: { author: true },
+          resolve: (post) => ({ id: post.author.id }) as never,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        post: t.prismaField({
+          type: 'Post',
+          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ post { rebuilt { postCount posts { title } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.post.rebuilt).toEqual({
+      postCount: 2,
+      posts: [{ title: 'Hello, Pothos' }, { title: 'Draft #1' }],
+    });
+  });
 });
 
 describe('rows the plugin loaded', () => {
