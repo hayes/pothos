@@ -36,7 +36,7 @@ import {
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
-import { getRefFromContractModel } from './utils/refs.js';
+import { refFor } from './utils/refs.js';
 import { materializeRows } from './utils/selections.js';
 
 export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [Node] extends [never]
@@ -162,9 +162,7 @@ export function prismaConnectionHelpers<
     resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
 ): object {
-  const ref = (typeof refOrModel === 'string'
-    ? getRefFromContractModel<Types, M>(refOrModel, builder)
-    : refOrModel) as never as PrismaNextObjectRef<Types, M>;
+  const ref = refFor(builder, refOrModel) as never as PrismaNextObjectRef<Types, M>;
   const modelName = ref.modelName;
 
   let args: Args | undefined;

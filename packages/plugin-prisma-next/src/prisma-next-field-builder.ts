@@ -6,14 +6,14 @@ import {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import { PrismaNextInterfaceRef } from './interface-ref.js';
-import { PrismaNextObjectRef } from './object-ref.js';
+import type { PrismaNextInterfaceRef } from './interface-ref.js';
+import type { PrismaNextObjectRef } from './object-ref.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { assertContextObject, getPluginConfig } from './utils/config.js';
 import { assertVariantCollection } from './utils/contract.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
-import { getRefFromContractModel } from './utils/refs.js';
+import { refFor } from './utils/refs.js';
 import { materializeRows } from './utils/selections.js';
 
 type Ref =
@@ -46,10 +46,7 @@ function prismaFieldConfig(
 ) {
   const isList = Array.isArray(type);
   const inner = isList ? type[0] : type;
-  const ref =
-    inner instanceof PrismaNextObjectRef || inner instanceof PrismaNextInterfaceRef
-      ? inner
-      : getRefFromContractModel(inner as never, builder);
+  const ref = refFor(builder, inner);
   const modelName = ref.modelName as string;
 
   return {

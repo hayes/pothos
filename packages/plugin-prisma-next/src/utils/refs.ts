@@ -69,3 +69,10 @@ function createRef(modelName: string, kind: 'interface' | 'object'): AnyRef {
     ? new PrismaNextInterfaceRef(defaultTypeName(modelName), modelName as never)
     : new PrismaNextObjectRef(defaultTypeName(modelName), modelName as never);
 }
+
+/** A prisma ref as given, or the default ref of the model a name names. */
+export function refFor(builder: object, type: unknown): AnyRef {
+  return type instanceof PrismaNextObjectRef || type instanceof PrismaNextInterfaceRef
+    ? (type as AnyRef)
+    : (getRefFromContractModel(type as never, builder as never) as AnyRef);
+}
