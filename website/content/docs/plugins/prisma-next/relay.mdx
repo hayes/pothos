@@ -44,7 +44,8 @@ interface, along with the standard global-ID encoding/decoding.
 ### Options
 
 - **`id.field`**: column name (string) or non-empty tuple for composite
-  primary keys. Composite IDs use tagged scalar encoding, preserving bigint
+  keys. The columns must include every column of a non-null primary or unique
+  key; anything else is rejected when the schema is built. Composite IDs use tagged scalar encoding, preserving bigint
   and Date values, before being passed to Relay's `toGlobalID`.
 - **`id.parse`** / **`id.resolve`**: optional overrides for ID parsing
   (string → IDShape) and serialization (parent → string|number).
