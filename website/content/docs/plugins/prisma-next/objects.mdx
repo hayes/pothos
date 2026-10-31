@@ -85,7 +85,8 @@ builder.queryFields((t) => ({
 ## Selections
 
 `select` on the type loads columns whenever the type is queried. `select` on a field loads them
-when the field is queried. A resolver's parent only includes what was selected.
+when the field is queried. A resolver's parent only includes what was selected, plus the model's
+primary key, which is always loaded.
 
 ```ts
 builder.prismaObject('User', {
@@ -128,6 +129,18 @@ authorName: t.string({
 ```
 
 A filtered to-one relation can be `null` even when its foreign key is required.
+
+A field's `select` can also be a function of the field's arguments and context, sync or async,
+returning either form. When its branches select different columns, or it returns an array variable rather than a
+literal, those columns are optional on the parent:
+
+```ts
+email: t.string({
+  nullable: true,
+  select: (_args, ctx) => (ctx.isAdmin ? ['email', 'firstName'] : ['firstName']),
+  resolve: (user) => user.email ?? null,
+}),
+```
 
 When a field's relation filter conflicts with another selection of the same to-one relation, the
 field is loaded in a separate batched query.
