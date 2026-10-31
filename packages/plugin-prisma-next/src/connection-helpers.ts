@@ -184,60 +184,74 @@ export function prismaConnectionHelpers<
     getArgs: () => resolveArgs(),
     connectionOptions: settings.connectionOptions,
     applyPagination(collection, args, info, ctx) {
-      const filteredBase = (options.where === undefined
-        ? collection
-        : (collection as unknown as MapperCollection).where(
-            whereInput(options.where, args, ctx as object),
-          )) as unknown as CollectionFor<Types, M>;
-      const pagination = applyCursorPagination(filteredBase as never, cursorSpec, args, {
-        ...settings.sizes(args, ctx as object),
-        codecs: config.codecs(ctx, modelName),
-      });
-
-      const prepared = (info
-        ? applySelectionToCollection(pagination.collection, info, config, ctx, {
-            paths: [['edges', 'node'], ['nodes']],
-            extraColumns: cursorCols,
-          })
-        : pagination.collection) as unknown as MaybePromise<CollectionFor<Types, M>>;
-
-      // Counted before pagination but after `where`, so it matches the paged rows.
-      let totalCountPromise: Promise<number> | undefined;
-      const getTotalCountPromise = () => {
-        const counted = settings.countsRows(ctx as object, info);
-        if (!counted && !settings.callsCount(ctx as object, info)) {
-          return undefined;
-        }
-        totalCountPromise ??= counted
-          ? aggregateCount(filteredBase)
-          : Promise.resolve().then(() => settings.countCallback!(args, ctx, info));
-        // Avoids an unhandled rejection; the consumer still sees it.
-        totalCountPromise.catch(() => undefined);
-        return totalCountPromise;
-      };
-
-      const withCollection = (collection: CollectionFor<Types, M>) => ({
-        collection,
-        get totalCountPromise() {
-          return getTotalCountPromise();
-        },
-        wrap<WrapRow extends ConnectionWrapRows<Types, M, Node>>(
-          rows: readonly WrapRow[],
-          totalCount?: number,
-        ): ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>> {
-          const page = buildConnectionPage(rows, pagination, totalCount);
-          // After building the page, so cursors are encoded from the original rows.
-          if (options.resolveNode) {
-            const transform = options.resolveNode;
-            for (const edge of page.edges) {
-              (edge as { node: unknown }).node = transform(edge.node as Row<Types, M>);
-            }
-          }
-          return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>>;
-        },
-      });
-
-      return isThenable(prepared) ? prepared.then(withCollection) : withCollection(prepared);
+      // An invalid cursor or base rejects rather than throws, so `.then(_, onError)` sees it too.
+      try {
+        return paginate(collection, args, info, ctx);
+      } catch (error) {
+        return Promise.reject(error);
+      }
     },
   };
+
+  function paginate(
+    collection: ConnectionCollection<Types, M>,
+    args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+    info: GraphQLResolveInfo | undefined,
+    ctx: Types['Context'],
+  ) {
+    const filteredBase = (options.where === undefined
+      ? collection
+      : (collection as unknown as MapperCollection).where(
+          whereInput(options.where, args, ctx as object),
+        )) as unknown as CollectionFor<Types, M>;
+    const pagination = applyCursorPagination(filteredBase as never, cursorSpec, args, {
+      ...settings.sizes(args, ctx as object),
+      codecs: config.codecs(ctx, modelName),
+    });
+
+    const prepared = (info
+      ? applySelectionToCollection(pagination.collection, info, config, ctx, {
+          paths: [['edges', 'node'], ['nodes']],
+          extraColumns: cursorCols,
+        })
+      : pagination.collection) as unknown as MaybePromise<CollectionFor<Types, M>>;
+
+    // Counted before pagination but after `where`, so it matches the paged rows.
+    let totalCountPromise: Promise<number> | undefined;
+    const getTotalCountPromise = () => {
+      const counted = settings.countsRows(ctx as object, info);
+      if (!counted && !settings.callsCount(ctx as object, info)) {
+        return undefined;
+      }
+      totalCountPromise ??= counted
+        ? aggregateCount(filteredBase)
+        : Promise.resolve().then(() => settings.countCallback!(args, ctx, info));
+      // Avoids an unhandled rejection; the consumer still sees it.
+      totalCountPromise.catch(() => undefined);
+      return totalCountPromise;
+    };
+
+    const withCollection = (collection: CollectionFor<Types, M>) => ({
+      collection,
+      get totalCountPromise() {
+        return getTotalCountPromise();
+      },
+      wrap<WrapRow extends ConnectionWrapRows<Types, M, Node>>(
+        rows: readonly WrapRow[],
+        totalCount?: number,
+      ): ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>> {
+        const page = buildConnectionPage(rows, pagination, totalCount);
+        // After building the page, so cursors are encoded from the original rows.
+        if (options.resolveNode) {
+          const transform = options.resolveNode;
+          for (const edge of page.edges) {
+            (edge as { node: unknown }).node = transform(edge.node as Row<Types, M>);
+          }
+        }
+        return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>>;
+      },
+    });
+
+    return isThenable(prepared) ? prepared.then(withCollection) : withCollection(prepared);
+  }
 }
