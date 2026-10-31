@@ -9,8 +9,7 @@ The plugin requires Node.js 22.18 or a later 22.x release, or Node.js 24 or late
 
 `@pothos/plugin-prisma-next` cannot be used in the same program as `@pothos/plugin-prisma`: both
 add `prismaObject`, `prismaField` and the other `prisma*` methods to the builder. Importing both
-throws an error, and their type declarations conflict (TS2717 with `skipLibCheck: false`; with
-`skipLibCheck`, `@pothos/plugin-prisma`'s types silently win).
+throws an error, and their type declarations conflict (TS2717).
 
 ### Prisma CLI
 
@@ -171,9 +170,8 @@ builder.prismaObject('User', {
 
 Write checks that fail closed, return rows from `t.prismaField` or relations, or list
 `prismaNextPlugin` first: the row is then reloaded before `authScopes`, even when access is
-denied. List it first too if you use `runScopesOnType` and two implementations of an interface
-select the same relation with different arguments; otherwise their `authScopes` don't see that
-relation on rows loaded through the interface.
+denied. List it first too if you use `runScopesOnType` with `select`s on an interface or its
+implementations; otherwise `authScopes` can miss relations those `select`s load.
 
 ## Databases
 
