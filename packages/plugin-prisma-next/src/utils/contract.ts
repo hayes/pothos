@@ -1,7 +1,10 @@
 import { PothosSchemaError, PothosValidationError } from '@pothos/core';
+import type { SqlModelStorage } from '@prisma/orm-family-sql/contract/types';
 import { resolveDomainModel } from '@prisma/orm-framework/contract/resolve-domain-model';
 import type { ContractModelBase } from '@prisma/orm-framework/contract/types';
 import type { AnyContract } from '../types.js';
+
+export type SqlContractModel = ContractModelBase<SqlModelStorage>;
 
 function namespacesWithModel(contract: AnyContract, model: string): string[] {
   return Object.entries(contract.domain.namespaces)
@@ -14,9 +17,9 @@ function namespacesWithModel(contract: AnyContract, model: string): string[] {
 export function resolveContractModel(
   contract: AnyContract,
   modelKey: string,
-): ContractModelBase | undefined {
+): SqlContractModel | undefined {
   const model = lookupModel(contract, modelKey);
-  const base = baseModelRef(model);
+  const base = model?.base;
   if (!base) {
     return model;
   }
@@ -30,11 +33,7 @@ export function resolveContractModel(
   };
 }
 
-function baseModelRef(model: ContractModelBase | undefined) {
-  return (model as { base?: { model: string; namespace: string } } | undefined)?.base;
-}
-
-function lookupModel(contract: AnyContract, modelKey: string): ContractModelBase | undefined {
+function lookupModel(contract: AnyContract, modelKey: string): SqlContractModel | undefined {
   const separator = modelKey.indexOf('.');
   if (separator >= 0) {
     const model = modelKey.slice(separator + 1);
@@ -43,7 +42,9 @@ function lookupModel(contract: AnyContract, modelKey: string): ContractModelBase
         `Model '${modelKey}' is not ambiguous. Use the bare name '${model}'.`,
       );
     }
-    return contract.domain.namespaces[modelKey.slice(0, separator)]?.models[model];
+    return contract.domain.namespaces[modelKey.slice(0, separator)]?.models[model] as
+      | SqlContractModel
+      | undefined;
   }
   const namespaces = namespacesWithModel(contract, modelKey);
   if (namespaces.length > 1) {
@@ -52,7 +53,7 @@ function lookupModel(contract: AnyContract, modelKey: string): ContractModelBase
         `Use a qualified name: ${namespaces.map((id) => `'${id}.${modelKey}'`).join(', ')}.`,
     );
   }
-  return resolveDomainModel(contract.domain, modelKey)?.model;
+  return resolveDomainModel(contract.domain, modelKey)?.model as SqlContractModel | undefined;
 }
 
 export function relatedModelKey(
@@ -65,20 +66,12 @@ export function relatedModelKey(
 }
 
 export function rootModelKey(contract: AnyContract, modelKey: string): string {
-  const base = baseModelRef(lookupModel(contract, modelKey));
+  const base = lookupModel(contract, modelKey)?.base;
   return base ? rootModelKey(contract, relatedModelKey(contract, base)) : modelKey;
 }
 
-export function modelDiscriminator(
-  contract: AnyContract,
-  modelKey: string,
-): { field: string; variants: Record<string, { model: string; namespace: string }> } | undefined {
-  const model = lookupModel(contract, modelKey) as
-    | {
-        discriminator?: { field: string };
-        variants?: Record<string, { model: string; namespace: string }>;
-      }
-    | undefined;
+export function modelDiscriminator(contract: AnyContract, modelKey: string) {
+  const model = lookupModel(contract, modelKey);
   return model?.discriminator && model.variants
     ? { field: model.discriminator.field, variants: model.variants }
     : undefined;
@@ -100,9 +93,7 @@ export function variantOf(
     return undefined;
   }
   const table = (model: string) => {
-    const storage = lookupModel(contract, model)?.storage as
-      | { table?: string; namespaceId?: string }
-      | undefined;
+    const storage = lookupModel(contract, model)?.storage;
     return storage?.table && `${storage.namespaceId}.${storage.table}`;
   };
   const own = table(modelKey);

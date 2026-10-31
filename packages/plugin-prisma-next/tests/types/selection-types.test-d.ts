@@ -300,6 +300,58 @@ builder.prismaObject('User', {
   fields: () => ({}),
 });
 
+// A relation entry takes only `where`, `orderBy`, `limit` and `offset`.
+builder.prismaObject('User', {
+  variant: 'RelationQueryKeys',
+  // @ts-expect-error `take` isn't a relation query option
+  select: { posts: { take: 2 } },
+  fields: (t) => ({
+    field: t.string({
+      // @ts-expect-error `take` isn't a relation query option, even beside a valid one
+      select: { posts: { where: { published: 1 }, take: 2 } },
+      resolve: () => '',
+    }),
+    valid: t.string({
+      select: { posts: { where: { published: 1 }, limit: 2 } },
+      resolve: (user) => user.posts.map((post) => post.title).join(','),
+    }),
+  }),
+});
+
+// `addBrand` takes the rows a collection returns and brands them for abstract positions.
+const BrandedUser = builder.prismaObject('User', {
+  variant: 'BrandedUser',
+  select: ['email'],
+  fields: (t) => ({ email: t.exposeString('email') }),
+});
+const BrandedPost = builder.prismaObject('Post', {
+  variant: 'BrandedPost',
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
+const SearchResult = builder.unionType('SearchResult', { types: [BrandedUser, BrandedPost] });
+builder.queryField('search', (t) =>
+  t.field({
+    type: [SearchResult],
+    resolve: async () => {
+      const users = BrandedUser.addBrand(await orm.User.all());
+      expectTypeOf(users[0]).toExtend<UserRow>();
+      return [...users, ...BrandedPost.addBrand(await orm.Post.all())];
+    },
+  }),
+);
+builder.queryField('searchOne', (t) =>
+  t.field({
+    type: SearchResult,
+    nullable: true,
+    resolve: async () => {
+      const user = await orm.User.first();
+      return user && BrandedUser.addBrand(user);
+    },
+  }),
+);
+// @ts-expect-error a row needs the columns the type selects
+BrandedUser.addBrand({ id: 'u-1' });
+
 // Root resolvers return an unexecuted Collection of the field's model.
 const PostInterface = builder.prismaInterface('Post', {
   fields: (t) => ({ id: t.exposeID('id') }),

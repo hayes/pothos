@@ -59,13 +59,7 @@ export function getModelUniqueKeys(
   modelName: string,
 ): string[][] | undefined {
   const model = resolveContractModel(contract, modelName);
-  const storage = model?.storage as
-    | {
-        table?: string;
-        namespaceId?: string;
-        fields?: Record<string, { column?: string }>;
-      }
-    | undefined;
+  const storage = model?.storage;
   const table = storage?.table
     ? resolveStorageTable(contract.storage, storage.table, storage.namespaceId)?.table
     : undefined;
@@ -211,9 +205,7 @@ function createColumnCodec(
   modelName: string,
   field: string,
 ): ColumnCodec | undefined {
-  const storage = resolveContractModel(contract, modelName)?.storage as
-    | { table?: string; namespaceId?: string; fields?: Record<string, { column?: string }> }
-    | undefined;
+  const storage = resolveContractModel(contract, modelName)?.storage;
   if (!storage?.table || !storage.namespaceId) {
     return undefined;
   }

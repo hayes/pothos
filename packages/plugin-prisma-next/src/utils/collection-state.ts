@@ -1,3 +1,5 @@
+import type { CollectionState } from '@prisma/orm-family-sql/orm-client';
+
 // orm-client has no public accessor for this (`state` is `@internal`).
 export function getCollectionPaginationState(collection: unknown): {
   ordered: boolean;
@@ -5,18 +7,7 @@ export function getCollectionPaginationState(collection: unknown): {
   paginated: boolean;
   distinct: boolean;
 } {
-  const state = (
-    collection as {
-      state?: {
-        orderBy?: readonly unknown[];
-        cursor?: unknown;
-        limit?: unknown;
-        offset?: unknown;
-        distinct?: readonly string[];
-        distinctOn?: readonly string[];
-      };
-    }
-  ).state;
+  const { state } = collection as { state?: CollectionState };
   return {
     ordered: !!state?.orderBy?.length,
     orderBy: state?.orderBy ?? [],

@@ -1,9 +1,5 @@
 import type { SchemaTypes } from '@pothos/core';
-import type {
-  HasRow,
-  ModelAccessor,
-  ShorthandWhereFilter,
-} from '@prisma/orm-family-sql/orm-client';
+import type { HasRow, ModelAccessor } from '@prisma/orm-family-sql/orm-client';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 import type {
@@ -15,6 +11,7 @@ import type {
   RelatedModel,
   RelationKeys,
   RelationRefinementCollection,
+  RelationWhere,
   Row,
   VariantModelKeys,
 } from './types.js';
@@ -85,19 +82,7 @@ export type SelectRelationDeclarative<
   M extends ModelName<Types>,
   R extends RelationKeys<Types, M>,
 > = {
-  readonly where?:
-    | ShorthandWhereFilter<
-        Types['PrismaNextContract'],
-        NamespaceOf<Types, RelatedModel<Types, M, R>>,
-        BareModelName<RelatedModel<Types, M, R>>
-      >
-    | ((
-        accessor: ModelAccessor<
-          Types['PrismaNextContract'],
-          BareModelName<RelatedModel<Types, M, R>>,
-          NamespaceOf<Types, RelatedModel<Types, M, R>>
-        >,
-      ) => unknown);
+  readonly where?: RelationWhere<Types, RelatedModel<Types, M, R>>;
   readonly orderBy?: (
     accessor: ModelAccessor<
       Types['PrismaNextContract'],
@@ -178,7 +163,15 @@ type UnknownSelectKeys<
 > = Select extends readonly unknown[]
   ? never
   : Select extends object
-    ? Exclude<keyof Select, keyof SelectObjectSpec<Types, M>>
+    ?
+        | Exclude<keyof Select, keyof SelectObjectSpec<Types, M>>
+        | {
+            [K in keyof Select & RelationKeys<Types, M> & string]: Select[K] extends
+              | true
+              | ((...args: never[]) => unknown)
+              ? never
+              : `${K}.${Exclude<keyof Select[K], keyof SelectRelationDeclarative<Types, M, K>> & string}`;
+          }[keyof Select & RelationKeys<Types, M> & string]
     : never;
 
 /** `Select` is inferred from the literal rather than checked, so unknown keys need rejecting. */
