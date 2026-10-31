@@ -218,6 +218,29 @@ describe('rows the plugin loaded', () => {
     expect(result.statements).toHaveLength(1);
   });
 
+  it('hands t.variant fields the parent row itself', async () => {
+    const builder = createBuilder();
+    const Variant = builder.prismaObject('User', {
+      variant: 'UserVariant',
+      select: ['firstName'],
+      fields: (t) => ({
+        spread: t.string({ resolve: (user) => ({ ...user }).firstName }),
+      }),
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({ id: t.exposeID('id'), variant: t.variant(Variant) }),
+    });
+    builder.queryType({
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+    });
+    const result = await run(builder.toSchema(), '{ users { variant { spread } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { variant: { spread: 'Alice' } },
+      { variant: { spread: 'Bob' } },
+    ]);
+  });
+
   it('preserves filtered aliases alongside type-level relation rows', async () => {
     const builder = createBuilder();
     builder.prismaObject('User', {
