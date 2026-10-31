@@ -102,12 +102,6 @@ export function validateCursor(
   });
 }
 
-/**
- * Bounds the work spent decoding user-supplied cursors and IDs. Measured on the string the
- * client sends back, and checked when encoding too, so the server never issues one it refuses.
- */
-const PAYLOAD_MAX_LENGTH = 2 * 1024;
-
 // Values are held in their column codec's stored form; nulls bypass codecs.
 function encodeValues(fields: readonly string[], values: readonly unknown[], codecs: FieldCodecs) {
   const encoded = values.map((value, i) => {
@@ -171,7 +165,7 @@ function orderingSignature(order: CursorOrder): string {
 
 function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: FieldCodecs) {
   const fields = cursorColumns(order);
-  const encoded = encodeBase64(
+  return encodeBase64(
     `${CURSOR_PREFIX}${orderingSignature(order)}:${encodeValues(
       fields,
       fields.map((field) => {
@@ -186,12 +180,6 @@ function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: 
       codecs,
     )}`,
   );
-  if (encoded.length > PAYLOAD_MAX_LENGTH) {
-    throw new PothosValidationError(
-      `Cannot encode a cursor over ${fields.join(', ')}: it is ${encoded.length} characters, over the ${PAYLOAD_MAX_LENGTH}-character limit for cursors. Use shorter cursor columns.`,
-    );
-  }
-  return encoded;
 }
 
 /**
@@ -205,11 +193,6 @@ function decodeCursor(
   { checkOrdering = true }: { checkOrdering?: boolean } = {},
 ): Record<string, unknown> {
   // Messages never echo the payload, which logs often capture verbatim.
-  if (value.length > PAYLOAD_MAX_LENGTH) {
-    throw new PothosValidationError(
-      `Invalid cursor: longer than ${PAYLOAD_MAX_LENGTH} characters.`,
-    );
-  }
   let payload: string;
   try {
     payload = decodeBase64(value);
@@ -269,17 +252,9 @@ export function encodeNodeId(
     throw new PothosValidationError(`prismaNode '${modelName}' row has an invalid id value.`);
   }
   // A string stays readable unless it could be mistaken for a tagged payload.
-  const id =
-    payload.startsWith('S:') && !payload.startsWith(`S:${ID_PREFIX}`)
-      ? payload.slice(2)
-      : `${ID_PREFIX}${payload}`;
-  // Measured after tagging, as parseNodeId measures what comes back.
-  if (id.length > PAYLOAD_MAX_LENGTH) {
-    throw new PothosValidationError(
-      `prismaNode '${modelName}' ID is ${id.length} characters once encoded${id.startsWith(ID_PREFIX) ? ` (tagged with '${ID_PREFIX}')` : ''}, over the ${PAYLOAD_MAX_LENGTH}-character limit for IDs it can load back.`,
-    );
-  }
-  return id;
+  return payload.startsWith('S:') && !payload.startsWith(`S:${ID_PREFIX}`)
+    ? payload.slice(2)
+    : `${ID_PREFIX}${payload}`;
 }
 
 /** The ID's values, as a tuple when `tuple` is set. */
@@ -290,11 +265,6 @@ export function parseNodeId(
   codecs: FieldCodecs,
   tuple: boolean,
 ): unknown {
-  if (id.length > PAYLOAD_MAX_LENGTH) {
-    throw new PothosValidationError(
-      `prismaNode '${modelName}' ID is longer than ${PAYLOAD_MAX_LENGTH} characters.`,
-    );
-  }
   const values = decodeValues(
     fields,
     id.startsWith(ID_PREFIX) ? id.slice(ID_PREFIX.length) : encodeCursorChunk(id),
