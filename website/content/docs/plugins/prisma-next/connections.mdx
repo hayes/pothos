@@ -1,110 +1,65 @@
 ---
 title: Connections
-description: Relay-style connections backed by orm-client collections
+description: Relay connections backed by Prisma Collections
 ---
 
-`@pothos/plugin-prisma-next` ships two connection helpers and a public
-composable for advanced cases. All three share the same cursor-pagination
-machinery and the same `totalCount` plumbing.
+Connections require the [Relay plugin](./setup#installing). Use `t.prismaConnection` for a
+Collection your resolver returns, and `t.relatedConnection` for a relation.
 
-## `t.prismaConnection`
-
-A top-level Relay connection. Define one on Query / Mutation / any
-non-prisma object:
+## prismaConnection
 
 ```ts
-builder.queryType({
-  fields: (t) => ({
-    users: t.prismaConnection({
-      type: 'User',
-      cursor: 'id',
-      resolve: (_root, _args, ctx) => ctx.db.orm.User,
-    }),
+builder.queryFields((t) => ({
+  posts: t.prismaConnection({
+    type: 'Post',
+    cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
+    totalCount: true,
+    resolve: (_root, _args, ctx) => ctx.db.orm.Post.where({ published: 1 }),
   }),
-});
+}));
 ```
 
-The resolver returns the base `Collection`. The plugin:
+Return an unpaginated Collection. The plugin adds the selection for `edges.node` and `nodes`,
+orders and pages it by the cursor, and builds the connection.
 
-1. Auto-applies the selection set (descending through `edges.node` and
-   `nodes` so nested relations preload).
-2. Applies cursor pagination (`.where(cursor predicate).orderBy(cursor).limit(limit + 1)`).
-3. Materializes via `.all()`.
-4. Optionally runs a parallel `totalCount` aggregate (see below).
-5. Builds the Relay connection page (`edges` / `pageInfo` / optional
-   `totalCount`).
+- `cursor`: a column, or a list of columns compared in order. Each entry is a column name or
+  `{ field, direction, nulls, codec }`. The columns must include a complete non-null primary or
+  unique key, so add `id` as a tie-breaker after non-unique or nullable columns.
+- `orderBy`: `(model, args, ctx) => ordering`, to choose directions per request.
+- `defaultSize` / `maxSize`: page sizes, defaulting to the plugin's
+  [connection size options](./setup#plugin-options).
+- `totalCount`: `true` counts the filtered Collection, `(parent, args, ctx, info) => number`
+  computes it. Either only runs when `totalCount` is selected, and a query for only `totalCount`
+  doesn't load the page.
+- `args`: extra arguments for filtering or sorting.
 
-### Cursor
+Connection and edge types can be customized as with the
+[Relay plugin's connection fields](../relay).
 
-`cursor: 'id'` uses a single column as the cursor. For lexicographic
-compound cursors, pass a tuple:
+## Ordering and cursors
+
+Nullable columns sort nulls last unless `nulls: 'first'` is set:
 
 ```ts
-cursor: ['createdAt', 'id'],
+cursor: [{ field: 'score', direction: 'desc', nulls: 'first' }, 'id'],
 ```
 
-Both columns ship into every row's SELECT automatically. Cursor fields must
-include a complete non-null primary or unique key; add `id` as a tie-breaker
-when the primary sort field is nullable or not unique. A nullable unique column
-alone cannot provide a deterministic cursor.
-
-Nullable sort fields default to nulls last, independently of their direction.
-Use `nulls: 'first'` to put them first in the connection's forward order:
-
-```ts
-cursor: [{ field: 'publishedAt', direction: 'desc', nulls: 'first' }, 'id'],
-```
-
-Backward pagination reverses both value ordering and null placement while
-fetching, then returns edges in the declared connection order. The same behavior
-applies inside related connections. Null cursor values bypass application codecs.
-
-Return an unpaginated Collection from `resolve`; use `.where(...)` to filter it.
-A Collection carrying `limit`, `offset`, or a cursor is rejected before the query
-runs. Existing `orderBy` entries are accepted when they match a prefix of the
-cursor ordering for the requested page direction. Missing tie-breaker columns
-are appended automatically:
-
-```ts
-cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
-resolve: (_parent, args, ctx) => ctx.db.orm.Post.orderBy((post) =>
-  args.last == null ? post.createdAt.desc() : post.createdAt.asc(),
-),
-```
-
-An unordered Collection supports both directions automatically. Prisma's
-`orderBy()` appends entries and has no public reset, so a preordered Collection
-must already use the reversed order for backward pagination. Incompatible or
-extra order entries are rejected, and so is a Collection using `distinct()` or
-`distinctOn()`. A nullable field's preorder must state its null placement, such
-as `post.score.desc({ nulls: 'last' })`.
-
-To choose the direction per request, use the `orderBy` option rather than
-ordering the Collection. It names the cursor's columns in cursor order, and the
-plugin reverses it for backward pages:
+Use `orderBy` to choose the direction per request. Backward pages are reversed for you:
 
 ```ts
 cursor: ['createdAt', 'id'],
 args: { newest: t.arg.boolean() },
 orderBy: (post, args) => (args.newest ? post.createdAt.desc() : post.createdAt.asc()),
-resolve: (_parent, _args, ctx) => ctx.db.orm.Post,
+resolve: (_root, _args, ctx) => ctx.db.orm.Post,
 ```
 
-Specify direction per column for descending or mixed ordering:
-
-```ts
-cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
-```
-
-For object-valued ORM scalars such as Temporal values, pass the client's context
-as `prismaNext.context` and use the column's own codec:
+Strings, numbers, bigints, and dates work as cursor values without configuration. For
+object-valued columns such as Temporal values, set the plugin's `context` option and use
+`codec: 'column'`, or pass your own codec:
 
 ```ts
 cursor: [{ field: 'createdAt', direction: 'desc', codec: 'column' }, 'id'],
 ```
-
-An application codec overrides it. For example, with a Temporal implementation
-installed by the application:
 
 ```ts
 cursor: [
@@ -120,54 +75,32 @@ cursor: [
 ],
 ```
 
-Ordinary strings, numbers, bigint and Date values use the shared tagged encoding without an
-application codec. Bytes columns can't be cursor columns, because the ORM can't order them: they
-are a type error and are rejected when the schema is built.
+A Collection that is already ordered must match the start of the cursor's order for the requested
+direction, because Prisma can't reset an ordering. Reverse it yourself for backward pages, or use
+the `orderBy` option instead:
 
-Cursors come from clients, so treat them as untrusted input. A cursor value whose type doesn't
-match its column isn't rejected yet; it only changes the page returned to that client.
+```ts
+resolve: (_root, args, ctx) =>
+  ctx.db.orm.Post.orderBy((post) =>
+    args.last == null ? post.createdAt.desc() : post.createdAt.asc(),
+  ),
+```
 
-### Options
+Limitations:
 
-| option | type | description |
-|---|---|---|
-| `type` | model name or ref | the connection's node type |
-| `cursor` | column descriptor or tuple | complete unique ordering, directions and optional scalar codecs |
-| `args` | input args | extra args for filtering / sorting |
-| `orderBy` | `(model, args, ctx) => item \| item[]` | direction and null placement for this request |
-| `defaultSize` | `number \| (args, ctx) => number` | default `first:` value |
-| `maxSize` | `number \| (args, ctx) => number` | hard cap on page size |
-| `totalCount` | `boolean \| (parent, args, ctx, info) => number` | enable totalCount (see below) |
-| `resolve` | `(parent, args, ctx, info) => Collection` | return the base collection |
+- The returned Collection can't use `limit`, `offset`, `cursor`, `distinct`, or `distinctOn`.
+- A nullable column's existing ordering must state its null placement, such as
+  `post.score.desc({ nulls: 'last' })`.
+- Bytes columns can't be cursor columns.
+- Cursors come from clients. A cursor value whose type doesn't match its column isn't rejected;
+  it only changes the page returned to that client.
 
-`defaultSize` / `maxSize` fall back to the plugin-wide
-`defaultConnectionSize` / `maxConnectionSize` options if not set.
-
-### totalCount
-
-Three modes:
-
-- `totalCount: false` (default) — no totalCount field.
-- `totalCount: true` — adds a `totalCount: Int!` field on the connection
-  type. The plugin runs an aggregate `count()` against the user-returned
-  collection (post-filter, pre-pagination), in parallel with requested rows.
-  A selection of only `totalCount` avoids loading page rows.
-- `totalCount: (parent, args, ctx, info) => number` — adds the field;
-  the user provides the count. Only invoked when the client actually
-  selects `totalCount`, so you don't pay for a count the client didn't
-  ask for.
-
-## `t.relatedConnection`
-
-A connection nested on a prisma object — pages a to-many relation
-without making a separate orm-client call. Useful for queries like
-`user.postsConnection(first: 10)`.
+## relatedConnection
 
 ```ts
 builder.prismaObject('User', {
   fields: (t) => ({
-    id: t.exposeID('id'),
-    postsConnection: t.relatedConnection('posts', {
+    publishedPosts: t.relatedConnection('posts', {
       cursor: 'id',
       where: { published: 1 },
       totalCount: true,
@@ -176,93 +109,56 @@ builder.prismaObject('User', {
 });
 ```
 
-The pagination happens INSIDE the `.include('posts', cb => …)` callback
-on the parent collection — so the parent and the page rows ship as one
-orm-client plan whenever Prisma's planner can collapse it. The upstream planner chooses the SQL strategy; combined rows and counts can
-execute in one statement.
+The page is loaded inside the parent query's include. It takes the same options as
+`t.prismaConnection`, plus `where`, an object or `(post, args, ctx) => filter` applied before
+paging.
 
-### Options
+## Connection helpers
 
-Same as `t.prismaConnection`, with one addition:
-
-- `where`: filter applied to the relation before cursor pagination.
-  Accepts a literal `ShorthandWhereFilter` or a callback
-  `(accessor, args, ctx) => predicate`.
-
-The `where` is filter-only at the type level — `limit`/`offset` are owned by
-cursor pagination and rejected as options. `orderBy` works as it does on
-`t.prismaConnection`.
-
-## `prismaConnectionHelpers`
-
-For custom connection fields that don't fit `t.prismaConnection` /
-`t.relatedConnection` (e.g. a connection that wraps the rows in
-domain-specific metadata), use `prismaConnectionHelpers`:
+`prismaConnectionHelpers` applies the same pagination to a custom connection field:
 
 ```ts
 import { prismaConnectionHelpers } from '@pothos/plugin-prisma-next';
 
-const userPostsHelpers = prismaConnectionHelpers(builder, 'Post', {
+const postConnection = prismaConnectionHelpers(builder, 'Post', {
   cursor: 'id',
-  // `args` accepts the callback form so `t.arg` is in scope.
-  args: (t) => ({
-    onlyPublished: t.boolean(),
-  }),
+  args: (t) => ({ onlyPublished: t.boolean() }),
   totalCount: true,
-  where: (p, args) => (args.onlyPublished ? p.published.eq(1) : undefined),
+  where: (post, args) => (args.onlyPublished ? post.published.eq(1) : undefined),
 });
 
 builder.prismaObject('User', {
   fields: (t) => ({
-    posts: t.field({
-      type: someCustomConnectionType,
-      args: userPostsHelpers.getArgs(),
-      resolve: async (user, args, ctx, info) => {
-        const { collection, totalCountPromise, wrap } =
-          await userPostsHelpers.applyPagination(
-            ctx.db.orm.Post.where((p) => p.authorId.eq(user.id)),
+    posts: t.connection(
+      {
+        type: postConnection.ref,
+        args: postConnection.getArgs(),
+        select: ['id'],
+        resolve: async (user, args, ctx, info) => {
+          const { collection, totalCountPromise, wrap } = await postConnection.applyPagination(
+            ctx.db.orm.Post.where((post) => post.authorId.eq(user.id)),
             args,
             info,
             ctx,
           );
-        const rows = await collection.all();
-        return wrap(rows, await totalCountPromise);
+          return wrap(await collection.all(), await totalCountPromise);
+        },
       },
-    }),
+      postConnection.connectionOptions({}),
+    ),
   }),
 });
 ```
 
-The returned object exposes:
+Pass `info` to `applyPagination` so relations under the connection's nodes are included.
+`totalCountPromise` only runs the count when `totalCount` is selected. `connectionOptions` adds
+the `totalCount` field.
 
-- `ref`: the cached `PrismaNextObjectRef` for the model.
-- `getArgs()`: the connection args (idempotent — call once per field).
-- `applyPagination(coll, args, info, ctx)`: applies cursor pagination
-  + auto-include and returns `{ collection, totalCountPromise, wrap }`.
-  `await` it — the result is a promise whenever a `select` callback
-  beneath the connection returned one. `totalCountPromise` is lazy and cached:
-  reading it starts the count only if enabled and selected (or no `info` was
-  supplied).
-- `connectionOptions(options)`: injects the synthetic `totalCount`
-  field onto the connection type's options.
-
-Pass `info` to `applyPagination` whenever possible — without it, the
-auto-include mapper can't descend into `edges.node` and nested
-`t.relation` fields under the connection won't preload.
-
-### Mapping rows on the edge
-
-Pass `resolveNode` to transform each row into a different shape (e.g.
-to expose a wrapper object with extra metadata as the connection's
-node):
+`resolveNode` maps each row to a different node shape. Cursors are still built from the row:
 
 ```ts
 prismaConnectionHelpers(builder, 'Post', {
   cursor: 'id',
-  resolveNode: (row) => ({ post: row, decoratedAt: new Date() }),
+  resolveNode: (post) => ({ post, loadedAt: new Date() }),
 });
 ```
-
-`resolveNode` runs AFTER `buildConnectionPage` builds the cursors, so
-each edge's cursor is encoded from the original row columns — the
-transform doesn't change cursor semantics.
