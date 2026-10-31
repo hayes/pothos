@@ -308,6 +308,126 @@ describe('native model inheritance', () => {
     expect(result.statements).toHaveLength(1);
   });
 
+  describe('component fragments on interfaces', () => {
+    // Titled has no model and is implemented by Task itself, which supplies its field; Node has
+    // no model and is implemented only by Task's implementations. Feature's type-level select is
+    // the one a fragment entering it must carry.
+    function createComponentSchema() {
+      const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+        plugins: [RelayPlugin, prismaNextPlugin],
+        relay: {},
+        prismaNext: { client: db.client },
+      });
+      const titled = builder.interfaceRef<object>('Titled').implement({
+        fields: (t) => ({ title: t.string({ resolve: () => '' }) }),
+      });
+      const task = builder.prismaInterface('Task', {
+        interfaces: [titled],
+        fields: (t) => ({ title: t.exposeString('title'), owner: t.relation('owner') }),
+      });
+      const bug = builder.prismaNode('Bug', {
+        interfaces: [titled, task],
+        id: { field: 'id' },
+        collection: () => db.orm.Task.variant('bug'),
+        fields: (t) => ({ severity: t.exposeString('severity') }),
+      });
+      builder.prismaNode('Feature', {
+        interfaces: [titled, task],
+        id: { field: 'id' },
+        collection: () => db.orm.Task.variant('feature'),
+        select: ['priority'],
+        fields: (t) => ({ typePriority: t.int({ resolve: (feature) => feature.priority }) }),
+      });
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          email: t.exposeString('email'),
+          tasks: t.relation('tasks', { query: { orderBy: (row) => row.id.asc() } }),
+          bugs: t.relation('tasks', { type: bug }),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          tasks: t.prismaField({
+            type: ['Task'],
+            resolve: () => db.orm.Task.orderBy((row) => row.id.asc()),
+          }),
+          bugs: t.prismaField({ type: ['Bug'], resolve: () => db.orm.Task.variant('bug') }),
+          users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+        }),
+      });
+      return builder.toSchema();
+    }
+
+    const fragments = `
+      fragment TitledFields on Titled { title }
+      fragment NodeFields on Node { id }
+      fragment OwnerFields on User { email }
+      fragment TaskCard on Task { ...TitledFields owner { ...OwnerFields } }
+      fragment BugCard on Bug { ...TaskCard ...NodeFields severity }
+      fragment FeatureCard on Feature { ...NodeFields typePriority }
+    `;
+    const bugId = Buffer.from('Bug:t1').toString('base64');
+    const featureId = Buffer.from('Feature:t2').toString('base64');
+    const bugCard = { title: 'bug1', owner: { email }, id: bugId, severity: 'high' };
+
+    it('plans interface fragments spread into a concrete type in one statement', async () => {
+      const result = await run(
+        createComponentSchema(),
+        `query { bugs { ...TitledFields ...TaskCard ...NodeFields } } ${fragments}`,
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.bugs).toEqual([{ title: 'bug1', owner: { email }, id: bugId }]);
+      expect(result.statements).toHaveLength(1);
+    });
+
+    it('plans nested spreads, and one fragment spread in several places, in one statement', async () => {
+      const result = await run(
+        createComponentSchema(),
+        `query { users { ...OwnerFields bugs { ...BugCard } tasks { ...TaskCard ...BugCard ...FeatureCard } } } ${fragments}`,
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.users).toEqual([
+        {
+          email,
+          bugs: [bugCard],
+          tasks: [bugCard, { title: 'feat1', owner: { email }, id: featureId, typePriority: 5 }],
+        },
+      ]);
+      expect(result.statements).toHaveLength(1);
+    });
+
+    it('plans a fragment on Node beneath the interface for the implementations', async () => {
+      const result = await run(
+        createComponentSchema(),
+        `query { tasks { ...TitledFields ...NodeFields ... on Node { ... on Feature { typePriority } } } } ${fragments}`,
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.tasks).toEqual([
+        { title: 'bug1', id: bugId },
+        { title: 'feat1', id: featureId, typePriority: 5 },
+      ]);
+      expect(result.statements).toHaveLength(1);
+    });
+
+    it('plans a fragment beside direct fields on the same relation in one statement', async () => {
+      const result = await run(
+        createComponentSchema(),
+        `query { users { tasks { title owner { email } } ...UserTasks } }
+        fragment UserTasks on User { tasks { ...TaskCard ...NodeFields } } ${fragments}`,
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.users).toEqual([
+        {
+          tasks: [
+            { title: 'bug1', owner: { email }, id: bugId },
+            { title: 'feat1', owner: { email }, id: featureId },
+          ],
+        },
+      ]);
+      expect(result.statements).toHaveLength(1);
+    });
+  });
+
   describe('default resolveType', () => {
     function build(
       register: (
