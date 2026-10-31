@@ -1,8 +1,4 @@
-/**
- * The walk, pinned through a recording collection: what `applySelectionToCollection` emits for
- * a selection on a real builder schema over the sample contract. Each case renders the recorded
- * chain (`select(...)`, `include(rel){ ... }`, `combine(slot=[...])`) and compares it.
- */
+/** What `applySelectionToCollection` emits, rendered from a recording collection. */
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -24,10 +20,7 @@ const sampleContract = JSON.parse(
   readFileSync(fileURLToPath(new URL('./fixtures/sample-contract.json', import.meta.url)), 'utf8'),
 ) as SampleContract;
 
-// ---------------------------------------------------------------------------------------------
-// A recording collection: immutable like the real builder, so two branches of one combine are
-// two distinct chains.
-// ---------------------------------------------------------------------------------------------
+// Immutable like the real builder, so two branches of one combine are two distinct chains.
 
 interface RecordedCall {
   method: string;
@@ -154,10 +147,6 @@ function show(value: unknown): string {
   return typeof value === 'function' ? 'fn' : JSON.stringify(value);
 }
 
-// ---------------------------------------------------------------------------------------------
-// Schema.
-// ---------------------------------------------------------------------------------------------
-
 const captured: { args: unknown; ctx: unknown }[] = [];
 
 function createSchema({ asyncSelect = false } = {}) {
@@ -171,7 +160,6 @@ function createSchema({ asyncSelect = false } = {}) {
   });
 
   const Comment = builder.prismaObject('Comment', {
-    // A type-level select in the column-array form.
     select: ['id'],
     fields: (t) => ({
       body: t.exposeString('body'),
@@ -196,7 +184,6 @@ function createSchema({ asyncSelect = false } = {}) {
 
   const AdminUser = builder.prismaObject('User', {
     variant: 'AdminUser',
-    // A type-level select in the object form: a column and a count on a relation.
     select: {
       email: true,
       posts: (sub: MapperCollection) => ({ total: sub.count() }),
@@ -217,12 +204,10 @@ function createSchema({ asyncSelect = false } = {}) {
       id: t.exposeID('id'),
       firstName: t.exposeString('firstName'),
       lastName: t.exposeString('lastName'),
-      // Multi-column dependency of a computed resolver.
       fullName: t.string({
         select: ['firstName', 'lastName'],
         resolve: (user) => `${user.firstName} ${user.lastName}`,
       }),
-      // No exposed column, no select — pure compute.
       plugin: t.string({ resolve: () => 'prisma-next' }),
       posts: t.relation('posts'),
       postsConnection: t.relatedConnection('posts', {
@@ -230,7 +215,6 @@ function createSchema({ asyncSelect = false } = {}) {
         defaultSize: 2,
         totalCount: true,
       }),
-      // Sibling aliases of the same relation with declarative refines.
       drafts: t.relation('posts', { query: { where: { published: 0 } } }),
       publishedPosts: t.relation('posts', { query: { where: { published: 1 } } }),
       // An args-dependent query: resolved once per field occurrence, with the request context.
@@ -246,7 +230,6 @@ function createSchema({ asyncSelect = false } = {}) {
         },
       }),
       postCount: t.relationCount('posts'),
-      // A function-form select returning several slots, as a connection does.
       postsPage: t.field({
         type: [Post],
         select: asyncSelect
@@ -258,7 +241,6 @@ function createSchema({ asyncSelect = false } = {}) {
             } as never),
         resolve: (user) => (user as { rows: never[] }).rows,
       }),
-      // A same-row variant with forced column reads.
       asAdmin: t.variant(AdminUser, { select: ['firstName'] }),
       // A relation entry on a scalar-returning field: included, nothing walked beneath.
       commentCount: t.int({
@@ -344,10 +326,6 @@ async function plan(
     ),
   );
 }
-
-// ---------------------------------------------------------------------------------------------
-// Cases.
-// ---------------------------------------------------------------------------------------------
 
 describe('columns', () => {
   it('emits .select(...) for queried scalar fields only', async () => {
@@ -648,7 +626,6 @@ describe('entry options', () => {
   });
 });
 
-/** The schema with a `@defer` directive declared, so deferred fragments can be written. */
 function createDeferSchema() {
   const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
     plugins: [RelayPlugin, prismaNextPlugin],
