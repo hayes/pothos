@@ -663,24 +663,16 @@ export class PrismaNextObjectFieldBuilder<
           throw error;
         }
         const rows = connectionNeedsRows(context, info) ? parent[name] : [];
-        const page = buildConnectionPage(
-          rows as Record<string, unknown>[],
-          buildPaginationParams(cursorOpt, args, {
-            ...settings.sizes(args, context),
-            codecs: config.codecs(context, relatedKey),
-          }),
-        );
-        if (settings.countsRows(context, info)) {
-          (page as { totalCount?: number }).totalCount = parent.count as number;
-        } else if (settings.callsCount(context, info)) {
-          (page as { totalCount?: number }).totalCount = await settings.countCallback!(
-            parent,
-            args,
-            context,
-            info,
-          );
-        }
-        return page;
+        const pagination = buildPaginationParams(cursorOpt, args, {
+          ...settings.sizes(args, context),
+          codecs: config.codecs(context, relatedKey),
+        });
+        const totalCount = settings.countsRows(context, info)
+          ? (parent.count as number | undefined)
+          : settings.callsCount(context, info)
+            ? await settings.countCallback!(parent, args, context, info)
+            : undefined;
+        return buildConnectionPage(rows as Record<string, unknown>[], pagination, totalCount);
       },
     };
     return (

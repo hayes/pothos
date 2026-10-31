@@ -529,12 +529,14 @@ export interface PageInfo {
 export interface ConnectionPage<Row> {
   edges: Array<{ node: Row; cursor: string }>;
   pageInfo: PageInfo;
+  totalCount?: number;
 }
 
 /** Edge cursors are lazy, non-enumerable getters, so selecting only `nodes` skips encoding. */
 export function buildConnectionPage<Row extends Record<string, unknown>>(
   rows: readonly Row[],
   pagination: CursorPaginationParams,
+  totalCount?: number,
 ): ConnectionPage<Row> {
   const needsCopy = pagination.inverted || rows.length > pagination.expectedSize;
   const trimmed: Row[] = needsCopy ? rows.slice(0, pagination.expectedSize) : (rows as Row[]);
@@ -562,5 +564,6 @@ export function buildConnectionPage<Row extends Record<string, unknown>>(
       hasPreviousPage: pagination.hasPreviousPage(rows.length),
       hasNextPage: pagination.hasNextPage(rows.length),
     },
+    ...(totalCount === undefined ? {} : { totalCount }),
   };
 }

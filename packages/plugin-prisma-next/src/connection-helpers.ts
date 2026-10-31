@@ -236,16 +236,13 @@ export function prismaConnectionHelpers<
           rows: readonly WrapRow[],
           totalCount?: number,
         ): ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>> {
-          const page = buildConnectionPage(rows, pagination);
+          const page = buildConnectionPage(rows, pagination, totalCount);
           // After building the page, so cursors are encoded from the original rows.
           if (options.resolveNode) {
             const transform = options.resolveNode;
             for (const edge of page.edges) {
               (edge as { node: unknown }).node = transform(edge.node as Row<Types, M>);
             }
-          }
-          if (totalCount !== undefined) {
-            (page as { totalCount?: number }).totalCount = totalCount;
           }
           return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>>;
         },
