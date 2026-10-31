@@ -27,8 +27,8 @@ Relations are loaded with `.include(...)` on the parent's Collection, so `{ me {
 runs as one Collection call. Prisma decides how many SQL statements that takes.
 
 - To-many relations are non-null lists.
-- To-one relations are non-null when their foreign key columns are non-null. Pass `nullable` to
-  override.
+- To-one relations are non-null when their foreign key columns are non-null and they have no
+  `query`, which could filter the row out. Pass `nullable` to override.
 
 ## Filtering and sorting
 

@@ -31,6 +31,35 @@ describe('includes', () => {
     expect(printSchema(builder.toSchema())).toMatch(/type Post \{\n {2}author: User\n/);
   });
 
+  it('makes a to-one relation with a query nullable, since the query can filter its row out', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ firstName: t.exposeString('firstName') }) });
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        alice: t.relation('author', { query: { where: { firstName: 'Alice' } } }),
+        required: t.relation('author', {
+          nullable: false,
+          query: { where: { firstName: 'Alice' } },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const sdl = printSchema(schema);
+    expect(sdl).toMatch(/type Post \{[^}]*\n {2}alice: User\n/);
+    expect(sdl).toMatch(/type Post \{[^}]*\n {2}required: User!\n/);
+    const result = await run(schema, '{ posts { id alice { firstName } } }');
+    expect(result.errors).toBeUndefined();
+    const authors = result.data.posts.map((post: { alice: unknown }) => post.alice);
+    expect(authors).toContainEqual(null);
+    expect(authors).toContainEqual({ firstName: 'Alice' });
+  });
+
   describe('the non-FK side of a 1:1', () => {
     const collision = useCollisionDb();
 
@@ -77,7 +106,7 @@ describe('includes', () => {
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
       fields: (t) => ({
-        rawUser: t.field({ type: User, resolve: () => ({ id: 'u-1' }) as never }),
+        rawUser: t.field({ type: User, resolve: () => ({ id: 'u-1' }) }),
       }),
     });
     const result = await run(builder.toSchema(), '{ rawUser { id posts { id } } }');
@@ -455,7 +484,7 @@ describe('to-one consumers', () => {
           select: (args) => ({
             posts: (sub) => ({ postCount: sub.where({ published: args.published }).count() }),
           }),
-          resolve: (user) => (user as unknown as { postCount: number }).postCount,
+          resolve: (user) => user.postCount,
         }),
         posts: t.relation('posts', {
           args: { published: t.arg.int() },

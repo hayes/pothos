@@ -16,6 +16,7 @@ import type { PothosPrismaNextPlugin } from './index.js';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type {
   ExactSelectCheck,
+  InterfaceSelectShape,
   ObjectBaseShape,
   ParamToModelName,
   ParamToTypeParam,
@@ -38,6 +39,7 @@ import type {
   PrismaNextRootFieldWithInputOptions,
   ResolverCollection,
   Row,
+  ShapeFromConnection,
 } from './types.js';
 
 type ObjectLevelShape<
@@ -60,6 +62,11 @@ type TypeSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Sele
     >;
 };
 
+/** Node IDs must load back as the same row, so they can't use a nullable column. */
+type IdColumn<Types extends SchemaTypes, M extends ModelName<Types>> = {
+  [K in keyof Row<Types, M> & string]: null extends Row<Types, M>[K] ? never : K;
+}[keyof Row<Types, M> & string];
+
 /** A node ID's decoded values: the column's value, or a tuple for a compound ID. */
 type IdValues<
   Types extends SchemaTypes,
@@ -70,6 +77,16 @@ type IdValues<
   : IDFields extends keyof Row<Types, M>
     ? Row<Types, M>[IDFields]
     : never;
+
+/**
+ * What `id.parse` may return. A compound ID's array isn't contextually typed as a tuple there, so
+ * any array of its columns' values is accepted; the loader checks its length.
+ */
+type ParsedIdValues<Types extends SchemaTypes, M extends ModelName<Types>, IDFields> =
+  | IdValues<Types, M, IDFields>
+  | (IDFields extends readonly (keyof Row<Types, M>)[]
+      ? readonly Row<Types, M>[IDFields[number] & keyof Row<Types, M>][]
+      : never);
 
 type IdFieldShape<
   Types extends SchemaTypes,
@@ -144,6 +161,9 @@ declare global {
       Interfaces extends InterfaceParam<Types>[] = [],
     > {}
 
+    // Filled in by plugin-relay when it's loaded.
+    export interface ConnectionShapeHelper<Types extends SchemaTypes, T, Nullable> {}
+
     export interface DefaultConnectionArguments {
       first?: number | null | undefined;
       last?: number | null | undefined;
@@ -185,7 +205,7 @@ declare global {
         const Interfaces extends InterfaceParam<Types>[],
         M extends ModelName<Types>,
         const Select = unknown,
-        Shape = ObjectLevelShape<Types, M, Select>,
+        Shape = ObjectLevelShape<Types, M, Select> & InterfaceSelectShape<Types, M, Interfaces>,
       >(
         modelName: M,
         options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
@@ -197,7 +217,7 @@ declare global {
         const Interfaces extends InterfaceParam<Types>[],
         M extends ModelName<Types>,
         const Select = unknown,
-        Shape = ObjectLevelShape<Types, M, Select>,
+        Shape = ObjectLevelShape<Types, M, Select> & InterfaceSelectShape<Types, M, Interfaces>,
       >(
         modelName: M,
         options: Omit<PrismaNextInterfaceOptions<Types, M, Shape, Interfaces>, 'select'> & {
@@ -240,14 +260,11 @@ declare global {
             const Interfaces extends InterfaceParam<Types>[],
             M extends ModelName<Types>,
             const Select = unknown,
-            Shape = ObjectLevelShape<Types, M, Select>,
+            Shape = ObjectLevelShape<Types, M, Select> & InterfaceSelectShape<Types, M, Interfaces>,
             const IDFields extends
-              | (keyof Row<Types, M> & string)
-              | readonly [
-                  keyof Row<Types, M> & string,
-                  ...(keyof Row<Types, M> & string)[],
-                ] = keyof Row<Types, M> & string,
-            IDShape = IdValues<Types, M, IDFields>,
+              | IdColumn<Types, M>
+              | readonly [IdColumn<Types, M>, ...IdColumn<Types, M>[]] = IdColumn<Types, M>,
+            IDShape extends ParsedIdValues<Types, M, IDFields> = IdValues<Types, M, IDFields>,
           >(
             modelName: M,
             options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
@@ -286,8 +303,8 @@ declare global {
           | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
           | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
           | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
-        Nullable extends FieldNullability<Type>,
         ResolveReturnShape,
+        Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
         M extends ModelName<Types> = ParamToModelName<Types, Param>,
         ShapeForType = Row<Types, M>,
         Type extends TypeParam<Types> = ParamToTypeParam<Types, Param, ShapeForType>,
@@ -313,8 +330,8 @@ declare global {
               | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
               | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
               | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
-            Nullable extends FieldNullability<Type>,
             ResolveReturnShape,
+            Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
             Fields extends InputFieldMap = {},
             InputName extends string = 'input',
             ArgRequired extends boolean = boolean extends (Types & {
@@ -351,8 +368,8 @@ declare global {
               | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
               | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
               | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
-            Nullable extends boolean,
             ResolveReturnShape,
+            Nullable extends boolean = Types['DefaultFieldNullability'],
             ConnectionInterfaces extends InterfaceParam<Types>[] = [],
             EdgeInterfaces extends InterfaceParam<Types>[] = [],
             M extends ModelName<Types> = ParamToModelName<Types, Param>,
@@ -387,7 +404,12 @@ declare global {
                   EdgeInterfaces
                 >
               | ObjectRef<Types, unknown>,
-          ) => FieldRef<Types, unknown>
+          ) => FieldRef<
+            Types,
+            ShapeFromConnection<
+              PothosSchemaTypes.ConnectionShapeHelper<Types, Row<Types, M>, Nullable>
+            >
+          >
         : '@pothos/plugin-relay is required to use this method';
     }
   }

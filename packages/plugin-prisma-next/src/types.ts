@@ -455,6 +455,7 @@ export type PrismaNextRelationOptions<
   RelatedShape,
   // Only what the type's `select` declared; other columns load only if the query selects them.
   ParentShape = ObjectBaseShape<Types, ParentModel>,
+  Query = RelationQuery<Types, ParentModel, RelName, Args>,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -468,8 +469,25 @@ export type PrismaNextRelationOptions<
 > & {
   description?: string | false;
   type?: PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
-  query?: RelationQuery<Types, ParentModel, RelName, Args>;
+  query?: Query & NoInfer<ExactRelationQuery<Query>>;
 };
+
+/** `Query` is inferred from the literal rather than checked, so unknown keys need rejecting. */
+type ExactRelationQuery<Query> = Query extends (...args: never[]) => unknown
+  ? unknown
+  : { [K in Exclude<keyof Query, keyof RelationQueryLiteral<SchemaTypes, never>>]: never };
+
+/** A `query` can filter a to-one relation's row out, so it makes the field nullable by default. */
+export type RelationNullable<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  R extends RelationKeys<Types, M>,
+  Query,
+> = undefined extends Query
+  ? DefaultRelationNullable<Types, M, R>
+  : IsToMany<Types, M, R> extends true
+    ? false
+    : true;
 
 type RelationAggregateWhere<
   Types extends SchemaTypes,
@@ -588,6 +606,48 @@ type StorageFieldCodec<C extends AnyContract, M extends string, F extends string
         : never
       : never
     : never;
+
+/** The fields mapped to a model's primary key columns; `never` when its table declares none. */
+type PrimaryKeyFields<C extends AnyContract, M extends string> =
+  ModelDefOf<C, M> extends {
+    readonly storage: {
+      readonly namespaceId: infer Ns extends keyof C['storage']['namespaces'];
+      readonly table: infer Table extends string;
+      readonly fields: infer Fields;
+    };
+  }
+    ? C['storage']['namespaces'][Ns]['entries']['table'] extends infer Tables
+      ? Table extends keyof Tables
+        ? Tables[Table] extends {
+            readonly primaryKey: { readonly columns: infer Columns extends readonly string[] };
+          }
+          ? {
+              [F in keyof Fields]: Fields[F] extends { readonly column: Columns[number] }
+                ? F
+                : never;
+            }[keyof Fields] &
+              string
+          : never
+        : never
+      : never
+    : never;
+
+/** The key the loader reloads a model's rows by. A variant shares its base's key. */
+export type IdentityFields<Types extends SchemaTypes, M extends ModelName<Types>> = [
+  PrimaryKeyFields<Types['PrismaNextContract'], M>,
+] extends [never]
+  ? PrimaryKeyFields<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>
+  : PrimaryKeyFields<Types['PrismaNextContract'], M>;
+
+/**
+ * What a field returning a model's type may resolve to: a row with its key, from which the loader
+ * reloads any columns the type's fields need. A model without a key needs the whole row.
+ */
+export type ModelReturnShape<Types extends SchemaTypes, M extends ModelName<Types>> = [
+  IdentityFields<Types, M>,
+] extends [never]
+  ? Row<Types, M>
+  : Pick<Row<Types, M>, IdentityFields<Types, M> & keyof Row<Types, M>> & Partial<Row<Types, M>>;
 
 type AggregateOperation<
   C extends AnyContract,
@@ -1034,9 +1094,9 @@ type FieldSelectArray<Types extends SchemaTypes, ParentShape> =
 
 export type PrismaNextFieldSelect<Types extends SchemaTypes, ParentShape, Args> =
   | FieldSelectArray<Types, ParentShape>
-  | ((args: Args, ctx: Types['Context']) => FieldSelectArray<Types, ParentShape>)
+  | ((args: Args, ctx: Types['Context']) => MaybePromise<FieldSelectArray<Types, ParentShape>>)
   | PrismaNextSelectSpec<Types, ParentShape>
-  | ((args: Args, ctx: Types['Context']) => PrismaNextSelectSpec<Types, ParentShape>);
+  | ((args: Args, ctx: Types['Context']) => MaybePromise<PrismaNextSelectSpec<Types, ParentShape>>);
 
 export type PrismaNextObjectFieldOptions<
   Types extends SchemaTypes,
@@ -1068,6 +1128,19 @@ export type PrismaNextObjectFieldOptions<
       PrismaNextFieldSelect<Types, ParentShape, InputShapeFromFields<Args>> &
       ValidateFieldSelect<Types, ParentShape, Select>;
   };
+
+export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
+
+/** The rows a relation loads: a list for a to-many relation, nullable as the field is. */
+export type RelationFieldShape<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  R extends RelationKeys<Types, M>,
+  Nullable extends boolean,
+> =
+  IsToMany<Types, M, R> extends true
+    ? readonly Row<Types, RelatedModel<Types, M, R>>[]
+    : Row<Types, RelatedModel<Types, M, R>> | (Nullable extends true ? null : never);
 
 export type { SqlStorage } from '@prisma/orm-family-sql/contract/types';
 export type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';

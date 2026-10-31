@@ -252,3 +252,44 @@ export async function helperShapes() {
   const promisedNode = promisedPage.wrap(await promisedPage.collection.all()).edges[0]!.node;
   expectTypeOf((await promisedNode).user.id).toEqualTypeOf<string>();
 }
+
+// Without `nullable`, root fields and connections follow the builder's default field nullability.
+const nonNullBuilder = new SchemaBuilder<{
+  PrismaNextContract: Contract;
+  DefaultFieldNullability: false;
+}>({
+  plugins: [RelayPlugin, prismaNextPlugin],
+  relay: {},
+  defaultFieldNullability: false,
+  prismaNext: { client: null as never },
+});
+nonNullBuilder.queryType({
+  fields: (t) => {
+    const user = t.prismaField({ type: 'User', resolve: () => orm.User });
+    expectTypeOf<null extends typeof user.$inferType ? true : false>().toEqualTypeOf<false>();
+    const posts = t.prismaConnection({ type: 'Post', cursor: 'id', resolve: () => orm.Post });
+    expectTypeOf(posts.$inferType.edges).not.toBeUnknown();
+    expectTypeOf<null extends typeof posts.$inferType ? true : false>().toEqualTypeOf<false>();
+    return {
+      user,
+      posts,
+      // @ts-expect-error the field is non-null by default
+      nullUser: t.prismaField({ type: 'User', resolve: () => null }),
+      nullableUser: t.prismaField({ type: 'User', nullable: true, resolve: () => null }),
+      // @ts-expect-error the connection is non-null by default
+      nullPosts: t.prismaConnection({ type: 'Post', cursor: 'id', resolve: () => null }),
+      nullablePosts: t.prismaConnection({
+        type: 'Post',
+        cursor: 'id',
+        nullable: true,
+        resolve: () => null,
+      }),
+    };
+  },
+});
+builder.queryFields((t) => {
+  // Fields are nullable by default.
+  const user = t.prismaField({ type: 'User', resolve: () => null });
+  expectTypeOf<null extends typeof user.$inferType ? true : false>().toEqualTypeOf<true>();
+  return { nullableByDefault: user };
+});

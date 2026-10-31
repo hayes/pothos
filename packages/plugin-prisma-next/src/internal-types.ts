@@ -1,7 +1,7 @@
-import type { SchemaTypes } from '@pothos/core';
+import type { MaybePromise, SchemaTypes } from '@pothos/core';
 import type { HasRow, ModelAccessor } from '@prisma/orm-family-sql/orm-client';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
-import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
+import type { ModelBrand, PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 import type {
   BareModelName,
   DefaultRelationNullable,
@@ -70,6 +70,26 @@ export type SpecValueResult<V> =
       ? R
       : readonly R[]
     : unknown;
+
+/**
+ * What the same-model `prismaInterface`s a type implements select: they load for the type too.
+ * Another model's interface adds nothing, so implementing it still fails.
+ */
+export type InterfaceSelectShape<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Interfaces,
+> = [Interfaces] extends [readonly unknown[]]
+  ? UnionToIntersection<
+      Interfaces[number] extends infer I
+        ? I extends PrismaNextInterfaceRef<Types, infer IM, infer Shape>
+          ? M extends IM | VariantModelKeys<Types['PrismaNextContract'], IM>
+            ? Shape
+            : {}
+          : {}
+        : never
+    >
+  : unknown;
 
 type UnionToIntersection<U> = (U extends unknown ? (x: U) => void : never) extends (
   x: infer I,
@@ -141,9 +161,13 @@ export type ObjectBaseShape<
   M extends ModelName<Types>,
 > = M extends string ? ModelBrand<M | VariantModelKeys<Types['PrismaNextContract'], M>> : never;
 
-type ModelBrand<Key> = { readonly [prismaModelKey]?: Key };
+export type ValidateFieldSelect<Types extends SchemaTypes, ParentShape, Select> = Select extends (
+  ...args: infer Args
+) => infer Result
+  ? (...args: Args) => MaybePromise<ValidateSelectValue<Types, ParentShape, Awaited<Result>>>
+  : ValidateSelectValue<Types, ParentShape, Select>;
 
-export type ValidateFieldSelect<Types extends SchemaTypes, ParentShape, Select> =
+type ValidateSelectValue<Types extends SchemaTypes, ParentShape, Select> =
   ExtractModel<Types, ParentShape> extends infer M
     ? M extends ModelName<Types>
       ? Select extends readonly string[]
@@ -202,9 +226,25 @@ type RelationShape<
               ? never
               : null);
 
+/**
+ * A function-form `select` contributes what it returns. When its branches return different
+ * selections, their columns are optional.
+ */
 export type ShapeFromSelect<Types extends SchemaTypes, ParentShape, Select> = unknown extends Select
   ? ParentShape
-  : ExtractModel<Types, ParentShape> extends infer M
+  : Select extends (...args: never[]) => infer Result
+    ? IsUnion<Awaited<Result>> extends true
+      ? Normalize<
+          ParentShape &
+            Partial<UnionToIntersection<ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>>>
+        >
+      : ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>
+    : ShapeFromSelectValue<Types, ParentShape, Select>;
+
+type IsUnion<T, U = T> = T extends unknown ? ([U] extends [T] ? false : true) : never;
+
+type ShapeFromSelectValue<Types extends SchemaTypes, ParentShape, Select> =
+  ExtractModel<Types, ParentShape> extends infer M
     ? M extends ModelName<Types>
       ? Select extends readonly (infer K extends keyof Row<Types, M>)[]
         ? Normalize<ParentShape & Pick<Row<Types, M>, K>>
@@ -227,13 +267,14 @@ export type ShapeFromObjectSelect<
   Select,
 > = unknown extends Select
   ? ObjectBaseShape<Types, M>
-  : Select extends readonly (infer K extends keyof Row<Types, M>)[]
-    ? Normalize<ObjectBaseShape<Types, M> & Pick<Row<Types, M>, K>>
-    : Select extends Record<string, unknown>
-      ? Normalize<
-          ObjectBaseShape<Types, M> &
-            SimpleColumnShape<Types, M, Select> &
-            SimpleRelationShape<Types, M, Select> &
-            FunctionFormShape<Types, M, Select>
-        >
-      : ObjectBaseShape<Types, M>;
+  : // The brand stays a named interface beside the columns, so exported refs can be emitted.
+    ObjectBaseShape<Types, M> &
+      (Select extends readonly (infer K extends keyof Row<Types, M>)[]
+        ? Normalize<Pick<Row<Types, M>, K>>
+        : Select extends Record<string, unknown>
+          ? Normalize<
+              SimpleColumnShape<Types, M, Select> &
+                SimpleRelationShape<Types, M, Select> &
+                FunctionFormShape<Types, M, Select>
+            >
+          : unknown);
