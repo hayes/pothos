@@ -14,16 +14,6 @@
       "default": "./lib/index.js"
     }
   },
-  "files": [
-    "dts",
-    "esm",
-    "lib",
-    "src",
-    "!src/**/*.d.ts",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
   "scripts": {
     "type": "tsc --project tsconfig.type.json && tsc --project tsconfig.scope-auth.json && tsc --project tsconfig.missing-plugins.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
