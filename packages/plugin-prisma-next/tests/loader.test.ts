@@ -709,7 +709,7 @@ describe('fallback isolation', () => {
       fields: (t) => ({
         plainUsers: t.field({
           type: [User],
-          resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }] as never,
+          resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }],
         }),
       }),
     });

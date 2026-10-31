@@ -133,11 +133,8 @@ describe('Relay nodes', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        person: t.field({ type: Person, resolve: () => ({ id: 'x'.repeat(2049) }) as never }),
-        tagged: t.field({
-          type: Person,
-          resolve: () => ({ id: `PNI:${'x'.repeat(2039)}` }) as never,
-        }),
+        person: t.field({ type: Person, resolve: () => ({ id: 'x'.repeat(2049) }) }),
+        tagged: t.field({ type: Person, resolve: () => ({ id: `PNI:${'x'.repeat(2039)}` }) }),
       }),
     });
     const result = await run(builder.toSchema(), '{ person { id } }');
@@ -384,7 +381,9 @@ describe('ID values', () => {
     const Node = builder.prismaNode(model, {
       id: id as never,
       collection: collection as never,
-      fields: (t) => ({ label: t.string({ resolve: (row) => (row as { label: string }).label }) }),
+      fields: (t) => ({
+        label: t.string({ resolve: (row) => (row as unknown as { label: string }).label }),
+      }),
     });
     builder.queryType({
       fields: (t) => ({ nodeList: t.field({ type: [Node], resolve: () => rows as never }) }),

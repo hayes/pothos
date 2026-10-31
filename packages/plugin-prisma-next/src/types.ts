@@ -44,6 +44,7 @@ import type { Contract } from '@prisma/orm-framework/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
 import type {
   ExtractModel,
+  FieldParentShape,
   ObjectBaseShape,
   ParamToModelName,
   RelationRef,
@@ -51,7 +52,7 @@ import type {
   ShapeFromSelect,
   ValidateFieldSelect,
 } from './internal-types.js';
-import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
+import type { PrismaNextObjectRef } from './object-ref.js';
 import type { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 
 export type AnyContract = Contract<SqlStorage>;
@@ -649,6 +650,24 @@ export type ModelReturnShape<Types extends SchemaTypes, M extends ModelName<Type
   ? Row<Types, M>
   : Pick<Row<Types, M>, IdentityFields<Types, M> & keyof Row<Types, M>> & Partial<Row<Types, M>>;
 
+/** The field naming a base model's variant; `never` for other models. */
+export type DiscriminatorField<Types extends SchemaTypes, M extends ModelName<Types>> =
+  ModelDefOf<Types['PrismaNextContract'], M> extends {
+    readonly discriminator: { readonly field: infer F extends string };
+  }
+    ? F & keyof Row<Types, M>
+    : never;
+
+/**
+ * What a field returning a model's `prismaInterface` may resolve to. A discriminated model's rows
+ * also need the discriminator: the interface routes rows to variants before any field runs.
+ */
+export type InterfaceReturnShape<Types extends SchemaTypes, M extends ModelName<Types>> = [
+  DiscriminatorField<Types, M>,
+] extends [never]
+  ? ModelReturnShape<Types, M>
+  : ModelReturnShape<Types, M> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
+
 type AggregateOperation<
   C extends AnyContract,
   Op extends string,
@@ -775,7 +794,7 @@ type PrismaNextTypeOptions<Types extends SchemaTypes, M extends ModelName<Types>
   fields?: (
     // Passed explicitly: Monaco leaves the defaulted `Row<Types, M>` opaque, which makes
     // `t.expose*` demand `nullable: true` on every column.
-    t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }, Row<Types, M>>,
+    t: PrismaNextObjectFieldBuilder<Types, M, FieldParentShape<Types, M, Shape>, Row<Types, M>>,
   ) => FieldMap;
 };
 
@@ -1092,9 +1111,23 @@ type FieldSelectArray<Types extends SchemaTypes, ParentShape> =
       : readonly never[]
     : readonly never[];
 
+/**
+ * Tuples, so each returned array literal infers as its own tuple: branches selecting different
+ * columns then stay a union (their columns optional) instead of merging into one array. Adding
+ * `readonly K[]` here would lose that. An array variable is still accepted, with its columns
+ * optional.
+ */
+type FieldSelectFunctionArray<Types extends SchemaTypes, ParentShape> =
+  FieldSelectArray<Types, ParentShape> extends readonly (infer K)[]
+    ? readonly [] | readonly [K, ...K[]]
+    : never;
+
 export type PrismaNextFieldSelect<Types extends SchemaTypes, ParentShape, Args> =
   | FieldSelectArray<Types, ParentShape>
-  | ((args: Args, ctx: Types['Context']) => MaybePromise<FieldSelectArray<Types, ParentShape>>)
+  | ((
+      args: Args,
+      ctx: Types['Context'],
+    ) => MaybePromise<FieldSelectFunctionArray<Types, ParentShape>>)
   | PrismaNextSelectSpec<Types, ParentShape>
   | ((args: Args, ctx: Types['Context']) => MaybePromise<PrismaNextSelectSpec<Types, ParentShape>>);
 
