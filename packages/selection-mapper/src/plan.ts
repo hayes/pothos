@@ -162,8 +162,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * replaces the parent the field resolver sees, so besides the field's own selection it
    * carries the parent type's type-level selection. The field is what the row is loaded for, so
    * it is merged first and a type-level relation whose arguments conflict with it is left out.
-   * `initial`, when given, is merged before anything else (how the loader's collection is
-   * narrowed, say).
+   * `initial` is merged before anything else.
    */
   static forParentRow<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
     adapter: Adapter<Model, Query, NodeType>,
