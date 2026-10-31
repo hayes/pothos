@@ -544,17 +544,10 @@ describe('rows a connection helper wraps', () => {
 
 // With `runScopesOnType`, type-level authScopes run from `isTypeOf`, on the row the parent field
 // resolved. Two implementations of an interface, reached from a root list and from a relation.
-const adminPostSelects = {
-  'the same relation': true,
-  'no relation': undefined,
-  'the relation with other arguments': { where: { published: 1 } },
-} as const;
+type AdminPostSelect = true | { readonly where: { readonly published: 1 } } | undefined;
 
 describe.each(orders)('runScopesOnType through an interface (%s)', (order, plugins) => {
-  function runScopesSchema(
-    seen: unknown[],
-    adminPosts: (typeof adminPostSelects)[keyof typeof adminPostSelects],
-  ) {
+  function runScopesSchema(seen: unknown[], adminPosts: AdminPostSelect) {
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
@@ -605,7 +598,7 @@ describe.each(orders)('runScopesOnType through an interface (%s)', (order, plugi
     return builder.toSchema();
   }
 
-  async function run(adminPosts: (typeof adminPostSelects)[keyof typeof adminPostSelects]) {
+  async function run(adminPosts: AdminPostSelect) {
     const seen: unknown[] = [];
     const schema = runScopesSchema(seen, adminPosts);
     const root = await runCaptured(schema, '{ people { __typename firstName } }');
@@ -628,25 +621,23 @@ describe.each(orders)('runScopesOnType through an interface (%s)', (order, plugi
   const memberSeen = ['Member', 'bob@example.com', ['p-bob-draft', 'p-bob1']];
 
   it.each([
-    ['the same relation', ['p-draft1', 'p-hello']],
+    ['the same relation', true, ['p-draft1', 'p-hello']],
     // The row is shared, so Admin also sees the posts Member's select loads.
-    ['no relation', expect.anything()],
-  ] as const)('loads the relation an implementation selects when the other selects %s', async (key, adminPostIds) => {
-    const { rootSeen, relationSeen } = await run(adminPostSelects[key]);
+    ['no relation', undefined, expect.anything()],
+  ] as const)('loads the relation an implementation selects when the other selects %s', async (_name, adminPosts, adminPostIds) => {
+    const { rootSeen, relationSeen } = await run(adminPosts);
     expect(rootSeen).toEqual([['Admin', 'alice@example.com', adminPostIds], memberSeen]);
     expect(relationSeen).toEqual([memberSeen]);
   });
 
   it('implementations selecting one to-many relation with different arguments', async () => {
-    const { rootSeen, relationSeen } = await run(
-      adminPostSelects['the relation with other arguments'],
-    );
+    const { rootSeen, relationSeen } = await run({ where: { published: 1 } });
     if (order === 'prismaNext first') {
       expect(rootSeen).toEqual([['Admin', 'alice@example.com', ['p-hello']], memberSeen]);
       expect(relationSeen).toEqual([memberSeen]);
     } else {
       // Documents a limitation: listed first, scope-auth's `isTypeOf` wraps this plugin's, so it
-      // reads the shared row, which keeps each implementation's copy of the relation apart.
+      // reads the shared row, which holds neither implementation's `posts`.
       expect(rootSeen).toEqual([
         ['Admin', 'alice@example.com', undefined],
         ['Member', 'bob@example.com', undefined],
