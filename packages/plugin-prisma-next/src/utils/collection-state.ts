@@ -1,6 +1,6 @@
 import type { CollectionState } from '@prisma/orm-family-sql/orm-client';
 
-// orm-client has no public accessor for this (`state` is `@internal`).
+// orm-client keeps `state` internal and has no public accessor for it.
 export function getCollectionPaginationState(collection: unknown): {
   ordered: boolean;
   orderBy: readonly unknown[];
