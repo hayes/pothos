@@ -1,128 +1,109 @@
-# Prisma ORM plugin architecture
+# Prisma Next plugin architecture
 
-Production code targets `@prisma/orm-framework` and `@prisma/orm-family-sql`.
-It does not construct a SQLite/PostgreSQL client, inspect a dialect, or choose a
-driver. Applications supply Collections and own connections and transactions.
+Production code depends on `@prisma/orm-framework` and `@prisma/orm-family-sql` (pinned to
+`8.0.0-rc.22`). It never constructs a client, inspects a dialect, or chooses a driver; applications
+pass their client (or a per-request client such as a transaction) and own connections and
+transactions. Concrete drivers appear only in tests and
+examples.
 
-## Selection planning and loading
+## Selection planning
 
-Every supported model field resolves from a selection-aware query.
-`prismaField` and `prismaFieldWithInput` require an unexecuted, model-scoped
-Collection. The plugin adds the GraphQL selection, waits for async selections,
-then calls `.all()`. Singular fields add `.limit(1)`; nullable fields can return
-null. Materialized row/array returns are rejected.
+- `prismaField` / `prismaFieldWithInput` require an unexecuted Collection. Their resolver applies
+  the plan from the shared selection mapper as `select` / `include` / `combine` calls, awaits async
+  selections, then calls `.all()` (with `.limit(1)` for singular fields). Materialized returns are
+  rejected.
+- The adapter is a `NodeAdapter`: field and type selections normalize to one query shape (columns,
+  relations, computed values), and merges, comparisons and conflicts are the mapper's. Join
+  columns come from the ORM, which adds hidden ones when `select()` narrows. N:M relations resolve
+  through the contract's `through` metadata.
+- A to-one relation is keyed by its name: the ORM includes it once (`combine` is to-many only,
+  `ORM.INCLUDE_UNSUPPORTED`), so its consumers merge or conflict, and a conflicting field loads
+  through the loader. Function-form to-one selections are always rejected.
+- A to-many relation is keyed by consumer scope: the type and alias of the field (and of the fields
+  above it), or the type for a type-level `select`. A relation whose consumers agree is one
+  include; otherwise each scope is one `combine` slot, so different arguments still load in one
+  statement. A resolver finds its scope through the position in its loader mapping and reads its
+  slots from a view with the row as prototype; shared rows are never mutated.
+- Relation queries compare by what identifies them (a declarative query, or the defining field
+  with its arguments for a callback, which builds a new closure per walk). Matching aliases alone
+  never establish compatibility.
 
-A configured `prismaNext.collections` provider enables a request-local model
-loader, following the Prisma and Drizzle plugins. The shared mapper records which
-fields an eager plan accepted. Unmapped fields compile a `Plan.forParentRow`,
-including their dependencies and compatible type prerequisites. Compatible plans
-merge into one batch; incompatible refinements get separate batches. Relation
-slots retain their defining GraphQL field or type through serialization and
-nested plans. Matching response aliases alone do not establish compatibility:
-function consumers must share their definition and bound arguments, while
-explicit relation refinements must agree. Synthetic connection counts retain
-their bound filter arguments too. Each batch
-queries all parent identities using `IN` or compound `OR` predicates and fans rows
-back by tagged identity. Per-row/path mappings prevent one fallback result from
-claiming another parent's selection coverage.
+## Fallback loader
 
-Fields without declared dependencies resolve directly. Loaded scalar fields keep
-their original parent identity; overlays are only used where selection routing
-requires them.
+Loads through `prismaNext.client`'s `orm`. Unmapped fields compile a `Plan.forParentRow` with their
+dependencies and compatible type prerequisites. Compatible plans share a batch; each batch queries
+all parent identities (`IN` or compound `OR`) and fans rows back by identity. `node(id:)` lookups
+use the same loader, batched per type and path. Per-row/path
+mappings keep one fallback result from claiming another parent's coverage.
 
-Provider-enabled planning selects a non-null primary or unique key on model rows.
-Providers supply unpaginated model Collections, preserving application filters
-and transaction bindings. Missing identities, excluded rows, missing providers,
-and batch errors reject the affected fields. Scalar, Date, bytes, and Decimal
-identity values are supported; opaque object identities are rejected pending an upstream public stable-row-identity
-or input-mapped bulk lookup primitive.
-
-With a provider, deferred fragments are omitted by default and load when GraphQL
-executes them. `skipDeferredFragments: false` keeps eager loading. Without a
-provider, deferred fields remain in the initial plan and explicit skipping is
-rejected. Incremental execution must register the `@defer` directive and keep
-any transaction alive through consumption of subsequent results.
-
-The shared selection-mapper handles fragments, aliases, variants, prerequisites
-and indirect wrapper paths. This plugin compiles its plan to Collection
-`select/include/combine` calls. One complete plan need not mean one SQL statement.
-
-## Consumers and normalization
-
-Cached relation metadata records target-model identity and join fields. The
-plugin selects parent join columns even when GraphQL did not ask for them.
-Prisma resolves N:M junctions from the contract's `through` metadata.
-
-Independent to-many consumers use combine slots. Compatible to-one consumers
-merge. RC9 rejects incompatible to-one combinations (`ORM.INCLUDE_UNSUPPORTED`).
-With a provider, compatibility checks leave conflicting consumers for separate
-multi-parent loads; without a provider the adapter rejects the plan before SQL.
-For a fallback field, its relation selection takes precedence over conflicting
-type prerequisites while compatible dependencies remain. Other fields retain
-their own mappings. Separate variant fields can load conflicting prerequisites
-in independent batches. Conflicting prerequisites on an object and its implemented
-interface still fail before SQL; move differing filters into field-level selections.
-Function-form to-one selections are rejected with guidance to use declarative
-selects or relation fields: public combine only supports to-many relations.
-
-Combine keys use `:`, forbidden in GraphQL names. Type prerequisites and field
-selections have independent namespaces. Immutable overlays route each resolver
-to its values without mutating rows shared by aliases/variants. The shared walker
-handles errors-plugin indirect result paths.
+- Identities are a non-null primary or unique key, selected automatically, and compared by the
+  column codec's stored form and its data type's `equalityKey` (decimals `0.5` and `0.50` match).
+- Loader Collections must be unpaginated. Missing identities, excluded rows, missing collections
+  and batch errors fail only the affected fields.
+- Fields a row already satisfies skip the loader, so hand-built and deleted rows resolve.
+- Deferred fragments are skipped by default and loaded on execution.
 
 ## Connections
 
-Connections accept an unpaginated base Collection. Cursor options describe the
-complete ordering: scalar/compound keys, explicit directions, null placement,
-and reversible application codecs. Nullable sort fields default to nulls last;
-the cursor must still contain a complete non-null primary/unique key. There is
-no implicit tie-breaker added to cursors.
+- Base Collections must be unpaginated and not `distinct`. Cursors describe the full ordering
+  (directions, null placement) and must contain a complete non-null unique key; no
+  tie-breaker is added implicitly.
+- Prisma's `orderBy` appends with no public reset, so an existing ordering must be a prefix of the
+  query order for the requested direction; missing entries are appended. The state is read, never
+  mutated.
+- Pages always seek with lexicographic keyset predicates with explicit null handling. Cursor and
+  node ID values are held in their column codec's stored form, in the shared tagged encoding
+  from core.
+- Related connections paginate inside the include. Counts use the filtered, pre-pagination
+  Collection and only run when selected.
 
-Prisma orderBy appends and has no public reset. A compatibility helper reads the
-pinned Collection state to reject pagination and check existing ordering before
-querying. Existing ordering must match a prefix of the cursor's query order;
-missing ordering entries are appended. Backward pages require reversed ordering,
-so an unordered base works for both directions. The helper never mutates ORM
-state. Recheck this seam on every upstream upgrade.
+## Nodes, aggregates, inheritance, namespaces
 
-Compatible single-bound pages with non-null keys use native cursor seeking;
-other bounds use lexicographic predicates respecting each direction and null
-placement. Nullable ordering uses shared ORM null-check expressions, without
-depending on a database's default null order. Overfetch and reversal build
-Relay pages. Shared core encoding preserves built-in scalar types; explicit
-codecs restore objects such as Temporal without dialect-specific code.
+- Node loads go through the fallback loader and brand rows for abstract resolution. Concrete
+  types don't get a brand-only `isTypeOf`. Cursor validation and identity selection share one
+  unique-key helper.
+- Aggregate operations, fields and result types derive from the contract's `AggregateTypes`.
+- A native inheritance hierarchy shares one planner model. Interfaces select the discriminator;
+  variant returns must be `orm.Base.variant(value)`. Pothos variants remain same-model views.
+- Model keys are bare when unique and `ns.Model` otherwise, resolved in `src/utils/contract.ts`.
 
-Related connections paginate inside the include plan. Counts use the filtered,
-pre-pagination Collection/relation. Count-only selections avoid loading page rows;
-unselected counts are not executed. All execution uses the supplied client and
-must remain within its transaction lifetime. Mutation resolvers perform writes
-then return a Collection; serial GraphQL mutation fields finish their nested
-results before the next write. GraphQL execution errors resolve in the result,
-so applications must throw when their transaction policy requires rollback.
+## Upstream internals
 
-## Nodes and aggregates
+Recheck these on every Prisma upgrade:
 
-Node loads batch per request, GraphQL type and path, apply selections, and route
-results by ID. Loader rows are branded for abstract resolution. Concrete node
-fields do not install a brand-only isTypeOf; custom predicates are respected.
-Compound IDs use tagged values and optional per-field application codecs.
-Single-column Date IDs also use lossless batch keys, preserving milliseconds.
-Cursor validation and fallback identity selection share one unique-key metadata
-helper, including mapped fields and exclusion of nullable or partial unique keys.
+- `src/types.ts` rebuilds include-refinement types Prisma doesn't export.
+- `src/utils/collection-state.ts` reads the `@internal` Collection `state.orderBy`, `limit`,
+  `offset`, `cursor`, `distinct` and `distinctOn` to validate connection bases, since there is no
+  public accessor or `orderBy` reset.
+- `src/utils/contract.ts` reads the `@internal` `state.variantValue` to require
+  `orm.Base.variant(value)` for variant returns.
+- `src/utils/config.ts` reads a collection's `@internal` `ctx.context` for the codecs of a
+  per-request client that doesn't expose `context`, such as a transaction.
+- Test fixture generators map the `@internal/*` specifiers the emitter leaves in declarations.
 
-Aggregate operations/fields/results derive from emitted AggregateTypes. Count
-defaults to Int and other numeric operations to Float. Non-number results require
-an explicit compatible GraphQL type. Function-form selections remain available
-for custom projections, including lossless/custom aggregate operations.
+When the pin changes, regenerate the fixtures and rerun the integration tests.
 
-## Verification and limits
+## Database coverage
 
-SQLite and PostgreSQL tests exercise the same plugin. PostgreSQL covers lossless
-included values, Temporal cursors and transactions. Type tests cover returns,
-nullability and aggregate types. Incremental execution and scope-auth have runtime
-coverage. See [release status](./docs/release-status.md).
+- SQLite and PostgreSQL run the full suite. PostgreSQL covers lossless values, Temporal cursors
+  and transactions. `postgresServerless()` is tested against a local server only.
+- MySQL 8.4 reads are tested when `POTHOS_PRISMA_NEXT_MYSQL_URL` is set (not in CI). Its contracts
+  declare no aggregates, so count options are compile errors (with a runtime error for untyped
+  callers), and ORM writes need `returning`.
+- MongoDB is rejected at schema build: on rc.22 its Collections have no `combine`, cursor or
+  aggregates, and silently ignore include refinements and `where` callbacks.
 
-MongoDB requires its own real adapter: its contract/Collection family differs
-from SQL. The shared GraphQL walker is reusable, but widening SQL types cannot
-supply missing Mongo operations. Bare model names must be unique across contract
-namespaces; Pothos variants do not imply native ORM inheritance support.
+## Testing
+
+PostgreSQL runs on port 5456 (database `prisma_next`, user and password `prisma`) or
+`POTHOS_PRISMA_NEXT_DATABASE_URL`. MySQL tests skip unless `POTHOS_PRISMA_NEXT_MYSQL_URL` is set;
+CI doesn't provision MySQL.
+
+```sh
+pnpm --filter @pothos/plugin-prisma-next... build
+pnpm --filter @pothos/plugin-prisma-next type
+pnpm --filter @pothos/plugin-prisma-next test
+```
+
+Type checking includes an isolated scope-auth project so its global option augmentation doesn't
+leak into other tests.

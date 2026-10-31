@@ -1,0 +1,119 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`example schema > generates the expected schema 1`] = `
+"type Comment {
+  author: User!
+  body: String
+  post: Post!
+  ref: String
+  shout: String
+}
+
+interface Node {
+  id: ID!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Post {
+  author: User!
+  commentCount: Int!
+  comments: [Comment!]!
+  id: ID
+  isPublished: Int
+  score: Float
+  title: String
+}
+
+type Query {
+  node(id: ID!): Node
+  nodes(ids: [ID!]!): [Node]!
+  posts: [Post!]
+  postsByDate(after: String, before: String, first: Int, last: Int): QueryPostsByDateConnection
+  user(email: String!): User
+  users: [User!]
+  usersConnection(after: String, before: String, first: Int, last: Int): QueryUsersConnection
+}
+
+type QueryPostsByDateConnection {
+  edges: [QueryPostsByDateConnectionEdge]
+  nodes: [Post]
+  pageInfo: PageInfo!
+}
+
+type QueryPostsByDateConnectionEdge {
+  cursor: String!
+  node: Post
+}
+
+type QueryUsersConnection {
+  edges: [QueryUsersConnectionEdge]
+  nodes: [User]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type QueryUsersConnectionEdge {
+  cursor: String!
+  node: User
+}
+
+type User implements Node {
+  basic: UserBasic!
+  comments: [Comment!]!
+  constant: String
+  countByFlag(flag: Int!): Int!
+  drafts: [Post!]!
+  email: String
+  firstName: String
+  fullName: String
+  greeting(formal: Boolean!): String
+  id: ID!
+  lastName: String
+  maxPublished: Float
+  minPublished: Float
+  postCount: Int!
+  postStats: String
+  postTitles: String
+  posts: [Post!]!
+  postsByPublished(published: Int!): [Post!]!
+  postsConnection(after: String, before: String, first: Int, last: Int): UserPostsConnection
+  publishedConnection(after: String, before: String, first: Int, last: Int): UserPublishedConnection
+  publishedCount: Int!
+  publishedPosts: [Post!]!
+}
+
+type UserBasic {
+  firstName: String
+  posts: [Post!]!
+}
+
+type UserPostsConnection {
+  edges: [UserPostsConnectionEdge]
+  nodes: [Post]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserPostsConnectionEdge {
+  cursor: String!
+  node: Post
+}
+
+type UserPublishedConnection {
+  edges: [UserPublishedConnectionEdge]
+  nodes: [Post]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserPublishedConnectionEdge {
+  cursor: String!
+  node: Post
+}"
+`;

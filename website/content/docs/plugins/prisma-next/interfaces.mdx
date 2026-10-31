@@ -1,0 +1,95 @@
+---
+title: Interfaces
+description: GraphQL interfaces backed by contract models
+---
+
+`builder.prismaInterface` takes the same options as `builder.prismaObject` and creates an
+interface. Objects implementing it must use the same model:
+
+```ts
+const Person = builder.prismaInterface('User', {
+  name: 'Person',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    firstName: t.exposeString('firstName'),
+  }),
+});
+
+builder.prismaObject('User', {
+  interfaces: [Person],
+  isTypeOf: () => true,
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+```
+
+`t.prismaField`, `t.prismaConnection`, and `t.relation` can return an interface. Give the
+implementations an `isTypeOf`, or the interface a `resolveType`, and list the columns they read in
+`select`:
+
+```ts
+builder.queryFields((t) => ({
+  people: t.prismaField({
+    type: [Person],
+    resolve: (_root, _args, ctx) => ctx.db.orm.User,
+  }),
+}));
+```
+
+Add fields with `prismaInterfaceField` or `prismaInterfaceFields`, passing the ref:
+
+```ts
+builder.prismaInterfaceField(Person, 'displayName', (t) =>
+  t.string({
+    select: ['firstName', 'lastName'],
+    resolve: (person) => `${person.firstName} ${person.lastName}`,
+  }),
+);
+```
+
+Interfaces accept `variant` like objects do.
+
+## Native inheritance
+
+A base model with variants in the contract maps to an interface, with an object for each variant.
+The interface selects the discriminator and resolves each row to its variant's type:
+
+```ts
+const task = builder.prismaInterface('Task', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    owner: t.relation('owner'),
+  }),
+});
+
+builder.prismaObject('Bug', {
+  interfaces: [task],
+  fields: (t) => ({
+    severity: t.exposeString('severity'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    tasks: t.prismaField({
+      type: [task],
+      resolve: (_root, _args, ctx) => ctx.db.orm.Task,
+    }),
+    bugs: t.prismaField({
+      type: ['Bug'],
+      resolve: (_root, _args, ctx) => ctx.db.orm.Task.variant('bug'),
+    }),
+  }),
+});
+```
+
+- Return a variant type from `orm.Base.variant(value)`. `orm.Bug` isn't filtered by Prisma, so it
+  is rejected.
+- Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
+- `prismaNode` works on a variant, and loads it through `orm.Task.variant('feature')`.
+- A relation declared on a variant loads under `... on Bug` in a separate batched query.
+- `t.relation` and `t.relatedConnection` with a variant `type` only return, and count, that
+  variant's rows.
+- The relations a variant inherits load in a separate batched query when a relation targets the
+  variant model.

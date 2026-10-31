@@ -1,0 +1,67 @@
+---
+title: Variants
+description: Multiple GraphQL types backed by the same contract model
+---
+
+A variant is an additional GraphQL type for a model. Define one with `variant` instead of `name`:
+
+```ts
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    drafts: t.relation('posts', { query: { where: { published: 0 } } }),
+  }),
+});
+```
+
+Use the returned ref wherever the variant is needed. The model name always refers to the
+primary type, so register one with `prismaObject('User', ...)` if any field refers to `'User'`.
+
+Return a variant from a relation with `type`:
+
+```ts
+author: t.relation('author', { type: Viewer }),
+```
+
+Or from a root field:
+
+```ts
+builder.queryFields((t) => ({
+  viewer: t.prismaField({
+    type: Viewer,
+    nullable: true,
+    resolve: (_root, _args, ctx) => ctx.db.orm.User.where((user) => user.id.eq(ctx.userId)),
+  }),
+}));
+```
+
+## Variant fields
+
+`t.variant` exposes the same row as another variant, without another query. `isNull` returns
+`null` instead; it can only read columns listed in `select`:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    viewer: t.variant(Viewer, {
+      select: ['id'],
+      isNull: (user, _args, ctx) => user.id !== ctx.userId,
+    }),
+  }),
+});
+```
+
+## Adding fields
+
+Pass the variant's ref to `prismaObjectField` or `prismaObjectFields`:
+
+```ts
+builder.prismaObjectField(Viewer, 'displayName', (t) =>
+  t.string({
+    select: ['firstName', 'lastName'],
+    resolve: (user) => `${user.firstName} ${user.lastName}`,
+  }),
+);
+```

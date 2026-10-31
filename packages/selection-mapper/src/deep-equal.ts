@@ -29,6 +29,10 @@ export function deepEqual(left: unknown, right: unknown): boolean {
       return true;
     }
 
+    if (isOpaque(left) || isOpaque(right)) {
+      return opaqueEqual(left, right);
+    }
+
     const lValue = left.valueOf?.();
     const rValue = right.valueOf?.();
 
@@ -60,6 +64,44 @@ export function deepEqual(left: unknown, right: unknown): boolean {
   }
 
   return false;
+}
+
+/**
+ * Instances with no enumerable state or primitive value (Temporal values, private fields) would
+ * all compare equal structurally, and Temporal's `valueOf` throws.
+ */
+function isOpaque(value: object) {
+  const proto = Object.getPrototypeOf(value);
+
+  if (
+    proto === null ||
+    proto === Object.prototype ||
+    ArrayBuffer.isView(value) ||
+    Object.keys(value).length > 0
+  ) {
+    return false;
+  }
+
+  try {
+    const primitive = value.valueOf();
+    return primitive == null || typeof primitive === 'object';
+  } catch {
+    return true;
+  }
+}
+
+function opaqueEqual(left: object, right: object) {
+  const { equals } = left as { equals?: unknown };
+
+  if (typeof equals !== 'function') {
+    return false;
+  }
+
+  try {
+    return equals.call(left, right) === true;
+  } catch {
+    return false;
+  }
 }
 
 function comparedKeys(value: Record<string, unknown>) {

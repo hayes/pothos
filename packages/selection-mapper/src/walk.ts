@@ -17,6 +17,7 @@ import {
   type GraphQLNamedType,
   getNamedType,
   type InlineFragmentNode,
+  isAbstractType,
   isInterfaceType,
   isObjectType,
   Kind,
@@ -256,13 +257,21 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
       continue;
     }
 
-    const as = fragmentTypeOf(plan, type, fragment);
+    const types = fragmentTypesOf(plan, type, fragment);
+    // A fragment on an abstract type of no model enters its implementations only if it selects
+    // fields of its own; nested fragments are classified separately.
+    const enters =
+      !isExpansion(plan, type, fragment) || selectsFields(fragment.selectionSet.selections);
 
-    if (as && as !== type) {
-      enterVariant(plan, type, as);
+    for (const as of types) {
+      if (as !== type && enters) {
+        enterVariant(plan, type, as);
+      }
     }
 
-    enterVariants(plan, as ?? type, fragment.selectionSet.selections, visited);
+    for (const as of types.length > 0 ? types : [type]) {
+      enterVariants(plan, as, fragment.selectionSet.selections, visited);
+    }
   }
 }
 
@@ -294,17 +303,19 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
       continue;
     }
 
-    const as = fragmentTypeOf(plan, type, fragment);
+    const types = fragmentTypesOf(plan, type, fragment);
 
-    walkSelections(
-      plan,
-      as ?? type,
-      fragment.selectionSet.selections,
-      indirectPath,
-      // An untyped fragment inherits; a typed one applies iff it can apply to `type`.
-      fragment.typeCondition ? as !== undefined : fieldsApply,
-      visited,
-    );
+    for (const as of types.length > 0 ? types : [type]) {
+      walkSelections(
+        plan,
+        as,
+        fragment.selectionSet.selections,
+        indirectPath,
+        // An untyped fragment inherits; a typed one applies iff it can apply to `type`.
+        fragment.typeCondition ? types.length > 0 : fieldsApply,
+        visited,
+      );
+    }
   }
 }
 
@@ -324,42 +335,82 @@ function applicableFragment<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * The type to walk `fragment` as while walking `type`, or undefined when the fragment cannot
- * apply to `type` (its fields are suppressed; nested fragments are still classified against
- * `type`). An untyped fragment inherits `type`. An object type accepts a fragment on itself or on
- * an interface it implements, walked as itself: a plan on an object type is a plan on rows of that
- * type, so a fragment on any other object type cannot apply to them. An interface accepts a
- * fragment on another type of the same model, walked as that type, so that type's own selection
- * is planned for the rows that resolve to it.
+ * The types to walk `fragment` as while walking `type`, or none when the fragment cannot apply to
+ * `type` (its fields are suppressed; nested fragments are still classified against `type`). An
+ * untyped fragment inherits `type`. An object type accepts a fragment on itself or on an abstract
+ * type containing it, walked as itself: a plan on an object type is a plan on rows of that type,
+ * so a fragment on any other object type cannot apply to them. An interface accepts a fragment on
+ * an interface it implements, walked as itself, and a fragment on another type of the same model,
+ * walked as that type, so that type's own selection is planned for the rows that resolve to it.
+ * A fragment on an abstract type of no model (`... on Node` beneath a model interface) is walked
+ * as each implementation of `type` it contains.
  */
-function fragmentTypeOf<Model, Query, NodeType extends NodeBase<Model>>(
+function fragmentTypesOf<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   type: WalkedType,
   fragment: Fragment,
-): WalkedType | undefined {
+): WalkedType[] {
   if (!fragment.typeCondition) {
-    return type;
+    return [type];
   }
 
-  const condition = plan.info.schema.getType(fragment.typeCondition.name.value)!;
+  const { schema } = plan.info;
+  const condition = schema.getType(fragment.typeCondition.name.value)!;
 
   if (condition === type) {
-    return type;
+    return [type];
   }
 
-  if (isInterfaceType(condition) && type.getInterfaces().includes(condition)) {
-    return type;
+  if (isAbstractType(condition) && schema.isSubType(condition, type)) {
+    return [type];
   }
+
+  if (!isInterfaceType(type)) {
+    return [];
+  }
+
+  const model = plan.adapter.modelFor(type);
 
   if (
-    isInterfaceType(type) &&
     (isObjectType(condition) || isInterfaceType(condition)) &&
-    plan.adapter.modelFor(condition) === plan.adapter.modelFor(type)
+    plan.adapter.modelFor(condition) === model
   ) {
-    return condition;
+    return [condition];
   }
 
-  return undefined;
+  if (isAbstractType(condition)) {
+    return schema
+      .getPossibleTypes(type)
+      .filter(
+        (possible) =>
+          schema.isSubType(condition, possible) && plan.adapter.modelFor(possible) === model,
+      );
+  }
+
+  return [];
+}
+
+function isExpansion<Model, Query, NodeType extends NodeBase<Model>>(
+  plan: Plan<Model, Query, NodeType>,
+  type: WalkedType,
+  fragment: Fragment,
+): boolean {
+  if (!fragment.typeCondition || !isInterfaceType(type)) {
+    return false;
+  }
+  const condition = plan.info.schema.getType(fragment.typeCondition.name.value)!;
+  return (
+    condition !== type &&
+    isAbstractType(condition) &&
+    !plan.info.schema.isSubType(condition, type) &&
+    plan.adapter.modelFor(condition) !== plan.adapter.modelFor(type)
+  );
+}
+
+function selectsFields(selections: readonly SelectionNode[]): boolean {
+  return selections.some(
+    (selection) => selection.kind === Kind.FIELD && !selection.name.value.startsWith('__'),
+  );
 }
 
 /** Collects what `fieldNode` (a field of `type`) selects. */

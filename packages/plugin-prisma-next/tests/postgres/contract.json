@@ -11,6 +11,14 @@
     "pothos_next_entry": {
       "model": "Entry",
       "namespace": "public"
+    },
+    "pothos_next_event": {
+      "model": "Event",
+      "namespace": "public"
+    },
+    "pothos_next_token": {
+      "model": "Token",
+      "namespace": "public"
     }
   },
   "domain": {
@@ -126,6 +134,7 @@
             "relations": {
               "account": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "accountId"
@@ -170,6 +179,88 @@
               "namespaceId": "public",
               "table": "pothos_next_entry"
             }
+          },
+          "Event": {
+            "fields": {
+              "at": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "label": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "at": {
+                  "column": "at"
+                },
+                "label": {
+                  "column": "label"
+                }
+              },
+              "namespaceId": "public",
+              "table": "pothos_next_event"
+            }
+          },
+          "Token": {
+            "fields": {
+              "bin": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bytea@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "label": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "wide": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int8@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "bin": {
+                  "column": "bin"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "label": {
+                  "column": "label"
+                },
+                "wide": {
+                  "column": "wide"
+                }
+              },
+              "namespaceId": "public",
+              "table": "pothos_next_token"
+            }
           }
         }
       }
@@ -184,66 +275,72 @@
               "columns": {
                 "id": {
                   "codecId": "pg/text@1",
-                  "nativeType": "text",
+                  "dataType": "pg/text",
                   "nullable": false
                 },
                 "name": {
                   "codecId": "pg/text@1",
-                  "nativeType": "text",
+                  "dataType": "pg/text",
                   "nullable": false
                 }
               },
+              "foreignKeys": [],
+              "indexes": [],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
-              }
+              },
+              "uniques": []
             },
             "pothos_next_entry": {
               "columns": {
                 "accountId": {
                   "codecId": "pg/text@1",
-                  "nativeType": "text",
+                  "dataType": "pg/text",
                   "nullable": false
                 },
                 "amount": {
                   "codecId": "pg/float8@1",
-                  "nativeType": "float8",
+                  "dataType": "pg/float8",
                   "nullable": false
                 },
                 "createdAt": {
                   "codecId": "pg/timestamptz-temporal@1",
-                  "nativeType": "timestamptz",
+                  "dataType": "pg/timestamptz",
                   "nullable": false
                 },
                 "exact": {
                   "codecId": "pg/numeric@1",
-                  "nativeType": "numeric",
+                  "dataType": "pg/numeric",
                   "nullable": false
                 },
                 "id": {
                   "codecId": "pg/text@1",
-                  "nativeType": "text",
+                  "dataType": "pg/text",
                   "nullable": false
                 },
                 "payload": {
                   "codecId": "pg/bytea@1",
-                  "nativeType": "bytea",
+                  "dataType": "pg/bytea",
                   "nullable": false
                 },
                 "sortLabel": {
                   "codecId": "pg/text@1",
-                  "nativeType": "text",
+                  "dataType": "pg/text",
                   "nullable": true
                 },
                 "wide": {
                   "codecId": "pg/int8@1",
-                  "nativeType": "int8",
+                  "dataType": "pg/int8",
                   "nullable": false
                 }
               },
               "foreignKeys": [
                 {
+                  "index": {
+                    "name": "pothos_next_entry_accountId_idx_cbfb3085"
+                  },
                   "source": {
                     "columns": [
                       "accountId"
@@ -266,14 +363,81 @@
                     "accountId"
                   ],
                   "name": "pothos_next_entry_accountId_idx_cbfb3085",
-                  "prefix": "pothos_next_entry_accountId_idx"
+                  "prefix": "pothos_next_entry_accountId_idx",
+                  "unique": false
                 }
               ],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
-              }
+              },
+              "uniques": []
+            },
+            "pothos_next_event": {
+              "columns": {
+                "at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": false
+                },
+                "label": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "at"
+                ]
+              },
+              "uniques": []
+            },
+            "pothos_next_token": {
+              "columns": {
+                "bin": {
+                  "codecId": "pg/bytea@1",
+                  "dataType": "pg/bytea",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/numeric@1",
+                  "dataType": "pg/numeric",
+                  "nullable": false
+                },
+                "label": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "wide": {
+                  "codecId": "pg/int8@1",
+                  "dataType": "pg/int8",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "wide"
+                  ]
+                },
+                {
+                  "columns": [
+                    "bin"
+                  ]
+                }
+              ]
             }
           }
         },
@@ -281,11 +445,13 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "baff9b060adc3636183b14bcc2126e5d44c04a3ed0565dcb23797919ea43d41a"
+    "storageHash": "5cea077c9e93fa53c63cb679e633fa425564b044951fc0353b4752b1854b79cf"
   },
   "capabilities": {
     "postgres": {
       "distinctOn": true,
+      "forKeyShare": true,
+      "forNoKeyUpdate": true,
       "jsonAgg": true,
       "lateral": true,
       "limit": true,
@@ -296,7 +462,14 @@
       "checkConstraint": true,
       "defaultInInsert": true,
       "enums": true,
+      "forShare": true,
+      "forUpdate": true,
+      "insertOnConflictSkip": true,
+      "insertOnConflictWithoutTarget": true,
       "lateral": true,
+      "lockNowait": true,
+      "lockOf": true,
+      "lockSkipLocked": true,
       "returning": true,
       "scalarList": true
     }

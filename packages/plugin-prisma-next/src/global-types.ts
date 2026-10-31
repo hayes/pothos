@@ -6,6 +6,7 @@ import type {
   InputFieldMap,
   InterfaceParam,
   ObjectRef,
+  OutputType,
   PluginName,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -14,6 +15,7 @@ import type {
 import type { PothosPrismaNextPlugin } from './index.js';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type {
+  ExactSelectCheck,
   ObjectBaseShape,
   ParamToModelName,
   ParamToTypeParam,
@@ -22,60 +24,52 @@ import type {
 } from './internal-types.js';
 import type { PrismaNextNodeRef } from './node-ref.js';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
+import type { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 import type {
   AnyContract,
-  CollectionFor,
   CursorSpec,
   ModelName,
   PrismaNextConnectionFieldOptions,
+  PrismaNextInterfaceOptions,
   PrismaNextObjectFieldOptions,
   PrismaNextObjectOptions,
   PrismaNextPluginOptions,
   PrismaNextRootFieldOptions,
   PrismaNextRootFieldWithInputOptions,
+  ResolverCollection,
   Row,
 } from './types.js';
 
-/**
- * Shape inferred from a `prismaObject`'s `select` option.
- *
- * Carries only what the user has explicitly declared as a dependency,
- * plus the `[prismaModelKey]?: M` brand the field builder uses to
- * recognise prismaObject parents. Defaulting to the full `Row<M>`
- * would lie about what's actually loaded at runtime — the plugin only
- * pulls columns that some `select` or `t.expose*` named.
- *
- *   - undefined select → brand only.
- *   - Array form `['col', ...]` → brand + picked columns.
- *   - Object form `{ col: true, rel: true, … }` → brand + columns +
- *     relations + function-form keys (counts, aggregates).
- *
- * Field-level `select` on individual `t.field` declarations layers
- * additively on top of this via `ShapeFromSelect`.
- */
 type ObjectLevelShape<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   Select,
 > = ShapeFromObjectSelect<Types, M, never, Select>;
 
-type UnknownSelectKeys<
+/**
+ * Merged beside a plain `select?: Select`, which stays the only inference site: inferring through
+ * an intersection would narrow a union `Select` to one member. This adds completions and checks.
+ */
+type TypeSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = {
+  select?: (readonly (keyof Row<Types, M> & string)[] | SelectObjectSpec<Types, M>) &
+    NoInfer<
+      ExactSelectCheck<Types, M, Select> &
+        (Select extends readonly unknown[]
+          ? { readonly [K in keyof Select]: Select[K] & keyof Row<Types, M> }
+          : unknown)
+    >;
+};
+
+/** A node ID's decoded values: the column's value, or a tuple for a compound ID. */
+type IdValues<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-  Select,
-> = Select extends readonly unknown[]
-  ? never
-  : Select extends object
-    ? Exclude<keyof Select, keyof SelectObjectSpec<Types, M>>
+  IDFields,
+> = IDFields extends readonly (keyof Row<Types, M>)[]
+  ? { -readonly [K in keyof IDFields]: Row<Types, M>[IDFields[K] & keyof Row<Types, M>] }
+  : IDFields extends keyof Row<Types, M>
+    ? Row<Types, M>[IDFields]
     : never;
-
-type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = [
-  UnknownSelectKeys<Types, M, Select>,
-] extends [never]
-  ? unknown
-  : {
-      [K in UnknownSelectKeys<Types, M, Select> & string as `Unknown key in select: ${K}`]: never;
-    };
 
 type IdFieldShape<
   Types extends SchemaTypes,
@@ -102,15 +96,8 @@ declare global {
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      // `Extract<…, AnyContract>` drops the optional `undefined` (so this
-      // satisfies the `SchemaTypes` constraint that `PrismaNextContract` is an
-      // `AnyContract`) while resolving to exactly the user's contract — unlike
-      // `& object`, which produced a distinct `Contract & object` type that,
-      // because orm-client's `Collection` is invariant in its contract param,
-      // degraded the contract-derived method types. Cast-free resolvers that
-      // return `db.orm.<M>` are accepted via the model-scoped `ResolverCollection`
-      // in `./types` (which omits the mutation terminals — the only part of the
-      // surface the constrained contract copy computes differently).
+      // `Extract` drops `undefined` but keeps the user's exact contract; `& object` would make a
+      // new type, and `Collection` is invariant in its contract.
       PrismaNextContract: undefined extends PartialTypes['PrismaNextContract']
         ? AnyContract
         : Extract<PartialTypes['PrismaNextContract'], AnyContract>;
@@ -120,15 +107,58 @@ declare global {
       PrismaNextObject: 'Object';
     }
 
-    // Empty fallbacks so scope-auth-typed references compile when
-    // plugin-scope-auth isn't loaded. plugin-scope-auth declaration-merges
-    // real fields onto these.
+    // Filled in by plugin-scope-auth when it's loaded.
     export interface ScopeAuthFieldAuthScopes<
       Types extends SchemaTypes,
       Parent,
       Args extends {} = {},
     > {}
     export interface ScopeAuthContextForAuth<Types extends SchemaTypes, Scopes extends {}> {}
+
+    // Filled in by plugin-relay when it's loaded.
+    export interface ConnectionFieldOptions<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends OutputType<Types>,
+      Nullable extends boolean,
+      EdgeNullability extends FieldNullability<[unknown]>,
+      NodeNullability extends boolean,
+      Args extends InputFieldMap,
+      ResolveReturnShape,
+    > {}
+
+    export interface ConnectionObjectOptions<
+      Types extends SchemaTypes,
+      Type extends OutputType<Types>,
+      EdgeNullability extends FieldNullability<[unknown]>,
+      NodeNullability extends boolean,
+      Resolved,
+      Interfaces extends InterfaceParam<Types>[] = [],
+    > {}
+
+    export interface ConnectionEdgeObjectOptions<
+      Types extends SchemaTypes,
+      Type extends OutputType<Types>,
+      NodeNullability extends boolean,
+      Resolved,
+      Interfaces extends InterfaceParam<Types>[] = [],
+    > {}
+
+    export interface DefaultConnectionArguments {
+      first?: number | null | undefined;
+      last?: number | null | undefined;
+      before?: string | null | undefined;
+      after?: string | null | undefined;
+    }
+
+    // Filled in by plugin-with-input when it's loaded.
+    export interface FieldWithInputBaseOptions<
+      Types extends SchemaTypes,
+      Args extends InputFieldMap,
+      Fields extends InputFieldMap,
+      InputName extends string,
+      ArgRequired extends boolean,
+    > {}
 
     export interface FieldOptionsByKind<
       Types extends SchemaTypes,
@@ -160,7 +190,7 @@ declare global {
         modelName: M,
         options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
           select?: Select;
-        },
+        } & TypeSelectCheck<Types, M, Select>,
       ) => PrismaNextObjectRef<Types, M, Shape>;
 
       prismaInterface: <
@@ -170,31 +200,23 @@ declare global {
         Shape = ObjectLevelShape<Types, M, Select>,
       >(
         modelName: M,
-        options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
+        options: Omit<PrismaNextInterfaceOptions<Types, M, Shape, Interfaces>, 'select'> & {
           select?: Select;
-        },
+        } & TypeSelectCheck<Types, M, Select>,
       ) => PrismaNextInterfaceRef<Types, M, Shape>;
 
       prismaObjectField: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fieldName: string,
         field: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
-            Types,
-            M,
-            Shape & { [prismaModelKey]?: M }
-          >,
+          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
         ) => FieldRef<Types, unknown>,
       ) => void;
 
       prismaObjectFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fields: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
-            Types,
-            M,
-            Shape & { [prismaModelKey]?: M }
-          >,
+          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
         ) => FieldMap,
       ) => void;
 
@@ -202,22 +224,14 @@ declare global {
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fieldName: string,
         field: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
-            Types,
-            M,
-            Shape & { [prismaModelKey]?: M }
-          >,
+          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
         ) => FieldRef<Types, unknown>,
       ) => void;
 
       prismaInterfaceFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fields: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
-            Types,
-            M,
-            Shape & { [prismaModelKey]?: M }
-          >,
+          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
         ) => FieldMap,
       ) => void;
 
@@ -225,42 +239,35 @@ declare global {
         ? <
             const Interfaces extends InterfaceParam<Types>[],
             M extends ModelName<Types>,
-            const Select extends
-              | readonly (keyof Row<Types, M> & string)[]
-              | SelectObjectSpec<Types, M>
-              | undefined = undefined,
+            const Select = unknown,
             Shape = ObjectLevelShape<Types, M, Select>,
-            IDShape = string,
             const IDFields extends
               | (keyof Row<Types, M> & string)
               | readonly [
                   keyof Row<Types, M> & string,
                   ...(keyof Row<Types, M> & string)[],
                 ] = keyof Row<Types, M> & string,
+            IDShape = IdValues<Types, M, IDFields>,
           >(
             modelName: M,
             options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
               select?: Select;
               id: {
-                /** Column name or non-empty tuple for composite primary keys (encoded as a JSON array). */
+                /** A column, or a tuple of columns for a composite key. */
                 field: IDFields;
                 description?: string;
-                /** Restore nonstandard ORM values such as Temporal and Decimal IDs. */
-                codecs?: {
-                  [Key in keyof Row<Types, M>]?: import('./utils/cursors.js').CursorValueCodec<
-                    Row<Types, M>[Key]
-                  >;
-                };
+                /** Replaces the default decoding; IDs are then the plain value or a JSON tuple. */
                 parse?: (id: string, ctx: Types['Context']) => IDShape;
                 resolve?: (
                   parent: Shape & IdFieldShape<Types, M, IDFields>,
                   ctx: Types['Context'],
                 ) => string | number;
               };
-              collection:
-                | CollectionFor<Types, M>
-                | ((ctx: Types['Context']) => CollectionFor<Types, M>);
-            } & { select?: ExactSelectCheck<Types, M, Select> },
+              /** Defaults to the client's collection; a variant's loads through `orm.Base.variant(value)`. */
+              collection?:
+                | ResolverCollection<Types, M>
+                | ((ctx: Types['Context']) => ResolverCollection<Types, M>);
+            } & TypeSelectCheck<Types, M, Select>,
           ) => PrismaNextNodeRef<Types, M, Shape, IDShape>
         : '@pothos/plugin-relay is required to use this method';
     }
@@ -276,7 +283,9 @@ declare global {
           | ModelName<Types>
           | [ModelName<Types>]
           | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-          | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>],
+          | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
+          | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
+          | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
         Nullable extends FieldNullability<Type>,
         ResolveReturnShape,
         M extends ModelName<Types> = ParamToModelName<Types, Param>,
@@ -301,7 +310,9 @@ declare global {
               | ModelName<Types>
               | [ModelName<Types>]
               | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>],
+              | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
+              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
+              | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
             Nullable extends FieldNullability<Type>,
             ResolveReturnShape,
             Fields extends InputFieldMap = {},
@@ -337,7 +348,9 @@ declare global {
               | ModelName<Types>
               | [ModelName<Types>]
               | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>],
+              | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
+              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
+              | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
             Nullable extends boolean,
             ResolveReturnShape,
             ConnectionInterfaces extends InterfaceParam<Types>[] = [],

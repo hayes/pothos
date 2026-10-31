@@ -1,39 +1,28 @@
 import {
   type FieldKind,
   type InputFieldMap,
-  PothosSchemaError,
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
+import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextObjectRef } from './object-ref.js';
-import type {
-  AnyContract,
-  CursorSpec,
-  ModelName,
-  PrismaNextConnectionFieldOptions,
-} from './types.js';
+import type { CursorSpec, ModelName, PrismaNextConnectionFieldOptions } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { createApply } from './utils/apply.js';
+import { getPluginConfig } from './utils/config.js';
+import { aggregateCount, connectionNeedsRows, connectionSettings } from './utils/connections.js';
+import { assertVariantCollection } from './utils/contract.js';
 import {
   applyCursorPagination,
   assertUnpaginatedCollection,
   buildConnectionPage,
   type CursorInput,
   normalizeCursor,
+  type RequestOrderBy,
   validateCursor,
 } from './utils/cursors.js';
-import {
-  mapperOptionsFromPluginOpts,
-  readPluginOptions,
-  resolveSizeOption,
-} from './utils/options.js';
+import { applySelectionToCollection } from './utils/map-query.js';
 import { getRefFromContractModel } from './utils/refs.js';
-import {
-  buildTotalCountPromise,
-  connectionNeedsRows,
-  wrapConnectionOptionsWithTotalCount,
-} from './utils/total-count.js';
 
 const rootFieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -52,10 +41,8 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   ResolveReturnShape,
 >(
   this: typeof rootFieldBuilderProto & {
-    builder: PothosSchemaTypes.SchemaBuilder<Types> & {
-      options: { prismaNext?: { contract: AnyContract } };
-    };
-    connection?: (cfg: object, c?: object, e?: object) => unknown;
+    builder: PothosSchemaTypes.SchemaBuilder<Types>;
+    connection: (cfg: object, c?: object, e?: object) => unknown;
   },
   options: PrismaNextConnectionFieldOptions<
     Types,
@@ -70,8 +57,6 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   connectionOptions: object = {},
   edgeOptions: object = {},
 ) {
-  // `query` is a porting sentinel on the option type — strip it so a JS
-  // caller bypassing the type gate doesn't smuggle it through.
   const {
     type,
     cursor,
@@ -79,47 +64,43 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
     maxSize,
     resolve,
     totalCount,
+    orderBy,
     query: _querySentinel,
     ...rest
   } = options as {
     type: unknown;
     cursor: unknown;
-    defaultSize?: unknown;
-    maxSize?: unknown;
-    resolve: unknown;
+    defaultSize?: number | ((args: unknown, ctx: unknown) => number);
+    maxSize?: number | ((args: unknown, ctx: unknown) => number);
+    resolve: (
+      parent: unknown,
+      args: unknown,
+      ctx: unknown,
+      info: GraphQLResolveInfo,
+    ) => MapperCollection | null | Promise<MapperCollection | null>;
     totalCount?:
       | boolean
       | ((parent: unknown, args: unknown, ctx: unknown, info: GraphQLResolveInfo) => unknown);
+    orderBy?: (model: never, args: unknown, ctx: unknown) => ReturnType<RequestOrderBy>;
     query?: unknown;
     [k: string]: unknown;
   };
   const ref =
-    type instanceof PrismaNextObjectRef
+    type instanceof PrismaNextObjectRef || type instanceof PrismaNextInterfaceRef
       ? type
       : getRefFromContractModel(type as never, this.builder as never);
-  const totalCountResolver =
-    typeof totalCount === 'function'
-      ? (totalCount as (
-          parent: unknown,
-          args: unknown,
-          ctx: unknown,
-          info: GraphQLResolveInfo,
-        ) => unknown)
-      : undefined;
-  const totalCountFlag = totalCount === true || totalCountResolver !== undefined;
-
-  // Hoist plugin-wide reads + mapper options out of the per-resolve
-  // closure — builder.options is immutable after construction.
-  const opts = readPluginOptions<AnyContract>(this.builder);
-  if (!opts) {
-    throw new PothosSchemaError(
-      't.prismaConnection requires builder.options.prismaNext to be set.',
-    );
-  }
-  const mapperOpts = mapperOptionsFromPluginOpts(opts);
+  const config = getPluginConfig(this.builder);
+  const settings = connectionSettings(config, {
+    defaultSize,
+    maxSize,
+    totalCount: totalCount as
+      | boolean
+      | ((parent: unknown, args: unknown, ctx: object, info: GraphQLResolveInfo) => unknown)
+      | undefined,
+  });
   const cursorCols = normalizeCursor(cursor as CursorInput);
-  const contract = opts.contract;
-  const cursorSpec = validateCursor(contract, ref.modelName, cursor as CursorInput);
+  const modelName = ref.modelName as string;
+  const cursorSpec = validateCursor(config.contract, modelName, cursor as CursorInput);
 
   return this.connection(
     {
@@ -128,60 +109,31 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
       resolve: (async (
         parent: unknown,
         args: unknown,
-        context: unknown,
+        context: object,
         info: GraphQLResolveInfo,
       ) => {
-        if (typeof resolve !== 'function') {
-          throw new PothosSchemaError(
-            't.prismaConnection requires a `resolve` callback. ' +
-              'Signature: resolve(parent, args, ctx, info) => Collection.',
-          );
+        const relayArgs = args as PothosSchemaTypes.DefaultConnectionArguments;
+        const userCollection = await resolve(parent, args, context, info);
+
+        if (userCollection == null) {
+          return null;
         }
-        const relayArgs = args as import('@pothos/plugin-relay').DefaultConnectionArguments;
-        const resolvedDefault =
-          resolveSizeOption(defaultSize as never, args, context as object) ??
-          opts.defaultConnectionSize;
-        const resolvedMax =
-          resolveSizeOption(maxSize as never, args, context as object) ?? opts.maxConnectionSize;
-
-        // `extraColumns: cursorCols` forces cursor columns into the
-        // SELECT even when the GraphQL query didn't ask for them; the
-        // cursor encoder needs them on every row.
-        // User returns a Collection; the plugin applies selection
-        // (descending through edges.node / nodes) and pagination.
-        const userCollection = (await Promise.resolve(
-          (
-            resolve as unknown as (
-              p: unknown,
-              ar: unknown,
-              ctx: unknown,
-              i: GraphQLResolveInfo,
-            ) => unknown
-          )(parent, args, context, info),
-        )) as MapperCollection;
-
         assertUnpaginatedCollection(userCollection);
-        const needsRows = connectionNeedsRows(context as object, info);
-        const apply = createApply({
-          info,
-          contract,
-          context,
-          mapperOpts,
-          paths: [['edges', 'node'], ['nodes']],
-          extraColumns: cursorCols,
-        });
-        // A promise only when a select callback beneath the field was async.
-        const applied = (
-          needsRows ? await apply(userCollection) : userCollection
-        ) as MapperCollection;
+        assertVariantCollection(config.contract, modelName, userCollection);
+        const needsRows = connectionNeedsRows(context, info);
+        const applied = needsRows
+          ? await applySelectionToCollection(userCollection, info, config, context, {
+              paths: [['edges', 'node'], ['nodes']],
+              extraColumns: cursorCols,
+            })
+          : userCollection;
 
-        const sizes = {
-          ...(resolvedDefault !== undefined ? { defaultSize: resolvedDefault } : {}),
-          ...(resolvedMax !== undefined ? { maxSize: resolvedMax } : {}),
-        };
-        // Validate supplied ordering even for count-only selections. Preparing the
-        // page Collection is lazy; no rows are fetched unless they were requested.
-        const pagination = applyCursorPagination(applied, cursorSpec, relayArgs, sizes);
+        // Validates the ordering even for count-only selections; no rows are fetched here.
+        const pagination = applyCursorPagination(applied, cursorSpec, relayArgs, {
+          ...settings.sizes(args as object, context),
+          codecs: config.codecs(context, modelName),
+          orderBy: orderBy && ((model) => orderBy(model as never, args, context)),
+        });
 
         const rowsPromise = needsRows
           ? Promise.resolve().then(() =>
@@ -193,24 +145,14 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
             )
           : Promise.resolve([]);
 
-        // totalCount runs against the user-returned collection (post-
-        // apply, pre-pagination) — apply only adds includes/selects,
-        // which don't affect .count(). Cursor pagination's where/take
-        // are NOT included so the count reflects the filtered set, not
-        // just the current page.
-        const countPromise = buildTotalCountPromise({
-          info,
-          enabled: totalCountFlag,
-          resolver: totalCountResolver,
-          baseCollection: userCollection,
-          parent,
-          args,
-          context,
-        });
+        // Counted before pagination, so it matches the paged rows.
+        const countPromise = settings.countsRows(context, info)
+          ? aggregateCount(userCollection)
+          : settings.callsCount(context, info)
+            ? Promise.resolve().then(() => settings.countCallback!(parent, args, context, info))
+            : Promise.resolve(undefined);
 
-        // allSettled keeps both rejections attached so an unawaited
-        // failure doesn't escape as unhandledRejection. Rows win the
-        // tie because a missing totalCount is recoverable.
+        // allSettled so neither rejection goes unhandled; a rows error takes precedence.
         const [rowsResult, countResult] = await Promise.allSettled([rowsPromise, countPromise]);
         if (rowsResult.status === 'rejected') {
           throw rowsResult.reason;
@@ -218,17 +160,14 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         if (countResult.status === 'rejected') {
           throw countResult.reason;
         }
-        const page = buildConnectionPage(
+        return buildConnectionPage(
           rowsResult.value as readonly Record<string, unknown>[],
           pagination,
+          countResult.value as number | undefined,
         );
-        if (countResult.value !== undefined) {
-          (page as { totalCount?: number }).totalCount = countResult.value;
-        }
-        return page;
       }) as never,
     } as never,
-    totalCountFlag ? wrapConnectionOptionsWithTotalCount(connectionOptions) : connectionOptions,
+    settings.connectionOptions(connectionOptions),
     edgeOptions,
   );
 } as never;

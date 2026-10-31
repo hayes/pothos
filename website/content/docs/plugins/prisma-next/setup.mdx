@@ -1,0 +1,183 @@
+---
+title: Setup
+description: Setting up the Prisma Next plugin
+---
+
+## Installing
+
+```package-install
+npm install --save @pothos/plugin-prisma-next
+```
+
+Install the Prisma framework and SQL family at the supported version, plus the runtime for your
+database, such as `@prisma/orm-postgres` or `@prisma/orm-sqlite`. The plugin requires Node.js 24
+or later.
+
+```sh
+npm install @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22 @prisma/orm-sqlite@8.0.0-rc.22
+```
+
+`@pothos/plugin-relay` and `@pothos/plugin-with-input` are optional. Install them to use nodes and
+connections, or `t.prismaFieldWithInput`.
+
+### Prisma CLI toolchain
+
+The current `prisma` CLI bundles `@prisma/orm-toolchain@8.0.0-rc.21`, and `prisma contract emit`
+fails against the rc.22 ORM packages. Override the toolchain version, for example with pnpm:
+
+```json
+{
+  "pnpm": {
+    "overrides": {
+      "@prisma/orm-toolchain": "8.0.0-rc.22"
+    }
+  }
+}
+```
+
+With the override, the scaffold's `temporal.UpdatedAtString` field does not emit; replace it in
+the scaffolded contract. Don't downgrade the ORM packages instead: Prisma refuses to run with two
+copies of the ORM installed.
+
+## Configure the builder
+
+Emit your contract with `prisma contract emit`. The client you create from it is passed to the
+plugin, and the contract's `.d.ts` provides model, relation, and column types.
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import RelayPlugin from '@pothos/plugin-relay';
+import prismaNextPlugin from '@pothos/plugin-prisma-next';
+import sqlite from '@prisma/orm-sqlite/runtime';
+import { contractFromJson } from '@prisma/orm-sqlite/static';
+
+import contractJson from './prisma/contract.json' with { type: 'json' };
+import type { Contract } from './prisma/contract';
+
+const contract = contractFromJson<Contract>(contractJson);
+const client = sqlite({
+  contract,
+  path: './app.db',
+});
+await client.connect();
+
+const builder = new SchemaBuilder<{
+  PrismaNextContract: Contract;
+  Context: { db: typeof client };
+}>({
+  plugins: [RelayPlugin, prismaNextPlugin],
+  relay: {},
+  prismaNext: {
+    client,
+  },
+});
+```
+
+To load through a client chosen per request, such as a transaction, pass a function of the
+context. The contract is then passed as well, since the schema is built before any request:
+
+```ts
+import type { SqliteQueryMembers } from '@prisma/orm-sqlite/runtime';
+
+const builder = new SchemaBuilder<{
+  PrismaNextContract: Contract;
+  Context: { db: SqliteQueryMembers<Contract> };
+}>({
+  plugins: [prismaNextPlugin],
+  prismaNext: {
+    client: (ctx) => ctx.db,
+    contract,
+  },
+});
+
+builder.queryType({
+  fields: (t) => ({
+    users: t.prismaField({
+      type: ['User'],
+      resolve: (_root, _args, ctx) => ctx.db.orm.User,
+    }),
+  }),
+});
+```
+
+## Plugin options
+
+```ts
+prismaNext: {
+  client,
+  skipDeferredFragments: true,
+  defaultConnectionSize: 20,
+  maxConnectionSize: 100,
+}
+```
+
+- `client`: the Prisma client, or `(ctx) => client` together with `contract`. Required. The
+  plugin uses its `orm` to load what a parent query couldn't include, such as conflicting to-one
+  filters, deferred fragments, rows returned from a plain `t.field`, and `node(id:)` lookups.
+  These loads are batched and match rows by primary key, or a non-null unique key. Cursors, node
+  IDs and those keys encode values with the client's column codecs, so Temporal, decimal and
+  other object-valued columns work as is.
+- `skipDeferredFragments`: `@defer` fragments are left out of the initial query and loaded when
+  executed. Set to `false` to load them eagerly; deferred fields on a model without a key can't
+  be loaded later.
+- `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes, overridden per
+  field with `defaultSize` and `maxSize`.
+
+## Databases
+
+- **PostgreSQL and SQLite** are supported.
+- **MySQL** supports reads only. Its contracts have no aggregates, so `totalCount: true`,
+  `t.relationCount`, and `t.relationAggregate` are type errors, and Prisma's writes require a
+  `returning` capability MySQL lacks.
+- **MongoDB** is not supported, and is rejected when the schema is built.
+
+## Namespaced models
+
+A model name that is unique in the contract is used as is. A name defined in several namespaces is
+written `'ns.Model'`; its default GraphQL name is `ns_Model`.
+
+```ts
+builder.prismaObject('billing.User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+```
+
+## Transactions
+
+Pothos does not create transactions. To run a mutation's queries in one, execute GraphQL inside
+the transaction callback and pass the transaction as `ctx.db`. Type `db` with the query members
+the client and transactions share:
+
+```ts
+import type { SqliteQueryMembers } from '@prisma/orm-sqlite/runtime';
+
+type Context = { db: SqliteQueryMembers<Contract> };
+```
+
+```ts
+const result = await client.transaction(async (tx) => {
+  const result = await graphql({
+    schema,
+    source,
+    contextValue: { db: tx },
+  });
+  if (result.errors?.length) {
+    throw result.errors[0];
+  }
+  return result;
+});
+```
+
+GraphQL reports errors in the result rather than rejecting, so throw to roll back. Pass
+`client: (ctx) => ctx.db` so the plugin's own loads run in the same transaction; it can't detect a
+client from another connection. Finish executing, including deferred results, before the
+callback returns.
+
+## TypeScript
+
+- Set `PrismaNextContract` on the builder's types. Without it, model names autocomplete to a
+  message explaining what to configure.
+- Temporal columns need global Temporal types. On TypeScript versions without them, install
+  `temporal-spec` and add `import type {} from 'temporal-spec/global'`.

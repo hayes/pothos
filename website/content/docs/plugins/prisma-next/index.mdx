@@ -1,0 +1,81 @@
+---
+title: Prisma Next plugin
+description: An experimental Pothos plugin for the Prisma ORM 8 collection client
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="warn" title="Experimental">
+  This plugin targets Prisma ORM `8.0.0-rc.22` exactly. Other versions are not supported, and the
+  API of both Prisma ORM 8 and this plugin may change in any release.
+</Callout>
+
+The Prisma Next plugin defines GraphQL types from the models in a
+[Prisma ORM 8](https://github.com/prisma/orm) contract and applies the selections a query needs to
+the Collections your resolvers return. It supports relations, counts, variants, interfaces, and
+Relay nodes and connections.
+
+It is a separate package from [`@pothos/plugin-prisma`](/docs/plugins/prisma), which targets
+Prisma 7 and `@prisma/client`.
+
+## Example
+
+Using the [builder setup](/docs/plugins/prisma-next/setup), with a `userId` in context:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    posts: t.relation('posts', {
+      args: { oldestFirst: t.arg.boolean() },
+      query: (args) => ({
+        orderBy: (post) => (args.oldestFirst ? post.createdAt.asc() : post.createdAt.desc()),
+      }),
+    }),
+    postsConnection: t.relatedConnection('posts', { cursor: 'id' }),
+  }),
+});
+
+builder.prismaNode('Post', {
+  id: { field: 'id' },
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    me: t.prismaField({
+      type: 'User',
+      resolve: (_root, _args, ctx) => ctx.db.orm.User.where((user) => user.id.eq(ctx.userId)),
+    }),
+  }),
+});
+```
+
+The `me` resolver returns an unexecuted Collection. The plugin adds the `select` and `include`
+calls for the requested fields, so this query loads the user, posts, and authors in one
+Collection call:
+
+```graphql
+query {
+  me {
+    email
+    posts {
+      title
+      author {
+        id
+      }
+    }
+  }
+}
+```
+
+Aliases of the same relation with different arguments, such as `posts` and
+`oldPosts: posts(oldestFirst: true)`, are loaded in the same call.
+
+See [Setup](/docs/plugins/prisma-next/setup), [Objects](/docs/plugins/prisma-next/objects),
+[Relations](/docs/plugins/prisma-next/relations), and
+[Connections](/docs/plugins/prisma-next/connections).

@@ -1,0 +1,41 @@
+// use prisma-8
+model Sheet {
+  id Int @id
+  name String
+  meta Json?
+  role String?
+  count Int?
+  rows Row[]
+  notes Note[]
+  @@map("sheet")
+}
+
+model Row {
+  id Int @id
+  sheetId Int
+  label String
+  sheet Sheet @relation(fields: [sheetId], references: [id])
+  @@map("row")
+}
+
+model Note {
+  id Int @id
+  sheetId Int
+  text String?
+  uniq String? @unique
+  sheet Sheet @relation(fields: [sheetId], references: [id])
+  @@map("note")
+}
+
+model Owner {
+  id Int @id
+  profile Profile?
+  @@map("owner")
+}
+
+model Profile {
+  id Int @id
+  ownerId Int @unique
+  owner Owner @relation(fields: [ownerId], references: [id])
+  @@map("profile")
+}

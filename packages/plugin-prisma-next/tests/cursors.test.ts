@@ -1,184 +1,380 @@
-import { encodeCursorChunk, encodeCursorTuple } from '@pothos/core';
-import { describe, expect, it } from 'vitest';
-import {
-  parsePrismaNextCursor as decodeCursor,
-  formatPrismaNextCursor as encodeCursor,
-} from '../src';
+import SchemaBuilder from '@pothos/core';
+import RelayPlugin from '@pothos/plugin-relay';
+import { beforeAll, describe, expect, it } from 'vitest';
+import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
+import { createBuilder, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
 
-/**
- * This plugin writes the cursor encoding `@pothos/core` defines, the same one the prisma and
- * drizzle plugins write: `base64('PNC:' + chunk)`, where a cursor over one column is that
- * column's tagged chunk and one over several is a `T:` tuple of chunks, positional in `cols`
- * order. Being unreleased, it has no older form to keep reading.
- *
- * The previous encoding was `JSON.stringify` of a column-keyed object, which needed a `$bigint`
- * envelope to hold a bigint at all and a regex over every decoded string to guess Dates back.
- */
-class FakeDecimal {
-  constructor(private readonly digits: string) {}
+const db = useSampleDb();
 
-  toFixed() {
-    return this.digits;
+const nullableRows = [
+  { id: 'n-1', score: null, authorId: 'u-alice' },
+  { id: 'n-2', score: 2, authorId: 'u-alice' },
+  { id: 'n-3', score: 1, authorId: 'u-alice' },
+  { id: 'n-4', score: null, authorId: 'u-bob' },
+  { id: 'n-5', score: 2, authorId: 'u-bob' },
+  { id: 'n-6', score: 1, authorId: 'u-bob' },
+];
+const longId = 'x'.repeat(900);
+const valueRows = [
+  { id: 'v-1', title: '2025-03-15T12:00:00.000Z', score: 1e21, published: 3, at: '00.001' },
+  { id: 'v-2', title: '2025-03-15T12:00:00.000Z', score: 1.75, published: 3, at: '00.002' },
+  { id: longId, title: 'zzz', score: -0.5, published: 2, at: '00.003' },
+];
+
+beforeAll(async () => {
+  for (const row of nullableRows) {
+    await db.orm.Post.create({
+      ...row,
+      title: 'nullable-sort',
+      content: '',
+      published: 1,
+      createdAt: new Date('2026-01-01'),
+    });
   }
+  for (const { at, ...row } of valueRows) {
+    await db.orm.Post.create({
+      ...row,
+      content: 'cursor-values',
+      authorId: 'u-bob',
+      createdAt: new Date(`2026-01-01T00:00:${at}Z`),
+    });
+  }
+});
+
+type Args = { first?: number; last?: number; after?: string; before?: string };
+
+function pages(cursor: unknown) {
+  const helper = prismaConnectionHelpers(createBuilder(), 'Post', { cursor: cursor as 'id' });
+  return {
+    async read(base: unknown, args: Args) {
+      const page = await helper.applyPagination(base as typeof db.orm.Post, args, undefined, {});
+      return page.wrap(await page.collection.all());
+    },
+    async cursorOf(row: object) {
+      const page = await helper.applyPagination(db.orm.Post, { first: 1 }, undefined, {});
+      return page.wrap([row as never]).edges[0].cursor;
+    },
+  };
 }
 
-const payload = (cursor: string) => Buffer.from(cursor, 'base64').toString();
+const idsOf = (page: { edges: { node: { id: string } }[] }) => page.edges.map((e) => e.node.id);
 
-describe('the cursor encoding', () => {
+describe('cursor values', () => {
   it.each([
-    ['a string', 'hello', 'S:hello'],
-    ['an integer', 42, 'N:42'],
-    ['a fractional number', 1.75, 'N:1.75'],
-    ['a bigint', BigInt('9007199254740993'), 'I:9007199254740993'],
-    ['a date carrying milliseconds', new Date('2026-08-19T21:50:45.086Z'), 'D:1787176245086'],
-    ['bytes', new Uint8Array([0, 1, 2, 250, 255]), 'B:AAEC+v8='],
-    ['a JSON value', { a: 1, b: [2, 3] }, 'O:{"a":1,"b":[2,3]}'],
-    ['null', null, 'Z:'],
-  ])('writes %s as its own tagged chunk', (_name, value, chunk) => {
-    expect(payload(encodeCursor(['id'], { id: value }))).toBe(`PNC:${chunk}`);
-    expect(payload(encodeCursor(['id'], { id: value }))).toBe(`PNC:${encodeCursorChunk(value)}`);
+    ['ISO-shaped strings', ['title', 'id']],
+    ['large and fractional numbers', ['score', 'id']],
+    ['integers, descending', [{ field: 'published', direction: 'desc' }, 'id']],
+    ['dates with milliseconds', ['createdAt', 'id']],
+    ['a long string near the size cap', ['id']],
+  ])('round trips %s', async (_name, cursor) => {
+    const { read } = pages(cursor);
+    const base = db.orm.Post.where({ content: 'cursor-values' });
+    const all = idsOf(await read(base, { first: 10 }));
+    expect(all).toHaveLength(3);
+    const forward: string[] = [];
+    let after: string | undefined;
+    for (let i = 0; i < all.length; i += 1) {
+      const page = await read(base, { first: 1, after });
+      forward.push(...idsOf(page));
+      after = page.pageInfo.endCursor!;
+    }
+    expect(forward).toEqual(all);
+    expect((await read(base, { first: 1, after })).edges).toEqual([]);
+    const backward: string[] = [];
+    let before: string | undefined;
+    for (let i = 0; i < all.length; i += 1) {
+      const page = await read(base, { last: 1, before });
+      backward.unshift(...idsOf(page));
+      before = page.pageInfo.startCursor!;
+    }
+    expect(backward).toEqual(all);
   });
+
+  it('pages a nullable column, with null boundaries kept out of its codec', async () => {
+    const byScore = pages(['score', 'id']);
+    const nullable = db.orm.Post.where({ title: 'nullable-sort' });
+    const seen: string[] = [];
+    let after: string | undefined;
+    for (let i = 0; i < nullableRows.length; i += 1) {
+      const page = await byScore.read(nullable, { first: 1, after });
+      seen.push(...idsOf(page));
+      after = page.pageInfo.endCursor!;
+    }
+    expect(seen).toEqual(['n-3', 'n-6', 'n-2', 'n-5', 'n-1', 'n-4']);
+  });
+
+  it('refuses to encode a value its column codec does not hold', async () => {
+    class Instant {}
+    const { cursorOf } = pages(['createdAt', 'id']);
+    await expect(cursorOf({ id: 'p', createdAt: new Instant() })).rejects.toThrow();
+  });
+});
+
+describe('rejected cursors', () => {
+  function schema() {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        posts: t.relatedConnection('posts', { cursor: 'id', nullable: true }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+        posts: t.prismaConnection({ type: 'Post', cursor: 'id', resolve: () => db.orm.Post }),
+        dated: t.prismaConnection({
+          type: 'Post',
+          cursor: ['createdAt', 'id'],
+          resolve: () => db.orm.Post,
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  const raw = (payload: string) => Buffer.from(payload).toString('base64');
+  const marker = 'PAYLOAD-MARKER';
 
   it.each([
-    ['a string', 'hello'],
-    ['an integer', 42],
-    ['a fractional number', 1.75],
-    ['a number too large to write in full', 1e21],
-    ['a bigint', BigInt('9007199254740993')],
-    ['a date carrying milliseconds', new Date('2026-08-19T21:50:45.086Z')],
-    ['a JSON value', { a: 1, b: [2, 3] }],
-    ['null', null],
-  ])('round trips %s', (_name, value) => {
-    expect(decodeCursor(['id'], encodeCursor(['id'], { id: value })).id).toEqual(value);
-  });
-
-  it('round trips bytes that are not valid UTF-8', () => {
-    const key = new Uint8Array([0, 1, 2, 250, 255]);
-    const decoded = decodeCursor(['key'], encodeCursor(['key'], { key })).key as Uint8Array;
-
-    expect([...decoded]).toEqual([...key]);
-  });
-
-  // Comes back as its exact digits: the orm takes a decimal string wherever it takes a decimal,
-  // and none of them fits in a `number`.
-  it('round trips a high precision decimal', () => {
-    const digits = '0.1234567890123456789012345';
-    const cursor = encodeCursor(['amount'], { amount: new FakeDecimal(digits) });
-
-    expect(payload(cursor)).toBe(`PNC:M:${digits}`);
-    expect(decodeCursor(['amount'], cursor).amount).toBe(digits);
-  });
-
-  // The cursor format carries each column's type, so a string is decoded as a string rather
-  // than guessed at from the shape of its text.
-  it('leaves an ISO-8601 shaped string a string', () => {
-    const value = '2025-03-15T12:00:00.000Z';
-
-    expect(decodeCursor(['ref'], encodeCursor(['ref'], { ref: value })).ref).toBe(value);
-  });
-});
-
-describe('compound cursors', () => {
-  const cols = ['createdAt', 'id'];
-  const row = { createdAt: new Date('2026-08-19T21:50:45.086Z'), id: BigInt(42) };
-
-  it('writes a T: tuple with a tag per part', () => {
-    expect(payload(encodeCursor(cols, row))).toBe('PNC:T:["D:1787176245086","I:42"]');
-    expect(payload(encodeCursor(cols, row))).toBe(
-      `PNC:${encodeCursorTuple(cols.map((col) => (row as Record<string, unknown>)[col]))}`,
+    ['not base64', 'posts', `!!!${marker}`],
+    ['from another plugin', 'posts', raw(`GPC:S:${marker}`)],
+    ['not a tagged chunk', 'posts', raw(`PNC:{"${marker}":1}`)],
+    ['wider than the cursor', 'dated', raw(`PNC:T:["S:${marker}","S:b","S:c"]`)],
+    ['over the size cap', 'posts', raw(`PNC:S:${marker}${'x'.repeat(4000)}`)],
+  ])('rejects a cursor %s without echoing it', async (_name, field, cursor) => {
+    const result = await run(
+      schema(),
+      `query ($c: String) { ${field}(after: $c) { edges { cursor } } }`,
+      { variables: { c: cursor } },
     );
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors?.[0].message).toMatch(/Invalid cursor/);
+    expect(result.errors?.[0].message).not.toContain(marker);
+    expect(result.statements).toHaveLength(0);
   });
 
-  it('reads every part back with its type', () => {
-    const decoded = decodeCursor(cols, encodeCursor(cols, row));
-
-    expect(decoded.createdAt).toBeInstanceOf(Date);
-    expect(decoded.createdAt).toEqual(row.createdAt);
-    expect(decoded.id).toBe(BigInt(42));
-  });
-
-  it('keys the result from cols, in cols order', () => {
-    expect(Object.keys(decodeCursor(cols, encodeCursor(cols, row)))).toEqual(cols);
-  });
-
-  it('keeps a null part null', () => {
-    const decoded = decodeCursor(cols, encodeCursor(cols, { createdAt: null, id: BigInt(1) }));
-
-    expect(decoded).toEqual({ createdAt: null, id: BigInt(1) });
-  });
-});
-
-describe('rejecting a cursor', () => {
-  it('rejects one that is not base64', () => {
-    expect(() => decodeCursor(['id'], '!!!')).toThrow(/Invalid cursor/);
-  });
-
-  it('rejects one that carries another plugin prefix', () => {
-    const other = Buffer.from('GPC:N:1').toString('base64');
-
-    expect(() => decodeCursor(['id'], other)).toThrow(/not a cursor from this plugin/);
-  });
-
-  it('rejects a payload that is not a tagged chunk', () => {
-    const untagged = Buffer.from('PNC:{"id":1}').toString('base64');
-
-    expect(() => decodeCursor(['id'], untagged)).toThrow(/not a tagged cursor chunk/);
-  });
-
-  // A cursor of the wrong width would leave a column compared against `undefined`.
-  it('rejects one whose width does not match cols', () => {
-    const wide = encodeCursor(['a', 'b', 'c'], { a: 1, b: 2, c: 3 });
-
-    expect(() => decodeCursor(['a', 'b'], wide)).toThrow(/expected 2 value\(s\) for a, b, got 3/);
-  });
-
-  it('rejects a single value cursor where a compound one is expected', () => {
-    const single = encodeCursor(['a'], { a: 1 });
-
-    expect(() => decodeCursor(['a', 'b'], single)).toThrow(/expected 2 value\(s\)/);
-  });
-
-  it('rejects a payload exceeding the size cap (DoS guard)', () => {
-    const huge = encodeCursor(['pad'], { pad: 'x'.repeat(10_000) });
-
-    expect(() => decodeCursor(['pad'], huge)).toThrow(/payload exceeds/);
-  });
-
-  it('decodes a near-cap legitimate cursor without rejecting', () => {
-    const longString = 'a'.repeat(900);
-    const cursor = encodeCursor(['id'], { id: longString });
-
-    expect(cursor.length).toBeGreaterThan(1200);
-    expect(cursor.length).toBeLessThan(2048);
-    expect(decodeCursor(['id'], cursor).id).toBe(longString);
-  });
-
-  // Log-aggregation hygiene: a caller can otherwise stash arbitrary text in operator logs
-  // through error.message.
-  it('does not echo the client supplied cursor in the message', () => {
-    expect(() => decodeCursor(['id'], 'XSS-PAYLOAD-MARKER')).toThrow(
-      /^(?!.*XSS-PAYLOAD-MARKER).*Invalid cursor/,
+  it('rejects a compound cursor with more values than the cursor has columns', async () => {
+    const page = await run(schema(), '{ dated(first: 1) { pageInfo { endCursor } } }');
+    const [, payload] = Buffer.from(page.data.dated.pageInfo.endCursor, 'base64')
+      .toString()
+      .match(/^PNC:T:(.*)$/)!;
+    const wider = raw(`PNC:T:${JSON.stringify([...JSON.parse(payload), 'S:extra'])}`);
+    const result = await run(
+      schema(),
+      'query ($c: String) { dated(after: $c) { edges { cursor } } }',
+      { variables: { c: wider } },
     );
+    expect(result.errors?.[0].message).toMatch(/Invalid cursor.*expected 2 value/);
+  });
+
+  it('rejects a single-value cursor where a compound one is expected', async () => {
+    const page = await run(schema(), '{ posts(first: 1) { pageInfo { endCursor } } }');
+    const result = await run(
+      schema(),
+      'query ($c: String) { dated(after: $c) { edges { cursor } } }',
+      {
+        variables: { c: page.data.posts.pageInfo.endCursor },
+      },
+    );
+    expect(result.errors?.[0].message).toMatch(/Invalid cursor.*expected 2 value/);
+  });
+
+  it('hides a codec decoding error and the cursor payload', async () => {
+    const result = await run(
+      schema(),
+      'query ($c: String) { dated(after: $c) { edges { cursor } } }',
+      { variables: { c: raw(`PNC:T:["S:${marker}","S:p"]`) } },
+    );
+    expect(result.errors?.[0].message).toBe('Invalid cursor value for createdAt.');
+    expect(result.statements).toHaveLength(0);
+  });
+
+  it('cannot reach Object.prototype through a cursor payload', async () => {
+    const result = await run(
+      schema(),
+      'query ($c: String) { posts(after: $c) { edges { cursor } } }',
+      {
+        variables: { c: raw('PNC:O:{"__proto__":{"polluted":1}}') },
+      },
+    );
+    expect(result.data).toBeDefined();
+    expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+  });
+
+  it('fails only the connection field holding the bad cursor', async () => {
+    const result = await run(
+      schema(),
+      '{ users { id posts(first: 1, after: "!!!") { edges { node { id } } } } }',
+    );
+    expect(result.data.users[0]).toEqual({ id: 'u-alice', posts: null });
+    expect(result.errors?.[0].message).toMatch(/Invalid cursor/);
+    expect(result.errors?.map((error) => error.path)).toEqual([
+      ['users', 0, 'posts'],
+      ['users', 1, 'posts'],
+    ]);
+  });
+
+  describe('null boundaries', () => {
+    const collision = useCollisionDb();
+
+    it('rejects a null value for a non-null cursor column', async () => {
+      const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
+        plugins: [RelayPlugin, prismaNextPlugin],
+        relay: {},
+        prismaNext: { client: collision.client },
+      });
+      builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.queryType({
+        fields: (t) => ({
+          byText: t.prismaConnection({
+            type: 'Note',
+            cursor: ['text', 'id'],
+            resolve: () => collision.orm.Note,
+          }),
+          bySheet: t.prismaConnection({
+            type: 'Note',
+            cursor: ['sheetId', 'id'],
+            resolve: () => collision.orm.Note,
+          }),
+        }),
+      });
+      const s = builder.toSchema();
+      const page = await run(s, '{ byText(first: 2) { edges { cursor node { id } } } }');
+      const nullText = page.data.byText.edges.find(
+        (edge: { node: { id: string } }) => edge.node.id === '21',
+      ).cursor;
+      const result = await run(
+        s,
+        'query ($c: String) { bySheet(after: $c) { edges { cursor } } }',
+        {
+          variables: { c: nullText },
+        },
+      );
+      expect(result.errors?.[0].message).toBe('Invalid cursor value for sheetId.');
+    });
   });
 });
 
-describe('a cursor cannot reach the output as a key', () => {
-  // The payload is positional and carries no keys of its own, so a `__proto__` or `constructor`
-  // key has nowhere to come from: the result is keyed by `cols`, which the schema supplies. The
-  // previous format was a column-keyed JSON object and had to filter those keys out by hand.
-  it('leaves Object.prototype alone whatever the payload holds', () => {
-    const probe = {} as Record<string, unknown>;
-    const malicious = Buffer.from('PNC:O:{"__proto__":{"polluted":1}}').toString('base64');
+describe('nullable cursor columns', () => {
+  const sorted = (direction: 'asc' | 'desc', nulls: 'first' | 'last') =>
+    [...nullableRows].sort((a, b) => {
+      if (a.score === null || b.score === null) {
+        if (a.score !== b.score) {
+          return (a.score === null ? -1 : 1) * (nulls === 'first' ? 1 : -1);
+        }
+      } else if (a.score !== b.score) {
+        return (a.score - b.score) * (direction === 'asc' ? 1 : -1);
+      }
+      return a.id.localeCompare(b.id);
+    });
 
-    expect(decodeCursor(['id'], malicious).id).toBeDefined();
-    expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
-    expect(probe.polluted).toBeUndefined();
+  describe.each([
+    ['asc', 'first'],
+    ['asc', 'last'],
+    ['desc', 'first'],
+    ['desc', 'last'],
+  ] as const)('%s, nulls %s', (direction, nulls) => {
+    const cursor = [{ field: 'score', direction, nulls }, 'id'];
+
+    it('pages every bounded interval forward and backward without losing nulls or ties', async () => {
+      const { read, cursorOf } = pages(cursor);
+      const expected = sorted(direction, nulls);
+      const cursors = await Promise.all(expected.map((row) => cursorOf(row)));
+      const base = db.orm.Post.where({ title: 'nullable-sort' });
+      for (let after = -1; after < expected.length; after += 1) {
+        for (let before = after + 1; before <= expected.length; before += 1) {
+          const bounded = expected.slice(after + 1, before).map(({ id }) => id);
+          for (const backward of [false, true]) {
+            const page = await read(base, {
+              ...(after >= 0 ? { after: cursors[after] } : {}),
+              ...(before < expected.length ? { before: cursors[before] } : {}),
+              ...(backward ? { last: 2 } : { first: 2 }),
+            });
+            expect(idsOf(page)).toEqual(backward ? bounded.slice(-2) : bounded.slice(0, 2));
+            expect(backward ? page.pageInfo.hasPreviousPage : page.pageInfo.hasNextPage).toBe(
+              bounded.length > 2,
+            );
+          }
+        }
+      }
+    });
+
+    it('orders and limits each included parent independently', async () => {
+      const builder = createBuilder();
+      builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          id: t.exposeID('id'),
+          posts: t.relatedConnection('posts', {
+            cursor: [{ field: 'score', direction, nulls }, 'id'],
+            where: { title: 'nullable-sort' },
+            totalCount: true,
+          }),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+      });
+      for (const backward of [false, true]) {
+        const result = await run(
+          builder.toSchema(),
+          `{ users { id posts(${backward ? 'last' : 'first'}: 2) { nodes { id } totalCount } } }`,
+        );
+        expect(result.errors).toBeUndefined();
+        for (const user of result.data.users) {
+          const expected = sorted(direction, nulls)
+            .filter((row) => row.authorId === user.id)
+            .map(({ id }) => ({ id }));
+          expect(user.posts).toEqual({
+            nodes: backward ? expected.slice(-2) : expected.slice(0, 2),
+            totalCount: 3,
+          });
+        }
+        expect(result.statements).toHaveLength(1);
+      }
+    });
   });
 
-  it('keys a reserved name only when cols asks for it, on a null prototype object', () => {
-    const decoded = decodeCursor(['id'], encodeCursor(['id'], { id: 'x' }));
+  it('defaults nullable columns to nulls last', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaConnection({
+          type: 'Post',
+          cursor: ['score', 'id'],
+          resolve: () => db.orm.Post.where({ title: 'nullable-sort' }),
+        }),
+      }),
+    });
+    const expected = sorted('asc', 'last').map(({ id }) => ({ id }));
+    const result = await run(builder.toSchema(), '{ posts(first: 6) { nodes { id } } }');
+    expect(result.data.posts.nodes).toEqual(expected);
+    const page = await pages(['score', 'id']).read(db.orm.Post.where({ title: 'nullable-sort' }), {
+      first: 6,
+    });
+    expect(page.edges.map((edge) => ({ id: edge.node.id }))).toEqual(expected);
+  });
 
-    expect(Object.getPrototypeOf(decoded)).toBeNull();
-    expect(Object.keys(decoded)).toEqual(['id']);
+  it('accepts a base ordering that states the null placement, and rejects one that does not', async () => {
+    const nullable = db.orm.Post.where({ title: 'nullable-sort' });
+    const placed = await pages([{ field: 'score', nulls: 'last' }, 'id']).read(
+      nullable.orderBy([(p) => p.score.asc({ nulls: 'last' }), (p) => p.id.asc()]),
+      { first: 3 },
+    );
+    expect(idsOf(placed)).toEqual(['n-3', 'n-6', 'n-2']);
+    const prefix = await pages([{ field: 'score', direction: 'desc', nulls: 'last' }, 'id']).read(
+      nullable.orderBy((p) => p.score.desc({ nulls: 'last' })),
+      { first: 2 },
+    );
+    expect(idsOf(prefix)).toEqual(['n-2', 'n-5']);
+    await expect(
+      pages(['score', 'id']).read(
+        nullable.orderBy((p) => p.score.asc()),
+        { first: 1 },
+      ),
+    ).rejects.toThrow(/must match a prefix/);
   });
 });

@@ -1,0 +1,108 @@
+---
+title: Relations
+description: Adding relations to Prisma-backed types
+---
+
+`t.relation` exposes a relation from the contract:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    posts: t.relation('posts'),
+  }),
+});
+
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+Relations are loaded with `.include(...)` on the parent's Collection, so `{ me { posts { author { id } } } }`
+runs as one Collection call. Prisma decides how many SQL statements that takes.
+
+- To-many relations are non-null lists.
+- To-one relations are non-null when their foreign key columns are non-null. Pass `nullable` to
+  override.
+
+## Filtering and sorting
+
+`query` accepts `{ where, orderBy, limit, offset }`, or a function of the field's arguments and
+context returning one:
+
+```ts
+posts: t.relation('posts', {
+  args: { oldestFirst: t.arg.boolean() },
+  query: (args) => ({
+    orderBy: (post) => (args.oldestFirst ? post.createdAt.asc() : post.createdAt.desc()),
+  }),
+}),
+```
+
+## Counts and aggregates
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    postCount: t.relationCount('posts'),
+    publishedPostCount: t.relationCount('posts', { where: { published: 1 } }),
+    postCountByState: t.relationCount('posts', {
+      args: { published: t.arg.int({ required: true }) },
+      where: (post, args) => post.published.eq(args.published),
+    }),
+    totalScore: t.relationAggregate('posts', { op: 'sum', field: 'score' }),
+    firstTitle: t.relationAggregate('posts', { op: 'min', field: 'title', type: 'String' }),
+  }),
+});
+```
+
+Operations and fields come from the contract's aggregate types. `count` is a non-null `Int`;
+other operations are nullable `Float`s by default. Pass `type` for non-numeric results, or for a
+lossless operation such as `countBigInt` with a `BigInt` scalar.
+
+For anything else, use a field `select`. A function receives the relation's Collection, and each
+key it returns is added to the parent:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    latestPostTitle: t.field({
+      type: 'String',
+      nullable: true,
+      select: { posts: { orderBy: (post) => post.createdAt.desc(), limit: 1 } },
+      resolve: (user) => user.posts[0]?.title ?? null,
+    }),
+    postStats: t.field({
+      type: 'String',
+      select: {
+        posts: (posts) => ({ total: posts.count(), score: posts.sum('score') }),
+      },
+      resolve: (user) => `${user.total} posts, score ${user.score}`,
+    }),
+  }),
+});
+```
+
+## Many-to-many
+
+Relations defined with `rel.manyToMany({ through, from, to })` work with `t.relation` like any
+other relation. To expose columns on the junction itself, model it as its own model and use two
+relations.
+
+## Loading without a parent query
+
+A row returned from a plain `t.field` can resolve relations and other selections it is missing,
+as long as it includes its primary or unique key. They are loaded through the plugin's
+[`client`](./setup#plugin-options), batched across parents.
+
+The same loader handles conflicting filters on one to-one relation, which Prisma can't include
+together.
+
+A model without a primary or non-null unique key can't be reloaded, so its fields must come from
+the parent query. A field that would need the loader fails with an error naming it, and a
+`prismaInterface` whose `select` conflicts with its object's fails the schema build.

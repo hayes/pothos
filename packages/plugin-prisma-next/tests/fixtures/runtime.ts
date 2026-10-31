@@ -1,198 +1,128 @@
-// Spins up an on-disk sqlite database in a temp directory, seeds it
-// via raw CREATE/INSERT (avoids prisma-next's migration CLI stack for
-// a fixture), and connects a sqlite client. Returns orm + runtime so
-// tests can inspect emitted SQL via the capture middleware.
+// Seeded on-disk sqlite databases, built with raw SQL rather than prisma-next's migrations.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
+import type { SqlMiddleware } from '@prisma/orm-family-sql/runtime';
 import sqlite from '@prisma/orm-sqlite/runtime';
-import type { AfterQueryResult } from '@prisma/orm-framework/components/runtime';
-import type { SqlExecutionPlan } from '@prisma/orm-family-sql/relational-core/plan';
-import type { Runtime, SqlMiddleware } from '@prisma/orm-family-sql/runtime';
+import { contractFromJson } from '@prisma/orm-sqlite/static';
 import type { Contract as SampleContractType } from './sample-contract';
 
-const sampleContractJson = JSON.parse(
-  readFileSync(fileURLToPath(new URL('./sample-contract.json', import.meta.url)), 'utf8'),
-) as SampleContractType;
+export type SampleContract = SampleContractType;
 
-// RC9's serializer omits default-valued index flags and empty unique arrays,
-// while its runtime validates those properties before hydrating the contract.
-// Restore only those defaults when consuming the emitted fixture.
-for (const namespace of Object.values(sampleContractJson.storage.namespaces)) {
-  for (const table of Object.values(namespace.entries.table ?? {})) {
-    const serialized = table as unknown as { uniques?: unknown[]; foreignKeys?: unknown[]; indexes?: { unique?: boolean }[] };
-    serialized.uniques ??= [];
-    serialized.foreignKeys ??= [];
-    serialized.indexes ??= [];
-    for (const index of serialized.indexes ?? []) index.unique ??= false;
-  }
+export function loadContract<C>(url: URL): C {
+  return contractFromJson(JSON.parse(readFileSync(url, 'utf8'))) as unknown as C;
 }
 
-export type SampleContract = SampleContractType;
+export const sampleContract = loadContract<SampleContract>(
+  new URL('./sample-contract.json', import.meta.url),
+);
 
 export interface CapturedExecution {
   sql: string;
   params: readonly unknown[];
-  rowCount?: number;
-  latencyMs?: number;
 }
 
 const captureStore = new AsyncLocalStorage<CapturedExecution[]>();
 
-export function withCapture<T>(
-  captures: CapturedExecution[],
-  fn: () => Promise<T>,
-): Promise<T> {
+export function withCapture<T>(captures: CapturedExecution[], fn: () => Promise<T>): Promise<T> {
   return captureStore.run(captures, fn);
 }
 
-const captureMiddleware: SqlMiddleware = {
+export const captureMiddleware: SqlMiddleware = {
   name: 'pothos-test-capture',
   familyId: 'sql',
-  async beforeQuery(plan: SqlExecutionPlan) {
-    const captures = captureStore.getStore();
-    if (!captures) return;
-    captures.push({ sql: plan.sql, params: plan.params });
-  },
-  async afterQuery(_plan: SqlExecutionPlan, result: AfterQueryResult) {
-    const captures = captureStore.getStore();
-    if (!captures || captures.length === 0) return;
-    const last = captures[captures.length - 1];
-    if (!last) return;
-    last.rowCount = result.rowCount;
-    last.latencyMs = result.latencyMs;
+  beforeEncode(plan) {
+    captureStore.getStore()?.push({ sql: plan.sql, params: plan.params });
+    return Promise.resolve();
   },
 };
 
-export interface TestRuntimeContext {
-  runtime: Runtime;
-  ormClient: ReturnType<typeof sqlite<SampleContract>>['orm'];
-  contract: SampleContract;
+type SqliteContract = Parameters<typeof sqlite>[0]['contract'];
+
+export interface SqliteRuntime<C extends SqliteContract> {
+  client: ReturnType<typeof sqlite<C>>;
+  orm: ReturnType<typeof sqlite<C>>['orm'];
+  contract: C;
   cleanup: () => Promise<void>;
 }
 
-export async function createTestRuntime(): Promise<TestRuntimeContext> {
-  const testDir = mkdtempSync(join(tmpdir(), 'pothos-prisma-next-'));
-  const dbPath = join(testDir, 'test.db');
+/** The database opens on the first query. */
+export function createSqliteRuntime<C extends SqliteContract>(
+  contract: C,
+  ddl: string,
+): SqliteRuntime<C> {
+  const dir = mkdtempSync(join(tmpdir(), 'pothos-prisma-next-'));
+  const path = join(dir, 'test.db');
+  const db = new DatabaseSync(path);
+  db.exec('PRAGMA foreign_keys = ON');
+  // The runtime reads the marker `WHERE space = 'app'`; without that row it fails to initialize.
+  db.exec(`CREATE TABLE _prisma_marker (
+    space TEXT PRIMARY KEY NOT NULL, core_hash TEXT NOT NULL, profile_hash TEXT NOT NULL,
+    contract_json TEXT, canonical_version INTEGER,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')), app_tag TEXT,
+    meta TEXT NOT NULL DEFAULT '{}', invariants TEXT NOT NULL DEFAULT '[]')`);
+  const hashes = contract as { storage?: { storageHash?: string }; profileHash?: string };
+  const storageHash = hashes.storage?.storageHash ?? '';
+  db.prepare('INSERT INTO _prisma_marker (space, core_hash, profile_hash) VALUES (?, ?, ?)').run(
+    'app',
+    storageHash,
+    hashes.profileHash ?? storageHash,
+  );
+  db.exec(ddl);
+  db.close();
 
-  const rawDb = new DatabaseSync(dbPath);
-  rawDb.exec('PRAGMA foreign_keys = ON');
-  createSchema(rawDb, sampleContractJson);
-  seedData(rawDb);
-  rawDb.close();
-
-  const client = sqlite<SampleContract>({
-    contractJson: sampleContractJson,
-    middleware: [captureMiddleware],
-  });
-  const runtime = await client.connect({ path: dbPath });
-
+  const client = sqlite<C>({ contract, path, middleware: [captureMiddleware] });
   return {
-    runtime,
-    ormClient: client.orm,
-    contract: sampleContractJson,
+    client,
+    orm: client.orm,
+    contract,
     cleanup: async () => {
-      await runtime.close();
-      try {
-        rmSync(testDir, { recursive: true, force: true });
-      } catch {
-        // ignore
-      }
+      await client.close();
+      rmSync(dir, { recursive: true, force: true });
     },
   };
 }
 
-/**
- * Issue the marker table + the contract's user/post/comment tables.
- * The marker rows are required by `verify: { requireMarker: false }`'s
- * fallback path, which still consults the table when present.
- */
-function createSchema(db: DatabaseSync, contract: SampleContract): void {
-  // Marker table shape mirrors prisma-next 0.16.0's sqlite control adapter
-  // (`_prisma_marker` defined in @prisma/orm-sqlite/adapter). The adapter
-  // reads `WHERE space = 'app'` selecting core_hash/profile_hash/
-  // contract_json/canonical_version/updated_at/app_tag/meta/invariants, so
-  // the `space` column (and a row with space='app') is required — without it
-  // the init read fails with "Database error while reading contract marker".
-  db.exec(`
-    CREATE TABLE _prisma_marker (
-      space TEXT PRIMARY KEY NOT NULL,
-      core_hash TEXT NOT NULL,
-      profile_hash TEXT NOT NULL,
-      contract_json TEXT,
-      canonical_version INTEGER,
-      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-      app_tag TEXT,
-      meta TEXT NOT NULL DEFAULT '{}',
-      invariants TEXT NOT NULL DEFAULT '[]'
-    )
-  `);
-  // `space` is the APP_SPACE_ID the runtime reads with (@prisma-next/
-  // framework-components exports APP_SPACE_ID = "app").
-  const APP_SPACE_ID = 'app';
-  const storageHash = (contract as { storage?: { storageHash?: string } }).storage?.storageHash ?? '';
-  const profileHash = (contract as { profileHash?: string }).profileHash ?? storageHash;
-  db.prepare(
-    'INSERT INTO _prisma_marker (space, core_hash, profile_hash) VALUES (?, ?, ?)',
-  ).run(APP_SPACE_ID, storageHash, profileHash);
+export const sampleDdl = `
+  CREATE TABLE user (
+    id TEXT PRIMARY KEY NOT NULL, firstName TEXT NOT NULL, lastName TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE
+  );
+  CREATE TABLE post (
+    id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL,
+    published INTEGER NOT NULL DEFAULT 0, score REAL, authorId TEXT NOT NULL,
+    createdAt TEXT NOT NULL, FOREIGN KEY (authorId) REFERENCES user(id)
+  );
+  CREATE TABLE comment (
+    id TEXT PRIMARY KEY NOT NULL, body TEXT NOT NULL, authorId TEXT NOT NULL,
+    postId TEXT NOT NULL, createdAt TEXT NOT NULL,
+    FOREIGN KEY (authorId) REFERENCES user(id), FOREIGN KEY (postId) REFERENCES post(id)
+  );
+  CREATE TABLE post_view (
+    postId TEXT NOT NULL, viewer TEXT NOT NULL, viewedAt TEXT NOT NULL,
+    FOREIGN KEY (postId) REFERENCES post(id)
+  );
+  INSERT INTO user (id, firstName, lastName, email) VALUES
+    ('u-alice', 'Alice', 'Andrews', 'alice@example.com'),
+    ('u-bob', 'Bob', 'Brown', 'bob@example.com');
+  INSERT INTO post (id, title, content, published, score, authorId, createdAt) VALUES
+    ('p-hello', 'Hello, Pothos', 'Welcome.', 1, 1.5, 'u-alice', '2026-04-01T10:00:00.000Z'),
+    ('p-draft1', 'Draft #1', 'WIP', 0, 2.25, 'u-alice', '2026-04-02T10:00:00.000Z'),
+    ('p-bob1', 'Bob writes', 'My experience.', 1, 3.5, 'u-bob', '2026-04-03T10:00:00.000Z'),
+    ('p-bob-draft', 'Bob draft', 'Polishing.', 0, 4.75, 'u-bob', '2026-04-04T10:00:00.000Z');
+  INSERT INTO comment (id, body, authorId, postId, createdAt) VALUES
+    ('c-1', 'Looks great!', 'u-bob', 'p-hello', '2026-04-01T11:00:00.000Z'),
+    ('c-2', 'Glad to see this working.', 'u-alice', 'p-hello', '2026-04-01T12:00:00.000Z');
+  INSERT INTO post_view (postId, viewer, viewedAt) VALUES
+    ('p-hello', 'Bob', '2026-04-01T13:00:00.000Z'),
+    ('p-hello', 'Carol', '2026-04-01T14:00:00.000Z'),
+    ('p-bob1', 'Alice', '2026-04-03T11:00:00.000Z');
+`;
 
-  db.exec(`
-    CREATE TABLE user (
-      id TEXT PRIMARY KEY NOT NULL,
-      firstName TEXT NOT NULL,
-      lastName TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE
-    )
-  `);
-  db.exec(`
-    CREATE TABLE post (
-      id TEXT PRIMARY KEY NOT NULL,
-      title TEXT NOT NULL,
-      content TEXT NOT NULL,
-      published INTEGER NOT NULL DEFAULT 0,
-      score REAL,
-      authorId TEXT NOT NULL,
-      createdAt TEXT NOT NULL,
-      FOREIGN KEY (authorId) REFERENCES user(id)
-    )
-  `);
-  db.exec(`
-    CREATE TABLE comment (
-      id TEXT PRIMARY KEY NOT NULL,
-      body TEXT NOT NULL,
-      authorId TEXT NOT NULL,
-      postId TEXT NOT NULL,
-      createdAt TEXT NOT NULL,
-      FOREIGN KEY (authorId) REFERENCES user(id),
-      FOREIGN KEY (postId) REFERENCES post(id)
-    )
-  `);
-}
+export type TestRuntimeContext = SqliteRuntime<SampleContract>;
 
-/**
- * Two users, four posts (mix of published/draft), two comments on the
- * one published post by Alice. Mirrors the example seed but with stable
- * IDs so test assertions can hardcode them.
- */
-function seedData(db: DatabaseSync): void {
-  db.exec(`
-    INSERT INTO user (id, firstName, lastName, email) VALUES
-      ('u-alice', 'Alice', 'Andrews', 'alice@example.com'),
-      ('u-bob', 'Bob', 'Brown', 'bob@example.com')
-  `);
-  db.exec(`
-    INSERT INTO post (id, title, content, published, score, authorId, createdAt) VALUES
-      ('p-hello', 'Hello, Pothos', 'Welcome.', 1, 1.5, 'u-alice', '2026-04-01T10:00:00.000Z'),
-      ('p-draft1', 'Draft #1', 'WIP', 0, 2.25, 'u-alice', '2026-04-02T10:00:00.000Z'),
-      ('p-bob1', 'Bob writes', 'My experience.', 1, 3.5, 'u-bob', '2026-04-03T10:00:00.000Z'),
-      ('p-bob-draft', 'Bob draft', 'Polishing.', 0, 4.75, 'u-bob', '2026-04-04T10:00:00.000Z')
-  `);
-  db.exec(`
-    INSERT INTO comment (id, body, authorId, postId, createdAt) VALUES
-      ('c-1', 'Looks great!', 'u-bob', 'p-hello', '2026-04-01T11:00:00.000Z'),
-      ('c-2', 'Glad to see this working.', 'u-alice', 'p-hello', '2026-04-01T12:00:00.000Z')
-  `);
+export function createTestRuntime(): TestRuntimeContext {
+  return createSqliteRuntime(sampleContract, sampleDdl);
 }
