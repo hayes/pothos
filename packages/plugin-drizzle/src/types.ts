@@ -101,10 +101,18 @@ type GetTableConfigFn<TTable = Table> = (table: TTable) => {
 type AnyRelationTable<Types extends SchemaTypes> =
   Types['DrizzleRelations'][keyof Types['DrizzleRelations']]['table'];
 
-type DrizzleClientForTypes<Types extends SchemaTypes> = DrizzleClient<
-  AnyRelationTable<Types> | SQL | SQLWrapper,
-  Table extends AnyRelationTable<Types> ? Table : never
->;
+// The `client` option only requires each `query` entry to have a `findMany`. Checking the real
+// client against the `findMany` signature in `DrizzleClient` compares every table's generic
+// relational `findMany`, which makes setup cost grow with the number of tables.
+type DrizzleClientForTypes<Types extends SchemaTypes> = Omit<
+  DrizzleClient<
+    AnyRelationTable<Types> | SQL | SQLWrapper,
+    Table extends AnyRelationTable<Types> ? Table : never
+  >,
+  'query'
+> & {
+  query: Record<string, { findMany: unknown }>;
+};
 
 type DrizzlePluginBaseOptions = {
   maxConnectionSize?: number;
