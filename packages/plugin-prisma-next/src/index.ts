@@ -156,7 +156,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (model === undefined) {
       return typeConfig;
     }
-    // Fails the schema build for a model or contract the planner can't represent.
+    // An unknown model fails the schema build.
     assertContractModel(contract, model);
     const resolved = getModel(contract, model);
     const ownSelect = typeConfig.extensions?.[PRISMA_NEXT_SELECT] as RawSelect | undefined;
@@ -400,10 +400,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     return this.config.loader(context, modelName).loadSelection(info, row);
   }
 
-  /**
-   * The scopes of the type-level `select`s rows of a prisma type carry: those of its interfaces on
-   * the same model (deepest first), then its own.
-   */
+  /** The scopes of the `select`s `typeSelects` lists for a prisma type. */
   private typeScopes(typeConfig: PothosTypeConfig) {
     const modelName = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
     return modelName === undefined
