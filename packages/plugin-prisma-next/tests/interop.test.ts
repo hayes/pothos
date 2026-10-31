@@ -117,10 +117,6 @@ describe('plugin interop', () => {
   });
 
   it('t.relation forwards errors plugin options through to the field config', () => {
-    // Errors plugin reads `errors:` on a field's options to wrap the
-    // resolver in a try/catch and turn returned errors into a union.
-    // If t.relation drops `errors`, the result type wouldn't have the
-    // expected `__typename` discrimination.
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
     }>({
@@ -143,9 +139,6 @@ describe('plugin interop', () => {
     builder.prismaObject('Post', {
       fields: (t) => ({
         id: t.exposeID('id'),
-        // `errors:` should flow through into the field config —
-        // the resolver gets wrapped, and the schema generates a
-        // union type for the field.
         author: t.relation('author', {
           errors: { types: [CustomError] },
         }),
@@ -162,9 +155,6 @@ describe('plugin interop', () => {
     });
 
     const schema = builder.toSchema();
-    // Schema printing — confirm the union type was generated. If
-    // `errors:` was dropped, the schema would have `author: User`
-    // instead of a `…AuthorResult` union.
     const printed = JSON.stringify(schema.getType('PostAuthorResult'));
     expect(printed).not.toBe('undefined');
   });

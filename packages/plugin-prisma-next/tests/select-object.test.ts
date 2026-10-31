@@ -20,13 +20,6 @@ afterAll(async () => {
   await ctx?.cleanup();
 });
 
-// Object-form `select` lets a plain `t.field` declare relation includes
-// alongside column reads. The plugin namespaces the combine slot per
-// field (alias `<graphqlAlias>:<specKey>`) so the same relation can be
-// loaded by multiple consumers (sugar method + object-form select +
-// other fields) without collision. The per-field wrap remaps the
-// namespaced slot back onto `parent[specKey]` before the user resolver
-// runs, so resolvers never see the namespace.
 describe('object-level select on prismaObject', () => {
   function buildSchema() {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
@@ -34,16 +27,10 @@ describe('object-level select on prismaObject', () => {
       prismaNext: { contract: ctx.contract },
     });
 
-    // Object-level select: every User row gets `posts` and `comments`
-    // loaded by default, visible to any field's resolver via the
-    // source-row normalize wrap.
     builder.prismaObject('User', {
       select: { posts: true, comments: true },
       fields: (t) => ({
         id: t.exposeID('id'),
-        // Plain t.field reading the object-level loaded relations.
-        // No field-level select — relies on object-level normalization
-        // and the prismaObject's `Shape` being widened from `select`.
         summary: t.string({
           resolve: (parent) => `${parent.posts.length} posts, ${parent.comments.length} comments`,
         }),
@@ -103,10 +90,6 @@ describe('object-form select on t.field', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         id: t.exposeID('id'),
-        // Plain t.field declaring an object-form select that loads the
-        // `posts` relation. Resolver reads `parent.posts` directly —
-        // the plugin's per-field wrap has already overlaid the right
-        // combine slot before invoking us.
         postTitlesJoined: t.string({
           select: { posts: true },
           resolve: (parent) => parent.posts.map((p) => p.title).join(', '),
@@ -122,8 +105,6 @@ describe('object-form select on t.field', () => {
           select: { posts: true },
           resolve: (parent) => parent.posts[0]?.title ?? null,
         }),
-        // Function-form: refined include + scalar in one spec object.
-        // Inner keys become parent properties via the overlay wrap.
         publishedSummary: t.string({
           select: {
             posts: (sub) => ({
@@ -134,9 +115,6 @@ describe('object-form select on t.field', () => {
           resolve: (parent) =>
             `${parent.pubCount ?? 0} published: ${parent.published.map((x) => x.title).join(', ')}`,
         }),
-        // Function-form alongside a simple-include on the same relation
-        // — both fields touch `posts` with different filters; each
-        // resolver sees only its own overlay.
         draftCount: t.int({
           nullable: true,
           select: {
@@ -180,7 +158,6 @@ describe('object-form select on t.field', () => {
     const data = result.data as { users: { id: string; postTitlesJoined: string }[] };
     const alice = data.users.find((u) => u.id === 'u-alice');
     expect(alice).toBeDefined();
-    // Sample contract has 4 posts total for Alice (drafts + published).
     expect(alice?.postTitlesJoined).toMatch(/,/);
   });
 
@@ -214,8 +191,6 @@ describe('object-form select on t.field', () => {
       }[];
     };
     const alice = data.users.find((u) => u.id === 'u-alice');
-    // Three consumers on `posts`: sugar relation (all posts), draftCount (count of unpublished),
-    // publishedSummary (rows + count of published). All overlays are independent.
     expect(alice?.posts.length).toBeGreaterThan(0);
     expect(typeof alice?.draftCount).toBe('number');
     expect(alice?.publishedSummary).toMatch(/published/);
@@ -233,14 +208,10 @@ describe('object-form select on t.field', () => {
     };
     const alice = data.users.find((u) => u.id === 'u-alice');
     expect(alice?.posts.length).toBeGreaterThan(0);
-    // firstPostTitle is read via the namespaced overlay; sugar `posts`
-    // is read directly off `parent[relationName]`. Both see their own
-    // copy of the posts data.
     expect(alice?.firstPostTitle).toBe(alice?.posts[0]?.title);
   });
 });
 
-// Function-form to-one entries are rejected before emission rather than silently dropped.
 describe('function-form select on a to-one relation', () => {
   it('reports the unsupported combine instead of resolving to undefined', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
@@ -250,8 +221,7 @@ describe('function-form select on a to-one relation', () => {
     builder.prismaObject('Post', {
       fields: (t) => ({
         title: t.exposeString('title'),
-        // `t.relationCount` does not accept a to-one key; the cast reaches the emitter past the
-        // type gate, which is what a hand-written function-form select would also hit.
+        // The cast gets past the type check to reach the emitter.
         authorCount: t.relationCount('author' as never),
       }),
     });

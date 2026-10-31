@@ -97,8 +97,6 @@ describe('prismaNode batching — aliases split into separate batches', () => {
       }),
     );
     expect(result.errors).toBeUndefined();
-    // Aliases create distinct paths — `Query.a` vs `Query.b` — so two
-    // separate SELECTs hit the user table.
     const userSelects = captures.filter((c) => /from\s+"?user"?/i.test(c.sql));
     expect(userSelects).toHaveLength(2);
     expect(result.data).toEqual({
@@ -127,7 +125,6 @@ describe('prismaNode batching — list-element node lookups coalesce', () => {
     expect(result.errors).toBeUndefined();
     const userSelects = captures.filter((c) => /from\s+"?user"?/i.test(c.sql));
     expect(userSelects).toHaveLength(1);
-    // Both ids appear in the params of the single SELECT.
     const allParams = userSelects.flatMap((c) => c.params);
     expect(allParams).toContain('u-alice');
     expect(allParams).toContain('u-bob');
@@ -228,7 +225,7 @@ describe('prismaNode — missing collection throws at schema-build time', () => 
       prismaNext: { contract: ctx.contract },
     });
     expect(() =>
-      // @ts-expect-error — `collection` is required by the public type.
+      // @ts-expect-error `collection` is required
       builder.prismaNode('User', {
         id: { field: 'id' },
         fields: (t) => ({ firstName: t.exposeString('firstName') }),
