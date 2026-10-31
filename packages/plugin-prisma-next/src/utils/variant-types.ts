@@ -6,11 +6,7 @@ import { modelDiscriminator, relatedModelKey } from './contract.js';
 
 const cache = new WeakMap<GraphQLInterfaceType, Map<string, string>>();
 
-/**
- * The GraphQL type each discriminator value of a hierarchy interface resolves to: the one
- * implementation registered for that variant's model, whatever it is named. Throws when a variant
- * has no implementation or several, which the default `resolveType` can't route.
- */
+/** Throws unless each variant model has exactly one implementation to resolve to. */
 export function variantTypeNames(
   contract: AnyContract,
   schema: GraphQLSchema,

@@ -58,12 +58,8 @@ export interface PrismaConnectionHelpers<
 > {
   ref: PrismaNextObjectRef<Types, M>;
   /**
-   * Pass `info` whenever possible — without it, the auto-include
-   * mapper can't descend into `edges.node` and nested `t.relation`
-   * fields under the connection won't preload.
-   *
-   * A promise only when a `select` callback beneath the connection returned one, so
-   * `await` it: the collection is not usable until the selection it carries has settled.
+   * Without `info`, relations selected under the connection aren't preloaded. Returns a promise
+   * when a `select` callback beneath the connection is async.
    */
   applyPagination(
     collection: ConnectionCollection<Types, M>,
@@ -171,9 +167,6 @@ export function prismaConnectionHelpers<
 ): PrismaConnectionHelpers<Types, M, Args, Node, boolean> {
   const ref = getRefFromContractModel<Types, M>(modelName, builder);
 
-  // `options.args` may be a literal or a thunk `(t) => argMap`; resolve
-  // lazily so the InputFieldBuilder is in scope, cache so getArgs() is
-  // idempotent.
   let resolvedArgs: Args | undefined;
   const resolveArgs = (): Args => {
     if (resolvedArgs !== undefined) {
@@ -191,8 +184,6 @@ export function prismaConnectionHelpers<
     typeof options.totalCount === 'function' ? options.totalCount : undefined;
   const totalCountFlag = options.totalCount === true || totalCountResolver !== undefined;
 
-  // Hoist out of per-resolve closure — cursorCols depend on the static
-  // option; pluginOpts/mapperOpts depend on the immutable builder.options.
   const cursorCols = normalizeCursor(options.cursor as CursorInput);
   const pluginOpts = readPluginOptions<AnyContract>(builder);
   const mapperOpts = mapperOptionsFromPluginOpts(pluginOpts);
@@ -222,8 +213,6 @@ export function prismaConnectionHelpers<
         ...(maxSize !== undefined ? { maxSize } : {}),
       });
 
-      // A promise here only when a `select` callback beneath the connection returned one; the
-      // awaited collection is what the caller gets, never the promise dressed as one.
       const prepared =
         info && pluginOpts
           ? (applySelectionToCollection(
@@ -239,10 +228,7 @@ export function prismaConnectionHelpers<
             ) as unknown as MaybePromise<CollectionFor<Types, M>>)
           : (pagination.collection as unknown as CollectionFor<Types, M>);
 
-      // Auto-aggregate runs against `filteredBase` (post-where, pre-
-      // pagination) so the count and the page rows come from the same
-      // filtered set. Counting `collection` would produce a "N of M"
-      // mismatch when `where` narrows the result.
+      // Counted before pagination but after `where`, so it matches the paged rows.
       let totalCountPromise: Promise<number> | undefined;
       const getTotalCountPromise = () => {
         if (
@@ -254,8 +240,7 @@ export function prismaConnectionHelpers<
         totalCountPromise ??= totalCountResolver
           ? Promise.resolve().then(() => totalCountResolver(args, ctx, info))
           : aggregateCount(filteredBase);
-        // Helpers can start row and count work independently. Attach a rejection
-        // handler immediately while retaining rejection for the consumer.
+        // Avoids an unhandled rejection; the consumer still sees it.
         totalCountPromise.catch(() => undefined);
         return totalCountPromise;
       };
@@ -270,8 +255,7 @@ export function prismaConnectionHelpers<
           totalCount?: number,
         ): ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>> {
           const page = buildConnectionPage(rows, pagination);
-          // Apply resolveNode after buildConnectionPage so the cursor
-          // encoder still sees the original row columns.
+          // After building the page, so cursors are encoded from the original rows.
           if (options.resolveNode) {
             const transform = options.resolveNode;
             for (const edge of page.edges) {

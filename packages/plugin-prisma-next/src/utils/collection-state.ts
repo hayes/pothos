@@ -1,7 +1,4 @@
-/**
- * RC22 has no public pagination, distinct or order accessor (`state` is `@internal`). Read its state only to validate
- * supplied Collections; keep this compatibility check together on ORM upgrades.
- */
+// orm-client has no public accessor for this (`state` is `@internal`).
 export function getCollectionPaginationState(collection: unknown): {
   ordered: boolean;
   orderBy: readonly unknown[];
