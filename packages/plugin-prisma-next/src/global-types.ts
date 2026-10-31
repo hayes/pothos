@@ -6,6 +6,7 @@ import type {
   InputFieldMap,
   InterfaceParam,
   ObjectRef,
+  OutputType,
   PluginName,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -23,6 +24,7 @@ import type {
 } from './internal-types.js';
 import type { PrismaNextNodeRef } from './node-ref.js';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
+import type { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 import type {
   AnyContract,
   CursorSpec,
@@ -113,6 +115,51 @@ declare global {
     > {}
     export interface ScopeAuthContextForAuth<Types extends SchemaTypes, Scopes extends {}> {}
 
+    // Filled in by plugin-relay when it's loaded.
+    export interface ConnectionFieldOptions<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends OutputType<Types>,
+      Nullable extends boolean,
+      EdgeNullability extends FieldNullability<[unknown]>,
+      NodeNullability extends boolean,
+      Args extends InputFieldMap,
+      ResolveReturnShape,
+    > {}
+
+    export interface ConnectionObjectOptions<
+      Types extends SchemaTypes,
+      Type extends OutputType<Types>,
+      EdgeNullability extends FieldNullability<[unknown]>,
+      NodeNullability extends boolean,
+      Resolved,
+      Interfaces extends InterfaceParam<Types>[] = [],
+    > {}
+
+    export interface ConnectionEdgeObjectOptions<
+      Types extends SchemaTypes,
+      Type extends OutputType<Types>,
+      NodeNullability extends boolean,
+      Resolved,
+      Interfaces extends InterfaceParam<Types>[] = [],
+    > {}
+
+    export interface DefaultConnectionArguments {
+      first?: number | null | undefined;
+      last?: number | null | undefined;
+      before?: string | null | undefined;
+      after?: string | null | undefined;
+    }
+
+    // Filled in by plugin-with-input when it's loaded.
+    export interface FieldWithInputBaseOptions<
+      Types extends SchemaTypes,
+      Args extends InputFieldMap,
+      Fields extends InputFieldMap,
+      InputName extends string,
+      ArgRequired extends boolean,
+    > {}
+
     export interface FieldOptionsByKind<
       Types extends SchemaTypes,
       ParentShape,
@@ -162,22 +209,14 @@ declare global {
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fieldName: string,
         field: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
-            Types,
-            M,
-            Shape & { [prismaModelKey]?: M }
-          >,
+          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
         ) => FieldRef<Types, unknown>,
       ) => void;
 
       prismaObjectFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fields: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
-            Types,
-            M,
-            Shape & { [prismaModelKey]?: M }
-          >,
+          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
         ) => FieldMap,
       ) => void;
 
@@ -185,22 +224,14 @@ declare global {
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fieldName: string,
         field: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
-            Types,
-            M,
-            Shape & { [prismaModelKey]?: M }
-          >,
+          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
         ) => FieldRef<Types, unknown>,
       ) => void;
 
       prismaInterfaceFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fields: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
-            Types,
-            M,
-            Shape & { [prismaModelKey]?: M }
-          >,
+          t: PrismaNextObjectFieldBuilder<Types, M, Shape & { [prismaModelKey]?: M }>,
         ) => FieldMap,
       ) => void;
 

@@ -1,9 +1,11 @@
 import type {
+  ArgumentRef,
   FieldKind,
   FieldMap,
   FieldNullability,
   FieldOptionsFromKind,
   InferredFieldOptionKeys,
+  InferredFieldOptionsByKind,
   InputFieldMap,
   InputFieldsFromShape,
   InputShapeFromFields,
@@ -38,6 +40,7 @@ import type {
   RelationPredicate,
   ShorthandWhereFilter,
 } from '@prisma/orm-family-sql/orm-client';
+import type { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import type { Contract } from '@prisma/orm-framework/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
 import type {
@@ -311,8 +314,6 @@ type TypedCollections<TContract extends AnyContract> = {
     >;
   };
 };
-
-type OrderByItem = import('@prisma/orm-family-sql/relational-core/ast').OrderByItem;
 
 /** The parts of a client's `context` the plugin reads: the contract and its column codecs. */
 export interface PrismaNextExecutionContext<TContract extends AnyContract> {
@@ -783,7 +784,7 @@ export type PrismaNextRootFieldWithInputOptions<
     Type,
     Nullable,
     Args & {
-      [K in InputName]: import('@pothos/core').InputFieldRef<
+      [K in InputName]: ArgumentRef<
         Types,
         InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
       >;
@@ -793,31 +794,23 @@ export type PrismaNextRootFieldWithInputOptions<
     ResolveReturnShape
   >,
   'type' | 'resolve' | 'args' | InferredFieldOptionKeys
-> & {
-  type: Param;
-  args?: Args;
-  input: Fields;
-  typeOptions?: import('@pothos/plugin-with-input').WithInputTypeOptions<Types, Fields>;
-  argOptions?: import('@pothos/plugin-with-input').WithInputArgOptions<
-    Types,
-    Fields,
-    InputName,
-    ArgRequired
-  >;
-  resolve: (
-    parent: ParentShape,
-    args: InputShapeFromFields<Args> & {
-      [K in InputName]:
-        | InputShapeFromFields<Fields>
-        | (true extends ArgRequired ? never : null | undefined);
-    },
-    context: Types['Context'],
-    info: GraphQLResolveInfo,
-  ) => MaybePromise<
-    | ResolverCollection<Types, NoInfer<M>>
-    | Extract<ShapeFromTypeParam<Types, Type, Nullable>, null | undefined>
-  >;
-};
+> &
+  PothosSchemaTypes.FieldWithInputBaseOptions<Types, Args, Fields, InputName, ArgRequired> & {
+    type: Param;
+    resolve: (
+      parent: ParentShape,
+      args: InputShapeFromFields<Args> & {
+        [K in InputName]:
+          | InputShapeFromFields<Fields>
+          | (true extends ArgRequired ? never : null | undefined);
+      },
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => MaybePromise<
+      | ResolverCollection<Types, NoInfer<M>>
+      | Extract<ShapeFromTypeParam<Types, Type, Nullable>, null | undefined>
+    >;
+  };
 
 /** Columns whose codec can be ordered (not bytes, for example). */
 type OrderableColumn<Types extends SchemaTypes, M extends ModelName<Types>> =
@@ -1073,7 +1066,7 @@ export type PrismaNextObjectFieldOptions<
   Args,
   ResolveReturnShape
 > &
-  import('@pothos/core').InferredFieldOptionsByKind<
+  InferredFieldOptionsByKind<
     Types,
     Types['InferredFieldOptionsKind'],
     ShapeWithSelection,

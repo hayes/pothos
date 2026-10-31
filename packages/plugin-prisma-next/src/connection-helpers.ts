@@ -5,6 +5,7 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
+import type { ModelAccessor, ShorthandWhereFilter } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
@@ -59,7 +60,7 @@ export interface PrismaConnectionHelpers<
    */
   applyPagination(
     collection: ConnectionCollection<Types, M>,
-    args: InputShapeFromFields<Args> & import('@pothos/plugin-relay').DefaultConnectionArguments,
+    args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
     info: GraphQLResolveInfo | undefined,
     ctx: Types['Context'],
   ): MaybePromise<{
@@ -84,38 +85,26 @@ export interface PrismaConnectionHelperOptions<
   args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
   defaultSize?:
     | number
-    | ((
-        args: import('@pothos/plugin-relay').DefaultConnectionArguments,
-        ctx: Types['Context'],
-      ) => number);
+    | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: Types['Context']) => number);
   maxSize?:
     | number
-    | ((
-        args: import('@pothos/plugin-relay').DefaultConnectionArguments,
-        ctx: Types['Context'],
-      ) => number);
+    | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: Types['Context']) => number);
   totalCount?:
     | TotalCountFlag<Types>
     | ((
-        args: InputShapeFromFields<Args> &
-          import('@pothos/plugin-relay').DefaultConnectionArguments,
+        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
         ctx: Types['Context'],
         info: GraphQLResolveInfo | undefined,
       ) => MaybePromise<number>);
   where?:
-    | import('@prisma/orm-family-sql/orm-client').ShorthandWhereFilter<
-        Types['PrismaNextContract'],
-        NamespaceOf<Types, M>,
-        BareModelName<M>
-      >
+    | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>
     | ((
-        accessor: import('@prisma/orm-family-sql/orm-client').ModelAccessor<
+        accessor: ModelAccessor<
           Types['PrismaNextContract'],
           BareModelName<M>,
           NamespaceOf<Types, M>
         >,
-        args: InputShapeFromFields<Args> &
-          import('@pothos/plugin-relay').DefaultConnectionArguments,
+        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
         ctx: Types['Context'],
       ) => unknown);
 }
@@ -184,7 +173,7 @@ export function prismaConnectionHelpers<
   const cursorSpec = validateCursor(config.contract, modelName, options.cursor);
   const settings = connectionSettings<
     (
-      args: InputShapeFromFields<Args> & import('@pothos/plugin-relay').DefaultConnectionArguments,
+      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       ctx: Types['Context'],
       info: GraphQLResolveInfo | undefined,
     ) => MaybePromise<number>

@@ -8,10 +8,9 @@ import {
   PothosValidationError,
   parseCursorConnectionArgs,
 } from '@pothos/core';
-import type { DefaultConnectionArguments } from '@pothos/plugin-relay';
 import { deepEqual } from '@pothos/selection-mapper';
 import { and, or } from '@prisma/orm-family-sql/orm-client';
-import { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
+import { type AnyExpression, OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import type { AnyContract } from '../types.js';
 import type { MapperCollection } from './adapter.js';
 import { getCollectionPaginationState } from './collection-state.js';
@@ -23,7 +22,7 @@ interface ComparableColumn {
   eq(v: unknown): unknown;
   gt(v: unknown): unknown;
   lt(v: unknown): unknown;
-  isNull(): import('@prisma/orm-family-sql/relational-core/ast').AnyExpression;
+  isNull(): AnyExpression;
   isNotNull(): unknown;
   asc(options?: { nulls?: 'first' | 'last' }): OrderByItem;
   desc(options?: { nulls?: 'first' | 'last' }): OrderByItem;
@@ -333,7 +332,7 @@ export interface PaginationOptions {
 
 export function buildPaginationParams(
   cursor: CursorInput,
-  args: DefaultConnectionArguments,
+  args: PothosSchemaTypes.DefaultConnectionArguments,
   options: PaginationOptions,
 ): CursorPaginationParams {
   const { before, after, limit, expectedSize, inverted, hasPreviousPage, hasNextPage } =
@@ -489,7 +488,7 @@ function applyToCollection<C extends MapperCollection>(
 /** Throws what pagination would, without a collection. */
 export function validateCursorArgs(
   cursor: CursorInput,
-  args: DefaultConnectionArguments,
+  args: PothosSchemaTypes.DefaultConnectionArguments,
   codecs: FieldCodecs,
 ): void {
   const { before, after } = buildPaginationParams(cursor, args, { codecs });
@@ -504,7 +503,7 @@ export function validateCursorArgs(
 export function applyCursorPagination<C extends MapperCollection>(
   baseCollection: C,
   cursor: CursorInput,
-  args: DefaultConnectionArguments,
+  args: PothosSchemaTypes.DefaultConnectionArguments,
   options: PaginationOptions & { orderBy?: RequestOrderBy | undefined },
 ): CursorPaginationResult<C> {
   assertUnpaginatedCollection(baseCollection);

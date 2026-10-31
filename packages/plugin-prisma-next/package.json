@@ -48,19 +48,9 @@
   },
   "peerDependencies": {
     "@pothos/core": "workspace:^",
-    "@pothos/plugin-relay": "*",
-    "@pothos/plugin-with-input": "*",
     "@prisma/orm-family-sql": "8.0.0-rc.22",
     "@prisma/orm-framework": "8.0.0-rc.22",
     "graphql": "^16.10.0 || ^17.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@pothos/plugin-relay": {
-      "optional": true
-    },
-    "@pothos/plugin-with-input": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@js-temporal/polyfill": "^0.5.1",
