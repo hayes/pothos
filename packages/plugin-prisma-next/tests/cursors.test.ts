@@ -222,7 +222,7 @@ describe('rejected cursors', () => {
       'query ($c: String) { dated(after: $c) { edges { cursor } } }',
       { variables: { c: raw(`PNC:aa:T:["S:${marker}","S:p"]`) } },
     );
-    expect(result.errors?.[0].message).toBe('Invalid cursor value for createdAt.');
+    expect(result.errors?.[0].message).toBe('Invalid cursor: invalid createdAt value.');
     expect(result.statements).toHaveLength(0);
   });
 
@@ -291,7 +291,7 @@ describe('rejected cursors', () => {
         'query ($c: String) { bySheet(after: $c) { edges { cursor } } }',
         { variables: { c: resigned } },
       );
-      expect(result.errors?.[0].message).toBe('Invalid cursor value for sheetId.');
+      expect(result.errors?.[0].message).toBe('Invalid cursor: invalid sheetId value.');
     });
   });
 });

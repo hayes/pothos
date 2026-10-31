@@ -312,7 +312,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
       assertContextObject(context, info);
       if (isComposite && (!Array.isArray(id) || id.length !== idFields.length)) {
         throw new PothosValidationError(
-          `prismaNode '${nodeModelName}' composite ID expected ${idFields.length} values, got ${Array.isArray(id) ? id.length : 'a non-array value'}.`,
+          `Invalid prismaNode '${nodeModelName}' ID: expected ${idFields.length} value(s), got ${Array.isArray(id) ? id.length : 'a non-array value'}.`,
         );
       }
       return config.loader(context, nodeModelName).loadNode(

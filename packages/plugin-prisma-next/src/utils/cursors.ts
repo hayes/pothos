@@ -111,46 +111,48 @@ function encodeValues(fields: readonly string[], values: readonly unknown[], cod
   return encoded.length === 1 ? encodeCursorChunk(encoded[0]) : encodeCursorTuple(encoded);
 }
 
-interface DecodeErrors {
-  payload(): Error;
-  width(got: number): Error;
-  value(field: string): Error;
-}
+/** Why a payload didn't decode, which each caller words as its own error. */
+class DecodeError extends Error {}
 
-/** Keys come from `fields`, never the payload, so a payload can't inject `__proto__`. */
 function decodeValues(
   fields: readonly string[],
   payload: string,
   codecs: FieldCodecs,
-  errors: DecodeErrors,
 ): Record<string, unknown> {
   let decoded: unknown;
   try {
     decoded = decodeCursorChunk(payload);
   } catch {
-    throw errors.payload();
+    throw new DecodeError('malformed payload');
   }
   // Dispatched on `fields`: a single JSON column can decode to an array too.
   const values = fields.length === 1 ? [decoded] : decoded;
   if (!Array.isArray(values) || values.length !== fields.length) {
-    throw errors.width(Array.isArray(values) ? values.length : 1);
+    throw new DecodeError(
+      `expected ${fields.length} value(s), got ${Array.isArray(values) ? values.length : 1}`,
+    );
   }
-  const out = Object.create(null) as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
   fields.forEach((field, i) => {
     const codec = values[i] == null ? undefined : codecs(field);
     try {
       out[field] = codec ? codec.decode(values[i]) : values[i];
     } catch {
-      throw errors.value(field);
+      throw new DecodeError(`invalid ${field} value`);
     }
   });
   return out;
 }
 
+function rethrowDecodeError(error: unknown, prefix: string): never {
+  throw error instanceof DecodeError
+    ? new PothosValidationError(`${prefix}: ${error.message}.`)
+    : error;
+}
+
 /**
- * Like plugin-prisma's `GPC:`; multi-column cursors are a positional `T:` tuple of chunks. The
- * ordering's signature follows the prefix, so a cursor only seeks under the ordering that issued
- * it: `PNC:<signature>:<chunk>`.
+ * Multi-column cursors are a positional `T:` tuple of chunks. The ordering's signature follows
+ * the prefix, so a cursor only seeks under the ordering that issued it: `PNC:<signature>:<chunk>`.
  */
 const CURSOR_PREFIX = 'PNC:';
 
@@ -212,20 +214,11 @@ function decodeCursor(
       'Invalid cursor: it was issued under a different ordering of this connection. Request the first page again with the new ordering.',
     );
   }
-  const fields = cursorColumns(order);
-  return decodeValues(fields, payload.slice(separator + 1), codecs, {
-    payload: () =>
-      new PothosValidationError('Invalid cursor: payload is not a tagged cursor chunk.'),
-    width: (got) =>
-      new PothosValidationError(
-        `Invalid cursor: expected ${fields.length} value(s) for ${fields.join(', ')}, got ${got}.`,
-      ),
-    value: invalidCursorValue,
-  });
-}
-
-function invalidCursorValue(field: string) {
-  return new PothosValidationError(`Invalid cursor value for ${field}.`);
+  try {
+    return decodeValues(cursorColumns(order), payload.slice(separator + 1), codecs);
+  } catch (error) {
+    return rethrowDecodeError(error, 'Invalid cursor');
+  }
 }
 
 /** Tags node IDs that aren't plain strings, so they decode back to their own type. */
@@ -245,12 +238,7 @@ export function encodeNodeId(
     }
     return row[field];
   });
-  let payload: string;
-  try {
-    payload = encodeValues(fields, values, codecs);
-  } catch {
-    throw new PothosValidationError(`prismaNode '${modelName}' row has an invalid id value.`);
-  }
+  const payload = encodeValues(fields, values, codecs);
   // A string stays readable unless it could be mistaken for a tagged payload.
   return payload.startsWith('S:') && !payload.startsWith(`S:${ID_PREFIX}`)
     ? payload.slice(2)
@@ -265,20 +253,16 @@ export function parseNodeId(
   codecs: FieldCodecs,
   tuple: boolean,
 ): unknown {
-  const values = decodeValues(
-    fields,
-    id.startsWith(ID_PREFIX) ? id.slice(ID_PREFIX.length) : encodeCursorChunk(id),
-    codecs,
-    {
-      payload: () => new PothosValidationError(`prismaNode '${modelName}' ID payload is invalid.`),
-      width: (got) =>
-        new PothosValidationError(
-          `prismaNode '${modelName}' composite ID expected ${fields.length} values, got ${got}.`,
-        ),
-      value: (field) =>
-        new PothosValidationError(`prismaNode '${modelName}' ID has an invalid ${field} value.`),
-    },
-  );
+  let values: Record<string, unknown>;
+  try {
+    values = decodeValues(
+      fields,
+      id.startsWith(ID_PREFIX) ? id.slice(ID_PREFIX.length) : encodeCursorChunk(id),
+      codecs,
+    );
+  } catch (error) {
+    return rethrowDecodeError(error, `Invalid prismaNode '${modelName}' ID`);
+  }
   return tuple ? fields.map((field) => values[field]) : values[fields[0]!];
 }
 
@@ -346,22 +330,14 @@ export function buildPaginationParams(
   args: PothosSchemaTypes.DefaultConnectionArguments,
   options: PaginationOptions,
 ): CursorPaginationParams {
-  const { before, after, limit, expectedSize, inverted, hasPreviousPage, hasNextPage } =
-    parseCursorConnectionArgs({
-      args,
-      ...(options.defaultSize !== undefined ? { defaultSize: options.defaultSize } : {}),
-      ...(options.maxSize !== undefined ? { maxSize: options.maxSize } : {}),
-    });
   return {
+    ...parseCursorConnectionArgs({
+      args,
+      defaultSize: options.defaultSize,
+      maxSize: options.maxSize,
+    }),
     cursor,
-    before,
-    after,
-    limit,
-    expectedSize,
-    inverted,
     codecs: options.codecs,
-    hasPreviousPage,
-    hasNextPage,
   };
 }
 
@@ -424,7 +400,7 @@ function decodeBoundary(
   const boundary = decodeCursor(order, value, codecs, options);
   for (const { field, nulls } of order) {
     if (boundary[field] === null && !nulls) {
-      throw invalidCursorValue(field);
+      throw new PothosValidationError(`Invalid cursor: invalid ${field} value.`);
     }
   }
   return boundary;
