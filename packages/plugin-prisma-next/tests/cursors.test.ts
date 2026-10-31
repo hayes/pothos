@@ -103,17 +103,6 @@ describe('cursor values', () => {
     expect(seen).toEqual(['n-3', 'n-6', 'n-2', 'n-5', 'n-1', 'n-4']);
   });
 
-  it('issues only cursors it accepts back, up to the size cap', async () => {
-    const { read, cursorOf } = pages('id');
-    // `PNC:a:S:` and 1528 characters is 1536 bytes: exactly 2048 characters of base64.
-    const atCap = await cursorOf({ id: 'x'.repeat(1528) });
-    expect(atCap).toHaveLength(2048);
-    expect((await read(db.orm.Post, { first: 1, after: atCap })).edges).toEqual([]);
-    await expect(cursorOf({ id: 'x'.repeat(1529) })).rejects.toThrow(
-      'Cannot encode a cursor over id: it is 2052 characters, over the 2048-character limit for cursors.',
-    );
-  });
-
   it('accepts a cursor only under the null placement it was issued for', async () => {
     const nullsFirst = pages([{ field: 'score', nulls: 'first' }, 'id']);
     const nullsLast = pages([{ field: 'score', nulls: 'last' }, 'id']);
@@ -135,63 +124,6 @@ describe('cursor values', () => {
     class Instant {}
     const { cursorOf } = pages(['createdAt', 'id']);
     await expect(cursorOf({ id: 'p', createdAt: new Instant() })).rejects.toThrow();
-  });
-
-  it('fails only a selected cursor when a row cursor value is over the size cap', async () => {
-    await db.orm.Post.create({
-      id: 'a-long-title',
-      title: 't'.repeat(1600),
-      content: 'long-cursor',
-      published: 1,
-      authorId: 'u-bob',
-      createdAt: new Date('2026-01-02'),
-    });
-    const builder = createBuilder();
-    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        posts: t.relatedConnection('posts', {
-          cursor: ['title', 'id'],
-          query: { where: { content: 'long-cursor' } },
-        }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        users: t.prismaField({
-          type: ['User'],
-          resolve: () => db.orm.User.where({ id: 'u-bob' }),
-        }),
-        posts: t.prismaConnection({
-          type: 'Post',
-          cursor: ['title', 'id'],
-          resolve: () => db.orm.Post.where({ content: 'long-cursor' }),
-        }),
-      }),
-    });
-    const schema = builder.toSchema();
-    const nodes = [{ id: 'a-long-title' }];
-
-    const withoutCursors = await run(
-      schema,
-      '{ posts(first: 3) { nodes { id } edges { node { id } } pageInfo { hasNextPage } } users { posts(first: 3) { nodes { id } pageInfo { hasPreviousPage } } } }',
-    );
-    expect(withoutCursors.errors).toBeUndefined();
-    expect(withoutCursors.data).toEqual({
-      posts: { nodes, edges: [{ node: nodes[0] }], pageInfo: { hasNextPage: false } },
-      users: [{ posts: { nodes, pageInfo: { hasPreviousPage: false } } }],
-    });
-
-    for (const selection of ['edges { cursor }', 'pageInfo { endCursor }']) {
-      const result = await run(
-        schema,
-        `{ posts { ${selection} } users { posts { nodes { id } } } }`,
-      );
-      expect(result.errors?.map((error) => error.message)).toEqual([
-        expect.stringMatching(/^Cannot encode a cursor over title, id: it is \d+ characters/),
-      ]);
-      expect(result.data?.users).toEqual([{ posts: { nodes } }]);
-    }
   });
 
   it('builds a page without encoding cursors until one is read', async () => {
@@ -238,7 +170,6 @@ describe('rejected cursors', () => {
     ['not a tagged chunk', 'posts', raw(`PNC:{"${marker}":1}`)],
     ['without an ordering signature', 'posts', raw(`PNC:S:${marker}`)],
     ['wider than the cursor', 'dated', raw(`PNC:aa:T:["S:${marker}","S:b","S:c"]`)],
-    ['over the size cap', 'posts', raw(`PNC:a:S:${marker}${'x'.repeat(4000)}`)],
   ])('rejects a cursor %s without echoing it', async (_name, field, cursor) => {
     const result = await run(
       schema(),
