@@ -262,6 +262,40 @@ describe('rows the plugin loaded', () => {
     expect(result.statements).toHaveLength(1);
   });
 
+  it('never shows a resolver the slots of relations other consumers combined', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        published: t.relation('posts', { query: { where: { published: 1 } } }),
+        drafts: t.relation('posts', { query: { where: { published: 0 } } }),
+        json: t.string({ select: ['firstName'], resolve: (user) => JSON.stringify(user) }),
+        self: t.string({ resolve: (user) => JSON.stringify(user) }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ users { published { id } drafts { id } json self } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const [user] = result.data.users;
+    expect(user.published).toEqual([{ id: 'p-hello' }]);
+    expect(user.drafts).toEqual([{ id: 'p-draft1' }]);
+    for (const serialized of [user.json, user.self]) {
+      expect(JSON.parse(serialized)).toMatchObject({ id: 'u-alice', firstName: 'Alice' });
+      expect(JSON.parse(serialized)).not.toHaveProperty('posts');
+    }
+    expect(result.statements).toHaveLength(1);
+  });
+
   it('hands t.variant fields the parent row itself', async () => {
     const builder = createBuilder();
     const Variant = builder.prismaObject('User', {

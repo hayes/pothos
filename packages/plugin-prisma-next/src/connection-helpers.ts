@@ -35,7 +35,9 @@ import {
   validateCursor,
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
+import { getModel } from './utils/model.js';
 import { getRefFromContractModel } from './utils/refs.js';
+import { materializeRows } from './utils/selections.js';
 
 export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [Node] extends [never]
   ? WrapRow
@@ -246,7 +248,11 @@ export function prismaConnectionHelpers<
         rows: readonly WrapRow[],
         totalCount?: number,
       ): ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>> {
-        const page = buildConnectionPage(rows, pagination, totalCount);
+        const page = buildConnectionPage(
+          materializeRows(rows, getModel(config.contract, modelName)),
+          pagination,
+          totalCount,
+        );
         // After building the page, so cursors are encoded from the original rows.
         if (options.resolveNode) {
           const transform = options.resolveNode;

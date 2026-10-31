@@ -1,8 +1,11 @@
+import SchemaBuilder from '@pothos/core';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import { createBuilder, run, useSampleDb } from './fixtures/helpers';
+import prismaNextPlugin from '../src';
+import { createBuilder, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
+const collision = useCollisionDb();
 
 describe('prismaInterface', () => {
   function schema() {
@@ -360,5 +363,102 @@ describe('inherited selections', () => {
       new Set([JSON.stringify(['Draft #1', 'Hello, Pothos'])]),
     );
     expect(result.statements).toHaveLength(1);
+  });
+
+  it("hands each implementation's isTypeOf the rows its own select loads", async () => {
+    const builder = createBuilder();
+    const Person = builder.prismaInterface('User', {
+      name: 'Person',
+      select: { posts: { limit: 1 } },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.prismaObject('User', {
+      variant: 'Prolific',
+      interfaces: [Person],
+      select: { posts: true },
+      isTypeOf: (user) => user.posts.length >= 2,
+    });
+    builder.prismaObject('User', {
+      variant: 'Quiet',
+      interfaces: [Person],
+      select: { posts: true },
+      isTypeOf: (user) => user.posts.length < 2,
+    });
+    builder.queryType({
+      fields: (t) => ({
+        people: t.prismaField({
+          type: [Person],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ people { __typename id } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.people).toEqual([
+      { __typename: 'Prolific', id: 'u-alice' },
+      { __typename: 'Prolific', id: 'u-bob' },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  function ownerBuilder() {
+    const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: collision.client },
+    });
+    const Account = builder.prismaInterface('Owner', {
+      name: 'Account',
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.prismaObject('Profile', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        accounts: t.prismaField({
+          type: [Account],
+          resolve: () => collision.orm.Owner.orderBy((owner) => owner.id.asc()),
+        }),
+      }),
+    });
+    return { builder, Account };
+  }
+
+  it("loads an implementation's to-one select for isTypeOf through the interface", async () => {
+    const { builder, Account } = ownerBuilder();
+    builder.prismaObject('Owner', {
+      variant: 'WithProfile',
+      interfaces: [Account],
+      select: { profile: true },
+      isTypeOf: (owner) => owner.profile !== null,
+    });
+    builder.prismaObject('Owner', {
+      variant: 'WithoutProfile',
+      interfaces: [Account],
+      select: { profile: true },
+      isTypeOf: (owner) => owner.profile === null,
+    });
+    const result = await run(builder.toSchema(), '{ accounts { __typename id } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.accounts).toEqual([
+      { __typename: 'WithProfile', id: '1' },
+      { __typename: 'WithoutProfile', id: '2' },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('rejects implementations that load a to-one relation differently', () => {
+    const { builder, Account } = ownerBuilder();
+    builder.prismaObject('Owner', {
+      variant: 'WithProfile',
+      interfaces: [Account],
+      select: { profile: true },
+    });
+    builder.prismaObject('Owner', {
+      variant: 'WithoutProfile',
+      interfaces: [Account],
+      select: { profile: { where: { id: 1 } } },
+    });
+    expect(() => builder.toSchema()).toThrow(
+      `The select of 'WithoutProfile' loads to-one relation "profile" differently`,
+    );
   });
 });

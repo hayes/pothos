@@ -751,6 +751,8 @@ export class PrismaNextObjectFieldBuilder<
   } as never;
 
   #relation(name: string): PrismaNextRelation {
+    // A variant's planner model is its root's, which has every variant's relations; the contract
+    // model rejects another variant's.
     this.#getRelationMeta(name);
     return getModel(this.contract as AnyContract, this.modelName as string).relations[name]!;
   }
