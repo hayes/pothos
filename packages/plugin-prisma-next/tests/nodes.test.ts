@@ -467,6 +467,25 @@ describe('ID values', () => {
     ).toEqual(['42']);
   });
 
+  it('rejects a composite ID whose parser returns the wrong number of values', async () => {
+    const builder = createBuilder();
+    builder.prismaNode('Post', {
+      id: { field: ['authorId', 'id'], parse: (id) => id.split(':').slice(1) },
+      collection: (() => {
+        throw new Error('The query should not run');
+      }) as never,
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.queryType({});
+    const result = await run(builder.toSchema(), 'query ($id: ID!) { node(id: $id) { id } }', {
+      variables: { id: globalId('Post', 'u-alice:p-hello') },
+    });
+    expect(result.errors?.[0].message).toBe(
+      "prismaNode 'Post' composite ID expected 2 values, got 1.",
+    );
+    expect(result.statements).toHaveLength(0);
+  });
+
   it('refuses to encode an ID value its column codec does not hold', async () => {
     const builder = createBuilder();
     const Person = builder.prismaNode('User', {

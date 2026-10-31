@@ -100,13 +100,16 @@ describe('example schema', () => {
     expect(list.statements[0].sql).not.toMatch(/LIMIT/);
   });
 
-  it('loads type-level selects and prismaObjectField fields on every level', async () => {
-    const result = await query('{ users { comments { ref shout post { comments { ref } } } } }');
+  it('loads type-level selects and prismaObjectField(s) fields on every level', async () => {
+    const result = await query(
+      '{ users { comments { ref shout whisper post { comments { ref } } } } }',
+    );
     expect(result.errors).toBeUndefined();
     expect(result.data.users[1].comments).toEqual([
       {
         ref: 'c-1',
         shout: 'LOOKS GREAT!',
+        whisper: 'looks great!',
         post: { comments: [{ ref: 'c-1' }, { ref: 'c-2' }] },
       },
     ]);

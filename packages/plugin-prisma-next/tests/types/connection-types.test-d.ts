@@ -67,6 +67,11 @@ builder.prismaObject('User', {
       // @ts-expect-error the connection args own the page size
       limit: 5,
     }),
+    badWhere: t.relatedConnection('posts', {
+      cursor: 'id',
+      // @ts-expect-error a `where` callback returns a condition
+      where: () => 42,
+    }),
     notAnItem: t.relatedConnection('posts', {
       cursor: 'id',
       // @ts-expect-error orderBy returns order items, not a column
@@ -134,6 +139,8 @@ builder.queryType({
     }),
     // @ts-expect-error `cursor` is required
     missing: t.prismaConnection({ type: 'Post', resolve: () => orm.Post }),
+    // @ts-expect-error a connection's type is one model's type, not a list
+    list: t.prismaConnection({ type: ['Post'], cursor: 'id', resolve: () => orm.Post }),
     query: t.prismaConnection({
       type: 'User',
       cursor: 'id',

@@ -4,6 +4,10 @@
   "target": "sqlite",
   "profileHash": "260b8608d1aacaf1f690779a6cff39a12947c599597c5ba464ca75b9e775df53",
   "roots": {
+    "note": {
+      "model": "Note",
+      "namespace": "__unbound__"
+    },
     "task": {
       "model": "Task",
       "namespace": "__unbound__"
@@ -94,6 +98,54 @@
               "table": "feature"
             }
           },
+          "Note": {
+            "fields": {
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "taskId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "task": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "taskId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Task",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "id": {
+                  "column": "id"
+                },
+                "taskId": {
+                  "column": "taskId"
+                }
+              },
+              "namespaceId": "__unbound__",
+              "table": "note"
+            }
+          },
           "Task": {
             "discriminator": {
               "field": "type"
@@ -129,6 +181,21 @@
               }
             },
             "relations": {
+              "notes": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "taskId"
+                  ]
+                },
+                "to": {
+                  "model": "Note",
+                  "namespace": "__unbound__"
+                }
+              },
               "owner": {
                 "cardinality": "N:1",
                 "nullable": false,
@@ -289,6 +356,57 @@
               },
               "uniques": []
             },
+            "note": {
+              "columns": {
+                "id": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": false
+                },
+                "taskId": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "note_taskId_idx_4965c936"
+                  },
+                  "source": {
+                    "columns": [
+                      "taskId"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "note"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "task"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "taskId"
+                  ],
+                  "name": "note_taskId_idx_4965c936",
+                  "prefix": "note_taskId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
             "task": {
               "columns": {
                 "id": {
@@ -408,7 +526,7 @@
         "id": "__unbound__"
       }
     },
-    "storageHash": "27f614e2942ab093133c0ba565e421d735d1b1124155c3ccb07f07530e0d3df5"
+    "storageHash": "8620f3c21ac2b83db6f8a63d1687d70d27dc45d3af6777af420816b66b16c496"
   },
   "capabilities": {
     "sql": {

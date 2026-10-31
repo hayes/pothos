@@ -11,23 +11,16 @@ const ok = (builder: ReturnType<typeof createBuilder>) =>
   builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
 
 describe('object registration', () => {
-  it('names a variant by `variant`, which wins over `name`', () => {
+  it('names a variant by `variant`', () => {
     const builder = createBuilder();
     builder.prismaObject('User', {
       variant: 'AdminUser',
-      fields: (t) => ({ id: t.exposeID('id') }),
-    });
-    builder.prismaObject('User', {
-      variant: 'V1',
-      name: 'V2',
-      description: 'variant one',
+      description: 'an admin',
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     ok(builder);
     const schema = builder.toSchema();
-    expect(Object.keys(schema.getTypeMap())).toEqual(expect.arrayContaining(['AdminUser', 'V1']));
-    expect(schema.getType('V2')).toBeUndefined();
-    expect(schema.getType('V1')?.description).toBe('variant one');
+    expect(schema.getType('AdminUser')?.description).toBe('an admin');
   });
 
   it('adds string-form fields to the default type when a variant also exists', () => {

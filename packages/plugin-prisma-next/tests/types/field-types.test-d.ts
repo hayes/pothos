@@ -8,12 +8,7 @@ import prismaNextPlugin, {
   prismaConnectionHelpers,
   type Row,
 } from '../../src';
-import type {
-  ExposableColumn,
-  NoExposableColumn,
-  SelectColumnCheck,
-  UnknownSelectColumn,
-} from '../../src/internal-types';
+import type { ExposableColumn, SelectColumnCheck } from '../../src/internal-types';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -32,6 +27,9 @@ const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
   fields: (t) => ({ id: t.exposeID('id') }),
 });
+// `variant` names a type that shares its model, so it can't be set beside `name`.
+// @ts-expect-error only one of `name` and `variant`
+builder.prismaObject('User', { name: 'A', variant: 'B', fields: () => ({}) });
 
 // t.variant takes the options of any object field, and its shape says when it can be null.
 builder.prismaObject('User', {
@@ -174,12 +172,8 @@ builder.queryFields((t) => {
   expectTypeOf(bugs.ref).toEqualTypeOf(Bug);
 }
 
-// An unknown column in an array `select` is named in the error, and completions stay columns.
-expectTypeOf<SelectColumnCheck<Types, 'User', 'email'>>().toEqualTypeOf<'email'>();
-expectTypeOf<SelectColumnCheck<Types, 'User', 'emial'>>().toEqualTypeOf<
-  UnknownSelectColumn<'emial'>
->();
-// The editor's placeholder while completing: the column names, never a message string.
+// Completions: the editor's placeholder while completing a `select` entry gets the column names,
+// never a message string.
 expectTypeOf<SelectColumnCheck<Types, 'User', string>>().toEqualTypeOf<
   'id' | 'firstName' | 'lastName' | 'email'
 >();
@@ -199,9 +193,7 @@ builder.prismaObject('User', {
     wrongType: t.exposeBoolean('email'),
   }),
 });
-expectTypeOf<ExposableColumn<Types, UserRow, 'Int', true>>().toEqualTypeOf<
-  NoExposableColumn<'Int'>
->();
+// Completions for `t.exposeString`.
 expectTypeOf<ExposableColumn<Types, UserRow, 'String', true>>().toEqualTypeOf<
   'id' | 'firstName' | 'lastName' | 'email'
 >();

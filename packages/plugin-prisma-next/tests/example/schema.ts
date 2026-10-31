@@ -93,6 +93,9 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
   builder.prismaObjectField('Comment', 'shout', (t) =>
     t.string({ select: ['body'], resolve: (comment) => comment.body.toUpperCase() }),
   );
+  builder.prismaObjectFields('Comment', (t) => ({
+    whisper: t.string({ select: ['body'], resolve: (comment) => comment.body.toLowerCase() }),
+  }));
 
   builder.queryType({
     fields: (t) => ({

@@ -1,5 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
+import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import { loadContract, run, useDatabase } from './fixtures/helpers';
@@ -16,6 +17,8 @@ const db = useDatabase(
   -- The feature row carries a reviewerId only Bug maps, so a relation to Bug must filter it out.
   INSERT INTO task VALUES ('t1', 'bug1', 'bug', 'u1', 'high', 'u1'), ('t2', 'feat1', 'feature', 'u1', NULL, 'u1');
   INSERT INTO feature VALUES ('t2', 5);
+  CREATE TABLE note (id TEXT PRIMARY KEY, taskId TEXT NOT NULL);
+  INSERT INTO note VALUES ('n1', 't1'), ('n2', 't2');
 `,
 );
 
@@ -104,6 +107,12 @@ function createVariantSchema() {
       reviews: t.relation('reviews'),
     }),
   });
+  builder.prismaObject('Note', {
+    fields: (t) => ({
+      id: t.exposeID('id'),
+      bug: t.relation('task', { type: bug }),
+    }),
+  });
   builder.queryType({
     fields: (t) => ({
       tasks: t.prismaField({
@@ -112,6 +121,10 @@ function createVariantSchema() {
       }),
       bugs: t.prismaField({ type: ['Bug'], resolve: () => db.orm.Task.variant('bug') }),
       users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+      notes: t.prismaField({
+        type: ['Note'],
+        resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
+      }),
       orphanFeature: t.field({
         type: feature,
         resolve: () => ({ title: 'orphan', priority: 1 }) as never,
@@ -229,6 +242,17 @@ describe('native model inheritance', () => {
       },
     ]);
     expect(result.statements).toHaveLength(1);
+  });
+
+  it('resolves a to-one relation typed as a variant to null for rows of another variant', async () => {
+    const schema = createVariantSchema();
+    expect(printSchema(schema)).toContain('bug: Bug\n');
+    const result = await run(schema, '{ notes { id bug { severity } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.notes).toEqual([
+      { id: 'n1', bug: { severity: 'high' } },
+      { id: 'n2', bug: null },
+    ]);
   });
 
   it('filters a relation targeting a single-table variant by discriminator', async () => {

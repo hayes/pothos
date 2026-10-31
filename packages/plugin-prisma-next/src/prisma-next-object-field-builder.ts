@@ -40,6 +40,7 @@ import type {
   RelationKeys,
   RelationNullable,
   RelationQuery,
+  RelationTypeModel,
   Row,
   ShapeFromConnection,
   ToManyRelationKeys,
@@ -228,9 +229,7 @@ export class PrismaNextObjectFieldBuilder<
                 ResolveReturnShape
               >,
               'nullable' | 'select' | 'type' | InferredFieldOptionKeys
-            > & {
-              description?: string | false;
-            },
+            >,
         ]
       >
     ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaNextObject'> => {
@@ -269,10 +268,7 @@ export class PrismaNextObjectFieldBuilder<
       typeof variant === 'string'
         ? (getRefFromContractModel(variant as never, this.builder) as never)
         : variant;
-    const variantTypeName =
-      (ref as { name?: string; modelName?: string }).name ??
-      (ref as { modelName?: string }).modelName ??
-      (this.modelName as string);
+    const variantTypeName = (ref as { name: string }).name;
     const {
       isNull,
       nullable,
@@ -328,7 +324,9 @@ export class PrismaNextObjectFieldBuilder<
   relation<
     RelName extends RelationKeys<Types, M>,
     Query extends RelationQuery<Types, M, RelName, Args> | undefined,
-    Nullable extends boolean = RelationNullable<Types, M, RelName, Query>,
+    // The model behind `type`: a variant of the target narrows the load.
+    TypeModel extends RelationTypeModel<Types, M, RelName> = RelatedModel<Types, M, RelName>,
+    Nullable extends boolean = RelationNullable<Types, M, RelName, Query, TypeModel>,
     Args extends InputFieldMap = {},
     RelatedShape = Row<Types, RelatedModel<Types, M, RelName>>,
   >(
@@ -341,7 +339,8 @@ export class PrismaNextObjectFieldBuilder<
       Args,
       RelatedShape,
       Shape,
-      Query
+      Query,
+      TypeModel
     >,
   ): FieldRef<Types, RelationFieldShape<Types, M, RelName, Nullable>, 'PrismaNextObject'> {
     const opts = (options ?? {}) as PrismaNextRelationOptions<
@@ -394,12 +393,13 @@ export class PrismaNextObjectFieldBuilder<
     return this.field({
       ...rest,
       type: relation.isToMany ? [targetRef] : targetRef,
-      // A query can filter a to-one relation's row out.
+      // A query or a variant type can filter a to-one relation's row out.
       nullable:
         nullable ??
         (relation.isToMany
           ? false
           : query !== undefined ||
+            variant !== undefined ||
             this.#isToOneRelationNullable(this.#getRelationMeta(relationName))),
       extensions: {
         ...extensions,
@@ -474,6 +474,11 @@ export class PrismaNextObjectFieldBuilder<
     options: Record<string, unknown>,
     nullableDefault: boolean,
   ): FieldRef<Types, unknown, 'PrismaNextObject'> {
+    if (!this.#relation(name).isToMany) {
+      throw new PothosSchemaError(
+        `Aggregate '${op}' on '${this.modelName as string}.${name}' needs a to-many relation.`,
+      );
+    }
     const { where, nullable, extensions, ...rest } = options as {
       where?: unknown;
       nullable?: boolean;

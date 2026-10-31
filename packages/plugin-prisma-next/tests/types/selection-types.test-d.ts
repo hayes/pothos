@@ -181,6 +181,18 @@ builder.prismaObject('User', {
   select: { posts: (sub) => ({ n: sub.nope() }) },
   fields: () => ({}),
 });
+builder.prismaObject('User', {
+  variant: 'FunctionSelectCollection',
+  // @ts-expect-error the function returns an object of values to load, not the collection
+  select: { posts: (sub) => sub },
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'FunctionSelectReducer',
+  // @ts-expect-error a reducer needs a key on the returned object
+  select: { posts: (sub) => sub.count() },
+  fields: () => ({}),
+});
 builder.prismaInterface('User', {
   name: 'InterfaceFunctionSelect',
   select: { posts: (sub) => ({ postCount: sub.count() }) },
@@ -234,6 +246,11 @@ builder.prismaObject('User', {
       }),
       resolve: (user) => user.postCount,
     }),
+    collection: t.string({
+      // @ts-expect-error the function returns an object of values to load, not the collection
+      select: { posts: (sub) => sub },
+      resolve: () => '',
+    }),
     // Columns only some branches select may be missing.
     branches: t.string({
       args: { formal: t.arg.boolean({ required: true }) },
@@ -244,12 +261,12 @@ builder.prismaObject('User', {
         return '';
       },
     }),
-    // Overlapping branches keep apart, so a column only one of them selects may be missing.
+    // A column every branch selects is present; one only some branches select may be missing.
     overlapping: t.string({
       args: { full: t.arg.boolean({ required: true }) },
       select: (args) => (args.full ? ['email', 'firstName'] : ['email']),
       resolve: (user) => {
-        expectTypeOf(user.email).toEqualTypeOf<string | undefined>();
+        expectTypeOf(user.email).toEqualTypeOf<string>();
         expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
         return '';
       },

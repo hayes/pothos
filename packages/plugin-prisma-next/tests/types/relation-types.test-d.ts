@@ -2,7 +2,13 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { Collection, DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin from '../../src';
+import prismaNextPlugin, {
+  type RelatedModel,
+  type RelationKeys,
+  type RelationQuery,
+  type RelationWhere,
+  type SelectObjectSpec,
+} from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -14,6 +20,16 @@ const builder = new SchemaBuilder<{
   relay: {},
   prismaNext: { client: null as never },
 });
+
+// The helper types are exported for writing reusable options.
+type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
+expectTypeOf<RelationKeys<Types, 'User'>>().toEqualTypeOf<'posts' | 'comments'>();
+expectTypeOf<RelatedModel<Types, 'User', 'posts'>>().toEqualTypeOf<'Post'>();
+const publishedOnly: RelationWhere<Types, 'Post'> = { published: 1 };
+const firstTwo: RelationQuery<Types, 'User', 'posts', {}> = { where: publishedOnly, limit: 2 };
+expectTypeOf({ email: true, posts: firstTwo } as const).toExtend<SelectObjectSpec<Types, 'User'>>();
+// @ts-expect-error `nope` isn't a column or relation of User
+expectTypeOf<SelectObjectSpec<Types, 'User'>>().toHaveProperty('nope');
 
 builder.prismaObject('User', {
   fields: (t) => ({
@@ -158,6 +174,13 @@ builder.prismaObject('User', {
     t.relationAggregate('posts', { op: 'avgDecimal', field: 'published', type: 'String' });
     // @ts-expect-error sumBigInt does not accept floating point fields
     t.relationAggregate('posts', { op: 'sumBigInt', field: 'score', type: 'BigInt' });
+    // @ts-expect-error no scalar's Output is a Date, so `type` can't be satisfied
+    t.relationAggregate('posts', { op: 'max', field: 'createdAt', type: 'String' });
+    // @ts-expect-error a `where` callback returns a condition
+    t.relationCount('posts', { where: () => 'oops' });
+    // @ts-expect-error a `where` callback returns a condition
+    t.relationAggregate('posts', { op: 'sum', field: 'published', where: () => ({}) });
+    t.relationCount('posts', { where: (post) => post.published.eq(1) });
     return { count, sum, countBigInt };
   },
 });
@@ -181,6 +204,22 @@ inheritance.prismaObject('Bug', {
       },
     }),
   }),
+});
+
+// A to-one relation typed as a variant of its target filters out rows of other variants, so it
+// is nullable unless `nullable` says otherwise.
+const bugRef = inheritance.prismaObject('Bug', { variant: 'NoteBug', fields: () => ({}) });
+const taskRef = inheritance.prismaObject('Task', { variant: 'NoteTask', fields: () => ({}) });
+inheritance.prismaObject('Note', {
+  fields: (t) => {
+    const task = t.relation('task', { type: taskRef });
+    expectTypeOf(task.$inferType).not.toBeNullable();
+    const bug = t.relation('task', { type: bugRef });
+    expectTypeOf(bug.$inferType).toBeNullable();
+    const requiredBug = t.relation('task', { type: bugRef, nullable: false });
+    expectTypeOf(requiredBug.$inferType).not.toBeNullable();
+    return { task, bug, requiredBug };
+  },
 });
 
 // A relation field's shape is the related rows. A `query` can filter a to-one relation's row out,
