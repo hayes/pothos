@@ -40,8 +40,7 @@ builder.prismaNode('Comment', {
 ```
 
 By default IDs encode the key columns with the client's column codecs, and
-`t.arg.globalID({ for: ref })` receives the decoded values. An encoded ID can be at most 2048
-characters, so a row with a very long string key fails its `id` field.
+`t.arg.globalID({ for: ref })` receives the decoded values.
 
 `node` and `nodes` lookups with the same path are batched into one query, with the selection
 applied.
