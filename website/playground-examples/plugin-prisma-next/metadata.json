@@ -4,6 +4,6 @@
   "description": "Explore how Pothos turns GraphQL selections into Prisma ORM 8 queries, with related records and cursor pagination. Run a query, then inspect the statements in the SQL tab.",
   "category": "plugins",
   "difficulty": "intermediate",
-  "relatedDocs": ["/docs/plugins/prisma"],
+  "relatedDocs": ["/docs/plugins/prisma-next"],
   "defaultActiveFile": "queries.ts"
 }
