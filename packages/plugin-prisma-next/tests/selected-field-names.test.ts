@@ -1,8 +1,3 @@
-/**
- * The `totalCount` gate of `t.relatedConnection` and `buildTotalCountPromise` reads the
- * connection's selection through `selectedFieldNames` from `@pothos/selection-mapper`. These pin
- * the directive and fragment rules the plugin relies on, through a real parsed document.
- */
 import { selectedFieldNames } from '@pothos/selection-mapper';
 import { execute } from '@pothos/test-utils';
 import { buildSchema, type GraphQLResolveInfo, parse } from 'graphql';
@@ -91,8 +86,7 @@ describe('selectedFieldNames — directive + fragment walk', () => {
   });
 
   it('does NOT honor @defer — deferred fields still count as selected', async () => {
-    // Deferred fragments are still part of the GraphQL response stream; a deferred totalCount
-    // must still be computed.
+    // A deferred totalCount is still part of the response.
     expect(await selects('{ connection { ... @defer { totalCount } } }')).toBe(true);
   });
 

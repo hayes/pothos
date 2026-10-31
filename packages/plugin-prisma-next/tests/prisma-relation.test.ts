@@ -69,11 +69,9 @@ describe('builder.prismaObject — relations', () => {
   it('produces a schema where t.relation references the related model', () => {
     const sdl = printSchema(buildSchema());
 
-    // User exposes its posts relation as a list of Post and a count
     expect(sdl).toMatch(/type User \{[^}]*posts: \[Post!\]!/s);
     expect(sdl).toMatch(/type User \{[^}]*postCount: Int!/s);
 
-    // Post exposes a single (non-null inferred from FK metadata) author
     expect(sdl).toMatch(/type Post \{[^}]*author: User!/s);
   });
 
@@ -87,9 +85,6 @@ describe('builder.prismaObject — relations', () => {
     const schema = buildSchema();
     const userType = schema.getType('User');
     expect(userType).toBeDefined();
-    // The plugin's wrapResolve installs a resolver that throws when called
-    // with a parent that wasn't loaded by t.prismaField. We assert the
-    // resolver is wired by checking the field has a non-default resolver.
     const objType = userType as { getFields: () => Record<string, { resolve?: unknown }> };
     const postsField = objType?.getFields ? objType.getFields().posts : undefined;
     expect(postsField).toBeDefined();

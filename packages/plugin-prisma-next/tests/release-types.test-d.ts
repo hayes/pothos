@@ -120,7 +120,7 @@ builder.prismaObject('Post', {
     authorName: t.string({
       select: {
         author: (author) => {
-          // @ts-expect-error New aggregate reducers are unavailable on to-one refinements.
+          // @ts-expect-error aggregate reducers are unavailable on to-one refinements
           author.countBigInt();
           // @ts-expect-error Mutation terminals cannot execute inside an include refinement.
           author.createAndCount({});

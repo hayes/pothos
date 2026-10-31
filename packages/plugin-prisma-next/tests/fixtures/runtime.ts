@@ -1,7 +1,4 @@
-// Spins up an on-disk sqlite database in a temp directory, seeds it
-// via raw CREATE/INSERT (avoids prisma-next's migration CLI stack for
-// a fixture), and connects a sqlite client. Returns orm + runtime so
-// tests can inspect emitted SQL via the capture middleware.
+// A seeded on-disk sqlite database, built with raw SQL rather than prisma-next's migrations.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -94,18 +91,8 @@ export async function createTestRuntime(): Promise<TestRuntimeContext> {
   };
 }
 
-/**
- * Issue the marker table + the contract's user/post/comment tables.
- * The marker rows are required by `verify: { requireMarker: false }`'s
- * fallback path, which still consults the table when present.
- */
 function createSchema(db: DatabaseSync, contract: SampleContract): void {
-  // Marker table shape mirrors prisma-next 0.16.0's sqlite control adapter
-  // (`_prisma_marker` defined in @prisma/orm-sqlite/adapter). The adapter
-  // reads `WHERE space = 'app'` selecting core_hash/profile_hash/
-  // contract_json/canonical_version/updated_at/app_tag/meta/invariants, so
-  // the `space` column (and a row with space='app') is required — without it
-  // the init read fails with "Database error while reading contract marker".
+  // The runtime reads the marker `WHERE space = 'app'`; without that row it fails to initialize.
   db.exec(`
     CREATE TABLE _prisma_marker (
       space TEXT PRIMARY KEY NOT NULL,
@@ -119,8 +106,6 @@ function createSchema(db: DatabaseSync, contract: SampleContract): void {
       invariants TEXT NOT NULL DEFAULT '[]'
     )
   `);
-  // `space` is the APP_SPACE_ID the runtime reads with (@prisma-next/
-  // framework-components exports APP_SPACE_ID = "app").
   const APP_SPACE_ID = 'app';
   const storageHash = (contract as { storage?: { storageHash?: string } }).storage?.storageHash ?? '';
   const profileHash = (contract as { profileHash?: string }).profileHash ?? storageHash;
@@ -161,11 +146,6 @@ function createSchema(db: DatabaseSync, contract: SampleContract): void {
   `);
 }
 
-/**
- * Two users, four posts (mix of published/draft), two comments on the
- * one published post by Alice. Mirrors the example seed but with stable
- * IDs so test assertions can hardcode them.
- */
 function seedData(db: DatabaseSync): void {
   db.exec(`
     INSERT INTO user (id, firstName, lastName, email) VALUES

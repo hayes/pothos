@@ -19,12 +19,12 @@ expectTypeOf(mapped).toEqualTypeOf<MaybePromise<MapperCollection>>();
 // @ts-expect-error The public helper cannot promise synchronous completion.
 mapped.select('id');
 
-// Public select objects use the released ORM pagination vocabulary.
+// Select objects paginate with limit/offset.
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
 const selected: SelectObjectSpec<Types, 'User'> = { posts: { limit: 2, offset: 1 } };
 expectTypeOf(selected).toMatchTypeOf<SelectObjectSpec<Types, 'User'>>();
 const obsolete: SelectObjectSpec<Types, 'User'> = {
-  // @ts-expect-error Pre-release take/skip options are not silently accepted.
+  // @ts-expect-error take/skip are not select options
   posts: { take: 2, skip: 1 },
 };
 expectTypeOf(obsolete).toMatchTypeOf<SelectObjectSpec<Types, 'User'>>();

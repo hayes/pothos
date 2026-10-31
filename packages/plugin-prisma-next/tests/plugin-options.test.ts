@@ -1,6 +1,4 @@
-// Coverage gate: every option declared on `PrismaNextPluginOptions`
-// must appear by name somewhere under `tests/`. Adding an option fails
-// until you write a test that exercises it.
+// Every option declared on `PrismaNextPluginOptions` must appear by name somewhere under `tests/`.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,11 +17,7 @@ const TESTS_DIR = fileURLToPath(new URL('.', import.meta.url));
 const PLUGIN_OPTIONS_SRC = fileURLToPath(new URL('../src/types.ts', import.meta.url));
 const THIS_FILE = fileURLToPath(import.meta.url);
 
-/**
- * Pull the property names off the `PrismaNextPluginOptions` interface
- * by reading `src/types.ts` and scanning the block between the
- * declaration header and the closing brace.
- */
+/** The property names declared on `PrismaNextPluginOptions` in `src/types.ts`. */
 function readPluginOptionKeys(): readonly string[] {
   const src = readFileSync(PLUGIN_OPTIONS_SRC, 'utf8');
   const start = src.indexOf('export interface PrismaNextPluginOptions');
@@ -34,7 +28,6 @@ function readPluginOptionKeys(): readonly string[] {
   if (openBrace < 0) {
     throw new Error('Could not find opening brace of PrismaNextPluginOptions');
   }
-  // Brace-match to find the close.
   let depth = 0;
   let close = -1;
   for (let i = openBrace; i < src.length; i++) {
@@ -55,7 +48,6 @@ function readPluginOptionKeys(): readonly string[] {
   const body = src.slice(openBrace + 1, close);
   // Strip comments so doc text doesn't get matched as a property name.
   const stripped = body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-  // Match `readonly NAME?: ...;` and `NAME: ...;`.
   const re = /^\s*(?:readonly\s+)?(\w+)\??\s*:/gm;
   const keys = new Set<string>();
   for (const m of stripped.matchAll(re)) {
@@ -81,17 +73,9 @@ function listTestFiles(): readonly string[] {
   return out;
 }
 
-/**
- * Read this file with the coverage-gate machinery itself stripped so
- * the gate doesn't satisfy itself with its own documentation /
- * comments. The per-option E2E describe block below stays — those
- * are real tests that exercise each option end-to-end.
- */
+/** This file without the coverage gate, which names every option and would satisfy itself. */
 function readSelfWithoutGate(): string {
   const raw = readFileSync(THIS_FILE, 'utf8');
-  // Drop the `plugin-options coverage gate` describe block (it
-  // mentions every option name in its grep machinery, which would
-  // self-satisfy the gate trivially).
   const start = raw.indexOf("describe('plugin-options coverage gate'");
   const end = raw.indexOf("describe('plugin-options end-to-end'");
   if (start < 0 || end < 0 || end <= start) {
@@ -107,9 +91,6 @@ const TEST_FILE_CONTENTS = TEST_FILES.map((f) =>
 ).join('\n');
 
 describe('plugin-options coverage gate', () => {
-  // The list of optional plugin-option keys is derived at module load
-  // so the test names enumerate them and a missing one shows up as a
-  // specific failing test name, not a single bulk assertion.
   const pluginOptionKeys = readPluginOptionKeys().filter((k) => !REQUIRED_KEYS.has(k));
 
   it('discovers all PrismaNextPluginOptions keys', () => {
@@ -118,8 +99,6 @@ describe('plugin-options coverage gate', () => {
 
   for (const key of pluginOptionKeys) {
     it(`covers the "${key}" plugin option somewhere under tests/`, () => {
-      // Word-boundary match so e.g. `default` doesn't accidentally
-      // match `defaultConnectionSize`.
       const re = new RegExp(`\\b${key}\\b`);
       expect(
         re.test(TEST_FILE_CONTENTS),
@@ -130,9 +109,6 @@ describe('plugin-options coverage gate', () => {
     });
   }
 });
-
-// Per-option E2E gate. The greppy check above is a canary; this block
-// spins up a builder per option and asserts a downstream effect.
 
 let ctx: TestRuntimeContext;
 
@@ -166,7 +142,6 @@ describe('plugin-options end-to-end', () => {
         }),
       }),
     });
-    // No `first:` arg — should default to 1 per the schema-wide option.
     const result = await execute({
       schema: builder.toSchema(),
       document: parse('{ users { edges { node { id } } pageInfo { hasNextPage } } }'),
@@ -211,7 +186,6 @@ describe('plugin-options end-to-end', () => {
     });
     expect(result.errors).toBeUndefined();
     const data = result.data as { users: { edges: Array<{ node: { id: string } }> } };
-    // 2 users seeded, first:100 requested, but maxConnectionSize:1 caps it.
     expect(data.users.edges).toHaveLength(1);
   });
 

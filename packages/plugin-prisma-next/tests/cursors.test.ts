@@ -6,13 +6,9 @@ import {
 } from '../src';
 
 /**
- * This plugin writes the cursor encoding `@pothos/core` defines, the same one the prisma and
- * drizzle plugins write: `base64('PNC:' + chunk)`, where a cursor over one column is that
- * column's tagged chunk and one over several is a `T:` tuple of chunks, positional in `cols`
- * order. Being unreleased, it has no older form to keep reading.
- *
- * The previous encoding was `JSON.stringify` of a column-keyed object, which needed a `$bigint`
- * envelope to hold a bigint at all and a regex over every decoded string to guess Dates back.
+ * The cursor encoding `@pothos/core` defines, shared with the prisma and drizzle plugins:
+ * `base64('PNC:' + chunk)`, where a cursor over several columns is a `T:` tuple of chunks in
+ * `cols` order.
  */
 class FakeDecimal {
   constructor(private readonly digits: string) {}
@@ -59,8 +55,7 @@ describe('the cursor encoding', () => {
     expect([...decoded]).toEqual([...key]);
   });
 
-  // Comes back as its exact digits: the orm takes a decimal string wherever it takes a decimal,
-  // and none of them fits in a `number`.
+  // The orm takes a decimal as a string, and a high-precision one doesn't fit in a `number`.
   it('round trips a high precision decimal', () => {
     const digits = '0.1234567890123456789012345';
     const cursor = encodeCursor(['amount'], { amount: new FakeDecimal(digits) });
@@ -69,8 +64,6 @@ describe('the cursor encoding', () => {
     expect(decodeCursor(['amount'], cursor).amount).toBe(digits);
   });
 
-  // The cursor format carries each column's type, so a string is decoded as a string rather
-  // than guessed at from the shape of its text.
   it('leaves an ISO-8601 shaped string a string', () => {
     const value = '2025-03-15T12:00:00.000Z';
 
@@ -153,8 +146,6 @@ describe('rejecting a cursor', () => {
     expect(decodeCursor(['id'], cursor).id).toBe(longString);
   });
 
-  // Log-aggregation hygiene: a caller can otherwise stash arbitrary text in operator logs
-  // through error.message.
   it('does not echo the client supplied cursor in the message', () => {
     expect(() => decodeCursor(['id'], 'XSS-PAYLOAD-MARKER')).toThrow(
       /^(?!.*XSS-PAYLOAD-MARKER).*Invalid cursor/,
@@ -163,9 +154,7 @@ describe('rejecting a cursor', () => {
 });
 
 describe('a cursor cannot reach the output as a key', () => {
-  // The payload is positional and carries no keys of its own, so a `__proto__` or `constructor`
-  // key has nowhere to come from: the result is keyed by `cols`, which the schema supplies. The
-  // previous format was a column-keyed JSON object and had to filter those keys out by hand.
+  // The payload is positional, so the result is keyed only by `cols`.
   it('leaves Object.prototype alone whatever the payload holds', () => {
     const probe = {} as Record<string, unknown>;
     const malicious = Buffer.from('PNC:O:{"__proto__":{"polluted":1}}').toString('base64');

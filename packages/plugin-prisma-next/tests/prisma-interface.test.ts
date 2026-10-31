@@ -26,25 +26,16 @@ function buildSchema() {
     },
   });
 
-  // The interface — `prismaInterface('User', …)` registers a GraphQL
-  // Interface named 'User' backed by the User contract model. Returns
-  // a `PrismaNextInterfaceRef` users pass into the
-  // `interfaces: [...]` array on implementing prismaObjects.
   const userIface = builder.prismaInterface('User', {
     fields: (t) => ({
       id: t.exposeID('id'),
     }),
   });
 
-  // Cross-file field addition via `prismaInterfaceFields` — exercises
-  // the schema-builder route that wasn't otherwise touched by tests.
   builder.prismaInterfaceFields(userIface, (t) => ({
     firstName: t.exposeString('firstName'),
   }));
 
-  // Concrete implementations: two prismaObject variants of the User
-  // model, each implementing the User interface. `isTypeOf` decides
-  // which type a row routes to.
   const adminRef = builder.prismaObject('User', {
     name: 'AdminUser',
     interfaces: [userIface],
@@ -89,9 +80,6 @@ describe('prismaInterface family', () => {
   it('exposes interface fields from `prismaInterface` + `prismaInterfaceFields`', () => {
     const schema = buildSchema();
     const sdl = printSchema(schema);
-    // `id` (from prismaInterface options.fields) and `firstName`
-    // (added via prismaInterfaceFields) should both appear on the
-    // interface itself.
     const ifaceBlock = sdl.match(/interface User\b[^}]*\}/)?.[0] ?? '';
     expect(ifaceBlock).toMatch(/\bid: ID/);
     expect(ifaceBlock).toMatch(/\bfirstName: String/);
