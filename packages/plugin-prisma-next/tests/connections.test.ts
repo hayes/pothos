@@ -101,10 +101,15 @@ function schema(options: SampleOptions = {}) {
       newestFirst: t.prismaConnection({
         type: 'Post',
         cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
-        resolve: (_root, args) =>
-          db.orm.Post.orderBy((post) =>
-            args.last == null ? post.createdAt.desc() : post.createdAt.asc(),
-          ),
+        resolve: (_root, args) => {
+          // Core pages backward for `last`, or for `before` without `first` or `after`.
+          const backward =
+            args.first == null &&
+            (args.last != null || (args.before != null && args.after == null));
+          return db.orm.Post.orderBy((post) =>
+            backward ? post.createdAt.asc() : post.createdAt.desc(),
+          );
+        },
       }),
       callableCount: t.prismaConnection({
         type: 'Post',
@@ -794,10 +799,16 @@ describe('base collections', () => {
     );
     expect(ids(first.data.last)).toEqual(order.slice(2));
     const next = await query(
-      'query ($after: String) { newestFirst(first: 2, after: $after) { edges { node { id } } } }',
+      'query ($after: String) { newestFirst(first: 2, after: $after) { edges { cursor node { id } } } }',
       { after: first.data.newestFirst.pageInfo.endCursor },
     );
     expect(ids(next.data.newestFirst)).toEqual(order.slice(2));
+    const before = await query(
+      'query ($before: String) { newestFirst(before: $before) { edges { node { id } } } }',
+      { before: next.data.newestFirst.edges[0].cursor },
+    );
+    expect(before.errors).toBeUndefined();
+    expect(ids(before.data.newestFirst)).toEqual(order.slice(0, 2));
   });
 
   it('validates the base even when only totalCount is selected', async () => {

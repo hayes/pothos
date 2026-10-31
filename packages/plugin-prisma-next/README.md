@@ -52,6 +52,71 @@ builder.queryType({
 });
 ```
 
+## Examples
+
+These come from the
+[Prisma Next playground example](https://pothos-graphql.dev/playground?example=plugin-prisma-next).
+
+An object with a computed field, a filtered relation and a related connection:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    // Selects its columns only when a query asks for this field.
+    fullName: t.string({
+      select: ['firstName', 'lastName'],
+      resolve: (user) => `${user.firstName} ${user.lastName}`,
+    }),
+    // Loaded with its parent as part of one ORM query.
+    posts: t.relation('posts', {
+      query: { where: { published: 1 }, orderBy: (post) => post.id.asc() },
+    }),
+    // Pages through the relation inside that same query.
+    postConnection: t.relatedConnection('posts', {
+      cursor: 'id',
+      query: { where: { published: 1 } },
+      totalCount: true,
+    }),
+  }),
+});
+```
+
+A root field returns a Collection; the plugin applies the query's selection to it:
+
+```ts
+users: t.prismaField({
+  type: ['User'],
+  resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+}),
+```
+
+A root connection, ordered per request:
+
+```ts
+posts: t.prismaConnection({
+  type: 'Post',
+  cursor: 'id',
+  totalCount: true,
+  args: { newestFirst: t.arg.boolean() },
+  // Chooses the direction per request; the plugin reverses it for backward pages.
+  orderBy: (post, args) => (args.newestFirst ? post.id.desc() : post.id.asc()),
+  resolve: () => db.orm.Post.where({ published: 1 }),
+}),
+```
+
+A connection over a relation, loaded with its parent:
+
+```ts
+// Pages through the relation inside that same query.
+postConnection: t.relatedConnection('posts', {
+  cursor: 'id',
+  query: { where: { published: 1 } },
+  totalCount: true,
+}),
+```
+
 PostgreSQL and SQLite are supported, MySQL supports reads only (not covered by CI), and MongoDB is
 not supported. Operations must be executed with a context object (`contextValue`), where the
 plugin keeps per-request state.
