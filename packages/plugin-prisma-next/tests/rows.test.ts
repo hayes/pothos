@@ -22,7 +22,7 @@ describe('rows a resolver returns', () => {
     {},
     { id: 'u-alice' },
   ])('resolves dependency-free fields of %j synchronously without a query', (parent) => {
-    const builder = createBuilder({ collections: db.orm });
+    const builder = createBuilder();
     const User = builder.prismaObject('User', {
       fields: (t) => ({ constant: t.string({ resolve: () => 'constant' }) }),
     });
@@ -59,8 +59,8 @@ describe('rows a resolver returns', () => {
     expect(result).toEqual({ data: { user: { label: 'cached label' } } });
   });
 
-  function staleSchema(provider = true) {
-    const builder = createBuilder(provider ? { collections: db.orm } : {});
+  function staleSchema() {
+    const builder = createBuilder();
     const Post = builder.prismaObject('Post', {
       fields: (t) => ({
         id: t.exposeID('id'),
@@ -80,11 +80,8 @@ describe('rows a resolver returns', () => {
     return builder.toSchema();
   }
 
-  it.each([
-    true,
-    false,
-  ])('keeps the values a row already owns without a query (provider: %s)', async (provider) => {
-    const owned = await run(staleSchema(provider), '{ stale { id title } deleted { id title } }');
+  it('keeps the values a row already owns without a query', async () => {
+    const owned = await run(staleSchema(), '{ stale { id title } deleted { id title } }');
     expect(owned.data).toEqual({
       stale: { id: 'p-hello', title: 'kept' },
       deleted: { id: 'gone', title: 'deleted' },
@@ -92,7 +89,7 @@ describe('rows a resolver returns', () => {
     expect(owned.statements).toHaveLength(0);
   });
 
-  it('loads only the columns a row is missing through the provider', async () => {
+  it('loads only the columns a row is missing through the loader', async () => {
     const missing = await run(staleSchema(), '{ stale { title content } }');
     expect(missing.errors).toBeUndefined();
     expect(missing.data.stale).toEqual({ title: 'kept', content: 'Welcome.' });
@@ -275,7 +272,7 @@ describe('model members named like plugin slots', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
       relay: {},
-      prismaNext: { contract: collision.contract },
+      prismaNext: { client: collision.client },
     });
     builder.prismaObject('Row', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });

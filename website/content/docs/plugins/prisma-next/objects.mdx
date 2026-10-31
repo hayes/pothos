@@ -130,8 +130,7 @@ authorName: t.string({
 A filtered to-one relation can be `null` even when its foreign key is required.
 
 When a field's relation filter conflicts with another selection of the same to-one relation, the
-field is loaded in a separate batched query if [`collections`](./setup#plugin-options) is
-configured, and rejected otherwise.
+field is loaded in a separate batched query.
 
 ## Adding fields
 

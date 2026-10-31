@@ -21,7 +21,7 @@ expectTypeOf<Row<Types, 'nsa.User'>>().toEqualTypeOf<{ id: number; orgId: number
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
-  prismaNext: { contract: null as never },
+  prismaNext: { client: null as never },
 });
 declare const orm: {
   nsa: { User: CollectionFor<Types, 'nsa.User'> };
@@ -132,7 +132,7 @@ type TenantTypes = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Te
 const tenant = new SchemaBuilder<{ PrismaNextContract: TenantContract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
-  prismaNext: { contract: null as never },
+  prismaNext: { client: null as never },
 });
 expectTypeOf<Row<TenantTypes, 'Post'>['score']>().toEqualTypeOf<number | null>();
 prismaConnectionHelpers(tenant, 'Post', {

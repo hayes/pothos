@@ -86,10 +86,9 @@ builder.queryType({
 - Return a variant type from `orm.Base.variant(value)`. `orm.Bug` isn't filtered by Prisma, so it
   is rejected.
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
-- `prismaNode` works on a variant with `collection: (ctx) => ctx.db.orm.Task.variant('feature')`.
-- A relation declared on a variant loads under `... on Bug` only with
-  [`collections`](./setup#plugin-options) configured.
+- `prismaNode` works on a variant, and loads it through `orm.Task.variant('feature')`.
+- A relation declared on a variant loads under `... on Bug` in a separate batched query.
 - `t.relation` and `t.relatedConnection` with a variant `type` only return, and count, that
   variant's rows.
-- A relation whose target is a variant model can't load the relations the variant inherits
-  without `collections`.
+- The relations a variant inherits load in a separate batched query when a relation targets the
+  variant model.

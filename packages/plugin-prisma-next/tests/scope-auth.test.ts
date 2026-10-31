@@ -29,7 +29,7 @@ function schema() {
     plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
     relay: {},
     scopeAuth: { authScopes: ({ admin }) => ({ admin }) },
-    prismaNext: { contract: ctx.contract },
+    prismaNext: { client: ctx.client },
   });
   builder.prismaObject('User', {
     fields: (t) => ({
@@ -121,7 +121,7 @@ function _narrowedParentShapeSurvivesWithAuth() {
     plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
     relay: {},
     scopeAuth: { authScopes: ({ admin }) => ({ admin }) },
-    prismaNext: { contract: ctx.contract },
+    prismaNext: { client: ctx.client },
   });
 
   builder.prismaObjectFields('User', (t) => ({
@@ -145,7 +145,7 @@ it('loads declared columns and the exposed column for authScopes', async () => {
     plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
     relay: {},
     scopeAuth: { authScopes: () => ({ open: true }) },
-    prismaNext: { contract: ctx.contract },
+    prismaNext: { client: ctx.client },
   });
   builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
   builder.prismaObject('User', {

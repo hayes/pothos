@@ -289,7 +289,11 @@ export type ConnectionCollection<
   M extends ModelName<Types>,
 > = ResolverCollection<Types, M>;
 
-export type PrismaNextCollections<TContract extends AnyContract> = {
+// A contract typed only as `AnyContract` has no model keys to check collections against.
+export type PrismaNextCollections<TContract extends AnyContract> =
+  string extends keyof TContract['domain']['namespaces'] ? object : TypedCollections<TContract>;
+
+type TypedCollections<TContract extends AnyContract> = {
   [M in ModelKeys<TContract>]?: Collection<
     TContract,
     BareModelName<M>,
@@ -309,19 +313,39 @@ export type PrismaNextCollections<TContract extends AnyContract> = {
 
 type OrderByItem = import('@prisma/orm-family-sql/relational-core/ast').OrderByItem;
 
-export interface PrismaNextPluginOptions<TContract extends AnyContract, Context = object> {
+/** The parts of a client's `context` the plugin reads: the contract and its column codecs. */
+export interface PrismaNextExecutionContext<TContract extends AnyContract> {
   readonly contract: TContract;
-  /** The client's `context`; its codecs encode object-valued columns in cursors and identities. */
-  readonly context?: import('./utils/model.js').PrismaNextCodecContext;
-  /** Base model collections for batched fallback loads, including request filters/transactions. */
-  readonly collections?:
-    | PrismaNextCollections<TContract>
-    | ((context: Context) => PrismaNextCollections<TContract>);
-  /** Defaults to true when collections are configured; otherwise selections are loaded eagerly. */
+  readonly contractCodecs: {
+    forColumn(namespaceId: string, table: string, column: string): unknown;
+  };
+}
+
+/** The parts of a Prisma ORM client the plugin reads. */
+export interface PrismaNextClient<TContract extends AnyContract> {
+  readonly orm: PrismaNextCollections<TContract>;
+  readonly context: PrismaNextExecutionContext<TContract>;
+}
+
+/** A client for one request, such as a transaction, which may not expose `context`. */
+export interface PrismaNextRequestClient<TContract extends AnyContract> {
+  readonly orm: PrismaNextCollections<TContract>;
+  readonly context?: PrismaNextExecutionContext<TContract>;
+}
+
+export type PrismaNextPluginOptions<TContract extends AnyContract, Context = object> = {
+  /** Defaults to true: deferred fragments load after the initial result. */
   readonly skipDeferredFragments?: boolean;
   readonly defaultConnectionSize?: number;
   readonly maxConnectionSize?: number;
-}
+} & (
+  | { readonly client: PrismaNextClient<TContract>; readonly contract?: never }
+  | {
+      readonly client: (context: Context) => PrismaNextRequestClient<TContract>;
+      /** Read when the schema is built, before any request provides a client. */
+      readonly contract: TContract;
+    }
+);
 
 // Upstream's `RelationNames` omits the relations a variant inherits from its base.
 export type RelationKeys<
@@ -816,33 +840,27 @@ type BaseOrderableColumn<TContract extends AnyContract, Base extends string> = [
 /** Cursor columns define the complete, deterministic ordering of a connection. */
 export type CursorColumn<Types extends SchemaTypes, M extends ModelName<Types>> = {
   [Key in keyof Row<Types, M> & string]: Key extends OrderableColumn<Types, M>
-    ? CursorColumnEntry<Types, M, Key>
+    ? CursorColumnEntry<Key>
     : never;
 }[keyof Row<Types, M> & string];
 
-type CursorColumnEntry<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  Key extends keyof Row<Types, M> & string,
-> =
-  NonNullable<Row<Types, M>[Key]> extends string | number | bigint | boolean | Date
-    ?
-        | Key
-        | {
-            field: Key;
-            direction?: 'asc' | 'desc';
-            nulls?: 'first' | 'last';
-            codec?: import('./utils/cursors.js').CursorValueCodec<NonNullable<Row<Types, M>[Key]>>;
-          }
-    : {
-        field: Key;
-        direction?: 'asc' | 'desc';
-        nulls?: 'first' | 'last';
-        /** `'column'` uses the column's codec from `prismaNext.context`. */
-        codec:
-          | import('./utils/cursors.js').CursorValueCodec<NonNullable<Row<Types, M>[Key]>>
-          | 'column';
-      };
+type CursorColumnEntry<Key extends string> =
+  | Key
+  | {
+      field: Key;
+      direction?: 'asc' | 'desc';
+      /** Placement in the forward order; nullable columns default to last. */
+      nulls?: 'first' | 'last';
+    };
+
+type ExactCursorEntry<Entry> = Entry extends { field: unknown }
+  ? Entry & Record<Exclude<keyof Entry, 'field' | 'direction' | 'nulls'>, never>
+  : Entry;
+
+/** Rejects unknown keys on cursor entries, which inference would otherwise accept. */
+export type ExactCursor<Cursor> = Cursor extends readonly unknown[]
+  ? { [K in keyof Cursor]: ExactCursorEntry<Cursor[K]> }
+  : ExactCursorEntry<Cursor>;
 
 export type CursorSpec<Types extends SchemaTypes, M extends ModelName<Types>> =
   | CursorColumn<Types, M>
@@ -885,7 +903,7 @@ export type PrismaNextConnectionFieldOptions<
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
   > & {
     type: Param;
-    cursor: Cursor;
+    cursor: Cursor & NoInfer<ExactCursor<Cursor>>;
     defaultSize?:
       | number
       | ((
@@ -962,7 +980,7 @@ export type PrismaNextRelatedConnectionOptions<
     >,
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
   > & {
-    cursor: Cursor;
+    cursor: Cursor & NoInfer<ExactCursor<Cursor>>;
     type?: PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
     defaultSize?:
       | number

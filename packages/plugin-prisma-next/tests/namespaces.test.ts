@@ -17,19 +17,16 @@ const raw = new Client({ connectionString: url });
 const rawInheritance = new Client({ connectionString: url });
 const { nsa, nsb } = client.orm;
 
-function createBuilder(collections?: 'orm') {
+function createBuilder() {
   return new SchemaBuilder<{ PrismaNextContract: Contract }>({
     plugins: [RelayPlugin, prismaNextPlugin],
     relay: {},
-    prismaNext: {
-      contract,
-      ...(collections ? { collections: client.orm } : {}),
-    },
+    prismaNext: { client },
   });
 }
 
-function createSchema(collections?: 'orm') {
-  const builder = createBuilder(collections);
+function createSchema() {
+  const builder = createBuilder();
   builder.prismaObject('nsa.User', {
     fields: (t) => ({
       id: t.exposeInt('id'),
@@ -150,7 +147,7 @@ describe('models sharing a name across namespaces', () => {
 
   it('finds fallback collections in a namespaced ORM client', async () => {
     const result = await graphql({
-      schema: createSchema('orm'),
+      schema: createSchema(),
       source: '{ plain { user { orgId } } plainB { name } }',
       contextValue: {},
     });
@@ -168,7 +165,7 @@ function createInheritanceSchema(bugName?: string) {
   const builder = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
     plugins: [RelayPlugin, prismaNextPlugin],
     relay: {},
-    prismaNext: { contract: inheritanceContract },
+    prismaNext: { client: inheritanceClient },
   });
   const aTask = builder.prismaInterface('inha.Task', {
     fields: (t) => ({ title: t.exposeString('title') }),

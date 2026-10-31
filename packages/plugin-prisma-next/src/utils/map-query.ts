@@ -1,12 +1,6 @@
-import {
-  isThenable,
-  type MaybePromise,
-  PothosSchemaError,
-  PothosValidationError,
-} from '@pothos/core';
-import { type IndirectInclude, type PathSegment, Plan } from '@pothos/selection-mapper';
+import { isThenable, type MaybePromise, PothosValidationError } from '@pothos/core';
+import { type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { AnyContract } from '../types.js';
 import {
   emit,
   type MapperCollection,
@@ -14,36 +8,23 @@ import {
   prismaNextAdapter,
   variantRelationProblem,
 } from './adapter.js';
-
-export type { IndirectInclude };
+import type { PrismaNextConfig } from './config.js';
 
 export interface ApplySelectionOptions {
-  skipDeferredFragments?: boolean;
-  /** @internal Set when the builder has a Collection provider for fallback loads. */
-  fallback?: boolean;
   /** Paths to the selection from the field's return type (`[['edges', 'node'], ['nodes']]`). */
   paths?: PathSegment[][];
-  path?: PathSegment[];
-  /** Columns always read on the root, such as cursor and id columns. */
+  /** Columns always read on the root, such as cursor columns. */
   extraColumns?: readonly string[];
-  /** Walk as this type instead of `info.returnType` (a `node(id:)` load). */
-  typeName?: string;
 }
 
 /** Returns a promise only when a `select` callback beneath the field is async. */
 export function applySelectionToCollection(
   baseCollection: MapperCollection,
   info: GraphQLResolveInfo,
-  contract: AnyContract,
+  config: PrismaNextConfig,
   context: unknown,
   options: ApplySelectionOptions = {},
 ): MaybePromise<MapperCollection> {
-  if (options.skipDeferredFragments && !options.fallback) {
-    throw new PothosSchemaError(
-      'skipDeferredFragments requires a Collection provider for fallback loading.',
-    );
-  }
-  const ctx = context as object;
   // Relations declared on a variant can only be planned on a collection narrowed to it.
   const variantValue = baseCollection.state?.variantValue;
   const variant = typeof variantValue === 'string' ? variantValue : undefined;
@@ -54,15 +35,14 @@ export function applySelectionToCollection(
           ...(variant !== undefined ? { variant } : {}),
         }
       : undefined;
-  const adapter = prismaNextAdapter(contract, options.fallback);
+  const ctx = context as object;
+  const adapter = prismaNextAdapter(config.contract);
   const plan = Plan.fromInfo(adapter, {
     context: ctx,
     info,
-    typeName: options.typeName,
-    path: options.path,
     paths: options.paths,
     initial,
-    skipDeferredFragments: options.skipDeferredFragments ?? options.fallback ?? false,
+    skipDeferredFragments: config.skipDeferredFragments,
   });
 
   if (!plan) {

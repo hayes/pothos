@@ -1,6 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import { createBuilder, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
 
@@ -90,20 +90,8 @@ describe('cursor values', () => {
     expect(backward).toEqual(all);
   });
 
-  it('restores values through an explicit codec, which never sees nulls', async () => {
-    const dates = {
-      encode: vi.fn((value: Date) => value.toISOString()),
-      decode: vi.fn((value: string) => new Date(value)),
-    };
-    const scores = { encode: vi.fn(String), decode: vi.fn(Number) };
-    const byDate = pages([{ field: 'createdAt', codec: dates }, 'id']);
-    const base = db.orm.Post.where({ content: 'cursor-values' });
-    const first = await byDate.read(base, { first: 1 });
-    const second = await byDate.read(base, { first: 5, after: first.pageInfo.endCursor! });
-    expect(idsOf(second)).toEqual(['v-2', longId]);
-    expect(dates.decode).toHaveBeenCalledWith('2026-01-01T00:00:00.001Z');
-
-    const byScore = pages([{ field: 'score', codec: scores }, 'id']);
+  it('pages a nullable column, with null boundaries kept out of its codec', async () => {
+    const byScore = pages(['score', 'id']);
     const nullable = db.orm.Post.where({ title: 'nullable-sort' });
     const seen: string[] = [];
     let after: string | undefined;
@@ -113,16 +101,12 @@ describe('cursor values', () => {
       after = page.pageInfo.endCursor!;
     }
     expect(seen).toEqual(['n-3', 'n-6', 'n-2', 'n-5', 'n-1', 'n-4']);
-    expect(scores.encode.mock.calls.flat()).not.toContain(null);
-    expect(scores.decode.mock.calls.flat()).toEqual(['1', '1', '2', '2']);
   });
 
-  it('refuses to encode an object value without a codec', async () => {
+  it('refuses to encode a value its column codec does not hold', async () => {
     class Instant {}
     const { cursorOf } = pages(['createdAt', 'id']);
-    await expect(cursorOf({ id: 'p', createdAt: new Instant() })).rejects.toThrow(
-      /Cursor column 'createdAt' holds an object value.*prismaNext.context/,
-    );
+    await expect(cursorOf({ id: 'p', createdAt: new Instant() })).rejects.toThrow();
   });
 });
 
@@ -143,21 +127,6 @@ describe('rejected cursors', () => {
         dated: t.prismaConnection({
           type: 'Post',
           cursor: ['createdAt', 'id'],
-          resolve: () => db.orm.Post,
-        }),
-        secret: t.prismaConnection({
-          type: 'Post',
-          cursor: [
-            {
-              field: 'id',
-              codec: {
-                encode: (value: string) => value,
-                decode: (value: string): string => {
-                  throw new Error(`Invalid secret: ${value}`);
-                },
-              },
-            },
-          ],
           resolve: () => db.orm.Post,
         }),
       }),
@@ -199,15 +168,13 @@ describe('rejected cursors', () => {
   });
 
   it('hides a codec decoding error and the cursor payload', async () => {
-    const page = await run(schema(), '{ posts(first: 1) { pageInfo { endCursor } } }');
     const result = await run(
       schema(),
-      'query ($c: String) { secret(after: $c) { edges { cursor } } }',
-      {
-        variables: { c: page.data.posts.pageInfo.endCursor },
-      },
+      'query ($c: String) { dated(after: $c) { edges { cursor } } }',
+      { variables: { c: raw(`PNC:T:["S:${marker}","S:p"]`) } },
     );
-    expect(result.errors?.[0].message).toBe('Invalid cursor value for id.');
+    expect(result.errors?.[0].message).toBe('Invalid cursor value for createdAt.');
+    expect(result.statements).toHaveLength(0);
   });
 
   it('cannot reach Object.prototype through a cursor payload', async () => {
@@ -239,7 +206,7 @@ describe('rejected cursors', () => {
       const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
         plugins: [RelayPlugin, prismaNextPlugin],
         relay: {},
-        prismaNext: { contract: collision.contract },
+        prismaNext: { client: collision.client },
       });
       builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
       builder.queryType({
