@@ -1,3 +1,4 @@
+import './util/plugin-conflict.js';
 import './global-types.js';
 import './schema-builder.js';
 import './field-builder.js';

@@ -1,3 +1,4 @@
+import './utils/plugin-conflict.js';
 import './global-types.js';
 import './prisma-next-connection.js';
 import './prisma-next-field-builder.js';
