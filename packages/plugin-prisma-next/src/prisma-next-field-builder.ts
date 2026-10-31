@@ -1,4 +1,9 @@
-import { PothosSchemaError, RootFieldBuilder, type SchemaTypes } from '@pothos/core';
+import {
+  type FieldKind,
+  PothosSchemaError,
+  RootFieldBuilder,
+  type SchemaTypes,
+} from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextObjectRef } from './object-ref.js';
@@ -72,18 +77,21 @@ function prismaFieldConfig(
   };
 }
 
-const rootFieldBuilderProto = RootFieldBuilder.prototype as unknown as Record<string, unknown>;
+const rootFieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
+  SchemaTypes,
+  unknown,
+  FieldKind
+>;
 
-rootFieldBuilderProto.prismaField = function prismaField(
-  this: RootFieldBuilder<SchemaTypes, unknown>,
-  options: PrismaFieldOptions,
-) {
-  return this.field(prismaFieldConfig(this.builder, options) as never);
+rootFieldBuilderProto.prismaField = function prismaField(options) {
+  return this.field(prismaFieldConfig(this.builder, options as PrismaFieldOptions) as never);
 };
 
 rootFieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput(
-  this: RootFieldBuilder<SchemaTypes, unknown> & { fieldWithInput: (options: object) => unknown },
+  this: typeof rootFieldBuilderProto,
   options: PrismaFieldOptions,
 ) {
-  return this.fieldWithInput(prismaFieldConfig(this.builder, options));
-};
+  return (
+    this as typeof rootFieldBuilderProto & { fieldWithInput: (options: object) => unknown }
+  ).fieldWithInput(prismaFieldConfig(this.builder, options)) as never;
+} as never;

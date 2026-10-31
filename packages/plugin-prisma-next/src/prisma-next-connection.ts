@@ -42,7 +42,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
 >(
   this: typeof rootFieldBuilderProto & {
     builder: PothosSchemaTypes.SchemaBuilder<Types>;
-    connection?: (cfg: object, c?: object, e?: object) => unknown;
+    connection: (cfg: object, c?: object, e?: object) => unknown;
   },
   options: PrismaNextConnectionFieldOptions<
     Types,
@@ -112,7 +112,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         context: object,
         info: GraphQLResolveInfo,
       ) => {
-        const relayArgs = args as import('@pothos/plugin-relay').DefaultConnectionArguments;
+        const relayArgs = args as PothosSchemaTypes.DefaultConnectionArguments;
         const userCollection = await resolve(parent, args, context, info);
 
         if (userCollection == null) {
