@@ -3,67 +3,56 @@ title: Interfaces
 description: GraphQL interfaces backed by contract models
 ---
 
-`builder.prismaInterface` defines a GraphQL interface backed by a
-contract model. It mirrors `builder.prismaObject`: same options, but
-produces an `InterfaceRef` that other prismaObjects can implement.
-
-## Declaring an interface
+`builder.prismaInterface` takes the same options as `builder.prismaObject` and creates an
+interface. Objects implementing it must use the same model:
 
 ```ts
-const personIface = builder.prismaInterface('User', {
+const Person = builder.prismaInterface('User', {
   name: 'Person',
   fields: (t) => ({
     id: t.exposeID('id'),
     firstName: t.exposeString('firstName'),
-    lastName: t.exposeString('lastName'),
   }),
 });
-```
 
-A prismaObject can implement the interface as long as it's backed by
-the same contract model:
-
-```ts
 builder.prismaObject('User', {
-  interfaces: [personIface],
+  interfaces: [Person],
   fields: (t) => ({
     email: t.exposeString('email'),
   }),
 });
 ```
 
-The plugin's `onTypeConfig` hook propagates the interface's contract
-model onto the implementing object — so even a plain `builder.objectType`
-that implements a `prismaInterface` benefits from auto-include. The
-schema build fails fast if a prismaObject claims a different model
-than the interface it implements.
-
-## Returning an interface
-
-`t.prismaField`, `t.prismaConnection` and `t.relation` accept an interface ref as
-their `type`, and plan its fields like an object's. A bare `t.relation` to a model
-that is registered as an interface returns that interface. Implementing types need
-an `isTypeOf`, or the interface a `resolveType`, so each row can be routed to one:
+`t.prismaField`, `t.prismaConnection`, and `t.relation` can return an interface. Give the
+implementations an `isTypeOf`, or the interface a `resolveType`, and list the columns they read in
+`select`:
 
 ```ts
-builder.queryType({
-  fields: (t) => ({
-    people: t.prismaField({
-      type: [personIface],
-      resolve: (_root, _args, ctx) => ctx.db.orm.User,
-    }),
+builder.queryFields((t) => ({
+  people: t.prismaField({
+    type: [Person],
+    resolve: (_root, _args, ctx) => ctx.db.orm.User,
   }),
-});
+}));
 ```
 
-`isTypeOf` and `resolveType` receive the row as loaded for that type, typed from its `select`.
-List the columns they read there.
+Add fields with `prismaInterfaceField` or `prismaInterfaceFields`, passing the ref:
+
+```ts
+builder.prismaInterfaceField(Person, 'displayName', (t) =>
+  t.string({
+    select: ['firstName', 'lastName'],
+    resolve: (person) => `${person.firstName} ${person.lastName}`,
+  }),
+);
+```
+
+Interfaces accept `variant` like objects do.
 
 ## Native inheritance
 
-A base model with variants in the contract maps to an interface plus one object per variant.
-The interface always selects the discriminator and resolves each row to its variant's type, and
-variants get their base's columns and relations with no extra configuration:
+A base model with variants in the contract maps to an interface, with an object for each variant.
+The interface selects the discriminator and resolves each row to its variant's type:
 
 ```ts
 const task = builder.prismaInterface('Task', {
@@ -94,77 +83,13 @@ builder.queryType({
 });
 ```
 
-Fragments such as `... on Bug` plan into the base query. Returning a variant type requires
-`orm.Base.variant(value)`: `orm.Bug` is unfiltered in Prisma, so it's rejected.
-
-Each row resolves to the type registered for its variant's model, including one given a custom
-`name` or `variant`. The schema build fails when a variant has no implementing type or more than
-one, unless the interface declares its own `resolveType`.
-
-`prismaNode` works on a variant. Give it the narrowed collection:
-
-```ts
-builder.prismaNode('Feature', {
-  interfaces: [task],
-  id: { field: 'id' },
-  collection: (ctx) => ctx.db.orm.Task.variant('feature'),
-  fields: (t) => ({ priority: t.exposeInt('priority') }),
-});
-```
-
-### Relations and variants
-
-- **Declared on a variant.** A relation only `Bug` declares, such as `reviewer`, loads from a
-  collection narrowed to that variant: `orm.Task.variant('bug')`, or a relation typed as `Bug`.
-  Prisma can't include it on the unnarrowed base. Under `... on Bug` beneath the `Task` interface,
-  it needs [`prismaNext.collections`](./setup#selection-and-transaction-lifetime). The plugin then loads it
-  separately through `orm.Task.variant('bug')`. Without a provider the request fails before SQL.
-- **Typed as a variant.** `t.relation('tasks', { type: bugRef })` and `t.relatedConnection` with
-  a variant `type` narrow the include with `.variant('bug')`, so other variants' rows aren't
-  returned and `totalCount` counts only bugs. The `type` option accepts refs of the relation's
-  model and of its variants; any other model's ref is a type error, and a type from another
-  branch of the hierarchy fails the schema build.
-- **Targeting a variant model.** A relation whose contract target is a variant (`reviews Bug[]`)
-  works. Prisma reads a single-table variant through the base table without filtering it, so the
-  plugin adds the discriminator filter. Prisma loads these rows through the variant's own model,
-  which can include the variant's relations but not the ones it inherits. With a provider the
-  plugin loads inherited relations separately. Without one the request fails before SQL.
-
-## Extending an interface
-
-`prismaInterfaceField` and `prismaInterfaceFields` extend an interface
-with fields that need column dependencies — analogous to
-`prismaObjectField(s)` on prismaObject:
-
-```ts
-builder.prismaInterfaceField(personIface, 'displayName', (t) =>
-  t.string({
-    select: ['firstName', 'lastName'],
-    resolve: (person) => `${person.firstName} ${person.lastName}`,
-  }),
-);
-```
-
-As with [`prismaObjectField`](./objects#extending-prisma-objects), the string
-form's parent carries only the dependencies that field declared, so `select`
-is required for the resolver to read a column.
-
-If you pass the contract model name as a string, the plugin looks up the
-interface registered under that model name. Variants are not part of that
-lookup — each variant gets its own ref — so pass the ref returned by
-`builder.prismaInterface(...)` to extend one. A variant's GraphQL type name
-is not accepted in place of the model name: the string form would create a
-second, unimplemented ref and Pothos core throws `Missing implementations
-for some references` at schema build.
-
-## Variants on interfaces
-
-Just like `prismaObject`, `prismaInterface` accepts `variant: '...'` to
-register a second interface backed by the same contract model:
-
-```ts
-builder.prismaInterface('User', {
-  variant: 'PublicPerson',
-  fields: (t) => ({ id: t.exposeID('id') }),
-});
-```
+- Return a variant type from `orm.Base.variant(value)`. `orm.Bug` isn't filtered by Prisma, so it
+  is rejected.
+- Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
+- `prismaNode` works on a variant with `collection: (ctx) => ctx.db.orm.Task.variant('feature')`.
+- A relation declared on a variant loads under `... on Bug` only with
+  [`collections`](./setup#plugin-options) configured.
+- `t.relation` and `t.relatedConnection` with a variant `type` only return, and count, that
+  variant's rows.
+- A relation whose target is a variant model can't load the relations the variant inherits
+  without `collections`.

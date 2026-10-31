@@ -1,53 +1,20 @@
-# @pothos/plugin-prisma-next
+# Prisma Next Plugin
 
-Pothos plugin for [Prisma ORM 8](https://github.com/prisma/orm)
-(formerly Prisma Next), the fluent collection-based ORM client. Provides tighter integration with
-Prisma, makes it easier to define types backed by your contract, helps
-solve N+1 queries for relations, and ships Relay integrations for nodes and
-connections.
+A Pothos plugin for [Prisma ORM 8](https://github.com/prisma/orm). It defines GraphQL types from
+the models in a Prisma contract and applies the selections a query needs to the Collections your
+resolvers return.
 
 > [!WARNING]
-> **Experimental: do not use in production.** This plugin is pre-release and pinned to exactly
-> Prisma ORM `8.0.0-rc.22`; other versions, including newer release candidates, are not supported.
-> Both Prisma ORM 8 and this plugin's API can change in any release, without a migration path.
+> **Experimental.** This plugin targets Prisma ORM `8.0.0-rc.22` exactly. Other versions are not
+> supported, and the API of both Prisma ORM 8 and this plugin may change in any release.
 
-This is separate from [`@pothos/plugin-prisma`](https://pothos-graphql.dev/docs/plugins/prisma),
-which targets Prisma 7 and `@prisma/client`.
+For Prisma 7 and `@prisma/client`, use
+[`@pothos/plugin-prisma`](https://pothos-graphql.dev/docs/plugins/prisma).
 
-The plugin depends on Prisma's shared SQL family, not a database dialect. Your
-application supplies its Collection and owns the driver, connection, and
-transaction. PostgreSQL and SQLite use the same Pothos configuration. MySQL is a
-read-only preview. MongoDB has a different upstream query API and is rejected when
-the schema is built.
-
-The plugin applies GraphQL selections before executing a returned Collection.
-Root resolvers return a Collection (or null for a nullable field). Configure
-`prismaNext.collections` to enable batched fallback loading for conflicting
-to-one selections and deferred fragments. Without it, deferred data loads eagerly
-and conflicting to-one refinements are rejected.
-
-Mutation resolvers write through the application client, then return a Collection
-for the result. Keep the transaction active through GraphQL execution and throw
-on execution errors when rollback is required. See the [mutation example](https://pothos-graphql.dev/docs/plugins/prisma-next/objects)
-and [transaction guidance](https://pothos-graphql.dev/docs/plugins/prisma-next/setup#selection-and-transaction-lifetime).
-
-## Features
-
-- 🎨 Quickly define GraphQL types backed by your Prisma contract.
-- 🦺 Strong type-safety throughout the entire API.
-- 🤝 Automatically resolve relationships from the GraphQL selection set.
-- 🎣 Auto-include the columns/relations needed to resolve a query — no N+1s.
-- 💅 GraphQL field names are decoupled from contract column names.
-- 🔀 Relay integration for nodes and connections.
-- Cursor connections support nullable sort fields with explicit null placement
-  and a non-null unique tie-breaker. Compatible preordered Collections are accepted.
-- 📚 Multiple GraphQL types backed by the same contract model (variants).
-
-## Quick example
+## Example
 
 ```ts
 import SchemaBuilder from '@pothos/core';
-import RelayPlugin from '@pothos/plugin-relay';
 import prismaNextPlugin from '@pothos/plugin-prisma-next';
 import sqlite from '@prisma/orm-sqlite/runtime';
 import { contractFromJson } from '@prisma/orm-sqlite/static';
@@ -62,12 +29,8 @@ const builder = new SchemaBuilder<{
   PrismaNextContract: Contract;
   Context: { db: typeof client };
 }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
-  relay: {},
-  prismaNext: {
-    contract,
-    collections: (ctx) => ({ User: ctx.db.orm.User }),
-  },
+  plugins: [prismaNextPlugin],
+  prismaNext: { contract },
 });
 
 builder.prismaObject('User', {
@@ -81,14 +44,12 @@ builder.queryType({
   fields: (t) => ({
     users: t.prismaField({
       type: ['User'],
-      // Return the orm-client Collection. The plugin auto-applies the
-      // selection from `info` (.select(...) / .include(...)) and
-      // materializes via .all() — single-row vs list inferred from the
-      // field type.
       resolve: (_root, _args, ctx) => ctx.db.orm.User,
     }),
   }),
 });
 ```
+
+PostgreSQL and SQLite are supported, MySQL supports reads only, and MongoDB is not supported.
 
 Full documentation: [Prisma Next plugin](https://pothos-graphql.dev/docs/plugins/prisma-next).
