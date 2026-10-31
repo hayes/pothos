@@ -157,22 +157,20 @@ before any query runs.
 
 ## With scope-auth
 
-A type's `authScopes` sees the columns in its `select` on rows this plugin loaded. A row returned
-from a plain `t.field`, such as `{ id }`, is completed only after scope-auth has run, so with the
-usual [plugin order](../scope-auth#plugin-order) (`ScopeAuthPlugin` first) its other columns are
-`undefined`:
+A type's `authScopes` sees the columns and relations in its `select`. Rows this plugin didn't
+load, such as `{ id }` returned from a plain `t.field`, are reloaded before `authScopes` runs, in
+either [plugin order](../scope-auth#plugin-order):
 
 ```ts
 builder.prismaObject('User', {
   select: ['email'],
-  authScopes: (user, ctx) => user.email === ctx.email, // false when email is missing
+  authScopes: (user, ctx) => user.email === ctx.email,
   fields: (t) => ({ id: t.exposeID('id') }),
 });
 ```
 
-Write checks that fail closed, return rows from `t.prismaField` or relations, or list
-`prismaNextPlugin` first: the row is then reloaded before `authScopes`, even when access is
-denied. List it first too if you use `runScopesOnType` with `select`s on an interface or its
+The reload runs even when access is then denied. With `runScopesOnType`, the checks run from
+`isTypeOf`, so list `prismaNextPlugin` first if you use it with `select`s on an interface or its
 implementations; otherwise `authScopes` can miss relations those `select`s load.
 
 ## Databases

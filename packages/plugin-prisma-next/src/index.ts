@@ -54,6 +54,7 @@ import { variantTypeNames } from './utils/variant-types.js';
 export type {
   ConnectionNodeShape,
   ConnectionWrapRows,
+  HelperRef,
   PrismaConnectionHelperOptions,
   PrismaConnectionHelpers,
 } from './connection-helpers.js';
