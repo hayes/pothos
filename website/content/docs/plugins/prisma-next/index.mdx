@@ -16,65 +16,38 @@ the Collections your resolvers return. It supports relations, counts, variants, 
 Relay nodes and connections.
 
 It is a separate package from [`@pothos/plugin-prisma`](/docs/plugins/prisma), which targets
-Prisma 7 and `@prisma/client`.
+Prisma ORM 7 and `@prisma/client`. The two can't be used in the same program.
+
+The [publishing playground](/playground?example=plugin-prisma-next) runs the examples below
+against SQLite in the browser and shows each SQL statement in its **SQL** tab.
 
 ## Example
 
-Using the [builder setup](/docs/plugins/prisma-next/setup), with a `userId` in context:
+With the [builder setup](/docs/plugins/prisma-next/setup) and a `Post` type, this `User` type
+exposes a computed name, a filtered relation, and a paginated relation:
 
-```ts
-builder.prismaObject('User', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    email: t.exposeString('email'),
-    posts: t.relation('posts', {
-      args: { oldestFirst: t.arg.boolean() },
-      query: (args) => ({
-        orderBy: (post) => (args.oldestFirst ? post.createdAt.asc() : post.createdAt.desc()),
-      }),
-    }),
-    postsConnection: t.relatedConnection('posts', { cursor: 'id' }),
-  }),
-});
+<include cwd lang="typescript" meta='playground example="plugin-prisma-next"'>playground-examples/plugin-prisma-next/types/user.ts#user</include>
 
-builder.prismaNode('Post', {
-  id: { field: 'id' },
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    author: t.relation('author'),
-  }),
-});
+A root field returns an unexecuted Collection:
 
-builder.queryType({
-  fields: (t) => ({
-    me: t.prismaField({
-      type: 'User',
-      resolve: (_root, _args, ctx) => ctx.db.orm.User.where((user) => user.id.eq(ctx.userId)),
-    }),
-  }),
-});
-```
+<include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ users { fullName posts { title author { email } } } }"'>playground-examples/plugin-prisma-next/queries.ts#users-query</include>
 
-The `me` resolver returns an unexecuted Collection. The plugin adds the `select` and `include`
-calls for the requested fields, so this query loads the user, posts, and authors in one
-Collection call:
+The plugin adds the `select` and `include` calls for the requested fields, so this query loads the
+users, their posts, and each post's author in one Collection call:
 
 ```graphql
 query {
-  me {
-    email
+  users {
+    fullName
     posts {
       title
       author {
-        id
+        email
       }
     }
   }
 }
 ```
-
-Aliases of the same relation with different arguments, such as `posts` and
-`oldPosts: posts(oldestFirst: true)`, are loaded in the same call.
 
 See [Setup](/docs/plugins/prisma-next/setup), [Objects](/docs/plugins/prisma-next/objects),
 [Relations](/docs/plugins/prisma-next/relations), and

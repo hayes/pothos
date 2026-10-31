@@ -17,16 +17,21 @@ const Person = builder.prismaInterface('User', {
 
 builder.prismaObject('User', {
   interfaces: [Person],
-  isTypeOf: () => true,
+  select: ['email'],
+  isTypeOf: (user) => !user.email.endsWith('@admin.example.com'),
   fields: (t) => ({
     email: t.exposeString('email'),
   }),
 });
 ```
 
-`t.prismaField`, `t.prismaConnection`, and `t.relation` can return an interface. Give the
-implementations an `isTypeOf`, or the interface a `resolveType`. List the columns an `isTypeOf`
-reads in that object's `select`, and the columns a `resolveType` reads in the interface's `select`:
+`t.prismaField` and `t.prismaConnection` take an interface ref as `type`. A relation returns an
+interface when its target model is registered with `prismaInterface`, as in
+[Native inheritance](#native-inheritance).
+
+Give the implementations an `isTypeOf`, or the interface a `resolveType`. List the columns an
+`isTypeOf` reads in that object's `select`, and the columns a `resolveType` reads in the
+interface's `select`:
 
 ```ts
 builder.prismaObject('User', {
@@ -47,20 +52,6 @@ builder.queryFields((t) => ({
 }));
 ```
 
-### Selections across an interface
-
-- An object's selection includes the `select` of every interface it implements. Its own fields can
-  read what the interface selects, like the interface's fields can.
-- A row loaded as the interface also loads the columns that every implementing object's `select`
-  lists, whether or not the query has a `... on Type` fragment. The to-many relations and
-  function-form values in an object's `select` load with it too. So `isTypeOf`, a type-level
-  `authScopes` and the object's fields see them.
-- A to-one relation in an object's `select` loads only under a `... on Type` fragment. Otherwise
-  the object's fields reload the row to get it. Relations declared on a variant work the same way.
-- When an interface's `select` and the object's `select` load the same to-one relation with
-  different arguments, the interface's columns still load with the object. The interface's
-  relation loads separately, for the fields the interface declares.
-
 Add fields with `prismaInterfaceField` or `prismaInterfaceFields`, passing the ref:
 
 ```ts
@@ -73,6 +64,13 @@ builder.prismaInterfaceField(Person, 'displayName', (t) =>
 ```
 
 Interfaces accept `variant` like objects do.
+
+## Selections
+
+An object's fields can read its interfaces' `select`. A row loaded through the interface also
+loads each implementation's `select`, so `isTypeOf` and type-level `authScopes` can read it
+without a `... on Type` fragment. Implementations that load the same to-one relation with
+different arguments fail the schema build.
 
 ## Native inheritance
 
@@ -112,8 +110,5 @@ builder.queryType({
   is rejected.
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
 - `prismaNode` works on a variant, and loads it through `orm.Task.variant('feature')`.
-- A relation declared on a variant loads under `... on Bug` in a separate batched query.
-- `t.relation` and `t.relatedConnection` with a variant `type` only return, and count, that
-  variant's rows.
-- The relations a variant inherits load in a separate batched query when a relation targets the
-  variant model.
+- `t.relation` and `t.relatedConnection` with `type` set to the ref of a variant model's object,
+  such as `Bug`, only return, and count, that variant's rows. Such a to-one relation is nullable.

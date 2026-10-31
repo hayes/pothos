@@ -5,20 +5,11 @@ description: Setting up the Prisma Next plugin
 
 ## Installing
 
-```package-install
-npm install --save @pothos/plugin-prisma-next
-```
+The plugin requires Node.js 22.18 or a later 22.x release, or Node.js 24 or later.
 
-Install the Prisma framework and SQL family at the supported version, plus the runtime for your
-database, such as `@prisma/orm-postgres` or `@prisma/orm-sqlite`. The plugin requires Node.js
-22.18 or a later 22.x release, or Node.js 24 or later.
-
-```sh
-npm install @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22 @prisma/orm-sqlite@8.0.0-rc.22
-```
-
-`@pothos/plugin-relay` and `@pothos/plugin-with-input` are optional. Install them to use nodes and
-connections, or `t.prismaFieldWithInput`.
+`@pothos/plugin-prisma-next` cannot be used in the same program as `@pothos/plugin-prisma`: both
+add `prismaObject`, `prismaField` and the other `prisma*` methods to the builder. Importing both
+throws an error.
 
 ### Prisma CLI
 
@@ -55,53 +46,62 @@ With pnpm:
 Yarn uses `resolutions` with the same entry. Don't downgrade the ORM packages instead: Prisma
 refuses to run with two copies of the ORM installed.
 
-Start from `prisma orm init`, for example `npx prisma orm init --target postgres`. It scaffolds a
-contract and a `prisma.config.ts` that exports `definePrismaConfig(...)`, which the CLI requires;
-a Prisma 7 style config is rejected.
+Then scaffold the project. This writes a contract, a `prisma.config.ts`, and a
+`src/prisma/db.ts` that creates the client, installs `@prisma/orm-postgres`, and emits the
+contract:
+
+```sh
+npx prisma orm init --target postgres --authoring psl
+```
+
+`orm init` doesn't scaffold SQLite. For SQLite, install `@prisma/orm-sqlite` instead of
+`@prisma/orm-postgres`, write `prisma.config.ts` with `@prisma/orm-sqlite/config`, and create the
+client with `@prisma/orm-sqlite/runtime`.
+
+### Pothos
+
+Install the plugin, and pin the ORM packages to the supported version:
+
+```package-install
+npm install --save @pothos/plugin-prisma-next @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22 @prisma/orm-postgres@8.0.0-rc.22
+```
+
+`@pothos/plugin-relay` and `@pothos/plugin-with-input` are optional. Install them to use nodes and
+connections, or `t.prismaFieldWithInput`.
 
 ## Configure the builder
 
-Emit your contract with `prisma contract emit`. The client you create from it is passed to the
-plugin, and the contract's `.d.ts` provides model, relation, and column types.
+Pass the client from `src/prisma/db.ts` to the plugin. The contract's types provide model,
+relation, and column types; run `prisma contract emit` after changing the contract.
 
 ```ts
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import prismaNextPlugin from '@pothos/plugin-prisma-next';
-import sqlite from '@prisma/orm-sqlite/runtime';
-import { contractFromJson } from '@prisma/orm-sqlite/static';
-
-import contractJson from './prisma/contract.json' with { type: 'json' };
-import type { Contract } from './prisma/contract';
-
-const contract = contractFromJson<Contract>(contractJson);
-const client = sqlite({
-  contract,
-  path: './app.db',
-});
-await client.connect();
+import { contract, db } from './prisma/db';
 
 const builder = new SchemaBuilder<{
-  PrismaNextContract: Contract;
-  Context: { db: typeof client };
+  PrismaNextContract: typeof contract;
+  Context: { db: typeof db };
 }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
-  prismaNext: {
-    client,
-  },
+  prismaNext: { client: db },
 });
 ```
+
+A PostgreSQL client groups collections by schema, as in `ctx.db.orm.public.User`. The other pages
+use a SQLite client, where the same collection is `ctx.db.orm.User`.
 
 To load through a client chosen per request, such as a transaction, pass a function of the
 context. The contract is then passed as well, since the schema is built before any request:
 
 ```ts
-import type { SqliteQueryMembers } from '@prisma/orm-sqlite/runtime';
+import type { PostgresQueryMembers } from '@prisma/orm-postgres/runtime';
 
 const builder = new SchemaBuilder<{
-  PrismaNextContract: Contract;
-  Context: { db: SqliteQueryMembers<Contract> };
+  PrismaNextContract: typeof contract;
+  Context: { db: PostgresQueryMembers<typeof contract> };
 }>({
   plugins: [prismaNextPlugin],
   prismaNext: {
@@ -114,7 +114,7 @@ builder.queryType({
   fields: (t) => ({
     users: t.prismaField({
       type: ['User'],
-      resolve: (_root, _args, ctx) => ctx.db.orm.User,
+      resolve: (_root, _args, ctx) => ctx.db.orm.public.User,
     }),
   }),
 });
@@ -124,57 +124,61 @@ builder.queryType({
 
 ```ts
 prismaNext: {
-  client,
+  client: db,
   skipDeferredFragments: true,
   defaultConnectionSize: 20,
   maxConnectionSize: 100,
+  filterConnectionTotalCount: true,
 }
 ```
 
 - `client`: the Prisma client, or `(ctx) => client` together with `contract`. Required. The
-  plugin uses its `orm` to load what a parent query couldn't include, such as conflicting to-one
-  filters, deferred fragments, rows returned from a plain `t.field`, and `node(id:)` lookups.
-  These loads are batched and match rows by primary key, or a non-null unique key. Cursors, node
-  IDs and those keys encode values with the client's column codecs, so Temporal, decimal and
-  other object-valued columns work as is.
+  plugin also uses it to [load fields a parent query couldn't
+  include](./relations#loading-without-a-parent-query) and for `node(id:)`.
 - `skipDeferredFragments`: `@defer` fragments are left out of the initial query and loaded when
   executed. Set to `false` to load them eagerly; deferred fields on a model without a key can't
   be loaded later.
 - `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes, overridden per
   field with `defaultSize` and `maxSize`.
+- `filterConnectionTotalCount`: a `relatedConnection`'s `totalCount` counts the rows matching its
+  `query.where`. Set to `false` to count every related row.
 
-The plugin keeps per-request state (loaders and query plans) on the GraphQL context, so every
-operation must be executed with a context object, such as `contextValue: {}`.
+Operations must be executed with a context object, such as `contextValue: {}`: the plugin keeps
+per-request state on it.
 
-Mistakes in the schema definition fail `builder.toSchema()` instead of a later request: an
-unknown model, an unknown column in a static `select` or an `expose*` field, the function form of
-`select` on a to-one relation, and a page size that isn't a positive integer.
+Mistakes such as an unknown model or column, or a page size that isn't a positive integer, fail
+when the schema is defined or built, not at request time.
+
+A `where`, `orderBy` or `select` callback that throws fails the query it belongs to, and every
+field that query loads. An invalid cursor or page size from a client fails only its own field,
+before any query runs.
 
 ## With scope-auth
 
-The [scope-auth plugin](../scope-auth#plugin-order) is usually listed first, so its checks run
-before this plugin loads anything a field is missing. A type's `authScopes` function, and a
-field's, then receives the parent as its resolver returned it. Rows loaded by `t.prismaField`,
-relations, connections and other planned fields include the columns from the type's `select`,
-but a row returned from a plain `t.field`, such as `{ id }`, does not: the plugin reloads it only
-after scope-auth has run, so the columns read in `authScopes` can be `undefined`, and a check such
-as `user.role !== 'banned'` passes.
+A type's `authScopes` sees the columns in its `select` on rows this plugin loaded. A row returned
+from a plain `t.field`, such as `{ id }`, is completed only after scope-auth has run, so with the
+usual [plugin order](../scope-auth#plugin-order) (`ScopeAuthPlugin` first) its other columns are
+`undefined`:
 
-- Don't rely on `select` columns in `authScopes` for a type that can be returned from a resolver
-  this plugin doesn't plan. Return rows from `t.prismaField` or relations, or return complete
-  rows, and write checks that fail closed on a missing value (`user.role === 'member'`).
-- Alternatively, list `prismaNextPlugin` before `ScopeAuthPlugin`. The parent is then reloaded
-  before `authScopes` runs, so the columns are there, but the reload query runs even when the
-  check denies access.
+```ts
+builder.prismaObject('User', {
+  select: ['email'],
+  authScopes: (user, ctx) => user.email === ctx.email, // false when email is missing
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
+```
+
+Write checks that fail closed, return rows from `t.prismaField` or relations, or list
+`prismaNextPlugin` first: the row is then reloaded before `authScopes`, even when access is
+denied. List it first too if you use `runScopesOnType` and a type's `authScopes` reads a relation
+from its `select`, or the relation is missing on rows loaded through an interface.
 
 ## Databases
 
-- **PostgreSQL and SQLite** are supported.
-- **MySQL** supports reads only. Its contracts have no aggregates, so `totalCount: true`,
-  `t.relationCount`, and `t.relationAggregate` are type errors, and Prisma's writes require a
-  `returning` capability MySQL lacks. MySQL is not covered by CI: its tests run only when a MySQL
-  database is configured locally.
-- **MongoDB** is not supported, and is rejected when the schema is built.
+PostgreSQL and SQLite are supported. MySQL supports reads only: its contracts have no aggregates,
+so `totalCount: true`, `t.relationCount`, and `t.relationAggregate` are type errors, and Prisma's
+writes need a `returning` capability MySQL lacks. MySQL isn't tested in CI. MongoDB contracts are
+rejected when the schema is built.
 
 ## Namespaced models
 
@@ -192,17 +196,11 @@ builder.prismaObject('billing.User', {
 ## Transactions
 
 Pothos does not create transactions. To run a mutation's queries in one, execute GraphQL inside
-the transaction callback and pass the transaction as `ctx.db`. Type `db` with the query members
-the client and transactions share:
+the transaction callback and pass the transaction as `ctx.db`, typed with the query members the
+client and transactions share (`PostgresQueryMembers`, as above):
 
 ```ts
-import type { SqliteQueryMembers } from '@prisma/orm-sqlite/runtime';
-
-type Context = { db: SqliteQueryMembers<Contract> };
-```
-
-```ts
-const result = await client.transaction(async (tx) => {
+const result = await db.transaction(async (tx) => {
   const result = await graphql({
     schema,
     source,
