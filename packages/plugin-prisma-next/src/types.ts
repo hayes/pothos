@@ -35,7 +35,6 @@ import type {
   HasTypeState,
   ModelAccessor,
   ModelCallbackTools,
-  NumericFieldNames,
   OrderableFieldNames,
   RelationPredicate,
   ShorthandWhereFilter,
@@ -471,16 +470,6 @@ export type PrismaNextRelationOptions<
   type?: PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
   query?: RelationQuery<Types, ParentModel, RelName, Args>;
 };
-
-/** Falls back to every column when the contract is loose. */
-export type RelationNumericField<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  R extends RelationKeys<Types, M>,
-> =
-  string extends ModelName<Types>
-    ? string
-    : NumericFieldNames<Types['PrismaNextContract'], BareModelName<RelatedModel<Types, M, R>>>;
 
 type RelationAggregateWhere<
   Types extends SchemaTypes,
