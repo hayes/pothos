@@ -29,26 +29,7 @@ afterAll(async () => {
   await ctx?.cleanup();
 });
 
-// Cursor encode/decode tests moved to `tests/cursors.test.ts`.
-
 describe('schema-build — N:M + duplicate-alias guards', () => {
-  // prisma-next's authoring DSL has `rel.manyToMany(...)` which lowers
-  // to `cardinality: 'N:M'` in the emitted contract. `'N:M'` is the ONLY
-  // many-to-many spelling in prisma-next 0.14.0 — its
-  // `RelationCardinalityTag` union is `'1:1' | 'N:1' | '1:N' | 'N:M'`;
-  // there is no `'M:N'` tag anywhere in the contract or orm-client.
-  //
-  // As of 0.14.0 the orm-client implements junction reads (`through` /
-  // `IncludeThroughDescriptor`, see tests/prisma-next-m-n-upstream-pin
-  // canary), and the plugin now supports them: an N:M relation is treated
-  // as a to-many relation, its `through` descriptor is carried on the
-  // relation meta, and the walker emits `.include(rel)` like any other
-  // to-many relation (prisma-next resolves the junction join internally).
-  // The full junction flow — schema build, relation meta, and end-to-end
-  // resolution against real sqlite — is exercised in
-  // tests/junction-runtime.test.ts. Below we pin that schema build no
-  // longer rejects N:M.
-
   it.each([
     ['N:M (contract emit spelling)', 'N:M'],
   ])('builds without throwing for %s', (_label, cardinality) => {
@@ -101,7 +82,6 @@ describe('schema-build — N:M + duplicate-alias guards', () => {
       {
         fields: (t: never) => ({
           id: (t as { exposeID: (n: string) => unknown }).exposeID('id'),
-          // The N:M relation is now a valid to-many relation.
           tags: (t as { relation: (n: string) => unknown }).relation('tags'),
         }),
       } as never,
@@ -110,10 +90,7 @@ describe('schema-build — N:M + duplicate-alias guards', () => {
     expect(() => builder.toSchema()).not.toThrow();
   });
 
-  it('the explicit-junction-model pattern (two 1:N / N:1 hops) still builds cleanly', () => {
-    // The junction-as-its-own-model pattern remains valid alongside
-    // native N:M support: model the junction with two regular 1:N / N:1
-    // hops. Must build without errors.
+  it('the explicit-junction-model pattern (two 1:N / N:1 hops) builds cleanly', () => {
     const stubContract = {
       domain: {
         namespaces: {
@@ -263,24 +240,17 @@ describe('t.variant — brand wrapping invariants', () => {
   });
 });
 
-// Auto-branding at the t.prismaField boundary has been removed.
-// Users who need brands in abstract positions call ref.addBrand(row)
-// explicitly. Matches plugin-prisma's pattern.
-
 describe('refs cache + connection-options short-circuit + plugin assorted', () => {
   it('wrapConnectionOptionsWithTotalCount short-circuits on ObjectRef input', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: ctx.contract },
     });
-    // Build a plain `objectRef` — passing one as connectionOptions
-    // tells `t.connection` to reuse an existing type. The wrap helper
-    // must not spread it into a `{ fields }` block.
+    // An existing type passed as connectionOptions must not be spread into a `{ fields }` block.
     const userConn = builder.objectRef<{ totalCount?: number }>('SharedUserConnection');
     const wrapped = wrapConnectionOptionsWithTotalCount(userConn);
     expect(wrapped).toBe(userConn);
 
-    // For a plain options object, the wrap DOES add a `fields` thunk.
     const opts = { description: 'plain' };
     const wrappedOpts = wrapConnectionOptionsWithTotalCount(opts);
     expect(wrappedOpts).not.toBe(opts);
@@ -296,10 +266,7 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
       variant: 'UserIface',
       fields: (t) => ({ id: t.exposeID('id') }),
     });
-    // Pass the ref directly to merge cross-file fields. Passing a
-    // string model name would create a separate cache entry keyed by
-    // model name (not the variant typeName), so the fields wouldn't
-    // merge into the variant-registered interface.
+    // A model name would look up the default-named interface, not this variant.
     builder.prismaInterfaceFields(ifaceRef, (t) => ({
       firstName: t.exposeString('firstName'),
     }));
@@ -347,9 +314,6 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
             models: {
               Post: {
                 relations: {
-                  // Hand-crafted relation with no `on` block — N:M support
-                  // reads localFields via `'on' in rel`, so a missing `on`
-                  // degrades to empty FK columns rather than crashing.
                   tags: {
                     cardinality: 'N:M',
                     to: { namespace: '__unbound__', model: 'Tag' },
@@ -399,10 +363,6 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
   });
 
   it('applySelectionToCollection accepts a typeName override', () => {
-    // Verify the public escape hatch honors the `typeName` option —
-    // used by `prismaNode.loadWithoutCache` to map against the
-    // concrete model's type tree rather than `info.returnType`
-    // (which is the Node interface).
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: ctx.contract },
@@ -410,7 +370,6 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.toSchema();
 
-    // Recording-style minimal mock collection.
     const calls: string[] = [];
     const mock = {
       select: (...names: string[]) => {
@@ -426,8 +385,6 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
       combine: () => mock,
     };
 
-    // Build fake info whose returnType is *not* User; the override
-    // forces the mapper to descend against the User type tree.
     const schema = builder.toSchema();
     const info = {
       parentType: schema.getType('User'),
@@ -457,17 +414,10 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
         typeName: 'User',
       },
     );
-    // `id` is the exposed column on User; if the override worked,
-    // the mock's `select` should have been called with it.
     expect(calls.some((c) => c === 'select:id')).toBe(true);
   });
 
   it('totalCountSeq per-builder: independent counter per builder', () => {
-    // The alias for `totalCount: true` includes a sequence number.
-    // Two separately-built schemas should NOT share the counter;
-    // each starts at 1. Construct two builders, register the same
-    // shape, and assert their first totalCount aliases land at the
-    // same suffix value.
     const make = () => {
       const b = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
         plugins: [prismaNextPlugin, RelayPlugin],
@@ -480,9 +430,6 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
           postsConnection: t.relatedConnection('posts', { cursor: 'id', totalCount: true }),
         }),
       });
-      // Read the registered extension via the schema. We can't easily
-      // pull the alias out — instead, just verify the schema builds
-      // (sequence resets don't collide).
       return b.toSchema();
     };
     const schema1 = make();
@@ -491,11 +438,6 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
     expect(schema2).toBeDefined();
   });
 });
-
-// selectionIncludesField / selectionSetIncludesField unit tests moved to
-// `tests/selection-walk.test.ts`.
-// brandResult Iterable/AsyncIterable + rebrandForVariant invariant tests
-// moved to `tests/branding.test.ts`.
 
 describe('PreparedFieldExtension — round-trip shape', () => {
   it('t.prismaField registers { modelName, typeName } with both equal for non-variant types', () => {
@@ -520,9 +462,6 @@ describe('PreparedFieldExtension — round-trip shape', () => {
   });
 
   it('records typeName from a variant prismaObject', () => {
-    // Variant: register with `name` so the GraphQL type name diverges
-    // from the contract model name. The prepared extension must
-    // record both so wrapResolve brands correctly.
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: ctx.contract },
@@ -550,11 +489,6 @@ describe('PreparedFieldExtension — round-trip shape', () => {
 });
 
 describe('variant-only registration — Pothos surfaces unresolved-ref', () => {
-  // Matches plugin-drizzle's pattern: variants get fresh refs; the
-  // default-named ref is only registered if the user passes no variant.
-  // If a string-form helper later references the model but only a
-  // variant was registered, Pothos core surfaces this as an unresolved
-  // ObjectRef error at schema-build time.
   it('prismaObjectField string form surfaces unresolved ref when only a variant is registered', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
@@ -606,7 +540,6 @@ describe('prismaNode — user isTypeOf is preserved', () => {
     let calledWith: unknown = null;
     builder.prismaNode('User', {
       id: { field: 'id' },
-      // Stub collection — the test only inspects isTypeOf wiring.
       collection: ctx.ormClient.User,
       isTypeOf: (value: unknown) => {
         calledWith = value;
@@ -622,10 +555,8 @@ describe('prismaNode — user isTypeOf is preserved', () => {
     const schema = builder.toSchema();
     const userType = schema.getType('User') as GraphQLObjectType;
     const isTypeOf = userType.isTypeOf!;
-    // User predicate wins for { isUser: true }.
     expect(isTypeOf({ isUser: true }, {} as never, {} as never)).toBe(true);
     expect(calledWith).toEqual({ isUser: true });
-    // Ordinary objects must still satisfy the user predicate.
     expect(isTypeOf({}, {} as never, {} as never)).toBe(false);
   });
 
@@ -645,7 +576,6 @@ describe('prismaNode — user isTypeOf is preserved', () => {
     const schema = builder.toSchema();
     const userType = schema.getType('User') as GraphQLObjectType;
     const isTypeOf = userType.isTypeOf!;
-    // A promised false remains false.
     const result = isTypeOf({}, {} as never, {} as never);
     expect(typeof (result as { then?: unknown })?.then).toBe('function');
     expect(await result).toBe(false);
@@ -779,7 +709,6 @@ describe('buildTotalCountPromise — direct unit', () => {
     } as never;
     const baseCollection = {
       aggregate: (fn: (a: { count: () => unknown }) => unknown) => {
-        // Capture the aggregate spec the call uses
         const spec = fn({ count: () => 'count-marker' });
         expect(spec).toEqual({ total: 'count-marker' });
         return Promise.resolve({ total: 99 });
@@ -845,10 +774,6 @@ describe('variant-only — string-form refs surface as unresolved-ref via Pothos
 
 describe('variant-only registration — legitimate both-default-and-variant SDL', () => {
   it('default + variant + string-form field on default produces both types', () => {
-    // Positive companion to the variant-only throw tests: when BOTH
-    // a default and a variant are registered, the string-form helper
-    // resolves to the default. Both types appear in the SDL with
-    // their respective fields.
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: ctx.contract },
@@ -883,23 +808,17 @@ describe('cursor accessor on connection edges', () => {
       },
     };
     const page = buildConnectionPage([{ id: 1 }, { id: 2 }, { id: 3 }], pagination);
-    // pageInfo eagerly reads startCursor + endCursor — that's 2 encodes.
     expect(encodeCalls).toBe(2);
-    // JSON.stringify shouldn't trigger getters for middle edges.
     const before = encodeCalls;
     JSON.stringify(page);
     expect(encodeCalls).toBe(before);
-    // GraphQL.js's per-field property access fires the getter.
     expect(page.edges[1]!.cursor).toBe('cursor:2');
     expect(encodeCalls).toBe(before + 1);
-    // Second read is cached.
     expect(page.edges[1]!.cursor).toBe('cursor:2');
     expect(encodeCalls).toBe(before + 1);
   });
 
   it('Object.assign({}, edge) drops the cursor (documented invariant of enumerable:false)', async () => {
-    // Own-property enumeration (Object.assign, spread, JSON.stringify)
-    // skips the non-enumerable cursor accessor.
     const { buildConnectionPage, buildPaginationParams } = await import('../src/utils/cursors');
     const pagination = {
       ...buildPaginationParams('id', { first: 2 }),
@@ -918,9 +837,7 @@ describe('variant-only related model — surfaces as unresolved-ref via Pothos c
       plugins: [prismaNextPlugin],
       prismaNext: { contract: ctx.contract },
     });
-    // Register Post only as a variant; t.relation('posts') from User
-    // routes through `getRefFromContractModel('Post', ...)` which
-    // returns the cached default ref that was never registered.
+    // `t.relation('posts')` resolves to the default Post ref, which is never registered.
     builder.prismaObject('Post', {
       name: 'PostVariant',
       fields: (t) => ({ id: t.exposeID('id') }),
@@ -950,24 +867,11 @@ describe('t.prismaConnection({ query }) sentinel — JS runtime strip', () => {
         users: t.prismaConnection({
           type: 'User',
           cursor: 'id',
-          // Untyped escape — what a JS caller bypassing TS would do.
           query: () => ({ where: { id: 1 } }),
           resolve: () => ctx.ormClient.User as never,
         } as never),
       }),
     });
-    // Builds without error; the destructure strips `query` before
-    // forwarding to t.connection.
     expect(builder.toSchema()).toBeDefined();
   });
 });
-
-// Combine-slot keys use `:` (GraphQL-forbidden) as the separator. User
-// aliases can't produce those keys structurally, so no runtime reserved-
-// alias check is needed.
-
-// compileQuery has been removed. Declarative-refine compilation now
-// lives inline in `apply-selection.ts:compileDeclarativeRefine`, used
-// by the walker for `select: { rel: { where, take, skip, orderBy } }`.
-// `compileWhere` (the only public helper) is exercised end-to-end via
-// the connection runtime tests.

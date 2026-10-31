@@ -1,7 +1,5 @@
-// Guards the types the website's Prisma ORM 8 playground example relies on for completions and
-// diagnostics (website/playground-examples/plugin-prisma-next). The fields below mirror that example;
-// the sample contract has the same User and Post columns and relations. (The example's own contract
-// resolves the website's peer variant of the ORM, so it can't be imported here.)
+// Mirrors website/playground-examples/plugin-prisma-next, whose own contract can't be imported
+// here; the sample contract has the same User and Post columns and relations.
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { expectTypeOf } from 'vitest';

@@ -12,8 +12,7 @@ import prismaNextPlugin from '../src';
 import { mutationCases } from './fixtures/mutation-cases';
 import type { Contract } from './postgres/contract';
 
-// This fixture intentionally uses another dialect through the same plugin.
-// The application, not Pothos, owns the driver and temporal codec.
+// The application, not Pothos, provides Temporal for the temporal codec.
 Object.assign(globalThis, { Temporal });
 const url =
   process.env.POTHOS_PRISMA_NEXT_DATABASE_URL ??

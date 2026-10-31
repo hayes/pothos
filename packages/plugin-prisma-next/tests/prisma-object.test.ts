@@ -52,9 +52,6 @@ describe('builder.prismaObject', () => {
       fields: (t) => ({ id: t.exposeID('id' as never, { nullable: true }) }),
     });
 
-    // The WeakMap-keyed ref cache means looking up the same model again
-    // hands back the same ref — critical for t.relation() resolving to
-    // the same ObjectRef as a future prismaObject('User', ...) call.
     expect(refA.modelName).toBe('User');
     expect(refA.name).toBe('User');
   });
