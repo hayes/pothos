@@ -261,9 +261,9 @@ describe('models validated when the schema is built', () => {
 
   it('rejects a Collection of another model in prismaConnectionHelpers', async () => {
     const helper = prismaConnectionHelpers(createBuilder(), 'Post', { cursor: 'id' });
-    await expect(
-      helper.applyPagination(db.orm.User as never, { first: 1 }, undefined, {}),
-    ).rejects.toThrow("Fields returning model 'Post' must return a Collection of that model");
+    await expect(helper.applyPagination(db.orm.User as never, { first: 1 }, {})).rejects.toThrow(
+      "Fields returning model 'Post' must return a Collection of that model",
+    );
   });
 
   it('rejects a Collection of another model from a prismaNode collection option', async () => {

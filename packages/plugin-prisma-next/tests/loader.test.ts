@@ -389,7 +389,7 @@ describe('provenance', () => {
           cursor: 'id',
           totalCount: true,
           args: { published: t.arg.int({ required: true }) },
-          where: (post, args) => post.published.eq(args.published),
+          query: (args) => ({ where: (post) => post.published.eq(args.published) }),
         }),
       }),
     });

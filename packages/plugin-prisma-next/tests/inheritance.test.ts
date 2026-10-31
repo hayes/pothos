@@ -409,7 +409,7 @@ describe('native model inheritance', () => {
       prismaNext: { client: db.client },
     });
     const pages = prismaConnectionHelpers(builder, 'Feature', { cursor: ['priority', 'id'] });
-    const page = await pages.applyPagination(db.orm.Task.variant('feature'), {}, undefined, {});
+    const page = await pages.applyPagination(db.orm.Task.variant('feature'), {}, {});
     // The integer codec refuses a value it doesn't hold; without it the value encodes as is.
     const opaque = page.wrap([{ id: 't2', priority: { value: 'opaque' } } as never]);
     expect(() => opaque.pageInfo.endCursor).toThrow();

@@ -340,6 +340,11 @@ export type PrismaNextPluginOptions<TContract extends AnyContract, Context = obj
   readonly skipDeferredFragments?: boolean;
   readonly defaultConnectionSize?: number;
   readonly maxConnectionSize?: number;
+  /**
+   * Defaults to true: a `relatedConnection`'s `totalCount` applies its `query.where`, so it
+   * counts the rows the connection pages. Set to false to count every related row.
+   */
+  readonly filterConnectionTotalCount?: boolean;
 } & (
   | { readonly client: PrismaNextClient<TContract>; readonly contract?: never }
   | {
@@ -426,6 +431,26 @@ export interface RelationQueryLiteral<Types extends SchemaTypes, M extends Model
   limit?: number;
   offset?: number;
 }
+
+/**
+ * What a connection applies before paging. `orderBy` sets each cursor column's direction and null
+ * placement, in cursor order; backward pages reverse it.
+ */
+export interface ConnectionQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
+  where?: RelationWhere<Types, M>;
+  orderBy?: RelationOrderBy<Types, M>;
+}
+
+export type ConnectionQuery<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Args extends InputFieldMap,
+> =
+  | ConnectionQueryLiteral<Types, M>
+  | ((
+      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+      context: Types['Context'],
+    ) => ConnectionQueryLiteral<Types, M>);
 
 export type RelationQuery<
   Types extends SchemaTypes,
@@ -1011,7 +1036,7 @@ export type PrismaNextConnectionFieldOptions<
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
   > & {
     type: Param;
-    cursor: Cursor & NoInfer<ExactCursor<Cursor>>;
+    cursor: Cursor & ExactCursor<Cursor>;
     defaultSize?:
       | number
       | ((
@@ -1088,7 +1113,7 @@ export type PrismaNextRelatedConnectionOptions<
     >,
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
   > & {
-    cursor: Cursor & NoInfer<ExactCursor<Cursor>>;
+    cursor: Cursor & ExactCursor<Cursor>;
     type?: PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
     defaultSize?:
       | number
@@ -1103,19 +1128,7 @@ export type PrismaNextRelatedConnectionOptions<
           ctx: Types['Context'],
         ) => number);
     args?: Args;
-    /**
-     * Direction and null placement for this request. Each item names a cursor column, in cursor
-     * order; backward pages reverse it.
-     */
-    orderBy?: (
-      model: ModelAccessor<
-        Types['PrismaNextContract'],
-        BareModelName<RelatedModel<Types, ParentModel, RelName>>,
-        NamespaceOf<Types, RelatedModel<Types, ParentModel, RelName>>
-      >,
-      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-      context: Types['Context'],
-    ) => OrderByItem | readonly OrderByItem[];
+    query?: ConnectionQuery<Types, RelatedModel<Types, ParentModel, RelName>, Args>;
     totalCount?:
       | TotalCountFlag<Types>
       | ((
@@ -1124,26 +1137,6 @@ export type PrismaNextRelatedConnectionOptions<
           context: Types['Context'],
           info: GraphQLResolveInfo,
         ) => MaybePromise<number>);
-    where?:
-      | ShorthandWhereFilter<
-          Types['PrismaNextContract'],
-          NamespaceOf<Types, RelatedModel<Types, ParentModel, RelName>>,
-          BareModelName<RelatedModel<Types, ParentModel, RelName>>
-        >
-      | ((
-          accessor: ModelAccessor<
-            Types['PrismaNextContract'],
-            BareModelName<RelatedModel<Types, ParentModel, RelName>>,
-            NamespaceOf<Types, RelatedModel<Types, ParentModel, RelName>>
-          >,
-          args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-          context: Types['Context'],
-          tools: ModelCallbackTools<
-            Types['PrismaNextContract'],
-            BareModelName<RelatedModel<Types, ParentModel, RelName>>,
-            NamespaceOf<Types, RelatedModel<Types, ParentModel, RelName>>
-          >,
-        ) => unknown);
   };
 
 /**

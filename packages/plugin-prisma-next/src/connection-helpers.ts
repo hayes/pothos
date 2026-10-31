@@ -5,35 +5,37 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
-import type { ModelAccessor, ShorthandWhereFilter } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
+import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
-  BareModelName,
   CollectionFor,
   ConnectionCollection,
+  ConnectionQuery,
   CursorSpec,
   ExactCursor,
   ModelName,
-  NamespaceOf,
   Row,
   TotalCountFlag,
 } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
-import { aggregateCount, connectionSettings } from './utils/connections.js';
+import {
+  aggregateCount,
+  CONNECTION_NODE_PATHS,
+  connectionQuery,
+  connectionSettings,
+} from './utils/connections.js';
 import { assertVariantCollection } from './utils/contract.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
   type ConnectionPage,
-  type CursorInput,
-  normalizeCursor,
+  cursorColumns,
   validateCursor,
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getRefFromContractModel } from './utils/refs.js';
-import { whereInput } from './utils/selections.js';
 
 export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [Node] extends [never]
   ? WrapRow
@@ -53,10 +55,10 @@ export interface PrismaConnectionHelpers<
   Args extends InputFieldMap = {},
   Node = never,
   MaybeAbsent extends boolean = false,
-  Shape = Row<Types, M>,
+  Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
 > {
-  /** The ref passed in, or the model's default ref for a model name. */
-  ref: PrismaNextObjectRef<Types, M, Shape>;
+  /** The ref passed in, or the model's default ref for a model name (`Ref` isn't inferred). */
+  ref: HelperRef<Types, M> extends Ref ? PrismaNextObjectRef<Types, M, Row<Types, M>> : Ref;
   /**
    * Without `info`, relations selected under the connection aren't preloaded. Returns a promise
    * when a `select` callback beneath the connection is async.
@@ -64,8 +66,8 @@ export interface PrismaConnectionHelpers<
   applyPagination(
     collection: ConnectionCollection<Types, M>,
     args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-    info: GraphQLResolveInfo | undefined,
     ctx: Types['Context'],
+    info?: GraphQLResolveInfo,
   ): MaybePromise<{
     collection: CollectionFor<Types, M>;
     totalCountPromise: Promise<number> | undefined;
@@ -78,20 +80,31 @@ export interface PrismaConnectionHelpers<
   connectionOptions<T extends object>(connectionOptions: T): T;
 }
 
+/** A `prismaObject` or `prismaInterface` ref whose type the connection's nodes use. */
+export type HelperRef<Types extends SchemaTypes, M extends ModelName<Types>> =
+  | PrismaNextObjectRef<Types, M, unknown>
+  | PrismaNextInterfaceRef<Types, M, unknown>;
+
 export interface PrismaConnectionHelperOptions<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap,
 > {
-  cursor: Cursor & NoInfer<ExactCursor<Cursor>>;
+  cursor: Cursor & ExactCursor<Cursor>;
   args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
   defaultSize?:
     | number
-    | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: Types['Context']) => number);
+    | ((
+        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+        ctx: Types['Context'],
+      ) => number);
   maxSize?:
     | number
-    | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: Types['Context']) => number);
+    | ((
+        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+        ctx: Types['Context'],
+      ) => number);
   totalCount?:
     | TotalCountFlag<Types>
     | ((
@@ -99,17 +112,8 @@ export interface PrismaConnectionHelperOptions<
         ctx: Types['Context'],
         info: GraphQLResolveInfo | undefined,
       ) => MaybePromise<number>);
-  where?:
-    | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>
-    | ((
-        accessor: ModelAccessor<
-          Types['PrismaNextContract'],
-          BareModelName<M>,
-          NamespaceOf<Types, M>
-        >,
-        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-        ctx: Types['Context'],
-      ) => unknown);
+  /** Filters the collection and orders its cursor columns, as `t.relatedConnection`'s `query`. */
+  query?: ConnectionQuery<Types, M, Args>;
 }
 
 export function prismaConnectionHelpers<
@@ -118,14 +122,14 @@ export function prismaConnectionHelpers<
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
-  Shape = Row<Types, M>,
+  Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  refOrModel: M | PrismaNextObjectRef<Types, M, Shape>,
+  refOrModel: M | (Ref & HelperRef<Types, M>),
   options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
     resolveNode: (edge: Row<Types, M>) => Node;
   },
-): PrismaConnectionHelpers<Types, M, Args, Node, false, Shape>;
+): PrismaConnectionHelpers<Types, M, Args, Node, false, Ref>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -133,14 +137,14 @@ export function prismaConnectionHelpers<
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
-  Shape = Row<Types, M>,
+  Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  refOrModel: M | PrismaNextObjectRef<Types, M, Shape>,
+  refOrModel: M | (Ref & HelperRef<Types, M>),
   options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
     resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
-): PrismaConnectionHelpers<Types, M, Args, Node, true, Shape>;
+): PrismaConnectionHelpers<Types, M, Args, Node, true, Ref>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -148,35 +152,20 @@ export function prismaConnectionHelpers<
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
-  Shape = Row<Types, M>,
+  Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  refOrModel: M | PrismaNextObjectRef<Types, M, Shape>,
+  refOrModel: M | (Ref & HelperRef<Types, M>),
   options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
     resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
-): PrismaConnectionHelpers<Types, M, Args, Node, boolean, Shape> {
-  const ref = (
-    typeof refOrModel === 'string'
-      ? getRefFromContractModel<Types, M>(refOrModel, builder)
-      : refOrModel
-  ) as PrismaNextObjectRef<Types, M, Shape>;
+): PrismaConnectionHelpers<Types, M, Args, Node, boolean, Ref> {
+  const ref = (typeof refOrModel === 'string'
+    ? getRefFromContractModel<Types, M>(refOrModel, builder)
+    : refOrModel) as never as PrismaNextObjectRef<Types, M>;
   const modelName = ref.modelName;
 
-  let resolvedArgs: Args | undefined;
-  const resolveArgs = (): Args => {
-    if (resolvedArgs !== undefined) {
-      return resolvedArgs;
-    }
-    const raw = options.args;
-    resolvedArgs =
-      typeof raw === 'function'
-        ? builder.args(raw as (t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args)
-        : (raw ?? ({} as Args));
-    return resolvedArgs;
-  };
-
-  const cursorCols = normalizeCursor(options.cursor as CursorInput);
+  let args: Args | undefined;
   const config = getPluginConfig(builder);
   const cursorSpec = validateCursor(config.contract, modelName, options.cursor);
   const settings = connectionSettings<
@@ -188,13 +177,17 @@ export function prismaConnectionHelpers<
   >(config, options);
 
   return {
-    ref,
-    getArgs: () => resolveArgs(),
+    ref: ref as never,
+    getArgs: () =>
+      (args ??=
+        typeof options.args === 'function'
+          ? builder.args(options.args)
+          : (options.args ?? ({} as Args))),
     connectionOptions: settings.connectionOptions,
-    applyPagination(collection, args, info, ctx) {
+    applyPagination(collection, args, ctx, info) {
       // An invalid cursor or base rejects rather than throws, so `.then(_, onError)` sees it too.
       try {
-        return paginate(collection, args, info, ctx);
+        return paginate(collection, args, ctx, info);
       } catch (error) {
         return Promise.reject(error);
       }
@@ -204,37 +197,41 @@ export function prismaConnectionHelpers<
   function paginate(
     collection: ConnectionCollection<Types, M>,
     args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-    info: GraphQLResolveInfo | undefined,
     ctx: Types['Context'],
+    info: GraphQLResolveInfo | undefined,
   ) {
     assertVariantCollection(config.contract, modelName, collection as never);
-    const filteredBase = (options.where === undefined
+    const { where, orderBy } = connectionQuery(options.query, args, ctx as object);
+    const filteredBase = (where === undefined
       ? collection
-      : (collection as unknown as MapperCollection).where(
-          whereInput(options.where, args, ctx as object),
-        )) as unknown as CollectionFor<Types, M>;
+      : (collection as unknown as MapperCollection).where(where)) as unknown as CollectionFor<
+      Types,
+      M
+    >;
     const pagination = applyCursorPagination(filteredBase as never, cursorSpec, args, {
       ...settings.sizes(args, ctx as object),
       codecs: config.codecs(ctx, modelName),
+      orderBy,
     });
 
     const prepared = (info
       ? applySelectionToCollection(pagination.collection, info, config, ctx, {
-          paths: [['edges', 'node'], ['nodes']],
-          extraColumns: cursorCols,
+          paths: CONNECTION_NODE_PATHS,
+          extraColumns: cursorColumns(cursorSpec),
         })
       : pagination.collection) as unknown as MaybePromise<CollectionFor<Types, M>>;
 
     // Counted before pagination but after `where`, so it matches the paged rows.
     let totalCountPromise: Promise<number> | undefined;
     const getTotalCountPromise = () => {
-      const counted = settings.countsRows(ctx as object, info);
-      if (!counted && !settings.callsCount(ctx as object, info)) {
+      const source = settings.countSource(ctx as object, info);
+      if (!source) {
         return undefined;
       }
-      totalCountPromise ??= counted
-        ? aggregateCount(filteredBase)
-        : Promise.resolve().then(() => settings.countCallback!(args, ctx, info));
+      totalCountPromise ??=
+        source === 'aggregate'
+          ? aggregateCount(filteredBase)
+          : Promise.resolve().then(() => source(args, ctx, info));
       // Avoids an unhandled rejection; the consumer still sees it.
       totalCountPromise.catch(() => undefined);
       return totalCountPromise;

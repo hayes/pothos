@@ -66,6 +66,7 @@ direction, because Prisma can't reset an ordering. Reverse it yourself for backw
 the `orderBy` option instead:
 
 ```ts
+cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
 resolve: (_root, args, ctx) =>
   ctx.db.orm.Post.orderBy((post) =>
     args.last == null ? post.createdAt.desc() : post.createdAt.asc(),
@@ -80,8 +81,8 @@ Limitations:
 - Bytes columns can't be cursor columns.
 - An encoded cursor can be at most 2048 characters, about 1.5 KB of raw column values. Selecting
   the cursor of a row with longer values fails that field; pages that don't select it still work.
-- Cursors come from clients. A cursor value whose type doesn't match its column isn't rejected;
-  it only changes the page returned to that client.
+- A cursor whose values the column's codec can't decode fails with
+  `Invalid cursor value for <column>`; no query runs.
 
 ## relatedConnection
 
@@ -90,7 +91,7 @@ builder.prismaObject('User', {
   fields: (t) => ({
     publishedPosts: t.relatedConnection('posts', {
       cursor: 'id',
-      where: { published: 1 },
+      query: { where: { published: 1 } },
       totalCount: true,
     }),
   }),
@@ -98,14 +99,14 @@ builder.prismaObject('User', {
 ```
 
 The page is loaded inside the parent query's include. It takes the same options as
-`t.prismaConnection`, plus `where`, an object or `(post, args, ctx) => filter` applied before
-paging.
+`t.prismaConnection`, except that `where` and `orderBy` go in `query`, as on `t.relation`:
+`{ where, orderBy }` or `(args, ctx) => ({ where, orderBy })`.
 
 ## Connection helpers
 
 `prismaConnectionHelpers` applies the same pagination to a custom connection field. It takes a
-model name, or the ref of a `prismaObject` (including a variant or a named type) whose type the
-connection's nodes use:
+model name, or the ref of a `prismaObject` (including a variant or a named type) or a
+`prismaInterface` whose type the connection's nodes use:
 
 ```ts
 import { prismaConnectionHelpers } from '@pothos/plugin-prisma-next';
@@ -114,7 +115,7 @@ const postConnection = prismaConnectionHelpers(builder, 'Post', {
   cursor: 'id',
   args: (t) => ({ onlyPublished: t.boolean() }),
   totalCount: true,
-  where: (post, args) => (args.onlyPublished ? post.published.eq(1) : undefined),
+  query: (args) => ({ where: args.onlyPublished ? { published: 1 } : undefined }),
 });
 
 builder.prismaObject('User', {
@@ -128,8 +129,8 @@ builder.prismaObject('User', {
           const { collection, totalCountPromise, wrap } = await postConnection.applyPagination(
             ctx.db.orm.Post.where((post) => post.authorId.eq(user.id)),
             args,
-            info,
             ctx,
+            info,
           );
           return wrap(await collection.all(), await totalCountPromise);
         },

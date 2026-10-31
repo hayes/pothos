@@ -33,7 +33,7 @@ function schema(options: SampleOptions = {}) {
       published: t.relatedConnection('posts', {
         cursor: 'id',
         totalCount: true,
-        where: { published: 1 },
+        query: { where: { published: 1 } },
       }),
       callableCount: t.relatedConnection('posts', { cursor: 'id', totalCount: () => 23 }),
       wrapped: t.relatedConnection('posts', {
@@ -45,7 +45,9 @@ function schema(options: SampleOptions = {}) {
       ordered: t.relatedConnection('posts', {
         cursor: ['title', 'id'],
         args: { newest: t.arg.boolean() },
-        orderBy: (post, args) => (args.newest ? post.title.desc() : post.title.asc()),
+        query: (args) => ({
+          orderBy: (post) => (args.newest ? post.title.desc() : post.title.asc()),
+        }),
       }),
     }),
   });
@@ -95,6 +97,14 @@ function schema(options: SampleOptions = {}) {
         cursor: 'id',
         totalCount: true,
         resolve: () => db.orm.Post.orderBy((post) => post.id.desc()),
+      }),
+      newestFirst: t.prismaConnection({
+        type: 'Post',
+        cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
+        resolve: (_root, args) =>
+          db.orm.Post.orderBy((post) =>
+            args.last == null ? post.createdAt.desc() : post.createdAt.asc(),
+          ),
       }),
       callableCount: t.prismaConnection({
         type: 'Post',
@@ -260,6 +270,26 @@ describe('related connections', () => {
       });
     }
     expect(result.statements).toHaveLength(1);
+  });
+
+  it('adds a count to the statement only when totalCount is selected', async () => {
+    const rows = await query('{ users { posts(first: 1) { edges { node { id } } } } }');
+    expect(rows.errors).toBeUndefined();
+    expect(rows.statements).toHaveLength(1);
+    expect(rows.statements[0].sql).not.toMatch(/count\(/i);
+    const counted = await query('{ users { posts(first: 1) { totalCount } } }');
+    expect(counted.statements[0].sql).toMatch(/count\(/i);
+  });
+
+  it('counts every related row when filterConnectionTotalCount is false', async () => {
+    const result = await run(
+      schema({ filterConnectionTotalCount: false }),
+      '{ users { published(first: 5) { totalCount edges { node { published } } } } }',
+    );
+    expect(result.data.users[0].published).toEqual({
+      totalCount: 2,
+      edges: [{ node: { published: 1 } }],
+    });
   });
 });
 
@@ -511,18 +541,21 @@ describe('orderBy', () => {
   });
 });
 
-describe('related connection planning errors', () => {
-  function planningSchema() {
+describe('related connection errors', () => {
+  function errorSchema() {
     const builder = createBuilder<{ allow?: boolean }>();
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('User', {
       fields: (t) => ({
         id: t.exposeID('id'),
+        posts: t.relatedConnection('posts', { cursor: 'id', nullable: true }),
         ordered: t.relatedConnection('posts', {
           cursor: ['title', 'id'],
           nullable: true,
           args: { byId: t.arg.boolean() },
-          orderBy: (post, args) => (args.byId ? post.id.asc() : post.title.asc()),
+          query: (args) => ({
+            orderBy: (post) => (args.byId ? post.id.asc() : post.title.asc()),
+          }),
         }),
         sized: t.relatedConnection('posts', {
           cursor: 'id',
@@ -539,11 +572,11 @@ describe('related connection planning errors', () => {
           cursor: 'id',
           nullable: true,
           totalCount: true,
-          where: (post, _args, ctx) => {
+          query: (_args, ctx) => {
             if (!ctx.allow) {
               throw new Error('not allowed');
             }
-            return post.published.eq(1);
+            return { where: { published: 1 } };
           },
         }),
       }),
@@ -560,13 +593,10 @@ describe('related connection planning errors', () => {
   }
 
   it.each([
-    ['an orderBy outside the cursor order', 'ordered(byId: true, first: 1)', /cursor order/],
-    ['a throwing size callback', 'sized(boom: true, first: 1)', /size callback failed/],
-    ['a throwing where callback', 'guarded(first: 1)', /not allowed/],
-    ['a throwing where callback beneath totalCount', 'guarded', /not allowed/],
-  ])('fails only the connection field for %s', async (_name, field, message) => {
-    const selection = field === 'guarded' ? 'totalCount' : 'nodes { id }';
-    const result = await run(planningSchema(), `{ users { id c: ${field} { ${selection} } } }`);
+    ['an undecodable cursor', 'posts(first: 1, after: "nope")', /Invalid cursor/],
+    ['a negative page size', 'posts(first: -1)', /first/],
+  ])('fails only the connection field, without planning it, for %s', async (_name, field, message) => {
+    const result = await run(errorSchema(), `{ users { id c: ${field} { nodes { id } } } }`);
     expect(result.data.users).toEqual([
       { id: 'u-alice', c: null },
       { id: 'u-bob', c: null },
@@ -577,11 +607,26 @@ describe('related connection planning errors', () => {
     ]);
     expect(result.errors?.every((error) => message.test(error.message))).toBe(true);
     expect(result.statements).toHaveLength(1);
+    expect(result.statements[0].sql).not.toMatch(/post/i);
   });
 
-  it('plans the same connection normally when its callbacks succeed', async () => {
+  it.each([
+    ['an orderBy outside the cursor order', 'ordered(byId: true, first: 1)', /cursor order/],
+    ['a throwing size callback', 'sized(boom: true, first: 1)', /size callback failed/],
+    ['a throwing query callback', 'guarded(first: 1)', /not allowed/],
+    ['a throwing query callback beneath totalCount', 'guarded', /not allowed/],
+  ])('fails the statement for %s', async (_name, field, message) => {
+    const selection = field === 'guarded' ? 'totalCount' : 'nodes { id }';
+    const result = await run(errorSchema(), `{ users { id c: ${field} { ${selection} } } }`);
+    expect(result.data.users).toBeNull();
+    expect(result.errors?.map((error) => error.path)).toEqual([['users']]);
+    expect(result.errors?.[0].message).toMatch(message);
+    expect(result.statements).toHaveLength(0);
+  });
+
+  it('plans the same connections normally when their callbacks succeed', async () => {
     const result = await run(
-      planningSchema(),
+      errorSchema(),
       '{ users { id a: ordered(first: 1) { nodes { id } } b: sized(first: 1) { nodes { id } } c: guarded { totalCount } } }',
       { context: { allow: true } },
     );
@@ -594,18 +639,12 @@ describe('related connection planning errors', () => {
     });
     expect(result.statements).toHaveLength(1);
   });
+});
 
+describe('related connection arguments', () => {
   function argsSchema() {
-    const calls = { where: 0 };
+    const calls = { query: 0 };
     const builder = createBuilder();
-    // Argument values JSON can't tell apart (a Set) or serialize (a bigint).
-    const Tags = builder.scalarType(
-      'Tags' as never,
-      {
-        serialize: (value: Set<string>) => [...value],
-        parseValue: (value: unknown) => new Set(value as string[]),
-      } as never,
-    ) as never;
     const Big = builder.scalarType(
       'Big' as never,
       {
@@ -618,15 +657,15 @@ describe('related connection planning errors', () => {
       fields: (t) => ({
         id: t.exposeID('id'),
         posts: t.relatedConnection('posts', {
-          cursor: 'id',
+          cursor: ['title', 'id'],
           nullable: true,
-          args: { tags: t.arg({ type: Tags }), big: t.arg({ type: Big }) },
-          where: (post, args) => {
-            calls.where += 1;
-            if ((args.tags as Set<string> | null | undefined)?.has('bad')) {
-              throw new Error('bad tag');
-            }
-            return post.published.gte(0);
+          args: { order: t.arg.stringList(), big: t.arg({ type: Big }) },
+          query: (args) => {
+            calls.query += 1;
+            return {
+              orderBy: (post) =>
+                args.order?.[0] === 'desc' ? post.title.desc() : post.title.asc(),
+            };
           },
         }),
       }),
@@ -645,29 +684,31 @@ describe('related connection planning errors', () => {
   it.each([
     ['no arguments', ''],
     ['a bigint argument', '(big: "5")'],
-  ])('runs callbacks once per request and argument set for %s', async (_name, args) => {
+  ])('runs the query callback once per request and argument set for %s', async (_name, args) => {
     const { schema, calls } = argsSchema();
     const result = await run(schema, `{ users { id posts${args} { nodes { id } } } }`);
     expect(result.errors).toBeUndefined();
-    // One dry run to check the arguments, then the plan both users share.
-    expect(calls.where).toBe(2);
+    expect(calls.query).toBe(1);
   });
 
-  it.each([
-    ['good then bad', 'a: posts(tags: ["ok"]) { nodes { id } } b: posts(tags: ["bad"])'],
-    ['bad then good', 'b: posts(tags: ["bad"]) { nodes { id } } a: posts(tags: ["ok"])'],
-  ])('keeps the planning errors of Set arguments apart (%s)', async (_name, fields) => {
+  it('encodes each alias under the ordering its list argument chose', async () => {
     const { schema } = argsSchema();
-    const result = await run(schema, `{ users { id ${fields} { nodes { id } } } }`);
-    expect(result.data.users).toEqual([
-      { id: 'u-alice', a: { nodes: expect.any(Array) }, b: null },
-      { id: 'u-bob', a: { nodes: expect.any(Array) }, b: null },
-    ]);
-    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
-      [['users', 0, 'b'], 'bad tag'],
-      [['users', 1, 'b'], 'bad tag'],
-    ]);
-    expect(result.statements).toHaveLength(1);
+    const first = await run(
+      schema,
+      '{ users { up: posts(order: ["asc"], first: 1) { pageInfo { endCursor } } down: posts(order: ["desc"], first: 1) { pageInfo { endCursor } } } }',
+    );
+    expect(first.errors).toBeUndefined();
+    const { up, down } = first.data.users[0];
+    const next = await run(
+      schema,
+      'query ($up: String, $down: String) { users { up: posts(order: ["asc"], first: 1, after: $up) { nodes { id } } down: posts(order: ["desc"], first: 1, after: $down) { nodes { id } } } }',
+      { variables: { up: up.pageInfo.endCursor, down: down.pageInfo.endCursor } },
+    );
+    expect(next.errors).toBeUndefined();
+    expect(next.data.users[0]).toEqual({
+      up: { nodes: [{ id: 'p-hello' }] },
+      down: { nodes: [{ id: 'p-draft1' }] },
+    });
   });
 });
 
@@ -681,11 +722,11 @@ describe('base collections', () => {
   }
 
   async function page(
-    pages: { applyPagination(base: never, args: PageArgs, info: undefined, ctx: object): unknown },
+    pages: { applyPagination(base: never, args: PageArgs, ctx: object): unknown },
     base: unknown,
     args: PageArgs,
   ): Promise<Page> {
-    const applied = (await pages.applyPagination(base as never, args, undefined, {})) as {
+    const applied = (await pages.applyPagination(base as never, args, {})) as {
       collection: { all(): PromiseLike<unknown> };
       wrap(rows: unknown): Page;
     };
@@ -704,9 +745,7 @@ describe('base collections', () => {
   ])('rejects a base with %s before SQL', async (_name, base, message) => {
     const statements: CapturedExecution[] = [];
     await withCapture(statements, () =>
-      expect(
-        helper().applyPagination(base() as never, { first: 1 }, undefined, {}),
-      ).rejects.toThrow(message),
+      expect(helper().applyPagination(base() as never, { first: 1 }, {})).rejects.toThrow(message),
     );
     expect(statements).toHaveLength(0);
   });
@@ -738,11 +777,27 @@ describe('base collections', () => {
   ])('rejects a base ordered by %s instead of silently reordering', async (_name, base, args) => {
     const statements: CapturedExecution[] = [];
     await withCapture(statements, () =>
-      expect(helper().applyPagination(base() as never, args, undefined, {})).rejects.toThrow(
+      expect(helper().applyPagination(base() as never, args, {})).rejects.toThrow(
         /must match a prefix/,
       ),
     );
     expect(statements).toHaveLength(0);
+  });
+
+  it('pages a base ordered per direction for a descending cursor', async () => {
+    const all = await query('{ newestFirst(first: 10) { edges { node { id } } } }');
+    expect(all.errors).toBeUndefined();
+    const order = ids(all.data.newestFirst);
+    expect(order).toHaveLength(4);
+    const first = await query(
+      '{ newestFirst(first: 2) { pageInfo { endCursor } } last: newestFirst(last: 2) { edges { node { id } } } }',
+    );
+    expect(ids(first.data.last)).toEqual(order.slice(2));
+    const next = await query(
+      'query ($after: String) { newestFirst(first: 2, after: $after) { edges { node { id } } } }',
+      { after: first.data.newestFirst.pageInfo.endCursor },
+    );
+    expect(ids(next.data.newestFirst)).toEqual(order.slice(2));
   });
 
   it('validates the base even when only totalCount is selected', async () => {
@@ -851,7 +906,7 @@ describe('prismaConnectionHelpers', () => {
     const search = prismaConnectionHelpers(builder, 'User', {
       cursor: 'id',
       args: (t) => ({ name: t.string() }),
-      where: (user, args) => (args.name ? user.firstName.eq(args.name) : user.id.neq('')),
+      query: (args) => ({ where: args.name ? { firstName: args.name } : undefined }),
       totalCount: true,
     });
     const named = prismaConnectionHelpers(builder, 'User', {
@@ -878,8 +933,8 @@ describe('prismaConnectionHelpers', () => {
               const { collection, totalCountPromise, wrap } = await search.applyPagination(
                 db.orm.User,
                 args,
-                info,
                 context,
+                info,
               );
               const [rows, total] = await Promise.all([collection.all(), totalCountPromise]);
               return wrap(rows, total);
@@ -895,7 +950,6 @@ describe('prismaConnectionHelpers', () => {
               const { collection, totalCountPromise, wrap } = await named.applyPagination(
                 db.orm.User,
                 args,
-                undefined,
                 context,
               );
               return wrap(await collection.all(), await totalCountPromise);
@@ -952,7 +1006,7 @@ describe('prismaConnectionHelpers', () => {
       cursor: 'id',
       resolveNode: off ? (user) => ({ user }) : undefined,
     });
-    const result = await pages.applyPagination(db.orm.User, { first: 1 }, undefined, {});
+    const result = await pages.applyPagination(db.orm.User, { first: 1 }, {});
     expect(result.wrap(await result.collection.all()).edges[0].node).toMatchObject({
       id: 'u-alice',
     });
@@ -964,7 +1018,7 @@ describe('prismaConnectionHelpers', () => {
       cursor: 'id',
       totalCount: count,
     });
-    const result = await pages.applyPagination(db.orm.User, {}, undefined, {});
+    const result = await pages.applyPagination(db.orm.User, {}, {});
     await Promise.resolve();
     expect(count).not.toHaveBeenCalled();
     const promise = result.totalCountPromise;
@@ -984,7 +1038,7 @@ describe('prismaConnectionHelpers', () => {
           {
             type: pages.ref,
             resolve: async (_root, args, context, info) => {
-              const result = await pages.applyPagination(db.orm.User, args, info, context);
+              const result = await pages.applyPagination(db.orm.User, args, context, info);
               return result.wrap(await result.collection.all(), await result.totalCountPromise);
             },
           },
@@ -1011,7 +1065,7 @@ describe('prismaConnectionHelpers', () => {
         cards: t.connection({
           type: pages.ref,
           resolve: async (_root, args, context, info) => {
-            const result = await pages.applyPagination(db.orm.User, args, info, context);
+            const result = await pages.applyPagination(db.orm.User, args, context, info);
             return result.wrap(await result.collection.all());
           },
         }),

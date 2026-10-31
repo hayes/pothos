@@ -16,7 +16,7 @@ builder.prismaObject('User', {
     // Pages through the relation inside that same query.
     postConnection: t.relatedConnection('posts', {
       cursor: 'id',
-      where: { published: 1 },
+      query: { where: { published: 1 } },
       totalCount: true,
     }),
   }),

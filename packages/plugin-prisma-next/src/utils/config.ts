@@ -20,6 +20,7 @@ export interface PrismaNextConfig {
   readonly adapter: PrismaNextAdapter;
   readonly defaultConnectionSize: number | undefined;
   readonly maxConnectionSize: number | undefined;
+  readonly filterConnectionTotalCount: boolean;
   /** The client for a request, read once per request context. */
   client(ctx: object): RequestClient;
   /** The root collection a model's rows load from (`orm.Bug` loads through `orm.Task`). */
@@ -120,6 +121,7 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
     adapter: new PrismaNextAdapter(contract, options.skipDeferredFragments ?? true),
     defaultConnectionSize: options.defaultConnectionSize,
     maxConnectionSize: options.maxConnectionSize,
+    filterConnectionTotalCount: options.filterConnectionTotalCount ?? true,
     client,
     collection,
     codecs: (ctx, modelName) => {

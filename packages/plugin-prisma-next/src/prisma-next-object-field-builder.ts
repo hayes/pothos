@@ -1,6 +1,5 @@
 import {
   completeValue,
-  createContextCache,
   type FieldKind,
   type FieldRef,
   type InferredFieldOptionKeys,
@@ -49,25 +48,21 @@ import type {
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import {
-  argsKey,
+  CONNECTION_NODE_PATHS,
   connectionNeedsRows,
+  connectionQuery,
   connectionSettings,
+  createArgsCache,
   relatedCount,
+  selectsRows,
 } from './utils/connections.js';
-import {
-  collectionForModel,
-  relationVariant,
-  resolveContractModel,
-  rootModelKey,
-  variantOf,
-} from './utils/contract.js';
+import { relationVariant, resolveContractModel } from './utils/contract.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
   buildPaginationParams,
-  createRequestOrderings,
-  normalizeCursor,
-  type RequestOrderBy,
+  type CursorOrder,
+  cursorColumns,
   validateCursor,
   validateCursorArgs,
 } from './utils/cursors.js';
@@ -573,7 +568,7 @@ export class PrismaNextObjectFieldBuilder<
       type?: { modelName: string };
       defaultSize?: number | ((args: unknown, ctx: unknown) => number);
       maxSize?: number | ((args: unknown, ctx: unknown) => number);
-      refine?: (rel: unknown, args: unknown, ctx: unknown) => unknown;
+      query?: unknown;
       totalCount?:
         | boolean
         | ((
@@ -602,7 +597,7 @@ export class PrismaNextObjectFieldBuilder<
     }
     const config = getPluginConfig(this.builder);
     const relatedKey = relation.targetModel;
-    const cursorOpt = validateCursor(config.contract, relatedKey, options.cursor);
+    const cursorOrder = validateCursor(config.contract, relatedKey, options.cursor);
     const targetRef =
       options.type ?? getRefFromContractModel(relatedKey as never, this.builder as never);
     const variant = relationVariant(
@@ -616,110 +611,82 @@ export class PrismaNextObjectFieldBuilder<
       type: _type,
       defaultSize,
       maxSize,
-      where,
-      orderBy,
+      query,
       totalCount,
       extensions,
       ...rest
-    } = options as typeof options & {
-      where?: unknown;
-      orderBy?: (model: never, args: unknown, ctx: unknown) => ReturnType<RequestOrderBy>;
-    };
+    } = options;
     const settings = connectionSettings(config, { defaultSize, maxSize, totalCount });
     const relatedTypeName = (targetRef as { name?: string }).name ?? relatedKey;
     const include: IndirectInclude = {
       getType: () => relatedTypeName,
-      paths: [[{ name: 'edges' }, { name: 'node' }], [{ name: 'nodes' }]],
+      paths: CONNECTION_NODE_PATHS.map((path) => path.map((segment) => ({ name: segment }))),
     };
-    const cursorColumns = normalizeCursor(cursorOpt);
-    const filter = (rel: MapperCollection, args: object, ctx: object) =>
-      where === undefined ? rel : rel.where(whereInput(where, args, ctx));
     const narrow = (rel: MapperCollection) => (variant === undefined ? rel : rel.variant(variant));
-    // The ordering `orderBy` chose, which the resolver encodes cursors under.
-    const orderings = createRequestOrderings();
-    const page = (rel: MapperCollection, args: object, ctx: object) => {
-      const result = applyCursorPagination(
-        filter(rel, args, ctx),
-        cursorOpt,
-        args as PothosSchemaTypes.DefaultConnectionArguments,
-        {
-          ...settings.sizes(args, ctx),
-          codecs: config.codecs(ctx, relatedKey),
-          orderBy: orderBy && ((model) => orderBy(model as never, args, ctx)),
-        },
-      );
-      if (orderBy) {
-        orderings.set(args, ctx, result.cursor);
+    const mayReorder =
+      typeof query === 'function' || (query as { orderBy?: unknown } | undefined)?.orderBy;
+    // Per request and set of arguments, which every parent row shares: whether the client's
+    // input is valid, checked before planning so a bad cursor or page size fails only this field,
+    // and the ordering a request's `orderBy` chose, which the resolver encodes cursors under and
+    // checks the client's cursor against.
+    const requests = createArgsCache<{ failure?: { error: unknown }; order?: CursorOrder }>();
+    const request = (args: object, ctx: object) => {
+      const known = requests.get(args, ctx);
+      if (known) {
+        return known;
       }
-      return result.collection;
+      try {
+        validateCursorArgs(
+          cursorOrder,
+          args as PothosSchemaTypes.DefaultConnectionArguments,
+          config.codecs(ctx, relatedKey),
+          { checkOrdering: !mayReorder },
+        );
+        return requests.set(args, ctx, {});
+      } catch (error) {
+        return requests.set(args, ctx, { failure: { error } });
+      }
     };
-    const targetVariant = variant ?? variantOf(config.contract, relatedKey)?.value;
-    // What depends on the request (the cursor arguments, and the size, `where` and `orderBy`
-    // callbacks) is checked once per request and set of arguments, which every parent row shares,
-    // by building the page on the related model's collection without running it.
-    // Keyed on the args object too, so a row's LOADED check and resolve serialize it once.
-    const planErrors = createContextCache(() => ({
-      byValue: new Map<string, { error: unknown } | null>(),
-      byArgs: new WeakMap<object, { error: unknown } | null>(),
-    }));
-    const planError = (args: object, ctx: object) => {
-      const { byValue, byArgs } = planErrors(ctx);
-      let failure = byArgs.get(args);
-      if (failure !== undefined) {
-        return failure;
-      }
-      const key = argsKey(args);
-      failure = key === undefined ? undefined : byValue.get(key);
-      if (failure === undefined) {
-        failure = null;
-        try {
-          validateCursorArgs(
-            cursorOpt,
-            args as PothosSchemaTypes.DefaultConnectionArguments,
-            config.codecs(ctx, relatedKey),
-            // The page checks the ordering a request's `orderBy` chooses.
-            { checkOrdering: !orderBy },
-          );
-          // A client may expose the related model only through its parent's relation.
-          const base = collectionForModel(
-            config.contract,
-            config.client(ctx).orm,
-            rootModelKey(config.contract, relatedKey),
-          ) as MapperCollection | undefined;
-          if (base) {
-            page(targetVariant === undefined ? base : base.variant(targetVariant), args, ctx);
-          }
-        } catch (error) {
-          failure = { error };
-        }
-        if (key !== undefined) {
-          byValue.set(key, failure);
-        }
-      }
-      byArgs.set(args, failure);
-      return failure;
-    };
-    // A request that can't be planned plans nothing, so the error surfaces on this field when it
-    // resolves instead of failing the parent's query.
     const select: PrismaNextSelectFn = (args, ctx, nested, selectedFields, position) => {
-      if (planError(args, ctx)) {
+      if (request(args, ctx).failure) {
         return {};
       }
+      const { where, orderBy } = connectionQuery(query, args, ctx);
+      const filter = (rel: MapperCollection) => (where === undefined ? rel : rel.where(where));
       const identity = { source: select, args };
       const selected = selectedFields();
       const count =
         totalCount === true && selected.has('totalCount')
           ? computedSelection(name, scopeOf(position), identity, (sub) => ({
-              count: relatedCount(filter(narrow(sub), args, ctx)),
+              count: relatedCount(
+                config.filterConnectionTotalCount ? filter(narrow(sub)) : narrow(sub),
+              ),
             }))
           : {};
-      if (![...selected].some((field) => field !== 'totalCount' && field !== '__typename')) {
+      if (!selectsRows(selected)) {
         return count;
       }
+      const page = (rel: MapperCollection) => {
+        const result = applyCursorPagination(
+          filter(rel),
+          cursorOrder,
+          args as PothosSchemaTypes.DefaultConnectionArguments,
+          {
+            ...settings.sizes(args, ctx),
+            codecs: config.codecs(ctx, relatedKey),
+            orderBy,
+            checkOrdering: !orderBy,
+          },
+        );
+        if (orderBy) {
+          request(args, ctx).order = result.cursor;
+        }
+        return result.collection;
+      };
       const rows = nested(
         {
-          columns: cursorColumns,
-          args: relationArgs(relation, identity, (rel) => page(rel, args, ctx), variant),
+          columns: cursorColumns(cursorOrder),
+          args: relationArgs(relation, identity, page, variant),
         },
         include,
       );
@@ -742,9 +709,9 @@ export class PrismaNextObjectFieldBuilder<
           ctx: object,
           info: GraphQLResolveInfo,
         ) =>
-          !!planError(args, ctx) ||
+          !!request(args, ctx).failure ||
           ((!connectionNeedsRows(ctx, info) || view[name] !== undefined) &&
-            (!settings.countsRows(ctx, info) || Object.hasOwn(view, 'count'))),
+            (settings.countSource(ctx, info) !== 'aggregate' || Object.hasOwn(view, 'count'))),
       },
       resolve: async (
         parent: Record<string, unknown>,
@@ -752,20 +719,24 @@ export class PrismaNextObjectFieldBuilder<
         context: object,
         info: GraphQLResolveInfo,
       ) => {
-        const failure = planError(args, context);
+        const { failure, order } = request(args, context);
         if (failure) {
           throw failure.error;
         }
+        const codecs = config.codecs(context, relatedKey);
+        if (order) {
+          validateCursorArgs(order, args, codecs);
+        }
         const rows = connectionNeedsRows(context, info) ? parent[name] : [];
-        const pagination = buildPaginationParams(orderings.get(args, context) ?? cursorOpt, args, {
+        const pagination = buildPaginationParams(order ?? cursorOrder, args, {
           ...settings.sizes(args, context),
-          codecs: config.codecs(context, relatedKey),
+          codecs,
         });
-        const totalCount = settings.countsRows(context, info)
-          ? (parent.count as number | undefined)
-          : settings.callsCount(context, info)
-            ? await settings.countCallback!(parent, args, context, info)
-            : undefined;
+        const countSource = settings.countSource(context, info);
+        const totalCount =
+          countSource === 'aggregate'
+            ? (parent.count as number | undefined)
+            : await countSource?.(parent, args, context, info);
         return buildConnectionPage(rows as Record<string, unknown>[], pagination, totalCount);
       },
     };

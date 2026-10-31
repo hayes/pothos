@@ -1,4 +1,5 @@
 import {
+  createContextCache,
   ObjectRef,
   PothosSchemaError,
   PothosValidationError,
@@ -7,17 +8,23 @@ import {
 import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextConfig } from './config.js';
+import type { RequestOrderBy } from './cursors.js';
 
 type SizeOption = number | ((args: never, ctx: never) => number);
 
 export const isPageSize = (size: unknown): size is number =>
   Number.isSafeInteger(size) && (size as number) > 0;
 
+/** Where a connection's nodes sit in its selection. */
+export const CONNECTION_NODE_PATHS: string[][] = [['edges', 'node'], ['nodes']];
+
 /** Any selection besides `totalCount` (including extension fields) loads rows. */
+export function selectsRows(names: Iterable<string>): boolean {
+  return [...names].some((name) => name !== 'totalCount' && name !== '__typename');
+}
+
 export function connectionNeedsRows(context: object, info: GraphQLResolveInfo): boolean {
-  return [...selectedFieldNames(context, info)].some(
-    (name) => name !== 'totalCount' && name !== '__typename',
-  );
+  return selectsRows(selectedFieldNames(context, info));
 }
 
 /**
@@ -69,14 +76,19 @@ export function connectionSettings<Count extends (...args: never[]) => unknown>(
         ...(sizes.maxSize === undefined ? {} : { maxSize: sizes.maxSize }),
       };
     },
-    countCallback: typeof totalCount === 'function' ? totalCount : undefined,
-    /** Whether `info` selects a count the plugin computes. */
-    countsRows: (ctx: object, info: GraphQLResolveInfo | undefined) =>
-      totalCount === true && (!info || selectedFieldNames(ctx, info).has('totalCount')),
-    /** Whether `info` selects a count from the callback. */
-    callsCount: (ctx: object, info: GraphQLResolveInfo | undefined) =>
-      typeof totalCount === 'function' &&
-      (!info || selectedFieldNames(ctx, info).has('totalCount')),
+    /**
+     * Where the count `info` selects comes from: `'aggregate'` when the plugin counts the
+     * collection, the callback otherwise. Without `info`, any configured count is selected.
+     */
+    countSource(
+      ctx: object,
+      info: GraphQLResolveInfo | undefined,
+    ): 'aggregate' | Count | undefined {
+      if (!totalCount || (info && !selectedFieldNames(ctx, info).has('totalCount'))) {
+        return undefined;
+      }
+      return totalCount === true ? 'aggregate' : totalCount;
+    },
     connectionOptions<T extends object>(connectionOptions: T): T {
       return totalCount ? (withTotalCount(connectionOptions) as T) : connectionOptions;
     },
@@ -101,6 +113,30 @@ function withTotalCount(connectionOptions: object): object {
       }),
       ...(userFields ? userFields(t) : {}),
     }),
+  };
+}
+
+type OrderSelector = (model: never, tools: unknown) => unknown;
+
+/** A connection's `query` for one request: a literal, or a callback of the args and context. */
+export function connectionQuery(
+  query: unknown,
+  args: object,
+  ctx: object,
+): { where?: unknown; orderBy?: RequestOrderBy } {
+  const { where, orderBy } = ((typeof query === 'function' ? query(args, ctx) : query) ?? {}) as {
+    where?: unknown;
+    orderBy?: OrderSelector | readonly OrderSelector[];
+  };
+  if (orderBy === undefined) {
+    return { where };
+  }
+  return {
+    where,
+    orderBy: (model, tools) =>
+      (Array.isArray(orderBy)
+        ? orderBy.map((selector: OrderSelector) => selector(model as never, tools))
+        : (orderBy as OrderSelector)(model as never, tools)) as ReturnType<RequestOrderBy>,
   };
 }
 
@@ -143,7 +179,7 @@ export function aggregateCount(collection: unknown): Promise<number> {
  * A key that equal argument values share, or `undefined` for a value it can't tell apart from
  * others (a Set, Map, or class instance), which must not share a cached result.
  */
-export function argsKey(value: unknown): string | undefined {
+function argsKey(value: unknown): string | undefined {
   switch (typeof value) {
     case 'undefined':
       return 'u';
@@ -188,4 +224,38 @@ export function argsKey(value: unknown): string | undefined {
     default:
       return undefined;
   }
+}
+
+/**
+ * A value per request and set of connection arguments. Keyed on the args object and on their
+ * value, as planning and resolving may see different objects for the same arguments.
+ */
+export function createArgsCache<T>() {
+  const cache = createContextCache(() => ({
+    byArgs: new WeakMap<object, T>(),
+    byValue: new Map<string, T>(),
+  }));
+  return {
+    get(args: object, ctx: object): T | undefined {
+      const { byArgs, byValue } = cache(ctx);
+      if (byArgs.has(args)) {
+        return byArgs.get(args);
+      }
+      const key = argsKey(args);
+      const value = key === undefined ? undefined : byValue.get(key);
+      if (value !== undefined) {
+        byArgs.set(args, value);
+      }
+      return value;
+    },
+    set(args: object, ctx: object, value: T): T {
+      const { byArgs, byValue } = cache(ctx);
+      byArgs.set(args, value);
+      const key = argsKey(args);
+      if (key !== undefined) {
+        byValue.set(key, value);
+      }
+      return value;
+    },
+  };
 }

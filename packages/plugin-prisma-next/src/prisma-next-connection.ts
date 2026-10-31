@@ -11,14 +11,19 @@ import { PrismaNextObjectRef } from './object-ref.js';
 import type { CursorSpec, ModelName, PrismaNextConnectionFieldOptions } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { assertContextObject, getPluginConfig } from './utils/config.js';
-import { aggregateCount, connectionNeedsRows, connectionSettings } from './utils/connections.js';
+import {
+  aggregateCount,
+  CONNECTION_NODE_PATHS,
+  connectionNeedsRows,
+  connectionSettings,
+} from './utils/connections.js';
 import { assertVariantCollection } from './utils/contract.js';
 import {
   applyCursorPagination,
   assertUnpaginatedCollection,
   buildConnectionPage,
   type CursorInput,
-  normalizeCursor,
+  cursorColumns,
   type RequestOrderBy,
   validateCursor,
 } from './utils/cursors.js';
@@ -104,7 +109,6 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
       | ((parent: unknown, args: unknown, ctx: object, info: GraphQLResolveInfo) => unknown)
       | undefined,
   });
-  const cursorCols = normalizeCursor(cursor as CursorInput);
   const modelName = ref.modelName as string;
   const cursorSpec = validateCursor(config.contract, modelName, cursor as CursorInput);
 
@@ -130,8 +134,8 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         const needsRows = connectionNeedsRows(context, info);
         const applied = needsRows
           ? await applySelectionToCollection(userCollection, info, config, context, {
-              paths: [['edges', 'node'], ['nodes']],
-              extraColumns: cursorCols,
+              paths: CONNECTION_NODE_PATHS,
+              extraColumns: cursorColumns(cursorSpec),
             })
           : userCollection;
 
@@ -155,11 +159,11 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
           : Promise.resolve([]);
 
         // Counted before pagination, so it matches the paged rows.
-        const countPromise = settings.countsRows(context, info)
-          ? aggregateCount(userCollection)
-          : settings.callsCount(context, info)
-            ? Promise.resolve().then(() => settings.countCallback!(parent, args, context, info))
-            : Promise.resolve(undefined);
+        const countSource = settings.countSource(context, info);
+        const countPromise =
+          countSource === 'aggregate'
+            ? aggregateCount(userCollection)
+            : Promise.resolve().then(() => countSource?.(parent, args, context, info));
 
         // allSettled so neither rejection goes unhandled; a rows error takes precedence.
         const [rowsResult, countResult] = await Promise.allSettled([rowsPromise, countPromise]);

@@ -47,11 +47,11 @@ function pages(cursor: unknown) {
   const helper = prismaConnectionHelpers(createBuilder(), 'Post', { cursor: cursor as 'id' });
   return {
     async read(base: unknown, args: Args) {
-      const page = await helper.applyPagination(base as typeof db.orm.Post, args, undefined, {});
+      const page = await helper.applyPagination(base as typeof db.orm.Post, args, {});
       return page.wrap(await page.collection.all());
     },
     async cursorOf(row: object) {
-      const page = await helper.applyPagination(db.orm.Post, { first: 1 }, undefined, {});
+      const page = await helper.applyPagination(db.orm.Post, { first: 1 }, {});
       return page.wrap([row as never]).edges[0].cursor;
     },
   };
@@ -152,7 +152,7 @@ describe('cursor values', () => {
       fields: (t) => ({
         posts: t.relatedConnection('posts', {
           cursor: ['title', 'id'],
-          where: { content: 'long-cursor' },
+          query: { where: { content: 'long-cursor' } },
         }),
       }),
     });
@@ -196,7 +196,7 @@ describe('cursor values', () => {
 
   it('builds a page without encoding cursors until one is read', async () => {
     const helper = prismaConnectionHelpers(createBuilder(), 'Post', { cursor: ['title', 'id'] });
-    const page = await helper.applyPagination(db.orm.Post, { first: 2 }, undefined, {});
+    const page = await helper.applyPagination(db.orm.Post, { first: 2 }, {});
     // A narrowed select without the cursor columns still pages nodes.
     const wrapped = page.wrap([{ id: 'p-1' }, { id: 'p-2' }] as never);
     expect(wrapped.edges.map((edge) => edge.node)).toEqual([{ id: 'p-1' }, { id: 'p-2' }]);
@@ -417,7 +417,7 @@ describe('nullable cursor columns', () => {
           id: t.exposeID('id'),
           posts: t.relatedConnection('posts', {
             cursor: [{ field: 'score', direction, nulls }, 'id'],
-            where: { title: 'nullable-sort' },
+            query: { where: { title: 'nullable-sort' } },
             totalCount: true,
           }),
         }),
