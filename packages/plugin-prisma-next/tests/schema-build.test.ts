@@ -125,7 +125,7 @@ describe('object registration', () => {
     });
     builder.prismaObject('User', {
       fields: (t) => ({
-        basic: t.variant(Basic, { extensions: { custom: 'variant' } } as never),
+        basic: t.variant(Basic, { extensions: { custom: 'variant' } }),
         title: t.string({
           nullable: true,
           description: 'first post title',
@@ -153,7 +153,10 @@ describe('object registration', () => {
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     builder.prismaObject('User', {
-      fields: (t) => ({ strict: t.variant(Strict, { nullable: false, isNull: () => false }) }),
+      fields: (t) => ({
+        // @ts-expect-error `isNull` can return null, so the types reject `nullable: false` too
+        strict: t.variant(Strict, { nullable: false, isNull: () => false }),
+      }),
     });
     ok(builder);
     expect(() => builder.toSchema()).toThrow(/\bnullable: false\b/);

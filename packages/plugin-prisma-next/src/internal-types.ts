@@ -1,16 +1,22 @@
-import type { MaybePromise, SchemaTypes } from '@pothos/core';
-import type { HasRow, ModelAccessor } from '@prisma/orm-family-sql/orm-client';
+import type {
+  CompatibleTypes,
+  ExposeNullability,
+  FieldNullability,
+  MaybePromise,
+  SchemaTypes,
+  TypeParam,
+} from '@pothos/core';
+import type { HasRow } from '@prisma/orm-family-sql/orm-client';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { ModelBrand, PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 import type {
-  BareModelName,
   DefaultRelationNullable,
   IdentityFields,
   IsToMany,
   ModelName,
-  NamespaceOf,
   RelatedModel,
   RelationKeys,
+  RelationOrderBy,
   RelationRefinementCollection,
   RelationWhere,
   Row,
@@ -104,13 +110,7 @@ export type SelectRelationDeclarative<
   R extends RelationKeys<Types, M>,
 > = {
   readonly where?: RelationWhere<Types, RelatedModel<Types, M, R>>;
-  readonly orderBy?: (
-    accessor: ModelAccessor<
-      Types['PrismaNextContract'],
-      BareModelName<RelatedModel<Types, M, R>>,
-      NamespaceOf<Types, RelatedModel<Types, M, R>>
-    >,
-  ) => unknown;
+  readonly orderBy?: RelationOrderBy<Types, RelatedModel<Types, M, R>>;
   readonly limit?: number;
   readonly offset?: number;
 };
@@ -190,15 +190,58 @@ export type ValidateFieldSelect<Types extends SchemaTypes, ParentShape, Select> 
     >
   : ValidateSelectValue<Types, ParentShape, Select>;
 
+/** Names an unknown column in an error, where a plain `never` would only say "not assignable". */
+export interface UnknownSelectColumn<Column> {
+  readonly 'Unknown column in select': Column;
+}
+
+/**
+ * An array `select` entry. An unknown column becomes an object brand rather than `never` or a
+ * message string: the error then names it (`'emial' & UnknownSelectColumn<'emial'>`), and a brand
+ * is never offered as a string completion. A non-literal entry (the editor's placeholder while
+ * completing) stays the column names, so completions list only columns.
+ */
+export type SelectColumnCheck<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Column,
+> = Column extends keyof Row<Types, M> & string
+  ? Column
+  : Column extends string
+    ? string extends Column
+      ? keyof Row<Types, M> & string
+      : UnknownSelectColumn<Column>
+    : keyof Row<Types, M> & string;
+
+/** Names the requested type when no column fits it, where `never` would only say "not assignable". */
+export interface NoExposableColumn<Type> {
+  readonly 'No column of this model can be exposed as': Type;
+}
+
+/** The columns `t.expose*` accepts for a GraphQL type. */
+export type ExposableColumn<
+  Types extends SchemaTypes,
+  Shape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+> = [CompatibleTypes<Types, Shape, Type, Nullable>] extends [never]
+  ? NoExposableColumn<Type>
+  : CompatibleTypes<Types, Shape, Type, Nullable>;
+
+/** `nullable` as `t.expose*` requires it; nothing while the column itself is rejected. */
+export type ExposeColumnNullability<
+  Types extends SchemaTypes,
+  Type extends TypeParam<Types>,
+  Shape,
+  Name,
+  Nullable extends FieldNullability<Type>,
+> = Name extends keyof Shape ? ExposeNullability<Types, Type, Shape, Name, Nullable> : {};
+
 type ValidateSelectValue<Types extends SchemaTypes, ParentShape, Select> =
   ExtractModel<Types, ParentShape> extends infer M
     ? M extends ModelName<Types>
       ? Select extends readonly string[]
-        ? {
-            readonly [K in keyof Select]: Select[K] extends keyof Row<Types, M> & string
-              ? Select[K]
-              : never;
-          }
+        ? { readonly [K in keyof Select]: SelectColumnCheck<Types, M, Select[K]> }
         : ExactSelectCheck<Types, M, Select>
       : Select
     : Select;
