@@ -87,11 +87,6 @@ export class ModelLoader {
       this.parentPlans.set(key, selection);
     }
     const load = (played: Played) => {
-      if (!this.identity.length) {
-        throw new PothosValidationError(
-          `Fallback loading requires a non-null primary or unique key on model '${this.modelName}'.`,
-        );
-      }
       const values = this.identity.map((field) => {
         const value = (parent as Row)[field];
         if (value == null) {

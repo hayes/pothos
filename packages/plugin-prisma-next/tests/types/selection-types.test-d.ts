@@ -21,7 +21,7 @@ const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
 const collection = null as never;
 declare const orm: { User: CollectionFor<Types, 'User'>; Post: CollectionFor<Types, 'Post'> };
 
-expectTypeOf<ModelName<Types>>().toEqualTypeOf<'User' | 'Post' | 'Comment'>();
+expectTypeOf<ModelName<Types>>().toEqualTypeOf<'User' | 'Post' | 'Comment' | 'PostView'>();
 expectTypeOf<Row<Types, 'User'>>().toEqualTypeOf<{
   id: string;
   firstName: string;

@@ -19,7 +19,7 @@ import type {
 } from '@prisma/orm-framework/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'ac514a7bad0472d2cac999fdd4f930096b838cc2940c035c60e560f3cdec2a53'>;
+  StorageHashBase<'fe9002e03cb66e74483ee92c8d29c747944921ea957b3592797f0490ed69c355'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'260b8608d1aacaf1f690779a6cff39a12947c599597c5ba464ca75b9e775df53'>;
@@ -187,7 +187,15 @@ export namespace Models {
     title: FieldOutputTypes['__unbound__']['Post']['title'];
     author: User;
     comments: Comment[];
-    readonly [RelationKeys]?: 'author' | 'comments';
+    views: PostView[];
+    readonly [RelationKeys]?: 'author' | 'comments' | 'views';
+  };
+  export type PostView = {
+    postId: FieldOutputTypes['__unbound__']['PostView']['postId'];
+    viewedAt: FieldOutputTypes['__unbound__']['PostView']['viewedAt'];
+    viewer: FieldOutputTypes['__unbound__']['PostView']['viewer'];
+    post: Post;
+    readonly [RelationKeys]?: 'post';
   };
   export type User = {
     email: FieldOutputTypes['__unbound__']['User']['email'];
@@ -203,6 +211,7 @@ export namespace Models {
 export declare const models: {
   Comment: Models.Comment;
   Post: Models.Post;
+  PostView: Models.PostView;
   User: Models.User;
 };
 
@@ -374,6 +383,51 @@ type ContractBase = Omit<
                 },
               ];
             };
+            readonly post_view: {
+              columns: {
+                readonly postId: {
+                  readonly dataType: 'sqlite/text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly viewedAt: {
+                  readonly dataType: 'sqlite/datetime';
+                  readonly codecId: 'sqlite/datetime@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly viewer: {
+                  readonly dataType: 'sqlite/text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'post_view_postId_idx_a7a72715';
+                  readonly prefix: 'post_view_postId_idx';
+                  readonly columns: readonly ['postId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'post_view';
+                    readonly columns: readonly ['postId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'post';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
             readonly user: {
               columns: {
                 readonly email: {
@@ -422,6 +476,10 @@ type ContractBase = Omit<
       readonly model: 'Comment';
     };
     readonly post: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'Post' };
+    readonly post_view: {
+      readonly namespace: '__unbound__' & NamespaceId;
+      readonly model: 'PostView';
+    };
     readonly user: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'User' };
   };
   readonly domain: {
@@ -544,6 +602,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['postId'];
                 };
               };
+              readonly views: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'PostView';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['postId'];
+                };
+              };
             };
             readonly storage: {
               readonly table: 'post';
@@ -556,6 +625,45 @@ type ContractBase = Omit<
                 readonly published: { readonly column: 'published' };
                 readonly score: { readonly column: 'score' };
                 readonly title: { readonly column: 'title' };
+              };
+            };
+          };
+          readonly PostView: {
+            readonly fields: {
+              readonly postId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+              readonly viewedAt: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/datetime@1' };
+              };
+              readonly viewer: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+            };
+            readonly relations: {
+              readonly post: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Post';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['postId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'post_view';
+              readonly namespaceId: '__unbound__';
+              readonly fields: {
+                readonly postId: { readonly column: 'postId' };
+                readonly viewedAt: { readonly column: 'viewedAt' };
+                readonly viewer: { readonly column: 'viewer' };
               };
             };
           };

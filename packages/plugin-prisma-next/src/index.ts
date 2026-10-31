@@ -7,6 +7,7 @@ import SchemaBuilder, {
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
+  PothosValidationError,
   type SchemaTypes,
 } from '@pothos/core';
 import {
@@ -30,7 +31,7 @@ import {
 } from './constants.js';
 import { getPluginConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
-import { getModel } from './utils/model.js';
+import { getIdentityFields, getModel } from './utils/model.js';
 import {
   compileFieldSelect,
   type PrismaNextQuery,
@@ -170,10 +171,23 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   override afterBuild(schema: GraphQLSchema): GraphQLSchema {
-    const { contract } = this.config;
+    const { contract, adapter } = this.config;
     for (const type of Object.values(schema.getTypeMap())) {
       if (isInterfaceType(type) && type.extensions?.[PRISMA_NEXT_DISCRIMINATED]) {
         variantTypeNames(contract, schema, type);
+      }
+      const modelName = type.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+      if (modelName === undefined || !('getInterfaces' in type) || !type.getInterfaces().length) {
+        continue;
+      }
+      const [iface] = adapter.conflictingInterfaces(type);
+      if (iface && !getIdentityFields(contract, modelName).length) {
+        throw new PothosSchemaError(
+          `The select of prismaInterface '${iface}' conflicts with the select of '${type.name}', ` +
+            `so its fields would always reload model '${modelName}', which has no non-null ` +
+            `primary or unique key. Add a primary or unique key to '${modelName}', or make the ` +
+            'selections compatible.',
+        );
       }
     }
     return schema;
@@ -237,12 +251,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
             mapping?.position && scopeOf(mapping.position),
           ]) as Record<string, unknown>);
 
+    let keyless: boolean | undefined;
+
     return (parent, args, context, info) => {
       if (parent === null || typeof parent !== 'object') {
         return resolver(parent, args, context, info);
       }
       const row = parent as Record<string, unknown>;
-      if (columns.every((column) => row[column] !== undefined)) {
+      const missing = columns.filter((column) => row[column] === undefined);
+      let reason: ReloadReason = 'columns';
+      if (!missing.length) {
         if (!planned) {
           return resolver(parent, args, context, info);
         }
@@ -250,13 +268,19 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         for (const type of parentTypes) {
           mapping ??= getLoaderMapping(context, info.path, type, parent);
         }
+        reason = 'unplanned';
         if (mapping) {
           const own = view(parent, mapping);
           if (!loaded || loaded(own as Record<string, unknown>, args, context, info)) {
             setRowMappings(context, info, mapping.nested);
             return resolver(own, args, context, info);
           }
+          reason = 'conflict';
         }
+      }
+      keyless ??= !getIdentityFields(config.contract, modelName).length;
+      if (keyless) {
+        throw keylessReloadError(info, modelName, reason, missing);
       }
       return config
         .loader(context, modelName)
@@ -264,6 +288,29 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         .then((loadedRow) => resolver(view(loadedRow.row, loadedRow.mapping), args, context, info));
     };
   }
+}
+
+type ReloadReason = 'columns' | 'unplanned' | 'conflict';
+
+function keylessReloadError(
+  info: GraphQLResolveInfo,
+  modelName: string,
+  reason: ReloadReason,
+  missing: readonly string[],
+) {
+  const why = {
+    columns: `its parent row is missing ${missing.map((column) => `'${column}'`).join(', ')}`,
+    unplanned:
+      'it was left out of the query that loaded its parent (its selection conflicts with another on the same parent, it is in a @defer fragment, or the parent was not loaded by a prisma field)',
+    conflict:
+      'its selection conflicts with another on the same parent, so it was left out of the parent query',
+  }[reason];
+  return new PothosValidationError(
+    `Field '${info.parentType.name}.${info.fieldName}' needs its parent reloaded because ${why}, ` +
+      `but model '${modelName}' has no non-null primary or unique key to reload it by. ` +
+      `Add a primary or unique key to '${modelName}', or load its rows through prisma fields ` +
+      'without @defer fragments or conflicting selections of the same relation.',
+  );
 }
 
 function declaringType(fieldConfig: { parentType: string }) {

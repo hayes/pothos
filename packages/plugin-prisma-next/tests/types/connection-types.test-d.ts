@@ -130,7 +130,6 @@ builder.queryType({
     unknownType: t.prismaConnection({
       // @ts-expect-error not a model in the contract
       type: 'Tag',
-      cursor: 'id',
       resolve: () => orm.Post,
     }),
   }),

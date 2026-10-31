@@ -91,6 +91,32 @@ describe('object registration', () => {
     ).toThrow(message);
   });
 
+  it('rejects an interface select that conflicts with its object on a model without a key', () => {
+    const define = (interfaceWhere: { published: number }) => {
+      const builder = createBuilder();
+      const Base = builder.prismaInterface('PostView', {
+        name: 'ViewBase',
+        select: { post: { where: interfaceWhere } },
+        fields: (t) => ({ viewer: t.exposeString('viewer') }),
+      });
+      builder.prismaObject('PostView', {
+        interfaces: [Base],
+        select: { post: { where: { published: 1 } } },
+        fields: (t) => ({
+          title: t.string({ nullable: true, resolve: (view) => view.post?.title }),
+        }),
+      });
+      ok(builder);
+      return builder;
+    };
+    expect(() => define({ published: 1 }).toSchema()).not.toThrow();
+    expect(() => define({ published: 0 }).toSchema()).toThrow(
+      "The select of prismaInterface 'ViewBase' conflicts with the select of 'PostView', so its " +
+        "fields would always reload model 'PostView', which has no non-null primary or unique " +
+        "key. Add a primary or unique key to 'PostView', or make the selections compatible.",
+    );
+  });
+
   it('keeps descriptions and extensions on plugin fields', () => {
     const builder = createBuilder();
     const Basic = builder.prismaObject('User', {
