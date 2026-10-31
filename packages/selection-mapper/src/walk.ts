@@ -132,7 +132,7 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
     const entered = new Set<string>();
 
     for (const selections of selectionSets) {
-      enterVariants(plan, type, selections, entered);
+      enterVariants(plan, type, type, selections, entered);
     }
   }
 
@@ -239,9 +239,16 @@ function expandedBefore(visited: Set<string>, key: string, fragment: Fragment): 
  * First pass: enters every same-model variant a fragment under `selections` moves the plan to,
  * before any field is merged, so a conflict between two type-level selections is reported
  * whichever order the fragments appear in and never depends on a field-level select.
+ *
+ * `selections` are walked as `type`, exactly as `walkSelections` walks them, and variants are
+ * entered relative to `origin`: the type the plan was last entered as. The two differ inside a
+ * fragment on an abstract type of no model that selects no fields of its own: it narrows the
+ * walk to the implementations it can apply to, but enters none of them, so only the fragments
+ * nested in it that select fields enter (the ones among those implementations they apply to).
  */
 function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
+  origin: WalkedType,
   type: WalkedType,
   selections: readonly SelectionNode[],
   visited: Set<string>,
@@ -253,26 +260,24 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
 
     const fragment = applicableFragment(plan, selection);
 
-    if (!fragment || expandedBefore(visited, type.name, fragment)) {
+    if (!fragment || expandedBefore(visited, `${origin.name}>${type.name}`, fragment)) {
       continue;
     }
 
     const { types, expansion } = fragmentTypesOf(plan, type, fragment);
-    // A fragment on an abstract type of no model enters its implementations only if it selects
-    // fields of its own. One that does not stays on `type`, so a fragment nested in it is
-    // classified against `type` exactly as it would be without the wrapper.
-    const enters = !expansion || selectsFields(fragment.selectionSet.selections);
+    // A typed fragment moves the plan to the types it applies to. A model-less abstract one (an
+    // expansion) or an untyped one only does so when it selects fields of its own; otherwise
+    // its nested fragments enter relative to the same `origin`.
+    const enters =
+      types.length > 0 &&
+      ((fragment.typeCondition && !expansion) || selectsFields(fragment.selectionSet.selections));
 
-    if (enters) {
-      for (const as of types) {
-        if (as !== type) {
-          enterVariant(plan, type, as);
-        }
+    for (const as of types.length > 0 ? types : [type]) {
+      if (enters && as !== origin) {
+        enterVariant(plan, origin, as);
       }
-    }
 
-    for (const as of enters && types.length > 0 ? types : [type]) {
-      enterVariants(plan, as, fragment.selectionSet.selections, visited);
+      enterVariants(plan, enters ? as : origin, as, fragment.selectionSet.selections, visited);
     }
   }
 }
