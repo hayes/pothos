@@ -9,7 +9,8 @@ The plugin requires Node.js 22.18 or a later 22.x release, or Node.js 24 or late
 
 `@pothos/plugin-prisma-next` cannot be used in the same program as `@pothos/plugin-prisma`: both
 add `prismaObject`, `prismaField` and the other `prisma*` methods to the builder. Importing both
-throws an error.
+throws an error, and their type declarations conflict (TS2717 with `skipLibCheck: false`; with
+`skipLibCheck`, `@pothos/plugin-prisma`'s types silently win).
 
 ### Prisma CLI
 

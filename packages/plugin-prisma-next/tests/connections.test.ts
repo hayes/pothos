@@ -104,8 +104,7 @@ function schema(options: SampleOptions = {}) {
         resolve: (_root, args) => {
           // Core pages backward for `last`, or for `before` without `first` or `after`.
           const backward =
-            args.first == null &&
-            (args.last != null || (args.before != null && args.after == null));
+            args.first == null && (args.last != null || (!!args.before && !args.after));
           return db.orm.Post.orderBy((post) =>
             backward ? post.createdAt.asc() : post.createdAt.desc(),
           );
