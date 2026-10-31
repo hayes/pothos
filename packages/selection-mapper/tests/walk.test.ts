@@ -601,6 +601,22 @@ describe('fragments', () => {
     expect(getLoaderMapping(context, pathOf('person', 'name'), 'Viewer')).toBeNull();
   });
 
+  it('enters a variant nested in a model-less abstract fragment as it does without the wrapper', async () => {
+    const plan = async (query: string) =>
+      queryFromInfo(adapter, { context: {}, info: await resolveInfo(schema, query) });
+
+    // User has no type-level selection (every column), Viewer selects id and posts(take: 5).
+    expect(await plan('{ person { ... on Named { ... on User { name } } } }')).toEqual(
+      await plan('{ person { ... on User { name } } }'),
+    );
+    expect(
+      await plan('query { person { ...F } } fragment F on Named { ... on User { name } }'),
+    ).toEqual(await plan('{ person { ... on User { name } } }'));
+    expect(await plan('{ person { ... on Node { ... on Viewer { email } } } }')).toEqual(
+      await plan('{ person { ... on Viewer { email } } }'),
+    );
+  });
+
   it('walks a fragment on an interface the type implements as the type', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { ... on Person { posts(take: 1) { id } } } }');
