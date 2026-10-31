@@ -1,6 +1,7 @@
 import SchemaBuilder, {
   PothosSchemaError,
   PothosValidationError,
+  RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
@@ -14,8 +15,12 @@ import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextNodeRef } from './node-ref.js';
 import { PrismaNextObjectRef } from './object-ref.js';
 import { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
+// Installs the root field methods, which `claimPrismaMethods` below must see.
+import './prisma-next-connection.js';
+import './prisma-next-field-builder.js';
 import type { ModelName, PrismaNextObjectOptions } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
+import { claimPrismaMethods } from './utils/claim-methods.js';
 import { assertContextObject, getPluginConfig } from './utils/config.js';
 import {
   assertContractModel,
@@ -335,3 +340,18 @@ schemaBuilderProto.prismaNode = function prismaNode<
 
   return nodeRef as never;
 } as never;
+
+claimPrismaMethods(schemaBuilderProto, [
+  'prismaObject',
+  'prismaInterface',
+  'prismaObjectField',
+  'prismaObjectFields',
+  'prismaInterfaceField',
+  'prismaInterfaceFields',
+  'prismaNode',
+]);
+claimPrismaMethods(RootFieldBuilder.prototype, [
+  'prismaField',
+  'prismaFieldWithInput',
+  'prismaConnection',
+]);

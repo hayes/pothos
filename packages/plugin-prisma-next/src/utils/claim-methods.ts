@@ -1,0 +1,30 @@
+import SchemaBuilder, { PothosSchemaError } from '@pothos/core';
+
+const conflict =
+  '@pothos/plugin-prisma and @pothos/plugin-prisma-next both define builder.prismaObject, ' +
+  't.prismaField and the other prisma* methods, so they cannot be used in the same program.';
+
+/**
+ * Both plugins install the same method names on the shared core prototypes, and whichever loads
+ * last would silently replace the other's. Loading both fails at import instead: here when
+ * plugin-prisma is already registered, and in the setter when it loads afterwards.
+ */
+export function claimPrismaMethods(proto: object, names: readonly string[]) {
+  if (Object.hasOwn(SchemaBuilder.plugins, 'prisma')) {
+    throw new PothosSchemaError(conflict);
+  }
+  for (const name of names) {
+    let method = (proto as Record<string, unknown>)[name];
+    Object.defineProperty(proto, name, {
+      configurable: true,
+      get: () => method,
+      set: (value: unknown) => {
+        // Hosts that re-evaluate plugin modules against one core opt in through this flag.
+        if (!SchemaBuilder.allowPluginReRegistration) {
+          throw new PothosSchemaError(conflict);
+        }
+        method = value;
+      },
+    });
+  }
+}
