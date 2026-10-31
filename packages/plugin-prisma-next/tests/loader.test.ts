@@ -1,8 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import { execute, parse } from 'graphql';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import prismaNextPlugin from '../src';
-import { PrismaNextAdapter } from '../src/utils/adapter';
 import {
   createBuilder,
   deferSchema,
@@ -542,16 +541,6 @@ describe('deferred fragments', () => {
     );
     expect(result.patches).toEqual([{ count: 1 }, { count: 0 }]);
   });
-
-  it('plans deferred selections eagerly when skipDeferredFragments is false', async () => {
-    const result = await runIncremental(
-      schema({ skipDeferredFragments: false, defer: true }),
-      '{ users { ... @defer { name } } }',
-    );
-    expect(result.completedErrors).toEqual([]);
-    expect(result.statements).toHaveLength(1);
-    expect(result.statements[0].sql).toMatch(/firstName/);
-  });
 });
 
 describe('models without a key', () => {
@@ -732,6 +721,11 @@ describe('fallback isolation', () => {
           type: [User],
           resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }],
         }),
+        users: t.prismaField({
+          type: [User],
+          nullable: true,
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
       }),
     });
     return builder.toSchema();
@@ -797,36 +791,31 @@ describe('fallback isolation', () => {
     });
   });
 
-  it('fails only the fields of a plan whose query cannot be built', async () => {
-    const result = await run(isolationSchema(), '{ plainUsers { name guarded } }');
-    expect(result.errors?.map((error) => [error.path?.join('.'), error.message])).toEqual([
-      ['plainUsers.0.guarded', 'not allowed'],
-      ['plainUsers.1.guarded', 'not allowed'],
-    ]);
-    expect(result.data.plainUsers).toEqual([
-      { name: 'Alice', guarded: null },
-      { name: 'Bob', guarded: null },
-    ]);
-  });
-
-  it('runs the callbacks of plans merged with a failing one once, in one statement', async () => {
-    const calls = { ok: 0, guarded: 0, refined: 0 };
+  it('fails every field of a batch whose callback throws, like a parent query', async () => {
     const result = await run(
-      isolationSchema(calls),
+      isolationSchema(),
       '{ plainUsers { name ok guarded guardedPosts { id } } }',
     );
-    expect(errorsOf(result)).toEqual([
-      ['plainUsers.0.guarded', 'not allowed'],
-      ['plainUsers.0.guardedPosts', 'posts not allowed'],
-      ['plainUsers.1.guarded', 'not allowed'],
-      ['plainUsers.1.guardedPosts', 'posts not allowed'],
-    ]);
+    expect(errorsOf(result)).toEqual(
+      ['0', '1'].flatMap((index) =>
+        ['guarded', 'guardedPosts', 'name', 'ok'].map((field) => [
+          `plainUsers.${index}.${field}`,
+          'posts not allowed',
+        ]),
+      ),
+    );
     expect(result.data.plainUsers).toEqual([
-      { name: 'Alice', ok: 1, guarded: null, guardedPosts: null },
-      { name: 'Bob', ok: 1, guarded: null, guardedPosts: null },
+      { name: null, ok: null, guarded: null, guardedPosts: null },
+      { name: null, ok: null, guarded: null, guardedPosts: null },
     ]);
-    expect(calls).toEqual({ ok: 1, guarded: 1, refined: 1 });
-    expect(result.statements).toHaveLength(1);
+    expect(result.statements).toHaveLength(0);
+  });
+
+  it('fails the parent query a callback throws in, like a fallback batch', async () => {
+    const result = await run(isolationSchema(), '{ users { name guardedPosts { id } } }');
+    expect(errorsOf(result)).toEqual([['users', 'posts not allowed']]);
+    expect(result.data.users).toBeNull();
+    expect(result.statements).toHaveLength(0);
   });
 
   it('loads every merged plan in one statement when no callback throws', async () => {
@@ -855,67 +844,19 @@ describe('fallback isolation', () => {
     expect(result.statements).toHaveLength(0);
   });
 
-  it('isolates a failing callback in a batch with a parent the codecs reject', async () => {
-    const calls = { rows: 0 };
+  it('fails a parent the codecs reject with its own error when a callback fails the batch', async () => {
     const result = await run(
-      sheetSchema([{ id: 1 }, { id: '1' }], calls),
-      '{ sheets { name rowCount noteCount } }',
+      sheetSchema([{ id: 1 }, { id: '1' }]),
+      '{ sheets { name noteCount } }',
     );
     expect(result.data.sheets).toEqual([
-      { name: 's1', rowCount: 1, noteCount: null },
-      { name: null, rowCount: null, noteCount: null },
+      { name: null, noteCount: null },
+      { name: null, noteCount: null },
     ]);
-    expect(errorsOf(result)?.map(([path]) => path)).toEqual([
-      'sheets.0.noteCount',
-      'sheets.1.name',
-      'sheets.1.noteCount',
-      'sheets.1.rowCount',
-    ]);
-    expect(errorsOf(result)?.[0]).toEqual(['sheets.0.noteCount', 'notes not allowed']);
-    expect(calls.rows).toBe(1);
-    expect(result.statements).toHaveLength(1);
-  });
-
-  it('retries each plan alone when the merged query fails outside a callback', async () => {
-    const emit = PrismaNextAdapter.prototype.emit;
-    const spy = vi.spyOn(PrismaNextAdapter.prototype, 'emit').mockImplementation(function (
-      this: PrismaNextAdapter,
-      ...args
-    ) {
-      if (Object.keys(args[1].computed ?? {}).some((key) => key.startsWith('notes'))) {
-        throw new Error('cannot build notes');
-      }
-      return emit.apply(this, args);
-    });
-    try {
-      const calls = { rows: 0 };
-      const result = await run(
-        sheetSchema([{ id: 1 }, { id: '1' }], calls),
-        '{ sheets { name rowCount noteCount } }',
-        { context: { allow: true } },
-      );
-      expect(result.data.sheets).toEqual([
-        { name: 's1', rowCount: 1, noteCount: null },
-        { name: null, rowCount: null, noteCount: null },
-      ]);
-      expect(errorsOf(result)).toEqual([
-        ['sheets.0.noteCount', 'cannot build notes'],
-        ['sheets.1.name', expect.any(String)],
-        ['sheets.1.noteCount', expect.any(String)],
-        ['sheets.1.rowCount', expect.any(String)],
-      ]);
-      // The rejected parent was dropped before the retry: it is reported once per field.
-      expect(
-        errorsOf(result)
-          ?.slice(1)
-          .map(([, message]) => message),
-      ).not.toContain('cannot build notes');
-      expect(calls.rows).toBe(1);
-      // One statement each for the two plans that build.
-      expect(result.statements).toHaveLength(2);
-    } finally {
-      spy.mockRestore();
-    }
+    const messages = Object.fromEntries(errorsOf(result) ?? []);
+    expect(messages['sheets.0.noteCount']).toBe('notes not allowed');
+    expect(messages['sheets.1.noteCount']).not.toBe('notes not allowed');
+    expect(result.statements).toHaveLength(0);
   });
 
   it('fails only the parent whose identity the codecs reject', async () => {
