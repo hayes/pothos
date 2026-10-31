@@ -459,16 +459,7 @@ function applyToCollection<C extends MapperCollection>(
         ? baseCollection
         : baseCollection.orderBy(orderSelectors.slice(existing.length));
 
-  const dualBound = !!before && !!after;
-  const nativeAfter = !!after && !before && !inverted;
-  const nativeBefore = !!before && !after && inverted;
-
-  if (!nulls.some(Boolean) && !dualBound && (nativeAfter || nativeBefore)) {
-    const boundary = decodeBoundary(cursor, nativeAfter ? after! : before!, codecs);
-    return withOrder.cursor(boundary).limit(limit) as C;
-  }
-
-  // `cursor()` takes one boundary in the order's direction; anything else needs a predicate.
+  // Not `cursor()`: it takes one boundary in the order's direction and can't place nulls.
   let collection: MapperCollection = withOrder;
   if (after) {
     collection = collection.where(
