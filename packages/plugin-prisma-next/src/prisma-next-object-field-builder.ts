@@ -54,7 +54,7 @@ import {
   validateCursorArgs,
 } from './utils/cursors.js';
 import { getModel, type PrismaNextRelation } from './utils/model.js';
-import { getRefForContractModel, getRefFromContractModel } from './utils/refs.js';
+import { getRefFromContractModel } from './utils/refs.js';
 import {
   applyQuery,
   computedSelection,
@@ -319,7 +319,7 @@ export class PrismaNextObjectFieldBuilder<
     > & { extensions?: Record<string, unknown> };
     const relation = this.#relation(name as string);
     const targetRef =
-      opts.type ?? (getRefForContractModel(relation.targetModel as never, this.builder) as never);
+      opts.type ?? (getRefFromContractModel(relation.targetModel as never, this.builder) as never);
     // Throws at build time for a type the relation can't return.
     const variant = relationVariant(
       this.contract as AnyContract,
@@ -544,7 +544,7 @@ export class PrismaNextObjectFieldBuilder<
     const relatedKey = relation.targetModel;
     const cursorOpt = validateCursor(config.contract, relatedKey, options.cursor);
     const targetRef =
-      options.type ?? getRefForContractModel(relatedKey as never, this.builder as never);
+      options.type ?? getRefFromContractModel(relatedKey as never, this.builder as never);
     const variant = relationVariant(
       config.contract,
       `t.relatedConnection('${name}') on '${this.modelName as string}'`,

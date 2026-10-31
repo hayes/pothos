@@ -22,7 +22,7 @@ import {
   validateCursor,
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
-import { getRefForContractModel } from './utils/refs.js';
+import { getRefFromContractModel } from './utils/refs.js';
 
 const rootFieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -88,7 +88,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   const ref =
     type instanceof PrismaNextObjectRef || type instanceof PrismaNextInterfaceRef
       ? type
-      : getRefForContractModel(type as never, this.builder as never);
+      : getRefFromContractModel(type as never, this.builder as never);
   const config = getPluginConfig(this.builder);
   const settings = connectionSettings(config, {
     defaultSize,
