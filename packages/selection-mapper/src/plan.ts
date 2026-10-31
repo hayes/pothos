@@ -39,9 +39,7 @@ const LENIENT: MergeOptions = Object.freeze({ lenient: true });
  * variant's, a nested selection's relation query, or a field's. A play folds the list into a
  * node; nothing is merged, accepted or rejected before then.
  *
- * `expanded` marks a merge collected beneath a fragment that expands (see `fragmentTypesOf` in
- * walk.ts): true when only a play that expands such fragments takes it, false when only a play
- * that does not, absent when both do.
+ * `expanded`: see `fragmentWalks` in walk.ts.
  *
  * A record holds its query by reference, so a select function that mutates the query it returned
  * after returning it changes what a later play builds — a bug in the select function. Nothing
@@ -326,9 +324,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
     const first = seed ?? this.initial;
 
-    // A fragment that expands enters every variant it covers. When their type-level selections
-    // conflict, the plan is played with each such fragment treated as one that cannot apply, so
-    // its fields load on their own instead of the field failing.
+    // See `fragmentWalks` in walk.ts.
     return (this.expands && this.fold(first, true)) || this.fold(first, false)!;
   }
 
