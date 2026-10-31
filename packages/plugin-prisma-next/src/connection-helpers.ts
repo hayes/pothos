@@ -161,7 +161,10 @@ export function prismaConnectionHelpers<
     resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
 ): PrismaConnectionHelpers<Types, M, Args, Node, boolean> {
-  const ref = getRefFromContractModel<Types, M>(modelName, builder);
+  const ref = getRefFromContractModel<Types, M>(modelName, builder) as PrismaNextObjectRef<
+    Types,
+    M
+  >;
 
   let resolvedArgs: Args | undefined;
   const resolveArgs = (): Args => {

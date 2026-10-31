@@ -20,11 +20,7 @@ import { getPluginConfig } from './utils/config.js';
 import { defaultTypeName, modelDiscriminator, resolveContractModel } from './utils/contract.js';
 import { encodeNodeId, parseNodeId } from './utils/cursors.js';
 import { getModelUniqueKeys } from './utils/model.js';
-import {
-  assertSameKindRegistration,
-  getInterfaceRefFromContractModel,
-  getRefFromContractModel,
-} from './utils/refs.js';
+import { getRefFromContractModel } from './utils/refs.js';
 import { variantTypeNames } from './utils/variant-types.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -51,13 +47,7 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
     ? isInterface
       ? new PrismaNextInterfaceRef<Types, M>(typeName, modelName)
       : new PrismaNextObjectRef<Types, M>(typeName, modelName)
-    : isInterface
-      ? getInterfaceRefFromContractModel<Types, M>(modelName, builder)
-      : getRefFromContractModel<Types, M>(modelName, builder);
-
-  if (!isVariant) {
-    assertSameKindRegistration(builder, modelName as string, kind);
-  }
+    : getRefFromContractModel<Types, M>(modelName, builder, kind);
 
   const { contract } = getPluginConfig(builder);
   const discriminator = isInterface ? modelDiscriminator(contract, modelName as string) : undefined;
@@ -144,9 +134,11 @@ function addPrismaNextFields(
   const ref =
     typeof type !== 'string'
       ? type
-      : kind === 'Interface'
-        ? getInterfaceRefFromContractModel(modelName as never, builder)
-        : getRefFromContractModel(modelName as never, builder);
+      : getRefFromContractModel(
+          modelName as never,
+          builder,
+          kind === 'Interface' ? 'interface' : undefined,
+        );
   const build = () =>
     fields(
       new PrismaNextObjectFieldBuilder(

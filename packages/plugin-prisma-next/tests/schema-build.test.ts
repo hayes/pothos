@@ -77,6 +77,20 @@ describe('object registration', () => {
     expect(() => builder.toSchema()).toThrow(message);
   });
 
+  it('rejects a model registered as both an object and an interface under its default name', () => {
+    const message = /registered as both a prismaObject and a prismaInterface/;
+    const objectFirst = createBuilder();
+    objectFirst.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    expect(() =>
+      objectFirst.prismaInterface('User', { fields: (t) => ({ id: t.exposeID('id') }) }),
+    ).toThrow(message);
+    const interfaceFirst = createBuilder();
+    interfaceFirst.prismaInterface('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    expect(() =>
+      interfaceFirst.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) }),
+    ).toThrow(message);
+  });
+
   it('keeps descriptions and extensions on plugin fields', () => {
     const builder = createBuilder();
     const Basic = builder.prismaObject('User', {
