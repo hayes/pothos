@@ -23,7 +23,9 @@ import {
   validateCursor,
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
+import { getModel } from './utils/model.js';
 import { getRefFromContractModel } from './utils/refs.js';
+import { materializeRows } from './utils/selections.js';
 
 const rootFieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -141,13 +143,15 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         });
 
         const rowsPromise = needsRows
-          ? Promise.resolve().then(() =>
-              (
-                pagination.collection as unknown as {
-                  all(): Promise<readonly Record<string, unknown>[]>;
-                }
-              ).all(),
-            )
+          ? Promise.resolve()
+              .then(() =>
+                (
+                  pagination.collection as unknown as {
+                    all(): Promise<readonly Record<string, unknown>[]>;
+                  }
+                ).all(),
+              )
+              .then((rows) => materializeRows(rows, getModel(config.contract, modelName)))
           : Promise.resolve([]);
 
         // Counted before pagination, so it matches the paged rows.

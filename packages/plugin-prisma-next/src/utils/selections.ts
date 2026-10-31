@@ -96,10 +96,77 @@ export function relationName(key: string) {
   return separator < 0 ? key : key.slice(0, separator);
 }
 
+/** The combine slots of each statement row's to-many relations, by relation name. */
+const combined = new WeakMap<object, Record<string, Record<string, unknown>>>();
+
+/**
+ * Makes the rows a statement returned match their type's shape. A to-many relation loaded through
+ * `combine()` comes back as an object of slots: those are set aside for `viewOf`, and the row
+ * carries the type-level `select`'s rows (the first type scope's) and computed values under their
+ * own keys, so whatever reads the row itself (type-level `authScopes`, `isTypeOf`, `resolveType`,
+ * resolvers outside the plan) sees what the type selects. The rows are the statement's own, so
+ * they are written to in place.
+ */
+export function materializeRows<T>(rows: T, model: PrismaNextModel): T {
+  if (Array.isArray(rows)) {
+    for (const row of rows) {
+      materializeRows(row, model);
+    }
+  } else if (rows && typeof rows === 'object') {
+    materializeRow(rows as Record<string, unknown>, model);
+  }
+  return rows;
+}
+
+function materializeRow(row: Record<string, unknown>, model: PrismaNextModel) {
+  for (const name of Object.keys(model.relations)) {
+    const relation = model.relations[name]!;
+    const value = row[name];
+    if (!value || typeof value !== 'object') {
+      continue;
+    }
+    if (!relation.isToMany || Array.isArray(value)) {
+      materializeRows(value, relation.target);
+      continue;
+    }
+    const slots = value as Record<string, unknown>;
+    let own = combined.get(row);
+    if (!own) {
+      own = {};
+      combined.set(row, own);
+    }
+    own[name] = slots;
+    let typeRows: unknown;
+    const typeValues: Record<string, unknown> = {};
+    for (const key of Object.keys(slots)) {
+      const separator = key.indexOf(SLOT);
+      if (separator < 0) {
+        materializeRows(slots[key], relation.target);
+      }
+      // A field's scope is `Type.alias`; a type-level select's is the type's name.
+      const scope = separator < 0 ? key : key.slice(0, separator);
+      if (scope.includes('.')) {
+        continue;
+      }
+      if (separator < 0) {
+        typeRows ??= slots[key];
+      } else if (!(key.slice(separator + 1) in typeValues)) {
+        typeValues[key.slice(separator + 1)] = slots[key];
+      }
+    }
+    if (!Object.isFrozen(row)) {
+      Object.assign(row, typeValues);
+      if (typeRows !== undefined) {
+        row[name] = typeRows;
+      }
+    }
+  }
+}
+
 /**
  * What a consumer at `scope` reads from `row`: its rows of each to-many relation, and the values
  * it computed from one, over a copy of the row (so resolvers can spread or serialize it). The
- * row itself when nothing was combined.
+ * row itself when that changes nothing.
  */
 export function viewOf(
   row: object,
@@ -108,6 +175,9 @@ export function viewOf(
 ): object {
   let view: object | undefined;
   const define = (key: string, value: unknown) => {
+    if (!view && (row as Record<string, unknown>)[key] === value) {
+      return;
+    }
     view ??= copyOf(row);
     Object.defineProperty(view, key, {
       value,
@@ -116,8 +186,9 @@ export function viewOf(
       writable: true,
     });
   };
+  const own = combined.get(row);
   for (const relation of toMany) {
-    const slots = (row as Record<string, unknown>)[relation];
+    const slots = own?.[relation] ?? (row as Record<string, unknown>)[relation];
     if (!slots || typeof slots !== 'object' || Array.isArray(slots)) {
       continue;
     }
@@ -138,12 +209,16 @@ export function viewOf(
   return view ?? row;
 }
 
-/** A writable copy of a (possibly frozen) row's columns, keeping its type brand. */
+/** A writable copy of a (possibly frozen) row's columns, keeping its type brand and slots. */
 function copyOf(row: object): object {
   const copy = Object.assign(Object.create(Object.getPrototypeOf(row)) as object, row);
   const brand = getTypeBrand(row);
   if (brand) {
     brandWithType(copy, brand);
+  }
+  const own = combined.get(row);
+  if (own) {
+    combined.set(copy, own);
   }
   return copy;
 }

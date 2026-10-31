@@ -12,7 +12,9 @@ import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import { assertVariantCollection } from './utils/contract.js';
 import { applySelectionToCollection } from './utils/map-query.js';
+import { getModel } from './utils/model.js';
 import { getRefFromContractModel } from './utils/refs.js';
+import { materializeRows } from './utils/selections.js';
 
 type Ref =
   | PrismaNextObjectRef<SchemaTypes, never, never>
@@ -72,7 +74,10 @@ function prismaFieldConfig(
         config,
         context,
       )) as Executable;
-      const rows = await (isList ? applied : (applied.limit(1) as Executable)).all();
+      const rows = materializeRows(
+        await (isList ? applied : (applied.limit(1) as Executable)).all(),
+        getModel(config.contract, modelName),
+      );
       return isList ? rows : (rows[0] ?? null);
     },
   };

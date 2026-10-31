@@ -377,3 +377,52 @@ it("reloads a hand-built row for an implementation's authScopes (prismaNext firs
   expect(result.data).toEqual({ named: { firstName: null } });
   expect(result.statements).toHaveLength(1);
 });
+
+describe.each(
+  orders,
+)("a type select's to-many relation loaded through combine (%s)", (_, plugins) => {
+  it('hands type-level authScopes the rows the type selects, once per parent', async () => {
+    const seen: unknown[] = [];
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    builder.prismaObject('User', {
+      select: { posts: true },
+      authScopes: (user) => {
+        seen.push(
+          Array.isArray(user.posts) ? user.posts.map((post) => post.title).sort() : user.posts,
+        );
+        return user.posts.length > 0;
+      },
+      fields: (t) => ({
+        firstName: t.exposeString('firstName'),
+        lastName: t.exposeString('lastName'),
+        published: t.relation('posts', { query: { where: { published: 1 } } }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const result = await runCaptured(
+      builder.toSchema(),
+      '{ users { firstName lastName published { title } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      users: [{ firstName: 'Alice', lastName: 'Andrews', published: [{ title: 'Hello, Pothos' }] }],
+    });
+    expect(seen).toEqual([['Draft #1', 'Hello, Pothos']]);
+    expect(result.statements).toHaveLength(1);
+  });
+});

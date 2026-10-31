@@ -308,4 +308,57 @@ describe('inherited selections', () => {
     ]);
     expect(result.statements).toHaveLength(2);
   });
+
+  it("hands isTypeOf and other resolvers the type select's rows when a field combines them", async () => {
+    const builder = createBuilder();
+    const Named = builder.prismaInterface('User', {
+      name: 'Named',
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    const isTypeOfSaw: unknown[] = [];
+    builder.prismaObject('User', {
+      interfaces: [Named],
+      select: { posts: true },
+      isTypeOf: (user) => {
+        const posts: unknown = user.posts;
+        isTypeOfSaw.push(
+          Array.isArray(posts) ? posts.map((post: { title: string }) => post.title).sort() : posts,
+        );
+        return Array.isArray(posts);
+      },
+      fields: (t) => ({
+        titles: t.stringList({ resolve: (user) => user.posts.map((post) => post.title).sort() }),
+        published: t.relation('posts', { query: { where: { published: 1 } } }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
+    builder.queryType({
+      fields: (t) => ({
+        named: t.prismaField({
+          type: [Named],
+          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ named { firstName ... on User { titles published { title } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      named: [
+        {
+          firstName: 'Alice',
+          titles: ['Draft #1', 'Hello, Pothos'],
+          published: [{ title: 'Hello, Pothos' }],
+        },
+      ],
+    });
+    // graphql-js calls isTypeOf to resolve the interface, then again to complete the object.
+    expect(isTypeOfSaw.length).toBeGreaterThan(0);
+    expect(new Set(isTypeOfSaw.map((titles) => JSON.stringify(titles)))).toEqual(
+      new Set([JSON.stringify(['Draft #1', 'Hello, Pothos'])]),
+    );
+    expect(result.statements).toHaveLength(1);
+  });
 });

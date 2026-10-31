@@ -22,9 +22,13 @@ examples.
 - A to-many relation is keyed by consumer scope: the type and alias of the field (and of the fields
   above it), or the type for a type-level `select`. A relation whose consumers agree is one
   include; otherwise each scope is one `combine` slot, so different arguments still load in one
-  statement. A resolver finds its scope through the position in its loader mapping and reads its
+  statement. When a statement's rows come back, each combined relation's slots are set aside and
+  the row takes the type-level `select`'s rows and computed values under their own keys, so
+  anything reading the row itself (type `authScopes`, `isTypeOf`, `resolveType`) sees the type's
+  shape. A resolver finds its scope through the position in its loader mapping and reads its
   slots from a shallow copy of the row with its slots lifted on, so the parent still spreads and
-  serializes like a row; shared rows are never mutated.
+  serializes like a row; the copy goes only to the field's own resolver, and plugins wrapped
+  inside this one get the row, so per-row caches (scope-auth) see one object.
 - Relation queries compare by what identifies them (a declarative query, or the defining field
   with its arguments for a callback, which builds a new closure per walk). Matching aliases alone
   never establish compatibility.
