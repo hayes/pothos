@@ -143,6 +143,13 @@ prismaNext: {
 - `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes, overridden per
   field with `defaultSize` and `maxSize`.
 
+The plugin keeps per-request state (loaders and query plans) on the GraphQL context, so every
+operation must be executed with a context object, such as `contextValue: {}`.
+
+Mistakes in the schema definition fail `builder.toSchema()` instead of a later request: an
+unknown model, an unknown column in a static `select` or an `expose*` field, the function form of
+`select` on a to-one relation, and a page size that isn't a positive integer.
+
 ## With scope-auth
 
 The [scope-auth plugin](../scope-auth#plugin-order) is usually listed first, so its checks run

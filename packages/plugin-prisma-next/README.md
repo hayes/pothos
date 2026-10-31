@@ -51,6 +51,7 @@ builder.queryType({
 ```
 
 PostgreSQL and SQLite are supported, MySQL supports reads only (not covered by CI), and MongoDB is
-not supported.
+not supported. Operations must be executed with a context object (`contextValue`), where the
+plugin keeps per-request state.
 
 Full documentation: [Prisma Next plugin](https://pothos-graphql.dev/docs/plugins/prisma-next).

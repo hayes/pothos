@@ -10,8 +10,8 @@ import type { PrismaNextConfig } from './config.js';
 
 type SizeOption = number | ((args: never, ctx: never) => number);
 
-const isPageSize = (size: unknown): size is number =>
-  Number.isInteger(size) && (size as number) > 0;
+export const isPageSize = (size: unknown): size is number =>
+  Number.isSafeInteger(size) && (size as number) > 0;
 
 /** Any selection besides `totalCount` (including extension fields) loads rows. */
 export function connectionNeedsRows(context: object, info: GraphQLResolveInfo): boolean {
@@ -32,9 +32,10 @@ export function connectionSettings<Count extends (...args: never[]) => unknown>(
     totalCount,
   }: { defaultSize?: SizeOption; maxSize?: SizeOption; totalCount?: boolean | Count },
 ) {
+  // The plugin's own sizes are validated once, by getPluginConfig.
   for (const [name, size] of [
-    ['defaultSize', defaultSize ?? config.defaultConnectionSize],
-    ['maxSize', maxSize ?? config.maxConnectionSize],
+    ['defaultSize', defaultSize],
+    ['maxSize', maxSize],
   ] as const) {
     if (typeof size === 'number' && !isPageSize(size)) {
       throw new PothosSchemaError(`Connection ${name} must be a positive integer, got ${size}.`);
@@ -136,4 +137,55 @@ export function aggregateCount(collection: unknown): Promise<number> {
       })
       .then((r) => r.total),
   );
+}
+
+/**
+ * A key that equal argument values share, or `undefined` for a value it can't tell apart from
+ * others (a Set, Map, or class instance), which must not share a cached result.
+ */
+export function argsKey(value: unknown): string | undefined {
+  switch (typeof value) {
+    case 'undefined':
+      return 'u';
+    case 'boolean':
+    case 'number':
+      return String(value);
+    case 'bigint':
+      return `${value}n`;
+    case 'string':
+      return JSON.stringify(value);
+    case 'object': {
+      if (value === null) {
+        return 'null';
+      }
+      if (value instanceof Date) {
+        return `D${value.getTime()}`;
+      }
+      const parts: string[] = [];
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          const key = argsKey(item);
+          if (key === undefined) {
+            return undefined;
+          }
+          parts.push(key);
+        }
+        return `[${parts.join(',')}]`;
+      }
+      const proto = Object.getPrototypeOf(value);
+      if (proto !== Object.prototype && proto !== null) {
+        return undefined;
+      }
+      for (const [name, item] of Object.entries(value)) {
+        const key = argsKey(item);
+        if (key === undefined) {
+          return undefined;
+        }
+        parts.push(`${JSON.stringify(name)}:${key}`);
+      }
+      return `{${parts.join(',')}}`;
+    }
+    default:
+      return undefined;
+  }
 }

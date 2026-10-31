@@ -125,6 +125,73 @@ describe('cursor values', () => {
     const { cursorOf } = pages(['createdAt', 'id']);
     await expect(cursorOf({ id: 'p', createdAt: new Instant() })).rejects.toThrow();
   });
+
+  it('fails only a selected cursor when a row cursor value is over the size cap', async () => {
+    await db.orm.Post.create({
+      id: 'a-long-title',
+      title: 't'.repeat(1600),
+      content: 'long-cursor',
+      published: 1,
+      authorId: 'u-bob',
+      createdAt: new Date('2026-01-02'),
+    });
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relatedConnection('posts', {
+          cursor: ['title', 'id'],
+          where: { content: 'long-cursor' },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.where({ id: 'u-bob' }),
+        }),
+        posts: t.prismaConnection({
+          type: 'Post',
+          cursor: ['title', 'id'],
+          resolve: () => db.orm.Post.where({ content: 'long-cursor' }),
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const nodes = [{ id: 'a-long-title' }];
+
+    const withoutCursors = await run(
+      schema,
+      '{ posts(first: 3) { nodes { id } edges { node { id } } pageInfo { hasNextPage } } users { posts(first: 3) { nodes { id } pageInfo { hasPreviousPage } } } }',
+    );
+    expect(withoutCursors.errors).toBeUndefined();
+    expect(withoutCursors.data).toEqual({
+      posts: { nodes, edges: [{ node: nodes[0] }], pageInfo: { hasNextPage: false } },
+      users: [{ posts: { nodes, pageInfo: { hasPreviousPage: false } } }],
+    });
+
+    for (const selection of ['edges { cursor }', 'pageInfo { endCursor }']) {
+      const result = await run(
+        schema,
+        `{ posts { ${selection} } users { posts { nodes { id } } } }`,
+      );
+      expect(result.errors?.map((error) => error.message)).toEqual([
+        expect.stringMatching(/^Cannot encode a cursor over title, id: it is \d+ characters/),
+      ]);
+      expect(result.data?.users).toEqual([{ posts: { nodes } }]);
+    }
+  });
+
+  it('builds a page without encoding cursors until one is read', async () => {
+    const helper = prismaConnectionHelpers(createBuilder(), 'Post', { cursor: ['title', 'id'] });
+    const page = await helper.applyPagination(db.orm.Post, { first: 2 }, undefined, {});
+    // A narrowed select without the cursor columns still pages nodes.
+    const wrapped = page.wrap([{ id: 'p-1' }, { id: 'p-2' }] as never);
+    expect(wrapped.edges.map((edge) => edge.node)).toEqual([{ id: 'p-1' }, { id: 'p-2' }]);
+    expect(wrapped.pageInfo.hasNextPage).toBe(false);
+    expect(() => wrapped.pageInfo.startCursor).toThrow(/missing cursor column 'title'/);
+  });
 });
 
 describe('rejected cursors', () => {

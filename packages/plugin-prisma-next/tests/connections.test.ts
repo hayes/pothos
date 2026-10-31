@@ -364,8 +364,15 @@ describe('page sizes', () => {
       'a zero maxConnectionSize',
       { maxConnectionSize: 0 },
       {},
-      /maxSize must be a positive integer, got 0/,
+      /^prismaNext\.maxConnectionSize must be a positive integer, got 0\.$/,
     ],
+    [
+      'a defaultConnectionSize above the safe integer range',
+      { defaultConnectionSize: 1e20 },
+      {},
+      /^prismaNext\.defaultConnectionSize must be a positive integer, got 100000000000000000000\.$/,
+    ],
+    ['an unsafe maxSize', {}, { maxSize: 2 ** 53 }, /maxSize must be a positive integer/],
     [
       'a negative defaultSize',
       {},
@@ -374,19 +381,29 @@ describe('page sizes', () => {
     ],
     ['a fractional maxSize', {}, { maxSize: 1.5 }, /maxSize must be a positive integer, got 1.5/],
   ])('rejects %s when the schema is built', (_name, options, sizes, message) => {
-    const builder = createBuilder(options);
-    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.prismaConnection({
-          type: 'Post',
-          cursor: 'id',
-          ...sizes,
-          resolve: () => db.orm.Post,
+    expect(() => {
+      const builder = createBuilder(options);
+      builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.queryType({
+        fields: (t) => ({
+          posts: t.prismaConnection({
+            type: 'Post',
+            cursor: 'id',
+            ...sizes,
+            resolve: () => db.orm.Post,
+          }),
         }),
-      }),
-    });
-    expect(() => builder.toSchema()).toThrow(message);
+      });
+      builder.toSchema();
+    }).toThrow(message);
+  });
+
+  it('rejects an invalid plugin page size without any connection fields', () => {
+    expect(() => {
+      const builder = createBuilder({ defaultConnectionSize: 0 });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      builder.toSchema();
+    }).toThrow('prismaNext.defaultConnectionSize must be a positive integer, got 0.');
   });
 
   it('rejects a size callback result that is not a positive integer before SQL', async () => {
@@ -538,6 +555,81 @@ describe('related connection planning errors', () => {
       b: { nodes: [{ id: 'p-draft1' }] },
       c: { totalCount: 1 },
     });
+    expect(result.statements).toHaveLength(1);
+  });
+
+  function argsSchema() {
+    const calls = { where: 0 };
+    const builder = createBuilder();
+    // Argument values JSON can't tell apart (a Set) or serialize (a bigint).
+    const Tags = builder.scalarType(
+      'Tags' as never,
+      {
+        serialize: (value: Set<string>) => [...value],
+        parseValue: (value: unknown) => new Set(value as string[]),
+      } as never,
+    ) as never;
+    const Big = builder.scalarType(
+      'Big' as never,
+      {
+        serialize: (value: bigint) => String(value),
+        parseValue: (value: unknown) => BigInt(value as string),
+      } as never,
+    ) as never;
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        posts: t.relatedConnection('posts', {
+          cursor: 'id',
+          nullable: true,
+          args: { tags: t.arg({ type: Tags }), big: t.arg({ type: Big }) },
+          where: (post, args) => {
+            calls.where += 1;
+            if ((args.tags as Set<string> | null | undefined)?.has('bad')) {
+              throw new Error('bad tag');
+            }
+            return post.published.gte(0);
+          },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    return { schema: builder.toSchema(), calls };
+  }
+
+  it.each([
+    ['no arguments', ''],
+    ['a bigint argument', '(big: "5")'],
+  ])('runs callbacks once per request and argument set for %s', async (_name, args) => {
+    const { schema, calls } = argsSchema();
+    const result = await run(schema, `{ users { id posts${args} { nodes { id } } } }`);
+    expect(result.errors).toBeUndefined();
+    // One dry run to check the arguments, then the plan both users share.
+    expect(calls.where).toBe(2);
+  });
+
+  it.each([
+    ['good then bad', 'a: posts(tags: ["ok"]) { nodes { id } } b: posts(tags: ["bad"])'],
+    ['bad then good', 'b: posts(tags: ["bad"]) { nodes { id } } a: posts(tags: ["ok"])'],
+  ])('keeps the planning errors of Set arguments apart (%s)', async (_name, fields) => {
+    const { schema } = argsSchema();
+    const result = await run(schema, `{ users { id ${fields} { nodes { id } } } }`);
+    expect(result.data.users).toEqual([
+      { id: 'u-alice', a: { nodes: expect.any(Array) }, b: null },
+      { id: 'u-bob', a: { nodes: expect.any(Array) }, b: null },
+    ]);
+    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
+      [['users', 0, 'b'], 'bad tag'],
+      [['users', 1, 'b'], 'bad tag'],
+    ]);
     expect(result.statements).toHaveLength(1);
   });
 });
