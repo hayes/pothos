@@ -17,7 +17,12 @@ import { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder
 import type { ModelName, PrismaNextObjectOptions } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
-import { defaultTypeName, modelDiscriminator, resolveContractModel } from './utils/contract.js';
+import {
+  assertContractModel,
+  defaultTypeName,
+  modelDiscriminator,
+  resolveContractModel,
+} from './utils/contract.js';
 import { encodeNodeId, parseNodeId } from './utils/cursors.js';
 import { getModelUniqueKeys } from './utils/model.js';
 import { getRefFromContractModel } from './utils/refs.js';
@@ -64,8 +69,18 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
             _ctx: unknown,
             info: GraphQLResolveInfo,
             iface: GraphQLInterfaceType,
-          ) =>
-            variantTypeNames(contract, info.schema, iface).get(row[discriminator.field] as string),
+          ) => {
+            const value = row[discriminator.field];
+            const typeName = variantTypeNames(contract, info.schema, iface).get(value as string);
+            if (typeName === undefined) {
+              throw new PothosValidationError(
+                value === undefined
+                  ? `prismaInterface '${iface.name}' row was loaded without its discriminator '${discriminator.field}'. Return it from a prisma field, or include '${discriminator.field}' in the row.`
+                  : `prismaInterface '${iface.name}' row has discriminator ${discriminator.field}=${JSON.stringify(value)}, which names no variant of model '${modelName as string}'.`,
+              );
+            }
+            return typeName;
+          },
         }
       : {}),
     ...(options as object),
@@ -221,6 +236,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
   const isComposite = idFields.length > 1;
   const config = getPluginConfig(this);
   const { contract } = config;
+  assertContractModel(contract, nodeModelName);
   const identityKeys = getModelUniqueKeys(contract, nodeModelName);
   // IDs must be unique and non-null to load back as the same row.
   if (
@@ -272,7 +288,11 @@ schemaBuilderProto.prismaNode = function prismaNode<
         const row = parent as Record<string, unknown>;
         if (idOpts.parse) {
           const values = idFields.map((field) => row[field]);
-          return isComposite ? JSON.stringify(values) : String(values[0]);
+          return isComposite
+            ? JSON.stringify(values, (_key, value) =>
+                typeof value === 'bigint' ? value.toString() : value,
+              )
+            : String(values[0]);
         }
         return encodeNodeId(nodeModelName, idFields, row, config.codecs(ctx, nodeModelName));
       },
