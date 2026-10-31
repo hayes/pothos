@@ -351,6 +351,31 @@ describe('native model inheritance', () => {
       ]);
     });
 
+    it.each([
+      ['base first', false],
+      ['variant first', true],
+    ])('routes to a type implementing base and variant interfaces (%s)', async (_, reversed) => {
+      const schema = build((builder, task) => {
+        const bugFields = builder.prismaInterface('Bug', {
+          name: 'BugFields',
+          interfaces: [task],
+          resolveType: () => 'PlainBug',
+          fields: (t) => ({ severity: t.exposeString('severity') }),
+        });
+        builder.objectType(builder.objectRef<{ id: string }>('PlainBug'), {
+          interfaces: (reversed ? [bugFields, task] : [task, bugFields]) as never,
+          fields: () => ({}),
+        });
+        builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+      });
+      const result = await run(schema, '{ tasks { __typename ... on BugFields { severity } } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.tasks).toEqual([
+        { __typename: 'PlainBug', severity: 'high' },
+        { __typename: 'Feature' },
+      ]);
+    });
+
     it('fails the build when a variant has no implementing type', () => {
       expect(() =>
         build((builder, task) => {
