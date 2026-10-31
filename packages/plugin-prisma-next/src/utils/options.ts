@@ -14,12 +14,11 @@ export function resolveSizeOption<Args, Ctx>(
   return typeof opt === 'function' ? opt(args, ctx) : opt;
 }
 
-/** Options used by the public selection application helpers. */
 export interface MapperPluginOptions {
   defaultConnectionSize?: number;
   maxConnectionSize?: number;
   skipDeferredFragments?: boolean;
-  /** @internal Whether selection conflicts can be serviced by a loader. */
+  /** @internal Whether conflicting selections can be loaded separately. */
   fallback?: boolean;
 }
 

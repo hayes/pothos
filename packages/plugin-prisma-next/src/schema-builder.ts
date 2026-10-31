@@ -37,16 +37,6 @@ import { variantTypeNames } from './utils/variant-types.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
-/**
- * The body of `prismaObject` and `prismaInterface`. The two build the same ref, extensions and
- * field builder; only the ref class, the ref cache and which of `objectType`/`interfaceType`
- * registers it differ.
- *
- * `variant` wins over legacy `name`; both claim a variant identity (a second registration for the
- * same model under a different GraphQL type name). Variants get a fresh ref; a default
- * registration reuses the cached one, so sibling `t.relation` and string-form helpers resolve to
- * the same instance.
- */
 function withDiscriminatorSelected(select: unknown, field: string) {
   return Array.isArray(select)
     ? [...select, field]
@@ -60,6 +50,8 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
   kind: 'interface' | 'object',
 ) {
   const isInterface = kind === 'interface';
+  // A non-default name registers a variant type and gets its own ref; the default reuses the
+  // cached ref that `t.relation` and string-form helpers resolve to.
   const defaultName = defaultTypeName(modelName as string);
   const typeName = (options as { variant?: string }).variant ?? options.name ?? defaultName;
   const isVariant = typeName !== defaultName;
@@ -81,8 +73,7 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
   const select = discriminator
     ? withDiscriminatorSelected(options.select, discriminator.field)
     : options.select;
-  // An implementation of a hierarchy's interface is the type registered for the variant model
-  // the row's discriminator names. The schema build checks each variant has exactly one.
+  // Resolves to the type registered for the variant the discriminator names.
   const discriminated = !!discriminator && !(options as { resolveType?: unknown }).resolveType;
   const config = {
     ...(discriminated
@@ -150,10 +141,6 @@ schemaBuilderProto.prismaInterface = function prismaInterface<
   return definePrismaNextType(this, modelName, options, 'interface') as never;
 } as never;
 
-/**
- * The ref and field builder behind the four cross-file field helpers, which differ only in kind
- * and in whether they add one field or a map of them.
- */
 function fieldsFor<Types extends SchemaTypes, M extends ModelName<Types>>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   type: M | { modelName: M },
@@ -289,9 +276,6 @@ schemaBuilderProto.prismaNode = function prismaNode<
         'Pass either a static Collection (`collection: db.User`) or a callback (`collection: (ctx) => db.User.where(...)`).',
     );
   }
-  // Normalize to `(ctx) => Collection`. Safe heuristic: prisma-next's
-  // Collection is a class instance, not a callable, so `typeof === 'function'`
-  // unambiguously means the callback form.
   const collection =
     typeof collectionOpt === 'function'
       ? (collectionOpt as (ctx: Types['Context']) => unknown)
@@ -306,9 +290,6 @@ schemaBuilderProto.prismaNode = function prismaNode<
   }
   const isComposite = idFields.length > 1;
 
-  // Brand rows with the registered GraphQL type name (which diverges
-  // from modelName for variants). Same-value `defineProperty` is OK;
-  // different-value would clash with plugin-relay's later brand call.
   const variantName = (rest as { variant?: string; name?: string }).variant;
   const typeName =
     variantName ?? (rest as { name?: string }).name ?? defaultTypeName(modelName as string);
@@ -319,23 +300,15 @@ schemaBuilderProto.prismaNode = function prismaNode<
 
   const pluginOpts = readPluginOptions<Types['PrismaNextContract']>(this);
 
-  // The Relay loader brands its results for abstract Node resolution. Concrete
-  // fields and relations do not need brands; a default brand-only isTypeOf would
-  // reject the ordinary ORM rows returned by those paths. Preserve a user's
-  // discriminator predicate exactly, matching the Prisma and Drizzle plugins.
   const objectRef = this.prismaObject(modelName as never, rest as never);
 
   this.configStore.associateParamWithRef(nodeRef as never, objectRef as never);
 
-  // Tagged chunks preserve bigint/date/bytes within compound IDs. Plain
-  // string IDs remain readable; escape the reserved prefix when necessary.
   const serializeId = (parent: unknown): string => {
     const row = parent as Record<string, unknown>;
     const values = idFields.map((field) => {
       const value = row[field];
       if (value == null) {
-        // The row wasn't loaded with its ID columns; encoding the gap would mint an ID that
-        // never loads back.
         throw new PothosValidationError(
           `prismaNode '${modelName as string}' row is missing id field '${field}'.`,
         );
@@ -358,7 +331,6 @@ schemaBuilderProto.prismaNode = function prismaNode<
       return value;
     });
     if (idOpts.parse) {
-      // A custom parser owns its wire format; preserve the previous raw scalar / JSON tuple form.
       return isComposite ? JSON.stringify(values) : String(values[0]);
     }
     if (isComposite) {
@@ -377,7 +349,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
   const nodeModelName = modelName as string;
   const contract = pluginOpts.contract;
   const identityKeys = getModelUniqueKeys(contract, nodeModelName);
-  // A null or repeated ID encodes rows that can never load back, or load as another row.
+  // IDs must be unique and non-null to load back as the same row.
   if (identityKeys && !identityKeys.some((key) => key.every((field) => idFields.includes(field)))) {
     throw new PothosSchemaError(
       `prismaNode '${nodeModelName}' id.field must include every field of a non-null primary or unique key.`,
@@ -447,14 +419,8 @@ schemaBuilderProto.prismaNode = function prismaNode<
         idOpts.resolve ? idOpts.resolve(parent, ctx) : serializeId(parent),
     },
     loadWithoutCache: (id: IDShape, context: Types['Context'], info: GraphQLResolveInfo) => {
-      // Per-request batching: calls at the same schema path coalesce
-      // into one chained collection. The batcher builds `apply` from
-      // one representative info per group (all entries share a
-      // selection set by GraphQL semantics).
       const normalized = normalizeId(id);
-      // Keyed on the GraphQL type, not the model: two variants of one model are two
-      // registrations with their own selection and brand, and sharing a batch would hand one
-      // variant's rows to the other.
+      // Keyed on the type, not the model: variants of one model have their own selection.
       const groupKey = `${typeName}:${pathKey(info.path)}`;
       return enqueueNodeLoad(context as object, groupKey, normalized, info, {
         collection: (ctx) => collection(ctx as Types['Context']) as never,
@@ -464,7 +430,6 @@ schemaBuilderProto.prismaNode = function prismaNode<
             return (m: Record<string, unknown>) =>
               (m[col] as { in: (xs: readonly unknown[]) => unknown }).in(ids as readonly unknown[]);
           }
-          // Composite: OR of per-tuple AND-of-eq predicates.
           return (m: Record<string, unknown>) =>
             or(
               ...(ids as unknown[][]).map(
@@ -483,17 +448,12 @@ schemaBuilderProto.prismaNode = function prismaNode<
             contract,
             context,
             mapperOpts: nodeMapperOpts,
-            // info.returnType at `node(id:)` is the Node interface; the
-            // mapper has to descend into the concrete type's inline
-            // fragment. typeName diverges from modelName for variants.
+            // `info.returnType` is the Node interface.
             typeName,
-            // Force-include id columns so the batcher can fan rows back
-            // to per-id promises by id-field equality.
             extraColumns: idFields,
           }),
         idFields,
-        // Default IDs use tagged values, so matching must preserve their byte and scalar types.
-        // Custom parsers or ID resolvers still own their raw format and matching semantics.
+        // Default IDs are tagged, so rows are matched on the encoded values.
         ...((!idOpts.parse && !idOpts.resolve) || idOpts.codecs
           ? {
               keyForValues: (values: readonly unknown[]) =>

@@ -5,10 +5,7 @@ import type { MapperCollection } from './adapter.js';
 import { applySelectionToCollection } from './map-query.js';
 import { type MapperPluginOptions, mapperOptionsFromPluginOpts } from './options.js';
 
-/**
- * Applies the walked selection to a collection. The result is a promise of the collection only
- * when a `select` callback beneath the field returned one.
- */
+/** Returns a promise only when a `select` callback beneath the field is async. */
 export type Apply = <C>(collection: C) => MaybePromise<C>;
 
 export interface CreateApplyOptions {
@@ -16,7 +13,7 @@ export interface CreateApplyOptions {
   contract: AnyContract;
   context: unknown;
   mapperOpts?: MapperPluginOptions;
-  /** Concrete type for inline-fragment descent (Relay `node(id:)` etc.). */
+  /** Walk as this type rather than the return type (a `node(id:)` load). */
   typeName?: string;
   /** Indirect-include path prefix, e.g. `[['edges', 'node'], ['nodes']]`. */
   paths?: string[][];

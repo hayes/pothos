@@ -42,13 +42,11 @@ interface KeyColumn {
   in(values: unknown[]): never;
 }
 
-/** Request-local compatible selection batches, following the Prisma and Drizzle loaders. */
 export class ModelLoader {
   private readonly adapter;
   private readonly identity: readonly string[];
   private readonly codecs: Map<string, ColumnCodec | undefined>;
   private readonly selections = new Map<string, MaybePromise<Played>>();
-  /** The discriminator value a variant model's rows load narrowed to. */
   private readonly variant: string | undefined;
   private readonly staged = new Set<Batch>();
 
@@ -107,7 +105,7 @@ export class ModelLoader {
     const batch: Batch = { root, parents: new Map() };
     this.staged.add(batch);
     const result = this.addParent(batch, parent);
-    // Wait through asynchronous select callbacks, as the Drizzle loader does.
+    // A macrotask, so async select callbacks can join the batch.
     setTimeout(() => {
       this.staged.delete(batch);
       this.flush(batch).catch((error) => {
@@ -164,7 +162,7 @@ export class ModelLoader {
 
   private async flush(batch: Batch): Promise<void> {
     const provided = this.collection();
-    // A variant loads through its base narrowed to it, so its own relations can be included.
+    // Load through the base narrowed to the variant, which can include its relations.
     const base =
       provided && this.variant !== undefined && provided.state?.variantValue !== this.variant
         ? narrowToVariant(provided, this.variant)

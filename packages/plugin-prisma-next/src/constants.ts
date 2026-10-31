@@ -1,10 +1,7 @@
 export const PRISMA_NEXT_MODEL = 'pothosPrismaNextModel';
 export const PRISMA_NEXT_PREPARED = 'pothosPrismaNextPrepared';
 export const PRISMA_NEXT_SELECT = 'pothosPrismaNextSelect';
-/**
- * A selection the plugin's own sugar compiled ahead of the field config (a
- * `t.relatedConnection` select function). Takes the place of the compile from `pothosOptions`.
- */
+/** A precompiled selection (from `t.relatedConnection`) used instead of `pothosOptions.select`. */
 export const PRISMA_NEXT_FIELD_SELECT = 'pothosPrismaNextFieldSelect';
 /** Marks a hierarchy interface that routes rows with the plugin's discriminator `resolveType`. */
 export const PRISMA_NEXT_DISCRIMINATED = 'pothosPrismaNextDiscriminated';

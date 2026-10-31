@@ -67,9 +67,8 @@ export function deepEqual(left: unknown, right: unknown): boolean {
 }
 
 /**
- * A class instance with no enumerable state and no primitive value (a Temporal value, or a class
- * using private fields) can't be compared structurally: every instance would look identical, and
- * Temporal's `valueOf` throws.
+ * Instances with no enumerable state or primitive value (Temporal values, private fields) would
+ * all compare equal structurally, and Temporal's `valueOf` throws.
  */
 function isOpaque(value: object) {
   const proto = Object.getPrototypeOf(value);
