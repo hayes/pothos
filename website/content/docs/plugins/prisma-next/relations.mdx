@@ -74,7 +74,7 @@ builder.prismaObject('User', {
     latestPostTitle: t.field({
       type: 'String',
       nullable: true,
-      select: { posts: true },
+      select: { posts: { orderBy: (post) => post.createdAt.desc(), limit: 1 } },
       resolve: (user) => user.posts[0]?.title ?? null,
     }),
     postStats: t.field({

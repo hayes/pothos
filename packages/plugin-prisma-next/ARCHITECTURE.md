@@ -51,9 +51,9 @@ mappings keep one fallback result from claiming another parent's coverage.
 - Prisma's `orderBy` appends with no public reset, so an existing ordering must be a prefix of the
   query order for the requested direction; missing entries are appended. The state is read, never
   mutated.
-- Single-bound pages over non-null keys use native cursor seeking; others use lexicographic
-  predicates with explicit null handling. Cursor and node ID values are held in their column
-  codec's stored form, in the shared tagged encoding from core.
+- Pages always seek with lexicographic keyset predicates with explicit null handling. Cursor and
+  node ID values are held in their column codec's stored form, in the shared tagged encoding
+  from core.
 - Related connections paginate inside the include. Counts use the filtered, pre-pagination
   Collection and only run when selected.
 
@@ -87,16 +87,17 @@ When the pin changes, regenerate the fixtures and rerun the integration tests.
 
 - SQLite and PostgreSQL run the full suite. PostgreSQL covers lossless values, Temporal cursors
   and transactions. `postgresServerless()` is tested against a local server only.
-- MySQL 8.4 runs reads in CI. Its contracts declare no aggregates, so count options are compile
-  errors (with a runtime error for untyped callers), and ORM writes need `returning`.
+- MySQL 8.4 reads are tested when `POTHOS_PRISMA_NEXT_MYSQL_URL` is set (not in CI). Its contracts
+  declare no aggregates, so count options are compile errors (with a runtime error for untyped
+  callers), and ORM writes need `returning`.
 - MongoDB is rejected at schema build: on rc.22 its Collections have no `combine`, cursor or
   aggregates, and silently ignore include refinements and `where` callbacks.
 
 ## Testing
 
 PostgreSQL runs on port 5456 (database `prisma_next`, user and password `prisma`) or
-`POTHOS_PRISMA_NEXT_DATABASE_URL`. Set `POTHOS_PRISMA_NEXT_MYSQL_URL` for MySQL. `node.js.yml`
-provisions both.
+`POTHOS_PRISMA_NEXT_DATABASE_URL`. MySQL tests skip unless `POTHOS_PRISMA_NEXT_MYSQL_URL` is set;
+CI doesn't provision MySQL.
 
 ```sh
 pnpm --filter @pothos/plugin-prisma-next... build

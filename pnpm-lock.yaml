@@ -928,9 +928,6 @@ importers:
       '@pothos/plugin-with-input':
         specifier: workspace:*
         version: link:../plugin-with-input
-      '@pothos/test-utils':
-        specifier: workspace:*
-        version: link:../test-utils
       '@prisma/cli-engine':
         specifier: 0.9.0
         version: 0.9.0(@prisma/management-api-sdk@1.72.0)
