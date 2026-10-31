@@ -1,5 +1,6 @@
 import { completeValue, PothosSchemaError, PothosValidationError } from '@pothos/core';
 import {
+  type MergeOptions,
   type Node,
   NodeAdapter,
   type Plan,
@@ -288,7 +289,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   override canMergeQuery(
     node: PrismaNextNode,
     query: PrismaNextQuery,
-    options?: Parameters<NodeAdapter<PrismaNextModel, PrismaNextQuery>['canMergeQuery']>[2],
+    options?: MergeOptions,
   ): boolean {
     return (
       super.canMergeQuery(node, query, options) &&
