@@ -282,12 +282,13 @@ export function encodeNodeId(
   return id;
 }
 
-/** The ID's values, a tuple for a compound ID. */
+/** The ID's values, as a tuple when `tuple` is set. */
 export function parseNodeId(
   modelName: string,
   fields: readonly string[],
   id: string,
   codecs: FieldCodecs,
+  tuple: boolean,
 ): unknown {
   if (id.length > PAYLOAD_MAX_LENGTH) {
     throw new PothosValidationError(
@@ -308,7 +309,7 @@ export function parseNodeId(
         new PothosValidationError(`prismaNode '${modelName}' ID has an invalid ${field} value.`),
     },
   );
-  return fields.length === 1 ? values[fields[0]!] : fields.map((field) => values[field]);
+  return tuple ? fields.map((field) => values[field]) : values[fields[0]!];
 }
 
 // Lexicographic "row > cursor" as an OR-chain of equality-prefixed comparisons.
