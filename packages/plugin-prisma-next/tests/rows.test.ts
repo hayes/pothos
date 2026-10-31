@@ -279,7 +279,7 @@ describe('model members named like plugin slots', () => {
     });
     builder.prismaObject('Row', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.prismaObject('Sheet', {
+    const Sheet = builder.prismaObject('Sheet', {
       fields: (t) => ({
         count: t.exposeInt('count', { nullable: true }),
         rowsRel: t.relation('rows'),
@@ -295,6 +295,10 @@ describe('model members named like plugin slots', () => {
     builder.queryType({
       fields: (t) => ({
         sheet: t.prismaField({ type: 'Sheet', resolve: () => collision.orm.Sheet }),
+        handBuilt: t.field({
+          type: Sheet,
+          resolve: () => ({ id: 1, name: 's1', count: 99, notes: [] }) as never,
+        }),
       }),
     });
     return builder.toSchema();
@@ -321,6 +325,9 @@ describe('model members named like plugin slots', () => {
     const result = await run(schema(), '{ sheet { count notes(first: 1) { totalCount } } }');
     expect(result.errors).toBeUndefined();
     expect(result.data.sheet).toEqual({ count: 99, notes: { totalCount: 2 } });
+    const handBuilt = await run(schema(), '{ handBuilt { count notes(first: 1) { totalCount } } }');
+    expect(handBuilt.data.handBuilt.count).toBe(99);
+    expect(handBuilt.data.handBuilt.notes.totalCount).not.toBe(99);
   });
 
   it.each([
