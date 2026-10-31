@@ -155,6 +155,20 @@ describe('rejected cursors', () => {
     expect(result.statements).toHaveLength(0);
   });
 
+  it('rejects a compound cursor with more values than the cursor has columns', async () => {
+    const page = await run(schema(), '{ dated(first: 1) { pageInfo { endCursor } } }');
+    const [, payload] = Buffer.from(page.data.dated.pageInfo.endCursor, 'base64')
+      .toString()
+      .match(/^PNC:T:(.*)$/)!;
+    const wider = raw(`PNC:T:${JSON.stringify([...JSON.parse(payload), 'S:extra'])}`);
+    const result = await run(
+      schema(),
+      'query ($c: String) { dated(after: $c) { edges { cursor } } }',
+      { variables: { c: wider } },
+    );
+    expect(result.errors?.[0].message).toMatch(/Invalid cursor.*expected 2 value/);
+  });
+
   it('rejects a single-value cursor where a compound one is expected', async () => {
     const page = await run(schema(), '{ posts(first: 1) { pageInfo { endCursor } } }');
     const result = await run(
