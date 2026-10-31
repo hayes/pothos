@@ -17,10 +17,6 @@ interface Recorded {
 
 interface RecordingCollection {
   calls: Recorded[];
-  // `all` is a function on the live mock; the test wires it to return
-  // the synthetic rows so the plugin's auto-materialize step lands the
-  // expected payload. Type as `() => Promise<unknown[]>` so the duck-
-  // type check in `isOrmCollection` passes.
   all: () => Promise<unknown[]>;
   select(...names: string[]): RecordingCollection;
   include(
@@ -105,7 +101,6 @@ function buildSchemaWith(
       publishedPosts: t.relation('posts', {
         query: { where: { published: 1 } } as never,
       }),
-      // Function-form select replaces the (removed) t.relationCount sugar.
       postCount: t.field({
         type: 'Int',
         select: {
@@ -127,11 +122,6 @@ function buildSchemaWith(
     fields: (t) => ({
       users: t.prismaField({
         type: ['User'],
-        // New API: resolver returns the Collection directly. Plugin's
-        // wrapResolve auto-detects via duck-typed `.select`+`.all`,
-        // calls `applySelectionToCollection` (driving the mapper's
-        // recorded calls), then `.all()` (driving the test's
-        // resolverImpl to produce synthetic rows).
         resolve: (() => userCollection) as never,
       }),
     }),
@@ -150,8 +140,6 @@ describe('plugin · end-to-end execution', () => {
       contextValue: {},
     });
 
-    // The mapper should have called .select(...) and .include('posts', ...)
-    // on the base collection before the resolver ran.
     const selectCall = userCollection.calls.find((c) => c.method === 'select');
     expect(selectCall).toBeDefined();
     expect([...((selectCall?.args as string[]) ?? [])].sort()).toEqual(['firstName', 'id']);
@@ -162,10 +150,7 @@ describe('plugin · end-to-end execution', () => {
   });
 
   it('reshapes combine branches onto flat parent keys before relation resolvers run', async () => {
-    // Simulate orm-client output: combine result lives under `parent.posts`.
-    // All sugar methods (`t.relation` / `t.relatedConnection` / etc.)
-    // and direct `t.field({ select })` compile to the unified `select`
-    // option, which namespaces combine slots as `<fieldAlias>:<specKey>`.
+    // orm-client output: combine slots are keyed `<fieldAlias>:<specKey>`.
     const { schema } = buildSchemaWith(() => [
       {
         id: '1',
@@ -239,9 +224,6 @@ describe('plugin · end-to-end execution', () => {
   });
 
   it('returns null at the prismaField when the resolver returns null', async () => {
-    // Single, nullable prismaField. The reshape function must safely no-op
-    // on a null result (the plugin's wrapResolve checks for `result == null`
-    // before invoking reshape).
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: sampleContract },
@@ -270,9 +252,6 @@ describe('plugin · end-to-end execution', () => {
   });
 
   it('throws a clear error if t.relation is reached without t.prismaField loading the parent', async () => {
-    // An ordinary `t.field` on Query that returns a User row — the mapper
-    // never ran on this branch, so `parent.posts` is missing. The plugin's
-    // wrapResolve for t.relation should surface a precise error.
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { contract: sampleContract },
@@ -290,9 +269,6 @@ describe('plugin · end-to-end execution', () => {
 
     builder.queryType({
       fields: (t) => ({
-        // Bypass prismaField entirely — return a row that the mapper never
-        // saw. Use the ref directly with t.field so we exercise the
-        // non-prismaField path that surfaces the relation error.
         rawUser: t.field({
           type: userRef,
           resolve: () => ({ id: '1' }) as never,
@@ -323,7 +299,6 @@ describe('plugin · end-to-end execution', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         id: t.exposeID('id' as never, { nullable: true }),
-        // `firstNme` is a typo — must throw, not silently load nothing.
         garbled: t.string({
           select: { firstNme: true } as never,
           resolve: () => 'x' as never,
@@ -361,8 +336,6 @@ describe('plugin · end-to-end execution', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         id: t.exposeID('id' as never, { nullable: true }),
-        // `whre` is a typo for `where` — not declarative, not function;
-        // should throw rather than silently drop.
         garbled: t.string({
           select: { posts: { whre: { published: 1 } } } as never,
           resolve: () => 'x' as never,
@@ -394,9 +367,6 @@ describe('plugin · end-to-end execution', () => {
   });
 
   it('injects .limit(1) when prismaField returns a single (non-list) type', async () => {
-    // A single-row prismaField returning a Collection must auto-inject
-    // `.limit(1)` so we don't fetch the entire table just to read the
-    // first row.
     let single: RecordingCollection;
     single = createRecordingCollection(() => [{ id: 'u-1', firstName: 'Alice' }]);
 
@@ -417,7 +387,6 @@ describe('plugin · end-to-end execution', () => {
           nullable: true,
           resolve: (() => single) as never,
         }),
-        // List variant should NOT inject take.
         allUsers: t.prismaField({
           type: ['User'],
           resolve: (() => single) as never,
@@ -436,7 +405,6 @@ describe('plugin · end-to-end execution', () => {
     expect(takeCalls).toHaveLength(1);
     expect(takeCalls[0]?.args).toEqual([1]);
 
-    // Reset and re-run as a list — no .take this time.
     single.calls.length = 0;
     const result2 = await execute({
       schema: builder.toSchema(),
@@ -449,11 +417,8 @@ describe('plugin · end-to-end execution', () => {
   });
 
   it('lifts combine slots through a variant-wrapped parent (overlay prototype walk)', async () => {
-    // rebrandForVariant wraps via Object.create(parent),
-    // so row data sits on the prototype chain. The per-field overlay
-    // walk in wrapResolve must use `for...in` (prototype-walking) to
-    // find combine slots — using `Object.keys` would only see own
-    // properties of the wrapper (which has none besides the brand).
+    // The variant wraps the row via Object.create, so combine slots are only reachable through
+    // the prototype chain.
     let userCollection: RecordingCollection;
     userCollection = createRecordingCollection(() => [
       {
@@ -471,10 +436,6 @@ describe('plugin · end-to-end execution', () => {
       name: 'UserBasic',
       fields: (t) => ({
         id: t.exposeID('id' as never, { nullable: true }),
-        // Function-form select on the variant — the field's resolver
-        // reads `parent.posts` which is only correct if the overlay
-        // lifted `posts:postCount:posts` from the prototype-inherited
-        // combine slot.
         postCount: t.field({
           type: 'Int',
           select: {
@@ -487,7 +448,6 @@ describe('plugin · end-to-end execution', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         id: t.exposeID('id' as never, { nullable: true }),
-        // Re-expose as UserBasic on the same row.
         basicView: t.variant(userBasicRef),
       }),
     });
