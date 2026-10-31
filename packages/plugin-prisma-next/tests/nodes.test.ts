@@ -118,11 +118,28 @@ describe('Relay nodes', () => {
     expect(result.errors?.[0].message).not.toContain('MARKER');
     expect(result.statements).toHaveLength(0);
   });
+  it('refuses to issue an ID longer than it accepts back', async () => {
+    const builder = createBuilder();
+    const Person = builder.prismaNode('User', {
+      id: { field: 'id' },
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        person: t.field({ type: Person, resolve: () => ({ id: 'x'.repeat(2049) }) as never }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ person { id } }');
+    expect(result.errors?.[0].message).toBe(
+      "prismaNode 'User' ID is 2049 characters, over the 2048-character limit for IDs it can load back.",
+    );
+  });
+
   it('rejects an ID over the size cap without echoing it or running the collection', async () => {
     const result = await query('query ($id: ID!) { node(id: $id) { id } }', {
       id: globalId('User', `MARKER${'x'.repeat(4000)}`),
     });
-    expect(result.errors?.[0].message).toMatch(/ID payload exceeds/);
+    expect(result.errors?.[0].message).toMatch(/ID is longer than 2048 characters/);
     expect(result.errors?.[0].message).not.toContain('MARKER');
     expect(result.statements).toHaveLength(0);
   });

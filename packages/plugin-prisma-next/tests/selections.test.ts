@@ -191,11 +191,47 @@ describe('field select forms', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it('reports a select key that is neither a column nor a relation', async () => {
+  type FieldsOf = {
+    string(options: object): unknown;
+    exposeString(name: string): unknown;
+  };
+
+  it.each([
+    [
+      'a field select',
+      (t: FieldsOf) => ({
+        garbled: t.string({ select: { firstNme: true } as never, resolve: () => 'x' }),
+      }),
+      undefined,
+      /select on 'User\.garbled': 'firstNme' is not a column or relation on model User/,
+    ],
+    [
+      'an exposed field',
+      (t: FieldsOf) => ({
+        garbled: t.exposeString('firstNme'),
+      }),
+      undefined,
+      /'User\.garbled' exposes 'firstNme', which is not a column on model User/,
+    ],
+    [
+      'a type select',
+      () => ({}),
+      ['firstNme'],
+      /select on 'User': 'firstNme' is not a column or relation on model User/,
+    ],
+  ])('rejects an unknown column in %s when the schema is built', (_name, fields, select, message) => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { select: select as never, fields: fields as never });
+    builder.queryType({
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+    });
+    expect(() => builder.toSchema()).toThrow(message);
+  });
+
+  it('reports a relation select of an unrecognized shape', async () => {
     const builder = createBuilder();
     builder.prismaObject('User', {
       fields: (t) => ({
-        garbled: t.string({ select: { firstNme: true } as never, resolve: () => 'x' }),
         malformed: t.string({
           select: { posts: { whre: { published: 1 } } } as never,
           resolve: () => 'x',
@@ -206,9 +242,6 @@ describe('field select forms', () => {
       fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
     });
     const schema = builder.toSchema();
-    const garbled = await run(schema, '{ users { garbled } }');
-    expect(garbled.errors?.[0].message).toMatch(/'firstNme' is not a column or relation on User/);
-    expect(garbled.statements).toHaveLength(0);
     const malformed = await run(schema, '{ users { malformed } }');
     expect(malformed.errors?.[0].message).toMatch(/unrecognized value shape/);
     expect(malformed.statements).toHaveLength(0);
