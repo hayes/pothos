@@ -5,5 +5,4 @@ babel.config.js
 *.tsbuildinfo
 tsconfig.*
 ARCHITECTURE.md
-RELEASE-STATUS.md
 feedback
