@@ -2,6 +2,7 @@ import {
   brandWithType,
   completeValue,
   getTypeBrand,
+  isThenable,
   type MaybePromise,
   PothosValidationError,
 } from '@pothos/core';
@@ -63,6 +64,8 @@ export interface PrismaNextQuery {
 
 export type PrismaNextSelectFn = SelectFn<PrismaNextQuery>;
 
+export const EMPTY: PrismaNextQuery = Object.freeze({});
+
 export const SLOT = ':';
 
 const scopes = new WeakMap<Position, string>();
@@ -83,11 +86,11 @@ export function scopeOf(position: Position): string {
 }
 
 /** The key of the slot `scope` reads a to-many relation or its computed values under. */
-export function slotKey(relation: string, scope: string) {
+function slotKey(relation: string, scope: string) {
   return `${relation}${SLOT}${scope}`;
 }
 
-export function relationKey(relation: PrismaNextRelation, name: string, scope: string) {
+function relationKey(relation: PrismaNextRelation, name: string, scope: string) {
   return relation.isToMany ? slotKey(name, scope) : name;
 }
 
@@ -96,16 +99,28 @@ export function relationName(key: string) {
   return separator < 0 ? key : key.slice(0, separator);
 }
 
-/** The combine slots of each statement row's to-many relations, by relation name. */
-const combined = new WeakMap<object, Record<string, Record<string, unknown>>>();
+interface Combined {
+  /** Each to-many relation loaded through `combine()`: its slots, by scope. */
+  slots: Record<string, Record<string, unknown>>;
+  /** Every scope with a slot. */
+  scopes: Set<string>;
+  /** The scopes lifted onto the row itself; null when the row was left as returned (frozen). */
+  lifted: readonly string[] | null;
+}
+
+/** The combine slots of each statement row, which never stay on the row. */
+const combined = new WeakMap<object, Combined>();
+/** Each row's views, by the scopes lifted onto them. */
+const views = new WeakMap<object, Map<string, object>>();
+/** The row each view was made from. */
+const viewRows = new WeakMap<object, object>();
 
 /**
- * Makes the rows a statement returned match their type's shape. A to-many relation loaded through
- * `combine()` comes back as an object of slots: those are set aside for `viewOf`, and the row
- * carries the type-level `select`'s rows (the first type scope's) and computed values under their
- * own keys, so whatever reads the row itself (type-level `authScopes`, `isTypeOf`, `resolveType`,
- * resolvers outside the plan) sees what the type selects. The rows are the statement's own, so
- * they are written to in place.
+ * Takes the combine slots of the rows a statement returned off them. A to-many relation loaded
+ * through `combine()` comes back as an object of slots, one per consumer scope; `viewOf` hands
+ * each reader its own. A row whose slots belong to one type keeps that type's rows and computed
+ * values under their own keys, so a reader outside the plugin's hooks sees that type's shape;
+ * otherwise it keeps no value for the relation.
  */
 export function materializeRows<T>(rows: T, model: PrismaNextModel): T {
   if (Array.isArray(rows)) {
@@ -119,6 +134,7 @@ export function materializeRows<T>(rows: T, model: PrismaNextModel): T {
 }
 
 function materializeRow(row: Record<string, unknown>, model: PrismaNextModel) {
+  let entry: Combined | undefined;
   for (const name of Object.keys(model.relations)) {
     const relation = model.relations[name]!;
     const value = row[name];
@@ -129,96 +145,107 @@ function materializeRow(row: Record<string, unknown>, model: PrismaNextModel) {
       materializeRows(value, relation.target);
       continue;
     }
-    const slots = value as Record<string, unknown>;
-    let own = combined.get(row);
-    if (!own) {
-      own = {};
-      combined.set(row, own);
-    }
-    own[name] = slots;
-    let typeRows: unknown;
-    const typeValues: Record<string, unknown> = {};
-    for (const key of Object.keys(slots)) {
+    entry ??= { slots: {}, scopes: new Set(), lifted: null };
+    entry.slots[name] = value as Record<string, unknown>;
+    for (const [key, slot] of Object.entries(value)) {
       const separator = key.indexOf(SLOT);
       if (separator < 0) {
-        materializeRows(slots[key], relation.target);
+        materializeRows(slot, relation.target);
       }
-      // A field's scope is `Type.alias`; a type-level select's is the type's name.
-      const scope = separator < 0 ? key : key.slice(0, separator);
-      if (scope.includes('.')) {
-        continue;
-      }
-      if (separator < 0) {
-        typeRows ??= slots[key];
-      } else if (!(key.slice(separator + 1) in typeValues)) {
-        typeValues[key.slice(separator + 1)] = slots[key];
-      }
+      entry.scopes.add(separator < 0 ? key : key.slice(0, separator));
     }
-    if (!Object.isFrozen(row)) {
-      Object.assign(row, typeValues);
-      if (typeRows !== undefined) {
-        row[name] = typeRows;
-      }
+  }
+  if (!entry) {
+    return;
+  }
+  combined.set(row, entry);
+  if (!Object.isFrozen(row)) {
+    for (const name of Object.keys(entry.slots)) {
+      delete row[name];
     }
+    // A field's scope is `Type.alias`; a type-level select's is the type's name.
+    const typeScopes = [...entry.scopes].filter((scope) => !scope.includes('.'));
+    entry.lifted = typeScopes.length === 1 ? typeScopes : [];
+    lift(row, entry, entry.lifted);
   }
 }
 
-/**
- * What a consumer at `scope` reads from `row`: its rows of each to-many relation, and the values
- * it computed from one, over a copy of the row (so resolvers can spread or serialize it). The
- * row itself when that changes nothing.
- */
-export function viewOf(
-  row: object,
-  toMany: readonly string[],
-  ownScopes: readonly (string | undefined)[],
-): object {
-  let view: object | undefined;
-  const define = (key: string, value: unknown) => {
-    if (!view && (row as Record<string, unknown>)[key] === value) {
-      return;
-    }
-    view ??= copyOf(row);
-    Object.defineProperty(view, key, {
-      value,
-      enumerable: true,
-      configurable: true,
-      writable: true,
-    });
-  };
-  const own = combined.get(row);
-  for (const relation of toMany) {
-    const slots = own?.[relation] ?? (row as Record<string, unknown>)[relation];
-    if (!slots || typeof slots !== 'object' || Array.isArray(slots)) {
-      continue;
-    }
-    for (const scope of ownScopes) {
-      if (scope === undefined) {
-        continue;
-      }
+/** Writes the rows and computed values `scopes` read onto `target`, later scopes winning. */
+function lift(target: Record<string, unknown>, entry: Combined, scopes: readonly string[]) {
+  for (const name of Object.keys(entry.slots)) {
+    const slots = entry.slots[name]!;
+    for (const scope of scopes) {
       const prefix = `${scope}${SLOT}`;
       for (const key of Object.keys(slots)) {
         if (key === scope) {
-          define(relation, (slots as Record<string, unknown>)[key]);
+          target[name] = slots[key];
         } else if (key.startsWith(prefix)) {
-          define(key.slice(prefix.length), (slots as Record<string, unknown>)[key]);
+          target[key.slice(prefix.length)] = slots[key];
         }
       }
     }
   }
-  return view ?? row;
 }
 
-/** A writable copy of a (possibly frozen) row's columns, keeping its type brand and slots. */
+/** The row a view was made from, or `value` itself. */
+export function rowOf<T>(value: T): T {
+  return (viewRows.get(value as object) as T | undefined) ?? value;
+}
+
+/**
+ * What a reader at `scopes` sees of a row (or of another view of it): the row's columns, with
+ * each to-many relation and computed value as those scopes loaded it, later scopes winning, and
+ * nothing for a relation they didn't load. One object per row and set of scopes, so per-row
+ * caches (scope-auth's) see one parent; the row itself when that is what it already holds.
+ */
+export function viewOf(value: object, scopes: readonly (string | undefined)[]): object {
+  const row = rowOf(value);
+  const entry = combined.get(row);
+  if (!entry) {
+    return row;
+  }
+  const present = scopes.filter(
+    (scope): scope is string => scope !== undefined && entry.scopes.has(scope),
+  );
+  const { lifted } = entry;
+  if (lifted && present.length === lifted.length && present.every((s, i) => s === lifted[i])) {
+    return row;
+  }
+  let cache = views.get(row);
+  if (!cache) {
+    cache = new Map();
+    views.set(row, cache);
+  }
+  const key = present.join(' ');
+  let view = cache.get(key);
+  if (!view) {
+    const copy = copyOf(row) as Record<string, unknown>;
+    for (const name of Object.keys(entry.slots)) {
+      delete copy[name];
+    }
+    for (const scope of lifted ?? []) {
+      for (const slots of Object.values(entry.slots)) {
+        for (const slot of Object.keys(slots)) {
+          if (slot.startsWith(`${scope}${SLOT}`)) {
+            delete copy[slot.slice(scope.length + 1)];
+          }
+        }
+      }
+    }
+    lift(copy, entry, present);
+    viewRows.set(copy, row);
+    cache.set(key, copy);
+    view = copy;
+  }
+  return view;
+}
+
+/** A writable copy of a (possibly frozen) row's columns, keeping its type brand. */
 function copyOf(row: object): object {
   const copy = Object.assign(Object.create(Object.getPrototypeOf(row)) as object, row);
   const brand = getTypeBrand(row);
   if (brand) {
     brandWithType(copy, brand);
-  }
-  const own = combined.get(row);
-  if (own) {
-    combined.set(copy, own);
   }
   return copy;
 }
@@ -406,9 +433,7 @@ function compileSelect(
       }),
     );
   });
-  const settled = parts.some((part) => typeof (part as PromiseLike<unknown>).then === 'function')
-    ? Promise.all(parts)
-    : (parts as PrismaNextQuery[]);
+  const settled = parts.some(isThenable) ? Promise.all(parts) : (parts as PrismaNextQuery[]);
   return completeValue(settled, (resolved) => ({
     columns,
     relations: Object.assign({}, ...resolved.map((part) => part.relations)),

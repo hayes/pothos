@@ -2,7 +2,7 @@ import { PothosSchemaError } from '@pothos/core';
 import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
 import { type Codec, readContractValue } from '@prisma/orm-framework/components/codec';
 import { canonicalStringify } from '@prisma/orm-framework/utils/canonical-stringify';
-import type { AnyContract } from '../types.js';
+import type { AnyContract, PrismaNextExecutionContext } from '../types.js';
 import {
   fieldStorage,
   modelDiscriminator,
@@ -162,19 +162,14 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
 }
 
 /** A column codec; cursors, IDs and loader identities hold values in its stored JSON form. */
-export interface ColumnCodec {
+interface ColumnCodec {
   encode(value: unknown): unknown;
   decode(stored: unknown): unknown;
   /** Equal for values the column's data type holds equal, such as the decimals 0.5 and 0.50. */
   key(value: unknown): string;
 }
 
-/** The part of a client's execution context that holds the column codecs. */
-export interface CodecContext {
-  readonly contractCodecs: {
-    forColumn(namespaceId: string, table: string, column: string): unknown;
-  };
-}
+type CodecContext = Pick<PrismaNextExecutionContext<AnyContract>, 'contractCodecs'>;
 
 export type FieldCodecs = (field: string) => ColumnCodec | undefined;
 

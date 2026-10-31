@@ -3,7 +3,7 @@ import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute, type GraphQLSchema, parse } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import {
   type CapturedExecution,
   createSqliteRuntime,
@@ -431,6 +431,113 @@ describe.each(
       users: [{ firstName: 'Alice', lastName: 'Andrews', published: [{ title: 'Hello, Pothos' }] }],
     });
     expect(seen).toEqual([['Draft #1', 'Hello, Pothos']]);
+    expect(result.statements).toHaveLength(1);
+  });
+});
+
+describe.each(orders)('field-level authScopes (%s)', (_, plugins) => {
+  function fieldAuthSchema(seen: unknown[]) {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        publishedCount: t.int({
+          select: { posts: { where: { published: 1 } } },
+          authScopes: (user) => {
+            seen.push(Array.isArray(user.posts) ? user.posts.length : user.posts);
+            return true;
+          },
+          resolve: (user) => user.posts.length,
+        }),
+        all: t.relation('posts'),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => ctx.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it.each([
+    '{ users { publishedCount } }',
+    '{ users { publishedCount all { id } } }',
+  ])('see the rows the field selects, whatever else the query selects: %s', async (query) => {
+    const seen: unknown[] = [];
+    const result = await runCaptured(fieldAuthSchema(seen), query);
+    expect(result.errors).toBeUndefined();
+    expect(
+      result.data.users.map((user: { publishedCount: number }) => user.publishedCount),
+    ).toEqual([1, 1]);
+    expect(seen).toEqual([1, 1]);
+    expect(result.statements).toHaveLength(1);
+  });
+});
+
+describe('rows a connection helper wraps', () => {
+  function helperSchema(seen: unknown[]) {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+      relay: {},
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    const User = builder.prismaObject('User', {
+      select: { posts: { where: { published: 1 } } },
+      authScopes: (user) => {
+        seen.push(user.posts);
+        return true;
+      },
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        drafts: t.relation('posts', { query: { where: { published: 0 } } }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const helper = prismaConnectionHelpers(builder, User, { cursor: 'id' });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.connection({
+          type: User,
+          resolve: async (_root, args, context, info) => {
+            const page = await helper.applyPagination(ctx.orm.User, args, info, context);
+            return page.wrap(await page.collection.all()) as never;
+          },
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it("hand type-level authScopes the type select's rows", async () => {
+    const seen: unknown[] = [];
+    const result = await runCaptured(
+      helperSchema(seen),
+      '{ users(first: 2) { edges { node { id drafts { id } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users.edges).toEqual([
+      { node: { id: 'u-alice', drafts: [{ id: 'p-draft1' }] } },
+      { node: { id: 'u-bob', drafts: [{ id: 'p-bob-draft' }] } },
+    ]);
+    expect(seen).toEqual([
+      [expect.objectContaining({ id: 'p-hello' })],
+      [expect.objectContaining({ id: 'p-bob1' })],
+    ]);
     expect(result.statements).toHaveLength(1);
   });
 });

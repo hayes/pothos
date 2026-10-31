@@ -7,3 +7,7 @@ export const PRISMA_NEXT_FIELD_SELECT = 'pothosPrismaNextFieldSelect';
 export const PRISMA_NEXT_LOADED = 'pothosPrismaNextLoaded';
 /** Marks a hierarchy interface that routes rows with the plugin's discriminator `resolveType`. */
 export const PRISMA_NEXT_DISCRIMINATED = 'pothosPrismaNextDiscriminated';
+/** Whether a field's selection is its own `select` (part of the parent it declares). */
+export const PRISMA_NEXT_DECLARED_SELECT = 'pothosPrismaNextDeclaredSelect';
+/** A prisma interface's registry of its implementations' selections, one per schema build. */
+export const PRISMA_NEXT_IMPLEMENTATIONS = 'pothosPrismaNextImplementations';

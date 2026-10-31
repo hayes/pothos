@@ -22,13 +22,20 @@ examples.
 - A to-many relation is keyed by consumer scope: the type and alias of the field (and of the fields
   above it), or the type for a type-level `select`. A relation whose consumers agree is one
   include; otherwise each scope is one `combine` slot, so different arguments still load in one
-  statement. When a statement's rows come back, each combined relation's slots are set aside and
-  the row takes the type-level `select`'s rows and computed values under their own keys, so
-  anything reading the row itself (type `authScopes`, `isTypeOf`, `resolveType`) sees the type's
-  shape. A resolver finds its scope through the position in its loader mapping and reads its
-  slots from a shallow copy of the row with its slots lifted on, so the parent still spreads and
-  serializes like a row; the copy goes only to the field's own resolver, and plugins wrapped
-  inside this one get the row, so per-row caches (scope-auth) see one object.
+  statement. When a statement's rows come back, the slots are taken off each row and kept beside
+  it; a row whose slots belong to one type keeps that type's rows and computed values.
+- Every reader gets a view of the row: its columns, plus the rows and values its scopes loaded,
+  later scopes winning. `isTypeOf` and `resolveType` get their type's view (its interfaces'
+  `select`s, then its own). Every plugin around a field gets the parent the field declares (its
+  type's view plus the field's own `select`), through `wrapArgMappers`, which wraps every plugin's
+  `wrapResolve` whatever their order; a reload stays in this plugin's `wrapResolve`, so plugins
+  listed before it run before the reload. A field helper's resolver (`t.relation`, counts,
+  aggregates, connections) also reads its own slots. Views are cached per row and scopes, so
+  per-row caches (scope-auth) see one parent, and slot objects are never visible.
+- An interface loads its implementations' type-level selections too, since their `isTypeOf` reads
+  rows loaded as the interface: to-many relations and computed values in their own slots, and
+  to-one relations merged, so implementations selecting one differently fail the schema build.
+  Each build's interfaces carry their own registry of implementations.
 - Relation queries compare by what identifies them (a declarative query, or the defining field
   with its arguments for a callback, which builds a new closure per walk). Matching aliases alone
   never establish compatibility.
@@ -43,8 +50,9 @@ mappings keep one fallback result from claiming another parent's coverage.
 
 - Identities are a non-null primary or unique key, selected automatically, and compared by the
   column codec's stored form and its data type's `equalityKey` (decimals `0.5` and `0.50` match).
-- Loader Collections must be unpaginated. Missing identities, excluded rows, missing collections
-  and batch errors fail only the affected fields.
+- Loader Collections must be unpaginated. Missing identities, excluded rows and missing
+  collections fail only the affected fields. An error building or running a batch's statement,
+  such as a user callback throwing, fails every field in the batch, as it fails a parent query.
 - Fields a row already satisfies skip the loader, so hand-built and deleted rows resolve.
 - Deferred fragments are skipped by default and loaded on execution.
 
