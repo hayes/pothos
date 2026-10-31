@@ -33,7 +33,6 @@ export function resolveContractModel(
   };
 }
 
-/** Like plugin-prisma's DMMF lookup, an unknown model fails the schema build. */
 export function assertContractModel(contract: AnyContract, modelKey: string): SqlContractModel {
   const model = resolveContractModel(contract, modelKey);
   if (!model) {

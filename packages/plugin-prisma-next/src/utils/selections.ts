@@ -17,9 +17,9 @@ import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model
 export const REFINE = Symbol('prismaNextRefine');
 export const COMPUTE = Symbol('prismaNextCompute');
 
-export type Refine = (rel: MapperCollection) => MapperCollection | null | undefined;
+type Refine = (rel: MapperCollection) => MapperCollection | null | undefined;
 /** Values computed from a to-many relation's collection, lifted onto the consumer's parent. */
-export type Compute = (rel: MapperCollection, ctx: object) => Record<string, unknown>;
+type Compute = (rel: MapperCollection, ctx: object) => Record<string, unknown>;
 
 /**
  * The variant a level is narrowed to: by `.variant(value)` on the base collection, or by loading
@@ -148,11 +148,12 @@ function materializeRow(row: Record<string, unknown>, model: PrismaNextModel) {
     entry ??= { slots: {}, scopes: new Set(), lifted: null };
     entry.slots[name] = value as Record<string, unknown>;
     for (const [key, slot] of Object.entries(value)) {
-      const separator = key.indexOf(SLOT);
-      if (separator < 0) {
+      // A slot is keyed by its scope; a computed value by `scope:name`.
+      const scope = relationName(key);
+      if (scope === key) {
         materializeRows(slot, relation.target);
       }
-      entry.scopes.add(separator < 0 ? key : key.slice(0, separator));
+      entry.scopes.add(scope);
     }
   }
   if (!entry) {
@@ -253,7 +254,7 @@ function copyOf(row: object): object {
 /** Column names, or an object of columns (`true`) and relations (`true`, a query, or a function). */
 export type RawSelect = readonly string[] | Record<string, unknown>;
 
-export interface DeclarativeQuery {
+interface DeclarativeQuery {
   where?: unknown;
   orderBy?: unknown;
   limit?: number;
@@ -373,6 +374,10 @@ export function splitSelect(raw: RawSelect, model: PrismaNextModel | undefined) 
   return { columns, relations };
 }
 
+export function toOneFunctionMessage(owner: string, name: string) {
+  return `select on '${owner}': the function form of to-one relation '${name}' requires combine(), which the ORM supports only for to-many relations. Use a relation field with query options or a declarative select instead.`;
+}
+
 function shapeError(owner: string, key: string, problem: string) {
   return new PothosValidationError(
     `select: '${key}' ${problem} on ${owner}. Use \`true\`, \`{ where?, orderBy?, limit?, offset? }\`, or a function \`(sub, args, ctx) => spec\` for a relation.`,
@@ -411,13 +416,24 @@ function compileSelect(
   const parts = relations.map(([name, value]) => {
     const relation = model!.relations[name]!;
     if (typeof value === 'function') {
-      return computedSelection(name, scope, { source, args }, (sub, ctx) =>
-        (value as (sub: MapperCollection, args: object, ctx: object) => Record<string, unknown>)(
-          sub,
-          args,
-          ctx,
-        ),
-      );
+      if (!relation.isToMany) {
+        throw new PothosValidationError(toOneFunctionMessage(owner, name));
+      }
+      return computedSelection(name, scope, { source, args }, (sub, ctx) => {
+        const values = (
+          value as (sub: MapperCollection, args: object, ctx: object) => Record<string, unknown>
+        )(sub, args, ctx);
+        // Computed values are lifted onto the parent row beside its columns and relations.
+        const clash = Object.keys(values).find(
+          (key) => model!.columns.has(key) || Object.hasOwn(model!.relations, key),
+        );
+        if (clash !== undefined) {
+          throw new PothosValidationError(
+            `select on ${owner}: '${name}' computes '${clash}', which is a column or relation of model ${model!.name}. Give the computed value another name.`,
+          );
+        }
+        return values;
+      });
     }
     if (value !== true && !isDeclarative(value)) {
       throw shapeError(owner, name, 'has an unrecognized value shape');

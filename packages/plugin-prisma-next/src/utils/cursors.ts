@@ -102,12 +102,6 @@ export function validateCursor(
   });
 }
 
-/**
- * Bounds the work spent decoding user-supplied cursors and IDs. Measured on the string the
- * client sends back, and checked when encoding too, so the server never issues one it refuses.
- */
-const PAYLOAD_MAX_LENGTH = 2 * 1024;
-
 // Values are held in their column codec's stored form; nulls bypass codecs.
 function encodeValues(fields: readonly string[], values: readonly unknown[], codecs: FieldCodecs) {
   const encoded = values.map((value, i) => {
@@ -117,46 +111,48 @@ function encodeValues(fields: readonly string[], values: readonly unknown[], cod
   return encoded.length === 1 ? encodeCursorChunk(encoded[0]) : encodeCursorTuple(encoded);
 }
 
-interface DecodeErrors {
-  payload(): Error;
-  width(got: number): Error;
-  value(field: string): Error;
-}
+/** Why a payload didn't decode, which each caller words as its own error. */
+class DecodeError extends Error {}
 
-/** Keys come from `fields`, never the payload, so a payload can't inject `__proto__`. */
 function decodeValues(
   fields: readonly string[],
   payload: string,
   codecs: FieldCodecs,
-  errors: DecodeErrors,
 ): Record<string, unknown> {
   let decoded: unknown;
   try {
     decoded = decodeCursorChunk(payload);
   } catch {
-    throw errors.payload();
+    throw new DecodeError('malformed payload');
   }
   // Dispatched on `fields`: a single JSON column can decode to an array too.
   const values = fields.length === 1 ? [decoded] : decoded;
   if (!Array.isArray(values) || values.length !== fields.length) {
-    throw errors.width(Array.isArray(values) ? values.length : 1);
+    throw new DecodeError(
+      `expected ${fields.length} value(s), got ${Array.isArray(values) ? values.length : 1}`,
+    );
   }
-  const out = Object.create(null) as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
   fields.forEach((field, i) => {
     const codec = values[i] == null ? undefined : codecs(field);
     try {
       out[field] = codec ? codec.decode(values[i]) : values[i];
     } catch {
-      throw errors.value(field);
+      throw new DecodeError(`invalid ${field} value`);
     }
   });
   return out;
 }
 
+function rethrowDecodeError(error: unknown, prefix: string): never {
+  throw error instanceof DecodeError
+    ? new PothosValidationError(`${prefix}: ${error.message}.`)
+    : error;
+}
+
 /**
- * Like plugin-prisma's `GPC:`; multi-column cursors are a positional `T:` tuple of chunks. The
- * ordering's signature follows the prefix, so a cursor only seeks under the ordering that issued
- * it: `PNC:<signature>:<chunk>`.
+ * Multi-column cursors are a positional `T:` tuple of chunks. The ordering's signature follows
+ * the prefix, so a cursor only seeks under the ordering that issued it: `PNC:<signature>:<chunk>`.
  */
 const CURSOR_PREFIX = 'PNC:';
 
@@ -171,7 +167,7 @@ function orderingSignature(order: CursorOrder): string {
 
 function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: FieldCodecs) {
   const fields = cursorColumns(order);
-  const encoded = encodeBase64(
+  return encodeBase64(
     `${CURSOR_PREFIX}${orderingSignature(order)}:${encodeValues(
       fields,
       fields.map((field) => {
@@ -186,12 +182,6 @@ function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: 
       codecs,
     )}`,
   );
-  if (encoded.length > PAYLOAD_MAX_LENGTH) {
-    throw new PothosValidationError(
-      `Cannot encode a cursor over ${fields.join(', ')}: it is ${encoded.length} characters, over the ${PAYLOAD_MAX_LENGTH}-character limit for cursors. Use shorter cursor columns.`,
-    );
-  }
-  return encoded;
 }
 
 /**
@@ -205,11 +195,6 @@ function decodeCursor(
   { checkOrdering = true }: { checkOrdering?: boolean } = {},
 ): Record<string, unknown> {
   // Messages never echo the payload, which logs often capture verbatim.
-  if (value.length > PAYLOAD_MAX_LENGTH) {
-    throw new PothosValidationError(
-      `Invalid cursor: longer than ${PAYLOAD_MAX_LENGTH} characters.`,
-    );
-  }
   let payload: string;
   try {
     payload = decodeBase64(value);
@@ -229,20 +214,11 @@ function decodeCursor(
       'Invalid cursor: it was issued under a different ordering of this connection. Request the first page again with the new ordering.',
     );
   }
-  const fields = cursorColumns(order);
-  return decodeValues(fields, payload.slice(separator + 1), codecs, {
-    payload: () =>
-      new PothosValidationError('Invalid cursor: payload is not a tagged cursor chunk.'),
-    width: (got) =>
-      new PothosValidationError(
-        `Invalid cursor: expected ${fields.length} value(s) for ${fields.join(', ')}, got ${got}.`,
-      ),
-    value: invalidCursorValue,
-  });
-}
-
-function invalidCursorValue(field: string) {
-  return new PothosValidationError(`Invalid cursor value for ${field}.`);
+  try {
+    return decodeValues(cursorColumns(order), payload.slice(separator + 1), codecs);
+  } catch (error) {
+    return rethrowDecodeError(error, 'Invalid cursor');
+  }
 }
 
 /** Tags node IDs that aren't plain strings, so they decode back to their own type. */
@@ -262,53 +238,32 @@ export function encodeNodeId(
     }
     return row[field];
   });
-  let payload: string;
-  try {
-    payload = encodeValues(fields, values, codecs);
-  } catch {
-    throw new PothosValidationError(`prismaNode '${modelName}' row has an invalid id value.`);
-  }
+  const payload = encodeValues(fields, values, codecs);
   // A string stays readable unless it could be mistaken for a tagged payload.
-  const id =
-    payload.startsWith('S:') && !payload.startsWith(`S:${ID_PREFIX}`)
-      ? payload.slice(2)
-      : `${ID_PREFIX}${payload}`;
-  // Measured after tagging, as parseNodeId measures what comes back.
-  if (id.length > PAYLOAD_MAX_LENGTH) {
-    throw new PothosValidationError(
-      `prismaNode '${modelName}' ID is ${id.length} characters once encoded${id.startsWith(ID_PREFIX) ? ` (tagged with '${ID_PREFIX}')` : ''}, over the ${PAYLOAD_MAX_LENGTH}-character limit for IDs it can load back.`,
-    );
-  }
-  return id;
+  return payload.startsWith('S:') && !payload.startsWith(`S:${ID_PREFIX}`)
+    ? payload.slice(2)
+    : `${ID_PREFIX}${payload}`;
 }
 
-/** The ID's values, a tuple for a compound ID. */
+/** The ID's values, as a tuple when `tuple` is set. */
 export function parseNodeId(
   modelName: string,
   fields: readonly string[],
   id: string,
   codecs: FieldCodecs,
+  tuple: boolean,
 ): unknown {
-  if (id.length > PAYLOAD_MAX_LENGTH) {
-    throw new PothosValidationError(
-      `prismaNode '${modelName}' ID is longer than ${PAYLOAD_MAX_LENGTH} characters.`,
+  let values: Record<string, unknown>;
+  try {
+    values = decodeValues(
+      fields,
+      id.startsWith(ID_PREFIX) ? id.slice(ID_PREFIX.length) : encodeCursorChunk(id),
+      codecs,
     );
+  } catch (error) {
+    return rethrowDecodeError(error, `Invalid prismaNode '${modelName}' ID`);
   }
-  const values = decodeValues(
-    fields,
-    id.startsWith(ID_PREFIX) ? id.slice(ID_PREFIX.length) : encodeCursorChunk(id),
-    codecs,
-    {
-      payload: () => new PothosValidationError(`prismaNode '${modelName}' ID payload is invalid.`),
-      width: (got) =>
-        new PothosValidationError(
-          `prismaNode '${modelName}' composite ID expected ${fields.length} values, got ${got}.`,
-        ),
-      value: (field) =>
-        new PothosValidationError(`prismaNode '${modelName}' ID has an invalid ${field} value.`),
-    },
-  );
-  return fields.length === 1 ? values[fields[0]!] : fields.map((field) => values[field]);
+  return tuple ? fields.map((field) => values[field]) : values[fields[0]!];
 }
 
 // Lexicographic "row > cursor" as an OR-chain of equality-prefixed comparisons.
@@ -348,7 +303,7 @@ function buildLexicographicPredicate(
   };
 }
 
-export interface CursorPaginationParams {
+interface CursorPaginationParams {
   cursor: CursorOrder;
   before: string | undefined;
   after: string | undefined;
@@ -375,22 +330,14 @@ export function buildPaginationParams(
   args: PothosSchemaTypes.DefaultConnectionArguments,
   options: PaginationOptions,
 ): CursorPaginationParams {
-  const { before, after, limit, expectedSize, inverted, hasPreviousPage, hasNextPage } =
-    parseCursorConnectionArgs({
-      args,
-      ...(options.defaultSize !== undefined ? { defaultSize: options.defaultSize } : {}),
-      ...(options.maxSize !== undefined ? { maxSize: options.maxSize } : {}),
-    });
   return {
+    ...parseCursorConnectionArgs({
+      args,
+      defaultSize: options.defaultSize,
+      maxSize: options.maxSize,
+    }),
     cursor,
-    before,
-    after,
-    limit,
-    expectedSize,
-    inverted,
     codecs: options.codecs,
-    hasPreviousPage,
-    hasNextPage,
   };
 }
 
@@ -453,7 +400,7 @@ function decodeBoundary(
   const boundary = decodeCursor(order, value, codecs, options);
   for (const { field, nulls } of order) {
     if (boundary[field] === null && !nulls) {
-      throw invalidCursorValue(field);
+      throw new PothosValidationError(`Invalid cursor: invalid ${field} value.`);
     }
   }
   return boundary;
@@ -559,7 +506,7 @@ export function applyCursorPagination<C extends MapperCollection>(
   };
 }
 
-export interface PageInfo {
+interface PageInfo {
   startCursor: string | null;
   endCursor: string | null;
   hasPreviousPage: boolean;

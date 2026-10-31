@@ -6,8 +6,7 @@ import {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import { PrismaNextInterfaceRef } from './interface-ref.js';
-import { PrismaNextObjectRef } from './object-ref.js';
+import type { PrismaNextObjectRef } from './object-ref.js';
 import type { CursorSpec, ModelName, PrismaNextConnectionFieldOptions } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { assertContextObject, getPluginConfig } from './utils/config.js';
@@ -29,7 +28,7 @@ import {
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
-import { getRefFromContractModel } from './utils/refs.js';
+import { refFor } from './utils/refs.js';
 import { materializeRows } from './utils/selections.js';
 
 const rootFieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
@@ -96,10 +95,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
     query?: unknown;
     [k: string]: unknown;
   };
-  const ref =
-    type instanceof PrismaNextObjectRef || type instanceof PrismaNextInterfaceRef
-      ? type
-      : getRefFromContractModel(type as never, this.builder as never);
+  const ref = refFor(this.builder, type);
   const config = getPluginConfig(this.builder);
   const settings = connectionSettings(config, {
     defaultSize,
@@ -165,18 +161,12 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
             ? aggregateCount(userCollection)
             : Promise.resolve().then(() => countSource?.(parent, args, context, info));
 
-        // allSettled so neither rejection goes unhandled; a rows error takes precedence.
-        const [rowsResult, countResult] = await Promise.allSettled([rowsPromise, countPromise]);
-        if (rowsResult.status === 'rejected') {
-          throw rowsResult.reason;
-        }
-        if (countResult.status === 'rejected') {
-          throw countResult.reason;
-        }
+        // Promise.all handles both rejections, so a later one isn't left unhandled.
+        const [rows, count] = await Promise.all([rowsPromise, countPromise]);
         return buildConnectionPage(
-          rowsResult.value as readonly Record<string, unknown>[],
+          rows as readonly Record<string, unknown>[],
           pagination,
-          countResult.value as number | undefined,
+          count as number | undefined,
         );
       }) as never,
     } as never,

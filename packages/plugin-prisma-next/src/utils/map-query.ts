@@ -2,10 +2,10 @@ import { completeValue, type MaybePromise } from '@pothos/core';
 import { type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PrismaNextPlan } from './adapter.js';
-import { assertContextObject, type PrismaNextConfig } from './config.js';
+import type { PrismaNextConfig } from './config.js';
 import type { PrismaNextQuery } from './selections.js';
 
-export interface ApplySelectionOptions {
+interface ApplySelectionOptions {
   /** Paths to the selection from the field's return type (`[['edges', 'node'], ['nodes']]`). */
   paths?: PathSegment[][];
   /** Columns always read on the root, such as cursor columns. */
@@ -20,7 +20,6 @@ export function applySelectionToCollection(
   context: object,
   { paths, extraColumns }: ApplySelectionOptions = {},
 ): MaybePromise<MapperCollection> {
-  assertContextObject(context, info);
   const { adapter } = config;
   // Relations declared on a variant can only be planned on a collection narrowed to it.
   const variant = collection.state?.variantValue;
