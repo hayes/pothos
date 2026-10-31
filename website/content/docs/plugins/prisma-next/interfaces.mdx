@@ -95,9 +95,40 @@ builder.queryType({
 ```
 
 Fragments such as `... on Bug` plan into the base query. Returning a variant type requires
-`orm.Base.variant(value)`: `orm.Bug` is unfiltered in Prisma, so it's rejected. A variant given a
-custom `name` or `variant` needs its own `resolveType` on the interface. Relations targeting a
-variant model and `prismaNode` on a variant aren't supported yet.
+`orm.Base.variant(value)`: `orm.Bug` is unfiltered in Prisma, so it's rejected.
+
+Each row resolves to the type registered for its variant's model, including one given a custom
+`name` or `variant`. The schema build fails when a variant has no implementing type or more than
+one, unless the interface declares its own `resolveType`.
+
+`prismaNode` works on a variant. Give it the narrowed collection:
+
+```ts
+builder.prismaNode('Feature', {
+  interfaces: [task],
+  id: { field: 'id' },
+  collection: (ctx) => ctx.db.orm.Task.variant('feature'),
+  fields: (t) => ({ priority: t.exposeInt('priority') }),
+});
+```
+
+### Relations and variants
+
+- **Declared on a variant.** A relation only `Bug` declares, such as `reviewer`, loads from a
+  collection narrowed to that variant: `orm.Task.variant('bug')`, or a relation typed as `Bug`.
+  Prisma can't include it on the unnarrowed base. Under `... on Bug` beneath the `Task` interface,
+  it needs [`prismaNext.collections`](./setup#selection-and-transaction-lifetime). The plugin then loads it
+  separately through `orm.Task.variant('bug')`. Without a provider the request fails before SQL.
+- **Typed as a variant.** `t.relation('tasks', { type: bugRef })` and `t.relatedConnection` with
+  a variant `type` narrow the include with `.variant('bug')`, so other variants' rows aren't
+  returned and `totalCount` counts only bugs. The `type` option accepts refs of the relation's
+  model and of its variants; any other model's ref is a type error, and a type from another
+  branch of the hierarchy fails the schema build.
+- **Targeting a variant model.** A relation whose contract target is a variant (`reviews Bug[]`)
+  works. Prisma reads a single-table variant through the base table without filtering it, so the
+  plugin adds the discriminator filter. Prisma loads these rows through the variant's own model,
+  which can include the variant's relations but not the ones it inherits. With a provider the
+  plugin loads inherited relations separately. Without one the request fails before SQL.
 
 ## Extending an interface
 

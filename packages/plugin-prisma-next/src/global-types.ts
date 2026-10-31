@@ -14,6 +14,7 @@ import type {
 import type { PothosPrismaNextPlugin } from './index.js';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type {
+  ExactSelectCheck,
   ObjectBaseShape,
   ParamToModelName,
   ParamToTypeParam,
@@ -24,7 +25,6 @@ import type { PrismaNextNodeRef } from './node-ref.js';
 import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 import type {
   AnyContract,
-  CollectionFor,
   CursorSpec,
   ModelName,
   PrismaNextConnectionFieldOptions,
@@ -34,6 +34,7 @@ import type {
   PrismaNextPluginOptions,
   PrismaNextRootFieldOptions,
   PrismaNextRootFieldWithInputOptions,
+  ResolverCollection,
   Row,
 } from './types.js';
 
@@ -60,23 +61,24 @@ type ObjectLevelShape<
   Select,
 > = ShapeFromObjectSelect<Types, M, never, Select>;
 
-type UnknownSelectKeys<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  Select,
-> = Select extends readonly unknown[]
-  ? never
-  : Select extends object
-    ? Exclude<keyof Select, keyof SelectObjectSpec<Types, M>>
-    : never;
-
-type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = [
-  UnknownSelectKeys<Types, M, Select>,
-] extends [never]
-  ? unknown
-  : {
-      [K in UnknownSelectKeys<Types, M, Select> & string as `Unknown key in select: ${K}`]: never;
-    };
+/**
+ * Checks for the type-level `select` of `prismaObject` / `prismaInterface` / `prismaNode`, merged
+ * onto the options beside a plain `select?: Select`. `Select` stays an unconstrained `const`
+ * generic so a function-form relation entry (`(sub) => ({ … })`) doesn't pin it to a default
+ * before inference, and the plain property stays its only inference site: inferring through an
+ * intersection would split a union `Select` (`readonly ['id'] | { id: true }`) into one member.
+ * This property supplies the contextual type (autocomplete, a typed `sub`) and rejects unknown
+ * object keys and array entries.
+ */
+type TypeSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = {
+  select?: (readonly (keyof Row<Types, M> & string)[] | SelectObjectSpec<Types, M>) &
+    NoInfer<
+      ExactSelectCheck<Types, M, Select> &
+        (Select extends readonly unknown[]
+          ? { readonly [K in keyof Select]: Select[K] & keyof Row<Types, M> }
+          : unknown)
+    >;
+};
 
 type IdFieldShape<
   Types extends SchemaTypes,
@@ -161,7 +163,7 @@ declare global {
         modelName: M,
         options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
           select?: Select;
-        },
+        } & TypeSelectCheck<Types, M, Select>,
       ) => PrismaNextObjectRef<Types, M, Shape>;
 
       prismaInterface: <
@@ -173,7 +175,7 @@ declare global {
         modelName: M,
         options: Omit<PrismaNextInterfaceOptions<Types, M, Shape, Interfaces>, 'select'> & {
           select?: Select;
-        },
+        } & TypeSelectCheck<Types, M, Select>,
       ) => PrismaNextInterfaceRef<Types, M, Shape>;
 
       prismaObjectField: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
@@ -226,10 +228,7 @@ declare global {
         ? <
             const Interfaces extends InterfaceParam<Types>[],
             M extends ModelName<Types>,
-            const Select extends
-              | readonly (keyof Row<Types, M> & string)[]
-              | SelectObjectSpec<Types, M>
-              | undefined = undefined,
+            const Select = unknown,
             Shape = ObjectLevelShape<Types, M, Select>,
             IDShape = string,
             const IDFields extends
@@ -258,10 +257,11 @@ declare global {
                   ctx: Types['Context'],
                 ) => string | number;
               };
+              // A variant's nodes load through `orm.Base.variant(value)`.
               collection:
-                | CollectionFor<Types, M>
-                | ((ctx: Types['Context']) => CollectionFor<Types, M>);
-            } & { select?: ExactSelectCheck<Types, M, Select> },
+                | ResolverCollection<Types, M>
+                | ((ctx: Types['Context']) => ResolverCollection<Types, M>);
+            } & TypeSelectCheck<Types, M, Select>,
           ) => PrismaNextNodeRef<Types, M, Shape, IDShape>
         : '@pothos/plugin-relay is required to use this method';
     }

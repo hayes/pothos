@@ -23,6 +23,13 @@
               "namespace": "__unbound__"
             },
             "fields": {
+              "reviewerId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              },
               "severity": {
                 "nullable": false,
                 "type": {
@@ -31,9 +38,29 @@
                 }
               }
             },
-            "relations": {},
+            "relations": {
+              "reviewer": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "reviewerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
             "storage": {
               "fields": {
+                "reviewerId": {
+                  "column": "reviewerId"
+                },
                 "severity": {
                   "column": "severity"
                 }
@@ -166,6 +193,21 @@
               }
             },
             "relations": {
+              "reviews": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "reviewerId"
+                  ]
+                },
+                "to": {
+                  "model": "Bug",
+                  "namespace": "__unbound__"
+                }
+              },
               "tasks": {
                 "cardinality": "1:N",
                 "on": {
@@ -258,6 +300,11 @@
                   "codecId": "sqlite/text@1",
                   "dataType": "sqlite/text",
                   "nullable": false
+                },
+                "reviewerId": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": true
                 },
                 "severity": {
                   "codecId": "sqlite/text@1",
@@ -361,7 +408,7 @@
         "id": "__unbound__"
       }
     },
-    "storageHash": "9888c9d0adcc13163c4e3de6e0fca2206d7bf734b3188f65a4d91448645d5244"
+    "storageHash": "27f614e2942ab093133c0ba565e421d735d1b1124155c3ccb07f07530e0d3df5"
   },
   "capabilities": {
     "sql": {
