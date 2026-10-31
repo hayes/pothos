@@ -275,10 +275,7 @@ export class PrismaNextObjectFieldBuilder<
       typeof variant === 'string'
         ? (getRefFromContractModel(variant as never, this.builder) as never)
         : variant;
-    const variantTypeName =
-      (ref as { name?: string; modelName?: string }).name ??
-      (ref as { modelName?: string }).modelName ??
-      (this.modelName as string);
+    const variantTypeName = (ref as { name: string }).name;
     const {
       isNull,
       nullable,
@@ -484,6 +481,11 @@ export class PrismaNextObjectFieldBuilder<
     options: Record<string, unknown>,
     nullableDefault: boolean,
   ): FieldRef<Types, unknown, 'PrismaNextObject'> {
+    if (!this.#relation(name).isToMany) {
+      throw new PothosSchemaError(
+        `Aggregate '${op}' on '${this.modelName as string}.${name}' needs a to-many relation.`,
+      );
+    }
     const { where, nullable, extensions, ...rest } = options as {
       where?: unknown;
       nullable?: boolean;

@@ -7,6 +7,7 @@ exports[`example schema > generates the expected schema 1`] = `
   post: Post!
   ref: String
   shout: String
+  whisper: String
 }
 
 interface Node {

@@ -32,6 +32,7 @@ import type {
   AnyContract,
   CursorSpec,
   ModelName,
+  NameOrVariant,
   PrismaNextConnectionFieldOptions,
   PrismaNextInterfaceOptions,
   PrismaNextObjectFieldOptions,
@@ -44,11 +45,20 @@ import type {
   ShapeFromConnection,
 } from './types.js';
 
-type ObjectLevelShape<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  Select,
-> = ShapeFromObjectSelect<Types, M, never, Select>;
+/** What a model's root field or connection may name as its `type`. */
+type ModelParam<Types extends SchemaTypes> =
+  | ModelName<Types>
+  | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
+  | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>;
+
+/** A root field's `type`: a model's type, or a list of it. */
+type FieldParam<Types extends SchemaTypes> =
+  | ModelName<Types>
+  | [ModelName<Types>]
+  | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
+  | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
+  | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
+  | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>];
 
 /**
  * Merged beside a plain `select?: Select`, which stays the only inference site: inferring through
@@ -207,24 +217,28 @@ declare global {
         const Interfaces extends InterfaceParam<Types>[],
         M extends ModelName<Types>,
         const Select = unknown,
-        Shape = ObjectLevelShape<Types, M, Select> & InterfaceSelectShape<Types, M, Interfaces>,
+        Shape = ShapeFromObjectSelect<Types, M, Select> &
+          InterfaceSelectShape<Types, M, Interfaces>,
       >(
         modelName: M,
         options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
           select?: Select;
-        } & TypeSelectCheck<Types, M, Select>,
+        } & TypeSelectCheck<Types, M, Select> &
+          NameOrVariant,
       ) => PrismaNextObjectRef<Types, M, Shape>;
 
       prismaInterface: <
         const Interfaces extends InterfaceParam<Types>[],
         M extends ModelName<Types>,
         const Select = unknown,
-        Shape = ObjectLevelShape<Types, M, Select> & InterfaceSelectShape<Types, M, Interfaces>,
+        Shape = ShapeFromObjectSelect<Types, M, Select> &
+          InterfaceSelectShape<Types, M, Interfaces>,
       >(
         modelName: M,
         options: Omit<PrismaNextInterfaceOptions<Types, M, Shape, Interfaces>, 'select'> & {
           select?: Select;
-        } & TypeSelectCheck<Types, M, Select>,
+        } & TypeSelectCheck<Types, M, Select> &
+          NameOrVariant,
       ) => PrismaNextInterfaceRef<Types, M, Shape>;
 
       prismaObjectField: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
@@ -262,7 +276,8 @@ declare global {
             const Interfaces extends InterfaceParam<Types>[],
             M extends ModelName<Types>,
             const Select = unknown,
-            Shape = ObjectLevelShape<Types, M, Select> & InterfaceSelectShape<Types, M, Interfaces>,
+            Shape = ShapeFromObjectSelect<Types, M, Select> &
+              InterfaceSelectShape<Types, M, Interfaces>,
             const IDFields extends
               | IdColumn<Types, M>
               | readonly [IdColumn<Types, M>, ...IdColumn<Types, M>[]] = IdColumn<Types, M>,
@@ -286,7 +301,8 @@ declare global {
               collection?:
                 | ResolverCollection<Types, M>
                 | ((ctx: Types['Context']) => ResolverCollection<Types, M>);
-            } & TypeSelectCheck<Types, M, Select>,
+            } & TypeSelectCheck<Types, M, Select> &
+              NameOrVariant,
           ) => PrismaNextNodeRef<Types, M, Shape, IDShape>
         : '@pothos/plugin-relay is required to use this method';
     }
@@ -298,13 +314,7 @@ declare global {
     > {
       prismaField: <
         Args extends InputFieldMap,
-        Param extends
-          | ModelName<Types>
-          | [ModelName<Types>]
-          | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-          | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
-          | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
-          | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
+        Param extends FieldParam<Types>,
         ResolveReturnShape,
         Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
         M extends ModelName<Types> = ParamToModelName<Types, Param>,
@@ -325,13 +335,7 @@ declare global {
       prismaFieldWithInput: 'withInput' extends PluginName
         ? <
             Args extends InputFieldMap,
-            Param extends
-              | ModelName<Types>
-              | [ModelName<Types>]
-              | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-              | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
-              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
-              | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
+            Param extends FieldParam<Types>,
             ResolveReturnShape,
             Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
             Fields extends InputFieldMap = {},
@@ -363,17 +367,11 @@ declare global {
       prismaConnection: 'relay' extends PluginName
         ? <
             Args extends InputFieldMap,
-            Param extends
-              | ModelName<Types>
-              | [ModelName<Types>]
-              | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-              | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
-              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
-              | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>],
+            Param extends ModelParam<Types>,
             ResolveReturnShape,
             Nullable extends boolean = Types['DefaultFieldNullability'],
-            ConnectionInterfaces extends InterfaceParam<Types>[] = [],
-            EdgeInterfaces extends InterfaceParam<Types>[] = [],
+            const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+            const EdgeInterfaces extends InterfaceParam<Types>[] = [],
             M extends ModelName<Types> = ParamToModelName<Types, Param>,
             Cursor extends CursorSpec<Types, M> = CursorSpec<Types, M>,
           >(

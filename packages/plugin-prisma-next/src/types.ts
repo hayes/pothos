@@ -29,6 +29,7 @@ import type {
   AggregateBuilder,
   Collection,
   CollectionTypeState,
+  Condition,
   DefaultCollectionTypeState,
   DefaultModelRow,
   HasRow,
@@ -79,7 +80,7 @@ type NamespacesWithModel<TContract extends AnyContract, M extends string> = {
     : never;
 }[keyof TContract['domain']['namespaces']];
 
-type IsUnion<T, U = T> = T extends unknown ? ([U] extends [T] ? false : true) : never;
+export type IsUnion<T, U = T> = T extends unknown ? ([U] extends [T] ? false : true) : never;
 
 /** Bare unless another namespace shares the name. `to.namespace` may be a branded `NamespaceId`. */
 export type ModelKey<TContract extends AnyContract, Ns extends string, M extends string> =
@@ -473,7 +474,6 @@ export type PrismaNextRelationOptions<
   >,
   'type' | 'resolve' | InferredFieldOptionKeys
 > & {
-  description?: string | false;
   type?: PrismaNextObjectRef<Types, TypeModel, RelatedShape>;
   query?: Query & NoInfer<ExactRelationQuery<Query>>;
 };
@@ -508,7 +508,6 @@ export type PrismaNextVariantFieldOptions<
   PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, VariantRef, Nullable, Args, unknown>,
   'type' | 'nullable' | 'select' | InferredFieldOptionKeys
 > & {
-  description?: string | false;
   nullable?: Nullable & NoInfer<VariantNullableOption<IsNull>>;
   /** Columns to load for `isNull`, whatever the query selects. */
   select?: readonly Selected[];
@@ -572,7 +571,7 @@ type RelationAggregateWhere<
         BareModelName<RelatedModel<Types, M, R>>,
         NamespaceOf<Types, RelatedModel<Types, M, R>>
       >,
-    ) => unknown);
+    ) => Condition);
 
 type RelationAggregateBaseOptions<
   Types extends SchemaTypes,
@@ -593,7 +592,6 @@ type RelationAggregateBaseOptions<
   >,
   'type' | 'resolve' | 'select' | InferredFieldOptionKeys
 > & {
-  description?: string | false;
   where?: RelationAggregateWhere<Types, ParentModel, RelName, Args>;
 };
 
@@ -770,6 +768,17 @@ type AggregateScalar<Types extends SchemaTypes, Result> = {
     : never;
 }[ScalarName<Types>];
 
+/** Names the result in the error when no scalar can serialize it, where `never` says nothing. */
+export interface NoAggregateScalar<Result> {
+  readonly 'No scalar Output type matches the aggregate result': Result;
+}
+
+type AggregateScalarOption<Types extends SchemaTypes, Result> = [
+  AggregateScalar<Types, Result>,
+] extends [never]
+  ? NoAggregateScalar<NonNullable<Result>>
+  : AggregateScalar<Types, Result>;
+
 /** Non-number results require an explicit GraphQL scalar. */
 export type PrismaNextRelationAggregateOptions<
   Types extends SchemaTypes,
@@ -811,7 +820,7 @@ export type PrismaNextRelationAggregateOptions<
         >;
       }
     : {
-        type: AggregateScalar<
+        type: AggregateScalarOption<
           Types,
           RelationAggregateResult<Types, RelatedModel<Types, ParentModel, RelName>, Op, Field>
         >;
@@ -843,10 +852,10 @@ export type PrismaNextInterfaceOptions<
 > = Omit<InterfaceTypeOptions<Types, InterfaceRef<Types, Shape>, Shape, Interfaces>, 'fields'> &
   PrismaNextTypeOptions<Types, M, Shape>;
 
+/** `variant` is `name` for a type that shares its model with others; only one may be set. */
+export type NameOrVariant = { name?: never; variant?: string } | { name?: string; variant?: never };
+
 type PrismaNextTypeOptions<Types extends SchemaTypes, M extends ModelName<Types>, Shape> = {
-  name?: string;
-  /** Alias for `name` when several types share a model; takes precedence over `name`. */
-  variant?: string;
   /** Columns and relations to always load for this type, as a column array or a `select` object. */
   select?: readonly (keyof Row<Types, M> & string)[] | SelectObjectSpec<Types, M>;
   fields?: (
@@ -854,7 +863,7 @@ type PrismaNextTypeOptions<Types extends SchemaTypes, M extends ModelName<Types>
     // `t.expose*` demand `nullable: true` on every column.
     t: PrismaNextObjectFieldBuilder<Types, M, FieldParentShape<Types, M, Shape>, Row<Types, M>>,
   ) => FieldMap;
-};
+} & NameOrVariant;
 
 export type PrismaNextRootFieldOptions<
   Types extends SchemaTypes,
@@ -1015,7 +1024,7 @@ export type PrismaNextConnectionFieldOptions<
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
   > & {
     type: Param;
-    cursor: Cursor & NoInfer<ExactCursor<Cursor>>;
+    cursor: Cursor & ExactCursor<Cursor>;
     defaultSize?:
       | number
       | ((
@@ -1055,7 +1064,7 @@ export type PrismaNextConnectionFieldOptions<
       ConnectionCollection<Types, NoInfer<M>> | (Nullable extends true ? null : never)
     >;
     /** Not supported: chain `.where(...)` on the collection in `resolve` instead. */
-    query?: 'plugin-prisma-next: chain `.where(...)` on the collection inside `resolve` instead of passing a `query` option';
+    query?: never;
   };
 
 export type PrismaNextRelatedConnectionOptions<
@@ -1092,7 +1101,7 @@ export type PrismaNextRelatedConnectionOptions<
     >,
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
   > & {
-    cursor: Cursor & NoInfer<ExactCursor<Cursor>>;
+    cursor: Cursor & ExactCursor<Cursor>;
     type?: PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
     defaultSize?:
       | number
@@ -1147,7 +1156,7 @@ export type PrismaNextRelatedConnectionOptions<
             BareModelName<RelatedModel<Types, ParentModel, RelName>>,
             NamespaceOf<Types, RelatedModel<Types, ParentModel, RelName>>
           >,
-        ) => unknown);
+        ) => Condition);
   };
 
 /**

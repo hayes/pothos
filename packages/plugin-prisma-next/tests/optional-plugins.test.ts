@@ -42,6 +42,19 @@ describe('missing optional plugins', () => {
     );
   });
 
+  it('names the relay plugin for prismaNode', () => {
+    const error = buildError((builder) => {
+      (builder as unknown as { prismaNode: (model: string, options: object) => never }).prismaNode(
+        'User',
+        { id: { field: 'id' }, fields: () => ({}) },
+      );
+    });
+    expect(error).toBeInstanceOf(PothosSchemaError);
+    expect((error as Error).message).toBe(
+      'builder.prismaNode requires @pothos/plugin-relay to be loaded.',
+    );
+  });
+
   it('names the relay plugin for prismaConnection', () => {
     const error = buildError((builder) => {
       builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });

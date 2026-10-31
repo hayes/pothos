@@ -31,6 +31,32 @@ describe('includes', () => {
     expect(printSchema(builder.toSchema())).toMatch(/type Post \{\n {2}author: User\n/);
   });
 
+  it('applies an orderBy array in order, the later selectors breaking ties', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relation('posts', {
+          query: { orderBy: [(post) => post.authorId.asc(), (post) => post.title.desc()] },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { posts { id } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { posts: [{ id: 'p-hello' }, { id: 'p-draft1' }] },
+      { posts: [{ id: 'p-bob1' }, { id: 'p-bob-draft' }] },
+    ]);
+  });
+
   it('makes a to-one relation with a query nullable, since the query can filter its row out', async () => {
     const builder = createBuilder();
     builder.prismaObject('User', { fields: (t) => ({ firstName: t.exposeString('firstName') }) });
@@ -675,18 +701,23 @@ describe('to-one consumers', () => {
     );
   });
 
-  it('rejects a count of a to-one relation before SQL', async () => {
+  it('rejects a count of a to-one relation when the schema is built', () => {
     const builder = createBuilder();
     builder.prismaObject('Post', {
       fields: (t) => ({ authorCount: t.relationCount('author' as never) }),
     });
-    builder.queryType({
-      fields: (t) => ({ posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }) }),
-    });
-    const result = await run(builder.toSchema(), '{ posts { authorCount } }');
-    expect(result.errors?.[0].message).toContain(
-      'Function-form selection on to-one relation "author"',
+    expect(() => builder.toSchema()).toThrow(
+      "Aggregate 'count' on 'Post.author' needs a to-many relation.",
     );
-    expect(result.statements).toHaveLength(0);
+  });
+
+  it('rejects an aggregate of an unknown relation when the schema is built', () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        total: t.relationAggregate('nope' as never, { op: 'sum', field: 'score' } as never),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow("Relation 'nope' not found on model 'User'.");
   });
 });

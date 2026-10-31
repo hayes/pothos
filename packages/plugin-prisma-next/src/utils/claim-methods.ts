@@ -10,7 +10,8 @@ const conflict =
  * plugin-prisma is already registered, and in the setter when it loads afterwards.
  */
 export function claimPrismaMethods(proto: object, names: readonly string[]) {
-  if (Object.hasOwn(SchemaBuilder.plugins, 'prisma')) {
+  // `plugins` is the registry `registerPlugin` fills; core's default export doesn't type it.
+  if (Object.hasOwn((SchemaBuilder as unknown as { plugins: object }).plugins, 'prisma')) {
     throw new PothosSchemaError(conflict);
   }
   for (const name of names) {
