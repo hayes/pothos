@@ -93,6 +93,7 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
               builder,
               modelName,
               contract as Types['PrismaNextContract'],
+              isInterface ? 'Interface' : 'Object',
             ) as never,
           )
       : undefined,
@@ -151,6 +152,7 @@ function fieldsFor<Types extends SchemaTypes, M extends ModelName<Types>>(
           builder,
           modelName,
           getPluginConfig(builder).contract as Types['PrismaNextContract'],
+          kind === 'interface' ? 'Interface' : 'Object',
         ),
       ),
   };
