@@ -45,7 +45,7 @@ function createSchema(collections?: 'orm') {
       user: t.relation('user'),
     }),
   });
-  builder.prismaObject('nsb.User', {
+  const nsbUser = builder.prismaObject('nsb.User', {
     fields: (t) => ({
       id: t.exposeString('id'),
       name: t.exposeString('name'),
@@ -60,6 +60,7 @@ function createSchema(collections?: 'orm') {
         type: post,
         resolve: () => ({ id: 1, title: 'first', userId: 1 }) as never,
       }),
+      plainB: t.field({ type: nsbUser, resolve: () => ({ id: 'x' }) as never }),
     }),
   });
   return builder.toSchema();
@@ -150,10 +151,10 @@ describe('models sharing a name across namespaces', () => {
   it('finds fallback collections in a namespaced ORM client', async () => {
     const result = await graphql({
       schema: createSchema('orm'),
-      source: '{ plain { user { orgId } } }',
+      source: '{ plain { user { orgId } } plainB { name } }',
       contextValue: {},
     });
-    expect(result).toEqual({ data: { plain: { user: { orgId: 10 } } } });
+    expect(result).toEqual({ data: { plain: { user: { orgId: 10 } }, plainB: { name: 'Xena' } } });
   });
 });
 

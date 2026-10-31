@@ -115,6 +115,14 @@ describe('Relay nodes', () => {
     expect(result.errors?.[0].message).not.toContain('MARKER');
     expect(result.statements).toHaveLength(0);
   });
+  it('rejects an ID over the size cap without echoing it or running the collection', async () => {
+    const result = await query('query ($id: ID!) { node(id: $id) { id } }', {
+      id: globalId('User', `MARKER${'x'.repeat(4000)}`),
+    });
+    expect(result.errors?.[0].message).toMatch(/ID payload exceeds/);
+    expect(result.errors?.[0].message).not.toContain('MARKER');
+    expect(result.statements).toHaveLength(0);
+  });
 });
 
 describe('node batching', () => {
@@ -154,6 +162,19 @@ describe('node batching', () => {
     });
     expect(users('user')(result.statements)).toHaveLength(3);
     expect(users('post')(result.statements)).toHaveLength(1);
+  });
+
+  it('keeps a variant in its own batch within one list', async () => {
+    const result = await query(
+      'query ($ids: [ID!]!) { nodes(ids: $ids) { __typename ... on User { firstName } ... on AdminUser { lastName } } }',
+      { ids: [globalId('User', 'u-alice'), globalId('AdminUser', 'u-bob')] },
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.nodes).toEqual([
+      { __typename: 'User', firstName: 'Alice' },
+      { __typename: 'AdminUser', lastName: 'Brown' },
+    ]);
+    expect(users('user')(result.statements)).toHaveLength(2);
   });
 
   it('calls a collection callback once per batch with the request context', async () => {
@@ -318,6 +339,17 @@ describe('ID values', () => {
         { id: new Date('2026-09-10T01:02:03.002Z'), firstName: 'B' },
       ],
       { field: 'id' },
+    );
+    await roundTrip(
+      [
+        { id: new Date('2026-09-10T01:02:03.001Z'), firstName: 'A' },
+        { id: new Date('2026-09-10T01:02:03.002Z'), firstName: 'B' },
+      ],
+      {
+        field: 'id',
+        parse: (id: string) => new Date(id),
+        resolve: (row: { id: Date }) => row.id.toISOString(),
+      },
     );
     for (const wrap of [bytes, (n: number) => Buffer.from([n])]) {
       await roundTrip(

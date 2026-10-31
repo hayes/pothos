@@ -167,6 +167,33 @@ describe('fallback loading through collections', () => {
     expect(result.statements[1].sql).toMatch(/"authorId".*=.*\bAND\b.*"id".*\bOR\b/);
   });
 
+  it('keeps rows that share part of a compound key apart', async () => {
+    const contract = structuredClone(sampleContract);
+    const post = contract.storage.namespaces.__unbound__.entries.table.post;
+    (post.primaryKey as unknown as { columns: string[] }).columns = ['authorId', 'id'];
+    const builder = createBuilder({ collections: db.orm });
+    Object.assign(builder.options.prismaNext!, { contract });
+    const Post = builder.prismaObject('Post', {
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.field({
+          type: [Post],
+          resolve: () =>
+            [
+              { authorId: 'u-alice', id: 'p-hello' },
+              { authorId: 'u-alice', id: 'p-draft1' },
+            ] as never,
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ posts { title } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts).toEqual([{ title: 'Hello, Pothos' }, { title: 'Draft #1' }]);
+    expect(result.statements).toHaveLength(1);
+  });
+
   it('loads missing selections of rows a plain field returns, batched across parents', async () => {
     const result = await run(schema(), '{ plain { title author { name } } }');
     expect(result.errors).toBeUndefined();
@@ -197,11 +224,19 @@ describe('fallback loading through collections', () => {
         }),
       }),
     });
-    const result = await run(builder.toSchema(), '{ posts { title } }', {
+    const schema = builder.toSchema();
+    const result = await run(schema, '{ posts { title } }', {
       context: { tenant: 'u-alice' },
     });
     expect(result.data.posts).toEqual([{ title: 'Hello, Pothos' }, { title: 'Draft #1' }]);
     expect(contexts).toEqual([{ tenant: 'u-alice' }]);
+    const other = await run(schema, '{ posts { title } }', { context: { tenant: 'u-bob' } });
+    expect(other.errors?.map((error) => error.path)).toEqual([
+      ['posts', 0, 'title'],
+      ['posts', 1, 'title'],
+    ]);
+    expect(other.errors?.[0].message).toMatch(/could not find model 'Post'/);
+    expect(contexts).toEqual([{ tenant: 'u-alice' }, { tenant: 'u-bob' }]);
   });
 });
 
