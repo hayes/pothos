@@ -171,7 +171,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         ? compileFieldSelect(this.config.contract, select, model, declaring.name)
         : typeof exposed === 'string'
           ? { columns: [exposed] }
-          : declaring.extensions?.[PRISMA_NEXT_SELECT]
+          : this.typeSelects(fieldConfig.parentType, modelName).length
             ? EMPTY
             : undefined;
     return selection
@@ -181,6 +181,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
   override afterBuild(schema: GraphQLSchema): GraphQLSchema {
     const { contract, adapter } = this.config;
+    adapter.registerImplementations(schema);
     for (const type of Object.values(schema.getTypeMap())) {
       if (isInterfaceType(type) && type.extensions?.[PRISMA_NEXT_DISCRIMINATED]) {
         variantTypeNames(contract, schema, type);
@@ -200,6 +201,33 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       }
     }
     return schema;
+  }
+
+  /**
+   * The type-level `select`s rows of `typeName` carry: those of its interfaces on the same model
+   * (deepest first), then its own.
+   */
+  private typeSelects(typeName: string, modelName: string) {
+    const { contract } = this.config;
+    const root = rootModelKey(contract, modelName);
+    const selects: { name: string; raw: RawSelect }[] = [];
+    const visited = new Set<string>();
+    const visit = (config: PothosTypeConfig) => {
+      if (visited.has(config.name)) {
+        return;
+      }
+      visited.add(config.name);
+      for (const iface of 'interfaces' in config ? config.interfaces : []) {
+        visit(this.buildCache.getTypeConfig(iface, 'Interface'));
+      }
+      const raw = config.extensions?.[PRISMA_NEXT_SELECT] as RawSelect | undefined;
+      const model = config.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+      if (raw && model !== undefined && rootModelKey(contract, model) === root) {
+        selects.push({ name: config.name, raw });
+      }
+    };
+    visit(this.buildCache.getTypeConfig(typeName));
+    return selects;
   }
 
   /**
@@ -224,15 +252,27 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { config } = this;
     const model = getModel(config.contract, modelName);
-    const declaring = this.buildCache.getTypeConfig(declaringType(fieldConfig));
-    const typeSelect = declaring.extensions?.[PRISMA_NEXT_SELECT] as RawSelect | undefined;
-    const typeParts = typeSelect ? splitSelect(typeSelect, model) : undefined;
+    const declaring = declaringType(fieldConfig);
+    const typeSelects = this.typeSelects(fieldConfig.parentType, modelName).map(
+      ({ name, raw }) => ({
+        name,
+        ...splitSelect(raw, model),
+      }),
+    );
+    // The parent row carries every column and relation its type and interfaces select; one that is
+    // missing reloads it.
     const columns = [
-      ...(typeParts?.columns ?? []),
-      ...(typeof selection === 'function' ? [] : (selection.columns ?? [])),
+      ...new Set([
+        ...typeSelects.flatMap((own) => [...own.columns, ...own.relations.map(([name]) => name)]),
+        ...(typeof selection === 'function' ? [] : (selection.columns ?? [])),
+      ]),
     ];
-    const typeScope = typeParts?.relations.length ? declaring.name : undefined;
-    const planned = typeof selection === 'function' || typeScope !== undefined;
+    // Each type's relation slots, the declaring type's last so its fields read what it selects.
+    const typeScopes = typeSelects
+      .filter((own) => own.relations.length > 0)
+      .map((own) => own.name)
+      .sort((a, b) => Number(a === declaring) - Number(b === declaring));
+    const planned = typeof selection === 'function' || typeScopes.length > 0;
     const loaded = extensions[PRISMA_NEXT_LOADED] as Loaded | undefined;
     const include = extensions.pothosIndirectInclude as IndirectInclude | undefined;
     // A same-row variant hands the row on unchanged; the variant's fields read their own slots.
@@ -256,7 +296,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       sameRow
         ? row
         : (viewOf(row, toMany, [
-            typeScope,
+            ...typeScopes,
             mapping?.position && scopeOf(mapping.position),
           ]) as Record<string, unknown>);
 

@@ -6,7 +6,12 @@ import {
   type QueryVisitor,
   type WalkedType,
 } from '@pothos/selection-mapper';
-import type { GraphQLField, GraphQLNamedType } from 'graphql';
+import {
+  type GraphQLField,
+  type GraphQLNamedType,
+  type GraphQLSchema,
+  isInterfaceType,
+} from 'graphql';
 import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_MODEL, PRISMA_NEXT_SELECT } from '../constants.js';
 import type { AnyContract } from '../types.js';
 import {
@@ -71,6 +76,12 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     GraphQLNamedType,
     { query?: PrismaNextQuery; deferred: Map<string, PrismaNextQuery> }
   >();
+  /**
+   * By interface name, then implementation name: the selections of the implementations of each
+   * prisma interface's model. Named, since the schema a build returns may hold copies of the
+   * types it was built with.
+   */
+  private readonly implementations = new Map<string, Map<string, PrismaNextQuery>>();
   private readonly fieldSelections = new WeakMap<
     GraphQLField<unknown, unknown>,
     PrismaNextQuery | PrismaNextSelectFn | null
@@ -90,9 +101,38 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   }
 
   /**
-   * The type's own selection, then each interface's in turn. An interface selection conflicting
-   * with what is already there is planned with the fields that interface declares instead, so
-   * those fields load separately.
+   * Records the selections of the object types of each prisma interface's model that implement
+   * it: a row loaded as the interface may resolve as any of them.
+   */
+  registerImplementations(schema: GraphQLSchema) {
+    for (const type of Object.values(schema.getTypeMap())) {
+      const model = isInterfaceType(type) ? this.modelFor(type) : undefined;
+      if (!model) {
+        continue;
+      }
+      let selections = this.implementations.get(type.name);
+      if (!selections) {
+        selections = new Map();
+        this.implementations.set(type.name, selections);
+      }
+      for (const impl of schema.getPossibleTypes(type as never)) {
+        if (this.modelFor(impl) === model) {
+          selections.set(impl.name, this.typeSelectionOf(impl).query!);
+        }
+      }
+    }
+  }
+
+  /**
+   * The type's own selection, then each interface's in turn. An interface's columns always merge;
+   * a relation or computed entry conflicting with what is already there is set aside, and the
+   * fields that interface declares carry it instead, so they load separately.
+   *
+   * An interface also loads what its implementations' selections need, since a row loaded as the
+   * interface reaches their `isTypeOf`, type-level auth and fields without a fragment entering
+   * them: their columns, and the to-many relations and computed values (planned into the
+   * implementation's own slots) the interface's query can include. Their to-one relations are
+   * left to a fragment, or to the field wrapper's reload.
    */
   typeSelection(type: GraphQLNamedType): PrismaNextQuery | undefined {
     return this.typeSelectionOf(type).query;
@@ -106,7 +146,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   private typeSelectionOf(type: GraphQLNamedType) {
     let selection = this.typeSelections.get(type);
     if (!selection) {
-      selection = { deferred: new Map() };
+      const deferred = new Map<string, PrismaNextQuery>();
+      selection = { deferred };
       const model = this.modelFor(type);
       if (model) {
         const node = this.createNode(model);
@@ -118,11 +159,12 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
           visited.add(current);
           const raw = current.extensions?.[PRISMA_NEXT_SELECT] as RawSelect | undefined;
           const own = raw && compileTypeSelect(raw, model, current.name);
-          if (own) {
-            if (current === type || this.canMergeQuery(node, own)) {
-              this.mergeQuery(node, own);
-            } else {
-              selection!.deferred.set(current.name, own);
+          if (own && current === type) {
+            this.mergeQuery(node, own);
+          } else if (own) {
+            const conflicts = this.mergeParts(node, own);
+            if (conflicts) {
+              deferred.set(current.name, conflicts);
             }
           }
           for (const iface of 'getInterfaces' in current ? current.getInterfaces() : []) {
@@ -130,6 +172,19 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
           }
         };
         visit(type);
+        for (const { columns, relations, computed } of this.implementations
+          .get(type.name)
+          ?.values() ?? []) {
+          this.mergeParts(node, {
+            columns,
+            relations:
+              relations &&
+              Object.fromEntries(
+                Object.entries(relations).filter(([key]) => relationName(key) !== key),
+              ),
+            computed,
+          });
+        }
         this.mergeQuery(node, { columns: getIdentityFields(this.contract, model.name) });
         selection.query = this.toQuery(node);
       }
@@ -138,16 +193,47 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     return selection;
   }
 
+  /**
+   * Merges `query`'s columns, and each of its relation and computed entries that fits beside what
+   * `node` holds. Returns the entries that did not, if any.
+   */
+  private mergeParts(node: PrismaNextNode, query: PrismaNextQuery): PrismaNextQuery | undefined {
+    this.mergeQuery(node, { columns: query.columns });
+    let conflicts: PrismaNextQuery | undefined;
+    for (const [key, child] of Object.entries(query.relations ?? {})) {
+      const part = { relations: { [key]: child } };
+      if (this.canMergeQuery(node, part)) {
+        this.mergeQuery(node, part);
+      } else {
+        conflicts ??= {};
+        conflicts.relations = { ...conflicts.relations, [key]: child };
+      }
+    }
+    for (const [key, value] of Object.entries(query.computed ?? {})) {
+      const part = { computed: { [key]: value } };
+      if (this.canMergeQuery(node, part)) {
+        this.mergeQuery(node, part);
+      } else {
+        conflicts ??= {};
+        conflicts.computed = { ...conflicts.computed, [key]: value };
+      }
+    }
+    return conflicts;
+  }
+
   fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
     let selection = this.fieldSelections.get(field);
     if (selection === undefined) {
+      const own = field.extensions?.[PRISMA_NEXT_FIELD_SELECT] as
+        | PrismaNextQuery
+        | PrismaNextSelectFn
+        | undefined;
+      // A field of an interface is recorded as planned, so the implementation it resolves on
+      // finds the slots the interface planned for that implementation's selection.
       selection = this.withPrerequisite(
         field,
         type,
-        field.extensions?.[PRISMA_NEXT_FIELD_SELECT] as
-          | PrismaNextQuery
-          | PrismaNextSelectFn
-          | undefined,
+        own ?? (this.implementations.has(type.name) ? EMPTY : undefined),
       );
       this.fieldSelections.set(field, selection ?? null);
     }

@@ -1,24 +1,50 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
-import { execute, parse } from 'graphql';
-import { afterAll, beforeAll, expect, it } from 'vitest';
+import { execute, type GraphQLSchema, parse } from 'graphql';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import prismaNextPlugin from '../src';
 import {
   type CapturedExecution,
+  createSqliteRuntime,
   createTestRuntime,
+  loadContract,
   type SampleContract,
+  type SqliteRuntime,
   type TestRuntimeContext,
   withCapture,
 } from './fixtures/runtime';
+import type { Contract as InheritanceContract } from './inheritance/contract';
 
 let ctx: TestRuntimeContext;
+let inheritanceDb: SqliteRuntime<InheritanceContract>;
 beforeAll(async () => {
   ctx = await createTestRuntime();
+  inheritanceDb = createSqliteRuntime(
+    loadContract<InheritanceContract>(new URL('./inheritance/contract.json', import.meta.url)),
+    `
+    CREATE TABLE user (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE);
+    CREATE TABLE task (id TEXT PRIMARY KEY, title TEXT NOT NULL, type TEXT NOT NULL, ownerId TEXT NOT NULL, severity TEXT, reviewerId TEXT);
+    CREATE TABLE feature (id TEXT PRIMARY KEY REFERENCES task(id), priority INT NOT NULL);
+    INSERT INTO user VALUES ('u1', 'a@example.com');
+    INSERT INTO task VALUES ('t1', 'bug1', 'bug', 'u1', 'high', 'u1'), ('t2', 'feat1', 'feature', 'u1', NULL, 'u1');
+    INSERT INTO feature VALUES ('t2', 5);
+  `,
+  );
 });
 afterAll(async () => {
   await ctx?.cleanup();
+  await inheritanceDb?.cleanup();
 });
+
+async function runCaptured(schema: GraphQLSchema, source: string) {
+  const statements: CapturedExecution[] = [];
+  const result = await withCapture(statements, async () =>
+    execute({ schema, document: parse(source), contextValue: {} }),
+  );
+  // biome-ignore lint/suspicious/noExplicitAny: assertions walk arbitrary response data
+  return { ...result, data: result.data as any, statements };
+}
 
 function schema() {
   const builder = new SchemaBuilder<{
@@ -188,4 +214,166 @@ it('loads declared columns and the exposed column for authScopes', async () => {
     exposedDeclared: 'alice@example.com',
     undeclared: undefined,
   });
+});
+
+const orders = [
+  ['scope-auth first', [ScopeAuthPlugin, prismaNextPlugin]],
+  ['prismaNext first', [prismaNextPlugin, ScopeAuthPlugin]],
+] as const;
+
+describe.each(orders)("an implementation's select under an interface (%s)", (_, plugins) => {
+  function variantSchema(seen: unknown[]) {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: InheritanceContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: inheritanceDb.client },
+    });
+    const Task = builder.prismaInterface('Task', {
+      fields: (t) => ({ title: t.exposeString('title', { nullable: true }) }),
+    });
+    builder.prismaObject('Bug', {
+      interfaces: [Task],
+      select: ['severity'],
+      authScopes: (bug) => {
+        seen.push(bug.severity);
+        return bug.severity !== 'high';
+      },
+    });
+    builder.prismaObject('Feature', {
+      interfaces: [Task],
+      select: ['priority'],
+      authScopes: (feature) => {
+        seen.push(feature.priority);
+        return feature.priority === 5;
+      },
+    });
+    builder.prismaObject('User', { fields: (t) => ({ tasks: t.relation('tasks') }) });
+    builder.queryType({
+      fields: (t) => ({
+        tasks: t.prismaField({
+          type: [Task],
+          resolve: () => inheritanceDb.orm.Task.orderBy((row) => row.id.asc()),
+        }),
+        users: t.prismaField({ type: ['User'], resolve: () => inheritanceDb.orm.User }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it('loads variant columns that type-level authScopes read, without a fragment', async () => {
+    const seen: unknown[] = [];
+    const schema = variantSchema(seen);
+    const result = await runCaptured(schema, '{ tasks { __typename title } }');
+    expect(seen).not.toContain(undefined);
+    expect(seen).toContain('high');
+    expect(seen).toContain(5);
+    expect(result.data).toEqual({
+      tasks: [
+        { __typename: 'Bug', title: null },
+        { __typename: 'Feature', title: 'feat1' },
+      ],
+    });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Not authorized to read fields for Bug',
+    ]);
+    expect(result.statements).toHaveLength(1);
+    expect(result.statements[0].sql).toMatch(/"severity"/);
+    expect(result.statements[0].sql).toMatch(/"priority"/);
+
+    const relation = await runCaptured(schema, '{ users { tasks { title } } }');
+    expect(relation.data).toEqual({ users: [{ tasks: [{ title: null }, { title: 'feat1' }] }] });
+    expect(relation.statements).toHaveLength(1);
+    expect(seen).not.toContain(undefined);
+  });
+
+  function sameModelSchema(seen: unknown[]) {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    const Named = builder.prismaInterface('User', {
+      name: 'Named',
+      resolveType: () => 'User',
+      fields: (t) => ({ firstName: t.exposeString('firstName', { nullable: true }) }),
+    });
+    builder.prismaObject('User', {
+      interfaces: [Named],
+      select: { email: true, posts: true },
+      authScopes: (user) => {
+        seen.push(Array.isArray(user.posts) ? [user.email, user.posts.length] : user.posts);
+        return user.email !== 'alice@example.com';
+      },
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        named: t.prismaField({
+          type: [Named],
+          resolve: () => ctx.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it("loads an implementation's columns and to-many relations for its authScopes", async () => {
+    const seen: unknown[] = [];
+    const result = await runCaptured(sameModelSchema(seen), '{ named { firstName } }');
+    expect(result.data).toEqual({ named: [{ firstName: null }, { firstName: 'Bob' }] });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Not authorized to read fields for User',
+    ]);
+    expect(seen).toEqual(
+      expect.arrayContaining([
+        ['alice@example.com', 2],
+        ['bob@example.com', 2],
+      ]),
+    );
+    expect(seen.every(Array.isArray)).toBe(true);
+    expect(result.statements).toHaveLength(1);
+  });
+});
+
+it("reloads a hand-built row for an implementation's authScopes (prismaNext first)", async () => {
+  const seen: unknown[] = [];
+  const builder = new SchemaBuilder<{
+    PrismaNextContract: SampleContract;
+    AuthScopes: { ok: boolean };
+  }>({
+    plugins: [prismaNextPlugin, ScopeAuthPlugin],
+    scopeAuth: { authScopes: () => ({ ok: true }) },
+    prismaNext: { client: ctx.client },
+  });
+  const Named = builder.prismaInterface('User', {
+    name: 'Named',
+    resolveType: () => 'User',
+    fields: (t) => ({ firstName: t.exposeString('firstName', { nullable: true }) }),
+  });
+  builder.prismaObject('User', {
+    interfaces: [Named],
+    select: ['email'],
+    authScopes: (user) => {
+      seen.push(user.email);
+      return user.email !== 'alice@example.com';
+    },
+  });
+  builder.queryType({
+    fields: (t) => ({
+      named: t.field({
+        type: Named,
+        resolve: () => ({ id: 'u-alice', firstName: 'Alice' }) as never,
+      }),
+    }),
+  });
+  const result = await runCaptured(builder.toSchema(), '{ named { firstName } }');
+  expect(seen).toEqual(['alice@example.com']);
+  expect(result.data).toEqual({ named: { firstName: null } });
+  expect(result.statements).toHaveLength(1);
 });
