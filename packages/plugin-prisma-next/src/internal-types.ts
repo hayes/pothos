@@ -13,6 +13,7 @@ import type {
   DefaultRelationNullable,
   IdentityFields,
   IsToMany,
+  IsUnion,
   ModelName,
   RelatedModel,
   RelationKeys,
@@ -123,7 +124,10 @@ export type SelectObjectSpec<Types extends SchemaTypes, M extends ModelName<Type
     ?
         | true
         | SelectRelationDeclarative<Types, M, K>
-        | ((sub: RelationRefinementCollection<Types, M, K>) => Record<string, unknown>)
+        // Each returned value loads into the parent under its key: a collection or a reducer.
+        | ((sub: RelationRefinementCollection<Types, M, K>) => {
+            readonly [key: string]: HasRow<unknown>;
+          })
     : K extends keyof Row<Types, M>
       ? true
       : never;
@@ -182,12 +186,7 @@ export type FieldParentShape<Types extends SchemaTypes, M extends ModelName<Type
 export type ValidateFieldSelect<Types extends SchemaTypes, ParentShape, Select> = Select extends (
   ...args: infer Args
 ) => infer Result
-  ? (
-      ...args: Args
-    ) => MaybePromise<
-      ValidateSelectValue<Types, ParentShape, Awaited<Result>> &
-        InvalidSelectValueCheck<Types, ExtractModel<Types, ParentShape>, Awaited<Result>>
-    >
+  ? (...args: Args) => MaybePromise<ValidateSelectValue<Types, ParentShape, Awaited<Result>>>
   : ValidateSelectValue<Types, ParentShape, Select>;
 
 /** Names an unknown column in an error, where a plain `never` would only say "not assignable". */
@@ -264,36 +263,38 @@ type UnknownSelectKeys<
           }[keyof Select & RelationKeys<Types, M> & string]
     : never;
 
-/** `Select` is inferred from the literal rather than checked, so unknown keys need rejecting. */
-export type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = [
+/** `Select` is inferred from the literal rather than checked, so its keys and values need checking. */
+export type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = ([
   UnknownSelectKeys<Types, M, Select>,
 ] extends [never]
   ? unknown
   : {
       [K in UnknownSelectKeys<Types, M, Select> & string as `Unknown key in select: ${K}`]: never;
-    };
+    }) &
+  InvalidSelectValueCheck<Types, M, Select>;
 
 /**
- * A function's inferred result is only reliably checked for unknown keys, so a relation's
- * `{ limit: 'x' }` needs naming here.
+ * Checking the literal against the spec isn't enough: intersected with the inferred function, the
+ * spec's all-optional relation options accept any function, and a function's inferred result is
+ * only checked for unknown keys. So a relation's `(sub) => sub` or `{ limit: 'x' }` is named here.
  */
-type InvalidSelectValueCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = [
-  M,
-] extends [never]
+type InvalidSelectValueCheck<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Select,
+> = Select extends readonly unknown[]
   ? unknown
-  : Select extends readonly unknown[]
-    ? unknown
-    : {
-          [K in keyof Select & keyof SelectObjectSpec<Types, M>]: Select[K] extends NonNullable<
-            SelectObjectSpec<Types, M>[K]
-          >
-            ? never
-            : K;
-        }[keyof Select & keyof SelectObjectSpec<Types, M>] extends infer Invalid extends string
-      ? [Invalid] extends [never]
-        ? unknown
-        : { [K in Invalid as `Invalid value in select: ${K}`]: never }
-      : unknown;
+  : {
+        [K in keyof Select & keyof SelectObjectSpec<Types, M>]: Select[K] extends NonNullable<
+          SelectObjectSpec<Types, M>[K]
+        >
+          ? never
+          : K;
+      }[keyof Select & keyof SelectObjectSpec<Types, M>] extends infer Invalid extends string
+    ? [Invalid] extends [never]
+      ? unknown
+      : { [K in Invalid as `Invalid value in select: ${K}`]: never }
+    : unknown;
 
 type Normalize<T> = { [K in keyof T]: T[K] } & {};
 
@@ -316,16 +317,18 @@ type RelationShape<
 
 /**
  * A function-form `select` contributes what it returns. When its branches return different
- * selections, their columns are optional.
+ * selections, a column every branch selects is present and the others are optional.
  */
 export type ShapeFromSelect<Types extends SchemaTypes, ParentShape, Select> = unknown extends Select
   ? ParentShape
   : Select extends (...args: never[]) => infer Result
     ? IsUnion<Awaited<Result>> extends true
-      ? Normalize<
-          ParentShape &
-            Partial<UnionToIntersection<ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>>>
-        >
+      ? ShapeFromSelectValue<Types, ParentShape, Awaited<Result>> extends infer Branches
+        ? // `keyof` a union is the keys every member has.
+          Normalize<
+            ParentShape & Partial<UnionToIntersection<Branches>> & Pick<Branches, keyof Branches>
+          >
+        : never
       : // An array that isn't a tuple (a variable) may hold any subset of its columns.
         Awaited<Result> extends readonly unknown[]
         ? number extends Awaited<Result>['length']
@@ -335,8 +338,6 @@ export type ShapeFromSelect<Types extends SchemaTypes, ParentShape, Select> = un
           : ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>
         : ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>
     : ShapeFromSelectValue<Types, ParentShape, Select>;
-
-type IsUnion<T, U = T> = T extends unknown ? ([U] extends [T] ? false : true) : never;
 
 type ShapeFromSelectValue<Types extends SchemaTypes, ParentShape, Select> =
   ExtractModel<Types, ParentShape> extends infer M
@@ -358,7 +359,6 @@ type ShapeFromSelectValue<Types extends SchemaTypes, ParentShape, Select> =
 export type ShapeFromObjectSelect<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-  _ParentShape,
   Select,
 > = unknown extends Select
   ? ObjectBaseShape<Types, M>

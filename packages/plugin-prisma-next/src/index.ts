@@ -51,6 +51,7 @@ export type {
 } from './connection-helpers.js';
 export { prismaConnectionHelpers } from './connection-helpers.js';
 export { PrismaNextInterfaceRef, prismaInterfaceKey } from './interface-ref.js';
+export type { SelectObjectSpec } from './internal-types.js';
 export { PrismaNextNodeRef, relayIDShapeKey } from './node-ref.js';
 export { type ModelBrand, PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
 export { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
@@ -58,11 +59,14 @@ export type {
   AnyContract,
   CollectionFor,
   ConnectionCollection,
+  CursorColumn,
   CursorSpec,
   IdentityFields,
   InterfaceReturnShape,
   ModelName,
   ModelReturnShape,
+  NameOrVariant,
+  NoAggregateScalar,
   PrismaNextClient,
   PrismaNextConnectionFieldOptions,
   PrismaNextExecutionContext,
@@ -77,9 +81,14 @@ export type {
   PrismaNextRequestClient,
   PrismaNextRootFieldOptions,
   PrismaNextRootFieldWithInputOptions,
+  PrismaNextSelectSpec,
   PrismaNextVariantFieldOptions,
+  RelatedModel,
+  RelationKeys,
   RelationOrderBy,
   RelationOrderSelector,
+  RelationQuery,
+  RelationWhere,
   ResolverCollection,
   Row,
   VariantFieldShape,

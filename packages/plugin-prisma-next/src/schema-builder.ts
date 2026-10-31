@@ -53,7 +53,7 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
   // A non-default name registers a variant type and gets its own ref; the default reuses the
   // cached ref that `t.relation` and string-form helpers resolve to.
   const defaultName = defaultTypeName(modelName as string);
-  const typeName = (options as { variant?: string }).variant ?? options.name ?? defaultName;
+  const typeName = options.variant ?? options.name ?? defaultName;
   const isVariant = typeName !== defaultName;
   const ref = isVariant
     ? isInterface
@@ -263,10 +263,6 @@ schemaBuilderProto.prismaNode = function prismaNode<
     );
   }
 
-  const typeName =
-    (rest as { variant?: string }).variant ??
-    (rest as { name?: string }).name ??
-    defaultTypeName(nodeModelName);
   const collection =
     collectionOpt == null
       ? undefined
@@ -279,10 +275,11 @@ schemaBuilderProto.prismaNode = function prismaNode<
       assertContextObject(ctx);
       return parseNodeId(nodeModelName, idFields, id, config.codecs(ctx, nodeModelName));
     });
+  const objectRef = this.prismaObject(modelName as never, rest as never);
+  const typeName = objectRef.name;
   const nodeRef = new PrismaNextNodeRef<Types, M, unknown, unknown>(typeName, modelName, {
     parseId,
   });
-  const objectRef = this.prismaObject(modelName as never, rest as never);
   this.configStore.associateParamWithRef(nodeRef as never, objectRef as never);
 
   this.nodeRef(objectRef as never, {
