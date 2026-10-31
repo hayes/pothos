@@ -165,18 +165,12 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
             ? aggregateCount(userCollection)
             : Promise.resolve().then(() => countSource?.(parent, args, context, info));
 
-        // allSettled so neither rejection goes unhandled; a rows error takes precedence.
-        const [rowsResult, countResult] = await Promise.allSettled([rowsPromise, countPromise]);
-        if (rowsResult.status === 'rejected') {
-          throw rowsResult.reason;
-        }
-        if (countResult.status === 'rejected') {
-          throw countResult.reason;
-        }
+        // Promise.all handles both rejections, so a later one isn't left unhandled.
+        const [rows, count] = await Promise.all([rowsPromise, countPromise]);
         return buildConnectionPage(
-          rowsResult.value as readonly Record<string, unknown>[],
+          rows as readonly Record<string, unknown>[],
           pagination,
-          countResult.value as number | undefined,
+          count as number | undefined,
         );
       }) as never,
     } as never,
