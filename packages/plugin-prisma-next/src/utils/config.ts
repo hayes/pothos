@@ -1,4 +1,5 @@
 import { createContextCache, PothosSchemaError, PothosValidationError } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
 import { ModelLoader } from '../model-loader.js';
 import type {
   AnyContract,
@@ -24,6 +25,19 @@ export interface PrismaNextConfig {
   collection(ctx: object, modelName: string): MapperCollection;
   codecs(ctx: object, modelName: string): FieldCodecs;
   loader(ctx: object, modelName: string): ModelLoader;
+}
+
+/**
+ * Per-request state (loaders, plans, mappings) lives on the context object, so a request without
+ * one fails up front with an explanation instead of deep in the planner.
+ */
+export function assertContextObject(context: unknown, info?: GraphQLResolveInfo) {
+  if (context === null || (typeof context !== 'object' && typeof context !== 'function')) {
+    const field = info ? ` (resolving '${info.parentType.name}.${info.fieldName}')` : '';
+    throw new PothosValidationError(
+      `@pothos/plugin-prisma-next requires an object contextValue${field}: it keeps per-request state on the context. Pass a context object, such as \`{}\`, when executing the operation.`,
+    );
+  }
 }
 
 export const getPluginConfig = createContextCache((builder: object): PrismaNextConfig => {
@@ -105,6 +119,7 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
       return (field) => getColumnCodec(contract, context, modelName, field);
     },
     loader: (ctx, modelName) => {
+      assertContextObject(ctx);
       const byModel = loaders(ctx);
       let loader = byModel.get(modelName);
       if (!loader) {

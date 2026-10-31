@@ -2,7 +2,7 @@ import { completeValue, type MaybePromise } from '@pothos/core';
 import { type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PrismaNextPlan } from './adapter.js';
-import type { PrismaNextConfig } from './config.js';
+import { assertContextObject, type PrismaNextConfig } from './config.js';
 import type { PrismaNextQuery } from './selections.js';
 
 export interface ApplySelectionOptions {
@@ -20,6 +20,7 @@ export function applySelectionToCollection(
   context: object,
   { paths, extraColumns }: ApplySelectionOptions = {},
 ): MaybePromise<MapperCollection> {
+  assertContextObject(context, info);
   const { adapter } = config;
   // Relations declared on a variant can only be planned on a collection narrowed to it.
   const variant = collection.state?.variantValue;
@@ -34,14 +35,6 @@ export function applySelectionToCollection(
   }
 
   return completeValue(plan as MaybePromise<PrismaNextPlan>, (settled) =>
-    adapter.emit(
-      collection,
-      // `query()` records the plan's mappings on the context, so it needs an object context.
-      context && typeof context === 'object'
-        ? settled.query()
-        : adapter.toQuery(settled.play().root),
-      settled.model,
-      context,
-    ),
+    adapter.emit(collection, settled.query(), settled.model, context),
   );
 }

@@ -218,6 +218,50 @@ describe('rows the plugin loaded', () => {
     expect(result.statements).toHaveLength(1);
   });
 
+  it('hands resolvers a parent with its columns as own properties when a relation is combined', async () => {
+    const builder = createBuilder();
+    const Summary = builder.objectRef<{ firstName: string; posts: readonly { id: string }[] }>(
+      'Summary',
+    );
+    Summary.implement({
+      fields: (t) => ({
+        first: t.string({ resolve: (summary) => summary.firstName }),
+        postCount: t.int({ resolve: (summary) => summary.posts.length }),
+      }),
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        published: t.relation('posts', { query: { where: { published: 1 } } }),
+        summary: t.field({
+          type: Summary,
+          select: { posts: true, firstName: true },
+          resolve: (user) => ({ ...user }),
+        }),
+        keys: t.stringList({
+          select: { posts: true, firstName: true },
+          resolve: (user) => Object.keys(user).sort(),
+        }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ users { summary { first postCount } published { id } keys } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0].summary).toEqual({ first: 'Alice', postCount: 2 });
+    expect(result.data.users[0].keys).toEqual(expect.arrayContaining(['firstName', 'id', 'posts']));
+    expect(result.statements).toHaveLength(1);
+  });
+
   it('hands t.variant fields the parent row itself', async () => {
     const builder = createBuilder();
     const Variant = builder.prismaObject('User', {

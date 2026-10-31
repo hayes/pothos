@@ -1,4 +1,10 @@
-import { completeValue, type MaybePromise, PothosValidationError } from '@pothos/core';
+import {
+  brandWithType,
+  completeValue,
+  getTypeBrand,
+  type MaybePromise,
+  PothosValidationError,
+} from '@pothos/core';
 import type { Position, SelectFn } from '@pothos/selection-mapper';
 import { getNamedType } from 'graphql';
 import { PRISMA_NEXT_MODEL } from '../constants.js';
@@ -92,7 +98,8 @@ export function relationName(key: string) {
 
 /**
  * What a consumer at `scope` reads from `row`: its rows of each to-many relation, and the values
- * it computed from one, over the row as prototype. The row itself when nothing was combined.
+ * it computed from one, over a copy of the row (so resolvers can spread or serialize it). The
+ * row itself when nothing was combined.
  */
 export function viewOf(
   row: object,
@@ -101,7 +108,7 @@ export function viewOf(
 ): object {
   let view: object | undefined;
   const define = (key: string, value: unknown) => {
-    view ??= Object.create(row) as object;
+    view ??= copyOf(row);
     Object.defineProperty(view, key, {
       value,
       enumerable: true,
@@ -129,6 +136,16 @@ export function viewOf(
     }
   }
   return view ?? row;
+}
+
+/** A writable copy of a (possibly frozen) row's columns, keeping its type brand. */
+function copyOf(row: object): object {
+  const copy = Object.assign(Object.create(Object.getPrototypeOf(row)) as object, row);
+  const brand = getTypeBrand(row);
+  if (brand) {
+    brandWithType(copy, brand);
+  }
+  return copy;
 }
 
 /** Column names, or an object of columns (`true`) and relations (`true`, a query, or a function). */

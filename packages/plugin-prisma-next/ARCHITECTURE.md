@@ -23,7 +23,8 @@ examples.
   above it), or the type for a type-level `select`. A relation whose consumers agree is one
   include; otherwise each scope is one `combine` slot, so different arguments still load in one
   statement. A resolver finds its scope through the position in its loader mapping and reads its
-  slots from a view with the row as prototype; shared rows are never mutated.
+  slots from a shallow copy of the row with its slots lifted on, so the parent still spreads and
+  serializes like a row; shared rows are never mutated.
 - Relation queries compare by what identifies them (a declarative query, or the defining field
   with its arguments for a callback, which builds a new closure per walk). Matching aliases alone
   never establish compatibility.

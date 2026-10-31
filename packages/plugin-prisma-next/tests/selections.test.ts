@@ -347,11 +347,14 @@ describe('parents the plugin loads', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it('executes without a contextValue', async () => {
-    const result = await execute({
-      schema: createExampleBuilder().toSchema(),
-      document: parse('{ users { firstName } }'),
-    });
-    expect(result).toEqual({ data: { users: [{ firstName: 'Alice' }, { firstName: 'Bob' }] } });
+  it('fails up front without a contextValue, which holds the per-request state', async () => {
+    const schema = createExampleBuilder().toSchema();
+    for (const document of ['{ users { firstName } }', '{ users { id posts { id } } }']) {
+      const result = await execute({ schema, document: parse(document) });
+      expect(result.data).toEqual({ users: null });
+      expect(result.errors?.map((error) => error.message)).toEqual([
+        "@pothos/plugin-prisma-next requires an object contextValue (resolving 'Query.users'): it keeps per-request state on the context. Pass a context object, such as `{}`, when executing the operation.",
+      ]);
+    }
   });
 });

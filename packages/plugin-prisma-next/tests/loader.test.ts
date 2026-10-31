@@ -1,4 +1,7 @@
+import SchemaBuilder from '@pothos/core';
+import { execute, parse } from 'graphql';
 import { describe, expect, it } from 'vitest';
+import prismaNextPlugin from '../src';
 import {
   createBuilder,
   deferSchema,
@@ -6,10 +9,12 @@ import {
   runIncremental,
   type SampleOptions,
   sampleContract,
+  useCollisionDb,
   useSampleDb,
 } from './fixtures/helpers';
 
 const db = useSampleDb();
+const collision = useCollisionDb();
 const allPostIds = ['p-hello', 'p-draft1', 'p-bob1', 'p-bob-draft'];
 
 function schema(options: SampleOptions & { defer?: boolean } = {}) {
@@ -673,5 +678,88 @@ describe('models without a key', () => {
       builtViews: [{ viewer: 'Dave', viewedAt: 'then', published: null }],
     });
     expect(result.statements).toHaveLength(0);
+  });
+});
+
+describe('fallback isolation', () => {
+  function isolationSchema() {
+    const builder = createBuilder<{ allow?: boolean }>();
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        name: t.exposeString('firstName'),
+        posts: t.relation('posts', {
+          args: { published: t.arg.int() },
+          query: (args: { published?: number | null }) => ({
+            where: args.published == null ? undefined : { published: args.published },
+          }),
+        }),
+        guarded: t.relationCount('posts', {
+          nullable: true,
+          where: (post, _args, ctx) => {
+            if (!ctx.allow) {
+              throw new Error('not allowed');
+            }
+            return post.published.eq(1);
+          },
+        }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        plainUsers: t.field({
+          type: [User],
+          resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }] as never,
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it('plans each execution sharing a context with its own variables', async () => {
+    const schema = isolationSchema();
+    const contextValue = {};
+    const document = parse('query ($p: Int) { plainUsers { posts(published: $p) { id } } }');
+    const published = await execute({ schema, document, contextValue, variableValues: { p: 1 } });
+    const drafts = await execute({ schema, document, contextValue, variableValues: { p: 0 } });
+    expect(published).toEqual({
+      data: { plainUsers: [{ posts: [{ id: 'p-hello' }] }, { posts: [{ id: 'p-bob1' }] }] },
+    });
+    expect(drafts).toEqual({
+      data: { plainUsers: [{ posts: [{ id: 'p-draft1' }] }, { posts: [{ id: 'p-bob-draft' }] }] },
+    });
+  });
+
+  it('fails only the fields of a plan whose query cannot be built', async () => {
+    const result = await run(isolationSchema(), '{ plainUsers { name guarded } }');
+    expect(result.errors?.map((error) => [error.path?.join('.'), error.message])).toEqual([
+      ['plainUsers.0.guarded', 'not allowed'],
+      ['plainUsers.1.guarded', 'not allowed'],
+    ]);
+    expect(result.data.plainUsers).toEqual([
+      { name: 'Alice', guarded: null },
+      { name: 'Bob', guarded: null },
+    ]);
+  });
+
+  it('fails only the parent whose identity the codecs reject', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: collision.client },
+    });
+    const Sheet = builder.prismaObject('Sheet', {
+      fields: (t) => ({ name: t.exposeString('name', { nullable: true }) }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        sheets: t.field({
+          type: [Sheet],
+          resolve: () => [{ id: 1 }, { id: '1' }] as never,
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ sheets { name } }');
+    expect(result.data.sheets).toEqual([{ name: 's1' }, { name: null }]);
+    expect(result.errors?.map((error) => error.path)).toEqual([['sheets', 1, 'name']]);
   });
 });

@@ -1,6 +1,7 @@
 import {
   type FieldKind,
   type InputFieldMap,
+  PothosSchemaError,
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
@@ -9,7 +10,7 @@ import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextObjectRef } from './object-ref.js';
 import type { CursorSpec, ModelName, PrismaNextConnectionFieldOptions } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { getPluginConfig } from './utils/config.js';
+import { assertContextObject, getPluginConfig } from './utils/config.js';
 import { aggregateCount, connectionNeedsRows, connectionSettings } from './utils/connections.js';
 import { assertVariantCollection } from './utils/contract.js';
 import {
@@ -57,6 +58,9 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   connectionOptions: object = {},
   edgeOptions: object = {},
 ) {
+  if (typeof this.connection !== 'function') {
+    throw new PothosSchemaError('t.prismaConnection requires @pothos/plugin-relay to be loaded.');
+  }
   const {
     type,
     cursor,
@@ -112,6 +116,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         context: object,
         info: GraphQLResolveInfo,
       ) => {
+        assertContextObject(context, info);
         const relayArgs = args as PothosSchemaTypes.DefaultConnectionArguments;
         const userCollection = await resolve(parent, args, context, info);
 

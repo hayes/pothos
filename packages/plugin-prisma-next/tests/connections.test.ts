@@ -407,6 +407,91 @@ describe('orderBy', () => {
   });
 });
 
+describe('related connection planning errors', () => {
+  function planningSchema() {
+    const builder = createBuilder<{ allow?: boolean }>();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        ordered: t.relatedConnection('posts', {
+          cursor: ['title', 'id'],
+          nullable: true,
+          args: { byId: t.arg.boolean() },
+          orderBy: (post, args) => (args.byId ? post.id.asc() : post.title.asc()),
+        }),
+        sized: t.relatedConnection('posts', {
+          cursor: 'id',
+          nullable: true,
+          args: { boom: t.arg.boolean() },
+          maxSize: (args) => {
+            if (args.boom) {
+              throw new Error('size callback failed');
+            }
+            return 5;
+          },
+        }),
+        guarded: t.relatedConnection('posts', {
+          cursor: 'id',
+          nullable: true,
+          totalCount: true,
+          where: (post, _args, ctx) => {
+            if (!ctx.allow) {
+              throw new Error('not allowed');
+            }
+            return post.published.eq(1);
+          },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it.each([
+    ['an orderBy outside the cursor order', 'ordered(byId: true, first: 1)', /cursor order/],
+    ['a throwing size callback', 'sized(boom: true, first: 1)', /size callback failed/],
+    ['a throwing where callback', 'guarded(first: 1)', /not allowed/],
+    ['a throwing where callback beneath totalCount', 'guarded', /not allowed/],
+  ])('fails only the connection field for %s', async (_name, field, message) => {
+    const selection = field === 'guarded' ? 'totalCount' : 'nodes { id }';
+    const result = await run(planningSchema(), `{ users { id c: ${field} { ${selection} } } }`);
+    expect(result.data.users).toEqual([
+      { id: 'u-alice', c: null },
+      { id: 'u-bob', c: null },
+    ]);
+    expect(result.errors?.map((error) => error.path)).toEqual([
+      ['users', 0, 'c'],
+      ['users', 1, 'c'],
+    ]);
+    expect(result.errors?.every((error) => message.test(error.message))).toBe(true);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('plans the same connection normally when its callbacks succeed', async () => {
+    const result = await run(
+      planningSchema(),
+      '{ users { id a: ordered(first: 1) { nodes { id } } b: sized(first: 1) { nodes { id } } c: guarded { totalCount } } }',
+      { context: { allow: true } },
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0]).toEqual({
+      id: 'u-alice',
+      a: { nodes: [{ id: 'p-draft1' }] },
+      b: { nodes: [{ id: 'p-draft1' }] },
+      c: { totalCount: 1 },
+    });
+    expect(result.statements).toHaveLength(1);
+  });
+});
+
 describe('base collections', () => {
   const helper = () => prismaConnectionHelpers(createBuilder(), 'Post', { cursor: 'id' });
 

@@ -1,6 +1,7 @@
 import {
   type FieldKind,
   PothosSchemaError,
+  PothosValidationError,
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
@@ -58,7 +59,7 @@ function prismaFieldConfig(
         return collection;
       }
       if (!isCollection(collection)) {
-        throw new PothosSchemaError(
+        throw new PothosValidationError(
           `t.prismaField '${info.parentType.name}.${info.fieldName}' must return an ORM Collection or null. ` +
             'Return the collection before executing it so the complete GraphQL selection can be applied.',
         );
@@ -91,6 +92,11 @@ rootFieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput(
   this: typeof rootFieldBuilderProto,
   options: PrismaFieldOptions,
 ) {
+  if (typeof (this as { fieldWithInput?: unknown }).fieldWithInput !== 'function') {
+    throw new PothosSchemaError(
+      't.prismaFieldWithInput requires @pothos/plugin-with-input to be loaded.',
+    );
+  }
   return (
     this as typeof rootFieldBuilderProto & { fieldWithInput: (options: object) => unknown }
   ).fieldWithInput(prismaFieldConfig(this.builder, options)) as never;
