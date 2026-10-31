@@ -73,10 +73,13 @@ function addPrismaNextTypes(definitions: TypeDefinition[]): Record<string, strin
 
   function visit(root: string, name: string, relative: string) {
     const absolute = path.join(root, relative);
-    if (visited.has(absolute) || !fs.existsSync(absolute)) {
+    // The plugin and the website resolve different pnpm peer variants of the same ORM version, so
+    // one virtual file can be reached from two installed copies. Ship it once.
+    const virtualPath = `${name}/${relative}`;
+    if (visited.has(virtualPath) || !fs.existsSync(absolute)) {
       return;
     }
-    visited.add(absolute);
+    visited.add(virtualPath);
     const content = fs.readFileSync(absolute, 'utf8');
     definitions.push({
       moduleName: `${name}/${relative}`,

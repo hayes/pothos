@@ -1,5 +1,5 @@
 query PublishedPosts {
-  posts(first: 2) {
+  posts(first: 2, newestFirst: true) {
     totalCount
     edges {
       node {
