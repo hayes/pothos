@@ -114,6 +114,40 @@ describe('Relay nodes', () => {
     expect(result.data).toEqual({ node: { __typename: 'PostByAuthor', title: 'Hello, Pothos' } });
   });
 
+  it('loads a one-column array ID, and decodes it as a tuple', async () => {
+    const builder = createBuilder();
+    const Person = builder.prismaNode('User', {
+      id: { field: ['id'] },
+      collection: db.orm.User,
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    const seen: unknown[] = [];
+    builder.queryType({
+      fields: (t) => ({
+        person: t.prismaField({ type: Person, resolve: () => db.orm.User.where({ id: 'u-bob' }) }),
+        echo: t.string({
+          args: { id: t.arg.globalID({ for: Person, required: true }) },
+          resolve: (_root, args) => {
+            expectTypeOf(args.id.id).toEqualTypeOf<[string]>();
+            seen.push(args.id.id);
+            return args.id.typename;
+          },
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const person = await run(schema, '{ person { id } }');
+    expect(person.data.person.id).toBe(globalId('User', 'u-bob'));
+    const result = await run(
+      schema,
+      'query ($id: ID!) { echo(id: $id) node(id: $id) { ... on User { firstName } } }',
+      { variables: { id: person.data.person.id } },
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ echo: 'User', node: { firstName: 'Bob' } });
+    expect(seen).toEqual([['u-bob']]);
+  });
+
   it.each([
     ['malformed', 'PNI:MARKER-not-a-chunk', /ID payload is invalid/],
     ['short', JSON.stringify(['MARKER']), /expected 2 values, got 1/],

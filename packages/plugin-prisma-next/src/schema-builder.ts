@@ -240,7 +240,8 @@ schemaBuilderProto.prismaNode = function prismaNode<
   const idFields: readonly string[] = Array.isArray(idOpts.field)
     ? idOpts.field
     : [idOpts.field as string];
-  const isComposite = idFields.length > 1;
+  // A one-column array still types as a tuple.
+  const isComposite = Array.isArray(idOpts.field);
   const config = getPluginConfig(this);
   const { contract } = config;
   assertContractModel(contract, nodeModelName);
@@ -273,7 +274,13 @@ schemaBuilderProto.prismaNode = function prismaNode<
     idOpts.parse ??
     ((id: string, ctx: Types['Context']) => {
       assertContextObject(ctx);
-      return parseNodeId(nodeModelName, idFields, id, config.codecs(ctx, nodeModelName));
+      return parseNodeId(
+        nodeModelName,
+        idFields,
+        id,
+        config.codecs(ctx, nodeModelName),
+        isComposite,
+      );
     });
   const objectRef = this.prismaObject(modelName as never, rest as never);
   const typeName = objectRef.name;
