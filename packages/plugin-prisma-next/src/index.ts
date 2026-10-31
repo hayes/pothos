@@ -46,6 +46,7 @@ import {
   rowOf,
   scopeOf,
   splitSelect,
+  toOneFunctionMessage,
   viewOf,
 } from './utils/selections.js';
 import { variantTypeNames } from './utils/variant-types.js';
@@ -567,9 +568,7 @@ function validateStaticSelect(raw: RawSelect, model: PrismaNextModel, owner: str
   }
   for (const [name, value] of relations) {
     if (typeof value === 'function' && !model.relations[name]!.isToMany) {
-      throw new PothosSchemaError(
-        `select on '${owner}': the function form of to-one relation '${name}' requires combine(), which the ORM supports only for to-many relations. Use a relation field with query options or a declarative select instead.`,
-      );
+      throw new PothosSchemaError(toOneFunctionMessage(owner, name));
     }
   }
 }
