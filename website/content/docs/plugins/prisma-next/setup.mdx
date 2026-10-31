@@ -14,7 +14,8 @@ throws an error, and their type declarations conflict (TS2717).
 ### Prisma CLI
 
 Install the `prisma` CLI as a dev dependency. The CLI is versioned separately from the ORM
-packages; the plugin is tested with `prisma@8.0.0-rc.29`:
+packages. The steps below were checked with `prisma@8.0.0-rc.29`, running `prisma orm init` and
+`prisma contract emit` against the rc.22 ORM packages:
 
 ```sh
 npm install --save-dev prisma@8.0.0-rc.29
@@ -47,8 +48,8 @@ Yarn uses `resolutions` with the same entry. Don't downgrade the ORM packages in
 refuses to run with two copies of the ORM installed.
 
 Then scaffold the project. This writes a contract, a `prisma.config.ts`, and a
-`src/prisma/db.ts` that creates the client, installs `@prisma/orm-postgres`, and emits the
-contract:
+`src/prisma/db.ts` that creates the client, installs the latest `@prisma/orm-postgres`, and emits
+the contract:
 
 ```sh
 npx prisma orm init --target postgres --authoring psl
@@ -60,7 +61,8 @@ client with `@prisma/orm-sqlite/runtime`.
 
 ### Pothos
 
-Install the plugin, and pin the ORM packages to the supported version:
+Install the plugin, and pin the ORM packages to the supported version, including the
+`@prisma/orm-postgres` (or `@prisma/orm-sqlite`) that `orm init` installed at its latest version:
 
 ```package-install
 npm install --save @pothos/plugin-prisma-next @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22 @prisma/orm-postgres@8.0.0-rc.22
@@ -126,8 +128,8 @@ builder.queryType({
 prismaNext: {
   client: db,
   skipDeferredFragments: true,
-  defaultConnectionSize: 20,
-  maxConnectionSize: 100,
+  defaultConnectionSize: 10,
+  maxConnectionSize: 50,
   filterConnectionTotalCount: true,
 }
 ```
@@ -138,8 +140,8 @@ prismaNext: {
 - `skipDeferredFragments`: `@defer` fragments are left out of the initial query and loaded when
   executed. Set to `false` to load them eagerly; deferred fields on a model without a key can't
   be loaded later.
-- `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes, overridden per
-  field with `defaultSize` and `maxSize`.
+- `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes, 20 and 100 when
+  unset. Fields override them with `defaultSize` and `maxSize`.
 - `filterConnectionTotalCount`: a `relatedConnection`'s `totalCount` counts the rows matching its
   `query.where`. Set to `false` to count every related row.
 
@@ -196,8 +198,10 @@ builder.prismaObject('billing.User', {
 ## Transactions
 
 Pothos does not create transactions. To run a mutation's queries in one, execute GraphQL inside
-the transaction callback and pass the transaction as `ctx.db`, typed with the query members the
-client and transactions share (`PostgresQueryMembers`, as above):
+the transaction callback and pass the transaction as `ctx.db`. With
+[`client: (ctx) => ctx.db`](#configure-the-builder), typed with `PostgresQueryMembers`, the
+plugin's own loads use the same transaction; it can't tell when `ctx.db` is a client on another
+connection. Finish executing, including deferred results, before the callback returns:
 
 ```ts
 const result = await db.transaction(async (tx) => {
@@ -206,17 +210,13 @@ const result = await db.transaction(async (tx) => {
     source,
     contextValue: { db: tx },
   });
+  // GraphQL reports errors in the result rather than rejecting, so throw to roll back.
   if (result.errors?.length) {
     throw result.errors[0];
   }
   return result;
 });
 ```
-
-GraphQL reports errors in the result rather than rejecting, so throw to roll back. Pass
-`client: (ctx) => ctx.db` so the plugin's own loads run in the same transaction; it can't detect a
-client from another connection. Finish executing, including deferred results, before the
-callback returns.
 
 ## TypeScript
 
