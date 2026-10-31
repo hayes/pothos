@@ -7,6 +7,7 @@ import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, { type CollectionFor, type ModelName, type Row } from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
+import type { Contract as InheritanceContract } from '../inheritance/contract';
 import type { Contract as PostgresContract } from '../postgres/contract';
 
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
@@ -747,4 +748,63 @@ new SchemaBuilder<{ PrismaNextContract: Contract }>({
     // @ts-expect-error a client's collections belong to the contract's models
     client: { orm: { User: orm.Post }, context: db.context },
   },
+});
+
+// Collections carry their contract (`collection.ctx.context.contract`), so a client of another
+// contract fails even when its model names match.
+declare const inhClient: SqliteClient<InheritanceContract>;
+type OtherDbContext = { db: typeof db; otherDb: typeof inhClient };
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: {
+    // @ts-expect-error collections of another contract
+    client: () => ({ orm: inhClient.orm }),
+    contract: sqliteClient.contract,
+  },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: {
+    // @ts-expect-error a collection of another contract's `User`
+    client: { orm: { User: inhClient.orm.User }, context: db.context },
+  },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract; Context: OtherDbContext }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: {
+    // @ts-expect-error the request's client is of another contract
+    client: (ctx) => ({ orm: ctx.otherDb.orm }),
+    contract: sqliteClient.contract,
+  },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract; Context: { db: typeof sqliteClient } }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: (ctx) => ctx.db, contract: sqliteClient.contract },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract; Context: OtherDbContext }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: (ctx) => ({ orm: ctx.db.orm }), contract: sqliteClient.contract },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: { orm: { User: sqliteClient.orm.User }, context: db.context } },
+});
+new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: inhClient },
+});
+declare const sqliteTransaction: Parameters<Parameters<typeof sqliteClient.transaction>[0]>[0];
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: () => sqliteTransaction, contract: sqliteClient.contract },
+});
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: () => ({ orm: sqliteTransaction.orm }), contract: sqliteClient.contract },
+});
+declare const inhTransaction: Parameters<Parameters<typeof inhClient.transaction>[0]>[0];
+new SchemaBuilder<{ PrismaNextContract: Contract }>({
+  plugins: [prismaNextPlugin],
+  // @ts-expect-error a transaction of another contract
+  prismaNext: { client: () => inhTransaction, contract: sqliteClient.contract },
 });

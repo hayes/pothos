@@ -285,18 +285,23 @@ export type ConnectionCollection<
 export type PrismaNextCollections<TContract extends AnyContract> =
   string extends keyof TContract['domain']['namespaces'] ? object : TypedCollections<TContract>;
 
-// Collections are matched by model name only: comparing each `Collection` against one built from
-// `TContract` structurally costs more than the rest of the builder setup. The contract itself is
-// still compared through `context.contract`.
-interface CollectionOfModel<M extends string> {
+// Collections are matched by model name and by the contract on their `ctx` (upstream's
+// `CollectionBase.ctx`), not structurally: comparing each `Collection` against one built from
+// `TContract` costs more than the rest of the builder setup, while comparing the contract to itself
+// is an identity check.
+interface CollectionOfModel<TContract extends AnyContract, M extends string> {
   readonly modelName: M;
+  readonly ctx: { readonly context: { readonly contract: TContract } };
 }
 
 type TypedCollections<TContract extends AnyContract> = {
-  [M in ModelKeys<TContract>]?: CollectionOfModel<BareModelName<M>>;
+  [M in ModelKeys<TContract>]?: CollectionOfModel<TContract, BareModelName<M>>;
 } & {
   [Ns in keyof TContract['domain']['namespaces'] & string]?: {
-    [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]?: CollectionOfModel<M>;
+    [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]?: CollectionOfModel<
+      TContract,
+      M
+    >;
   };
 };
 
