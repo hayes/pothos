@@ -11,27 +11,22 @@ import {
   variantOf,
 } from './contract.js';
 
-export interface PrismaNextRelationMeta {
+export interface PrismaNextRelation {
   readonly isToMany: boolean;
-  /** Parent-side join columns, always selected so nested includes can stitch. */
-  readonly localFields: readonly string[];
   readonly targetModel: string;
+  readonly target: PrismaNextModel;
+  /** Set when a variant declares the relation; it can only be included after `.variant(value)`. */
+  readonly variant?: string;
   /**
-   * The ORM loads a variant target through its own accessor, which can't include base relations
-   * and, when `sharesTable`, isn't filtered by the discriminator.
+   * Set when the relation targets a variant model, which the ORM loads through that model's own
+   * accessor: already narrowed, without the base's relations, and, when it shares the base's
+   * table, unfiltered by the discriminator.
    */
   readonly targetVariant?: {
-    readonly model: string;
     readonly field: string;
     readonly value: string;
     readonly sharesTable: boolean;
   };
-}
-
-export interface PrismaNextRelation extends PrismaNextRelationMeta {
-  readonly target: PrismaNextModel;
-  /** Set when a variant declares the relation; it can only be included after `.variant(value)`. */
-  readonly variant?: string;
 }
 
 export interface PrismaNextModel {
@@ -41,52 +36,7 @@ export interface PrismaNextModel {
   readonly columns: ReadonlySet<string> | undefined;
 }
 
-export function buildRelationMeta(
-  modelName: string,
-  contract: AnyContract,
-  typeName: string,
-): Record<string, PrismaNextRelationMeta> | undefined {
-  const rels = resolveContractModel(contract, modelName)?.relations;
-  if (!rels) {
-    return undefined;
-  }
-  const out: Record<string, PrismaNextRelationMeta> = {};
-  for (const [name, rel] of Object.entries(rels)) {
-    // orm-client resolves N:M junctions itself, so they include like any to-many relation.
-    const isToMany = rel.cardinality === '1:N' || rel.cardinality === 'N:M';
-    // Rejects cardinalities a future contract might add.
-    if (!isToMany && rel.cardinality !== '1:1' && rel.cardinality !== 'N:1') {
-      throw new PothosSchemaError(
-        `Relation '${typeName}.${name}' (model '${modelName}') has unknown cardinality ` +
-          `'${rel.cardinality}'. Expected '1:1' / 'N:1' / '1:N' / 'N:M'.`,
-      );
-    }
-    const targetModel = relatedModelKey(contract, rel.to);
-    const target = variantOf(contract, targetModel);
-    out[name] = {
-      isToMany,
-      // Embeds have no `on`; for N:M these are the parent columns the junction references.
-      localFields: 'on' in rel ? rel.on.localFields : [],
-      targetModel,
-      ...(target
-        ? {
-            targetVariant: {
-              model: targetModel,
-              field: target.field,
-              value: target.value,
-              sharesTable: target.sharesTable,
-            },
-          }
-        : {}),
-    };
-  }
-  return out;
-}
-
-export function buildColumnSet(
-  modelName: string,
-  contract: AnyContract,
-): ReadonlySet<string> | undefined {
+function buildColumnSet(modelName: string, contract: AnyContract): ReadonlySet<string> | undefined {
   const fields = resolveContractModel(contract, modelName)?.fields;
   if (!fields) {
     return undefined;
@@ -170,37 +120,46 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
     // Registered before its relations resolve, so a cycle finds it.
     models.set(name, model);
 
-    const meta = buildRelationMeta(name, contract, name) ?? {};
+    const addRelations = (modelKey: string, variant?: string) => {
+      for (const [relationName, relation] of Object.entries(
+        resolveContractModel(contract, modelKey)?.relations ?? {},
+      )) {
+        if (variant !== undefined && relations[relationName]) {
+          if (relations[relationName].variant === undefined) {
+            continue;
+          }
+          throw new PothosSchemaError(
+            `Relation '${relationName}' is declared by several variants of model '${name}'. ` +
+              'Relations declared on variants need distinct names.',
+          );
+        }
+        const targetModel = relatedModelKey(contract, relation.to);
+        const target = variantOf(contract, targetModel);
+        relations[relationName] = {
+          // orm-client resolves N:M junctions itself, so they include like any to-many relation.
+          isToMany: relation.cardinality === '1:N' || relation.cardinality === 'N:M',
+          targetModel,
+          target: getModel(contract, targetModel),
+          ...(variant === undefined ? {} : { variant }),
+          ...(target
+            ? {
+                targetVariant: {
+                  field: target.field,
+                  value: target.value,
+                  sharesTable: target.sharesTable,
+                },
+              }
+            : {}),
+        };
+      }
+    };
 
-    for (const relation of Object.keys(meta)) {
-      relations[relation] = {
-        ...meta[relation],
-        target: getModel(contract, meta[relation].targetModel),
-      };
-    }
-
+    addRelations(name);
     // Relations declared on variants are tagged with the variant they need.
     for (const [value, variant] of Object.entries(
       modelDiscriminator(contract, name)?.variants ?? {},
     )) {
-      const variantKey = relatedModelKey(contract, variant);
-      const variantMeta = buildRelationMeta(variantKey, contract, variantKey) ?? {};
-      for (const relation of Object.keys(variantMeta)) {
-        if (Object.hasOwn(meta, relation)) {
-          continue;
-        }
-        if (relations[relation]) {
-          throw new PothosSchemaError(
-            `Relation '${relation}' is declared by several variants of model '${name}'. ` +
-              'Relations declared on variants need distinct names.',
-          );
-        }
-        relations[relation] = {
-          ...variantMeta[relation],
-          variant: value,
-          target: getModel(contract, variantMeta[relation].targetModel),
-        };
-      }
+      addRelations(relatedModelKey(contract, variant), value);
     }
   }
 

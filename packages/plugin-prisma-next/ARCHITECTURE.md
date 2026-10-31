@@ -8,19 +8,25 @@ examples.
 
 ## Selection planning
 
-- `prismaField` / `prismaFieldWithInput` require an unexecuted Collection. The plugin applies the
-  plan from the shared selection mapper as `select` / `include` / `combine` calls, awaits async
+- `prismaField` / `prismaFieldWithInput` require an unexecuted Collection. Their resolver applies
+  the plan from the shared selection mapper as `select` / `include` / `combine` calls, awaits async
   selections, then calls `.all()` (with `.limit(1)` for singular fields). Materialized returns are
   rejected.
-- Parent join columns are always selected. N:M relations resolve through the contract's `through`
-  metadata.
-- Independent to-many consumers get their own `combine` slots. Combine keys use `:` (invalid in
-  GraphQL names); type prerequisites and field selections have separate namespaces. Immutable
-  overlays route each resolver to its values without mutating shared rows.
-- Compatible to-one consumers merge. Prisma rejects `combine` on to-one includes
-  (`ORM.INCLUDE_UNSUPPORTED`), so incompatible ones go to the loader. Function-form to-one selections are always rejected.
-- Same-source consumers with equal bound arguments are one branch (callback `query` builds a new
-  closure per walk). Matching aliases alone don't establish compatibility.
+- The adapter is a `NodeAdapter`: field and type selections normalize to one query shape (columns,
+  relations, computed values), and merges, comparisons and conflicts are the mapper's. Join
+  columns come from the ORM, which adds hidden ones when `select()` narrows. N:M relations resolve
+  through the contract's `through` metadata.
+- A to-one relation is keyed by its name: the ORM includes it once (`combine` is to-many only,
+  `ORM.INCLUDE_UNSUPPORTED`), so its consumers merge or conflict, and a conflicting field loads
+  through the loader. Function-form to-one selections are always rejected.
+- A to-many relation is keyed by consumer scope: the type and alias of the field (and of the fields
+  above it), or the type for a type-level `select`. A relation whose consumers agree is one
+  include; otherwise each scope is one `combine` slot, so different arguments still load in one
+  statement. A resolver finds its scope through the position in its loader mapping and reads its
+  slots from a view with the row as prototype; shared rows are never mutated.
+- Relation queries compare by what identifies them (a declarative query, or the defining field
+  with its arguments for a callback, which builds a new closure per walk). Matching aliases alone
+  never establish compatibility.
 
 ## Fallback loader
 

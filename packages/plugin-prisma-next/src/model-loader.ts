@@ -1,5 +1,6 @@
 import {
   brandWithType,
+  completeValue,
   isThenable,
   type MaybePromise,
   type OutputType,
@@ -8,6 +9,7 @@ import {
 } from '@pothos/core';
 import {
   cacheKey,
+  type Mapping,
   Plan,
   type PlayedPlan,
   setLoaderMappings,
@@ -15,22 +17,15 @@ import {
 } from '@pothos/selection-mapper';
 import { and, or } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
-import {
-  emit,
-  type MapperCollection,
-  narrowToVariant,
-  type PrismaNextNode,
-  type PrismaNextSpec,
-  prismaNextAdapter,
-  variantRelationProblem,
-} from './utils/adapter.js';
+import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/adapter.js';
 import { getCollectionPaginationState } from './utils/collection-state.js';
 import type { PrismaNextConfig } from './utils/config.js';
 import { variantOf } from './utils/contract.js';
 import { getIdentityFields, type PrismaNextModel, rawKey } from './utils/model.js';
+import type { PrismaNextQuery } from './utils/selections.js';
 
 type Row = Record<string, unknown>;
-type Played = PlayedPlan<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
+type Played = PlayedPlan<PrismaNextModel, PrismaNextQuery>;
 
 interface Request {
   values: readonly unknown[];
@@ -71,13 +66,16 @@ export class ModelLoader {
     private readonly config: PrismaNextConfig,
     private readonly modelName: string,
   ) {
-    this.adapter = prismaNextAdapter(config.contract);
+    this.adapter = config.adapter;
     this.identity = getIdentityFields(config.contract, modelName);
     this.variant = variantOf(config.contract, modelName)?.value;
   }
 
-  /** The parent row reloaded with what `info`'s field needs. */
-  loadSelection(info: GraphQLResolveInfo, parent: object): Promise<Row> {
+  /** The parent row reloaded with what `info`'s field needs, and the field's mapping in that load. */
+  loadSelection(
+    info: GraphQLResolveInfo,
+    parent: object,
+  ): Promise<{ row: Row; mapping: Mapping | undefined }> {
     const key = cacheKey(info.parentType.name, info.path);
     let selection = this.parentPlans.get(key);
     if (!selection) {
@@ -86,7 +84,7 @@ export class ModelLoader {
         this.context,
         info,
         this.config.skipDeferredFragments,
-        this.variant === undefined ? undefined : { variant: this.variant },
+        this.variant === undefined ? undefined : { args: { variant: { value: this.variant } } },
       );
       this.parentPlans.set(key, selection);
     }
@@ -111,7 +109,7 @@ export class ModelLoader {
           if (mapping) {
             setRowFieldMapping(this.context, info, mapping, row!);
           }
-          return row!;
+          return { row: row!, mapping };
         },
       );
     };
@@ -134,20 +132,11 @@ export class ModelLoader {
         context: this.context,
         info,
         typeName,
-        initial: this.variant === undefined ? undefined : { variant: this.variant },
+        initial:
+          this.variant === undefined ? undefined : { args: { variant: { value: this.variant } } },
         skipDeferredFragments: this.config.skipDeferredFragments,
-      })!;
-      const play = (settled: typeof plan) => {
-        const played = settled.play();
-        const problem = variantRelationProblem(this.adapter.toQuery(played.root), settled.model);
-        if (problem) {
-          throw new PothosValidationError(problem.message);
-        }
-        return played;
-      };
-      selection = isThenable(plan)
-        ? Promise.resolve(plan).then((p) => play(p as typeof plan))
-        : play(plan);
+      }) as MaybePromise<PrismaNextPlan>;
+      selection = completeValue(plan, (settled) => settled.play());
       this.nodePlans.set(group, selection);
     }
     const load = (played: Played) => {
@@ -189,7 +178,7 @@ export class ModelLoader {
       };
       this.adapter.mergeNode(created.root, root);
       for (const field of fields) {
-        created.root.columns.add(field);
+        created.root.columns?.add(field);
       }
       this.staged.add(created);
       // A macrotask, so async select callbacks can join the batch.
@@ -216,7 +205,7 @@ export class ModelLoader {
     // Load through the base narrowed to the variant, which can include its relations.
     const base =
       this.variant !== undefined && provided.state?.variantValue !== this.variant
-        ? narrowToVariant(provided, this.variant)
+        ? provided.variant(this.variant)
         : provided;
     if (getCollectionPaginationState(base).paginated) {
       throw new PothosValidationError(
@@ -243,7 +232,7 @@ export class ModelLoader {
             ),
           ),
     );
-    const query = emit(
+    const query = this.adapter.emit(
       filtered,
       this.adapter.toQuery(batch.root),
       batch.root.model,

@@ -19,7 +19,7 @@ import type {
   Row,
   TotalCountFlag,
 } from './types.js';
-import { compileWhere } from './utils/compile-query.js';
+import type { MapperCollection } from './utils/adapter.js';
 import { connectionSizes, getPluginConfig } from './utils/config.js';
 import {
   applyCursorPagination,
@@ -31,6 +31,7 @@ import {
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getRefFromContractModel } from './utils/refs.js';
+import { whereInput } from './utils/selections.js';
 import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
 export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [Node] extends [never]
@@ -193,10 +194,11 @@ export function prismaConnectionHelpers<
         : connectionOptions;
     },
     applyPagination(collection, args, info, ctx) {
-      const whereRefine = compileWhere(options.where);
-      const filteredBase = whereRefine
-        ? (whereRefine(collection, args, ctx) as CollectionFor<Types, M>)
-        : collection;
+      const filteredBase = (options.where === undefined
+        ? collection
+        : (collection as unknown as MapperCollection).where(
+            whereInput(options.where, args, ctx as object),
+          )) as unknown as CollectionFor<Types, M>;
       const pagination = applyCursorPagination(filteredBase as never, cursorSpec, args, {
         ...connectionSizes(config, options, args, ctx),
         codecs: config.codecs(ctx, modelName),

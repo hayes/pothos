@@ -1,11 +1,11 @@
 import {
   type CompatibleTypes,
+  completeValue,
   type ExposeNullability,
   type FieldKind,
   type FieldRef,
   type InferredFieldOptionKeys,
   type InputFieldMap,
-  isThenable,
   type NormalizeArgs,
   type PluginName,
   PothosSchemaError,
@@ -15,10 +15,11 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
+import type { DefaultConnectionArguments } from '@pothos/plugin-relay';
 import { type IndirectInclude, selectedFieldNames } from '@pothos/selection-mapper';
 import type { ContractRelation } from '@prisma/orm-framework/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
-import { PRISMA_NEXT_FIELD_SELECT } from './constants.js';
+import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_LOADED } from './constants.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   AnyContract,
@@ -38,21 +39,10 @@ import type {
   Row,
   ToManyRelationKeys,
 } from './types.js';
-import {
-  type MapperCollection,
-  narrowToVariant,
-  type PrismaNextSelectFn,
-  type PrismaNextSpec,
-} from './utils/adapter.js';
+import type { MapperCollection } from './utils/adapter.js';
 import { rebrandForVariant } from './utils/branding.js';
-import { compileWhere } from './utils/compile-query.js';
 import { connectionSizes, getPluginConfig } from './utils/config.js';
-import {
-  relatedModelKey,
-  relationVariant,
-  resolveContractModel,
-  variantOf,
-} from './utils/contract.js';
+import { relationVariant, resolveContractModel } from './utils/contract.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
@@ -62,31 +52,23 @@ import {
   validateCursor,
   validateCursorArgs,
 } from './utils/cursors.js';
+import { getModel, type PrismaNextRelation } from './utils/model.js';
 import { getRefForContractModel, getRefFromContractModel } from './utils/refs.js';
+import {
+  applyQuery,
+  computedSelection,
+  definedQuery,
+  type PrismaNextSelectFn,
+  relationArgs,
+  rowsSelection,
+  scopeOf,
+  whereInput,
+} from './utils/selections.js';
 import {
   connectionNeedsRows,
   relatedCount,
   wrapConnectionOptionsWithTotalCount,
 } from './utils/total-count.js';
-
-function isToManyCardinality(cardinality: string): boolean {
-  return cardinality !== '1:1' && cardinality !== 'N:1';
-}
-
-function isEmptyDeclarative(value: unknown): boolean {
-  if (value == null) {
-    return true;
-  }
-  if (typeof value !== 'object' || Array.isArray(value)) {
-    return false;
-  }
-  const options = value as Record<string, unknown>;
-  return Object.keys(options).every(
-    (key) =>
-      (key === 'where' || key === 'orderBy' || key === 'limit' || key === 'offset') &&
-      options[key] === undefined,
-  );
-}
 
 type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
   PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
@@ -124,6 +106,7 @@ function withAuthImpl<Types extends SchemaTypes, M extends ModelName<Types>>(
     this.builder as PothosSchemaTypes.SchemaBuilder<Types>,
     this.modelName,
     this.contract,
+    this.graphqlKind as 'Interface' | 'Object',
   );
   return addAuthScopes(scopes, next) as PrismaNextObjectFieldBuilder<Types, M>;
 }
@@ -171,8 +154,9 @@ export class PrismaNextObjectFieldBuilder<
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
     modelName: M,
     contract: Types['PrismaNextContract'],
+    graphqlKind: 'Interface' | 'Object' = 'Object',
   ) {
-    super(builder, 'PrismaNextObject' as never, 'Object');
+    super(builder, 'PrismaNextObject' as never, graphqlKind);
     this.modelName = modelName;
     this.contract = contract;
   }
@@ -290,14 +274,21 @@ export class PrismaNextObjectFieldBuilder<
         `t.variant on '${variantTypeName}': \`isNull\` can return null, but \`nullable: false\` was set. Either drop \`nullable: false\` or remove \`isNull\`.`,
       );
     }
-    const pothosIndirectInclude = {
-      getType: () => variantTypeName,
-    };
+    const forced = variantSelect ?? [];
+    const select: PrismaNextSelectFn = (_args, _ctx, nested) =>
+      completeValue(nested(true), (query) => ({
+        ...query,
+        columns: query.columns === null ? null : [...(query.columns ?? []), ...forced],
+      }));
     const fieldOpts: Record<string, unknown> = {
       ...rest,
       type: ref,
       nullable: (nullable ?? !!isNull) as never,
-      extensions: { ...userExtensions, pothosIndirectInclude },
+      extensions: {
+        ...userExtensions,
+        pothosIndirectInclude: { getType: () => variantTypeName },
+        [PRISMA_NEXT_FIELD_SELECT]: select,
+      },
       resolve: isNull
         ? async (
             parent: unknown,
@@ -310,9 +301,6 @@ export class PrismaNextObjectFieldBuilder<
           }
         : (parent: unknown) => rebrandForVariant(parent, variantTypeName) as never,
     };
-    if (variantSelect !== undefined && variantSelect.length > 0) {
-      fieldOpts.select = variantSelect;
-    }
     return this.field(fieldOpts as never) as FieldRef<Types, unknown>;
   }
 
@@ -333,28 +321,19 @@ export class PrismaNextObjectFieldBuilder<
       Args,
       RelatedShape
     > & { extensions?: Record<string, unknown> };
-    const meta = this.#getRelationMeta(name as string);
+    const relation = this.#relation(name as string);
     const targetRef =
-      opts.type ??
-      (getRefForContractModel(
-        relatedModelKey(this.contract as AnyContract, meta.to) as never,
-        this.builder,
-      ) as never);
+      opts.type ?? (getRefForContractModel(relation.targetModel as never, this.builder) as never);
     // Throws at build time for a type the relation can't return.
-    relationVariant(
+    const variant = relationVariant(
       this.contract as AnyContract,
       `t.relation('${name as string}') on '${this.modelName as string}'`,
-      relatedModelKey(this.contract as AnyContract, meta.to),
+      relation.targetModel,
       (targetRef as { modelName?: string }).modelName,
     );
-    const isToMany = isToManyCardinality(meta.cardinality);
-    const defaultNullable = isToMany ? false : this.#isToOneRelationNullable(meta);
-
-    const relationName = name as string;
-    const userQuery = (opts as { query?: unknown }).query;
     const {
       type: _type,
-      query: _query,
+      query,
       nullable,
       extensions,
       ...rest
@@ -362,39 +341,40 @@ export class PrismaNextObjectFieldBuilder<
       query?: unknown;
       extensions?: Record<string, unknown>;
     };
-    const select =
-      userQuery === undefined
-        ? { [relationName]: true }
-        : typeof userQuery === 'function'
-          ? (args: unknown, ctx: unknown) => {
-              const literal = (userQuery as (a: unknown, c: unknown) => unknown)(args, ctx);
-              if (literal == null || isEmptyDeclarative(literal)) {
-                return { [relationName]: true };
-              }
-              return { [relationName]: literal as Record<string, unknown> };
-            }
-          : isEmptyDeclarative(userQuery)
-            ? { [relationName]: true }
-            : { [relationName]: userQuery as Record<string, unknown> };
-    const fieldOpts = {
-      ...rest,
-      type: isToMany ? [targetRef] : targetRef,
-      nullable: nullable ?? defaultNullable,
-      select,
-      ...(extensions !== undefined ? { extensions } : {}),
-      resolve: (parent: unknown, _args: unknown, _ctx: unknown, info: GraphQLResolveInfo) => {
-        const value = (parent as Record<string, unknown>)[relationName];
-        if (value === undefined) {
-          // A missing key means the include never ran, unlike a loaded null.
-          throw new PothosValidationError(
-            `Relation '${info.parentType.name}.${info.fieldName}' was reached from a parent not loaded by t.prismaField. ` +
-              'Use t.prismaField as the entry point so the auto-include mapper can preload this relation.',
-          );
-        }
-        return value;
-      },
+    const relationName = name as string;
+    const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) => {
+      const spec = definedQuery(
+        typeof query === 'function'
+          ? (query as (args: object, ctx: object) => unknown)(args, ctx)
+          : query,
+      );
+      // A callback builds a new query on every walk, so its definition and arguments identify it.
+      const identity = spec && (typeof query === 'function' ? { source: query, args } : spec);
+      return rowsSelection(
+        relation,
+        relationName,
+        scopeOf(position),
+        nested({
+          columns: null,
+          args: relationArgs(relation, identity, spec && ((rel) => applyQuery(rel, spec)), variant),
+        }),
+      );
     };
-    return this.field(fieldOpts as never) as FieldRef<Types, unknown>;
+    return this.field({
+      ...rest,
+      type: relation.isToMany ? [targetRef] : targetRef,
+      nullable:
+        nullable ??
+        (relation.isToMany
+          ? false
+          : this.#isToOneRelationNullable(this.#getRelationMeta(relationName))),
+      extensions: {
+        ...extensions,
+        [PRISMA_NEXT_FIELD_SELECT]: select,
+        [PRISMA_NEXT_LOADED]: (view: Record<string, unknown>) => view[relationName] !== undefined,
+      },
+      resolve: (parent: Record<string, unknown>) => parent[relationName],
+    } as never) as FieldRef<Types, unknown>;
   }
 
   /** Exposes the row count of a to-many relation as an `Int`. */
@@ -461,9 +441,10 @@ export class PrismaNextObjectFieldBuilder<
     options: Record<string, unknown>,
     nullableDefault: boolean,
   ): FieldRef<Types, unknown, 'PrismaNextObject'> {
-    const { where, nullable, ...rest } = options as {
+    const { where, nullable, extensions, ...rest } = options as {
       where?: unknown;
       nullable?: boolean;
+      extensions?: Record<string, unknown>;
     } & Record<string, unknown>;
     const reduce = (rel: MapperCollection): unknown => {
       const reducer = (rel as unknown as Record<string, unknown>)[op];
@@ -472,33 +453,21 @@ export class PrismaNextObjectFieldBuilder<
       }
       return field === undefined ? reducer.call(rel) : reducer.call(rel, field);
     };
-    const select = (args: unknown, ctx: unknown) => ({
-      [name]: (sub: MapperCollection) => {
-        if (where === undefined) {
-          return { [name]: reduce(sub) };
-        }
-        const refined =
-          typeof where === 'function'
-            ? (sub.where((accessor: unknown, tools: unknown) =>
-                (where as (a: unknown, args: unknown, c: unknown, t: unknown) => unknown)(
-                  accessor,
-                  args,
-                  ctx,
-                  tools,
-                ),
-              ) as MapperCollection)
-            : (sub.where(where) as MapperCollection);
-        return { [name]: reduce(refined) };
-      },
-    });
-    const fieldOpts = {
+    const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
+      computedSelection(name, scopeOf(position), { op, field, where, args }, (sub) => ({
+        value: reduce(where === undefined ? sub : sub.where(whereInput(where, args, ctx))),
+      }));
+    return this.field({
       ...rest,
       type: options.type ?? (op === 'count' ? 'Int' : 'Float'),
       nullable: nullable ?? nullableDefault,
-      select,
-      resolve: (parent: unknown) => (parent as Record<string, unknown>)[name],
-    };
-    return this.field(fieldOpts as never) as FieldRef<Types, unknown, 'PrismaNextObject'>;
+      extensions: {
+        ...extensions,
+        [PRISMA_NEXT_FIELD_SELECT]: select,
+        [PRISMA_NEXT_LOADED]: (view: object) => Object.hasOwn(view, 'value'),
+      },
+      resolve: (parent: { value?: unknown }) => parent.value,
+    } as never) as FieldRef<Types, unknown, 'PrismaNextObject'>;
   }
 
   relatedConnection: 'relay' extends PluginName
@@ -568,184 +537,142 @@ export class PrismaNextObjectFieldBuilder<
     connectionOptions: object = {},
     edgeOptions: object = {},
   ) {
-    const meta = this.#getRelationMeta(name);
-    if (!isToManyCardinality(meta.cardinality)) {
+    const relation = this.#relation(name);
+    if (!relation.isToMany) {
       throw new PothosSchemaError(
         `t.relatedConnection('${name}') is only valid on to-many relations; ` +
-          `'${this.modelName as string}.${name}' has cardinality '${meta.cardinality}'.`,
+          `'${this.modelName as string}.${name}' is a to-one relation.`,
       );
     }
     const config = getPluginConfig(this.builder);
-    const relatedKey = relatedModelKey(this.contract as AnyContract, meta.to);
-    const cursorOpt = validateCursor(this.contract as AnyContract, relatedKey, options.cursor);
+    const relatedKey = relation.targetModel;
+    const cursorOpt = validateCursor(config.contract, relatedKey, options.cursor);
     const targetRef =
       options.type ?? getRefForContractModel(relatedKey as never, this.builder as never);
     const variant = relationVariant(
-      this.contract as AnyContract,
+      config.contract,
       `t.relatedConnection('${name}') on '${this.modelName as string}'`,
       relatedKey,
       (targetRef as { modelName?: string }).modelName,
     );
-    const targetVariant = variantOf(this.contract as AnyContract, relatedKey);
-
-    const self = this as unknown as {
-      connection: (cfg: object, c?: object, e?: object) => unknown;
-    };
-
-    const relationName = name;
-    const totalCountCallback =
-      typeof options.totalCount === 'function'
-        ? (options.totalCount as (
-            parent: unknown,
-            args: unknown,
-            ctx: unknown,
-            info: GraphQLResolveInfo,
-          ) => number | Promise<number>)
-        : undefined;
-    const totalCountFlag = options.totalCount === true;
-    const totalCountEnabled = totalCountFlag || totalCountCallback !== undefined;
-    const refine = compileWhere((options as { where?: unknown }).where);
     const {
       cursor: _cursor,
       type: _type,
       defaultSize,
       maxSize,
-      where: _where,
+      where,
       orderBy,
-      totalCount: _totalCount,
-      extensions: userExtensions,
+      totalCount,
+      extensions,
       ...rest
     } = options as typeof options & {
       where?: unknown;
       orderBy?: (model: never, args: unknown, ctx: unknown) => ReturnType<RequestOrderBy>;
     };
+    const totalCountCallback = typeof totalCount === 'function' ? totalCount : undefined;
     const relatedTypeName = (targetRef as { name?: string }).name ?? relatedKey;
-
-    const pothosIndirectInclude: IndirectInclude = {
+    const include: IndirectInclude = {
       getType: () => relatedTypeName,
       paths: [[{ name: 'edges' }, { name: 'node' }], [{ name: 'nodes' }]],
     };
-    const cursorCols = normalizeCursor(cursorOpt);
-
-    // Combine slots `<alias>:rows` and `<alias>:count` are lifted onto the parent by the overlay.
-    const select: PrismaNextSelectFn = (args, ctx, nested, selectedFieldNode) => {
-      const codecs = config.codecs(ctx, relatedKey);
+    const cursorColumns = normalizeCursor(cursorOpt);
+    const validArgs = (args: object, ctx: object) => {
       try {
         validateCursorArgs(
           cursorOpt,
-          args as import('@pothos/plugin-relay').DefaultConnectionArguments,
-          codecs,
+          args as DefaultConnectionArguments,
+          config.codecs(ctx, relatedKey),
         );
+        return true;
       } catch (error) {
         if (error instanceof PothosValidationError) {
-          return {};
+          return false;
         }
         throw error;
       }
-      const filter = (rel: MapperCollection) =>
-        refine != null ? (refine(rel, args, ctx) as MapperCollection) : rel;
-      const narrow = (rel: MapperCollection) =>
-        variant === undefined ? rel : narrowToVariant(rel, variant);
-      const selectedFields = selectedFieldNode();
-      const wantsTotalCount = totalCountFlag && selectedFields.has('totalCount');
-      const wantsRows = [...selectedFields].some(
-        (field) => field !== 'totalCount' && field !== '__typename',
-      );
-      const count = {
-        fn: (sub: MapperCollection) => ({ count: relatedCount(filter(narrow(sub))) }),
-        args: args as Record<string, unknown>,
-      };
-      if (!wantsRows) {
-        return wantsTotalCount ? { relations: { [relationName]: count } } : {};
+    };
+    const wantsCount = (ctx: object, info: GraphQLResolveInfo) =>
+      totalCount === true && selectedFieldNames(ctx, info).has('totalCount');
+
+    // An invalid cursor plans nothing, so the error surfaces on this field when it resolves.
+    const select: PrismaNextSelectFn = (args, ctx, nested, selectedFields, position) => {
+      if (!validArgs(args, ctx)) {
+        return {};
       }
-      const selection = nested(
+      const filter = (rel: MapperCollection) =>
+        where === undefined ? rel : rel.where(whereInput(where, args, ctx));
+      const narrow = (rel: MapperCollection) =>
+        variant === undefined ? rel : rel.variant(variant);
+      const identity = { source: select, args };
+      const selected = selectedFields();
+      const count =
+        totalCount === true && selected.has('totalCount')
+          ? computedSelection(name, scopeOf(position), identity, (sub) => ({
+              count: relatedCount(filter(narrow(sub))),
+            }))
+          : {};
+      if (![...selected].some((field) => field !== 'totalCount' && field !== '__typename')) {
+        return count;
+      }
+      const rows = nested(
         {
-          slot: 'rows',
-          ...(targetVariant
-            ? { variant: targetVariant.value, variantModel: relatedKey }
-            : variant !== undefined
-              ? { variant }
-              : {}),
-          columns: cursorCols,
-          refine: (rel) =>
-            applyCursorPagination(
-              filter(rel),
-              cursorOpt,
-              args as import('@pothos/plugin-relay').DefaultConnectionArguments,
-              {
+          columns: cursorColumns,
+          args: relationArgs(
+            relation,
+            identity,
+            (rel) =>
+              applyCursorPagination(filter(rel), cursorOpt, args as DefaultConnectionArguments, {
                 ...connectionSizes(config, { defaultSize, maxSize }, args, ctx),
-                codecs,
+                codecs: config.codecs(ctx, relatedKey),
                 orderBy: orderBy && ((model) => orderBy(model as never, args, ctx)),
-              },
-            ).collection,
+              }).collection,
+            variant,
+          ),
         },
-        pothosIndirectInclude,
-      ) as PrismaNextSpec | PromiseLike<PrismaNextSpec>;
-      const finish = (selected: PrismaNextSpec): PrismaNextSpec => {
-        const rows = { ...selected, args: args as Record<string, unknown> };
-        return {
-          relations: {
-            [relationName]: wantsTotalCount ? [rows, count] : rows,
-          },
-        };
-      };
-      return isThenable(selection) ? Promise.resolve(selection).then(finish) : finish(selection);
+        include,
+      );
+      return completeValue(rowsSelection(relation, name, scopeOf(position), rows), (planned) => ({
+        ...planned,
+        ...count,
+      }));
     };
 
     const connectionConfig = {
       ...rest,
       type: targetRef,
       extensions: {
-        ...userExtensions,
-        pothosIndirectInclude,
+        ...extensions,
+        pothosIndirectInclude: include,
         [PRISMA_NEXT_FIELD_SELECT]: select,
+        [PRISMA_NEXT_LOADED]: (
+          view: Record<string, unknown>,
+          args: object,
+          ctx: object,
+          info: GraphQLResolveInfo,
+        ) =>
+          !validArgs(args, ctx) ||
+          ((!connectionNeedsRows(ctx, info) || view[name] !== undefined) &&
+            (!wantsCount(ctx, info) || Object.hasOwn(view, 'count'))),
       },
       resolve: async (
-        parent: unknown,
-        args: unknown,
-        context: unknown,
+        parent: Record<string, unknown>,
+        args: DefaultConnectionArguments,
+        context: object,
         info: GraphQLResolveInfo,
       ) => {
-        const codecs = config.codecs(context as object, relatedKey);
-        // Planning ignores invalid cursor args, so the error surfaces on this field only.
-        validateCursorArgs(
-          cursorOpt,
-          args as import('@pothos/plugin-relay').DefaultConnectionArguments,
-          codecs,
+        const codecs = config.codecs(context, relatedKey);
+        validateCursorArgs(cursorOpt, args, codecs);
+        const rows = connectionNeedsRows(context, info) ? parent[name] : [];
+        const page = buildConnectionPage(
+          rows as Record<string, unknown>[],
+          buildPaginationParams(cursorOpt, args, {
+            ...connectionSizes(config, { defaultSize, maxSize }, args, context),
+            codecs,
+          }),
         );
-        // Lifted slots are own properties of the overlay; the row (which may have its own
-        // `rows` or `count` column) is its prototype.
-        const p = parent as { [key: string]: unknown };
-        const rows = connectionNeedsRows(context as object, info)
-          ? Object.hasOwn(p, 'rows')
-            ? p.rows
-            : p[relationName]
-          : [];
-        if (rows === undefined) {
-          throw new PothosValidationError(
-            `relatedConnection '${info.parentType.name}.${info.fieldName}' was reached from a parent not loaded by t.prismaField. ` +
-              'Use t.prismaField as the entry point so the auto-include mapper can preload this relation.',
-          );
-        }
-        if (!Array.isArray(rows)) {
-          throw new PothosValidationError(
-            `relatedConnection '${info.parentType.name}.${info.fieldName}' expected an array on parent, got ${typeof rows}.`,
-          );
-        }
-        const pagination = buildPaginationParams(
-          cursorOpt,
-          args as import('@pothos/plugin-relay').DefaultConnectionArguments,
-          { ...connectionSizes(config, { defaultSize, maxSize }, args, context), codecs },
-        );
-        const page = buildConnectionPage(rows as Record<string, unknown>[], pagination);
-        if (totalCountFlag) {
-          if (Object.hasOwn(p, 'count')) {
-            (page as { totalCount?: number }).totalCount = p.count as number;
-          }
-        } else if (
-          totalCountCallback &&
-          selectedFieldNames(context as object, info).has('totalCount')
-        ) {
+        if (wantsCount(context, info)) {
+          (page as { totalCount?: number }).totalCount = parent.count as number;
+        } else if (totalCountCallback && selectedFieldNames(context, info).has('totalCount')) {
           (page as { totalCount?: number }).totalCount = await totalCountCallback(
             parent,
             args,
@@ -756,11 +683,19 @@ export class PrismaNextObjectFieldBuilder<
         return page;
       },
     };
-    const finalConnectionOptions = totalCountEnabled
-      ? wrapConnectionOptionsWithTotalCount(connectionOptions)
-      : connectionOptions;
-    return self.connection(connectionConfig as never, finalConnectionOptions, edgeOptions);
+    return (
+      this as unknown as { connection: (cfg: object, c?: object, e?: object) => unknown }
+    ).connection(
+      connectionConfig,
+      totalCount ? wrapConnectionOptionsWithTotalCount(connectionOptions) : connectionOptions,
+      edgeOptions,
+    );
   } as never;
+
+  #relation(name: string): PrismaNextRelation {
+    this.#getRelationMeta(name);
+    return getModel(this.contract as AnyContract, this.modelName as string).relations[name]!;
+  }
 
   #getRelationMeta(relationName: string): ContractRelation {
     const model = resolveContractModel(this.contract as AnyContract, this.modelName as string);
