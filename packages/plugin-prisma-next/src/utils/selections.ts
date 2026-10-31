@@ -17,9 +17,9 @@ import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model
 export const REFINE = Symbol('prismaNextRefine');
 export const COMPUTE = Symbol('prismaNextCompute');
 
-export type Refine = (rel: MapperCollection) => MapperCollection | null | undefined;
+type Refine = (rel: MapperCollection) => MapperCollection | null | undefined;
 /** Values computed from a to-many relation's collection, lifted onto the consumer's parent. */
-export type Compute = (rel: MapperCollection, ctx: object) => Record<string, unknown>;
+type Compute = (rel: MapperCollection, ctx: object) => Record<string, unknown>;
 
 /**
  * The variant a level is narrowed to: by `.variant(value)` on the base collection, or by loading
@@ -254,7 +254,7 @@ function copyOf(row: object): object {
 /** Column names, or an object of columns (`true`) and relations (`true`, a query, or a function). */
 export type RawSelect = readonly string[] | Record<string, unknown>;
 
-export interface DeclarativeQuery {
+interface DeclarativeQuery {
   where?: unknown;
   orderBy?: unknown;
   limit?: number;

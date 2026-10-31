@@ -5,7 +5,7 @@ import type { MapperCollection, PrismaNextPlan } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
 import type { PrismaNextQuery } from './selections.js';
 
-export interface ApplySelectionOptions {
+interface ApplySelectionOptions {
   /** Paths to the selection from the field's return type (`[['edges', 'node'], ['nodes']]`). */
   paths?: PathSegment[][];
   /** Columns always read on the root, such as cursor columns. */
