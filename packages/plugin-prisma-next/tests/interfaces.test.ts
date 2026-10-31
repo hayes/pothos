@@ -209,12 +209,12 @@ describe('inherited selections', () => {
     });
     const Published = builder.prismaInterface('User', {
       name: 'UserPublishedTotals',
-      interfaces: [Totals] as never,
+      interfaces: [Totals],
       select: { posts: (sub) => ({ published: sub.where({ published: 1 }).count() }) },
       fields: (t) => ({ published: t.int({ resolve: (user) => user.published }) }),
     });
     const User = builder.prismaObject('User', {
-      interfaces: [Totals, Published] as never,
+      interfaces: [Totals, Published],
       isTypeOf: () => true,
       select: { posts: true },
       fields: (t) => ({
@@ -228,7 +228,7 @@ describe('inherited selections', () => {
         viaInterface: t.prismaField({ type: [Published], resolve: () => db.orm.User }),
         unplanned: t.field({
           type: [User],
-          resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }] as never,
+          resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }],
         }),
       }),
     });
@@ -262,7 +262,7 @@ describe('inherited selections', () => {
     const User = builder.prismaObject('User', { interfaces: [Named] as never });
     builder.queryType({
       fields: (t) => ({
-        user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) as never }),
+        user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) }),
       }),
     });
     const result = await run(builder.toSchema(), '{ user { name } }');

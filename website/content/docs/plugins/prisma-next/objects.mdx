@@ -147,18 +147,17 @@ builder.prismaObjectField('User', 'displayName', (t) =>
 ```
 
 With a model name, the parent only includes the field's own `select`. Pass the ref returned by
-`prismaObject` to use the type's selections, or to extend a [variant](./variants). To type the
-parent as the full row, pass it as the second type argument; columns still have to be selected to
-be loaded:
+`prismaObject` to use the type's selections, or to extend a [variant](./variants):
 
 ```ts
-import type { Row } from '@pothos/plugin-prisma-next';
+const User = builder.prismaObject('User', {
+  select: ['firstName'],
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
 
-type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
-
-builder.prismaObjectField<'User', Row<Types, 'User'>>('User', 'displayName', (t) =>
+builder.prismaObjectField(User, 'displayName', (t) =>
   t.string({
-    select: ['firstName', 'lastName'],
+    select: ['lastName'],
     resolve: (user) => `${user.firstName} ${user.lastName}`,
   }),
 );
