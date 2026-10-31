@@ -689,10 +689,29 @@ describe('fragments', () => {
       );
     });
 
-    it('enters no variant for a nested fragment on a type the plan already is', async () => {
-      expect(await plan('{ person { ... on Node { ... on Person { id } } } }')).toEqual(
-        await plan('{ person { id } }'),
+    it('plans a nested fragment on a type every implementation is as its enclosing fragment', async () => {
+      const nestedContext = {};
+      const directContext = {};
+      const nested = await plan(
+        '{ person { ... on Node { ... on Person { id } } } }',
+        nestedContext,
       );
+
+      expect(nested).toEqual(await plan('{ person { ... on Node { id } } }', directContext));
+      expect(nested).toEqual({ select: { posts: { take: 5 } } });
+      for (const type of ['User', 'Viewer', 'Admin']) {
+        expect(getLoaderMapping(nestedContext, pathOf('person', 'id'), type)).toEqual(
+          getLoaderMapping(directContext, pathOf('person', 'id'), type),
+        );
+      }
+    });
+
+    it('plans a named fragment on Node spread in several places for the variants it covers', async () => {
+      expect(
+        await plan(
+          'query { person { ...Card ... on Node { ...Ids } } } fragment Card on Person { ...Ids } fragment Ids on Node { id }',
+        ),
+      ).toEqual(await plan('{ person { ... on User { id } ... on Viewer { id } } }'));
     });
 
     it('treats a fragment whose variants conflict as one that cannot apply', async () => {
@@ -755,6 +774,49 @@ describe('fragments', () => {
     });
     expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual({
       nested: {},
+    });
+  });
+});
+
+describe('component fragments', () => {
+  // Fragments a component defines on an interface and spreads wherever it is rendered.
+  const fragments = `
+    fragment NodeFields on Node { id }
+    fragment PersonPosts on Person { posts(take: 1) { ...PostCard } }
+    fragment PostCard on Post { title author(x: 1) { ...NodeFields } }
+  `;
+  const plan = async (query: string, context = {}) =>
+    queryFromInfo(adapter, { context, info: await resolveInfo(schema, query) });
+
+  it('plans interface fragments spread into a concrete type as its own fields', async () => {
+    const context = {};
+    const planned = await plan(`{ user { ...NodeFields ...PersonPosts } } ${fragments}`, context);
+
+    expect(planned).toEqual(
+      await plan('{ user { id posts(take: 1) { title author(x: 1) { id } } } }'),
+    );
+    expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual({
+      nested: { 'Post@author': { nested: {} } },
+    });
+  });
+
+  it('plans one fragment spread at several depths, and beside direct fields', async () => {
+    expect(
+      await plan(
+        `{ user { posts(take: 1) { id } ...PersonPosts ... on Named { ...PersonPosts } } } ${fragments}`,
+      ),
+    ).toEqual(await plan('{ user { posts(take: 1) { id title author(x: 1) { id } } } }'));
+  });
+
+  it('plans interface fragments spread beneath a model interface for the rows they cover', async () => {
+    const context = {};
+
+    // Person implements Node, so NodeFields applies to every Person row.
+    expect(await plan(`{ person { ...NodeFields ...PersonPosts } } ${fragments}`, context)).toEqual(
+      await plan('{ person { id posts(take: 1) { title author(x: 1) { id } } } }'),
+    );
+    expect(mappingOf(getLoaderMapping(context, pathOf('person', 'posts'), 'Person'))).toEqual({
+      nested: { 'Post@author': { nested: {} } },
     });
   });
 });

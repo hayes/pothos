@@ -79,10 +79,7 @@ function enterVariant<Model, Query, NodeType extends NodeBase<Model>>(
   }
 }
 
-/**
- * Which plays take what a walk collects: true for those that expand fragments, false for those
- * that do not, undefined for both. See `RootMerge`.
- */
+/** Which plays take what a walk collects; see `fragmentWalks`. */
 type Expanded = boolean | undefined;
 
 /**
@@ -283,11 +280,12 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
       const { types } = walk;
       // A typed fragment moves the plan to the types it applies to, unless `origin` is already
       // of its type. One that expands, or an untyped one, only does so when it selects fields of
-      // its own. A fragment that does not move the plan leaves its nested fragments to enter
-      // relative to the same `origin`.
+      // its own, and so does a typed one inside a fragment that did not enter (`type` is not
+      // `origin`): it keeps to `type`, which the plan has not entered. A fragment that does not
+      // move the plan leaves its nested fragments to enter relative to the same `origin`.
       const enters =
         types.length > 0 &&
-        (condition && !walk.expands
+        (condition && !walk.expands && type === origin
           ? !isOfType(origin, condition)
           : selectsFields(fragment.selectionSet.selections));
 
@@ -371,8 +369,10 @@ interface FragmentWalk {
  * The ways `fragment` is walked while walking `type`. A fragment that expands (see
  * `fragmentTypesOf`) is walked as the types it covers for plays that expand fragments, and as a
  * fragment that cannot apply for plays that do not; a walk already inside one of the two keeps
- * to it. A play only expands fragments when the variants they enter have compatible type-level
- * selections, so a document never fails because a fragment expanded.
+ * to it. What each walk collects is marked `expanded` true or false (undefined outside both).
+ * `Plan.play` folds the expanding merges first; when the variants any of those fragments enter
+ * have conflicting type-level selections, it plays every such fragment of the plan unexpanded
+ * instead, so a document never fails because a fragment expanded.
  */
 function fragmentWalks<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -420,7 +420,7 @@ function applicableFragment<Model, Query, NodeType extends NodeBase<Model>>(
  * on another type of the same model, walked as that type, so that type's own selection is planned
  * for the rows that resolve to it. A fragment on an abstract type of no model (`... on Node`
  * beneath a model interface) is an expansion: it is walked as each implementation of `type` it
- * contains. A play only expands when the variants it enters agree; see `fragmentWalks`.
+ * contains; see `fragmentWalks`.
  */
 function fragmentTypesOf<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,

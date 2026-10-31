@@ -371,9 +371,11 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ viewer: { username: expect.stringMatching(/^@./) } });
+      // Named covers NormalViewer alone, so username is planned for NormalViewer rows, with its
+      // type-level select.
       expect(drizzleLogs).toMatchInlineSnapshot(`
         [
-          "Query: select "d0"."id" as "id", "d0"."username" as "username" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+          "Query: select "d0"."id" as "id", "d0"."first_name" as "firstName", "d0"."username" as "username" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
         ]
       `);
     });
