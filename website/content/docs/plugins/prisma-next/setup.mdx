@@ -118,7 +118,8 @@ prismaNext: {
   IDs and those keys encode values with the client's column codecs, so Temporal, decimal and
   other object-valued columns work as is.
 - `skipDeferredFragments`: `@defer` fragments are left out of the initial query and loaded when
-  executed. Set to `false` to load them eagerly.
+  executed. Set to `false` to load them eagerly; deferred fields on a model without a key can't
+  be loaded later.
 - `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes, overridden per
   field with `defaultSize` and `maxSize`.
 

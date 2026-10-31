@@ -102,3 +102,7 @@ as long as it includes its primary or unique key. They are loaded through the pl
 
 The same loader handles conflicting filters on one to-one relation, which Prisma can't include
 together.
+
+A model without a primary or non-null unique key can't be reloaded, so its fields must come from
+the parent query. A field that would need the loader fails with an error naming it, and a
+`prismaInterface` whose `select` conflicts with its object's fails the schema build.

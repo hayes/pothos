@@ -140,10 +140,12 @@ export function runIncremental(schema: GraphQLSchema, source: string) {
     }
     const initialStatements = statements.length;
     const patches: unknown[] = [];
+    const patchErrors: unknown[] = [];
     const completedErrors: unknown[] = [];
     for await (const patch of result.subsequentResults) {
       for (const entry of patch.incremental ?? []) {
         patches.push('data' in entry ? entry.data : entry.items);
+        patchErrors.push(...(entry.errors ?? []));
       }
       for (const entry of patch.completed ?? []) {
         if (entry.errors) {
@@ -154,6 +156,7 @@ export function runIncremental(schema: GraphQLSchema, source: string) {
     return {
       initial: result.initialResult,
       patches,
+      patchErrors,
       completedErrors,
       initialStatements,
       statements,

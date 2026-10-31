@@ -100,6 +100,10 @@ export const sampleDdl = `
     postId TEXT NOT NULL, createdAt TEXT NOT NULL,
     FOREIGN KEY (authorId) REFERENCES user(id), FOREIGN KEY (postId) REFERENCES post(id)
   );
+  CREATE TABLE post_view (
+    postId TEXT NOT NULL, viewer TEXT NOT NULL, viewedAt TEXT NOT NULL,
+    FOREIGN KEY (postId) REFERENCES post(id)
+  );
   INSERT INTO user (id, firstName, lastName, email) VALUES
     ('u-alice', 'Alice', 'Andrews', 'alice@example.com'),
     ('u-bob', 'Bob', 'Brown', 'bob@example.com');
@@ -111,6 +115,10 @@ export const sampleDdl = `
   INSERT INTO comment (id, body, authorId, postId, createdAt) VALUES
     ('c-1', 'Looks great!', 'u-bob', 'p-hello', '2026-04-01T11:00:00.000Z'),
     ('c-2', 'Glad to see this working.', 'u-alice', 'p-hello', '2026-04-01T12:00:00.000Z');
+  INSERT INTO post_view (postId, viewer, viewedAt) VALUES
+    ('p-hello', 'Bob', '2026-04-01T13:00:00.000Z'),
+    ('p-hello', 'Carol', '2026-04-01T14:00:00.000Z'),
+    ('p-bob1', 'Alice', '2026-04-03T11:00:00.000Z');
 `;
 
 export type TestRuntimeContext = SqliteRuntime<SampleContract>;

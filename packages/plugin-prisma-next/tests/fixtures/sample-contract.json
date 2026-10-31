@@ -12,6 +12,10 @@
       "model": "Post",
       "namespace": "__unbound__"
     },
+    "post_view": {
+      "model": "PostView",
+      "namespace": "__unbound__"
+    },
     "user": {
       "model": "User",
       "namespace": "__unbound__"
@@ -198,6 +202,21 @@
                   "model": "Comment",
                   "namespace": "__unbound__"
                 }
+              },
+              "views": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "postId"
+                  ]
+                },
+                "to": {
+                  "model": "PostView",
+                  "namespace": "__unbound__"
+                }
               }
             },
             "storage": {
@@ -226,6 +245,64 @@
               },
               "namespaceId": "__unbound__",
               "table": "post"
+            }
+          },
+          "PostView": {
+            "fields": {
+              "postId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "viewedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sqlite/datetime@1",
+                  "kind": "scalar"
+                }
+              },
+              "viewer": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "post": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "postId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Post",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "postId": {
+                  "column": "postId"
+                },
+                "viewedAt": {
+                  "column": "viewedAt"
+                },
+                "viewer": {
+                  "column": "viewer"
+                }
+              },
+              "namespaceId": "__unbound__",
+              "table": "post_view"
             }
           },
           "User": {
@@ -492,6 +569,57 @@
               },
               "uniques": []
             },
+            "post_view": {
+              "columns": {
+                "postId": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": false
+                },
+                "viewedAt": {
+                  "codecId": "sqlite/datetime@1",
+                  "dataType": "sqlite/datetime",
+                  "nullable": false
+                },
+                "viewer": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "post_view_postId_idx_a7a72715"
+                  },
+                  "source": {
+                    "columns": [
+                      "postId"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "post_view"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "post"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "postId"
+                  ],
+                  "name": "post_view_postId_idx_a7a72715",
+                  "prefix": "post_view_postId_idx",
+                  "unique": false
+                }
+              ],
+              "uniques": []
+            },
             "user": {
               "columns": {
                 "email": {
@@ -535,7 +663,7 @@
         "id": "__unbound__"
       }
     },
-    "storageHash": "ac514a7bad0472d2cac999fdd4f930096b838cc2940c035c60e560f3cdec2a53"
+    "storageHash": "fe9002e03cb66e74483ee92c8d29c747944921ea957b3592797f0490ed69c355"
   },
   "capabilities": {
     "sql": {
