@@ -210,7 +210,10 @@ describe('rejected cursors', () => {
     );
     expect(result.data.users[0]).toEqual({ id: 'u-alice', posts: null });
     expect(result.errors?.[0].message).toMatch(/Invalid cursor/);
-    expect(result.errors?.[0].path).toEqual(['users', 0, 'posts']);
+    expect(result.errors?.map((error) => error.path)).toEqual([
+      ['users', 0, 'posts'],
+      ['users', 1, 'posts'],
+    ]);
   });
 
   describe('null boundaries', () => {
