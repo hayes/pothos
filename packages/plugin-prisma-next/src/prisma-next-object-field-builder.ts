@@ -129,11 +129,14 @@ const RootBuilder: {
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
 
+// The variance annotations spare each program a structural variance probe of the whole builder,
+// which reaches into every model's row types. `Shape` is left unannotated, so its measured variance
+// still allows the structural comparison that helpers typed with a wider shape rely on.
 export class PrismaNextObjectFieldBuilder<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
+  in out Types extends SchemaTypes,
+  in out M extends ModelName<Types>,
   Shape = unknown,
-  ExposableShape = Row<Types, M>,
+  in out ExposableShape = Row<Types, M>,
 > extends RootBuilder<Types, Shape, 'PrismaNextObject'> {
   exposeBoolean = this.createExpose('Boolean');
   exposeFloat = this.createExpose('Float');

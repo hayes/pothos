@@ -161,7 +161,7 @@ export function prismaConnectionHelpers<
   options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
     resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
-): PrismaConnectionHelpers<Types, M, Args, Node, boolean, Ref> {
+): object {
   const ref = (typeof refOrModel === 'string'
     ? getRefFromContractModel<Types, M>(refOrModel, builder)
     : refOrModel) as never as PrismaNextObjectRef<Types, M>;
@@ -194,7 +194,7 @@ export function prismaConnectionHelpers<
         return Promise.reject(error);
       }
     },
-  };
+  } satisfies PrismaConnectionHelpers<Types, M, Args, Node, boolean, Ref>;
 
   function paginate(
     collection: ConnectionCollection<Types, M>,

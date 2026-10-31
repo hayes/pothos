@@ -18,6 +18,8 @@ import type {
   ExactSelectCheck,
   FieldParentShape,
   InterfaceSelectShape,
+  ModelInterfaceRefKey,
+  ModelObjectRefKey,
   ObjectBaseShape,
   ParamToModelName,
   ParamToTypeParam,
@@ -48,17 +50,17 @@ import type {
 /** What a model's root field or connection may name as its `type`. */
 type ModelParam<Types extends SchemaTypes> =
   | ModelName<Types>
-  | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-  | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>;
+  | ModelObjectRefKey<ModelName<Types>>
+  | ModelInterfaceRefKey<ModelName<Types>>;
 
 /** A root field's `type`: a model's type, or a list of it. */
 type FieldParam<Types extends SchemaTypes> =
   | ModelName<Types>
   | [ModelName<Types>]
-  | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-  | PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>
-  | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>]
-  | [PrismaNextInterfaceRef<Types, ModelName<Types>, unknown>];
+  | ModelObjectRefKey<ModelName<Types>>
+  | ModelInterfaceRefKey<ModelName<Types>>
+  | [ModelObjectRefKey<ModelName<Types>>]
+  | [ModelInterfaceRefKey<ModelName<Types>>];
 
 /**
  * Merged beside a plain `select?: Select`, which stays the only inference site: inferring through
