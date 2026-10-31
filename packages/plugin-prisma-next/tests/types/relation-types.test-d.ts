@@ -207,7 +207,9 @@ builder.prismaObject('Post', {
       readonly DefaultModelRow<Contract, 'Comment'>[]
     >();
     const commentPage = t.relatedConnection('comments', { cursor: 'id' });
-    expectTypeOf(commentPage.$inferType.edges).not.toBeUnknown();
+    // Nullable as the relay plugin makes it: by the builder's default field nullability.
+    expectTypeOf(commentPage.$inferType).toBeNullable();
+    expectTypeOf(commentPage.$inferType!.edges).not.toBeUnknown();
     return {
       author,
       filtered,

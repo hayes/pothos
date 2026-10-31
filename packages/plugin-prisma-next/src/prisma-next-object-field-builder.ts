@@ -1,14 +1,12 @@
 import {
-  type CompatibleTypes,
   completeValue,
   createContextCache,
-  type ExposeNullability,
   type FieldKind,
   type FieldRef,
   type InferredFieldOptionKeys,
   type InputFieldMap,
-  type InputShapeFromFields,
   type InterfaceParam,
+  type MaybePromise,
   type NormalizeArgs,
   type ObjectRef,
   type PluginName,
@@ -23,6 +21,7 @@ import type { IndirectInclude } from '@pothos/selection-mapper';
 import type { ContractRelation } from '@prisma/orm-framework/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
 import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_LOADED } from './constants.js';
+import type { ExposableColumn, ExposeColumnNullability } from './internal-types.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   AnyContract,
@@ -33,6 +32,7 @@ import type {
   PrismaNextRelationAggregateOptions,
   PrismaNextRelationCountOptions,
   PrismaNextRelationOptions,
+  PrismaNextVariantFieldOptions,
   RelatedModel,
   RelationAggregateField,
   RelationAggregateOp,
@@ -44,6 +44,7 @@ import type {
   Row,
   ShapeFromConnection,
   ToManyRelationKeys,
+  VariantFieldShape,
 } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
@@ -64,6 +65,7 @@ import {
   applyCursorPagination,
   buildConnectionPage,
   buildPaginationParams,
+  createRequestOrderings,
   normalizeCursor,
   type RequestOrderBy,
   validateCursor,
@@ -177,13 +179,13 @@ export class PrismaNextObjectFieldBuilder<
     Type extends TypeParam<Types>,
     Nullable extends boolean,
     ResolveReturnShape,
-    Name extends CompatibleTypes<Types, ExposableShape, Type, Nullable>,
+    Name extends ExposableColumn<Types, ExposableShape, Type, Nullable>,
   >(
-    // Positional so `Name extends CompatibleTypes<…>` is inferred from the call site.
+    // Positional so `Name extends ExposableColumn<…>` is inferred from the call site.
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: ExposeNullability<Types, Type, ExposableShape, Name, Nullable> &
+        options: ExposeColumnNullability<Types, Type, ExposableShape, Name, Nullable> &
           Omit<
             PothosSchemaTypes.ObjectFieldOptions<
               Types,
@@ -210,7 +212,7 @@ export class PrismaNextObjectFieldBuilder<
     return <
       Nullable extends boolean,
       ResolveReturnShape,
-      Name extends CompatibleTypes<
+      Name extends ExposableColumn<
         Types,
         ExposableShape,
         Type,
@@ -220,7 +222,7 @@ export class PrismaNextObjectFieldBuilder<
       name: Name,
       ...args: NormalizeArgs<
         [
-          options: ExposeNullability<Types, Type, ExposableShape, Name, Nullable> &
+          options: ExposeColumnNullability<Types, Type, ExposableShape, Name, Nullable> &
             Omit<
               PothosSchemaTypes.ObjectFieldOptions<
                 Types,
@@ -246,22 +248,28 @@ export class PrismaNextObjectFieldBuilder<
     Variant extends PrismaNextObjectRef<Types, M, unknown> | M,
     Args extends InputFieldMap = {},
     Nullable extends boolean = false,
+    IsNull extends MaybePromise<boolean> = never,
     Selected extends keyof Row<Types, M> & string = never,
   >(
     variant: Variant,
-    options: {
-      description?: string;
-      nullable?: Nullable;
-      args?: Args;
-      select?: readonly Selected[];
-      isNull?: (
-        parent: Shape & Pick<Row<Types, M>, Selected>,
-        args: InputShapeFromFields<Args>,
-        ctx: Types['Context'],
-        info: GraphQLResolveInfo,
-      ) => boolean | Promise<boolean>;
-    } = {},
-  ): FieldRef<Types, unknown> {
+    ...allArgs: NormalizeArgs<
+      [
+        options: PrismaNextVariantFieldOptions<
+          Types,
+          M,
+          Shape,
+          Variant extends PrismaNextObjectRef<Types, M, unknown>
+            ? Variant
+            : PrismaNextObjectRef<Types, M>,
+          Args,
+          Nullable,
+          IsNull,
+          Selected
+        >,
+      ]
+    >
+  ): FieldRef<Types, VariantFieldShape<Types, M, Nullable, IsNull>, 'PrismaNextObject'> {
+    const [options = {}] = allArgs as [Record<string, unknown>?];
     const ref =
       typeof variant === 'string'
         ? (getRefFromContractModel(variant as never, this.builder) as never)
@@ -276,7 +284,17 @@ export class PrismaNextObjectFieldBuilder<
       select: variantSelect,
       extensions: userExtensions,
       ...rest
-    } = options as typeof options & { extensions?: Record<string, unknown> };
+    } = options as {
+      isNull?: (
+        parent: unknown,
+        args: unknown,
+        ctx: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => boolean | Promise<boolean>;
+      nullable?: boolean;
+      select?: readonly string[];
+      extensions?: Record<string, unknown>;
+    };
     if (isNull && nullable === false) {
       throw new PothosSchemaError(
         `t.variant on '${variantTypeName}': \`isNull\` can return null, but \`nullable: false\` was set. Either drop \`nullable: false\` or remove \`isNull\`.`,
@@ -309,7 +327,7 @@ export class PrismaNextObjectFieldBuilder<
           }
         : (parent: unknown) => parent as never,
     };
-    return this.field(fieldOpts as never) as FieldRef<Types, unknown>;
+    return this.field(fieldOpts as never) as never;
   }
 
   relation<
@@ -495,7 +513,8 @@ export class PrismaNextObjectFieldBuilder<
   relatedConnection: 'relay' extends PluginName
     ? <
         RelName extends ToManyRelationKeys<Types, M>,
-        Nullable extends boolean = false,
+        // The relay plugin applies the builder's default, as for any connection field.
+        Nullable extends boolean = Types['DefaultFieldNullability'],
         Args extends InputFieldMap = {},
         Cursor extends CursorSpec<Types, RelatedModel<Types, M, RelName>> = CursorSpec<
           Types,
@@ -616,8 +635,10 @@ export class PrismaNextObjectFieldBuilder<
     const filter = (rel: MapperCollection, args: object, ctx: object) =>
       where === undefined ? rel : rel.where(whereInput(where, args, ctx));
     const narrow = (rel: MapperCollection) => (variant === undefined ? rel : rel.variant(variant));
-    const page = (rel: MapperCollection, args: object, ctx: object) =>
-      applyCursorPagination(
+    // The ordering `orderBy` chose, which the resolver encodes cursors under.
+    const orderings = createRequestOrderings();
+    const page = (rel: MapperCollection, args: object, ctx: object) => {
+      const result = applyCursorPagination(
         filter(rel, args, ctx),
         cursorOpt,
         args as PothosSchemaTypes.DefaultConnectionArguments,
@@ -626,7 +647,12 @@ export class PrismaNextObjectFieldBuilder<
           codecs: config.codecs(ctx, relatedKey),
           orderBy: orderBy && ((model) => orderBy(model as never, args, ctx)),
         },
-      ).collection;
+      );
+      if (orderBy) {
+        orderings.set(args, ctx, result.cursor);
+      }
+      return result.collection;
+    };
     const targetVariant = variant ?? variantOf(config.contract, relatedKey)?.value;
     // What depends on the request (the cursor arguments, and the size, `where` and `orderBy`
     // callbacks) is checked once per request and set of arguments, which every parent row shares,
@@ -651,6 +677,8 @@ export class PrismaNextObjectFieldBuilder<
             cursorOpt,
             args as PothosSchemaTypes.DefaultConnectionArguments,
             config.codecs(ctx, relatedKey),
+            // The page checks the ordering a request's `orderBy` chooses.
+            { checkOrdering: !orderBy },
           );
           // A client may expose the related model only through its parent's relation.
           const base = collectionForModel(
@@ -729,7 +757,7 @@ export class PrismaNextObjectFieldBuilder<
           throw failure.error;
         }
         const rows = connectionNeedsRows(context, info) ? parent[name] : [];
-        const pagination = buildPaginationParams(cursorOpt, args, {
+        const pagination = buildPaginationParams(orderings.get(args, context) ?? cursorOpt, args, {
           ...settings.sizes(args, context),
           codecs: config.codecs(context, relatedKey),
         });

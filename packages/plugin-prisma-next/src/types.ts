@@ -409,12 +409,20 @@ export type RelationWhere<Types extends SchemaTypes, M extends ModelName<Types>>
   | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>
   | RelationPredicate<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>;
 
+/** One ordering of a relation's rows, as the ORM's `orderBy` takes it. */
+export type RelationOrderSelector<Types extends SchemaTypes, M extends ModelName<Types>> = (
+  accessor: ModelAccessor<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
+  tools: ModelCallbackTools<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
+) => OrderByItem;
+
+/** A relation's `orderBy`: a selector, or several applied in order. */
+export type RelationOrderBy<Types extends SchemaTypes, M extends ModelName<Types>> =
+  | RelationOrderSelector<Types, M>
+  | readonly RelationOrderSelector<Types, M>[];
+
 export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
   where?: RelationWhere<Types, M>;
-  orderBy?: (
-    accessor: ModelAccessor<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
-    tools: ModelCallbackTools<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
-  ) => unknown;
+  orderBy?: RelationOrderBy<Types, M>;
   limit?: number;
   offset?: number;
 }
@@ -477,6 +485,52 @@ export type PrismaNextRelationOptions<
 type ExactRelationQuery<Query> = Query extends (...args: never[]) => unknown
   ? unknown
   : { [K in Exclude<keyof Query, keyof RelationQueryLiteral<SchemaTypes, never>>]: never };
+
+/** Names the conflict in the error for `nullable: false` beside `isNull`. */
+export interface VariantIsNullRequiresNullable {
+  readonly 'isNull can resolve the field to null, so nullable: false is not allowed': true;
+}
+
+/** `isNull` can resolve the field to null, so `nullable: false` can't accompany it. */
+type VariantNullableOption<IsNull> = [IsNull] extends [never]
+  ? boolean
+  : true | VariantIsNullRequiresNullable;
+
+/** Field options for `t.variant`: any object field option except those it infers or installs. */
+export type PrismaNextVariantFieldOptions<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  ParentShape,
+  VariantRef extends PrismaNextObjectRef<Types, M, unknown>,
+  Args extends InputFieldMap,
+  Nullable extends boolean,
+  // Inferred from `isNull`'s result, so its parameters are typed before it is: `never` without one.
+  IsNull extends MaybePromise<boolean>,
+  Selected extends keyof Row<Types, M> & string,
+> = Omit<
+  PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, VariantRef, Nullable, Args, unknown>,
+  'type' | 'nullable' | 'select' | InferredFieldOptionKeys
+> & {
+  description?: string | false;
+  nullable?: Nullable & NoInfer<VariantNullableOption<IsNull>>;
+  /** Columns to load for `isNull`, whatever the query selects. */
+  select?: readonly Selected[];
+  /** Resolves the field to null when this returns true, which makes the field nullable. */
+  isNull?: (
+    parent: ParentShape & Pick<Row<Types, M>, Selected>,
+    args: InputShapeFromFields<Args>,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+  ) => IsNull;
+};
+
+/** The row a variant field resolves to: its parent's, or null when it's nullable. */
+export type VariantFieldShape<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Nullable extends boolean,
+  IsNull,
+> = Row<Types, M> | (Nullable extends true ? null : [IsNull] extends [never] ? never : null);
 
 /** A `query` can filter a to-one relation's row out, so it makes the field nullable by default. */
 export type RelationNullable<

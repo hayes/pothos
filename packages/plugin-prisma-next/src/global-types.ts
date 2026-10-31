@@ -21,6 +21,7 @@ import type {
   ObjectBaseShape,
   ParamToModelName,
   ParamToTypeParam,
+  SelectColumnCheck,
   SelectObjectSpec,
   ShapeFromObjectSelect,
 } from './internal-types.js';
@@ -58,7 +59,7 @@ type TypeSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Sele
     NoInfer<
       ExactSelectCheck<Types, M, Select> &
         (Select extends readonly unknown[]
-          ? { readonly [K in keyof Select]: Select[K] & keyof Row<Types, M> }
+          ? { readonly [K in keyof Select]: SelectColumnCheck<Types, M, Select[K]> }
           : unknown)
     >;
 };

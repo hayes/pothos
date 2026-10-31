@@ -77,8 +77,12 @@ export type {
   PrismaNextRequestClient,
   PrismaNextRootFieldOptions,
   PrismaNextRootFieldWithInputOptions,
+  PrismaNextVariantFieldOptions,
+  RelationOrderBy,
+  RelationOrderSelector,
   ResolverCollection,
   Row,
+  VariantFieldShape,
 } from './types.js';
 
 const pluginName = 'prismaNext';
