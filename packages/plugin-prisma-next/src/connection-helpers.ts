@@ -5,7 +5,6 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
-import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
@@ -20,7 +19,8 @@ import type {
   TotalCountFlag,
 } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { connectionSizes, getPluginConfig } from './utils/config.js';
+import { getPluginConfig } from './utils/config.js';
+import { aggregateCount, connectionSettings } from './utils/connections.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
@@ -32,7 +32,6 @@ import {
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getRefFromContractModel } from './utils/refs.js';
 import { whereInput } from './utils/selections.js';
-import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
 
 export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [Node] extends [never]
   ? WrapRow
@@ -177,22 +176,21 @@ export function prismaConnectionHelpers<
     return resolvedArgs;
   };
 
-  const totalCountResolver =
-    typeof options.totalCount === 'function' ? options.totalCount : undefined;
-  const totalCountFlag = options.totalCount === true || totalCountResolver !== undefined;
-
   const cursorCols = normalizeCursor(options.cursor as CursorInput);
   const config = getPluginConfig(builder);
   const cursorSpec = validateCursor(config.contract, modelName, options.cursor);
+  const settings = connectionSettings<
+    (
+      args: InputShapeFromFields<Args> & import('@pothos/plugin-relay').DefaultConnectionArguments,
+      ctx: Types['Context'],
+      info: GraphQLResolveInfo | undefined,
+    ) => MaybePromise<number>
+  >(config, options);
 
   return {
     ref,
     getArgs: () => resolveArgs(),
-    connectionOptions<T extends object>(connectionOptions: T): T {
-      return totalCountFlag
-        ? (wrapConnectionOptionsWithTotalCount(connectionOptions) as T)
-        : connectionOptions;
-    },
+    connectionOptions: settings.connectionOptions,
     applyPagination(collection, args, info, ctx) {
       const filteredBase = (options.where === undefined
         ? collection
@@ -200,7 +198,7 @@ export function prismaConnectionHelpers<
             whereInput(options.where, args, ctx as object),
           )) as unknown as CollectionFor<Types, M>;
       const pagination = applyCursorPagination(filteredBase as never, cursorSpec, args, {
-        ...connectionSizes(config, options, args, ctx),
+        ...settings.sizes(args, ctx as object),
         codecs: config.codecs(ctx, modelName),
       });
 
@@ -214,15 +212,13 @@ export function prismaConnectionHelpers<
       // Counted before pagination but after `where`, so it matches the paged rows.
       let totalCountPromise: Promise<number> | undefined;
       const getTotalCountPromise = () => {
-        if (
-          !totalCountFlag ||
-          (info && !selectedFieldNames(ctx as object, info).has('totalCount'))
-        ) {
+        const counted = settings.countsRows(ctx as object, info);
+        if (!counted && !settings.callsCount(ctx as object, info)) {
           return undefined;
         }
-        totalCountPromise ??= totalCountResolver
-          ? Promise.resolve().then(() => totalCountResolver(args, ctx, info))
-          : aggregateCount(filteredBase);
+        totalCountPromise ??= counted
+          ? aggregateCount(filteredBase)
+          : Promise.resolve().then(() => settings.countCallback!(args, ctx, info));
         // Avoids an unhandled rejection; the consumer still sees it.
         totalCountPromise.catch(() => undefined);
         return totalCountPromise;

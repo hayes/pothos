@@ -119,30 +119,3 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
   };
   return config;
 });
-
-export function resolveSizeOption<Args, Ctx>(
-  opt: number | ((args: Args, ctx: Ctx) => number) | undefined,
-  args: Args,
-  ctx: Ctx,
-): number | undefined {
-  return typeof opt === 'function' ? opt(args, ctx) : opt;
-}
-
-/** Field sizes fall back to the plugin's. */
-export function connectionSizes<Args, Ctx>(
-  config: PrismaNextConfig,
-  options: {
-    defaultSize?: number | ((args: Args, ctx: Ctx) => number);
-    maxSize?: number | ((args: Args, ctx: Ctx) => number);
-  },
-  args: Args,
-  ctx: Ctx,
-): { defaultSize?: number; maxSize?: number } {
-  const defaultSize =
-    resolveSizeOption(options.defaultSize, args, ctx) ?? config.defaultConnectionSize;
-  const maxSize = resolveSizeOption(options.maxSize, args, ctx) ?? config.maxConnectionSize;
-  return {
-    ...(defaultSize !== undefined ? { defaultSize } : {}),
-    ...(maxSize !== undefined ? { maxSize } : {}),
-  };
-}
