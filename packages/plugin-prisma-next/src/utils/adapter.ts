@@ -100,6 +100,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     return this.typeSelectionOf(type).query;
   }
 
+  /** Interfaces whose `select` conflicts with the type's own, so their fields load separately. */
+  conflictingInterfaces(type: GraphQLNamedType): string[] {
+    return [...this.typeSelectionOf(type).deferred.keys()];
+  }
+
   private typeSelectionOf(type: GraphQLNamedType) {
     let selection = this.typeSelections.get(type);
     if (!selection) {

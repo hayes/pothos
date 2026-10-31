@@ -18,6 +18,7 @@ model Post {
   createdAt DateTime
   author User @relation(fields: [authorId], references: [id])
   comments Comment[]
+  views PostView[]
   @@map("post")
 }
 model Comment {
@@ -29,4 +30,11 @@ model Comment {
   author User @relation(fields: [authorId], references: [id])
   post Post @relation(fields: [postId], references: [id])
   @@map("comment")
+}
+model PostView {
+  postId String
+  viewer String
+  viewedAt DateTime
+  post Post @relation(fields: [postId], references: [id])
+  @@map("post_view")
 }

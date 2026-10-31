@@ -547,3 +547,131 @@ describe('deferred fragments', () => {
     expect(result.statements[0].sql).toMatch(/firstName/);
   });
 });
+
+describe('models without a key', () => {
+  function keylessSchema(defer = false) {
+    const builder = createBuilder();
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        title: t.exposeString('title'),
+        viewCount: t.relationCount('views'),
+        views: t.relation('views', { query: { orderBy: (view) => view.viewer.asc() } }),
+      }),
+    });
+    const View = builder.prismaObject('PostView', {
+      fields: (t) => ({
+        viewer: t.exposeString('viewer'),
+        viewedAt: t.string({
+          nullable: true,
+          select: ['viewedAt'],
+          resolve: (view) => String(view.viewedAt),
+        }),
+        post: t.relation('post'),
+        published: t.relation('post', { nullable: true, query: { where: { published: 1 } } }),
+        draft: t.relation('post', { nullable: true, query: { where: { published: 0 } } }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaField({
+          type: ['Post'],
+          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+        }),
+        views: t.prismaField({
+          type: ['PostView'],
+          resolve: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
+        }),
+        plainViews: t.field({
+          type: [View],
+          resolve: () => [{ viewer: 'Dave' }] as never,
+        }),
+        builtViews: t.field({
+          type: [View],
+          resolve: () => [{ postId: 'p-hello', viewer: 'Dave', viewedAt: 'then' }] as never,
+        }),
+      }),
+    });
+    return defer ? deferSchema(builder) : builder.toSchema();
+  }
+
+  const keylessError = (field: string, reason: string) =>
+    expect.objectContaining({
+      message: expect.stringMatching(
+        new RegExp(
+          `^Field 'PostView\\.${field}' needs its parent reloaded because ${reason}.*model 'PostView' has no non-null primary or unique key.*Add a primary or unique key to 'PostView'`,
+        ),
+      ),
+    });
+
+  it('loads relations and counts planned in the parent query', async () => {
+    const result = await run(
+      keylessSchema(),
+      '{ posts { title viewCount views { viewer post { title } } } views { viewer viewedAt published { title } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts).toEqual([
+      {
+        title: 'Hello, Pothos',
+        viewCount: 2,
+        views: ['Bob', 'Carol'].map((viewer) => ({ viewer, post: { title: 'Hello, Pothos' } })),
+      },
+    ]);
+    expect(result.data.views).toEqual([
+      { viewer: 'Alice', viewedAt: expect.any(String), published: { title: 'Bob writes' } },
+      { viewer: 'Bob', viewedAt: expect.any(String), published: { title: 'Hello, Pothos' } },
+      { viewer: 'Carol', viewedAt: expect.any(String), published: { title: 'Hello, Pothos' } },
+    ]);
+    expect(result.statements).toHaveLength(2);
+  });
+
+  it('fails only a to-one field left out of the parent query for a conflicting selection', async () => {
+    const result = await run(
+      keylessSchema(),
+      '{ posts { views { viewer published { title } draft { title } } } }',
+    );
+    expect(result.errors).toEqual([
+      keylessError('draft', 'it was left out of the query that loaded its parent'),
+      keylessError('draft', 'it was left out of the query that loaded its parent'),
+    ]);
+    expect(result.data.posts[0].views).toEqual(
+      ['Bob', 'Carol'].map((viewer) => ({
+        viewer,
+        published: { title: 'Hello, Pothos' },
+        draft: null,
+      })),
+    );
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('fails deferred fields without loading them', async () => {
+    const result = await runIncremental(
+      keylessSchema(true),
+      '{ views { viewer ... @defer { viewedAt published { title } } } }',
+    );
+    expect(result.initial.errors).toBeUndefined();
+    expect(result.patchErrors).toEqual(
+      [0, 1, 2].flatMap(() => [
+        keylessError('viewedAt', "its parent row is missing 'viewedAt'"),
+        keylessError('published', 'it was left out of the query that loaded its parent'),
+      ]),
+    );
+    expect(result.patches).toEqual([0, 1, 2].map(() => ({ viewedAt: null, published: null })));
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('fails fields on rows not loaded by a prisma field while siblings resolve', async () => {
+    const result = await run(
+      keylessSchema(),
+      '{ plainViews { viewer viewedAt } builtViews { viewer viewedAt published { title } } }',
+    );
+    expect(result.errors).toEqual([
+      keylessError('viewedAt', "its parent row is missing 'viewedAt'"),
+      keylessError('published', 'it was left out of the query that loaded its parent'),
+    ]);
+    expect(result.data).toEqual({
+      plainViews: [{ viewer: 'Dave', viewedAt: null }],
+      builtViews: [{ viewer: 'Dave', viewedAt: 'then', published: null }],
+    });
+    expect(result.statements).toHaveLength(0);
+  });
+});
