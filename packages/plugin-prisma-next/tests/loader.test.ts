@@ -334,7 +334,8 @@ describe('provenance', () => {
         { count: 0, posts: [] },
       ],
     });
-    expect(result.statements).toHaveLength(2);
+    // Each definition reads its own slot, so one batch loads them all.
+    expect(result.statements).toHaveLength(1);
     for (const { params } of result.statements) {
       expect(params).toEqual(expect.arrayContaining(['u-alice', 'u-bob']));
     }

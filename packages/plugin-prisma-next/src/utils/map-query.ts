@@ -1,14 +1,9 @@
-import { isThenable, type MaybePromise, PothosValidationError } from '@pothos/core';
+import { completeValue, type MaybePromise } from '@pothos/core';
 import { type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
-import {
-  emit,
-  type MapperCollection,
-  type PrismaNextPlan,
-  prismaNextAdapter,
-  variantRelationProblem,
-} from './adapter.js';
+import type { MapperCollection, PrismaNextPlan } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
+import type { PrismaNextQuery } from './selections.js';
 
 export interface ApplySelectionOptions {
   /** Paths to the selection from the field's return type (`[['edges', 'node'], ['nodes']]`). */
@@ -19,48 +14,40 @@ export interface ApplySelectionOptions {
 
 /** Returns a promise only when a `select` callback beneath the field is async. */
 export function applySelectionToCollection(
-  baseCollection: MapperCollection,
+  collection: MapperCollection,
   info: GraphQLResolveInfo,
   config: PrismaNextConfig,
-  context: unknown,
-  options: ApplySelectionOptions = {},
+  context: object,
+  { paths, extraColumns }: ApplySelectionOptions = {},
 ): MaybePromise<MapperCollection> {
+  const { adapter } = config;
   // Relations declared on a variant can only be planned on a collection narrowed to it.
-  const variantValue = baseCollection.state?.variantValue;
-  const variant = typeof variantValue === 'string' ? variantValue : undefined;
-  const initial =
-    options.extraColumns?.length || variant !== undefined
-      ? {
-          ...(options.extraColumns?.length ? { columns: options.extraColumns } : {}),
-          ...(variant !== undefined ? { variant } : {}),
-        }
-      : undefined;
-  const ctx = context as object;
-  const adapter = prismaNextAdapter(config.contract);
+  const variant = collection.state?.variantValue;
+  const initial: PrismaNextQuery = {
+    columns: extraColumns,
+    args: typeof variant === 'string' ? { variant: { value: variant } } : {},
+  };
   const plan = Plan.fromInfo(adapter, {
-    context: ctx,
+    context,
     info,
-    paths: options.paths,
+    paths,
     initial,
     skipDeferredFragments: config.skipDeferredFragments,
   });
 
   if (!plan) {
-    return emit(baseCollection, initial ?? {}, undefined, ctx);
+    return extraColumns?.length ? collection.select(...extraColumns) : collection;
   }
 
-  // `query()` records the plan's mappings on the context, so it needs an object context.
-  const finish = (settled: PrismaNextPlan) => {
-    const query =
-      ctx && typeof ctx === 'object' ? settled.query() : adapter.toQuery(settled.play().root);
-    const problem = variantRelationProblem(query, settled.model);
-    if (problem) {
-      throw new PothosValidationError(problem.message);
-    }
-    return emit(baseCollection, query, settled.model, ctx);
-  };
-
-  return isThenable(plan)
-    ? Promise.resolve(plan).then((settled) => finish(settled as PrismaNextPlan))
-    : finish(plan);
+  return completeValue(plan as MaybePromise<PrismaNextPlan>, (settled) =>
+    adapter.emit(
+      collection,
+      // `query()` records the plan's mappings on the context, so it needs an object context.
+      context && typeof context === 'object'
+        ? settled.query()
+        : adapter.toQuery(settled.play().root),
+      settled.model,
+      context,
+    ),
+  );
 }
