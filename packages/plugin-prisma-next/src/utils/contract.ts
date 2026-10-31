@@ -33,6 +33,38 @@ export function resolveContractModel(
   };
 }
 
+/** Like plugin-prisma's DMMF lookup, an unknown model fails the schema build. */
+export function assertContractModel(contract: AnyContract, modelKey: string): SqlContractModel {
+  const model = resolveContractModel(contract, modelKey);
+  if (!model) {
+    throw new PothosSchemaError(`Model '${modelKey}' not found in the prismaNext contract.`);
+  }
+  return model;
+}
+
+/**
+ * The table and column a field is stored in. A variant's merged model carries its base's
+ * storage, but the fields it declares live in its own table, under its own column names.
+ */
+export function fieldStorage(
+  contract: AnyContract,
+  modelKey: string,
+  field: string,
+): { namespaceId: string; table: string; column: string } | undefined {
+  const model = lookupModel(contract, modelKey);
+  const storage = model?.storage;
+  if (model?.base && !(Object.hasOwn(model.fields, field) && storage?.table)) {
+    return fieldStorage(contract, relatedModelKey(contract, model.base), field);
+  }
+  return storage?.table && storage.namespaceId
+    ? {
+        namespaceId: storage.namespaceId,
+        table: storage.table,
+        column: storage.fields?.[field]?.column ?? field,
+      }
+    : undefined;
+}
+
 function lookupModel(contract: AnyContract, modelKey: string): SqlContractModel | undefined {
   const separator = modelKey.indexOf('.');
   if (separator >= 0) {
@@ -113,8 +145,13 @@ export function relationVariant(
   if (typeModel === undefined || typeModel === targetModel) {
     return undefined;
   }
+  if (rootModelKey(contract, typeModel) !== rootModelKey(contract, targetModel)) {
+    throw new PothosSchemaError(
+      `${owner} targets model '${targetModel}' but its type is backed by unrelated model '${typeModel}'.`,
+    );
+  }
   const variant = variantOf(contract, typeModel);
-  if (!variant || variant.root !== rootModelKey(contract, targetModel)) {
+  if (!variant) {
     return undefined;
   }
   if (variant.root === targetModel) {
@@ -130,8 +167,21 @@ export function relationVariant(
 export function assertVariantCollection(
   contract: AnyContract,
   modelKey: string,
-  collection: { modelName?: string; state?: { variantValue?: unknown } },
+  collection: { modelName?: string; namespaceId?: string; state?: { variantValue?: unknown } },
 ): void {
+  const { modelName, namespaceId } = collection;
+  if (
+    modelName !== undefined &&
+    namespaceId !== undefined &&
+    rootModelKey(
+      contract,
+      relatedModelKey(contract, { model: modelName, namespace: namespaceId }),
+    ) !== rootModelKey(contract, modelKey)
+  ) {
+    throw new PothosValidationError(
+      `Fields returning model '${modelKey}' must return a Collection of that model, not orm.${modelName}.`,
+    );
+  }
   const variant = variantOf(contract, modelKey);
   if (variant && collection.state?.variantValue !== variant.value) {
     throw new PothosValidationError(

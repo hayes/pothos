@@ -628,7 +628,7 @@ describe('to-one consumers', () => {
     expect(result.data.posts).toEqual([{ a: { v: published }, b: { v: drafts } }]);
   });
 
-  it('rejects function-form selections on a to-one relation before SQL', async () => {
+  it('rejects a static function-form selection on a to-one relation when the schema is built', () => {
     const builder = createBuilder();
     builder.prismaObject('Post', {
       fields: (t) => ({
@@ -636,18 +636,28 @@ describe('to-one consumers', () => {
           select: { author: (author) => ({ rows: author.select('firstName') }) },
           resolve: () => 'unexpected',
         }),
-        authorCount: t.relationCount('author' as never),
       }),
     });
     builder.queryType({
       fields: (t) => ({ posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }) }),
     });
-    for (const field of ['label', 'authorCount']) {
-      const result = await run(builder.toSchema(), `{ posts { ${field} } }`);
-      expect(result.errors?.[0].message).toContain(
-        'Function-form selection on to-one relation "author"',
-      );
-      expect(result.statements).toHaveLength(0);
-    }
+    expect(() => builder.toSchema()).toThrow(
+      "select on 'Post.label': the function form of to-one relation 'author' requires combine()",
+    );
+  });
+
+  it('rejects a count of a to-one relation before SQL', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', {
+      fields: (t) => ({ authorCount: t.relationCount('author' as never) }),
+    });
+    builder.queryType({
+      fields: (t) => ({ posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }) }),
+    });
+    const result = await run(builder.toSchema(), '{ posts { authorCount } }');
+    expect(result.errors?.[0].message).toContain(
+      'Function-form selection on to-one relation "author"',
+    );
+    expect(result.statements).toHaveLength(0);
   });
 });

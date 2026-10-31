@@ -110,8 +110,11 @@ export function validateCursor(
   );
 }
 
-/** Bounds the work spent decoding user-supplied cursors and IDs. */
-const PAYLOAD_MAX_BYTES = 2 * 1024;
+/**
+ * Bounds the work spent decoding user-supplied cursors and IDs. Measured on the string the
+ * client sends back, and checked when encoding too, so the server never issues one it refuses.
+ */
+const PAYLOAD_MAX_LENGTH = 2 * 1024;
 
 // Values are held in their column codec's stored form; nulls bypass codecs.
 function encodeValues(fields: readonly string[], values: readonly unknown[], codecs: FieldCodecs) {
@@ -168,13 +171,27 @@ export function encodeCursor(
   codecs: FieldCodecs,
 ): string {
   const fields = normalizeCursor(cursor);
-  return encodeBase64(
+  const encoded = encodeBase64(
     `${CURSOR_PREFIX}${encodeValues(
       fields,
-      fields.map((field) => row[field]),
+      fields.map((field) => {
+        // A null is a value; a missing column would encode as one and page from the wrong place.
+        if (row[field] === undefined) {
+          throw new PothosValidationError(
+            `Cannot encode a cursor: the row is missing cursor column '${field}'. Select the cursor columns on the paginated collection.`,
+          );
+        }
+        return row[field];
+      }),
       codecs,
     )}`,
   );
+  if (encoded.length > PAYLOAD_MAX_LENGTH) {
+    throw new PothosValidationError(
+      `Cannot encode a cursor over ${fields.join(', ')}: it is ${encoded.length} characters, over the ${PAYLOAD_MAX_LENGTH}-character limit for cursors. Use shorter cursor columns.`,
+    );
+  }
+  return encoded;
 }
 
 export function decodeCursor(
@@ -183,8 +200,10 @@ export function decodeCursor(
   codecs: FieldCodecs,
 ): Record<string, unknown> {
   // The cursor is left out of messages, which logs often capture verbatim.
-  if (value.length > PAYLOAD_MAX_BYTES) {
-    throw new PothosValidationError(`Invalid cursor: payload exceeds ${PAYLOAD_MAX_BYTES} bytes.`);
+  if (value.length > PAYLOAD_MAX_LENGTH) {
+    throw new PothosValidationError(
+      `Invalid cursor: longer than ${PAYLOAD_MAX_LENGTH} characters.`,
+    );
   }
   let payload: string;
   try {
@@ -235,9 +254,16 @@ export function encodeNodeId(
     throw new PothosValidationError(`prismaNode '${modelName}' row has an invalid id value.`);
   }
   // A string stays readable unless it could be mistaken for a tagged payload.
-  return payload.startsWith('S:') && !payload.startsWith(`S:${ID_PREFIX}`)
-    ? payload.slice(2)
-    : `${ID_PREFIX}${payload}`;
+  const id =
+    payload.startsWith('S:') && !payload.startsWith(`S:${ID_PREFIX}`)
+      ? payload.slice(2)
+      : `${ID_PREFIX}${payload}`;
+  if (id.length > PAYLOAD_MAX_LENGTH) {
+    throw new PothosValidationError(
+      `prismaNode '${modelName}' ID is ${id.length} characters, over the ${PAYLOAD_MAX_LENGTH}-character limit for IDs it can load back.`,
+    );
+  }
+  return id;
 }
 
 /** The ID's values, a tuple for a compound ID. */
@@ -247,9 +273,9 @@ export function parseNodeId(
   id: string,
   codecs: FieldCodecs,
 ): unknown {
-  if (id.length > PAYLOAD_MAX_BYTES) {
+  if (id.length > PAYLOAD_MAX_LENGTH) {
     throw new PothosValidationError(
-      `prismaNode '${modelName}' ID payload exceeds ${PAYLOAD_MAX_BYTES} bytes.`,
+      `prismaNode '${modelName}' ID is longer than ${PAYLOAD_MAX_LENGTH} characters.`,
     );
   }
   const values = decodeValues(
