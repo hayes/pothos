@@ -65,7 +65,7 @@ cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
 resolve: (_root, args, ctx) => {
   // Core pages backward for `last`, or for `before` without `first` or `after`.
   const backward =
-    args.first == null && (args.last != null || (args.before != null && args.after == null));
+    args.first == null && (args.last != null || (!!args.before && !args.after));
   return ctx.db.orm.Post.orderBy((post) =>
     backward ? post.createdAt.asc() : post.createdAt.desc(),
   );
