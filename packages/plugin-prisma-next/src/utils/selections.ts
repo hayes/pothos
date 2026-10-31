@@ -411,13 +411,21 @@ function compileSelect(
   const parts = relations.map(([name, value]) => {
     const relation = model!.relations[name]!;
     if (typeof value === 'function') {
-      return computedSelection(name, scope, { source, args }, (sub, ctx) =>
-        (value as (sub: MapperCollection, args: object, ctx: object) => Record<string, unknown>)(
-          sub,
-          args,
-          ctx,
-        ),
-      );
+      return computedSelection(name, scope, { source, args }, (sub, ctx) => {
+        const values = (
+          value as (sub: MapperCollection, args: object, ctx: object) => Record<string, unknown>
+        )(sub, args, ctx);
+        // Computed values are lifted onto the parent row beside its columns and relations.
+        const clash = Object.keys(values).find(
+          (key) => model!.columns?.has(key) || Object.hasOwn(model!.relations, key),
+        );
+        if (clash !== undefined) {
+          throw new PothosValidationError(
+            `select on ${owner}: '${name}' computes '${clash}', which is a column or relation of model ${model!.name}. Give the computed value another name.`,
+          );
+        }
+        return values;
+      });
     }
     if (value !== true && !isDeclarative(value)) {
       throw shapeError(owner, name, 'has an unrecognized value shape');
