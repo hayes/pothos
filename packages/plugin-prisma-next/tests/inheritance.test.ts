@@ -470,6 +470,41 @@ describe('native model inheritance', () => {
     expect(result.errors?.[0].message).toMatch(message);
   });
 
+  it('resolves connection helpers made before the model is registered as an interface', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: db.client },
+    });
+    const pages = prismaConnectionHelpers(builder, 'Task', { cursor: 'id' });
+    const task = builderTask(builder);
+    builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    expect(() => builder.prismaObjectFields('Task', () => ({}))).toThrow(
+      /Model 'Task' was registered as both a prismaObject and a prismaInterface/,
+    );
+    builder.queryType({
+      fields: (t) => ({
+        tasks: t.connection({
+          type: pages.ref,
+          resolve: async (_root, args, context) => {
+            const { collection, wrap } = await pages.applyPagination(db.orm.Task, args, context);
+            return wrap(await collection.all());
+          },
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ tasks { edges { node { __typename title } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.tasks.edges).toEqual([
+      { node: { __typename: 'Bug', title: 'bug1' } },
+      { node: { __typename: 'Feature', title: 'feat1' } },
+    ]);
+  });
+
   it("encodes a column a variant keeps in its own table through that column's codec", async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
