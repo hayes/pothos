@@ -405,7 +405,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
           // The database reads these back as 0.50 and 1.50.
           written: t.field({
             type: [Token],
-            resolve: () => [{ id: '0.5' }, { id: '1.5' }] as never,
+            resolve: () => [{ id: '0.5' }, { id: '1.5' }],
           }),
         }),
       });

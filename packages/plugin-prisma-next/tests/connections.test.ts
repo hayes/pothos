@@ -579,8 +579,8 @@ describe('prismaConnectionHelpers', () => {
         id: t.exposeID('id'),
         firstName: t.exposeString('firstName'),
         lastName: t.string({
-          select: (async () => ['lastName']) as never,
-          resolve: (user) => (user as { lastName?: string }).lastName ?? 'missing',
+          select: async () => ['lastName'],
+          resolve: (user) => user.lastName,
         }),
         posts: t.relation('posts'),
       }),

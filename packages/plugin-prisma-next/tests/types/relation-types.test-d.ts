@@ -182,3 +182,43 @@ inheritance.prismaObject('Bug', {
     }),
   }),
 });
+
+// A relation field's shape is the related rows. A `query` can filter a to-one relation's row out,
+// so it makes the field nullable unless `nullable` says otherwise.
+builder.prismaObject('Post', {
+  variant: 'RelationShapes',
+  fields: (t) => {
+    const author = t.relation('author');
+    expectTypeOf(author.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'>>();
+    const filtered = t.relation('author', { query: { where: { firstName: 'Alice' } } });
+    expectTypeOf(filtered.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'> | null>();
+    const byArgs = t.relation('author', {
+      args: { name: t.arg.string({ required: true }) },
+      query: (args) => ({ where: { firstName: args.name } }),
+    });
+    expectTypeOf(byArgs.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'> | null>();
+    const required = t.relation('author', {
+      nullable: false,
+      query: { where: { firstName: 'Alice' } },
+    });
+    expectTypeOf(required.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'>>();
+    const comments = t.relation('comments', { query: { limit: 2 } });
+    expectTypeOf(comments.$inferType).toEqualTypeOf<
+      readonly DefaultModelRow<Contract, 'Comment'>[]
+    >();
+    const commentPage = t.relatedConnection('comments', { cursor: 'id' });
+    expectTypeOf(commentPage.$inferType.edges).not.toBeUnknown();
+    return {
+      author,
+      filtered,
+      byArgs,
+      required,
+      comments,
+      commentPage,
+      extraKey: t.relation('comments', {
+        // @ts-expect-error `take` isn't a query option, even beside a valid one
+        query: { where: { body: 'x' }, take: 1 },
+      }),
+    };
+  },
+});

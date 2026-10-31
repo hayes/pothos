@@ -5,9 +5,14 @@ import {
   type SchemaTypes,
   typeBrandKey,
 } from '@pothos/core';
-import type { ModelName, Row } from './types.js';
+import type { ModelName, ModelReturnShape, Row } from './types.js';
 
 export const prismaModelKey = Symbol.for('Pothos.prismaNextModelKey');
+
+/** Marks a row shape with its model. An interface so declaration emit can name it. */
+export interface ModelBrand<M> {
+  readonly [prismaModelKey]?: M;
+}
 
 type WithBrand<T> = T & { [typeBrandKey]: string };
 // The index signature keeps a shape of optional keys alone (a type without `select`) from being a
@@ -19,7 +24,7 @@ export class PrismaNextObjectRef<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   Shape = Row<Types, M>,
-> extends ObjectRef<Types, Shape> {
+> extends ObjectRef<Types, ModelReturnShape<Types, M>, Shape> {
   declare readonly [prismaModelKey]: M;
 
   declare readonly [abstractReturnShapeKey]: WithBrand<Shape>;

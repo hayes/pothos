@@ -26,9 +26,7 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
         args: { formal: t.arg.boolean({ required: true }) },
         select: (args) => (args.formal ? ['lastName'] : ['firstName']),
         resolve: (user, args) =>
-          args.formal
-            ? `Greetings, ${(user as { lastName?: string }).lastName}`
-            : `Hi, ${(user as { firstName?: string }).firstName}`,
+          args.formal ? `Greetings, ${user.lastName}` : `Hi, ${user.firstName}`,
       }),
       posts: t.relation('posts'),
       drafts: t.relation('posts', { query: { where: { published: 0 } } }),
