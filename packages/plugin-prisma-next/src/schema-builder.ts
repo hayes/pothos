@@ -10,20 +10,20 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import { and, or } from '@prisma/orm-family-sql/orm-client';
-import type { GraphQLResolveInfo } from 'graphql';
-import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_MODEL, PRISMA_NEXT_SELECT } from './constants.js';
+import type { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
+import {
+  PRISMA_NEXT_DISCRIMINATED,
+  PRISMA_NEXT_FIELD_SELECT,
+  PRISMA_NEXT_MODEL,
+  PRISMA_NEXT_SELECT,
+} from './constants.js';
 import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextNodeRef } from './node-ref.js';
 import { PrismaNextObjectRef } from './object-ref.js';
 import { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 import type { ModelName, PrismaNextObjectOptions } from './types.js';
 import { createApply } from './utils/apply.js';
-import {
-  defaultTypeName,
-  modelDiscriminator,
-  relatedModelKey,
-  resolveContractModel,
-} from './utils/contract.js';
+import { defaultTypeName, modelDiscriminator, resolveContractModel } from './utils/contract.js';
 import { CURSOR_PAYLOAD_MAX_BYTES, type CursorValueCodec } from './utils/cursors.js';
 import { getModelUniqueKeys } from './utils/model.js';
 import { enqueueNodeLoad, pathKey } from './utils/node-batch.js';
@@ -33,6 +33,7 @@ import {
   getInterfaceRefFromContractModel,
   getRefFromContractModel,
 } from './utils/refs.js';
+import { variantTypeNames } from './utils/variant-types.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -80,19 +81,25 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
   const select = discriminator
     ? withDiscriminatorSelected(options.select, discriminator.field)
     : options.select;
+  // An implementation of a hierarchy's interface is the type registered for the variant model
+  // the row's discriminator names. The schema build checks each variant has exactly one.
+  const discriminated = !!discriminator && !(options as { resolveType?: unknown }).resolveType;
   const config = {
-    // An implementation of a hierarchy's interface is named by the discriminator value.
-    ...(discriminator
+    ...(discriminated
       ? {
-          resolveType: (row: Record<string, unknown>) => {
-            const variant = discriminator.variants[row[discriminator.field] as string];
-            return variant && defaultTypeName(relatedModelKey(contract!, variant));
-          },
+          resolveType: (
+            row: Record<string, unknown>,
+            _ctx: unknown,
+            info: GraphQLResolveInfo,
+            iface: GraphQLInterfaceType,
+          ) =>
+            variantTypeNames(contract!, info.schema, iface).get(row[discriminator.field] as string),
         }
       : {}),
     ...(options as object),
     extensions: {
       ...(options.extensions as Record<string, unknown> | undefined),
+      ...(discriminated ? { [PRISMA_NEXT_DISCRIMINATED]: true } : {}),
       [PRISMA_NEXT_MODEL]: modelName,
       ...(select !== undefined ? { [PRISMA_NEXT_SELECT]: select } : {}),
     },
@@ -303,7 +310,8 @@ schemaBuilderProto.prismaNode = function prismaNode<
   // from modelName for variants). Same-value `defineProperty` is OK;
   // different-value would clash with plugin-relay's later brand call.
   const variantName = (rest as { variant?: string; name?: string }).variant;
-  const typeName = variantName ?? (rest as { name?: string }).name ?? (modelName as string);
+  const typeName =
+    variantName ?? (rest as { name?: string }).name ?? defaultTypeName(modelName as string);
 
   const nodeRef = new PrismaNextNodeRef<Types, M, unknown, IDShape>(typeName, modelName, {
     ...(idOpts.parse ? { parseId: idOpts.parse } : {}),
@@ -325,6 +333,13 @@ schemaBuilderProto.prismaNode = function prismaNode<
     const row = parent as Record<string, unknown>;
     const values = idFields.map((field) => {
       const value = row[field];
+      if (value == null) {
+        // The row wasn't loaded with its ID columns; encoding the gap would mint an ID that
+        // never loads back.
+        throw new PothosValidationError(
+          `prismaNode '${modelName as string}' row is missing id field '${field}'.`,
+        );
+      }
       const codec = idOpts.codecs?.[field];
       if (codec) {
         return codec.encode(value);

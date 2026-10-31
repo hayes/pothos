@@ -13,6 +13,7 @@ import {
   relatedModelKey,
   resolveContractModel,
   rootModelKey,
+  variantOf,
 } from './contract.js';
 
 /**
@@ -31,11 +32,28 @@ export interface PrismaNextRelationMeta {
   readonly localFields: readonly string[];
   /** Target model name in the contract. */
   readonly targetModel: string;
+  /**
+   * Set when the target is a variant model. The ORM loads it through the variant's own accessor,
+   * which can include the variant's own relations but not those inherited from its base. When
+   * the variant shares its base's table (`sharesTable`) that accessor isn't narrowed, so the
+   * include filters by discriminator.
+   */
+  readonly targetVariant?: {
+    readonly model: string;
+    readonly field: string;
+    readonly value: string;
+    readonly sharesTable: boolean;
+  };
 }
 
 /** A relation as the adapter sees it: the metadata plus the target model itself. */
 export interface PrismaNextRelation extends PrismaNextRelationMeta {
   readonly target: PrismaNextModel;
+  /**
+   * The discriminator value of the variant that declares this relation, when only a variant
+   * does. The ORM includes it only on a collection narrowed with `.variant(value)`.
+   */
+  readonly variant?: string;
 }
 
 export interface PrismaNextModel {
@@ -73,6 +91,8 @@ export function buildRelationMeta(
           `'${rel.cardinality}'. Expected '1:1' / 'N:1' / '1:N' / 'N:M'.`,
       );
     }
+    const targetModel = relatedModelKey(contract, rel.to);
+    const target = variantOf(contract, targetModel);
     out[name] = {
       isToMany,
       // Embed relations carry no FK columns (`on`); reference and junction
@@ -82,7 +102,17 @@ export function buildRelationMeta(
       // has no direct FK, but it does have the keyed columns the junction
       // joins against.
       localFields: 'on' in rel ? rel.on.localFields : [],
-      targetModel: relatedModelKey(contract, rel.to),
+      targetModel,
+      ...(target
+        ? {
+            targetVariant: {
+              model: targetModel,
+              field: target.field,
+              value: target.value,
+              sharesTable: target.sharesTable,
+            },
+          }
+        : {}),
     };
   }
   return out;
@@ -183,6 +213,31 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
         ...meta[relation],
         target: getModel(contract, meta[relation].targetModel),
       };
+    }
+
+    // Relations a variant declares join the hierarchy's one model, tagged with the variant they
+    // need the collection narrowed to.
+    for (const [value, variant] of Object.entries(
+      modelDiscriminator(contract, name)?.variants ?? {},
+    )) {
+      const variantKey = relatedModelKey(contract, variant);
+      const variantMeta = buildRelationMeta(variantKey, contract, variantKey) ?? {};
+      for (const relation of Object.keys(variantMeta)) {
+        if (Object.hasOwn(meta, relation)) {
+          continue;
+        }
+        if (relations[relation]) {
+          throw new PothosSchemaError(
+            `Relation '${relation}' is declared by several variants of model '${name}'. ` +
+              'Relations declared on variants need distinct names.',
+          );
+        }
+        relations[relation] = {
+          ...variantMeta[relation],
+          variant: value,
+          target: getModel(contract, variantMeta[relation].targetModel),
+        };
+      }
     }
   }
 

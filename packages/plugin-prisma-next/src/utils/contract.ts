@@ -93,6 +93,63 @@ export function modelDiscriminator(
 }
 
 /**
+ * Where a variant model sits in its hierarchy: its root model, the discriminator field and value
+ * that narrow the root to it, and whether its rows live in the root's table (single-table
+ * inheritance) rather than a table of their own. Undefined for a model that is not a variant.
+ */
+export function variantOf(
+  contract: AnyContract,
+  modelKey: string,
+): { root: string; field: string; value: string; sharesTable: boolean } | undefined {
+  const root = rootModelKey(contract, modelKey);
+  if (root === modelKey) {
+    return undefined;
+  }
+  const discriminator = modelDiscriminator(contract, root);
+  const value = Object.entries(discriminator?.variants ?? {}).find(
+    ([, variant]) => relatedModelKey(contract, variant) === modelKey,
+  )?.[0];
+  if (!discriminator || value === undefined) {
+    return undefined;
+  }
+  const table = (model: string) => {
+    const storage = lookupModel(contract, model)?.storage as
+      | { table?: string; namespaceId?: string }
+      | undefined;
+    return storage?.table && `${storage.namespaceId}.${storage.table}`;
+  };
+  const own = table(modelKey);
+  return { root, field: discriminator.field, value, sharesTable: !own || own === table(root) };
+}
+
+/**
+ * The discriminator value a relation to `targetModel` is narrowed to when its GraphQL type is
+ * backed by `typeModel`: a variant of the relation's base target. Undefined when no narrowing
+ * applies. A type from the same hierarchy that the relation can't return is a schema error.
+ */
+export function relationVariant(
+  contract: AnyContract,
+  owner: string,
+  targetModel: string,
+  typeModel: string | undefined,
+): string | undefined {
+  if (typeModel === undefined || typeModel === targetModel) {
+    return undefined;
+  }
+  const variant = variantOf(contract, typeModel);
+  if (!variant || variant.root !== rootModelKey(contract, targetModel)) {
+    return undefined;
+  }
+  if (variant.root === targetModel) {
+    return variant.value;
+  }
+  throw new PothosSchemaError(
+    `${owner} targets model '${targetModel}' but its type is backed by model '${typeModel}'. ` +
+      `A relation can be typed as a variant of its target only when it targets the base model '${variant.root}'.`,
+  );
+}
+
+/**
  * A variant model's collection must be its base narrowed with `.variant()`. The ORM's own
  * `orm.Bug` accessor isn't filtered by the discriminator and can't include inherited relations.
  */
@@ -101,16 +158,10 @@ export function assertVariantCollection(
   modelKey: string,
   collection: { modelName?: string; state?: { variantValue?: unknown } },
 ): void {
-  const root = rootModelKey(contract, modelKey);
-  if (root === modelKey) {
-    return;
-  }
-  const value = Object.entries(modelDiscriminator(contract, root)?.variants ?? {}).find(
-    ([, variant]) => relatedModelKey(contract, variant) === modelKey,
-  )?.[0];
-  if (collection.state?.variantValue !== value) {
+  const variant = variantOf(contract, modelKey);
+  if (variant && collection.state?.variantValue !== variant.value) {
     throw new PothosValidationError(
-      `Fields returning variant model '${modelKey}' must return a Collection from orm.${root}.variant('${value}').`,
+      `Fields returning variant model '${modelKey}' must return a Collection from orm.${variant.root}.variant('${variant.value}').`,
     );
   }
 }

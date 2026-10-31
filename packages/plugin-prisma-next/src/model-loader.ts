@@ -11,11 +11,13 @@ import type { AnyContract } from './types.js';
 import {
   emit,
   type MapperCollection,
+  narrowToVariant,
   type PrismaNextNode,
   type PrismaNextSpec,
   prismaNextAdapter,
 } from './utils/adapter.js';
 import { getCollectionPaginationState } from './utils/collection-state.js';
+import { variantOf } from './utils/contract.js';
 import {
   type ColumnCodec,
   getColumnCodec,
@@ -46,6 +48,8 @@ export class ModelLoader {
   private readonly identity: readonly string[];
   private readonly codecs: Map<string, ColumnCodec | undefined>;
   private readonly selections = new Map<string, MaybePromise<Played>>();
+  /** The discriminator value a variant model's rows load narrowed to. */
+  private readonly variant: string | undefined;
   private readonly staged = new Set<Batch>();
 
   constructor(
@@ -58,6 +62,7 @@ export class ModelLoader {
   ) {
     this.adapter = prismaNextAdapter(contract, true);
     this.identity = getIdentityFields(contract, modelName);
+    this.variant = variantOf(contract, modelName)?.value;
     this.codecs = new Map(
       this.identity.map((field) => [
         field,
@@ -70,7 +75,13 @@ export class ModelLoader {
     const key = cacheKey(info.parentType.name, info.path);
     let selection = this.selections.get(key);
     if (!selection) {
-      selection = Plan.forParentRow(this.adapter, this.context, info, this.skipDeferredFragments);
+      selection = Plan.forParentRow(
+        this.adapter,
+        this.context,
+        info,
+        this.skipDeferredFragments,
+        this.variant === undefined ? undefined : { variant: this.variant },
+      );
       this.selections.set(key, selection);
     }
     const load = (played: Played) =>
@@ -152,7 +163,12 @@ export class ModelLoader {
   }
 
   private async flush(batch: Batch): Promise<void> {
-    const base = this.collection();
+    const provided = this.collection();
+    // A variant loads through its base narrowed to it, so its own relations can be included.
+    const base =
+      provided && this.variant !== undefined && provided.state?.variantValue !== this.variant
+        ? narrowToVariant(provided, this.variant)
+        : provided;
     if (!base) {
       throw new PothosValidationError(
         `Missing prismaNext.collections entry for model '${this.modelName}'.`,

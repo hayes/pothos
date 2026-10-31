@@ -20,9 +20,12 @@ tests and application examples, and production code has no database-dialect bran
   object and interface prerequisites are rejected before SQL.
 - **To-one selections:** function-form to-one selections are unsupported because Prisma throws
   `ORM.INCLUDE_UNSUPPORTED`. Use declarative selects or relation fields.
-- **Inheritance:** variant returns need `orm.Base.variant(value)`. Relations targeting a variant
-  model, `prismaNode` on a variant, and hierarchies across namespaces are not implemented or tested.
-  Custom variant type names need a user `resolveType`.
+- **Inheritance:** variant returns need `orm.Base.variant(value)`. Relations a variant declares
+  load on narrowed collections; beneath the base interface they need a Collection provider.
+  Relations targeting a variant model filter single-table variants by discriminator, but can't
+  include relations the variant inherits without a provider. `prismaNode` on a variant, qualified
+  and cross-namespace hierarchies, and custom variant type names are tested. `t.relation` and
+  `t.relatedConnection` typed as a variant need a cast for the `type` option.
 - **Preordered connections:** existing ordering must match the requested page's query direction,
   because Prisma has no public ordering reset. Use the `orderBy` option or an unordered Collection
   to support both directions. Bytes columns can't be cursors, because their accessors have no order.

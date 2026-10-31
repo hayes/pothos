@@ -6,3 +6,5 @@ export const PRISMA_NEXT_SELECT = 'pothosPrismaNextSelect';
  * `t.relatedConnection` select function). Takes the place of the compile from `pothosOptions`.
  */
 export const PRISMA_NEXT_FIELD_SELECT = 'pothosPrismaNextFieldSelect';
+/** Marks a hierarchy interface that routes rows with the plugin's discriminator `resolveType`. */
+export const PRISMA_NEXT_DISCRIMINATED = 'pothosPrismaNextDiscriminated';
