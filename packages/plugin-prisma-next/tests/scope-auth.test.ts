@@ -164,7 +164,7 @@ function _narrowedParentShapeSurvivesWithAuth() {
       resolve: (row) => row.email,
     }),
     undeclaredBehindScope: t.withAuth({ admin: true }).string({
-      // @ts-expect-error The string form's parent carries only declared dependencies.
+      // @ts-expect-error the string form's parent carries only declared dependencies
       resolve: (row) => row.email,
     }),
   }));

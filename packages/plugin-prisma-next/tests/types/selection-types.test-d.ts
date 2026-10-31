@@ -475,11 +475,11 @@ builder.prismaObject('Post', {
 
 // String-form cross-file helpers see only their own declared columns; ref forms see the type's.
 builder.prismaObjectField('User', 'undeclaredObjectField', (t) =>
-  // @ts-expect-error The string form's parent carries only declared dependencies.
+  // @ts-expect-error the string form's parent carries only declared dependencies
   t.string({ resolve: (user) => user.email }),
 );
 builder.prismaObjectFields('User', (t) => ({
-  // @ts-expect-error The string form's parent carries only declared dependencies.
+  // @ts-expect-error the string form's parent carries only declared dependencies
   undeclaredObjectFields: t.string({ resolve: (user) => user.email }),
   declared: t.string({
     select: { email: true, posts: true },
@@ -492,7 +492,7 @@ builder.prismaObjectFields('User', (t) => ({
   related: t.relation('posts'),
 }));
 builder.prismaInterfaceField('User', 'undeclaredInterfaceField', (t) =>
-  // @ts-expect-error The string form's parent carries only declared dependencies.
+  // @ts-expect-error the string form's parent carries only declared dependencies
   t.string({ resolve: (user) => user.email }),
 );
 builder.prismaInterfaceFields('User', (t) => ({
@@ -500,7 +500,7 @@ builder.prismaInterfaceFields('User', (t) => ({
 }));
 const BareUser = builder.prismaObject('User', { variant: 'BareUser', fields: () => ({}) });
 builder.prismaObjectField(BareUser, 'undeclaredViaRef', (t) =>
-  // @ts-expect-error The ref's shape carries only what the object declared.
+  // @ts-expect-error the ref's shape carries only what the object declared
   t.string({ resolve: (user) => user.email }),
 );
 const SelectedUser = builder.prismaObject('User', {

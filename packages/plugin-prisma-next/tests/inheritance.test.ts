@@ -92,7 +92,12 @@ function createVariantSchema() {
     interfaces: [task],
     id: { field: 'id' },
     collection: () => db.orm.Task.variant('feature'),
-    fields: (t) => ({ priority: t.exposeInt('priority') }),
+    select: ['priority'],
+    fields: (t) => ({
+      priority: t.exposeInt('priority'),
+      // Reads the type-level select only.
+      typePriority: t.int({ resolve: (feature) => feature.priority }),
+    }),
   });
   builder.prismaObject('User', {
     fields: (t) => ({
@@ -276,6 +281,20 @@ describe('native model inheritance', () => {
     expect(bug).toEqual({ __typename: 'Bug' });
     expect(Buffer.from(feature.id, 'base64').toString()).toBe('Feature:t2');
     expect(result.statements).toHaveLength(1);
+  });
+
+  it('plans a variant nested in a field-less fragment on Node in one statement', async () => {
+    const schema = createVariantSchema();
+    const direct = await run(schema, '{ tasks { ... on Feature { typePriority } } }');
+    const nested = await run(
+      schema,
+      '{ tasks { ... on Node { ... on Feature { typePriority } } } }',
+    );
+    expect(nested.errors).toBeUndefined();
+    expect(nested.data).toEqual(direct.data);
+    expect(nested.data).toEqual({ tasks: [{}, { typePriority: 5 }] });
+    expect(direct.statements).toHaveLength(1);
+    expect(nested.statements).toHaveLength(1);
   });
 
   it('reports a node row without its id field', async () => {
