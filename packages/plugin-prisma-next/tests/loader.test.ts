@@ -23,8 +23,8 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
       fullName: t.string({ resolve: (user) => user.lastName }),
       label: t.string({ select: ['email'], resolve: (user) => user.email }),
       asyncLabel: t.string({
-        select: async () => ['email'] as const,
-        resolve: (user) => (user as unknown as { email: string }).email,
+        select: async () => ['email'],
+        resolve: (user) => user.email,
       }),
       constant: t.string({ resolve: () => 'constant' }),
       posts: t.relation('posts'),
@@ -63,7 +63,7 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
       }),
       plain: t.field({
         type: [Post],
-        resolve: () => [{ id: 'p-hello' }, { id: 'p-draft1' }] as never,
+        resolve: () => [{ id: 'p-hello' }, { id: 'p-draft1' }],
       }),
     }),
   });
@@ -177,11 +177,10 @@ describe('fallback loading through collections', () => {
       fields: (t) => ({
         posts: t.field({
           type: [Post],
-          resolve: () =>
-            [
-              { authorId: 'u-alice', id: 'p-hello' },
-              { authorId: 'u-alice', id: 'p-draft1' },
-            ] as never,
+          resolve: () => [
+            { authorId: 'u-alice', id: 'p-hello' },
+            { authorId: 'u-alice', id: 'p-draft1' },
+          ],
         }),
       }),
     });
@@ -218,7 +217,7 @@ describe('fallback loading through collections', () => {
       fields: (t) => ({
         posts: t.field({
           type: [Post],
-          resolve: () => [{ id: 'p-hello' }, { id: 'p-draft1' }] as never,
+          resolve: () => [{ id: 'p-hello' }, { id: 'p-draft1' }],
         }),
       }),
     });
@@ -287,11 +286,12 @@ describe('provenance', () => {
       fields: (t) => ({
         users: t.field({
           type: [User],
-          resolve: () =>
-            [
-              { id: 'u-alice' },
-              new Promise((resolve) => setTimeout(() => resolve({ id: 'u-bob' }), 20)),
-            ] as never,
+          resolve: () => [
+            { id: 'u-alice' },
+            new Promise<{ id: string }>((resolve) =>
+              setTimeout(() => resolve({ id: 'u-bob' }), 20),
+            ),
+          ],
         }),
       }),
     });
@@ -314,7 +314,7 @@ describe('provenance', () => {
       }),
     });
     builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
-    const parents = () => [{ id: 'u-alice' }, { id: 'u-bob' }] as never;
+    const parents = () => [{ id: 'u-alice' }, { id: 'u-bob' }];
     builder.queryType({
       fields: (t) => ({
         one: t.field({ type: [One], resolve: parents }),
@@ -356,7 +356,7 @@ describe('provenance', () => {
       fields: (t) => ({
         posts: t.field({
           type: [Post],
-          resolve: () => [{ id: 'p-hello' }, { id: 'p-draft1' }] as never,
+          resolve: () => [{ id: 'p-hello' }, { id: 'p-draft1' }],
         }),
       }),
     });
@@ -391,7 +391,7 @@ describe('provenance', () => {
     builder.queryType({
       fields: (t) => ({
         users: t.prismaConnection({ type: 'User', cursor: 'id', resolve: () => db.orm.User }),
-        user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) as never }),
+        user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) }),
       }),
     });
     const s = builder.toSchema();

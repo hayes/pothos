@@ -55,9 +55,9 @@ function createSchema() {
       posts: t.prismaConnection({ type: 'Post', cursor: 'id', resolve: () => nsa.Post }),
       plain: t.field({
         type: post,
-        resolve: () => ({ id: 1, title: 'first', userId: 1 }) as never,
+        resolve: () => ({ id: 1, title: 'first', userId: 1 }),
       }),
-      plainB: t.field({ type: nsbUser, resolve: () => ({ id: 'x' }) as never }),
+      plainB: t.field({ type: nsbUser, resolve: () => ({ id: 'x' }) }),
     }),
   });
   return builder.toSchema();
