@@ -27,13 +27,7 @@ export function applySelectionToCollection(
     columns: extraColumns,
     args: typeof variant === 'string' ? { variant: { value: variant } } : {},
   };
-  const plan = Plan.fromInfo(adapter, {
-    context,
-    info,
-    paths,
-    initial,
-    skipDeferredFragments: config.skipDeferredFragments,
-  });
+  const plan = Plan.fromInfo(adapter, { context, info, paths, initial });
 
   if (!plan) {
     return extraColumns?.length ? collection.select(...extraColumns) : collection;
