@@ -153,18 +153,6 @@ export type IncludeRefinementCollection<
   | (IsToManyRel extends true ? never : IncludeRefinementScalarMethods<TContract, ModelName>)
 >;
 
-export type IsToManyRelation<
-  TContract extends AnyContract,
-  ModelName extends string,
-  RelName extends string,
-> = RelName extends keyof RelationsOfModel<TContract, ModelName>
-  ? RelationsOfModel<TContract, ModelName>[RelName] extends { readonly cardinality: infer C }
-    ? C extends '1:N' | 'N:M'
-      ? true
-      : false
-    : false
-  : false;
-
 // Without a `PrismaNextContract`, model names would widen to `string`; the sentinel points
 // autocomplete at the missing setup instead.
 type ModelNameSentinel =
@@ -381,7 +369,11 @@ export type IsToMany<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   R extends RelationKeys<Types, M>,
-> = IsToManyRelation<Types['PrismaNextContract'], M, R>;
+> = RelationsOfModel<Types['PrismaNextContract'], M>[R] extends {
+  readonly cardinality: '1:N' | 'N:M';
+}
+  ? true
+  : false;
 
 // A loose contract has no literal cardinality, so this falls back to every relation.
 export type ToManyRelationKeys<Types extends SchemaTypes, M extends ModelName<Types>> =
@@ -465,6 +457,11 @@ export type PrismaNextRelationOptions<
   // Only what the type's `select` declared; other columns load only if the query selects them.
   ParentShape = ObjectBaseShape<Types, ParentModel>,
   Query = RelationQuery<Types, ParentModel, RelName, Args>,
+  TypeModel extends RelationTypeModel<Types, ParentModel, RelName> = RelationTypeModel<
+    Types,
+    ParentModel,
+    RelName
+  >,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -477,7 +474,7 @@ export type PrismaNextRelationOptions<
   'type' | 'resolve' | InferredFieldOptionKeys
 > & {
   description?: string | false;
-  type?: PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
+  type?: PrismaNextObjectRef<Types, TypeModel, RelatedShape>;
   query?: Query & NoInfer<ExactRelationQuery<Query>>;
 };
 
@@ -532,17 +529,24 @@ export type VariantFieldShape<
   IsNull,
 > = Row<Types, M> | (Nullable extends true ? null : [IsNull] extends [never] ? never : null);
 
-/** A `query` can filter a to-one relation's row out, so it makes the field nullable by default. */
+/**
+ * A `query`, or a variant `type` that narrows the load, can filter a to-one relation's row out,
+ * so either makes the field nullable by default.
+ */
 export type RelationNullable<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   R extends RelationKeys<Types, M>,
   Query,
-> = undefined extends Query
-  ? DefaultRelationNullable<Types, M, R>
-  : IsToMany<Types, M, R> extends true
+  TypeModel,
+> =
+  IsToMany<Types, M, R> extends true
     ? false
-    : true;
+    : undefined extends Query
+      ? [TypeModel] extends [RelatedModel<Types, M, R>]
+        ? DefaultRelationNullable<Types, M, R>
+        : true
+      : true;
 
 type RelationAggregateWhere<
   Types extends SchemaTypes,
@@ -1228,7 +1232,3 @@ export type RelationFieldShape<
   IsToMany<Types, M, R> extends true
     ? readonly Row<Types, RelatedModel<Types, M, R>>[]
     : Row<Types, RelatedModel<Types, M, R>> | (Nullable extends true ? null : never);
-
-export type { SqlStorage } from '@prisma/orm-family-sql/contract/types';
-export type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
-export type { Contract } from '@prisma/orm-framework/contract/types';

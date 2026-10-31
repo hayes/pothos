@@ -19,7 +19,7 @@ import type {
 } from '@prisma/orm-framework/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'27f614e2942ab093133c0ba565e421d735d1b1124155c3ccb07f07530e0d3df5'>;
+  StorageHashBase<'8620f3c21ac2b83db6f8a63d1687d70d27dc45d3af6777af420816b66b16c496'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'260b8608d1aacaf1f690779a6cff39a12947c599597c5ba464ca75b9e775df53'>;
@@ -188,9 +188,10 @@ export namespace Models {
     type: 'bug';
     reviewerId: FieldOutputTypes['__unbound__']['Bug']['reviewerId'];
     severity: FieldOutputTypes['__unbound__']['Bug']['severity'];
+    notes: Note[];
     owner: User;
     reviewer: User | null;
-    readonly [RelationKeys]?: 'owner' | 'reviewer';
+    readonly [RelationKeys]?: 'notes' | 'owner' | 'reviewer';
   };
   export type Feature = {
     id: FieldOutputTypes['__unbound__']['Task']['id'];
@@ -198,16 +199,24 @@ export namespace Models {
     title: FieldOutputTypes['__unbound__']['Task']['title'];
     type: 'feature';
     priority: FieldOutputTypes['__unbound__']['Feature']['priority'];
+    notes: Note[];
     owner: User;
-    readonly [RelationKeys]?: 'owner';
+    readonly [RelationKeys]?: 'notes' | 'owner';
+  };
+  export type Note = {
+    id: FieldOutputTypes['__unbound__']['Note']['id'];
+    taskId: FieldOutputTypes['__unbound__']['Note']['taskId'];
+    task: AnyTask;
+    readonly [RelationKeys]?: 'task';
   };
   export type Task = {
     id: FieldOutputTypes['__unbound__']['Task']['id'];
     ownerId: FieldOutputTypes['__unbound__']['Task']['ownerId'];
     title: FieldOutputTypes['__unbound__']['Task']['title'];
     type: 'bug' | 'feature';
+    notes: Note[];
     owner: User;
-    readonly [RelationKeys]?: 'owner';
+    readonly [RelationKeys]?: 'notes' | 'owner';
   };
   export type User = {
     email: FieldOutputTypes['__unbound__']['User']['email'];
@@ -222,6 +231,7 @@ export namespace Models {
 export declare const models: {
   Bug: Models.Bug;
   Feature: Models.Feature;
+  Note: Models.Note;
   Task: Models.Task;
   User: Models.User;
   AnyTask: Models.AnyTask;
@@ -269,6 +279,46 @@ type ContractBase = Omit<
                     readonly namespaceId: '__unbound__' & NamespaceId;
                     readonly tableName: 'feature';
                     readonly columns: readonly ['id'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'task';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
+            readonly note: {
+              columns: {
+                readonly id: {
+                  readonly dataType: 'sqlite/text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly taskId: {
+                  readonly dataType: 'sqlite/text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'note_taskId_idx_4965c936';
+                  readonly prefix: 'note_taskId_idx';
+                  readonly columns: readonly ['taskId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'note';
+                    readonly columns: readonly ['taskId'];
                   };
                   readonly target: {
                     readonly namespaceId: '__unbound__' & NamespaceId;
@@ -379,6 +429,7 @@ type ContractBase = Omit<
   readonly target: 'sqlite';
   readonly targetFamily: 'sql';
   readonly roots: {
+    readonly note: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'Note' };
     readonly task: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'Task' };
     readonly user: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'User' };
   };
@@ -442,6 +493,40 @@ type ContractBase = Omit<
               readonly model: 'Task';
             };
           };
+          readonly Note: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+              readonly taskId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+            };
+            readonly relations: {
+              readonly task: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Task';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['taskId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'note';
+              readonly namespaceId: '__unbound__';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly taskId: { readonly column: 'taskId' };
+              };
+            };
+          };
           readonly Task: {
             readonly fields: {
               readonly id: {
@@ -462,6 +547,17 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly notes: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Note';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['taskId'];
+                };
+              };
               readonly owner: {
                 readonly to: {
                   readonly namespace: '__unbound__' & NamespaceId;

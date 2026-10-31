@@ -41,6 +41,7 @@ import type {
   RelationKeys,
   RelationNullable,
   RelationQuery,
+  RelationTypeModel,
   Row,
   ShapeFromConnection,
   ToManyRelationKeys,
@@ -333,7 +334,9 @@ export class PrismaNextObjectFieldBuilder<
   relation<
     RelName extends RelationKeys<Types, M>,
     Query extends RelationQuery<Types, M, RelName, Args> | undefined,
-    Nullable extends boolean = RelationNullable<Types, M, RelName, Query>,
+    // The model behind `type`: a variant of the target narrows the load.
+    TypeModel extends RelationTypeModel<Types, M, RelName> = RelatedModel<Types, M, RelName>,
+    Nullable extends boolean = RelationNullable<Types, M, RelName, Query, TypeModel>,
     Args extends InputFieldMap = {},
     RelatedShape = Row<Types, RelatedModel<Types, M, RelName>>,
   >(
@@ -346,7 +349,8 @@ export class PrismaNextObjectFieldBuilder<
       Args,
       RelatedShape,
       Shape,
-      Query
+      Query,
+      TypeModel
     >,
   ): FieldRef<Types, RelationFieldShape<Types, M, RelName, Nullable>, 'PrismaNextObject'> {
     const opts = (options ?? {}) as PrismaNextRelationOptions<
@@ -399,12 +403,13 @@ export class PrismaNextObjectFieldBuilder<
     return this.field({
       ...rest,
       type: relation.isToMany ? [targetRef] : targetRef,
-      // A query can filter a to-one relation's row out.
+      // A query or a variant type can filter a to-one relation's row out.
       nullable:
         nullable ??
         (relation.isToMany
           ? false
           : query !== undefined ||
+            variant !== undefined ||
             this.#isToOneRelationNullable(this.#getRelationMeta(relationName))),
       extensions: {
         ...extensions,

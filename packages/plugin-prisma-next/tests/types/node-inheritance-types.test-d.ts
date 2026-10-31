@@ -110,7 +110,7 @@ builder.prismaNode('User', {
 
 // Native inheritance: variants inherit their base's columns and relations, never siblings'.
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: InheritanceContract }>;
-expectTypeOf<ModelName<Types>>().toEqualTypeOf<'Bug' | 'Feature' | 'Task' | 'User'>();
+expectTypeOf<ModelName<Types>>().toEqualTypeOf<'Bug' | 'Feature' | 'Note' | 'Task' | 'User'>();
 const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
