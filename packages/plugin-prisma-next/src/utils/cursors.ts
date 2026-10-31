@@ -303,7 +303,7 @@ function buildLexicographicPredicate(
   };
 }
 
-export interface CursorPaginationParams {
+interface CursorPaginationParams {
   cursor: CursorOrder;
   before: string | undefined;
   after: string | undefined;
@@ -506,7 +506,7 @@ export function applyCursorPagination<C extends MapperCollection>(
   };
 }
 
-export interface PageInfo {
+interface PageInfo {
   startCursor: string | null;
   endCursor: string | null;
   hasPreviousPage: boolean;
