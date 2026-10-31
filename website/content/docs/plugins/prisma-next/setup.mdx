@@ -119,7 +119,7 @@ Set on `builder.options.prismaNext`:
 prismaNext: {
   contract,                    // required
   // Enables batched fallback loading. Pass the client's `orm`, or a map of only the models
-  // that need a fallback, such as `{ User: ctx.db.orm.public.User }`.
+  // that need a fallback, such as `{ User: ctx.db.orm.User }`.
   collections: (ctx) => ctx.db.orm,
   // The client's `context`. Lets object-valued columns such as Temporal values work in
   // cursors and fallback identities through their column codecs.
@@ -191,14 +191,17 @@ Configure `collections` with a model-name map or a context callback returning th
 map. A partial map is allowed, but every model that needs a fallback must have an
 entry. For example, `collections: (ctx) => ({ User: ctx.db.orm.User, Post:
 ctx.db.orm.Post.where({ tenantId: ctx.tenantId }) })` preserves application filters.
-Model names must be globally unique.
+Key the map by the same model names as `prismaObject`: a bare name for a unique model, and
+`'ns.Model'` for one defined in several namespaces. A namespaced client such as `ctx.db.orm` on
+PostgreSQL can also be passed as is.
 
 The loader reloads parent rows in batches using their primary key, or a non-null
 unique key when no primary key is available. Identity columns are selected
 automatically. Provider Collections must be unpaginated: no `limit`, `offset`, or
 `cursor`. If application filters exclude a parent, its field receives a loading
-error. Opaque object identity codecs are not yet supported; built-in scalar,
-Date, byte-array, and Decimal identities are supported.
+error. Built-in scalar, Date, byte-array and Decimal identities work as they are. Object-valued
+identities, such as Temporal keys, compare through their column codecs when `prismaNext.context`
+is set, or through a string `toJSON()`.
 
 With `collections`, incompatible to-one selections load in separate compatible
 batches and deferred fields load when executed. Set `skipDeferredFragments:
@@ -211,9 +214,18 @@ Execute GraphQL while a transaction-bound client is still active when you want
 queries, related selections, node loads, and counts in that transaction. Do not
 return an unexecuted Collection from a transaction callback and then execute it
 after the callback has ended. The `collections` provider must return Collections
-bound to that same live transaction. Consume incremental results before ending
-the transaction as well. Pothos does not create transactions or change their
+bound to that same live transaction. The plugin can't detect a provider that returns Collections
+from a different client or transaction, so those loads would run outside it. Consume incremental
+results before ending the transaction as well. Pothos does not create transactions or change their
 isolation policy.
+
+To pass either the client or a transaction as `ctx.db`, type it with the query members both share:
+
+```ts
+import type { SqliteQueryMembers } from '@prisma/orm-sqlite/runtime';
+
+type Context = { db: SqliteQueryMembers<Contract> };
+```
 
 For an atomic mutation operation, execute GraphQL inside the application's
 transaction callback and explicitly handle execution errors:
@@ -246,9 +258,11 @@ client in context if you need per-request isolation (e.g. one connection
 pool per tenant):
 
 ```ts
+import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
+
 const builder = new SchemaBuilder<{
   PrismaNextContract: Contract;
-  Context: { db: ReturnType<typeof sqlite<Contract>> };
+  Context: { db: SqliteClient<Contract> };
 }>({
   plugins: [prismaNextPlugin],
   prismaNext: { contract },

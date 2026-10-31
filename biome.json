@@ -42,6 +42,8 @@
       "!**/components/playground/examples/examples-index.generated.ts",
       "!**/public/playground-examples/*.json",
       "!**/playground-examples/*.json",
+      "!**/website/playground-examples/plugin-prisma-next/contract.json",
+      "!**/website/.playground-typecheck-*",
       "!**/graphql-env.d.ts",
       "!**/next-env.d.ts"
     ]

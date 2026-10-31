@@ -36,6 +36,9 @@ tests and application examples, and production code has no database-dialect bran
 - `src/types.ts` reconstructs include-refinement types that Prisma doesn't export.
 - `src/utils/collection-state.ts` reads the `@internal` Collection `state` to validate pagination
   and preordered prefixes, because `orderBy` appends and there is no public reset or accessor.
+- `src/utils/contract.ts` reads the `@internal` Collection `state.variantValue` to require
+  `orm.Base.variant(value)` for fields returning a variant model, because Prisma has no public
+  accessor for a Collection's variant.
 - Test fixture generators map the `@internal/*` specifiers the programmatic emitter leaves in
   declarations. This stays outside production code.
 
