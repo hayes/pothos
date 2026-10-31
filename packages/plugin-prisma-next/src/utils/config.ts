@@ -16,7 +16,6 @@ type ExecutionContext = PrismaNextExecutionContext<AnyContract>;
 export interface PrismaNextConfig {
   readonly contract: AnyContract;
   readonly adapter: PrismaNextAdapter;
-  readonly skipDeferredFragments: boolean;
   readonly defaultConnectionSize: number | undefined;
   readonly maxConnectionSize: number | undefined;
   /** The client for a request, read once per request context. */
@@ -94,11 +93,9 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
     );
   };
   const loaders = createContextCache(() => new Map<string, ModelLoader>());
-  const skipDeferredFragments = options.skipDeferredFragments ?? true;
   const config: PrismaNextConfig = {
     contract,
-    adapter: new PrismaNextAdapter(contract, skipDeferredFragments),
-    skipDeferredFragments,
+    adapter: new PrismaNextAdapter(contract, options.skipDeferredFragments ?? true),
     defaultConnectionSize: options.defaultConnectionSize,
     maxConnectionSize: options.maxConnectionSize,
     client,

@@ -57,6 +57,8 @@ export class ModelLoader {
   private readonly adapter;
   private readonly identity: readonly string[];
   private readonly variant: string | undefined;
+  /** A variant's rows load through the base narrowed to it, which can include its relations. */
+  private readonly initial: PrismaNextQuery | undefined;
   private readonly parentPlans = new Map<string, MaybePromise<Played>>();
   private readonly nodePlans = new Map<string, MaybePromise<Played>>();
   private readonly staged = new Set<Batch>();
@@ -69,6 +71,8 @@ export class ModelLoader {
     this.adapter = config.adapter;
     this.identity = getIdentityFields(config.contract, modelName);
     this.variant = variantOf(config.contract, modelName)?.value;
+    this.initial =
+      this.variant === undefined ? undefined : { args: { variant: { value: this.variant } } };
   }
 
   /** The parent row reloaded with what `info`'s field needs, and the field's mapping in that load. */
@@ -79,13 +83,7 @@ export class ModelLoader {
     const key = cacheKey(info.parentType.name, info.path);
     let selection = this.parentPlans.get(key);
     if (!selection) {
-      selection = Plan.forParentRow(
-        this.adapter,
-        this.context,
-        info,
-        this.config.skipDeferredFragments,
-        this.variant === undefined ? undefined : { args: { variant: { value: this.variant } } },
-      );
+      selection = Plan.forParentRow(this.adapter, this.context, info, undefined, this.initial);
       this.parentPlans.set(key, selection);
     }
     const load = (played: Played) => {
@@ -132,9 +130,7 @@ export class ModelLoader {
         context: this.context,
         info,
         typeName,
-        initial:
-          this.variant === undefined ? undefined : { args: { variant: { value: this.variant } } },
-        skipDeferredFragments: this.config.skipDeferredFragments,
+        initial: this.initial,
       }) as MaybePromise<PrismaNextPlan>;
       selection = completeValue(plan, (settled) => settled.play());
       this.nodePlans.set(group, selection);
@@ -202,7 +198,6 @@ export class ModelLoader {
     const provided = batch.collection
       ? batch.collection()
       : this.config.collection(this.context, this.modelName);
-    // Load through the base narrowed to the variant, which can include its relations.
     const base =
       this.variant !== undefined && provided.state?.variantValue !== this.variant
         ? provided.variant(this.variant)
