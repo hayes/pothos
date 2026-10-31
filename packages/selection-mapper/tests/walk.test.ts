@@ -603,63 +603,147 @@ describe('fragments', () => {
     expect(getLoaderMapping(context, pathOf('person', 'name'), 'Viewer')).toBeNull();
   });
 
-  it('enters a variant nested in a model-less abstract fragment that selects no fields', async () => {
-    const plan = async (query: string) =>
-      queryFromInfo(adapter, { context: {}, info: await resolveInfo(schema, query) });
-
-    // User has no type-level selection (every column), Viewer selects id and posts(take: 5).
-    expect(await plan('{ person { ... on Named { ... on User { name } } } }')).toEqual(
-      await plan('{ person { ... on User { name } } }'),
-    );
-    expect(
-      await plan('query { person { ...F } } fragment F on Named { ... on User { name } }'),
-    ).toEqual(await plan('{ person { ... on User { name } } }'));
-    expect(await plan('{ person { ... on Node { ... on Viewer { email } } } }')).toEqual(
-      await plan('{ person { ... on Viewer { email } } }'),
-    );
-  });
-
-  it('enters only the variants a field-less model-less fragment narrows a nested fragment to', async () => {
-    // Person is implemented by User (Node and Named), Viewer and Admin (Named only), and Viewer
-    // and Admin have conflicting type-level selections. `... on Named` nested in `... on Node`
-    // can only apply to User, so neither Viewer nor Admin is entered.
-    const narrowModels = createModels('User', 'Post');
-    narrowModels.User.relations = { posts: narrowModels.Post };
-    const narrowSchema = createSchema(
+  describe('fragments on a model-less abstract type beneath a model interface', () => {
+    // Person is implemented by User (Node, Named), Viewer (Node, Named) and Admin (Named,
+    // Ranked). User selects every column; Viewer's and Admin's type-level selections conflict on
+    // posts. Node and Ranked cover compatible variants, Named covers all three.
+    const expansionModels = createModels('User', 'Post');
+    expansionModels.User.relations = { posts: expansionModels.Post };
+    const name = { name: { select: { name: true } } };
+    const expansionSchema = createSchema(
       /* GraphQL */ `
         type Query { person: Person }
         interface Node { id: ID }
         interface Named { name: String }
+        interface Ranked { rank: Int }
         interface Person { id: ID, posts(take: Int): [Post] }
         type User implements Person & Node & Named { id: ID, name: String, posts(take: Int): [Post] }
-        type Viewer implements Person & Named { id: ID, name: String, posts(take: Int): [Post] }
-        type Admin implements Person & Named { id: ID, name: String, posts(take: Int): [Post] }
+        type Viewer implements Person & Node & Named {
+          id: ID
+          name: String
+          email: String
+          posts(take: Int): [Post]
+        }
+        type Admin implements Person & Named & Ranked {
+          id: ID
+          name: String
+          rank: Int
+          posts(take: Int): [Post]
+        }
         type Post { id: ID }
       `,
       {
-        User: { model: 'User' },
-        Viewer: { model: 'User', select: { select: { id: true, posts: { take: 5 } } } },
-        Admin: { model: 'User', select: { select: { posts: { take: 1 } } } },
+        User: { model: 'User', fields: name },
+        Viewer: {
+          model: 'User',
+          select: { select: { id: true, posts: { take: 5 } } },
+          fields: { ...name, email: { select: { email: true } } },
+        },
+        Admin: {
+          model: 'User',
+          select: { select: { posts: { take: 1 } } },
+          fields: { ...name, rank: { select: { rank: true } } },
+        },
         Person: { model: 'User', select: { select: { id: true } } },
         Post: { model: 'Post' },
       },
     );
-    const narrowAdapter = new FakeAdapter(narrowModels);
-    const plan = async (query: string) =>
-      queryFromInfo(narrowAdapter, { context: {}, info: await resolveInfo(narrowSchema, query) });
-    const direct = await plan('{ person { ... on User { name } } }');
+    const expansionAdapter = new FakeAdapter(expansionModels);
+    const plan = async (query: string, context = {}) =>
+      queryFromInfo(expansionAdapter, { context, info: await resolveInfo(expansionSchema, query) });
 
-    expect(await plan('{ person { ... on Node { ... on Named { name } } } }')).toEqual(direct);
-    expect(
-      await plan(
-        'query { person { ...F } } fragment F on Node { ...G } fragment G on Named { name }',
-      ),
-    ).toEqual(direct);
-    expect(await plan('{ person { ... on Node { ... { ... on Named { name } } } } }')).toEqual(
-      direct,
-    );
-    // Without the narrowing wrapper, both Viewer and Admin are entered and conflict.
-    await expect(plan('{ person { ... on Named { name } } }')).rejects.toThrow(/conflict/);
+    it('enters every variant a fragment that selects fields covers', async () => {
+      const context = {};
+
+      expect(await plan('{ person { ... on Node { id } } }', context)).toEqual(
+        await plan('{ person { ... on User { id } ... on Viewer { id } } }'),
+      );
+      expect(getLoaderMapping(context, pathOf('person', 'id'), 'Admin')).toBeNull();
+    });
+
+    it('enters only the variants the nested fragments of a field-less fragment apply to', async () => {
+      const direct = await plan('{ person { ... on User { name } } }');
+
+      expect(await plan('{ person { ... on Node { ... on User { name } } } }')).toEqual(direct);
+      expect(await plan('{ person { ... on Node { __typename ... on User { name } } } }')).toEqual(
+        direct,
+      );
+      expect(
+        await plan('query { person { ...F } } fragment F on Node { ... on User { name } }'),
+      ).toEqual(direct);
+    });
+
+    it('narrows a nested fragment to the variants an enclosing field-less fragment covers', async () => {
+      // Named alone covers Admin too, whose selection conflicts with Viewer's.
+      const covered = await plan('{ person { ... on User { name } ... on Viewer { name } } }');
+
+      expect(covered).toEqual({ select: { posts: { take: 5 } } });
+      expect(await plan('{ person { ... on Node { ... on Named { name } } } }')).toEqual(covered);
+      expect(
+        await plan(
+          'query { person { ...F } } fragment F on Node { ...G } fragment G on Named { name }',
+        ),
+      ).toEqual(covered);
+      expect(await plan('{ person { ... on Node { ... { ... on Named { name } } } } }')).toEqual(
+        covered,
+      );
+    });
+
+    it('enters no variant for a nested fragment on a type the plan already is', async () => {
+      expect(await plan('{ person { ... on Node { ... on Person { id } } } }')).toEqual(
+        await plan('{ person { id } }'),
+      );
+    });
+
+    it('treats a fragment whose variants conflict as one that cannot apply', async () => {
+      const context = {};
+
+      expect(await plan('{ person { id ... on Named { name } } }', context)).toEqual(
+        await plan('{ person { id } }'),
+      );
+      expect(getLoaderMapping(context, pathOf('person', 'name'), 'User')).toBeNull();
+      expect(await plan('{ person { ... on Named { name ... on Viewer { email } } } }')).toEqual(
+        await plan('{ person { ... on Viewer { email } } }'),
+      );
+    });
+
+    it('treats a fragment as one that cannot apply when its variants conflict with another', async () => {
+      const direct = await plan('{ person { ... on Viewer { email } } }');
+
+      expect(await plan('{ person { ... on Ranked { rank } ... on Viewer { email } } }')).toEqual(
+        direct,
+      );
+      expect(await plan('{ person { ... on Viewer { email } ... on Ranked { rank } } }')).toEqual(
+        direct,
+      );
+
+      // Alone, Admin's selection agrees with Person's, so the field is planned for Admin rows.
+      const context = {};
+
+      await plan('{ person { ... on Ranked { rank } } }', context);
+      expect(mappingOf(getLoaderMapping(context, pathOf('person', 'rank'), 'Admin'))).toEqual({
+        nested: {},
+      });
+    });
+
+    it('treats a fragment as one that cannot apply when its variants conflict with the seed', async () => {
+      const info = await resolveInfo(expansionSchema, '{ person { ... on Ranked { rank } } }');
+      const context = {};
+      const seeded = (await Plan.fromInfo(expansionAdapter, {
+        context,
+        info,
+        initial: { select: { posts: { take: 3 } } },
+      }))!;
+
+      expect(seeded.query()).toEqual({ select: { posts: { take: 3 }, id: true } });
+      expect(getLoaderMapping(context, pathOf('person', 'rank'), 'Admin')).toBeNull();
+    });
+
+    it('still reports conflicting variants a document names directly', async () => {
+      await expect(
+        plan('{ person { ... on Viewer { email } ... on Admin { rank } ... on Node { id } } }'),
+      ).rejects.toThrow(/Type-level selections of Person and Admin conflict on relation "posts"/);
+    });
   });
 
   it('walks a fragment on an interface the type implements as the type', async () => {
@@ -1009,6 +1093,21 @@ describe('plan.query(select)', () => {
     expect(getLoaderMapping(expectedContext, pathOf('user', 'posts'), 'User')).toBe(null);
     // The plan itself is untouched: emitting it again without a selection gives the plan.
     expect(plan.query()).toEqual(queryFromInfo(adapter, { context: {}, info }));
+  });
+
+  it('merges the initial selection of a parent-row plan first, so a conflicting field loses', async () => {
+    const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
+      at: ['Viewer', 'posts'],
+    });
+    const plain = Plan.forParentRow(adapter, {}, info);
+    const seeded = Plan.forParentRow(adapter, {}, info, undefined, {
+      select: { posts: { take: 1 } },
+    });
+
+    expect(adapter.toQuery(plain.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
+    expect(mappingsOf(plain.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
+    expect(adapter.toQuery(seeded.root)).toEqual({ select: { posts: { take: 1 }, id: true } });
+    expect(mappingsOf(seeded.mappings)).toEqual({});
   });
 
   it('emits the walked plan alone without a selection', async () => {
