@@ -40,7 +40,6 @@ import type {
   ToManyRelationKeys,
 } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { rebrandForVariant } from './utils/branding.js';
 import { getPluginConfig } from './utils/config.js';
 import { connectionNeedsRows, connectionSettings, relatedCount } from './utils/connections.js';
 import { relationVariant, resolveContractModel } from './utils/contract.js';
@@ -293,9 +292,9 @@ export class PrismaNextObjectFieldBuilder<
             info: GraphQLResolveInfo,
           ) => {
             const result = await isNull(parent as never, args as never, ctx, info);
-            return result ? null : rebrandForVariant(parent, variantTypeName);
+            return result ? null : parent;
           }
-        : (parent: unknown) => rebrandForVariant(parent, variantTypeName) as never,
+        : (parent: unknown) => parent as never,
     };
     return this.field(fieldOpts as never) as FieldRef<Types, unknown>;
   }
