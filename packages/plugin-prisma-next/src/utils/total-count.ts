@@ -2,7 +2,7 @@ import { ObjectRef, PothosValidationError, type SchemaTypes } from '@pothos/core
 import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 
-/** Connection extension fields conservatively retain row loading. */
+/** Any selection besides `totalCount` (including extension fields) loads rows. */
 export function connectionNeedsRows(context: object, info: GraphQLResolveInfo): boolean {
   return [...selectedFieldNames(context, info)].some(
     (name) => name !== 'totalCount' && name !== '__typename',
@@ -22,14 +22,7 @@ export interface BuildTotalCountPromiseOptions {
   context: unknown;
 }
 
-/**
- * Gated on selection: if the client didn't select `totalCount`, return
- * resolved-undefined. The callback path uses deferred construction so
- * a synchronously-throwing callback yields a rejected promise instead
- * of bubbling out before `Promise.allSettled` is reached.
- *
- * @internal
- */
+/** @internal A callback that throws synchronously becomes a rejection. */
 export function buildTotalCountPromise(
   options: BuildTotalCountPromiseOptions,
 ): Promise<number | undefined> {
@@ -46,11 +39,7 @@ export function buildTotalCountPromise(
   return aggregateCount(baseCollection);
 }
 
-/**
- * The row count of an include refinement.
- *
- * @internal
- */
+/** @internal */
 export function relatedCount(collection: unknown): unknown {
   const { count } = collection as { count?: unknown };
   if (typeof count !== 'function') {
@@ -65,12 +54,7 @@ function missingCountAggregate() {
   );
 }
 
-/**
- * The row count of `collection`, through the orm-client's aggregate builder. Deferred the same
- * way `buildTotalCountPromise` defers a callback, so a synchronous throw becomes a rejection.
- *
- * @internal
- */
+/** @internal A synchronous throw becomes a rejection. */
 export function aggregateCount(collection: unknown): Promise<number> {
   return Promise.resolve().then(() =>
     (
@@ -90,9 +74,7 @@ export function aggregateCount(collection: unknown): Promise<number> {
   );
 }
 
-// Short-circuit on a pre-registered ObjectRef (shared connection type):
-// spreading the ref would corrupt it. The totalCount field has to live
-// on the original type definition.
+// A pre-registered connection ref can't be spread; it must declare totalCount itself.
 export function wrapConnectionOptionsWithTotalCount(connectionOptions: object): object {
   if (connectionOptions instanceof ObjectRef) {
     return connectionOptions;
@@ -101,7 +83,6 @@ export function wrapConnectionOptionsWithTotalCount(connectionOptions: object): 
     .fields;
   return {
     ...connectionOptions,
-    // User fields merge AFTER totalCount so a user-declared totalCount wins.
     fields: (
       t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>,
     ): Record<string, unknown> => ({

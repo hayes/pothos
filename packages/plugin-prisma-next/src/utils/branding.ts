@@ -1,11 +1,6 @@
 import { brandWithType, type OutputType, type SchemaTypes, typeBrandKey } from '@pothos/core';
 
-/**
- * Wrap so the variant carries its own brand without disturbing the
- * parent's brand (which is non-configurable). Callers MUST read
- * variant rows via property access — Object.keys, JSON.stringify, and
- * object spread only see own-properties and will skip parent data.
- */
+/** The row is the prototype, so its data isn't visible to `Object.keys` or spread. */
 export function rebrandForVariant<T>(parent: T, variantTypeName: string): T;
 export function rebrandForVariant(parent: unknown, variantTypeName: string): unknown {
   if (parent == null || typeof parent !== 'object') {
@@ -15,9 +10,7 @@ export function rebrandForVariant(parent: unknown, variantTypeName: string): unk
   if (existingBrand === variantTypeName) {
     return parent;
   }
-  // Always wrap. Branding the parent in place would make order-of-
-  // resolution load-bearing: sibling variants on the same row would
-  // race on the non-configurable brand slot.
+  // Brands aren't configurable, so sibling variants of one row can't brand it in place.
   const wrapper = Object.create(parent as object) as object;
   brandWithType(wrapper, variantTypeName as unknown as OutputType<SchemaTypes>);
   return wrapper;

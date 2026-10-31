@@ -1,9 +1,3 @@
-/**
- * The model description the adapter's nodes carry: one object per contract model, so model
- * identity is model equality (what the walker's fragment and path rules compare). Built from the
- * contract on first use and cached per contract; relation targets resolve through the same
- * registry, so a cycle (`User.posts` → `Post.author` → `User`) closes on the same objects.
- */
 import { PothosSchemaError } from '@pothos/core';
 import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
 import { type Codec, readContractValue } from '@prisma/orm-framework/components/codec';
@@ -16,27 +10,14 @@ import {
   variantOf,
 } from './contract.js';
 
-/**
- * Per-relation metadata baked into the type's extension at schema
- * build. Cardinality detection runs here once, fail-fast.
- */
 export interface PrismaNextRelationMeta {
   readonly isToMany: boolean;
-  /**
-   * Parent-side columns the join keys against; augmented into the parent
-   * SELECT for depth-2+ stitching. For a reference relation these are the
-   * parent FK columns (`on.localFields`); for an N:M relation they are the
-   * parent columns the junction references (also `on.localFields`, which
-   * prisma-next resolves into `through.parentLocalColumns`).
-   */
+  /** Parent-side join columns, always selected so nested includes can stitch. */
   readonly localFields: readonly string[];
-  /** Target model name in the contract. */
   readonly targetModel: string;
   /**
-   * Set when the target is a variant model. The ORM loads it through the variant's own accessor,
-   * which can include the variant's own relations but not those inherited from its base. When
-   * the variant shares its base's table (`sharesTable`) that accessor isn't narrowed, so the
-   * include filters by discriminator.
+   * The ORM loads a variant target through its own accessor, which can't include base relations
+   * and, when `sharesTable`, isn't filtered by the discriminator.
    */
   readonly targetVariant?: {
     readonly model: string;
@@ -46,20 +27,16 @@ export interface PrismaNextRelationMeta {
   };
 }
 
-/** A relation as the adapter sees it: the metadata plus the target model itself. */
 export interface PrismaNextRelation extends PrismaNextRelationMeta {
   readonly target: PrismaNextModel;
-  /**
-   * The discriminator value of the variant that declares this relation, when only a variant
-   * does. The ORM includes it only on a collection narrowed with `.variant(value)`.
-   */
+  /** Set when a variant declares the relation; it can only be included after `.variant(value)`. */
   readonly variant?: string;
 }
 
 export interface PrismaNextModel {
   readonly name: string;
   readonly relations: Record<string, PrismaNextRelation>;
-  /** The model's columns, or undefined when the contract does not describe the model. */
+  /** Undefined when the contract doesn't describe the model. */
   readonly columns: ReadonlySet<string> | undefined;
 }
 
@@ -74,17 +51,9 @@ export function buildRelationMeta(
   }
   const out: Record<string, PrismaNextRelationMeta> = {};
   for (const [name, rel] of Object.entries(rels)) {
-    // N:M is a to-many junction relation. The
-    // orm-client resolves the junction join internally from the
-    // relation's `through` block (see tests/prisma-next-m-n-upstream-pin),
-    // so `.include('<n:m rel>')` flattens the related rows in a single
-    // query. The plugin emits the include like any other to-many relation
-    // and carries the `through` descriptor as the junction marker. (The
-    // contract tags this 'N:M'; there is no 'M:N' spelling in either
-    // prisma-next package.)
+    // orm-client resolves N:M junctions itself, so they include like any to-many relation.
     const isToMany = rel.cardinality === '1:N' || rel.cardinality === 'N:M';
-    // Explicit allowlist: guards against new cardinality tags a future
-    // contract might grow. With today's union this leaves '1:1' / 'N:1'.
+    // Rejects cardinalities a future contract might add.
     if (!isToMany && rel.cardinality !== '1:1' && rel.cardinality !== 'N:1') {
       throw new PothosSchemaError(
         `Relation '${typeName}.${name}' (model '${modelName}') has unknown cardinality ` +
@@ -95,12 +64,7 @@ export function buildRelationMeta(
     const target = variantOf(contract, targetModel);
     out[name] = {
       isToMany,
-      // Embed relations carry no FK columns (`on`); reference and junction
-      // relations do. For N:M these are the parent columns the junction
-      // references (prisma-next resolves them into `through.parentLocalColumns`),
-      // so augmenting them into the parent SELECT is correct — the parent
-      // has no direct FK, but it does have the keyed columns the junction
-      // joins against.
+      // Embeds have no `on`; for N:M these are the parent columns the junction references.
       localFields: 'on' in rel ? rel.on.localFields : [],
       targetModel,
       ...(target
@@ -138,7 +102,7 @@ export function buildColumnSet(
 
 const registries = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
 
-/** Non-null unique keys in model field names, primary key first; undefined without SQL storage. */
+/** Non-null unique keys, primary key first; undefined without SQL storage. */
 export function getModelUniqueKeys(
   contract: AnyContract,
   modelName: string,
@@ -179,14 +143,13 @@ export function getModelUniqueKeys(
   return uniqueKeys;
 }
 
-/** Prefer the primary key, then the first non-null unique key. */
 export function getIdentityFields(contract: AnyContract, modelName: string): string[] {
   return getModelUniqueKeys(contract, modelName)?.[0] ?? [];
 }
 
 /**
- * The one `PrismaNextModel` for `name` under `contract`. A variant shares its base's model: one
- * query loads the hierarchy, so `... on Bug` beneath a `Task` plans into that query.
+ * Cached per contract so model identity is object identity. A variant shares its base's model,
+ * so `... on Bug` beneath a `Task` plans into the same query.
  */
 export function getModel(contract: AnyContract, key: string): PrismaNextModel {
   const name = rootModelKey(contract, key);
@@ -215,8 +178,7 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
       };
     }
 
-    // Relations a variant declares join the hierarchy's one model, tagged with the variant they
-    // need the collection narrowed to.
+    // Relations declared on variants are tagged with the variant they need.
     for (const [value, variant] of Object.entries(
       modelDiscriminator(contract, name)?.variants ?? {},
     )) {
@@ -244,20 +206,18 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
   return model;
 }
 
-/** A column's values to and from the JSON form its contract stores. */
 export interface ColumnCodec {
   toStored(value: unknown): unknown;
   fromStored(stored: unknown): unknown;
 }
 
-/** The `context` of a Prisma client, which holds the contract's column codecs. */
+/** A Prisma client's `context`, which holds the column codecs. */
 export interface PrismaNextCodecContext {
   readonly contractCodecs: {
     forColumn(namespaceId: string, table: string, column: string): unknown;
   };
 }
 
-/** The codec the client built for a model field's column. */
 export function getColumnCodec(
   contract: AnyContract,
   modelName: string,

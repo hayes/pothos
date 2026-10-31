@@ -4,16 +4,7 @@ import { PrismaNextObjectRef } from '../object-ref.js';
 import type { ModelName, Row } from '../types.js';
 import { defaultTypeName } from './contract.js';
 
-// Per-builder ref cache. Keys are the *default* type name for a model
-// (which is the contract model name). Variants are NOT cached — they
-// always get a fresh ref keyed on the variant name.
-//
-// Consequence (matches plugin-drizzle): if only a variant is
-// registered for a model and another file references the model by
-// name (e.g. `t.relation('user')` from a sibling), the string-form
-// helper returns the cached default ref which never had a
-// registration. Pothos core surfaces this as an unresolved-ref error
-// at schema-build time.
+// Only default refs are cached; variants always get a fresh ref.
 const objectRefMap = new WeakMap<
   object,
   Map<string, PrismaNextObjectRef<SchemaTypes, never, never>>
@@ -52,7 +43,6 @@ export function getRefFromContractModel<
   return ref as unknown as PrismaNextObjectRef<Types, M, Shape>;
 }
 
-/** The default ref for a bare model name: its `prismaInterface` when registered as one. */
 export function getRefForContractModel<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -91,7 +81,7 @@ export function getInterfaceRefFromContractModel<
   return ref as unknown as PrismaNextInterfaceRef<Types, M, Shape>;
 }
 
-/** @internal — used by schema-builder to detect object/interface kind collision. */
+/** @internal */
 export function assertSameKindRegistration<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   modelName: string,
