@@ -1,3 +1,4 @@
+import { PothosValidationError } from '@pothos/core';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import { buildExampleSchema } from './example/schema';
@@ -153,5 +154,6 @@ describe('root fields', () => {
     expect(result.data).toEqual({ user: null, none: null });
     expect(result.errors).toHaveLength(1);
     expect(result.errors?.[0].message).toMatch(/must return an ORM Collection or null/);
+    expect(result.errors?.[0].originalError).toBeInstanceOf(PothosValidationError);
   });
 });

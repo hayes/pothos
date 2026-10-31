@@ -45,7 +45,13 @@ import type {
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import { connectionNeedsRows, connectionSettings, relatedCount } from './utils/connections.js';
-import { relationVariant, resolveContractModel } from './utils/contract.js';
+import {
+  collectionForModel,
+  relationVariant,
+  resolveContractModel,
+  rootModelKey,
+  variantOf,
+} from './utils/contract.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
@@ -443,7 +449,9 @@ export class PrismaNextObjectFieldBuilder<
     const reduce = (rel: MapperCollection): unknown => {
       const reducer = (rel as unknown as Record<string, unknown>)[op];
       if (typeof reducer !== 'function') {
-        throw new PothosSchemaError(`Aggregate '${op}' is not available on this ORM collection.`);
+        throw new PothosValidationError(
+          `Aggregate '${op}' is not available on this ORM collection.`,
+        );
       }
       return field === undefined ? reducer.call(rel) : reducer.call(rel, field);
     };
@@ -531,6 +539,11 @@ export class PrismaNextObjectFieldBuilder<
     connectionOptions: object = {},
     edgeOptions: object = {},
   ) {
+    if (typeof (this as { connection?: unknown }).connection !== 'function') {
+      throw new PothosSchemaError(
+        't.relatedConnection requires @pothos/plugin-relay to be loaded.',
+      );
+    }
     const relation = this.#relation(name);
     if (!relation.isToMany) {
       throw new PothosSchemaError(
@@ -570,41 +583,72 @@ export class PrismaNextObjectFieldBuilder<
       paths: [[{ name: 'edges' }, { name: 'node' }], [{ name: 'nodes' }]],
     };
     const cursorColumns = normalizeCursor(cursorOpt);
-    // Checked once per request and set of paging args, which every parent row shares.
-    const cursorErrors = createContextCache(() => new Map<string, PothosValidationError | null>());
-    const cursorError = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: object) => {
-      const errors = cursorErrors(ctx);
-      const key = JSON.stringify([args.first, args.last, args.before, args.after]);
-      let error = errors.get(key);
-      if (error === undefined) {
-        try {
-          validateCursorArgs(cursorOpt, args, config.codecs(ctx, relatedKey));
-          error = null;
-        } catch (thrown) {
-          if (!(thrown instanceof PothosValidationError)) {
-            throw thrown;
-          }
-          error = thrown;
-        }
-        errors.set(key, error);
+    const filter = (rel: MapperCollection, args: object, ctx: object) =>
+      where === undefined ? rel : rel.where(whereInput(where, args, ctx));
+    const narrow = (rel: MapperCollection) => (variant === undefined ? rel : rel.variant(variant));
+    const page = (rel: MapperCollection, args: object, ctx: object) =>
+      applyCursorPagination(
+        filter(rel, args, ctx),
+        cursorOpt,
+        args as PothosSchemaTypes.DefaultConnectionArguments,
+        {
+          ...settings.sizes(args, ctx),
+          codecs: config.codecs(ctx, relatedKey),
+          orderBy: orderBy && ((model) => orderBy(model as never, args, ctx)),
+        },
+      ).collection;
+    const targetVariant = variant ?? variantOf(config.contract, relatedKey)?.value;
+    // What depends on the request (the cursor arguments, and the size, `where` and `orderBy`
+    // callbacks) is checked once per request and set of arguments, which every parent row shares,
+    // by building the page on the related model's collection without running it.
+    const planErrors = createContextCache(() => new Map<string, { error: unknown } | null>());
+    const planError = (args: object, ctx: object) => {
+      const errors = planErrors(ctx);
+      let key: string | undefined;
+      try {
+        key = JSON.stringify(args);
+      } catch {
+        key = undefined;
       }
-      return error;
+      let failure = key === undefined ? undefined : errors.get(key);
+      if (failure === undefined) {
+        failure = null;
+        try {
+          validateCursorArgs(
+            cursorOpt,
+            args as PothosSchemaTypes.DefaultConnectionArguments,
+            config.codecs(ctx, relatedKey),
+          );
+          // A client may expose the related model only through its parent's relation.
+          const base = collectionForModel(
+            config.contract,
+            config.client(ctx).orm,
+            rootModelKey(config.contract, relatedKey),
+          ) as MapperCollection | undefined;
+          if (base) {
+            page(targetVariant === undefined ? base : base.variant(targetVariant), args, ctx);
+          }
+        } catch (error) {
+          failure = { error };
+        }
+        if (key !== undefined) {
+          errors.set(key, failure);
+        }
+      }
+      return failure;
     };
-    // An invalid cursor plans nothing, so the error surfaces on this field when it resolves.
+    // A request that can't be planned plans nothing, so the error surfaces on this field when it
+    // resolves instead of failing the parent's query.
     const select: PrismaNextSelectFn = (args, ctx, nested, selectedFields, position) => {
-      if (cursorError(args as PothosSchemaTypes.DefaultConnectionArguments, ctx)) {
+      if (planError(args, ctx)) {
         return {};
       }
-      const filter = (rel: MapperCollection) =>
-        where === undefined ? rel : rel.where(whereInput(where, args, ctx));
-      const narrow = (rel: MapperCollection) =>
-        variant === undefined ? rel : rel.variant(variant);
       const identity = { source: select, args };
       const selected = selectedFields();
       const count =
         totalCount === true && selected.has('totalCount')
           ? computedSelection(name, scopeOf(position), identity, (sub) => ({
-              count: relatedCount(filter(narrow(sub))),
+              count: relatedCount(filter(narrow(sub), args, ctx)),
             }))
           : {};
       if (![...selected].some((field) => field !== 'totalCount' && field !== '__typename')) {
@@ -613,22 +657,7 @@ export class PrismaNextObjectFieldBuilder<
       const rows = nested(
         {
           columns: cursorColumns,
-          args: relationArgs(
-            relation,
-            identity,
-            (rel) =>
-              applyCursorPagination(
-                filter(rel),
-                cursorOpt,
-                args as PothosSchemaTypes.DefaultConnectionArguments,
-                {
-                  ...settings.sizes(args, ctx),
-                  codecs: config.codecs(ctx, relatedKey),
-                  orderBy: orderBy && ((model) => orderBy(model as never, args, ctx)),
-                },
-              ).collection,
-            variant,
-          ),
+          args: relationArgs(relation, identity, (rel) => page(rel, args, ctx), variant),
         },
         include,
       );
@@ -651,7 +680,7 @@ export class PrismaNextObjectFieldBuilder<
           ctx: object,
           info: GraphQLResolveInfo,
         ) =>
-          !!cursorError(args as PothosSchemaTypes.DefaultConnectionArguments, ctx) ||
+          !!planError(args, ctx) ||
           ((!connectionNeedsRows(ctx, info) || view[name] !== undefined) &&
             (!settings.countsRows(ctx, info) || Object.hasOwn(view, 'count'))),
       },
@@ -661,9 +690,9 @@ export class PrismaNextObjectFieldBuilder<
         context: object,
         info: GraphQLResolveInfo,
       ) => {
-        const error = cursorError(args, context);
-        if (error) {
-          throw error;
+        const failure = planError(args, context);
+        if (failure) {
+          throw failure.error;
         }
         const rows = connectionNeedsRows(context, info) ? parent[name] : [];
         const pagination = buildPaginationParams(cursorOpt, args, {

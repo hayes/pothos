@@ -29,7 +29,7 @@ import {
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_SELECT,
 } from './constants.js';
-import { getPluginConfig } from './utils/config.js';
+import { assertContextObject, getPluginConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
 import { getIdentityFields, getModel } from './utils/model.js';
 import {
@@ -258,12 +258,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         return resolver(parent, args, context, info);
       }
       const row = parent as Record<string, unknown>;
-      const missing = columns.filter((column) => row[column] === undefined);
+      const missing = columns.length
+        ? columns.filter((column) => row[column] === undefined)
+        : columns;
       let reason: ReloadReason = 'columns';
       if (!missing.length) {
         if (!planned) {
           return resolver(parent, args, context, info);
         }
+        assertContextObject(context, info);
         let mapping: Mapping | null = null;
         for (const type of parentTypes) {
           mapping ??= getLoaderMapping(context, info.path, type, parent);
@@ -278,6 +281,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           reason = 'conflict';
         }
       }
+      assertContextObject(context, info);
       keyless ??= !getIdentityFields(config.contract, modelName).length;
       if (keyless) {
         throw keylessReloadError(info, modelName, reason, missing);
