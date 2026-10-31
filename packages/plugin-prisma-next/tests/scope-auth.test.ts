@@ -1,7 +1,14 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
-import { execute, type GraphQLSchema, parse } from 'graphql';
+import {
+  execute,
+  experimentalExecuteIncrementally,
+  GraphQLDeferDirective,
+  type GraphQLSchema,
+  parse,
+  specifiedDirectives,
+} from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import {
@@ -349,13 +356,15 @@ describe.each(orders)("an implementation's select under an interface (%s)", (_, 
   });
 });
 
-it("reloads a hand-built row for an implementation's authScopes (prismaNext first)", async () => {
+it.each(
+  orders,
+)("reloads a hand-built row for an implementation's authScopes (%s)", async (_, plugins) => {
   const seen: unknown[] = [];
   const builder = new SchemaBuilder<{
     PrismaNextContract: SampleContract;
     AuthScopes: { ok: boolean };
   }>({
-    plugins: [prismaNextPlugin, ScopeAuthPlugin],
+    plugins: [...plugins],
     scopeAuth: { authScopes: () => ({ ok: true }) },
     prismaNext: { client: ctx.client },
   });
@@ -482,6 +491,77 @@ describe.each(orders)('field-level authScopes (%s)', (_, plugins) => {
     ).toEqual([1, 1]);
     expect(seen).toEqual([1, 1]);
     expect(result.statements).toHaveLength(1);
+  });
+});
+
+describe.each(orders)('field-level authScopes on a reloaded parent (%s)', (_, plugins) => {
+  function reloadSchema(seen: unknown[], defer = false) {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+      DefaultFieldNullability: true;
+    }>({
+      plugins: [...plugins],
+      defaultFieldNullability: true,
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        label: t.string({
+          select: ['email'],
+          authScopes: (user) => {
+            seen.push(user.email);
+            return true;
+          },
+          resolve: (user) => user.email,
+        }),
+        postCount: t.int({
+          select: { posts: true },
+          authScopes: (user) => {
+            seen.push(Array.isArray(user.posts) ? user.posts.length : user.posts);
+            return true;
+          },
+          resolve: (user) => user.posts.length,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        handBuilt: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) as never }),
+        user: t.prismaField({
+          type: 'User',
+          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    return defer
+      ? builder.toSchema({ directives: [...specifiedDirectives, GraphQLDeferDirective] })
+      : builder.toSchema();
+  }
+
+  it('see the columns a reload adds to a hand-built row', async () => {
+    const seen: unknown[] = [];
+    const result = await runCaptured(reloadSchema(seen), '{ handBuilt { label } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ handBuilt: { label: 'alice@example.com' } });
+    expect(seen).toEqual(['alice@example.com']);
+  });
+
+  it('see the relation a reload adds for a deferred field', async () => {
+    const seen: unknown[] = [];
+    const result = await experimentalExecuteIncrementally({
+      schema: reloadSchema(seen, true),
+      document: parse('{ user { label ... @defer { postCount } } }'),
+      contextValue: {},
+    });
+    if (!('initialResult' in result)) {
+      throw new Error('Expected an incremental result');
+    }
+    for await (const _patch of result.subsequentResults) {
+      // drain
+    }
+    expect(seen).toEqual(['alice@example.com', 2]);
   });
 });
 

@@ -4,6 +4,8 @@ import './prisma-next-field-builder.js';
 import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
+  completeValue,
+  type MaybePromise,
   type PothosInterfaceTypeConfig,
   type PothosObjectTypeConfig,
   type PothosOutputFieldConfig,
@@ -107,6 +109,7 @@ const pluginName = 'prismaNext';
 
 export default pluginName;
 
+/** `args` are the field's arguments before any arg mapper ran. */
 type Loaded = (
   view: Record<string, unknown>,
   args: object,
@@ -292,8 +295,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
   /**
    * Hands every plugin wrapped around a field the parent the field declares: the rows and values
-   * of its type's and interfaces' `select`s and of its own. This hook wraps every plugin's
-   * `wrapResolve`, so their order doesn't matter.
+   * of its type's and interfaces' `select`s and of its own, reloaded first when the field needs
+   * it. This hook wraps every plugin's `wrapResolve`, so their order doesn't matter.
    */
   override wrapArgMappers(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
@@ -307,15 +310,45 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       if (parent === null || typeof parent !== 'object') {
         return resolver(parent, args, context, info);
       }
-      if (!reader.declaresScope) {
-        return resolver(reader.declared(parent, null), args, context, info);
+      return completeValue(
+        this.loadParent(reader, rowOf(parent), args, context, info),
+        (loaded) => {
+          loadedParents.set(info, loaded);
+          return resolver(reader.declared(loaded.row, loaded.mapping), args, context, info);
+        },
+      );
+    };
+  }
+
+  /** Hands the field's resolver the parent `wrapArgMappers` loaded, with the field's own slots. */
+  override wrapResolve(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+    const reader = this.fieldReader(fieldConfig);
+    if (!reader) {
+      return resolver;
+    }
+    const readsOwnSlots = ownSlotReaders.has(fieldConfig.resolve as never);
+    return (parent, args, context, info) => {
+      if (parent === null || typeof parent !== 'object') {
+        return resolver(parent, args, context, info);
       }
-      assertContextObject(context, info);
-      return resolver(
-        reader.declared(parent, reader.mapping(parent, context, info)),
-        args,
-        context,
-        info,
+      const row = rowOf(parent);
+      const known = loadedParents.get(info);
+      // Another plugin may hand on a different parent.
+      return completeValue(
+        known?.row === row ? known : this.loadParent(reader, row, args, context, info),
+        (loaded) => {
+          const declared = reader.declared(loaded.row, loaded.mapping);
+          if (readsOwnSlots) {
+            pendingSlots.set(info, {
+              parent: declared,
+              view: reader.own(loaded.row, loaded.mapping),
+            });
+          }
+          return resolver(declared, args, context, info);
+        },
       );
     };
   }
@@ -325,65 +358,37 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    * selection, the plan that loaded the parent included it; otherwise the loader reloads the
    * parent with what the field needs.
    */
-  override wrapResolve(
-    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: PothosOutputFieldConfig<Types>,
-  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    const reader = this.fieldReader(fieldConfig);
-    if (!reader) {
-      return resolver;
-    }
-    const { config } = this;
+  private loadParent(
+    reader: FieldReader,
+    row: object,
+    args: object,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+  ): MaybePromise<LoadedParent> {
     const { modelName, columns, planned, loaded, declared, own } = reader;
-    const readsOwnSlots = ownSlotReaders.has(fieldConfig.resolve as never);
-    const handOver = (
-      row: object,
-      mapping: Mapping | null | undefined,
-      args: object,
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) => {
-      const parent = declared(row, mapping);
-      if (readsOwnSlots) {
-        pendingSlots.set(info, { parent, view: own(row, mapping) });
-      }
-      return resolver(parent, args, context, info);
-    };
-
-    let keyless: boolean | undefined;
-
-    return (parent, args, context, info) => {
-      if (parent === null || typeof parent !== 'object') {
-        return resolver(parent, args, context, info);
-      }
-      const row = rowOf(parent);
-      const typeRow = declared(row, null) as Record<string, unknown>;
-      const missing = columns.filter((column) => typeRow[column] === undefined);
-      if (!missing.length && !planned) {
-        return handOver(row, null, args, context, info);
-      }
-      assertContextObject(context, info);
-      let reason: ReloadReason = 'columns';
-      if (!missing.length) {
-        const mapping = reader.mapping(row, context, info);
-        reason = 'unplanned';
-        if (mapping) {
-          if (!loaded || loaded(own(row, mapping), args, context, info)) {
-            setRowMappings(context, info, mapping.nested);
-            return handOver(row, mapping, args, context, info);
-          }
-          reason = 'conflict';
+    const typeRow = declared(row, null) as Record<string, unknown>;
+    const missing = columns.filter((column) => typeRow[column] === undefined);
+    if (!missing.length && !planned) {
+      return { row, mapping: null };
+    }
+    assertContextObject(context, info);
+    let reason: ReloadReason = 'columns';
+    if (!missing.length) {
+      const mapping = reader.mapping(row, context, info);
+      reason = 'unplanned';
+      if (mapping) {
+        if (!loaded || loaded(own(row, mapping), args, context, info)) {
+          setRowMappings(context, info, mapping.nested);
+          return { row, mapping };
         }
+        reason = 'conflict';
       }
-      keyless ??= !getIdentityFields(config.contract, modelName).length;
-      if (keyless) {
-        throw keylessReloadError(info, modelName, reason, missing);
-      }
-      return config
-        .loader(context, modelName)
-        .loadSelection(info, row)
-        .then((reloaded) => handOver(reloaded.row, reloaded.mapping, args, context, info));
-    };
+    }
+    reader.keyless ??= !getIdentityFields(this.config.contract, modelName).length;
+    if (reader.keyless) {
+      throw keylessReloadError(info, modelName, reason, missing);
+    }
+    return this.config.loader(context, modelName).loadSelection(info, row);
   }
 
   /**
@@ -485,8 +490,18 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 }
 
+interface LoadedParent {
+  row: object;
+  mapping: Mapping | null | undefined;
+}
+
+/** The parent `wrapArgMappers` loaded for a field execution. */
+const loadedParents = new WeakMap<GraphQLResolveInfo, LoadedParent>();
+
 interface FieldReader {
   modelName: string;
+  /** Whether the model has no key to reload a row by; checked on first reload. */
+  keyless?: boolean;
   columns: string[];
   planned: boolean;
   loaded: Loaded | undefined;
