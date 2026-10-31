@@ -55,7 +55,7 @@ describe('deepEqual', () => {
     expect(deepEqual(new Hidden(1), new Hidden(1))).toBe(false);
   });
 
-  it('still compares byte arrays and stateful class instances structurally', () => {
+  it('compares byte arrays and stateful class instances structurally', () => {
     class Point {
       constructor(readonly x: number) {}
     }

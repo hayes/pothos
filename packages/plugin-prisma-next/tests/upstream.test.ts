@@ -4,12 +4,12 @@ import sqlite from '@prisma/orm-sqlite/runtime';
 import { describe, expect, it } from 'vitest';
 import { createSqliteRuntime, sampleContract, sampleDdl } from './fixtures/helpers';
 
-describe('orm-client', () => {
+describe('Prisma ORM behaviour the plugin relies on', () => {
   it('rejects a combine inside a to-one include', () => {
     const { orm } = sqlite({ contract: sampleContract });
     expect(() =>
       orm.Post.include('author', (author) => {
-        // @ts-expect-error The ORM also rejects to-one combines statically.
+        // @ts-expect-error the ORM also rejects to-one combines statically
         return author.combine({ rows: author.select('firstName') });
       }),
     ).toThrowError(expect.objectContaining({ code: 'ORM.INCLUDE_UNSUPPORTED' }));
