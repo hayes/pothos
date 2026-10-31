@@ -16,7 +16,7 @@ import {
   type TypeParam,
 } from '@pothos/core';
 import type { DefaultConnectionArguments } from '@pothos/plugin-relay';
-import { type IndirectInclude, selectedFieldNames } from '@pothos/selection-mapper';
+import type { IndirectInclude } from '@pothos/selection-mapper';
 import type { ContractRelation } from '@prisma/orm-framework/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
 import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_LOADED } from './constants.js';
@@ -41,7 +41,8 @@ import type {
 } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { rebrandForVariant } from './utils/branding.js';
-import { connectionSizes, getPluginConfig } from './utils/config.js';
+import { getPluginConfig } from './utils/config.js';
+import { connectionNeedsRows, connectionSettings, relatedCount } from './utils/connections.js';
 import { relationVariant, resolveContractModel } from './utils/contract.js';
 import {
   applyCursorPagination,
@@ -64,11 +65,6 @@ import {
   scopeOf,
   whereInput,
 } from './utils/selections.js';
-import {
-  connectionNeedsRows,
-  relatedCount,
-  wrapConnectionOptionsWithTotalCount,
-} from './utils/total-count.js';
 
 type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
   PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
@@ -569,7 +565,7 @@ export class PrismaNextObjectFieldBuilder<
       where?: unknown;
       orderBy?: (model: never, args: unknown, ctx: unknown) => ReturnType<RequestOrderBy>;
     };
-    const totalCountCallback = typeof totalCount === 'function' ? totalCount : undefined;
+    const settings = connectionSettings(config, { defaultSize, maxSize, totalCount });
     const relatedTypeName = (targetRef as { name?: string }).name ?? relatedKey;
     const include: IndirectInclude = {
       getType: () => relatedTypeName,
@@ -591,9 +587,6 @@ export class PrismaNextObjectFieldBuilder<
         throw error;
       }
     };
-    const wantsCount = (ctx: object, info: GraphQLResolveInfo) =>
-      totalCount === true && selectedFieldNames(ctx, info).has('totalCount');
-
     // An invalid cursor plans nothing, so the error surfaces on this field when it resolves.
     const select: PrismaNextSelectFn = (args, ctx, nested, selectedFields, position) => {
       if (!validArgs(args, ctx)) {
@@ -622,7 +615,7 @@ export class PrismaNextObjectFieldBuilder<
             identity,
             (rel) =>
               applyCursorPagination(filter(rel), cursorOpt, args as DefaultConnectionArguments, {
-                ...connectionSizes(config, { defaultSize, maxSize }, args, ctx),
+                ...settings.sizes(args, ctx),
                 codecs: config.codecs(ctx, relatedKey),
                 orderBy: orderBy && ((model) => orderBy(model as never, args, ctx)),
               }).collection,
@@ -652,7 +645,7 @@ export class PrismaNextObjectFieldBuilder<
         ) =>
           !validArgs(args, ctx) ||
           ((!connectionNeedsRows(ctx, info) || view[name] !== undefined) &&
-            (!wantsCount(ctx, info) || Object.hasOwn(view, 'count'))),
+            (!settings.countsRows(ctx, info) || Object.hasOwn(view, 'count'))),
       },
       resolve: async (
         parent: Record<string, unknown>,
@@ -666,14 +659,14 @@ export class PrismaNextObjectFieldBuilder<
         const page = buildConnectionPage(
           rows as Record<string, unknown>[],
           buildPaginationParams(cursorOpt, args, {
-            ...connectionSizes(config, { defaultSize, maxSize }, args, context),
+            ...settings.sizes(args, context),
             codecs,
           }),
         );
-        if (wantsCount(context, info)) {
+        if (settings.countsRows(context, info)) {
           (page as { totalCount?: number }).totalCount = parent.count as number;
-        } else if (totalCountCallback && selectedFieldNames(context, info).has('totalCount')) {
-          (page as { totalCount?: number }).totalCount = await totalCountCallback(
+        } else if (settings.callsCount(context, info)) {
+          (page as { totalCount?: number }).totalCount = await settings.countCallback!(
             parent,
             args,
             context,
@@ -685,11 +678,7 @@ export class PrismaNextObjectFieldBuilder<
     };
     return (
       this as unknown as { connection: (cfg: object, c?: object, e?: object) => unknown }
-    ).connection(
-      connectionConfig,
-      totalCount ? wrapConnectionOptionsWithTotalCount(connectionOptions) : connectionOptions,
-      edgeOptions,
-    );
+    ).connection(connectionConfig, settings.connectionOptions(connectionOptions), edgeOptions);
   } as never;
 
   #relation(name: string): PrismaNextRelation {

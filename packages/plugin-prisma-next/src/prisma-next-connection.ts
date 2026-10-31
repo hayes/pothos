@@ -9,7 +9,8 @@ import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextObjectRef } from './object-ref.js';
 import type { CursorSpec, ModelName, PrismaNextConnectionFieldOptions } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { connectionSizes, getPluginConfig } from './utils/config.js';
+import { getPluginConfig } from './utils/config.js';
+import { aggregateCount, connectionNeedsRows, connectionSettings } from './utils/connections.js';
 import { assertVariantCollection } from './utils/contract.js';
 import {
   applyCursorPagination,
@@ -22,11 +23,6 @@ import {
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getRefForContractModel } from './utils/refs.js';
-import {
-  buildTotalCountPromise,
-  connectionNeedsRows,
-  wrapConnectionOptionsWithTotalCount,
-} from './utils/total-count.js';
 
 const rootFieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -93,18 +89,15 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
     type instanceof PrismaNextObjectRef || type instanceof PrismaNextInterfaceRef
       ? type
       : getRefForContractModel(type as never, this.builder as never);
-  const totalCountResolver =
-    typeof totalCount === 'function'
-      ? (totalCount as (
-          parent: unknown,
-          args: unknown,
-          ctx: unknown,
-          info: GraphQLResolveInfo,
-        ) => unknown)
-      : undefined;
-  const totalCountFlag = totalCount === true || totalCountResolver !== undefined;
-
   const config = getPluginConfig(this.builder);
+  const settings = connectionSettings(config, {
+    defaultSize,
+    maxSize,
+    totalCount: totalCount as
+      | boolean
+      | ((parent: unknown, args: unknown, ctx: object, info: GraphQLResolveInfo) => unknown)
+      | undefined,
+  });
   const cursorCols = normalizeCursor(cursor as CursorInput);
   const modelName = ref.modelName as string;
   const cursorSpec = validateCursor(config.contract, modelName, cursor as CursorInput);
@@ -137,7 +130,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
 
         // Validates the ordering even for count-only selections; no rows are fetched here.
         const pagination = applyCursorPagination(applied, cursorSpec, relayArgs, {
-          ...connectionSizes(config, { defaultSize, maxSize }, args, context),
+          ...settings.sizes(args as object, context),
           codecs: config.codecs(context, modelName),
           orderBy: orderBy && ((model) => orderBy(model as never, args, context)),
         });
@@ -152,15 +145,12 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
             )
           : Promise.resolve([]);
 
-        const countPromise = buildTotalCountPromise({
-          info,
-          enabled: totalCountFlag,
-          resolver: totalCountResolver,
-          baseCollection: userCollection,
-          parent,
-          args,
-          context,
-        });
+        // Counted before pagination, so it matches the paged rows.
+        const countPromise = settings.countsRows(context, info)
+          ? aggregateCount(userCollection)
+          : settings.callsCount(context, info)
+            ? Promise.resolve().then(() => settings.countCallback!(parent, args, context, info))
+            : Promise.resolve(undefined);
 
         // allSettled so neither rejection goes unhandled; a rows error takes precedence.
         const [rowsResult, countResult] = await Promise.allSettled([rowsPromise, countPromise]);
@@ -175,12 +165,12 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
           pagination,
         );
         if (countResult.value !== undefined) {
-          (page as { totalCount?: number }).totalCount = countResult.value;
+          (page as { totalCount?: number }).totalCount = countResult.value as number;
         }
         return page;
       }) as never,
     } as never,
-    totalCountFlag ? wrapConnectionOptionsWithTotalCount(connectionOptions) : connectionOptions,
+    settings.connectionOptions(connectionOptions),
     edgeOptions,
   );
 } as never;
