@@ -232,12 +232,11 @@ export class ModelLoader {
     if (!this.queryCache.has(key)) {
       this.queryCache.set(
         key,
-        Plan.forParentRow(
-          prismaAdapter,
-          this.context,
+        Plan.forParentRow(prismaAdapter, {
+          context: this.context,
           info,
-          this.builder.options.prisma.skipDeferredFragments ?? true,
-        ),
+          skipDeferredFragments: this.builder.options.prisma.skipDeferredFragments ?? true,
+        }),
       );
     }
 

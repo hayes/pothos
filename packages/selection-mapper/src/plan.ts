@@ -186,19 +186,11 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    */
   static forParentRow<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
     adapter: Adapter<Model, Query, NodeType>,
-    context: object,
-    info: GraphQLResolveInfo,
-    skipDeferredFragments?: boolean,
-    initial?: Query,
+    options: Omit<EntryOptions<Query>, 'typeName' | 'path' | 'paths'>,
   ): PlayedPlan<Model, Query, NodeType> {
+    const { info } = options;
     const type = info.parentType;
-    const plan = new Plan(
-      adapter,
-      { context, info, skipDeferredFragments },
-      type,
-      undefined,
-      initial,
-    );
+    const plan = new Plan(adapter, options, type, undefined, options.initial);
 
     try {
       // Every node selecting the field (one per fragment it appears under) plans into the same
