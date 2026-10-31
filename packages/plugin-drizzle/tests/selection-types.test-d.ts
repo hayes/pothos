@@ -197,6 +197,37 @@ builder.drizzleObjectFields('users', (t) => ({
   profileCount: t.relatedCount('profile'),
 }));
 
+// The connection and edge objects of `t.relatedConnection` see each node as a related row.
+builder.drizzleObjectFields('users', (t) => ({
+  postsConnection: t.relatedConnection(
+    'posts',
+    {},
+    {
+      fields: (c) => ({
+        firstPostId: c.int({
+          nullable: true,
+          resolve: (connection) => {
+            expectTypeOf(connection.edges[0].node.postId).toEqualTypeOf<number>();
+
+            return connection.edges[0]?.node.postId;
+          },
+        }),
+      }),
+    },
+    {
+      fields: (e) => ({
+        postId: e.int({
+          resolve: (edge) => {
+            expectTypeOf(edge.node.postId).toEqualTypeOf<number>();
+
+            return edge.node.postId;
+          },
+        }),
+      }),
+    },
+  ),
+}));
+
 // `t.relatedField` takes the ordinary field options, an async `resolve`, and the resolve info.
 builder.drizzleObjectFields('users', (t) => ({
   postsTotal: t.relatedField('posts', {
