@@ -109,6 +109,6 @@ builder.queryType({
 - Return a variant type from `orm.Base.variant(value)`. `orm.Bug` isn't filtered by Prisma, so it
   is rejected.
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
-- `prismaNode` works on a variant, and loads it through `orm.Task.variant('feature')`.
+- `prismaNode` works on a variant, and loads it through `orm.Task.variant('bug')`.
 - `t.relation` and `t.relatedConnection` with `type` set to the ref of a variant model's object,
   such as `Bug`, only return, and count, that variant's rows. Such a to-one relation is nullable.
