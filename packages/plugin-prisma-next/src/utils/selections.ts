@@ -23,12 +23,12 @@ type Compute = (rel: MapperCollection, ctx: object) => Record<string, unknown>;
 
 /**
  * The variant a level is narrowed to: by `.variant(value)` on the base collection, or by loading
- * through the variant model's own accessor (`viaModel`), which is already narrowed and has only
+ * through the variant model's own accessor (`throughVariantModel`), which is already narrowed and has only
  * that variant's relations.
  */
 export interface Narrowing {
   value: string;
-  viaModel?: boolean;
+  throughVariantModel?: boolean;
 }
 
 /**
@@ -99,6 +99,11 @@ export function relationName(key: string) {
   return separator < 0 ? key : key.slice(0, separator);
 }
 
+/** A type-level select's scope is the type's name, which has no dot. */
+function isTypeScope(scope: string) {
+  return !scope.includes('.');
+}
+
 interface Combined {
   /** Each to-many relation loaded through `combine()`: its slots, by scope. */
   slots: Record<string, Record<string, unknown>>;
@@ -164,8 +169,7 @@ function materializeRow(row: Record<string, unknown>, model: PrismaNextModel) {
     for (const name of Object.keys(entry.slots)) {
       delete row[name];
     }
-    // A field's scope is `Type.alias`; a type-level select's is the type's name.
-    const typeScopes = [...entry.scopes].filter((scope) => !scope.includes('.'));
+    const typeScopes = [...entry.scopes].filter(isTypeScope);
     entry.lifted = typeScopes.length === 1 ? typeScopes : [];
     lift(row, entry, entry.lifted);
   }
@@ -225,10 +229,11 @@ export function viewOf(value: object, scopes: readonly (string | undefined)[]): 
       delete copy[name];
     }
     for (const scope of lifted ?? []) {
+      const prefix = `${scope}${SLOT}`;
       for (const slots of Object.values(entry.slots)) {
-        for (const slot of Object.keys(slots)) {
-          if (slot.startsWith(`${scope}${SLOT}`)) {
-            delete copy[slot.slice(scope.length + 1)];
+        for (const key of Object.keys(slots)) {
+          if (key.startsWith(prefix)) {
+            delete copy[key.slice(prefix.length)];
           }
         }
       }
@@ -320,9 +325,9 @@ export function relationArgs(
   refine: ((rel: MapperCollection) => MapperCollection) | undefined,
   variant?: string,
 ): RelationArgs {
-  const target = relation.targetVariant;
+  const target = relation.targetVariantModel;
   const narrowing: Narrowing | undefined = target
-    ? { value: target.value, viaModel: true }
+    ? { value: target.value, throughVariantModel: true }
     : variant === undefined
       ? undefined
       : { value: variant };

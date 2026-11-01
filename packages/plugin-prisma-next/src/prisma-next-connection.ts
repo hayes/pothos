@@ -75,7 +75,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
     resolve,
     totalCount,
     orderBy,
-    query: _querySentinel,
+    query: _query,
     ...rest
   } = options as {
     type: unknown;
