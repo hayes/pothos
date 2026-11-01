@@ -173,20 +173,12 @@ type BaseModelKey<TContract extends AnyContract, M extends string> =
 export type Row<Types extends SchemaTypes, M extends ModelName<Types>> = [
   BaseModelKey<Types['PrismaNextContract'], M>,
 ] extends [never]
-  ? DefaultModelRow<
-      Types['PrismaNextContract'],
-      BareModelName<M>,
-      NsIdOf<Types['PrismaNextContract'], M>
-    >
-  : DefaultModelRow<
-      Types['PrismaNextContract'],
-      BareModelName<M>,
-      NsIdOf<Types['PrismaNextContract'], M>
-    > &
+  ? DefaultModelRow<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>
+  : DefaultModelRow<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>> &
       DefaultModelRow<
         Types['PrismaNextContract'],
         BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>,
-        NsIdOf<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>
+        NamespaceOf<Types, BaseModelKey<Types['PrismaNextContract'], M>>
       >;
 
 export type VariantModelKeys<TContract extends AnyContract, M extends string> =
@@ -223,6 +215,11 @@ type NsIdOf<TContract extends AnyContract, M extends string> = M extends `${infe
   ? Ns
   : NamespacesWithModel<TContract, M>;
 
+type NamespaceOf<Types extends SchemaTypes, M extends string> = NsIdOf<
+  Types['PrismaNextContract'],
+  M
+>;
+
 // orm-client's `WithNsId` isn't exported; needed so `CollectionFor` matches `db.orm.<Model>`.
 type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<State, 'nsId'> & {
   readonly nsId: NsId;
@@ -231,12 +228,8 @@ type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<Sta
 export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>> = Collection<
   Types['PrismaNextContract'],
   BareModelName<M>,
-  DefaultModelRow<
-    Types['PrismaNextContract'],
-    BareModelName<M>,
-    NsIdOf<Types['PrismaNextContract'], M>
-  >,
-  WithNsId<DefaultCollectionTypeState, NsIdOf<Types['PrismaNextContract'], M>>
+  DefaultModelRow<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
+  WithNsId<DefaultCollectionTypeState, NamespaceOf<Types, M>>
 >;
 
 // Upstream's receiver type for collection helpers: it doesn't depend on mutation input types,
@@ -244,16 +237,10 @@ export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>>
 export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Types>> = [
   BaseModelKey<Types['PrismaNextContract'], M>,
 ] extends [never]
-  ? HasRow<
-      DefaultModelRow<
-        Types['PrismaNextContract'],
-        BareModelName<M>,
-        NsIdOf<Types['PrismaNextContract'], M>
-      >
-    > &
+  ? HasRow<DefaultModelRow<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>> &
       HasTypeState<{
         readonly variantValue: undefined;
-        readonly nsId: NsIdOf<Types['PrismaNextContract'], M>;
+        readonly nsId: NamespaceOf<Types, M>;
       }> & { readonly modelName: BareModelName<M> }
   : VariantCollection<Types, M>;
 
@@ -387,29 +374,13 @@ export type DefaultRelationNullable<
 
 /** A relation's `where`: a shorthand filter object, or the ORM's predicate callback. */
 export type RelationWhere<Types extends SchemaTypes, M extends ModelName<Types>> =
-  | ShorthandWhereFilter<
-      Types['PrismaNextContract'],
-      NsIdOf<Types['PrismaNextContract'], M>,
-      BareModelName<M>
-    >
-  | RelationPredicate<
-      Types['PrismaNextContract'],
-      NsIdOf<Types['PrismaNextContract'], M>,
-      BareModelName<M>
-    >;
+  | ShorthandWhereFilter<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>
+  | RelationPredicate<Types['PrismaNextContract'], NamespaceOf<Types, M>, BareModelName<M>>;
 
 /** One ordering of a relation's rows, as the ORM's `orderBy` takes it. */
 export type RelationOrderSelector<Types extends SchemaTypes, M extends ModelName<Types>> = (
-  accessor: ModelAccessor<
-    Types['PrismaNextContract'],
-    BareModelName<M>,
-    NsIdOf<Types['PrismaNextContract'], M>
-  >,
-  tools: ModelCallbackTools<
-    Types['PrismaNextContract'],
-    BareModelName<M>,
-    NsIdOf<Types['PrismaNextContract'], M>
-  >,
+  accessor: ModelAccessor<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
+  tools: ModelCallbackTools<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
 ) => OrderByItem;
 
 /** A relation's `orderBy`: a selector, or several applied in order. */
@@ -466,7 +437,7 @@ export type RelationRefinementCollection<
   DefaultModelRow<
     Types['PrismaNextContract'],
     BareModelName<RelatedModel<Types, M, R>>,
-    NsIdOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
+    NamespaceOf<Types, RelatedModel<Types, M, R>>
   >,
   DefaultCollectionTypeState
 >;
@@ -578,21 +549,21 @@ type RelationAggregateWhere<
 > =
   | ShorthandWhereFilter<
       Types['PrismaNextContract'],
-      NsIdOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>,
+      NamespaceOf<Types, RelatedModel<Types, M, R>>,
       BareModelName<RelatedModel<Types, M, R>>
     >
   | ((
       accessor: ModelAccessor<
         Types['PrismaNextContract'],
         BareModelName<RelatedModel<Types, M, R>>,
-        NsIdOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
+        NamespaceOf<Types, RelatedModel<Types, M, R>>
       >,
       args: InputShapeFromFields<Args>,
       context: Types['Context'],
       tools: ModelCallbackTools<
         Types['PrismaNextContract'],
         BareModelName<RelatedModel<Types, M, R>>,
-        NsIdOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
+        NamespaceOf<Types, RelatedModel<Types, M, R>>
       >,
     ) => Condition);
 
@@ -650,13 +621,9 @@ type AggregateMethod<
 > = Op extends keyof AggregateBuilder<
   Types['PrismaNextContract'],
   BareModelName<M>,
-  NsIdOf<Types['PrismaNextContract'], M>
+  NamespaceOf<Types, M>
 >
-  ? AggregateBuilder<
-      Types['PrismaNextContract'],
-      BareModelName<M>,
-      NsIdOf<Types['PrismaNextContract'], M>
-    >[Op]
+  ? AggregateBuilder<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>[Op]
   : never;
 
 export type RelationAggregateField<
@@ -1132,11 +1099,7 @@ export type PrismaNextConnectionFieldOptions<
      * order; backward pages reverse it.
      */
     orderBy?: (
-      model: ModelAccessor<
-        Types['PrismaNextContract'],
-        BareModelName<M>,
-        NsIdOf<Types['PrismaNextContract'], M>
-      >,
+      model: ModelAccessor<Types['PrismaNextContract'], BareModelName<M>, NamespaceOf<Types, M>>,
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
     ) => OrderByItem | readonly OrderByItem[];
