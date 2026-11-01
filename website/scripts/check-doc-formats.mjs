@@ -121,9 +121,7 @@ try {
         );
         const readmeBlocks = parseCodeBlocks(readme).map(normalize);
         for (const block of await docCodeBlocks(website, file, undefined, { includesOnly: true })) {
-          // A region nested in another excerpt, such as one field of an object, may appear only
-          // inside the README block for the enclosing excerpt.
-          if (!readmeBlocks.some((readmeBlock) => readmeBlock.includes(normalize(block)))) {
+          if (!readmeBlocks.includes(normalize(block))) {
             failures.push(
               `${route}: source excerpt missing from package README: ${normalize(block).slice(0, 100)}`,
             );

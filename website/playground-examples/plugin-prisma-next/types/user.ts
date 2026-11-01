@@ -18,14 +18,17 @@ builder.prismaObject('User', {
       query: { where: { published: 1 }, orderBy: (post) => post.id.asc() },
     }),
     // #endregion user-posts
-    // #region user-post-connection
-    // Pages through the relation inside that same query.
-    postConnection: t.relatedConnection('posts', {
-      cursor: 'id',
-      query: { where: { published: 1 } },
-      totalCount: true,
-    }),
-    // #endregion user-post-connection
   }),
 });
 // #endregion user
+
+// #region user-post-connection
+// Pages through the relation inside the query that loads the user.
+builder.prismaObjectField('User', 'postConnection', (t) =>
+  t.relatedConnection('posts', {
+    cursor: 'id',
+    query: { where: { published: 1 } },
+    totalCount: true,
+  }),
+);
+// #endregion user-post-connection

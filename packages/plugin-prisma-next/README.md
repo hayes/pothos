@@ -38,7 +38,7 @@ const builder = new SchemaBuilder<{
 
 The rest comes from the
 [Prisma Next playground example](https://pothos-graphql.dev/playground?example=plugin-prisma-next).
-An object with a computed field, a filtered relation and a related connection:
+An object with a computed field and a filtered relation:
 
 ```ts
 builder.prismaObject('User', {
@@ -54,14 +54,21 @@ builder.prismaObject('User', {
     posts: t.relation('posts', {
       query: { where: { published: 1 }, orderBy: (post) => post.id.asc() },
     }),
-    // Pages through the relation inside that same query.
-    postConnection: t.relatedConnection('posts', {
-      cursor: 'id',
-      query: { where: { published: 1 } },
-      totalCount: true,
-    }),
   }),
 });
+```
+
+A related connection:
+
+```ts
+// Pages through the relation inside the query that loads the user.
+builder.prismaObjectField('User', 'postConnection', (t) =>
+  t.relatedConnection('posts', {
+    cursor: 'id',
+    query: { where: { published: 1 } },
+    totalCount: true,
+  }),
+);
 ```
 
 A root field returns a Collection; the plugin applies the query's selection to it:
