@@ -9,8 +9,8 @@ The plugin requires Node.js 22.18 or a later 22.x release, or Node.js 24 or late
 
 `@pothos/plugin-prisma-next` cannot be used in the same program as `@pothos/plugin-prisma`: both
 add `prismaObject`, `prismaField` and the other `prisma*` methods to the builder. Importing both
-throws an error, and their type declarations conflict (TS2717 with `skipLibCheck: false`; with
-`skipLibCheck: true`, one plugin's types silently replace the other's).
+throws at runtime, and their type declarations conflict: TS2717, or with `skipLibCheck: true`,
+errors in your own code such as a missing `prisma` builder option.
 
 ### Prisma CLI
 
@@ -159,10 +159,10 @@ before any query runs.
 
 ## With scope-auth
 
-List `ScopeAuthPlugin` first (the usual [plugin order](../scope-auth#plugin-order)) so a denied
-request doesn't run a reload query. With this order, `authScopes` run before this plugin reloads
-anything. A row this plugin didn't fully load, such as `{ id }` returned from a plain `t.field` or a
-parent whose field is in a skipped `@defer` fragment, reaches `authScopes` without its `select`ed
+List `ScopeAuthPlugin` first (the usual [plugin order](../scope-auth#plugin-order)), so
+`authScopes` run before this plugin reloads anything and a denied request runs no reload query. A
+row this plugin didn't fully load, such as `{ id }` returned from a plain `t.field` or a parent
+whose field is in a skipped `@defer` fragment, then reaches `authScopes` without its `select`ed
 data, so write checks that fail closed:
 
 ```ts
