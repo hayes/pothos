@@ -33,8 +33,8 @@ const captureMiddleware = {
 
 type SqliteOptions = { middleware?: readonly unknown[] };
 
-// Keep the upstream factory. Only the playground module registry substitutes this, so authored
-// examples remain ordinary, copyable client code.
+// Wraps the real `sqlite()` factory to add the capture middleware. Examples import
+// `@prisma/orm-sqlite/runtime` as usual; the playground's module map swaps in this version.
 const sqlite = new Proxy(runtime.default, {
   apply(target, receiver, [options]: [SqliteOptions]) {
     return Reflect.apply(target, receiver, [
