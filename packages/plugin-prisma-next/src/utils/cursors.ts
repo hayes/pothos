@@ -38,7 +38,7 @@ type CursorField =
   | {
       field: string;
       direction?: 'asc' | 'desc';
-      /** Placement in the forward order; nullable model fields default to last. */
+      /** Where nulls sort in the forward order. Nullable fields default to last. */
       nulls?: 'first' | 'last';
     };
 export type CursorInput = CursorField | readonly CursorField[];
@@ -56,7 +56,10 @@ export const cursorColumns = (order: CursorOrder): string[] => order.map(({ fiel
 
 const BYTES_CODEC = /\/(bytea|bytes|blob)@/;
 
-/** Require a non-null unique key so equal sort values never disappear between pages. */
+/**
+ * Validates a cursor spec. The cursor must cover a non-null unique key, so rows with equal sort
+ * values are never skipped between pages.
+ */
 export function validateCursor(
   contract: AnyContract,
   modelName: string,
@@ -102,7 +105,7 @@ export function validateCursor(
   });
 }
 
-// Values are held in their column codec's stored form; nulls bypass codecs.
+// Values are encoded in their column codec's stored form. Nulls skip the codec.
 function encodeValues(fields: readonly string[], values: readonly unknown[], codecs: FieldCodecs) {
   const encoded = values.map((value, i) => {
     const codec = value == null ? undefined : codecs(fields[i]!);
@@ -111,7 +114,7 @@ function encodeValues(fields: readonly string[], values: readonly unknown[], cod
   return encoded.length === 1 ? encodeCursorChunk(encoded[0]) : encodeCursorTuple(encoded);
 }
 
-/** Why a payload didn't decode, which each caller words as its own error. */
+/** A decoding failure. Each caller turns it into an error with its own wording. */
 class DecodeError extends Error {}
 
 function decodeValues(
@@ -125,7 +128,7 @@ function decodeValues(
   } catch {
     throw new DecodeError('malformed payload');
   }
-  // Dispatched on `fields`: a single JSON column can decode to an array too.
+  // Checked against `fields` rather than the decoded shape, as a JSON column can hold an array.
   const values = fields.length === 1 ? [decoded] : decoded;
   if (!Array.isArray(values) || values.length !== fields.length) {
     throw new DecodeError(
@@ -151,15 +154,16 @@ function rethrowDecodeError(error: unknown, prefix: string): never {
 }
 
 /**
- * Multi-column cursors are a positional `T:` tuple of chunks. The ordering's signature follows
- * the prefix, so a cursor only seeks under the ordering that issued it: `PNC:<signature>:<chunk>`.
+ * Cursors have the form `PNC:<signature>:<chunk>`, and a multi-column cursor's chunk is a `T:`
+ * tuple. The signature records the ordering that issued the cursor, so the cursor is only
+ * accepted under that ordering.
  */
 const CURSOR_PREFIX = 'PNC:';
 
 /**
- * Per cursor column, its direction (`a`/`d`) and any null placement (`f`/`l`): `adl` is `asc`, then
- * `desc` with nulls last. A request's `orderBy` can change both, and the same values seek a
- * different position under another ordering.
+ * Encodes each cursor column's direction (`a` or `d`) and null placement (`f`, `l` or none), so
+ * `adl` means `asc`, then `desc` with nulls last. A request's `orderBy` can change both, and the
+ * same values point to a different position under another ordering.
  */
 function orderingSignature(order: CursorOrder): string {
   return order.map(({ direction, nulls }) => `${direction[0]}${nulls?.[0] ?? ''}`).join('');
@@ -171,7 +175,7 @@ function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: 
     `${CURSOR_PREFIX}${orderingSignature(order)}:${encodeValues(
       fields,
       fields.map((field) => {
-        // A null is a value; a missing column would encode as one and page from the wrong place.
+        // A missing column would encode as null and page from the wrong position.
         if (row[field] === undefined) {
           throw new PothosValidationError(
             `Cannot encode a cursor: the row is missing cursor column '${field}'. Select the cursor columns on the paginated collection.`,
@@ -185,8 +189,8 @@ function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: 
 }
 
 /**
- * `checkOrdering: false` accepts a cursor issued under any ordering, for a check made before a
- * request's `orderBy` is known; the page itself always checks it.
+ * With `checkOrdering: false`, a cursor issued under any ordering is accepted. Callers pass it
+ * before the request's `orderBy` is known and check the ordering once it is.
  */
 function decodeCursor(
   order: CursorOrder,
@@ -245,7 +249,7 @@ export function encodeNodeId(
     : `${ID_PREFIX}${payload}`;
 }
 
-/** The ID's values, as a tuple when `tuple` is set. */
+/** Decodes a node ID. Returns a tuple of the values of `fields` when `tuple` is set. */
 export function parseNodeId(
   modelName: string,
   fields: readonly string[],
@@ -266,7 +270,8 @@ export function parseNodeId(
   return tuple ? fields.map((field) => values[field]) : values[fields[0]!];
 }
 
-// Lexicographic "row > cursor" as an OR-chain of equality-prefixed comparisons.
+// Compares rows with the cursor lexicographically. Each OR clause requires the earlier columns to
+// equal the cursor's values and compares the next column.
 function buildLexicographicPredicate(
   order: CursorOrder,
   values: Record<string, unknown>,
@@ -282,12 +287,12 @@ function buildLexicographicPredicate(
       const col = c[field]!;
       const v = values[field];
       const greater = (op === 'gt') !== (direction === 'desc');
-      // Null placement is independent of direction: a null boundary admits all non-null values
-      // at this position or none.
+      // Whether nulls sort beyond the boundary. Null placement doesn't change with direction.
       const includesNull = !!nulls && (op === 'gt') === (nulls === 'last');
       let comparison: unknown;
       if (v === null) {
-        // Only a column with a null placement accepts a null boundary (`decodeBoundary`).
+        // Nothing lies beyond a null boundary when nulls sort beyond it, and every non-null row
+        // does otherwise. `decodeBoundary` only accepts a null on a column with a null placement.
         comparison = includesNull
           ? and(col.isNull() as never, col.isNotNull() as never)
           : col.isNotNull();
@@ -356,7 +361,10 @@ export function assertUnpaginatedCollection(collection: unknown): void {
   }
 }
 
-/** Columns the request's `orderBy` doesn't name keep their default direction and nulls. */
+/**
+ * Applies a request's `orderBy` to the cursor ordering. Columns it doesn't name keep their default
+ * direction and null placement.
+ */
 function applyOrderByOption(
   base: MapperCollection,
   order: CursorOrder,
@@ -364,6 +372,7 @@ function applyOrderByOption(
 ): CursorOrder {
   const cols = cursorColumns(order);
   let items: readonly OrderByItem[] = [];
+  // Called only to run the callback with the ORM's column accessors. The result is discarded.
   base.orderBy((c: Record<string, ComparableColumn>, tools: unknown) => {
     const selected = orderBy(c, tools);
     items = selected instanceof OrderByItem ? [selected] : selected;
@@ -390,7 +399,7 @@ function applyOrderByOption(
   });
 }
 
-/** A null can only mark a position on a column the validated spec gave a null placement. */
+/** Decodes a cursor boundary. A null is only valid on a column with a null placement. */
 function decodeBoundary(
   order: CursorOrder,
   value: string,
@@ -442,7 +451,8 @@ function applyToCollection<C extends MapperCollection>(
         ? baseCollection
         : baseCollection.orderBy(orderSelectors.slice(existing.length));
 
-  // Not `cursor()`: it takes one boundary in the order's direction and can't place nulls.
+  // The ORM's `cursor()` takes one boundary in the order's direction and can't place nulls, so
+  // the boundaries are applied as filters.
   let collection: MapperCollection = withOrder;
   if (after) {
     collection = collection.where(
@@ -466,8 +476,9 @@ function applyToCollection<C extends MapperCollection>(
 }
 
 /**
- * Throws what pagination would, without a collection. A request's `orderBy` needs a collection to
- * run, so with one (`checkOrdering: false`) the page checks the cursor's ordering instead.
+ * Throws what pagination would throw for `args`, without a collection. A request's `orderBy` can
+ * only run against a collection, so a caller that has one passes `checkOrdering: false` here and
+ * checks the ordering later.
  */
 export function validateCursorArgs(
   cursor: CursorOrder,
@@ -490,7 +501,7 @@ export function applyCursorPagination<C extends MapperCollection>(
   args: PothosSchemaTypes.DefaultConnectionArguments,
   options: PaginationOptions & {
     orderBy?: RequestOrderBy | undefined;
-    /** False seeks with a cursor from any ordering, for a caller that checks it afterwards. */
+    /** False accepts a cursor from any ordering. The caller then checks the ordering itself. */
     checkOrdering?: boolean;
   },
 ): CursorPaginationResult<C> {
@@ -520,8 +531,8 @@ export interface ConnectionPage<Row> {
 }
 
 /**
- * Cursors are encoded lazily (edge cursors are non-enumerable getters, `pageInfo`'s are
- * enumerable ones), so a selection without them skips encoding.
+ * Cursors are encoded lazily, so a selection without them encodes nothing. Edge cursors are
+ * non-enumerable getters and the `pageInfo` cursors are enumerable getters.
  */
 export function buildConnectionPage<Row extends Record<string, unknown>>(
   rows: readonly Row[],
@@ -548,7 +559,7 @@ export function buildConnectionPage<Row extends Record<string, unknown>>(
 
   return {
     edges,
-    // Lazy too, so a row whose cursor can't be encoded only fails a client that selects it.
+    // Lazy as well, so a row whose cursor can't be encoded only fails a client that selects it.
     pageInfo: {
       get startCursor() {
         return edges[0]?.cursor ?? null;

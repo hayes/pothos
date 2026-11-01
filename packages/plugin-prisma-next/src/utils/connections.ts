@@ -28,8 +28,8 @@ export function connectionNeedsRows(context: object, info: GraphQLResolveInfo): 
 }
 
 /**
- * What every connection takes the same way: page sizes, falling back to the plugin's, and
- * `totalCount`, either `true` (the plugin counts the filtered collection) or a callback.
+ * The options every kind of connection handles the same way. Page sizes fall back to the plugin's
+ * defaults. `totalCount` is either `true`, which counts the filtered collection, or a callback.
  */
 export function connectionSettings<Count extends (...args: never[]) => unknown>(
   config: PrismaNextConfig,
@@ -73,8 +73,8 @@ export function connectionSettings<Count extends (...args: never[]) => unknown>(
       };
     },
     /**
-     * Where the count `info` selects comes from: `'aggregate'` when the plugin counts the
-     * collection, the callback otherwise. Without `info`, any configured count is selected.
+     * The source of the count that `info` selects. It is `'aggregate'` when the plugin counts the
+     * collection and the callback otherwise. Without `info`, any configured count is used.
      */
     countSource(
       ctx: object,
@@ -91,7 +91,7 @@ export function connectionSettings<Count extends (...args: never[]) => unknown>(
   };
 }
 
-// A pre-registered connection ref can't be spread; it must declare totalCount itself.
+// A connection ref that is already registered can't be extended, so it declares totalCount itself.
 function withTotalCount(connectionOptions: object): object {
   if (connectionOptions instanceof ObjectRef) {
     return connectionOptions;
@@ -151,7 +151,7 @@ export function relatedCount(collection: unknown): unknown {
   return count.call(collection);
 }
 
-/** A synchronous throw becomes a rejection. */
+/** Counts the collection's rows. A synchronous throw becomes a rejection. */
 export function aggregateCount(collection: unknown): Promise<number> {
   return Promise.resolve().then(() =>
     (

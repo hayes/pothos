@@ -100,7 +100,7 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
     if (requestClient.context) {
       return requestClient.context;
     }
-    // A transaction exposes only `orm`; its collections run in the client's execution context.
+    // A transaction exposes only `orm`. Its collections carry the client's execution context.
     for (const model of modelKeys) {
       const bound = (
         collectionForModel(contract, requestClient.orm, model) as
