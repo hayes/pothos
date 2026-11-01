@@ -354,6 +354,10 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     }
 
     for (const merge of this.merges) {
+      if ('onlyIn' in merge && merge.onlyIn !== undefined && merge.onlyIn !== play) {
+        continue;
+      }
+
       switch (merge.kind) {
         case 'type':
           adapter.mergeQuery(root, merge.query);
@@ -362,10 +366,6 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
           adapter.mergeQuery(root, merge.query, AS_QUERY);
           break;
         case 'variant': {
-          if (merge.onlyIn !== undefined && merge.onlyIn !== play) {
-            break;
-          }
-
           const conflict = adapter.firstConflict(root, merge.query);
 
           if (conflict) {
@@ -380,10 +380,6 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
           break;
         }
         case 'field': {
-          if (merge.onlyIn !== undefined && merge.onlyIn !== play) {
-            break;
-          }
-
           // One options object for the pair: `mergeQuery` reads only the alias, and
           // `canMergeQuery` only the `ignoreArgs` beside it.
           const options: MergeOptions = { ignoreArgs: true, alias: merge.alias };
