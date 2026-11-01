@@ -559,6 +559,11 @@ describe('related connection errors', () => {
             return 5;
           },
         }),
+        zeroSize: t.relatedConnection('posts', {
+          cursor: 'id',
+          nullable: true,
+          defaultSize: () => 0,
+        }),
         guarded: t.relatedConnection('posts', {
           cursor: 'id',
           nullable: true,
@@ -586,6 +591,8 @@ describe('related connection errors', () => {
   it.each([
     ['an undecodable cursor', 'posts(first: 1, after: "nope")', /Invalid cursor/],
     ['a negative page size', 'posts(first: -1)', /first/],
+    ['a size callback that returns 0', 'zeroSize', /defaultSize callback must return a positive/],
+    ['a throwing size callback', 'sized(boom: true, first: 1)', /size callback failed/],
   ])('fails only the connection field, without planning it, for %s', async (_name, field, message) => {
     const result = await run(errorSchema(), `{ users { id c: ${field} { nodes { id } } } }`);
     expect(result.data.users).toEqual([
@@ -603,7 +610,6 @@ describe('related connection errors', () => {
 
   it.each([
     ['an orderBy outside the cursor order', 'ordered(byId: true, first: 1)', /cursor order/],
-    ['a throwing size callback', 'sized(boom: true, first: 1)', /size callback failed/],
     ['a throwing query callback', 'guarded(first: 1)', /not allowed/],
     ['a throwing query callback beneath totalCount', 'guarded', /not allowed/],
   ])('fails the statement for %s', async (_name, field, message) => {
