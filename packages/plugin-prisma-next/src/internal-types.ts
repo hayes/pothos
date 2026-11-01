@@ -149,7 +149,7 @@ type SelectRelationDeclarative<
  */
 interface NoToOneSelectFunction {
   (relation: NoToOneSelectFunction): never;
-  readonly 'To-one relations take true or { select }, not a function': true;
+  readonly 'To-one relations take true or { where, orderBy, limit, offset }, not a function': true;
 }
 
 export type SelectObjectSpec<Types extends SchemaTypes, M extends ModelName<Types>> = {
@@ -323,9 +323,10 @@ type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Sel
   InvalidSelectValueCheck<Types, M, Select>;
 
 /**
- * Names an invalid relation value, such as `(sub) => sub` or `{ limit: 'x' }`, which checking
- * against the spec lets through: intersected with the inferred function, the all-optional relation
- * options accept any function, and a `select` function's result is checked only for unknown keys.
+ * Names a key whose value doesn't fit the spec, such as `email: { limit: 1 }`,
+ * `posts: (sub) => sub` or `posts: { limit: 'x' }`. Checking `Select` against the spec misses
+ * these. The spec's relation options are all optional, so its intersection with an inferred
+ * function accepts any function, and a function's result is checked only for unknown keys.
  */
 type InvalidSelectValueCheck<
   Types extends SchemaTypes,
