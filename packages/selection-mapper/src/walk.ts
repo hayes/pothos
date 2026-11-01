@@ -412,8 +412,8 @@ function applicableFragment<Model, Query, NodeType extends NodeBase<Model>>(
  * fragment on any other object type cannot apply to them. An interface also accepts a fragment
  * on another type of the same model, walked as that type, so that type's own selection is planned
  * for the rows that resolve to it. A fragment on an abstract type of no model (`... on Node`
- * beneath a model interface) is an expansion. It is walked as each implementation of `type` it
- * covers; see `fragmentWalks`.
+ * beneath a model interface), or of another model, is an expansion. It is walked as each
+ * implementation of `type` it covers; see `fragmentWalks`.
  */
 function fragmentTypesOf<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
