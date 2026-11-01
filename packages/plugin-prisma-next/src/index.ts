@@ -118,6 +118,9 @@ type Loaded = (
 ) => boolean;
 
 export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  /** Shared by `wrapArgMappers` and `wrapResolve`, which wrap the same field. */
+  private readonly fieldReaders = new WeakMap<object, FieldReader | undefined>();
+
   private get config() {
     return getPluginConfig(this.builder);
   }
@@ -247,6 +250,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     adapter.registerImplementations(schema);
     for (const type of Object.values(schema.getTypeMap())) {
       if (isInterfaceType(type) && type.extensions?.[PRISMA_NEXT_DISCRIMINATED]) {
+        // Throws now, rather than on the first query, if a variant has no implementing type or
+        // several.
         variantTypeNames(contract, schema, type);
       }
       const modelName = type.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
@@ -319,10 +324,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * Gives the plugins that wrap a field the parent the field declares. That parent holds what the
-   * `select`s of the type, its interfaces and the field itself loaded. This hook runs outside every
-   * plugin's `wrapResolve`. Reloads happen in this plugin's `wrapResolve`, so plugins listed before
-   * this one see the parent as it was first loaded.
+   * Passes every plugin's resolver wrapper the parent as the field's declaring type sees it: what
+   * the `select`s of the type, its interfaces and the field loaded. Reloads happen later, in this
+   * plugin's `wrapResolve`, so plugins listed before this one see the parent as first loaded.
    */
   override wrapArgMappers(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
@@ -420,10 +424,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
   /** How a planned field finds and reads its parent. Undefined for fields the plugin skips. */
   private fieldReader(fieldConfig: PothosOutputFieldConfig<Types>) {
-    if (!fieldReaders.has(fieldConfig)) {
-      fieldReaders.set(fieldConfig, this.createFieldReader(fieldConfig));
+    if (!this.fieldReaders.has(fieldConfig)) {
+      this.fieldReaders.set(fieldConfig, this.createFieldReader(fieldConfig));
     }
-    return fieldReaders.get(fieldConfig) as FieldReader | undefined;
+    return this.fieldReaders.get(fieldConfig);
   }
 
   private createFieldReader(fieldConfig: PothosOutputFieldConfig<Types>): FieldReader | undefined {
@@ -444,7 +448,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       ({ name, raw }) => ({ name, ...splitSelect(raw, model) }),
     );
     // The parent is reloaded unless it has every column and relation its type and interfaces
-    // select. Computed values are not checked because only their select callback knows their names.
+    // select. Relations selected with a function aren't checked: they write computed values whose
+    // keys only the function knows.
     const columns = [
       ...new Set([
         ...selects.flatMap((select) => [
@@ -523,8 +528,6 @@ interface FieldReader {
   /** The parent with the field's own slots, which a field helper's resolver reads. */
   fieldView(row: object, mapping: Mapping | null | undefined): Record<string, unknown>;
 }
-
-const fieldReaders = new WeakMap<object, FieldReader | undefined>();
 
 function scopedParent(parent: unknown, scopes: readonly string[]) {
   return parent !== null && typeof parent === 'object' ? scopedView(parent, scopes) : parent;
