@@ -97,8 +97,9 @@ function viewsEqual(left: object, right: object) {
 }
 
 /**
- * Instances with no enumerable state or primitive value (Temporal values, private fields) would
- * all compare equal structurally, and Temporal's `valueOf` throws.
+ * Whether `value` is an instance with no enumerable state and no primitive value, such as a
+ * Temporal value or a `Map`. Such instances would all compare equal structurally, and Temporal's
+ * `valueOf` throws.
  */
 function isOpaque(value: object) {
   const proto = Object.getPrototypeOf(value);
@@ -116,9 +117,9 @@ function isOpaque(value: object) {
 }
 
 /**
- * Two opaque values are equal only when they share a prototype and `left.equals` says so. The
- * shared prototype keeps the comparison symmetric: an `equals` that accepts property bags or
- * strings (Temporal's does) never makes an instance equal a plain object.
+ * Two distinct opaque values are equal only when they share a prototype and `left.equals` says so.
+ * Without an `equals` they compare by identity. The shared prototype keeps the comparison
+ * symmetric, since Temporal's `equals` also accepts property bags and strings.
  */
 function opaqueEqual(left: object, right: object) {
   if (Object.getPrototypeOf(left) !== Object.getPrototypeOf(right)) {
