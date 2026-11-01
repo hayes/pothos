@@ -151,9 +151,12 @@ export type SelectObjectSpec<Types extends SchemaTypes, M extends ModelName<Type
         | true
         | SelectRelationDeclarative<Types, M, K>
         // Each returned value loads into the parent under its key: a collection or a reducer.
-        | ((sub: RelationRefinementCollection<Types, M, K>) => {
-            readonly [key: string]: HasRow<unknown>;
-          })
+        // To-one relations have no function form: it needs combine(), which they lack.
+        | (IsToMany<Types, M, K> extends true
+            ? (sub: RelationRefinementCollection<Types, M, K>) => {
+                readonly [key: string]: HasRow<unknown>;
+              }
+            : never)
     : K extends keyof Row<Types, M>
       ? true
       : never;

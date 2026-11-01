@@ -137,21 +137,13 @@ type IncludeRefinementTerminals =
   | 'deleteAll'
   | 'deleteAndCount'
   | 'upsert';
-type IncludeRefinementScalarMethods<C extends AnyContract, M extends string> =
-  | keyof AggregateBuilder<C, M>
-  | 'combine';
-
+// Only to-many relations take a refinement, so it keeps the aggregate methods and combine().
 type IncludeRefinementCollection<
   TContract extends AnyContract,
   ModelName extends string,
   RowShape,
   State extends CollectionTypeState,
-  IsToManyRel extends boolean,
-> = Omit<
-  Collection<TContract, ModelName, RowShape, State>,
-  | IncludeRefinementTerminals
-  | (IsToManyRel extends true ? never : IncludeRefinementScalarMethods<TContract, ModelName>)
->;
+> = Omit<Collection<TContract, ModelName, RowShape, State>, IncludeRefinementTerminals>;
 
 // Without a `PrismaNextContract`, model names would widen to `string`; the sentinel points
 // autocomplete at the missing setup instead.
@@ -477,8 +469,7 @@ export type RelationRefinementCollection<
     BareModelName<RelatedModel<Types, M, R>>,
     NsIdOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
   >,
-  DefaultCollectionTypeState,
-  IsToMany<Types, M, R>
+  DefaultCollectionTypeState
 >;
 
 export type PrismaNextRelationOptions<

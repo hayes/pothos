@@ -1,6 +1,10 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import type { Collection, DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
+import type {
+  AggregateBuilder,
+  Collection,
+  DefaultModelRow,
+} from '@prisma/orm-family-sql/orm-client';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type RelatedModel,
@@ -93,35 +97,61 @@ builder.prismaObject('Post', {
     }),
     // @ts-expect-error relatedConnection takes a to-many relation
     authorPage: t.relatedConnection('author', { cursor: 'id' }),
+    // A to-one relation has no function form: it needs combine(), which only to-many relations
+    // have.
     authorName: t.string({
+      // @ts-expect-error function form on a to-one relation
+      select: { author: (author) => ({ rows: author.select('firstName') }) },
+      resolve: () => '',
+    }),
+    authorNameCallback: t.string({
+      // @ts-expect-error function form on a to-one relation
+      select: () => ({ author: (author) => ({ rows: author.select('firstName') }) }),
+      resolve: () => '',
+    }),
+  }),
+});
+
+builder.prismaObject('Post', {
+  variant: 'AuthorRefinement',
+  // @ts-expect-error function form on a to-one relation
+  select: { author: (author) => ({ rows: author.select('firstName') }) },
+  fields: () => ({}),
+});
+
+builder.prismaObject('User', {
+  variant: 'PostsRefinement',
+  fields: (t) => ({
+    postTitles: t.stringList({
       select: {
-        author: (author) => {
-          // @ts-expect-error aggregates are unavailable on to-one refinements
-          author.countBigInt();
+        posts: (posts) => {
           // @ts-expect-error mutation terminals can't run inside an include refinement
-          author.createAndCount({});
+          posts.createAndCount({});
           // @ts-expect-error firstOrThrow is a terminal
-          author.firstOrThrow();
+          posts.firstOrThrow();
           // @ts-expect-error whereUnique is unavailable inside an include refinement
-          author.whereUnique({ id: 'x' });
+          posts.whereUnique({ id: 'x' });
           // The refinement surface is upstream's include callback parameter, read rather than
           // restated, so drift in either direction fails here. Upstream's cardinality is an
-          // unresolved generic, which reads as the to-one surface.
+          // unresolved generic, which reads as the to-one surface; to-many adds the aggregate
+          // methods and combine().
           type IncludeOverload<F> = F extends {
             (...args: never[]): unknown;
             (this: never, name: never, refine: (collection: infer Refine) => never): unknown;
           }
             ? Refine
             : never;
-          type Upstream = keyof IncludeOverload<Collection<Contract, 'Post'>['include']> & string;
-          type Plugin = keyof typeof author & string;
-          expectTypeOf<Exclude<Plugin, Upstream>>().toEqualTypeOf<never>();
+          type Upstream = keyof IncludeOverload<Collection<Contract, 'User'>['include']> & string;
+          type ToManyOnly = keyof AggregateBuilder<Contract, 'Post'> | 'combine';
+          type Plugin = keyof typeof posts & string;
+          expectTypeOf<Exclude<Plugin, Upstream | ToManyOnly>>().toEqualTypeOf<never>();
           expectTypeOf<Exclude<Upstream, Plugin>>().toEqualTypeOf<never>();
           expectTypeOf<Upstream>().not.toEqualTypeOf<never>();
-          return { rows: author.select('firstName') };
+          expectTypeOf<Exclude<ToManyOnly, Plugin>>().toEqualTypeOf<never>();
+          return { rows: posts.select('title') };
         },
       },
-      resolve: () => '',
+      resolve: (user) => user.rows.map((post) => post.title),
     }),
   }),
 });
