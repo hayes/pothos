@@ -116,12 +116,12 @@ describe('example schema', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it('pages a root connection and a related connection in one statement', async () => {
+  it('pages a root connection and its nodes in one statement beside the root count', async () => {
     const result = await query(`{
       usersConnection(first: 1) {
         totalCount
         pageInfo { hasNextPage }
-        edges { node { firstName postsConnection(first: 1) { totalCount nodes { title } } } }
+        edges { node { firstName postCount postsConnection(first: 1) { totalCount nodes { title } } } }
       }
     }`);
     expect(result.errors).toBeUndefined();
@@ -132,11 +132,15 @@ describe('example schema', () => {
         {
           node: {
             firstName: 'Alice',
+            postCount: 2,
             postsConnection: { totalCount: 2, nodes: [{ title: 'Draft #1' }] },
           },
         },
       ],
     });
+    const rootCount = /^SELECT CAST\(COUNT\(\*\) AS text\) AS "total" FROM "user"$/;
+    expect(result.statements).toHaveLength(2);
+    expect(result.statements.filter(({ sql }) => rootCount.test(sql))).toHaveLength(1);
   });
 });
 

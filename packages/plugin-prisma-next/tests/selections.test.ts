@@ -5,6 +5,7 @@ import {
   columnsOf,
   createBuilder,
   deferSchema,
+  postSubqueries,
   run,
   runIncremental,
   type SampleOptions,
@@ -14,7 +15,6 @@ import {
 const db = useSampleDb();
 const example = (source: string, variables?: Record<string, unknown>) =>
   run(buildExampleSchema(db), source, { variables });
-const postSubqueries = (sql: string) => (sql.match(/FROM "post"/g) ?? []).length;
 
 describe('directives and fragments', () => {
   it('drops fields excluded by @skip and @include, including through variables', async () => {

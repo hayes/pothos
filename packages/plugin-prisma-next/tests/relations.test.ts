@@ -5,6 +5,7 @@ import prismaNextPlugin from '../src';
 import { buildExampleSchema } from './example/schema';
 import {
   createBuilder,
+  postSubqueries,
   run,
   type SampleOptions,
   useCollisionDb,
@@ -14,7 +15,6 @@ import {
 import { junctionContract, junctionDdl } from './fixtures/junction';
 
 const db = useSampleDb();
-const postSubqueries = (sql: string) => (sql.match(/FROM "post"/g) ?? []).length;
 
 describe('includes', () => {
   it('derives relation nullability from the contract, unless overridden', () => {
@@ -177,7 +177,7 @@ describe('many-to-many relations', () => {
     return builder.toSchema();
   }
 
-  it('loads both directions of a junction with a nested refinement in one statement', async () => {
+  it('loads an N:M relation and a refined alias of it in one statement', async () => {
     const result = await run(schema(), '{ posts { title tags { name } graphqlTags { name } } }');
     expect(result.errors).toBeUndefined();
     expect(
@@ -559,87 +559,71 @@ describe('to-one consumers', () => {
 
   const published = { posts: [{ id: 'p-hello' }] };
   const drafts = { posts: [{ id: 'p-draft1' }] };
+  const posts = (selection: string) => `{ posts { ${selection} } }`;
 
-  it.each([
-    [
-      'aliases with distinct nested selections',
-      '{ posts { a: author { id } b: author { firstName posts { id } } } }',
-      {
-        a: { id: 'u-alice' },
-        b: { firstName: 'Alice', posts: [{ id: 'p-hello' }, { id: 'p-draft1' }] },
-      },
-    ],
-    [
-      'equivalent declarative refinements',
-      '{ posts { a: alice { id } b: alice { firstName } } }',
-      { a: { id: 'u-alice' }, b: { firstName: 'Alice' } },
-    ],
-    [
-      'type-level selections of two views',
-      '{ posts { publishedAuthor { titles } draftAuthor { titles } } }',
-      { publishedAuthor: { titles: 'Hello, Pothos' }, draftAuthor: { titles: 'Draft #1' } },
-    ],
-    [
-      'child aliases with different args',
-      '{ posts { a: author { posts(published: 1) { id } } b: author { posts(published: 0) { id } } } }',
-      { a: published, b: drafts },
-    ],
-    [
-      'child aliases through further to-one relations',
-      `{ posts {
-        a: author { posts { a: author { posts(published: 1) { id } } b: author { posts(published: 0) { id } } } }
-        b: author { posts(published: 0) { id } }
-      } }`,
-      { a: { posts: [0, 1].map(() => ({ a: published, b: drafts })) }, b: drafts },
-    ],
-    [
-      'same-row variant wrappers',
-      '{ posts { a: author { view { posts(published: 1) { id } } } b: author { view { posts(published: 0) { id } } } } }',
-      { a: { view: published }, b: { view: drafts } },
-    ],
-    [
-      'function-form child selections',
-      '{ posts { a: author { postCount(published: 1) } b: author { postCount(published: 9) } } }',
-      { a: { postCount: 1 }, b: { postCount: 0 } },
-    ],
-    [
-      'same-row variants with different child args',
-      '{ posts { alice { a: view { posts(published: 1) { id } } b: view { posts(published: 0) { id } } } } }',
-      { alice: { a: published, b: drafts } },
-    ],
-    [
-      'errors-wrapped aliases with same-row variants',
-      `{ posts {
-        a: wrapped { ... on PostWrappedSuccess { data { a: view { posts(published: 1) { id } } b: view { posts(published: 0) { id } } } } }
-        b: wrapped { ... on PostWrappedSuccess { data { view { posts(published: 0) { id } } } } }
-      } }`,
-      {
-        a: { data: { a: { posts: [{ id: 'p-hello' }] }, b: drafts } },
-        b: { data: { view: drafts } },
-      },
-    ],
-  ])('share one include across %s, keeping their selections apart', async (_name, source, post) => {
-    const result = await run(schema(), source);
+  it('shares one include across aliases of a to-one relation, keeping their selections apart', async () => {
+    const result = await run(
+      schema(),
+      posts(`
+        a: author { id posts(published: 1) { id } view { posts(published: 1) { id } } postCount(published: 1) }
+        b: author { firstName posts(published: 0) { id } view { posts(published: 0) { id } } postCount(published: 9) }
+        c: author { posts { a: author { posts(published: 1) { id } } b: author { posts(published: 0) { id } } } }
+        publishedAuthor { titles }
+        draftAuthor { titles }
+      `),
+    );
     expect(result.errors).toBeUndefined();
-    expect(result.data.posts).toEqual([post]);
+    expect(result.data.posts).toEqual([
+      {
+        a: { id: 'u-alice', ...published, view: published, postCount: 1 },
+        b: { firstName: 'Alice', ...drafts, view: drafts, postCount: 0 },
+        c: { posts: [0, 1].map(() => ({ a: published, b: drafts })) },
+        publishedAuthor: { titles: 'Hello, Pothos' },
+        draftAuthor: { titles: 'Draft #1' },
+      },
+    ]);
     expect(result.statements).toHaveLength(1);
   });
 
-  it.each([
-    [
-      'consecutive to-one includes',
-      '{ comments { a: post { author { posts(published: 1) { id } } } b: post { author { posts(published: 0) { id } } } } }',
-      { a: { author: published }, b: { author: drafts } },
-    ],
-    [
-      'a single-consumer to-one include',
-      '{ comments { post { a: author { posts(published: 1) { id } } b: author { posts(published: 0) { id } } } } }',
-      { post: { a: published, b: drafts } },
-    ],
-  ])('keep child scopes through %s', async (_name, source, comment) => {
-    const result = await run(schema(), source);
+  it('keeps aliases of same-row variants apart under a refinement and an errors wrapper', async () => {
+    const views = 'a: view { posts(published: 1) { id } } b: view { posts(published: 0) { id } }';
+    const result = await run(
+      schema(),
+      `{
+        refined: posts { a: alice { id } b: alice { firstName ${views} } }
+        wrapped: posts {
+          a: wrapped { ... on PostWrappedSuccess { data { ${views} } } }
+          b: wrapped { ... on PostWrappedSuccess { data { view { posts(published: 0) { id } } } } }
+        }
+      }`,
+    );
     expect(result.errors).toBeUndefined();
-    expect(result.data.comments).toEqual([comment]);
+    expect(result.data).toEqual({
+      refined: [{ a: { id: 'u-alice' }, b: { firstName: 'Alice', a: published, b: drafts } }],
+      wrapped: [{ a: { data: { a: published, b: drafts } }, b: { data: { view: drafts } } }],
+    });
+    // One per root field.
+    expect(result.statements).toHaveLength(2);
+  });
+
+  it('keeps child scopes through consecutive to-one includes and a single-consumer one', async () => {
+    const result = await run(
+      schema(),
+      `{
+        consecutive: comments {
+          a: post { author { posts(published: 1) { id } } }
+          b: post { author { posts(published: 0) { id } } }
+        }
+        single: comments {
+          post { a: author { posts(published: 1) { id } } b: author { posts(published: 0) { id } } }
+        }
+      }`,
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      consecutive: [{ a: { author: published }, b: { author: drafts } }],
+      single: [{ post: { a: published, b: drafts } }],
+    });
   });
 
   it('keeps variant static refinements apart from the base type', async () => {
@@ -654,35 +638,23 @@ describe('to-one consumers', () => {
   it.each([
     false,
     true,
-  ])('scopes nested aliases through errors wrappers (directResult: %s)', async (direct) => {
+  ])('scopes nested aliases through errors wrappers with a renamed dataField (directResult: %s)', async (direct) => {
     const wrap = (body: string) =>
       direct
         ? `... on User { ${body} }`
-        : `... on PostWrappedSuccess { payload: data { ${body} } }`;
+        : `... on PostWrappedSuccess { payload: value { ${body} } }`;
     const unwrap = (value: object) => (direct ? value : { payload: value });
     const inner = (published: number) => wrap(`posts(published: ${published}) { id }`);
     const result = await run(
-      schema({ directResult: direct }),
-      `{ posts {
+      schema({ directResult: direct, dataName: 'value' }),
+      posts(`
         a: wrapped { ${wrap(`posts { x: wrapped { ${inner(1)} } y: wrapped { ${inner(0)} } }`)} }
         b: wrapped { ${inner(0)} }
-      } }`,
+      `),
     );
     expect(result.errors).toBeUndefined();
     const row = { x: unwrap(published), y: unwrap(drafts) };
     expect(result.data.posts).toEqual([{ a: unwrap({ posts: [row, row] }), b: unwrap(drafts) }]);
-  });
-
-  it('keeps scope through a renamed errors dataField', async () => {
-    const result = await run(
-      schema({ dataName: 'value' }),
-      `{ posts {
-        a: wrapped { ... on PostWrappedSuccess { v: value { posts(published: 1) { id } } } }
-        b: wrapped { ... on PostWrappedSuccess { v: value { posts(published: 0) { id } } } }
-      } }`,
-    );
-    expect(result.errors).toBeUndefined();
-    expect(result.data.posts).toEqual([{ a: { v: published }, b: { v: drafts } }]);
   });
 
   it('rejects a static function-form selection on a to-one relation when the schema is built', () => {
