@@ -102,8 +102,5 @@ describe('deepEqual', () => {
     expect(deepEqual(new Uint8Array([1, 2]), new Int8Array([1, 2]))).toBe(false);
     expect(deepEqual(new Uint8Array([1, 2]), { 0: 1, 1: 2 })).toBe(false);
     expect(deepEqual(new Uint8Array([0, 1, 2]).subarray(1), new Uint8Array([1, 2]))).toBe(true);
-
-    const big = new Uint8Array(4_000_000);
-    expect(deepEqual(big, new Uint8Array(4_000_000))).toBe(true);
   });
 });

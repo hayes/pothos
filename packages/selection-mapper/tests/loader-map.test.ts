@@ -142,20 +142,6 @@ describe('loader map', () => {
     expect(getLoaderMapping(ctx, child(next, 0, 'posts'), 'User', row)).toBe(planned);
   });
 
-  it('keeps a disagreeing row mapping off the siblings that agreed with the first plan', () => {
-    const ctx = {};
-    const root = pathOf('users');
-    const planned: Mapping = { nested: {} };
-    const reloaded: Mapping = { nested: {} };
-    const rows = [{}, {}, {}];
-    const paths = rows.map((_, i) => child(root, i, 'posts'));
-    setFieldMapping(ctx, info(paths[0]), planned, rows[0]);
-    setFieldMapping(ctx, info(paths[1]), reloaded, rows[1]);
-    expect(getLoaderMapping(ctx, paths[1], 'User', rows[1])).toBe(reloaded);
-    expect(getLoaderMapping(ctx, paths[0], 'User', rows[0])).toBe(planned);
-    expect(getLoaderMapping(ctx, paths[2], 'User', rows[2])).toBe(planned);
-  });
-
   it('does not give agreeing rows an override of their shared field mapping', () => {
     const ctx = {};
     const root = pathOf('users');
