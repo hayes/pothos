@@ -45,8 +45,8 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
   kind: 'interface' | 'object',
 ) {
   const isInterface = kind === 'interface';
-  // A non-default name registers a variant type and gets its own ref; the default reuses the
-  // cached ref that `t.relation` and string-form helpers resolve to.
+  // A type with a non-default name gets a new ref. The default name reuses the cached ref that
+  // `t.relation` and helpers given a model name resolve to.
   const defaultName = defaultTypeName(modelName as string);
   const typeName = options.variant ?? options.name ?? defaultName;
   const isVariant = typeName !== defaultName;
@@ -61,7 +61,7 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
   const select = discriminator
     ? withDiscriminatorSelected(options.select, discriminator.field)
     : options.select;
-  // Resolves to the type registered for the variant the discriminator names.
+  // Without a custom `resolveType`, a row resolves to the type registered for its variant.
   const discriminated = !!discriminator && !(options as { resolveType?: unknown }).resolveType;
   const config = {
     ...(discriminated
@@ -138,8 +138,8 @@ schemaBuilderProto.prismaInterface = function prismaInterface<
 } as never;
 
 /**
- * The body of `prismaObjectField(s)` and `prismaInterfaceField(s)`: they differ only in kind. A
- * model name names the default type registered under it.
+ * Adds fields for `prismaObjectField(s)` and `prismaInterfaceField(s)`. A model name refers to the
+ * model's default type.
  */
 function addPrismaNextFields(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
@@ -261,13 +261,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
     idOpts.parse ??
     ((id: string, ctx: Types['Context']) => {
       assertContextObject(ctx);
-      return parseNodeId(
-        nodeModelName,
-        idFields,
-        id,
-        config.codecs(ctx, nodeModelName),
-        isTuple,
-      );
+      return parseNodeId(nodeModelName, idFields, id, config.codecs(ctx, nodeModelName), isTuple);
     });
   const objectRef = this.prismaObject(modelName as never, rest as never);
   const typeName = objectRef.name;
@@ -318,7 +312,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
         collection &&
           (() => {
             const found = collection(context);
-            // The loader narrows a root collection to the node's variant itself.
+            // The loader narrows a root collection to the node's variant.
             assertVariantCollection(
               contract,
               rootModelKey(contract, nodeModelName),
