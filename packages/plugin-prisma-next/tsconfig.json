@@ -6,8 +6,7 @@
     "emitDeclarationOnly": true,
     "skipLibCheck": true,
     "outDir": "dts",
-    "rootDir": "src",
-    "stripInternal": true
+    "rootDir": "src"
   },
   "include": ["src/**/*"],
   "extends": "../../tsconfig.options.json"
