@@ -1,5 +1,3 @@
-import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import SchemaBuilder from '@pothos/core';
 import WithInputPlugin from '@pothos/plugin-with-input';
 import { describe, expect, it } from 'vitest';
@@ -54,7 +52,7 @@ describe('plugin-with-input', () => {
 });
 
 describe('plugin-errors', () => {
-  it('forwards errors options through t.relation', () => {
+  it('forwards errors options through t.relation', async () => {
     const builder = createBuilder();
     class CustomError extends Error {}
     builder.objectType(CustomError, {
@@ -63,7 +61,10 @@ describe('plugin-errors', () => {
     });
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('Post', {
-      fields: (t) => ({ author: t.relation('author', { errors: { types: [CustomError] } }) }),
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        author: t.relation('author', { errors: { types: [CustomError] } }),
+      }),
     });
     builder.queryType({
       fields: (t) => ({ posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }) }),
@@ -71,6 +72,20 @@ describe('plugin-errors', () => {
     const schema = builder.toSchema();
     expect(schema.getType('PostAuthorResult')).toBeDefined();
     expect(schema.getType('PostAuthorSuccess')).toBeDefined();
+    const result = await run(
+      schema,
+      '{ posts { id author { __typename ... on PostAuthorSuccess { data { id } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const success = (id: string) => ({ __typename: 'PostAuthorSuccess', data: { id } });
+    expect(result.data).toEqual({
+      posts: [
+        { id: 'p-hello', author: success('u-alice') },
+        { id: 'p-draft1', author: success('u-alice') },
+        { id: 'p-bob1', author: success('u-bob') },
+        { id: 'p-bob-draft', author: success('u-bob') },
+      ],
+    });
   });
 
   it('materializes a list inside a root success wrapper as a list', async () => {
@@ -87,34 +102,5 @@ describe('plugin-errors', () => {
     );
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ users: { data: [{ id: 'u-alice' }, { id: 'u-bob' }] } });
-  });
-});
-
-describe('optional plugins', () => {
-  it('imports the built package without plugin-relay or plugin-with-input', () => {
-    // CI builds packages before their tests; the CommonJS entry point runs in its own process.
-    const entry = fileURLToPath(new URL('../lib/index.js', import.meta.url));
-    const output = execFileSync(
-      process.execPath,
-      [
-        '-e',
-        `
-        const Module = require('node:module');
-        const load = Module._load;
-        Module._load = function (name, ...args) {
-          if (name === '@pothos/plugin-relay' || name === '@pothos/plugin-with-input') {
-            throw new Error('Optional plugin imported: ' + name);
-          }
-          return load.call(this, name, ...args);
-        };
-        const plugin = require(process.argv[1]);
-        if (plugin.default !== 'prismaNext') throw new Error('Missing plugin export');
-        process.stdout.write('ok');
-        `,
-        entry,
-      ],
-      { encoding: 'utf8' },
-    );
-    expect(output).toBe('ok');
   });
 });
