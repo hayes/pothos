@@ -410,7 +410,7 @@ describe('fragments on variants and non-model interfaces', () => {
   });
 
   describe('a fragment on a non-model interface whose implementations conflict', () => {
-    it('leaves the fragment to the fallback when the row is of another type', async () => {
+    it('does not fail a query whose fragment covers conflicting implementations', async () => {
       const result = await execute({
         schema,
         document: gql`
