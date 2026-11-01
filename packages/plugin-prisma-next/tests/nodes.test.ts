@@ -250,10 +250,7 @@ describe('node batching', () => {
 describe('node declarations', () => {
   const collision = useCollisionDb();
 
-  it('requires id.field to be a complete non-null primary or unique key', async () => {
-    const { default: SchemaBuilder } = await import('@pothos/core');
-    const { default: RelayPlugin } = await import('@pothos/plugin-relay');
-    const { default: prismaNextPlugin } = await import('../src');
+  it('requires id.field to be a complete non-null primary or unique key', () => {
     const node = (field: 'id' | 'text' | 'uniq' | ['id', 'text']) => {
       const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
         plugins: [RelayPlugin, prismaNextPlugin],
