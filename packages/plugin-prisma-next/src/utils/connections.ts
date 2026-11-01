@@ -18,7 +18,10 @@ export const isPageSize = (size: unknown): size is number =>
 /** Where a connection's nodes sit in its selection. */
 export const CONNECTION_NODE_PATHS: string[][] = [['edges', 'node'], ['nodes']];
 
-/** Any selection besides `totalCount` (including extension fields) loads rows. */
+/**
+ * Any field besides `totalCount` and `__typename`, including fields added by extensions,
+ * loads rows.
+ */
 export function selectsRows(names: Iterable<string>): boolean {
   return [...names].some((name) => name !== 'totalCount' && name !== '__typename');
 }
@@ -92,7 +95,7 @@ export function connectionSettings<Count extends (...args: never[]) => unknown>(
   };
 }
 
-// A connection ref that is already registered can't be extended, so it declares totalCount itself.
+// A prebuilt connection ref can't be given new fields, so its own definition must declare `totalCount`.
 function withTotalCount(connectionOptions: object): object {
   if (connectionOptions instanceof ObjectRef) {
     return connectionOptions;
