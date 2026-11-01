@@ -4,7 +4,8 @@ description: GraphQL interfaces backed by contract models
 ---
 
 `builder.prismaInterface` takes the same options as `builder.prismaObject` and creates an
-interface. Objects implementing it must use the same model:
+interface. Objects implementing it must use the same model, or one of its
+[variant models](#native-inheritance):
 
 ```ts
 const Person = builder.prismaInterface('User', {
@@ -70,11 +71,14 @@ Interfaces accept `variant` like objects do.
 An object's fields can read its interfaces' `select`. A row loaded through the interface also
 loads each implementation's `select`, so `isTypeOf` and type-level `authScopes` can read it
 without a `... on Type` fragment (see [With scope-auth](./setup#with-scope-auth) for plugin order).
-Implementations that load the same to-one relation with different arguments fail the schema build.
-When the plugin loads rows as the interface, through a `prismaField`, `prismaConnection`,
-connection helpers, or a relation or relation `select` typed as the interface, an implementation
-must also load each to-one relation the same way as the interface's own `select`, or the schema
-build fails. A plain `t.field` that returns rows its resolver loaded doesn't count.
+
+A row holds one version of each to-one relation. Where the plugin loads rows as the interface
+(through a `prismaField`, `prismaConnection`, connection helpers, or a relation or relation
+`select` typed as the interface), every implementation must load each to-one relation the same
+way as the other implementations and as the interface's own `select`, or the schema build fails.
+The check compares the relation's whole nested selection, such as the arguments of a to-one
+relation beneath it, and not just its own arguments. Extra columns always merge. A plain `t.field`
+that returns rows its resolver loaded doesn't count.
 
 ## Native inheritance
 
