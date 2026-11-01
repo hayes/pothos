@@ -1,6 +1,7 @@
 import SchemaBuilder, { PothosSchemaError } from '@pothos/core';
 
 // Both plugins install the same prisma* builder methods, so importing one after the other throws.
+// Imported first in index.ts, so a failed import installs nothing.
 // Core doesn't type the `plugins` registry on its default export.
 if (Object.hasOwn((SchemaBuilder as unknown as { plugins: object }).plugins, 'prismaNext')) {
   throw new PothosSchemaError(
