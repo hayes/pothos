@@ -530,6 +530,46 @@ describe('native model inheritance', () => {
       ]);
     });
 
+    it('rejects a type implementing the interfaces of two variants', () => {
+      expect(() =>
+        build((builder, task) => {
+          const variantFields = (model: 'Bug' | 'Feature') =>
+            builder.prismaInterface(model, {
+              name: `${model}Fields`,
+              interfaces: [task],
+              resolveType: () => 'Hybrid',
+              fields: () => ({}),
+            });
+          builder.objectType(builder.objectRef<{ id: string }>('Hybrid'), {
+            interfaces: [task, variantFields('Bug'), variantFields('Feature')] as never,
+            fields: () => ({}),
+          });
+        }),
+      ).toThrow(
+        "'Hybrid' implements prismaInterface 'FeatureFields', based on variant model 'Feature', " +
+          "which conflicts with prismaInterface 'BugFields', based on variant model 'Bug'.",
+      );
+    });
+
+    it('rejects a variant type implementing the interface of another variant', () => {
+      expect(() =>
+        build((builder, task) => {
+          const featureFields = builder.prismaInterface('Feature', {
+            name: 'FeatureFields',
+            interfaces: [task],
+            fields: () => ({}),
+          });
+          builder.prismaObject('Bug', {
+            interfaces: [task, featureFields] as never,
+            fields: () => ({}),
+          });
+        }),
+      ).toThrow(
+        "'Bug' implements prismaInterface 'FeatureFields', based on variant model 'Feature', " +
+          "which conflicts with its own variant model 'Bug'.",
+      );
+    });
+
     it('fails the build when a variant has no implementing type', () => {
       expect(() =>
         build((builder, task) => {
