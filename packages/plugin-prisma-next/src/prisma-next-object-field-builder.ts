@@ -626,10 +626,9 @@ export class PrismaNextObjectFieldBuilder<
     const narrow = (rel: MapperCollection) => (variant === undefined ? rel : rel.variant(variant));
     const mayReorder =
       typeof query === 'function' || (query as { orderBy?: unknown } | undefined)?.orderBy;
-    // Cached per request and arguments, so every parent row shares it. Cursor arguments and
-    // page-size callbacks are checked before planning, so either failing fails only this field.
-    // `order` is the ordering the request's `orderBy` chose. The resolver encodes and checks
-    // cursors with it.
+    // Per request and arguments, so every parent row shares it. Cursor arguments and page-size
+    // callbacks are checked before planning, so a failure fails only this field. `order` is the
+    // ordering planning paged with; the resolver checks and encodes cursors against it.
     const argsStates = createArgsCache<{
       failure?: { error: unknown };
       sizes?: { defaultSize?: number; maxSize?: number };
@@ -681,12 +680,10 @@ export class PrismaNextObjectFieldBuilder<
             ...argsState(args, ctx).sizes,
             codecs: config.codecs(ctx, relatedModel),
             orderBy,
-            checkOrdering: !orderBy,
+            checkOrdering: false,
           },
         );
-        if (orderBy) {
-          argsState(args, ctx).order = result.order;
-        }
+        argsState(args, ctx).order = result.order;
         return result.collection;
       };
       const rows = nested(

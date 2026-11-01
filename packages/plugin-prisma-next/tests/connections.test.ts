@@ -548,6 +548,12 @@ describe('related connection errors', () => {
             orderBy: (post) => (args.byId ? post.id.asc() : post.title.asc()),
           }),
         }),
+        sometimesOrdered: t.relatedConnection('posts', {
+          cursor: ['title', 'id'],
+          nullable: true,
+          args: { newest: t.arg.boolean() },
+          query: (args) => (args.newest ? { orderBy: (post) => post.title.desc() } : {}),
+        }),
         sized: t.relatedConnection('posts', {
           cursor: 'id',
           nullable: true,
@@ -619,6 +625,30 @@ describe('related connection errors', () => {
     expect(result.errors?.map((error) => error.path)).toEqual([['users']]);
     expect(result.errors?.[0].message).toMatch(message);
     expect(result.statements).toHaveLength(0);
+  });
+
+  it('fails only the connection field for a cursor from an ordering the query callback dropped', async () => {
+    const first = await run(
+      errorSchema(),
+      '{ users { c: sometimesOrdered(first: 1, newest: true) { pageInfo { endCursor } } } }',
+    );
+    const after = first.data.users[0].c.pageInfo.endCursor;
+    const result = await run(
+      errorSchema(),
+      'query ($after: String) { users { id posts(first: 1) { nodes { id } } c: sometimesOrdered(first: 1, after: $after) { nodes { id } } } }',
+      { variables: { after } },
+    );
+    expect(result.data.users).toEqual([
+      { id: 'u-alice', posts: { nodes: [{ id: 'p-draft1' }] }, c: null },
+      { id: 'u-bob', posts: { nodes: [{ id: 'p-bob-draft' }] }, c: null },
+    ]);
+    expect(result.errors?.map((error) => error.path)).toEqual([
+      ['users', 0, 'c'],
+      ['users', 1, 'c'],
+    ]);
+    expect(
+      result.errors?.every((error) => /issued under a different ordering/.test(error.message)),
+    ).toBe(true);
   });
 
   it('plans the same connections normally when their callbacks succeed', async () => {
