@@ -23,6 +23,7 @@ import type {
   IsUnion,
   ModelName,
   RelatedModel,
+  RelationFieldShape,
   RelationKeys,
   RelationOrderBy,
   RelationRefinementCollection,
@@ -352,16 +353,12 @@ type RelationShape<
   M extends ModelName<Types>,
   R extends RelationKeys<Types, M>,
   Entry = true,
-> =
-  IsToMany<Types, M, R> extends true
-    ? readonly Row<Types, RelatedModel<Types, M, R>>[]
-    :
-        | Row<Types, RelatedModel<Types, M, R>>
-        | ('where' extends keyof Entry
-            ? null
-            : DefaultRelationNullable<Types, M, R> extends false
-              ? never
-              : null);
+> = RelationFieldShape<
+  Types,
+  M,
+  R,
+  'where' extends keyof Entry ? true : DefaultRelationNullable<Types, M, R>
+>;
 
 /**
  * A function-form `select` contributes what it returns. When its branches return different
