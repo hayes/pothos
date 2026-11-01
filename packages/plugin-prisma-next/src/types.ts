@@ -235,8 +235,8 @@ export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>>
   WithNsId<DefaultCollectionTypeState, NamespaceOf<Types['PrismaNextContract'], M>>
 >;
 
-// Upstream's receiver type for collection helpers. It doesn't depend on mutation input types,
-// which `Types['PrismaNextContract']` computes differently from `db.orm`.
+// The receiver type upstream's collection helpers take. It leaves out mutation input types, which
+// can differ between a collection typed from `Types['PrismaNextContract']` and `db.orm`'s own.
 export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Types>> = [
   BaseModelKey<Types['PrismaNextContract'], M>,
 ] extends [never]
@@ -463,7 +463,7 @@ export type PrismaNextRelationOptions<
   Nullable extends boolean,
   Args extends InputFieldMap,
   RelatedShape,
-  // Only what the type's `select` declared. Other columns load only if the query selects them.
+  // The parent holds only what the type's `select` declared; a field's own `select` adds more.
   ParentShape = ObjectBaseShape<Types, ParentModel>,
   Query = RelationQuery<Types, ParentModel, RelName, Args>,
   TypeModel extends RelationTypeModel<Types, ParentModel, RelName> = RelationTypeModel<
@@ -861,7 +861,7 @@ export type PrismaNextInterfaceOptions<
 > = Omit<InterfaceTypeOptions<Types, InterfaceRef<Types, Shape>, Shape, Interfaces>, 'fields'> &
   PrismaNextTypeOptions<Types, M, Shape>;
 
-/** `variant` names a type that shares its model with other types. Set `name` or `variant`. */
+/** `variant` names a type that shares its model with other types. Set at most one of them. */
 export type NameOrVariant = { name?: never; variant?: string } | { name?: string; variant?: never };
 
 type PrismaNextTypeOptions<Types extends SchemaTypes, M extends ModelName<Types>, Shape> = {
