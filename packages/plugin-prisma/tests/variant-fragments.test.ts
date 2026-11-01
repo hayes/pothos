@@ -21,6 +21,8 @@ const builder = new SchemaBuilder<{
 const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
   fields: (t) => ({
     displayName: t.string({ nullable: true, resolve: () => null }),
+    // No select: NormalViewer loads `name` through its type-level select.
+    name: t.string({ nullable: true, resolve: (named) => named.name }),
   }),
 });
 
@@ -277,6 +279,34 @@ describe('fragments on variants and non-model interfaces', () => {
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ normalViewer: { displayName: user.email } });
       expect(queries).toEqual(expectedQueries);
+    });
+
+    it("loads a field without a select of its own through the variant's type-level select", async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              ...NamedFields
+            }
+          }
+
+          fragment NamedFields on Named {
+            name
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { name: user.name } });
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { select: { id: true, name: true }, where: { id: 1 } },
+        },
+      ]);
     });
 
     it('finds fields in a fragment nested under one that does not apply to the type', async () => {

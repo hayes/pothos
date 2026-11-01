@@ -29,6 +29,8 @@ const builder = new SchemaBuilder<{
 const Named = builder.interfaceRef<{ firstName: string | null }>('Named').implement({
   fields: (t) => ({
     displayName: t.string({ nullable: true, resolve: () => null }),
+    // No select: NormalViewer loads `firstName` through its type-level select.
+    firstName: t.string({ nullable: true, resolve: (named) => named.firstName }),
   }),
 });
 
@@ -350,6 +352,32 @@ describe('fragments on variants and non-model interfaces', () => {
       expect(result.data).toEqual({ normalViewer: { displayName: user.lastName } });
       expect(drizzleLogs).toHaveLength(1);
       expect(drizzleLogs[0]).toContain('"last_name"');
+    });
+
+    it("loads a field without a select of its own through the variant's type-level select", async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              ...NamedFields
+            }
+          }
+
+          fragment NamedFields on Named {
+            firstName
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { firstName: user.firstName } });
+      expect(drizzleLogs).toMatchInlineSnapshot(`
+        [
+          "Query: select "d0"."id" as "id", "d0"."first_name" as "firstName" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        ]
+      `);
     });
 
     it('finds fields in a fragment nested under one that does not apply to the type', async () => {
