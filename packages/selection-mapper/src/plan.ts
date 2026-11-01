@@ -24,6 +24,7 @@ import type { Node } from './node.js';
 import type {
   EntryOptions,
   MergeOptions,
+  ParentRowOptions,
   Position,
   TypeLevelConflict,
   WalkedType,
@@ -184,7 +185,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    */
   static forParentRow<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
     adapter: Adapter<Model, Query, NodeType>,
-    options: Omit<EntryOptions<Query>, 'typeName' | 'path' | 'paths'>,
+    options: ParentRowOptions<Query>,
   ): PlayedPlan<Model, Query, NodeType> {
     const { info } = options;
     const type = info.parentType;
