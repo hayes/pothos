@@ -135,6 +135,52 @@ describe('cursor values', () => {
     expect(wrapped.pageInfo.hasNextPage).toBe(false);
     expect(() => wrapped.pageInfo.startCursor).toThrow(/missing cursor column 'title'/);
   });
+
+  it('fails only the cursor fields of a row whose cursor cannot be encoded', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const pages = prismaConnectionHelpers(builder, 'Post', { cursor: ['title', 'id'] });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.connection({
+          type: pages.ref,
+          resolve: async (_root, args, context, info) => {
+            const page = await pages.applyPagination(
+              db.orm.Post.where({ content: 'cursor-values' }),
+              args,
+              context,
+              info,
+            );
+            const rows = await page.collection.all();
+            // A hand-shaped row, such as one served from a cache, without the title column.
+            return page.wrap(
+              rows.map((row) => (row.id === 'v-2' ? ({ id: row.id } as typeof row) : row)),
+            );
+          },
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      `{ posts(first: 2) {
+        nodes { id }
+        edges { cursor node { id } }
+        pageInfo { hasNextPage startCursor endCursor }
+      } }`,
+    );
+    expect(result.data.posts.nodes).toEqual([{ id: 'v-1' }, { id: 'v-2' }]);
+    expect(result.data.posts.edges[0]).toEqual({ cursor: expect.any(String), node: { id: 'v-1' } });
+    expect(result.data.posts.edges[1]).toBeNull();
+    expect(result.data.posts.pageInfo).toEqual({
+      hasNextPage: true,
+      startCursor: result.data.posts.edges[0].cursor,
+      endCursor: null,
+    });
+    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
+      [['posts', 'edges', 1, 'cursor'], expect.stringMatching(/missing cursor column 'title'/)],
+      [['posts', 'pageInfo', 'endCursor'], expect.stringMatching(/missing cursor column 'title'/)],
+    ]);
+  });
 });
 
 describe('rejected cursors', () => {
