@@ -89,6 +89,17 @@ type ModelKey<TContract extends AnyContract, Ns extends string, M extends string
       }[NamespacesWithModel<TContract, M>]}.${M}`
     : M;
 
+/** A variant's base model, or `never` for models that aren't variants. */
+type BaseModelKey<TContract extends AnyContract, M extends string> =
+  ModelDefOf<TContract, M> extends {
+    readonly base: {
+      readonly model: infer Base extends string;
+      readonly namespace: infer Ns extends string;
+    };
+  }
+    ? ModelKey<TContract, Ns, Base>
+    : never;
+
 type ModelKeys<TContract extends AnyContract> = {
   [Ns in keyof TContract['domain']['namespaces'] & string]: {
     [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]: ModelKey<
@@ -157,17 +168,6 @@ export type ModelName<Types extends SchemaTypes> = Types['PrismaNextContract'] e
       : N
     : ModelNameSentinel
   : ModelNameSentinel;
-
-/** A variant's base model, or `never` for models that aren't variants. */
-type BaseModelKey<TContract extends AnyContract, M extends string> =
-  ModelDefOf<TContract, M> extends {
-    readonly base: {
-      readonly model: infer Base extends string;
-      readonly namespace: infer Ns extends string;
-    };
-  }
-    ? ModelKey<TContract, Ns, Base>
-    : never;
 
 /**
  * The row of a model's own fields. It takes the contract rather than `Types`, so schemas built from
