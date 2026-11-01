@@ -18,6 +18,7 @@ await writeFile(new URL('contract.json', example), emitted.contractJson);
 await writeFile(
   new URL('contract.d.ts', example),
   emitted.contractDts
+    .replaceAll('@internal/target-sqlite', '@prisma/orm-sqlite/target')
     .replaceAll('@internal/adapter-sqlite', '@prisma/orm-sqlite/adapter')
     .replaceAll('@internal/sql-contract', '@prisma/orm-family-sql/contract')
     .replaceAll('@internal/contract', '@prisma/orm-framework/contract'),
