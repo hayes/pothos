@@ -12,8 +12,7 @@ function namespacesWithModel(contract: AnyContract, model: string): string[] {
     .map(([id]) => id);
 }
 
-// A model name that several namespaces share is keyed `namespace.Model`. `resolveDomainModel`
-// alone would pick the first match.
+/** The contract model, with a variant's inherited fields and relations merged in. */
 export function resolveContractModel(
   contract: AnyContract,
   modelKey: string,
@@ -64,6 +63,8 @@ export function fieldStorage(
     : undefined;
 }
 
+// A model name that several namespaces share is keyed `namespace.Model`. `resolveDomainModel`
+// alone would pick the first match.
 function lookupModel(contract: AnyContract, modelKey: string): SqlContractModel | undefined {
   const separator = modelKey.indexOf('.');
   if (separator >= 0) {
