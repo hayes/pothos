@@ -1,8 +1,7 @@
 import SchemaBuilder, { PothosSchemaError } from '@pothos/core';
 
-// Both plugins install the same prisma* methods on the core prototypes. Imported before the
-// modules that install ours, so a failed import leaves plugin-prisma-next's in place.
-// `plugins` is the registry `registerPlugin` fills; core's default export doesn't type it.
+// Both plugins install the same prisma* builder methods, so importing one after the other throws.
+// Core doesn't type the `plugins` registry on its default export.
 if (Object.hasOwn((SchemaBuilder as unknown as { plugins: object }).plugins, 'prismaNext')) {
   throw new PothosSchemaError(
     '@pothos/plugin-prisma and @pothos/plugin-prisma-next both define builder.prismaObject, ' +
