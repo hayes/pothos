@@ -14,17 +14,29 @@ import type { MapperCollection } from './adapter.js';
 import { relationVariant } from './contract.js';
 import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model.js';
 
+/*
+ * Scopes and slot keys
+ *
+ * A scope names one consumer of a to-many relation. A field's scope is `Type.alias`, joined with
+ * `/` beneath the scopes of the fields above it (`Query.users/User.posts`). A type-level `select`
+ * uses the type's name as its scope. Type names have no dot, so the two kinds never collide.
+ *
+ * In a query, a to-many relation and its computed values are keyed `relation:scope`, so each
+ * consumer gets its own `combine()` slot. In the combined value the ORM returns, a consumer's rows
+ * are keyed `scope` and its computed values `scope:key`.
+ */
+
 export const REFINE = Symbol('prismaNextRefine');
 export const COMPUTE = Symbol('prismaNextCompute');
 
 type Refine = (rel: MapperCollection) => MapperCollection | null | undefined;
-/** Values computed from a to-many relation's collection, lifted onto the consumer's parent. */
+/** Computes values from a to-many relation's collection. They are written onto the parent row. */
 type Compute = (rel: MapperCollection, ctx: object) => Record<string, unknown>;
 
 /**
- * The variant a level is narrowed to: by `.variant(value)` on the base collection, or by loading
- * through the variant model's own accessor (`throughVariantModel`), which is already narrowed and has only
- * that variant's relations.
+ * The variant a level of the query is narrowed to. By default the base collection is narrowed with
+ * `.variant(value)`. A relation that targets a variant model loads through that model's own
+ * accessor instead, which is already narrowed and has only that variant's relations.
  */
 export interface Narrowing {
   value: string;
@@ -32,27 +44,27 @@ export interface Narrowing {
 }
 
 /**
- * What a relation load is. Compared structurally, so equal queries share an include; the closure
- * applying it rides under a symbol, which the comparison skips.
+ * Identifies a relation load. Loads with structurally equal args share one include. The function
+ * that applies the load is stored under a symbol key, which the comparison ignores.
  */
 export interface RelationArgs {
-  /** The refinement: a declarative query object, or the defining field with its arguments. */
+  /** A declarative query object, or the field that defines the load together with its arguments. */
   query?: unknown;
   variant?: Narrowing;
   [REFINE]?: Refine;
 }
 
 export interface ComputedSelection {
-  /** Compared like `RelationArgs.query`. */
+  /** Identifies the computed values, like `RelationArgs.query`. */
   query: unknown;
   [COMPUTE]: Compute;
 }
 
 /**
- * A selection on one model, and the node tree written back as one. A to-one relation is keyed by
- * its name: the ORM includes it once, so its consumers share it or conflict. A to-many relation
- * is keyed `relation:scope` (and computed values likewise): each consumer scope gets its own
- * `combine()` slot, so consumers with different arguments still load in one statement.
+ * A selection on one model. Planned node trees are written back in the same shape. A to-one
+ * relation is keyed by its name because the ORM includes it once, so its consumers must agree on
+ * it. A to-many relation and its computed values are keyed `relation:scope`. Consumers with
+ * different arguments then get separate `combine()` slots and still load in one statement.
  */
 export interface PrismaNextQuery {
   /** `null` selects every column. */
@@ -71,9 +83,8 @@ export const SLOT = ':';
 const scopes = new WeakMap<Position, string>();
 
 /**
- * The slot of the field selected at `position`: its type and alias, beneath the scopes of the
- * fields above it. A resolver finds the same position through its loader mapping, so it reads
- * exactly the slots its selection was planned into.
+ * The scope of the field selected at `position`. A resolver reaches the same position through its
+ * loader mapping, so it reads the slots its selection was planned into.
  */
 export function scopeOf(position: Position): string {
   let scope = scopes.get(position);
@@ -85,7 +96,7 @@ export function scopeOf(position: Position): string {
   return scope;
 }
 
-/** The key of the slot `scope` reads a to-many relation or its computed values under. */
+/** The query key a consumer at `scope` uses for a to-many relation or its computed values. */
 function slotKey(relation: string, scope: string) {
   return `${relation}${SLOT}${scope}`;
 }
@@ -94,6 +105,7 @@ function relationKey(relation: PrismaNextRelation, name: string, scope: string) 
   return relation.isToMany ? slotKey(name, scope) : name;
 }
 
+/** The relation a query key refers to. */
 export function relationName(key: string) {
   const separator = key.indexOf(SLOT);
   return separator < 0 ? key : key.slice(0, separator);
@@ -105,27 +117,27 @@ function isTypeScope(scope: string) {
 }
 
 interface Combined {
-  /** Each to-many relation loaded through `combine()`: its slots, by scope. */
+  /** The combined value of each to-many relation loaded through `combine()`, by relation name. */
   slots: Record<string, Record<string, unknown>>;
-  /** Every scope with a slot. */
+  /** Every scope that has a slot on the row. */
   scopes: Set<string>;
-  /** The scopes lifted onto the row itself; null when the row was left as returned (frozen). */
+  /** The scopes written back onto the row. Null when the row is frozen and was left as returned. */
   lifted: readonly string[] | null;
 }
 
-/** The combine slots of each statement row, which never stay on the row. */
+/** The combined relations taken off each row a statement returned. */
 const combined = new WeakMap<object, Combined>();
-/** Each row's views, by the scopes lifted onto them. */
+/** Each row's views, keyed by the scopes they show. */
 const views = new WeakMap<object, Map<string, object>>();
 /** The row each view was made from. */
 const viewRows = new WeakMap<object, object>();
 
 /**
- * Takes the combine slots of the rows a statement returned off them. A to-many relation loaded
- * through `combine()` comes back as an object of slots, one per consumer scope; `viewOf` hands
- * each reader its own. A row whose slots belong to one type keeps that type's rows and computed
- * values under their own keys, so a reader outside the plugin's hooks sees that type's shape;
- * otherwise it keeps no value for the relation.
+ * Moves the `combine()` slots off the rows a statement returned. A to-many relation loaded through
+ * `combine()` comes back as an object with one slot per consumer scope, and `viewOf` gives each
+ * reader the slots of its own scopes. When exactly one type-level select loaded slots on a row,
+ * its rows and computed values are written back under their own keys. A reader that bypasses the
+ * plugin's resolvers then sees the shape that type selected.
  */
 export function materializeRows<T>(rows: T, model: PrismaNextModel): T {
   if (Array.isArray(rows)) {
@@ -153,7 +165,7 @@ function materializeRow(row: Record<string, unknown>, model: PrismaNextModel) {
     entry ??= { slots: {}, scopes: new Set(), lifted: null };
     entry.slots[name] = value as Record<string, unknown>;
     for (const [key, slot] of Object.entries(value)) {
-      // A slot is keyed by its scope; a computed value by `scope:name`.
+      // Rows are keyed by scope and computed values by `scope:key`.
       const scope = relationName(key);
       if (scope === key) {
         materializeRows(slot, relation.target);
@@ -175,7 +187,7 @@ function materializeRow(row: Record<string, unknown>, model: PrismaNextModel) {
   }
 }
 
-/** Writes the rows and computed values `scopes` read onto `target`, later scopes winning. */
+/** Writes the rows and computed values that `scopes` loaded onto `target`. Later scopes win. */
 function lift(target: Record<string, unknown>, entry: Combined, scopes: readonly string[]) {
   for (const name of Object.keys(entry.slots)) {
     const slots = entry.slots[name]!;
@@ -198,10 +210,11 @@ export function rowOf<T>(value: T): T {
 }
 
 /**
- * What a reader at `scopes` sees of a row (or of another view of it): the row's columns, with
- * each to-many relation and computed value as those scopes loaded it, later scopes winning, and
- * nothing for a relation they didn't load. One object per row and set of scopes, so per-row
- * caches (scope-auth's) see one parent; the row itself when that is what it already holds.
+ * The row as a reader at `scopes` sees it. `value` may be the row or another view of it. The view
+ * has the row's columns and each to-many relation and computed value as those scopes loaded it,
+ * with later scopes winning. A relation those scopes did not load is absent. Views are cached per
+ * row and set of scopes, so per-row caches such as scope-auth's see a single parent object. When
+ * the row already holds what those scopes loaded, the row itself is returned.
  */
 export function viewOf(value: object, scopes: readonly (string | undefined)[]): object {
   const row = rowOf(value);
@@ -224,6 +237,7 @@ export function viewOf(value: object, scopes: readonly (string | undefined)[]): 
   const key = present.join(' ');
   let view = cache.get(key);
   if (!view) {
+    // Start from the columns alone, without what was written back onto the row.
     const copy = copyOf(row) as Record<string, unknown>;
     for (const name of Object.keys(entry.slots)) {
       delete copy[name];
@@ -246,7 +260,7 @@ export function viewOf(value: object, scopes: readonly (string | undefined)[]): 
   return view;
 }
 
-/** A writable copy of a (possibly frozen) row's columns, keeping its type brand. */
+/** Copies a row, which may be frozen, into a writable object with the same type brand. */
 function copyOf(row: object): object {
   const copy = Object.assign(Object.create(Object.getPrototypeOf(row)) as object, row);
   const brand = getTypeBrand(row);
@@ -278,7 +292,7 @@ function isDeclarative(value: unknown): value is DeclarativeQuery {
   );
 }
 
-/** A query with something in it, or undefined. */
+/** Returns `value` if it is a declarative query with at least one option set. */
 export function definedQuery(value: unknown): DeclarativeQuery | undefined {
   return isDeclarative(value) && Object.values(value).some((option) => option !== undefined)
     ? value
@@ -318,7 +332,10 @@ export function applyQuery(collection: MapperCollection, query: DeclarativeQuery
   return result;
 }
 
-/** The arguments of a relation load: what identifies its query, its narrowing, how to apply it. */
+/**
+ * The args of a relation load. `query` identifies the load and `refine` applies it to the
+ * relation's collection. `variant` narrows a relation typed as a variant of its target.
+ */
 export function relationArgs(
   relation: PrismaNextRelation,
   query: unknown,
@@ -350,7 +367,7 @@ export function rowsSelection(
   }));
 }
 
-/** Values a consumer at `scope` computes from relation `name`; `query` identifies them. */
+/** The values a consumer at `scope` computes from relation `name`. `query` identifies them. */
 export function computedSelection(
   name: string,
   scope: string,
@@ -392,13 +409,16 @@ function shapeError(owner: string, key: string, problem: string) {
 interface SelectScope {
   scope: string;
   args: object;
-  /** Identifies the function entries, with `args`. */
+  /** Identifies the select's function entries, together with `args`. */
   source: unknown;
-  /** The rows a relation entry loads from `seed`: planned beneath the field, or included bare. */
+  /**
+   * Plans the rows a relation entry loads, starting from `seed`. A field plans them beneath its
+   * own selection. A type-level select includes them as they are.
+   */
   rows(relation: PrismaNextRelation, seed: PrismaNextQuery): MaybePromise<PrismaNextQuery>;
 }
 
-/** A `select` object or column list, each relation entry as one consumer at `scope`. */
+/** Compiles a `select` object or column list. Each relation entry is one consumer at `scope`. */
 function compileSelect(
   raw: RawSelect,
   model: PrismaNextModel | undefined,
@@ -428,7 +448,7 @@ function compileSelect(
         const values = (
           value as (sub: MapperCollection, args: object, ctx: object) => Record<string, unknown>
         )(sub, args, ctx);
-        // Computed values are lifted onto the parent row beside its columns and relations.
+        // Computed values are written onto the parent row, so they can't reuse its field names.
         const clash = Object.keys(values).find(
           (key) => model!.columns.has(key) || Object.hasOwn(model!.relations, key),
         );
@@ -462,7 +482,7 @@ function compileSelect(
   }));
 }
 
-/** A type-level `select`: relations load every column, under the type's own slots. */
+/** Compiles a type-level `select`. Its relations load every column, in the type's own slots. */
 export function compileTypeSelect(raw: RawSelect, model: PrismaNextModel, typeName: string) {
   return compileSelect(raw, model, typeName, {
     scope: typeName,
@@ -473,8 +493,9 @@ export function compileTypeSelect(raw: RawSelect, model: PrismaNextModel, typeNa
 }
 
 /**
- * A field's `select` as the planner reads it: a static query for columns alone, otherwise a
- * select function planning each relation entry as a consumer at the field's position.
+ * Compiles a field's `select` for the planner. A select of columns alone becomes a static query.
+ * Anything else becomes a select function that plans each relation entry as a consumer at the
+ * field's position.
  */
 export function compileFieldSelect(
   contract: AnyContract,

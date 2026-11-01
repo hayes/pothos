@@ -16,12 +16,12 @@ export interface PrismaNextRelation {
   readonly isToMany: boolean;
   readonly targetModel: string;
   readonly target: PrismaNextModel;
-  /** Set when a variant declares the relation; it can only be included after `.variant(value)`. */
+  /** The variant that declares the relation. It can only be included after `.variant(value)`. */
   readonly declaredByVariant?: string;
   /**
-   * Set when the relation targets a variant model, which the ORM loads through that model's own
-   * accessor: already narrowed, without the base's relations, and, when it shares the base's
-   * table, unfiltered by the discriminator.
+   * Set when the relation targets a variant model. The ORM loads its rows through that model's
+   * own accessor, which is already narrowed and lacks the base's relations. When the variant
+   * shares the base's table, that accessor doesn't filter by the discriminator.
    */
   readonly targetVariantModel?: {
     readonly field: string;
@@ -50,7 +50,7 @@ function buildColumnSet(modelName: string, contract: AnyContract): ReadonlySet<s
 
 const registries = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
 
-/** Non-null unique keys, primary key first; undefined without SQL storage. */
+/** Non-null unique keys, primary key first. Undefined for a model without SQL storage. */
 export function getModelUniqueKeys(
   contract: AnyContract,
   modelName: string,
@@ -157,7 +157,7 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
   return model;
 }
 
-/** A column codec; cursors, IDs and loader identities hold values in its stored JSON form. */
+/** A column codec. Cursors, node IDs and loader keys hold values in its stored JSON form. */
 interface ColumnCodec {
   encode(value: unknown): unknown;
   decode(stored: unknown): unknown;
