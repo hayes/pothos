@@ -1044,7 +1044,14 @@ export type CursorSpec<Types extends SchemaTypes, M extends ModelName<Types>> =
   | CursorColumn<Types, M>
   | readonly [CursorColumn<Types, M>, ...CursorColumn<Types, M>[]];
 
-/** The paging options `prismaConnection` and `relatedConnection` share. */
+type SizeOption<Types extends SchemaTypes, Args extends InputFieldMap> =
+  | number
+  | ((
+      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+      ctx: Types['Context'],
+    ) => number);
+
+/** Paging options shared by connection fields and connection helpers. */
 export type ConnectionPagingOptions<
   Types extends SchemaTypes,
   ParentShape,
@@ -1052,18 +1059,8 @@ export type ConnectionPagingOptions<
   Cursor,
 > = {
   cursor: Cursor & ExactCursor<Cursor>;
-  defaultSize?:
-    | number
-    | ((
-        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-        ctx: Types['Context'],
-      ) => number);
-  maxSize?:
-    | number
-    | ((
-        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-        ctx: Types['Context'],
-      ) => number);
+  defaultSize?: SizeOption<Types, Args>;
+  maxSize?: SizeOption<Types, Args>;
   args?: Args;
   totalCount?:
     | TotalCountFlag<Types>
