@@ -269,8 +269,8 @@ type ValidateSelectValue<Types extends SchemaTypes, ParentShape, Select> =
   ExtractModel<Types, ParentShape> extends infer M
     ? M extends ModelName<Types>
       ? SelectCheck<Types, M, Select>
-      : Select
-    : Select;
+      : never
+    : never;
 
 /** Checks a field's or a type's `select`, which is inferred from the literal rather than checked. */
 export type SelectCheck<
@@ -378,6 +378,7 @@ export type ShapeFromSelect<Types extends SchemaTypes, ParentShape, Select> = un
         : ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>
     : ShapeFromSelectValue<Types, ParentShape, Select>;
 
+// The unreachable `ParentShape` fallbacks make checks against a deferred shape cheaper.
 type ShapeFromSelectValue<Types extends SchemaTypes, ParentShape, Select> =
   ExtractModel<Types, ParentShape> extends infer M
     ? M extends ModelName<Types>
