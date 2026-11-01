@@ -373,20 +373,11 @@ describe('native model inheritance', () => {
     const bugId = Buffer.from('Bug:t1').toString('base64');
     const featureId = Buffer.from('Feature:t2').toString('base64');
     const bugCard = { title: 'bug1', owner: { email }, id: bugId, severity: 'high' };
+    const schema = createComponentSchema();
 
-    it('plans interface fragments spread into a concrete type in one statement', async () => {
+    it('plans interface fragments spread into concrete types, nested, and in several places, in one statement', async () => {
       const result = await run(
-        createComponentSchema(),
-        `query { bugs { ...TitledFields ...TaskCard ...NodeFields } } ${fragments}`,
-      );
-      expect(result.errors).toBeUndefined();
-      expect(result.data.bugs).toEqual([{ title: 'bug1', owner: { email }, id: bugId }]);
-      expect(result.statements).toHaveLength(1);
-    });
-
-    it('plans nested spreads, and one fragment spread in several places, in one statement', async () => {
-      const result = await run(
-        createComponentSchema(),
+        schema,
         `query { users { ...OwnerFields bugs { ...BugCard } tasks { ...TaskCard ...BugCard ...FeatureCard } } } ${fragments}`,
       );
       expect(result.errors).toBeUndefined();
@@ -402,7 +393,7 @@ describe('native model inheritance', () => {
 
     it('plans a fragment on Node beneath the interface for the implementations', async () => {
       const result = await run(
-        createComponentSchema(),
+        schema,
         `query { tasks { ...TitledFields ...NodeFields ... on Node { ... on Feature { typePriority } } } } ${fragments}`,
       );
       expect(result.errors).toBeUndefined();
@@ -415,7 +406,7 @@ describe('native model inheritance', () => {
 
     it("loads a model-less interface's field through a variant's type-level select", async () => {
       const result = await run(
-        createComponentSchema(),
+        schema,
         'query { tasks { ...PrioritizedFields } } fragment PrioritizedFields on Prioritized { priority }',
       );
       expect(result.errors).toBeUndefined();
@@ -424,7 +415,6 @@ describe('native model inheritance', () => {
     });
 
     it('plans interface fragments through node and nodes', async () => {
-      const schema = createComponentSchema();
       const node = await run(schema, `query { node(id: "${bugId}") { ...BugCard } } ${fragments}`);
       expect(node.errors).toBeUndefined();
       expect(node.data.node).toEqual(bugCard);
@@ -445,7 +435,7 @@ describe('native model inheritance', () => {
 
     it('plans a fragment beside direct fields on the same relation in one statement', async () => {
       const result = await run(
-        createComponentSchema(),
+        schema,
         `query { users { tasks { title owner { email } } ...UserTasks } }
         fragment UserTasks on User { tasks { ...TaskCard ...NodeFields } } ${fragments}`,
       );
