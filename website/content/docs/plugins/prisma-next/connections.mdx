@@ -79,8 +79,6 @@ Limitations:
 - A nullable column's existing ordering must state its null placement, such as
   `post.score.desc({ nulls: 'last' })`.
 - Bytes columns can't be cursor columns.
-- A cursor whose values the column's codec can't decode fails with
-  `Invalid cursor: invalid <column> value.`; no query runs.
 
 ## relatedConnection
 
@@ -131,10 +129,10 @@ builder.prismaObject('User', {
 });
 ```
 
-Pass `info` to `applyPagination` so relations under the connection's nodes are included.
-`query.where` applies to both the page and the count. `filterConnectionTotalCount` only affects
-`t.relatedConnection`. `totalCountPromise` only runs the count when `totalCount` is
-selected. `connectionOptions` adds the `totalCount` field.
+Pass `info` to `applyPagination` so relations under the nodes are included. `query.where`
+filters both the page and the count (`filterConnectionTotalCount` only applies to
+`t.relatedConnection`). `totalCountPromise` runs the count only if `totalCount` is selected, and
+`connectionOptions` adds the `totalCount` field.
 
 `resolveNode` maps each row to a different node shape. Cursors are built from the row, not the
 node:

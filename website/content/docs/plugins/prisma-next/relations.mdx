@@ -114,5 +114,5 @@ Prisma can't include in one query.
 A model without a primary key is reloaded by its first non-null unique key. The types only know
 primary keys, so a plain `t.field` returning such a model must return its whole row. A model with
 neither can't be reloaded, so its fields must come from the parent query. A field that would need
-the loader fails with an error naming it, and a `prismaInterface` whose `select` conflicts with
-its object's fails the schema build.
+the loader fails with an error naming it. On such a model, a `prismaInterface` whose `select`
+conflicts with its object's fails the schema build, because those fields could never load.
