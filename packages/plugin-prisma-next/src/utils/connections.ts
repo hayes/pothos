@@ -110,8 +110,15 @@ function withTotalCount(connectionOptions: object): object {
     ): Record<string, unknown> => ({
       totalCount: t.int({
         nullable: false,
-        // A missing count is an error rather than 0, e.g. a helper's `wrap` called without one.
-        resolve: (parent) => parent.totalCount,
+        // A missing count is an error rather than 0. Only a helper's `wrap` can leave it out.
+        resolve: (parent) => {
+          if (parent.totalCount === undefined) {
+            throw new PothosValidationError(
+              "totalCount has no count. Pass one to the connection helpers' wrap, for example wrap(rows, await totalCountPromise).",
+            );
+          }
+          return parent.totalCount;
+        },
       }),
       ...(userFields ? userFields(t) : {}),
     }),
