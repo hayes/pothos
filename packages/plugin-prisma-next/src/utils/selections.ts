@@ -408,7 +408,7 @@ export function toOneFunctionMessage(owner: string, name: string) {
 
 function shapeError(owner: string, key: string, problem: string) {
   return new PothosValidationError(
-    `select: '${key}' ${problem} on ${owner}. Use \`true\`, \`{ where?, orderBy?, limit?, offset? }\`, or a function \`(sub) => ({ key: collection })\` for a relation.`,
+    `select: '${key}' ${problem} on ${owner}. Use \`true\`, \`{ where?, orderBy?, limit?, offset? }\`, or a function \`(sub) => ({ key: value })\` for a relation.`,
   );
 }
 

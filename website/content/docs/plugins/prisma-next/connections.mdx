@@ -132,9 +132,10 @@ builder.prismaObject('User', {
 
 Pass `info` to `applyPagination` so relations under the nodes are included. `query.where`
 filters both the page and the count (`filterConnectionTotalCount` only applies to
-`t.relatedConnection`). `totalCountPromise` runs the count only if `totalCount` is selected, or
-always when no `info` is passed, and `connectionOptions` adds the `totalCount` field. When `totalCount` is selected, pass the count to
-`wrap`, or the field fails with a non-null error.
+`t.relatedConnection`). `totalCountPromise` runs the count when it is read: only if `totalCount`
+is selected, or whenever it is read if no `info` is passed. `connectionOptions` adds the
+`totalCount` field. When `totalCount` is selected, pass the count to `wrap`, or the field fails
+with a non-null error.
 
 `resolveNode` maps each row to a different node shape. Cursors are built from the row, not the
 node:
