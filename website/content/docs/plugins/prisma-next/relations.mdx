@@ -108,11 +108,11 @@ as long as it includes its primary key. They are loaded through the plugin's
 type before any field runs. `ModelReturnShape<Types, 'User'>` and
 `InterfaceReturnShape<Types, 'Task'>` name these rows, for example as a helper's return type.
 
-The same loader handles conflicting filters on one to-one relation, which Prisma can't include
-together.
+The same loader handles fields that load one to-one relation with different filters, which
+Prisma can't include in one query.
 
 A model without a primary key is reloaded by its first non-null unique key. The types only know
 primary keys, so a plain `t.field` returning such a model must return its whole row. A model with
-neither can't be reloaded, so its fields must come from the parent query: a field that would need
+neither can't be reloaded, so its fields must come from the parent query. A field that would need
 the loader fails with an error naming it, and a `prismaInterface` whose `select` conflicts with
 its object's fails the schema build.

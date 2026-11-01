@@ -21,8 +21,8 @@ builder.prismaObject('User', {
 
 ## Prisma fields
 
-`t.prismaField` returns a contract-backed type. Its resolver returns an unexecuted Collection; the
-plugin adds the selection for the query and runs it, adding `.limit(1)` for single results.
+`t.prismaField` returns a contract-backed type. Its resolver returns an unexecuted Collection. The
+plugin adds the selection for the query and runs it, with `.limit(1)` for single results.
 
 ```ts
 builder.queryType({
@@ -36,8 +36,8 @@ builder.queryType({
 });
 ```
 
-Return the Collection before calling `.all()` or `.first()`; materialized rows are rejected,
-because the plugin can't add the selection to them. A nullable field resolves to `null` when the
+Return the Collection without calling `.all()` or `.first()`. The plugin rejects materialized
+rows, because it can't add the selection to them. A nullable field resolves to `null` when the
 Collection is empty.
 
 ### Mutations
@@ -144,8 +144,8 @@ email: t.string({
 
 ## Adding fields
 
-`builder.objectField(s)` doesn't support `select`. Use `prismaObjectField` or
-`prismaObjectFields` instead:
+`builder.objectField` and `builder.objectFields` don't support `select`. Use
+`prismaObjectField` or `prismaObjectFields` instead:
 
 ```ts
 builder.prismaObjectField('User', 'displayName', (t) =>
