@@ -62,8 +62,9 @@ type FieldParam<Types extends SchemaTypes> =
   | [ModelInterfaceRefKey<ModelName<Types>, Types['PrismaNextContract']>];
 
 /**
- * Merged beside a plain `select?: Select`, which stays the only inference site: inferring through
- * an intersection would narrow a union `Select` to one member. This adds completions and checks.
+ * Checks a type's `select` and offers completions for it. It sits beside a plain `select?: Select`,
+ * which stays the only inference site, because inferring through an intersection would narrow a
+ * union `Select` to one member.
  */
 type TypeSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = {
   select?: (readonly (keyof Row<Types, M> & string)[] | SelectObjectSpec<Types, M>) &
@@ -88,7 +89,7 @@ type IdValues<
 
 /**
  * What `id.parse` may return. A compound ID's array isn't contextually typed as a tuple there, so
- * any array of its columns' values is accepted; the loader checks its length.
+ * any array of its columns' values is accepted. The loader checks its length.
  */
 type ParsedIdValues<Types extends SchemaTypes, M extends ModelName<Types>, IDFields> =
   | IdValues<Types, M, IDFields>
@@ -121,8 +122,8 @@ declare global {
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      // `Extract` drops `undefined` but keeps the user's exact contract; `& object` would make a
-      // new type, and `Collection` is invariant in its contract.
+      // `Extract` drops `undefined` and keeps the user's exact contract. `Collection` is invariant
+      // in its contract, so a new type such as `Contract & object` would not match it.
       PrismaNextContract: undefined extends PartialTypes['PrismaNextContract']
         ? AnyContract
         : Extract<PartialTypes['PrismaNextContract'], AnyContract>;
@@ -286,14 +287,20 @@ declare global {
                 /** A column, or a tuple of columns for a composite key. */
                 field: IDFields;
                 description?: string;
-                /** Replaces the default decoding; IDs are then the plain value or a JSON tuple. */
+                /**
+                 * Replaces the default decoding. IDs are then encoded as the plain value, or as a
+                 * JSON tuple for a composite key.
+                 */
                 parse?: (id: string, ctx: Types['Context']) => IDShape;
                 resolve?: (
                   parent: Shape & IdFieldShape<Types, M, IDFields>,
                   ctx: Types['Context'],
                 ) => string | number;
               };
-              /** Defaults to the client's collection; a variant's loads through `orm.Base.variant(value)`. */
+              /**
+               * The collection a node loads from. It defaults to the client's collection for the
+               * model, and a variant loads through `orm.Base.variant(value)`.
+               */
               collection?:
                 | ResolverCollection<Types, M>
                 | ((ctx: Types['Context']) => ResolverCollection<Types, M>);
