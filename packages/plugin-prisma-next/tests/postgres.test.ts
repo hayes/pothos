@@ -224,7 +224,7 @@ function createMutationSchema() {
 
 describe('PostgreSQL through the shared SQL-family plugin', () => {
   describe('GraphQL mutation results', () => {
-    it('creates through prismaField and loads the selected result in the transaction', async () => {
+    it('creates through prismaField in a caller transaction and returns the selected result', async () => {
       const { schema } = createMutationSchema();
       try {
         const result = await client.transaction((tx) =>
