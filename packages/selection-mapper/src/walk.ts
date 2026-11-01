@@ -265,24 +265,19 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
       continue;
     }
 
-    const condition =
-      fragment.typeCondition && plan.info.schema.getType(fragment.typeCondition.name.value)!;
-
     for (const walk of fragmentWalks(plan, type, fragment, onlyIn)) {
       if (visitedBefore(visited, `${origin.name}>${type.name}:${walk.onlyIn}`, fragment)) {
         continue;
       }
 
       const { types } = walk;
-      // Whether the fragment moves the plan to `types`:
-      // - A typed fragment directly under `origin` does, unless `origin` is already of its type.
-      // - An expansion, an untyped fragment, or a typed fragment under one that did not move the
-      //   plan (`type` is not `origin`) does only when it selects fields of its own.
+      // A typed fragment directly under `origin` moves the plan to its type. An expansion, an
+      // untyped fragment, or one nested under a fragment that did not move the plan, moves it
+      // only when it selects fields of its own.
       const enters =
         types.length > 0 &&
-        (condition && !walk.walksImplementations && type === origin
-          ? !isOfType(origin, condition)
-          : selectsFields(fragment.selectionSet.selections));
+        ((fragment.typeCondition && !walk.walksImplementations && type === origin) ||
+          selectsFields(fragment.selectionSet.selections));
 
       for (const as of types.length > 0 ? types : [type]) {
         if (enters && as !== origin) {
