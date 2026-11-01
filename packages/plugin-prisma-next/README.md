@@ -27,7 +27,6 @@ import type { Contract } from './prisma/contract';
 
 const contract = contractFromJson<Contract>(contractJson);
 const db = sqlite({ contract, path: './app.db' });
-await db.connect();
 
 const builder = new SchemaBuilder<{
   PrismaNextContract: Contract;
