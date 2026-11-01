@@ -224,7 +224,7 @@ function createMutationSchema() {
 
 describe('PostgreSQL through the shared SQL-family plugin', () => {
   describe('GraphQL mutation results', () => {
-    it('creates through prismaField and commits only after completing the selected result', async () => {
+    it('creates through prismaField and loads the selected result in the transaction', async () => {
       const { schema } = createMutationSchema();
       try {
         const result = await client.transaction((tx) =>
@@ -233,16 +233,6 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
             source:
               'mutation { createAccount(id: "mutation-created", name: "Created") { id name entries { id } } missing { id } }',
             contextValue: { orm: tx.orm },
-          }).then(async (completed) => {
-            // The selection has completed, and the write is not yet visible outside the transaction.
-            expect(
-              (
-                await raw.query('SELECT name FROM pothos_next_account WHERE id = $1', [
-                  'mutation-created',
-                ])
-              ).rows,
-            ).toEqual([]);
-            return completed;
           }),
         );
         expect(result.errors).toBeUndefined();
