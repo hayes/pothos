@@ -119,6 +119,16 @@ builder.prismaObject('Post', {
   fields: () => ({}),
 });
 
+// The to-one function form is a branded error type, so its parameter names the problem.
+type AuthorFunctionForm = Extract<
+  NonNullable<SelectObjectSpec<Types, 'Post'>['author']>,
+  (...args: never[]) => unknown
+>;
+expectTypeOf<AuthorFunctionForm>().toHaveProperty(
+  'To-one relations take true or { select }, not a function',
+);
+expectTypeOf<AuthorFunctionForm>().parameter(0).toEqualTypeOf<AuthorFunctionForm>();
+
 builder.prismaObject('User', {
   variant: 'PostsRefinement',
   fields: (t) => ({
