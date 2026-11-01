@@ -95,7 +95,8 @@ export function connectionSettings<Count extends (...args: never[]) => unknown>(
   };
 }
 
-// A prebuilt connection ref can't be given new fields, so its own definition must declare `totalCount`.
+// A prebuilt connection ref can't be given new fields, so its own definition must declare
+// `totalCount`.
 function withTotalCount(connectionOptions: object): object {
   if (connectionOptions instanceof ObjectRef) {
     return connectionOptions;
