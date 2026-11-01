@@ -209,9 +209,9 @@ function decodeCursor(
     throw new PothosValidationError('Invalid cursor: not a cursor from this plugin.');
   }
   const separator = payload.indexOf(':', CURSOR_PREFIX.length);
-  const signature = payload.slice(CURSOR_PREFIX.length, separator);
-  if (separator === -1 || !/^(?:[ad][fl]?)+$/.test(signature)) {
-    throw new PothosValidationError('Invalid cursor: payload is not a tagged cursor chunk.');
+  const signature = separator === -1 ? '' : payload.slice(CURSOR_PREFIX.length, separator);
+  if (!/^(?:[ad][fl]?)+$/.test(signature)) {
+    throw new PothosValidationError('Invalid cursor: missing or malformed ordering signature.');
   }
   if (checkOrdering && signature !== orderingSignature(order)) {
     throw new PothosValidationError(
@@ -441,7 +441,7 @@ function applyToCollection<C extends MapperCollection>(
     existing.some((item, i) => !(item instanceof OrderByItem) || !deepEqual(item, expected[i]))
   ) {
     throw new PothosValidationError(
-      'Connection Collection orderBy() must match a prefix of the cursor ordering for this page direction. Backward pagination requires reversed ordering; return an unordered Collection to support both directions.',
+      'Connection Collection orderBy() must match a prefix of the cursor ordering for this page direction. Backward pagination requires reversed ordering; return an unordered Collection to support both directions. Nullable cursor columns must specify the same `nulls` placement.',
     );
   }
   const withOrder =
@@ -532,7 +532,7 @@ export interface ConnectionPage<Row> {
 
 /**
  * Cursors are encoded lazily, so a selection without them encodes nothing. Edge cursors are
- * non-enumerable getters and the `pageInfo` cursors are enumerable getters.
+ * non-enumerable, so spreading or serialising an edge doesn't encode them.
  */
 export function buildConnectionPage<Row extends Record<string, unknown>>(
   rows: readonly Row[],
