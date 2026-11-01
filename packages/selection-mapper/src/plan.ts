@@ -252,7 +252,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /** Appends one merge to the list a play folds. The traversal's only way to add to a plan. */
   collect(merge: RootMerge<Query>) {
-    if ((merge.kind === 'variant' || merge.kind === 'field') && merge.onlyIn === 'expanding') {
+    if ('onlyIn' in merge && merge.onlyIn === 'expanding') {
       this.hasExpandingMerges = true;
     }
 

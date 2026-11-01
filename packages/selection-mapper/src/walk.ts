@@ -241,10 +241,11 @@ function visitedBefore(visited: Set<string>, key: string, fragment: Fragment): b
  * before any field is merged, so a conflict between two type-level selections is reported
  * whichever order the fragments appear in and never depends on a field-level select.
  *
- * `selections` are walked as `type`, as `walkSelections` walks them. Variants are entered
- * relative to `origin`, the type the plan was last entered as. The two differ inside an expansion
- * that selects no fields of its own. It narrows the walk to the implementations it covers but
- * enters none of them, so only its nested fragments that select fields enter a variant.
+ * `selections` are walked as `type`, and variants are entered relative to `origin`, the type the
+ * plan was last entered as. They differ only under a fragment that did not move the plan, such as
+ * an expansion that selects no fields of its own: it narrows the walk to the implementations it
+ * covers without entering them, so a nested fragment that selects fields enters the variant
+ * instead.
  */
 function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
