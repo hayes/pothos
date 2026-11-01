@@ -149,8 +149,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
               modelSource = ifaceConfig.name;
               continue;
             }
-            // This type's rows are never of the interface's variant, so the interface could never
-            // resolve to it.
+            // Not every row of this type is of the interface's variant, so it can't implement the
+            // interface.
             throw new PothosSchemaError(
               `'${typeConfig.name}' ${basis} prismaInterface '${ifaceConfig.name}', based on ` +
                 `variant model '${ifaceModel}'. A type can only implement the prismaInterfaces ` +
@@ -249,8 +249,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     adapter.registerImplementations(schema);
     for (const type of Object.values(schema.getTypeMap())) {
       if (isInterfaceType(type) && type.extensions?.[PRISMA_NEXT_DISCRIMINATED]) {
-        // Throws now, rather than on the first query, if a variant has no implementing type or
-        // several.
+        // Checks at build time that each variant has exactly one implementing type.
         variantTypeNames(contract, schema, type);
       }
       const modelName = type.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;

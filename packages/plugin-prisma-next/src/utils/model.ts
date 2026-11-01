@@ -20,8 +20,8 @@ export interface PrismaNextRelation {
   readonly declaredByVariant?: string;
   /**
    * Set when the relation targets a variant model. The ORM loads its rows through that model's
-   * own accessor, which is already narrowed and lacks the base's relations. When the variant
-   * shares the base's table, that accessor doesn't filter by the discriminator.
+   * own accessor, which lacks the base's relations and, when the variant shares the base's table,
+   * isn't filtered by the discriminator.
    */
   readonly targetVariantModel?: {
     readonly field: string;
@@ -38,7 +38,8 @@ export interface PrismaNextModel {
 
 function buildColumnSet(contract: AnyContract, modelName: string): ReadonlySet<string> {
   const fields = resolveContractModel(contract, modelName)?.fields ?? {};
-  // A base collection selects its variants' columns, leaving them absent on other variants' rows.
+  // A base collection also selects its variants' columns, so they count as the model's columns
+  // even though other variants' rows lack them.
   const variants = Object.values(modelDiscriminator(contract, modelName)?.variants ?? {});
   return new Set([
     ...Object.keys(fields),
@@ -125,19 +126,19 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
           );
         }
         const targetModel = relatedModelKey(contract, relation.to);
-        const target = variantOf(contract, targetModel);
+        const targetVariant = variantOf(contract, targetModel);
         relations[relationName] = {
           // orm-client resolves N:M junctions itself, so they include like any to-many relation.
           isToMany: relation.cardinality === '1:N' || relation.cardinality === 'N:M',
           targetModel,
           target: getModel(contract, targetModel),
           ...(variant === undefined ? {} : { declaredByVariant: variant }),
-          ...(target
+          ...(targetVariant
             ? {
                 targetVariantModel: {
-                  field: target.field,
-                  value: target.value,
-                  sharesTable: target.sharesTable,
+                  field: targetVariant.field,
+                  value: targetVariant.value,
+                  sharesTable: targetVariant.sharesTable,
                 },
               }
             : {}),

@@ -122,8 +122,8 @@ declare global {
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      // `Extract` drops `undefined` and keeps the user's exact contract. `Collection` is invariant
-      // in its contract, so a new type such as `Contract & object` would not match it.
+      // `Extract` drops `undefined` and keeps the user's exact contract type. `Collection` is
+      // invariant in its contract, so even `Contract & object` would not match it.
       PrismaNextContract: undefined extends PartialTypes['PrismaNextContract']
         ? AnyContract
         : Extract<PartialTypes['PrismaNextContract'], AnyContract>;

@@ -15,9 +15,10 @@ const refMap = new WeakMap<object, Map<string, AnyRef>>();
 const provisional = new WeakSet<AnyRef>();
 
 /**
- * The default ref for a model. Without a `kind` it is whichever kind the model was registered as
- * (an object ref, standing in for either kind, if it has not been registered yet); with one, a
- * ref of the other kind throws.
+ * The default ref for a model. With `kind`, it is a ref of that kind, and a model already
+ * registered as the other kind throws. Without one, it is a ref of the kind the model was
+ * registered as. If the model isn't registered yet, it is a provisional object ref that a later
+ * lookup with `kind: 'Interface'` replaces.
  */
 export function getRefFromContractModel<Types extends SchemaTypes>(
   modelName: string,
