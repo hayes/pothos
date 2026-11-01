@@ -3,45 +3,6 @@ import { createBuilder, run, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
 
-describe("an implementation's select under an interface", () => {
-  it('loads the columns isTypeOf reads', async () => {
-    const builder = createBuilder();
-    const Person = builder.prismaInterface('User', {
-      name: 'Person',
-      fields: (t) => ({ firstName: t.exposeString('firstName') }),
-    });
-    builder.prismaObject('User', {
-      variant: 'Alice',
-      interfaces: [Person],
-      select: ['email'],
-      isTypeOf: (user) => user.email === 'alice@example.com',
-    });
-    builder.prismaObject('User', {
-      variant: 'Other',
-      interfaces: [Person],
-      select: ['email'],
-      isTypeOf: (user) => user.email !== undefined && user.email !== 'alice@example.com',
-    });
-    builder.queryType({
-      fields: (t) => ({
-        people: t.prismaField({
-          type: [Person],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
-        }),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ people { __typename firstName } }');
-    expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({
-      people: [
-        { __typename: 'Alice', firstName: 'Alice' },
-        { __typename: 'Other', firstName: 'Bob' },
-      ],
-    });
-    expect(result.statements).toHaveLength(1);
-  });
-});
-
 describe("object fields reading an interface's select", () => {
   function withPosts(ownSelect: boolean) {
     const builder = createBuilder();

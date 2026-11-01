@@ -169,5 +169,8 @@ export function columnsOf(sql: string, table: string) {
   return new Set([...sql.matchAll(new RegExp(`"${table}"\\."(\\w+)"`, 'g'))].map((m) => m[1]));
 }
 
+/** How many times a statement reads the post table. */
+export const postSubqueries = (sql: string) => (sql.match(/FROM "post"/g) ?? []).length;
+
 export const globalId = (type: string, id: string) =>
   Buffer.from(`${type}:${id}`).toString('base64');

@@ -111,6 +111,8 @@ describe('prismaInterface', () => {
       userPage: { nodes: [{ id: 'u-alice', posts: [{ id: 'p-draft1' }, { id: 'p-hello' }] }] },
       post: { author: { firstName: 'Alice' } },
     });
+    // One per root field, each selecting the column isTypeOf reads.
+    expect(result.statements).toHaveLength(4);
   });
 
   it('routes rows through a resolveType the interface declares', async () => {

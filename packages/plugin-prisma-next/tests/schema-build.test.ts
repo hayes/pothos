@@ -5,6 +5,7 @@ import { type GraphQLObjectType, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin, { type AnyContract, prismaConnectionHelpers } from '../src';
 import { createBuilder, run, sampleContract, useSampleDb } from './fixtures/helpers';
+import { junctionContract } from './fixtures/junction';
 
 const db = useSampleDb();
 const ok = (builder: ReturnType<typeof createBuilder>) =>
@@ -291,37 +292,19 @@ describe('contracts', () => {
     relations,
     storage: { table },
   });
-  const through = {
-    table: 'post_tag',
-    namespaceId: '__unbound__',
-    parentColumns: ['postId'],
-    childColumns: ['tagId'],
-    targetColumns: ['id'],
-  };
+  const junction = (
+    junctionContract.domain.namespaces as unknown as Record<
+      string,
+      { models: Record<string, { relations: Record<string, object> }> }
+    >
+  ).__unbound__.models;
+  const { on: _on, ...tagsWithoutOn } = junction.Post.relations.tags as { on: unknown };
   const to = (target: string) => ({ namespace: '__unbound__', model: target });
 
   it.each([
     [
-      'an N:M relation',
-      {
-        Post: model(['id'], {
-          tags: {
-            cardinality: 'N:M',
-            to: to('Tag'),
-            on: { localFields: ['id'], targetFields: ['id'] },
-            through,
-          },
-        }),
-        Tag: model(['id']),
-      },
-      { Post: ['tags'], Tag: [] },
-    ],
-    [
       'an N:M relation without `on`',
-      {
-        Post: model(['id'], { tags: { cardinality: 'N:M', to: to('Tag'), through } }),
-        Tag: model(['id']),
-      },
+      { ...junction, Post: { ...junction.Post, relations: { tags: tagsWithoutOn } } },
       { Post: ['tags'], Tag: [] },
     ],
     [

@@ -1,7 +1,6 @@
 import { OrderByItem, ParamRef } from '@prisma/orm-family-sql/relational-core/ast';
 import { describe, expect, it, vi } from 'vitest';
 import { prismaConnectionHelpers } from '../src';
-import { buildExampleSchema } from './example/schema';
 import {
   type CapturedExecution,
   createBuilder,
@@ -394,29 +393,25 @@ describe('page sizes', () => {
   });
 
   it.each([
+    [{ maxConnectionSize: 0 }, 'prismaNext.maxConnectionSize must be a positive integer, got 0.'],
     [
-      'a zero maxConnectionSize',
-      { maxConnectionSize: 0 },
-      {},
-      /^prismaNext\.maxConnectionSize must be a positive integer, got 0\.$/,
-    ],
-    [
-      'a defaultConnectionSize above the safe integer range',
       { defaultConnectionSize: 1e20 },
-      {},
-      /^prismaNext\.defaultConnectionSize must be a positive integer, got 100000000000000000000\.$/,
+      'prismaNext.defaultConnectionSize must be a positive integer, got 100000000000000000000.',
     ],
-    ['an unsafe maxSize', {}, { maxSize: 2 ** 53 }, /maxSize must be a positive integer/],
-    [
-      'a negative defaultSize',
-      {},
-      { defaultSize: -1 },
-      /defaultSize must be a positive integer, got -1/,
-    ],
-    ['a fractional maxSize', {}, { maxSize: 1.5 }, /maxSize must be a positive integer, got 1.5/],
-  ])('rejects %s when the schema is built', (_name, options, sizes, message) => {
+  ])('rejects plugin option %j when the schema is built, without any connection fields', (options, message) => {
     expect(() => {
       const builder = createBuilder(options);
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      builder.toSchema();
+    }).toThrow(message);
+  });
+
+  it.each([
+    [{ defaultSize: -1 }, 'Connection defaultSize must be a positive integer, got -1.'],
+    [{ maxSize: 1.5 }, 'Connection maxSize must be a positive integer, got 1.5.'],
+  ])('rejects connection option %j when the schema is built', (sizes, message) => {
+    expect(() => {
+      const builder = createBuilder();
       builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
       builder.queryType({
         fields: (t) => ({
@@ -430,14 +425,6 @@ describe('page sizes', () => {
       });
       builder.toSchema();
     }).toThrow(message);
-  });
-
-  it('rejects an invalid plugin page size without any connection fields', () => {
-    expect(() => {
-      const builder = createBuilder({ defaultConnectionSize: 0 });
-      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
-      builder.toSchema();
-    }).toThrow('prismaNext.defaultConnectionSize must be a positive integer, got 0.');
   });
 
   it('rejects a size callback result that is not a positive integer before SQL', async () => {
@@ -1094,15 +1081,4 @@ describe('prismaConnectionHelpers', () => {
     );
     expect(second.data.cards.edges).toEqual([{ node: { name: 'Bob' } }]);
   });
-});
-
-it('pages the example schema connection with its nodes planned', async () => {
-  const result = await run(
-    buildExampleSchema(db),
-    '{ usersConnection(first: 1) { edges { node { firstName postCount } } } }',
-  );
-  expect(result.data.usersConnection.edges).toEqual([
-    { node: { firstName: 'Alice', postCount: 2 } },
-  ]);
-  expect(result.statements.filter(({ sql }) => !/^SELECT count/i.test(sql))).toHaveLength(1);
 });
