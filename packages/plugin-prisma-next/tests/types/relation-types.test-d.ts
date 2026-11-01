@@ -13,6 +13,7 @@ import prismaNextPlugin, {
   type RelationWhere,
   type SelectObjectSpec,
 } from '../../src';
+import type { SelectCheck } from '../../src/internal-types';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -128,6 +129,17 @@ expectTypeOf<AuthorFunctionForm>().toHaveProperty(
   'To-one relations take true or { where, orderBy, limit, offset }, not a function',
 );
 expectTypeOf<AuthorFunctionForm>().parameter(0).toEqualTypeOf<AuthorFunctionForm>();
+
+// The select check's error names the accepted forms for a to-one function only.
+expectTypeOf<SelectCheck<Types, 'Post', { author: () => {} }>>().toEqualTypeOf<{
+  'Invalid value in select: author': 'To-one relations take true or { where, orderBy, limit, offset }, not a function';
+}>();
+expectTypeOf<SelectCheck<Types, 'Post', { author: { limit: 'x' } }>>().toEqualTypeOf<{
+  'Invalid value in select: author': never;
+}>();
+expectTypeOf<SelectCheck<Types, 'User', { posts: (sub: never) => never }>>().toEqualTypeOf<{
+  'Invalid value in select: posts': never;
+}>();
 
 builder.prismaObject('User', {
   variant: 'PostsRefinement',

@@ -143,6 +143,9 @@ type SelectRelationDeclarative<
   readonly offset?: number;
 };
 
+type ToOneFunctionMessage =
+  'To-one relations take true or { where, orderBy, limit, offset }, not a function';
+
 /**
  * Rejects the function form on a to-one relation, which has no `combine()`. The parameter is typed
  * as this interface, so the error names it instead of an implicit `any`.
@@ -343,7 +346,16 @@ type InvalidSelectValueCheck<
       }[keyof Select & keyof SelectObjectSpec<Types, M>] extends infer Invalid extends string
     ? [Invalid] extends [never]
       ? unknown
-      : { [K in Invalid as `Invalid value in select: ${K}`]: never }
+      : {
+          // The value shows in the untruncated error, so a to-one function names the accepted forms.
+          [K in Invalid as `Invalid value in select: ${K}`]: Select[K & keyof Select] extends (
+            ...args: never[]
+          ) => unknown
+            ? [Extract<SelectObjectSpec<Types, M>[K], NoToOneSelectFunction>] extends [never]
+              ? never
+              : ToOneFunctionMessage
+            : never;
+        }
     : unknown;
 
 type Normalize<T> = { [K in keyof T]: T[K] } & {};
