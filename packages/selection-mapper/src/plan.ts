@@ -202,7 +202,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       // Every node selecting the field (one per fragment it appears under) plans into the same
       // row, so the loaded row satisfies each of them.
       for (const fieldNode of info.fieldNodes) {
-        walkField(plan, type, fieldNode, []);
+        walkField(plan, type, fieldNode, [], undefined);
       }
     } catch (error) {
       plan.abandon();
