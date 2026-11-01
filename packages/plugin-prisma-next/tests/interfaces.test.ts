@@ -199,7 +199,8 @@ describe('prismaInterface', () => {
     });
     builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
     expect(() => builder.toSchema()).toThrow(
-      /PrismaObjects must share a contract model with the PrismaInterfaces they extend/,
+      "'User' is based on model 'User' but implements prismaInterface 'PostLike', based on " +
+        "unrelated model 'Post'. A type can only implement prismaInterfaces of one model hierarchy.",
     );
   });
 });

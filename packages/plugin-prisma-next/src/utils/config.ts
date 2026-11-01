@@ -79,13 +79,15 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
       ? createContextCache((ctx: object) => clientOption(ctx as never))
       : () => clientOption;
   const collection = (ctx: object, modelName: string) => {
-    const found = collectionForModel(
-      contract,
-      client(ctx).orm,
-      rootModelKey(contract, modelName),
-    ) as MapperCollection | undefined;
+    const root = rootModelKey(contract, modelName);
+    const found = collectionForModel(contract, client(ctx).orm, root) as
+      | MapperCollection
+      | undefined;
     if (!found) {
-      throw new PothosValidationError(`prismaNext.client has no collection for '${modelName}'.`);
+      const through = root === modelName ? '' : ` (loaded through '${root}')`;
+      throw new PothosValidationError(
+        `prismaNext.client has no collection for '${modelName}'${through}.`,
+      );
     }
     return found;
   };
