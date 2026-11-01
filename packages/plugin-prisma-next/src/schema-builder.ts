@@ -22,7 +22,6 @@ import {
   assertVariantCollection,
   defaultTypeName,
   modelDiscriminator,
-  resolveContractModel,
   rootModelKey,
 } from './utils/contract.js';
 import { encodeNodeId, parseNodeId } from './utils/cursors.js';
@@ -42,15 +41,15 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   modelName: M,
   options: PrismaNextObjectOptions<Types, M, unknown, never[]>,
-  kind: 'interface' | 'object',
+  kind: 'Interface' | 'Object',
 ) {
-  const isInterface = kind === 'interface';
+  const isInterface = kind === 'Interface';
   // A type with a non-default name gets a new ref. The default name reuses the cached ref that
   // `t.relation` and helpers given a model name resolve to.
   const defaultName = defaultTypeName(modelName as string);
   const typeName = options.variant ?? options.name ?? defaultName;
-  const isVariant = typeName !== defaultName;
-  const ref = isVariant
+  const hasCustomName = typeName !== defaultName;
+  const ref = hasCustomName
     ? isInterface
       ? new PrismaNextInterfaceRef<Types, M>(typeName, modelName)
       : new PrismaNextObjectRef<Types, M>(typeName, modelName)
@@ -100,7 +99,7 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
               builder,
               modelName,
               contract as Types['PrismaNextContract'],
-              isInterface ? 'Interface' : 'Object',
+              kind,
             ) as never,
           )
       : undefined,
@@ -123,7 +122,7 @@ schemaBuilderProto.prismaObject = function prismaObject<
   modelName: M,
   options: PrismaNextObjectOptions<Types, M, unknown, never[]>,
 ) {
-  return definePrismaNextType<Types, M>(this, modelName, options, 'object') as never;
+  return definePrismaNextType<Types, M>(this, modelName, options, 'Object') as never;
 } as never;
 
 schemaBuilderProto.prismaInterface = function prismaInterface<
@@ -134,7 +133,7 @@ schemaBuilderProto.prismaInterface = function prismaInterface<
   modelName: M,
   options: PrismaNextObjectOptions<Types, M, unknown, never[]>,
 ) {
-  return definePrismaNextType<Types, M>(this, modelName, options, 'interface') as never;
+  return definePrismaNextType<Types, M>(this, modelName, options, 'Interface') as never;
 } as never;
 
 /**
@@ -143,15 +142,15 @@ schemaBuilderProto.prismaInterface = function prismaInterface<
  */
 function addPrismaNextFields(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  type: string | PrismaNextObjectRef<SchemaTypes, never, unknown>,
+  type:
+    | string
+    | PrismaNextObjectRef<SchemaTypes, never, unknown>
+    | PrismaNextInterfaceRef<SchemaTypes, never, unknown>,
   fields: (t: PrismaNextObjectFieldBuilder<SchemaTypes, never>) => object,
   kind: 'Interface' | 'Object',
 ) {
-  const modelName = typeof type === 'string' ? type : (type.modelName as string);
-  const ref =
-    typeof type !== 'string'
-      ? type
-      : getRefFromContractModel(modelName, builder, kind === 'Interface' ? 'interface' : 'object');
+  const modelName = typeof type === 'string' ? type : type.modelName;
+  const ref = typeof type === 'string' ? getRefFromContractModel(modelName, builder, kind) : type;
   const build = () =>
     fields(
       new PrismaNextObjectFieldBuilder(
@@ -228,13 +227,11 @@ schemaBuilderProto.prismaNode = function prismaNode<
 
   const { id: idOpts, collection: collectionOpt, ...rest } = options;
   const nodeModelName = modelName as string;
-  const idFields: readonly string[] = Array.isArray(idOpts.field)
-    ? idOpts.field
-    : [idOpts.field as string];
   const isTuple = Array.isArray(idOpts.field);
+  const idFields = isTuple ? (idOpts.field as readonly string[]) : [idOpts.field as string];
   const config = getPluginConfig(this);
   const { contract } = config;
-  assertContractModel(contract, nodeModelName);
+  const contractModel = assertContractModel(contract, nodeModelName);
   const identityKeys = getModelUniqueKeys(contract, nodeModelName);
   // IDs must be unique and non-null to load back as the same row.
   if (identityKeys && !identityKeys.some((key) => key.every((field) => idFields.includes(field)))) {
@@ -242,9 +239,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
       `prismaNode '${nodeModelName}' id.field must include every field of a non-null primary or unique key.`,
     );
   }
-  const nullableIdField = idFields.find(
-    (field) => resolveContractModel(contract, nodeModelName)?.fields[field]?.nullable !== false,
-  );
+  const nullableIdField = idFields.find((field) => contractModel.fields[field]?.nullable !== false);
   if (nullableIdField) {
     throw new PothosSchemaError(
       `prismaNode '${nodeModelName}' id.field '${nullableIdField}' must be a non-null model field.`,
