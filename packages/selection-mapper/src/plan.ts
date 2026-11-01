@@ -333,7 +333,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     const first = seed ?? this.initial;
 
     // An expanding play gives up on a type-level conflict, and a plain play is played instead.
-    return (this.hasExpandingMerges && this.fold(first, 'expanding')) || this.fold(first, 'plain')!;
+    return (this.hasExpandingMerges && this.fold(first, 'expanding')) || this.fold(first, 'plain');
   }
 
   /**
@@ -341,6 +341,11 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * merged before anything else, so on a conflict it wins. An expanding play returns undefined on
    * a type-level conflict, and a plain play throws it.
    */
+  private fold(first: Query | undefined, play: 'plain'): PlayedPlan<Model, Query, NodeType>;
+  private fold(
+    first: Query | undefined,
+    play: PlayKind,
+  ): PlayedPlan<Model, Query, NodeType> | undefined;
   private fold(
     first: Query | undefined,
     play: PlayKind,
