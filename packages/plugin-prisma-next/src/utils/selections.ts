@@ -11,7 +11,7 @@ import { getNamedType } from 'graphql';
 import { PRISMA_NEXT_MODEL } from '../constants.js';
 import type { AnyContract } from '../types.js';
 import type { MapperCollection } from './adapter.js';
-import { relationVariant } from './contract.js';
+import { variantForRelationType } from './contract.js';
 import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model.js';
 
 /*
@@ -134,7 +134,7 @@ const viewRows = new WeakMap<object, object>();
 
 /**
  * Moves the `combine()` slots off the rows a statement returned. A to-many relation loaded through
- * `combine()` comes back as an object with one slot per consumer scope, and `viewOf` gives each
+ * `combine()` comes back as an object with one slot per consumer scope, and `scopedView` gives each
  * reader the slots of its own scopes. When exactly one type-level select loaded slots on a row,
  * its rows and computed values are written back under their own keys. A reader that bypasses the
  * plugin's resolvers then sees the shape that type selected.
@@ -205,7 +205,7 @@ function lift(target: Record<string, unknown>, entry: Combined, scopes: readonly
 }
 
 /** The row a view was made from, or `value` itself. */
-export function rowOf<T>(value: T): T {
+export function rowOfView<T>(value: T): T {
   return (viewRows.get(value as object) as T | undefined) ?? value;
 }
 
@@ -216,8 +216,8 @@ export function rowOf<T>(value: T): T {
  * row and set of scopes, so per-row caches such as scope-auth's see a single parent object. When
  * the row already holds what those scopes loaded, the row itself is returned.
  */
-export function viewOf(value: object, scopes: readonly (string | undefined)[]): object {
-  const row = rowOf(value);
+export function scopedView(value: object, scopes: readonly (string | undefined)[]): object {
+  const row = rowOfView(value);
   const entry = combined.get(row);
   if (!entry) {
     return row;
@@ -338,9 +338,15 @@ export function applyQuery(collection: MapperCollection, query: DeclarativeQuery
  */
 export function relationArgs(
   relation: PrismaNextRelation,
-  query: unknown,
-  refine: ((rel: MapperCollection) => MapperCollection) | undefined,
-  variant?: string,
+  {
+    query,
+    refine,
+    variant,
+  }: {
+    query: unknown;
+    refine: ((rel: MapperCollection) => MapperCollection) | undefined;
+    variant?: string;
+  },
 ): RelationArgs {
   const target = relation.targetVariantModel;
   const narrowing: Narrowing | undefined = target
@@ -470,7 +476,10 @@ function compileSelect(
       scope,
       rows(relation, {
         columns: null,
-        args: relationArgs(relation, query, query && ((rel) => applyQuery(rel, query))),
+        args: relationArgs(relation, {
+          query,
+          refine: query && ((rel) => applyQuery(rel, query)),
+        }),
       }),
     );
   });
@@ -527,7 +536,7 @@ export function compileFieldSelect(
           return seed;
         }
         // A relation to a hierarchy's base, typed as one of its variants, loads that variant.
-        const variant = relationVariant(
+        const variant = variantForRelationType(
           contract,
           `Field '${position.field.name}'`,
           relation.targetModel,
