@@ -71,6 +71,10 @@ An object's fields can read its interfaces' `select`. A row loaded through the i
 loads each implementation's `select`, so `isTypeOf` and type-level `authScopes` can read it
 without a `... on Type` fragment (see [With scope-auth](./setup#with-scope-auth) for plugin order).
 Implementations that load the same to-one relation with different arguments fail the schema build.
+When the plugin loads rows as the interface, through a `prismaField`, `prismaConnection`,
+connection helpers, or a relation or relation `select` typed as the interface, an implementation
+must also load each to-one relation the same way as the interface's own `select`, or the schema
+build fails. A plain `t.field` that returns rows its resolver loaded doesn't count.
 
 ## Native inheritance
 
