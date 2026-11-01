@@ -48,6 +48,7 @@ function prismaFieldConfig(
   const inner = isList ? type[0] : type;
   const ref = refFor(builder, inner);
   const modelName = ref.modelName as string;
+  const config = getPluginConfig(builder);
 
   return {
     ...options,
@@ -64,7 +65,6 @@ function prismaFieldConfig(
             'Return the collection before executing it so the complete GraphQL selection can be applied.',
         );
       }
-      const config = getPluginConfig(builder);
       assertVariantCollection(config.contract, modelName, collection);
       const applied = (await applySelectionToCollection(
         collection,

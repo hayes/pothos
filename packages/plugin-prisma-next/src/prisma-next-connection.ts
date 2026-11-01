@@ -19,7 +19,6 @@ import {
 import { assertVariantCollection } from './utils/contract.js';
 import {
   applyCursorPagination,
-  assertUnpaginatedCollection,
   buildConnectionPage,
   type CursorInput,
   cursorColumns,
@@ -106,7 +105,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
       | undefined,
   });
   const modelName = ref.modelName as string;
-  const cursorSpec = validateCursor(config.contract, modelName, cursor as CursorInput);
+  const cursorOrder = validateCursor(config.contract, modelName, cursor as CursorInput);
 
   return this.connection(
     {
@@ -125,19 +124,18 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         if (userCollection == null) {
           return null;
         }
-        assertUnpaginatedCollection(userCollection);
         assertVariantCollection(config.contract, modelName, userCollection);
         const needsRows = connectionNeedsRows(context, info);
         const applied = needsRows
           ? await applySelectionToCollection(userCollection, info, config, context, {
               paths: CONNECTION_NODE_PATHS,
-              extraColumns: cursorColumns(cursorSpec),
+              extraColumns: cursorColumns(cursorOrder),
             })
           : userCollection;
 
         // Runs for a count-only selection too, so an invalid cursor or ordering still fails. No
         // rows are fetched here.
-        const pagination = applyCursorPagination(applied, cursorSpec, relayArgs, {
+        const pagination = applyCursorPagination(applied, cursorOrder, relayArgs, {
           ...settings.sizes(args as object, context),
           codecs: config.codecs(context, modelName),
           orderBy: orderBy && ((model) => orderBy(model as never, args, context)),

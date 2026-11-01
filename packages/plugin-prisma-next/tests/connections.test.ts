@@ -748,6 +748,22 @@ describe('base collections', () => {
   });
 
   it.each([
+    ['limit', () => db.orm.Post.limit(1), /unpaginated Collection/],
+    ['distinct', () => db.orm.Post.distinct('title'), /distinct/],
+  ])('rejects a prismaConnection base with %s before SQL', async (_name, base, message) => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaConnection({ type: 'Post', cursor: 'id', resolve: base as never }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ posts(first: 1) { edges { node { id } } } }');
+    expect(result.errors?.[0].message).toMatch(message);
+    expect(result.statements).toHaveLength(0);
+  });
+
+  it.each([
     [
       'an expression',
       () => db.orm.Post.orderBy(() => OrderByItem.asc(new ParamRef(BigInt(1)))),

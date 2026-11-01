@@ -48,7 +48,7 @@ export function connectionSettings<Count extends (...args: never[]) => unknown>(
       throw new PothosSchemaError(`Connection ${name} must be a positive integer, got ${size}.`);
     }
   }
-  const resolve = (
+  const resolveSize = (
     name: string,
     option: SizeOption | undefined,
     args: object,
@@ -68,8 +68,9 @@ export function connectionSettings<Count extends (...args: never[]) => unknown>(
   return {
     sizes(args: object, ctx: object): { defaultSize?: number; maxSize?: number } {
       return {
-        defaultSize: resolve('defaultSize', defaultSize, args, ctx) ?? config.defaultConnectionSize,
-        maxSize: resolve('maxSize', maxSize, args, ctx) ?? config.maxConnectionSize,
+        defaultSize:
+          resolveSize('defaultSize', defaultSize, args, ctx) ?? config.defaultConnectionSize,
+        maxSize: resolveSize('maxSize', maxSize, args, ctx) ?? config.maxConnectionSize,
       };
     },
     /**

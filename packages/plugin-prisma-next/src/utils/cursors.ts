@@ -309,7 +309,7 @@ function buildLexicographicPredicate(
 }
 
 interface CursorPaginationParams {
-  cursor: CursorOrder;
+  order: CursorOrder;
   before: string | undefined;
   after: string | undefined;
   limit: number;
@@ -331,7 +331,7 @@ interface PaginationOptions {
 }
 
 export function buildPaginationParams(
-  cursor: CursorOrder,
+  order: CursorOrder,
   args: PothosSchemaTypes.DefaultConnectionArguments,
   options: PaginationOptions,
 ): CursorPaginationParams {
@@ -341,7 +341,7 @@ export function buildPaginationParams(
       defaultSize: options.defaultSize,
       maxSize: options.maxSize,
     }),
-    cursor,
+    order,
     codecs: options.codecs,
   };
 }
@@ -420,9 +420,9 @@ function applyToCollection<C extends MapperCollection>(
   params: CursorPaginationParams,
   checkOrdering: boolean,
 ): C {
-  const { cursor, before, after, limit, inverted, codecs } = params;
+  const { order, before, after, limit, inverted, codecs } = params;
 
-  const orderSelectors = cursor.map(
+  const orderSelectors = order.map(
     ({ field, direction, nulls }) =>
       (c: Record<string, ComparableColumn>) => {
         const forward = c[field]![direction](nulls ? { nulls } : undefined);
@@ -457,8 +457,8 @@ function applyToCollection<C extends MapperCollection>(
   if (after) {
     collection = collection.where(
       buildLexicographicPredicate(
-        cursor,
-        decodeBoundary(cursor, after, codecs, { checkOrdering }),
+        order,
+        decodeBoundary(order, after, codecs, { checkOrdering }),
         'gt',
       ),
     );
@@ -466,8 +466,8 @@ function applyToCollection<C extends MapperCollection>(
   if (before) {
     collection = collection.where(
       buildLexicographicPredicate(
-        cursor,
-        decodeBoundary(cursor, before, codecs, { checkOrdering }),
+        order,
+        decodeBoundary(order, before, codecs, { checkOrdering }),
         'lt',
       ),
     );
@@ -481,23 +481,23 @@ function applyToCollection<C extends MapperCollection>(
  * checks the ordering later.
  */
 export function validateCursorArgs(
-  cursor: CursorOrder,
+  order: CursorOrder,
   args: PothosSchemaTypes.DefaultConnectionArguments,
   codecs: FieldCodecs,
   options?: { checkOrdering?: boolean },
 ): void {
-  const { before, after } = buildPaginationParams(cursor, args, { codecs });
+  const { before, after } = buildPaginationParams(order, args, { codecs });
   if (after) {
-    decodeBoundary(cursor, after, codecs, options);
+    decodeBoundary(order, after, codecs, options);
   }
   if (before) {
-    decodeBoundary(cursor, before, codecs, options);
+    decodeBoundary(order, before, codecs, options);
   }
 }
 
 export function applyCursorPagination<C extends MapperCollection>(
   baseCollection: C,
-  cursor: CursorOrder,
+  order: CursorOrder,
   args: PothosSchemaTypes.DefaultConnectionArguments,
   options: PaginationOptions & {
     orderBy?: RequestOrderBy | undefined;
@@ -507,7 +507,7 @@ export function applyCursorPagination<C extends MapperCollection>(
 ): CursorPaginationResult<C> {
   assertUnpaginatedCollection(baseCollection);
   const params = buildPaginationParams(
-    options.orderBy ? applyOrderByOption(baseCollection, cursor, options.orderBy) : cursor,
+    options.orderBy ? applyOrderByOption(baseCollection, order, options.orderBy) : order,
     args,
     options,
   );
@@ -550,7 +550,7 @@ export function buildConnectionPage<Row extends Record<string, unknown>>(
       enumerable: false,
       configurable: true,
       get() {
-        cached ??= encodeCursor(pagination.cursor, node, pagination.codecs);
+        cached ??= encodeCursor(pagination.order, node, pagination.codecs);
         return cached;
       },
     });

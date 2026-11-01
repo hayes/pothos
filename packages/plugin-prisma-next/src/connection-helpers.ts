@@ -157,7 +157,7 @@ export function prismaConnectionHelpers<
 
   let args: Args | undefined;
   const config = getPluginConfig(builder);
-  const cursorSpec = validateCursor(config.contract, modelName, options.cursor);
+  const cursorOrder = validateCursor(config.contract, modelName, options.cursor);
   const settings = connectionSettings<
     (
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
@@ -200,7 +200,7 @@ export function prismaConnectionHelpers<
       Types,
       M
     >;
-    const pagination = applyCursorPagination(filteredBase as never, cursorSpec, args, {
+    const pagination = applyCursorPagination(filteredBase as never, cursorOrder, args, {
       ...settings.sizes(args, ctx as object),
       codecs: config.codecs(ctx, modelName),
       orderBy,
@@ -209,7 +209,7 @@ export function prismaConnectionHelpers<
     const prepared = (info
       ? applySelectionToCollection(pagination.collection, info, config, ctx, {
           paths: CONNECTION_NODE_PATHS,
-          extraColumns: cursorColumns(cursorSpec),
+          extraColumns: cursorColumns(cursorOrder),
         })
       : pagination.collection) as unknown as MaybePromise<CollectionFor<Types, M>>;
 
