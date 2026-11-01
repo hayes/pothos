@@ -1,7 +1,6 @@
 import { PothosSchemaError, type SchemaTypes } from '@pothos/core';
 import { PrismaNextInterfaceRef } from '../interface-ref.js';
 import { PrismaNextObjectRef } from '../object-ref.js';
-import type { ModelName, Row } from '../types.js';
 import { defaultTypeName } from './contract.js';
 
 type AnyRef =
@@ -19,20 +18,11 @@ const provisional = new WeakSet<AnyRef>();
  * (an object ref, standing in for either kind, if it has not been registered yet); with one, a
  * ref of the other kind throws.
  */
-export function getRefFromContractModel<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  Shape = Row<Types, M>,
->(
-  modelName: M,
+export function getRefFromContractModel<Types extends SchemaTypes>(
+  modelName: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   kind?: 'interface' | 'object',
-): PrismaNextObjectRef<Types, M, Shape> | PrismaNextInterfaceRef<Types, M, Shape>;
-export function getRefFromContractModel(
-  modelName: string,
-  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  kind?: 'interface' | 'object',
-): unknown {
+): AnyRef {
   let cache = refMap.get(builder);
   if (!cache) {
     cache = new Map();
@@ -48,9 +38,12 @@ export function getRefFromContractModel(
   }
   if (kind && ref instanceof PrismaNextInterfaceRef !== (kind === 'interface')) {
     if (!provisional.has(ref)) {
+      const [first, then] =
+        kind === 'interface' ? ['Object', 'Interface'] : ['Interface', 'Object'];
       throw new PothosSchemaError(
-        `Model '${modelName}' was registered as both a prismaObject and a prismaInterface. ` +
-          "Use 'variant' instead of the default name on one of the registrations.",
+        `Model '${modelName}' was used with prisma${first} or prisma${first}Field(s) and then ` +
+          `with prisma${then} or prisma${then}Field(s), so its default type would be both an ` +
+          "object and an interface. Use 'variant' instead of the default name on one of them.",
       );
     }
     const replacement = createRef(modelName, kind);
@@ -74,5 +67,8 @@ function createRef(modelName: string, kind: 'interface' | 'object'): AnyRef {
 export function refFor(builder: object, type: unknown): AnyRef {
   return type instanceof PrismaNextObjectRef || type instanceof PrismaNextInterfaceRef
     ? (type as AnyRef)
-    : (getRefFromContractModel(type as never, builder as never) as AnyRef);
+    : getRefFromContractModel(
+        type as string,
+        builder as PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+      );
 }

@@ -697,9 +697,6 @@ describe('native model inheritance', () => {
     const task = builderTask(builder);
     builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
     builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
-    expect(() => builder.prismaObjectFields('Task', () => ({}))).toThrow(
-      /Model 'Task' was registered as both a prismaObject and a prismaInterface/,
-    );
     builder.queryType({
       fields: (t) => ({
         tasks: t.connection({
@@ -720,6 +717,32 @@ describe('native model inheritance', () => {
       { node: { __typename: 'Bug', title: 'bug1' } },
       { node: { __typename: 'Feature', title: 'feat1' } },
     ]);
+  });
+
+  it.each([
+    [
+      'an interface after object fields',
+      'object',
+      'interface',
+      'prismaObject or prismaObjectField(s) and then with prismaInterface',
+    ],
+    [
+      'object fields after an interface',
+      'interface',
+      'object',
+      'prismaInterface or prismaInterfaceField(s) and then with prismaObject',
+    ],
+  ] as const)('rejects a model used as %s', (_, first, then, message) => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const use = (kind: 'interface' | 'object') =>
+      kind === 'interface'
+        ? builderTask(builder)
+        : builder.prismaObjectFields('Task', (t) => ({ title: t.exposeString('title') }));
+    use(first);
+    expect(() => use(then)).toThrow(`Model 'Task' was used with ${message}`);
   });
 
   it("encodes a column a variant keeps in its own table through that column's codec", async () => {

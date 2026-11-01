@@ -54,7 +54,7 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
     ? isInterface
       ? new PrismaNextInterfaceRef<Types, M>(typeName, modelName)
       : new PrismaNextObjectRef<Types, M>(typeName, modelName)
-    : getRefFromContractModel<Types, M>(modelName, builder, kind);
+    : getRefFromContractModel(modelName as string, builder, kind);
 
   const { contract } = getPluginConfig(builder);
   const discriminator = isInterface ? modelDiscriminator(contract, modelName as string) : undefined;
@@ -151,11 +151,7 @@ function addPrismaNextFields(
   const ref =
     typeof type !== 'string'
       ? type
-      : getRefFromContractModel(
-          modelName as never,
-          builder,
-          kind === 'Interface' ? 'interface' : 'object',
-        );
+      : getRefFromContractModel(modelName, builder, kind === 'Interface' ? 'interface' : 'object');
   const build = () =>
     fields(
       new PrismaNextObjectFieldBuilder(
