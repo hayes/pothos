@@ -300,8 +300,8 @@ export function definedQuery(value: unknown): DeclarativeQuery | undefined {
 }
 
 /**
- * A `where` option as the ORM takes it. A callback also receives the field's arguments and the
- * request context, before the ORM's tools.
+ * A `where` option as the ORM takes it. A callback written as `(model, args, ctx, tools)` is
+ * adapted to the ORM's `(model, tools)`.
  */
 export function whereInput(where: unknown, args: object, ctx: object): unknown {
   return typeof where === 'function'
@@ -532,6 +532,7 @@ export function compileFieldSelect(
       args,
       source: raw,
       rows: (relation, seed) => {
+        // A field that returns another model has a selection set that can't load from these rows.
         if (returnModel && returnModel !== relation.target) {
           return seed;
         }

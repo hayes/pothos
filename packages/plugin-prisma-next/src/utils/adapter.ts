@@ -305,7 +305,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
       for (const column of query.columns ?? []) {
         if (!model.columns.has(column)) {
           throw new PothosValidationError(
-            `select: '${column}' is not a column or relation on ${model.name}. Check for a typo, or register the field via the contract.`,
+            `select: '${column}' is not a column or relation on ${model.name}.`,
           );
         }
         visit.column(column);
@@ -315,6 +315,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
       visit.relation(key, relationOf(model, relationName(key)).target, query.relations![key]);
     }
     for (const key of Object.keys(query.computed ?? {})) {
+      // Throws for an unknown relation.
       relationOf(model, relationName(key));
       visit.computed(key, query.computed![key], 'relation');
     }
