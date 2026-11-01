@@ -45,12 +45,12 @@ With pnpm:
 }
 ```
 
-Yarn uses `resolutions` with the same entry. Don't downgrade the ORM packages instead: Prisma
-refuses to run with two copies of the ORM installed.
+Yarn uses `resolutions` with the same entry. Don't downgrade the ORM packages instead, because
+Prisma refuses to run with two copies of the ORM installed.
 
-Then scaffold the project. This writes a contract, a `prisma.config.ts`, and a
-`src/prisma/db.ts` that creates the client, installs the latest `@prisma/orm-postgres`, and emits
-the contract:
+Then scaffold the project. `orm init` writes a contract, a `prisma.config.ts`, and a
+`src/prisma/db.ts` that creates the client. It also installs the latest `@prisma/orm-postgres` and
+emits the contract:
 
 ```sh
 npx prisma orm init --target postgres --authoring psl
@@ -74,8 +74,8 @@ connections, or `t.prismaFieldWithInput`.
 
 ## Configure the builder
 
-Pass the client from `src/prisma/db.ts` to the plugin. The contract's types provide model,
-relation, and column types; run `prisma contract emit` after changing the contract.
+Pass the client from `src/prisma/db.ts` to the plugin. Model, relation, and column types come
+from the emitted contract, so run `prisma contract emit` after changing the contract.
 
 ```ts
 import SchemaBuilder from '@pothos/core';
@@ -97,7 +97,7 @@ A PostgreSQL client groups collections by schema, as in `ctx.db.orm.public.User`
 use a SQLite client, where the same collection is `ctx.db.orm.User`.
 
 To load through a client chosen per request, such as a transaction, pass a function of the
-context. The contract is then passed as well, since the schema is built before any request:
+context as `client`. Pass `contract` as well, because the schema is built before any request:
 
 ```ts
 import type { PostgresQueryMembers } from '@prisma/orm-postgres/runtime';
@@ -138,15 +138,15 @@ prismaNext: {
 - `client`: the Prisma client, or `(ctx) => client` together with `contract`. Required. The
   plugin also uses it to [load fields a parent query couldn't
   include](./relations#loading-without-a-parent-query) and for `node(id:)`.
-- `skipDeferredFragments`: `@defer` fragments are left out of the initial query and loaded when
-  executed. Set to `false` to load them eagerly; deferred fields on a model without a key can't
-  be loaded later.
+- `skipDeferredFragments`: leaves `@defer` fragments out of the initial query and loads them when
+  they execute. Defaults to `true`. Set it to `false` to load them eagerly. A model without a key
+  can't be reloaded, so its deferred fields need `false`.
 - `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes, 20 and 100 when
   unset. Fields override them with `defaultSize` and `maxSize`.
 - `filterConnectionTotalCount`: a `relatedConnection`'s `totalCount` counts the rows matching its
   `query.where`. Set to `false` to count every related row.
 
-Operations must be executed with a context object, such as `contextValue: {}`: the plugin keeps
+Execute operations with a context object, such as `contextValue: {}`, because the plugin keeps
 per-request state on it.
 
 Mistakes such as an unknown model or column, or a page size that isn't a positive integer, fail
@@ -201,8 +201,9 @@ builder.prismaObject('billing.User', {
 Pothos does not create transactions. To run a mutation's queries in one, execute GraphQL inside
 the transaction callback and pass the transaction as `ctx.db`. With
 [`client: (ctx) => ctx.db`](#configure-the-builder), typed with `PostgresQueryMembers`, the
-plugin's own loads use the same transaction; it can't tell when `ctx.db` is a client on another
-connection. Finish executing, including deferred results, before the callback returns:
+plugin's own loads use the same transaction. The plugin can't check that `ctx.db` is the
+transaction, so a client on another connection loads outside it. Finish executing, including
+deferred results, before the callback returns:
 
 ```ts
 const result = await db.transaction(async (tx) => {

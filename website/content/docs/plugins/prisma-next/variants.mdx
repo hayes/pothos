@@ -39,8 +39,8 @@ builder.queryFields((t) => ({
 
 ## Variant fields
 
-`t.variant` exposes the same row as another variant, without another query. `isNull` returns
-`null` instead; it can only read columns listed in `select`:
+`t.variant` exposes the same row as another variant without another query. Pass `isNull` to
+return `null` for some rows. It can only read columns listed in the field's `select`:
 
 ```ts
 builder.prismaObject('User', {
