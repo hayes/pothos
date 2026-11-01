@@ -49,6 +49,7 @@ function prismaFieldConfig(
   const ref = refFor(builder, inner);
   const modelName = ref.modelName as string;
   const config = getPluginConfig(builder);
+  config.adapter.loadsRowsOf(ref.name);
 
   return {
     ...options,

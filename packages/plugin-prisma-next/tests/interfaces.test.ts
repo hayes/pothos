@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import { createBuilder, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
@@ -448,19 +448,26 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it("rejects an implementation whose to-one select differs from a returned interface's", () => {
+  // Post loads its author with other arguments than PostBase does.
+  function conflictingPostBuilder() {
     const builder = createBuilder();
     const PostBase = builder.prismaInterface('Post', {
       name: 'PostBase',
       select: { author: true },
       fields: (t) => ({ id: t.exposeID('id') }),
     });
-    builder.prismaObject('Post', {
+    builder.prismaNode('Post', {
+      id: { field: 'id' },
       interfaces: [PostBase],
       select: { author: { where: { firstName: 'Nobody' } } },
       isTypeOf: (post) => post.author === null,
     });
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    return { builder, PostBase };
+  }
+
+  it("rejects an implementation whose to-one select differs from a loaded interface's", () => {
+    const { builder, PostBase } = conflictingPostBuilder();
     builder.queryType({
       fields: (t) => ({
         posts: t.prismaField({ type: [PostBase], resolve: () => db.orm.Post }),
@@ -471,6 +478,56 @@ describe('inherited selections', () => {
     expect(() => builder.toSchema()).toThrow(
       `The select of 'Post' loads to-one relation "author" differently from the select of prismaInterface 'PostBase'.`,
     );
+  });
+
+  it("rejects the conflict when a field's select plans the interface", () => {
+    const { builder, PostBase } = conflictingPostBuilder();
+    builder.prismaObjectField('User', 'posts', (t) =>
+      t.field({ type: [PostBase], select: { posts: true }, resolve: (user) => user.posts }),
+    );
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({ type: 'User', resolve: () => db.orm.User }),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow(
+      `differently from the select of prismaInterface 'PostBase'.`,
+    );
+  });
+
+  it('rejects the conflict when connection helpers load the interface', () => {
+    const { builder, PostBase } = conflictingPostBuilder();
+    const pages = prismaConnectionHelpers(builder, PostBase, { cursor: 'id' });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.connection({
+          type: pages.ref,
+          resolve: async (_parent, args, ctx, info) => {
+            const { collection, wrap } = await pages.applyPagination(db.orm.Post, args, ctx, info);
+            return wrap(await collection.all());
+          },
+        }),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow(
+      `differently from the select of prismaInterface 'PostBase'.`,
+    );
+  });
+
+  it('builds when only a plain field returns the interface', () => {
+    const { builder, PostBase } = conflictingPostBuilder();
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.field({ type: [PostBase], resolve: () => [] }),
+      }),
+    });
+    expect(() => builder.toSchema()).not.toThrow();
+  });
+
+  it('builds when the interface is only reached through node and nodes', () => {
+    const { builder } = conflictingPostBuilder();
+    builder.queryType({});
+    expect(printSchema(builder.toSchema())).toContain('interface PostBase');
   });
 
   it('rejects implementations that load a to-one relation differently', () => {
@@ -486,7 +543,7 @@ describe('inherited selections', () => {
       select: { profile: { where: { id: 1 } } },
     });
     expect(() => builder.toSchema()).toThrow(
-      `The select of 'WithoutProfile' loads to-one relation "profile" differently`,
+      `The select of 'WithoutProfile' loads to-one relation "profile" differently from another implementation of prismaInterface 'Account'`,
     );
   });
 });

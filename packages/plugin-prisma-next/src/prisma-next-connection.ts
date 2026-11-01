@@ -96,6 +96,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   };
   const ref = refFor(this.builder, type);
   const config = getPluginConfig(this.builder);
+  config.adapter.loadsRowsOf(ref.name);
   const settings = connectionSettings(config, {
     defaultSize,
     maxSize,
