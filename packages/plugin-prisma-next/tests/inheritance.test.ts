@@ -297,6 +297,25 @@ describe('native model inheritance', () => {
     expect(nested.statements).toHaveLength(1);
   });
 
+  it("names the base collection a variant's fallback needs when the client lacks it", async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { contract, client: () => ({ orm: { User: db.orm.User } }) as never },
+    });
+    const bug = builder.prismaObject('Bug', {
+      fields: (t) => ({ owner: t.relation('owner') }),
+    });
+    builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
+    builder.queryType({
+      fields: (t) => ({ bug: t.field({ type: bug, resolve: () => ({ id: 't1' }) as never }) }),
+    });
+    const result = await run(builder.toSchema(), '{ bug { owner { email } } }');
+    expect(result.errors?.[0]?.message).toBe(
+      "prismaNext.client has no collection for 'Bug' (loaded through 'Task').",
+    );
+  });
+
   it('reports a node row without its id field', async () => {
     const result = await run(createVariantSchema(), '{ orphanFeature { id } }');
     expect(result.errors?.[0]?.message).toMatch(/identity field 'Feature\.id'/);

@@ -228,6 +228,22 @@ describe('field select forms', () => {
     expect(() => builder.toSchema()).toThrow(message);
   });
 
+  it('reports an unknown column from a select callback when the query runs', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        garbled: t.string({ select: () => ({ firstNme: true }) as never, resolve: () => 'x' }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+    });
+    const result = await run(builder.toSchema(), '{ users { garbled } }');
+    expect(result.errors?.[0].message).toBe(
+      "select: 'firstNme' is not a column or relation on User.",
+    );
+  });
+
   it('reports a relation select of an unrecognized shape', async () => {
     const builder = createBuilder();
     builder.prismaObject('User', {
