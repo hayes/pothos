@@ -129,15 +129,29 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const { contract } = this.config;
     const ownModel = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
     let model = ownModel;
+    // The interface `model` came from, for a type without its own.
+    let modelSource: string | undefined;
     for (const iface of typeConfig.interfaces) {
       const ifaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
       const ifaceModel = ifaceConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
       if (ifaceModel) {
         const root = model && rootModelKey(contract, model);
         if (root !== undefined && root === rootModelKey(contract, ifaceModel)) {
+          // Rows of one variant are never rows of another, so no type could be routed both.
+          if (model !== root && ifaceModel !== root && model !== ifaceModel) {
+            const other = modelSource
+              ? `prismaInterface '${modelSource}', based on variant model '${model}'`
+              : `its own variant model '${model}'`;
+            throw new PothosSchemaError(
+              `'${typeConfig.name}' implements prismaInterface '${ifaceConfig.name}', based on ` +
+                `variant model '${ifaceModel}', which conflicts with ${other}. A type can only ` +
+                `implement the prismaInterfaces of '${root}' and of one of its variants.`,
+            );
+          }
           // A type keeps the most specific model of its hierarchy: its own, or a variant's.
           if (model === root && ifaceModel !== root && !ownModel) {
             model = ifaceModel;
+            modelSource = ifaceConfig.name;
           }
           continue;
         }
@@ -149,6 +163,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           );
         }
         model = ifaceModel;
+        modelSource = ifaceConfig.name;
       }
     }
     if (model === undefined) {
