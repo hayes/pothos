@@ -221,12 +221,14 @@ export function prismaConnectionHelpers<
       if (!source) {
         return undefined;
       }
-      totalCountPromise ??=
-        source === 'aggregate'
-          ? aggregateCount(filteredBase)
-          : Promise.resolve().then(() => source(args, ctx, info));
-      // Marks the rejection as handled. The consumer still receives it from the promise.
-      totalCountPromise.catch(() => undefined);
+      if (!totalCountPromise) {
+        totalCountPromise =
+          source === 'aggregate'
+            ? aggregateCount(filteredBase)
+            : Promise.resolve().then(() => source(args, ctx, info));
+        // Marks the rejection as handled. The consumer still receives it from the promise.
+        totalCountPromise.catch(() => undefined);
+      }
       return totalCountPromise;
     };
 
