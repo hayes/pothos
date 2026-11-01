@@ -8,5 +8,5 @@
 !/README.md
 !/LICENSE
 !/CHANGELOG.md
-# Declarations emitted into src by a stray tsc run.
+# Keep stray `tsc` output in src out of the package.
 src/**/*.d.ts
