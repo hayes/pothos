@@ -331,8 +331,12 @@ describe('native model inheritance', () => {
         collection: () => db.orm.Task.variant('bug'),
         fields: (t) => ({ severity: t.exposeString('severity') }),
       });
+      // Its field reads only what an implementation's type-level select loads.
+      const prioritized = builder.interfaceRef<{ priority: number }>('Prioritized').implement({
+        fields: (t) => ({ priority: t.int({ resolve: (row) => row.priority }) }),
+      });
       builder.prismaNode('Feature', {
-        interfaces: [titled, task],
+        interfaces: [titled, task, prioritized],
         id: { field: 'id' },
         collection: () => db.orm.Task.variant('feature'),
         select: ['priority'],
@@ -407,6 +411,36 @@ describe('native model inheritance', () => {
         { title: 'feat1', id: featureId, typePriority: 5 },
       ]);
       expect(result.statements).toHaveLength(1);
+    });
+
+    it("loads a model-less interface's field through a variant's type-level select", async () => {
+      const result = await run(
+        createComponentSchema(),
+        'query { tasks { ...PrioritizedFields } } fragment PrioritizedFields on Prioritized { priority }',
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.tasks).toEqual([{}, { priority: 5 }]);
+      expect(result.statements).toHaveLength(1);
+    });
+
+    it('plans interface fragments through node and nodes', async () => {
+      const schema = createComponentSchema();
+      const node = await run(schema, `query { node(id: "${bugId}") { ...BugCard } } ${fragments}`);
+      expect(node.errors).toBeUndefined();
+      expect(node.data.node).toEqual(bugCard);
+      expect(node.statements).toHaveLength(1);
+
+      const nodes = await run(
+        schema,
+        `query { nodes(ids: ["${bugId}", "${featureId}"]) { ...BugCard ...FeatureCard ...TitledFields } } ${fragments}`,
+      );
+      expect(nodes.errors).toBeUndefined();
+      expect(nodes.data.nodes).toEqual([
+        bugCard,
+        { id: featureId, typePriority: 5, title: 'feat1' },
+      ]);
+      // One statement per type.
+      expect(nodes.statements).toHaveLength(2);
     });
 
     it('plans a fragment beside direct fields on the same relation in one statement', async () => {
