@@ -702,7 +702,7 @@ describe.each(orders)('runScopesOnType through an interface (%s)', (order, plugi
   it.each([
     ['the same relation', true, ['p-draft1', 'p-hello']],
     // The row is shared, so Admin also sees the posts Member's select loads.
-    ['no relation', undefined, expect.anything()],
+    ['no relation', undefined, ['p-draft1', 'p-hello']],
   ] as const)('loads the relation an implementation selects when the other selects %s', async (_name, adminPosts, adminPostIds) => {
     const { rootSeen, relationSeen } = await run(adminPosts);
     expect(rootSeen).toEqual([['Admin', 'alice@example.com', adminPostIds], memberSeen]);
@@ -718,7 +718,7 @@ describe.each(orders)('runScopesOnType through an interface (%s)', (order, plugi
   } else {
     // Scope-auth's `isTypeOf` wraps this plugin's, so it reads the shared row, which holds neither
     // implementation's `posts`. The setup docs say to list prismaNextPlugin first for this.
-    it('documented scope-auth-first behaviour: implementations selecting one relation with different arguments see neither', async () => {
+    it('hands neither implementation the relation when they select it with different arguments', async () => {
       const { rootSeen, relationSeen } = await run({ where: { published: 1 } });
       expect(rootSeen).toEqual([
         ['Admin', 'alice@example.com', undefined],
