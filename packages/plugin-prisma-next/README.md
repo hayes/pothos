@@ -12,7 +12,8 @@ For Prisma ORM 7 and `@prisma/client`, use
 [`@pothos/plugin-prisma`](https://pothos-graphql.dev/docs/plugins/prisma). The two plugins can't be
 used in the same program: both add `prismaObject`, `prismaField` and the other `prisma*` methods
 to the builder. Importing both throws an error, and their type declarations conflict (TS2717 with
-`skipLibCheck: false`; with `skipLibCheck: true`, `@pothos/plugin-prisma`'s types silently win).
+`skipLibCheck: false`; with `skipLibCheck: true`, one plugin's types silently replace the
+other's).
 
 ## Example
 
