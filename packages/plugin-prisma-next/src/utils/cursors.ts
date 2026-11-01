@@ -255,7 +255,7 @@ export function parseNodeId(
   fields: readonly string[],
   id: string,
   codecs: FieldCodecs,
-  tuple: boolean,
+  { tuple }: { tuple: boolean },
 ): unknown {
   let values: Record<string, unknown>;
   try {

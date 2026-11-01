@@ -6,9 +6,9 @@ import SchemaBuilder, {
 import type { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
 import {
   PRISMA_NEXT_DISCRIMINATED,
-  PRISMA_NEXT_FIELD_SELECT,
+  PRISMA_NEXT_FIELD_SELECTION,
   PRISMA_NEXT_MODEL,
-  PRISMA_NEXT_SELECT,
+  PRISMA_NEXT_TYPE_SELECT,
 } from './constants.js';
 import { PrismaNextInterfaceRef } from './interface-ref.js';
 import { PrismaNextNodeRef } from './node-ref.js';
@@ -90,7 +90,7 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
       ...(options.extensions as Record<string, unknown> | undefined),
       ...(discriminated ? { [PRISMA_NEXT_DISCRIMINATED]: true } : {}),
       [PRISMA_NEXT_MODEL]: modelName,
-      ...(select !== undefined ? { [PRISMA_NEXT_SELECT]: select } : {}),
+      ...(select !== undefined ? { [PRISMA_NEXT_TYPE_SELECT]: select } : {}),
     },
     name: typeName,
     fields: options.fields
@@ -261,7 +261,9 @@ schemaBuilderProto.prismaNode = function prismaNode<
     idOpts.parse ??
     ((id: string, ctx: Types['Context']) => {
       assertContextObject(ctx);
-      return parseNodeId(nodeModelName, idFields, id, config.codecs(ctx, nodeModelName), isTuple);
+      return parseNodeId(nodeModelName, idFields, id, config.codecs(ctx, nodeModelName), {
+        tuple: isTuple,
+      });
     });
   const objectRef = this.prismaObject(modelName as never, rest as never);
   const typeName = objectRef.name;
@@ -272,7 +274,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
 
   this.nodeRef(objectRef as never, {
     id: {
-      extensions: { [PRISMA_NEXT_FIELD_SELECT]: { columns: idFields } },
+      extensions: { [PRISMA_NEXT_FIELD_SELECTION]: { columns: idFields } },
       ...(idOpts.description !== undefined ? { description: idOpts.description } : {}),
       parse: parseId,
       resolve: (

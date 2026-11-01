@@ -19,7 +19,7 @@ import {
 import type { IndirectInclude } from '@pothos/selection-mapper';
 import type { ContractRelation } from '@prisma/orm-framework/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
-import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_LOADED } from './constants.js';
+import { PRISMA_NEXT_FIELD_SELECTION, PRISMA_NEXT_LOADED } from './constants.js';
 import type { ExposableColumn, ExposeColumnNullability } from './internal-types.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
@@ -57,7 +57,7 @@ import {
   relatedCount,
   selectsRows,
 } from './utils/connections.js';
-import { assertContractModel, relationVariant } from './utils/contract.js';
+import { assertContractModel, variantForRelationType } from './utils/contract.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
@@ -306,7 +306,7 @@ export class PrismaNextObjectFieldBuilder<
       extensions: {
         ...userExtensions,
         pothosIndirectInclude: { getType: () => variantTypeName },
-        [PRISMA_NEXT_FIELD_SELECT]: select,
+        [PRISMA_NEXT_FIELD_SELECTION]: select,
       },
       resolve: isNull
         ? async (
@@ -357,7 +357,7 @@ export class PrismaNextObjectFieldBuilder<
     const targetRef =
       opts.type ?? (getRefFromContractModel(relation.targetModel as never, this.builder) as never);
     // Throws at build time for a type the relation can't return.
-    const variant = relationVariant(
+    const variant = variantForRelationType(
       this.contract as AnyContract,
       `t.relation('${name as string}') on '${this.modelName as string}'`,
       relation.targetModel,
@@ -388,7 +388,11 @@ export class PrismaNextObjectFieldBuilder<
         scopeOf(position),
         nested({
           columns: null,
-          args: relationArgs(relation, identity, spec && ((rel) => applyQuery(rel, spec)), variant),
+          args: relationArgs(relation, {
+            query: identity,
+            refine: spec && ((rel) => applyQuery(rel, spec)),
+            variant,
+          }),
         }),
       );
     };
@@ -405,7 +409,7 @@ export class PrismaNextObjectFieldBuilder<
             isNullableToOne(this.#getRelationMeta(relationName))),
       extensions: {
         ...extensions,
-        [PRISMA_NEXT_FIELD_SELECT]: select,
+        [PRISMA_NEXT_FIELD_SELECTION]: select,
         [PRISMA_NEXT_LOADED]: (view: Record<string, unknown>) => view[relationName] !== undefined,
       },
       resolve: (parent: Record<string, unknown>) => parent[relationName],
@@ -499,7 +503,7 @@ export class PrismaNextObjectFieldBuilder<
       nullable: nullable ?? (op !== 'count' && op !== 'countBigInt'),
       extensions: {
         ...extensions,
-        [PRISMA_NEXT_FIELD_SELECT]: select,
+        [PRISMA_NEXT_FIELD_SELECTION]: select,
         [PRISMA_NEXT_LOADED]: (view: object) => Object.hasOwn(view, 'value'),
       },
       resolve: (parent: { value?: unknown }) => parent.value,
@@ -600,7 +604,7 @@ export class PrismaNextObjectFieldBuilder<
     const relatedKey = relation.targetModel;
     const cursorOrder = validateCursor(config.contract, relatedKey, options.cursor);
     const targetRef = options.type ?? getRefFromContractModel(relatedKey as never, this.builder);
-    const variant = relationVariant(
+    const variant = variantForRelationType(
       config.contract,
       `t.relatedConnection('${name}') on '${this.modelName as string}'`,
       relatedKey,
@@ -685,7 +689,7 @@ export class PrismaNextObjectFieldBuilder<
       const rows = nested(
         {
           columns: cursorColumns(cursorOrder),
-          args: relationArgs(relation, identity, page, variant),
+          args: relationArgs(relation, { query: identity, refine: page, variant }),
         },
         include,
       );
@@ -701,7 +705,7 @@ export class PrismaNextObjectFieldBuilder<
       extensions: {
         ...extensions,
         pothosIndirectInclude: include,
-        [PRISMA_NEXT_FIELD_SELECT]: select,
+        [PRISMA_NEXT_FIELD_SELECTION]: select,
         [PRISMA_NEXT_LOADED]: (
           view: Record<string, unknown>,
           args: object,
