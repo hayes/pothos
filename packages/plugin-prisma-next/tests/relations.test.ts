@@ -1,4 +1,8 @@
-import SchemaBuilder from '@pothos/core';
+import SchemaBuilder, {
+  BasePlugin,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
+} from '@pothos/core';
 import { GraphQLScalarType, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin from '../src';
@@ -7,6 +11,7 @@ import {
   createBuilder,
   postSubqueries,
   run,
+  type SampleContract,
   type SampleOptions,
   useCollisionDb,
   useDatabase,
@@ -715,5 +720,47 @@ describe('to-one consumers', () => {
       }),
     });
     expect(() => builder.toSchema()).toThrow("Relation 'nope' not found on model 'User'.");
+  });
+});
+
+describe('plugins that wrap resolvers', () => {
+  // Listed before prismaNext, its onOutputFieldConfig runs after prismaNext's.
+  class WrapResolvePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
+      const { resolve } = fieldConfig;
+      return resolve
+        ? { ...fieldConfig, resolve: (...args: Parameters<typeof resolve>) => resolve(...args) }
+        : fieldConfig;
+    }
+  }
+  SchemaBuilder.registerPlugin('prismaNextTestWrapResolve' as never, WrapResolvePlugin);
+
+  it('resolves a filtered relation from its own rows when its resolver is wrapped', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: ['prismaNextTestWrapResolve' as never, prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      select: { posts: true },
+      fields: (t) => ({
+        postCount: t.int({ resolve: (user) => user.posts.length }),
+        published: t.relation('posts', { query: { where: { published: 1 } } }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { postCount published { id } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { postCount: 2, published: [{ id: 'p-hello' }] },
+      { postCount: 2, published: [{ id: 'p-bob1' }] },
+    ]);
   });
 });
