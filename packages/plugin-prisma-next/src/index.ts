@@ -536,7 +536,7 @@ const READS_FIELD_VIEW = Symbol('pothosPrismaNextReadsFieldView');
 
 /**
  * Makes a field helper's resolver (`t.relation`, counts, aggregates, connections) read the slots
- * planned for it. The plugins wrapped around it still get the parent the field declares, so
+ * planned for it. The plugins wrapped around it get the parent the field declares, so
  * per-row caches such as scope-auth's see one object shaped like the type.
  */
 function readingFieldView<Types extends SchemaTypes>(
@@ -586,7 +586,8 @@ function keylessReloadError(
 ) {
   const why = missing.length
     ? `its parent row is missing ${missing.map((column) => `'${column}'`).join(', ')}`
-    : 'it was left out of the query that loaded its parent';
+    : 'it was left out of the query that loaded its parent (a conflicting selection, a skipped ' +
+      '@defer, or a parent not loaded through a prisma field)';
   return new PothosValidationError(
     `Field '${info.parentType.name}.${info.fieldName}' needs its parent reloaded because ${why}, ` +
       `but model '${modelName}' has no non-null primary or unique key to reload it by. ` +

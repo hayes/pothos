@@ -288,17 +288,17 @@ function buildLexicographicPredicate(
       const v = values[field];
       const greater = (op === 'gt') !== (direction === 'desc');
       // Whether nulls sort beyond the boundary. Null placement doesn't change with direction.
-      const includesNull = !!nulls && (op === 'gt') === (nulls === 'last');
+      const nullsBeyond = !!nulls && (op === 'gt') === (nulls === 'last');
       let comparison: unknown;
       if (v === null) {
         // Nothing lies beyond a null boundary when nulls sort beyond it, and every non-null row
         // does otherwise. `decodeBoundary` only accepts a null on a column with a null placement.
-        comparison = includesNull
+        comparison = nullsBeyond
           ? and(col.isNull() as never, col.isNotNull() as never)
           : col.isNotNull();
       } else {
         const beyond = greater ? col.gt(v) : col.lt(v);
-        comparison = includesNull ? or(beyond as never, col.isNull() as never) : beyond;
+        comparison = nullsBeyond ? or(beyond as never, col.isNull() as never) : beyond;
       }
       return equalities.length === 0
         ? comparison
