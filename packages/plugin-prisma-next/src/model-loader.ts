@@ -38,13 +38,14 @@ interface Part {
   requests: Request[];
 }
 
+/** How a staged request is loaded. */
 interface StageOptions {
   fields: readonly string[];
   values: readonly unknown[];
   collection?: (() => MapperCollection) | undefined;
   /**
-   * Node loads batch per plan (one per type and path of an execution) and resolve a missing row
-   * to null; parent loads merge compatible plans, and their rows must be found.
+   * Node loads batch per plan, one per type and path in an execution, and resolve a missing row to
+   * null. Parent loads merge compatible plans into one batch, and a missing row is an error.
    */
   kind: 'node' | 'parent';
 }
@@ -79,10 +80,10 @@ export class ModelLoader {
   /** A variant's rows load through the base narrowed to it, which can include its relations. */
   private readonly initial: PrismaNextQuery | undefined;
   /**
-   * Plans depend on the operation and its variables (arguments, `@skip`/`@include`), so they are
-   * cached per execution (`info.variableValues` is built once per execution): an operation run on a
-   * context an earlier operation used is planned afresh. Loader mappings are still stored on the
-   * context by response path, so operations running at the same time should not share a context.
+   * Plans depend on the operation and its variables, which include `@skip` and `@include`
+   * arguments. They are cached per execution, keyed on `info.variableValues`, which graphql-js
+   * creates once per execution. Loader mappings are stored on the context by response path, so
+   * operations running at the same time should not share a context.
    */
   private readonly plans = new WeakMap<object, Plans>();
   private readonly staged = new Set<Batch>();
@@ -136,6 +137,8 @@ export class ModelLoader {
       });
       const staged = this.stage(played.root, { fields: this.identity, values, kind: 'parent' });
       return staged.then((row) => {
+        // The plan is walked from the parent type, so the field's own mapping is keyed by the
+        // parent type and the field's response key.
         const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
         if (mapping) {
           setRowFieldMapping(this.context, info, mapping, row!);
@@ -154,7 +157,7 @@ export class ModelLoader {
     values: readonly unknown[],
     collection: (() => MapperCollection) | undefined,
   ): Promise<Row | null> {
-    // Keyed on the type, not the model: variants of one model have their own selection.
+    // Keyed on the type rather than the model, because variants of a model select differently.
     const key = cacheKey(typeName, info.path);
     const plans = this.plansFor(info).node;
     let selection = plans.get(key);
@@ -201,8 +204,8 @@ export class ModelLoader {
         created.root.columns?.add(field);
       }
       this.staged.add(created);
-      // A macrotask, so async select callbacks can join the batch. An error building or running
-      // its statement fails every request in it.
+      // Flushed in a macrotask so that requests from async select callbacks can join the batch.
+      // An error building or running the statement fails every request in the batch.
       setTimeout(() => {
         this.staged.delete(created);
         this.flush(created).catch((error: unknown) => {
@@ -249,7 +252,7 @@ export class ModelLoader {
           return codec ? codec.key(value) : rawKey(value);
         }),
       );
-    // A parent whose identity the codecs reject fails alone.
+    // A parent whose identity the codecs reject fails on its own, without failing the batch.
     const keyed: { request: Request; key: string }[] = [];
     for (const part of batch.parts) {
       for (const request of part.requests) {
