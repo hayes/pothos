@@ -12,8 +12,8 @@ function namespacesWithModel(contract: AnyContract, model: string): string[] {
     .map(([id]) => id);
 }
 
-// Keys are `namespace.Model` for names several namespaces share; `resolveDomainModel` would
-// pick the first match.
+// A model name that several namespaces share is keyed `namespace.Model`. `resolveDomainModel`
+// alone would pick the first match.
 export function resolveContractModel(
   contract: AnyContract,
   modelKey: string,
@@ -162,7 +162,11 @@ export function relationVariant(
   );
 }
 
-// The ORM's `orm.Bug` isn't filtered by the discriminator and can't include inherited relations.
+/**
+ * Checks that a collection loads `modelKey`. A variant must load through `orm.Base.variant(value)`,
+ * because the variant's own accessor isn't filtered by the discriminator and can't include
+ * inherited relations.
+ */
 export function assertVariantCollection(
   contract: AnyContract,
   modelKey: string,

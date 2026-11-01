@@ -11,14 +11,14 @@ export const prismaModelKey = Symbol.for('Pothos.prismaNextModelKey');
 /** Type-only: the contract a ref's builder was created with. */
 export const prismaContractKey = Symbol.for('Pothos.prismaNextContractKey');
 
-/** Marks a row shape with its model. An interface so declaration emit can name it. */
+/** Marks a row shape with its model. It is an interface so that declaration emit can name it. */
 export interface ModelBrand<M> {
   readonly [prismaModelKey]?: M;
 }
 
 type WithBrand<T> = T & { [typeBrandKey]: string };
-// The index signature keeps a shape of optional keys alone (a type without `select`) from being a
-// weak type, which a row sharing none of its keys would fail.
+// The index signature stops a shape of only optional keys, such as a type without `select`, from
+// being a weak type. A row that shares none of those keys would otherwise fail to match it.
 type Brandable<Shape> = Shape & Record<string, unknown>;
 type Branded<V> = V extends readonly unknown[] ? { [K in keyof V]: WithBrand<V[K]> } : WithBrand<V>;
 

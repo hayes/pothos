@@ -59,7 +59,7 @@ export interface PrismaConnectionHelpers<
   MaybeAbsent extends boolean = false,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
 > {
-  /** The ref passed in, or the model's default ref for a model name (`Ref` isn't inferred). */
+  /** The ref passed in. For a model name, `Ref` isn't inferred, so this is its default ref. */
   ref: HelperRef<Types, M> extends Ref ? PrismaNextObjectRef<Types, M, Row<Types, M>> : Ref;
   /**
    * Without `info`, relations selected under the connection aren't preloaded. Returns a promise
@@ -104,7 +104,7 @@ export interface PrismaConnectionHelperOptions<
         ctx: Types['Context'],
         info: GraphQLResolveInfo | undefined,
       ) => MaybePromise<number>);
-  /** Filters the collection and orders its cursor columns, as `t.relatedConnection`'s `query`. */
+  /** Filters the collection and orders its cursor columns, like `t.relatedConnection`'s `query`. */
   query?: ConnectionQuery<Types, M, Args>;
 }
 
@@ -175,7 +175,8 @@ export function prismaConnectionHelpers<
           : (options.args ?? ({} as Args))),
     connectionOptions: settings.connectionOptions,
     applyPagination(collection, args, ctx, info) {
-      // An invalid cursor or base rejects rather than throws, so `.then(_, onError)` sees it too.
+      // Report an invalid cursor or collection as a rejected promise instead of throwing, so
+      // callers handle every failure in one place.
       try {
         return paginate(collection, args, ctx, info);
       } catch (error) {
@@ -223,7 +224,7 @@ export function prismaConnectionHelpers<
         source === 'aggregate'
           ? aggregateCount(filteredBase)
           : Promise.resolve().then(() => source(args, ctx, info));
-      // Avoids an unhandled rejection; the consumer still sees it.
+      // Marks the rejection as handled. The consumer still receives it from the promise.
       totalCountPromise.catch(() => undefined);
       return totalCountPromise;
     };
