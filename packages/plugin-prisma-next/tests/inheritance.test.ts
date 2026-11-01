@@ -375,7 +375,17 @@ describe('native model inheritance', () => {
     const bugCard = { title: 'bug1', owner: { email }, id: bugId, severity: 'high' };
     const schema = createComponentSchema();
 
-    it('plans interface fragments spread into concrete types, nested, and in several places, in one statement', async () => {
+    it('plans interface fragments spread into a concrete type in one statement', async () => {
+      const result = await run(
+        schema,
+        `query { bugs { ...TitledFields ...TaskCard ...NodeFields } } ${fragments}`,
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.bugs).toEqual([{ title: 'bug1', owner: { email }, id: bugId }]);
+      expect(result.statements).toHaveLength(1);
+    });
+
+    it('plans nested spreads, and one fragment spread in several places, in one statement', async () => {
       const result = await run(
         schema,
         `query { users { ...OwnerFields bugs { ...BugCard } tasks { ...TaskCard ...BugCard ...FeatureCard } } } ${fragments}`,
