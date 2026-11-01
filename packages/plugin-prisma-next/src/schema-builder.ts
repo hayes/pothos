@@ -231,8 +231,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
   const idFields: readonly string[] = Array.isArray(idOpts.field)
     ? idOpts.field
     : [idOpts.field as string];
-  // A one-column array still types as a tuple.
-  const isComposite = Array.isArray(idOpts.field);
+  const isTuple = Array.isArray(idOpts.field);
   const config = getPluginConfig(this);
   const { contract } = config;
   assertContractModel(contract, nodeModelName);
@@ -267,7 +266,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
         idFields,
         id,
         config.codecs(ctx, nodeModelName),
-        isComposite,
+        isTuple,
       );
     });
   const objectRef = this.prismaObject(modelName as never, rest as never);
@@ -294,7 +293,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
         const row = parent as Record<string, unknown>;
         if (idOpts.parse) {
           const values = idFields.map((field) => row[field]);
-          return isComposite
+          return isTuple
             ? JSON.stringify(values, (_key, value) =>
                 typeof value === 'bigint' ? value.toString() : value,
               )
@@ -306,7 +305,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
     },
     loadWithoutCache: (id: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
       assertContextObject(context, info);
-      if (isComposite && (!Array.isArray(id) || id.length !== idFields.length)) {
+      if (isTuple && (!Array.isArray(id) || id.length !== idFields.length)) {
         throw new PothosValidationError(
           `Invalid prismaNode '${nodeModelName}' ID: expected ${idFields.length} value(s), got ${Array.isArray(id) ? id.length : 'a non-array value'}.`,
         );
@@ -315,7 +314,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
         info,
         typeName,
         idFields,
-        isComposite ? (id as unknown[]) : [id],
+        isTuple ? (id as unknown[]) : [id],
         collection &&
           (() => {
             const found = collection(context);
