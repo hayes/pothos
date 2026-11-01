@@ -69,8 +69,8 @@ Interfaces accept `variant` like objects do.
 
 An object's fields can read its interfaces' `select`. A row loaded through the interface also
 loads each implementation's `select`, so `isTypeOf` and type-level `authScopes` can read it
-without a `... on Type` fragment. Implementations that load the same to-one relation with
-different arguments fail the schema build.
+without a `... on Type` fragment (see [With scope-auth](./setup#with-scope-auth) for plugin order).
+Implementations that load the same to-one relation with different arguments fail the schema build.
 
 ## Native inheritance
 
