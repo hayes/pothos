@@ -32,7 +32,7 @@ export function connectionNeedsRows(context: object, info: GraphQLResolveInfo): 
 
 /**
  * The options every kind of connection handles the same way. Page sizes fall back to the plugin's
- * defaults. `totalCount` is either `true`, which counts the filtered collection, or a callback.
+ * defaults. `totalCount` is `true`, which uses the ORM's count aggregate, or a callback.
  */
 export function connectionSettings<Count extends (...args: never[]) => unknown>(
   config: PrismaNextConfig,
@@ -77,8 +77,8 @@ export function connectionSettings<Count extends (...args: never[]) => unknown>(
       };
     },
     /**
-     * The source of the count that `info` selects. It is `'aggregate'` when the plugin counts the
-     * collection and the callback otherwise. Without `info`, any configured count is used.
+     * Where the count comes from when `info` selects `totalCount`: `'aggregate'` or the callback.
+     * Without `info`, any configured count is used.
      */
     countSource(
       ctx: object,
