@@ -110,10 +110,10 @@ A type in include mode can also opt out of fallback queries with `findUnique: nu
 would need one will throw `Missing findUnique for User` instead of querying.
 
 Fallback queries run inside this plugin's resolver wrapper. With `ScopeAuthPlugin` listed first,
-the usual [plugin order](/docs/plugins/scope-auth#plugin-order), `authScopes` see the row as it was returned:
-a row from a plain `t.field` can be missing the type's `select`ed columns, and the parent of a
-deferred field is missing that field's `select`, so write checks that fail closed. If they need
-that data, list `PrismaPlugin` before `ScopeAuthPlugin`; the fallback query then runs before
+the usual [plugin order](/docs/plugins/scope-auth#plugin-order), `authScopes` see the row as it was
+returned: a row from a plain `t.field` can be missing the type's `select`ed columns, and the parent
+of a deferred field is missing that field's `select`, so write checks that fail closed. If they
+need that data, list `PrismaPlugin` before `ScopeAuthPlugin`; the fallback query then runs before
 `authScopes`, even for requests that are then denied.
 
 ### Filters, Sorting, and arguments
