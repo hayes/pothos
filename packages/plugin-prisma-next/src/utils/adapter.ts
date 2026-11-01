@@ -11,7 +11,9 @@ import {
   type GraphQLField,
   type GraphQLNamedType,
   type GraphQLSchema,
+  getNamedType,
   isInterfaceType,
+  isObjectType,
 } from 'graphql';
 import {
   PRISMA_NEXT_FIELD_SELECTION,
@@ -70,6 +72,16 @@ function relationOf(model: PrismaNextModel, name: string): PrismaNextRelation {
 
 type Visitor = QueryVisitor<PrismaNextModel, PrismaNextQuery>;
 
+interface TypeSelection {
+  query?: PrismaNextQuery;
+  conflicting: Map<string, PrismaNextQuery>;
+  /**
+   * An implementation's to-one select that differs from the interface's own. The interface's
+   * version is the one loaded, so the implementation can't read rows loaded as the interface.
+   */
+  interfaceToOneConflict?: { impl: string; relation: string };
+}
+
 /** The consumers of one relation on a level: their rows and computed values, by scope. */
 interface RelationConsumers {
   rows: [string, PrismaNextQuery][];
@@ -83,10 +95,7 @@ interface RelationConsumers {
  */
 export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQuery> {
   override readonly skipDeferredFragments: boolean;
-  private readonly typeSelections = new WeakMap<
-    GraphQLNamedType,
-    { query?: PrismaNextQuery; conflicting: Map<string, PrismaNextQuery> }
-  >();
+  private readonly typeSelections = new WeakMap<GraphQLNamedType, TypeSelection>();
   private readonly fieldSelections = new WeakMap<
     GraphQLField<unknown, unknown>,
     PrismaNextQuery | PrismaNextSelectFn | null
@@ -124,8 +133,23 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
         }
       }
     }
+    // Only a field that returns the interface loads rows as the interface. Elsewhere its
+    // implementations load their own rows, and the interface's fields reload what conflicts.
+    const returned = new Set<GraphQLNamedType>();
+    for (const type of Object.values(schema.getTypeMap())) {
+      if (isObjectType(type) || isInterfaceType(type)) {
+        for (const field of Object.values(type.getFields())) {
+          returned.add(getNamedType(field.type));
+        }
+      }
+    }
     for (const type of interfaces) {
-      this.planTypeSelection(type);
+      const conflict = this.planTypeSelection(type).interfaceToOneConflict;
+      if (conflict && returned.has(type)) {
+        throw new PothosSchemaError(
+          `The select of '${conflict.impl}' loads to-one relation "${conflict.relation}" differently from the select of prismaInterface '${type.name}'. A row loaded as '${type.name}' loads "${conflict.relation}" once, and '${conflict.impl}' reads that row in isTypeOf, auth checks and fields. Make the selections of "${conflict.relation}" match.`,
+        );
+      }
     }
   }
 
@@ -143,10 +167,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
    * interface's columns always merge. Its relation and computed entries that conflict with what
    * is already planned are set aside, and the fields that interface declares load them instead.
    *
-   * An interface also loads its implementations' selections, because its rows reach their
-   * `isTypeOf`, auth checks and fields without a fragment. To-many relations and computed values
-   * use each implementation's own slots. The ORM includes a to-one relation once, so the
-   * implementations must agree on every to-one relation the interface doesn't select itself.
+   * An interface also loads its implementations' selections. A row loaded as the interface is
+   * resolved as one of its implementations, whose `isTypeOf`, auth checks and fields read it even
+   * when the query has no fragment on that type. To-many relations and computed values use each
+   * implementation's own slots. The ORM includes a to-one relation once, so the implementations
+   * must agree on each to-one relation, and must agree with the interface when a field returns it.
    */
   private planTypeSelection(type: GraphQLNamedType) {
     let selection = this.typeSelections.get(type);
@@ -177,17 +202,22 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
           }
         };
         visit(type);
-        // A to-one relation the interface selects itself wins over its implementations' selects.
-        const own = new Set(node.relations.keys());
+        // The ORM includes a to-one relation once, so a row loaded as the interface holds one
+        // version of it for the interface and every implementation.
+        const interfaceRelations = new Set(node.relations.keys());
         for (const [impl, query] of implementationsOf(type) ?? []) {
           const conflicts = this.mergeParts(node, query);
-          const [toOne] = Object.keys(conflicts?.relations ?? {}).filter(
-            (key) => !key.includes(SLOT) && !own.has(key),
+          const toOnes = Object.keys(conflicts?.relations ?? {}).filter(
+            (key) => !key.includes(SLOT),
           );
+          const toOne = toOnes.find((key) => !interfaceRelations.has(key));
           if (toOne !== undefined) {
             throw new PothosSchemaError(
               `The select of '${impl}' loads to-one relation "${toOne}" differently from the other selections of prismaInterface '${type.name}', whose rows load it once for all implementations. Make the selections of "${toOne}" match.`,
             );
+          }
+          if (toOnes.length > 0) {
+            selection.interfaceToOneConflict ??= { impl, relation: toOnes[0] };
           }
         }
         this.mergeQuery(node, { columns: getIdentityFields(this.contract, model.name) });
