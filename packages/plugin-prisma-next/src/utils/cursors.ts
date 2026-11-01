@@ -441,7 +441,7 @@ function applyToCollection<C extends MapperCollection>(
     existing.some((item, i) => !(item instanceof OrderByItem) || !deepEqual(item, expected[i]))
   ) {
     throw new PothosValidationError(
-      'Connection Collection orderBy() must match a prefix of the cursor ordering for this page direction. Backward pagination requires reversed ordering; return an unordered Collection to support both directions. Nullable cursor columns must specify the same `nulls` placement.',
+      'Connection Collection orderBy() must match a prefix of the cursor ordering for this page direction, and nullable cursor columns must specify the same `nulls` placement. Backward pagination requires reversed ordering; return an unordered Collection to support both directions.',
     );
   }
   const withOrder =
