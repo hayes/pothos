@@ -479,7 +479,7 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   type: WalkedType,
   fieldNode: FieldNode,
   indirectPath: string[],
-  onlyIn?: PlayKind,
+  onlyIn: PlayKind | undefined,
 ) {
   const { info, context, adapter } = plan;
   const name = fieldNode.name.value;
