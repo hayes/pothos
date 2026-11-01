@@ -87,6 +87,12 @@ export interface EntryOptions<Query> {
   skipDeferredFragments?: boolean;
 }
 
+/** The options of `Plan.forParentRow`, which plans the field `info` resolves on its own. */
+export type ParentRowOptions<Query> = Pick<
+  EntryOptions<Query>,
+  'context' | 'info' | 'initial' | 'skipDeferredFragments'
+>;
+
 /** How one merge into an adapter's node differs from a plain one. */
 export interface MergeOptions {
   /**
