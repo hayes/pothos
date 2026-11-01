@@ -598,13 +598,13 @@ export class PrismaNextObjectFieldBuilder<
       );
     }
     const config = getPluginConfig(this.builder);
-    const relatedKey = relation.targetModel;
-    const cursorOrder = validateCursor(config.contract, relatedKey, options.cursor);
-    const targetRef = options.type ?? getRefFromContractModel(relatedKey, this.builder);
+    const relatedModel = relation.targetModel;
+    const cursorOrder = validateCursor(config.contract, relatedModel, options.cursor);
+    const targetRef = options.type ?? getRefFromContractModel(relatedModel, this.builder);
     const variant = variantForRelationType(
       config.contract,
       `t.relatedConnection('${name}') on '${this.modelName as string}'`,
-      relatedKey,
+      relatedModel,
       (targetRef as { modelName?: string }).modelName,
     );
     const {
@@ -618,7 +618,7 @@ export class PrismaNextObjectFieldBuilder<
       ...rest
     } = options;
     const settings = connectionSettings(config, { defaultSize, maxSize, totalCount });
-    const relatedTypeName = (targetRef as { name?: string }).name ?? relatedKey;
+    const relatedTypeName = (targetRef as { name?: string }).name ?? relatedModel;
     const include: IndirectInclude = {
       getType: () => relatedTypeName,
       paths: CONNECTION_NODE_PATHS.map((path) => path.map((segment) => ({ name: segment }))),
@@ -629,13 +629,13 @@ export class PrismaNextObjectFieldBuilder<
     // Cached per request and arguments, so every parent row shares it. The input is validated
     // before planning, so a bad cursor or page size fails only this field. `order` is the ordering
     // the request's `orderBy` chose, and the resolver encodes and checks cursors with it.
-    const requests = createArgsCache<{
+    const argsStates = createArgsCache<{
       failure?: { error: unknown };
       sizes?: { defaultSize?: number; maxSize?: number };
       order?: CursorOrder;
     }>();
-    const request = (args: object, ctx: object) => {
-      const known = requests.get(args, ctx);
+    const argsState = (args: object, ctx: object) => {
+      const known = argsStates.get(args, ctx);
       if (known) {
         return known;
       }
@@ -644,16 +644,16 @@ export class PrismaNextObjectFieldBuilder<
         validateCursorArgs(
           cursorOrder,
           args as PothosSchemaTypes.DefaultConnectionArguments,
-          config.codecs(ctx, relatedKey),
+          config.codecs(ctx, relatedModel),
           { checkOrdering: !mayReorder },
         );
-        return requests.set(args, ctx, { sizes });
+        return argsStates.set(args, ctx, { sizes });
       } catch (error) {
-        return requests.set(args, ctx, { failure: { error } });
+        return argsStates.set(args, ctx, { failure: { error } });
       }
     };
     const select: PrismaNextSelectFn = (args, ctx, nested, selectedFields, position) => {
-      if (request(args, ctx).failure) {
+      if (argsState(args, ctx).failure) {
         return {};
       }
       const { where, orderBy } = connectionQuery(query, args, ctx);
@@ -677,14 +677,14 @@ export class PrismaNextObjectFieldBuilder<
           cursorOrder,
           args as PothosSchemaTypes.DefaultConnectionArguments,
           {
-            ...request(args, ctx).sizes,
-            codecs: config.codecs(ctx, relatedKey),
+            ...argsState(args, ctx).sizes,
+            codecs: config.codecs(ctx, relatedModel),
             orderBy,
             checkOrdering: !orderBy,
           },
         );
         if (orderBy) {
-          request(args, ctx).order = result.cursor;
+          argsState(args, ctx).order = result.order;
         }
         return result.collection;
       };
@@ -714,7 +714,7 @@ export class PrismaNextObjectFieldBuilder<
           ctx: object,
           info: GraphQLResolveInfo,
         ) =>
-          !!request(args, ctx).failure ||
+          !!argsState(args, ctx).failure ||
           ((!connectionNeedsRows(ctx, info) || view[name] !== undefined) &&
             (settings.countSource(ctx, info) !== 'aggregate' || Object.hasOwn(view, 'count'))),
       },
@@ -724,11 +724,11 @@ export class PrismaNextObjectFieldBuilder<
         context: object,
         info: GraphQLResolveInfo,
       ) => {
-        const { failure, sizes, order } = request(args, context);
+        const { failure, sizes, order } = argsState(args, context);
         if (failure) {
           throw failure.error;
         }
-        const codecs = config.codecs(context, relatedKey);
+        const codecs = config.codecs(context, relatedModel);
         if (order) {
           validateCursorArgs(order, args, codecs);
         }
