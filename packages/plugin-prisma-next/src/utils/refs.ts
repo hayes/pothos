@@ -7,7 +7,8 @@ type AnyRef =
   | PrismaNextObjectRef<SchemaTypes, never, never>
   | PrismaNextInterfaceRef<SchemaTypes, never, never>;
 
-// Only default refs are cached; variants always get a fresh ref.
+// Only refs for a model's default type name are cached. Types given a `variant` or `name` get their
+// own ref.
 const refMap = new WeakMap<object, Map<string, AnyRef>>();
 
 /** Refs made by a lookup without a kind before the model was registered. */
@@ -21,7 +22,7 @@ const provisional = new WeakSet<AnyRef>();
 export function getRefFromContractModel<Types extends SchemaTypes>(
   modelName: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  kind?: 'interface' | 'object',
+  kind?: 'Interface' | 'Object',
 ): AnyRef {
   let cache = refMap.get(builder);
   if (!cache) {
@@ -30,16 +31,16 @@ export function getRefFromContractModel<Types extends SchemaTypes>(
   }
   let ref = cache.get(modelName);
   if (!ref) {
-    ref = createRef(modelName, kind ?? 'object');
+    ref = createRef(modelName, kind ?? 'Object');
     cache.set(modelName, ref);
     if (!kind) {
       provisional.add(ref);
     }
   }
-  if (kind && ref instanceof PrismaNextInterfaceRef !== (kind === 'interface')) {
+  if (kind && ref instanceof PrismaNextInterfaceRef !== (kind === 'Interface')) {
     if (!provisional.has(ref)) {
       const [first, then] =
-        kind === 'interface' ? ['Object', 'Interface'] : ['Interface', 'Object'];
+        kind === 'Interface' ? ['Object', 'Interface'] : ['Interface', 'Object'];
       throw new PothosSchemaError(
         `Model '${modelName}' was used with prisma${first} or prisma${first}Field(s) and then ` +
           `with prisma${then} or prisma${then}Field(s), so its default type would be both an ` +
@@ -57,8 +58,8 @@ export function getRefFromContractModel<Types extends SchemaTypes>(
   return ref;
 }
 
-function createRef(modelName: string, kind: 'interface' | 'object'): AnyRef {
-  return kind === 'interface'
+function createRef(modelName: string, kind: 'Interface' | 'Object'): AnyRef {
+  return kind === 'Interface'
     ? new PrismaNextInterfaceRef(defaultTypeName(modelName), modelName as never)
     : new PrismaNextObjectRef(defaultTypeName(modelName), modelName as never);
 }
