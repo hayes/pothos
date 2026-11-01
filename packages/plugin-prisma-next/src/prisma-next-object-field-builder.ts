@@ -129,9 +129,9 @@ const RootBuilder: {
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
 
-// The variance annotations spare each program a structural variance probe of the whole builder,
-// which reaches into every model's row types. `Shape` is left unannotated, so its measured variance
-// still allows the structural comparison that helpers typed with a wider shape rely on.
+// The variance annotations stop TypeScript from measuring the builder's variance structurally,
+// which would walk every model's row types. `Shape` is left unannotated because helpers typed with
+// a wider shape rely on its measured variance.
 export class PrismaNextObjectFieldBuilder<
   in out Types extends SchemaTypes,
   in out M extends ModelName<Types>,
@@ -326,7 +326,7 @@ export class PrismaNextObjectFieldBuilder<
   relation<
     RelName extends RelationKeys<Types, M>,
     Query extends RelationQuery<Types, M, RelName, Args> | undefined,
-    // The model behind `type`: a variant of the target narrows the load.
+    // The model of `type`. A variant of the target narrows the load.
     TypeModel extends RelationTypeModel<Types, M, RelName> = RelatedModel<Types, M, RelName>,
     Nullable extends boolean = RelationNullable<Types, M, RelName, Query, TypeModel>,
     Args extends InputFieldMap = {},
@@ -414,7 +414,7 @@ export class PrismaNextObjectFieldBuilder<
 
   /** Exposes the row count of a to-many relation as an `Int`. */
   relationCount<
-    // Targets without aggregates (MySQL) accept no relation.
+    // Targets without aggregates, such as MySQL, accept no relation.
     RelName extends HasAggregates<Types> extends true ? ToManyRelationKeys<Types, M> : never,
     Nullable extends boolean = false,
     Args extends InputFieldMap = {},
@@ -495,7 +495,7 @@ export class PrismaNextObjectFieldBuilder<
     return this.field({
       ...rest,
       type: options.type ?? (op === 'count' ? 'Int' : 'Float'),
-      // Counts are never null; other aggregates are null over no rows.
+      // Counts are never null. Other aggregates are null when there are no rows.
       nullable: nullable ?? (op !== 'count' && op !== 'countBigInt'),
       extensions: {
         ...extensions,
@@ -625,10 +625,9 @@ export class PrismaNextObjectFieldBuilder<
     const narrow = (rel: MapperCollection) => (variant === undefined ? rel : rel.variant(variant));
     const mayReorder =
       typeof query === 'function' || (query as { orderBy?: unknown } | undefined)?.orderBy;
-    // Per request and set of arguments, which every parent row shares: whether the client's
-    // input is valid, checked before planning so a bad cursor or page size fails only this field,
-    // and the ordering a request's `orderBy` chose, which the resolver encodes cursors under and
-    // checks the client's cursor against.
+    // Cached per request and arguments, so every parent row shares it. The input is validated
+    // before planning, so a bad cursor or page size fails only this field. `order` is the ordering
+    // the request's `orderBy` chose, and the resolver encodes and checks cursors with it.
     const requests = createArgsCache<{ failure?: { error: unknown }; order?: CursorOrder }>();
     const request = (args: object, ctx: object) => {
       const known = requests.get(args, ctx);
@@ -746,8 +745,8 @@ export class PrismaNextObjectFieldBuilder<
   } as never;
 
   #relation(name: string): PrismaNextRelation {
-    // A variant's planner model is its root's, which has every variant's relations; the contract
-    // model rejects another variant's.
+    // Validate against the contract model, which only has this variant's relations. The planner
+    // model is the root's and has all of them.
     this.#getRelationMeta(name);
     return getModel(this.contract as AnyContract, this.modelName as string).relations[name]!;
   }
@@ -765,5 +764,5 @@ export class PrismaNextObjectFieldBuilder<
   }
 }
 
-// An embed records no nullability; its row may be absent.
+// An embed records no nullability, so its row may be absent.
 const isNullableToOne = (meta: ContractRelation) => ('nullable' in meta ? meta.nullable : true);
