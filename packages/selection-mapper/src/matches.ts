@@ -148,10 +148,10 @@ export type FieldVisitor = (field: FieldNode, level: SelectionLevel) => boolean 
  * `segment` is the indirect-include path segment the caller is looking for, when it has one; only
  * its `type` is read, to pin the type a fragment is expected on.
  *
- * `memo` records the named fragments already expanded, keyed on the fragment, the two types, the
+ * `memo` records the named fragments already visited, keyed on the fragment, the two types, the
  * deferred flag, and `memoKey` — whatever else the caller varies as it descends (`matchPath`
  * passes its remaining path length and its alias path). A fragment spread more than once at one
- * point of the traversal is expanded once: a valid fragment DAG can spread the same fragment at
+ * point of the traversal is visited once: a valid fragment DAG can spread the same fragment at
  * every level, which makes expanding every spread exponential in its depth. A caller that varies
  * nothing passes no `memoKey`, leaving its memo finer than it needs to be by the deferred flag —
  * a little time, never correctness, for a caller that accumulates.
@@ -338,7 +338,7 @@ function matchPath(
  * Follows each of `paths`, prefixed by any type-level `prefix`, from `selection` (which is expected
  * to be a selection on `type`), reporting the fields at their ends to `onMatch` in path order then
  * document order, and stopping when `onMatch` says to. Paths are followed through fragments; see
- * `resolveFragmentTypes` for the rules. Each path gets its own memo: what one path expanded says
+ * `resolveFragmentTypes` for the rules. Each path gets its own memo: what one path visited says
  * nothing about the next.
  */
 function eachMatch(
