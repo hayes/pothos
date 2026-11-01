@@ -125,7 +125,7 @@ type AuthorFunctionForm = Extract<
   (...args: never[]) => unknown
 >;
 expectTypeOf<AuthorFunctionForm>().toHaveProperty(
-  'To-one relations take true or { select }, not a function',
+  'To-one relations take true or { where, orderBy, limit, offset }, not a function',
 );
 expectTypeOf<AuthorFunctionForm>().parameter(0).toEqualTypeOf<AuthorFunctionForm>();
 
