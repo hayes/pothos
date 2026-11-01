@@ -44,8 +44,9 @@ interface StageOptions {
   values: readonly unknown[];
   collection?: (() => MapperCollection) | undefined;
   /**
-   * Node loads batch per plan, one per type and path in an execution, and resolve a missing row to
-   * null. Parent loads merge compatible plans into one batch, and a missing row is an error.
+   * Node loads join only the batch of their own plan (one plan per type and response path) and
+   * resolve a missing row to null. Parent loads join any batch whose plan they merge with, and a
+   * missing row is an error.
    */
   kind: 'node' | 'parent';
 }
