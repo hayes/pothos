@@ -1,4 +1,4 @@
-// Upstream ORM behavior the plugin relies on; a failure here means an ORM upgrade changed it.
+// Upstream ORM behaviour the plugin relies on; a failure here means an ORM upgrade changed it.
 import type { Collection } from '@prisma/orm-family-sql/orm-client';
 import sqlite from '@prisma/orm-sqlite/runtime';
 import { describe, expect, it } from 'vitest';
