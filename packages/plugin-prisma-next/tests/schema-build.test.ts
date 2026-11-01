@@ -72,7 +72,7 @@ describe('object registration', () => {
   });
 
   it('rejects a model registered as both an object and an interface under its default name', () => {
-    const message = /registered as both a prismaObject and a prismaInterface/;
+    const message = /its default type would be both an object and an interface/;
     const objectFirst = createBuilder();
     objectFirst.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     expect(() =>
