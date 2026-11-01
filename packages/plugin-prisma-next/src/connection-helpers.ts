@@ -11,9 +11,9 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   CollectionFor,
   ConnectionCollection,
+  ConnectionPagingOptions,
   ConnectionQuery,
   CursorSpec,
-  ExactCursor,
   ModelName,
   Row,
   TotalCountFlag,
@@ -92,21 +92,11 @@ export interface PrismaConnectionHelperOptions<
   M extends ModelName<Types>,
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap,
-> {
-  cursor: Cursor & ExactCursor<Cursor>;
+> extends Pick<
+    ConnectionPagingOptions<Types, unknown, Args, Cursor>,
+    'cursor' | 'defaultSize' | 'maxSize'
+  > {
   args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
-  defaultSize?:
-    | number
-    | ((
-        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-        ctx: Types['Context'],
-      ) => number);
-  maxSize?:
-    | number
-    | ((
-        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-        ctx: Types['Context'],
-      ) => number);
   totalCount?:
     | TotalCountFlag<Types>
     | ((

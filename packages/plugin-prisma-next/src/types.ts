@@ -1026,7 +1026,7 @@ export type CursorSpec<Types extends SchemaTypes, M extends ModelName<Types>> =
   | readonly [CursorColumn<Types, M>, ...CursorColumn<Types, M>[]];
 
 /** The paging options `prismaConnection` and `relatedConnection` share. */
-type ConnectionPagingOptions<
+export type ConnectionPagingOptions<
   Types extends SchemaTypes,
   ParentShape,
   Args extends InputFieldMap,
