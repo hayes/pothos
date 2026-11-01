@@ -354,7 +354,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { config } = this;
     const { modelName, columns, planned, loaded, declared, own } = reader;
-    const readsOwnSlots = ownSlotReaders.has(fieldConfig.resolve as never);
+    const readsOwnSlots = fieldConfig.extensions?.[READS_OWN_SLOTS] === true;
     const handOver = (
       row: object,
       mapping: Mapping | null | undefined,
@@ -523,7 +523,8 @@ function typeView(parent: unknown, scopes: readonly string[]) {
 
 /** The view a field helper's resolver reads, set by `wrapResolve` for `readingOwnSlots`. */
 const pendingSlots = new WeakMap<GraphQLResolveInfo, { parent: object; view: object }>();
-const ownSlotReaders = new WeakSet<GraphQLFieldResolver<unknown, unknown>>();
+/** Marks a field whose resolver reads its own slots, even once other plugins wrap `resolve`. */
+const READS_OWN_SLOTS = Symbol('pothosPrismaNextReadsOwnSlots');
 
 /**
  * A field helper's resolver (`t.relation`, counts, aggregates, connections), reading the slots
@@ -534,7 +535,7 @@ function readingOwnSlots<Types extends SchemaTypes>(
   fieldConfig: PothosOutputFieldConfig<Types>,
 ): PothosOutputFieldConfig<Types> {
   const { resolve } = fieldConfig;
-  if (!resolve || ownSlotReaders.has(resolve as never)) {
+  if (!resolve || fieldConfig.extensions?.[READS_OWN_SLOTS]) {
     return fieldConfig;
   }
   const reader: GraphQLFieldResolver<unknown, unknown> = (parent, args, context, info) => {
@@ -546,8 +547,11 @@ function readingOwnSlots<Types extends SchemaTypes>(
       info,
     );
   };
-  ownSlotReaders.add(reader);
-  return { ...fieldConfig, resolve: reader as never };
+  return {
+    ...fieldConfig,
+    resolve: reader as never,
+    extensions: { ...fieldConfig.extensions, [READS_OWN_SLOTS]: true },
+  };
 }
 
 /** What a static `select` names is checked when the schema is built, not on first use. */
