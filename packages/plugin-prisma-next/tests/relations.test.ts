@@ -662,6 +662,7 @@ describe('to-one consumers', () => {
     builder.prismaObject('Post', {
       fields: (t) => ({
         label: t.string({
+          // @ts-expect-error the types reject this; the runtime check covers untyped callers
           select: { author: (author) => ({ rows: author.select('firstName') }) },
           resolve: () => 'unexpected',
         }),
@@ -680,6 +681,7 @@ describe('to-one consumers', () => {
     builder.prismaObject('Post', {
       fields: (t) => ({
         label: t.string({
+          // @ts-expect-error the types reject this; the runtime check covers untyped callers
           select: () => ({ author: (author) => ({ rows: author.select('firstName') }) }),
           resolve: () => 'unexpected',
         }),
