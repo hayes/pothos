@@ -131,7 +131,7 @@ type UnionToIntersection<U> = (U extends unknown ? (x: U) => void : never) exten
   ? I
   : never;
 
-export type SelectRelationDeclarative<
+type SelectRelationDeclarative<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   R extends RelationKeys<Types, M>,
