@@ -615,12 +615,12 @@ builder.queryType({
     }),
     rows: t.prismaField({
       type: ['User'],
-      // @ts-expect-error rows can't satisfy future nested selections
+      // @ts-expect-error a root field returns a collection, so nested fields can add to what it loads
       resolve: () => [{ id: '1', firstName: 'a', lastName: 'b', email: 'a@b' }],
     }),
     row: t.prismaField({
       type: 'User',
-      // @ts-expect-error root resolvers return selection-aware collections
+      // @ts-expect-error a root field returns a collection, not a row
       resolve: () => ({ id: '1', firstName: 'a', lastName: 'b', email: 'a@b' }),
     }),
     materialized: t.prismaField({

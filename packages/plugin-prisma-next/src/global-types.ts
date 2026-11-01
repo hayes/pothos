@@ -210,6 +210,7 @@ declare global {
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
+      // In these options, `Omit` flattens the `NameOrVariant` union, so it is added back.
       prismaObject: <
         const Interfaces extends InterfaceParam<Types>[],
         M extends ModelName<Types>,
