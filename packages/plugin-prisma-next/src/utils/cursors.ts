@@ -171,20 +171,17 @@ function orderingSignature(order: CursorOrder): string {
 
 function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: FieldCodecs) {
   const fields = cursorColumns(order);
+  const values = fields.map((field) => {
+    // A missing column would encode as null and page from the wrong position.
+    if (row[field] === undefined) {
+      throw new PothosValidationError(
+        `Cannot encode a cursor: the row is missing cursor column '${field}'. Select the cursor columns on the paginated collection.`,
+      );
+    }
+    return row[field];
+  });
   return encodeBase64(
-    `${CURSOR_PREFIX}${orderingSignature(order)}:${encodeValues(
-      fields,
-      fields.map((field) => {
-        // A missing column would encode as null and page from the wrong position.
-        if (row[field] === undefined) {
-          throw new PothosValidationError(
-            `Cannot encode a cursor: the row is missing cursor column '${field}'. Select the cursor columns on the paginated collection.`,
-          );
-        }
-        return row[field];
-      }),
-      codecs,
-    )}`,
+    `${CURSOR_PREFIX}${orderingSignature(order)}:${encodeValues(fields, values, codecs)}`,
   );
 }
 
@@ -476,9 +473,9 @@ function applyToCollection<C extends MapperCollection>(
 }
 
 /**
- * Throws what pagination would throw for `args`, without a collection. A request's `orderBy` can
- * only run against a collection, so a caller that has one passes `checkOrdering: false` here and
- * checks the ordering later.
+ * Throws what pagination would throw for `args`, without a collection. A request's `orderBy` only
+ * runs against a collection, so a connection whose ordering can change passes
+ * `checkOrdering: false` here and checks the ordering once it is known.
  */
 export function validateCursorArgs(
   order: CursorOrder,
