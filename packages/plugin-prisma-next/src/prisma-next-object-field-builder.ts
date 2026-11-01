@@ -267,9 +267,7 @@ export class PrismaNextObjectFieldBuilder<
   ): FieldRef<Types, VariantFieldShape<Types, M, Nullable, IsNull>, 'PrismaNextObject'> {
     const [options = {}] = allArgs as [Record<string, unknown>?];
     const ref =
-      typeof variant === 'string'
-        ? (getRefFromContractModel(variant as never, this.builder) as never)
-        : variant;
+      typeof variant === 'string' ? getRefFromContractModel(variant, this.builder) : variant;
     const variantTypeName = (ref as { name: string }).name;
     const {
       isNull,
@@ -354,8 +352,7 @@ export class PrismaNextObjectFieldBuilder<
       RelatedShape
     > & { extensions?: Record<string, unknown> };
     const relation = this.#relation(name as string);
-    const targetRef =
-      opts.type ?? (getRefFromContractModel(relation.targetModel as never, this.builder) as never);
+    const targetRef = opts.type ?? getRefFromContractModel(relation.targetModel, this.builder);
     // Throws at build time for a type the relation can't return.
     const variant = variantForRelationType(
       this.contract as AnyContract,
@@ -603,7 +600,7 @@ export class PrismaNextObjectFieldBuilder<
     const config = getPluginConfig(this.builder);
     const relatedKey = relation.targetModel;
     const cursorOrder = validateCursor(config.contract, relatedKey, options.cursor);
-    const targetRef = options.type ?? getRefFromContractModel(relatedKey as never, this.builder);
+    const targetRef = options.type ?? getRefFromContractModel(relatedKey, this.builder);
     const variant = variantForRelationType(
       config.contract,
       `t.relatedConnection('${name}') on '${this.modelName as string}'`,
