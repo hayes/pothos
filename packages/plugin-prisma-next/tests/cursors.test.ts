@@ -209,21 +209,24 @@ describe('rejected cursors', () => {
 
   const raw = (payload: string) => Buffer.from(payload).toString('base64');
   const marker = 'PAYLOAD-MARKER';
+  const signatureError = /^Invalid cursor: missing or malformed ordering signature\.$/;
 
   it.each([
-    ['not base64', 'posts', `!!!${marker}`],
-    ['from another plugin', 'posts', raw(`GPC:S:${marker}`)],
-    ['not a tagged chunk', 'posts', raw(`PNC:{"${marker}":1}`)],
-    ['without an ordering signature', 'posts', raw(`PNC:S:${marker}`)],
-    ['wider than the cursor', 'dated', raw(`PNC:aa:T:["S:${marker}","S:b","S:c"]`)],
-  ])('rejects a cursor %s without echoing it', async (_name, field, cursor) => {
+    ['not base64', 'posts', `!!!${marker}`, /not valid base64/],
+    ['from another plugin', 'posts', raw(`GPC:S:${marker}`), /not a cursor from this plugin/],
+    ['not a tagged chunk', 'posts', raw(`PNC:{"${marker}":1}`), signatureError],
+    ['without an ordering signature', 'posts', raw(`PNC:S:${marker}`), signatureError],
+    ['without a separator', 'posts', raw('PNC:a'), signatureError],
+    ['wider than the cursor', 'dated', raw(`PNC:aa:T:["S:${marker}","S:b","S:c"]`), /expected 2/],
+  ])('rejects a cursor %s without echoing it', async (_name, field, cursor, message) => {
     const result = await run(
       schema(),
       `query ($c: String) { ${field}(after: $c) { edges { cursor } } }`,
       { variables: { c: cursor } },
     );
     expect(result.errors).toHaveLength(1);
-    expect(result.errors?.[0].message).toMatch(/Invalid cursor/);
+    expect(result.errors?.[0].message).toMatch(/^Invalid cursor: /);
+    expect(result.errors?.[0].message).toMatch(message);
     expect(result.errors?.[0].message).not.toContain(marker);
     expect(result.statements).toHaveLength(0);
   });
