@@ -629,20 +629,25 @@ export class PrismaNextObjectFieldBuilder<
     // Cached per request and arguments, so every parent row shares it. The input is validated
     // before planning, so a bad cursor or page size fails only this field. `order` is the ordering
     // the request's `orderBy` chose, and the resolver encodes and checks cursors with it.
-    const requests = createArgsCache<{ failure?: { error: unknown }; order?: CursorOrder }>();
+    const requests = createArgsCache<{
+      failure?: { error: unknown };
+      sizes?: { defaultSize?: number; maxSize?: number };
+      order?: CursorOrder;
+    }>();
     const request = (args: object, ctx: object) => {
       const known = requests.get(args, ctx);
       if (known) {
         return known;
       }
       try {
+        const sizes = settings.sizes(args, ctx);
         validateCursorArgs(
           cursorOrder,
           args as PothosSchemaTypes.DefaultConnectionArguments,
           config.codecs(ctx, relatedKey),
           { checkOrdering: !mayReorder },
         );
-        return requests.set(args, ctx, {});
+        return requests.set(args, ctx, { sizes });
       } catch (error) {
         return requests.set(args, ctx, { failure: { error } });
       }
@@ -672,7 +677,7 @@ export class PrismaNextObjectFieldBuilder<
           cursorOrder,
           args as PothosSchemaTypes.DefaultConnectionArguments,
           {
-            ...settings.sizes(args, ctx),
+            ...request(args, ctx).sizes,
             codecs: config.codecs(ctx, relatedKey),
             orderBy,
             checkOrdering: !orderBy,
@@ -719,7 +724,7 @@ export class PrismaNextObjectFieldBuilder<
         context: object,
         info: GraphQLResolveInfo,
       ) => {
-        const { failure, order } = request(args, context);
+        const { failure, sizes, order } = request(args, context);
         if (failure) {
           throw failure.error;
         }
@@ -729,7 +734,7 @@ export class PrismaNextObjectFieldBuilder<
         }
         const rows = connectionNeedsRows(context, info) ? parent[name] : [];
         const pagination = buildPaginationParams(order ?? cursorOrder, args, {
-          ...settings.sizes(args, context),
+          ...sizes,
           codecs,
         });
         const countSource = settings.countSource(context, info);
