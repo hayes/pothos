@@ -1122,7 +1122,7 @@ describe('prismaConnectionHelpers', () => {
     const result = await run(builder.toSchema(), '{ users { totalCount } }');
     expect(result.data.users).toBeNull();
     expect(result.errors?.map((error) => error.message)).toEqual([
-      'Cannot return null for non-nullable field QueryUsersConnection.totalCount.',
+      "totalCount has no count. Pass one to the connection helpers' wrap, for example wrap(rows, await totalCountPromise).",
     ]);
   });
 

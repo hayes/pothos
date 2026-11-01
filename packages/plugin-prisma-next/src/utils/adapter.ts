@@ -82,6 +82,11 @@ interface TypeSelection {
    * of the relation, so the implementation can't read it.
    */
   toOneConflict?: { impl: string; relation: string; withInterface: boolean };
+  /**
+   * Two of the type's interfaces whose selects load a to-one relation differently. The type's
+   * rows plan one of them, so a row loaded as the other interface holds the wrong version.
+   */
+  interfaceToOneConflict?: { interfaces: [string, string]; relation: string };
 }
 
 /** The consumers of one relation on a level: their rows and computed values, by scope. */
@@ -130,7 +135,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
    * model. A row loaded as the interface may resolve as any of them, so the interface loads what
    * each of them selects. The ORM includes a to-one relation once, so where the plugin loads rows
    * as an interface, its implementations must load each to-one relation the same way as each
-   * other and as the interface, or the schema build fails.
+   * other and as the interface, or the schema build fails. The same holds for two interfaces of
+   * one implementation when either of them is loaded.
    */
   registerImplementations(schema: GraphQLSchema) {
     const interfaces = Object.values(schema.getTypeMap()).filter(
@@ -156,6 +162,20 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
             const include = field.extensions.pothosIndirectInclude as IndirectInclude | undefined;
             loaded.add(include?.getType() ?? getNamedType(field.type).name);
           }
+        }
+      }
+    }
+    // Checked first: the pair conflict also surfaces as an implementation conflict on either
+    // interface, which would blame the implementation's select.
+    for (const type of interfaces) {
+      for (const impl of schema.getPossibleTypes(type as never)) {
+        const conflict = this.planTypeSelection(impl).interfaceToOneConflict;
+        if (conflict?.interfaces.some((name) => loaded.has(name))) {
+          const [first, second] = conflict.interfaces;
+          const { relation } = conflict;
+          throw new PothosSchemaError(
+            `The selects of prismaInterfaces '${first}' and '${second}' load to-one relation "${relation}" differently, and '${impl.name}' implements both. A row loaded as either interface loads "${relation}" once, and '${impl.name}' reads that row in isTypeOf, auth checks and fields. Make the selections of "${relation}" match.`,
+          );
         }
       }
     }
@@ -197,11 +217,14 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     let selection = this.typeSelections.get(type);
     if (!selection) {
       const conflicting = new Map<string, PrismaNextQuery>();
-      selection = { conflicting };
+      const planned: TypeSelection = { conflicting };
+      selection = planned;
       const model = this.modelFor(type);
       if (model) {
         const node = this.createNode(model);
         const visited = new Set<GraphQLNamedType>();
+        // The type or interface whose select planned each to-one relation.
+        const toOneSources = new Map<string, string>();
         const visit = (current: GraphQLNamedType) => {
           if (visited.has(current)) {
             return;
@@ -215,6 +238,20 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
             const conflicts = this.mergeParts(node, own);
             if (conflicts) {
               conflicting.set(current.name, conflicts);
+            }
+            for (const key of Object.keys(conflicts?.relations ?? {})) {
+              const source = toOneSources.get(key);
+              if (source !== undefined && source !== type.name) {
+                planned.interfaceToOneConflict ??= {
+                  interfaces: [source, current.name],
+                  relation: key,
+                };
+              }
+            }
+          }
+          for (const key of Object.keys(own?.relations ?? {})) {
+            if (!key.includes(SLOT) && !toOneSources.has(key)) {
+              toOneSources.set(key, current.name);
             }
           }
           for (const iface of 'getInterfaces' in current ? current.getInterfaces() : []) {

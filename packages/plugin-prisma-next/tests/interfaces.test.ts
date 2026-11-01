@@ -532,6 +532,69 @@ describe('inherited selections', () => {
     expect(printSchema(builder.toSchema())).toContain('interface PostBase');
   });
 
+  // Post has no select of its own, and its two interfaces load its author differently.
+  function conflictingInterfacesBuilder(order: 'PostBase first' | 'Authored first') {
+    const builder = createBuilder();
+    const PostBase = builder.prismaInterface('Post', {
+      name: 'PostBase',
+      select: { author: true },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    const Authored = builder.prismaInterface('Post', {
+      name: 'Authored',
+      select: { author: { where: { firstName: 'Nobody' } } },
+      fields: (t) => ({
+        authorName: t.string({ nullable: true, resolve: (post) => post.author?.firstName }),
+      }),
+    });
+    const Post = builder.prismaObject('Post', {
+      interfaces: order === 'PostBase first' ? [PostBase, Authored] : [Authored, PostBase],
+      isTypeOf: () => true,
+    });
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    return { builder, types: { PostBase, Authored, Post } };
+  }
+
+  describe.each([
+    'PostBase first',
+    'Authored first',
+  ] as const)('two interfaces that load a to-one relation differently (%s)', (order) => {
+    const [first, second] =
+      order === 'PostBase first' ? ['PostBase', 'Authored'] : ['Authored', 'PostBase'];
+    const message = `The selects of prismaInterfaces '${first}' and '${second}' load to-one relation "author" differently, and 'Post' implements both.`;
+
+    it('rejects them when both are loaded', () => {
+      const { builder, types } = conflictingInterfacesBuilder(order);
+      builder.queryType({
+        fields: (t) => ({
+          bases: t.prismaField({ type: [types.PostBase], resolve: () => db.orm.Post }),
+          authored: t.prismaField({ type: [types.Authored], resolve: () => db.orm.Post }),
+        }),
+      });
+      expect(() => builder.toSchema()).toThrow(message);
+    });
+
+    it.each(['PostBase', 'Authored'] as const)('rejects them when only %s is loaded', (loaded) => {
+      const { builder, types } = conflictingInterfacesBuilder(order);
+      builder.queryType({
+        fields: (t) => ({
+          posts: t.prismaField({ type: [types[loaded]], resolve: () => db.orm.Post }),
+        }),
+      });
+      expect(() => builder.toSchema()).toThrow(message);
+    });
+
+    it('builds when only the implementation is loaded', () => {
+      const { builder, types } = conflictingInterfacesBuilder(order);
+      builder.queryType({
+        fields: (t) => ({
+          posts: t.prismaField({ type: [types.Post], resolve: () => db.orm.Post }),
+        }),
+      });
+      expect(() => builder.toSchema()).not.toThrow();
+    });
+  });
+
   it('rejects implementations that load a to-one relation differently', () => {
     const { builder, Account } = ownerBuilder();
     builder.prismaObject('Owner', {
