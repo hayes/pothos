@@ -70,7 +70,6 @@ export { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder
 export type {
   AnyContract,
   CollectionFor,
-  ConnectionCollection,
   CursorColumn,
   CursorSpec,
   IdentityFields,

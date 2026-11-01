@@ -247,12 +247,6 @@ export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Ty
       }> & { readonly modelName: BareModelName<M> }
   : VariantCollection<Types, M>;
 
-/** What a connection's `resolve` returns: the collection the plugin pages. */
-export type ConnectionCollection<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-> = ResolverCollection<Types, M>;
-
 // A contract typed only as `AnyContract` has no model keys to check collections against.
 type PrismaNextCollections<TContract extends AnyContract> =
   string extends keyof TContract['domain']['namespaces'] ? object : TypedCollections<TContract>;
@@ -1128,7 +1122,7 @@ export type PrismaNextConnectionFieldOptions<
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => MaybePromise<
-      ConnectionCollection<Types, NoInfer<M>> | (Nullable extends true ? null : never)
+      ResolverCollection<Types, NoInfer<M>> | (Nullable extends true ? null : never)
     >;
     /** Not supported: chain `.where(...)` on the collection in `resolve` instead. */
     query?: never;

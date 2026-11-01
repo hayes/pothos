@@ -10,11 +10,11 @@ import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   CollectionFor,
-  ConnectionCollection,
   ConnectionPagingOptions,
   ConnectionQuery,
   CursorSpec,
   ModelName,
+  ResolverCollection,
   Row,
   TotalCountFlag,
 } from './types.js';
@@ -66,7 +66,7 @@ export interface PrismaConnectionHelpers<
    * when a `select` callback beneath the connection is async.
    */
   applyPagination(
-    collection: ConnectionCollection<Types, M>,
+    collection: ResolverCollection<Types, M>,
     args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
     info?: GraphQLResolveInfo,
@@ -186,7 +186,7 @@ export function prismaConnectionHelpers<
   } satisfies PrismaConnectionHelpers<Types, M, Args, Node, boolean, Ref>;
 
   function paginate(
-    collection: ConnectionCollection<Types, M>,
+    collection: ResolverCollection<Types, M>,
     args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
     info: GraphQLResolveInfo | undefined,
