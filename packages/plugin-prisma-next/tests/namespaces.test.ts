@@ -63,30 +63,7 @@ function createSchema() {
   return builder.toSchema();
 }
 
-describe('models sharing a name across namespaces', () => {
-  beforeAll(async () => {
-    await raw.connect();
-    await raw.query(`
-      DROP SCHEMA IF EXISTS nsa CASCADE;
-      DROP SCHEMA IF EXISTS nsb CASCADE;
-      CREATE SCHEMA nsa;
-      CREATE SCHEMA nsb;
-      CREATE TABLE nsa."user" (id integer PRIMARY KEY, "orgId" integer NOT NULL);
-      CREATE TABLE nsa.post (id integer PRIMARY KEY, title text NOT NULL, "userId" integer NOT NULL);
-      CREATE TABLE nsb."user" (id text PRIMARY KEY, name text NOT NULL);
-      INSERT INTO nsa."user" VALUES (1, 10);
-      INSERT INTO nsa.post VALUES (1, 'first', 1), (2, 'second', 1);
-      INSERT INTO nsb."user" VALUES ('x', 'Xena');
-    `);
-    await client.connect();
-  });
-
-  afterAll(async () => {
-    await client.close();
-    await raw.query('DROP SCHEMA IF EXISTS nsa CASCADE; DROP SCHEMA IF EXISTS nsb CASCADE');
-    await raw.end();
-  });
-
+describe('qualified model names', () => {
   it('rejects an ambiguous bare name, naming the qualified forms', () => {
     const builder = createBuilder();
     builder.prismaObject('User' as never, { fields: () => ({}) });
@@ -110,6 +87,31 @@ describe('models sharing a name across namespaces', () => {
     builder.prismaObject('nsa.Post' as never, { fields: () => ({}) });
     builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
     expect(() => builder.toSchema()).toThrow(/Use the bare name 'Post'/);
+  });
+});
+
+describe('models sharing a name across namespaces', () => {
+  beforeAll(async () => {
+    await raw.connect();
+    await raw.query(`
+      DROP SCHEMA IF EXISTS nsa CASCADE;
+      DROP SCHEMA IF EXISTS nsb CASCADE;
+      CREATE SCHEMA nsa;
+      CREATE SCHEMA nsb;
+      CREATE TABLE nsa."user" (id integer PRIMARY KEY, "orgId" integer NOT NULL);
+      CREATE TABLE nsa.post (id integer PRIMARY KEY, title text NOT NULL, "userId" integer NOT NULL);
+      CREATE TABLE nsb."user" (id text PRIMARY KEY, name text NOT NULL);
+      INSERT INTO nsa."user" VALUES (1, 10);
+      INSERT INTO nsa.post VALUES (1, 'first', 1), (2, 'second', 1);
+      INSERT INTO nsb."user" VALUES ('x', 'Xena');
+    `);
+    await client.connect();
+  });
+
+  afterAll(async () => {
+    await client.close();
+    await raw.query('DROP SCHEMA IF EXISTS nsa CASCADE; DROP SCHEMA IF EXISTS nsb CASCADE');
+    await raw.end();
   });
 
   it('gives qualified models distinct default GraphQL types', async () => {

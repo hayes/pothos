@@ -709,19 +709,22 @@ describe.each(orders)('runScopesOnType through an interface (%s)', (order, plugi
     expect(relationSeen).toEqual([memberSeen]);
   });
 
-  it('implementations selecting one to-many relation with different arguments', async () => {
-    const { rootSeen, relationSeen } = await run({ where: { published: 1 } });
-    if (order === 'prismaNext first') {
+  if (order === 'prismaNext first') {
+    it('loads the relation each implementation selects with different arguments', async () => {
+      const { rootSeen, relationSeen } = await run({ where: { published: 1 } });
       expect(rootSeen).toEqual([['Admin', 'alice@example.com', ['p-hello']], memberSeen]);
       expect(relationSeen).toEqual([memberSeen]);
-    } else {
-      // Documents a limitation: listed first, scope-auth's `isTypeOf` wraps this plugin's, so it
-      // reads the shared row, which holds neither implementation's `posts`.
+    });
+  } else {
+    // Scope-auth's `isTypeOf` wraps this plugin's, so it reads the shared row, which holds neither
+    // implementation's `posts`. The setup docs say to list prismaNextPlugin first for this.
+    it('documented scope-auth-first behaviour: implementations selecting one relation with different arguments see neither', async () => {
+      const { rootSeen, relationSeen } = await run({ where: { published: 1 } });
       expect(rootSeen).toEqual([
         ['Admin', 'alice@example.com', undefined],
         ['Member', 'bob@example.com', undefined],
       ]);
       expect(relationSeen).toEqual([['Member', 'bob@example.com', undefined]]);
-    }
-  });
+    });
+  }
 });
