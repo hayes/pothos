@@ -135,6 +135,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       const ifaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
       const ifaceModel = ifaceConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
       if (ifaceModel) {
+        const basis = modelSource
+          ? `takes model '${model}' from prismaInterface '${modelSource}' but also implements`
+          : `is based on model '${model}' but implements`;
         const root = model && rootModelKey(contract, model);
         if (root !== undefined && root === rootModelKey(contract, ifaceModel)) {
           if (ifaceModel !== root && model !== ifaceModel) {
@@ -144,10 +147,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
               modelSource = ifaceConfig.name;
               continue;
             }
-            // The interface only resolves rows of its own variant, and this type's rows never are.
-            const basis = modelSource
-              ? `takes model '${model}' from prismaInterface '${modelSource}' but also implements`
-              : `is based on model '${model}' but implements`;
+            // This type's rows are never of the interface's variant, so the interface could never
+            // resolve to it.
             throw new PothosSchemaError(
               `'${typeConfig.name}' ${basis} prismaInterface '${ifaceConfig.name}', based on ` +
                 `variant model '${ifaceModel}'. A type can only implement the prismaInterfaces ` +
@@ -158,9 +159,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         }
         if (model && model !== ifaceModel) {
           throw new PothosSchemaError(
-            `prismaObject '${typeConfig.name}' is based on model '${model}' but implements ` +
-              `prismaInterface '${ifaceConfig.name}' which is based on '${ifaceModel}'. ` +
-              'PrismaObjects must share a contract model with the PrismaInterfaces they extend.',
+            `'${typeConfig.name}' ${basis} prismaInterface '${ifaceConfig.name}', based on ` +
+              `unrelated model '${ifaceModel}'. A type can only implement prismaInterfaces of ` +
+              'one model hierarchy.',
           );
         }
         if (!model) {
