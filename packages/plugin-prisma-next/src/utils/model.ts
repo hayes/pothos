@@ -17,13 +17,13 @@ export interface PrismaNextRelation {
   readonly targetModel: string;
   readonly target: PrismaNextModel;
   /** Set when a variant declares the relation; it can only be included after `.variant(value)`. */
-  readonly variant?: string;
+  readonly declaredByVariant?: string;
   /**
    * Set when the relation targets a variant model, which the ORM loads through that model's own
    * accessor: already narrowed, without the base's relations, and, when it shares the base's
    * table, unfiltered by the discriminator.
    */
-  readonly targetVariant?: {
+  readonly targetVariantModel?: {
     readonly field: string;
     readonly value: string;
     readonly sharesTable: boolean;
@@ -116,7 +116,7 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
         resolveContractModel(contract, modelKey)?.relations ?? {},
       )) {
         if (variant !== undefined && relations[relationName]) {
-          if (relations[relationName].variant === undefined) {
+          if (relations[relationName].declaredByVariant === undefined) {
             continue;
           }
           throw new PothosSchemaError(
@@ -131,10 +131,10 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
           isToMany: relation.cardinality === '1:N' || relation.cardinality === 'N:M',
           targetModel,
           target: getModel(contract, targetModel),
-          ...(variant === undefined ? {} : { variant }),
+          ...(variant === undefined ? {} : { declaredByVariant: variant }),
           ...(target
             ? {
-                targetVariant: {
+                targetVariantModel: {
                   field: target.field,
                   value: target.value,
                   sharesTable: target.sharesTable,

@@ -38,12 +38,20 @@ interface Part {
   requests: Request[];
 }
 
-interface Batch {
+interface StageOptions {
+  fields: readonly string[];
+  values: readonly unknown[];
+  collection?: (() => MapperCollection) | undefined;
   /**
-   * Set for node loads, which batch per plan (one per type and path of an execution) and resolve
-   * a missing row to null; parent loads merge compatible plans, and their rows must be found.
+   * Node loads batch per plan (one per type and path of an execution) and resolve a missing row
+   * to null; parent loads merge compatible plans, and their rows must be found.
    */
-  group: PrismaNextNode | undefined;
+  kind: 'node' | 'parent';
+}
+
+interface Batch {
+  /** The plan root a node-load batch is for. Unset for parent loads. */
+  nodeRoot: PrismaNextNode | undefined;
   root: PrismaNextNode;
   fields: readonly string[];
   collection: (() => MapperCollection) | undefined;
@@ -126,7 +134,8 @@ export class ModelLoader {
         }
         return value;
       });
-      return this.stage(played.root, this.identity, undefined, values, false).then((row) => {
+      const staged = this.stage(played.root, { fields: this.identity, values, kind: 'parent' });
+      return staged.then((row) => {
         const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
         if (mapping) {
           setRowFieldMapping(this.context, info, mapping, row!);
@@ -161,7 +170,7 @@ export class ModelLoader {
     }
     const load = (played: Played) => {
       setLoaderMappings(this.context, info, played.mappings);
-      return this.stage(played.root, fields, collection, values, true).then((row) => {
+      return this.stage(played.root, { fields, values, collection, kind: 'node' }).then((row) => {
         if (row) {
           brandWithType(row, typeName as OutputType<SchemaTypes>);
         }
@@ -173,19 +182,16 @@ export class ModelLoader {
 
   private stage(
     root: PrismaNextNode,
-    fields: readonly string[],
-    collection: (() => MapperCollection) | undefined,
-    values: readonly unknown[],
-    node: boolean,
+    { fields, values, collection, kind }: StageOptions,
   ): Promise<Row | null> {
     let batch = [...this.staged].find((candidate) =>
-      node
-        ? candidate.group === root
-        : candidate.group === undefined && this.adapter.canMergeNode(candidate.root, root),
+      kind === 'node'
+        ? candidate.nodeRoot === root
+        : candidate.nodeRoot === undefined && this.adapter.canMergeNode(candidate.root, root),
     );
     if (!batch) {
       const created: Batch = {
-        group: node ? root : undefined,
+        nodeRoot: kind === 'node' ? root : undefined,
         root: this.adapter.createNode(root.model),
         fields,
         collection,
@@ -277,7 +283,7 @@ export class ModelLoader {
     const byKey = new Map(rows.map((row) => [key(fields.map((field) => row[field])), row]));
     for (const { request, key } of keyed) {
       const row = byKey.get(key);
-      if (row || batch.group) {
+      if (row || batch.nodeRoot) {
         request.resolve(row ?? null);
       } else {
         request.reject(

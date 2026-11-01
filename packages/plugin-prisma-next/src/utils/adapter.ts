@@ -70,6 +70,12 @@ function relationOf(model: PrismaNextModel, name: string): PrismaNextRelation {
 
 type Visitor = QueryVisitor<PrismaNextModel, PrismaNextQuery>;
 
+/** The consumers of one relation on a level: their rows and computed values, by scope. */
+interface RelationConsumers {
+  rows: [string, PrismaNextQuery][];
+  computed: [string, ComputedSelection][];
+}
+
 /**
  * How Prisma Next selections read onto the shared node tree, and how a node becomes collection
  * calls. Merge, compare and conflict rules are `NodeAdapter`'s; to-many consumers never conflict
@@ -79,7 +85,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   override readonly skipDeferredFragments: boolean;
   private readonly typeSelections = new WeakMap<
     GraphQLNamedType,
-    { query?: PrismaNextQuery; deferred: Map<string, PrismaNextQuery> }
+    { query?: PrismaNextQuery; conflicting: Map<string, PrismaNextQuery> }
   >();
   private readonly fieldSelections = new WeakMap<
     GraphQLField<unknown, unknown>,
@@ -128,7 +134,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
 
   /** Interfaces whose `select` conflicts with the type's own, so their fields load separately. */
   conflictingInterfaces(type: GraphQLNamedType): string[] {
-    return [...this.typeSelectionOf(type).deferred.keys()];
+    return [...this.typeSelectionOf(type).conflicting.keys()];
   }
 
   /**
@@ -144,8 +150,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   private typeSelectionOf(type: GraphQLNamedType) {
     let selection = this.typeSelections.get(type);
     if (!selection) {
-      const deferred = new Map<string, PrismaNextQuery>();
-      selection = { deferred };
+      const conflicting = new Map<string, PrismaNextQuery>();
+      selection = { conflicting };
       const model = this.modelFor(type);
       if (model) {
         const node = this.createNode(model);
@@ -162,7 +168,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
           } else if (own) {
             const conflicts = this.mergeParts(node, own);
             if (conflicts) {
-              deferred.set(current.name, conflicts);
+              conflicting.set(current.name, conflicts);
             }
           }
           for (const iface of 'getInterfaces' in current ? current.getInterfaces() : []) {
@@ -228,7 +234,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
         | undefined;
       // A field of an interface is recorded as planned, so the implementation it resolves on
       // finds the slots the interface planned for that implementation's selection.
-      selection = this.withPrerequisite(
+      selection = this.withInterfaceSelection(
         field,
         type,
         own ?? (implementationsOf(type) ? EMPTY : undefined),
@@ -239,23 +245,23 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   }
 
   /** A field declared by an interface whose selection was set aside carries that selection. */
-  private withPrerequisite(
+  private withInterfaceSelection(
     field: GraphQLField<unknown, unknown>,
     type: WalkedType,
     own: PrismaNextQuery | PrismaNextSelectFn | undefined,
   ) {
-    const { deferred } = this.typeSelectionOf(type);
+    const { conflicting } = this.typeSelectionOf(type);
     const iface =
-      deferred.size > 0
-        ? type.getInterfaces().find((i) => deferred.has(i.name) && i.getFields()[field.name])
+      conflicting.size > 0
+        ? type.getInterfaces().find((i) => conflicting.has(i.name) && i.getFields()[field.name])
         : undefined;
     if (!iface) {
       return own;
     }
     const model = this.modelFor(type)!;
-    const prerequisite = deferred.get(iface.name)!;
+    const ifaceSelection = conflicting.get(iface.name)!;
     const merged = (query: PrismaNextQuery | false | null | undefined) =>
-      this.mergedQuery(model, [prerequisite, query || EMPTY]);
+      this.mergedQuery(model, [ifaceSelection, query || EMPTY]);
     return typeof own === 'function'
       ? (((...args) => completeValue(own(...args), merged)) as PrismaNextSelectFn)
       : merged(own);
@@ -292,7 +298,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   ): boolean {
     return (
       super.canMergeQuery(node, query, options) &&
-      !variantProblem(query, node.model, (node.args as RelationArgs).variant)
+      !variantIncludeError(query, node.model, (node.args as RelationArgs).variant)
     );
   }
 
@@ -326,7 +332,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     model: PrismaNextModel,
     ctx: object,
   ): MapperCollection {
-    const problem = variantProblem(query, model, query.args?.variant);
+    const problem = variantIncludeError(query, model, query.args?.variant);
     if (problem) {
       throw new PothosValidationError(problem);
     }
@@ -340,30 +346,27 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     ctx: object,
   ): MapperCollection {
     let result = query.columns?.length ? collection.select(...query.columns) : collection;
-    const includes = new Map<
-      string,
-      { rows: [string, PrismaNextQuery][]; computed: [string, ComputedSelection][] }
-    >();
-    const slotsOf = (key: string) => {
+    const consumers = new Map<string, RelationConsumers>();
+    const consumersOf = (key: string) => {
       const name = relationName(key);
-      let slots = includes.get(name);
-      if (!slots) {
-        slots = { rows: [], computed: [] };
-        includes.set(name, slots);
+      let entry = consumers.get(name);
+      if (!entry) {
+        entry = { rows: [], computed: [] };
+        consumers.set(name, entry);
       }
-      return { scope: key.slice(name.length + 1), slots };
+      return { scope: key.slice(name.length + 1), entry };
     };
     for (const [key, child] of Object.entries(query.relations ?? {})) {
-      const { scope, slots } = slotsOf(key);
-      slots.rows.push([scope, child]);
+      const { scope, entry } = consumersOf(key);
+      entry.rows.push([scope, child]);
     }
     for (const [key, value] of Object.entries(query.computed ?? {})) {
-      const { scope, slots } = slotsOf(key);
-      slots.computed.push([scope, value]);
+      const { scope, entry } = consumersOf(key);
+      entry.computed.push([scope, value]);
     }
-    for (const [name, { rows, computed }] of includes) {
+    for (const [name, entry] of consumers) {
       const relation = relationOf(model, name);
-      result = result.include(name, (rel) => this.emitRelation(rel, relation, rows, computed, ctx));
+      result = result.include(name, (rel) => this.emitRelation(rel, relation, entry, ctx));
     }
     return result;
   }
@@ -371,11 +374,10 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   private emitRelation(
     rel: MapperCollection,
     relation: PrismaNextRelation,
-    rows: [string, PrismaNextQuery][],
-    computed: [string, ComputedSelection][],
+    { rows, computed }: RelationConsumers,
     ctx: object,
   ) {
-    const target = relation.targetVariant;
+    const target = relation.targetVariantModel;
     // The ORM reads a single-table variant's rows through the base table without filtering them.
     const base = target?.sharesTable
       ? rel.where((row: Record<string, { eq(value: unknown): unknown }>) =>
@@ -384,7 +386,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
       : rel;
     const load = (query: PrismaNextQuery) => {
       const narrowing = query.args?.variant;
-      const narrowed = narrowing && !narrowing.viaModel ? base.variant(narrowing.value) : base;
+      const narrowed =
+        narrowing && !narrowing.throughVariantModel ? base.variant(narrowing.value) : base;
       const refined = query.args?.[REFINE]?.(narrowed) ?? narrowed;
       return this.emitLevel(refined, query, relation.target, ctx);
     };
@@ -430,7 +433,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
  * Why the ORM can't include some relation of `query` where it sits: a variant's relation on a
  * level not narrowed to that variant, or a base relation beneath a relation to a variant model.
  */
-function variantProblem(
+function variantIncludeError(
   query: PrismaNextQuery,
   model: PrismaNextModel,
   narrowing: Narrowing | undefined,
@@ -441,20 +444,21 @@ function variantProblem(
     if (!relation) {
       continue;
     }
-    if (relation.variant !== undefined && relation.variant !== narrowing?.value) {
+    const declaredBy = relation.declaredByVariant;
+    if (declaredBy !== undefined && declaredBy !== narrowing?.value) {
       return (
-        `Relation "${name}" is declared on variant '${relation.variant}' of model ${model.name}, so it loads only from a collection narrowed with .variant('${relation.variant}'). ` +
-        `Return orm.${model.name}.variant('${relation.variant}') (or a relation typed as that variant).`
+        `Relation "${name}" is declared on variant '${declaredBy}' of model ${model.name}, so it loads only from a collection narrowed with .variant('${declaredBy}'). ` +
+        `Return orm.${model.name}.variant('${declaredBy}') (or a relation typed as that variant).`
       );
     }
-    if (narrowing?.viaModel && relation.variant === undefined) {
+    if (narrowing?.throughVariantModel && declaredBy === undefined) {
       return (
         `Relation "${name}" is inherited from model ${model.name} and can't be included beneath a relation to a variant model: ` +
         'the ORM loads those rows through the variant model, which only has its own relations.'
       );
     }
     const child = query.relations?.[key];
-    const problem = child && variantProblem(child, relation.target, child.args?.variant);
+    const problem = child && variantIncludeError(child, relation.target, child.args?.variant);
     if (problem) {
       return problem;
     }
