@@ -157,10 +157,10 @@ before any query runs.
 
 ## With scope-auth
 
-Rows this plugin didn't fully load, such as `{ id }` returned from a plain `t.field` or a parent
-whose field is in a skipped `@defer` fragment, are reloaded inside this plugin's resolver wrapper.
-With the usual [plugin order](../scope-auth#plugin-order) (`ScopeAuthPlugin` first), `authScopes`
-runs before that reload and sees the row as it was returned:
+List `ScopeAuthPlugin` first, the usual [plugin order](../scope-auth#plugin-order), so `authScopes`
+run before this plugin reloads anything. A row this plugin didn't fully load, such as `{ id }`
+returned from a plain `t.field` or a parent whose field is in a skipped `@defer` fragment, reaches
+`authScopes` without its `select`ed data, so write checks that fail closed:
 
 ```ts
 builder.prismaObject('User', {
@@ -170,9 +170,9 @@ builder.prismaObject('User', {
 });
 ```
 
-If `authScopes` read columns or relations from a `select`, or you use `runScopesOnType`, list
-`prismaNextPlugin` before `ScopeAuthPlugin`. The reload then runs before `authScopes`, even when
-access is denied. Otherwise, write those checks to fail closed.
+If `authScopes` need `select`ed columns or relations on those rows, or you use `runScopesOnType`,
+list `prismaNextPlugin` before `ScopeAuthPlugin`. The reload query then runs before `authScopes`,
+even for requests that are then denied.
 
 ## Databases
 
