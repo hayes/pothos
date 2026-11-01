@@ -312,7 +312,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   /**
    * Hands every plugin wrapped around a field the parent the field declares: the rows and values
    * of its type's and interfaces' `select`s and of its own, as this plugin loaded them. This hook
-   * wraps every plugin's `wrapResolve`; a reload still happens in this plugin's `wrapResolve`.
+   * wraps every plugin's `wrapResolve`. Reloads happen in `wrapResolve`, so plugins listed before
+   * this one see the parent as first loaded.
    */
   override wrapArgMappers(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
