@@ -57,8 +57,7 @@ import type { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-bu
 
 export type AnyContract = Contract<SqlStorage>;
 
-// Mirrors orm-client's internal `ScannedModelDef`. Upstream's `RelationsOf` collapses to
-// `Record<string, never>` in generic positions, so it isn't used.
+// Mirrors orm-client's internal `ScannedModelDef`.
 type ModelDefOf<
   TContract extends AnyContract,
   M extends string,
@@ -110,8 +109,9 @@ type ModelKeys<TContract extends AnyContract> = {
   }[keyof TContract['domain']['namespaces'][Ns]['models'] & string];
 }[keyof TContract['domain']['namespaces'] & string];
 
-// A model without relations emits `Record<string, never>`, whose index signature would make every
-// string a relation key, so it is dropped.
+// Upstream's `RelationsOf` collapses to `Record<string, never>` in generic positions, so relations
+// are read from the model def. A model without relations emits `Record<string, never>`, whose index
+// signature would make every string a relation key, so it is dropped.
 type OwnRelationsOfModel<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends {
     readonly relations: infer Rels extends Record<string, unknown>;
@@ -235,8 +235,10 @@ export type CollectionFor<Types extends SchemaTypes, M extends ModelName<Types>>
   WithNsId<DefaultCollectionTypeState, NamespaceOf<Types['PrismaNextContract'], M>>
 >;
 
-// The receiver type upstream's collection helpers take. It leaves out mutation input types, which
-// can differ between a collection typed from `Types['PrismaNextContract']` and `db.orm`'s own.
+/**
+ * The receiver type upstream's collection helpers take. It leaves out mutation input types, which
+ * can differ between a collection typed from `Types['PrismaNextContract']` and `db.orm`'s own.
+ */
 export type ResolverCollection<Types extends SchemaTypes, M extends ModelName<Types>> = [
   BaseModelKey<Types['PrismaNextContract'], M>,
 ] extends [never]
@@ -309,7 +311,7 @@ export type PrismaNextPluginOptions<TContract extends AnyContract, Context = obj
     }
 );
 
-// Upstream's `RelationNames` omits the relations a variant inherits from its base.
+/** Upstream's `RelationNames` omits the relations a variant inherits from its base. */
 export type RelationKeys<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -347,7 +349,7 @@ export type IsToMany<
   ? true
   : false;
 
-// A loose contract has no literal cardinality, so this falls back to every relation.
+/** A loose contract has no literal cardinality, so this falls back to every relation. */
 export type ToManyRelationKeys<Types extends SchemaTypes, M extends ModelName<Types>> =
   string extends RelationKeys<Types, M>
     ? RelationKeys<Types, M>
@@ -503,7 +505,8 @@ export type PrismaNextVariantFieldOptions<
   VariantRef extends PrismaNextObjectRef<Types, M, unknown>,
   Args extends InputFieldMap,
   Nullable extends boolean,
-  // Inferred from `isNull`'s result, so its parameters are typed first. It's `never` without one.
+  // Inferred from what isNull returns, so its parameters are still contextually typed. never when
+  // isNull is omitted.
   IsNull extends MaybePromise<boolean>,
   Selected extends keyof Row<Types, M> & string,
 > = Omit<
@@ -951,11 +954,10 @@ export type PrismaNextRootFieldWithInputOptions<
   };
 
 /**
- * The fields of a model whose column codec can be ordered, which excludes bytes, for example. This
- * is upstream's `OrderableFieldNames`, read from the model's table in one pass rather than through
- * the ORM's per-field helpers. It keeps upstream's `keyof ... & string` shape because the cursor
- * options constrain `Cursor` by these fields while the model is still generic, and only a
- * constraint that reduces to `string` keeps the inferred cursor a literal.
+ * The fields whose column codec can be ordered (bytes can't, for example). This is upstream's
+ * `OrderableFieldNames`, read from the model's table in one pass. It stays `keyof … & string` so
+ * that, while the model is still generic, it reduces to `string` and a cursor such as `'title'`
+ * still infers as that literal.
  */
 type OrderableFields<C extends AnyContract, M extends string> = keyof OrderableFieldMap<C, M> &
   string;
