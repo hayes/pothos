@@ -382,21 +382,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         return handOver(row, null, args, context, info);
       }
       assertContextObject(context, info);
-      let reason: ReloadReason = 'columns';
       if (!missing.length) {
         const mapping = reader.mapping(row, context, info);
-        reason = 'unplanned';
-        if (mapping) {
-          if (!loaded || loaded(fieldView(row, mapping), args, context, info)) {
-            setRowMappings(context, info, mapping.nested);
-            return handOver(row, mapping, args, context, info);
-          }
-          reason = 'conflict';
+        if (mapping && (!loaded || loaded(fieldView(row, mapping), args, context, info))) {
+          setRowMappings(context, info, mapping.nested);
+          return handOver(row, mapping, args, context, info);
         }
       }
       keyless ??= !getIdentityFields(config.contract, modelName).length;
       if (keyless) {
-        throw keylessReloadError(info, modelName, reason, missing);
+        throw keylessReloadError(info, modelName, missing);
       }
       return config
         .loader(context, modelName)
@@ -575,21 +570,14 @@ function validateStaticSelect(raw: RawSelect, model: PrismaNextModel, owner: str
   }
 }
 
-type ReloadReason = 'columns' | 'unplanned' | 'conflict';
-
 function keylessReloadError(
   info: GraphQLResolveInfo,
   modelName: string,
-  reason: ReloadReason,
   missing: readonly string[],
 ) {
-  const why = {
-    columns: `its parent row is missing ${missing.map((column) => `'${column}'`).join(', ')}`,
-    unplanned:
-      'it was left out of the query that loaded its parent (its selection conflicts with another on the same parent, it is in a @defer fragment, or the parent was not loaded by a prisma field)',
-    conflict:
-      'its selection conflicts with another on the same parent, so it was left out of the parent query',
-  }[reason];
+  const why = missing.length
+    ? `its parent row is missing ${missing.map((column) => `'${column}'`).join(', ')}`
+    : 'it was left out of the query that loaded its parent';
   return new PothosValidationError(
     `Field '${info.parentType.name}.${info.fieldName}' needs its parent reloaded because ${why}, ` +
       `but model '${modelName}' has no non-null primary or unique key to reload it by. ` +
