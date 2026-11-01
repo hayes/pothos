@@ -546,8 +546,9 @@ describe('native model inheritance', () => {
           });
         }),
       ).toThrow(
-        "'Hybrid' is based on model 'Bug' but implements prismaInterface 'FeatureFields', " +
-          "which is based on variant model 'Feature'.",
+        "'Hybrid' takes model 'Bug' from prismaInterface 'BugFields' but also implements " +
+          "prismaInterface 'FeatureFields', based on variant model 'Feature'. A type can only " +
+          "implement the prismaInterfaces of 'Task' and of one of its variants.",
       );
     });
 
@@ -566,7 +567,7 @@ describe('native model inheritance', () => {
         }),
       ).toThrow(
         "'Bug' is based on model 'Bug' but implements prismaInterface 'FeatureFields', " +
-          "which is based on variant model 'Feature'.",
+          "based on variant model 'Feature'.",
       );
     });
 
@@ -588,8 +589,8 @@ describe('native model inheritance', () => {
         }),
       ).toThrow(
         "'PlainTask' is based on model 'Task' but implements prismaInterface 'BugFields', " +
-          "which is based on variant model 'Bug'. A type can only implement the " +
-          "prismaInterfaces of its own model and of 'Task'.",
+          "based on variant model 'Bug'. A type can only implement the prismaInterfaces of " +
+          "'Task' and of one of its variants.",
       );
     });
 

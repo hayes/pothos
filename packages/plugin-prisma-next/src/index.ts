@@ -129,6 +129,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const { contract } = this.config;
     const ownModel = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
     let model = ownModel;
+    // The interface a type without its own model took its model from.
+    let modelSource: string | undefined;
     for (const iface of typeConfig.interfaces) {
       const ifaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
       const ifaceModel = ifaceConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
@@ -139,13 +141,17 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
             // A type without its own model takes the most specific one of its interfaces.
             if (model === root && !ownModel) {
               model = ifaceModel;
+              modelSource = ifaceConfig.name;
               continue;
             }
             // The interface only resolves rows of its own variant, and this type's rows never are.
+            const basis = modelSource
+              ? `takes model '${model}' from prismaInterface '${modelSource}' but also implements`
+              : `is based on model '${model}' but implements`;
             throw new PothosSchemaError(
-              `'${typeConfig.name}' is based on model '${model}' but implements prismaInterface ` +
-                `'${ifaceConfig.name}', which is based on variant model '${ifaceModel}'. A type ` +
-                `can only implement the prismaInterfaces of its own model and of '${root}'.`,
+              `'${typeConfig.name}' ${basis} prismaInterface '${ifaceConfig.name}', based on ` +
+                `variant model '${ifaceModel}'. A type can only implement the prismaInterfaces ` +
+                `of '${root}' and of one of its variants.`,
             );
           }
           continue;
@@ -156,6 +162,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
               `prismaInterface '${ifaceConfig.name}' which is based on '${ifaceModel}'. ` +
               'PrismaObjects must share a contract model with the PrismaInterfaces they extend.',
           );
+        }
+        if (!model) {
+          modelSource = ifaceConfig.name;
         }
         model = ifaceModel;
       }
