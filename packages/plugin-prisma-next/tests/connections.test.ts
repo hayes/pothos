@@ -1054,6 +1054,32 @@ describe('prismaConnectionHelpers', () => {
     expect(count).not.toHaveBeenCalled();
   });
 
+  it('fails totalCount when wrap is not given a count', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const pages = prismaConnectionHelpers(builder, 'User', { cursor: 'id', totalCount: true });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.connection(
+          {
+            type: pages.ref,
+            nullable: true,
+            resolve: async (_root, args, context, info) => {
+              const result = await pages.applyPagination(db.orm.User, args, context, info);
+              return result.wrap(await result.collection.all());
+            },
+          },
+          pages.connectionOptions({}),
+        ),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { totalCount } }');
+    expect(result.data.users).toBeNull();
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Cannot return null for non-nullable field QueryUsersConnection.totalCount.',
+    ]);
+  });
+
   it('pages a named type when given its ref instead of the model name', async () => {
     const builder = createBuilder();
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });

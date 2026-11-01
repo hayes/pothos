@@ -105,7 +105,8 @@ function withTotalCount(connectionOptions: object): object {
     ): Record<string, unknown> => ({
       totalCount: t.int({
         nullable: false,
-        resolve: (parent) => parent.totalCount ?? 0,
+        // A missing count is an error rather than 0, e.g. a helper's `wrap` called without one.
+        resolve: (parent) => parent.totalCount,
       }),
       ...(userFields ? userFields(t) : {}),
     }),
