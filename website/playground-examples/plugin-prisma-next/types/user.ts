@@ -5,19 +5,15 @@ builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
-    // #region user-full-name
     // Selects its columns only when a query asks for this field.
     fullName: t.string({
       select: ['firstName', 'lastName'],
       resolve: (user) => `${user.firstName} ${user.lastName}`,
     }),
-    // #endregion user-full-name
-    // #region user-posts
     // Loaded with its parent as part of one ORM query.
     posts: t.relation('posts', {
       query: { where: { published: 1 }, orderBy: (post) => post.id.asc() },
     }),
-    // #endregion user-posts
   }),
 });
 // #endregion user

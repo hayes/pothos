@@ -4,8 +4,7 @@ import { contractFromJson } from '@prisma/orm-sqlite/static';
 import type { Contract } from './contract';
 import contractJson from './contract.json';
 
-// The playground runs SQLite in WebAssembly, loaded from a CDN; the client below is the same one
-// you would use with a file on Node.
+// The playground backs `node:sqlite` with SQLite compiled to WebAssembly.
 const path = 'publishing.db';
 const seed = new DatabaseSync(path);
 seed.exec(`
