@@ -74,7 +74,6 @@ interface KeyColumn {
  * deferred fragments, and Relay `node(id:)` lookups.
  */
 export class ModelLoader {
-  private readonly adapter;
   private readonly identity: readonly string[];
   private readonly variant: string | undefined;
   /** A variant's rows load through the base narrowed to it, which can include its relations. */
@@ -93,7 +92,6 @@ export class ModelLoader {
     private readonly config: PrismaNextConfig,
     private readonly modelName: string,
   ) {
-    this.adapter = config.adapter;
     this.identity = getIdentityFields(config.contract, modelName);
     this.variant = variantOf(config.contract, modelName)?.value;
     this.initial =
@@ -118,7 +116,7 @@ export class ModelLoader {
     const plans = this.plansFor(info).parent;
     let selection = plans.get(key);
     if (!selection) {
-      selection = Plan.forParentRow(this.adapter, {
+      selection = Plan.forParentRow(this.config.adapter, {
         context: this.context,
         info,
         initial: this.initial,
@@ -162,7 +160,7 @@ export class ModelLoader {
     const plans = this.plansFor(info).node;
     let selection = plans.get(key);
     if (!selection) {
-      const plan = Plan.fromInfo(this.adapter, {
+      const plan = Plan.fromInfo(this.config.adapter, {
         context: this.context,
         info,
         typeName,
@@ -190,12 +188,13 @@ export class ModelLoader {
     let batch = [...this.staged].find((candidate) =>
       kind === 'node'
         ? candidate.nodeRoot === root
-        : candidate.nodeRoot === undefined && this.adapter.canMergeNode(candidate.root, root),
+        : candidate.nodeRoot === undefined &&
+          this.config.adapter.canMergeNode(candidate.root, root),
     );
     if (!batch) {
       const created: Batch = {
         nodeRoot: kind === 'node' ? root : undefined,
-        root: this.adapter.createNode(root.model),
+        root: this.config.adapter.createNode(root.model),
         fields,
         collection,
         parts: [],
@@ -222,11 +221,11 @@ export class ModelLoader {
     if (!part) {
       part = { root, requests: [] };
       batch.parts.push(part);
-      this.adapter.mergeNode(batch.root, root);
+      this.config.adapter.mergeNode(batch.root, root);
     }
-    const target = part;
+    const { requests } = part;
     return new Promise((resolve, reject) => {
-      target.requests.push({ values, resolve, reject });
+      requests.push({ values, resolve, reject });
     });
   }
 
@@ -276,9 +275,9 @@ export class ModelLoader {
             ),
           ),
     );
-    const query = this.adapter.emit(
+    const query = this.config.adapter.emit(
       filtered,
-      this.adapter.toQuery(batch.root),
+      this.config.adapter.toQuery(batch.root),
       batch.root.model,
       this.context,
     ) as MapperCollection & { all(): Promise<readonly Row[]> };
