@@ -233,6 +233,16 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
             source:
               'mutation { createAccount(id: "mutation-created", name: "Created") { id name entries { id } } missing { id } }',
             contextValue: { orm: tx.orm },
+          }).then(async (completed) => {
+            // The selection has completed, and the write is not yet visible outside the transaction.
+            expect(
+              (
+                await raw.query('SELECT name FROM pothos_next_account WHERE id = $1', [
+                  'mutation-created',
+                ])
+              ).rows,
+            ).toEqual([]);
+            return completed;
           }),
         );
         expect(result.errors).toBeUndefined();
@@ -433,9 +443,17 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       contextValue: {},
     });
     expect(result.errors).toBeUndefined();
-    expect(result.data?.accounts).toEqual(
-      expect.arrayContaining([expect.objectContaining({ count: expect.any(Number) })]),
-    );
+    expect(result.data?.accounts).toEqual([
+      {
+        name: 'Alice',
+        count: 2,
+        entries: [
+          { id: 'e1', account: { name: 'Alice' } },
+          { id: 'e2', account: { name: 'Alice' } },
+        ],
+      },
+      { name: 'Bob', count: 0, entries: [] },
+    ]);
   });
 
   it('continues a connection with the same count and no repeated rows', async () => {
@@ -684,9 +702,6 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
   });
 
   it('applies native null placement and the orderBy option in both directions', async () => {
-    await raw.query(
-      `UPDATE pothos_next_entry SET "sortLabel" = CASE id WHEN 'e1' THEN 'x' ELSE NULL END`,
-    );
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
       relay: {},
@@ -717,11 +732,17 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         (edge) => edge.node.id,
       );
     };
-    expect(await ids('entries(first: 5)')).toEqual(['e1', 'e2']);
-    expect(await ids('entries(first: 5, nullsFirst: true)')).toEqual(['e2', 'e1']);
-    expect(await ids('entries(last: 5)')).toEqual(['e1', 'e2']);
-    expect(await ids('entries(last: 1, nullsFirst: true)')).toEqual(['e1']);
-    await raw.query(`UPDATE pothos_next_entry SET "sortLabel" = NULL`);
+    await raw.query(
+      `UPDATE pothos_next_entry SET "sortLabel" = CASE id WHEN 'e1' THEN 'x' ELSE NULL END`,
+    );
+    try {
+      expect(await ids('entries(first: 5)')).toEqual(['e1', 'e2']);
+      expect(await ids('entries(first: 5, nullsFirst: true)')).toEqual(['e2', 'e1']);
+      expect(await ids('entries(last: 5)')).toEqual(['e1', 'e2']);
+      expect(await ids('entries(last: 1, nullsFirst: true)')).toEqual(['e1']);
+    } finally {
+      await raw.query(`UPDATE pothos_next_entry SET "sortLabel" = NULL`);
+    }
   });
 
   it('executes the complete selection inside the caller transaction', async () => {
@@ -797,6 +818,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
     await expect(
       client.transaction(async (tx) => {
         await tx.orm.public.Account.where({ id: 'a' }).update({ name: 'In transaction' });
+        statements = 0;
         const result = await graphql({
           schema,
           source: '{ entries { original { name } current { name } } }',
@@ -809,7 +831,9 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
             { original: null, current: { name: 'In transaction' } },
           ],
         });
-        expect(providerCalls).toBeGreaterThan(0);
+        // The entries, then one batch for both parents' conflicting includes.
+        expect(statements).toBe(2);
+        expect(providerCalls).toBe(1);
         throw rollback;
       }),
     ).rejects.toBe(rollback);

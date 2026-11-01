@@ -461,17 +461,18 @@ describe('model members named like plugin slots', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data.sheet).toEqual({ count: 99, notes: { totalCount: 2 } });
     const handBuilt = await run(schema(), '{ handBuilt { count notes(first: 1) { totalCount } } }');
-    expect(handBuilt.data.handBuilt.count).toBe(99);
-    expect(handBuilt.data.handBuilt.notes.totalCount).not.toBe(99);
+    expect(handBuilt.errors).toBeUndefined();
+    expect(handBuilt.data.handBuilt).toEqual({ count: 99, notes: { totalCount: 2 } });
   });
 
+  const meta = JSON.stringify({ 'role:role': 'admin', 'x:role': 'admin' });
   it.each([
-    '{ sheet { meta role } }',
-    '{ sheet { meta x: role } }',
-    '{ sheet { role } }',
-  ])('ignores JSON keys shaped like planned values: %s', async (source) => {
+    ['{ sheet { meta role } }', { meta, role: 'user' }],
+    ['{ sheet { meta x: role } }', { meta, x: 'user' }],
+    ['{ sheet { role } }', { role: 'user' }],
+  ])('ignores JSON keys shaped like planned values: %s', async (source, sheet) => {
     const result = await run(schema(), source);
     expect(result.errors).toBeUndefined();
-    expect(result.data.sheet.role ?? result.data.sheet.x).toBe('user');
+    expect(result.data.sheet).toEqual(sheet);
   });
 });
