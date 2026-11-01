@@ -142,6 +142,15 @@ export type SelectRelationDeclarative<
   readonly offset?: number;
 };
 
+/**
+ * Rejects the function form on a to-one relation, which has no `combine()`. The parameter is typed
+ * as this interface, so the error names it instead of an implicit `any`.
+ */
+interface NoToOneSelectFunction {
+  (relation: NoToOneSelectFunction): never;
+  readonly 'To-one relations take true or { select }, not a function': true;
+}
+
 export type SelectObjectSpec<Types extends SchemaTypes, M extends ModelName<Types>> = {
   readonly [K in (keyof Row<Types, M> & string) | RelationKeys<Types, M>]?: K extends RelationKeys<
     Types,
@@ -151,12 +160,11 @@ export type SelectObjectSpec<Types extends SchemaTypes, M extends ModelName<Type
         | true
         | SelectRelationDeclarative<Types, M, K>
         // Each returned value loads into the parent under its key: a collection or a reducer.
-        // To-one relations have no function form: it needs combine(), which they lack.
         | (IsToMany<Types, M, K> extends true
             ? (sub: RelationRefinementCollection<Types, M, K>) => {
                 readonly [key: string]: HasRow<unknown>;
               }
-            : never)
+            : NoToOneSelectFunction)
     : K extends keyof Row<Types, M>
       ? true
       : never;
