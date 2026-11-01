@@ -157,6 +157,7 @@ export function prismaConnectionHelpers<
 
   let args: Args | undefined;
   const config = getPluginConfig(builder);
+  config.adapter.loadsRowsOf(ref.name);
   const cursorOrder = validateCursor(config.contract, modelName, options.cursor);
   const settings = connectionSettings<
     (
