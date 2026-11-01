@@ -1,4 +1,4 @@
-// Seeded on-disk sqlite databases, built with raw SQL rather than prisma-next's migrations.
+// Seeded on-disk sqlite databases, built with raw SQL rather than Prisma ORM's migrations.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
