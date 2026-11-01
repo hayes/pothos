@@ -599,8 +599,7 @@ export class PrismaNextObjectFieldBuilder<
     const config = getPluginConfig(this.builder);
     const relatedKey = relation.targetModel;
     const cursorOrder = validateCursor(config.contract, relatedKey, options.cursor);
-    const targetRef =
-      options.type ?? getRefFromContractModel(relatedKey as never, this.builder as never);
+    const targetRef = options.type ?? getRefFromContractModel(relatedKey as never, this.builder);
     const variant = relationVariant(
       config.contract,
       `t.relatedConnection('${name}') on '${this.modelName as string}'`,
