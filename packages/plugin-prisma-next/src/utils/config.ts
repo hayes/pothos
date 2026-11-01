@@ -94,7 +94,8 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
   const modelKeys = Object.entries(contract.domain.namespaces).flatMap(([namespace, { models }]) =>
     Object.keys(models).map((model) => relatedModelKey(contract, { namespace, model })),
   );
-  const executionContext = (ctx: object): ExecutionContext => {
+  // Cached per request, so collections are scanned once rather than on every codecs() call.
+  const executionContext = createContextCache((ctx: object): ExecutionContext => {
     if (staticContext) {
       return staticContext;
     }
@@ -116,7 +117,7 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
     throw new PothosValidationError(
       'prismaNext.client returned a client without an execution context.',
     );
-  };
+  });
   const loaders = createContextCache(() => new Map<string, ModelLoader>());
   const config: PrismaNextConfig = {
     contract,
