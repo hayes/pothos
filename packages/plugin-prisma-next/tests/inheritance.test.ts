@@ -546,8 +546,8 @@ describe('native model inheritance', () => {
           });
         }),
       ).toThrow(
-        "'Hybrid' implements prismaInterface 'FeatureFields', based on variant model 'Feature', " +
-          "which conflicts with prismaInterface 'BugFields', based on variant model 'Bug'.",
+        "'Hybrid' is based on model 'Bug' but implements prismaInterface 'FeatureFields', " +
+          "which is based on variant model 'Feature'.",
       );
     });
 
@@ -565,8 +565,31 @@ describe('native model inheritance', () => {
           });
         }),
       ).toThrow(
-        "'Bug' implements prismaInterface 'FeatureFields', based on variant model 'Feature', " +
-          "which conflicts with its own variant model 'Bug'.",
+        "'Bug' is based on model 'Bug' but implements prismaInterface 'FeatureFields', " +
+          "which is based on variant model 'Feature'.",
+      );
+    });
+
+    it('rejects a type of the root model implementing the interface of a variant', () => {
+      expect(() =>
+        build((builder, task) => {
+          const bugFields = builder.prismaInterface('Bug', {
+            name: 'BugFields',
+            interfaces: [task],
+            fields: (t) => ({ severity: t.exposeString('severity') }),
+          });
+          builder.prismaObject('Bug', { interfaces: [task, bugFields], fields: () => ({}) });
+          builder.prismaObject('Task', {
+            variant: 'PlainTask',
+            interfaces: [bugFields] as never,
+            fields: () => ({}),
+          });
+          builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+        }),
+      ).toThrow(
+        "'PlainTask' is based on model 'Task' but implements prismaInterface 'BugFields', " +
+          "which is based on variant model 'Bug'. A type can only implement the " +
+          "prismaInterfaces of its own model and of 'Task'.",
       );
     });
 
