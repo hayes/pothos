@@ -37,9 +37,9 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-The rest comes from the
+The examples below come from the
 [Prisma Next playground example](https://pothos-graphql.dev/playground?example=plugin-prisma-next).
-An object with a computed field and a filtered relation:
+An object type with a computed field and a filtered relation:
 
 ```ts
 builder.prismaObject('User', {
@@ -72,7 +72,7 @@ builder.prismaObjectField('User', 'postConnection', (t) =>
 );
 ```
 
-A root field returns a Collection; the plugin applies the query's selection to it:
+A root field returns a Collection, and the plugin applies the query's selection to it:
 
 ```ts
 users: t.prismaField({
@@ -96,7 +96,8 @@ posts: t.prismaConnection({
 ```
 
 PostgreSQL and SQLite are supported, MySQL supports reads only (not covered by CI), and MongoDB is
-not supported. Operations must be executed with a context object (`contextValue`), where the
-plugin keeps per-request state.
+not supported. Execute operations with a context object (`contextValue`), because the plugin
+keeps per-request state on it.
 
-Full documentation: [Prisma Next plugin](https://pothos-graphql.dev/docs/plugins/prisma-next).
+See the [Prisma Next plugin docs](https://pothos-graphql.dev/docs/plugins/prisma-next) for the
+full documentation.

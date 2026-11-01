@@ -28,9 +28,9 @@ orders and pages it by the cursor, and builds the connection.
 - `orderBy`: `(model, args, ctx) => ordering`; see [Ordering and cursors](#ordering-and-cursors).
 - `defaultSize` / `maxSize`: page sizes, defaulting to the plugin's
   [connection size options](./setup#plugin-options).
-- `totalCount`: `true` counts the filtered Collection, `(parent, args, ctx, info) => number`
-  computes it. Either only runs when `totalCount` is selected, and a query for only `totalCount`
-  doesn't load the page.
+- `totalCount`: `true` counts the filtered Collection, and a function
+  `(parent, args, ctx, info) => number` computes the count itself. The count only runs when
+  `totalCount` is selected, and a query that selects only `totalCount` doesn't load the page.
 - `args`: extra arguments for filtering or sorting.
 
 Connection and edge types can be customized as with the
@@ -48,10 +48,11 @@ cursor: [{ field: 'score', direction: 'desc', nulls: 'first' }, 'id'],
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ posts(first: 2, newestFirst: true) { totalCount edges { node { title } } pageInfo { endCursor hasNextPage } } }"'>playground-examples/plugin-prisma-next/queries.ts#posts-query</include>
 
-A cursor records the ordering it was issued under: each column's direction and null placement.
-Under another ordering the same values point somewhere else, so a cursor from one ordering is
-rejected under another (for example after the client flips `newestFirst`) with an `Invalid cursor`
-error and no query. Start again from the first page when the ordering changes.
+A cursor records the ordering it was issued under, including each column's direction and null
+placement. The same values point somewhere else under another ordering, so a cursor used under a
+different ordering, for example after the client flips `newestFirst`, fails with an
+`Invalid cursor` error before any query runs. Start again from the first page when the ordering
+changes.
 
 Cursor values are encoded with the client's column codecs, so any orderable column works,
 including Temporal and decimal columns.
@@ -131,11 +132,12 @@ builder.prismaObject('User', {
 ```
 
 Pass `info` to `applyPagination` so relations under the connection's nodes are included.
-`query.where` always applies, to the page and to the count; `filterConnectionTotalCount` only
-affects `t.relatedConnection`. `totalCountPromise` only runs the count when `totalCount` is
+`query.where` applies to both the page and the count. `filterConnectionTotalCount` only affects
+`t.relatedConnection`. `totalCountPromise` only runs the count when `totalCount` is
 selected. `connectionOptions` adds the `totalCount` field.
 
-`resolveNode` maps each row to a different node shape. Cursors are still built from the row:
+`resolveNode` maps each row to a different node shape. Cursors are built from the row, not the
+node:
 
 ```ts
 prismaConnectionHelpers(builder, 'Post', {
