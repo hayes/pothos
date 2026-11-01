@@ -404,7 +404,7 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  function ownerBuilder() {
+  function ownerBuilder({ loadAccounts = true } = {}) {
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { client: collision.client },
@@ -414,14 +414,16 @@ describe('inherited selections', () => {
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     builder.prismaObject('Profile', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.queryType({
-      fields: (t) => ({
-        accounts: t.prismaField({
-          type: [Account],
-          resolve: () => collision.orm.Owner.orderBy((owner) => owner.id.asc()),
+    if (loadAccounts) {
+      builder.queryType({
+        fields: (t) => ({
+          accounts: t.prismaField({
+            type: [Account],
+            resolve: () => collision.orm.Owner.orderBy((owner) => owner.id.asc()),
+          }),
         }),
-      }),
-    });
+      });
+    }
     return { builder, Account };
   }
 
@@ -545,5 +547,43 @@ describe('inherited selections', () => {
     expect(() => builder.toSchema()).toThrow(
       `The select of 'WithoutProfile' loads to-one relation "profile" differently from another implementation of prismaInterface 'Account'`,
     );
+  });
+
+  it('builds conflicting implementations when only a plain field returns the interface', async () => {
+    const { builder, Account } = ownerBuilder({ loadAccounts: false });
+    const WithProfile = builder.prismaObject('Owner', {
+      variant: 'WithProfile',
+      interfaces: [Account],
+      select: { profile: true },
+      fields: (t) => ({ profileId: t.id({ nullable: true, resolve: (o) => o.profile?.id }) }),
+    });
+    const WithoutProfile = builder.prismaObject('Owner', {
+      variant: 'WithoutProfile',
+      interfaces: [Account],
+      select: { profile: { where: { id: 1 } } },
+      fields: (t) => ({ profileId: t.id({ nullable: true, resolve: (o) => o.profile?.id }) }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        accounts: t.field({ type: [Account], resolve: () => [] }),
+        withProfile: t.prismaField({
+          type: WithProfile,
+          resolve: () => collision.orm.Owner.where({ id: 1 }),
+        }),
+        withoutProfile: t.prismaField({
+          type: WithoutProfile,
+          resolve: () => collision.orm.Owner.where({ id: 1 }),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ withProfile { profileId } withoutProfile { profileId } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      withProfile: { profileId: '5' },
+      withoutProfile: { profileId: null },
+    });
   });
 });
