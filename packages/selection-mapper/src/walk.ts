@@ -276,11 +276,11 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
       const { types } = walk;
       // Whether the fragment moves the plan to `types`:
       // - A typed fragment directly under `origin` does, unless `origin` is already of its type.
-      // - An expansion or an untyped fragment does only when it selects fields of its own.
-      // - A typed fragment under one that did not move the plan (`type` is not `origin`) does too.
+      // - An expansion, an untyped fragment, or a typed fragment under one that did not move the
+      //   plan (`type` is not `origin`) does only when it selects fields of its own.
       const enters =
         types.length > 0 &&
-        (condition && !walk.isExpansion && type === origin
+        (condition && !walk.walksImplementations && type === origin
           ? !isOfType(origin, condition)
           : selectsFields(fragment.selectionSet.selections));
 
@@ -358,7 +358,7 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
 interface FragmentWalk {
   types: WalkedType[];
   /** Whether `types` are the implementations an expansion covers. */
-  isExpansion: boolean;
+  walksImplementations: boolean;
   /** The only kind of play that takes what this walk collects, or undefined for both kinds. */
   onlyIn: PlayKind | undefined;
 }
@@ -381,11 +381,11 @@ function fragmentWalks<Model, Query, NodeType extends NodeBase<Model>>(
   const { types, isExpansion } = fragmentTypesOf(plan, type, fragment);
 
   if (!isExpansion || types.length === 0) {
-    return [{ types, isExpansion: false, onlyIn }];
+    return [{ types, walksImplementations: false, onlyIn }];
   }
 
-  const expanding: FragmentWalk = { types, isExpansion: true, onlyIn: 'expanding' };
-  const plain: FragmentWalk = { types: [], isExpansion: false, onlyIn: 'plain' };
+  const expanding: FragmentWalk = { types, walksImplementations: true, onlyIn: 'expanding' };
+  const plain: FragmentWalk = { types: [], walksImplementations: false, onlyIn: 'plain' };
 
   if (onlyIn === undefined) {
     return [expanding, plain];
