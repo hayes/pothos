@@ -32,10 +32,10 @@ import type {
 } from './types.js';
 
 /**
- * A model ref, read by the model key the plugin's refs declare. Checking a `type` against
- * `PrismaNextObjectRef<Types, ModelName<Types>>` would build the ref class (and its return shape)
- * over the union of every model in the contract. The contract key keeps a ref from a builder of
- * another contract out.
+ * Matches a model's object ref by the model key it declares. Checking a `type` against
+ * `PrismaNextObjectRef<Types, ModelName<Types>>` would build the ref class and its return shape
+ * over every model in the contract. The contract key rejects a ref from a builder of another
+ * contract.
  */
 export interface ModelObjectRefKey<M, C = unknown> extends OutputRefShape<unknown> {
   readonly [prismaModelKey]: M;
@@ -93,7 +93,7 @@ export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape e
     : never
   : never;
 
-/** A collection in a combine spec loads `readonly Row[]`; a scalar reducer loads its result. */
+/** What a combine spec entry loads. A collection loads its rows, and a reducer its result. */
 type SpecValueResult<V> =
   V extends HasRow<infer R>
     ? V extends { readonly kind: 'includeScalar' | 'includeCombine' }
@@ -102,8 +102,8 @@ type SpecValueResult<V> =
     : unknown;
 
 /**
- * What the same-model `prismaInterface`s a type implements select: they load for the type too.
- * Another model's interface adds nothing, so implementing it still fails.
+ * What the `prismaInterface`s of the type's own model select, since they load for the type too. An
+ * interface of another model adds nothing, so implementing it fails.
  */
 export type InterfaceSelectShape<
   Types extends SchemaTypes,
@@ -112,7 +112,7 @@ export type InterfaceSelectShape<
 > = [Interfaces] extends [readonly unknown[]]
   ? UnionToIntersection<
       Interfaces[number] extends infer I
-        ? // Read through the ref's keys: inferring against the class compares its whole structure.
+        ? // Inferring against the ref class would compare its whole structure, so read its keys.
           I extends {
             readonly [prismaInterfaceKey]: infer IM extends string;
             readonly [parentShapeKey]: infer Shape;
@@ -159,7 +159,7 @@ export type SelectObjectSpec<Types extends SchemaTypes, M extends ModelName<Type
     ?
         | true
         | SelectRelationDeclarative<Types, M, K>
-        // Each returned value loads into the parent under its key: a collection or a reducer.
+        // Each returned collection or reducer loads into the parent under its key.
         | (IsToMany<Types, M, K> extends true
             ? (sub: RelationRefinementCollection<Types, M, K>) => {
                 readonly [key: string]: HasRow<unknown>;
@@ -211,8 +211,8 @@ export type ObjectBaseShape<
   : never;
 
 /**
- * A type's shape as its fields' parent. A base model's brand admits its variants, so it's narrowed
- * to the model here; other shapes already name only theirs.
+ * A type's shape as the parent of its fields. A base model's brand admits its variants, so it is
+ * narrowed to the model here. Other shapes name only their own model.
  */
 export type FieldParentShape<Types extends SchemaTypes, M extends ModelName<Types>, Shape> = [
   VariantModelKeys<Types['PrismaNextContract'], M>,
@@ -232,10 +232,10 @@ interface UnknownSelectColumn<Column> {
 }
 
 /**
- * An array `select` entry. An unknown column becomes an object brand rather than `never` or a
- * message string: the error then names it (`'emial' & UnknownSelectColumn<'emial'>`), and a brand
- * is never offered as a string completion. A non-literal entry (the editor's placeholder while
- * completing) stays the column names, so completions list only columns.
+ * Checks an array `select` entry. An unknown column becomes an object brand rather than `never` or
+ * a message string, so the error names it (`'emial' & UnknownSelectColumn<'emial'>`) and the brand
+ * is never offered as a string completion. A non-literal entry, such as the editor's placeholder
+ * while completing, becomes the column names, so completions list only columns.
  */
 export type SelectColumnCheck<
   Types extends SchemaTypes,
@@ -249,7 +249,7 @@ export type SelectColumnCheck<
       : UnknownSelectColumn<Column>
     : keyof Row<Types, M> & string;
 
-/** Names the requested type when no column fits it, where `never` would only say "not assignable". */
+/** Names the requested type when no column fits it, where `never` says only "not assignable". */
 interface NoExposableColumn<Type> {
   readonly 'No column of this model can be exposed as': Type;
 }
@@ -264,7 +264,7 @@ export type ExposableColumn<
   ? NoExposableColumn<Type>
   : CompatibleTypes<Types, Shape, Type, Nullable>;
 
-/** `nullable` as `t.expose*` requires it; nothing while the column itself is rejected. */
+/** The `nullable` option `t.expose*` requires, or none while the column is rejected. */
 export type ExposeColumnNullability<
   Types extends SchemaTypes,
   Type extends TypeParam<Types>,
@@ -280,7 +280,7 @@ type ValidateSelectValue<Types extends SchemaTypes, ParentShape, Select> =
       : never
     : never;
 
-/** Checks a field's or a type's `select`, which is inferred from the literal rather than checked. */
+/** Checks a field's or a type's `select`, which is inferred from the literal, not checked. */
 export type SelectCheck<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -321,9 +321,10 @@ type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Sel
   InvalidSelectValueCheck<Types, M, Select>;
 
 /**
- * Checking the literal against the spec isn't enough: intersected with the inferred function, the
- * spec's all-optional relation options accept any function, and a function's inferred result is
- * only checked for unknown keys. So a relation's `(sub) => sub` or `{ limit: 'x' }` is named here.
+ * Names an invalid relation value, such as `(sub) => sub` or `{ limit: 'x' }`. Checking the literal
+ * against the spec misses these. Intersected with the inferred function, the spec's all-optional
+ * relation options accept any function, and a function's inferred result is only checked for
+ * unknown keys.
  */
 type InvalidSelectValueCheck<
   Types extends SchemaTypes,
@@ -376,7 +377,7 @@ export type ShapeFromSelect<Types extends SchemaTypes, ParentShape, Select> = un
             ParentShape & Partial<UnionToIntersection<Branches>> & Pick<Branches, keyof Branches>
           >
         : never
-      : // An array that isn't a tuple (a variable) may hold any subset of its columns.
+      : // An array that isn't a tuple, such as a variable, may hold any subset of its columns.
         Awaited<Result> extends readonly unknown[]
         ? number extends Awaited<Result>['length']
           ? Normalize<
