@@ -73,9 +73,10 @@ loads each implementation's `select`, so `isTypeOf` and type-level `authScopes` 
 without a `... on Type` fragment (see [With scope-auth](./setup#with-scope-auth) for plugin order).
 
 A row holds one version of each to-one relation. Where the plugin loads rows as the interface
-(through a `prismaField`, `prismaConnection`, connection helpers, or a relation or relation
-`select` typed as the interface), every implementation must load each to-one relation the same
-way as the other implementations and as the interface's own `select`, or the schema build fails.
+(through a `prismaField`, `prismaConnection`, connection helpers, a relation, or any field whose
+`select` is a function or includes a relation, returning the interface), every implementation
+must load each to-one relation the same way as the other implementations and as the interface's
+own `select`, or the schema build fails.
 The check compares the relation's whole nested selection, such as the arguments of a to-one
 relation beneath it, and not just its own arguments. Extra columns always merge. A plain `t.field`
 that returns rows its resolver loaded doesn't count.
