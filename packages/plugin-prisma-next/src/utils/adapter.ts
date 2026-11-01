@@ -14,10 +14,10 @@ import {
   isInterfaceType,
 } from 'graphql';
 import {
-  PRISMA_NEXT_FIELD_SELECT,
+  PRISMA_NEXT_FIELD_SELECTION,
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_MODEL,
-  PRISMA_NEXT_SELECT,
+  PRISMA_NEXT_TYPE_SELECT,
 } from '../constants.js';
 import type { AnyContract } from '../types.js';
 import {
@@ -120,22 +120,22 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
       const selections = implementationsOf(type)!;
       for (const impl of schema.getPossibleTypes(type as never)) {
         if (this.modelFor(impl) === model) {
-          selections.set(impl.name, this.typeSelectionOf(impl).query!);
+          selections.set(impl.name, this.planTypeSelection(impl).query!);
         }
       }
     }
     for (const type of interfaces) {
-      this.typeSelectionOf(type);
+      this.planTypeSelection(type);
     }
   }
 
   typeSelection(type: GraphQLNamedType): PrismaNextQuery | undefined {
-    return this.typeSelectionOf(type).query;
+    return this.planTypeSelection(type).query;
   }
 
   /** Interfaces whose `select` conflicts with the type's own, so their fields load separately. */
   conflictingInterfaces(type: GraphQLNamedType): string[] {
-    return [...this.typeSelectionOf(type).conflicting.keys()];
+    return [...this.planTypeSelection(type).conflicting.keys()];
   }
 
   /**
@@ -148,7 +148,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
    * use each implementation's own slots. The ORM includes a to-one relation once, so the
    * implementations must agree on every to-one relation the interface doesn't select itself.
    */
-  private typeSelectionOf(type: GraphQLNamedType) {
+  private planTypeSelection(type: GraphQLNamedType) {
     let selection = this.typeSelections.get(type);
     if (!selection) {
       const conflicting = new Map<string, PrismaNextQuery>();
@@ -162,7 +162,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
             return;
           }
           visited.add(current);
-          const raw = current.extensions?.[PRISMA_NEXT_SELECT] as RawSelect | undefined;
+          const raw = current.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
           const own = raw && compileTypeSelect(raw, model, current.name);
           if (own && current === type) {
             this.mergeQuery(node, own);
@@ -229,7 +229,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
     let selection = this.fieldSelections.get(field);
     if (selection === undefined) {
-      const own = field.extensions?.[PRISMA_NEXT_FIELD_SELECT] as
+      const own = field.extensions?.[PRISMA_NEXT_FIELD_SELECTION] as
         | PrismaNextQuery
         | PrismaNextSelectFn
         | undefined;
@@ -251,7 +251,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     type: WalkedType,
     own: PrismaNextQuery | PrismaNextSelectFn | undefined,
   ) {
-    const { conflicting } = this.typeSelectionOf(type);
+    const { conflicting } = this.planTypeSelection(type);
     const iface =
       conflicting.size > 0
         ? type.getInterfaces().find((i) => conflicting.has(i.name) && i.getFields()[field.name])

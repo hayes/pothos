@@ -135,7 +135,7 @@ export function variantOf(
  * The variant a relation is narrowed to when its GraphQL type is backed by a variant of its
  * target. Throws for a type from the hierarchy the relation can't return.
  */
-export function relationVariant(
+export function variantForRelationType(
   contract: AnyContract,
   owner: string,
   targetModel: string,
