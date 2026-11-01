@@ -18,16 +18,15 @@ export function resolveContractModel(
   modelKey: string,
 ): SqlContractModel | undefined {
   const model = lookupModel(contract, modelKey);
-  const base = model?.base;
-  if (!base) {
+  if (!model?.base) {
     return model;
   }
   // A variant's contract entry holds only its own fields; the rest come from its base.
-  const parent = resolveContractModel(contract, relatedModelKey(contract, base))!;
+  const parent = resolveContractModel(contract, relatedModelKey(contract, model.base))!;
   return {
-    ...model!,
-    fields: { ...parent.fields, ...model!.fields },
-    relations: { ...parent.relations, ...model!.relations },
+    ...model,
+    fields: { ...parent.fields, ...model.fields },
+    relations: { ...parent.relations, ...model.relations },
     storage: parent.storage,
   };
 }
