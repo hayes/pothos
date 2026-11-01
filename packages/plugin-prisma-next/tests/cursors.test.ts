@@ -226,7 +226,7 @@ describe('rejected cursors', () => {
     expect(result.statements).toHaveLength(0);
   });
 
-  it('cannot reach Object.prototype through a cursor payload', async () => {
+  it('rejects a __proto__ object payload without touching Object.prototype', async () => {
     const result = await run(
       schema(),
       'query ($c: String) { posts(after: $c) { edges { cursor } } }',
@@ -234,7 +234,8 @@ describe('rejected cursors', () => {
         variables: { c: raw('PNC:a:O:{"__proto__":{"polluted":1}}') },
       },
     );
-    expect(result.data).toBeDefined();
+    expect(result.errors?.[0].message).toBe('Invalid cursor: invalid id value.');
+    expect(result.statements).toHaveLength(0);
     expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
   });
 

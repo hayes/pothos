@@ -853,9 +853,13 @@ describe('fallback isolation', () => {
       { name: null, noteCount: null },
       { name: null, noteCount: null },
     ]);
-    const messages = Object.fromEntries(errorsOf(result) ?? []);
-    expect(messages['sheets.0.noteCount']).toBe('notes not allowed');
-    expect(messages['sheets.1.noteCount']).not.toBe('notes not allowed');
+    const rejected = expect.stringContaining('value must be a number');
+    expect(errorsOf(result)).toEqual([
+      ['sheets.0.name', 'notes not allowed'],
+      ['sheets.0.noteCount', 'notes not allowed'],
+      ['sheets.1.name', rejected],
+      ['sheets.1.noteCount', rejected],
+    ]);
     expect(result.statements).toHaveLength(0);
   });
 
