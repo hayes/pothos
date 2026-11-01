@@ -448,6 +448,31 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
+  it("rejects an implementation whose to-one select differs from a returned interface's", () => {
+    const builder = createBuilder();
+    const PostBase = builder.prismaInterface('Post', {
+      name: 'PostBase',
+      select: { author: true },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.prismaObject('Post', {
+      interfaces: [PostBase],
+      select: { author: { where: { firstName: 'Nobody' } } },
+      isTypeOf: (post) => post.author === null,
+    });
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaField({ type: [PostBase], resolve: () => db.orm.Post }),
+      }),
+    });
+    // Rows loaded as PostBase would carry its unfiltered author, so Post's isTypeOf would reject
+    // every row.
+    expect(() => builder.toSchema()).toThrow(
+      `The select of 'Post' loads to-one relation "author" differently from the select of prismaInterface 'PostBase'.`,
+    );
+  });
+
   it('rejects implementations that load a to-one relation differently', () => {
     const { builder, Account } = ownerBuilder();
     builder.prismaObject('Owner', {
