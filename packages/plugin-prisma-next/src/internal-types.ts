@@ -199,8 +199,9 @@ type SimpleColumnShape<Types extends SchemaTypes, M extends ModelName<Types>, S>
 
 /**
  * The model brand and the primary key, which every type's selection loads. Other columns are
- * present only when a `select` declares them. The brand admits variants, and the conditional stops
- * TypeScript comparing two shapes by `M` alone.
+ * present only when a `select` declares them. The brand also admits the model's variants. The
+ * `M extends string` wrapper makes TypeScript compare two of these shapes by their members, not by
+ * `M` alone.
  */
 export type ObjectBaseShape<
   Types extends SchemaTypes,
@@ -322,10 +323,9 @@ type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Sel
   InvalidSelectValueCheck<Types, M, Select>;
 
 /**
- * Names an invalid relation value, such as `(sub) => sub` or `{ limit: 'x' }`. Checking the literal
- * against the spec misses these. Intersected with the inferred function, the spec's all-optional
- * relation options accept any function, and a function's inferred result is only checked for
- * unknown keys.
+ * Names an invalid relation value, such as `(sub) => sub` or `{ limit: 'x' }`, which checking
+ * against the spec lets through: intersected with the inferred function, the all-optional relation
+ * options accept any function, and a `select` function's result is checked only for unknown keys.
  */
 type InvalidSelectValueCheck<
   Types extends SchemaTypes,

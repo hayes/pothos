@@ -229,7 +229,8 @@ builder.prismaObject('Post', {
   fields: (t) => ({ a: idOf(t) }),
 });
 
-// Builder to builder: Shape and ExposableShape still compare structurally; M and Types don't widen.
+// Builder to builder: Shape and ExposableShape compare structurally. M widens (a User builder is a
+// User | Post builder) but doesn't narrow, and Types must match.
 type Narrow = { a: 1; b: 2 };
 type Wide = { a: 1 };
 declare const narrowShape: UserFieldBuilder<Narrow, Narrow>;
