@@ -689,7 +689,7 @@ describe('fragments', () => {
       );
     });
 
-    it('plans a nested fragment on a type every implementation is as its enclosing fragment', async () => {
+    it('plans `... on Node { ... on Person { … } }` like `... on Node { … }`', async () => {
       const nestedContext = {};
       const directContext = {};
       const nested = await plan(
