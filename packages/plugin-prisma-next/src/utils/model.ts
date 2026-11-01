@@ -36,7 +36,7 @@ export interface PrismaNextModel {
   readonly columns: ReadonlySet<string>;
 }
 
-function buildColumnSet(modelName: string, contract: AnyContract): ReadonlySet<string> {
+function buildColumnSet(contract: AnyContract, modelName: string): ReadonlySet<string> {
   const fields = resolveContractModel(contract, modelName)?.fields ?? {};
   // A base collection selects its variants' columns, leaving them absent on other variants' rows.
   const variants = Object.values(modelDiscriminator(contract, modelName)?.variants ?? {});
@@ -47,8 +47,6 @@ function buildColumnSet(modelName: string, contract: AnyContract): ReadonlySet<s
     ),
   ]);
 }
-
-const registries = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
 
 /** Non-null unique keys, primary key first. Undefined for a model without SQL storage. */
 export function getModelUniqueKeys(
@@ -89,17 +87,19 @@ export function getIdentityFields(contract: AnyContract, modelName: string): str
   return getModelUniqueKeys(contract, modelName)?.[0] ?? [];
 }
 
+const modelCache = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
+
 /**
  * Cached per contract so model identity is object identity. A variant shares its base's model,
  * so `... on Bug` beneath a `Task` plans into the same query.
  */
 export function getModel(contract: AnyContract, key: string): PrismaNextModel {
   const name = rootModelKey(contract, key);
-  let models = registries.get(contract);
+  let models = modelCache.get(contract);
 
   if (!models) {
     models = new Map();
-    registries.set(contract, models);
+    modelCache.set(contract, models);
   }
 
   let model = models.get(name);
@@ -107,7 +107,7 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
   if (!model) {
     const relations: Record<string, PrismaNextRelation> = {};
 
-    model = { name, relations, columns: buildColumnSet(name, contract) };
+    model = { name, relations, columns: buildColumnSet(contract, name) };
     // Registered before its relations resolve, so a cycle finds it.
     models.set(name, model);
 
