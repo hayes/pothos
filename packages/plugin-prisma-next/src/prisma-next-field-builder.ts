@@ -36,9 +36,9 @@ function isCollection(value: unknown): value is Executable {
 }
 
 /**
- * A `prismaField`'s type with a model name resolved to its ref, and its resolver: the user's
- * Collection with the field's whole selection applied, then executed (one row for a singular
- * field).
+ * Builds the config of a `prismaField`. A model name in `type` resolves to its ref. The resolver
+ * applies the field's whole selection to the returned Collection and executes it, reading one row
+ * for a singular field.
  */
 function prismaFieldConfig(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,

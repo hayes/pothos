@@ -135,7 +135,8 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
             })
           : userCollection;
 
-        // Validates the ordering even for count-only selections; no rows are fetched here.
+        // Runs for a count-only selection too, so an invalid cursor or ordering still fails. No
+        // rows are fetched here.
         const pagination = applyCursorPagination(applied, cursorSpec, relayArgs, {
           ...settings.sizes(args as object, context),
           codecs: config.codecs(context, modelName),
@@ -154,7 +155,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
               .then((rows) => materializeRows(rows, getModel(config.contract, modelName)))
           : Promise.resolve([]);
 
-        // Counted before pagination, so it matches the paged rows.
+        // Counts the collection the resolver returned, before pagination.
         const countSource = settings.countSource(context, info);
         const countPromise =
           countSource === 'aggregate'
