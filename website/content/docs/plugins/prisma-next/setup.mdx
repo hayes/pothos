@@ -142,7 +142,8 @@ prismaNext: {
   they execute. Defaults to `true`. Set it to `false` to load them eagerly. A model without a key
   can't be reloaded, so its deferred fields need `false`.
 - `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes, 20 and 100 when
-  unset. Fields override them with `defaultSize` and `maxSize`.
+  unset. Fields override them with `defaultSize` and `maxSize`, which can also be
+  `(args, ctx) => number`.
 - `filterConnectionTotalCount`: a `relatedConnection`'s `totalCount` counts the rows matching its
   `query.where`. Set to `false` to count every related row.
 

@@ -26,8 +26,9 @@ orders and pages it by the cursor, and builds the connection.
   `{ field, direction, nulls }`. The columns must include a complete non-null primary or
   unique key, so add `id` as a tie-breaker after non-unique or nullable columns.
 - `orderBy`: `(model, args, ctx) => ordering`; see [Ordering and cursors](#ordering-and-cursors).
-- `defaultSize` / `maxSize`: page sizes, defaulting to the plugin's
-  [connection size options](./setup#plugin-options).
+- `defaultSize` / `maxSize`: page sizes, or `(args, ctx) => number`, defaulting to the plugin's
+  [connection size options](./setup#plugin-options). An invalid size, or a callback that throws,
+  fails only that connection field.
 - `totalCount`: `true` counts the filtered Collection, and a function
   `(parent, args, ctx, info) => number` computes the count itself. The count only runs when
   `totalCount` is selected, and a query that selects only `totalCount` doesn't load the page.
@@ -132,7 +133,8 @@ builder.prismaObject('User', {
 Pass `info` to `applyPagination` so relations under the nodes are included. `query.where`
 filters both the page and the count (`filterConnectionTotalCount` only applies to
 `t.relatedConnection`). `totalCountPromise` runs the count only if `totalCount` is selected, and
-`connectionOptions` adds the `totalCount` field.
+`connectionOptions` adds the `totalCount` field. When `totalCount` is selected, pass the count to
+`wrap`, or the field fails with a non-null error.
 
 `resolveNode` maps each row to a different node shape. Cursors are built from the row, not the
 node:
