@@ -270,8 +270,7 @@ type PrismaNextCollections<TContract extends AnyContract> =
 // Collections are matched by model name and by the contract on their `ctx` (upstream's
 // `CollectionBase.ctx`, internal in rc.22 but also read by Prisma's public types), not
 // structurally: comparing each `Collection` against one built from `TContract` costs more than the
-// rest of the builder setup, while comparing the contract to itself is an identity check. No
-// at-sign tag in this comment: `stripInternal` would drop the interface from the d.ts.
+// rest of the builder setup, while comparing the contract to itself is an identity check.
 interface CollectionOfModel<TContract extends AnyContract, M extends string> {
   readonly modelName: M;
   readonly ctx: { readonly context: { readonly contract: TContract } };
