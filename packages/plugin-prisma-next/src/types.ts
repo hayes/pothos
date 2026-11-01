@@ -1170,8 +1170,8 @@ type FieldSelectArray<Types extends SchemaTypes, ParentShape> =
   ExtractModel<Types, ParentShape> extends infer M
     ? M extends ModelName<Types>
       ? readonly (keyof Row<Types, M> & string)[]
-      : readonly never[]
-    : readonly never[];
+      : never
+    : never;
 
 /**
  * Tuples, so each returned array literal infers as its own tuple: branches selecting different
