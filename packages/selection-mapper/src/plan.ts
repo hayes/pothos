@@ -40,7 +40,7 @@ const LENIENT: MergeOptions = Object.freeze({ lenient: true });
  * variant's, a nested selection's relation query, or a field's. A play folds the list into a
  * node; nothing is merged, accepted or rejected before then.
  *
- * `expanded`: see `fragmentWalks` in walk.ts.
+ * `onlyIn` marks a merge that only one kind of play takes; see `fragmentWalks` in walk.ts.
  *
  * A record holds its query by reference, so a select function that mutates the query it returned
  * after returning it changes what a later play builds — a bug in the select function. Nothing
@@ -50,15 +50,22 @@ const LENIENT: MergeOptions = Object.freeze({ lenient: true });
 export type RootMerge<Query> =
   | { kind: 'type'; query: Query }
   | { kind: 'query'; query: Query }
-  | { kind: 'variant'; type: WalkedType; variant: WalkedType; query: Query; expanded?: boolean }
+  | { kind: 'variant'; type: WalkedType; variant: WalkedType; query: Query; onlyIn?: PlayKind }
   | {
       kind: 'field';
       key: string;
       alias: string;
       query: Query;
       mapping: Mapping;
-      expanded?: boolean;
+      onlyIn?: PlayKind;
     };
+
+/**
+ * The two ways a plan is played. For a fragment on an abstract type with no model, an expanding
+ * play takes what was walked as each implementation the fragment covers. A plain play takes what
+ * was walked as if the fragment could not apply.
+ */
+export type PlayKind = 'expanding' | 'plain';
 
 /**
  * A plan played: the node its merges built and the mappings the accepted merges recorded. A play
@@ -98,8 +105,8 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   /** The traversal's whole output: every merge it collected, in the order it collected them. */
   private readonly merges: RootMerge<Query>[] = [];
 
-  /** Whether some merge is taken only by a play that expands fragments. */
-  private expands = false;
+  /** Whether some merge is taken only by an expanding play. */
+  private hasExpandingMerges = false;
 
   /**
    * The play `settle` ran, which a later play takes whole when the seed conflicts with none of
@@ -245,8 +252,8 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /** Appends one merge to the list a play folds. The traversal's only way to add to a plan. */
   collect(merge: RootMerge<Query>) {
-    if ((merge.kind === 'variant' || merge.kind === 'field') && merge.expanded) {
-      this.expands = true;
+    if ((merge.kind === 'variant' || merge.kind === 'field') && merge.onlyIn === 'expanding') {
+      this.hasExpandingMerges = true;
     }
 
     this.merges.push(merge);
@@ -311,9 +318,9 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     if (settled) {
       const root = this.adapter.createNode(this.model);
 
-      // A settled play already holds the plan's own `initial`, so reusing one merges the seed and
-      // nothing else: `mergeQuery` is not required to be idempotent. Every merge that play took
-      // still fits and every merge it left out still does not, so its node is taken whole.
+      // A settled play already holds the plan's own `initial`, so only the seed is merged here.
+      // `mergeQuery` is not required to be idempotent. Every merge that play took still fits and
+      // every merge it left out still does not, so its node is taken whole.
       if (seed) {
         this.adapter.mergeQuery(root, seed);
       }
@@ -325,18 +332,18 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
     const first = seed ?? this.initial;
 
-    // See `fragmentWalks` in walk.ts.
-    return (this.expands && this.fold(first, true)) || this.fold(first, false)!;
+    // An expanding play gives up on a type-level conflict, and a plain play is played instead.
+    return (this.hasExpandingMerges && this.fold(first, 'expanding')) || this.fold(first, 'plain')!;
   }
 
   /**
-   * The merges a play that does or does not expand fragments takes, folded into a fresh node
-   * behind `first`, which is merged before anything else so on a conflict it wins. Undefined when
-   * an expanding play meets a type-level conflict; a play that does not expand throws it.
+   * The merges a play of kind `play` takes, folded into a fresh node behind `first`. `first` is
+   * merged before anything else, so on a conflict it wins. An expanding play returns undefined on
+   * a type-level conflict, and a plain play throws it.
    */
   private fold(
     first: Query | undefined,
-    expanded: boolean,
+    play: PlayKind,
   ): PlayedPlan<Model, Query, NodeType> | undefined {
     const { adapter } = this;
     const root = adapter.createNode(this.model);
@@ -355,14 +362,14 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
           adapter.mergeQuery(root, merge.query, AS_QUERY);
           break;
         case 'variant': {
-          if (merge.expanded === !expanded) {
+          if (merge.onlyIn !== undefined && merge.onlyIn !== play) {
             break;
           }
 
           const conflict = adapter.firstConflict(root, merge.query);
 
           if (conflict) {
-            if (expanded) {
+            if (play === 'expanding') {
               return undefined;
             }
 
@@ -373,7 +380,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
           break;
         }
         case 'field': {
-          if (merge.expanded === !expanded) {
+          if (merge.onlyIn !== undefined && merge.onlyIn !== play) {
             break;
           }
 

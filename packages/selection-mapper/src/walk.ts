@@ -37,7 +37,7 @@ import {
   normalizeInclude,
   resolveType,
 } from './matches.js';
-import type { Plan } from './plan.js';
+import type { Plan, PlayKind } from './plan.js';
 import type { NestedSelection, Position, SelectFn, WalkedType } from './types.js';
 
 /**
@@ -70,17 +70,14 @@ function enterVariant<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   type: WalkedType,
   variant: WalkedType,
-  expanded: Expanded,
+  onlyIn: PlayKind | undefined,
 ) {
   const selection = plan.adapter.typeSelection(variant);
 
   if (selection) {
-    plan.collect({ kind: 'variant', type, variant, query: selection, expanded });
+    plan.collect({ kind: 'variant', type, variant, query: selection, onlyIn });
   }
 }
-
-/** Which plays take what a walk collects; see `fragmentWalks`. */
-type Expanded = boolean | undefined;
 
 /**
  * One selection to walk into a plan, before any indirect include on `type` is followed: the
@@ -219,11 +216,11 @@ function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
 type Fragment = FragmentDefinitionNode | InlineFragmentNode;
 
 /**
- * Whether `fragment` was already expanded under `key` in the pass `visited` belongs to, recording
- * it if not. A valid fragment DAG can spread the same fragment at every level, so expanding every
+ * Whether `fragment` was already visited under `key` in the pass `visited` belongs to, recording
+ * it if not. A valid fragment DAG can spread the same fragment at every level, so visiting every
  * spread is exponential in its depth. Inline fragments cannot repeat.
  */
-function expandedBefore(visited: Set<string>, key: string, fragment: Fragment): boolean {
+function visitedBefore(visited: Set<string>, key: string, fragment: Fragment): boolean {
   if (fragment.kind !== Kind.FRAGMENT_DEFINITION) {
     return false;
   }
@@ -244,11 +241,10 @@ function expandedBefore(visited: Set<string>, key: string, fragment: Fragment): 
  * before any field is merged, so a conflict between two type-level selections is reported
  * whichever order the fragments appear in and never depends on a field-level select.
  *
- * `selections` are walked as `type`, exactly as `walkSelections` walks them, and variants are
- * entered relative to `origin`: the type the plan was last entered as. The two differ inside a
- * fragment on an abstract type of no model that selects no fields of its own: it narrows the
- * walk to the implementations it can apply to, but enters none of them, so only the fragments
- * nested in it that select fields enter (the ones among those implementations they apply to).
+ * `selections` are walked as `type`, as `walkSelections` walks them. Variants are entered
+ * relative to `origin`, the type the plan was last entered as. The two differ inside an expansion
+ * that selects no fields of its own. It narrows the walk to the implementations it covers but
+ * enters none of them, so only its nested fragments that select fields enter a variant.
  */
 function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -256,7 +252,7 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
   type: WalkedType,
   selections: readonly SelectionNode[],
   visited: Set<string>,
-  expanded: Expanded,
+  onlyIn: PlayKind | undefined,
 ) {
   for (const selection of selections) {
     if (selection.kind === Kind.FIELD) {
@@ -272,26 +268,25 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
     const condition =
       fragment.typeCondition && plan.info.schema.getType(fragment.typeCondition.name.value)!;
 
-    for (const walk of fragmentWalks(plan, type, fragment, expanded)) {
-      if (expandedBefore(visited, `${origin.name}>${type.name}:${walk.expanded}`, fragment)) {
+    for (const walk of fragmentWalks(plan, type, fragment, onlyIn)) {
+      if (visitedBefore(visited, `${origin.name}>${type.name}:${walk.onlyIn}`, fragment)) {
         continue;
       }
 
       const { types } = walk;
-      // A typed fragment moves the plan to the types it applies to, unless `origin` is already
-      // of its type. One that expands, or an untyped one, only does so when it selects fields of
-      // its own, and so does a typed one inside a fragment that did not enter (`type` is not
-      // `origin`): it keeps to `type`, which the plan has not entered. A fragment that does not
-      // move the plan leaves its nested fragments to enter relative to the same `origin`.
+      // Whether the fragment moves the plan to `types`:
+      // - A typed fragment directly under `origin` does, unless `origin` is already of its type.
+      // - An expansion or an untyped fragment does only when it selects fields of its own.
+      // - A typed fragment under one that did not move the plan (`type` is not `origin`) does too.
       const enters =
         types.length > 0 &&
-        (condition && !walk.expands && type === origin
+        (condition && !walk.isExpansion && type === origin
           ? !isOfType(origin, condition)
           : selectsFields(fragment.selectionSet.selections));
 
       for (const as of types.length > 0 ? types : [type]) {
         if (enters && as !== origin) {
-          enterVariant(plan, origin, as, walk.expanded);
+          enterVariant(plan, origin, as, walk.onlyIn);
         }
 
         enterVariants(
@@ -300,7 +295,7 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
           as,
           fragment.selectionSet.selections,
           visited,
-          walk.expanded,
+          walk.onlyIn,
         );
       }
     }
@@ -319,12 +314,12 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
   indirectPath: string[],
   fieldsApply: boolean,
   visited: Set<string>,
-  expanded: Expanded,
+  onlyIn: PlayKind | undefined,
 ) {
   for (const selection of selections) {
     if (selection.kind === Kind.FIELD) {
       if (fieldsApply) {
-        walkField(plan, type, selection, indirectPath, expanded);
+        walkField(plan, type, selection, indirectPath, onlyIn);
       }
 
       continue;
@@ -336,10 +331,12 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
       continue;
     }
 
-    for (const { types, expanded: walkExpanded } of fragmentWalks(plan, type, fragment, expanded)) {
-      if (expandedBefore(visited, `${type.name}:${fieldsApply}:${walkExpanded}`, fragment)) {
+    for (const walk of fragmentWalks(plan, type, fragment, onlyIn)) {
+      if (visitedBefore(visited, `${type.name}:${fieldsApply}:${walk.onlyIn}`, fragment)) {
         continue;
       }
+
+      const { types } = walk;
 
       for (const as of types.length > 0 ? types : [type]) {
         walkSelections(
@@ -350,7 +347,7 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
           // An untyped fragment inherits; a typed one applies iff it can apply to `type`.
           fragment.typeCondition ? types.length > 0 : fieldsApply,
           visited,
-          walkExpanded,
+          walk.onlyIn,
         );
       }
     }
@@ -360,40 +357,41 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
 /** One way to walk a fragment: the types it is walked as, and the plays that take the result. */
 interface FragmentWalk {
   types: WalkedType[];
-  /** Whether `types` are the implementations a fragment that expands covers. */
-  expands: boolean;
-  expanded: Expanded;
+  /** Whether `types` are the implementations an expansion covers. */
+  isExpansion: boolean;
+  /** The only kind of play that takes what this walk collects, or undefined for both kinds. */
+  onlyIn: PlayKind | undefined;
 }
 
 /**
- * The ways `fragment` is walked while walking `type`. A fragment that expands (see
- * `fragmentTypesOf`) is walked as the types it covers for plays that expand fragments, and as a
- * fragment that cannot apply for plays that do not; a walk already inside one of the two keeps
- * to it. What each walk collects is marked `expanded` true or false (undefined outside both).
- * `Plan.play` folds the expanding merges first; when the variants any of those fragments enter
- * have conflicting type-level selections, it plays every such fragment of the plan unexpanded
- * instead, so a document never fails because a fragment expanded.
+ * The ways `fragment` is walked while walking `type`. An expansion (see `fragmentTypesOf`) is
+ * walked twice. For expanding plays it is walked as the types it covers. For plain plays it is
+ * walked as a fragment that cannot apply. A walk already inside one of the two keeps to it.
+ *
+ * `Plan.play` tries an expanding play first. If the variants an expansion enters have conflicting
+ * type-level selections, it falls back to a plain play, so an expansion never makes a document
+ * fail.
  */
 function fragmentWalks<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   type: WalkedType,
   fragment: Fragment,
-  expanded: Expanded,
+  onlyIn: PlayKind | undefined,
 ): FragmentWalk[] {
-  const { types, expansion } = fragmentTypesOf(plan, type, fragment);
+  const { types, isExpansion } = fragmentTypesOf(plan, type, fragment);
 
-  if (!expansion || types.length === 0) {
-    return [{ types, expands: false, expanded }];
+  if (!isExpansion || types.length === 0) {
+    return [{ types, isExpansion: false, onlyIn }];
   }
 
-  const expanding: FragmentWalk = { types, expands: true, expanded: true };
-  const unexpanded: FragmentWalk = { types: [], expands: false, expanded: false };
+  const expanding: FragmentWalk = { types, isExpansion: true, onlyIn: 'expanding' };
+  const plain: FragmentWalk = { types: [], isExpansion: false, onlyIn: 'plain' };
 
-  if (expanded === undefined) {
-    return [expanding, unexpanded];
+  if (onlyIn === undefined) {
+    return [expanding, plain];
   }
 
-  return [expanded ? expanding : unexpanded];
+  return [onlyIn === 'expanding' ? expanding : plain];
 }
 
 /**
@@ -419,27 +417,27 @@ function applicableFragment<Model, Query, NodeType extends NodeBase<Model>>(
  * fragment on any other object type cannot apply to them. An interface also accepts a fragment
  * on another type of the same model, walked as that type, so that type's own selection is planned
  * for the rows that resolve to it. A fragment on an abstract type of no model (`... on Node`
- * beneath a model interface) is an expansion: it is walked as each implementation of `type` it
- * contains; see `fragmentWalks`.
+ * beneath a model interface) is an expansion. It is walked as each implementation of `type` it
+ * covers; see `fragmentWalks`.
  */
 function fragmentTypesOf<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   type: WalkedType,
   fragment: Fragment,
-): { types: WalkedType[]; expansion: boolean } {
+): { types: WalkedType[]; isExpansion: boolean } {
   if (!fragment.typeCondition) {
-    return { types: [type], expansion: false };
+    return { types: [type], isExpansion: false };
   }
 
   const { schema } = plan.info;
   const condition = schema.getType(fragment.typeCondition.name.value)!;
 
   if (isOfType(type, condition)) {
-    return { types: [type], expansion: false };
+    return { types: [type], isExpansion: false };
   }
 
   if (!isInterfaceType(type)) {
-    return { types: [], expansion: false };
+    return { types: [], isExpansion: false };
   }
 
   const model = plan.adapter.modelFor(type);
@@ -448,7 +446,7 @@ function fragmentTypesOf<Model, Query, NodeType extends NodeBase<Model>>(
     (isObjectType(condition) || isInterfaceType(condition)) &&
     plan.adapter.modelFor(condition) === model
   ) {
-    return { types: [condition], expansion: false };
+    return { types: [condition], isExpansion: false };
   }
 
   if (isAbstractType(condition)) {
@@ -459,11 +457,11 @@ function fragmentTypesOf<Model, Query, NodeType extends NodeBase<Model>>(
           (possible) =>
             schema.isSubType(condition, possible) && plan.adapter.modelFor(possible) === model,
         ),
-      expansion: plan.adapter.modelFor(condition) !== model,
+      isExpansion: plan.adapter.modelFor(condition) !== model,
     };
   }
 
-  return { types: [], expansion: false };
+  return { types: [], isExpansion: false };
 }
 
 /** Whether `type` is `condition` itself or implements it. */
@@ -486,7 +484,7 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   type: WalkedType,
   fieldNode: FieldNode,
   indirectPath: string[],
-  expanded?: Expanded,
+  onlyIn?: PlayKind,
 ) {
   const { info, context, adapter } = plan;
   const name = fieldNode.name.value;
@@ -511,7 +509,7 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   const key = `${type.name}@${indirectPath.length > 0 ? `${indirectPath.join('.')}.` : ''}${alias}`;
 
   if (typeof selection !== 'function') {
-    collectField(plan, key, alias, selection, EMPTY_MAPPING, expanded);
+    collectField(plan, key, alias, selection, EMPTY_MAPPING, onlyIn);
 
     return;
   }
@@ -532,10 +530,10 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
 
   if (isThenable(query)) {
     plan.chain(query as PromiseLike<Query | false | null | undefined>, (resolved) =>
-      collectField(plan, key, alias, resolved, mapping, expanded),
+      collectField(plan, key, alias, resolved, mapping, onlyIn),
     );
   } else {
-    collectField(plan, key, alias, query, mapping, expanded);
+    collectField(plan, key, alias, query, mapping, onlyIn);
   }
 }
 
@@ -581,7 +579,7 @@ function collectField<Model, Query, NodeType extends NodeBase<Model>>(
   alias: string,
   query: Query | false | null | undefined,
   mapping: Invocation,
-  expanded: Expanded,
+  onlyIn: PlayKind | undefined,
 ) {
   if (!query) {
     return;
@@ -594,7 +592,7 @@ function collectField<Model, Query, NodeType extends NodeBase<Model>>(
     );
   }
 
-  plan.collect({ kind: 'field', key, alias, query, mapping, expanded });
+  plan.collect({ kind: 'field', key, alias, query, mapping, onlyIn });
 }
 
 /** The nested selection callback of one select invocation. */
