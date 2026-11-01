@@ -20,6 +20,7 @@ other's).
 ```ts
 import SchemaBuilder from '@pothos/core';
 import prismaNextPlugin from '@pothos/plugin-prisma-next';
+import RelayPlugin from '@pothos/plugin-relay';
 import sqlite from '@prisma/orm-sqlite/runtime';
 import { contractFromJson } from '@prisma/orm-sqlite/static';
 import contractJson from './prisma/contract.json' with { type: 'json' };
@@ -32,7 +33,7 @@ const builder = new SchemaBuilder<{
   PrismaNextContract: Contract;
   Context: { db: typeof db };
 }>({
-  plugins: [prismaNextPlugin],
+  plugins: [RelayPlugin, prismaNextPlugin],
   prismaNext: { client: db },
 });
 ```
