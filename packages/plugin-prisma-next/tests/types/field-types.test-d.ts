@@ -1,4 +1,10 @@
-import SchemaBuilder, { type FieldRef } from '@pothos/core';
+import SchemaBuilder, {
+  type FieldNullability,
+  type FieldRef,
+  type InputFieldMap,
+  type SchemaTypes,
+  type TypeParam,
+} from '@pothos/core';
 import RelayPlugin, { type ConnectionShape } from '@pothos/plugin-relay';
 import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
 import { expectTypeOf } from 'vitest';
@@ -16,6 +22,21 @@ import type { Contract as InheritanceContract } from '../inheritance/contract';
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
 type UserRow = DefaultModelRow<Contract, 'User'>;
 type PostRow = DefaultModelRow<Contract, 'Post'>;
+
+declare global {
+  export namespace PothosSchemaTypes {
+    export interface QueryFieldOptions<
+      Types extends SchemaTypes,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFieldMap,
+      ResolveReturnShape,
+    > {
+      /** Added by another plugin. It exists only on query fields. */
+      testQueryOption?: boolean;
+    }
+  }
+}
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
@@ -297,3 +318,54 @@ export const typesDiffer: UserFieldBuilder<Narrow, Narrow> = otherTypes;
     otherConn: t.prismaConnection({ type: OtherIface, cursor: 'id', resolve: () => orm.User }),
   }));
 }
+
+// Root fields take the options of the kind of field they are.
+declare const newUserIds: AsyncIterable<string>;
+builder.subscriptionField('newUser', (t) =>
+  t.prismaField({
+    type: 'User',
+    nullable: true,
+    subscribe: () => newUserIds,
+    resolve: (id) => {
+      expectTypeOf(id).toEqualTypeOf<string>();
+      return orm.User.where({ id });
+    },
+  }),
+);
+builder.subscriptionField('noSubscribe', (t) =>
+  // @ts-expect-error a subscription field needs `subscribe`
+  t.prismaField({ type: 'User', resolve: () => orm.User }),
+);
+builder.queryField('queryOption', (t) =>
+  t.prismaField({ type: 'User', testQueryOption: true, resolve: () => orm.User }),
+);
+builder.queryField('queryConnectionOption', (t) =>
+  t.prismaConnection({
+    type: 'User',
+    cursor: 'id',
+    testQueryOption: true,
+    resolve: () => orm.User,
+  }),
+);
+builder.mutationField('mutationOption', (t) =>
+  // @ts-expect-error only query fields have this option
+  t.prismaField({ type: 'User', testQueryOption: true, resolve: () => orm.User }),
+);
+builder.mutationField('mutationConnectionOption', (t) =>
+  t.prismaConnection({
+    type: 'User',
+    cursor: 'id',
+    // @ts-expect-error only query fields have this option
+    testQueryOption: true,
+    resolve: () => orm.User,
+  }),
+);
+builder.queryField('rootParent', (t) =>
+  t.prismaField({
+    type: 'User',
+    resolve: (parent) => {
+      expectTypeOf(parent).toEqualTypeOf<{}>();
+      return orm.User;
+    },
+  }),
+);

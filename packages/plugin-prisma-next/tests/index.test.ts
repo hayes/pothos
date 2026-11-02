@@ -1,5 +1,5 @@
 import { PothosValidationError } from '@pothos/core';
-import { printSchema } from 'graphql';
+import { parse, printSchema, subscribe } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import { buildExampleSchema } from './example/schema';
 import { columnsOf, createBuilder, globalId, run, useSampleDb } from './fixtures/helpers';
@@ -162,5 +162,49 @@ describe('root fields', () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors?.[0].message).toMatch(/must return an ORM Collection or null/);
     expect(result.errors?.[0].originalError).toBeInstanceOf(PothosValidationError);
+  });
+});
+
+describe('subscriptions', () => {
+  it('loads each yielded value through a prismaField, planning its selection', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        firstName: t.exposeString('firstName'),
+        posts: t.relation('posts', { query: { where: { published: 1 } } }),
+      }),
+    });
+    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    builder.subscriptionType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: 'User',
+          nullable: true,
+          subscribe: async function* () {
+            yield await Promise.resolve('u-alice');
+            yield 'u-bob';
+          },
+          resolve: (id) => db.orm.User.where({ id }),
+        }),
+      }),
+    });
+    const events = await subscribe({
+      schema: builder.toSchema(),
+      document: parse('subscription { user { firstName posts { title } } }'),
+      contextValue: {},
+    });
+    if (!(Symbol.asyncIterator in events)) {
+      throw new Error(`Expected a subscription, got ${JSON.stringify(events)}`);
+    }
+    const seen: unknown[] = [];
+    for await (const event of events) {
+      expect(event.errors).toBeUndefined();
+      seen.push(event.data);
+    }
+    expect(seen).toEqual([
+      { user: { firstName: 'Alice', posts: [{ title: 'Hello, Pothos' }] } },
+      { user: { firstName: 'Bob', posts: [{ title: 'Bob writes' }] } },
+    ]);
   });
 });
