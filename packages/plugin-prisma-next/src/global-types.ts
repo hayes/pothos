@@ -319,6 +319,7 @@ declare global {
       prismaField: <
         Args extends InputFieldMap,
         Param extends FieldParam<Types>,
+        ResolveShape,
         ResolveReturnShape,
         Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
         M extends ModelName<Types> = ParamToModelName<Types, Param>,
@@ -332,7 +333,9 @@ declare global {
           Type,
           Nullable,
           Args,
-          ResolveReturnShape
+          ResolveShape,
+          ResolveReturnShape,
+          Kind
         >,
       ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>;
 
@@ -340,6 +343,7 @@ declare global {
         ? <
             Args extends InputFieldMap,
             Param extends FieldParam<Types>,
+            ResolveShape,
             ResolveReturnShape,
             Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
             Fields extends InputFieldMap = {},
@@ -362,8 +366,10 @@ declare global {
               Args,
               Fields,
               InputName,
+              ResolveShape,
               ResolveReturnShape,
-              ArgRequired
+              ArgRequired,
+              Kind
             >,
           ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>
         : '@pothos/plugin-with-input is required to use this method';
@@ -387,7 +393,8 @@ declare global {
               Nullable,
               Args,
               Cursor,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Kind
             >,
             connectionOptions?:
               | PothosSchemaTypes.ConnectionObjectOptions<

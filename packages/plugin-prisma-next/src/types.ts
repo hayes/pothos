@@ -888,6 +888,11 @@ type PrismaNextTypeOptions<Types extends SchemaTypes, M extends ModelName<Types>
   ) => FieldMap;
 } & NameOrVariant;
 
+/** A subscription field resolves each value its `subscribe` yields, not the root. */
+type RootResolveParent<ParentShape, ResolveShape, Kind> = Kind extends 'Subscription'
+  ? ResolveShape
+  : ParentShape;
+
 export type PrismaNextRootFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
@@ -895,7 +900,9 @@ export type PrismaNextRootFieldOptions<
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   Args extends InputFieldMap,
+  ResolveShape,
   ResolveReturnShape,
+  Kind extends FieldKind = FieldKind,
   // A defaulted generic so `resolve` doesn't infer `Param` as the bare model and reject `[Model]`.
   M extends ModelName<Types> = ParamToModelName<Types, Param>,
 > = Omit<
@@ -905,15 +912,15 @@ export type PrismaNextRootFieldOptions<
     Type,
     Nullable,
     Args,
-    FieldKind,
-    ParentShape,
+    Kind,
+    ResolveShape,
     ResolveReturnShape
   >,
   'type' | 'resolve' | InferredFieldOptionKeys
 > & {
   type: Param;
   resolve: (
-    parent: ParentShape,
+    parent: RootResolveParent<ParentShape, ResolveShape, Kind>,
     args: InputShapeFromFields<Args>,
     context: Types['Context'],
     info: GraphQLResolveInfo,
@@ -932,8 +939,10 @@ export type PrismaNextRootFieldWithInputOptions<
   Args extends InputFieldMap,
   Fields extends InputFieldMap,
   InputName extends string,
+  ResolveShape,
   ResolveReturnShape,
   ArgRequired extends boolean,
+  Kind extends FieldKind = FieldKind,
   M extends ModelName<Types> = ParamToModelName<Types, Param>,
 > = Omit<
   FieldOptionsFromKind<
@@ -947,8 +956,8 @@ export type PrismaNextRootFieldWithInputOptions<
         InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
       >;
     },
-    FieldKind,
-    ParentShape,
+    Kind,
+    ResolveShape,
     ResolveReturnShape
   >,
   'type' | 'resolve' | 'args' | InferredFieldOptionKeys
@@ -956,7 +965,7 @@ export type PrismaNextRootFieldWithInputOptions<
   PothosSchemaTypes.FieldWithInputBaseOptions<Types, Args, Fields, InputName, ArgRequired> & {
     type: Param;
     resolve: (
-      parent: ParentShape,
+      parent: RootResolveParent<ParentShape, ResolveShape, Kind>,
       args: InputShapeFromFields<Args> & {
         [K in InputName]:
           | InputShapeFromFields<Fields>
@@ -1093,6 +1102,7 @@ export type PrismaNextConnectionFieldOptions<
   Args extends InputFieldMap,
   Cursor extends CursorSpec<Types, M>,
   ResolveReturnShape,
+  Kind extends FieldKind = FieldKind,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -1101,7 +1111,7 @@ export type PrismaNextConnectionFieldOptions<
     Nullable,
     InputFieldsFromShape<Types, PothosSchemaTypes.DefaultConnectionArguments, 'Arg'> &
       (InputFieldMap extends Args ? {} : Args),
-    FieldKind,
+    Kind,
     ParentShape,
     ResolveReturnShape
   >,
