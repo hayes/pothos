@@ -82,13 +82,13 @@ function schema(options: SampleOptions = {}) {
         type: 'Post',
         cursor: ['title', 'id'],
         args: { newest: t.arg.boolean() },
-        orderBy: (post, args) => (args.newest ? post.title.desc() : post.title.asc()),
+        orderBy: (args) => (post) => (args.newest ? post.title.desc() : post.title.asc()),
         resolve: () => db.orm.Post,
       }),
       wrongOrder: t.prismaConnection({
         type: 'Post',
         cursor: ['title', 'id'],
-        orderBy: (post) => post.id.asc(),
+        orderBy: () => (post) => post.id.asc(),
         resolve: () => db.orm.Post,
       }),
       preordered: t.prismaConnection({
@@ -1160,3 +1160,52 @@ describe('prismaConnectionHelpers', () => {
     expect(second.data.cards.edges).toEqual([{ node: { name: 'Bob' } }]);
   });
 });
+
+describe('prismaConnection orderBy', () => {
+  function schema(orderBy: unknown) {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaConnection({
+          type: 'Post',
+          cursor: ['title', 'id'],
+          args: { newest: t.arg.boolean() },
+          orderBy: orderBy as never,
+          resolve: () => db.orm.Post.where({ authorId: 'u-alice' }),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+  const desc = ['p-hello', 'p-draft1'];
+
+  it.each<[string, unknown]>([
+    ['a list', [(p: Post) => p.title.desc(), (p: Post) => p.id.desc()]],
+    ['a list from the args', () => [(p: Post) => p.title.desc(), (p: Post) => p.id.desc()]],
+    [
+      'a selector from the args',
+      (args: { newest: boolean }) => (p: Post) => (args.newest ? p.title.desc() : p.title.asc()),
+    ],
+  ])('orders by %s', async (_name, orderBy) => {
+    const result = await run(schema(orderBy), '{ posts(newest: true) { nodes { id } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts.nodes.map((node: { id: string }) => node.id)).toEqual(desc);
+  });
+
+  it('passes the ORM tools to a selector', async () => {
+    let tools: unknown;
+    const orderBy = () => (p: Post, orm: unknown) => {
+      tools = orm;
+      return p.title.asc();
+    };
+    const result = await run(schema(orderBy), '{ posts { nodes { id } } }');
+    expect(result.errors).toBeUndefined();
+    expect(tools).toBeDefined();
+  });
+});
+
+type Post = {
+  id: { desc(): never };
+  title: { asc(): never; desc(): never };
+};

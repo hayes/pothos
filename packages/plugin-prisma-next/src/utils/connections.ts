@@ -126,7 +126,7 @@ function withTotalCount(connectionOptions: object): object {
   };
 }
 
-type OrderSelector = (model: never, tools: unknown) => unknown;
+export type OrderSelector = (model: never, tools: unknown) => unknown;
 
 /** The connection arguments own the page size, so a connection's `query` has no `limit`. */
 const CONNECTION_QUERY_OPTIONS = ['where', 'orderBy'];
@@ -151,16 +151,15 @@ export function connectionQuery(
     where?: unknown;
     orderBy?: OrderSelector | readonly OrderSelector[];
   };
-  if (orderBy === undefined) {
-    return { where };
-  }
-  return {
-    where,
-    orderBy: (model, tools) =>
-      (Array.isArray(orderBy)
-        ? orderBy.map((selector: OrderSelector) => selector(model as never, tools))
-        : (orderBy as OrderSelector)(model as never, tools)) as ReturnType<RequestOrderBy>,
-  };
+  return orderBy === undefined ? { where } : { where, orderBy: requestOrderBy(orderBy) };
+}
+
+/** A selector or a list of them, as `applyCursorPagination` takes it. */
+export function requestOrderBy(orderBy: OrderSelector | readonly OrderSelector[]): RequestOrderBy {
+  return (model, tools) =>
+    (Array.isArray(orderBy)
+      ? orderBy.map((selector: OrderSelector) => selector(model as never, tools))
+      : (orderBy as OrderSelector)(model as never, tools)) as ReturnType<RequestOrderBy>;
 }
 
 function missingCountAggregate() {

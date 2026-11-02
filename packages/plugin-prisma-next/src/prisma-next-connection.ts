@@ -15,6 +15,8 @@ import {
   CONNECTION_NODE_PATHS,
   connectionNeedsRows,
   connectionSettings,
+  type OrderSelector,
+  requestOrderBy,
 } from './utils/connections.js';
 import { assertVariantCollection } from './utils/contract.js';
 import {
@@ -22,13 +24,14 @@ import {
   buildConnectionPage,
   type CursorInput,
   cursorColumns,
-  type RequestOrderBy,
   validateCursor,
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import { materializeRows } from './utils/selections.js';
+
+type OrderSelectors = OrderSelector | readonly OrderSelector[];
 
 const rootFieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -81,7 +84,9 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
       totalCount?:
         | boolean
         | ((parent: unknown, args: unknown, ctx: unknown, info: GraphQLResolveInfo) => unknown);
-      orderBy?: (model: never, args: unknown, ctx: unknown) => ReturnType<RequestOrderBy>;
+      orderBy?:
+        | readonly OrderSelector[]
+        | ((args: unknown, ctx: unknown) => OrderSelectors | undefined);
       query?: unknown;
       [k: string]: unknown;
     };
@@ -130,12 +135,13 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
             })
           : userCollection;
 
+        const requestOrder = typeof orderBy === 'function' ? orderBy(args, context) : orderBy;
         // Runs for a count-only selection too, so an invalid cursor or ordering still fails. No
         // rows are fetched here.
         const pagination = applyCursorPagination(applied, cursorOrder, relayArgs, {
           ...settings.sizes(args as object, context),
           codecs: config.codecs(context, modelName),
-          orderBy: orderBy && ((model) => orderBy(model as never, args, context)),
+          orderBy: requestOrder && requestOrderBy(requestOrder),
         });
 
         const rowsPromise = needsRows

@@ -1197,15 +1197,12 @@ export type PrismaNextConnectionFieldOptions<
      * Direction and null placement for this request. Each item names a cursor column, in cursor
      * order, and backward pages reverse it.
      */
-    orderBy?: (
-      model: ModelAccessor<
-        Types['PrismaNextContract'],
-        BareModelName<M>,
-        NamespaceOf<Types['PrismaNextContract'], M>
-      >,
-      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-      context: Types['Context'],
-    ) => OrderByItem | readonly OrderByItem[];
+    orderBy?:
+      | readonly RelationOrderSelector<Types, M>[]
+      | ((
+          args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+          context: Types['Context'],
+        ) => RelationOrderBy<Types, M> | undefined);
     resolve: (
       parent: ParentShape,
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
