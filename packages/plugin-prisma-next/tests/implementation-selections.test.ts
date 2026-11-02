@@ -95,7 +95,7 @@ describe("object fields reading an interface's select", () => {
     });
     builder.queryType({
       fields: (t) => ({
-        user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) as never }),
+        user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) }),
       }),
     });
     const result = await run(builder.toSchema(), '{ user { shout } }');

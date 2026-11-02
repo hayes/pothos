@@ -126,7 +126,7 @@ describe('prismaInterface', () => {
     for (const name of ['Alice', 'Other']) {
       builder.prismaObject('User', {
         variant: name,
-        interfaces: [Named] as never,
+        interfaces: [Named],
         fields: () => ({}),
       });
     }
@@ -162,7 +162,7 @@ describe('prismaInterface', () => {
     });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.objectType(builder.objectRef<{ id: string }>('PlainUser'), {
-      interfaces: [Base as never],
+      interfaces: [Base],
       isTypeOf: () => true,
       fields: () => ({}),
     });
@@ -265,7 +265,7 @@ describe('inherited selections', () => {
       select: ['firstName'],
       fields: (t) => ({ name: t.string({ resolve: (user) => user.firstName }) }),
     });
-    const User = builder.prismaObject('User', { interfaces: [Named] as never });
+    const User = builder.prismaObject('User', { interfaces: [Named] });
     builder.queryType({
       fields: (t) => ({
         user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) }),
