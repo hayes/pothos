@@ -135,9 +135,11 @@ builder.queryType({
       type: 'Post',
       cursor: ['title', 'id'],
       args: { newest: t.arg.boolean() },
-      orderBy: (post, args, context) => {
+      orderBy: (args, context) => {
         expectTypeOf(context).not.toBeAny();
-        return args.newest ? [post.title.desc(), post.id.asc()] : post.title.asc();
+        return args.newest
+          ? [(post) => post.title.desc(), (post) => post.id.asc()]
+          : (post) => post.title.asc();
       },
       resolve: () => orm.Post.orderBy((post) => post.title.asc()),
     }),
@@ -226,6 +228,47 @@ postgres.queryType({
     }),
   }),
 });
+
+// A root connection's `orderBy` is a function of the args and context, or a list of selectors.
+builder.queryFields((t) => ({
+  curriedOrderBy: t.prismaConnection({
+    type: 'Post',
+    cursor: ['title', 'id'],
+    args: { newest: t.arg.boolean() },
+    orderBy: (args, _ctx) => (post, tools) => {
+      expectTypeOf(args.newest).toEqualTypeOf<boolean | null | undefined>();
+      expectTypeOf(tools.fns).not.toBeAny();
+      return args.newest ? post.title.desc() : post.title.asc();
+    },
+    resolve: () => orm.Post,
+  }),
+  orderByList: t.prismaConnection({
+    type: 'Post',
+    cursor: ['title', 'id'],
+    orderBy: [(post) => post.title.desc(), (post) => post.id.desc()],
+    resolve: () => orm.Post,
+  }),
+  orderByListFromArgs: t.prismaConnection({
+    type: 'Post',
+    cursor: ['title', 'id'],
+    orderBy: () => [(post) => post.title.desc(), (post) => post.id.desc()],
+    resolve: () => orm.Post,
+  }),
+  accessorFirstOrderBy: t.prismaConnection({
+    type: 'Post',
+    cursor: 'id',
+    // @ts-expect-error the first function takes the args and context
+    orderBy: (post) => post.id.asc(),
+    resolve: () => orm.Post,
+  }),
+  unknownOrderColumn: t.prismaConnection({
+    type: 'Post',
+    cursor: 'id',
+    // @ts-expect-error `nope` isn't a column of Post
+    orderBy: () => (post) => post.nope.asc(),
+    resolve: () => orm.Post,
+  }),
+}));
 
 // The connection signatures infer the model and the cursor together. The cursor must still infer
 // as written, not widen to `CursorSpec`, so `ExactCursor` sees each entry's keys.

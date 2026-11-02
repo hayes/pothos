@@ -704,7 +704,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
           type: 'Entry',
           cursor: ['sortLabel', 'id'],
           args: { nullsFirst: t.arg.boolean() },
-          orderBy: (entry, args) =>
+          orderBy: (args) => (entry) =>
             entry.sortLabel.asc({ nulls: args.nullsFirst ? 'first' : 'last' }),
           resolve: () => client.orm.public.Entry,
         }),

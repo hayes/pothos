@@ -25,7 +25,8 @@ orders and pages it by the cursor, and builds the connection.
 - `cursor`: a column, or a list of columns compared in order. Each entry is a column name or
   `{ field, direction, nulls }`. The columns must include a complete non-null primary or
   unique key, so add `id` as a tie-breaker after non-unique or nullable columns.
-- `orderBy`: `(model, args, ctx) => ordering`; see [Ordering and cursors](#ordering-and-cursors).
+- `orderBy`: `(args, ctx) => (post, tools) => ordering`, a list of selectors, or a function returning
+  one; see [Ordering and cursors](#ordering-and-cursors).
 - `defaultSize` / `maxSize`: page sizes, or `(args, ctx) => number`, defaulting to the plugin's
   [connection size options](./setup#plugin-options). A callback that throws or doesn't return a
   positive integer fails only that connection field.
