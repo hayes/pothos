@@ -42,6 +42,7 @@ import type {
 import type { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import type { Contract } from '@prisma/orm-framework/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
+import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type {
   ExtractModel,
   FieldParentShape,
@@ -480,7 +481,9 @@ export type PrismaNextRelationOptions<
   >,
   'type' | 'resolve' | InferredFieldOptionKeys
 > & {
-  type?: PrismaNextObjectRef<Types, TypeModel, RelatedShape>;
+  type?:
+    | PrismaNextObjectRef<Types, TypeModel, RelatedShape>
+    | PrismaNextInterfaceRef<Types, TypeModel, RelatedShape>;
   query?: Query & NoInfer<ExactQuery<Query, keyof RelationQueryLiteral<SchemaTypes, never>>>;
 };
 
@@ -1193,7 +1196,9 @@ export type PrismaNextRelatedConnectionOptions<
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
   > &
   ConnectionPagingOptions<Types, ParentShape, Args, Cursor> & {
-    type?: PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
+    type?:
+      | PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>
+      | PrismaNextInterfaceRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
     query?: ConnectionQueryOption<Types, Args, QueryLiteral>;
   };
 

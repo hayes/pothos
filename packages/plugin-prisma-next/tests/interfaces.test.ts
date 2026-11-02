@@ -684,3 +684,67 @@ describe('inherited selections', () => {
     });
   });
 });
+
+describe('relations typed as an interface', () => {
+  function schema() {
+    const builder = createBuilder();
+    const NamedUser = builder.prismaInterface('User', {
+      variant: 'NamedUser',
+      select: ['firstName'],
+      fields: (t) => ({ name: t.string({ resolve: (user) => user.firstName }) }),
+    });
+    builder.prismaObject('User', {
+      variant: 'NamedUserImpl',
+      interfaces: [NamedUser],
+      isTypeOf: () => true,
+      fields: (t) => ({ email: t.exposeString('email') }),
+    });
+    const Titled = builder.prismaInterface('Post', {
+      variant: 'Titled',
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.prismaObject('Post', {
+      variant: 'TitledPost',
+      interfaces: [Titled],
+      isTypeOf: () => true,
+      fields: () => ({}),
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => ({ author: t.relation('author', { type: NamedUser }) }),
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relation('posts', { type: Titled }),
+        page: t.relatedConnection('posts', { cursor: 'id', type: Titled }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        post: t.prismaField({ type: 'Post', resolve: () => db.orm.Post.where({ id: 'p-bob1' }) }),
+        user: t.prismaField({ type: 'User', resolve: () => db.orm.User.where({ id: 'u-bob' }) }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it('loads a to-one relation typed as an interface', async () => {
+    const result = await run(
+      schema(),
+      '{ post { author { name ... on NamedUserImpl { email } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.post.author).toEqual({ name: 'Bob', email: 'bob@example.com' });
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('loads a to-many relation and a related connection typed as an interface', async () => {
+    const result = await run(
+      schema(),
+      '{ user { posts { title } page(first: 1) { edges { node { title } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user.posts).toContainEqual({ title: 'Bob writes' });
+    expect(result.data.user.page.edges).toHaveLength(1);
+    expect(result.statements).toHaveLength(1);
+  });
+});

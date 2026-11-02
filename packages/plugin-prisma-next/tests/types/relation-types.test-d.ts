@@ -333,3 +333,31 @@ builder.prismaObject('Post', {
     };
   },
 });
+
+// A relation's `type` may be a prismaInterface ref, as it may be a prismaObject ref.
+const NamedUser = builder.prismaInterface('User', {
+  variant: 'NamedUser',
+  select: ['firstName'],
+  fields: (t) => ({ firstName: t.exposeString('firstName') }),
+});
+const NamedPost = builder.prismaInterface('Post', {
+  variant: 'NamedPost',
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+builder.prismaObject('Post', {
+  variant: 'WithInterfaceAuthor',
+  fields: (t) => ({
+    author: t.relation('author', { type: NamedUser }),
+    // @ts-expect-error `author` is a User, not a Post
+    wrongModel: t.relation('author', { type: NamedPost }),
+  }),
+});
+builder.prismaObject('User', {
+  variant: 'WithInterfacePosts',
+  fields: (t) => ({
+    posts: t.relation('posts', { type: NamedPost }),
+    page: t.relatedConnection('posts', { cursor: 'id', type: NamedPost }),
+    // @ts-expect-error `posts` are Posts, not Users
+    wrongPage: t.relatedConnection('posts', { cursor: 'id', type: NamedUser }),
+  }),
+});
