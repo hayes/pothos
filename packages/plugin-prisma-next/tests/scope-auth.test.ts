@@ -728,3 +728,114 @@ describe.each(orders)('runScopesOnType through an interface (%s)', (order, plugi
     });
   }
 });
+
+describe('rows another field filtered', () => {
+  const orders = [
+    ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
+    ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
+  ] as const;
+
+  function auditBuilder(plugins: readonly unknown[]) {
+    return new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: plugins as never,
+      relay: {},
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+  }
+
+  // The second field of `drafts` loads the same query as the first, so both share one slot.
+  const queries = [
+    ['one filtering consumer', '{ users { drafts { id } audited { id } } }'],
+    ['two filtering consumers', '{ users { drafts { id } again: drafts { id } audited { id } } }'],
+  ];
+
+  describe.each(orders)('scope auth %s the prisma plugin', (_name, plugins) => {
+    it.each(queries)('hides them from a type-level select with %s', async (_label, source) => {
+      const seen: { auth: unknown[]; isTypeOf: unknown[] } = { auth: [], isTypeOf: [] };
+      const builder = auditBuilder(plugins);
+      builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+      const Audited = builder.prismaObject('User', {
+        name: 'Audited',
+        select: { posts: true },
+        authScopes: (user) => {
+          seen.auth.push(user.posts?.map((post) => post.id));
+          return true;
+        },
+        isTypeOf: (user) => {
+          seen.isTypeOf.push(user.posts?.map((post) => post.id));
+          return true;
+        },
+        fields: (t) => ({
+          id: t.exposeID('id'),
+          postCount: t.int({ resolve: (user) => user.posts.length }),
+        }),
+      });
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          drafts: t.relation('posts', { query: { where: { published: 0 } } }),
+          audited: t.field({ type: Audited, resolve: (user) => user }),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          users: t.prismaField({
+            type: ['User'],
+            resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+          }),
+        }),
+      });
+      const result = await runCaptured(builder.toSchema(), source);
+      expect(result.errors).toBeUndefined();
+      expect(result.data.users).toMatchObject([
+        { drafts: [{ id: 'p-draft1' }], audited: { id: 'u-alice' } },
+      ]);
+      for (const ids of [...seen.auth, ...seen.isTypeOf]) {
+        expect(ids === undefined || (ids as string[]).length === 2).toBe(true);
+      }
+      expect(seen.auth.length).toBeGreaterThan(0);
+      expect(seen.isTypeOf.length).toBeGreaterThan(0);
+    });
+
+    it('hides them from a resolveType', async () => {
+      const seen: unknown[] = [];
+      const builder = auditBuilder(plugins);
+      builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+      const Audited = builder.prismaInterface('User', {
+        name: 'AuditedNode',
+        select: { posts: true },
+        resolveType: (user) => {
+          seen.push(user.posts?.map((post) => post.id));
+          return 'AuditedUser';
+        },
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+      builder.prismaObject('User', {
+        name: 'AuditedUser',
+        interfaces: [Audited],
+        fields: () => ({}),
+      });
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          drafts: t.relation('posts', { query: { where: { published: 0 } } }),
+          audited: t.field({ type: Audited, resolve: (user) => user }),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          users: t.prismaField({
+            type: ['User'],
+            resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+          }),
+        }),
+      });
+      const result = await runCaptured(
+        builder.toSchema(),
+        '{ users { drafts { id } audited { id } } }',
+      );
+      expect(result.errors).toBeUndefined();
+      expect(seen).toHaveLength(1);
+      expect(seen[0] === undefined || (seen[0] as string[]).length === 2).toBe(true);
+    });
+  });
+});

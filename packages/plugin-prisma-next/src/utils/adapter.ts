@@ -41,6 +41,7 @@ import {
   REFINE,
   type RelationArgs,
   relationName,
+  SHARED_SCOPES,
   SLOT,
 } from './selections.js';
 
@@ -483,7 +484,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     }
     const shared = computed.length === 0 ? this.shareRows(relation.target, rows) : undefined;
     if (shared) {
-      return load(shared);
+      // Rows that are all of the relation can be read as `row[relation]` by anyone. Any others go
+      // in a slot of their consumers, so readers at other scopes can't mistake them for that.
+      return loadsWholeRelation(shared)
+        ? load(shared)
+        : base.combine({ [rows.map(([scope]) => scope).join(SHARED_SCOPES)]: load(shared) });
     }
     const slots: Record<string, unknown> = {};
     for (const [scope, query] of rows) {
@@ -513,6 +518,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     }
     return this.toQuery(node);
   }
+}
+
+/** Whether a relation load has every row of the relation, rather than a filtered or paged part. */
+function loadsWholeRelation({ args }: PrismaNextQuery) {
+  return args?.query === undefined && (!args?.variant || args.variant.throughVariantModel);
 }
 
 /**
