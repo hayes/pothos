@@ -839,3 +839,69 @@ describe('rows another field filtered', () => {
     });
   });
 });
+
+describe('a field that reloads a to-one relation with its own query', () => {
+  describe.each([
+    ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
+    ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
+  ] as const)('scope auth %s the prisma plugin', (_name, plugins) => {
+    function byAliceSchema(seen: unknown[], postsField: 'rows' | 'plain') {
+      const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+        plugins: plugins as never,
+        relay: {},
+        scopeAuth: { authScopes: () => ({ ok: true }) },
+        prismaNext: { client: ctx.client },
+      });
+      builder.prismaObject('User', {
+        fields: (t) => ({ firstName: t.exposeString('firstName') }),
+      });
+      const Post = builder.prismaObject('Post', {
+        select: { author: true },
+        fields: (t) => ({
+          byAlice: t.relation('author', {
+            query: { where: { firstName: 'Alice' } },
+            authScopes: (post) => {
+              seen.push(post.author ? post.author.firstName : post.author);
+              return true;
+            },
+          }),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          post:
+            postsField === 'rows'
+              ? t.prismaField({
+                  type: 'Post',
+                  nullable: true,
+                  resolve: () => ctx.orm.Post.where({ id: 'p-bob1' }),
+                })
+              : t.field({ type: Post, resolve: () => ({ id: 'p-bob1' }) }),
+        }),
+      });
+      return builder.toSchema();
+    }
+
+    it('shows field authScopes the declared relation when the parent has it', async () => {
+      const seen: unknown[] = [];
+      const result = await runCaptured(
+        byAliceSchema(seen, 'rows'),
+        '{ post { byAlice { firstName } } }',
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.post.byAlice).toBeNull();
+      expect(seen).toEqual(['Bob']);
+    });
+
+    it('never shows field authScopes the filtered relation as the declared one', async () => {
+      const seen: unknown[] = [];
+      const result = await runCaptured(
+        byAliceSchema(seen, 'plain'),
+        '{ post { byAlice { firstName } } }',
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.post.byAlice).toBeNull();
+      expect(seen.every((name) => name === undefined || name === 'Bob')).toBe(true);
+    });
+  });
+});

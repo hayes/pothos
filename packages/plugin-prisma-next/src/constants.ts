@@ -15,3 +15,5 @@ export const PRISMA_NEXT_DISCRIMINATED = 'pothosPrismaNextDiscriminated';
 export const PRISMA_NEXT_FIELD_HAS_SELECT = 'pothosPrismaNextDeclaredSelect';
 /** A prisma interface's registry of its implementations' selections, one per schema build. */
 export const PRISMA_NEXT_IMPLEMENTATIONS = 'pothosPrismaNextImplementations';
+/** The to-one relation a field loads with its own query or variant, replacing the declared one. */
+export const PRISMA_NEXT_REFINED_TO_ONE = 'pothosPrismaNextRefinedToOne';

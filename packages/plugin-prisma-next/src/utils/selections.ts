@@ -269,6 +269,14 @@ export function scopedView(value: object, scopes: readonly (string | undefined)[
   return view;
 }
 
+/** A copy of a view, or of the row itself, without `key`. */
+export function viewWithout(view: object, key: string): object {
+  const copy = copyOf(view) as Record<string, unknown>;
+  delete copy[key];
+  viewRows.set(copy, rowOfView(view));
+  return copy;
+}
+
 /** Copies a row, which may be frozen, into a writable object with the same type brand. */
 function copyOf(row: object): object {
   const copy = Object.assign(Object.create(Object.getPrototypeOf(row)) as object, row);
