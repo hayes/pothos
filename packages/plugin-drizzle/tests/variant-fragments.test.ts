@@ -4,6 +4,7 @@ import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute } from '@pothos/test-utils';
 import type { SQLOperator } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
+import { parse } from 'graphql';
 import { gql } from 'graphql-tag';
 import DrizzlePlugin from '../src';
 import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
@@ -251,8 +252,72 @@ builder.drizzleObject('users', {
   },
 });
 
+// Model interfaces with relations back to each other, each implemented by three variants that also
+// implement a non-model interface: every level of a document can expand under `... on Linked`.
+const Linked = builder.interfaceRef<object>('Linked').implement({
+  fields: (t) => ({
+    linked: t.string({ resolve: () => 'linked' }),
+  }),
+});
+
+let relationQueryCalls = 0;
+
+const relationQuery = () => {
+  relationQueryCalls += 1;
+
+  return { limit: 1 };
+};
+
+const CyclicUser = builder.drizzleInterface('users', {
+  variant: 'CyclicUser',
+  select: { columns: { id: true } },
+  resolveType: () => 'CyclicUser1',
+  fields: (t) => ({ userId: t.exposeID('id') }),
+});
+
+const CyclicPost = builder.drizzleInterface('posts', {
+  variant: 'CyclicPost',
+  select: { columns: { postId: true } },
+  resolveType: () => 'CyclicPost1',
+  fields: (t) => ({ postId: t.exposeID('postId') }),
+});
+
+builder.drizzleInterfaceField(CyclicUser, 'posts', (t) =>
+  t.relation('posts', { type: CyclicPost, query: relationQuery }),
+);
+builder.drizzleInterfaceField(CyclicPost, 'author', (t) =>
+  t.relation('author', { type: CyclicUser }),
+);
+
+for (const n of [1, 2, 3]) {
+  builder.drizzleObject('users', {
+    variant: `CyclicUser${n}`,
+    interfaces: [CyclicUser, Linked],
+    select: { columns: { id: true } },
+  });
+  builder.drizzleObject('posts', {
+    variant: `CyclicPost${n}`,
+    interfaces: [CyclicPost, Linked],
+    select: { columns: { postId: true } },
+  });
+}
+
 builder.queryType({
   fields: (t) => ({
+    cyclicUser: t.drizzleField({
+      type: CyclicUser,
+      resolve: (query) => db.query.users.findFirst(query({ where: { id: 1 } })),
+    }),
+    // Plans without loading, for a document too deep for SQLite to join.
+    plannedCyclicUser: t.drizzleField({
+      type: CyclicUser,
+      nullable: true,
+      resolve: (query) => {
+        query({ where: { id: 1 } });
+
+        return null;
+      },
+    }),
     namedViewer: t.drizzleField({
       type: NamedViewer,
       resolve: (query) => db.query.users.findFirst(query({ where: { id: 1 } })),
@@ -625,6 +690,56 @@ describe('fragments on variants and non-model interfaces', () => {
           "Query: select "d0"."id" as "id", "d0"."first_name" as "firstName" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
         ]
       `);
+    });
+  });
+
+  describe('fragments on a non-model interface at every level of a cyclic document', () => {
+    /** Each of `depth` relation levels selected through `... on Linked`. */
+    function cyclicDocument(root: string, depth: number) {
+      let selection = '... on Linked { linked }';
+
+      for (let level = depth; level >= 1; level -= 1) {
+        selection =
+          level % 2 === 1
+            ? `... on Linked { ... on CyclicUser { posts { ${selection} } } }`
+            : `... on Linked { ... on CyclicPost { author { ${selection} } } }`;
+      }
+
+      return parse(`{ ${root} { ${selection} } }`);
+    }
+
+    it('walks each relation once per type it is reached on, not once per path', async () => {
+      const callsAt = async (depth: number) => {
+        relationQueryCalls = 0;
+
+        const started = performance.now();
+        const result = await execute({
+          schema,
+          document: cyclicDocument('plannedCyclicUser', depth),
+          contextValue: { user: { id: 1 } },
+        });
+
+        expect(performance.now() - started).toBeLessThan(1000);
+        expect(result.errors).toBeUndefined();
+
+        return relationQueryCalls;
+      };
+
+      // Only `posts` counts: the interface and its three variants, at each of the odd levels.
+      // Exponential planning made these 1,092 calls at depth 6 and 4,473,924 at depth 12.
+      expect(await callsAt(6)).toBe(12);
+      expect(await callsAt(12)).toBe(24);
+    });
+
+    it('loads a shared walk in one statement', async () => {
+      const result = await execute({
+        schema,
+        document: cyclicDocument('cyclicUser', 4),
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(drizzleLogs).toHaveLength(1);
     });
   });
 

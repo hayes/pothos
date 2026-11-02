@@ -9,6 +9,7 @@ import {
   setLoaderMappings,
   setRowFieldMapping,
   setRowMappings,
+  unionMappings,
 } from '../src/loader-map.js';
 
 type Path = GraphQLResolveInfo['path'];
@@ -171,5 +172,37 @@ describe('loader map', () => {
     rows.forEach((row, i) => {
       expect(getLoaderMapping(ctx, paths[i], 'User', row)).toBe(replanned);
     });
+  });
+});
+
+describe('unionMappings', () => {
+  /** A mapping `depth` levels deep with two keys per level, both holding the level below. */
+  function sharedMapping(depth: number): Mapping {
+    let mapping: Mapping = { nested: {} };
+
+    for (let level = 0; level < depth; level += 1) {
+      mapping = { nested: { 'A@x': mapping, 'B@x': mapping } };
+    }
+
+    return mapping;
+  }
+
+  it('returns a mapping unioned with itself as it is', () => {
+    const mapping = sharedMapping(40);
+
+    expect(unionMappings(mapping, mapping)).toBe(mapping);
+  });
+
+  it('visits a pair of mappings once however many keys share it', () => {
+    const union = unionMappings(sharedMapping(40), sharedMapping(40));
+
+    let at = union;
+
+    for (let level = 0; level < 40; level += 1) {
+      expect(at.nested['A@x']).toBe(at.nested['B@x']);
+      at = at.nested['A@x'];
+    }
+
+    expect(at.nested).toEqual({});
   });
 });

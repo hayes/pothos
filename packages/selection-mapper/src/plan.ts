@@ -8,7 +8,12 @@
  * another occurrence of itself is still on the list and a play whose seed makes it fit takes it.
  */
 import { PothosValidationError } from '@pothos/core';
-import { type GraphQLNamedType, type GraphQLResolveInfo, getNamedType } from 'graphql';
+import {
+  type FieldNode,
+  type GraphQLNamedType,
+  type GraphQLResolveInfo,
+  getNamedType,
+} from 'graphql';
 import type { Adapter, NodeBase } from './adapter.js';
 import { type Mapping, type Mappings, setLoaderMappings, unionMappings } from './loader-map.js';
 import {
@@ -37,8 +42,8 @@ const LENIENT: MergeOptions = Object.freeze({ lenient: true });
 
 /**
  * One merge a traversal collected, in the order it happened: a type's selection, a same-model
- * variant's, a nested selection's relation query, or a field's. A play folds the list into a
- * node; nothing is merged, accepted or rejected before then.
+ * variant's, or a field's. A play folds the list into a node; nothing is merged, accepted or
+ * rejected before then.
  *
  * `onlyIn` marks a merge that only one kind of play takes; see `fragmentWalks` in walk.ts.
  *
@@ -49,7 +54,6 @@ const LENIENT: MergeOptions = Object.freeze({ lenient: true });
  */
 export type RootMerge<Query> =
   | { kind: 'type'; query: Query }
-  | { kind: 'query'; query: Query }
   | { kind: 'variant'; type: WalkedType; variant: WalkedType; query: Query; onlyIn?: PlayKind }
   | {
       kind: 'field';
@@ -107,6 +111,15 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /** Whether some merge is taken only by an expanding play. */
   private hasExpandingMerges = false;
+
+  /** The plan whose merges a play folds: this one, or a walk shared with other invocations. */
+  private walk: Plan<Model, Query, NodeType> = this;
+
+  /** The relation query of the nested selection this plan was made for, merged ahead of `walk`. */
+  private relationQuery?: Query;
+
+  /** The walks beneath the fields of this plan, by field node and then by `nested`'s `key`. */
+  private walks?: Map<FieldNode, Map<string, Plan<Model, Query, NodeType>>>;
 
   /**
    * The play `settle` ran, which a later play takes whole when the seed conflicts with none of
@@ -244,10 +257,64 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /**
    * The plan beneath one nested selection: this plan's adapter, context, info and deferred
-   * setting, with merges of its own. It hangs beneath the field whose select function made it.
+   * setting. It holds the invocation's relation query and plays over a walk of the selection
+   * beneath the field, which `walk` collects the first time this plan needs it.
+   *
+   * One field node is invoked once per type it is reached on, and a fragment on a non-model
+   * interface reaches it on the interface and on each implementation. Each of those walks would
+   * invoke the fields beneath it the same number of times, so a walk per invocation is exponential
+   * in the document's depth. What a walk collects depends only on `position.node` and `key`, apart
+   * from the position links its select functions see, so the invocations share one: the first's,
+   * which `fragmentWalks` makes the plain walk's where there is one.
+   *
+   * Walks are kept per plan, so one field selected beneath two others (a fragment spread beneath
+   * both) is walked for each, and every select function sees the fields above it in the document.
+   *
+   * A walk that fails is not kept, so a select function that catches the failure can retry it.
    */
-  nested(type: GraphQLNamedType, position: Position): Plan<Model, Query, NodeType> {
-    return new Plan(this.adapter, this, type, position);
+  nested(
+    type: GraphQLNamedType,
+    position: Position,
+    key: string,
+    walk: (plan: Plan<Model, Query, NodeType>) => void,
+  ): Plan<Model, Query, NodeType> {
+    this.walks ??= new Map();
+
+    let walks = this.walks.get(position.node);
+
+    if (!walks) {
+      walks = new Map();
+      this.walks.set(position.node, walks);
+    }
+
+    let walked = walks.get(key);
+
+    if (!walked) {
+      const created = new Plan(this.adapter, this, type, position);
+
+      try {
+        walk(created);
+      } catch (error) {
+        created.abandon();
+        throw error;
+      }
+
+      const kept = walks;
+
+      kept.set(key, created);
+      created.pending?.catch(() => kept.delete(key));
+      walked = created;
+    }
+
+    const plan = new Plan(this.adapter, this, type, position);
+
+    plan.walk = walked;
+
+    if (walked.pending) {
+      plan.chain(walked.pending, noop);
+    }
+
+    return plan;
   }
 
   /** Appends one merge to the list a play folds. The traversal's only way to add to a plan. */
@@ -260,12 +327,12 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   }
 
   /**
-   * The relation query of the nested selection this plan was made for. It takes the head of the
-   * list, so it is merged before the fields walked beneath it whether the callback that produced
-   * it answered at once or resolved after the walk. A nested plan has at most one.
+   * The relation query of the nested selection this plan was made for. It is merged ahead of the
+   * walk, whether the callback that produced it answered at once or resolved after the walk. A
+   * nested plan has at most one.
    */
   collectQuery(query: Query) {
-    this.merges.unshift({ kind: 'query', query });
+    this.relationQuery = query;
   }
 
   /**
@@ -333,7 +400,9 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     const first = seed ?? this.initial;
 
     // An expanding play gives up on a type-level conflict, and a plain play is played instead.
-    return (this.hasExpandingMerges && this.fold(first, 'expanding')) || this.fold(first, 'plain');
+    return (
+      (this.walk.hasExpandingMerges && this.fold(first, 'expanding')) || this.fold(first, 'plain')
+    );
   }
 
   /**
@@ -358,7 +427,11 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       adapter.mergeQuery(root, first);
     }
 
-    for (const merge of this.merges) {
+    if (this.relationQuery) {
+      adapter.mergeQuery(root, this.relationQuery, AS_QUERY);
+    }
+
+    for (const merge of this.walk.merges) {
       if ('onlyIn' in merge && merge.onlyIn !== undefined && merge.onlyIn !== play) {
         continue;
       }
@@ -366,9 +439,6 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       switch (merge.kind) {
         case 'type':
           adapter.mergeQuery(root, merge.query);
-          break;
-        case 'query':
-          adapter.mergeQuery(root, merge.query, AS_QUERY);
           break;
         case 'variant': {
           const conflict = adapter.firstConflict(root, merge.query);

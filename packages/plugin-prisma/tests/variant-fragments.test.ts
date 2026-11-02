@@ -1,5 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import { execute } from '@pothos/test-utils';
+import { parse } from 'graphql';
 import { gql } from 'graphql-tag';
 import PrismaPlugin, { type PrismaTypesFromClient } from '../src';
 import { prisma, queries } from './example/builder';
@@ -175,8 +176,62 @@ builder.prismaObject('User', {
   }),
 });
 
+// Model interfaces with relations back to each other, each implemented by three variants that also
+// implement a non-model interface: every level of a document can expand under `... on Linked`.
+const Linked = builder.interfaceRef<object>('Linked').implement({
+  fields: (t) => ({
+    linked: t.string({ resolve: () => 'linked' }),
+  }),
+});
+
+let relationQueryCalls = 0;
+
+const relationQuery = () => {
+  relationQueryCalls += 1;
+
+  return { take: 1 };
+};
+
+const CyclicUser = builder.prismaInterface('User', {
+  variant: 'CyclicUser',
+  select: { id: true },
+  resolveType: () => 'CyclicUser1',
+  fields: (t) => ({ userId: t.exposeID('id') }),
+});
+
+const CyclicPost = builder.prismaInterface('Post', {
+  variant: 'CyclicPost',
+  select: { id: true },
+  resolveType: () => 'CyclicPost1',
+  fields: (t) => ({ postId: t.exposeID('id') }),
+});
+
+builder.prismaInterfaceField(CyclicUser, 'posts', (t) =>
+  t.relation('posts', { type: CyclicPost, query: relationQuery }),
+);
+builder.prismaInterfaceField(CyclicPost, 'author', (t) =>
+  t.relation('author', { type: CyclicUser }),
+);
+
+for (const n of [1, 2, 3]) {
+  builder.prismaObject('User', {
+    variant: `CyclicUser${n}`,
+    interfaces: [CyclicUser, Linked],
+    select: { id: true },
+  });
+  builder.prismaObject('Post', {
+    variant: `CyclicPost${n}`,
+    interfaces: [CyclicPost, Linked],
+    select: { id: true },
+  });
+}
+
 builder.queryType({
   fields: (t) => ({
+    cyclicUser: t.prismaField({
+      type: CyclicUser,
+      resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
+    }),
     viewer: t.prismaField({
       type: Viewer,
       resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
@@ -579,6 +634,86 @@ describe('fragments on variants and non-model interfaces', () => {
           args: { select: { id: true, name: true }, where: { id: 1 } },
         },
       ]);
+    });
+  });
+
+  describe('fragments on a non-model interface at every level of a cyclic document', () => {
+    /** Each of `depth` relation levels selected through `... on Linked`. */
+    function cyclicDocument(depth: number) {
+      let selection = '... on Linked { linked }';
+
+      for (let level = depth; level >= 1; level -= 1) {
+        selection =
+          level % 2 === 1
+            ? `... on Linked { ... on CyclicUser { posts { ${selection} } } }`
+            : `... on Linked { ... on CyclicPost { author { ${selection} } } }`;
+      }
+
+      return parse(`{ cyclicUser { ${selection} } }`);
+    }
+
+    it('walks each relation once per type it is reached on, not once per path', async () => {
+      const callsAt = async (depth: number) => {
+        relationQueryCalls = 0;
+        queries.length = 0;
+
+        const started = performance.now();
+        const result = await execute({
+          schema,
+          document: cyclicDocument(depth),
+          contextValue: { user: { id: 1 } },
+        });
+
+        expect(performance.now() - started).toBeLessThan(1000);
+        expect(result.errors).toBeUndefined();
+        expect(queries).toHaveLength(1);
+
+        return relationQueryCalls;
+      };
+
+      // Only `posts` counts: the interface and its three variants, at each of the odd levels.
+      // Exponential planning made these 1,092 calls at depth 6 and 4,473,924 at depth 12.
+      expect(await callsAt(6)).toBe(12);
+      expect(await callsAt(12)).toBe(24);
+    });
+
+    it('plans the same query with and without the fragments', async () => {
+      const withFragments = await execute({
+        schema,
+        document: cyclicDocument(2),
+        contextValue: { user: { id: 1 } },
+      });
+      const fragmentQueries = [...queries];
+
+      queries.length = 0;
+
+      const without = await execute({
+        schema,
+        document: gql`
+          query {
+            cyclicUser {
+              ... on CyclicUser1 {
+                linked
+              }
+              posts {
+                ... on CyclicPost1 {
+                  linked
+                }
+                author {
+                  userId
+                }
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(without.errors).toBeUndefined();
+      expect(withFragments.errors).toBeUndefined();
+      expect(fragmentQueries.map((query) => query.args)).toEqual(
+        queries.map((query) => query.args),
+      );
     });
   });
 
