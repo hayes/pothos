@@ -82,7 +82,7 @@ builder.prismaObject('Org', {
       },
     }),
     userCount: t.relationCount('users', {
-      where: (user, _args, _ctx, tools) => {
+      where: () => (user, tools) => {
         expectTypeOf(tools).toEqualTypeOf<ModelCallbackTools<Contract, 'User', 'nsa'>>();
         return user.orgId.gt(0);
       },

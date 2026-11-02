@@ -227,7 +227,7 @@ describe('relation queries', () => {
           },
         }),
         total: t.relationCount('posts', {
-          where: (post, _args, _ctx, orm) => {
+          where: () => (post, orm) => {
             tools.aggregate = orm.fns;
             return post.id.neq('x');
           },

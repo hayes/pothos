@@ -382,7 +382,7 @@ describe('provenance', () => {
       fields: (t) => ({
         count: t.relationCount('posts', {
           args: { published: t.arg.int({ required: true }) },
-          where: (post, args) => post.published.eq(args.published),
+          where: (args) => (post) => post.published.eq(args.published),
         }),
         page: t.relatedConnection('posts', {
           cursor: 'id',
@@ -685,14 +685,14 @@ describe('fallback isolation', () => {
         }),
         ok: t.relationCount('posts', {
           nullable: true,
-          where: (post) => {
+          where: () => (post) => {
             calls.ok += 1;
             return post.published.eq(1);
           },
         }),
         guarded: t.relationCount('posts', {
           nullable: true,
-          where: (post, _args, ctx) => {
+          where: (_args, ctx) => (post) => {
             calls.guarded += 1;
             if (!ctx.allow) {
               throw new Error('not allowed');
@@ -745,14 +745,14 @@ describe('fallback isolation', () => {
         name: t.exposeString('name', { nullable: true }),
         rowCount: t.relationCount('rows', {
           nullable: true,
-          where: (row) => {
+          where: () => (row) => {
             calls.rows += 1;
             return row.label.eq('r10');
           },
         }),
         noteCount: t.relationCount('notes', {
           nullable: true,
-          where: (note, _args, ctx) => {
+          where: (_args, ctx) => (note) => {
             if (!ctx.allow) {
               throw new Error('notes not allowed');
             }
