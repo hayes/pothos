@@ -86,13 +86,15 @@ const scopes = new WeakMap<Position, string>();
 
 /**
  * The scope of the field selected at `position`. A resolver reaches the same position through its
- * loader mapping, so it reads the slots its selection was planned into.
+ * loader mapping, so it reads the slots its selection was planned into. Only that agreement
+ * matters, so it reads `walkParent`: a walk shared between the types a field is reached on writes
+ * and reads one scope, and naming its slots does not make it unshareable.
  */
 export function scopeOf(position: Position): string {
   let scope = scopes.get(position);
   if (scope === undefined) {
     const own = `${position.type.name}.${position.node.alias?.value ?? position.node.name.value}`;
-    scope = position.parent ? `${scopeOf(position.parent)}/${own}` : own;
+    scope = position.walkParent ? `${scopeOf(position.walkParent)}/${own}` : own;
     scopes.set(position, scope);
   }
   return scope;

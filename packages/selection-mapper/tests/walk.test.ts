@@ -406,7 +406,7 @@ describe('queryFromInfo', () => {
     expect(author.parent).toBe(posts);
     expect(posts.parent!.parent).toBeUndefined();
     // Nothing is materialized: one link per select function, and no arrays at all.
-    expect(Object.keys(posts).sort()).toEqual(['field', 'node', 'parent', 'type']);
+    expect(Object.keys(posts).sort()).toEqual(['field', 'node', 'parent', 'type', 'walkParent']);
     // The document's alias is on the node; `field` and `type` are the schema's own.
     expect(posts.node.alias?.value).toBe('myPosts');
     expect(posts.node.name.value).toBe('posts');
@@ -1443,6 +1443,36 @@ describe('fragments that expand at every level', () => {
     queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
 
     expect(calls).toEqual({ posts: 12, author: 12 });
+  });
+
+  it('shares a walk whose select functions read the chain through walkParent', async () => {
+    const seen: string[][] = [];
+    const { calls, types } = linkedSchema();
+    const walkChain = (position: Position) => {
+      const path: string[] = [];
+
+      for (let at: Position | undefined = position; at; at = at.walkParent) {
+        path.push(`${at.type.name}.${at.node.name.value}`);
+      }
+
+      return path.reverse();
+    };
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      calls.author += 1;
+      seen.push(walkChain(position));
+
+      return { select: { author: nested({}) } };
+    });
+
+    const info = await resolveInfo(types, expandingDocument(6));
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    // The same field through `parent` is the test above: one chain per invocation.
+    expect(calls).toEqual({ posts: 12, author: 12 });
+    // Each walk is shared, so a chain is the first invocation's: the plain walk's, at every level.
+    expect(seen[0]).toEqual(['Query.user', 'UserI.posts', 'PostI.author']);
   });
 
   it('pays for a read of the path only in the walks above the read', async () => {

@@ -607,7 +607,7 @@ function positionForResolvedField(info: GraphQLResolveInfo): Position | undefine
   const node = info.fieldNodes[0];
   const field = info.parentType?.getFields()[node.name.value];
 
-  return field && { parent: undefined, type: info.parentType, field, node };
+  return field && { parent: undefined, walkParent: undefined, type: info.parentType, field, node };
 }
 
 function normalizePaths(paths: PathSegment[][]): IndirectPathSegment[][] {
