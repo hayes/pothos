@@ -435,19 +435,13 @@ export type ConnectionQueryOption<
   NoInfer<UnknownConnectionQueryKeys<Literal>>;
 
 /**
- * Names `Literal`'s unknown keys in a required property, which fails for an object and a callback
- * alike. Written beside `Literal` in the callback's result, it stops TS 5.9 and 6 inferring it.
+ * Sits beside the whole option, so it fails for an object and a callback alike. Written beside
+ * `Literal` in the callback's result, it stops TS 5.9 and 6 inferring it.
  */
-type UnknownConnectionQueryKeys<Literal> = [
-  UnknownQueryKeys<Literal, keyof ConnectionQueryLiteral<SchemaTypes, never>>,
-] extends [never]
-  ? unknown
-  : {
-      readonly [K in UnknownQueryKeys<
-        Literal,
-        keyof ConnectionQueryLiteral<SchemaTypes, never>
-      > as `Unknown query option: ${K & string}`]: never;
-    };
+type UnknownConnectionQueryKeys<Literal> = ExactQueryLiteral<
+  Literal,
+  keyof ConnectionQueryLiteral<SchemaTypes, never>
+>;
 
 export type RelationQuery<
   Types extends SchemaTypes,
@@ -521,9 +515,17 @@ type UnknownQueryKeys<Literal, Known extends PropertyKey> = Exclude<
   Known
 >;
 
-type ExactQueryLiteral<Literal, Known extends PropertyKey> = {
-  [K in UnknownQueryKeys<Literal, Known>]?: never;
-};
+/** Names `Literal`'s unknown keys in a required property, which no object has, for the error. */
+type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
+  UnknownQueryKeys<Literal, Known>,
+] extends [never]
+  ? unknown
+  : {
+      readonly [K in UnknownQueryKeys<
+        Literal,
+        Known
+      > as `Unknown query option: ${K & string}`]: never;
+    };
 
 /** Names the conflict in the error for `nullable: false` beside `isNull`. */
 interface VariantIsNullRequiresNullable {
