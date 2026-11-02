@@ -534,7 +534,7 @@ builder.prismaObject('User', {
     noSelect: t.prismaConnection({
       type: 'Post',
       cursor: 'id',
-      totalCount: (user) => user.email.length,
+      totalCount: (user) => user.id.length,
       resolve: () => orm.Post,
     }),
   }),
@@ -553,13 +553,12 @@ builder.queryField('totalCountOnQuery', (t) =>
   }),
 );
 
+declare const counts: AsyncIterable<number>;
 builder.subscriptionField('totalCountOnSubscription', (t) =>
   t.prismaConnection({
     type: 'Post',
     cursor: 'id',
-    subscribe: async function* () {
-      yield 1;
-    },
+    subscribe: () => counts,
     totalCount: (count) => {
       expectTypeOf(count).toEqualTypeOf<number>();
 
