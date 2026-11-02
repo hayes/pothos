@@ -74,6 +74,7 @@ export type {
   AnyContract,
   CollectionFor,
   CursorColumn,
+  CursorShape,
   CursorSpec,
   IdentityFields,
   InterfaceReturnShape,

@@ -29,7 +29,7 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   AnyContract,
   ConnectionQueryLiteral,
-  CursorSpec,
+  CursorShape,
   HasAggregates,
   ModelName,
   PrismaNextRelatedConnectionOptions,
@@ -531,10 +531,7 @@ export class PrismaNextObjectFieldBuilder<
         // The relay plugin applies the builder's default, as for any connection field.
         Nullable extends boolean = Types['DefaultFieldNullability'],
         Args extends InputFieldMap = {},
-        Cursor extends CursorSpec<Types, RelatedModel<Types, M, RelName>> = CursorSpec<
-          Types,
-          RelatedModel<Types, M, RelName>
-        >,
+        const Cursor extends CursorShape = CursorShape,
         RelatedShape = unknown,
         ConnectionInterfaces extends InterfaceParam<Types>[] = [],
         EdgeInterfaces extends InterfaceParam<Types>[] = [],

@@ -8,6 +8,7 @@ import prismaNextPlugin, {
   type ModelName,
   prismaConnectionHelpers,
 } from '../../src';
+import type { CursorCheck, UnknownCursorColumn } from '../../src/types';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as PostgresContract } from '../postgres/contract';
 
@@ -219,6 +220,11 @@ declare function inferCursor<M extends ModelName<Types>, C extends CursorSpec<Ty
   model: M,
   cursor: C,
 ): C;
+// An unknown column is named in the error, rather than buried in the columns' union.
+expectTypeOf<CursorCheck<Types, 'Post', 'nope'>>().toEqualTypeOf<UnknownCursorColumn<'nope'>>();
+expectTypeOf<CursorCheck<Types, 'Post', readonly ['nope', 'id']>>().toEqualTypeOf<
+  readonly [UnknownCursorColumn<'nope'>, 'id']
+>();
 expectTypeOf(inferCursor('Post', 'title')).toEqualTypeOf<'title'>();
 expectTypeOf(inferCursor('Post', ['title', 'id'])).toEqualTypeOf<['title', 'id']>();
 builder.prismaObject('User', {
@@ -227,6 +233,26 @@ builder.prismaObject('User', {
     posts: t.relatedConnection('posts', {
       // @ts-expect-error cursor entries take only `field`, `direction` and `nulls`
       cursor: [{ field: 'title', dir: 'asc' }, 'id'],
+    }),
+    unknownInTuple: t.relatedConnection('posts', {
+      // @ts-expect-error not a column of Post
+      cursor: ['nope', 'id'],
+    }),
+    unknownField: t.relatedConnection('posts', {
+      // @ts-expect-error not a column of Post
+      cursor: [{ field: 'nope' }, 'id'],
+    }),
+    badDirection: t.relatedConnection('posts', {
+      // @ts-expect-error a direction is `asc` or `desc`
+      cursor: [{ field: 'title', direction: 'sideways' }, 'id'],
+    }),
+    empty: t.relatedConnection('posts', {
+      // @ts-expect-error a cursor has at least one column
+      cursor: [],
+    }),
+    notAColumn: t.relatedConnection('posts', {
+      // @ts-expect-error a cursor is a column or a list of them
+      cursor: 1,
     }),
   }),
 });
