@@ -800,6 +800,19 @@ describe('invalid query options', () => {
     expect(result.errors?.[0].message).toMatch(/query on 'User\.posts'/);
   });
 
+  it('fails a query callback that returns a promise, rather than dropping its filter', async () => {
+    const related = await run(
+      ownerBuilder({ query: async () => ({ where: { published: 1 } }) }).toSchema(),
+      '{ users { posts { id } } }',
+    );
+    expect(related.errors?.[0].message).toMatch(/query on 'User\.posts' can't be async/);
+    const connection = await run(
+      connectionBuilder(async () => ({ where: { published: 1 } })).toSchema(),
+      '{ users { page { nodes { id } } } }',
+    );
+    expect(connection.errors?.[0].message).toMatch(/query on 'User\.page' can't be async/);
+  });
+
   it('rejects an unknown key in a query object when the schema is built', () => {
     expect(() => ownerBuilder({ query: { where: { published: 1 }, take: 1 } }).toSchema()).toThrow(
       /query on 'User\.posts'.*'take'/,
