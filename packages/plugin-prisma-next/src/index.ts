@@ -37,6 +37,7 @@ import { assertContextObject, getPluginConfig } from './utils/config.js';
 import { assertContractModel, rootModelKey } from './utils/contract.js';
 import { getIdentityFields, getModel, type PrismaNextModel } from './utils/model.js';
 import {
+  assertSelectShape,
   compileFieldSelect,
   EMPTY,
   type PrismaNextQuery,
@@ -180,7 +181,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     assertContractModel(contract, model);
     const resolved = getModel(contract, model);
     const ownSelect = typeConfig.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
-    if (ownSelect) {
+    if (ownSelect !== undefined) {
       validateStaticSelect(ownSelect, resolved, typeConfig.name);
     }
     return {
@@ -580,6 +581,7 @@ function readingFieldView<Types extends SchemaTypes>(
 
 /** Checks the names in a static `select` when the schema is built rather than on first use. */
 function validateStaticSelect(raw: RawSelect, model: PrismaNextModel, owner: string) {
+  assertSelectShape(raw, `'${owner}'`);
   const { columns, relations } = splitSelect(raw, model);
   for (const column of columns) {
     if (!model.columns.has(column)) {

@@ -11,6 +11,53 @@ const db = useSampleDb();
 const ok = (builder: ReturnType<typeof createBuilder>) =>
   builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
 
+describe('select shape', () => {
+  const invalid: [string, unknown][] = [
+    ['a string', 'email'],
+    ['a number', 1],
+    ['true', true],
+    ['false', false],
+    ['null', null],
+  ];
+
+  it.each(invalid)('rejects %s as a field select', (_name, select) => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
+        x: t.string({ select: select as any, resolve: () => '' }),
+      }),
+    });
+    ok(builder);
+    expect(() => builder.toSchema()).toThrow(/select on 'User\.x' must be a column array or/);
+  });
+
+  it.each(invalid)('rejects %s as a type select', (_name, select) => {
+    const builder = createBuilder();
+    // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
+    builder.prismaObject('User', { select: select as any, fields: () => ({}) });
+    ok(builder);
+    expect(() => builder.toSchema()).toThrow(/select on 'User' must be a column array or/);
+  });
+
+  it.each(
+    invalid.filter(([, select]) => select !== null),
+  )('fails a select function that returns %s', async (_name, select) => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
+        x: t.string({ select: (() => select) as any, resolve: () => '' }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+    });
+    const result = await run(builder.toSchema(), '{ users { x } }');
+    expect(result.errors?.[0].message).toMatch(/select on User must be a column array or/);
+  });
+});
+
 describe('object registration', () => {
   it.each([
     ['prismaObject', 'prismaObject'],

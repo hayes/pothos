@@ -32,9 +32,13 @@ import { variantTypeNames } from './utils/variant-types.js';
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 function withDiscriminatorSelected(select: unknown, field: string) {
-  return Array.isArray(select)
-    ? [...select, field]
-    : { ...(select as object | undefined), [field]: true };
+  if (Array.isArray(select)) {
+    return [...select, field];
+  }
+  // Anything else is left for `onTypeConfig` to reject.
+  return select === undefined || (select && typeof select === 'object')
+    ? { ...(select as object | undefined), [field]: true }
+    : select;
 }
 
 function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Types>>(
