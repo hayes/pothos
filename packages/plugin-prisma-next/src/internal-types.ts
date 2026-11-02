@@ -201,6 +201,30 @@ type SimpleColumnShape<Types extends SchemaTypes, M extends ModelName<Types>, S>
 };
 
 /**
+ * The entries of an object `select` that may be left out, as a spread of a conditional leaves them.
+ * An entry that is only ever `undefined`, as normalizing a union of branches leaves it, selects
+ * nothing.
+ */
+type OptionalSelectEntries<S> = {
+  [K in keyof S as undefined extends S[K]
+    ? [NonNullable<S[K]>] extends [never]
+      ? never
+      : K
+    : never]-?: NonNullable<S[K]>;
+};
+
+/** What the entries of an object `select` that may be left out add, as optional keys. */
+type OptionalSelectShape<Types extends SchemaTypes, M extends ModelName<Types>, S> = [
+  keyof OptionalSelectEntries<S>,
+] extends [never]
+  ? unknown
+  : Partial<
+      SimpleColumnShape<Types, M, OptionalSelectEntries<S>> &
+        SimpleRelationShape<Types, M, OptionalSelectEntries<S>> &
+        FunctionFormShape<Types, M, OptionalSelectEntries<S>>
+    >;
+
+/**
  * The model brand and the primary key, which every type's selection loads. Other columns are
  * present only when a `select` declares them. The brand also admits the model's variants. The
  * `M extends string` wrapper makes TypeScript compare two of these shapes by their members, not by
@@ -285,8 +309,29 @@ type ValidateSelectValue<Types extends SchemaTypes, ParentShape, Select> =
       : never
     : never;
 
-/** Checks a field's or a type's `select`, which is inferred from the literal, not checked. */
+/**
+ * Checks a field's or a type's `select`, which is inferred from the literal, not checked. Every
+ * branch of a union must pass, so the branches' checks are intersected: as a union, a branch that
+ * passes (`unknown`) would absorb one that doesn't.
+ */
 export type SelectCheck<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Select,
+> = unknown extends Select
+  ? unknown
+  : // Valid arrays, the common case, need no walk of their branches.
+    [Select] extends [readonly (keyof Row<Types, M>)[]]
+    ? unknown
+    : (
+          Select extends unknown
+            ? (check: [BranchSelectCheck<Types, M, Select>]) => void
+            : never
+        ) extends (check: [infer Check]) => void
+      ? Check
+      : never;
+
+type BranchSelectCheck<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   Select,
@@ -338,9 +383,10 @@ type InvalidSelectValueCheck<
 > = Select extends readonly unknown[]
   ? unknown
   : {
-        [K in keyof Select & keyof SelectObjectSpec<Types, M>]: Select[K] extends NonNullable<
-          SelectObjectSpec<Types, M>[K]
-        >
+        // A branch's spread or normalized union can leave a key undefined, which selects nothing.
+        [K in keyof Select & keyof SelectObjectSpec<Types, M>]: NonNullable<
+          Select[K]
+        > extends NonNullable<SelectObjectSpec<Types, M>[K]>
           ? never
           : K;
       }[keyof Select & keyof SelectObjectSpec<Types, M>] extends infer Invalid extends string
@@ -394,7 +440,10 @@ export type ShapeFromSelect<Types extends SchemaTypes, ParentShape, Select> = un
               ParentShape & Partial<ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>>
             >
           : ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>
-        : ShapeFromSelectValue<Types, ParentShape, Awaited<Result>>
+        : Normalize<
+            ShapeFromSelectValue<Types, ParentShape, Awaited<Result>> &
+              OptionalSelectShape<Types, ExtractModel<Types, ParentShape>, Awaited<Result>>
+          >
     : ShapeFromSelectValue<Types, ParentShape, Select>;
 
 // The unreachable `ParentShape` fallbacks make checks against a deferred shape cheaper.

@@ -808,3 +808,52 @@ new SchemaBuilder<{ PrismaNextContract: Contract }>({
   // @ts-expect-error a transaction of another contract
   prismaNext: { client: () => inhTransaction, contract: sqliteClient.contract },
 });
+
+// Function-form selects with object branches, whose columns are optional on the parent.
+builder.prismaObject('User', {
+  fields: (t) => ({
+    objectBranches: t.string({
+      args: { first: t.arg.boolean() },
+      select: (args) => (args.first ? { firstName: true } : { lastName: true }),
+      resolve: (user) => {
+        expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
+        expectTypeOf(user.lastName).toEqualTypeOf<string | undefined>();
+        return user.firstName ?? user.lastName ?? '';
+      },
+    }),
+    spreadBranch: t.string({
+      args: { first: t.arg.boolean() },
+      select: (args) => ({ email: true, ...(args.first ? { firstName: true } : {}) }),
+      resolve: (user) => {
+        expectTypeOf(user.email).toEqualTypeOf<string>();
+        expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
+        return user.email;
+      },
+    }),
+    asyncBranches: t.string({
+      args: { first: t.arg.boolean() },
+      select: async (args) => (args.first ? { firstName: true } : { lastName: true }),
+      resolve: (user) => user.firstName ?? user.lastName ?? '',
+    }),
+    relationBranch: t.string({
+      args: { first: t.arg.boolean() },
+      select: (args) => (args.first ? { posts: true } : { email: true }),
+      resolve: (user) => {
+        expectTypeOf(user.email).toEqualTypeOf<string | undefined>();
+        return `${user.posts?.length}`;
+      },
+    }),
+    badObjectBranch: t.string({
+      args: { first: t.arg.boolean() },
+      // @ts-expect-error a branch's value must still fit the spec
+      select: (args) => (args.first ? { firstName: { limit: 1 } } : { lastName: true }),
+      resolve: () => '',
+    }),
+    unknownInBranch: t.string({
+      args: { first: t.arg.boolean() },
+      // @ts-expect-error a branch's keys must still be columns or relations
+      select: (args) => (args.first ? { nope: true } : { lastName: true }),
+      resolve: () => '',
+    }),
+  }),
+});
