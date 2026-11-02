@@ -13,7 +13,7 @@ import type {
   ConnectionPagingOptions,
   ConnectionQueryLiteral,
   ConnectionQueryOption,
-  CursorSpec,
+  CursorShape,
   ModelName,
   ResolverCollection,
   Row,
@@ -92,11 +92,11 @@ export type HelperRef<Types extends SchemaTypes, M extends ModelName<Types>> =
 export interface PrismaConnectionHelperOptions<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-  Cursor extends CursorSpec<Types, M>,
+  Cursor extends CursorShape,
   Args extends InputFieldMap,
   QueryLiteral = ConnectionQueryLiteral<Types, M>,
 > extends Pick<
-    ConnectionPagingOptions<Types, unknown, Args, Cursor>,
+    ConnectionPagingOptions<Types, unknown, M, Args, Cursor>,
     'cursor' | 'defaultSize' | 'maxSize'
   > {
   args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
@@ -114,7 +114,7 @@ export interface PrismaConnectionHelperOptions<
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-  Cursor extends CursorSpec<Types, M>,
+  const Cursor extends CursorShape,
   Args extends InputFieldMap = {},
   Node = never,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
@@ -130,7 +130,7 @@ export function prismaConnectionHelpers<
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-  Cursor extends CursorSpec<Types, M>,
+  const Cursor extends CursorShape,
   Args extends InputFieldMap = {},
   Node = never,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
@@ -146,7 +146,7 @@ export function prismaConnectionHelpers<
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-  Cursor extends CursorSpec<Types, M>,
+  const Cursor extends CursorShape,
   Args extends InputFieldMap = {},
   Node = never,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,

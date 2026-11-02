@@ -7,7 +7,7 @@ import {
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
-import type { CursorSpec, ModelName, PrismaNextConnectionFieldOptions } from './types.js';
+import type { CursorShape, ModelName, PrismaNextConnectionFieldOptions } from './types.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { assertContextObject, getPluginConfig } from './utils/config.js';
 import {
@@ -43,7 +43,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   Param extends M | PrismaNextObjectRef<Types, M, unknown>,
   Nullable extends boolean,
   Args extends InputFieldMap,
-  Cursor extends CursorSpec<Types, M>,
+  Cursor extends CursorShape,
   ResolveReturnShape,
 >(
   this: typeof rootFieldBuilderProto & {

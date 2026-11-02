@@ -31,7 +31,7 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
 import type {
   AnyContract,
-  CursorSpec,
+  CursorShape,
   ModelName,
   NameOrVariant,
   PrismaNextConnectionFieldOptions,
@@ -383,7 +383,7 @@ declare global {
             const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
             const EdgeInterfaces extends InterfaceParam<Types>[] = [],
             M extends ModelName<Types> = ParamToModelName<Types, Param>,
-            Cursor extends CursorSpec<Types, M> = CursorSpec<Types, M>,
+            const Cursor extends CursorShape = CursorShape,
           >(
             options: PrismaNextConnectionFieldOptions<
               Types,

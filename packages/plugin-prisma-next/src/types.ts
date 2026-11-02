@@ -1048,14 +1048,59 @@ type CursorColumnEntry<Key extends string> =
       nulls?: 'first' | 'last';
     };
 
-type ExactCursorEntry<Entry> = Entry extends { field: unknown }
-  ? Entry & Record<Exclude<keyof Entry, 'field' | 'direction' | 'nulls'>, never>
-  : Entry;
+/** Names an unknown column in an error, where the columns' union would run to many kilobytes. */
+export interface UnknownCursorColumn<Column> {
+  readonly 'Not an orderable column of this model': Column;
+}
 
-/** Rejects unknown keys on cursor entries, which inference would otherwise accept. */
-export type ExactCursor<Cursor> = Cursor extends readonly unknown[]
-  ? { [K in keyof Cursor]: ExactCursorEntry<Cursor[K]> }
-  : ExactCursorEntry<Cursor>;
+/**
+ * What a `cursor` looks like before its columns are checked. It stays this loose so that a wrong
+ * column is inferred as written, and `CursorCheck` names it, rather than the error listing every
+ * entry of `CursorSpec`.
+ */
+export type CursorShape = CursorShapeEntry | readonly [CursorShapeEntry, ...CursorShapeEntry[]];
+
+type CursorShapeEntry =
+  | string
+  | {
+      readonly field: string;
+      readonly direction?: 'asc' | 'desc';
+      readonly nulls?: 'first' | 'last';
+    };
+
+type CursorColumnName<Types extends SchemaTypes, M extends ModelName<Types>> = keyof Row<Types, M> &
+  OrderableColumn<Types, M>;
+
+/** A non-literal column, such as the editor's placeholder, becomes the columns for completions. */
+type CursorColumnCheck<Types extends SchemaTypes, M extends ModelName<Types>, Column> =
+  Column extends CursorColumnName<Types, M>
+    ? Column
+    : string extends Column
+      ? CursorColumnName<Types, M>
+      : UnknownCursorColumn<Column>;
+
+type CursorEntryCheck<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Entry,
+> = Entry extends string
+  ? CursorColumnCheck<Types, M, Entry>
+  : Entry extends { readonly field: infer Column }
+    ? {
+        readonly field: CursorColumnCheck<Types, M, Column>;
+        readonly direction?: 'asc' | 'desc';
+        readonly nulls?: 'first' | 'last';
+      } & Record<Exclude<keyof Entry, 'field' | 'direction' | 'nulls'>, never>
+    : Entry;
+
+/** Checks a `cursor`'s columns, and rejects unknown keys on its entries. */
+export type CursorCheck<
+  Types extends SchemaTypes,
+  M extends ModelName<Types>,
+  Cursor,
+> = Cursor extends readonly unknown[]
+  ? { readonly [K in keyof Cursor]: CursorEntryCheck<Types, M, Cursor[K]> }
+  : CursorEntryCheck<Types, M, Cursor>;
 
 export type CursorSpec<Types extends SchemaTypes, M extends ModelName<Types>> =
   | CursorColumn<Types, M>
@@ -1072,10 +1117,11 @@ type SizeOption<Types extends SchemaTypes, Args extends InputFieldMap> =
 export type ConnectionPagingOptions<
   Types extends SchemaTypes,
   ParentShape,
+  M extends ModelName<Types>,
   Args extends InputFieldMap,
   Cursor,
 > = {
-  cursor: Cursor & ExactCursor<Cursor>;
+  cursor: Cursor & NoInfer<CursorCheck<Types, M, Cursor>>;
   defaultSize?: SizeOption<Types, Args>;
   maxSize?: SizeOption<Types, Args>;
   args?: Args;
@@ -1096,7 +1142,7 @@ export type PrismaNextConnectionFieldOptions<
   Param,
   Nullable extends boolean,
   Args extends InputFieldMap,
-  Cursor extends CursorSpec<Types, M>,
+  Cursor extends CursorShape,
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind,
 > = Omit<
@@ -1126,7 +1172,7 @@ export type PrismaNextConnectionFieldOptions<
     >,
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
   > &
-  ConnectionPagingOptions<Types, ParentShape, Args, Cursor> & {
+  ConnectionPagingOptions<Types, ParentShape, M, Args, Cursor> & {
     type: Param;
     /**
      * Direction and null placement for this request. Each item names a cursor column, in cursor
@@ -1159,7 +1205,7 @@ export type PrismaNextRelatedConnectionOptions<
   RelName extends RelationKeys<Types, ParentModel>,
   Nullable extends boolean,
   Args extends InputFieldMap,
-  Cursor extends CursorSpec<Types, RelatedModel<Types, ParentModel, RelName>>,
+  Cursor extends CursorShape,
   RelatedShape = unknown,
   ParentShape = ObjectBaseShape<Types, ParentModel>,
   QueryLiteral = ConnectionQueryLiteral<Types, RelatedModel<Types, ParentModel, RelName>>,
@@ -1188,7 +1234,13 @@ export type PrismaNextRelatedConnectionOptions<
     >,
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
   > &
-  ConnectionPagingOptions<Types, ParentShape, Args, Cursor> & {
+  ConnectionPagingOptions<
+    Types,
+    ParentShape,
+    RelatedModel<Types, ParentModel, RelName>,
+    Args,
+    Cursor
+  > & {
     type?:
       | PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>
       | PrismaNextInterfaceRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
