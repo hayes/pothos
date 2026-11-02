@@ -92,6 +92,14 @@ const Tagged = builder.interfaceRef<{ id: number }>('Tagged').implement({
   }),
 });
 
+// Implemented only by LatestPostViewer, whose type-level select conflicts with
+// Viewer.recentPostIds. Relay compilers add `... on Node { id }` to a selection like this one.
+const Stamped = builder.interfaceRef<object>('Stamped').implement({
+  fields: (t) => ({
+    stamp: t.string({ resolve: () => 'stamped' }),
+  }),
+});
+
 // No type-level select: an include-mode variant of a select-mode interface.
 builder.prismaObject('User', {
   variant: 'FullViewer',
@@ -104,7 +112,7 @@ builder.prismaObject('User', {
 // Type-level relation arguments that conflict with Viewer.recentPostIds's field-level select.
 builder.prismaObject('User', {
   variant: 'LatestPostViewer',
-  interfaces: [Viewer, Tagged],
+  interfaces: [Viewer, Tagged, Stamped],
   select: {
     id: true,
     posts: {
@@ -231,6 +239,10 @@ builder.queryType({
     cyclicUser: t.prismaField({
       type: CyclicUser,
       resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
+    }),
+    viewers: t.prismaField({
+      type: [Viewer],
+      resolve: (query) => prisma.user.findMany({ ...query, take: 3 }),
     }),
     viewer: t.prismaField({
       type: Viewer,
@@ -714,6 +726,76 @@ describe('fragments on variants and non-model interfaces', () => {
       expect(fragmentQueries.map((query) => query.args)).toEqual(
         queries.map((query) => query.args),
       );
+    });
+  });
+
+  describe('a fragment that would cost a field its place in the parent query', () => {
+    const recentPosts = { posts: { take: 3, select: { id: true } }, id: true };
+
+    it('does not reload a field because of a variant only the fragment entered', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              recentPostIds
+              ... on Stamped {
+                stamp
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { recentPostIds: expect.any(Array) } });
+      expect(queries.map((query) => query.args)).toEqual([
+        { select: recentPosts, where: { id: 1 } },
+      ]);
+    });
+
+    it('stays one statement for a list of rows', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewers {
+              recentPostIds
+              ... on Stamped {
+                stamp
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.viewers).toHaveLength(3);
+      expect(queries.map((query) => query.args)).toEqual([{ select: recentPosts, take: 3 }]);
+    });
+
+    it('still expands the fragment when no field is displaced', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              ... on Stamped {
+                stamp
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { stamp: 'stamped' } });
+      expect(queries.map((query) => query.args)).toEqual([
+        { select: { posts: { take: 1, select: { id: true } }, id: true }, where: { id: 1 } },
+      ]);
     });
   });
 

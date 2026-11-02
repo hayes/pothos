@@ -105,6 +105,14 @@ const Tagged = builder.interfaceRef<{ id: number }>('Tagged').implement({
   }),
 });
 
+// Implemented only by LatestPostViewer, whose type-level select conflicts with
+// Viewer.recentPostIds. Relay compilers add `... on Node { id }` to a selection like this one.
+const Stamped = builder.interfaceRef<object>('Stamped').implement({
+  fields: (t) => ({
+    stamp: t.string({ resolve: () => 'stamped' }),
+  }),
+});
+
 // No type-level select: a variant selecting every column, under an interface that does not.
 builder.drizzleObject('users', {
   variant: 'FullViewer',
@@ -117,7 +125,7 @@ builder.drizzleObject('users', {
 // Type-level relation arguments that conflict with Viewer.recentPostIds's field-level select.
 builder.drizzleObject('users', {
   variant: 'LatestPostViewer',
-  interfaces: [Viewer, Tagged],
+  interfaces: [Viewer, Tagged, Stamped],
   select: {
     columns: {
       id: true,
@@ -317,6 +325,10 @@ builder.queryType({
 
         return null;
       },
+    }),
+    viewers: t.drizzleField({
+      type: [Viewer],
+      resolve: (query) => db.query.users.findMany(query({ limit: 3 })),
     }),
     namedViewer: t.drizzleField({
       type: NamedViewer,
@@ -740,6 +752,73 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(drizzleLogs).toHaveLength(1);
+    });
+  });
+
+  describe('a fragment that would cost a field its place in the parent query', () => {
+    it('does not reload a field because of a variant only the fragment entered', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              recentPostIds
+              ... on Stamped {
+                stamp
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { recentPostIds: expect.any(Array) } });
+      expect(drizzleLogs).toHaveLength(1);
+      expect(drizzleLogs[0]).toContain('limit ?');
+      expect(drizzleLogs[0]).toContain('params: [3,');
+    });
+
+    it('stays one statement for a list of rows', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewers {
+              recentPostIds
+              ... on Stamped {
+                stamp
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.viewers).toHaveLength(3);
+      expect(drizzleLogs).toHaveLength(1);
+    });
+
+    it('still expands the fragment when no field is displaced', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              ... on Stamped {
+                stamp
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { stamp: 'stamped' } });
+      expect(drizzleLogs).toHaveLength(1);
+      expect(drizzleLogs[0]).toContain('params: [1, 1, 1]');
     });
   });
 

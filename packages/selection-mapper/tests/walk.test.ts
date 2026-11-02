@@ -1470,4 +1470,59 @@ describe('fragments that expand at every level', () => {
     });
     expect(attempts).toBe(2);
   });
+
+  describe('a variant only the expansion entered', () => {
+    it('plays plain when the variant would cost a field its place', async () => {
+      const { types } = linkedSchema();
+      const info = await resolveInfo(types, '{ user { first ... on Other { other } } }');
+      const context = {};
+
+      expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
+        select: { id: true, posts: { take: 3 } },
+      });
+      expect(getLoaderMapping(context, pathOf('user', 'first'), 'UserI')).not.toBeNull();
+    });
+
+    it('plays plain whichever side of the fragment the field is on', async () => {
+      const { types } = linkedSchema();
+      const info = await resolveInfo(types, '{ user { ... on Other { other } first } }');
+
+      expect(queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info })).toEqual({
+        select: { id: true, posts: { take: 3 } },
+      });
+    });
+
+    it('stays expanding when nothing is displaced', async () => {
+      const { types } = linkedSchema();
+      const info = await resolveInfo(types, '{ user { ... on Other { other } } }');
+
+      expect(queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info })).toEqual({
+        select: { id: true, posts: { take: 1 } },
+      });
+    });
+
+    it('stays expanding when a field only conflicts with another field', async () => {
+      // `second` loses to `first` in either play. The variant has nothing to do with it, and an
+      // expansion that does not add a conflict is kept.
+      const untouched = createSchema(linkedSdl, {
+        UserI: {
+          model: 'User',
+          select: { select: { id: true } },
+          fields: {
+            first: { select: { posts: { take: 3 } } },
+            second: { select: { posts: { take: 4 } } },
+          },
+        },
+        Latest: { model: 'User', select: { select: { id: true, email: true } } },
+      });
+      const info = await resolveInfo(untouched, '{ user { first second ... on Other { other } } }');
+      const context = {};
+
+      expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
+        select: { id: true, email: true, posts: { take: 3 } },
+      });
+      expect(getLoaderMapping(context, pathOf('user', 'first'), 'UserI')).not.toBeNull();
+      expect(getLoaderMapping(context, pathOf('user', 'second'), 'UserI')).toBeNull();
+    });
+  });
 });

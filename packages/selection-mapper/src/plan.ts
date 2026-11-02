@@ -399,7 +399,8 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
     const first = seed ?? this.initial;
 
-    // An expanding play gives up on a type-level conflict, and a plain play is played instead.
+    // An expanding play gives up when its expansion costs something, and a plain play is played
+    // instead.
     return (
       (this.walk.hasExpandingMerges && this.fold(first, 'expanding')) || this.fold(first, 'plain')
     );
@@ -407,8 +408,12 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /**
    * The merges a play of kind `play` takes, folded into a fresh node behind `first`. `first` is
-   * merged before anything else, so on a conflict it wins. An expanding play returns undefined on
-   * a type-level conflict, and a plain play throws it.
+   * merged before anything else, so on a conflict it wins. A plain play throws a type-level
+   * conflict. An expanding play returns undefined on one, and on a field rejected because of a
+   * variant only an expansion entered: a fragment that selects nothing of the field would make it
+   * reload for every row, which is never worth what the variant saves. It keeps a second node
+   * without those variants to tell that from a field that loses to another field, which would lose
+   * in a plain play too.
    */
   private fold(first: Query | undefined, play: 'plain'): PlayedPlan<Model, Query, NodeType>;
   private fold(
@@ -421,14 +426,22 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   ): PlayedPlan<Model, Query, NodeType> | undefined {
     const { adapter } = this;
     const root = adapter.createNode(this.model);
+    const unexpanded = play === 'expanding' ? adapter.createNode(this.model) : undefined;
     const mappings: Mappings = {};
+    const mergeBoth = (query: Query, options?: MergeOptions) => {
+      adapter.mergeQuery(root, query, options);
+
+      if (unexpanded) {
+        adapter.mergeQuery(unexpanded, query, options);
+      }
+    };
 
     if (first) {
-      adapter.mergeQuery(root, first);
+      mergeBoth(first);
     }
 
     if (this.relationQuery) {
-      adapter.mergeQuery(root, this.relationQuery, AS_QUERY);
+      mergeBoth(this.relationQuery, AS_QUERY);
     }
 
     for (const merge of this.walk.merges) {
@@ -438,7 +451,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
       switch (merge.kind) {
         case 'type':
-          adapter.mergeQuery(root, merge.query);
+          mergeBoth(merge.query);
           break;
         case 'variant': {
           const conflict = adapter.firstConflict(root, merge.query);
@@ -451,7 +464,12 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
             throw variantConflict(merge.type, merge.variant, conflict);
           }
 
-          adapter.mergeQuery(root, merge.query);
+          if (merge.onlyIn === 'expanding') {
+            adapter.mergeQuery(root, merge.query);
+          } else {
+            mergeBoth(merge.query);
+          }
+
           break;
         }
         case 'field': {
@@ -462,8 +480,10 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
           // A field's selection is merged, and its mapping recorded, only while it fits what is
           // already in the node; otherwise it is left out and its resolver loads its own data.
           if (adapter.canMergeQuery(root, merge.query, options)) {
-            adapter.mergeQuery(root, merge.query, options);
+            mergeBoth(merge.query, options);
             mappings[merge.key] = unionMappings(mappings[merge.key], merge.mapping);
+          } else if (unexpanded && adapter.canMergeQuery(unexpanded, merge.query, options)) {
+            return undefined;
           }
 
           break;

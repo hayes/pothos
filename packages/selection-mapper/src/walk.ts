@@ -365,8 +365,8 @@ interface FragmentWalk {
  * walked as a fragment that cannot apply. A walk already inside one of the two keeps to it.
  *
  * `Plan.play` tries an expanding play first. If the variants an expansion enters have conflicting
- * type-level selections, it falls back to a plain play, so an expansion never makes a document
- * fail.
+ * type-level selections, or one of them displaces a field, it falls back to a plain play, so an
+ * expansion never makes a document fail or a field reload.
  *
  * The plain walk comes first. No play sees the order, since each takes only its own kind's merges,
  * but a walk beneath a field is shared with the first invocation that made it (see `Plan.nested`),
