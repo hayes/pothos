@@ -145,15 +145,10 @@ export class DrizzleObjectFieldBuilder<
                 >
               | PothosSchemaTypes.ConnectionObjectOptions<
                   Types,
-                  ObjectRef<Types, ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>>,
+                  ObjectRef<Types, Shape>,
                   false,
                   false,
-                  DrizzleConnectionShape<
-                    Types,
-                    ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>,
-                    Shape,
-                    Args
-                  >,
+                  DrizzleConnectionShape<Types, Shape, Shape, Args>,
                   ConnectionInterfaces
                 >,
             edgeOptions:
@@ -166,14 +161,9 @@ export class DrizzleObjectFieldBuilder<
                 >
               | PothosSchemaTypes.ConnectionEdgeObjectOptions<
                   Types,
-                  ObjectRef<Types, ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>>,
+                  ObjectRef<Types, Shape>,
                   false,
-                  DrizzleConnectionShape<
-                    Types,
-                    ShapeFromTypeParam<Types, [ObjectRef<Types, Shape>], Nullable>,
-                    Shape,
-                    Args
-                  >,
+                  DrizzleConnectionShape<Types, Shape, Shape, Args>,
                   EdgeInterfaces
                 >,
           ],

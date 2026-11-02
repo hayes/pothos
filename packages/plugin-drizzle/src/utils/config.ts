@@ -187,5 +187,7 @@ export function getClient<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,
 ) {
-  return drizzleClientCache(builder as never)(context);
+  // The `client` option is typed loosely to keep it cheap to check; the client it holds is a
+  // drizzle database, so it has the full `DrizzleClient` shape.
+  return drizzleClientCache(builder as never)(context) as DrizzleClient;
 }
