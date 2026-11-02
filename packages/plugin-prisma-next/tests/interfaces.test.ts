@@ -595,6 +595,40 @@ describe('inherited selections', () => {
     });
   });
 
+  it('rejects the pair when only a third interface of the implementation is loaded', () => {
+    const builder = createBuilder();
+    const Titled = builder.prismaInterface('Post', {
+      name: 'Titled',
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    const PostBase = builder.prismaInterface('Post', {
+      name: 'PostBase',
+      select: { author: true },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    const Authored = builder.prismaInterface('Post', {
+      name: 'Authored',
+      select: { author: { where: { firstName: 'Nobody' } } },
+      fields: (t) => ({
+        authorName: t.string({ nullable: true, resolve: (post) => post.author?.firstName }),
+      }),
+    });
+    builder.prismaObject('Post', {
+      interfaces: [Titled, PostBase, Authored],
+      isTypeOf: () => true,
+    });
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        titled: t.prismaField({ type: [Titled], resolve: () => db.orm.Post }),
+      }),
+    });
+    // Rows loaded as Titled resolve as Post, which reads both interfaces' author.
+    expect(() => builder.toSchema()).toThrow(
+      `The selects of prismaInterfaces 'PostBase' and 'Authored' load to-one relation "author" differently, and 'Post' implements both. A row loaded as 'Titled'`,
+    );
+  });
+
   it('rejects implementations that load a to-one relation differently', () => {
     const { builder, Account } = ownerBuilder();
     builder.prismaObject('Owner', {
