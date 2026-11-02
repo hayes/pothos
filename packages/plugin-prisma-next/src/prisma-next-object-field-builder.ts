@@ -24,6 +24,7 @@ import type { ExposableColumn, ExposeColumnNullability } from './internal-types.
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   AnyContract,
+  ConnectionQueryLiteral,
   CursorSpec,
   HasAggregates,
   ModelName,
@@ -49,6 +50,7 @@ import type {
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import {
+  assertConnectionQuery,
   CONNECTION_NODE_PATHS,
   connectionNeedsRows,
   connectionQuery,
@@ -371,11 +373,16 @@ export class PrismaNextObjectFieldBuilder<
       extensions?: Record<string, unknown>;
     };
     const relationName = name as string;
+    const parentModel = this.modelName as string;
+    if (typeof query !== 'function') {
+      definedQuery(query, `'${parentModel}.${relationName}'`);
+    }
     const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) => {
       const spec = definedQuery(
         typeof query === 'function'
           ? (query as (args: object, ctx: object) => unknown)(args, ctx)
           : query,
+        `'${position.type.name}.${position.field.name}'`,
       );
       // A callback builds a new query on every walk, so its definition and arguments identify it.
       const identity = spec && (typeof query === 'function' ? { source: query, args } : spec);
@@ -520,6 +527,10 @@ export class PrismaNextObjectFieldBuilder<
         RelatedShape = unknown,
         ConnectionInterfaces extends InterfaceParam<Types>[] = [],
         EdgeInterfaces extends InterfaceParam<Types>[] = [],
+        QueryLiteral extends ConnectionQueryLiteral<
+          Types,
+          RelatedModel<Types, M, RelName>
+        > = ConnectionQueryLiteral<Types, RelatedModel<Types, M, RelName>>,
       >(
         name: RelName,
         options: PrismaNextRelatedConnectionOptions<
@@ -530,7 +541,8 @@ export class PrismaNextObjectFieldBuilder<
           Args,
           Cursor,
           RelatedShape,
-          Shape
+          Shape,
+          QueryLiteral
         >,
         connectionOptions?:
           | PothosSchemaTypes.ConnectionObjectOptions<
@@ -617,6 +629,7 @@ export class PrismaNextObjectFieldBuilder<
       extensions,
       ...rest
     } = options;
+    assertConnectionQuery(query, `'${this.modelName as string}.${name}'`);
     const settings = connectionSettings(config, { defaultSize, maxSize, totalCount });
     const relatedTypeName = (targetRef as { name?: string }).name ?? relatedModel;
     const include: IndirectInclude = {
@@ -656,7 +669,12 @@ export class PrismaNextObjectFieldBuilder<
       if (argsState(args, ctx).failure) {
         return {};
       }
-      const { where, orderBy } = connectionQuery(query, args, ctx);
+      const { where, orderBy } = connectionQuery(
+        query,
+        args,
+        ctx,
+        `'${position.type.name}.${position.field.name}'`,
+      );
       const filter = (rel: MapperCollection) => (where === undefined ? rel : rel.where(where));
       const identity = { source: select, args };
       const selected = selectedFields();

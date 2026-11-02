@@ -292,10 +292,34 @@ function isDeclarative(value: unknown): value is DeclarativeQuery {
   );
 }
 
-/** Returns `value` if it is a declarative query with at least one option set. */
-export function definedQuery(value: unknown): DeclarativeQuery | undefined {
-  return isDeclarative(value) && Object.values(value).some((option) => option !== undefined)
-    ? value
+/**
+ * Checks that a `query` is an object of `allowed` options, or nothing. An unknown option would
+ * otherwise be ignored, along with the filter beside it in a shape that isn't declarative.
+ */
+export function assertQueryOptions(
+  value: unknown,
+  allowed: readonly string[],
+  owner: string,
+): asserts value is Record<string, unknown> | null | undefined {
+  if (value == null) {
+    return;
+  }
+  const expected = `Use { ${allowed.map((key) => `${key}?`).join(', ')} }.`;
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    throw new PothosValidationError(`query on ${owner} must be an object. ${expected}`);
+  }
+  const unknownKeys = Object.keys(value).filter((key) => !allowed.includes(key));
+  if (unknownKeys.length > 0) {
+    const names = unknownKeys.map((key) => `'${key}'`).join(', ');
+    throw new PothosValidationError(`query on ${owner} has unknown options ${names}. ${expected}`);
+  }
+}
+
+/** Returns `value` if it is a declarative query with at least one option set, and throws if it isn't a query. */
+export function definedQuery(value: unknown, owner: string): DeclarativeQuery | undefined {
+  assertQueryOptions(value, [...DECLARATIVE_KEYS], owner);
+  return value && Object.values(value).some((option) => option !== undefined)
+    ? (value as DeclarativeQuery)
     : undefined;
 }
 

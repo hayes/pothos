@@ -411,21 +411,25 @@ interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelName<Ty
  * What a connection applies before paging. `orderBy` sets each cursor column's direction and null
  * placement, in cursor order, and backward pages reverse it.
  */
-interface ConnectionQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
+export interface ConnectionQueryLiteral<Types extends SchemaTypes, M extends ModelName<Types>> {
   where?: RelationWhere<Types, M>;
   orderBy?: RelationOrderBy<Types, M>;
 }
 
-export type ConnectionQuery<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  Args extends InputFieldMap,
-> =
-  | ConnectionQueryLiteral<Types, M>
+/**
+ * A connection's `query`. `Literal` is inferred from what's written, and only checked for unknown
+ * keys, which a callback's result gets no excess property check for. Inferring the literal rather
+ * than the whole option leaves the callback's `args` typed once `Args` is known.
+ */
+export type ConnectionQueryOption<Types extends SchemaTypes, Args extends InputFieldMap, Literal> =
+  | CheckedConnectionQuery<Literal>
   | ((
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
-    ) => ConnectionQueryLiteral<Types, M>);
+    ) => CheckedConnectionQuery<Literal>);
+
+type CheckedConnectionQuery<Literal> = Literal &
+  NoInfer<ExactQueryLiteral<Literal, keyof ConnectionQueryLiteral<SchemaTypes, never>>>;
 
 export type RelationQuery<
   Types extends SchemaTypes,
@@ -477,13 +481,28 @@ export type PrismaNextRelationOptions<
   'type' | 'resolve' | InferredFieldOptionKeys
 > & {
   type?: PrismaNextObjectRef<Types, TypeModel, RelatedShape>;
-  query?: Query & NoInfer<ExactRelationQuery<Query>>;
+  query?: Query & NoInfer<ExactQuery<Query, keyof RelationQueryLiteral<SchemaTypes, never>>>;
 };
 
-/** `Query` is inferred from the literal rather than checked, so unknown keys need rejecting. */
-type ExactRelationQuery<Query> = Query extends (...args: never[]) => unknown
+/**
+ * `Query` is inferred from the literal rather than checked, and a callback's result gets no excess
+ * property check, so unknown keys need rejecting in both. While `Query` is still uninferred it is
+ * its constraint, which includes `undefined`, and a check then would hide the option's contextual
+ * types.
+ */
+type ExactQuery<Query, Known extends PropertyKey> = undefined extends Query
   ? unknown
-  : { [K in Exclude<keyof Query, keyof RelationQueryLiteral<SchemaTypes, never>>]: never };
+  : Query extends (...args: infer Args) => infer Result
+    ? (...args: Args) => ExactQueryLiteral<Result, Known>
+    : ExactQueryLiteral<Query, Known>;
+
+// Stays `unknown` when nothing is unknown, because an empty object beside the option's type would
+// turn off the check for an object that shares no key with it.
+type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
+  Exclude<Literal extends unknown ? keyof Literal : never, Known>,
+] extends [never]
+  ? unknown
+  : { [K in Exclude<Literal extends unknown ? keyof Literal : never, Known>]?: never };
 
 /** Names the conflict in the error for `nullable: false` beside `isNull`. */
 interface VariantIsNullRequiresNullable {
@@ -1137,6 +1156,7 @@ export type PrismaNextRelatedConnectionOptions<
   Cursor extends CursorSpec<Types, RelatedModel<Types, ParentModel, RelName>>,
   RelatedShape = unknown,
   ParentShape = ObjectBaseShape<Types, ParentModel>,
+  QueryLiteral = ConnectionQueryLiteral<Types, RelatedModel<Types, ParentModel, RelName>>,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -1164,7 +1184,7 @@ export type PrismaNextRelatedConnectionOptions<
   > &
   ConnectionPagingOptions<Types, ParentShape, Args, Cursor> & {
     type?: PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
-    query?: ConnectionQuery<Types, RelatedModel<Types, ParentModel, RelName>, Args>;
+    query?: ConnectionQueryOption<Types, Args, QueryLiteral>;
   };
 
 /**
