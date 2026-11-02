@@ -56,6 +56,16 @@ builder.prismaObject('User', {
       // @ts-expect-error the connection args own the page size
       query: { where: { published: 1 }, limit: 5 },
     }),
+    unknownCallbackKey: t.relatedConnection('posts', {
+      cursor: 'id',
+      // @ts-expect-error unknown query options are rejected in a callback's result too
+      query: () => ({ where: { published: 1 }, take: 1 }),
+    }),
+    limitInCallback: t.relatedConnection('posts', {
+      cursor: 'id',
+      // @ts-expect-error the connection args own the page size
+      query: () => ({ limit: 1 }),
+    }),
     topLevelWhere: t.relatedConnection('posts', {
       cursor: 'id',
       // @ts-expect-error filters go in `query`
@@ -252,6 +262,11 @@ prismaConnectionHelpers(builder, 'User', {
   cursor: 'id',
   // @ts-expect-error a where callback returns a condition
   query: { where: () => 'oops' },
+});
+prismaConnectionHelpers(builder, 'User', {
+  cursor: 'id',
+  // @ts-expect-error unknown query options are rejected in a callback's result too
+  query: () => ({ where: { id: 'x' }, take: 1 }),
 });
 prismaConnectionHelpers(builder, 'User', {
   // @ts-expect-error not a column of User

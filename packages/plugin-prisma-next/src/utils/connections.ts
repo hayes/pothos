@@ -9,6 +9,7 @@ import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextConfig } from './config.js';
 import type { RequestOrderBy } from './cursors.js';
+import { assertQueryOptions } from './selections.js';
 
 type SizeOption = number | ((args: never, ctx: never) => number);
 
@@ -127,13 +128,26 @@ function withTotalCount(connectionOptions: object): object {
 
 type OrderSelector = (model: never, tools: unknown) => unknown;
 
+/** The connection arguments own the page size, so a connection's `query` has no `limit`. */
+const CONNECTION_QUERY_OPTIONS = ['where', 'orderBy'];
+
+/** Checks a connection's `query` when it isn't a callback, which is checked per request. */
+export function assertConnectionQuery(query: unknown, owner: string) {
+  if (typeof query !== 'function') {
+    assertQueryOptions(query, CONNECTION_QUERY_OPTIONS, owner);
+  }
+}
+
 /** A connection's `query` for one request: a literal, or a callback of the args and context. */
 export function connectionQuery(
   query: unknown,
   args: object,
   ctx: object,
+  owner: string,
 ): { where?: unknown; orderBy?: RequestOrderBy } {
-  const { where, orderBy } = ((typeof query === 'function' ? query(args, ctx) : query) ?? {}) as {
+  const value = typeof query === 'function' ? query(args, ctx) : query;
+  assertQueryOptions(value, CONNECTION_QUERY_OPTIONS, owner);
+  const { where, orderBy } = (value ?? {}) as {
     where?: unknown;
     orderBy?: OrderSelector | readonly OrderSelector[];
   };

@@ -55,6 +55,24 @@ builder.prismaObject('User', {
       // @ts-expect-error `draft` isn't a column on Post
       query: { where: { draft: 1 } },
     }),
+    takeInCallback: t.relation('posts', {
+      // @ts-expect-error unknown query options are rejected in a callback's result too
+      query: () => ({ where: { published: 1 }, take: 1 }),
+    }),
+    takeInOneBranch: t.relation('posts', {
+      args: { first: t.arg.boolean() },
+      // @ts-expect-error every branch of a callback is checked
+      query: (args) => (args.first ? { take: 1 } : { where: { published: 1 } }),
+    }),
+    conditionalCallback: t.relation('posts', {
+      args: { first: t.arg.boolean() },
+      query: (args, _ctx) => {
+        expectTypeOf(args.first).toEqualTypeOf<boolean | null | undefined>();
+        return args.first
+          ? { limit: 1 }
+          : { where: (post) => post.published.eq(1), orderBy: (post) => post.id.asc() };
+      },
+    }),
     take: t.relation('posts', {
       // @ts-expect-error unknown query options are rejected
       query: { take: 1 },

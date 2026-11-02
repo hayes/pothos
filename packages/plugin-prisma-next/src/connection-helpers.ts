@@ -11,7 +11,8 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   CollectionFor,
   ConnectionPagingOptions,
-  ConnectionQuery,
+  ConnectionQueryLiteral,
+  ConnectionQueryOption,
   CursorSpec,
   ModelName,
   ResolverCollection,
@@ -22,6 +23,7 @@ import type { MapperCollection } from './utils/adapter.js';
 import { assertContextObject, getPluginConfig } from './utils/config.js';
 import {
   aggregateCount,
+  assertConnectionQuery,
   CONNECTION_NODE_PATHS,
   connectionQuery,
   connectionSettings,
@@ -92,6 +94,7 @@ export interface PrismaConnectionHelperOptions<
   M extends ModelName<Types>,
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap,
+  QueryLiteral = ConnectionQueryLiteral<Types, M>,
 > extends Pick<
     ConnectionPagingOptions<Types, unknown, Args, Cursor>,
     'cursor' | 'defaultSize' | 'maxSize'
@@ -105,7 +108,7 @@ export interface PrismaConnectionHelperOptions<
         info: GraphQLResolveInfo | undefined,
       ) => MaybePromise<number>);
   /** Filters the collection and orders its cursor columns, like `t.relatedConnection`'s `query`. */
-  query?: ConnectionQuery<Types, M, Args>;
+  query?: ConnectionQueryOption<Types, Args, QueryLiteral>;
 }
 
 export function prismaConnectionHelpers<
@@ -115,10 +118,11 @@ export function prismaConnectionHelpers<
   Args extends InputFieldMap = {},
   Node = never,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
+  QueryLiteral extends ConnectionQueryLiteral<Types, M> = ConnectionQueryLiteral<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & HelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
+  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args, QueryLiteral> & {
     resolveNode: (edge: Row<Types, M>) => Node;
   },
 ): PrismaConnectionHelpers<Types, M, Args, Node, false, Ref>;
@@ -130,10 +134,11 @@ export function prismaConnectionHelpers<
   Args extends InputFieldMap = {},
   Node = never,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
+  QueryLiteral extends ConnectionQueryLiteral<Types, M> = ConnectionQueryLiteral<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & HelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
+  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args, QueryLiteral> & {
     resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
 ): PrismaConnectionHelpers<Types, M, Args, Node, true, Ref>;
@@ -145,10 +150,11 @@ export function prismaConnectionHelpers<
   Args extends InputFieldMap = {},
   Node = never,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
+  QueryLiteral extends ConnectionQueryLiteral<Types, M> = ConnectionQueryLiteral<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & HelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
+  options: PrismaConnectionHelperOptions<Types, M, Cursor, Args, QueryLiteral> & {
     resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
 ): object {
@@ -159,6 +165,8 @@ export function prismaConnectionHelpers<
   const config = getPluginConfig(builder);
   config.adapter.loadsRowsOf(ref.name);
   const cursorOrder = validateCursor(config.contract, modelName, options.cursor);
+  const queryOwner = `connection helpers for '${modelName as string}'`;
+  assertConnectionQuery(options.query, queryOwner);
   const settings = connectionSettings<
     (
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
@@ -194,7 +202,7 @@ export function prismaConnectionHelpers<
   ) {
     assertContextObject(ctx, info);
     assertVariantCollection(config.contract, modelName, collection as never);
-    const { where, orderBy } = connectionQuery(options.query, args, ctx as object);
+    const { where, orderBy } = connectionQuery(options.query, args, ctx as object, queryOwner);
     const filteredBase = (where === undefined
       ? collection
       : (collection as unknown as MapperCollection).where(where)) as unknown as CollectionFor<

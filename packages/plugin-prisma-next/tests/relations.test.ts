@@ -5,7 +5,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import { GraphQLScalarType, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import { buildExampleSchema } from './example/schema';
 import {
   createBuilder,
@@ -762,5 +762,108 @@ describe('plugins that wrap resolvers', () => {
       { postCount: 2, published: [{ id: 'p-hello' }] },
       { postCount: 2, published: [{ id: 'p-bob1' }] },
     ]);
+  });
+});
+
+describe('invalid query options', () => {
+  const ownerBuilder = (options: object) => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({ posts: t.relation('posts', options as never) }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    return builder;
+  };
+
+  it('fails a query callback that returns an unknown key, rather than dropping its where', async () => {
+    const schema = ownerBuilder({
+      query: () => ({ where: { published: 1 }, take: 1 }),
+    }).toSchema();
+    const result = await run(schema, '{ users { posts { id } } }');
+    expect(result.errors?.[0].message).toMatch(/query on 'User\.posts'.*'take'/);
+    expect(result.data?.users).toBeFalsy();
+  });
+
+  it.each([
+    ['an array', () => []],
+    ['a string', () => 'published'],
+  ])('fails a query callback that returns %s', async (_name, query) => {
+    const result = await run(ownerBuilder({ query }).toSchema(), '{ users { posts { id } } }');
+    expect(result.errors?.[0].message).toMatch(/query on 'User\.posts'/);
+  });
+
+  it('rejects an unknown key in a query object when the schema is built', () => {
+    expect(() => ownerBuilder({ query: { where: { published: 1 }, take: 1 } }).toSchema()).toThrow(
+      /query on 'User\.posts'.*'take'/,
+    );
+  });
+
+  it.each([
+    ['nothing', () => undefined],
+    ['an empty object', () => ({})],
+    ['undefined options', () => ({ where: undefined })],
+  ])('loads every row for a query callback that returns %s', async (_name, query) => {
+    const result = await run(ownerBuilder({ query }).toSchema(), '{ users { posts { id } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0].posts).toHaveLength(2);
+  });
+
+  const connectionBuilder = (query: unknown) => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
+        page: t.relatedConnection('posts', { cursor: 'id', query: query as any }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    return builder;
+  };
+
+  it.each([
+    ['a callback', () => ({ where: { published: 1 }, take: 1 })],
+    ['a callback with limit', () => ({ limit: 1 })],
+  ])('fails a relatedConnection query from %s with an unknown key', async (_name, query) => {
+    const result = await run(
+      connectionBuilder(query).toSchema(),
+      '{ users { page { nodes { id } } } }',
+    );
+    expect(result.errors?.[0].message).toMatch(/query on 'User\.page'.*'(take|limit)'/);
+  });
+
+  it('rejects an unknown key in a relatedConnection query object when the schema is built', () => {
+    expect(() => connectionBuilder({ take: 1 }).toSchema()).toThrow(
+      /query on 'User\.posts'.*'take'/,
+    );
+  });
+
+  it('rejects an unknown key in a connection helper query', async () => {
+    const builder = createBuilder();
+    expect(() =>
+      prismaConnectionHelpers(builder, 'Post', { cursor: 'id', query: { take: 1 } as never }),
+    ).toThrow(/query on connection helpers for 'Post'.*'take'/);
+    const helpers = prismaConnectionHelpers(builder, 'Post', {
+      cursor: 'id',
+      query: (() => ({ take: 1 })) as never,
+    });
+    await expect(helpers.applyPagination(db.orm.Post, {}, {})).rejects.toThrow(
+      /query on connection helpers for 'Post'.*'take'/,
+    );
   });
 });
