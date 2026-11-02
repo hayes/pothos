@@ -23,7 +23,8 @@ import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model
  *
  * In a query, a to-many relation and its computed values are keyed `relation:scope`, so each
  * consumer gets its own `combine()` slot. In the combined value the ORM returns, a consumer's rows
- * are keyed `scope` and its computed values `scope:key`.
+ * are keyed `scope` and its computed values `scope:key`. Consumers that load the same rows share a
+ * slot, keyed by their scopes joined with a space.
  */
 
 export const REFINE = Symbol('prismaNextRefine');
@@ -79,6 +80,7 @@ export type PrismaNextSelectFn = SelectFn<PrismaNextQuery>;
 export const EMPTY: PrismaNextQuery = Object.freeze({});
 
 export const SLOT = ':';
+export const SHARED_SCOPES = ' ';
 
 const scopes = new WeakMap<Position, string>();
 
@@ -163,14 +165,21 @@ function materializeRow(row: Record<string, unknown>, model: PrismaNextModel) {
       continue;
     }
     entry ??= { slots: {}, scopes: new Set(), lifted: null };
-    entry.slots[name] = value as Record<string, unknown>;
+    const slots: Record<string, unknown> = {};
+    entry.slots[name] = slots;
     for (const [key, slot] of Object.entries(value)) {
       // Rows are keyed by scope and computed values by `scope:key`.
       const scope = relationName(key);
       if (scope === key) {
         materializeRows(slot, relation.target);
+        for (const consumer of key.split(SHARED_SCOPES)) {
+          slots[consumer] = slot;
+          entry.scopes.add(consumer);
+        }
+      } else {
+        slots[key] = slot;
+        entry.scopes.add(scope);
       }
-      entry.scopes.add(scope);
     }
   }
   if (!entry) {
