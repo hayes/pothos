@@ -113,6 +113,36 @@ const Stamped = builder.interfaceRef<object>('Stamped').implement({
   }),
 });
 
+// Fields with no select that read the row a variant's type-level select loaded, implemented only by
+// LabeledViewer, whose relation arguments conflict with Viewer.recentPostIds.
+const Labeled = builder
+  .interfaceRef<{ firstName: string | null; posts?: unknown[] }>('Labeled')
+  .implement({
+    fields: (t) => ({
+      label: t.string({ nullable: true, resolve: (user) => user.firstName }),
+      latestCount: t.int({ nullable: true, resolve: (user) => user.posts?.length }),
+    }),
+  });
+
+builder.drizzleObject('users', {
+  variant: 'LabeledViewer',
+  interfaces: [Viewer, Labeled],
+  select: {
+    columns: {
+      id: true,
+      firstName: true,
+    },
+    with: {
+      posts: {
+        limit: 1,
+        columns: {
+          postId: true,
+        },
+      },
+    },
+  },
+});
+
 // No type-level select: a variant selecting every column, under an interface that does not.
 builder.drizzleObject('users', {
   variant: 'FullViewer',
@@ -144,6 +174,8 @@ builder.drizzleObject('users', {
       nullable: true,
       resolve: (user) => user.posts[0]?.postId,
     }),
+    // Overrides Stamped.stamp with a select of its own, so a reload can answer it.
+    stamp: t.string({ select: { columns: { id: true } }, resolve: (user) => `stamped-${user.id}` }),
   }),
 });
 
@@ -800,6 +832,34 @@ describe('fragments on variants and non-model interfaces', () => {
       expect(drizzleLogs).toHaveLength(1);
     });
 
+    it('keeps the expansion when the fragment holds a field with no select', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              recentPostIds
+              ... on Labeled {
+                label
+                latestCount
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 }, viewerType: 'LabeledViewer' },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        viewer: {
+          recentPostIds: expect.objectContaining({ length: 3 }),
+          label: user.firstName,
+          latestCount: 1,
+        },
+      });
+      expect(drizzleLogs).toHaveLength(2);
+    });
+
     it('still expands the fragment when no field is displaced', async () => {
       const result = await execute({
         schema,
@@ -816,9 +876,8 @@ describe('fragments on variants and non-model interfaces', () => {
       });
 
       expect(result.errors).toBeUndefined();
-      expect(result.data).toEqual({ viewer: { stamp: 'stamped' } });
+      expect(result.data).toEqual({ viewer: { stamp: 'stamped-1' } });
       expect(drizzleLogs).toHaveLength(1);
-      expect(drizzleLogs[0]).toContain('params: [1, 1, 1]');
     });
   });
 

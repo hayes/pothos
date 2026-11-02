@@ -118,6 +118,9 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   /** The relation query of the nested selection this plan was made for, merged ahead of `walk`. */
   private relationQuery?: Query;
 
+  /** Whether a field an expansion walks has no select, so it can only read the row as loaded. */
+  expansionReadsRow = false;
+
   /** The walks beneath the fields of this plan, by field node and then by `nested`'s `key`. */
   private walks?: Map<FieldNode, Map<string, Plan<Model, Query, NodeType>>>;
 
@@ -414,6 +417,10 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * reload for every row, which is never worth what the variant saves. It keeps a second node
    * without those variants to tell that from a field that loses to another field, which would lose
    * in a plain play too.
+   *
+   * It does not give up when an expansion holds a field with no select: that field has nothing to
+   * reload with and reads the variant's type-level selection off the row, so correct data costs
+   * the displaced field its reload.
    */
   private fold(first: Query | undefined, play: 'plain'): PlayedPlan<Model, Query, NodeType>;
   private fold(
@@ -482,7 +489,11 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
           if (adapter.canMergeQuery(root, merge.query, options)) {
             mergeBoth(merge.query, options);
             mappings[merge.key] = unionMappings(mappings[merge.key], merge.mapping);
-          } else if (unexpanded && adapter.canMergeQuery(unexpanded, merge.query, options)) {
+          } else if (
+            unexpanded &&
+            !this.walk.expansionReadsRow &&
+            adapter.canMergeQuery(unexpanded, merge.query, options)
+          ) {
             return undefined;
           }
 
