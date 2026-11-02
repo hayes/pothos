@@ -18,7 +18,8 @@ import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model
  * Scopes and slot keys
  *
  * A scope names one consumer of a to-many relation. A field's scope is `Type.alias`, joined with
- * `/` beneath the scopes of the fields above it (`Query.users/User.posts`). A type-level `select`
+ * `/` beneath the scopes of the fields above it (`Query.users/User.posts`), where `Type` is the
+ * first type the selection was planned on with that definition of the field (see `slotOwner`). A type-level `select`
  * uses the type's name as its scope. Type names have no dot, so the two kinds never collide.
  *
  * In a query, a to-many relation and its computed values are keyed `relation:scope`, so each
@@ -83,6 +84,8 @@ export const SLOT = ':';
 export const SHARED_SCOPES = ' ';
 
 const scopes = new WeakMap<Position, string>();
+/** The type each definition of a field is named after, per selection of the field. */
+const slotOwners = new WeakMap<object, Map<unknown, string>>();
 
 /**
  * The scope of the field selected at `position`. A resolver reaches the same position through its
@@ -93,11 +96,32 @@ const scopes = new WeakMap<Position, string>();
 export function scopeOf(position: Position): string {
   let scope = scopes.get(position);
   if (scope === undefined) {
-    const own = `${position.type.name}.${position.node.alias?.value ?? position.node.name.value}`;
+    const own = `${slotOwner(position)}.${position.node.alias?.value ?? position.node.name.value}`;
     scope = position.walkParent ? `${scopeOf(position.walkParent)}/${own}` : own;
     scopes.set(position, scope);
   }
   return scope;
+}
+
+/**
+ * The type a field's slots are named after. An implementation that inherits a field loads what the
+ * interface does, so one selection of the field shares one slot whichever type it is planned on.
+ * A slot per type would copy everything beneath the field once per type, at every level of the
+ * query. An override is another definition of the field, so it gets a slot of its own.
+ */
+function slotOwner({ node, field, type }: Position) {
+  let owners = slotOwners.get(node);
+  if (!owners) {
+    owners = new Map();
+    slotOwners.set(node, owners);
+  }
+  const definition = field.extensions?.pothosOptions ?? field;
+  let owner = owners.get(definition);
+  if (owner === undefined) {
+    owner = type.name;
+    owners.set(definition, owner);
+  }
+  return owner;
 }
 
 /** The query key a consumer at `scope` uses for a to-many relation or its computed values. */
