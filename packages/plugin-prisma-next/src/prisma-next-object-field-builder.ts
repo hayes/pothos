@@ -531,7 +531,10 @@ export class PrismaNextObjectFieldBuilder<
         // The relay plugin applies the builder's default, as for any connection field.
         Nullable extends boolean = Types['DefaultFieldNullability'],
         Args extends InputFieldMap = {},
-        const Cursor extends CursorShape = CursorShape,
+        const Cursor extends CursorShape<Types, RelatedModel<Types, M, RelName>> = CursorShape<
+          Types,
+          RelatedModel<Types, M, RelName>
+        >,
         RelatedShape = unknown,
         ConnectionInterfaces extends InterfaceParam<Types>[] = [],
         EdgeInterfaces extends InterfaceParam<Types>[] = [],

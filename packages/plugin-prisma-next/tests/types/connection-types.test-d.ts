@@ -307,6 +307,16 @@ builder.prismaObject('User', {
       // @ts-expect-error a cursor has at least one column
       cursor: [],
     }),
+    conditionalCursor: t.relatedConnection('posts', {
+      cursor: Math.random() > 0.5 ? ['title', 'id'] : 'id',
+    }),
+    conditionalEntry: t.relatedConnection('posts', {
+      cursor: Math.random() > 0.5 ? [{ field: 'title', direction: 'desc' }, 'id'] : 'id',
+    }),
+    badConditionalCursor: t.relatedConnection('posts', {
+      // @ts-expect-error every branch of a cursor is checked
+      cursor: Math.random() > 0.5 ? ['nope', 'id'] : 'id',
+    }),
     notAColumn: t.relatedConnection('posts', {
       // @ts-expect-error a cursor is a column or a list of them
       cursor: 1,

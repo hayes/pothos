@@ -92,7 +92,7 @@ export type HelperRef<Types extends SchemaTypes, M extends ModelName<Types>> =
 export interface PrismaConnectionHelperOptions<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-  Cursor extends CursorShape,
+  Cursor extends CursorShape<Types, M>,
   Args extends InputFieldMap,
   QueryLiteral = ConnectionQueryLiteral<Types, M>,
 > extends Pick<
@@ -114,7 +114,7 @@ export interface PrismaConnectionHelperOptions<
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-  const Cursor extends CursorShape,
+  const Cursor extends CursorShape<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
@@ -130,7 +130,7 @@ export function prismaConnectionHelpers<
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-  const Cursor extends CursorShape,
+  const Cursor extends CursorShape<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
@@ -146,7 +146,7 @@ export function prismaConnectionHelpers<
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
-  const Cursor extends CursorShape,
+  const Cursor extends CursorShape<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
