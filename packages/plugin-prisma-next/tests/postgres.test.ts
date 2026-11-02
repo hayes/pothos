@@ -539,7 +539,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
             type: [Event],
             resolve: () =>
               ['2026-09-10T12:00:00.000003Z', '2026-09-10T12:00:00.000001Z'].map((at) => ({
-                at: globalThis.Temporal.Instant.from(at),
+                at: Temporal.Instant.from(at),
               })) as never,
           }),
         }),
