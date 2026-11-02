@@ -505,3 +505,66 @@ builder.queryFields((t) => {
   expectTypeOf<null extends typeof user.$inferType ? true : false>().toEqualTypeOf<true>();
   return { nullableByDefault: user };
 });
+
+// `totalCount` reads the same parent as `resolve`: a type's select narrows it, a subscription's
+// is what `subscribe` yields, and on Query it is the root.
+builder.prismaObject('User', {
+  name: 'TotalCountUser',
+  select: ['firstName'],
+  fields: (t) => ({
+    narrowed: t.prismaConnection({
+      type: 'Post',
+      cursor: 'id',
+      totalCount: (user) => user.firstName.length,
+      resolve: () => orm.Post,
+    }),
+    unselected: t.prismaConnection({
+      type: 'Post',
+      cursor: 'id',
+      // @ts-expect-error `email` is not in the type's select
+      totalCount: (user) => user.email.length,
+      resolve: () => orm.Post,
+    }),
+  }),
+});
+
+builder.prismaObject('User', {
+  name: 'TotalCountAllColumnsUser',
+  fields: (t) => ({
+    noSelect: t.prismaConnection({
+      type: 'Post',
+      cursor: 'id',
+      totalCount: (user) => user.email.length,
+      resolve: () => orm.Post,
+    }),
+  }),
+});
+
+builder.queryField('totalCountOnQuery', (t) =>
+  t.prismaConnection({
+    type: 'Post',
+    cursor: 'id',
+    totalCount: (root) => {
+      expectTypeOf(root).toEqualTypeOf<{}>();
+
+      return 0;
+    },
+    resolve: () => orm.Post,
+  }),
+);
+
+builder.subscriptionField('totalCountOnSubscription', (t) =>
+  t.prismaConnection({
+    type: 'Post',
+    cursor: 'id',
+    subscribe: async function* () {
+      yield 1;
+    },
+    totalCount: (count) => {
+      expectTypeOf(count).toEqualTypeOf<number>();
+
+      return count;
+    },
+    resolve: () => orm.Post,
+  }),
+);
