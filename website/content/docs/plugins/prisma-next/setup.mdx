@@ -5,7 +5,10 @@ description: Setting up the Prisma Next plugin
 
 ## Installing
 
-The plugin requires Node.js 22.18 or a later 22.x release, or Node.js 24 or later.
+The plugin requires Node.js 22.18 or a later 22.x release, or Node.js 24 or later. The Prisma CLI
+requires `^22.18.0 || ^24.11.0 || >=26.0.0`, so on Node.js 24 use 24.11 or later. SQLite also needs
+Node.js 22.20 or later: on 22.18 and 22.19, `prisma db init` and queries fail with `Database error
+while reading contract marker`.
 
 `@pothos/plugin-prisma-next` cannot be used in the same program as `@pothos/plugin-prisma`: both
 add `prismaObject`, `prismaField` and the other `prisma*` methods to the builder. Importing both
@@ -14,16 +17,14 @@ errors in your own code such as a missing `prisma` builder option.
 
 ### Prisma CLI
 
-Install the `prisma` CLI as a dev dependency. The CLI is versioned separately from the ORM
-packages. The steps below were checked with `prisma@8.0.0-rc.29`, running `prisma orm init` and
-`prisma contract emit` against the rc.22 ORM packages:
+Start from a `package.json` that sets `"type": "module"`. In a new project, run `npm init -y` and
+`npm pkg set type=module`, or `pnpm init` and add `"type": "module"` if it isn't there.
 
-```sh
-npm install --save-dev prisma@8.0.0-rc.29
-```
-
-That CLI depends on `@prisma/orm-toolchain@8.0.0-rc.21`, and `prisma contract emit` fails against
-the rc.22 ORM packages. Override the toolchain version in `package.json`. With npm:
+The CLI is versioned separately from the ORM packages. The steps below were checked with
+`prisma@8.0.0-rc.29` against the rc.22 ORM packages. That CLI depends on
+`@prisma/orm-toolchain@8.0.0-rc.21`, which scaffolds a contract rc.22 can't read
+(`PSL_UNRESOLVED_REFERENCE`), so override the toolchain version before installing the CLI. With
+npm, add this to `package.json`:
 
 ```json
 {
@@ -33,49 +34,162 @@ the rc.22 ORM packages. Override the toolchain version in `package.json`. With n
 }
 ```
 
-With pnpm:
+With pnpm, create `pnpm-workspace.yaml`. pnpm 12 ignores overrides in `package.json`, and without
+`strictDepBuilds: false` its installs exit with an error about the esbuild and workerd build
+scripts, which these steps don't need:
+
+```yaml
+overrides:
+  '@prisma/orm-toolchain': 8.0.0-rc.22
+strictDepBuilds: false
+```
+
+Yarn uses `resolutions` with the same entry as npm. Don't downgrade the ORM packages instead,
+because Prisma refuses to run with two copies of the ORM installed. If the CLI is already
+installed, run `npm install` or `pnpm install` after adding the override.
+
+Then install the CLI. The plugin's peer dependencies are exact versions, so pin Prisma packages
+with `--save-exact`:
+
+```package-install
+npm install --save-dev --save-exact prisma@8.0.0-rc.29 @prisma/cli-engine@0.9.0
+```
+
+### PostgreSQL
+
+Scaffold the project. `orm init` writes a contract, a `prisma.config.ts`, a `tsconfig.json`, and a
+`src/prisma/db.ts` that creates the client. `--skip-install` stops it from installing
+`prisma@latest` and the latest `@prisma/orm-postgres`, which would replace the pinned versions.
+With pnpm, run this and the other `npx` commands on this page with `pnpm exec` in place of `npx`.
+
+```sh
+npx prisma orm init --target postgres --authoring psl --skip-install
+```
+
+Install the ORM packages at the supported version, and the rest of the dependencies:
+
+```package-install
+npm install --save-exact @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22 @prisma/orm-postgres@8.0.0-rc.22
+```
+
+```package-install
+npm install --save @pothos/core @pothos/plugin-prisma-next @pothos/plugin-relay graphql dotenv
+```
+
+```package-install
+npm install --save-dev @types/node tsx typescript
+```
+
+`@pothos/plugin-relay` is only needed for nodes and connections, and the builder below uses it.
+`@pothos/plugin-with-input` is optional, for `t.prismaFieldWithInput`.
+
+Copy the example environment file, and set `DATABASE_URL` in `.env` to your database, which must
+be PostgreSQL 15 or later:
+
+```sh
+cp .env.example .env
+```
+
+Emit the contract and create its tables in the database:
+
+```sh
+npx prisma contract emit
+npx prisma db init
+```
+
+### SQLite
+
+Follow these steps instead of the PostgreSQL ones. `orm init` doesn't scaffold SQLite, so write
+the files yourself. `DATABASE_URL` isn't used.
+
+`prisma.config.ts`:
+
+```ts
+import { definePrismaConfig } from '@prisma/cli-engine';
+import { defineConfig as ormConfig } from '@prisma/orm-sqlite/config';
+
+export default definePrismaConfig({
+  orm: ormConfig({
+    contract: './src/prisma/contract.prisma',
+    db: { connection: './app.db' },
+  }),
+});
+```
+
+`src/prisma/contract.prisma`, which needs the `// use prisma-8` line:
+
+```prisma
+// use prisma-8
+
+model User {
+  id    Int    @id @default(autoincrement())
+  email String @unique
+  posts Post[]
+}
+
+model Post {
+  id       Int    @id @default(autoincrement())
+  title    String
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId Int
+}
+```
+
+`src/prisma/db.ts`:
+
+```ts
+import sqlite from '@prisma/orm-sqlite/runtime';
+import { contractFromJson } from '@prisma/orm-sqlite/static';
+import type { Contract } from './contract.d';
+import contractJson from './contract.json' with { type: 'json' };
+
+export const contract = contractFromJson<Contract>(contractJson);
+
+export const db = sqlite({ contract, path: './app.db' });
+```
+
+`tsconfig.json`:
 
 ```json
 {
-  "pnpm": {
-    "overrides": {
-      "@prisma/orm-toolchain": "8.0.0-rc.22"
-    }
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
   }
 }
 ```
 
-Yarn uses `resolutions` with the same entry. Don't downgrade the ORM packages instead, because
-Prisma refuses to run with two copies of the ORM installed.
-
-Then scaffold the project. `orm init` writes a contract, a `prisma.config.ts`, and a
-`src/prisma/db.ts` that creates the client. It also installs the latest `@prisma/orm-postgres` and
-emits the contract:
-
-```sh
-npx prisma orm init --target postgres --authoring psl
-```
-
-`orm init` doesn't scaffold SQLite. For SQLite, install `@prisma/orm-sqlite` instead of
-`@prisma/orm-postgres`, write `prisma.config.ts` with `@prisma/orm-sqlite/config`, and create the
-client with `@prisma/orm-sqlite/runtime`.
-
-### Pothos
-
-Install the plugin, and pin the ORM packages to the supported version, including the
-`@prisma/orm-postgres` (or `@prisma/orm-sqlite`) that `orm init` installed at its latest version:
+Install the dependencies, emit the contract, and create the tables:
 
 ```package-install
-npm install --save @pothos/plugin-prisma-next @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22 @prisma/orm-postgres@8.0.0-rc.22
+npm install --save-exact @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22 @prisma/orm-sqlite@8.0.0-rc.22
 ```
 
-`@pothos/plugin-relay` and `@pothos/plugin-with-input` are optional. Install them to use nodes and
-connections, or `t.prismaFieldWithInput`.
+```package-install
+npm install --save @pothos/core @pothos/plugin-prisma-next @pothos/plugin-relay graphql
+```
+
+```package-install
+npm install --save-dev @types/node tsx typescript
+```
+
+```sh
+npx prisma contract emit
+npx prisma db init
+```
 
 ## Configure the builder
 
 Pass the client from `src/prisma/db.ts` to the plugin. Model, relation, and column types come
 from the emitted contract, so run `prisma contract emit` after changing the contract.
+
+Create `src/schema.ts`:
 
 ```ts
 import SchemaBuilder from '@pothos/core';
@@ -91,6 +205,49 @@ const builder = new SchemaBuilder<{
   relay: {},
   prismaNext: { client: db },
 });
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    users: t.prismaField({
+      type: ['User'],
+      resolve: (_root, _args, ctx) => ctx.db.orm.public.User,
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+Create `src/index.ts`:
+
+```ts
+import { graphql } from 'graphql';
+import { db } from './prisma/db';
+import { schema } from './schema';
+
+await db.orm.public.User.create({ email: `${Date.now()}@example.com` });
+
+const result = await graphql({
+  schema,
+  source: '{ users { id email } }',
+  contextValue: { db },
+});
+
+console.log(JSON.stringify(result));
+await db.close();
+```
+
+On SQLite, write `db.orm.User` in place of `db.orm.public.User` in both files. Run it:
+
+```sh
+npx tsx src/index.ts
 ```
 
 A PostgreSQL client groups collections by schema, as in `ctx.db.orm.public.User`. The other pages
