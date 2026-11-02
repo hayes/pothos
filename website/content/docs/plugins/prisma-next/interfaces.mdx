@@ -26,9 +26,9 @@ builder.prismaObject('User', {
 });
 ```
 
-`t.prismaField` and `t.prismaConnection` take an interface ref as `type`. A relation returns an
-interface when its target model is registered with `prismaInterface`, as in
-[Native inheritance](#native-inheritance).
+`t.prismaField` and `t.prismaConnection` take an interface ref as `type`, and so do `t.relation`
+and `t.relatedConnection`. A relation also returns an interface when its target model is registered
+with `prismaInterface`, as in [Native inheritance](#native-inheritance).
 
 Give the implementations an `isTypeOf`, or the interface a `resolveType`. List the columns an
 `isTypeOf` reads in that object's `select`, and the columns a `resolveType` reads in the
