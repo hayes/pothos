@@ -30,6 +30,7 @@ import {
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_LOADED,
   PRISMA_NEXT_MODEL,
+  PRISMA_NEXT_REFINED_TO_ONE,
   PRISMA_NEXT_TYPE_SELECT,
 } from './constants.js';
 import { assertContextObject, getPluginConfig } from './utils/config.js';
@@ -46,6 +47,7 @@ import {
   scopeOf,
   splitSelect,
   toOneFunctionMessage,
+  viewWithout,
 } from './utils/selections.js';
 import { variantTypeNames } from './utils/variant-types.js';
 
@@ -367,14 +369,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const { config } = this;
     const { modelName, columns, planned, loaded, declaredView, fieldView } = reader;
     const readsFieldView = fieldConfig.extensions?.[READS_FIELD_VIEW] === true;
+    const refinedToOne = fieldConfig.extensions?.[PRISMA_NEXT_REFINED_TO_ONE] as string | undefined;
     const handOver = (
       row: object,
       mapping: Mapping | null | undefined,
       args: object,
       context: Types['Context'],
       info: GraphQLResolveInfo,
+      parent = declaredView(row, mapping),
     ) => {
-      const parent = declaredView(row, mapping);
       if (readsFieldView) {
         pendingFieldViews.set(info, { parent, view: fieldView(row, mapping) });
       }
@@ -408,7 +411,18 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return config
         .loader(context, modelName)
         .loadSelection(info, row)
-        .then((reloaded) => handOver(reloaded.row, reloaded.mapping, args, context, info));
+        .then((reloaded) => {
+          // The ORM includes a to-one relation once, so the reloaded row holds this field's version
+          // of it. Plugins read the parent the field declares: the row it had, or the reloaded one
+          // without that relation.
+          const parent =
+            refinedToOne === undefined
+              ? undefined
+              : missing.length
+                ? viewWithout(declaredView(reloaded.row, reloaded.mapping), refinedToOne)
+                : declaredView(row, null);
+          return handOver(reloaded.row, reloaded.mapping, args, context, info, parent);
+        });
     };
   }
 

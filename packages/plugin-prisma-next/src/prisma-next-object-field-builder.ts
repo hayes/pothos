@@ -19,7 +19,11 @@ import {
 import type { IndirectInclude } from '@pothos/selection-mapper';
 import type { ContractRelation } from '@prisma/orm-framework/contract/types';
 import type { GraphQLResolveInfo } from 'graphql';
-import { PRISMA_NEXT_FIELD_SELECTION, PRISMA_NEXT_LOADED } from './constants.js';
+import {
+  PRISMA_NEXT_FIELD_SELECTION,
+  PRISMA_NEXT_LOADED,
+  PRISMA_NEXT_REFINED_TO_ONE,
+} from './constants.js';
 import type { ExposableColumn, ExposeColumnNullability } from './internal-types.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
@@ -415,6 +419,9 @@ export class PrismaNextObjectFieldBuilder<
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
         [PRISMA_NEXT_LOADED]: (view: Record<string, unknown>) => view[relationName] !== undefined,
+        ...(!relation.isToMany && (query !== undefined || variant !== undefined)
+          ? { [PRISMA_NEXT_REFINED_TO_ONE]: relationName }
+          : {}),
       },
       resolve: (parent: Record<string, unknown>) => parent[relationName],
     } as never) as never;
