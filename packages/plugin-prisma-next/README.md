@@ -16,9 +16,31 @@ with `skipLibCheck: true`, errors in your own code such as a missing `prisma` bu
 
 ## Example
 
-```package-install
-npm install --save @pothos/plugin-prisma-next @pothos/plugin-relay @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22 @prisma/orm-sqlite@8.0.0-rc.22
+Requires Node.js 22.18 or a later 22.x release, or 24.11 or later. SQLite needs 22.20 or later.
+
+Override `@prisma/orm-toolchain` before installing the CLI, because `prisma@8.0.0-rc.29` depends on
+an older version that can't work with rc.22. With npm, add this to `package.json`. pnpm needs it in
+`pnpm-workspace.yaml` instead.
+
+```json
+{
+  "overrides": {
+    "@prisma/orm-toolchain": "8.0.0-rc.22"
+  }
+}
 ```
+
+Install with exact versions, because the plugin's peer dependencies are exact:
+
+```sh
+npm install --save-dev --save-exact prisma@8.0.0-rc.29 @prisma/cli-engine@0.9.0
+npm install --save-exact @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22 @prisma/orm-sqlite@8.0.0-rc.22
+npm install --save @pothos/core @pothos/plugin-prisma-next @pothos/plugin-relay graphql
+npm install --save-dev @types/node tsx typescript
+```
+
+See [Setup](https://pothos-graphql.dev/docs/plugins/prisma-next/setup) for the pnpm steps, the
+`prisma.config.ts` and contract files, PostgreSQL, and creating the database.
 
 ```ts
 import SchemaBuilder from '@pothos/core';
