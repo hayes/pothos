@@ -100,6 +100,32 @@ const Stamped = builder.interfaceRef<object>('Stamped').implement({
   }),
 });
 
+// Fields with no select that read the row a variant's type-level select loaded, implemented only by
+// LabeledViewer, whose relation arguments conflict with Viewer.recentPostIds.
+const Labeled = builder
+  .interfaceRef<{ name: string | null; posts?: unknown[] }>('Labeled')
+  .implement({
+    fields: (t) => ({
+      label: t.string({ nullable: true, resolve: (user) => user.name }),
+      latestCount: t.int({ nullable: true, resolve: (user) => user.posts?.length }),
+    }),
+  });
+
+builder.prismaObject('User', {
+  variant: 'LabeledViewer',
+  interfaces: [Viewer, Labeled],
+  select: {
+    id: true,
+    name: true,
+    posts: {
+      take: 1,
+      select: {
+        id: true,
+      },
+    },
+  },
+});
+
 // No type-level select: an include-mode variant of a select-mode interface.
 builder.prismaObject('User', {
   variant: 'FullViewer',
@@ -127,6 +153,8 @@ builder.prismaObject('User', {
       nullable: true,
       resolve: (user) => user.posts[0]?.id,
     }),
+    // Overrides Stamped.stamp with a select of its own, so a reload can answer it.
+    stamp: t.string({ select: { id: true }, resolve: (user) => `stamped-${user.id}` }),
   }),
 });
 
@@ -776,6 +804,34 @@ describe('fragments on variants and non-model interfaces', () => {
       expect(queries.map((query) => query.args)).toEqual([{ select: recentPosts, take: 3 }]);
     });
 
+    it('keeps the expansion when the fragment holds a field with no select', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              recentPostIds
+              ... on Labeled {
+                label
+                latestCount
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 }, viewerType: 'LabeledViewer' },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        viewer: {
+          recentPostIds: expect.objectContaining({ length: 3 }),
+          label: user.name,
+          latestCount: 1,
+        },
+      });
+      expect(queries).toHaveLength(2);
+    });
+
     it('still expands the fragment when no field is displaced', async () => {
       const result = await execute({
         schema,
@@ -792,7 +848,7 @@ describe('fragments on variants and non-model interfaces', () => {
       });
 
       expect(result.errors).toBeUndefined();
-      expect(result.data).toEqual({ viewer: { stamp: 'stamped' } });
+      expect(result.data).toEqual({ viewer: { stamp: 'stamped-1' } });
       expect(queries.map((query) => query.args)).toEqual([
         { select: { posts: { take: 1, select: { id: true } }, id: true }, where: { id: 1 } },
       ]);

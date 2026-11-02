@@ -1195,7 +1195,7 @@ describe('fragments that expand at every level', () => {
   const linkedSdl = /* GraphQL */ `
     type Query { user: UserI, stray: UserI }
     interface Node { nid: String }
-    interface Other { other: String, conflicting: String }
+    interface Other { other: String, selected: String }
     interface UserI {
       id: ID
       posts(take: Int): [PostI]
@@ -1217,7 +1217,7 @@ describe('fragments that expand at every level', () => {
       )
       .join('')}
     type Latest implements UserI & Other {
-      id: ID, other: String, conflicting: String, first: String, second: String
+      id: ID, other: String, selected: String, first: String, second: String
       posts(take: Int): [PostI]
       drafts: [PostI]
     }
@@ -1260,7 +1260,7 @@ describe('fragments that expand at every level', () => {
       Latest: {
         model: 'User',
         select: { select: { id: true, posts: { take: 1 } } },
-        fields: userFields,
+        fields: { ...userFields, selected: { select: { selected: true } } },
       },
     });
 
@@ -1474,7 +1474,7 @@ describe('fragments that expand at every level', () => {
   describe('a variant only the expansion entered', () => {
     it('plays plain when the variant would cost a field its place', async () => {
       const { types } = linkedSchema();
-      const info = await resolveInfo(types, '{ user { first ... on Other { other } } }');
+      const info = await resolveInfo(types, '{ user { first ... on Other { selected } } }');
       const context = {};
 
       expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
@@ -1485,11 +1485,23 @@ describe('fragments that expand at every level', () => {
 
     it('plays plain whichever side of the fragment the field is on', async () => {
       const { types } = linkedSchema();
-      const info = await resolveInfo(types, '{ user { ... on Other { other } first } }');
+      const info = await resolveInfo(types, '{ user { ... on Other { selected } first } }');
 
       expect(queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info })).toEqual({
         select: { id: true, posts: { take: 3 } },
       });
+    });
+
+    it('stays expanding when the fragment holds a field with no select to reload', async () => {
+      const { types } = linkedSchema();
+      const info = await resolveInfo(types, '{ user { first ... on Other { selected other } } }');
+      const context = {};
+
+      // `other` may read what Latest's type-level select loads, and has no way to reload it.
+      expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
+        select: { id: true, selected: true, posts: { take: 1 } },
+      });
+      expect(getLoaderMapping(context, pathOf('user', 'first'), 'UserI')).toBeNull();
     });
 
     it('stays expanding when nothing is displaced', async () => {

@@ -502,6 +502,10 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   const selection = adapter.fieldSelection(field, type);
 
   if (!selection) {
+    if (onlyIn === 'expanding') {
+      plan.expansionReadsRow = true;
+    }
+
     return;
   }
 
