@@ -44,6 +44,11 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelName<Typ
   kind: 'Interface' | 'Object',
 ) {
   const isInterface = kind === 'Interface';
+  if (options.name !== undefined && options.variant !== undefined) {
+    throw new PothosSchemaError(
+      `Set only one of \`name\` and \`variant\` on the type for model '${modelName as string}'.`,
+    );
+  }
   // A type with a non-default name gets a new ref. The default name reuses the cached ref that
   // `t.relation` and helpers given a model name resolve to.
   const defaultName = defaultTypeName(modelName as string);

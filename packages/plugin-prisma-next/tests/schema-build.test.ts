@@ -12,6 +12,42 @@ const ok = (builder: ReturnType<typeof createBuilder>) =>
   builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
 
 describe('object registration', () => {
+  it.each([
+    ['prismaObject', 'prismaObject'],
+    ['prismaInterface', 'prismaInterface'],
+  ] as const)('rejects name together with variant on %s', (_label, method) => {
+    const builder = createBuilder();
+    // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
+    expect(() => (builder as any)[method]('User', { name: 'A', variant: 'B' })).toThrow(
+      /`name` and `variant`.*'User'/,
+    );
+  });
+
+  it('rejects name together with variant on prismaNode', () => {
+    const builder = createBuilder();
+    expect(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
+      (builder as any).prismaNode('User', { id: { field: 'id' }, name: 'A', variant: 'B' }),
+    ).toThrow(/`name` and `variant`.*'User'/);
+  });
+
+  it('rejects a query option on prismaConnection', () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaConnection({
+          type: 'User',
+          cursor: 'id',
+          resolve: () => db.orm.User,
+          // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
+          ...({ query: { where: { id: 'x' } } } as any),
+        }),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow(/t\.prismaConnection doesn't take `query`/);
+  });
+
   it('names a variant by `variant`', () => {
     const builder = createBuilder();
     builder.prismaObject('User', {
@@ -372,23 +408,6 @@ describe('options validated when the schema is built', () => {
     expect(() => define({})).toThrow(/requires prismaNext\.client/);
     expect(() => define({ client: noClient })).toThrow(/prismaNext\.contract is required/);
     expect(() => define({ client: noClient, contract: sampleContract })).not.toThrow();
-  });
-
-  it('ignores a plugin-prisma style `query` passed to prismaConnection from untyped code', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.queryType({
-      fields: (t) => ({
-        users: t.prismaConnection({
-          type: 'User',
-          cursor: 'id',
-          query: () => ({ where: { id: 'u-bob' } }),
-          resolve: () => db.orm.User,
-        } as never),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ users { nodes { id } } }');
-    expect(result.data.users.nodes).toEqual([{ id: 'u-alice' }, { id: 'u-bob' }]);
   });
 
   it('requires a cursor of distinct columns covering a non-null unique key', () => {

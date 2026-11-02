@@ -66,34 +66,30 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   if (typeof this.connection !== 'function') {
     throw new PothosSchemaError('t.prismaConnection requires @pothos/plugin-relay to be loaded.');
   }
-  const {
-    type,
-    cursor,
-    defaultSize,
-    maxSize,
-    resolve,
-    totalCount,
-    orderBy,
-    query: _query,
-    ...rest
-  } = options as {
-    type: unknown;
-    cursor: unknown;
-    defaultSize?: number | ((args: unknown, ctx: unknown) => number);
-    maxSize?: number | ((args: unknown, ctx: unknown) => number);
-    resolve: (
-      parent: unknown,
-      args: unknown,
-      ctx: unknown,
-      info: GraphQLResolveInfo,
-    ) => MapperCollection | null | Promise<MapperCollection | null>;
-    totalCount?:
-      | boolean
-      | ((parent: unknown, args: unknown, ctx: unknown, info: GraphQLResolveInfo) => unknown);
-    orderBy?: (model: never, args: unknown, ctx: unknown) => ReturnType<RequestOrderBy>;
-    query?: unknown;
-    [k: string]: unknown;
-  };
+  const { type, cursor, defaultSize, maxSize, resolve, totalCount, orderBy, query, ...rest } =
+    options as {
+      type: unknown;
+      cursor: unknown;
+      defaultSize?: number | ((args: unknown, ctx: unknown) => number);
+      maxSize?: number | ((args: unknown, ctx: unknown) => number);
+      resolve: (
+        parent: unknown,
+        args: unknown,
+        ctx: unknown,
+        info: GraphQLResolveInfo,
+      ) => MapperCollection | null | Promise<MapperCollection | null>;
+      totalCount?:
+        | boolean
+        | ((parent: unknown, args: unknown, ctx: unknown, info: GraphQLResolveInfo) => unknown);
+      orderBy?: (model: never, args: unknown, ctx: unknown) => ReturnType<RequestOrderBy>;
+      query?: unknown;
+      [k: string]: unknown;
+    };
+  if (query !== undefined) {
+    throw new PothosSchemaError(
+      "t.prismaConnection doesn't take `query`. Chain `.where(...)` on the collection `resolve` returns, and use `orderBy` for its ordering.",
+    );
+  }
   const ref = refFor(this.builder, type);
   const config = getPluginConfig(this.builder);
   config.adapter.loadsRowsOf(ref.name);
