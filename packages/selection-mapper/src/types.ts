@@ -24,7 +24,11 @@ export type WalkedType = GraphQLInterfaceType | GraphQLObjectType;
  * about costs one link per select function and no arrays at all.
  */
 export interface Position {
-  /** The field this one is selected beneath, or undefined at the field the plan started from. */
+  /**
+   * The field this one is selected beneath, or undefined at the field the plan started from. When
+   * that field is reached on several types, by a fragment that expands to the implementations of
+   * an interface, this is the first of them to run: the plain walk's, where there is one.
+   */
   readonly parent: Position | undefined;
   /** The type the field was walked on: its parent type, or a same-model type the plan moved to. */
   readonly type: WalkedType;

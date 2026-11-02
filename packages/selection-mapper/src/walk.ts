@@ -367,6 +367,10 @@ interface FragmentWalk {
  * `Plan.play` tries an expanding play first. If the variants an expansion enters have conflicting
  * type-level selections, it falls back to a plain play, so an expansion never makes a document
  * fail.
+ *
+ * The plain walk comes first. No play sees the order, since each takes only its own kind's merges,
+ * but a walk beneath a field is shared with the first invocation that made it (see `Plan.nested`),
+ * so the select functions beneath see the types the document names.
  */
 function fragmentWalks<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -384,7 +388,7 @@ function fragmentWalks<Model, Query, NodeType extends NodeBase<Model>>(
   const plain: FragmentWalk = { types: [], walksImplementations: false, onlyIn: 'plain' };
 
   if (onlyIn === undefined) {
-    return [expanding, plain];
+    return [plain, expanding];
   }
 
   return [onlyIn === 'expanding' ? expanding : plain];
@@ -637,23 +641,16 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
         return (query ?? ({} as Query)) as Query;
       }
 
-      const child = plan.nested(target, position);
+      const paths = include?.paths?.length
+        ? include.paths
+        : include?.path?.length
+          ? [include.path]
+          : undefined;
+      // Everything a walk beneath this field node reads that the node does not fix. The paths are
+      // data: an include's segments are names and type names.
+      const walkKey = `${returnType.name}:${target.name}:${paths ? JSON.stringify(paths) : ''}`;
 
-      try {
-        if (isThenable(query)) {
-          child.chain(query as PromiseLike<Query | null | undefined>, (resolved) =>
-            mergeQuery(child, resolved),
-          );
-        } else {
-          mergeQuery(child, query);
-        }
-
-        const paths = include?.paths?.length
-          ? include.paths
-          : include?.path?.length
-            ? [include.path]
-            : undefined;
-
+      const child = plan.nested(target, position, walkKey, (walked) => {
         if (paths) {
           // Each match is walked as its own type; the wrapper's selection set is not walked.
           const matches = matchesForModel(
@@ -666,7 +663,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
           );
 
           walkBranches(
-            child,
+            walked,
             matches.map((match) => ({
               // As `Plan.fromInfo` does for its own paths: a matched type with a model is walked
               // with it, and one without (an interface, a wrapper) as the type asked for, so its
@@ -685,14 +682,19 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
             deferred: false,
           });
 
-          walkBranches(child, [
+          walkBranches(walked, [
             ...(target === returnType ? [] : [asType(target)]),
             asType(returnType),
           ]);
         }
-      } catch (error) {
-        child.abandon();
-        throw error;
+      });
+
+      if (isThenable(query)) {
+        child.chain(query as PromiseLike<Query | null | undefined>, (resolved) =>
+          mergeQuery(child, resolved),
+        );
+      } else {
+        mergeQuery(child, query);
       }
 
       // A promise behind the declared synchronous type, as `finish` returns one.
