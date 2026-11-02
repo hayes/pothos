@@ -249,9 +249,10 @@ export type FieldParentShape<Types extends SchemaTypes, M extends ModelName<Type
   ? Shape
   : Shape & ModelBrand<M>;
 
-export type ValidateFieldSelect<Types extends SchemaTypes, ParentShape, Select> = Select extends (
-  ...args: infer Args
-) => infer Result
+/** Not distributed over `Select`, so a conditional's branches all reach `SelectCheck`. */
+export type ValidateFieldSelect<Types extends SchemaTypes, ParentShape, Select> = [Select] extends [
+  (...args: infer Args) => infer Result,
+]
   ? (...args: Args) => MaybePromise<ValidateSelectValue<Types, ParentShape, Awaited<Result>>>
   : ValidateSelectValue<Types, ParentShape, Select>;
 
