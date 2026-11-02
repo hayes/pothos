@@ -76,7 +76,8 @@ A row holds one version of each to-one relation. Where the plugin loads rows as 
 (through a `prismaField`, `prismaConnection`, connection helpers, a relation, or any field whose
 `select` is a function or includes a relation, returning the interface), every implementation
 must load each to-one relation the same way as the other implementations and as the interface's
-own `select`, or the schema build fails.
+own `select`, or the schema build fails. Two prisma interfaces of one implementation must also load
+each to-one relation the same way.
 The check compares the relation's whole nested selection, such as the arguments of a to-one
 relation beneath it, and not just its own arguments. Extra columns always merge. A plain `t.field`
 that returns rows its resolver loaded doesn't count.

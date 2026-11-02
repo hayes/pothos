@@ -170,11 +170,12 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
     for (const type of interfaces) {
       for (const impl of schema.getPossibleTypes(type as never)) {
         const conflict = this.planTypeSelection(impl).interfaceToOneConflict;
-        if (conflict?.interfaces.some((name) => loaded.has(name))) {
+        // A row loaded as any interface of `impl` may resolve as `impl`, which reads both selects.
+        if (conflict && loaded.has(type.name)) {
           const [first, second] = conflict.interfaces;
           const { relation } = conflict;
           throw new PothosSchemaError(
-            `The selects of prismaInterfaces '${first}' and '${second}' load to-one relation "${relation}" differently, and '${impl.name}' implements both. A row loaded as either interface loads "${relation}" once, and '${impl.name}' reads that row in isTypeOf, auth checks and fields. Make the selections of "${relation}" match.`,
+            `The selects of prismaInterfaces '${first}' and '${second}' load to-one relation "${relation}" differently, and '${impl.name}' implements both. A row loaded as '${type.name}' loads "${relation}" once, and '${impl.name}' reads that row in isTypeOf, auth checks and fields. Make the selections of "${relation}" match.`,
           );
         }
       }
