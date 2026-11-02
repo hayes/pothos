@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: the shared-walk schema names variants in loops
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
@@ -49,7 +50,6 @@ async function runCaptured(schema: GraphQLSchema, source: string) {
   const result = await withCapture(statements, async () =>
     execute({ schema, document: parse(source), contextValue: {} }),
   );
-  // biome-ignore lint/suspicious/noExplicitAny: assertions walk arbitrary response data
   return { ...result, data: result.data as any, statements };
 }
 
@@ -903,5 +903,435 @@ describe('a field that reloads a to-one relation with its own query', () => {
       expect(result.data.post.byAlice).toBeNull();
       expect(seen.every((name) => name === undefined || name === 'Bob')).toBe(true);
     });
+  });
+});
+
+// To-many slots beneath a shared walk answer with the rows their own arguments loaded, whichever
+// invocation's name they were written under. The expected values come from the plugin before walks
+// were shared, at 7d1bece5c.
+describe('slots beneath shared walks', () => {
+  const seen: unknown[] = [];
+  let schema: GraphQLSchema;
+
+  beforeAll(() => {
+    const b: any = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+      relay: { nodesOnConnection: true },
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    const L = b
+      .interfaceRef('L')
+      .implement({ fields: (t: any) => ({ l: t.string({ resolve: () => 'l' }) }) });
+    const UI = b.prismaInterface('User', {
+      variant: 'UI',
+      select: ['firstName'],
+      resolveType: (u: any) => {
+        seen.push(['resolveType', u.firstName]);
+        return u.firstName === 'Alice' ? 'U1' : 'U2';
+      },
+      fields: (t: any) => ({ uid: t.exposeID('id') }),
+    });
+    const PI = b.prismaInterface('Post', {
+      variant: 'PI',
+      fields: (t: any) => ({ pid: t.exposeID('id') }),
+    });
+    const pub = (t: any) => t.relation('posts', { type: PI, query: { where: { published: 1 } } });
+    const dra = (t: any) => t.relation('posts', { type: PI, query: { where: { published: 0 } } });
+    b.prismaInterfaceFields(UI, (t: any) => ({
+      published: pub(t),
+      drafts: dra(t),
+      own: t.relation('posts', { type: PI }),
+      page: t.relatedConnection('posts', {
+        type: PI,
+        cursor: 'id',
+        query: { where: { published: 1 } },
+        totalCount: true,
+      }),
+      nPub: t.relationCount('posts', { where: { published: 1 } }),
+    }));
+    b.prismaInterfaceFields(PI, (t: any) => ({
+      author: t.relation('author', { type: UI }),
+      comments: t.relation('comments', {}),
+      firstComment: t.relation('comments', { query: { limit: 1 } }),
+    }));
+    b.prismaObject('Comment', {
+      fields: (t: any) => ({ id: t.exposeID('id'), author: t.relation('author', { type: UI }) }),
+    });
+    b.prismaObject('User', {
+      variant: 'U1',
+      interfaces: [UI, L],
+      select: { firstName: true, posts: true },
+      fields: (t: any) => ({
+        own: pub(t),
+        postCount: t.int({ resolve: (u: any) => u.posts.length }),
+      }),
+    });
+    b.prismaObject('User', {
+      variant: 'U2',
+      interfaces: [UI, L],
+      select: { firstName: true, posts: (sub: any) => ({ total: sub.count() }) },
+      fields: (t: any) => ({ own: dra(t), total: t.int({ resolve: (u: any) => u.total }) }),
+    });
+    const Guarded = b.prismaObject('Post', {
+      variant: 'GuardedPost',
+      select: ['title'],
+      authScopes: (p: any) => {
+        seen.push(['auth', p.title]);
+        return p.title !== 'Draft #1';
+      },
+      fields: (t: any) => ({
+        title: t.exposeString('title'),
+        author: t.relation('author', { type: UI }),
+      }),
+    });
+    for (const [n, published] of [
+      ['P1', 1],
+      ['P2', 0],
+    ] as const) {
+      b.prismaObject('Post', {
+        variant: n,
+        interfaces: [PI, L],
+        select: { published: true, comments: true },
+        isTypeOf: (p: any) => {
+          seen.push(['isTypeOf', n, p.published]);
+          return p.published === published;
+        },
+        fields: (t: any) => ({
+          commentCount: t.int({ resolve: (p: any) => p.comments.length }),
+          guarded: t.variant(Guarded, { nullable: true }),
+        }),
+      });
+    }
+    b.queryType({
+      fields: (t: any) => ({
+        users: t.prismaField({
+          type: [UI],
+          resolve: () => ctx.orm.User.orderBy((u: any) => u.id.asc()),
+        }),
+      }),
+    });
+
+    schema = b.toSchema();
+  });
+
+  const nest = (type: string, s: string) => `... on L { ... on ${type} { ${s} } }`;
+  const docs: Record<string, string> = {
+    conflicting_two_levels: `{ users { ${nest('UI', `uid published { pid ${nest('PI', `author { ${nest('UI', 'uid drafts { pid } published { pid }')} }`)} } drafts { pid ${nest('PI', `author { ${nest('UI', 'uid published { pid } own { pid }')} }`)} } `)} } }`,
+    per_impl_where: `{ users { ${nest('UI', `own { pid ${nest('PI', `author { ${nest('UI', 'own { pid }')} }`)} }`)} } }`,
+    aliases: `{ users { ${nest('UI', `a: published { x: pid ${nest('PI', `y: author { ${nest('UI', 'c: drafts { pid } d: published { pid }')} }`)} } b: drafts { z: pid ${nest('PI', `y: author { ${nest('UI', 'c: published { pid }')} }`)} }`)} } }`,
+    connections: `{ users { ${nest('UI', `page(first: 1) { totalCount edges { node { pid ${nest('PI', `author { ${nest('UI', 'page(first: 2) { nodes { pid } totalCount } nPub')} }`)} } } }`)} other: drafts { pid } } }`,
+    connection_conflict: `{ users { ${nest('UI', 'a: page(first: 1) { nodes { pid } } b: page(first: 2) { nodes { pid } } nPub')} } }`,
+    type_level_handover: `{ users { ${nest('UI', `published { pid firstComment { id } ... on P1 { commentCount } ${nest('PI', 'author { ... on U1 { postCount } ... on U2 { total } drafts { pid } }')} }`)} ... on U1 { postCount } ... on U2 { total } } }`,
+    views: `{ users { ${nest('UI', `own { pid ... on P1 { guarded { title author { ${nest('UI', 'uid drafts { pid }')} } } } ... on P2 { guarded { title } } ${nest('PI', `firstComment { id author { ${nest('UI', 'uid own { pid }')} } }`)} }`)} } }`,
+    views_denied: `{ users { ${nest('UI', `drafts { pid ... on P2 { guarded { title } } ${nest('PI', `author { ${nest('UI', 'drafts { pid ... on P2 { guarded { title } } }')} }`)} }`)} } }`,
+    reused_fragment: `fragment C on PI { author { ${nest('UI', 'published { pid } drafts { pid }')} } } { users { ${nest('UI', 'published { ...C } drafts { ...C } own { ...C }')} } }`,
+  };
+
+  const expected = {
+    conflicting_two_levels: {
+      data: {
+        users: [
+          {
+            uid: 'u-alice',
+            published: [
+              {
+                pid: 'p-hello',
+                author: {
+                  uid: 'u-alice',
+                  drafts: [{ pid: 'p-draft1' }],
+                  published: [{ pid: 'p-hello' }],
+                },
+              },
+            ],
+            drafts: [
+              {
+                pid: 'p-draft1',
+                author: {
+                  uid: 'u-alice',
+                  published: [{ pid: 'p-hello' }],
+                  own: [{ pid: 'p-hello' }],
+                },
+              },
+            ],
+          },
+          {
+            uid: 'u-bob',
+            published: [
+              {
+                pid: 'p-bob1',
+                author: {
+                  uid: 'u-bob',
+                  drafts: [{ pid: 'p-bob-draft' }],
+                  published: [{ pid: 'p-bob1' }],
+                },
+              },
+            ],
+            drafts: [
+              {
+                pid: 'p-bob-draft',
+                author: {
+                  uid: 'u-bob',
+                  published: [{ pid: 'p-bob1' }],
+                  own: [{ pid: 'p-bob-draft' }],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      seen: [
+        '["isTypeOf","P1",0]',
+        '["isTypeOf","P1",1]',
+        '["isTypeOf","P2",0]',
+        '["resolveType","Alice"]',
+        '["resolveType","Bob"]',
+      ],
+      errors: [],
+    },
+    per_impl_where: {
+      data: {
+        users: [
+          { own: [{ pid: 'p-hello', author: { own: [{ pid: 'p-hello' }] } }] },
+          { own: [{ pid: 'p-bob-draft', author: { own: [{ pid: 'p-bob-draft' }] } }] },
+        ],
+      },
+      seen: [
+        '["isTypeOf","P1",0]',
+        '["isTypeOf","P1",1]',
+        '["isTypeOf","P2",0]',
+        '["resolveType","Alice"]',
+        '["resolveType","Bob"]',
+      ],
+      errors: [],
+    },
+    aliases: {
+      data: {
+        users: [
+          {
+            a: [{ x: 'p-hello', y: { c: [{ pid: 'p-draft1' }], d: [{ pid: 'p-hello' }] } }],
+            b: [{ z: 'p-draft1', y: { c: [{ pid: 'p-hello' }] } }],
+          },
+          {
+            a: [{ x: 'p-bob1', y: { c: [{ pid: 'p-bob-draft' }], d: [{ pid: 'p-bob1' }] } }],
+            b: [{ z: 'p-bob-draft', y: { c: [{ pid: 'p-bob1' }] } }],
+          },
+        ],
+      },
+      seen: [
+        '["isTypeOf","P1",0]',
+        '["isTypeOf","P1",1]',
+        '["isTypeOf","P2",0]',
+        '["resolveType","Alice"]',
+        '["resolveType","Bob"]',
+      ],
+      errors: [],
+    },
+    connections: {
+      data: {
+        users: [
+          {
+            page: {
+              totalCount: 1,
+              edges: [
+                {
+                  node: {
+                    pid: 'p-hello',
+                    author: { page: { nodes: [{ pid: 'p-hello' }], totalCount: 1 }, nPub: 1 },
+                  },
+                },
+              ],
+            },
+            other: [{ pid: 'p-draft1' }],
+          },
+          {
+            page: {
+              totalCount: 1,
+              edges: [
+                {
+                  node: {
+                    pid: 'p-bob1',
+                    author: { page: { nodes: [{ pid: 'p-bob1' }], totalCount: 1 }, nPub: 1 },
+                  },
+                },
+              ],
+            },
+            other: [{ pid: 'p-bob-draft' }],
+          },
+        ],
+      },
+      seen: [
+        '["isTypeOf","P1",0]',
+        '["isTypeOf","P1",1]',
+        '["isTypeOf","P2",0]',
+        '["resolveType","Alice"]',
+        '["resolveType","Bob"]',
+      ],
+      errors: [],
+    },
+    connection_conflict: {
+      data: {
+        users: [
+          { a: { nodes: [{ pid: 'p-hello' }] }, b: { nodes: [{ pid: 'p-hello' }] }, nPub: 1 },
+          { a: { nodes: [{ pid: 'p-bob1' }] }, b: { nodes: [{ pid: 'p-bob1' }] }, nPub: 1 },
+        ],
+      },
+      seen: ['["isTypeOf","P1",1]', '["resolveType","Alice"]', '["resolveType","Bob"]'],
+      errors: [],
+    },
+    type_level_handover: {
+      data: {
+        users: [
+          {
+            published: [
+              {
+                pid: 'p-hello',
+                firstComment: [{ id: 'c-1' }],
+                commentCount: 2,
+                author: { postCount: 2, drafts: [{ pid: 'p-draft1' }] },
+              },
+            ],
+            postCount: 2,
+          },
+          {
+            published: [
+              {
+                pid: 'p-bob1',
+                firstComment: [],
+                commentCount: 0,
+                author: { total: 2, drafts: [{ pid: 'p-bob-draft' }] },
+              },
+            ],
+            total: 2,
+          },
+        ],
+      },
+      seen: [
+        '["isTypeOf","P1",0]',
+        '["isTypeOf","P1",1]',
+        '["isTypeOf","P2",0]',
+        '["resolveType","Alice"]',
+        '["resolveType","Bob"]',
+      ],
+      errors: [],
+    },
+    views: {
+      data: {
+        users: [
+          {
+            own: [
+              {
+                pid: 'p-hello',
+                guarded: {
+                  title: 'Hello, Pothos',
+                  author: { uid: 'u-alice', drafts: [{ pid: 'p-draft1' }] },
+                },
+                firstComment: [
+                  { id: 'c-1', author: { uid: 'u-bob', own: [{ pid: 'p-bob-draft' }] } },
+                ],
+              },
+            ],
+          },
+          { own: [{ pid: 'p-bob-draft', guarded: { title: 'Bob draft' }, firstComment: [] }] },
+        ],
+      },
+      seen: [
+        '["auth","Bob draft"]',
+        '["auth","Hello, Pothos"]',
+        '["isTypeOf","P1",0]',
+        '["isTypeOf","P1",1]',
+        '["isTypeOf","P2",0]',
+        '["resolveType","Alice"]',
+        '["resolveType","Bob"]',
+      ],
+      errors: [],
+    },
+    views_denied: {
+      data: {
+        users: [
+          {
+            drafts: [
+              {
+                pid: 'p-draft1',
+                guarded: { title: null },
+                author: { drafts: [{ pid: 'p-draft1', guarded: { title: null } }] },
+              },
+            ],
+          },
+          {
+            drafts: [
+              {
+                pid: 'p-bob-draft',
+                guarded: { title: 'Bob draft' },
+                author: { drafts: [{ pid: 'p-bob-draft', guarded: { title: 'Bob draft' } }] },
+              },
+            ],
+          },
+        ],
+      },
+      seen: [
+        '["auth","Bob draft"]',
+        '["auth","Draft #1"]',
+        '["isTypeOf","P1",0]',
+        '["isTypeOf","P2",0]',
+        '["resolveType","Alice"]',
+        '["resolveType","Bob"]',
+      ],
+      errors: [
+        'Not authorized to read fields for GuardedPost',
+        'Not authorized to read fields for GuardedPost',
+      ],
+    },
+    reused_fragment: {
+      data: {
+        users: [
+          {
+            published: [
+              { author: { published: [{ pid: 'p-hello' }], drafts: [{ pid: 'p-draft1' }] } },
+            ],
+            drafts: [
+              { author: { published: [{ pid: 'p-hello' }], drafts: [{ pid: 'p-draft1' }] } },
+            ],
+            own: [{ author: { published: [{ pid: 'p-hello' }], drafts: [{ pid: 'p-draft1' }] } }],
+          },
+          {
+            published: [
+              { author: { published: [{ pid: 'p-bob1' }], drafts: [{ pid: 'p-bob-draft' }] } },
+            ],
+            drafts: [
+              { author: { published: [{ pid: 'p-bob1' }], drafts: [{ pid: 'p-bob-draft' }] } },
+            ],
+            own: [{ author: { published: [{ pid: 'p-bob1' }], drafts: [{ pid: 'p-bob-draft' }] } }],
+          },
+        ],
+      },
+      seen: [
+        '["isTypeOf","P1",0]',
+        '["isTypeOf","P1",1]',
+        '["isTypeOf","P2",0]',
+        '["resolveType","Alice"]',
+        '["resolveType","Bob"]',
+      ],
+      errors: [],
+    },
+  };
+
+  it.each(Object.keys(expected) as (keyof typeof expected)[])('%s', async (name) => {
+    seen.length = 0;
+
+    const statements: CapturedExecution[] = [];
+    const result = await withCapture(statements, async () =>
+      execute({ schema, document: parse(docs[name]), contextValue: {} }),
+    );
+
+    expect(result.errors?.map((error) => error.message) ?? []).toEqual(expected[name].errors);
+    expect(result.data).toEqual(expected[name].data);
+    expect([...new Set(seen.map((entry) => JSON.stringify(entry)))].sort()).toEqual(
+      expected[name].seen,
+    );
+    expect(statements).toHaveLength(1);
   });
 });

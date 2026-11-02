@@ -65,6 +65,9 @@ function positionIn(
 
       return plan.position;
     },
+    get walkParent() {
+      return plan.position;
+    },
     type,
     field,
     node,

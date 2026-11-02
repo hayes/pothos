@@ -33,6 +33,14 @@ export interface Position {
    * after planning, it is the first invocation's: the plain walk's, where there is one.
    */
   readonly parent: Position | undefined;
+  /**
+   * The same link as `parent`, read without keeping the walk beneath from being shared. Its chain
+   * is the one the shared walk holds, the first invocation's, and not always the true path, so it
+   * is only for a name that needs to agree with itself: one a plan writes into its query and a
+   * resolver beneath the same walk reads back through its mapping. Anything that depends on where
+   * a field really is reads `parent`.
+   */
+  readonly walkParent: Position | undefined;
   /** The type the field was walked on: its parent type, or a same-model type the plan moved to. */
   readonly type: WalkedType;
   readonly field: GraphQLField<unknown, unknown>;
