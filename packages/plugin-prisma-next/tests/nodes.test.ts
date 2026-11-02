@@ -167,7 +167,7 @@ describe('Relay nodes', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        person: t.field({ type: Person, resolve: () => ({ id: 'u-alice' }) as never }),
+        person: t.field({ type: Person, resolve: () => ({ id: 'u-alice' }) }),
       }),
     });
     const result = await execute({

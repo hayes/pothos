@@ -308,7 +308,7 @@ describe('native model inheritance', () => {
     });
     builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
     builder.queryType({
-      fields: (t) => ({ bug: t.field({ type: bug, resolve: () => ({ id: 't1' }) as never }) }),
+      fields: (t) => ({ bug: t.field({ type: bug, resolve: () => ({ id: 't1' }) }) }),
     });
     const result = await run(builder.toSchema(), '{ bug { owner { email } } }');
     expect(result.errors?.[0]?.message).toBe(
@@ -701,6 +701,7 @@ describe('native model inheritance', () => {
     builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
     builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
     builder.queryType({
+      // The row is invalid on purpose, so no type would accept it.
       fields: (t) => ({ task: t.field({ type: task, resolve: () => row as never }) }),
     });
     const result = await run(builder.toSchema(), '{ task { title } }');
