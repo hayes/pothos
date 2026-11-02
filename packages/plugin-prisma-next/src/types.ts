@@ -1195,8 +1195,6 @@ export type PrismaNextConnectionFieldOptions<
     ) => MaybePromise<
       ResolverCollection<Types, NoInfer<M>> | (Nullable extends true ? null : never)
     >;
-    /** Not supported: chain `.where(...)` on the collection in `resolve` instead. */
-    query?: never;
   };
 
 export type PrismaNextRelatedConnectionOptions<
