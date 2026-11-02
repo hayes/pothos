@@ -66,6 +66,24 @@ builder.mutationType({
 To run the write and the reads in one transaction, see [Transactions](./setup#transactions).
 For a deleted row, return a regular payload such as the deleted ID.
 
+### Subscriptions
+
+In a subscription field, `resolve` receives each value `subscribe` yields and returns a Collection
+to load it from:
+
+```ts
+builder.subscriptionType({
+  fields: (t) => ({
+    userChanged: t.prismaField({
+      type: 'User',
+      nullable: true,
+      subscribe: (_root, _args, ctx) => ctx.pubsub.subscribe('userChanged'),
+      resolve: (id, _args, ctx) => ctx.db.orm.User.where({ id }),
+    }),
+  }),
+});
+```
+
 ### With input
 
 With the [with-input plugin](../with-input), `t.prismaFieldWithInput` works the same way:
