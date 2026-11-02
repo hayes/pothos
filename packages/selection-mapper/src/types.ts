@@ -25,9 +25,12 @@ export type WalkedType = GraphQLInterfaceType | GraphQLObjectType;
  */
 export interface Position {
   /**
-   * The field this one is selected beneath, or undefined at the field the plan started from. When
-   * that field is reached on several types, by a fragment that expands to the implementations of
-   * an interface, this is the first of them to run: the plain walk's, where there is one.
+   * The field this one is selected beneath, or undefined at the field the plan started from.
+   * Reading it during planning has a cost. A field reached on several types (a fragment expanding
+   * to the implementations of an interface) normally shares the walk beneath it between them; a
+   * read keeps every walk it reads through from being shared, so each invocation is walked with
+   * its true path, and a document can make that exponential in its depth for those walks. Read
+   * after planning, it is the first invocation's: the plain walk's, where there is one.
    */
   readonly parent: Position | undefined;
   /** The type the field was walked on: its parent type, or a same-model type the plan moved to. */

@@ -49,6 +49,28 @@ interface Invocation extends Mapping {
   pending?: number;
 }
 
+/**
+ * The position of one select invocation. Its own link is exact for that invocation, and reading
+ * further up is what ties a walk to the invocations above it, so `parent` tells the plan.
+ */
+function positionIn(
+  plan: { readonly position?: Position; positionRead: boolean },
+  type: WalkedType,
+  field: Position['field'],
+  node: FieldNode,
+): Position {
+  return {
+    get parent() {
+      plan.positionRead = true;
+
+      return plan.position;
+    },
+    type,
+    field,
+    node,
+  };
+}
+
 /** Collects a type's type-level selection, once, before its fields are walked. */
 function enter<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -370,7 +392,7 @@ interface FragmentWalk {
  *
  * The plain walk comes first. No play sees the order, since each takes only its own kind's merges,
  * but a walk beneath a field is shared with the first invocation that made it (see `Plan.nested`),
- * so the select functions beneath see the types the document names.
+ * so a position recorded beneath one, read at resolve time, holds the types the document names.
  */
 function fragmentWalks<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -520,7 +542,7 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
 
   // Where this field is, linked to where the plan it was found in hangs. One link, built once per
   // select invocation; nothing walks it unless the adapter's callback asks.
-  const position: Position = { parent: plan.position, type, field, node: fieldNode };
+  const position = positionIn(plan, type, field, fieldNode);
   // This invocation's mapping; every nested plan it makes records into `mapping.nested`, which
   // stays invisible to the plan until the invocation's query is accepted.
   const mapping: Invocation = { nested: {}, position };
