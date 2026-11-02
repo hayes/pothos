@@ -103,6 +103,15 @@ describe('cursor values', () => {
     expect(seen).toEqual(['n-3', 'n-6', 'n-2', 'n-5', 'n-1', 'n-4']);
   });
 
+  it('rejects a cursor issued for other columns in the same directions', async () => {
+    const byTitle = pages(['title', 'id']);
+    const byContent = pages(['content', 'id']);
+    const cursor = await byTitle.cursorOf({ id: 'n-1', title: 'nullable-sort' });
+    await expect(byContent.read(db.orm.Post, { first: 1, after: cursor })).rejects.toThrow(
+      /^Invalid cursor: it was issued under a different ordering/,
+    );
+  });
+
   it('accepts a cursor only under the null placement it was issued for', async () => {
     const nullsFirst = pages([{ field: 'score', nulls: 'first' }, 'id']);
     const nullsLast = pages([{ field: 'score', nulls: 'last' }, 'id']);
@@ -217,7 +226,13 @@ describe('rejected cursors', () => {
     ['not a tagged chunk', 'posts', raw(`PNC:{"${marker}":1}`), signatureError],
     ['without an ordering signature', 'posts', raw(`PNC:S:${marker}`), signatureError],
     ['without a separator', 'posts', raw('PNC:a'), signatureError],
-    ['wider than the cursor', 'dated', raw(`PNC:aa:T:["S:${marker}","S:b","S:c"]`), /expected 2/],
+    ['without column names', 'posts', raw(`PNC:a:S:${marker}`), signatureError],
+    [
+      'wider than the cursor',
+      'dated',
+      raw(`PNC:createdAt.a,id.a:T:["S:${marker}","S:b","S:c"]`),
+      /expected 2/,
+    ],
   ])('rejects a cursor %s without echoing it', async (_name, field, cursor, message) => {
     const result = await run(
       schema(),
@@ -235,8 +250,10 @@ describe('rejected cursors', () => {
     const page = await run(schema(), '{ dated(first: 1) { pageInfo { endCursor } } }');
     const [, payload] = Buffer.from(page.data.dated.pageInfo.endCursor, 'base64')
       .toString()
-      .match(/^PNC:aa:T:(.*)$/)!;
-    const wider = raw(`PNC:aa:T:${JSON.stringify([...JSON.parse(payload), 'S:extra'])}`);
+      .match(/^PNC:createdAt\.a,id\.a:T:(.*)$/)!;
+    const wider = raw(
+      `PNC:createdAt.a,id.a:T:${JSON.stringify([...JSON.parse(payload), 'S:extra'])}`,
+    );
     const result = await run(
       schema(),
       'query ($c: String) { dated(after: $c) { edges { cursor } } }',
@@ -249,7 +266,7 @@ describe('rejected cursors', () => {
     const result = await run(
       schema(),
       'query ($c: String) { dated(after: $c) { edges { cursor } } }',
-      { variables: { c: raw('PNC:aa:S:p-hello') } },
+      { variables: { c: raw('PNC:createdAt.a,id.a:S:p-hello') } },
     );
     expect(result.errors?.[0].message).toMatch(/Invalid cursor.*expected 2 value/);
   });
@@ -269,7 +286,7 @@ describe('rejected cursors', () => {
     const result = await run(
       schema(),
       'query ($c: String) { dated(after: $c) { edges { cursor } } }',
-      { variables: { c: raw(`PNC:aa:T:["S:${marker}","S:p"]`) } },
+      { variables: { c: raw(`PNC:createdAt.a,id.a:T:["S:${marker}","S:p"]`) } },
     );
     expect(result.errors?.[0].message).toBe('Invalid cursor: invalid createdAt value.');
     expect(result.statements).toHaveLength(0);
@@ -280,7 +297,7 @@ describe('rejected cursors', () => {
       schema(),
       'query ($c: String) { posts(after: $c) { edges { cursor } } }',
       {
-        variables: { c: raw('PNC:a:O:{"__proto__":{"polluted":1}}') },
+        variables: { c: raw('PNC:id.a:O:{"__proto__":{"polluted":1}}') },
       },
     );
     expect(result.errors?.[0].message).toBe('Invalid cursor: invalid id value.');
@@ -334,7 +351,7 @@ describe('rejected cursors', () => {
       const resigned = raw(
         Buffer.from(nullText, 'base64')
           .toString()
-          .replace(/^PNC:[adfl]+:/, 'PNC:aa:'),
+          .replace(/^PNC:[^:]+:/, 'PNC:sheetId.a,id.a:'),
       );
       const result = await run(
         s,
