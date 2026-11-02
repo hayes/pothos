@@ -4,6 +4,7 @@ import type { PostgresClient } from '@prisma/orm-postgres/runtime';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type CollectionFor,
+  type ConnectionQueryLiteral,
   type CursorSpec,
   type ModelName,
   prismaConnectionHelpers,
@@ -62,11 +63,23 @@ builder.prismaObject('User', {
       // @ts-expect-error unknown query options are rejected in a callback's result too
       query: () => ({ where: { published: 1 }, take: 1 }),
     }),
+    limitBesideWhereInCallback: t.relatedConnection('posts', {
+      cursor: 'id',
+      // @ts-expect-error the connection args own the page size
+      query: () => ({ where: { published: 1 }, limit: 1 }),
+    }),
     limitInCallback: t.relatedConnection('posts', {
       cursor: 'id',
       // @ts-expect-error the connection args own the page size
       query: () => ({ limit: 1 }),
     }),
+    noQueryFromCallback: t.relatedConnection('posts', {
+      cursor: 'id',
+      args: { published: t.arg.int() },
+      query: (args) =>
+        args.published == null ? undefined : { where: { published: args.published } },
+    }),
+    alwaysUndefinedQuery: t.relatedConnection('posts', { cursor: 'id', query: () => undefined }),
     topLevelWhere: t.relatedConnection('posts', {
       cursor: 'id',
       // @ts-expect-error filters go in `query`
@@ -220,6 +233,7 @@ declare function inferCursor<M extends ModelName<Types>, C extends CursorSpec<Ty
   model: M,
   cursor: C,
 ): C;
+expectTypeOf<ConnectionQueryLiteral<Types, 'Post'>>().toHaveProperty('where');
 // An unknown column is named in the error, rather than buried in the columns' union.
 expectTypeOf<CursorCheck<Types, 'Post', 'nope'>>().toEqualTypeOf<UnknownCursorColumn<'nope'>>();
 expectTypeOf<CursorCheck<Types, 'Post', readonly ['nope', 'id']>>().toEqualTypeOf<
@@ -293,6 +307,17 @@ prismaConnectionHelpers(builder, 'User', {
   cursor: 'id',
   // @ts-expect-error unknown query options are rejected in a callback's result too
   query: () => ({ where: { id: 'x' }, take: 1 }),
+});
+prismaConnectionHelpers(builder, 'User', {
+  cursor: 'id',
+  // @ts-expect-error unknown query options are rejected in an object too
+  query: { where: { id: 'x' }, take: 1 },
+});
+prismaConnectionHelpers(builder, 'User', { cursor: 'id', query: () => undefined });
+prismaConnectionHelpers(builder, 'User', {
+  cursor: 'id',
+  args: (t) => ({ q: t.string() }),
+  query: (args) => (args.q ? { where: { firstName: args.q } } : undefined),
 });
 prismaConnectionHelpers(builder, 'User', {
   // @ts-expect-error not a column of User

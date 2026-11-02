@@ -321,6 +321,9 @@ export function assertQueryOptions(
   if (value == null) {
     return;
   }
+  if (isThenable(value)) {
+    throw new PothosValidationError(`query on ${owner} can't be async. Return it synchronously.`);
+  }
   const expected = `Use { ${allowed.map((key) => `${key}?`).join(', ')} }.`;
   if (typeof value !== 'object' || Array.isArray(value)) {
     throw new PothosValidationError(`query on ${owner} must be an object. ${expected}`);

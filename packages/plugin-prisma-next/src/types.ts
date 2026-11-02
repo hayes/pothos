@@ -421,15 +421,33 @@ export interface ConnectionQueryLiteral<Types extends SchemaTypes, M extends Mod
  * keys, which a callback's result gets no excess property check for. Inferring the literal rather
  * than the whole option leaves the callback's `args` typed once `Args` is known.
  */
-export type ConnectionQueryOption<Types extends SchemaTypes, Args extends InputFieldMap, Literal> =
-  | CheckedConnectionQuery<Literal>
+export type ConnectionQueryOption<
+  Types extends SchemaTypes,
+  Args extends InputFieldMap,
+  Literal,
+> = (
+  | Literal
   | ((
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
-    ) => CheckedConnectionQuery<Literal>);
+    ) => Literal | undefined)
+) &
+  NoInfer<UnknownConnectionQueryKeys<Literal>>;
 
-type CheckedConnectionQuery<Literal> = Literal &
-  NoInfer<ExactQueryLiteral<Literal, keyof ConnectionQueryLiteral<SchemaTypes, never>>>;
+/**
+ * Names `Literal`'s unknown keys in a required property, which fails for an object and a callback
+ * alike. Written beside `Literal` in the callback's result, it stops TS 5.9 and 6 inferring it.
+ */
+type UnknownConnectionQueryKeys<Literal> = [
+  UnknownQueryKeys<Literal, keyof ConnectionQueryLiteral<SchemaTypes, never>>,
+] extends [never]
+  ? unknown
+  : {
+      readonly [K in UnknownQueryKeys<
+        Literal,
+        keyof ConnectionQueryLiteral<SchemaTypes, never>
+      > as `Unknown query option: ${K & string}`]: never;
+    };
 
 export type RelationQuery<
   Types extends SchemaTypes,
@@ -441,7 +459,7 @@ export type RelationQuery<
   | ((
       args: InputShapeFromFields<Args>,
       context: Types['Context'],
-    ) => RelationQueryLiteral<Types, RelatedModel<Types, ParentModel, RelName>>);
+    ) => RelationQueryLiteral<Types, RelatedModel<Types, ParentModel, RelName>> | undefined);
 
 export type RelationRefinementCollection<
   Types extends SchemaTypes,
@@ -495,16 +513,17 @@ export type PrismaNextRelationOptions<
 type ExactQuery<Query, Known extends PropertyKey> = undefined extends Query
   ? unknown
   : Query extends (...args: infer Args) => infer Result
-    ? (...args: Args) => ExactQueryLiteral<Result, Known>
+    ? (...args: Args) => ExactQueryLiteral<Result, Known> | undefined
     : ExactQueryLiteral<Query, Known>;
 
-// Stays `unknown` when nothing is unknown, because an empty object beside the option's type would
-// turn off the check for an object that shares no key with it.
-type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
-  Exclude<Literal extends unknown ? keyof Literal : never, Known>,
-] extends [never]
-  ? unknown
-  : { [K in Exclude<Literal extends unknown ? keyof Literal : never, Known>]?: never };
+type UnknownQueryKeys<Literal, Known extends PropertyKey> = Exclude<
+  Literal extends unknown ? keyof Literal : never,
+  Known
+>;
+
+type ExactQueryLiteral<Literal, Known extends PropertyKey> = {
+  [K in UnknownQueryKeys<Literal, Known>]?: never;
+};
 
 /** Names the conflict in the error for `nullable: false` beside `isNull`. */
 interface VariantIsNullRequiresNullable {

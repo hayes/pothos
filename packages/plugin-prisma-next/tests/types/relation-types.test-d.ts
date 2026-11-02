@@ -55,6 +55,11 @@ builder.prismaObject('User', {
       // @ts-expect-error `draft` isn't a column on Post
       query: { where: { draft: 1 } },
     }),
+    noQueryFromCallback: t.relation('posts', {
+      args: { first: t.arg.boolean() },
+      query: (args) => (args.first ? { limit: 1 } : undefined),
+    }),
+    alwaysUndefinedQuery: t.relation('posts', { query: () => undefined }),
     takeInCallback: t.relation('posts', {
       // @ts-expect-error unknown query options are rejected in a callback's result too
       query: () => ({ where: { published: 1 }, take: 1 }),
