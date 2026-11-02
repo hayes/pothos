@@ -516,7 +516,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           const row = rowOfView(parent);
           mapping = null;
           for (const type of parentTypes) {
-            mapping ??= getLoaderMapping(context, info.path, type, row);
+            mapping ??= inheritedMapping(
+              getLoaderMapping(context, info.path, type, row),
+              type === fieldConfig.parentType,
+              fieldConfig.pothosOptions,
+            );
           }
           mappings.set(info, mapping);
         }
@@ -542,6 +546,18 @@ interface FieldReader {
   declaredView(row: object, mapping: Mapping | null | undefined): object;
   /** The parent with the field's own slots, which a field helper's resolver reads. */
   fieldView(row: object, mapping: Mapping | null | undefined): Record<string, unknown>;
+}
+
+/**
+ * A mapping recorded under an interface answers for an implementation only if the implementation
+ * inherits the field. An override selects something else, and the interface's rows are not its own.
+ */
+function inheritedMapping(mapping: Mapping | null, own: boolean, definition: unknown) {
+  return own ||
+    !mapping?.position ||
+    mapping.position.field.extensions?.pothosOptions === definition
+    ? mapping
+    : null;
 }
 
 function scopedParent(parent: unknown, scopes: readonly string[]) {
