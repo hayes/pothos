@@ -6,6 +6,8 @@ import PrismaPlugin, { type PrismaTypesFromClient } from '../src';
 import { prisma, queries } from './example/builder';
 import { getDatamodel } from './generated.js';
 
+const argsOf = (logged: unknown[]) => logged.map((query) => (query as { args: unknown }).args);
+
 // Fragments that move between an interface and its variants, or onto an interface that is not
 // backed by a prisma model.
 const builder = new SchemaBuilder<{
@@ -751,9 +753,7 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(without.errors).toBeUndefined();
       expect(withFragments.errors).toBeUndefined();
-      expect(fragmentQueries.map((query) => query.args)).toEqual(
-        queries.map((query) => query.args),
-      );
+      expect(argsOf(fragmentQueries)).toEqual(argsOf(queries));
     });
   });
 
@@ -778,9 +778,7 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ viewer: { recentPostIds: expect.any(Array) } });
-      expect(queries.map((query) => query.args)).toEqual([
-        { select: recentPosts, where: { id: 1 } },
-      ]);
+      expect(argsOf(queries)).toEqual([{ select: recentPosts, where: { id: 1 } }]);
     });
 
     it('stays one statement for a list of rows', async () => {
@@ -801,7 +799,7 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data?.viewers).toHaveLength(3);
-      expect(queries.map((query) => query.args)).toEqual([{ select: recentPosts, take: 3 }]);
+      expect(argsOf(queries)).toEqual([{ select: recentPosts, take: 3 }]);
     });
 
     it('keeps the expansion when the fragment holds a field with no select', async () => {
@@ -849,7 +847,7 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ viewer: { stamp: 'stamped-1' } });
-      expect(queries.map((query) => query.args)).toEqual([
+      expect(argsOf(queries)).toEqual([
         { select: { posts: { take: 1, select: { id: true } }, id: true }, where: { id: 1 } },
       ]);
     });
