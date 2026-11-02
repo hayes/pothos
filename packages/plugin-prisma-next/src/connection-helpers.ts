@@ -5,35 +5,39 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
-import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
+import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
-  AnyContract,
   CollectionFor,
-  ConnectionCollection,
+  ConnectionPagingOptions,
+  ConnectionQuery,
   CursorSpec,
   ModelName,
-  NamespaceOf,
+  ResolverCollection,
   Row,
+  TotalCountFlag,
 } from './types.js';
-import { compileWhere } from './utils/compile-query.js';
+import type { MapperCollection } from './utils/adapter.js';
+import { assertContextObject, getPluginConfig } from './utils/config.js';
+import {
+  aggregateCount,
+  CONNECTION_NODE_PATHS,
+  connectionQuery,
+  connectionSettings,
+} from './utils/connections.js';
+import { assertVariantCollection } from './utils/contract.js';
 import {
   applyCursorPagination,
   buildConnectionPage,
   type ConnectionPage,
-  type CursorInput,
-  normalizeCursor,
+  cursorColumns,
   validateCursor,
 } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
-import {
-  mapperOptionsFromPluginOpts,
-  readPluginOptions,
-  resolveSizeOption,
-} from './utils/options.js';
-import { getRefFromContractModel } from './utils/refs.js';
-import { aggregateCount, wrapConnectionOptionsWithTotalCount } from './utils/total-count.js';
+import { getModel } from './utils/model.js';
+import { refFor } from './utils/refs.js';
+import { materializeRows } from './utils/selections.js';
 
 export type ConnectionNodeShape<Node, WrapRow, MaybeAbsent extends boolean> = [Node] extends [never]
   ? WrapRow
@@ -53,21 +57,19 @@ export interface PrismaConnectionHelpers<
   Args extends InputFieldMap = {},
   Node = never,
   MaybeAbsent extends boolean = false,
+  Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
 > {
-  ref: PrismaNextObjectRef<Types, M>;
+  /** The ref passed in. For a model name, `Ref` isn't inferred, so this is its default ref. */
+  ref: HelperRef<Types, M> extends Ref ? PrismaNextObjectRef<Types, M, Row<Types, M>> : Ref;
   /**
-   * Pass `info` whenever possible — without it, the auto-include
-   * mapper can't descend into `edges.node` and nested `t.relation`
-   * fields under the connection won't preload.
-   *
-   * A promise only when a `select` callback beneath the connection returned one, so
-   * `await` it: the collection is not usable until the selection it carries has settled.
+   * Without `info`, relations selected under the connection aren't preloaded. Returns a promise
+   * when a `select` callback beneath the connection is async.
    */
   applyPagination(
-    collection: ConnectionCollection<Types, M>,
-    args: InputShapeFromFields<Args> & import('@pothos/plugin-relay').DefaultConnectionArguments,
-    info: GraphQLResolveInfo | undefined,
+    collection: ResolverCollection<Types, M>,
+    args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
+    info?: GraphQLResolveInfo,
   ): MaybePromise<{
     collection: CollectionFor<Types, M>;
     totalCountPromise: Promise<number> | undefined;
@@ -80,49 +82,30 @@ export interface PrismaConnectionHelpers<
   connectionOptions<T extends object>(connectionOptions: T): T;
 }
 
+/** A `prismaObject` or `prismaInterface` ref whose type the connection's nodes use. */
+export type HelperRef<Types extends SchemaTypes, M extends ModelName<Types>> =
+  | PrismaNextObjectRef<Types, M, unknown>
+  | PrismaNextInterfaceRef<Types, M, unknown>;
+
 export interface PrismaConnectionHelperOptions<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap,
-> {
-  cursor: Cursor;
+> extends Pick<
+    ConnectionPagingOptions<Types, unknown, Args, Cursor>,
+    'cursor' | 'defaultSize' | 'maxSize'
+  > {
   args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
-  defaultSize?:
-    | number
-    | ((
-        args: import('@pothos/plugin-relay').DefaultConnectionArguments,
-        ctx: Types['Context'],
-      ) => number);
-  maxSize?:
-    | number
-    | ((
-        args: import('@pothos/plugin-relay').DefaultConnectionArguments,
-        ctx: Types['Context'],
-      ) => number);
   totalCount?:
-    | boolean
+    | TotalCountFlag<Types>
     | ((
-        args: InputShapeFromFields<Args> &
-          import('@pothos/plugin-relay').DefaultConnectionArguments,
+        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
         ctx: Types['Context'],
         info: GraphQLResolveInfo | undefined,
       ) => MaybePromise<number>);
-  where?:
-    | import('@prisma/orm-family-sql/orm-client').ShorthandWhereFilter<
-        Types['PrismaNextContract'],
-        NamespaceOf<Types, M>,
-        M
-      >
-    | ((
-        accessor: import('@prisma/orm-family-sql/orm-client').ModelAccessor<
-          Types['PrismaNextContract'],
-          M
-        >,
-        args: InputShapeFromFields<Args> &
-          import('@pothos/plugin-relay').DefaultConnectionArguments,
-        ctx: Types['Context'],
-      ) => unknown);
+  /** Filters the collection and orders its cursor columns, like `t.relatedConnection`'s `query`. */
+  query?: ConnectionQuery<Types, M, Args>;
 }
 
 export function prismaConnectionHelpers<
@@ -131,13 +114,14 @@ export function prismaConnectionHelpers<
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
+  Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  modelName: M,
+  refOrModel: M | (Ref & HelperRef<Types, M>),
   options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
     resolveNode: (edge: Row<Types, M>) => Node;
   },
-): PrismaConnectionHelpers<Types, M, Args, Node, false>;
+): PrismaConnectionHelpers<Types, M, Args, Node, false, Ref>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -145,13 +129,14 @@ export function prismaConnectionHelpers<
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
+  Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  modelName: M,
+  refOrModel: M | (Ref & HelperRef<Types, M>),
   options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
     resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
-): PrismaConnectionHelpers<Types, M, Args, Node, true>;
+): PrismaConnectionHelpers<Types, M, Args, Node, true, Ref>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -159,130 +144,119 @@ export function prismaConnectionHelpers<
   Cursor extends CursorSpec<Types, M>,
   Args extends InputFieldMap = {},
   Node = never,
+  Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  modelName: M,
+  refOrModel: M | (Ref & HelperRef<Types, M>),
   options: PrismaConnectionHelperOptions<Types, M, Cursor, Args> & {
     resolveNode?: ((edge: Row<Types, M>) => Node) | undefined;
   },
-): PrismaConnectionHelpers<Types, M, Args, Node, boolean> {
-  const ref = getRefFromContractModel<Types, M>(modelName, builder);
+): object {
+  const ref = refFor(builder, refOrModel) as never as PrismaNextObjectRef<Types, M>;
+  const modelName = ref.modelName;
 
-  // `options.args` may be a literal or a thunk `(t) => argMap`; resolve
-  // lazily so the InputFieldBuilder is in scope, cache so getArgs() is
-  // idempotent.
-  let resolvedArgs: Args | undefined;
-  const resolveArgs = (): Args => {
-    if (resolvedArgs !== undefined) {
-      return resolvedArgs;
-    }
-    const raw = options.args;
-    resolvedArgs =
-      typeof raw === 'function'
-        ? builder.args(raw as (t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args)
-        : (raw ?? ({} as Args));
-    return resolvedArgs;
-  };
-
-  const totalCountResolver =
-    typeof options.totalCount === 'function' ? options.totalCount : undefined;
-  const totalCountFlag = options.totalCount === true || totalCountResolver !== undefined;
-
-  // Hoist out of per-resolve closure — cursorCols depend on the static
-  // option; pluginOpts/mapperOpts depend on the immutable builder.options.
-  const cursorCols = normalizeCursor(options.cursor as CursorInput);
-  const pluginOpts = readPluginOptions<AnyContract>(builder);
-  const mapperOpts = mapperOptionsFromPluginOpts(pluginOpts);
-  const cursorSpec = pluginOpts
-    ? validateCursor(pluginOpts.contract, modelName, options.cursor)
-    : options.cursor;
+  let args: Args | undefined;
+  const config = getPluginConfig(builder);
+  config.adapter.loadsRowsOf(ref.name);
+  const cursorOrder = validateCursor(config.contract, modelName, options.cursor);
+  const settings = connectionSettings<
+    (
+      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+      ctx: Types['Context'],
+      info: GraphQLResolveInfo | undefined,
+    ) => MaybePromise<number>
+  >(config, options);
 
   return {
-    ref,
-    getArgs: () => resolveArgs(),
-    connectionOptions<T extends object>(connectionOptions: T): T {
-      return totalCountFlag
-        ? (wrapConnectionOptionsWithTotalCount(connectionOptions) as T)
-        : connectionOptions;
+    ref: ref as never,
+    getArgs: () =>
+      (args ??=
+        typeof options.args === 'function'
+          ? builder.args(options.args)
+          : (options.args ?? ({} as Args))),
+    connectionOptions: settings.connectionOptions,
+    applyPagination(collection, args, ctx, info) {
+      // Report an invalid cursor or collection as a rejected promise instead of throwing, so
+      // callers handle every failure in one place.
+      try {
+        return paginate(collection, args, ctx, info);
+      } catch (error) {
+        return Promise.reject(error);
+      }
     },
-    applyPagination(collection, args, info, ctx) {
-      const defaultSize =
-        resolveSizeOption(options.defaultSize, args, ctx) ?? pluginOpts?.defaultConnectionSize;
-      const maxSize =
-        resolveSizeOption(options.maxSize, args, ctx) ?? pluginOpts?.maxConnectionSize;
-      const whereRefine = compileWhere(options.where);
-      const filteredBase = whereRefine
-        ? (whereRefine(collection, args, ctx) as CollectionFor<Types, M>)
-        : collection;
-      const pagination = applyCursorPagination(filteredBase as never, cursorSpec, args, {
-        ...(defaultSize !== undefined ? { defaultSize } : {}),
-        ...(maxSize !== undefined ? { maxSize } : {}),
-      });
+  } satisfies PrismaConnectionHelpers<Types, M, Args, Node, boolean, Ref>;
 
-      // A promise here only when a `select` callback beneath the connection returned one; the
-      // awaited collection is what the caller gets, never the promise dressed as one.
-      const prepared =
-        info && pluginOpts
-          ? (applySelectionToCollection(
-              pagination.collection as never,
-              info,
-              pluginOpts.contract,
-              ctx,
-              {
-                paths: [['edges', 'node'], ['nodes']],
-                extraColumns: cursorCols,
-                ...mapperOpts,
-              },
-            ) as unknown as MaybePromise<CollectionFor<Types, M>>)
-          : (pagination.collection as unknown as CollectionFor<Types, M>);
+  function paginate(
+    collection: ResolverCollection<Types, M>,
+    args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+    ctx: Types['Context'],
+    info: GraphQLResolveInfo | undefined,
+  ) {
+    assertContextObject(ctx, info);
+    assertVariantCollection(config.contract, modelName, collection as never);
+    const { where, orderBy } = connectionQuery(options.query, args, ctx as object);
+    const filteredBase = (where === undefined
+      ? collection
+      : (collection as unknown as MapperCollection).where(where)) as unknown as CollectionFor<
+      Types,
+      M
+    >;
+    const pagination = applyCursorPagination(filteredBase as never, cursorOrder, args, {
+      ...settings.sizes(args, ctx as object),
+      codecs: config.codecs(ctx, modelName),
+      orderBy,
+    });
 
-      // Auto-aggregate runs against `filteredBase` (post-where, pre-
-      // pagination) so the count and the page rows come from the same
-      // filtered set. Counting `collection` would produce a "N of M"
-      // mismatch when `where` narrows the result.
-      let totalCountPromise: Promise<number> | undefined;
-      const getTotalCountPromise = () => {
-        if (
-          !totalCountFlag ||
-          (info && !selectedFieldNames(ctx as object, info).has('totalCount'))
-        ) {
-          return undefined;
-        }
-        totalCountPromise ??= totalCountResolver
-          ? Promise.resolve().then(() => totalCountResolver(args, ctx, info))
-          : aggregateCount(filteredBase);
-        // Helpers can start row and count work independently. Attach a rejection
-        // handler immediately while retaining rejection for the consumer.
+    const prepared = (info
+      ? applySelectionToCollection(pagination.collection, info, config, ctx, {
+          paths: CONNECTION_NODE_PATHS,
+          extraColumns: cursorColumns(cursorOrder),
+        })
+      : pagination.collection) as unknown as MaybePromise<CollectionFor<Types, M>>;
+
+    // Counted before pagination but after `where`, so it matches the paged rows.
+    let totalCountPromise: Promise<number> | undefined;
+    const getTotalCountPromise = () => {
+      const source = settings.countSource(ctx as object, info);
+      if (!source) {
+        return undefined;
+      }
+      if (!totalCountPromise) {
+        totalCountPromise =
+          source === 'aggregate'
+            ? aggregateCount(filteredBase)
+            : Promise.resolve().then(() => source(args, ctx, info));
+        // Marks the rejection as handled. The consumer still receives it from the promise.
         totalCountPromise.catch(() => undefined);
-        return totalCountPromise;
-      };
+      }
+      return totalCountPromise;
+    };
 
-      const withCollection = (collection: CollectionFor<Types, M>) => ({
-        collection,
-        get totalCountPromise() {
-          return getTotalCountPromise();
-        },
-        wrap<WrapRow extends ConnectionWrapRows<Types, M, Node>>(
-          rows: readonly WrapRow[],
-          totalCount?: number,
-        ): ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>> {
-          const page = buildConnectionPage(rows, pagination);
-          // Apply resolveNode after buildConnectionPage so the cursor
-          // encoder still sees the original row columns.
-          if (options.resolveNode) {
-            const transform = options.resolveNode;
-            for (const edge of page.edges) {
-              (edge as { node: unknown }).node = transform(edge.node as Row<Types, M>);
-            }
+    const withCollection = (collection: CollectionFor<Types, M>) => ({
+      collection,
+      get totalCountPromise() {
+        return getTotalCountPromise();
+      },
+      wrap<WrapRow extends ConnectionWrapRows<Types, M, Node>>(
+        rows: readonly WrapRow[],
+        totalCount?: number,
+      ): ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>> {
+        const page = buildConnectionPage(
+          materializeRows(rows, getModel(config.contract, modelName)),
+          pagination,
+          totalCount,
+        );
+        // After building the page, so cursors are encoded from the original rows.
+        if (options.resolveNode) {
+          const transform = options.resolveNode;
+          for (const edge of page.edges) {
+            (edge as { node: unknown }).node = transform(edge.node as Row<Types, M>);
           }
-          if (totalCount !== undefined) {
-            (page as { totalCount?: number }).totalCount = totalCount;
-          }
-          return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>>;
-        },
-      });
+        }
+        return page as unknown as ConnectionPage<ConnectionNodeShape<Node, WrapRow, boolean>>;
+      },
+    });
 
-      return isThenable(prepared) ? prepared.then(withCollection) : withCollection(prepared);
-    },
-  };
+    return isThenable(prepared) ? prepared.then(withCollection) : withCollection(prepared);
+  }
 }

@@ -29,6 +29,8 @@ const builder = new SchemaBuilder<{
 const Named = builder.interfaceRef<{ firstName: string | null }>('Named').implement({
   fields: (t) => ({
     displayName: t.string({ nullable: true, resolve: () => null }),
+    // No select: NormalViewer loads `firstName` through its type-level select.
+    firstName: t.string({ nullable: true, resolve: (named) => named.firstName }),
   }),
 });
 
@@ -95,6 +97,13 @@ const NormalViewer = builder.drizzleObject('users', {
   }),
 });
 
+// Implemented by LatestPostViewer and PostPairViewer, whose type-level selects conflict.
+const Tagged = builder.interfaceRef<{ id: number }>('Tagged').implement({
+  fields: (t) => ({
+    tag: t.string({ resolve: (user) => `tag-${user.id}` }),
+  }),
+});
+
 // No type-level select: a variant selecting every column, under an interface that does not.
 builder.drizzleObject('users', {
   variant: 'FullViewer',
@@ -107,7 +116,7 @@ builder.drizzleObject('users', {
 // Type-level relation arguments that conflict with Viewer.recentPostIds's field-level select.
 builder.drizzleObject('users', {
   variant: 'LatestPostViewer',
-  interfaces: [Viewer],
+  interfaces: [Viewer, Tagged],
   select: {
     columns: {
       id: true,
@@ -132,7 +141,7 @@ builder.drizzleObject('users', {
 // A second variant of Viewer whose type-level select conflicts with LatestPostViewer's.
 builder.drizzleObject('users', {
   variant: 'PostPairViewer',
-  interfaces: [Viewer],
+  interfaces: [Viewer, Tagged],
   select: {
     columns: {
       id: true,
@@ -345,6 +354,32 @@ describe('fragments on variants and non-model interfaces', () => {
       expect(drizzleLogs[0]).toContain('"last_name"');
     });
 
+    it("loads a field without a select of its own through the variant's type-level select", async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              ...NamedFields
+            }
+          }
+
+          fragment NamedFields on Named {
+            firstName
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { firstName: user.firstName } });
+      expect(drizzleLogs).toMatchInlineSnapshot(`
+        [
+          "Query: select "d0"."id" as "id", "d0"."first_name" as "firstName" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        ]
+      `);
+    });
+
     it('finds fields in a fragment nested under one that does not apply to the type', async () => {
       const result = await execute({
         schema,
@@ -364,9 +399,65 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ viewer: { username: expect.stringMatching(/^@./) } });
+      // Named covers NormalViewer alone, so username is planned for NormalViewer rows, with its
+      // type-level select.
       expect(drizzleLogs).toMatchInlineSnapshot(`
         [
-          "Query: select "d0"."id" as "id", "d0"."username" as "username" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+          "Query: select "d0"."id" as "id", "d0"."first_name" as "firstName", "d0"."username" as "username" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        ]
+      `);
+    });
+  });
+
+  describe('a fragment on a non-model interface whose implementations conflict', () => {
+    it('does not fail a query whose fragment covers conflicting implementations', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              id
+              ... on Tagged {
+                tag
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { id: '1' } });
+      expect(drizzleLogs).toMatchInlineSnapshot(`
+        [
+          "Query: select "d0"."id" as "id" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
+        ]
+      `);
+    });
+
+    it('resolves the fragment beside a fragment on one of the implementations', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              ... on Tagged {
+                tag
+                ... on LatestPostViewer {
+                  latestPostId
+                }
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { tag: 'tag-1', latestPostId: expect.any(String) } });
+      expect(drizzleLogs).toMatchInlineSnapshot(`
+        [
+          "Query: select "d0"."id" as "id", (select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" limit ?) as "t") as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1]",
         ]
       `);
     });

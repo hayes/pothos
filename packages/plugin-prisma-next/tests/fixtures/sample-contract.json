@@ -12,6 +12,10 @@
       "model": "Post",
       "namespace": "__unbound__"
     },
+    "post_view": {
+      "model": "PostView",
+      "namespace": "__unbound__"
+    },
     "user": {
       "model": "User",
       "namespace": "__unbound__"
@@ -62,6 +66,7 @@
             "relations": {
               "author": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "authorId"
@@ -77,6 +82,7 @@
               },
               "post": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "postId"
@@ -168,6 +174,7 @@
             "relations": {
               "author": {
                 "cardinality": "N:1",
+                "nullable": false,
                 "on": {
                   "localFields": [
                     "authorId"
@@ -193,6 +200,21 @@
                 },
                 "to": {
                   "model": "Comment",
+                  "namespace": "__unbound__"
+                }
+              },
+              "views": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "postId"
+                  ]
+                },
+                "to": {
+                  "model": "PostView",
                   "namespace": "__unbound__"
                 }
               }
@@ -223,6 +245,64 @@
               },
               "namespaceId": "__unbound__",
               "table": "post"
+            }
+          },
+          "PostView": {
+            "fields": {
+              "postId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "viewedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sqlite/datetime@1",
+                  "kind": "scalar"
+                }
+              },
+              "viewer": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "post": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "postId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Post",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "postId": {
+                  "column": "postId"
+                },
+                "viewedAt": {
+                  "column": "viewedAt"
+                },
+                "viewer": {
+                  "column": "viewer"
+                }
+              },
+              "namespaceId": "__unbound__",
+              "table": "post_view"
             }
           },
           "User": {
@@ -320,32 +400,35 @@
               "columns": {
                 "authorId": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 },
                 "body": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 },
                 "createdAt": {
                   "codecId": "sqlite/datetime@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/datetime",
                   "nullable": false
                 },
                 "id": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 },
                 "postId": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 }
               },
               "foreignKeys": [
                 {
+                  "index": {
+                    "name": "comment_authorId_idx_e47547ed"
+                  },
                   "source": {
                     "columns": [
                       "authorId"
@@ -362,6 +445,9 @@
                   }
                 },
                 {
+                  "index": {
+                    "name": "comment_postId_idx_a7a72715"
+                  },
                   "source": {
                     "columns": [
                       "postId"
@@ -384,66 +470,72 @@
                     "authorId"
                   ],
                   "name": "comment_authorId_idx_e47547ed",
-                  "prefix": "comment_authorId_idx"
+                  "prefix": "comment_authorId_idx",
+                  "unique": false
                 },
                 {
                   "columns": [
                     "postId"
                   ],
                   "name": "comment_postId_idx_a7a72715",
-                  "prefix": "comment_postId_idx"
+                  "prefix": "comment_postId_idx",
+                  "unique": false
                 }
               ],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
-              }
+              },
+              "uniques": []
             },
             "post": {
               "columns": {
                 "authorId": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 },
                 "content": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 },
                 "createdAt": {
                   "codecId": "sqlite/datetime@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/datetime",
                   "nullable": false
                 },
                 "id": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 },
                 "published": {
                   "codecId": "sqlite/integer@1",
+                  "dataType": "sqlite/integer",
                   "default": {
                     "kind": "literal",
-                    "value": 0
+                    "value": "0"
                   },
-                  "nativeType": "integer",
                   "nullable": false
                 },
                 "score": {
                   "codecId": "sqlite/real@1",
-                  "nativeType": "real",
+                  "dataType": "sqlite/real",
                   "nullable": true
                 },
                 "title": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 }
               },
               "foreignKeys": [
                 {
+                  "index": {
+                    "name": "post_authorId_idx_e47547ed"
+                  },
                   "source": {
                     "columns": [
                       "authorId"
@@ -466,38 +558,93 @@
                     "authorId"
                   ],
                   "name": "post_authorId_idx_e47547ed",
-                  "prefix": "post_authorId_idx"
+                  "prefix": "post_authorId_idx",
+                  "unique": false
                 }
               ],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
-              }
+              },
+              "uniques": []
+            },
+            "post_view": {
+              "columns": {
+                "postId": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": false
+                },
+                "viewedAt": {
+                  "codecId": "sqlite/datetime@1",
+                  "dataType": "sqlite/datetime",
+                  "nullable": false
+                },
+                "viewer": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "post_view_postId_idx_a7a72715"
+                  },
+                  "source": {
+                    "columns": [
+                      "postId"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "post_view"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "post"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "postId"
+                  ],
+                  "name": "post_view_postId_idx_a7a72715",
+                  "prefix": "post_view_postId_idx",
+                  "unique": false
+                }
+              ],
+              "uniques": []
             },
             "user": {
               "columns": {
                 "email": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 },
                 "firstName": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 },
                 "id": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 },
                 "lastName": {
                   "codecId": "sqlite/text@1",
-                  "nativeType": "text",
+                  "dataType": "sqlite/text",
                   "nullable": false
                 }
               },
+              "foreignKeys": [],
+              "indexes": [],
               "primaryKey": {
                 "columns": [
                   "id"
@@ -516,11 +663,13 @@
         "id": "__unbound__"
       }
     },
-    "storageHash": "c09c928e403083f6ee4cc1abde2cb77e57be7fc91b08082ef2858838a51b4230"
+    "storageHash": "fe9002e03cb66e74483ee92c8d29c747944921ea957b3592797f0490ed69c355"
   },
   "capabilities": {
     "sql": {
       "foreignKeys": true,
+      "insertOnConflictSkip": true,
+      "insertOnConflictWithoutTarget": true,
       "jsonAgg": true,
       "limit": true,
       "orderBy": true,

@@ -1,3 +1,4 @@
+// use prisma-8
 namespace public {
   model Account {
     id String @id
@@ -13,9 +14,23 @@ namespace public {
     wide BigInt
     exact Decimal
     payload Bytes
-    createdAt Timestamptz
+    createdAt TimestamptzTemporal
     sortLabel String?
     account Account @relation(fields: [accountId], references: [id])
     @@map("pothos_next_entry")
+  }
+
+  model Event {
+    at TimestamptzTemporal @id
+    label String
+    @@map("pothos_next_event")
+  }
+
+  model Token {
+    id Decimal @id
+    wide BigInt @unique
+    bin Bytes @unique
+    label String
+    @@map("pothos_next_token")
   }
 }

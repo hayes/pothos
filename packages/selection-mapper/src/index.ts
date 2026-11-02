@@ -8,6 +8,7 @@ export { deepEqual } from './deep-equal.js';
 export {
   cacheKey,
   getLoaderMapping,
+  type Mapping,
   type Mappings,
   setFieldMapping,
   setLoaderMappings,
@@ -25,6 +26,7 @@ export { Plan, type PlayedPlan } from './plan.js';
 export type {
   MergeOptions,
   NestedSelection,
+  ParentRowOptions,
   Position,
   SelectedFieldNode,
   SelectFn,

@@ -4,5 +4,5 @@
   "compilerOptions": {
     "skipLibCheck": true
   },
-  "exclude": ["scope-auth.test.ts"]
+  "exclude": ["scope-auth.test.ts", "types/missing-plugins.test-d.ts"]
 }

@@ -16,8 +16,8 @@
       "!**/examples/**/prisma/**/*",
       "!**/packages/**/prisma/**/*",
       "!**/packages/plugin-prisma-next/tests/fixtures/**/*",
-      "!**/packages/plugin-prisma-next/tests/postgres/contract.d.ts",
-      "!**/packages/plugin-prisma-next/tests/postgres/contract.json",
+      "!**/packages/plugin-prisma-next/tests/*/contract.d.ts",
+      "!**/packages/plugin-prisma-next/tests/*/contract.json",
       "!**/packages/plugin-prisma/**/client/**/*",
       "!**/packages/plugin-prisma-utils/**/client/**/*",
       "!**/packages/**/client/**/*",
@@ -36,6 +36,8 @@
       "!**/components/playground/examples/examples-index.generated.ts",
       "!**/public/playground-examples/*.json",
       "!**/playground-examples/*.json",
+      "!**/website/playground-examples/plugin-prisma-next/contract.d.ts",
+      "!**/website/playground-examples/plugin-prisma-next/contract.json",
       "!**/graphql-env.d.ts",
       "!**/next-env.d.ts"
     ]

@@ -1,142 +1,61 @@
-/**
- * The model description the adapter's nodes carry: one object per contract model, so model
- * identity is model equality (what the walker's fragment and path rules compare). Built from the
- * contract on first use and cached per contract; relation targets resolve through the same
- * registry, so a cycle (`User.posts` → `Post.author` → `User`) closes on the same objects.
- */
 import { PothosSchemaError } from '@pothos/core';
 import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
-import type { AnyContract } from '../types.js';
-import { resolveContractModel } from './contract.js';
+import { type Codec, readContractValue } from '@prisma/orm-framework/components/codec';
+import { canonicalStringify } from '@prisma/orm-framework/utils/canonical-stringify';
+import type { AnyContract, PrismaNextExecutionContext } from '../types.js';
+import {
+  fieldStorage,
+  modelDiscriminator,
+  relatedModelKey,
+  resolveContractModel,
+  rootModelKey,
+  variantOf,
+} from './contract.js';
 
-/**
- * Junction descriptor for an N:M relation, mirroring prisma-next's
- * `ContractRelationThrough`. Present only on many-to-many relations; the
- * walker uses its presence as the "this is a junction relation" flag and
- * carries the columns for any future junction-aware stitching.
- */
-export interface PrismaNextRelationThrough {
-  /** Junction table name. */
-  readonly table: string;
-  /** Namespace that owns the junction table. */
-  readonly namespaceId: string;
-  /** Junction FK columns → parent. */
-  readonly parentColumns: readonly string[];
-  /** Junction FK columns → target. */
-  readonly childColumns: readonly string[];
-  /** Target PK columns referenced by `childColumns`. */
-  readonly targetColumns: readonly string[];
-}
-
-/**
- * Per-relation metadata baked into the type's extension at schema
- * build. Cardinality detection runs here once, fail-fast.
- */
-export interface PrismaNextRelationMeta {
+export interface PrismaNextRelation {
   readonly isToMany: boolean;
-  /**
-   * Parent-side columns the join keys against; augmented into the parent
-   * SELECT for depth-2+ stitching. For a reference relation these are the
-   * parent FK columns (`on.localFields`); for an N:M relation they are the
-   * parent columns the junction references (also `on.localFields`, which
-   * prisma-next resolves into `through.parentLocalColumns`).
-   */
-  readonly localFields: readonly string[];
-  /** Target model name in the contract. */
   readonly targetModel: string;
-  /**
-   * Junction descriptor for N:M relations; `undefined` for reference and
-   * embed relations. Its presence marks the relation as a junction join
-   * (prisma-next emits the junction query internally from the contract's
-   * `through`, so the walker just needs to know it exists).
-   */
-  readonly through?: PrismaNextRelationThrough;
-}
-
-/** A relation as the adapter sees it: the metadata plus the target model itself. */
-export interface PrismaNextRelation extends PrismaNextRelationMeta {
   readonly target: PrismaNextModel;
+  /** The variant that declares the relation. It can only be included after `.variant(value)`. */
+  readonly declaredByVariant?: string;
+  /**
+   * Set when the relation targets a variant model. The ORM loads its rows through that model's
+   * own accessor, which lacks the base's relations and, when the variant shares the base's table,
+   * isn't filtered by the discriminator.
+   */
+  readonly targetVariantModel?: {
+    readonly field: string;
+    readonly value: string;
+    readonly sharesTable: boolean;
+  };
 }
 
 export interface PrismaNextModel {
   readonly name: string;
   readonly relations: Record<string, PrismaNextRelation>;
-  /** The model's columns, or undefined when the contract does not describe the model. */
-  readonly columns: ReadonlySet<string> | undefined;
+  readonly columns: ReadonlySet<string>;
 }
 
-export function buildRelationMeta(
-  modelName: string,
-  contract: AnyContract,
-  typeName: string,
-): Record<string, PrismaNextRelationMeta> | undefined {
-  const rels = resolveContractModel(contract, modelName)?.relations;
-  if (!rels) {
-    return undefined;
-  }
-  const out: Record<string, PrismaNextRelationMeta> = {};
-  for (const [name, rel] of Object.entries(rels)) {
-    // N:M is a to-many junction relation. As of prisma-next 0.14.0 the
-    // orm-client resolves the junction join internally from the
-    // relation's `through` block (see tests/prisma-next-m-n-upstream-pin),
-    // so `.include('<n:m rel>')` flattens the related rows in a single
-    // query. The plugin emits the include like any other to-many relation
-    // and carries the `through` descriptor as the junction marker. (The
-    // contract tags this 'N:M'; there is no 'M:N' spelling in either
-    // prisma-next package.)
-    const isToMany = rel.cardinality === '1:N' || rel.cardinality === 'N:M';
-    // Explicit allowlist: guards against new cardinality tags a future
-    // contract might grow. With today's union this leaves '1:1' / 'N:1'.
-    if (!isToMany && rel.cardinality !== '1:1' && rel.cardinality !== 'N:1') {
-      throw new PothosSchemaError(
-        `Relation '${typeName}.${name}' (model '${modelName}') has unknown cardinality ` +
-          `'${rel.cardinality}'. Expected '1:1' / 'N:1' / '1:N' / 'N:M'.`,
-      );
-    }
-    out[name] = {
-      isToMany,
-      // Embed relations carry no FK columns (`on`); reference and junction
-      // relations do. For N:M these are the parent columns the junction
-      // references (prisma-next resolves them into `through.parentLocalColumns`),
-      // so augmenting them into the parent SELECT is correct — the parent
-      // has no direct FK, but it does have the keyed columns the junction
-      // joins against.
-      localFields: 'on' in rel ? rel.on.localFields : [],
-      targetModel: rel.to.model,
-      // N:M relations carry a `through`; the union narrows to
-      // `ContractManyToManyRelation` on the cardinality check.
-      ...(rel.cardinality === 'N:M' ? { through: rel.through } : {}),
-    };
-  }
-  return out;
+function buildColumnSet(contract: AnyContract, modelName: string): ReadonlySet<string> {
+  const fields = resolveContractModel(contract, modelName)?.fields ?? {};
+  // A base collection also selects its variants' columns, so they count as the model's columns
+  // even though other variants' rows lack them.
+  const variants = Object.values(modelDiscriminator(contract, modelName)?.variants ?? {});
+  return new Set([
+    ...Object.keys(fields),
+    ...variants.flatMap((variant) =>
+      Object.keys(resolveContractModel(contract, relatedModelKey(contract, variant))?.fields ?? {}),
+    ),
+  ]);
 }
 
-export function buildColumnSet(
-  modelName: string,
-  contract: AnyContract,
-): ReadonlySet<string> | undefined {
-  const fields = resolveContractModel(contract, modelName)?.fields;
-  if (!fields) {
-    return undefined;
-  }
-  return new Set(Object.keys(fields));
-}
-
-const registries = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
-
-/** Non-null unique keys in model field names, primary key first; undefined without SQL storage. */
+/** Non-null unique keys, primary key first. Undefined for a model without SQL storage. */
 export function getModelUniqueKeys(
   contract: AnyContract,
   modelName: string,
 ): string[][] | undefined {
   const model = resolveContractModel(contract, modelName);
-  const storage = model?.storage as
-    | {
-        table?: string;
-        namespaceId?: string;
-        fields?: Record<string, { column?: string }>;
-      }
-    | undefined;
+  const storage = model?.storage;
   const table = storage?.table
     ? resolveStorageTable(contract.storage, storage.table, storage.namespaceId)?.table
     : undefined;
@@ -165,18 +84,23 @@ export function getModelUniqueKeys(
   return uniqueKeys;
 }
 
-/** Prefer the primary key, then the first non-null unique key. */
 export function getIdentityFields(contract: AnyContract, modelName: string): string[] {
   return getModelUniqueKeys(contract, modelName)?.[0] ?? [];
 }
 
-/** The one `PrismaNextModel` for `name` under `contract`. */
-export function getModel(contract: AnyContract, name: string): PrismaNextModel {
-  let models = registries.get(contract);
+const modelCache = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
+
+/**
+ * Cached per contract so model identity is object identity. A variant shares its base's model,
+ * so `... on Bug` beneath a `Task` plans into the same query.
+ */
+export function getModel(contract: AnyContract, key: string): PrismaNextModel {
+  const name = rootModelKey(contract, key);
+  let models = modelCache.get(contract);
 
   if (!models) {
     models = new Map();
-    registries.set(contract, models);
+    modelCache.set(contract, models);
   }
 
   let model = models.get(name);
@@ -184,19 +108,121 @@ export function getModel(contract: AnyContract, name: string): PrismaNextModel {
   if (!model) {
     const relations: Record<string, PrismaNextRelation> = {};
 
-    model = { name, relations, columns: buildColumnSet(name, contract) };
+    model = { name, relations, columns: buildColumnSet(contract, name) };
     // Registered before its relations resolve, so a cycle finds it.
     models.set(name, model);
 
-    const meta = buildRelationMeta(name, contract, name) ?? {};
+    const addRelations = (modelKey: string, variant?: string) => {
+      for (const [relationName, relation] of Object.entries(
+        resolveContractModel(contract, modelKey)?.relations ?? {},
+      )) {
+        if (variant !== undefined && relations[relationName]) {
+          if (relations[relationName].declaredByVariant === undefined) {
+            continue;
+          }
+          throw new PothosSchemaError(
+            `Relation '${relationName}' is declared by several variants of model '${name}'. ` +
+              'Relations declared on variants need distinct names.',
+          );
+        }
+        const targetModel = relatedModelKey(contract, relation.to);
+        const targetVariant = variantOf(contract, targetModel);
+        relations[relationName] = {
+          // orm-client resolves N:M junctions itself, so they include like any to-many relation.
+          isToMany: relation.cardinality === '1:N' || relation.cardinality === 'N:M',
+          targetModel,
+          target: getModel(contract, targetModel),
+          ...(variant === undefined ? {} : { declaredByVariant: variant }),
+          ...(targetVariant
+            ? {
+                targetVariantModel: {
+                  field: targetVariant.field,
+                  value: targetVariant.value,
+                  sharesTable: targetVariant.sharesTable,
+                },
+              }
+            : {}),
+        };
+      }
+    };
 
-    for (const relation of Object.keys(meta)) {
-      relations[relation] = {
-        ...meta[relation],
-        target: getModel(contract, meta[relation].targetModel),
-      };
+    addRelations(name);
+    // Relations declared on variants are tagged with the variant they need.
+    for (const [value, variant] of Object.entries(
+      modelDiscriminator(contract, name)?.variants ?? {},
+    )) {
+      addRelations(relatedModelKey(contract, variant), value);
     }
   }
 
   return model;
+}
+
+/** A column codec. Cursors, node IDs and loader keys hold values in its stored JSON form. */
+interface ColumnCodec {
+  encode(value: unknown): unknown;
+  decode(stored: unknown): unknown;
+  /** Equal for values the column's data type holds equal, such as the decimals 0.5 and 0.50. */
+  key(value: unknown): string;
+}
+
+type CodecContext = Pick<PrismaNextExecutionContext<AnyContract>, 'contractCodecs'>;
+
+export type FieldCodecs = (field: string) => ColumnCodec | undefined;
+
+const codecCache = new WeakMap<CodecContext, Map<string, ColumnCodec | null>>();
+
+export function getColumnCodec(
+  contract: AnyContract,
+  context: CodecContext,
+  modelName: string,
+  field: string,
+): ColumnCodec | undefined {
+  let codecs = codecCache.get(context);
+  if (!codecs) {
+    codecs = new Map();
+    codecCache.set(context, codecs);
+  }
+  const cacheKey = `${modelName}\0${field}`;
+  let columnCodec = codecs.get(cacheKey);
+  if (columnCodec === undefined) {
+    columnCodec = createColumnCodec(contract, context, modelName, field) ?? null;
+    codecs.set(cacheKey, columnCodec);
+  }
+  return columnCodec ?? undefined;
+}
+
+function createColumnCodec(
+  contract: AnyContract,
+  context: CodecContext,
+  modelName: string,
+  field: string,
+): ColumnCodec | undefined {
+  const storage = fieldStorage(contract, modelName, field);
+  if (!storage) {
+    return undefined;
+  }
+  const { namespaceId, column } = storage;
+  const codec = context.contractCodecs.forColumn(namespaceId, storage.table, column) as
+    | Codec
+    | undefined;
+  if (!codec) {
+    return undefined;
+  }
+  const table = resolveStorageTable(contract.storage, storage.table, namespaceId)?.table;
+  const typeParams = (table?.columns[column] as { typeParams?: unknown } | undefined)?.typeParams;
+  const encode = (value: unknown) => codec.dataType.toContract(codec.toDataTypeValue(value));
+  return {
+    encode,
+    decode: (stored) => readContractValue(codec, stored as never, typeParams),
+    key: (value) => {
+      const stored = encode(value);
+      return codec.dataType.equalityKey?.(stored) ?? canonicalStringify(stored);
+    },
+  };
+}
+
+/** Identity for a value whose column has no codec. */
+export function rawKey(value: unknown): string {
+  return canonicalStringify(value);
 }

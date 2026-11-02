@@ -21,6 +21,8 @@ const builder = new SchemaBuilder<{
 const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
   fields: (t) => ({
     displayName: t.string({ nullable: true, resolve: () => null }),
+    // No select: NormalViewer loads `name` through its type-level select.
+    name: t.string({ nullable: true, resolve: (named) => named.name }),
   }),
 });
 
@@ -82,6 +84,13 @@ const NormalViewer = builder.prismaObject('User', {
   }),
 });
 
+// Implemented by LatestPostViewer and PostPairViewer, whose type-level selects conflict.
+const Tagged = builder.interfaceRef<{ id: number }>('Tagged').implement({
+  fields: (t) => ({
+    tag: t.string({ resolve: (user) => `tag-${user.id}` }),
+  }),
+});
+
 // No type-level select: an include-mode variant of a select-mode interface.
 builder.prismaObject('User', {
   variant: 'FullViewer',
@@ -94,7 +103,7 @@ builder.prismaObject('User', {
 // Type-level relation arguments that conflict with Viewer.recentPostIds's field-level select.
 builder.prismaObject('User', {
   variant: 'LatestPostViewer',
-  interfaces: [Viewer],
+  interfaces: [Viewer, Tagged],
   select: {
     id: true,
     posts: {
@@ -115,7 +124,7 @@ builder.prismaObject('User', {
 // A second variant of Viewer whose type-level select conflicts with LatestPostViewer's.
 builder.prismaObject('User', {
   variant: 'PostPairViewer',
-  interfaces: [Viewer],
+  interfaces: [Viewer, Tagged],
   select: {
     id: true,
     posts: {
@@ -272,6 +281,34 @@ describe('fragments on variants and non-model interfaces', () => {
       expect(queries).toEqual(expectedQueries);
     });
 
+    it("loads a field without a select of its own through the variant's type-level select", async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              ...NamedFields
+            }
+          }
+
+          fragment NamedFields on Named {
+            name
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { name: user.name } });
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { select: { id: true, name: true }, where: { id: 1 } },
+        },
+      ]);
+    });
+
     it('finds fields in a fragment nested under one that does not apply to the type', async () => {
       const result = await execute({
         schema,
@@ -291,11 +328,77 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ viewer: { bio: user.profile?.bio ?? null } });
+      // Named covers NormalViewer alone, so bio is planned for NormalViewer rows, with its
+      // type-level select.
       expect(queries).toEqual([
         {
           action: 'findUniqueOrThrow',
           model: 'User',
-          args: { select: { id: true, profile: { select: { bio: true } } }, where: { id: 1 } },
+          args: {
+            select: { id: true, name: true, profile: { select: { bio: true } } },
+            where: { id: 1 },
+          },
+        },
+      ]);
+    });
+  });
+
+  describe('a fragment on a non-model interface whose implementations conflict', () => {
+    it('does not fail a query whose fragment covers conflicting implementations', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              id
+              ... on Tagged {
+                tag
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { id: '1' } });
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { select: { id: true }, where: { id: 1 } },
+        },
+      ]);
+    });
+
+    it('resolves the fragment beside a fragment on one of the implementations', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              ... on Tagged {
+                tag
+                ... on LatestPostViewer {
+                  latestPostId
+                }
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { tag: 'tag-1', latestPostId: expect.any(String) } });
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: {
+            select: { id: true, posts: { take: 1, select: { id: true } } },
+            where: { id: 1 },
+          },
         },
       ]);
     });

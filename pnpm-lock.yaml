@@ -7,6 +7,7 @@ settings:
 overrides:
   graphql: ^17.0.1
   '@whatwg-node/fetch': 0.8.8
+  arktype: 2.2.9
 
 patchedDependencies:
   '@changesets/assemble-release-plan@6.0.9':
@@ -304,7 +305,7 @@ importers:
         version: link:../../packages/tracing-opentelemetry
       bema:
         specifier: ^0.1.2
-        version: 0.1.2(@babel/core@7.29.0)(@swc/core@1.15.24(@swc/helpers@0.5.17))(@types/node@25.6.0)(encoding@0.1.13)(webpack@5.106.0(@swc/core@1.15.24(@swc/helpers@0.5.17)))
+        version: 0.1.2(@babel/core@7.29.0)(@swc/core@1.15.24(@swc/helpers@0.5.17))(@types/node@26.1.2)(encoding@0.1.13)(webpack@5.106.0(@swc/core@1.15.24(@swc/helpers@0.5.17)))
       graphql:
         specifier: ^17.0.1
         version: 17.0.1
@@ -703,10 +704,10 @@ importers:
         version: link:../test-utils
       drizzle-kit:
         specifier: 1.0.0-rc.5
-        version: 1.0.0-rc.5(drizzle-orm@1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.3)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6))
+        version: 1.0.0-rc.5(drizzle-orm@1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.9)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6))
       drizzle-orm:
         specifier: 1.0.0-rc.5
-        version: 1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.3)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6)
+        version: 1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.9)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6)
       graphql-scalars:
         specifier: ^1.25.0
         version: 1.25.0(graphql@17.0.1)
@@ -818,7 +819,7 @@ importers:
         version: 1.0.0(@envelop/core@5.5.1)(graphql@17.0.1)
       grafserv:
         specifier: 1.0.0
-        version: 1.0.0(@envelop/core@5.5.1)(@fastify/websocket@11.2.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(grafast@1.0.0(@envelop/core@5.5.1)(graphql@17.0.1))(graphile-config@1.0.0)(graphql@17.0.1)(hono@4.12.12)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))(ws@8.20.0)
+        version: 1.0.0(@envelop/core@5.5.1)(@fastify/websocket@11.2.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(grafast@1.0.0(@envelop/core@5.5.1)(graphql@17.0.1))(graphile-config@1.0.0)(graphql@17.0.1)(hono@4.12.12)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))(ws@8.20.0)
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@17.0.1)
@@ -898,7 +899,7 @@ importers:
         version: 7.7.0(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(better-sqlite3@12.9.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@7.0.2)
       vitest:
         specifier: ^4.1.4
-        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/plugin-prisma-next:
     dependencies:
@@ -927,24 +928,30 @@ importers:
       '@pothos/plugin-with-input':
         specifier: workspace:*
         version: link:../plugin-with-input
-      '@pothos/test-utils':
-        specifier: workspace:*
-        version: link:../test-utils
+      '@prisma/cli-engine':
+        specifier: 0.9.0
+        version: 0.9.0(@prisma/management-api-sdk@1.72.0)
       '@prisma/orm-family-sql':
-        specifier: 8.0.0-rc.9
-        version: 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+        specifier: 8.0.0-rc.22
+        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@prisma/orm-framework':
-        specifier: 8.0.0-rc.9
-        version: 8.0.0-rc.9(typescript@7.0.2)
+        specifier: 8.0.0-rc.22
+        version: 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-mysql':
+        specifier: 8.0.0-rc.22
+        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@prisma/orm-postgres':
-        specifier: 8.0.0-rc.9
-        version: 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+        specifier: 8.0.0-rc.22
+        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@prisma/orm-sqlite':
-        specifier: 8.0.0-rc.9
-        version: 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+        specifier: 8.0.0-rc.22
+        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@types/pg':
         specifier: 8.20.4
         version: 8.20.4
+      mariadb:
+        specifier: ^3.5.4
+        version: 3.5.4
       pg:
         specifier: 8.22.0
         version: 8.22.0
@@ -1220,7 +1227,7 @@ importers:
         version: 2.12.6(graphql@17.0.1)
       vitest:
         specifier: ^4.1.4
-        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/test-utils:
     dependencies:
@@ -1376,6 +1383,9 @@ importers:
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.52.2)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@noble/hashes':
+        specifier: 2.4.0
+        version: 2.4.0
       '@pothos/core':
         specifier: workspace:^
         version: link:../packages/core
@@ -1400,6 +1410,9 @@ importers:
       '@pothos/plugin-mocks':
         specifier: workspace:^
         version: link:../packages/plugin-mocks
+      '@pothos/plugin-prisma-next':
+        specifier: workspace:^
+        version: link:../packages/plugin-prisma-next
       '@pothos/plugin-relay':
         specifier: workspace:^
         version: link:../packages/plugin-relay
@@ -1424,6 +1437,15 @@ importers:
       '@pothos/plugin-zod':
         specifier: workspace:^
         version: link:../packages/plugin-zod
+      '@prisma/orm-family-sql':
+        specifier: 8.0.0-rc.22
+        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework':
+        specifier: 8.0.0-rc.22
+        version: 8.0.0-rc.22(typescript@6.0.2)
+      '@prisma/orm-sqlite':
+        specifier: 8.0.0-rc.22
+        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@tailwindcss/postcss':
         specifier: ^4.2.2
         version: 4.2.2
@@ -1441,7 +1463,7 @@ importers:
         version: 2.2.3
       drizzle-orm:
         specifier: 1.0.0-rc.5
-        version: 1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.3)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6)
+        version: 1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.9)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6)
       esbuild-wasm:
         specifier: ^0.27.1
         version: 0.27.7
@@ -1783,11 +1805,11 @@ packages:
     resolution: {integrity: sha512-vyrkEHG1jrukmzTPtyWB4NLPauUw5bQeg4uhn8f+1SSynmrOcyvlb1GKQjjgoBzElLdfXCRYX8UnBlhklOHYRQ==}
     engines: {node: '>=8'}
 
-  '@ark/schema@0.56.2':
-    resolution: {integrity: sha512-Qx4D2JFbBWpntiHZaTv7bGG4H/M2rigiknezKg/WVyDSaLdE4YCcWAOoFB7pjjDqHbbV2OqRfntm1nnXvwMexg==}
+  '@ark/schema@0.56.8':
+    resolution: {integrity: sha512-R05TOe85oQBGFFw2zKMuZpqkXibLKuC/aJt6VwFn5Cjc4x3NkWfhvGRpRDycNkj3ddcHnOPtIsmjVowJO9Yxdw==}
 
-  '@ark/util@0.56.2':
-    resolution: {integrity: sha512-9kU2sUE38FZEGG7l3hamYMBieLYEJh2L1mrYD2eXpT+78EnQSV1bhjxJhnxGBMSTbtwpBSDNSK+K60WvaI/DTQ==}
+  '@ark/util@0.56.8':
+    resolution: {integrity: sha512-XLiQyGfpJcws1zCtp2Cva8s1oheCdFn1Rt6JSyC4NnkDrpwCJnlaiawuuOc1Z97vMH+jEzW5vyyf0xOju5wUQA==}
 
   '@as-integrations/express5@1.1.2':
     resolution: {integrity: sha512-BxfwtcWNf2CELDkuPQxi5Zl3WqY/dQVJYafeCBOGoFQjv5M0fjhxmAFZ9vKx/5YKKNeok4UY6PkFbHzmQrdxIA==}
@@ -4370,8 +4392,8 @@ packages:
   '@prisma/adapter-pg@7.7.0':
     resolution: {integrity: sha512-q33Ta8sKbgzEpAy0lx45tAq//yMv0qcb+8nj+TCA3P4wiAY+OBFEFk/NDkZncAfHaNJeGo5WJpJdpbL+ijYx8g==}
 
-  '@prisma/cli-engine@0.3.0':
-    resolution: {integrity: sha512-uurQyGX46Wx/J/A//AUwX/KN+DC+byemStM1b2Xi1t3aHhQ21eIbnRDCWNVxCMdDh8CZJ7fY9hgy+tJDbslFlA==}
+  '@prisma/cli-engine@0.9.0':
+    resolution: {integrity: sha512-M53Xx/KiPQ02iT8FXT2c9X+3fVgMVfWK/emf/tq+jRNFi7b0Ffwaeo1yz8XS4UKOza5DaKRwMs+K8U44z9corg==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
       '@prisma/management-api-sdk': ^1.55.0
@@ -4438,58 +4460,76 @@ packages:
   '@prisma/management-api-sdk@1.72.0':
     resolution: {integrity: sha512-Yjt3QBfNGWDE9z/4l6/8XWBMwqJGcAqfjqmrZzAyUL1EHu5bW3NOea+j0IXPXc0dZGF5wPqpjzG06T20SwLxbQ==}
 
-  '@prisma/orm-family-sql@8.0.0-rc.9':
-    resolution: {integrity: sha512-dmOLRNQ/6ViE6mxuyrZ5q4cfhqwVVPR9eODHDr/VTqVqhHwM3nGSMIKUjaceDu8XivtwzJoSzFNWV2+fy/h0qw==}
+  '@prisma/orm-family-sql@8.0.0-rc.22':
+    resolution: {integrity: sha512-odUcc7ywa1VnY4wVtcroGdcp8GqG76eWB0X0jYYYZWgIovxFnZnEl0oYPH1HXfSIBKmCtLmQ2QJXlUUF/M0ryw==}
     peerDependencies:
       typescript: '>=5.9'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@prisma/orm-framework@8.0.0-rc.9':
-    resolution: {integrity: sha512-Ef6TvrE/zekviww5ppx8DKbd673Ntm0dbyozBPLfR+yC2Pay+gcywlo0xePJygoFIx74VzIFMXGkhyfl93DOow==}
+  '@prisma/orm-framework@8.0.0-rc.22':
+    resolution: {integrity: sha512-Av51rTKY/spAirW9FQvpNkqwKZ6EbHb2E1jo1zLhCLwTYeZ4l1aPvbeAy24i1D59nG0xzEcfFUUXPJofc/TVvA==}
     peerDependencies:
       typescript: '>=5.9'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@prisma/orm-postgres@8.0.0-rc.9':
-    resolution: {integrity: sha512-d3XRpK/1tcZhkPS2MOi3wee3qGh4+WZZrdGJs09p7TEkf+IKhTkmrDvuUFEsNo/M8Z0pnb2WFECX/gHnsi9stQ==}
+  '@prisma/orm-mysql@8.0.0-rc.22':
+    resolution: {integrity: sha512-16B3bUipWoZ5BasQPwAtydL7ijQurheEDpbAWeQPM12/Us/V+dQEi/hM0p/xWcbSeSs5AzkrLq/mxEqNG6u/kw==}
     peerDependencies:
       typescript: '>=5.9'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@prisma/orm-sqlite@8.0.0-rc.9':
-    resolution: {integrity: sha512-2ooQGzgmPq767kMst0GNab4jyxHeuIE7dBn+VP6ux9gKnVhRWHoJDTjjyqwKD5y7WOIVxeQmCDPglTmLKPrQPA==}
+  '@prisma/orm-postgres@8.0.0-rc.22':
+    resolution: {integrity: sha512-z5yqcLLTIo4eMU+mAn2ojJZYk4LdOgyY35KEicFjOgxddQaf32yE1d5HuWDDZ3QomYsmz1tLX+8P7trAARuu7Q==}
+    peerDependencies:
+      temporal-polyfill: ^1.0.4
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma/orm-sqlite@8.0.0-rc.22':
+    resolution: {integrity: sha512-RhowhHLThKLtz4y2Bt53eFJ60zcFTGKT1RZt5U3r3SJdZQ94ZinZA5uA0K2+2yl+jTE0zusjNmNNTpUqodTCmg==}
     peerDependencies:
       typescript: '>=5.9'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@prisma/orm-target-postgres@8.0.0-rc.9':
-    resolution: {integrity: sha512-l5+lfzSZJO8uxy+gsrISW6zTO07SHhKWN/LiiY2hpa2h8caupe4wJmNzOXcIUeF3m/UGTuYxD5qehgGvmDIRRg==}
+  '@prisma/orm-target-mysql@8.0.0-rc.22':
+    resolution: {integrity: sha512-esk8Mf14lEkEufl8lRgkOJRv3WGoApePEw/46hxA+3dvgaWk1Dhkj2b8IVsLsrNxfDNDv7jKZYqUZaUJ/wkxGg==}
     peerDependencies:
       typescript: '>=5.9'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@prisma/orm-target-sqlite@8.0.0-rc.9':
-    resolution: {integrity: sha512-dL7ndiyeo+NU4WhmpvMfMMjXewsUbcAFngviROZSCQh6NbXrgK3usZ6VjGzX7J9gL6mZ1xMMm684RMb6We/dcw==}
+  '@prisma/orm-target-postgres@8.0.0-rc.22':
+    resolution: {integrity: sha512-gn5uEib8Ovonv5p2IHzZRCcKPvceiPIZQjA9b1ozjtaoVwYCeKM9z+aoThMWoA9h/DEBuwf2HHnfkSoE/rVwfA==}
+    peerDependencies:
+      temporal-polyfill: ^1.0.4
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma/orm-target-sqlite@8.0.0-rc.22':
+    resolution: {integrity: sha512-h+zTvaDzMmBPjIbK0BoNWGnrxl4DN8BUfevmzp0pMz/Cxg9fhq1QEBQKIqnlfFH1IfpAkhJ33/EDx0j5cVEtSg==}
     peerDependencies:
       typescript: '>=5.9'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@prisma/orm-toolchain@8.0.0-rc.9':
-    resolution: {integrity: sha512-GQrfYiidQsuoTZZ+GgJILD70ZXuA0eXjoPUmWu72+kDGCt5NsA4FOMoYwhyH0zExSnmi3t1guv5nQyMSCnVEGA==}
+  '@prisma/orm-toolchain@8.0.0-rc.22':
+    resolution: {integrity: sha512-gVGP5KFb3ZoOSglvpJ+MEjQQUJgqKXY1+z6RAiRLTXvOxypfSz/qNOSh4YjwOsJaBEy/Nb+n4yMs5IhWfl04rg==}
     peerDependencies:
-      '@prisma/cli-engine': 0.3.0
+      '@prisma/cli-engine': 0.9.0
       typescript: '>=5.9'
       vite: ^7.0.0 || ^8.0.0
     peerDependenciesMeta:
@@ -5599,6 +5639,9 @@ packages:
   '@types/express@5.0.6':
     resolution: {integrity: sha512-sKYVuV7Sv9fbPIt/442koC7+IIwK5olP1KWeD88e/idgoJqDm3JV/YUiPwkoKK92ylff2MGxSz1CSjsXelx0YA==}
 
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
   '@types/hast@3.0.4':
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
 
@@ -5665,6 +5708,9 @@ packages:
 
   '@types/node@25.6.0':
     resolution: {integrity: sha512-+qIYRKdNYJwY3vRCZMdJbPLJAtGjQBudzZzdzwQYkEPQd+PJGixUL5QfvCLDaULoLv+RhT3LDkwEfKaAkgSmNQ==}
+
+  '@types/node@26.1.2':
+    resolution: {integrity: sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg==}
 
   '@types/pg-pool@2.0.7':
     resolution: {integrity: sha512-U4CwmGVQcbEuqpyju8/ptOKg6gEC+Tqsvj2xS9o1g71bUh8twxnC6ZL5rZKCsGN0iyH0CwgUyc9VR5owNQF9Ng==}
@@ -6221,11 +6267,11 @@ packages:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
     engines: {node: '>=10'}
 
-  arkregex@0.0.8:
-    resolution: {integrity: sha512-PJcx6G1kQTgLKPUbeYlYecDRaKq15AMSGVajlKFYWlPeJRQL+j3dKE6tyMs40HZ99djS1l9Vhl3ezAHy9JBIqQ==}
+  arkregex@0.0.14:
+    resolution: {integrity: sha512-G3I/uCtWE0IKQiPh0qqmmAFDdtjZKZQ5mNPR6gJBeAMZ7VqYCpoaDeXnLju2Zo6ywExtmxZJELeVFb0MPDjPyA==}
 
-  arktype@2.2.3:
-    resolution: {integrity: sha512-7W+0RLTUNJiBFIIZXwOQxSR8Z273IAd6IvqBeG9+gHnQKFsIx2C0iOtGTmMrPnlX4qLXyc5+ll7A0BIj9WrbTg==}
+  arktype@2.2.9:
+    resolution: {integrity: sha512-Cja0IMEn19rB35on9da1i1z6QMasuS7ULffXbetCry09jvCGYT8Bi1KgYiqri5FymF4nQAXkM90yksYkgSK2EA==}
 
   array-buffer-byte-length@1.0.2:
     resolution: {integrity: sha512-LHE+8BuR7RYGDKvnrmcuSq3tDcKv9OFEXQt/HpbZhY7V6h0zlUXutnAD82GiFx9rdieCMjkvtcsPqBwgUl1Iiw==}
@@ -7229,7 +7275,7 @@ packages:
       '@upstash/redis': '>=1.34.7'
       '@vercel/postgres': '>=0.8.0'
       '@xata.io/client': '*'
-      arktype: '>=2.0.0'
+      arktype: 2.2.9
       better-sqlite3: '>=9.3.0'
       bun-types: '*'
       effect: '>=4.0.0'
@@ -9110,6 +9156,10 @@ packages:
     resolution: {integrity: sha512-NxVFwLAnrd9i7KUBxC4DrUhmgjzOs+1Qm50D3oF1/oL+r1NpZ4gA7xvG0/zJ8evR7zIKn4vLf7qTNduWFtCrRw==}
     engines: {node: 20 || >=22}
 
+  lru-cache@11.5.3:
+    resolution: {integrity: sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==}
+    engines: {node: 20 || >=22}
+
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
@@ -9158,6 +9208,10 @@ packages:
   make-fetch-happen@15.0.5:
     resolution: {integrity: sha512-uCbIa8jWWmQZt4dSnEStkVC6gdakiinAm4PiGsywIkguF0eWMdcjDz0ECYhUolFU3pFLOev9VNPCEygydXnddg==}
     engines: {node: ^20.17.0 || >=22.9.0}
+
+  mariadb@3.5.4:
+    resolution: {integrity: sha512-3m0vdfgRkjle5/9hHl4R7rlVvnDA7QfuFSNkdIAQNROWKOS0J3b9IQK9HaZSCGEVKiDUbFXFiINfC+cmR5P/aA==}
+    engines: {node: '>= 20.0.0'}
 
   markdown-extensions@2.0.0:
     resolution: {integrity: sha512-o5vL7aDWatOTX8LzaS1WMoaoxIiLRQJuIKKe2wAw6IeULDHaqbiqiggmx+pKvZDb1Sj+pE46Sn1T7lCqfFtg1Q==}
@@ -11245,6 +11299,15 @@ packages:
     resolution: {integrity: sha512-pk1Q16Yl62iocuQB+RWbg6rFUFkIyzqOFQ6NfysCltRvQqKwfurgj8v/f2X+CKvDhSL4IJ0cCOfCHDg9PWEEYA==}
     engines: {node: '>=18.17'}
 
+  temporal-polyfill@1.0.6:
+    resolution: {integrity: sha512-tYyEry1HLGUDbm2356W3iYD0OZdo7rlP7h98Zr/EnjqLZQwTAfcBDUvJnJbfA15v/vQad57hJZScG5O0W2oKEA==}
+
+  temporal-spec@1.0.1:
+    resolution: {integrity: sha512-wxVoanmDeavXie1vu2JaQ3WIc3JZnWAOYFBsJyATaVsXsycKYUflGsyBmrRSnoCpZJpwPyr38VpgSUlQ8CbFxg==}
+
+  temporal-utils@1.0.3:
+    resolution: {integrity: sha512-9jbTSX3HvkOWvDpNpFzwX/d1mkCrgQgwLmVTOEiuocZGKHsrQJtttGZFmybJ2zYP5zCSZuU5ZyeS8+eOEPABiQ==}
+
   term-size@2.2.1:
     resolution: {integrity: sha512-wK0Ri4fOGjv/XPy8SBHZChl8CM7uMc5VML7SqiQ0zG7+J5Vr+RMQDoHa2CNT6KHUnTGIXH34UDMkPzAUyapBZg==}
     engines: {node: '>=8'}
@@ -11305,6 +11368,10 @@ packages:
 
   tinyglobby@0.2.16:
     resolution: {integrity: sha512-pn99VhoACYR8nFHhxqix+uvsbXineAasWm5ojXoN8xEwK5Kd3/TrhNn1wByuD52UxWRLy8pu+kRMniEi6Eq9Zg==}
+    engines: {node: '>=12.0.0'}
+
+  tinyglobby@0.2.17:
+    resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
 
   tinyrainbow@3.1.0:
@@ -11532,6 +11599,9 @@ packages:
 
   undici-types@7.19.2:
     resolution: {integrity: sha512-qYVnV5OEm2AW8cJMCpdV20CDyaN3g0AjDlOGf1OW4iaDEx8MwdtChUp4zu4H0VP3nDRF/8RKWH+IPp9uW0YGZg==}
+
+  undici-types@8.3.0:
+    resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
 
   undici@6.25.0:
     resolution: {integrity: sha512-ZgpWDC5gmNiuY9CnLVXEH8rl50xhRCuLNA97fAUnKi8RRuV4E6KG31pDTsLVUKnohJE0I3XDrTeEydAXRw47xg==}
@@ -12509,11 +12579,11 @@ snapshots:
     dependencies:
       tslib: 2.0.3
 
-  '@ark/schema@0.56.2':
+  '@ark/schema@0.56.8':
     dependencies:
-      '@ark/util': 0.56.2
+      '@ark/util': 0.56.8
 
-  '@ark/util@0.56.2': {}
+  '@ark/util@0.56.8': {}
 
   '@as-integrations/express5@1.1.2(@apollo/server@5.5.0(graphql@17.0.1))(express@5.2.1)':
     dependencies:
@@ -13564,9 +13634,9 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@graphiql/plugin-doc-explorer@0.4.1(@graphiql/react@0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)))(@types/react@19.2.14)(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))':
+  '@graphiql/plugin-doc-explorer@0.4.1(@graphiql/react@0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)))(@types/react@19.2.14)(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))':
     dependencies:
-      '@graphiql/react': 0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
+      '@graphiql/react': 0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
       '@headlessui/react': 2.2.9(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       graphql: 17.0.1
       react: 19.2.5
@@ -13578,10 +13648,10 @@ snapshots:
       - immer
       - use-sync-external-store
 
-  '@graphiql/plugin-history@0.4.1(@graphiql/react@0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)))(@types/node@25.6.0)(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))':
+  '@graphiql/plugin-history@0.4.1(@graphiql/react@0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)))(@types/node@26.1.2)(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))':
     dependencies:
-      '@graphiql/react': 0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
-      '@graphiql/toolkit': 0.11.3(@types/node@25.6.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)
+      '@graphiql/react': 0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
+      '@graphiql/toolkit': 0.11.3(@types/node@26.1.2)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)
       react: 19.2.5
       react-compiler-runtime: 19.1.0-rc.1(react@19.2.5)
       react-dom: 19.2.5(react@19.2.5)
@@ -13594,9 +13664,9 @@ snapshots:
       - immer
       - use-sync-external-store
 
-  '@graphiql/react@0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))':
+  '@graphiql/react@0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))':
     dependencies:
-      '@graphiql/toolkit': 0.11.3(@types/node@25.6.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)
+      '@graphiql/toolkit': 0.11.3(@types/node@26.1.2)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)
       '@radix-ui/react-dialog': 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@radix-ui/react-dropdown-menu': 2.1.16(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@radix-ui/react-tooltip': 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -13625,11 +13695,11 @@ snapshots:
       - immer
       - use-sync-external-store
 
-  '@graphiql/toolkit@0.11.3(@types/node@25.6.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)':
+  '@graphiql/toolkit@0.11.3(@types/node@26.1.2)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)':
     dependencies:
       '@n1ru4l/push-pull-async-iterable-iterator': 3.2.0
       graphql: 17.0.1
-      meros: 1.3.2(@types/node@25.6.0)
+      meros: 1.3.2(@types/node@26.1.2)
     optionalDependencies:
       graphql-ws: 6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0)
     transitivePeerDependencies:
@@ -15166,11 +15236,12 @@ snapshots:
     transitivePeerDependencies:
       - pg-native
 
-  '@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0)':
+  '@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0)':
     dependencies:
       '@clack/prompts': 1.5.0
       '@prisma/management-api-sdk': 1.72.0
       '@stricli/core': 1.3.0
+      arktype: 2.2.9
       c12: 3.3.4
       colorette: 2.0.20
       package-manager-detector: 1.8.0
@@ -15299,14 +15370,33 @@ snapshots:
     dependencies:
       openapi-fetch: 0.14.0
 
-  '@prisma/orm-family-sql@8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-family-sql@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-framework': 8.0.0-rc.9(typescript@7.0.2)
-      '@prisma/orm-toolchain': 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@6.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@standard-schema/spec': 1.1.0
-      arktype: 2.2.3
+      arktype: 2.2.9
       pathe: 2.0.3
       pluralize: 8.0.0
+      tinyglobby: 0.2.17
+      ts-toolbelt: 9.6.0
+    optionalDependencies:
+      typescript: 6.0.2
+    transitivePeerDependencies:
+      - '@prisma/cli-engine'
+      - magicast
+      - typanion
+      - vite
+
+  '@prisma/orm-family-sql@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+    dependencies:
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@standard-schema/spec': 1.1.0
+      arktype: 2.2.9
+      pathe: 2.0.3
+      pluralize: 8.0.0
+      tinyglobby: 0.2.17
       ts-toolbelt: 9.6.0
     optionalDependencies:
       typescript: 7.0.2
@@ -15316,24 +15406,56 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-framework@8.0.0-rc.9(typescript@7.0.2)':
+  '@prisma/orm-framework@8.0.0-rc.22(typescript@6.0.2)':
     dependencies:
       '@standard-schema/spec': 1.1.0
-      arktype: 2.2.3
+      arktype: 2.2.9
       pathe: 2.0.3
+      tinyglobby: 0.2.17
+      uniku: 0.5.0
+    optionalDependencies:
+      typescript: 6.0.2
+
+  '@prisma/orm-framework@8.0.0-rc.22(typescript@7.0.2)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      arktype: 2.2.9
+      pathe: 2.0.3
+      tinyglobby: 0.2.17
       uniku: 0.5.0
     optionalDependencies:
       typescript: 7.0.2
 
-  '@prisma/orm-postgres@8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-mysql@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.9(typescript@7.0.2)
-      '@prisma/orm-target-postgres': 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-toolchain': 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-target-mysql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      arktype: 2.2.9
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - '@prisma/cli-engine'
+      - magicast
+      - typanion
+      - vite
+
+  '@prisma/orm-postgres@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+    dependencies:
+      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-target-postgres': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@types/node': 26.1.2
       '@types/pg': 8.20.4
+      arktype: 2.2.9
       pathe: 2.0.3
       pg: 8.22.0
+      temporal-polyfill: 1.0.6
+      temporal-spec: 1.0.1
+      tinyglobby: 0.2.17
     optionalDependencies:
       typescript: 7.0.2
     transitivePeerDependencies:
@@ -15343,13 +15465,30 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-sqlite@8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-sqlite@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.9(typescript@7.0.2)
-      '@prisma/orm-target-sqlite': 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-toolchain': 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@6.0.2)
+      '@prisma/orm-target-sqlite': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       pathe: 2.0.3
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      typescript: 6.0.2
+    transitivePeerDependencies:
+      - '@prisma/cli-engine'
+      - magicast
+      - typanion
+      - vite
+
+  '@prisma/orm-sqlite@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+    dependencies:
+      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-target-sqlite': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      pathe: 2.0.3
+      tinyglobby: 0.2.17
     optionalDependencies:
       typescript: 7.0.2
     transitivePeerDependencies:
@@ -15358,17 +15497,38 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-target-postgres@8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-target-mysql@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.9(typescript@7.0.2)
-      '@prisma/orm-toolchain': 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@standard-schema/spec': 1.1.0
+      arktype: 2.2.9
+      mariadb: 3.5.4
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - '@prisma/cli-engine'
+      - magicast
+      - typanion
+      - vite
+
+  '@prisma/orm-target-postgres@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+    dependencies:
+      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@standard-schema/spec': 1.1.0
+      '@types/node': 26.1.2
       '@types/pg': 8.20.4
-      arktype: 2.2.3
+      arktype: 2.2.9
       pathe: 2.0.3
       pg: 8.22.0
+      pg-connection-string: 2.14.0
       pg-cursor: 2.22.0(pg@8.22.0)
+      postgres-array: 2.0.0
+      temporal-polyfill: 1.0.6
+      temporal-spec: 1.0.1
     optionalDependencies:
       typescript: 7.0.2
     transitivePeerDependencies:
@@ -15378,13 +15538,29 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-target-sqlite@8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-target-sqlite@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.9(typescript@7.0.2)
-      '@prisma/orm-toolchain': 8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@6.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@standard-schema/spec': 1.1.0
-      arktype: 2.2.3
+      arktype: 2.2.9
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: 6.0.2
+    transitivePeerDependencies:
+      - '@prisma/cli-engine'
+      - magicast
+      - typanion
+      - vite
+
+  '@prisma/orm-target-sqlite@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+    dependencies:
+      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@standard-schema/spec': 1.1.0
+      arktype: 2.2.9
       pathe: 2.0.3
     optionalDependencies:
       typescript: 7.0.2
@@ -15394,12 +15570,12 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-toolchain@8.0.0-rc.9(@prisma/cli-engine@0.3.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-toolchain@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/cli-engine': 0.3.0(@prisma/management-api-sdk@1.72.0)
-      '@prisma/orm-framework': 8.0.0-rc.9(typescript@7.0.2)
+      '@prisma/cli-engine': 0.9.0(@prisma/management-api-sdk@1.72.0)
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@6.0.2)
       '@vercel/detect-agent': 1.2.5
-      arktype: 2.2.3
+      arktype: 2.2.9
       c12: 3.3.4
       ci-info: 4.4.0
       clipanion: 4.0.0-rc.4(typanion@3.14.0)
@@ -15412,12 +15588,42 @@ snapshots:
       prettier: 3.9.6
       string-width: 8.2.2
       strip-ansi: 7.2.0
+      tinyglobby: 0.2.17
+      vscode-languageserver: 10.1.0
+      vscode-languageserver-textdocument: 1.0.12
+      wrap-ansi: 10.0.1
+    optionalDependencies:
+      typescript: 6.0.2
+      vite: 7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
+  '@prisma/orm-toolchain@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+    dependencies:
+      '@prisma/cli-engine': 0.9.0(@prisma/management-api-sdk@1.72.0)
+      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
+      '@vercel/detect-agent': 1.2.5
+      arktype: 2.2.9
+      c12: 3.3.4
+      ci-info: 4.4.0
+      clipanion: 4.0.0-rc.4(typanion@3.14.0)
+      closest-match: 1.3.3
+      colorette: 2.0.20
+      esbuild: 0.28.2
+      jsonc-parser: 3.3.1
+      package-manager-detector: 1.8.0
+      pathe: 2.0.3
+      prettier: 3.9.6
+      string-width: 8.2.2
+      strip-ansi: 7.2.0
+      tinyglobby: 0.2.17
       vscode-languageserver: 10.1.0
       vscode-languageserver-textdocument: 1.0.12
       wrap-ansi: 10.0.1
     optionalDependencies:
       typescript: 7.0.2
-      vite: 7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+      vite: 7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
     transitivePeerDependencies:
       - magicast
       - typanion
@@ -16493,6 +16699,8 @@ snapshots:
       '@types/express-serve-static-core': 5.1.0
       '@types/serve-static': 2.2.0
 
+  '@types/geojson@7946.0.16': {}
+
   '@types/hast@3.0.4':
     dependencies:
       '@types/unist': 3.0.3
@@ -16563,6 +16771,10 @@ snapshots:
   '@types/node@25.6.0':
     dependencies:
       undici-types: 7.19.2
+
+  '@types/node@26.1.2':
+    dependencies:
+      undici-types: 8.3.0
 
   '@types/pg-pool@2.0.7':
     dependencies:
@@ -16754,6 +16966,14 @@ snapshots:
       magic-string: 0.30.21
     optionalDependencies:
       vite: 7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+
+  '@vitest/mocker@4.1.4(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+    dependencies:
+      '@vitest/spy': 4.1.4
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
 
   '@vitest/pretty-format@4.1.4':
     dependencies:
@@ -17134,15 +17354,15 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  arkregex@0.0.8:
+  arkregex@0.0.14:
     dependencies:
-      '@ark/util': 0.56.2
+      '@ark/util': 0.56.8
 
-  arktype@2.2.3:
+  arktype@2.2.9:
     dependencies:
-      '@ark/schema': 0.56.2
-      '@ark/util': 0.56.2
-      arkregex: 0.0.8
+      '@ark/schema': 0.56.8
+      '@ark/util': 0.56.8
+      arkregex: 0.0.14
 
   array-buffer-byte-length@1.0.2:
     dependencies:
@@ -17243,7 +17463,7 @@ snapshots:
 
   before-after-hook@2.2.3: {}
 
-  bema@0.1.2(@babel/core@7.29.0)(@swc/core@1.15.24(@swc/helpers@0.5.17))(@types/node@25.6.0)(encoding@0.1.13)(webpack@5.106.0(@swc/core@1.15.24(@swc/helpers@0.5.17))):
+  bema@0.1.2(@babel/core@7.29.0)(@swc/core@1.15.24(@swc/helpers@0.5.17))(@types/node@26.1.2)(encoding@0.1.13)(webpack@5.106.0(@swc/core@1.15.24(@swc/helpers@0.5.17))):
     dependencies:
       '@fast-csv/format': 4.3.5
       '@fast-csv/parse': 4.3.6
@@ -17278,7 +17498,7 @@ snapshots:
       slugify: 1.6.6
       strip-ansi: 6.0.1
       ts-custom-error: 3.3.1
-      ts-node: 10.9.2(@swc/core@1.15.24(@swc/helpers@0.5.17))(@types/node@25.6.0)(typescript@4.9.5)
+      ts-node: 10.9.2(@swc/core@1.15.24(@swc/helpers@0.5.17))(@types/node@26.1.2)(typescript@4.9.5)
       tslib: 2.8.1
       type-fest: 1.4.0
       typescript: 4.9.5
@@ -18215,11 +18435,11 @@ snapshots:
       p-event: 2.3.1
       pify: 4.0.1
 
-  drizzle-kit@1.0.0-rc.5(drizzle-orm@1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.3)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6)):
+  drizzle-kit@1.0.0-rc.5(drizzle-orm@1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.9)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6)):
     optionalDependencies:
-      drizzle-orm: 1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.3)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6)
+      drizzle-orm: 1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.9)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6)
 
-  drizzle-orm@1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.3)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6):
+  drizzle-orm@1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.9)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@6.0.2))(zod@4.3.6):
     optionalDependencies:
       '@electric-sql/pglite': 0.4.1
       '@libsql/client': 0.17.2(encoding@0.1.13)
@@ -18227,7 +18447,7 @@ snapshots:
       '@types/mssql': 9.1.8(@azure/core-client@1.10.1)
       '@types/pg': 8.20.4
       '@types/sql.js': 1.4.11
-      arktype: 2.2.3
+      arktype: 2.2.9
       better-sqlite3: 12.9.0
       mssql: 11.0.1(@azure/core-client@1.10.1)
       mysql2: 3.15.3
@@ -18238,7 +18458,7 @@ snapshots:
       valibot: 1.2.0(typescript@6.0.2)
       zod: 4.3.6
 
-  drizzle-orm@1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.3)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6):
+  drizzle-orm@1.0.0-rc.5(@electric-sql/pglite@0.4.1)(@libsql/client@0.17.2(encoding@0.1.13))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.8(@azure/core-client@1.10.1))(@types/pg@8.20.4)(@types/sql.js@1.4.11)(arktype@2.2.9)(better-sqlite3@12.9.0)(mssql@11.0.1(@azure/core-client@1.10.1))(mysql2@3.15.3)(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1)(sqlite3@6.0.1)(valibot@1.2.0(typescript@7.0.2))(zod@4.3.6):
     optionalDependencies:
       '@electric-sql/pglite': 0.4.1
       '@libsql/client': 0.17.2(encoding@0.1.13)
@@ -18246,7 +18466,7 @@ snapshots:
       '@types/mssql': 9.1.8(@azure/core-client@1.10.1)
       '@types/pg': 8.20.4
       '@types/sql.js': 1.4.11
-      arktype: 2.2.3
+      arktype: 2.2.9
       better-sqlite3: 12.9.0
       mssql: 11.0.1(@azure/core-client@1.10.1)
       mysql2: 3.15.3
@@ -19343,7 +19563,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  grafserv@1.0.0(@envelop/core@5.5.1)(@fastify/websocket@11.2.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(grafast@1.0.0(@envelop/core@5.5.1)(graphql@17.0.1))(graphile-config@1.0.0)(graphql@17.0.1)(hono@4.12.12)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))(ws@8.20.0):
+  grafserv@1.0.0(@envelop/core@5.5.1)(@fastify/websocket@11.2.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(grafast@1.0.0(@envelop/core@5.5.1)(graphql@17.0.1))(graphile-config@1.0.0)(graphql@17.0.1)(hono@4.12.12)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))(ws@8.20.0):
     dependencies:
       '@graphile/lru': 5.0.0
       debug: 4.4.3
@@ -19352,7 +19572,7 @@ snapshots:
       graphile-config: 1.0.0
       graphql: 17.0.1
       graphql-ws: 6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0)
-      ruru: 2.0.0(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(debug@4.4.3)(graphile-config@1.0.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
+      ruru: 2.0.0(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(debug@4.4.3)(graphile-config@1.0.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
       tslib: 2.8.1
     optionalDependencies:
       '@envelop/core': 5.5.1
@@ -19386,11 +19606,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  graphiql@5.2.2(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)):
+  graphiql@5.2.2(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)):
     dependencies:
-      '@graphiql/plugin-doc-explorer': 0.4.1(@graphiql/react@0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)))(@types/react@19.2.14)(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
-      '@graphiql/plugin-history': 0.4.1(@graphiql/react@0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)))(@types/node@25.6.0)(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
-      '@graphiql/react': 0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
+      '@graphiql/plugin-doc-explorer': 0.4.1(@graphiql/react@0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)))(@types/react@19.2.14)(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
+      '@graphiql/plugin-history': 0.4.1(@graphiql/react@0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)))(@types/node@26.1.2)(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
+      '@graphiql/react': 0.37.3(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-compiler-runtime@19.1.0-rc.1(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
       graphql: 17.0.1
       react: 19.2.5
       react-compiler-runtime: 19.1.0-rc.1(react@19.2.5)
@@ -20304,6 +20524,8 @@ snapshots:
 
   lru-cache@11.3.5: {}
 
+  lru-cache@11.5.3: {}
+
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
@@ -20363,6 +20585,14 @@ snapshots:
       ssri: 13.0.1
     transitivePeerDependencies:
       - supports-color
+
+  mariadb@3.5.4:
+    dependencies:
+      '@types/geojson': 7946.0.16
+      '@types/node': 25.6.0
+      denque: 2.1.0
+      iconv-lite: 0.7.2
+      lru-cache: 11.5.3
 
   markdown-extensions@2.0.0: {}
 
@@ -20591,9 +20821,9 @@ snapshots:
 
   meriyah@6.1.4: {}
 
-  meros@1.3.2(@types/node@25.6.0):
+  meros@1.3.2(@types/node@26.1.2):
     optionalDependencies:
-      '@types/node': 25.6.0
+      '@types/node': 26.1.2
 
   micromark-core-commonmark@2.0.3:
     dependencies:
@@ -22376,10 +22606,10 @@ snapshots:
     dependencies:
       queue-microtask: 1.2.3
 
-  ruru-types@2.0.0(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)):
+  ruru-types@2.0.0(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)):
     dependencies:
-      '@graphiql/toolkit': 0.11.3(@types/node@25.6.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)
-      graphiql: 5.2.2(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
+      '@graphiql/toolkit': 0.11.3(@types/node@26.1.2)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)
+      graphiql: 5.2.2(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
       graphql: 17.0.1
     optionalDependencies:
       react: 19.2.5
@@ -22393,13 +22623,13 @@ snapshots:
       - immer
       - use-sync-external-store
 
-  ruru@2.0.0(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(debug@4.4.3)(graphile-config@1.0.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)):
+  ruru@2.0.0(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(debug@4.4.3)(graphile-config@1.0.0)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)):
     dependencies:
       '@emotion/is-prop-valid': 1.4.0
       graphile-config: 1.0.0
       graphql: 17.0.1
       http-proxy: 1.18.1(debug@4.4.3)
-      ruru-types: 2.0.0(@emotion/is-prop-valid@1.4.0)(@types/node@25.6.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
+      ruru-types: 2.0.0(@emotion/is-prop-valid@1.4.0)(@types/node@26.1.2)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql-ws@6.0.8(@fastify/websocket@11.2.0)(graphql@17.0.1)(ws@8.20.0))(graphql@17.0.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
       tslib: 2.8.1
       yargs: 17.7.2
     optionalDependencies:
@@ -23049,6 +23279,15 @@ snapshots:
       - supports-color
     optional: true
 
+  temporal-polyfill@1.0.6:
+    dependencies:
+      temporal-spec: 1.0.1
+      temporal-utils: 1.0.3
+
+  temporal-spec@1.0.1: {}
+
+  temporal-utils@1.0.3: {}
+
   term-size@2.2.1: {}
 
   terser-webpack-plugin@5.4.0(@swc/core@1.15.24(@swc/helpers@0.5.17))(webpack@5.106.0(@swc/core@1.15.24(@swc/helpers@0.5.17))):
@@ -23097,6 +23336,11 @@ snapshots:
   tinyexec@1.1.1: {}
 
   tinyglobby@0.2.16:
+    dependencies:
+      fdir: 6.5.0(picomatch@4.0.4)
+      picomatch: 4.0.4
+
+  tinyglobby@0.2.17:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
@@ -23160,14 +23404,14 @@ snapshots:
       '@ts-morph/common': 0.29.0
       code-block-writer: 13.0.3
 
-  ts-node@10.9.2(@swc/core@1.15.24(@swc/helpers@0.5.17))(@types/node@25.6.0)(typescript@4.9.5):
+  ts-node@10.9.2(@swc/core@1.15.24(@swc/helpers@0.5.17))(@types/node@26.1.2)(typescript@4.9.5):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.12
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
-      '@types/node': 25.6.0
+      '@types/node': 26.1.2
       acorn: 8.15.0
       acorn-walk: 8.3.4
       arg: 4.1.3
@@ -23311,6 +23555,8 @@ snapshots:
   undici-types@6.21.0: {}
 
   undici-types@7.19.2: {}
+
+  undici-types@8.3.0: {}
 
   undici@6.25.0: {}
 
@@ -23751,9 +23997,26 @@ snapshots:
       picomatch: 4.0.4
       postcss: 8.5.9
       rollup: 4.60.1
-      tinyglobby: 0.2.16
+      tinyglobby: 0.2.17
     optionalDependencies:
       '@types/node': 25.6.0
+      fsevents: 2.3.3
+      jiti: 2.6.1
+      lightningcss: 1.32.0
+      terser: 5.46.1
+      tsx: 4.21.0
+      yaml: 2.8.3
+
+  vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3):
+    dependencies:
+      esbuild: 0.25.12
+      fdir: 6.5.0(picomatch@4.0.4)
+      picomatch: 4.0.4
+      postcss: 8.5.9
+      rollup: 4.60.1
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      '@types/node': 26.1.2
       fsevents: 2.3.3
       jiti: 2.6.1
       lightningcss: 1.32.0
@@ -23786,6 +24049,34 @@ snapshots:
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       '@types/node': 25.6.0
+    transitivePeerDependencies:
+      - msw
+
+  vitest@4.1.4(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)):
+    dependencies:
+      '@vitest/expect': 4.1.4
+      '@vitest/mocker': 4.1.4(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@vitest/pretty-format': 4.1.4
+      '@vitest/runner': 4.1.4
+      '@vitest/snapshot': 4.1.4
+      '@vitest/spy': 4.1.4
+      '@vitest/utils': 4.1.4
+      es-module-lexer: 2.0.0
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      obug: 2.1.1
+      pathe: 2.0.3
+      picomatch: 4.0.4
+      std-env: 4.0.0
+      tinybench: 2.9.0
+      tinyexec: 1.1.1
+      tinyglobby: 0.2.16
+      tinyrainbow: 3.1.0
+      vite: 7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
+      '@types/node': 26.1.2
     transitivePeerDependencies:
       - msw
 

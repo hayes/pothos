@@ -1,12 +1,12 @@
-test
-tests
-.turbo
-babel.config.js
-*.tsbuildinfo
-tsconfig.*
-ARCHITECTURE.md
-REVIEW.md
-feedback
-
-docs/*review-*.md
-docs/release-status.md
+# Publish only the build output, sources and docs; anything else in the package directory
+# (fixtures, tsconfigs, local scratch directories) stays out.
+/*
+!/dts
+!/esm
+!/lib
+!/src
+!/README.md
+!/LICENSE
+!/CHANGELOG.md
+# Keep stray `tsc` output in src out of the package.
+src/**/*.d.ts

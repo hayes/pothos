@@ -1,0 +1,174 @@
+---
+title: Objects
+description: Defining GraphQL types backed by contract models
+---
+
+## Defining types
+
+`builder.prismaObject` takes a contract model name and the usual object type options. Column types
+are inferred from the contract.
+
+```ts
+builder.prismaObject('User', {
+  // Optional, defaults to the model name
+  name: 'PostAuthor',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+});
+```
+
+## Prisma fields
+
+`t.prismaField` returns a contract-backed type. Its resolver returns an unexecuted Collection. The
+plugin adds the selection for the query and runs it, with `.limit(1)` for single results.
+
+```ts
+builder.queryType({
+  fields: (t) => ({
+    me: t.prismaField({
+      type: 'User',
+      nullable: true,
+      resolve: (_root, _args, ctx) => ctx.db.orm.User.where((user) => user.id.eq(ctx.userId)),
+    }),
+  }),
+});
+```
+
+Return the Collection without calling `.all()` or `.first()`. The plugin rejects materialized
+rows, because it can't add the selection to them. A nullable field resolves to `null` when the
+Collection is empty.
+
+### Mutations
+
+Perform the write, then return a Collection for the result:
+
+```ts
+builder.mutationType({
+  fields: (t) => ({
+    renameUser: t.prismaField({
+      type: 'User',
+      args: {
+        id: t.arg.id({ required: true }),
+        firstName: t.arg.string({ required: true }),
+      },
+      resolve: async (_root, args, ctx) => {
+        const user = ctx.db.orm.User.where({ id: String(args.id) });
+        await user.update({ firstName: args.firstName });
+        return user;
+      },
+    }),
+  }),
+});
+```
+
+To run the write and the reads in one transaction, see [Transactions](./setup#transactions).
+For a deleted row, return a regular payload such as the deleted ID.
+
+### With input
+
+With the [with-input plugin](../with-input), `t.prismaFieldWithInput` works the same way:
+
+```ts
+builder.queryFields((t) => ({
+  userByEmail: t.prismaFieldWithInput({
+    type: 'User',
+    nullable: true,
+    input: { email: t.input.string({ required: true }) },
+    resolve: (_root, args, ctx) =>
+      ctx.db.orm.User.where((user) => user.email.eq(args.input.email)),
+  }),
+}));
+```
+
+## Selections
+
+`select` on the type loads columns whenever the type is queried. `select` on a field loads them
+when the field is queried. A resolver's parent only includes what was selected, plus the model's
+primary key, which is always loaded.
+
+```ts
+builder.prismaObject('User', {
+  select: { firstName: true, lastName: true },
+  fields: (t) => ({
+    fullName: t.string({
+      resolve: (user) => `${user.firstName} ${user.lastName}`,
+    }),
+    initials: t.string({
+      select: ['firstName', 'lastName'],
+      resolve: (user) => `${user.firstName[0]}${user.lastName[0]}`,
+    }),
+    publishedPostCount: t.field({
+      type: 'Int',
+      select: {
+        posts: (posts) => ({ publishedCount: posts.where({ published: 1 }).count() }),
+      },
+      resolve: (user) => user.publishedCount,
+    }),
+  }),
+});
+```
+
+A `select` accepts:
+
+- `{ column: true }` or `['column']`: a column.
+- `{ relation: true }`: the related rows.
+- `{ relation: { where, orderBy, limit, offset } }`: filtered or sorted related rows.
+- `{ relation: (collection) => ({ ... }) }`: counts, aggregates, or other values computed from a
+  to-many relation. Each key is added to the parent.
+
+The function form only works on to-many relations. For a to-one relation, use the object form:
+
+```ts
+authorName: t.string({
+  nullable: true,
+  select: { author: { where: { firstName: 'Alice' } } },
+  resolve: (post) => post.author?.firstName ?? null,
+}),
+```
+
+A filtered to-one relation can be `null` even when its foreign key is required.
+
+A field's `select` can also be a function of the field's arguments and context, sync or async,
+returning either form. Columns that only some of its branches select are optional on the parent,
+as are the columns of an array variable it returns instead of a literal:
+
+```ts
+email: t.string({
+  nullable: true,
+  select: (_args, ctx) => (ctx.isAdmin ? ['email', 'firstName'] : ['firstName']),
+  resolve: (user) => user.email ?? null,
+}),
+```
+
+## Adding fields
+
+`builder.objectField` and `builder.objectFields` don't support `select`. Use
+`prismaObjectField` or `prismaObjectFields` instead:
+
+```ts
+builder.prismaObjectField('User', 'displayName', (t) =>
+  t.string({
+    select: ['firstName', 'lastName'],
+    resolve: (user) => `${user.firstName} ${user.lastName}`,
+  }),
+);
+```
+
+With a model name, the parent only includes the field's own `select`. Pass the ref returned by
+`prismaObject` to use the type's selections, or to extend a [variant](./variants):
+
+```ts
+const User = builder.prismaObject('User', {
+  select: ['firstName'],
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
+
+builder.prismaObjectField(User, 'displayName', (t) =>
+  t.string({
+    select: ['lastName'],
+    resolve: (user) => `${user.firstName} ${user.lastName}`,
+  }),
+);
+```

@@ -1,0 +1,55 @@
+---
+title: Prisma Next plugin
+description: An experimental Pothos plugin for the Prisma ORM 8 collection client
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="warn" title="Experimental">
+  This plugin targets Prisma ORM `8.0.0-rc.22` exactly. Other versions are not supported, and the
+  API of both Prisma ORM 8 and this plugin may change in any release.
+</Callout>
+
+The Prisma Next plugin defines GraphQL types from the models in a
+[Prisma ORM 8](https://github.com/prisma/orm) contract and applies the selections a query needs to
+the Collections your resolvers return. It supports relations, counts, variants, interfaces, and
+Relay nodes and connections.
+
+It is a separate package from [`@pothos/plugin-prisma`](/docs/plugins/prisma), which targets
+Prisma ORM 7 and `@prisma/client`. The two
+[can't be used in the same program](/docs/plugins/prisma-next/setup#installing).
+
+The [playground example](/playground?example=plugin-prisma-next) runs the examples below against
+SQLite in the browser and shows each SQL statement in its **SQL** tab.
+
+## Example
+
+With the [builder setup](/docs/plugins/prisma-next/setup) and a `Post` type, this `User` type
+exposes a computed name and a filtered relation:
+
+<include cwd lang="typescript" meta='playground example="plugin-prisma-next"'>playground-examples/plugin-prisma-next/types/user.ts#user</include>
+
+A root field returns an unexecuted Collection:
+
+<include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ users { fullName posts { title author { email } } } }"'>playground-examples/plugin-prisma-next/queries.ts#users-query</include>
+
+The plugin adds the `select` and `include` calls for the requested fields, so this query loads the
+users, their posts, and each post's author in one Collection call:
+
+```graphql
+query {
+  users {
+    fullName
+    posts {
+      title
+      author {
+        email
+      }
+    }
+  }
+}
+```
+
+See [Setup](/docs/plugins/prisma-next/setup), [Objects](/docs/plugins/prisma-next/objects),
+[Relations](/docs/plugins/prisma-next/relations), and
+[Connections](/docs/plugins/prisma-next/connections).

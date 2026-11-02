@@ -104,7 +104,10 @@ export class ModelLoader {
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
     if (!this.rowCache.has(key)) {
-      this.rowCache.set(key, Plan.forParentRow(drizzleAdapter(this.config), this.context, info));
+      this.rowCache.set(
+        key,
+        Plan.forParentRow(drizzleAdapter(this.config), { context: this.context, info }),
+      );
     }
 
     return this.rowCache.get(key)!;
