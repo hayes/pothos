@@ -424,6 +424,15 @@ export function computedSelection(
   return { computed: { [slotKey(name, scope)]: { query, [COMPUTE]: compute } } };
 }
 
+/** Checks that a `select` is a column array or an object, which `splitSelect` relies on. */
+export function assertSelectShape(raw: unknown, owner: string): asserts raw is RawSelect {
+  if (!raw || typeof raw !== 'object') {
+    throw new PothosValidationError(
+      `select on ${owner} must be a column array or an object of columns and relations, got ${JSON.stringify(raw)}.`,
+    );
+  }
+}
+
 /** The columns and relations of a `select`, without validating them. */
 export function splitSelect(raw: RawSelect, model: PrismaNextModel | undefined) {
   const columns: string[] = [];
@@ -472,6 +481,7 @@ function compileSelect(
   owner: string,
   { scope, args, source, rows }: SelectScope,
 ): MaybePromise<PrismaNextQuery> {
+  assertSelectShape(raw, owner);
   const { columns, relations } = splitSelect(raw, model);
   for (const column of Array.isArray(raw) ? [] : columns) {
     const value = (raw as Record<string, unknown>)[column];

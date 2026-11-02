@@ -340,7 +340,14 @@ type BranchSelectCheck<
     Select extends readonly (keyof Row<Types, M>)[]
     ? unknown
     : { readonly [K in keyof Select]: SelectColumnCheck<Types, M, Select[K]> }
-  : ExactSelectCheck<Types, M, Select>;
+  : Select extends string | number | boolean | bigint | symbol
+    ? NotASelect<Select>
+    : ExactSelectCheck<Types, M, Select>;
+
+/** Names a primitive `select`, which the object spec's optional keys would otherwise accept. */
+interface NotASelect<Value> {
+  readonly 'A select is a column array or an object, not': Value;
+}
 
 type UnknownSelectKeys<
   Types extends SchemaTypes,

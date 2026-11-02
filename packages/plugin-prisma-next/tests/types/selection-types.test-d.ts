@@ -857,3 +857,43 @@ builder.prismaObject('User', {
     }),
   }),
 });
+
+// A select is a column array or an object, or a function returning one.
+builder.prismaObject('User', {
+  fields: (t) => ({
+    stringSelect: t.string({
+      // @ts-expect-error a select isn't a column name
+      select: 'email',
+      resolve: () => '',
+    }),
+    numberSelect: t.string({
+      // @ts-expect-error a select isn't a number
+      select: 1,
+      resolve: () => '',
+    }),
+    booleanSelect: t.string({
+      // @ts-expect-error a select isn't a boolean
+      select: true,
+      resolve: () => '',
+    }),
+    stringFromFunction: t.string({
+      // @ts-expect-error a select function returns an array or an object
+      select: () => 'email',
+      resolve: () => '',
+    }),
+    numberInBranch: t.string({
+      args: { first: t.arg.boolean() },
+      // @ts-expect-error every branch is checked
+      select: (args) => (args.first ? 1 : { email: true }),
+      resolve: () => '',
+    }),
+  }),
+});
+// @ts-expect-error a type's select isn't a column name
+builder.prismaObject('User', { name: 'SelectString', select: 'email', fields: () => ({}) });
+// @ts-expect-error a type's select isn't a number
+builder.prismaObject('User', { name: 'SelectNumber', select: 1, fields: () => ({}) });
+// @ts-expect-error a type's select isn't a boolean
+builder.prismaObject('User', { name: 'SelectBoolean', select: true, fields: () => ({}) });
+// @ts-expect-error a select isn't a column name on an interface either
+builder.prismaInterface('User', { name: 'SelectIface', select: 'email', fields: () => ({}) });
