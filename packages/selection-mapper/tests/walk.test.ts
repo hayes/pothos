@@ -1365,33 +1365,110 @@ describe('fragments that expand at every level', () => {
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'U2')).toBeNull();
   });
 
-  it('hands a select function beneath an expansion the path a plain walk would', async () => {
-    const seen: string[][] = [];
-    const { types } = linkedSchema();
-
-    for (const name of ['PostI', 'P1', 'P2', 'P3']) {
-      const field = (types.getType(name) as never as WalkedType).getFields().author as never as {
+  /** Replaces `name`'s select on each of `typeNames`. */
+  function selectOn(
+    types: ReturnType<typeof linkedSchema>['types'],
+    typeNames: string[],
+    name: string,
+    select: SelectFn<FakeMap>,
+  ) {
+    for (const typeName of typeNames) {
+      const field = (types.getType(typeName) as never as WalkedType).getFields()[name] as never as {
         extensions: Record<string, unknown>;
       };
 
-      field.extensions = {
-        ...field.extensions,
-        select: ((_args, _ctx, nested, _selected, position) => {
-          seen.push(chainOf(position));
-
-          return { select: { author: nested({}) } };
-        }) satisfies SelectFn<FakeMap>,
-      };
+      field.extensions = { ...field.extensions, select };
     }
+  }
 
+  const postTypes = ['PostI', 'P1', 'P2', 'P3'];
+  const authorThroughNode =
+    '{ user { ... on Node { ... on UserI { posts { ... on PostI { author { id } } } } } } }';
+  const everyPath = ['UserI', 'U1', 'U2', 'U3'].map((type) => [
+    'Query.user',
+    `${type}.posts`,
+    'PostI.author',
+  ]);
+
+  it('walks again beneath every type when a select function reads what is above it', async () => {
+    const seen: string[][] = [];
+    const { types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      seen.push(chainOf(position));
+
+      return { select: { author: nested({}) } };
+    });
+
+    const info = await resolveInfo(types, authorThroughNode);
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(seen).toEqual(everyPath);
+  });
+
+  it('walks again when a select function reads what is above it after an await', async () => {
+    const seen: string[][] = [];
+    const { types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', async (_args, _ctx, nested, _selected, position) => {
+      await Promise.resolve();
+      seen.push(chainOf(position));
+
+      return { select: { author: await nested({}) } };
+    });
+    selectOn(types, ['UserI', 'U1', 'U2', 'U3'], 'posts', async (_args, _ctx, nested) => ({
+      select: { posts: await nested({}) },
+    }));
+
+    const info = await resolveInfo(types, authorThroughNode);
+
+    await Plan.fromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(seen).toEqual(everyPath);
+  });
+
+  it('shares a walk whose select functions read only their own link', async () => {
+    const { calls, types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      calls.author +=
+        position.node.name.value.length > 0 && position.field && position.type ? 1 : 0;
+
+      return { select: { author: nested({}) } };
+    });
+
+    const info = await resolveInfo(types, expandingDocument(6));
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(calls).toEqual({ posts: 12, author: 12 });
+  });
+
+  it('pays for a read of the path only in the walks above the read', async () => {
+    const { calls, types } = linkedSchema();
+
+    selectOn(
+      types,
+      ['UserI', 'U1', 'U2', 'U3'],
+      'drafts',
+      (_args, _ctx, nested, _selected, position) => {
+        chainOf(position);
+
+        return { select: { drafts: nested({}) } };
+      },
+    );
+
+    // `drafts` reads up to the root, which is walked once anyway. `posts` beside it stays shared.
+    const posts = expandingDocument(12).slice('{ user { '.length, -' } }'.length);
     const info = await resolveInfo(
       types,
-      '{ user { ... on Node { ... on UserI { posts { ... on PostI { author { id } } } } } } }',
+      `{ user { ${posts} ... on Node { ... on UserI { drafts { id } } } } }`,
     );
 
     queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
 
-    expect(seen).toEqual([['Query.user', 'UserI.posts', 'PostI.author']]);
+    expect(calls).toEqual({ posts: 24, author: 24 });
   });
 
   it('walks a fragment again under another field, whose position differs', async () => {

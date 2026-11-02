@@ -300,6 +300,42 @@ const Linked = builder.interfaceRef<object>('Linked').implement({
   }),
 });
 
+// A query that branches on where it is loaded, beneath a fragment spread on two variants.
+const branchPaths: string[][] = [];
+
+const BranchPost = builder.drizzleObject('posts', {
+  name: 'BranchPost',
+  fields: (t) => ({ id: t.exposeID('postId') }),
+});
+
+const BranchUser = builder.drizzleObject('users', {
+  name: 'BranchUser',
+  fields: (t) => ({
+    posts: t.relation('posts', {
+      type: BranchPost,
+      query: (_args, _ctx, path) => {
+        branchPaths.push(path!.path);
+
+        return path!.path.includes('FeatureItem.author')
+          ? { limit: 1, orderBy: { postId: 'desc' } }
+          : { limit: 2, orderBy: { postId: 'asc' } };
+      },
+    }),
+  }),
+});
+
+const Item = builder.drizzleInterface('posts', {
+  variant: 'Item',
+  select: { columns: { postId: true } },
+  resolveType: (post) => (post.postId % 2 ? 'BugItem' : 'FeatureItem'),
+  fields: (t) => ({
+    author: t.relation('author', { type: BranchUser }),
+  }),
+});
+
+builder.drizzleObject('posts', { variant: 'BugItem', interfaces: [Item] });
+builder.drizzleObject('posts', { variant: 'FeatureItem', interfaces: [Item] });
+
 let relationQueryCalls = 0;
 
 const relationQuery = () => {
@@ -344,6 +380,13 @@ for (const n of [1, 2, 3]) {
 
 builder.queryType({
   fields: (t) => ({
+    items: t.drizzleField({
+      type: [Item],
+      resolve: (query) =>
+        db.query.posts.findMany(
+          query({ where: { postId: { lte: 2 } }, orderBy: { postId: 'asc' } }),
+        ),
+    }),
     cyclicUser: t.drizzleField({
       type: CyclicUser,
       resolve: (query) => db.query.users.findFirst(query({ where: { id: 1 } })),
@@ -784,6 +827,51 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(drizzleLogs).toHaveLength(1);
+    });
+  });
+
+  describe('a query that reads its path beneath a fragment spread on two variants', () => {
+    it('plans the relation for each path it is loaded at', async () => {
+      branchPaths.length = 0;
+
+      const result = await execute({
+        schema,
+        document: gql`
+          fragment Author on Item {
+            author {
+              posts {
+                id
+              }
+            }
+          }
+
+          query {
+            items {
+              ... on BugItem {
+                ...Author
+              }
+              ... on FeatureItem {
+                ...Author
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(branchPaths).toEqual(
+        expect.arrayContaining([
+          ['Query.items', 'BugItem.author', 'BranchUser.posts'],
+          ['Query.items', 'FeatureItem.author', 'BranchUser.posts'],
+        ]),
+      );
+      expect(result.data).toEqual({
+        items: [
+          { author: { posts: [{ id: '1' }, { id: '2' }] } },
+          { author: { posts: [{ id: '15' }] } },
+        ],
+      });
     });
   });
 

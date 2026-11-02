@@ -118,6 +118,9 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   /** The relation query of the nested selection this plan was made for, merged ahead of `walk`. */
   private relationQuery?: Query;
 
+  /** Whether a select function in this walk read the position above its own field. */
+  positionRead = false;
+
   /** Whether a field an expansion walks has no select, so it can only read the row as loaded. */
   expansionReadsRow = false;
 
@@ -266,14 +269,13 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * One field node is invoked once per type it is reached on, and a fragment on a non-model
    * interface reaches it on the interface and on each implementation. Each of those walks would
    * invoke the fields beneath it the same number of times, so a walk per invocation is exponential
-   * in the document's depth. What a walk collects depends only on `position.node` and `key`, apart
-   * from the position links its select functions see, so the invocations share one: the first's,
-   * which `fragmentWalks` makes the plain walk's where there is one.
+   * in the document's depth. What a walk collects depends only on `position.node` and `key`, unless
+   * a select function reads the position above it, so the invocations share one that did not:
+   * `positionRead` says it did. A walk that is still pending may yet read it, so it is not shared.
    *
    * Walks are kept per plan, so one field selected beneath two others (a fragment spread beneath
-   * both) is walked for each, and every select function sees the fields above it in the document.
-   *
-   * A walk that fails is not kept, so a select function that catches the failure can retry it.
+   * both) is walked for each. A walk that throws is not kept, so a select function that catches
+   * the failure can retry it.
    */
   nested(
     type: GraphQLNamedType,
@@ -302,10 +304,10 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
         throw error;
       }
 
-      const kept = walks;
+      if (!(created.positionRead || created.pending)) {
+        walks.set(key, created);
+      }
 
-      kept.set(key, created);
-      created.pending?.catch(() => kept.delete(key));
       walked = created;
     }
 
