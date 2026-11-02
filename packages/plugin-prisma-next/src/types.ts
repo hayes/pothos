@@ -1210,11 +1210,18 @@ export type PrismaNextConnectionFieldOptions<
     >,
     InferredFieldOptionKeys | 'type' | 'resolve' | 'args'
   > &
-  ConnectionPagingOptions<Types, ParentShape, M, Args, Cursor> & {
+  ConnectionPagingOptions<
+    Types,
+    RootResolveParent<Types, ParentShape, ResolveShape, Kind>,
+    M,
+    Args,
+    Cursor
+  > & {
     type: Param;
     /**
      * Direction and null placement for this request. Each item names a cursor column, in cursor
-     * order, and backward pages reverse it.
+     * order, and backward pages reverse it. The function form takes the request and returns the
+     * per-row form: `(args, ctx) => (post, tools) => [...]`.
      */
     orderBy?:
       | readonly RelationOrderSelector<Types, M>[]
