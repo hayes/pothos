@@ -161,12 +161,15 @@ function rethrowDecodeError(error: unknown, prefix: string): never {
 const CURSOR_PREFIX = 'PNC:';
 
 /**
- * Encodes each cursor column's direction (`a` or `d`) and null placement (`f`, `l` or none), so
- * `adl` means `asc`, then `desc` with nulls last. A request's `orderBy` can change both, and the
- * same values point to a different position under another ordering.
+ * Encodes each cursor column's name, direction (`a` or `d`) and null placement (`f`, `l` or none),
+ * so `title.a,id.dl` means `title asc`, then `id desc` with nulls last. A request's `orderBy` can
+ * change the direction and placement, and the same values point to a different position under
+ * another ordering.
  */
 function orderingSignature(order: CursorOrder): string {
-  return order.map(({ direction, nulls }) => `${direction[0]}${nulls?.[0] ?? ''}`).join('');
+  return order
+    .map(({ field, direction, nulls }) => `${field}.${direction[0]}${nulls?.[0] ?? ''}`)
+    .join(',');
 }
 
 function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: FieldCodecs) {
@@ -207,7 +210,7 @@ function decodeCursor(
   }
   const separator = payload.indexOf(':', CURSOR_PREFIX.length);
   const signature = separator === -1 ? '' : payload.slice(CURSOR_PREFIX.length, separator);
-  if (!/^(?:[ad][fl]?)+$/.test(signature)) {
+  if (!/^[^.,]+\.[ad][fl]?(?:,[^.,]+\.[ad][fl]?)*$/.test(signature)) {
     throw new PothosValidationError('Invalid cursor: missing or malformed ordering signature.');
   }
   if (checkOrdering && signature !== orderingSignature(order)) {
