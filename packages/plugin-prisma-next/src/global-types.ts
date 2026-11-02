@@ -383,7 +383,7 @@ declare global {
             const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
             const EdgeInterfaces extends InterfaceParam<Types>[] = [],
             M extends ModelName<Types> = ParamToModelName<Types, Param>,
-            const Cursor extends CursorShape = CursorShape,
+            const Cursor extends CursorShape<Types, M> = CursorShape<Types, M>,
           >(
             options: PrismaNextConnectionFieldOptions<
               Types,

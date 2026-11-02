@@ -46,7 +46,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   Param extends M | PrismaNextObjectRef<Types, M, unknown>,
   Nullable extends boolean,
   Args extends InputFieldMap,
-  Cursor extends CursorShape,
+  Cursor extends CursorShape<Types, M>,
   ResolveReturnShape,
 >(
   this: typeof rootFieldBuilderProto & {

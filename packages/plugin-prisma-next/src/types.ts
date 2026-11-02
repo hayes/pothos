@@ -1073,16 +1073,21 @@ export interface UnknownCursorColumn<Column> {
 }
 
 /**
- * What a `cursor` looks like before its columns are checked. It stays this loose so that a wrong
- * column is inferred as written, and `CursorCheck` names it, rather than the error listing every
- * entry of `CursorSpec`.
+ * What a `cursor` looks like before its columns are checked. It accepts any string, so that a wrong
+ * column is inferred as written and `CursorCheck` names it, rather than the error listing every
+ * entry of `CursorSpec`. `string & {}` keeps the columns in the union for editors to complete.
  */
-export type CursorShape = CursorShapeEntry | readonly [CursorShapeEntry, ...CursorShapeEntry[]];
+export type CursorShape<Types extends SchemaTypes, M extends ModelName<Types>> =
+  | CursorShapeEntry<CursorColumnName<Types, M> | (string & {})>
+  | readonly [
+      CursorShapeEntry<CursorColumnName<Types, M> | (string & {})>,
+      ...CursorShapeEntry<CursorColumnName<Types, M> | (string & {})>[],
+    ];
 
-type CursorShapeEntry =
-  | string
+type CursorShapeEntry<Column> =
+  | Column
   | {
-      readonly field: string;
+      readonly field: Column;
       readonly direction?: 'asc' | 'desc';
       readonly nulls?: 'first' | 'last';
     };
@@ -1140,7 +1145,8 @@ export type ConnectionPagingOptions<
   Args extends InputFieldMap,
   Cursor,
 > = {
-  cursor: Cursor & NoInfer<CursorCheck<Types, M, Cursor>>;
+  // `NoInfer` around the check would hide the columns from a bare string's completions.
+  cursor: Cursor & ([Cursor] extends [infer Written] ? CursorCheck<Types, M, Written> : never);
   defaultSize?: SizeOption<Types, Args>;
   maxSize?: SizeOption<Types, Args>;
   args?: Args;
@@ -1161,7 +1167,7 @@ export type PrismaNextConnectionFieldOptions<
   Param,
   Nullable extends boolean,
   Args extends InputFieldMap,
-  Cursor extends CursorShape,
+  Cursor extends CursorShape<Types, M>,
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind,
 > = Omit<
@@ -1219,7 +1225,7 @@ export type PrismaNextRelatedConnectionOptions<
   RelName extends RelationKeys<Types, ParentModel>,
   Nullable extends boolean,
   Args extends InputFieldMap,
-  Cursor extends CursorShape,
+  Cursor extends CursorShape<Types, RelatedModel<Types, ParentModel, RelName>>,
   RelatedShape = unknown,
   ParentShape = ObjectBaseShape<Types, ParentModel>,
   QueryLiteral = ConnectionQueryLiteral<Types, RelatedModel<Types, ParentModel, RelName>>,
