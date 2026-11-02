@@ -378,6 +378,7 @@ declare global {
         ? <
             Args extends InputFieldMap,
             Param extends ModelParam<Types>,
+            ResolveShape,
             ResolveReturnShape,
             Nullable extends boolean = Types['DefaultFieldNullability'],
             const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
@@ -394,7 +395,8 @@ declare global {
               Args,
               Cursor,
               ResolveReturnShape,
-              Kind
+              Kind,
+              ResolveShape
             >,
             connectionOptions?:
               | PothosSchemaTypes.ConnectionObjectOptions<

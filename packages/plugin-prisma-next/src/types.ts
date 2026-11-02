@@ -903,10 +903,20 @@ type PrismaNextTypeOptions<Types extends SchemaTypes, M extends ModelName<Types>
   ) => FieldMap;
 } & NameOrVariant;
 
-/** A subscription field resolves each value its `subscribe` yields, not the root. */
-type RootResolveParent<ParentShape, ResolveShape, Kind> = Kind extends 'Subscription'
+/**
+ * A subscription field resolves each value its `subscribe` yields, not the root. On a prisma type,
+ * `ResolveShape` is the field's `select`, which adds to the parent.
+ */
+type RootResolveParent<
+  Types extends SchemaTypes,
+  ParentShape,
+  ResolveShape,
+  Kind,
+> = Kind extends 'Subscription'
   ? ResolveShape
-  : ParentShape;
+  : Kind extends 'PrismaNextObject'
+    ? ShapeFromSelect<Types, ParentShape, ResolveShape>
+    : ParentShape;
 
 export type PrismaNextRootFieldOptions<
   Types extends SchemaTypes,
@@ -935,7 +945,7 @@ export type PrismaNextRootFieldOptions<
 > & {
   type: Param;
   resolve: (
-    parent: RootResolveParent<ParentShape, ResolveShape, Kind>,
+    parent: RootResolveParent<Types, ParentShape, ResolveShape, Kind>,
     args: InputShapeFromFields<Args>,
     context: Types['Context'],
     info: GraphQLResolveInfo,
@@ -980,7 +990,7 @@ export type PrismaNextRootFieldWithInputOptions<
   PothosSchemaTypes.FieldWithInputBaseOptions<Types, Args, Fields, InputName, ArgRequired> & {
     type: Param;
     resolve: (
-      parent: RootResolveParent<ParentShape, ResolveShape, Kind>,
+      parent: RootResolveParent<Types, ParentShape, ResolveShape, Kind>,
       args: InputShapeFromFields<Args> & {
         [K in InputName]:
           | InputShapeFromFields<Fields>
@@ -1170,6 +1180,7 @@ export type PrismaNextConnectionFieldOptions<
   Cursor extends CursorShape<Types, M>,
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind,
+  ResolveShape = ParentShape,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -1179,7 +1190,7 @@ export type PrismaNextConnectionFieldOptions<
     InputFieldsFromShape<Types, PothosSchemaTypes.DefaultConnectionArguments, 'Arg'> &
       (InputFieldMap extends Args ? {} : Args),
     Kind,
-    ParentShape,
+    ResolveShape,
     ResolveReturnShape
   >,
   'type' | 'resolve' | 'args' | InferredFieldOptionKeys
@@ -1210,7 +1221,7 @@ export type PrismaNextConnectionFieldOptions<
           context: Types['Context'],
         ) => RelationOrderBy<Types, M> | undefined);
     resolve: (
-      parent: ParentShape,
+      parent: RootResolveParent<Types, ParentShape, ResolveShape, Kind>,
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
       info: GraphQLResolveInfo,
