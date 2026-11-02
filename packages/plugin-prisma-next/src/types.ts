@@ -29,7 +29,6 @@ import type {
   AggregateBuilder,
   Collection,
   CollectionTypeState,
-  Condition,
   DefaultCollectionTypeState,
   DefaultModelRow,
   HasRow,
@@ -572,6 +571,10 @@ export type RelationNullable<
         : true
       : true;
 
+/**
+ * An aggregate's `where`: a shorthand filter, or a callback of the args and context returning one
+ * or the ORM's predicate callback, like the callback form of a relation's `query`.
+ */
 type RelationAggregateWhere<
   Types extends SchemaTypes,
   M extends ModelName<Types>,
@@ -584,19 +587,9 @@ type RelationAggregateWhere<
       BareModelName<RelatedModel<Types, M, R>>
     >
   | ((
-      accessor: ModelAccessor<
-        Types['PrismaNextContract'],
-        BareModelName<RelatedModel<Types, M, R>>,
-        NamespaceOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
-      >,
       args: InputShapeFromFields<Args>,
       context: Types['Context'],
-      tools: ModelCallbackTools<
-        Types['PrismaNextContract'],
-        BareModelName<RelatedModel<Types, M, R>>,
-        NamespaceOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
-      >,
-    ) => Condition);
+    ) => RelationWhere<Types, RelatedModel<Types, M, R>> | undefined);
 
 type RelationAggregateBaseOptions<
   Types extends SchemaTypes,

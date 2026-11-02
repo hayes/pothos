@@ -40,7 +40,7 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
       publishedCount: t.relationCount('posts', { where: { published: 1 } }),
       countByFlag: t.relationCount('posts', {
         args: { flag: t.arg.int({ required: true }) },
-        where: (p, args) => p.published.eq(args.flag),
+        where: (args) => (p) => p.published.eq(args.flag),
       }),
       maxPublished: t.relationAggregate('posts', { op: 'max', field: 'published' }),
       minPublished: t.relationAggregate('posts', { op: 'min', field: 'published' }),

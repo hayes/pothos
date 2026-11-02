@@ -58,13 +58,17 @@ builder.prismaObject('User', {
     publishedPostCount: t.relationCount('posts', { where: { published: 1 } }),
     postCountByState: t.relationCount('posts', {
       args: { published: t.arg.int({ required: true }) },
-      where: (post, args) => post.published.eq(args.published),
+      where: (args) => ({ published: args.published }),
     }),
     totalScore: t.relationAggregate('posts', { op: 'sum', field: 'score' }),
     firstTitle: t.relationAggregate('posts', { op: 'min', field: 'title', type: 'String' }),
   }),
 });
 ```
+
+`where` takes what a relation's `query.where` does, or a function of the field's arguments and the
+context that returns it. So a predicate that needs the arguments is
+`(args) => (post) => post.published.eq(args.published)`.
 
 Operations and fields come from the contract's aggregate types. `count` is a non-null `Int`;
 other operations are nullable `Float`s by default. Pass `type` for non-numeric results, or for a

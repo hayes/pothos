@@ -83,7 +83,6 @@ import {
   relationArgs,
   rowsSelection,
   scopeOf,
-  whereInput,
 } from './utils/selections.js';
 
 type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
@@ -503,10 +502,15 @@ export class PrismaNextObjectFieldBuilder<
       }
       return field === undefined ? reducer.call(rel) : reducer.call(rel, field);
     };
-    const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
-      computedSelection(name, scopeOf(position), { op, field, where, args }, (sub) => ({
-        value: reduce(where === undefined ? sub : sub.where(whereInput(where, args, ctx))),
+    const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) => {
+      const filter =
+        typeof where === 'function'
+          ? (where as (args: object, ctx: object) => unknown)(args, ctx)
+          : where;
+      return computedSelection(name, scopeOf(position), { op, field, where, args }, (sub) => ({
+        value: reduce(filter === undefined ? sub : sub.where(filter)),
       }));
+    };
     return this.field({
       ...rest,
       type: options.type ?? (op === 'count' ? 'Int' : 'Float'),

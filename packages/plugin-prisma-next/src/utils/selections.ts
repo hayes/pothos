@@ -340,22 +340,6 @@ export function definedQuery(value: unknown, owner: string): DeclarativeQuery | 
     : undefined;
 }
 
-/**
- * A `where` option as the ORM takes it. A callback written as `(model, args, ctx, tools)` is
- * adapted to the ORM's `(model, tools)`.
- */
-export function whereInput(where: unknown, args: object, ctx: object): unknown {
-  return typeof where === 'function'
-    ? (model: unknown, tools: unknown) =>
-        (where as (model: unknown, args: object, ctx: object, tools: unknown) => unknown)(
-          model,
-          args,
-          ctx,
-          tools,
-        )
-    : where;
-}
-
 export function applyQuery(collection: MapperCollection, query: DeclarativeQuery) {
   let result = collection;
   if (query.where !== undefined) {

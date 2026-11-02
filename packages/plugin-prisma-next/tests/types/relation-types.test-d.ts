@@ -86,7 +86,7 @@ builder.prismaObject('User', {
     publishedCount: t.relationCount('posts', { where: { published: 1 } }),
     countByFlag: t.relationCount('posts', {
       args: { flag: t.arg.int({ required: true }) },
-      where: (post, args, _ctx, tools) => {
+      where: (args) => (post, tools) => {
         expectTypeOf(tools.fns).not.toBeAny();
         return post.published.eq(args.flag);
       },
@@ -95,7 +95,7 @@ builder.prismaObject('User', {
     badCount: t.relationCount('nope'),
     countMissingColumn: t.relationCount('posts', {
       // @ts-expect-error accessors only expose model fields
-      where: (post) => post.missing.neq('x'),
+      where: () => (post) => post.missing.neq('x'),
     }),
     countUnknownOption: t.relationCount('posts', {
       // @ts-expect-error unknown options are rejected
@@ -249,8 +249,23 @@ builder.prismaObject('User', {
     // @ts-expect-error a `where` callback returns a condition
     t.relationCount('posts', { where: () => 'oops' });
     // @ts-expect-error a `where` callback returns a condition
-    t.relationAggregate('posts', { op: 'sum', field: 'published', where: () => ({}) });
+    t.relationAggregate('posts', { op: 'sum', field: 'published', where: () => 42 });
+    t.relationCount('posts', { where: () => (post) => post.published.eq(1) });
+    t.relationCount('posts', { where: () => ({ published: 1 }) });
+    t.relationCount('posts', {
+      args: { published: t.arg.int() },
+      where: (args) => (args.published == null ? undefined : { published: args.published }),
+    });
+    t.relationAggregate('posts', {
+      op: 'sum',
+      field: 'published',
+      args: { published: t.arg.int({ required: true }) },
+      where: (args, _ctx) => (post) => post.published.eq(args.published),
+    });
+    // @ts-expect-error the callback takes the args and context, and may return the accessor callback
     t.relationCount('posts', { where: (post) => post.published.eq(1) });
+    // @ts-expect-error unknown columns in a shorthand result are rejected
+    t.relationCount('posts', { where: () => ({ draft: 1 }) });
     return { count, sum, countBigInt };
   },
 });
