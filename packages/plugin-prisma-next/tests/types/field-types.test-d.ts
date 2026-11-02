@@ -369,3 +369,55 @@ builder.queryField('rootParent', (t) =>
     },
   }),
 );
+
+// A prisma type's root-style fields read the parent their `select` loads.
+builder.prismaObject('User', {
+  variant: 'RootFieldsWithSelect',
+  fields: (t) => ({
+    related: t.prismaField({
+      type: 'Post',
+      select: ['firstName'],
+      resolve: (user) => {
+        expectTypeOf(user.firstName).toEqualTypeOf<string>();
+        // @ts-expect-error not in the select
+        return orm.Post.where({ title: user.lastName });
+      },
+    }),
+    relatedList: t.prismaField({
+      type: ['Post'],
+      select: { email: true },
+      resolve: (user) => orm.Post.where({ title: user.email }),
+    }),
+    page: t.prismaConnection({
+      type: 'Post',
+      cursor: 'id',
+      select: ['firstName'],
+      resolve: (user) => {
+        expectTypeOf(user.firstName).toEqualTypeOf<string>();
+        return orm.Post.where({ title: user.firstName });
+      },
+    }),
+    noSelect: t.prismaField({
+      type: 'Post',
+      resolve: (user) => {
+        expectTypeOf(user.id).toEqualTypeOf<string>();
+        // @ts-expect-error only the key without a select
+        return orm.Post.where({ title: user.firstName });
+      },
+    }),
+  }),
+});
+
+// A subscription connection's `resolve` reads what `subscribe` yields.
+declare const pageRequests: AsyncIterable<{ authorId: string }>;
+builder.subscriptionField('postPage', (t) =>
+  t.prismaConnection({
+    type: 'Post',
+    cursor: 'id',
+    subscribe: () => pageRequests,
+    resolve: (request) => {
+      expectTypeOf(request).toEqualTypeOf<{ authorId: string }>();
+      return orm.Post.where({ authorId: request.authorId });
+    },
+  }),
+);

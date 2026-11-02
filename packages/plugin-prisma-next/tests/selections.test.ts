@@ -474,3 +474,39 @@ describe('function-form select with object branches', () => {
     expect(await read('contact')).toBe('anon alice@example.com');
   });
 });
+
+describe('root-style fields on a prisma type', () => {
+  it('loads the select of a prismaField and a prismaConnection for their resolvers', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        latest: t.prismaField({
+          type: 'Post',
+          select: ['firstName'],
+          resolve: (user) => db.orm.Post.where({ title: `${user.firstName}'s` }),
+          nullable: true,
+        }),
+        page: t.prismaConnection({
+          type: 'Post',
+          cursor: 'id',
+          select: ['email'],
+          resolve: (user) =>
+            db.orm.Post.where({ authorId: user.email === 'bob@example.com' ? 'u-bob' : '' }),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({ type: 'User', resolve: () => db.orm.User.where({ id: 'u-bob' }) }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ user { latest { id } page { nodes { id } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user.latest).toBeNull();
+    expect(result.data.user.page.nodes).toHaveLength(2);
+  });
+});
