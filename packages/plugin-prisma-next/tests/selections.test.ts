@@ -436,3 +436,41 @@ describe('parents the plugin loads', () => {
     }
   });
 });
+
+describe('function-form select with object branches', () => {
+  it('loads what the branch for the arguments selects', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        name: t.string({
+          args: { first: t.arg.boolean() },
+          select: (args) => (args.first ? { firstName: true } : { lastName: true }),
+          resolve: (user) => user.firstName ?? user.lastName ?? '',
+        }),
+        contact: t.string({
+          args: { first: t.arg.boolean() },
+          select: (args) => ({ email: true, ...(args.first ? { firstName: true } : {}) }),
+          resolve: (user) => `${user.firstName ?? 'anon'} ${user.email}`,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: 'User',
+          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const read = async (selection: string) => {
+      const result = await run(schema, `{ user { ${selection} } }`);
+      expect(result.errors).toBeUndefined();
+      return Object.values(result.data.user)[0];
+    };
+    expect(await read('name(first: true)')).toBe('Alice');
+    expect(await read('name(first: false)')).toBe('Andrews');
+    expect(await read('contact(first: true)')).toBe('Alice alice@example.com');
+    expect(await read('contact')).toBe('anon alice@example.com');
+  });
+});
