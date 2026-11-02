@@ -897,3 +897,33 @@ builder.prismaObject('User', { name: 'SelectNumber', select: 1, fields: () => ({
 builder.prismaObject('User', { name: 'SelectBoolean', select: true, fields: () => ({}) });
 // @ts-expect-error a select isn't a column name on an interface either
 builder.prismaInterface('User', { name: 'SelectIface', select: 'email', fields: () => ({}) });
+
+// Every branch of a static conditional select is checked.
+declare const flag: boolean;
+builder.prismaObject('User', {
+  fields: (t) => ({
+    conditionalColumns: t.string({
+      select: flag ? ['firstName'] : ['email'],
+      resolve: () => '',
+    }),
+    conditionalForms: t.string({
+      select: flag ? ['firstName'] : { email: true },
+      resolve: () => '',
+    }),
+    badArrayBranch: t.string({
+      // @ts-expect-error `nope` isn't a column of User
+      select: flag ? ['nope'] : ['email'],
+      resolve: () => '',
+    }),
+    badBranchBesideObject: t.string({
+      // @ts-expect-error `nope` isn't a column of User
+      select: flag ? ['nope'] : { email: true },
+      resolve: () => '',
+    }),
+    badObjectBranchBesideArray: t.string({
+      // @ts-expect-error `nope` isn't a column of User
+      select: flag ? ['email'] : { nope: true },
+      resolve: () => '',
+    }),
+  }),
+});
