@@ -834,6 +834,19 @@ export function splitSelect(
   return { columns, relations };
 }
 
+/**
+ * Whether a `select` entry loads the rows of `relation` through a variant model with a table of its
+ * own, which can't read the columns it inherits. Function and page entries don't hand over rows
+ * loaded that way.
+ */
+export function loadsOwnTableVariantRows(relation: PrismaNextRelation, value: unknown) {
+  return (
+    typeof value !== 'function' &&
+    !isPageEntry(value) &&
+    relation.targetVariantModel?.sharesTable === false
+  );
+}
+
 interface SelectCompilation {
   scope: string;
   args: object;
@@ -952,7 +965,8 @@ export function compileFieldSelect(
       field: { scope, args, ctx, nested, selected, position },
       rows: (relation, name, seed) => {
         // Rows the field's selection set doesn't plan are read as they load, which for a variant
-        // model with a table of its own is without the columns it inherits.
+        // model with a table of its own is without the columns it inherits. The plugin checks a
+        // static select when the schema is built, so this catches what a select function returns.
         if (returnModel !== relation.target && relation.targetVariantModel?.sharesTable === false) {
           throw ownTableVariantRowsError(`field '${position.field.name}'`, name, relation, Error);
         }

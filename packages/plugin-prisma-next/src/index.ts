@@ -12,6 +12,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type PothosUnionTypeConfig,
   type SchemaTypes,
+  unwrapOutputFieldType,
 } from '@pothos/core';
 import {
   deepEqual,
@@ -44,7 +45,7 @@ import type { AnyContract } from './types/models.js';
 import { getPluginConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
 import { reloadFor } from './utils/errors.js';
-import { getModel, ownTableVariantRowsError } from './utils/model.js';
+import { getModel, ownTableVariantRowsError, type PrismaNextModel } from './utils/model.js';
 import {
   compileFieldSelect,
   definedQuery,
@@ -53,6 +54,7 @@ import {
   fieldSlots,
   leftOut,
   loadedSlots,
+  loadsOwnTableVariantRows,
   type PrismaNextSelectFn,
   type PrismaNextSelection,
   parentForField,
@@ -256,6 +258,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         `Field '${declaring.name}.${fieldConfig.name}' exposes '${exposed}', which is not a column on model ${model.key}.`,
       );
     }
+    if (select !== undefined && typeof select !== 'function') {
+      this.assertRowsReadable(fieldConfig, select, model);
+    }
     const selection =
       select !== undefined
         ? compileFieldSelect(this.config.contract, select, model)
@@ -273,6 +278,32 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           },
         }
       : fieldConfig;
+  }
+
+  /**
+   * Rejects a field's static `select` that hands the field rows of a variant model with a table of
+   * its own, as `compileFieldSelect` does for what a select function returns. A field returning the
+   * relation's model plans the rows through its own selection set instead.
+   */
+  private assertRowsReadable(
+    fieldConfig: PothosOutputFieldConfig<Types>,
+    raw: RawSelect,
+    model: PrismaNextModel,
+  ) {
+    for (const [name, value] of splitSelect(raw, model, PothosSchemaError).relations) {
+      const relation = model.relations[name]!;
+      if (!loadsOwnTableVariantRows(relation, value)) {
+        continue;
+      }
+      const returnModel = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type))
+        .extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+      if (
+        returnModel === undefined ||
+        getModel(this.config.contract, returnModel) !== relation.target
+      ) {
+        throw ownTableVariantRowsError(`field '${fieldConfig.name}'`, name, relation);
+      }
+    }
   }
 
   override afterBuild(schema: GraphQLSchema): GraphQLSchema {
@@ -758,11 +789,7 @@ function assertNoVariantRelations(
 ) {
   const model = getModel(contract, modelKey);
   for (const [name, value] of splitSelect(raw, model, PothosSchemaError).relations) {
-    // A function entry computes values from the relation, rather than loading its rows.
-    if (
-      typeof value !== 'function' &&
-      model.relations[name]!.targetVariantModel?.sharesTable === false
-    ) {
+    if (loadsOwnTableVariantRows(model.relations[name]!, value)) {
       throw ownTableVariantRowsError(`type '${typeName}'`, name, model.relations[name]!);
     }
     const variant = model.relations[name]!.declaredByVariant;

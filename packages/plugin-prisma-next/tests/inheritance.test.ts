@@ -1358,16 +1358,39 @@ describe('a relation targeting a variant model with a table of its own', () => {
     expect(() => builder.toSchema()).toThrow(`The select of type 'Note' ${rowsError}`);
   });
 
-  it("rejects a field's select that reads its rows, and plans one returning them", async () => {
-    const { builder, feature } = selectBuilder();
+  it("rejects a field's static select that reads its rows when the schema is built", () => {
+    const { builder } = selectBuilder();
     builder.prismaObject('Note', {
       fields: (t) => ({
-        id: t.exposeID('id'),
         featureTitle: t.string({
           nullable: true,
           select: { feature: true },
           resolve: (note) => note.feature?.title,
         }),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow(`The select of field 'featureTitle' ${rowsError}`);
+  });
+
+  it("rejects the request of a field's select function that reads its rows", async () => {
+    const { builder } = selectBuilder();
+    builder.prismaObject('Note', {
+      fields: (t) => ({
+        featureTitle: t.string({
+          nullable: true,
+          select: () => ({ feature: true }),
+          resolve: (note) => note.feature?.title,
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ notes { featureTitle } }');
+    expect(result.errors?.[0]?.message).toBe(`The select of field 'featureTitle' ${rowsError}`);
+  });
+
+  it("plans the rows of a field's select for a field returning them", async () => {
+    const { builder, feature } = selectBuilder();
+    builder.prismaObject('Note', {
+      fields: (t) => ({
         selected: t.field({
           type: feature,
           nullable: true,
@@ -1376,12 +1399,9 @@ describe('a relation targeting a variant model with a table of its own', () => {
         }),
       }),
     });
-    const schema = builder.toSchema();
-    const read = await run(schema, '{ notes { featureTitle } }');
-    expect(read.errors?.[0]?.message).toBe(`The select of field 'featureTitle' ${rowsError}`);
-    const planned = await run(schema, '{ notes { selected { title } } }');
-    expect(planned.errors).toBeUndefined();
-    expect(planned.data.notes).toEqual([{ selected: null }, { selected: { title: 'feat1' } }]);
+    const result = await run(builder.toSchema(), '{ notes { selected { title } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.notes).toEqual([{ selected: null }, { selected: { title: 'feat1' } }]);
   });
 
   // A feature row for the bug t1, which `orm.Feature` reads but Task narrowed to Feature doesn't.
