@@ -136,6 +136,23 @@ export type TypeSelectObjectSpec<Types extends SchemaTypes, M extends ModelKey<T
     : SelectObjectSpec<Types, M>[K];
 };
 
+/**
+ * Rejects anything but `true` on a to-one relation in a type's `select`, naming the problem. The
+ * spec `TypeSelectCheck` checks against takes a to-one `{ where }`, so this check reports it.
+ */
+type TypeSelectToOneCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = [
+  Select,
+] extends [readonly unknown[]]
+  ? unknown
+  : {
+      [K in keyof Select & RelationKeys<Types, M> as IsToMany<Types, M, K> extends true
+        ? never
+        : NonNullable<Select[K]> extends true
+          ? never
+          : `A to-one relation in a type's select takes only true, filter it in a field's select: ${K &
+              string}`]: never;
+    };
+
 type ToOneFunctionMessage = 'To-one relations take true or { where }, not a function';
 
 /**
@@ -517,8 +534,17 @@ export type ShapeFromObjectSelect<
  * union `Select` to one member.
  */
 export type TypeSelectCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = {
-  select?: (readonly (keyof Row<Types, M> & string)[] | TypeSelectObjectSpec<Types, M>) &
-    NoInfer<SelectCheck<Types, M, Select> & NoTypeLevelPage<Select>>;
+  // Picked by the form of `Select` rather than a union of both, which a failing object `select`
+  // is reported against as not assignable to `undefined`. The field spec, rather than
+  // `TypeSelectObjectSpec`, so the checks below name what a type's `select` can't take.
+  select?: ([Select] extends [readonly unknown[]]
+    ? readonly (keyof Row<Types, M> & string)[]
+    : SelectObjectSpec<Types, M>) &
+    NoInfer<
+      SelectCheck<Types, M, Select> &
+        NoTypeLevelPage<Select> &
+        TypeSelectToOneCheck<Types, M, Select>
+    >;
 };
 
 /** A connection helper's page loads for one field, so a type's `select` can't take one. */

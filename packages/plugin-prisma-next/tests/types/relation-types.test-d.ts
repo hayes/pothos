@@ -14,7 +14,7 @@ import prismaNextPlugin, {
   type RelationWhere,
   type SelectObjectSpec,
 } from '../../src';
-import type { SelectCheck } from '../../src/types/selections';
+import type { SelectCheck, TypeSelectCheck } from '../../src/types/selections';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -144,6 +144,26 @@ builder.prismaObject('Post', {
   select: { author: (author) => ({ rows: author.select('firstName') }) },
   fields: () => ({}),
 });
+
+// A type's `select` takes only `true` for a to-one relation, and the error names it.
+builder.prismaObject('Post', {
+  variant: 'FilteredAuthorInTypeSelect',
+  // @ts-expect-error a type's select can't filter a to-one relation
+  select: { author: { where: { id: 'x' } } },
+  fields: () => ({}),
+});
+expectTypeOf<
+  NonNullable<TypeSelectCheck<Types, 'Post', { author: { where: { id: 'x' } } }>['select']>
+>().toHaveProperty(
+  "A to-one relation in a type's select takes only true, filter it in a field's select: author",
+);
+expectTypeOf<
+  "A to-one relation in a type's select takes only true, filter it in a field's select: author" extends keyof NonNullable<
+    TypeSelectCheck<Types, 'Post', { author: true }>['select']
+  >
+    ? 1
+    : 0
+>().toEqualTypeOf<0>();
 
 // The to-one function form is a branded error type, so its parameter names the problem.
 type AuthorFunctionForm = Extract<
