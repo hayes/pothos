@@ -144,7 +144,8 @@ describe("object fields reading an interface's select", () => {
     });
     builder.queryType({
       fields: (t) => ({
-        user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) }),
+        // A cast row lacking the selected column, as the types otherwise reject.
+        user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) as never }),
       }),
     });
     const result = await run(builder.toSchema(), '{ user { shout } }');

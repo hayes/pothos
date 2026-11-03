@@ -883,7 +883,8 @@ describe('a field that reloads a to-one relation with its own query', () => {
                   nullable: true,
                   resolve: () => ctx.orm.Post.where({ id: 'p-bob1' }),
                 })
-              : t.field({ type: Post, resolve: () => ({ id: 'p-bob1' }) }),
+              : // A cast row without the selected author, which the types otherwise reject.
+                t.field({ type: Post, resolve: () => ({ id: 'p-bob1' }) as never }),
         }),
       });
       return builder.toSchema();

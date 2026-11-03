@@ -8,7 +8,7 @@ export class PrismaNextInterfaceRef<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   Shape = Row<Types, M>,
-> extends InterfaceRef<Types, InterfaceReturnShape<Types, M>, Shape> {
+> extends InterfaceRef<Types, InterfaceReturnShape<Types, M, Shape>, Shape> {
   declare readonly [prismaInterfaceBrand]: M;
   declare readonly [prismaContractBrand]: Types['PrismaNextContract'];
   readonly modelKey: M;

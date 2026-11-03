@@ -71,7 +71,9 @@ export { PrismaNextInterfaceRef, prismaInterfaceBrand } from './interface-ref.js
 export { PrismaNextNodeRef, relayIDShapeBrand } from './node-ref.js';
 export {
   type ModelBrand,
+  type PlannedRowBrand,
   PrismaNextObjectRef,
+  plannedRowBrand,
   prismaContractBrand,
   prismaModelBrand,
 } from './object-ref.js';
@@ -99,7 +101,8 @@ export type {
   IdentityFields,
   InterfaceReturnShape,
   ModelKey,
-  ModelReturnShape,
+  ObjectReturnShape,
+  PlannedRow,
   RelationKeys,
   Row,
 } from './types/models.js';

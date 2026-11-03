@@ -275,7 +275,8 @@ describe('inherited selections', () => {
     const User = builder.prismaObject('User', { interfaces: [Named] });
     builder.queryType({
       fields: (t) => ({
-        user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) }),
+        // A cast row lacking the selected column, as the types otherwise reject.
+        user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) as never }),
       }),
     });
     const result = await run(builder.toSchema(), '{ user { name } }');

@@ -2,7 +2,8 @@ import type { Merge, SchemaTypes } from '@pothos/core';
 import type { SqlStorage } from '@prisma/orm-family-sql/contract/types';
 import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
 import type { Contract } from '@prisma/orm-framework/contract/types';
-import type { ModelBrand, prismaModelBrand } from '../object-ref.js';
+import type { ModelBrand, PlannedRowBrand, prismaModelBrand } from '../object-ref.js';
+import type { IsToMany } from './relations.js';
 
 export type AnyContract = Contract<SqlStorage>;
 
@@ -183,14 +184,43 @@ export type IdentityFields<Types extends SchemaTypes, M extends ModelKey<Types>>
   : PrimaryKeyFields<Types['PrismaNextContract'], M>;
 
 /**
- * What a field returning a model's type may resolve to: a row with its key, from which the loader
- * reloads any columns the type's fields need. A model without an identity needs the whole row.
+ * A row the loader planned from a query, such as a row connection helpers load with `info`: its key
+ * and what the query's selection needs, which includes the `select` of the type it resolves as. A
+ * model without an identity loads its whole row. The type-only brand keeps a hand-built row, which
+ * may lack what a type's `select` needs, from passing as one.
  */
-export type ModelReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>> = [
+export type PlannedRow<Types extends SchemaTypes, M extends ModelKey<Types>> = ([
   IdentityFields<Types, M>,
 ] extends [never]
   ? Row<Types, M>
-  : Pick<Row<Types, M>, IdentityFields<Types, M> & keyof Row<Types, M>> & Partial<Row<Types, M>>;
+  : Pick<Row<Types, M>, IdentityFields<Types, M> & keyof Row<Types, M>> & Partial<Row<Types, M>>) &
+  PlannedRowBrand;
+
+/** A model's to-one relations. */
+export type ToOneRelationKeys<Types extends SchemaTypes, M extends ModelKey<Types>> = {
+  [R in RelationKeys<Types, M>]: IsToMany<Types, M, R> extends true ? never : R;
+}[RelationKeys<Types, M>];
+
+/** What a returned row keeps of a type's shape: the brand, the columns and the to-one relations. */
+type ReturnedKeys<Types extends SchemaTypes, M extends ModelKey<Types>> =
+  | typeof prismaModelBrand
+  | (keyof Row<Types, M> & string)
+  | ToOneRelationKeys<Types, M>;
+
+/**
+ * What a field returning a type of model `M` may resolve to, given the type's `Shape`: its key and
+ * everything its `select` and its interfaces' `select`s load, other than to-many relations and
+ * computed values, which the loader reloads. A model without an identity can't be reloaded, so it
+ * needs its whole row. Plugins listed before this one, such as scope-auth, read the row before any
+ * reload, so it must hold what the type's `select` promises. A row the loader planned also fits.
+ */
+export type ObjectReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> =
+  | (Shape extends unknown
+      ? [IdentityFields<Types, M>] extends [never]
+        ? Row<Types, M> & Pick<Shape, ToOneRelationKeys<Types, M> & keyof Shape>
+        : Pick<Shape, ReturnedKeys<Types, M> & keyof Shape>
+      : never)
+  | PlannedRow<Types, M>;
 
 /** The field naming a base model's variant, or `never` for other models. */
 type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Types>> =
@@ -201,14 +231,15 @@ type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Types>> =
     : never;
 
 /**
- * What a field returning a model's `prismaInterface` may resolve to. A discriminated model's rows
- * also need the discriminator, because the interface routes rows to variants before fields run.
+ * What a field returning a model's `prismaInterface` may resolve to: `ObjectReturnShape`, and for a
+ * discriminated model also the discriminator, because the interface routes rows to variants before
+ * fields run.
  */
-export type InterfaceReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>> = [
+export type InterfaceReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> = [
   DiscriminatorField<Types, M>,
 ] extends [never]
-  ? ModelReturnShape<Types, M>
-  : ModelReturnShape<Types, M> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
+  ? ObjectReturnShape<Types, M, Shape>
+  : ObjectReturnShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
 
 export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {
   [prismaModelBrand]?: infer M;

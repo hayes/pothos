@@ -429,7 +429,9 @@ builder.prismaObject('Post', {
       select: { author: true },
       resolve: (post) => post.author,
     }),
+    // @ts-expect-error a returned row holds what the type's select loads
     keyOnly: t.field({ type: EmailUser, resolve: () => ({ id: 'u-1' }) }),
+    withSelected: t.field({ type: EmailUser, resolve: () => ({ id: 'u-1', email: 'a@b.c' }) }),
     rows: t.field({ type: [PlainUser], resolve: () => orm.User.all() }),
     // @ts-expect-error an empty object has no key to reload it by
     empty: t.field({ type: PlainUser, resolve: () => ({}) }),

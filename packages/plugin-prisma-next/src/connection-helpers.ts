@@ -18,7 +18,7 @@ import type {
   ConnectionQueryLiteral,
   ConnectionQueryOption,
 } from './types/connections.js';
-import type { ModelKey, ModelReturnShape, RelationKeys, Row } from './types/models.js';
+import type { ModelKey, PlannedRow, RelationKeys, Row } from './types/models.js';
 import type {
   DefaultRelationNullable,
   IsToMany,
@@ -101,7 +101,7 @@ type SelectedRelations<
   -readonly [K in keyof Select & RelationKeys<Types, M>]: Select[K] extends NodeSelection
     ?
         | (Planned extends true
-            ? ModelReturnShape<Types, RelatedModel<Types, M, K>>
+            ? PlannedRow<Types, RelatedModel<Types, M, K>>
             : Row<Types, RelatedModel<Types, M, K>>)
         | (DefaultRelationNullable<Types, M, K> extends true ? null : never)
     : RelationFieldShape<Types, M, K, DefaultRelationNullable<Types, M, K>>;
@@ -117,8 +117,8 @@ export type ConnectionHelperRow<
   M extends ModelKey<Types>,
   Select = {},
 > = [keyof Select] extends [never]
-  ? ModelReturnShape<Types, M>
-  : ModelReturnShape<Types, M> &
+  ? PlannedRow<Types, M>
+  : PlannedRow<Types, M> &
       Pick<Row<Types, M>, keyof Select & keyof Row<Types, M>> &
       SelectedRelations<Types, M, Select, true>;
 

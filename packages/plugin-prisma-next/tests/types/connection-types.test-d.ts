@@ -8,7 +8,7 @@ import prismaNextPlugin, {
   type ConnectionHelperRow,
   type ConnectionOrderBy,
   type ConnectionQueryLiteral,
-  type ModelReturnShape,
+  type PlannedRow,
   type NodeSelection,
   prismaConnectionHelpers,
 } from '../../src';
@@ -368,7 +368,7 @@ prismaConnectionHelpers(builder, 'User', {
 
 // prismaConnectionHelpers: `resolveNode` decides the node shape; cursors still read the rows.
 // Without `info` the rows are whole. With it, and from `page`, they hold their key and what the
-// selection needs, typed as `ModelReturnShape`, unless `resolveNode` gets them without a relation
+// selection needs, typed as `PlannedRow`, unless `resolveNode` gets them without a relation
 // given `nodeSelection()`: nothing is planned into them then, and they are whole.
 declare const info: GraphQLResolveInfo;
 export async function helperShapes() {
@@ -407,9 +407,9 @@ export async function helperShapes() {
   const plannedRows = await planned.collection.all();
   expectTypeOf(plannedRows[0]!.id).toEqualTypeOf<string>();
   expectTypeOf(plannedRows[0]!.email).toEqualTypeOf<string | undefined>();
-  expectTypeOf(planned.wrap([{ id: 'a', firstName: 'Alice' }]).edges[0]!.node).toEqualTypeOf<
-    ModelReturnShape<Types, 'User'>
-  >();
+  expectTypeOf(planned.wrap(plannedRows).edges[0]!.node).toEqualTypeOf<PlannedRow<Types, 'User'>>();
+  // @ts-expect-error a hand-built row isn't one the loader planned
+  planned.wrap([{ id: 'a', firstName: 'Alice' }]);
 
   const spreading = prismaConnectionHelpers(builder, 'User', {
     resolveNode: (user) => ({ ...user, extra: 1 }),
@@ -459,7 +459,7 @@ const commenters = prismaConnectionHelpers(builder, 'Comment', {
   select: (nodeSelection) => ({ body: true, author: nodeSelection() }),
   resolveNode: (comment) => {
     expectTypeOf(comment.body).toEqualTypeOf<string>();
-    expectTypeOf(comment.author).toEqualTypeOf<ModelReturnShape<Types, 'User'>>();
+    expectTypeOf(comment.author).toEqualTypeOf<PlannedRow<Types, 'User'>>();
     return comment.author;
   },
 });
