@@ -122,18 +122,39 @@ export const userWithPostsPages = prismaConnectionHelpers(builder, UserWithPosts
 });
 
 // `prismaObjectField(s)` return void, so the fields are declared beside the call. `satisfies`
-// types `t` from the method, so the declaration names its field builder and parent shape.
+// types `t` from the method, so the declaration names its field builder and parent shape. The
+// `FieldMap` and `FieldRef` return annotations stand in for @pothos/core's own `FieldRef`, which
+// emitted declarations can't name (TS2742/TS2883 from @pothos/core alone).
 type Types = typeof builder.$inferSchemaTypes;
-type ShapeOf<Ref> = Ref extends PrismaNextObjectRef<Types, 'Post', infer Shape> ? Shape : never;
+
+// The methods' parameters for a ref argument, with the model and shape inferred from the ref.
+type ObjectFieldsParams<Ref> =
+  Ref extends PrismaNextObjectRef<Types, infer M, infer Shape>
+    ? Parameters<typeof builder.prismaObjectFields<M, Shape>>
+    : never;
+type ObjectFieldParams<Ref> =
+  Ref extends PrismaNextObjectRef<Types, infer M, infer Shape>
+    ? Parameters<typeof builder.prismaObjectField<M, Shape>>
+    : never;
 
 export const postWithAuthorFields = ((t): FieldMap => ({
   authorEmail: t.string({ resolve: (post) => post.author.email }),
   author: t.relation('author'),
-})) satisfies Parameters<
-  typeof builder.prismaObjectFields<'Post', ShapeOf<typeof PostWithAuthor>>
->[1];
+})) satisfies ObjectFieldsParams<typeof PostWithAuthor>[1];
 
 builder.prismaObjectFields(PostWithAuthor, postWithAuthorFields);
+
+export const postWithAuthorLastNameField = ((t): FieldRef<Types, unknown> =>
+  t.string({ resolve: (post) => post.author.lastName })) satisfies ObjectFieldParams<
+  typeof PostWithAuthor
+>[2];
+
+builder.prismaObjectField(PostWithAuthor, 'authorLastName', postWithAuthorLastNameField);
+
+export const userNodeEmailField = ((t): FieldRef<Types, unknown> =>
+  t.exposeString('email')) satisfies ObjectFieldParams<typeof UserNode>[2];
+
+builder.prismaObjectField(UserNode, 'email', userNodeEmailField);
 
 export const userPostCountField = ((t): FieldRef<Types, unknown> =>
   t.relationCount('posts')) satisfies Parameters<typeof builder.prismaObjectField<'User'>>[2];
