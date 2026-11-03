@@ -31,8 +31,9 @@ The `users` query field returns the Collection of users without running it:
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ users { fullName posts { title author { email } } } }"'>playground-examples/plugin-prisma-next/queries.ts#users-query</include>
 
-For a query like this one, the plugin loads the users, their posts, and each post's author with that
-one Collection:
+For a query like this one, the users, their posts, and each post's author load in a single SQL
+statement. In most queries, each root field runs as one statement, with its relations, counts and
+connection pages included:
 
 ```graphql
 query {
