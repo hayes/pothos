@@ -125,3 +125,26 @@ columns from the junction table, define the junction as its own model and use tw
 If a plain `t.field` returns a model's type, instead of `t.prismaField` or `t.relation`, it must
 return the primary key and the columns and to-one relations in the type's `select`.
 `typeof User.$inferType` is that row type. For a model without a primary key, return the whole row.
+
+To have the plugin load that row, with the relations and counts the query selects beneath the
+field, build its query with [`collectionFromInfo`](./objects#mutations). The field then takes one
+query, like a `t.prismaField`:
+
+```ts
+import { collectionFromInfo } from '@pothos/plugin-prisma-next';
+
+builder.queryField('me', (t) =>
+  t.field({
+    type: User,
+    nullable: true,
+    resolve: async (_root, _args, ctx, info) => {
+      const users = await collectionFromInfo({
+        collection: ctx.db.orm.User.where({ id: ctx.userId }),
+        context: ctx,
+        info,
+      });
+      return users.first();
+    },
+  }),
+);
+```
