@@ -328,18 +328,13 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  // resolveType sees the interface's select, while each implementation's fields read the rows its
-  // own select loads, all through the one statement of the interface root.
+  // Each implementation's fields read the rows its own select loads, all through the one statement
+  // of the interface root.
   it("hands each implementation's fields the rows its own select loads", async () => {
     const builder = createBuilder();
-    const resolveTypeSaw: number[] = [];
     const Person = builder.prismaInterface('User', {
       variant: 'Person',
-      select: { posts: { limit: 1 } },
-      resolveType: (user) => {
-        resolveTypeSaw.push(user.posts.length);
-        return user.id === 'u-alice' ? 'Prolific' : 'Quiet';
-      },
+      resolveType: (user) => (user.id === 'u-alice' ? 'Prolific' : 'Quiet'),
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     builder.prismaObject('User', {
@@ -373,7 +368,6 @@ describe('inherited selections', () => {
       { __typename: 'Prolific', id: 'u-alice', total: 2 },
       { __typename: 'Quiet', id: 'u-bob', drafts: ['p-bob-draft'] },
     ]);
-    expect(resolveTypeSaw).toEqual([1, 1]);
     expect(result.statements).toHaveLength(1);
   });
 
@@ -471,71 +465,187 @@ describe('inherited selections', () => {
     });
   });
 
-  it("hands a middle interface's fields the rows its base selects, not an implementation's", async () => {
-    const builder = createBuilder();
-    const Base = builder.prismaInterface('Post', {
-      variant: 'Base',
-      select: { comments: { limit: 1, orderBy: (comment) => comment.id.asc() } },
-      fields: (t) => ({ id: t.exposeID('id') }),
+  // A row holds one version of a relation, which the fields and auth checks of its type and of its
+  // interfaces all read, so their selects can't load it differently.
+  describe('rejects selects of one row that load a relation differently', () => {
+    it('on an interface and its implementation', () => {
+      const builder = createBuilder();
+      const Named = builder.prismaInterface('User', {
+        variant: 'Named',
+        select: { posts: { where: { published: 1 } } },
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+      builder.prismaObject('User', { interfaces: [Named], select: { posts: true } });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'Named' and 'User' both select relation 'posts', with different arguments. A row of " +
+          "'User' holds one version of the relation, which the fields and auth checks of both " +
+          'types read. Select it with the same arguments in both, sharing any function such as ' +
+          "an orderBy, or load the other version in a field, with t.relation('posts', { query }) " +
+          "or a field's select.",
+      );
     });
-    const Derived = builder.prismaInterface('Post', {
-      variant: 'Derived',
-      interfaces: [Base],
-      fields: (t) => ({
-        derivedIds: t.idList({ resolve: (post) => post.comments.map((comment) => comment.id) }),
-      }),
+
+    it('on an interface its implementation reaches through another', () => {
+      const builder = createBuilder();
+      const Base = builder.prismaInterface('Post', {
+        variant: 'Base',
+        select: { comments: { limit: 1 } },
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+      const Derived = builder.prismaInterface('Post', {
+        variant: 'Derived',
+        interfaces: [Base],
+        fields: () => ({}),
+      });
+      builder.prismaObject('Post', {
+        interfaces: [Derived, Base],
+        select: { comments: { limit: 2 } },
+      });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'Base' and 'Post' both select relation 'comments', with different arguments.",
+      );
     });
-    const Post = builder.prismaObject('Post', {
-      interfaces: [Derived, Base],
-      select: { comments: { limit: 2, orderBy: (comment) => comment.id.asc() } },
-      fields: (t) => ({
-        ownIds: t.idList({ resolve: (post) => post.comments.map((comment) => comment.id) }),
-      }),
+
+    it('on an interface and the interface extending it', () => {
+      const builder = createBuilder();
+      const Base = builder.prismaInterface('Post', {
+        variant: 'Base',
+        select: { comments: true },
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+      builder.prismaInterface('Post', {
+        variant: 'Derived',
+        interfaces: [Base],
+        select: { comments: { limit: 1 } },
+        fields: () => ({}),
+      });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'Base' and 'Derived' both select relation 'comments', with different arguments.",
+      );
     });
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.prismaField({ type: [Post], resolve: () => db.orm.Post.where({ id: 'p-hello' }) }),
-      }),
+
+    it('on two interfaces of one type', () => {
+      const builder = createBuilder();
+      const Published = builder.prismaInterface('User', {
+        variant: 'Published',
+        select: { posts: { where: { published: 1 } } },
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+      const Drafting = builder.prismaInterface('User', {
+        variant: 'Drafting',
+        select: { posts: { where: { published: 0 } } },
+        fields: () => ({}),
+      });
+      builder.prismaObject('User', { interfaces: [Published, Drafting] });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'Published' and 'Drafting' both select relation 'posts', with different arguments.",
+      );
     });
-    const result = await run(builder.toSchema(), '{ posts { derivedIds ownIds } }');
-    expect(result.errors).toBeUndefined();
-    expect(result.data.posts).toEqual([{ derivedIds: ['c-1'], ownIds: ['c-1', 'c-2'] }]);
-    expect(result.statements).toHaveLength(1);
+
+    it('on an interface and a node implementing it', () => {
+      const builder = createBuilder();
+      const Named = builder.prismaInterface('User', {
+        variant: 'Named',
+        select: { posts: { limit: 1 } },
+        fields: () => ({}),
+      });
+      builder.prismaNode('User', {
+        id: { field: 'id' },
+        interfaces: [Named],
+        select: { posts: { limit: 2 } },
+      });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'Named' and 'User' both select relation 'posts', with different arguments.",
+      );
+    });
+
+    it('with orderBy functions that are not the same function', () => {
+      const builder = createBuilder();
+      const Named = builder.prismaInterface('User', {
+        variant: 'Named',
+        select: { posts: { orderBy: (post) => post.id.asc() } },
+        fields: () => ({}),
+      });
+      builder.prismaObject('User', {
+        interfaces: [Named],
+        select: { posts: { orderBy: (post) => post.id.asc() } },
+      });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'Named' and 'User' both select relation 'posts', with different arguments.",
+      );
+    });
   });
 
-  it("hands resolveType the rows the interface's select loads when its implementation's differ", async () => {
-    const seen: unknown[] = [];
+  // Implementations of one interface are different types, so each row is one of them and reads
+  // its own type's version. Function entries compute values rather than load rows.
+  it('lets sibling implementations, and function entries, select a relation differently', () => {
     const builder = createBuilder();
     const Named = builder.prismaInterface('User', {
       variant: 'Named',
-      select: { posts: { where: { published: 1 } } },
-      resolveType: (user) => {
-        seen.push(user.posts.map((post) => post.id));
-        return 'User';
-      },
-      fields: (t) => ({ id: t.exposeID('id') }),
+      select: { posts: (sub) => ({ total: sub.count() }) },
+      fields: () => ({}),
     });
     builder.prismaObject('User', {
       interfaces: [Named],
-      select: { posts: true },
-      fields: (t) => ({ total: t.int({ resolve: (user) => user.posts.length }) }),
+      select: { posts: { limit: 1 } },
+    });
+    builder.prismaObject('User', {
+      variant: 'B',
+      interfaces: [Named],
+      select: { posts: (sub) => ({ published: sub.where({ published: 1 }).count() }) },
+    });
+    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    expect(() => builder.toSchema()).not.toThrow();
+  });
+
+  it('reads a relation the selects of a type and its interface load alike', async () => {
+    const builder = createBuilder();
+    const query = { where: { published: 1 } };
+    const Named = builder.prismaInterface('User', {
+      variant: 'Named',
+      select: { posts: query },
+      resolveType: () => 'User',
+      fields: (t) => ({
+        interfaceIds: t.idList({ resolve: (user) => user.posts.map((post) => post.id) }),
+      }),
+    });
+    const User = builder.prismaObject('User', {
+      interfaces: [Named],
+      select: { posts: { where: { published: 1 }, limit: undefined } },
+      fields: (t) => ({
+        ownIds: t.idList({ resolve: (user) => user.posts.map((post) => post.id) }),
+      }),
+      variant: 'A',
     });
     builder.queryType({
       fields: (t) => ({
         named: t.prismaField({
           type: [Named],
           resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        users: t.prismaField({
+          type: [User],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
         }),
       }),
     });
-    const result = await run(builder.toSchema(), '{ named { id ... on User { total } } }');
+    const result = await run(
+      builder.toSchema(),
+      '{ users { interfaceIds ownIds } named { interfaceIds ... on User { ownIds } } }',
+    );
     expect(result.errors).toBeUndefined();
-    expect(result.data.named).toEqual([
-      { id: 'u-alice', total: 2 },
-      { id: 'u-bob', total: 2 },
-    ]);
-    expect(seen).toEqual([['p-hello'], ['p-bob1']]);
-    expect(result.statements).toHaveLength(1);
+    const users = [
+      { interfaceIds: ['p-hello'], ownIds: ['p-hello'] },
+      { interfaceIds: ['p-bob1'], ownIds: ['p-bob1'] },
+    ];
+    expect(result.data).toEqual({ users, named: users });
+    expect(result.statements).toHaveLength(2);
   });
 
   // An interface field without a select of its own is still planned on the interface, so the

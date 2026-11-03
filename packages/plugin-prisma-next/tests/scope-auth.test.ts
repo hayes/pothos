@@ -1384,6 +1384,67 @@ describe('rows another field filtered', () => {
   });
 });
 
+// An interface and its implementation that select a relation alike share one version of it.
+// Selecting it differently is a build error, which tests/interfaces.test.ts covers.
+describe('a relation an interface and its implementation select alike', () => {
+  describe.each([
+    ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
+    ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
+  ] as const)('scope auth %s the prisma plugin', (_name, plugins) => {
+    it('is what the type checks and fields of both see', async () => {
+      const seen: string[] = [];
+      const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+        plugins: plugins as never,
+        relay: {},
+        scopeAuth: { authScopes: () => ({ ok: true }) },
+        prismaNext: { client: ctx.client },
+      });
+      builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+      const Published = builder.prismaInterface('User', {
+        variant: 'Published',
+        select: { posts: { where: { published: 1 } } },
+        authScopes: (user) => {
+          seen.push(`Published: ${user.posts.map((post) => post.id)}`);
+          return true;
+        },
+        fields: (t) => ({
+          id: t.exposeID('id'),
+          interfaceIds: t.idList({ resolve: (user) => user.posts.map((post) => post.id) }),
+        }),
+      });
+      const Author = builder.prismaObject('User', {
+        variant: 'Author',
+        interfaces: [Published],
+        select: { posts: { where: { published: 1 } } },
+        authScopes: (user) => {
+          seen.push(`Author: ${user.posts.map((post) => post.id)}`);
+          return true;
+        },
+        fields: (t) => ({
+          ownIds: t.idList({ resolve: (user) => user.posts.map((post) => post.id) }),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          author: t.prismaField({
+            type: Author,
+            resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+          }),
+        }),
+      });
+      const result = await runCaptured(builder.toSchema(), '{ author { id interfaceIds ownIds } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.author).toEqual({
+        id: 'u-alice',
+        interfaceIds: ['p-hello'],
+        ownIds: ['p-hello'],
+      });
+      expect(new Set(seen)).toEqual(new Set(['Published: p-hello', 'Author: p-hello']));
+      expect(result.statements).toHaveLength(1);
+    });
+  });
+});
+
 describe('a field that reloads a to-one relation with its own query', () => {
   describe.each([
     ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],

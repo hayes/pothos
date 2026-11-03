@@ -14,6 +14,7 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import {
+  deepEqual,
   getLoaderMapping,
   type Mapping,
   type Position,
@@ -46,6 +47,7 @@ import { reloadFor } from './utils/errors.js';
 import { getModel, ownTableVariantRowsError } from './utils/model.js';
 import {
   compileFieldSelect,
+  definedQuery,
   EMPTY,
   type FieldSlots,
   fieldSlots,
@@ -202,6 +204,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (raw && ownModel) {
       assertNoVariantRelations(raw, ownModel, typeConfig.name, contract);
     }
+    this.assertSelectsAgree(typeConfig, model);
     return {
       ...typeConfig,
       extensions: {
@@ -285,7 +288,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    * The `select`s of a type and of its interfaces, which `onTypeConfig` keeps to one model
    * hierarchy. The deepest interface comes first and the type itself last.
    */
-  private typeLevelSelects(typeName: string) {
+  private typeLevelSelects(type: string | PothosTypeConfig) {
     const selects: { name: string; raw: RawSelect }[] = [];
     const visited = new Set<string>();
     const visit = (config: PothosTypeConfig) => {
@@ -301,8 +304,35 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         selects.push({ name: config.name, raw });
       }
     };
-    visit(this.buildCache.getTypeConfig(typeName));
+    visit(typeof type === 'string' ? this.buildCache.getTypeConfig(type) : type);
     return selects;
+  }
+
+  /**
+   * A row holds one version of each relation the `select`s of its type and interfaces load, which
+   * every reader of the row sees. So two of those `select`s that load a relation's rows must load
+   * them with the same query. Function entries compute values rather than load rows, so they
+   * aren't compared.
+   */
+  private assertSelectsAgree(typeConfig: PothosTypeConfig, modelKey: string) {
+    const model = getModel(this.config.contract, modelKey);
+    const loads = new Map<string, { type: string; query: unknown }>();
+    for (const { name: type, raw } of this.typeLevelSelects(typeConfig)) {
+      for (const [relation, value] of splitSelect(raw, model, PothosSchemaError).relations) {
+        if (typeof value === 'function') {
+          continue;
+        }
+        const query = definedOptions(value === true ? undefined : definedQuery(value));
+        const first = loads.get(relation);
+        if (!first) {
+          loads.set(relation, { type, query });
+        } else if (!deepEqual(first.query, query)) {
+          throw new PothosSchemaError(
+            `'${first.type}' and '${type}' both select relation '${relation}', with different arguments. A row of '${typeConfig.name}' holds one version of the relation, which the fields and auth checks of both types read. Select it with the same arguments in both, sharing any function such as an orderBy, or load the other version in a field, with t.relation('${relation}', { query }) or a field's select.`,
+          );
+        }
+      }
+    }
   }
 
   /**
@@ -538,8 +568,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       typeof selection === 'function' ? [] : (selection.columns ?? []),
     );
     // A field sees what the selects of the type that declares it and of that type's interfaces
-    // loaded, never an implementation's version of a relation. The declaring type comes after its
-    // interfaces, so its own select wins.
+    // loaded. `assertSelectsAgree` keeps them to one version of a relation's rows, but two select
+    // functions can compute the same key, and the field reads its declaring type's value.
     const declared = new Set(this.typeLevelSelects(declaring).map(({ name }) => name));
     const declaringScopes = parentScopes.filter((scope) => declared.has(scope));
     // A field planned on an interface has its mapping recorded under the interface, but it
@@ -730,6 +760,13 @@ function assertNoVariantRelations(
       );
     }
   }
+}
+
+/** A query without its undefined options, which load nothing different. */
+function definedOptions(query: unknown) {
+  return (
+    query && Object.fromEntries(Object.entries(query).filter(([, option]) => option !== undefined))
+  );
 }
 
 function typeParent(parent: unknown, scopes: readonly string[]) {
