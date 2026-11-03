@@ -5,8 +5,9 @@ import { createBuilder, run, useSampleDb } from './fixtures/helpers';
 const db = useSampleDb();
 
 // A fragment on a non-model interface expands at every level of a document, so a relation is
-// planned on the interface and on each implementation. Every plan beneath it names its to-many
-// slots by the position above it; those names must not make the walk beneath unshareable.
+// reached on the interface and on each implementation; the implementations take the interface's
+// invocation. Every plan beneath it names its to-many slots by the position above it; those names
+// must not make the walk beneath unshareable.
 describe('planning fragments that expand at every level', () => {
   function cyclicSchema(implementations: number) {
     const builder = createBuilder();
@@ -116,13 +117,13 @@ describe('planning fragments that expand at every level', () => {
 
   // Planning beneath every invocation, or a slot per implementation, ran out of time or heap here.
   it.each([
-    [1, 18, 18],
-    [3, 12, 24],
-    [3, 24, 48],
-    [3, 28, 56],
-    [3, 60, 120],
-    [2, 36, 54],
-    [6, 96, 336],
+    [1, 18, 9],
+    [3, 12, 6],
+    [3, 24, 12],
+    [3, 28, 14],
+    [3, 60, 30],
+    [2, 36, 18],
+    [6, 96, 48],
   ])('with %i implementations at depth %i it makes %i relation calls', async (implementations, depth, expected) => {
     const calls = await runBounded(implementations, depth, cyclicDocument);
     expect(calls.posts).toBe(expected);
@@ -130,14 +131,14 @@ describe('planning fragments that expand at every level', () => {
 
   // A walk per field node made 44,286 relation calls at depth 10 and ran out of heap at 12.
   it.each([
-    [3, 10, 30],
-    [3, 20, 60],
-    [3, 40, 120],
-    [2, 36, 72],
+    [3, 10, 15],
+    [3, 20, 30],
+    [3, 40, 60],
+    [2, 36, 36],
   ])('with a named fragment per level, %i implementations at depth %i make %i relation calls', async (implementations, depth, expected) => {
-    // Each field node is invoked twice, by the plain walk and the expanding one, and each play
-    // merges every node's relation query: twice the copies of one node reached on each type.
-    const calls = await runBounded(implementations, depth, namedDocument, 40);
+    // The plain walk and the expanding one share each field node's invocation, so the copies are
+    // bounded as for one node per level.
+    const calls = await runBounded(implementations, depth, namedDocument);
     expect(calls.posts).toBe(expected);
   });
 });

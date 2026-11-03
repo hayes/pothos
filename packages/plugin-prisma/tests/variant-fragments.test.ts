@@ -745,10 +745,11 @@ describe('fragments on variants and non-model interfaces', () => {
         return relationQueryCalls;
       };
 
-      // Only `posts` counts: the interface and its three variants, at each of the odd levels.
-      // Exponential planning made these 1,092 calls at depth 6 and 4,473,924 at depth 12.
-      expect(await callsAt(6)).toBe(12);
-      expect(await callsAt(12)).toBe(24);
+      // Only `posts` counts: once at each of the odd levels. Its three variants take the
+      // invocation on the interface. Exponential planning made these 1,092 calls at depth 6 and
+      // 4,473,924 at depth 12.
+      expect(await callsAt(6)).toBe(3);
+      expect(await callsAt(12)).toBe(6);
     });
 
     it('walks a named fragment spread beneath every variant once per level', async () => {
@@ -768,10 +769,10 @@ describe('fragments on variants and non-model interfaces', () => {
         return relationQueryCalls;
       };
 
-      // Each of the three `posts` nodes, by the plain walk and the expanding one, at each odd
-      // level. A walk per field node made these 4,920 calls at depth 8.
-      expect(await callsAt(8)).toBe(24);
-      expect(await callsAt(20)).toBe(60);
+      // Each of the three `posts` nodes at each odd level, the plain walk and the expanding one
+      // sharing it. A walk per field node made these 4,920 calls at depth 8.
+      expect(await callsAt(8)).toBe(12);
+      expect(await callsAt(20)).toBe(30);
     });
 
     it('plans the same query with and without the fragments', async () => {
