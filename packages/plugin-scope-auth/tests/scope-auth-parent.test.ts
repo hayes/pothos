@@ -1,5 +1,5 @@
 import SchemaBuilder from '@pothos/core';
-import { type GraphQLObjectType, graphql } from 'graphql';
+import { type GraphQLObjectType, type GraphQLResolveInfo, graphql } from 'graphql';
 import { vi } from 'vitest';
 import { getDatamodel } from '../prisma/generated';
 import ScopeAuthPlugin, { type ScopeAuthParentLoader } from '../src';
@@ -13,9 +13,11 @@ interface Row {
 function createSchema({
   loadParent,
   isTypeOf,
+  unauthorizedError,
 }: {
   loadParent?: ScopeAuthParentLoader<{ user: string }>;
   isTypeOf?: (value: unknown) => boolean;
+  unauthorizedError?: (parent: unknown) => string;
 } = {}) {
   const authScopes = vi.fn((parent: Row, _context: { user: string }) => ({
     user: parent.owner ?? '',
@@ -26,7 +28,10 @@ function createSchema({
   }>({
     plugins: [ScopeAuthPlugin],
     prisma: { client: db, dmmf: getDatamodel() },
-    scopeAuth: { authScopes: (context) => ({ user: (name) => name === context.user }) },
+    scopeAuth: {
+      authScopes: (context) => ({ user: (name) => name === context.user }),
+      unauthorizedError,
+    },
   });
   const Item = builder.objectRef<Row>('Item').implement({
     runScopesOnType: true,
@@ -35,9 +40,12 @@ function createSchema({
     extensions: loadParent ? { pothosScopeAuthParent: loadParent } : undefined,
     fields: (t) => ({ id: t.exposeID('id') }),
   });
+  // Without a resolveType, graphql picks the member by calling each member's isTypeOf.
+  const ItemUnion = builder.unionType('ItemUnion', { types: [Item] });
   builder.queryType({
     fields: (t) => ({
       item: t.field({ type: Item, nullable: true, resolve: () => ({ id: '1' }) }),
+      union: t.field({ type: ItemUnion, nullable: true, resolve: () => ({ id: '1' }) }),
     }),
   });
 
@@ -96,6 +104,46 @@ describe('pothosScopeAuthParent', () => {
     expect(isTypeOf).toHaveBeenCalledWith({ id: '1' }, { user: 'alice' }, expect.anything());
   });
 
+  it('fails the check when the loader rejects', async () => {
+    const { schema, authScopes } = createSchema({
+      loadParent: () => Promise.reject(new Error('load failed')),
+    });
+
+    const result = await graphql({ schema, source, contextValue: { user: 'alice' } });
+    expect(result.data).toEqual({ item: null });
+    expect(result.errors?.map((error) => error.message)).toEqual(['load failed']);
+    expect(authScopes).not.toHaveBeenCalled();
+  });
+
+  it('passes the unauthorized error the loaded parent', async () => {
+    const unauthorizedError = vi.fn((_parent: unknown) => 'denied');
+    const { schema } = createSchema({
+      loadParent: (parent) => ({ ...(parent as Row), owner: 'alice' }),
+      unauthorizedError,
+    });
+
+    const result = await graphql({ schema, source, contextValue: { user: 'bob' } });
+    expect(result.data).toEqual({ item: null });
+    expect(result.errors?.map((error) => error.message)).toEqual(['denied']);
+    expect(unauthorizedError.mock.calls[0][0]).toEqual({ id: '1', owner: 'alice' });
+  });
+
+  it("doesn't call the loader while resolving an abstract type", async () => {
+    const loadParent = vi.fn((parent: unknown) => ({ ...(parent as Row), owner: 'alice' }));
+    const isTypeOf = vi.fn(() => true);
+    const { schema } = createSchema({ loadParent, isTypeOf });
+
+    const result = await graphql({
+      schema,
+      source: '{ union { ... on Item { id } } }',
+      contextValue: { user: 'alice' },
+    });
+    expect(result).toEqual({ data: { union: { id: '1' } } });
+    // Once to pick the member, and once to check the chosen type.
+    expect(isTypeOf).toHaveBeenCalledTimes(2);
+    expect(loadParent).toHaveBeenCalledTimes(1);
+  });
+
   it('passes type scopes the row without a loader', async () => {
     const { schema, authScopes } = createSchema();
 
@@ -115,25 +163,16 @@ describe('pothosScopeAuthParent', () => {
       return (value: unknown) => (type.isTypeOf as (value: unknown) => unknown)(value);
     }
 
-    it('fails the check when the loader returns a promise', () => {
-      const loadParent = vi.fn((parent: unknown) =>
-        Promise.resolve({ ...(parent as Row), owner: 'alice' }),
-      );
+    it('fails the check without calling the loader', () => {
+      // Reads `info`, which graphql-jit doesn't pass.
+      const loadParent = vi.fn((parent: unknown, _context: unknown, info: GraphQLResolveInfo) => ({
+        ...(parent as Row),
+        owner: info.schema ? 'alice' : '',
+      }));
       const { schema, authScopes } = createSchema({ loadParent });
 
       expect(isTypeOfFor(schema)({ id: '1' })).toBe(false);
-      expect(loadParent).toHaveBeenCalledTimes(1);
-      expect(authScopes).not.toHaveBeenCalled();
-    });
-
-    it('fails the check when the loader rejects', async () => {
-      const { schema, authScopes } = createSchema({
-        loadParent: () => Promise.reject(new Error('nope')),
-      });
-
-      expect(isTypeOfFor(schema)({ id: '1' })).toBe(false);
-      // An unhandled rejection would fail the test run.
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(loadParent).not.toHaveBeenCalled();
       expect(authScopes).not.toHaveBeenCalled();
     });
   });

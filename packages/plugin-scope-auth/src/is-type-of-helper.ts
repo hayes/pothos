@@ -22,15 +22,18 @@ export function isTypeOfHelper<Types extends SchemaTypes>(
       : result.message;
 
   return (source: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
-    // Looked up once the steps run: graphql-jit calls isTypeOf without the context.
-    let cache: RequestCache<Types> | undefined;
+    // graphql-jit calls isTypeOf with only the value, and treats a promise as a match, so a check
+    // that loads its parent fails there rather than passing before the parent loads.
+    if (loadParent && info === undefined) {
+      return false;
+    }
+
+    const cache = RequestCache.fromContext(context, plugin.builder);
 
     // The steps see the parent `loadParent` returns, but `isTypeOf` gets the value it was passed.
     function runSteps(parent: unknown, index: number): MaybePromise<boolean> {
       for (let i = index; i < steps.length; i += 1) {
         const { run, errorMessage } = steps[i];
-
-        cache ??= RequestCache.fromContext(context, plugin.builder);
 
         const stepResult = run(cache, parent, {}, context, info, () => {});
 
@@ -75,14 +78,6 @@ export function isTypeOfHelper<Types extends SchemaTypes>(
     const parent = loadParent(source, context, info);
 
     if (isThenable(parent)) {
-      // graphql-jit calls isTypeOf without info, and treats a promise as a match, so the check
-      // fails rather than passing before the parent loads.
-      if (info === undefined) {
-        parent.then(undefined, () => {});
-
-        return false;
-      }
-
       return Promise.resolve(parent).then((loaded) => runSteps(loaded, 0));
     }
 
