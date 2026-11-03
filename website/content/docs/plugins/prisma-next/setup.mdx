@@ -188,8 +188,8 @@ These go under `prismaNext` in the builder options.
 
 ## Limitations
 
-- Prisma's MySQL support is early: it reads rows, but can't write them or count them yet. MongoDB
-  isn't supported.
+- On MySQL, Prisma reads rows but can't write them, count them or run aggregates yet. MongoDB isn't
+  supported.
 - Errors from invalid input, such as a bad cursor, are safe to show. Other errors can name your
   models and columns, so enable error masking (GraphQL Yoga does by default).
 - Use `"moduleResolution": "nodenext"` or `"bundler"`, since Prisma's packages are ESM-only.
