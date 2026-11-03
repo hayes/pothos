@@ -467,11 +467,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   }
 
   /**
-   * Loads `slots` through `combine()`, each under a short name of its own in the statement: a
-   * number, then the last field of its key. The ORM aliases a branch by its name, cut to 63 bytes,
-   * and renames the ones that then collide one at a time. Slot keys spell out the fields above
-   * them, so beneath a deep document they would share their first 63 bytes, and naming them would
-   * cost time quadratic in their number.
+   * Loads `slots` through `combine()`, each named by a number unique in the statement and then its
+   * key. The ORM aliases a branch by its name cut to 63 bytes, and renames the ones that then
+   * collide one at a time. Slot keys spell out the fields above them, so beneath a deep document
+   * they would share their first 63 bytes, and naming them would cost time quadratic in their
+   * number.
    */
   private combine(
     base: MapperCollection,
@@ -482,7 +482,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     const named: Record<string, unknown> = {};
     const names: Record<string, string> = {};
     for (const key of Object.keys(slots)) {
-      const name = `${branches.next}/${key.slice(key.lastIndexOf('/') + 1)}`;
+      const name = `${branches.next}/${key}`;
       branches.next += 1;
       named[name] = slots[key];
       names[name] = key;
