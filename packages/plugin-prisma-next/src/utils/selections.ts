@@ -373,10 +373,10 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
     const values = new Map<string, Row>();
     slots ??= {};
     slots[name] = { rows, values };
-    for (const [name, slot] of Object.entries(value)) {
+    for (const [branch, slot] of Object.entries(value)) {
       // Rows are keyed by scope and computed values by `scope:key`. Consumers that share either are
       // keyed by their scopes joined with a space.
-      const key = included?.names?.[name] ?? name;
+      const key = included?.names?.[branch] ?? branch;
       const scope = relationName(key);
       if (scope === key) {
         const loaded = takeSlots(slot, relation.target, included?.slots?.[key]);

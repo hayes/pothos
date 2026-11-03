@@ -471,7 +471,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    * key. The ORM aliases a branch by its name cut to 63 bytes, and renames the ones that then
    * collide one at a time. Slot keys spell out the fields above them, so beneath a deep document
    * they would share their first 63 bytes, and naming them would cost time quadratic in their
-   * number.
+   * number. The alias starts with the relation's name, so a relation name past about 45 bytes cuts
+   * into the number and brings the renaming back, which is slower but still correct.
    */
   private combine(
     base: MapperCollection,
