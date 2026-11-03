@@ -1,13 +1,19 @@
 import { isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
 import type { GraphQLIsTypeOfFn, GraphQLResolveInfo } from 'graphql';
 import { ForbiddenError } from './errors.js';
-import type { PothosScopeAuthPlugin, ResolveStep, UnauthorizedForTypeErrorFn } from './index.js';
+import type {
+  PothosScopeAuthPlugin,
+  ResolveStep,
+  ScopeAuthParentLoader,
+  UnauthorizedForTypeErrorFn,
+} from './index.js';
 import RequestCache from './request-cache.js';
 
 export function isTypeOfHelper<Types extends SchemaTypes>(
   steps: ResolveStep<Types>[],
   plugin: PothosScopeAuthPlugin<Types>,
   isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined,
+  loadParent?: ScopeAuthParentLoader<Types['Context']>,
 ) {
   const globalUnauthorizedError = plugin.builder.options.scopeAuth?.unauthorizedError;
   const createError: UnauthorizedForTypeErrorFn<Types, object> = (parent, context, info, result) =>
@@ -15,12 +21,16 @@ export function isTypeOfHelper<Types extends SchemaTypes>(
       ? globalUnauthorizedError(parent, context, info, result)
       : result.message;
 
-  return (parent: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
-    const cache = RequestCache.fromContext(context, plugin.builder);
+  return (source: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
+    // Looked up once the steps run: graphql-jit calls isTypeOf without the context.
+    let cache: RequestCache<Types> | undefined;
 
-    function runSteps(index: number): MaybePromise<boolean> {
+    // The steps see the parent `loadParent` returns, but `isTypeOf` gets the value it was passed.
+    function runSteps(parent: unknown, index: number): MaybePromise<boolean> {
       for (let i = index; i < steps.length; i += 1) {
         const { run, errorMessage } = steps[i];
+
+        cache ??= RequestCache.fromContext(context, plugin.builder);
 
         const stepResult = run(cache, parent, {}, context, info, () => {});
 
@@ -38,7 +48,7 @@ export function isTypeOfHelper<Types extends SchemaTypes>(
               throw typeof error === 'string' ? new ForbiddenError(error, result) : error;
             }
 
-            return runSteps(i + 1);
+            return runSteps(parent, i + 1);
           });
         }
 
@@ -55,9 +65,27 @@ export function isTypeOfHelper<Types extends SchemaTypes>(
         }
       }
 
-      return isTypeOf ? isTypeOf(parent, context, info) : true;
+      return isTypeOf ? isTypeOf(source, context, info) : true;
     }
 
-    return runSteps(0);
+    if (!loadParent) {
+      return runSteps(source, 0);
+    }
+
+    const parent = loadParent(source, context, info);
+
+    if (isThenable(parent)) {
+      // graphql-jit calls isTypeOf without info, and treats a promise as a match, so the check
+      // fails rather than passing before the parent loads.
+      if (info === undefined) {
+        parent.then(undefined, () => {});
+
+        return false;
+      }
+
+      return Promise.resolve(parent).then((loaded) => runSteps(loaded, 0));
+    }
+
+    return runSteps(parent, 0);
   };
 }

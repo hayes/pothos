@@ -235,3 +235,15 @@ export type ReplaceContext<Types extends SchemaTypes, Context extends object> = 
 > & {
   Context: Context;
 };
+
+/**
+ * A function a plugin sets as the `pothosScopeAuthParent` extension of an object type. With
+ * `runScopesOnType`, it gets the value the type's `isTypeOf` checks and returns the parent the
+ * type's scopes, grants and unauthorized errors see. The type's own `isTypeOf` still gets the
+ * value it was passed.
+ */
+export type ScopeAuthParentLoader<Context = object> = (
+  parent: unknown,
+  context: Context,
+  info: GraphQLResolveInfo,
+) => MaybePromise<unknown>;

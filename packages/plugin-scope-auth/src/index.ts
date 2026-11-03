@@ -26,7 +26,12 @@ import {
   createTypeGrantScopesStep,
   typeAuthScopesStepKey,
 } from './steps.js';
-import type { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types.js';
+import type {
+  ResolveStep,
+  ScopeAuthParentLoader,
+  TypeAuthScopes,
+  TypeGrantScopes,
+} from './types.js';
 
 export * from './errors.js';
 export * from './types.js';
@@ -170,7 +175,12 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       return isTypeOf;
     }
 
-    const runSteps = isTypeOfHelper(steps, this, isTypeOf);
+    // Set by plugins whose rows can lack data the type's scopes read, such as prisma-next, to
+    // load the parent those scopes should see.
+    const loadParent = typeConfig.extensions?.pothosScopeAuthParent as
+      | ScopeAuthParentLoader<Types['Context']>
+      | undefined;
+    const runSteps = isTypeOfHelper(steps, this, isTypeOf, loadParent);
 
     return (source, context, info) => {
       if (inResolveType) {
