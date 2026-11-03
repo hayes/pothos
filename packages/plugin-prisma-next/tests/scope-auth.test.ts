@@ -721,6 +721,39 @@ describe("a type's select before plugins listed first", () => {
     expect(seen).toContainEqual(['label', 'alice@example.com']);
     expect(statements.length).toBeLessThanOrEqual(2);
   });
+
+  it('fails the field whose reload fails, naming it', async () => {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [ScopeAuthPlugin, prismaNextPlugin],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { context: ctx.client.context, client: () => ({ orm: {} }) as never },
+    });
+    const User = builder.prismaObject('User', {
+      select: ['email'],
+      authScopes: () => true,
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        handBuilt: t.field({
+          type: User,
+          nullable: true,
+          resolve: () => ({ id: 'u-alice' }) as never,
+        }),
+      }),
+    });
+    const result = await runCaptured(builder.toSchema(), '{ handBuilt { firstName } }');
+    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
+      [
+        ['handBuilt', 'firstName'],
+        "User.firstName: prismaNext.client has no collection for 'User'.",
+      ],
+    ]);
+    expect(result.errors?.[0]?.originalError?.cause).toBeInstanceOf(Error);
+  });
 });
 
 // Another plugin's resolver wrapper hands the users field a rebuilt row without `email`.

@@ -314,7 +314,7 @@ describe('native model inheritance', () => {
     });
     const result = await run(builder.toSchema(), '{ bug { owner { email } } }');
     expect(result.errors?.[0]?.message).toBe(
-      "prismaNext.client has no collection for 'Bug' (loaded through 'Task').",
+      "Bug.owner: prismaNext.client has no collection for 'Bug' (loaded through 'Task').",
     );
   });
 

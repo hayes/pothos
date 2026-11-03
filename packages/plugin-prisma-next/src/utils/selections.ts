@@ -16,6 +16,7 @@ import { PRISMA_NEXT_MODEL } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import { variantForRelationType } from './contract.js';
+import { keepError } from './errors.js';
 import {
   getModel,
   ownTableVariantRowsError,
@@ -123,7 +124,8 @@ const planningFailures = new WeakMap<Position, { error: unknown }>();
 export function recordingFailures(select: PrismaNextSelectFn): PrismaNextSelectFn {
   return (args, ctx, nested, selected, position) => {
     const fail = (error: unknown) => {
-      planningFailures.set(position, { error });
+      // The resolver rethrows it as it is.
+      planningFailures.set(position, { error: keepError(error) });
       return EMPTY;
     };
     try {
@@ -249,6 +251,8 @@ export interface IncludedRelation {
   readonly nested?: IncludeRecord;
   /** What is included beneath the rows of each `combine()` slot, by slot key. */
   readonly slots?: Readonly<Record<string, IncludeRecord>>;
+  /** The slot key of each `combine()` branch, by the branch's name in the statement. */
+  readonly names?: Readonly<Record<string, string>>;
   /** The filtered to-one consumers the include loaded for. Undefined for the whole relation. */
   readonly scopes?: readonly string[];
   /** The filtered to-one consumers left out of the include. Their fields reload. */
@@ -369,9 +373,10 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
     const values = new Map<string, Row>();
     slots ??= {};
     slots[name] = { rows, values };
-    for (const [key, slot] of Object.entries(value)) {
+    for (const [name, slot] of Object.entries(value)) {
       // Rows are keyed by scope and computed values by `scope:key`. Consumers that share either are
       // keyed by their scopes joined with a space.
+      const key = included?.names?.[name] ?? name;
       const scope = relationName(key);
       if (scope === key) {
         const loaded = takeSlots(slot, relation.target, included?.slots?.[key]);

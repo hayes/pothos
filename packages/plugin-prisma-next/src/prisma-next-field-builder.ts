@@ -64,6 +64,7 @@ import {
 } from './utils/connections.js';
 import { resolveContractModel, variantForRelationType } from './utils/contract.js';
 import { buildConnectionPage } from './utils/cursors.js';
+import { reloadFor } from './utils/errors.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { getRefFromContractModel, refFor } from './utils/refs.js';
 import {
@@ -417,6 +418,7 @@ export class PrismaNextObjectFieldBuilder<
             relation,
             getNamedType(info.returnType),
             context,
+            info,
             slots.rows(relationName),
           ),
         ),
@@ -616,6 +618,7 @@ export class PrismaNextObjectFieldBuilder<
                 relation,
                 info.schema.getType(relatedTypeName),
                 context,
+                info,
                 slots.rows(name),
               )
             : [];
@@ -670,9 +673,9 @@ function readSlots<T>(
   }
   const modelKey = info.parentType.extensions?.[PRISMA_NEXT_MODEL] as string;
   return (
-    getPluginConfig(builder)
-      .loader(context, modelKey)
-      .loadSelection(info, parent)
+    reloadFor(info, () =>
+      getPluginConfig(builder).loader(context, modelKey).loadSelection(info, parent),
+    )
       // A loaded row always has slots. A reload plans its field first, onto a level that loads
       // nothing yet, so the field always fits and has a mapping.
       .then(({ row, mapping }) => read(fieldSlots(row, mapping?.position)!))
@@ -692,6 +695,7 @@ function completeVariantRows<T>(
   relation: PrismaNextRelation,
   type: GraphQLNamedType | null | undefined,
   context: object,
+  info: GraphQLResolveInfo,
   rows: T,
 ): MaybePromise<T> {
   const config = getPluginConfig(builder);
@@ -704,11 +708,10 @@ function completeVariantRows<T>(
   }
   const list = (Array.isArray(rows) ? rows : [rows]) as Record<string, unknown>[];
   const completed = config.loader(context, relation.targetModel).completeRows(list, dropped);
+  const found = completed && reloadFor(info, () => completed);
   // A row the base model narrowed to the variant doesn't have isn't of the variant. Only rows that
   // complete are checked, so without a completion such a row stays, and its fields fail to reload.
-  return completed
-    ? completed.then((found) => (Array.isArray(rows) ? found : (found[0] ?? null)) as T)
-    : rows;
+  return found ? found.then((kept) => (Array.isArray(rows) ? kept : (kept[0] ?? null)) as T) : rows;
 }
 
 // An embed records no nullability, so its row may be absent.

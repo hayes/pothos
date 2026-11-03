@@ -20,6 +20,7 @@ import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/a
 import { assertNoIncludes, getCollectionPaginationState } from './utils/collection-state.js';
 import type { PrismaNextConfig } from './utils/config.js';
 import { variantOf } from './utils/contract.js';
+import { keepError } from './utils/errors.js';
 import { getIdentityFields, getModel, type PrismaNextModel } from './utils/model.js';
 import { type PrismaNextSelection, takeSlots, throwPlanningFailure } from './utils/selections.js';
 
@@ -311,13 +312,19 @@ export class ModelLoader {
             ),
           ),
     );
-    const query = this.config.adapter.emit(
-      filtered,
-      this.config.adapter.toQuery(batch.root),
-      batch.root.model,
-      this.context,
-      batch.load.kind === 'parent',
-    ) as MapperCollection & { all(): Promise<readonly Row[]> };
+    let query: MapperCollection & { all(): Promise<readonly Row[]> };
+    try {
+      query = this.config.adapter.emit(
+        filtered,
+        this.config.adapter.toQuery(batch.root),
+        batch.root.model,
+        this.context,
+        batch.load.kind === 'parent',
+      ) as typeof query;
+    } catch (error) {
+      // Thrown by a query callback, which fails every field of the batch as it does a parent query.
+      throw keepError(error);
+    }
     const rows = takeSlots(
       await query.all(),
       batch.root.model,
@@ -348,10 +355,12 @@ function noIdentityReloadError(
     ? `its parent row is missing ${missing.map((name) => `'${name}'`).join(', ')}`
     : 'it was left out of the query that loaded its parent (a conflicting selection, a skipped ' +
       '@defer, or a parent not loaded through a prisma field)';
-  return new Error(
-    `Field '${info.parentType.name}.${info.fieldName}' needs its parent reloaded because ${why}, ` +
-      `but model '${modelKey}' has no non-null primary or unique key to reload it by. ` +
-      `Add a primary or unique key to '${modelKey}', or load its rows through prisma fields ` +
-      'without @defer fragments or conflicting selections of the same relation.',
+  return keepError(
+    new Error(
+      `Field '${info.parentType.name}.${info.fieldName}' needs its parent reloaded because ${why}, ` +
+        `but model '${modelKey}' has no non-null primary or unique key to reload it by. ` +
+        `Add a primary or unique key to '${modelKey}', or load its rows through prisma fields ` +
+        'without @defer fragments or conflicting selections of the same relation.',
+    ),
   );
 }

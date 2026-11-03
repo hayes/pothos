@@ -39,6 +39,7 @@ import {
 import type { AnyContract } from './types/models.js';
 import { getPluginConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
+import { reloadFor } from './utils/errors.js';
 import { getModel, ownTableVariantRowsError } from './utils/model.js';
 import {
   compileFieldSelect,
@@ -340,10 +341,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       if (!missing) {
         return resolver(reader.typeParent(parent), args, context, info);
       }
-      return config
-        .loader(context, modelKey)
-        .loadSelection(info, rowOf(parent), missing)
-        .then(({ row }) => resolver(reader.typeParent(row), args, context, info));
+      return reloadFor(info, () =>
+        config.loader(context, modelKey).loadSelection(info, rowOf(parent), missing),
+      ).then(({ row }) => resolver(reader.typeParent(row), args, context, info));
     };
   }
 
@@ -411,24 +411,23 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           return handOver(reader.parent(parent, mapping), mapping.position, args, context, info);
         }
       }
-      return config
-        .loader(context, modelKey)
-        .loadSelection(info, rowOf(parent), missing)
-        .then(({ row, mapping }) => {
-          const position = mapping?.position;
-          // The reload gives a filtered to-one relation's include to this field, whose version its
-          // helper reads from a slot. Plugins see the row the field had when it holds the declared
-          // relation, and otherwise the reloaded one, which holds no version of it.
-          const reloaded =
-            refinedToOne === undefined || missing.length
-              ? reader.parent(row, mapping)
-              : refineKeptToOne(
-                  reader.parent(parent, null),
-                  fieldSlots(row, position)?.rows(refinedToOne),
-                  position && scopeOf(position),
-                );
-          return handOver(reloaded, position, args, context, info);
-        });
+      return reloadFor(info, () =>
+        config.loader(context, modelKey).loadSelection(info, rowOf(parent), missing),
+      ).then(({ row, mapping }) => {
+        const position = mapping?.position;
+        // The reload gives a filtered to-one relation's include to this field, whose version its
+        // helper reads from a slot. Plugins see the row the field had when it holds the declared
+        // relation, and otherwise the reloaded one, which holds no version of it.
+        const reloaded =
+          refinedToOne === undefined || missing.length
+            ? reader.parent(row, mapping)
+            : refineKeptToOne(
+                reader.parent(parent, null),
+                fieldSlots(row, position)?.rows(refinedToOne),
+                position && scopeOf(position),
+              );
+        return handOver(reloaded, position, args, context, info);
+      });
     };
   }
 
