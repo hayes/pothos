@@ -52,12 +52,13 @@ builder.prismaObject('User', {
 
 A `select` accepts:
 
-- `{ column: true }` or `['column']`: a column.
-- `{ relation: true }`: the related rows.
-- `{ relation: { where, orderBy, limit, offset } }`: filtered or sorted related rows. A to-one
-  relation takes only `where`, and only in a field's `select`.
-- `{ relation: (collection) => ({ ... }) }`: counts or aggregates of a to-many relation. Each key is
-  added to the parent row, so it can't reuse a column or relation name.
+- Columns: `{ email: true }` or `['email']`.
+- Relations: `{ posts: true }`.
+- Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: (post) => post.createdAt.desc(), limit: 5 } }`.
+  A to-one relation takes only `where`, and only in a field's `select`.
+- Counts and aggregates of a to-many relation:
+  `{ posts: (posts) => ({ postCount: posts.count() }) }`. Each key (`postCount`) is added to the
+  row, so it can't reuse a column or relation name.
 
 Read computed keys with a resolver; `t.expose*` only works on columns.
 
