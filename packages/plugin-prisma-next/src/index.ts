@@ -207,6 +207,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       assertNoVariantRelations(raw, ownModel, typeConfig.name, contract);
     }
     this.assertSelectsAgree(typeConfig, model);
+    const plugins: readonly string[] | undefined = this.builder.options.plugins;
     return {
       ...typeConfig,
       extensions: {
@@ -218,8 +219,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         // Read by scope-auth, whose `runScopesOnType` checks run from `isTypeOf`, before any
         // field reloads the row. The builder's plugin list is complete before any type is built,
         // so this holds whichever order the two plugins are listed in.
-        ...(typeConfig.kind === 'Object' &&
-        (this.builder.options.plugins as readonly string[] | undefined)?.includes('scopeAuth')
+        ...(typeConfig.kind === 'Object' && plugins?.includes('scopeAuth')
           ? { pothosScopeAuthParent: this.createTypeParentLoader(typeConfig.name) }
           : {}),
       },
