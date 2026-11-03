@@ -368,8 +368,7 @@ builder.objectType(Article, {
 });
 ```
 
-The function can return a promise, and the check waits for it. `graphql-jit` can't wait for
-`isTypeOf`, so there a promise fails the check.
+The function can return a promise, and the check waits for it.
 
 ### Generalized auth functions with field specific arguments
 
