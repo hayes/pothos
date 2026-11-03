@@ -104,6 +104,21 @@ builder.prismaInterface('Post', {
   fields: () => ({}),
 });
 
+// An annotated parameter is checked against the parent, not inferred into the interface's shape.
+builder.prismaInterface('User', {
+  variant: 'AnnotatedRouted',
+  select: ['email'],
+  resolveType: (user: { id: string; email: string }) => (user.email ? 'A' : 'B'),
+  fields: (t) => ({ email: t.exposeString('email') }),
+});
+builder.prismaInterface('User', {
+  variant: 'WrongAnnotatedRouted',
+  select: ['email'],
+  // @ts-expect-error `firstName` isn't in the select
+  resolveType: (user: { id: string; firstName: string }) => (user.firstName ? 'A' : 'B'),
+  fields: (t) => ({ email: t.exposeString('email') }),
+});
+
 // A prismaInterface of a discriminated model also needs the discriminator.
 const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
   plugins: [prismaNextPlugin],

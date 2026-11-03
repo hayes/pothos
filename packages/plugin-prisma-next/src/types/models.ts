@@ -1,4 +1,4 @@
-import type { Merge, SchemaTypes } from '@pothos/core';
+import type { Merge, SchemaTypes, Simplify } from '@pothos/core';
 import type { SqlStorage } from '@prisma/orm-family-sql/contract/types';
 import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
 import type { Contract } from '@prisma/orm-framework/contract/types';
@@ -282,13 +282,18 @@ export type InterfaceReturnShape<Types extends SchemaTypes, M extends ModelKey<T
 /**
  * The parent a `prismaInterface`'s `resolveType` reads: what every row `InterfaceReturnShape`
  * accepts holds. A row a resolver built needn't hold the to-many relations and computed values of
- * the interface's `select`, and `resolveType` runs before anything reloads it.
+ * the interface's `select`, and `resolveType` runs before anything reloads it. Flattened so hovers
+ * and errors list its keys rather than a `Pick` of the whole shape.
  */
-export type ResolveTypeParent<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> = [
-  DiscriminatorField<Types, M>,
-] extends [never]
-  ? BuiltReturnShape<Types, M, Shape>
-  : BuiltReturnShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
+export type ResolveTypeParent<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  Shape,
+> = Simplify<
+  [DiscriminatorField<Types, M>] extends [never]
+    ? BuiltReturnShape<Types, M, Shape>
+    : BuiltReturnShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>
+>;
 
 export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {
   [prismaModelBrand]?: infer M;

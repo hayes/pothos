@@ -101,7 +101,8 @@ export type PrismaNextInterfaceOptions<
 > &
   PrismaNextTypeOptions<Types, M, Shape> & {
     resolveType?: (
-      parent: ResolveTypeParent<Types, M, Shape>,
+      // An annotated parameter is checked against the parent rather than inferred as `Shape`.
+      parent: NoInfer<ResolveTypeParent<Types, M, Shape>>,
       context: Types['Context'],
       info: GraphQLResolveInfo,
       type: GraphQLInterfaceType,
