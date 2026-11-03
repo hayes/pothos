@@ -24,28 +24,16 @@ builder.prismaObject('Post', {
 ```
 
 Relations are loaded with `.include(...)` on the parent's Collection, so
-`{ me { posts { author { id } } } }` runs as one Collection call. Prisma decides how many SQL
-statements that takes. One call loads at most 200 relations and computed values, counting each
-alias of a relation with its own arguments. Fields past that load in further calls, so aliases
-nested at every level of a document can't grow one statement without limit. Rows of a model
-without an [identity](#loading-without-a-parent-query) can't be reloaded, so their fields always
-load with them.
+`{ me { posts { author { id } } } }` runs as one Collection call.
 
-`t.relation`, `t.relationCount` and `t.relatedConnection` read what they
-loaded off the row this plugin returned. If something hands them another object, such as a copy
-another plugin's resolver wrapper makes, they reload the row in one more statement, or fail if
-its model has no identity to reload it by.
-
-- To-many relations are non-null lists.
-- To-one relations are non-null when their foreign key columns are non-null and they have
-  neither a `query` nor a `type` for a [variant model](./interfaces#native-inheritance), either
-  of which could filter the row out. Pass `nullable` to override, except that a relation whose
-  foreign key is nullable can't be made non-null, like a nullable column.
+To-many relations are non-null lists. To-one relations are non-null when their foreign key is
+non-null and they have no `query` or variant `type` that could filter the row out. Pass `nullable`
+to override.
 
 ## Filtering and sorting
 
 `query` accepts `{ where, orderBy, limit, offset }`, or a function of the field's arguments and
-context returning one. A to-one relation loads one row, so its `query` takes only `where`.
+context returning one. A to-one relation's `query` takes only `where`.
 
 ```ts
 posts: t.relation('posts', {
@@ -56,8 +44,8 @@ posts: t.relation('posts', {
 }),
 ```
 
-For a to-many relation, the function can instead return a refinement of the relation's
-collection, as `include()` takes one. It can apply a fragment or a custom collection's methods:
+For a to-many relation, the function can instead return a function that refines the relation's
+collection, for example to apply a fragment:
 
 ```ts
 const published = db.orm.Post.fragment((posts) => posts.where({ published: 1 }));
@@ -67,11 +55,7 @@ posts: t.relation('posts', {
 }),
 ```
 
-With `AsyncSelections: true` in the builder's types, the function can be async, as can a field's
-`select` function and a count's `where` function.
-
-Aliases with different arguments, such as `posts` and `oldest: posts(oldestFirst: true)`, load in
-the same call. Aliases of a count with the same arguments share one computed value.
+With `AsyncSelections: true` in the builder's types, the function can be async.
 
 ## Counts and other aggregates
 
@@ -88,28 +72,12 @@ builder.prismaObject('User', {
 });
 ```
 
-`where` takes what a relation's `query.where` does, or a function of the field's arguments and the
-context that returns it. So a predicate that needs the arguments is
-`(args) => (post) => post.published.eq(args.published)`.
+`where` takes the same values as a relation's `query.where`, or a function of the arguments and
+context returning one. A count is always a non-null `Int`; to hide it from some users without
+nulling the parent, use a nullable field with a `select`, as below.
 
-A count is a non-null `Int`, and `nullable` can't change that. So when the count fails, such as
-when its field's `authScopes` deny it, GraphQL nulls its parent object (or the nearest nullable
-field above it), as for any non-null field. To hide a count from some users and keep the parent,
-expose it as a nullable field with a `select`, described next.
-
-For other aggregates, such as a sum or a lossless `countBigInt`, use a field `select`. A function
-receives the relation's Collection, and each key it returns is added to the parent. A key can't be one that another relation of the `select` returns, or a column or
-relation of the parent's model; the types reject both. So keys must be literals: the types reject
-one built from the field's arguments, which they can't check. TypeScript also widens a key typed
-as a union of literals or a type parameter to `string`, so a generic helper that builds an entry
-needs an explicit mapped return type:
-
-```ts
-const keyed = <K extends string, V>(key: K, value: V): { [P in K]: V } =>
-  ({ [key]: value }) as { [P in K]: V };
-
-// select: { posts: (posts) => keyed('total', posts.count()) }
-```
+For other aggregates, use a field `select`. The function receives the relation's Collection, and
+each key it returns is added to the parent row. Keys must be literal strings:
 
 ```ts
 builder.prismaObject('User', {
@@ -133,25 +101,15 @@ builder.prismaObject('User', {
 
 ## Many-to-many
 
-Relations defined with `rel.manyToMany({ through, from, to })` work with `t.relation` like any
-other relation. To expose columns on the junction itself, model it as its own model and use two
-relations.
+Relations defined with `rel.manyToMany({ through, from, to })` work with `t.relation`. To expose
+columns on the junction, model it as its own model and use two relations.
 
 ## Loading without a parent query
 
-A row returned from a plain `t.field` must include its primary key and the type's `select`, its
-columns and to-one relations. A full row from `db.orm.User.first()` works when that `select` names
-only columns. A row returned for a `prismaInterface` needs the interface's `select` plus, on a model
-with variants, its discriminator, which picks the row's type before any field runs. Selections of
-the type's fields that the row is missing are loaded through the plugin's
-[`client`](./setup#plugin-options), batched across parents. `typeof User.$inferType` and
-`typeof Task.$inferType` name these rows, for example as a helper's return type.
+A row returned from a plain `t.field` must include its primary key and the columns and to-one
+relations of the type's `select`. Other selections are loaded through the plugin's `client`,
+batched across parents. `typeof User.$inferType` names this row type.
 
-The same loader handles fields that load one to-one relation with different filters, which
-Prisma can't include in one query.
-
-A row is reloaded by its identity: its primary key, or the first non-null unique key of a model
-without one. The types only know primary keys, so a plain `t.field` returning a model without one
-must return its whole row. A model with neither has no identity and can't be reloaded, so its
-fields must come from the parent query. A field that would need the loader fails with an error
-naming it.
+Rows are reloaded by their primary key, or the first non-null unique key if there isn't one (return
+the whole row for such a model). A model with neither can't be reloaded, so its fields must be
+loaded by the parent query.

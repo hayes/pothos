@@ -19,16 +19,14 @@ builder.prismaObject('User', {
 });
 ```
 
-This is the model's type, which a model name such as `type: 'User'` or `t.relation('author')`
-refers to. `name` only renames it. A model has one such type: registering a second fails, so add
-fields to it with `prismaObjectFields`, or define another type for the model with
-[`variant`](./variants). That is a type variant, not a variant model of the contract, which
-[native inheritance](./interfaces#native-inheritance) maps.
+Each model has one primary type, which `type: 'User'` and `t.relation` refer to. Add fields to it
+with [`prismaObjectFields`](#adding-fields), or define more types for the same model with
+[`variant`](./variants).
 
 ## Prisma fields
 
-`t.prismaField` returns a contract-backed type. Its resolver returns an unexecuted Collection. The
-plugin adds the selection for the query and runs it, with `.limit(1)` for single results.
+`t.prismaField` resolves to an unexecuted Collection. The plugin adds the selection for the query
+and runs it.
 
 ```ts
 builder.queryType({
@@ -42,11 +40,8 @@ builder.queryType({
 });
 ```
 
-Return the Collection without calling `.all()` or `.first()`. The types reject materialized
-rows, because the plugin can't add the selection to them, and the plugin rejects a Collection with
-an `.include()`, because it includes what the query selects itself. Filter a relation with its field's
-[`query`](./relations#filtering-and-sorting) instead. A nullable field resolves to `null` when the
-Collection is empty.
+Don't call `.all()`, `.first()` or `.include()` on the Collection. To filter a relation, use its
+field's [`query`](./relations#filtering-and-sorting).
 
 ### Mutations
 
@@ -71,13 +66,11 @@ builder.mutationType({
 });
 ```
 
-To run the write and the reads in one transaction, see [Transactions](./setup#transactions).
+See [Transactions](./setup#transactions) to run the write and the reads in one transaction.
 
-### Payloads and other resolvers
+### Payloads
 
-A mutation payload can hold what identifies the result and give it a `t.prismaField`, which
-returns a Collection like a root field does. The result then loads after the write, in one more
-statement:
+A payload type can hold the result's ID and load it with a `t.prismaField`:
 
 ```ts
 const RenameUserPayload = builder.objectRef<{ userId: string }>('RenameUserPayload').implement({
@@ -90,11 +83,9 @@ const RenameUserPayload = builder.objectRef<{ userId: string }>('RenameUserPaylo
 });
 ```
 
-A field that isn't a `prismaField`, such as a mutation returning a payload, can apply its selection
-with `collectionFromInfo`. `path` leads to the rows' field in the payload. The rows that the
-collection's reads and writes return load what the query selects, relations included, so the
-payload's fields don't load again. This works for a write that returns the row, such as `update`
-or `delete`:
+To load the result with the write itself, apply the selection with `collectionFromInfo`. `path`
+leads from the field to the rows, and `typeName` picks the type when it leads to an interface or
+union. This works for writes that return the row, such as `update` or `delete`:
 
 ```ts
 import { collectionFromInfo } from '@pothos/plugin-prisma-next';
@@ -120,12 +111,9 @@ builder.mutationField('renameUser', (t) =>
 );
 ```
 
-`typeName` names the type the rows resolve as when the path leads to an interface or union.
-
 ### Subscriptions
 
-In a subscription field, `resolve` receives each value `subscribe` yields and returns a Collection
-to load it from:
+`resolve` receives each value `subscribe` yields and returns a Collection to load it from:
 
 ```ts
 builder.subscriptionType({
@@ -140,27 +128,10 @@ builder.subscriptionType({
 });
 ```
 
-### With input
-
-With the [with-input plugin](../with-input), `t.prismaFieldWithInput` works the same way:
-
-```ts
-builder.queryFields((t) => ({
-  userByEmail: t.prismaFieldWithInput({
-    type: 'User',
-    nullable: true,
-    input: { email: t.input.string({ required: true }) },
-    resolve: (_root, args, ctx) =>
-      ctx.db.orm.User.where((user) => user.email.eq(args.input.email)),
-  }),
-}));
-```
-
 ## Selections
 
-`select` on the type loads columns whenever the type is queried. `select` on a field loads them
-when the field is queried. A resolver's parent only includes what was selected, plus the model's
-primary key, which is always loaded.
+`select` on the type loads data whenever the type is queried; `select` on a field loads it when
+that field is queried. The primary key is always loaded.
 
 ```ts
 builder.prismaObject('User', {
@@ -189,16 +160,14 @@ A `select` accepts:
 - `{ column: true }` or `['column']`: a column.
 - `{ relation: true }`: the related rows.
 - `{ relation: { where, orderBy, limit, offset } }`: filtered or sorted related rows. A to-one
-  relation takes only `where`, and only on a field's `select`.
-- `{ relation: (collection) => ({ ... }) }`: counts, aggregates, or other values computed from a
-  to-many relation. Each key is added to the parent, so it can't name a column or relation of the
-  model, or a key another relation of the `select` computes.
+  relation takes only `where`, and only in a field's `select`.
+- `{ relation: (collection) => ({ ... }) }`: counts or aggregates of a to-many relation. Each key is
+  added to the parent row, so it can't reuse a column or relation name.
 
-`t.expose*` only works on model columns. Read a computed key with a resolver, such as
-`t.int({ resolve: (user) => user.postCount })`.
+Read computed keys with a resolver; `t.expose*` only works on columns.
 
-The function form only works on to-many relations. To filter a to-one relation, use the object form
-on a field:
+To filter a to-one relation, use the object form in a field's `select`. The result can be `null`
+even when the foreign key is required:
 
 ```ts
 authorName: t.string({
@@ -208,23 +177,9 @@ authorName: t.string({
 }),
 ```
 
-A filtered to-one relation can be `null` even when its foreign key is required.
-
-The `select` of a type takes only `true` for a to-one relation. The ORM includes a to-one relation
-once per row, and every reader of the row shares a type's `select`. A field with a filter loads its
-own version of the relation, reloading the row when the rest of the query needs the unfiltered one.
-
-A field returning the type must return the key plus the columns and to-one relations of the type's
-`select`, so type-level checks such as `authScopes` see them. To-many relations and computed values
-in a type's `select`, and fields' own `select`s, load per field, so a type-level check shouldn't
-rely on them unless the row came from a prisma field, relation or connection. A field's own
-`select` may be missing under `@defer` until the field resolves.
-
-A field's `select` can also be a function of the field's arguments and context returning the
-object form. A column array is a static `select` only. With `AsyncSelections: true` in the
-builder's types, the function can be async. Columns that only some of its branches select are
-optional on the parent, as are the columns of a static array variable, such as
-`select: someColumns`:
+A field's `select` can also be a function of its arguments and context. With `AsyncSelections: true`
+in the builder's types, it can be async. Columns selected by only some branches are optional on the
+parent:
 
 ```ts
 email: t.string({
@@ -234,10 +189,14 @@ email: t.string({
 }),
 ```
 
+Type-level checks such as `authScopes` can rely on the key and the columns and to-one relations of
+the type's `select`. Anything else may not be loaded yet, unless the row came from a prisma field,
+relation or connection.
+
 ## Adding fields
 
-`builder.objectField` and `builder.objectFields` don't support `select`. Use
-`prismaObjectField` or `prismaObjectFields` instead:
+`builder.objectField` doesn't support `select`. Use `prismaObjectField` or `prismaObjectFields`
+instead:
 
 ```ts
 builder.prismaObjectField('User', 'displayName', (t) =>
@@ -248,8 +207,8 @@ builder.prismaObjectField('User', 'displayName', (t) =>
 );
 ```
 
-With a model name, the parent only includes the field's own `select`. Pass the ref returned by
-`prismaObject` to use the type's selections, or to extend a [variant](./variants):
+Pass the ref returned by `prismaObject` instead of the model name to read the type's `select` in
+the parent, or to extend a [variant](./variants):
 
 ```ts
 const User = builder.prismaObject('User', {

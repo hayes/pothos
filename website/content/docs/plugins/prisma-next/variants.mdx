@@ -3,8 +3,7 @@ title: Variants
 description: Multiple GraphQL types backed by the same contract model
 ---
 
-A type variant is an additional GraphQL type for a model. Define one with `variant` instead of
-`name`:
+A variant is an additional GraphQL type for a model. Define one with `variant` instead of `name`:
 
 ```ts
 const Viewer = builder.prismaObject('User', {
@@ -17,15 +16,11 @@ const Viewer = builder.prismaObject('User', {
 });
 ```
 
-Type variants are unrelated to variant models. A variant model is a model in the contract that
-extends a base model, such as `Bug` in `orm.Task.variant('bug')`, and maps to an implementation of
-the base's interface, as in [Native inheritance](./interfaces#native-inheritance). A variant model
-can have type variants of its own.
+These are unrelated to variant models in the contract, which map to
+[interfaces](./interfaces#native-inheritance).
 
-Use the returned ref wherever the variant is needed. The model name always refers to the
-primary type, so register one with `prismaObject('User', ...)` if any field refers to `'User'`.
-
-Return a variant from a relation with `type`:
+The model name always refers to the primary type, so use the returned ref wherever you want the
+variant. Return it from a relation with `type`:
 
 ```ts
 author: t.relation('author', { type: Viewer }),
@@ -45,9 +40,8 @@ builder.queryFields((t) => ({
 
 ## Variant fields
 
-`t.variant` exposes the same row as another variant without another query. Pass `isNull` to
-return `null` for some rows. It can only read columns listed in the field's `select`, a column
-array such as `['id']` or an object:
+`t.variant` exposes the same row as another variant without another query. It can only read the
+columns in its `select`. `isNull` returns `null` for some rows:
 
 ```ts
 builder.prismaObject('User', {
@@ -59,8 +53,6 @@ builder.prismaObject('User', {
   }),
 });
 ```
-
-`isNull` makes the field nullable, so it can't be combined with `nullable: false`.
 
 ## Adding fields
 

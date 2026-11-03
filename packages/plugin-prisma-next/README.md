@@ -1,127 +1,60 @@
 # Prisma Next Plugin
 
 A Pothos plugin for [Prisma ORM 8](https://github.com/prisma/orm). It defines GraphQL types from
-the models in a Prisma contract and applies the selections a query needs to the Collections your
+the models in a Prisma contract and adds the selections each query needs to the Collections your
 resolvers return.
 
 > [!WARNING]
-> **Experimental.** This plugin targets Prisma ORM `8.0.0-rc.22` exactly. Other versions are not
-> supported, and the API of both Prisma ORM 8 and this plugin may change in any release.
+> **Experimental.** This plugin targets Prisma ORM `8.0.0-rc.22` exactly. Its API, and Prisma's,
+> may change in any release.
 
-For Prisma ORM 7 and `@prisma/client`, use
-[`@pothos/plugin-prisma`](https://pothos-graphql.dev/docs/plugins/prisma). The two plugins can't be
-used in the same program: both add `prismaObject`, `prismaField` and the other `prisma*` methods
-to the builder. Importing both throws at runtime, and their type declarations conflict: TS2717, or
-with `skipLibCheck: true`, errors in your own code such as a missing `prisma` builder option.
+For Prisma ORM 7, use [`@pothos/plugin-prisma`](https://pothos-graphql.dev/docs/plugins/prisma)
+instead. The two can't be used together.
 
 ## Example
 
-Requires Node.js 22.18 or a later 22.x release, or 24.11 or later. SQLite needs 22.20 or later.
-
-Override `@prisma/orm-toolchain` before installing the CLI, because `prisma@8.0.0-rc.29` depends on
-an older version that can't work with rc.22. With npm, add this to `package.json`. pnpm needs it in
-`pnpm-workspace.yaml` instead.
-
-```json
-{
-  "overrides": {
-    "@prisma/orm-toolchain": "8.0.0-rc.22"
-  }
-}
-```
-
-Install with exact versions, because the plugin's peer dependencies are exact:
+Set up Prisma ORM 8 and your contract, then install the plugin:
 
 ```sh
-npm install --save-dev --save-exact prisma@8.0.0-rc.29 @prisma/cli-engine@0.9.0
-npm install --save-exact @prisma/orm-framework@8.0.0-rc.22 @prisma/orm-family-sql@8.0.0-rc.22 @prisma/orm-sqlite@8.0.0-rc.22
-npm install --save @pothos/core @pothos/plugin-prisma-next @pothos/plugin-relay graphql
-npm install --save-dev @types/node tsx typescript
+npm install --save @pothos/core @pothos/plugin-prisma-next graphql
 ```
-
-See [Setup](https://pothos-graphql.dev/docs/plugins/prisma-next/setup) for the pnpm steps, the
-`prisma.config.ts` and contract files, PostgreSQL, and creating the database.
 
 ```ts
 import SchemaBuilder from '@pothos/core';
 import prismaNextPlugin from '@pothos/plugin-prisma-next';
-import RelayPlugin from '@pothos/plugin-relay';
-import sqlite from '@prisma/orm-sqlite/runtime';
-import { contractFromJson } from '@prisma/orm-sqlite/static';
-import contractJson from './prisma/contract.json' with { type: 'json' };
-import type { Contract } from './prisma/contract';
-
-const contract = contractFromJson<Contract>(contractJson);
-const db = sqlite({ contract, path: './app.db' });
+import { contract, db } from './prisma/db';
 
 const builder = new SchemaBuilder<{
-  PrismaNextContract: Contract;
+  PrismaNextContract: typeof contract;
   Context: { db: typeof db };
 }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [prismaNextPlugin],
   prismaNext: { client: db },
 });
-```
 
-The examples below come from the
-[Prisma Next playground example](https://pothos-graphql.dev/playground?example=plugin-prisma-next).
-An object type with a computed field and a filtered relation:
-
-```ts
 builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
-    // Selects its columns only when a query asks for this field.
     fullName: t.string({
       select: ['firstName', 'lastName'],
       resolve: (user) => `${user.firstName} ${user.lastName}`,
     }),
-    // Loaded with its parent as part of one ORM query.
     posts: t.relation('posts', {
       query: { where: { published: 1 }, orderBy: (post) => post.id.asc() },
     }),
   }),
 });
-```
 
-A related connection:
-
-```ts
-// Pages through the relation inside the query that loads the user.
-builder.prismaObjectField('User', 'postConnection', (t) =>
-  t.relatedConnection('posts', {
-    query: { where: { published: 1 } },
-    totalCount: true,
+builder.queryType({
+  fields: (t) => ({
+    users: t.prismaField({
+      type: ['User'],
+      resolve: (_root, _args, ctx) => ctx.db.orm.User,
+    }),
   }),
-);
+});
 ```
 
-A root field returns a Collection, and the plugin applies the query's selection to it:
-
-```ts
-users: t.prismaField({
-  type: ['User'],
-  resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
-}),
-```
-
-A root connection, ordered per request:
-
-```ts
-posts: t.prismaConnection({
-  type: 'Post',
-  totalCount: true,
-  args: { newestFirst: t.arg.boolean() },
-  // Chooses the order per request; the plugin reverses it for backward pages.
-  orderBy: (args) => ({ id: args.newestFirst ? 'desc' : 'asc' }),
-  resolve: () => db.orm.Post.where({ published: 1 }),
-}),
-```
-
-PostgreSQL and SQLite are supported, MySQL supports reads only (not covered by CI), and MongoDB is
-not supported. A context object is required: execute every operation with one (`contextValue`),
-because the plugin keeps per-request state on it.
-
-See the [Prisma Next plugin docs](https://pothos-graphql.dev/docs/plugins/prisma-next) for the
-full documentation.
+See the [Prisma Next plugin docs](https://pothos-graphql.dev/docs/plugins/prisma-next) and the
+[playground example](https://pothos-graphql.dev/playground?example=plugin-prisma-next).

@@ -3,8 +3,7 @@ title: Relay nodes
 description: Defining Relay nodes for contract-backed models
 ---
 
-Nodes require the [Relay plugin](./setup#installing). [Connections](./connections) covers
-pagination.
+Nodes require the [Relay plugin](../relay). See [Connections](./connections) for pagination.
 
 ## Define a node
 
@@ -20,16 +19,10 @@ builder.prismaNode('Post', {
 });
 ```
 
-- `id.field`: a column, or a list of columns. They must include a complete non-null primary or
-  unique key; otherwise the schema build fails.
-- `id.parse` / `id.resolve`: custom serialization of the ID. `parse` turns the ID back into the
-  key's values. `resolve` changes the encoded value, so it requires `parse`: the types reject it
-  alone, since `node(id:)` would find no row.
-- Other `id` options, such as `description`, `extensions` or another plugin's `authScopes`, are
-  passed to the ID field.
-- `collection`: a function of the context returning the Collection nodes load from. Defaults to
-  the model's collection on the plugin's `client`. See
-  [Filter node lookups](#filter-node-lookups).
+- `id.field`: a column, or a list of columns, covering a non-null primary or unique key.
+- `id.parse` / `id.resolve`: custom ID serialization. `resolve` requires `parse`.
+- Other `id` options, such as `description`, are passed to the ID field.
+- `collection`: the Collection nodes load from. See [Filter node lookups](#filter-node-lookups).
 
 ```ts
 builder.prismaNode('Comment', {
@@ -42,20 +35,14 @@ builder.prismaNode('Comment', {
 });
 ```
 
-By default IDs encode the key columns with the client's column codecs, and
-`t.arg.globalID({ for: ref })` receives the decoded values.
+`node` and `nodes` lookups of one type are batched into one query.
 
-An ID column must hold the value it is read as. A Postgres timestamp read as a JavaScript `Date`
-keeps milliseconds, so an `id.field` with a precision above 3, or none, is a schema build error;
-bare `DateTime` is `timestamptz(3)` and works. Use `TimestamptzTemporal` for finer timestamps.
-
-`node` and `nodes` lookups of one type are batched into one query, with the selection applied,
-including aliased `node` fields whose selections can load together.
+On PostgreSQL, a timestamp ID column read as a JavaScript `Date` must have a precision of 3 or
+less (bare `DateTime` is fine). Use `TimestamptzTemporal` for finer timestamps.
 
 ## Filter node lookups
 
-`collection` runs for each batch of lookups, so it can use the request's client and filter by the
-request's values:
+`collection` is a function of the context, so it can filter by the request:
 
 ```ts
 builder.prismaNode('Post', {
@@ -65,24 +52,17 @@ builder.prismaNode('Post', {
 });
 ```
 
-`node` and `nodes` return `null` for a row the filter excludes.
+`node` and `nodes` return `null` for rows the filter excludes. Only filter the collection; don't
+call `limit()`, `offset()`, `cursor()` or `include()` on it.
 
-Return the collection filtered but otherwise unshaped: one with `limit()`, `offset()`, `cursor()`
-or `include()` is rejected, since the plugin pages the lookups and includes what the query
-selects. On a [variant](./interfaces) model, return it narrowed with `orm.Base.variant(value)`.
-
-`collection` applies only to `node` and `nodes` lookups, so it isn't access control. Rows reached
-through `t.relation`, `t.relatedConnection`, `prismaField` or `prismaConnection` don't pass through
-it, and neither do reloads of a parent row's missing selections, which read the model's collection
-on the plugin's `client`. Use auth checks on the type to restrict rows everywhere: a function
-`client` restricts rows only if the client it returns is scoped, and a resolver can still return a
-build-time client.
+`collection` only applies to `node` and `nodes`, so it isn't access control. Rows reached through
+relations, connections or prisma fields don't pass through it. Use auth checks on the type instead.
 
 ## Several node types for one model
 
-Nodes don't take `isTypeOf`. Each type has its own global IDs, so `node` and `nodes` return the
-type the ID names. Where one field can return several of them, return a
-[`prismaInterface`](./interfaces) with a `resolveType`, or brand each row with its type's ref:
+Each node type has its own global IDs. Where one field can return several of them, return a
+[`prismaInterface`](./interfaces) with a `resolveType`, or brand each row with its type's
+`addBrand`:
 
 ```ts
 const DraftPost = builder.prismaNode('Post', {
@@ -102,8 +82,3 @@ builder.queryField('latestDraft', (t) =>
   }),
 );
 ```
-
-`addBrand` accepts a row or a list, and its types require the key plus the type's `select`. A row
-returned unbranded through `Node` or another interface that isn't a `prismaInterface` fails with
-`Abstract type ... must resolve`. A row with a `__typename`, or one a hand-written `resolveType`
-names, skips that check like a cast, so it may lack the type's `select`.

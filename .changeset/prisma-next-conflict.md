@@ -2,4 +2,4 @@
 '@pothos/plugin-prisma': patch
 ---
 
-Importing `@pothos/plugin-prisma` after `@pothos/plugin-prisma-next` throws, since both define the same `prisma*` builder methods.
+Throw a clear error when `@pothos/plugin-prisma` is used alongside `@pothos/plugin-prisma-next`.
