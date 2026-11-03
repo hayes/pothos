@@ -221,7 +221,9 @@ describe('aliases with different arguments nested at every level', () => {
       expect(statement.sql.match(/FROM "(post|user)"/g)!.length).toBeLessThan(300);
       expect(renamedBranches(statement.sql)).toEqual([]);
     }
-  });
+    // The result doubles at every level, so this runs well past the default timeout on a busy CI
+    // runner. The statement checks above catch a planning regression.
+  }, 30_000);
 });
 
 // A field the limit refuses reloads its parent, which a model without a key can't. A keyless level
