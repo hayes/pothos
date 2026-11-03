@@ -114,7 +114,7 @@ posts: t.prismaConnection({
   totalCount: true,
   args: { newestFirst: t.arg.boolean() },
   // Chooses the order per request; the plugin reverses it for backward pages.
-  orderBy: (args) => ({ createdAt: args.newestFirst ? 'desc' : 'asc' }),
+  orderBy: (args) => ({ id: args.newestFirst ? 'desc' : 'asc' }),
   resolve: () => db.orm.Post.where({ published: 1 }),
 }),
 ```
