@@ -346,8 +346,9 @@ Enabling this has a couple of limitations:
 With `runScopesOnType`, type scopes run before any field of the type resolves, so they see the
 object exactly as the parent field returned it. To change this, set the `pothosScopeAuthParent`
 extension on an object type. Scope auth calls it with the parent, the
-context, and the resolve info, and runs the type's scopes on whatever it returns. The type's own
-`isTypeOf` still gets the original object.
+context, and the resolve info, and runs the type's scopes on whatever it returns. The type's
+`grantScopes` and the `scopeAuth.unauthorizedError` builder option get that object too. The type's
+own `isTypeOf` still gets the original object.
 
 The [Prisma Next plugin](/docs/plugins/prisma-next) sets this extension so type scopes see the
 columns and relations a type selects, even when a resolver returned a partial row.
