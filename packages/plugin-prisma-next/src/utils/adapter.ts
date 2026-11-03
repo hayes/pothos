@@ -31,7 +31,10 @@ import {
   type ComputedSelection,
   compileTypeSelect,
   EMPTY,
+  type IncludedRelation,
+  type IncludeRecord,
   KEY_SEPARATOR,
+  loadsWholeRelation,
   type Narrowing,
   type PrismaNextSelectFn,
   type PrismaNextSelection,
@@ -86,6 +89,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   override readonly skipDeferredFragments: boolean;
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSelection>();
   private readonly withoutIdentity = new WeakMap<PrismaNextModel, boolean>();
+  private readonly records = new WeakMap<object, IncludeRecord>();
 
   constructor(
     readonly contract: AnyContract,
@@ -226,6 +230,25 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   }
 
   /**
+   * Batches of reloads merge only when their roots load each to-one relation alike. A reload's root
+   * gives a to-one include to the filtered field it reloads for, so a batch with another load of
+   * the relation would leave one of them out.
+   */
+  override canMergeNode(into: PrismaNextNode, from: PrismaNextNode): boolean {
+    if (!super.canMergeNode(into, from)) {
+      return false;
+    }
+    const held = toOneLoads(into.model, into.relations);
+    for (const [name, added] of toOneLoads(from.model, from.relations)) {
+      const existing = held.get(name);
+      if (existing && !deepEqual(existing, added)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * A type's selection merges whatever level it lands on, so what that level can't include is left
    * out. The row then lacks it, which makes the type's fields reload through the variant's loader.
    */
@@ -270,14 +293,38 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     return selection;
   }
 
-  /** Applies `selection` to `collection`: selects its columns and includes each relation once. */
+  /**
+   * Applies `selection` to `collection`: selects its columns and includes each relation once. What
+   * it included is recorded for `recordOf`, which `takeSlots` reads the loaded rows by. A reload
+   * (`reloading`) gives its root's to-one include to the field it reloads for, which is the only
+   * filtered consumer there.
+   */
   emit(
     collection: MapperCollection,
     selection: PrismaNextSelection,
     model: PrismaNextModel,
     ctx: object,
+    reloading = false,
   ): MapperCollection {
+    const [result, record] = this.emitLevel(collection, selection, model, ctx, reloading);
+    this.records.set(result, record);
+    return result;
+  }
+
+  /** What `emit` included in `collection`, for `takeSlots` to read its rows by. */
+  recordOf(collection: object): IncludeRecord | undefined {
+    return this.records.get(collection);
+  }
+
+  private emitLevel(
+    collection: MapperCollection,
+    selection: PrismaNextSelection,
+    model: PrismaNextModel,
+    ctx: object,
+    reloading: boolean,
+  ): [MapperCollection, IncludeRecord] {
     let result = selection.columns?.length ? collection.select(...selection.columns) : collection;
+    const record: Record<string, IncludedRelation> = {};
     // The ORM includes a relation once, so all of its consumers share one include.
     const consumers = new Map<string, RelationConsumers>();
     const consumersOf = (key: string) => {
@@ -299,9 +346,14 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     }
     for (const [name, entry] of consumers) {
       const relation = relationOf(model, name);
-      result = result.include(name, (rel) => this.emitRelation(rel, relation, entry, ctx));
+      // The ORM builds the include while `include` runs, so the record is complete when it returns.
+      result = result.include(name, (rel) => {
+        const [included, recorded] = this.emitRelation(rel, relation, entry, ctx, reloading);
+        record[name] = recorded;
+        return included;
+      });
     }
-    return result;
+    return [result, record];
   }
 
   private emitRelation(
@@ -309,7 +361,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     relation: PrismaNextRelation,
     { rows, computed }: RelationConsumers,
     ctx: object,
-  ) {
+    reloading: boolean,
+  ): [MapperCollection, IncludedRelation] {
     const target = relation.targetVariantModel;
     // The ORM reads a single-table variant's rows through the base table without filtering them.
     const base = target?.sharesTable
@@ -322,23 +375,26 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       const narrowed =
         narrowing && !narrowing.throughVariantModel ? base.variant(narrowing.value) : base;
       const refined = selection.args?.[REFINE]?.(narrowed) ?? narrowed;
-      return this.emit(refined, selection, relation.target, ctx);
+      return this.emitLevel(refined, selection, relation.target, ctx, false);
     };
-    // A to-one relation is keyed by its name alone, so it has one consumer and no computed values.
     if (!relation.isToMany) {
-      return load(rows[0][1]);
+      return this.emitToOne(relation.target, rows, load, reloading);
     }
     const shared = computed.length === 0 ? this.shareRows(relation.target, rows) : undefined;
     if (shared) {
       // Rows that are all of the relation can be read as `row[relation]` by anyone. Any others go
       // in a slot of their consumers, so readers at other scopes can't mistake them for that.
-      return loadsWholeRelation(shared)
-        ? load(shared)
-        : base.combine({ [rows.map(([scope]) => scope).join(SCOPE_SEPARATOR)]: load(shared) });
+      const [included, nested] = load(shared);
+      if (loadsWholeRelation(shared)) {
+        return [included, { nested }];
+      }
+      const key = rows.map(([scope]) => scope).join(SCOPE_SEPARATOR);
+      return [base.combine({ [key]: included }), { slots: { [key]: nested } }];
     }
     const slots: Record<string, unknown> = {};
+    const nested: Record<string, IncludeRecord> = {};
     for (const [scope, selection] of rows) {
-      slots[scope] = load(selection);
+      [slots[scope], nested[scope]] = load(selection);
     }
     for (const [scopes, value] of shareComputed(computed)) {
       const values = value[COMPUTE](base, ctx);
@@ -346,7 +402,41 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
         slots[`${scopes.join(SCOPE_SEPARATOR)}${KEY_SEPARATOR}${key}`] = values[key];
       }
     }
-    return base.combine(slots);
+    return [base.combine(slots), { slots: nested }];
+  }
+
+  /**
+   * Includes one load of a to-one relation, which the ORM can't alias. The whole relation, keyed
+   * by its name, wins, so every reader of the row sees the declared relation. Otherwise the first
+   * filtered load does, with every consumer whose load it shares, and goes in their slot. The
+   * consumers left out reload, and a reload's root gives the include to the field it reloads for.
+   */
+  private emitToOne(
+    model: PrismaNextModel,
+    rows: [string, PrismaNextSelection][],
+    load: (selection: PrismaNextSelection) => [MapperCollection, IncludeRecord],
+    reloading: boolean,
+  ): [MapperCollection, IncludedRelation] {
+    const whole = rows.find(([scope]) => scope === '');
+    const filtered = rows.filter(([scope]) => scope !== '');
+    if (whole && !(reloading && filtered.length)) {
+      const [included, nested] = load(whole[1]);
+      return [included, { nested, dropped: filtered.map(([scope]) => scope) }];
+    }
+    const node = this.createNode(model);
+    this.mergeQuery(node, filtered[0]![1]);
+    const scopes = [filtered[0]![0]];
+    const dropped: string[] = [];
+    for (const [scope, selection] of filtered.slice(1)) {
+      if (this.canMergeQuery(node, selection) && sameToOneLoads(node, selection)) {
+        this.mergeQuery(node, selection);
+        scopes.push(scope);
+      } else {
+        dropped.push(scope);
+      }
+    }
+    const [included, nested] = load(this.toQuery(node));
+    return [included, { nested, scopes, dropped }];
   }
 
   /** Merges the consumers of a relation into one selection when their selections agree. */
@@ -357,7 +447,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     const node = this.createNode(model);
     this.mergeQuery(node, rows[0][1]);
     for (const [, selection] of rows.slice(1)) {
-      if (!this.canMergeQuery(node, selection)) {
+      if (!this.canMergeQuery(node, selection) || !sameToOneLoads(node, selection)) {
         return undefined;
       }
       this.mergeQuery(node, selection);
@@ -386,6 +476,58 @@ function loads(selection: PrismaNextSelection, held?: PrismaNextSelection): numb
   return count;
 }
 
+interface ToOneLoads {
+  whole: boolean;
+  /** The arguments of each distinct filtered load. */
+  filtered: unknown[];
+}
+
+/** How a level loads each of its to-one relations, by relation name. */
+function toOneLoads(
+  model: PrismaNextModel,
+  relations: Iterable<[string, { args?: object }]>,
+): Map<string, ToOneLoads> {
+  const loads = new Map<string, ToOneLoads>();
+  for (const [key, child] of relations) {
+    const name = relationName(key);
+    if (relationOf(model, name).isToMany) {
+      continue;
+    }
+    let entry = loads.get(name);
+    if (!entry) {
+      entry = { whole: false, filtered: [] };
+      loads.set(name, entry);
+    }
+    const args = child.args ?? EMPTY;
+    if (key === name) {
+      entry.whole = true;
+    } else if (!entry.filtered.some((other) => deepEqual(other, args))) {
+      entry.filtered.push(args);
+    }
+  }
+  return loads;
+}
+
+/**
+ * Whether `selection` loads each to-one relation of `node` as `node` does, at every level both
+ * have. The ORM includes a to-one relation once, so merging different loads of one would leave
+ * all but one of them out of the statement.
+ */
+function sameToOneLoads(node: PrismaNextNode, selection: PrismaNextSelection): boolean {
+  const relations = Object.entries(selection.relations ?? {});
+  const held = toOneLoads(node.model, node.relations);
+  for (const [name, added] of toOneLoads(node.model, relations)) {
+    const existing = held.get(name);
+    if (existing && !deepEqual(existing, added)) {
+      return false;
+    }
+  }
+  return relations.every(([key, child]) => {
+    const existing = node.relations.get(key);
+    return !existing || sameToOneLoads(existing, child);
+  });
+}
+
 /**
  * Groups the consumers of a relation that compute the same values, so each value is computed
  * once, however many aliases select it.
@@ -401,11 +543,6 @@ function shareComputed(computed: [string, ComputedSelection][]) {
     }
   }
   return groups;
-}
-
-/** Whether a relation load has every row of the relation, rather than a filtered or paged part. */
-function loadsWholeRelation({ args }: PrismaNextSelection) {
-  return args?.loadIdentity === undefined && (!args?.variant || args.variant.throughVariantModel);
 }
 
 /**

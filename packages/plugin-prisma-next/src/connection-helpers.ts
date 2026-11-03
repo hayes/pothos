@@ -440,7 +440,13 @@ export function prismaConnectionHelpers<
         return totalCountPromise;
       },
       wrap: (loaded: readonly Record<string, unknown>[], totalCount?: number) =>
-        toPage(takeSlots(loaded, model), planned, args, totalCount, undefined),
+        toPage(
+          takeSlots(loaded, model, config.adapter.recordOf(paginated)),
+          planned,
+          args,
+          totalCount,
+          undefined,
+        ),
     });
     return completeValue(rows, withCollection);
   };

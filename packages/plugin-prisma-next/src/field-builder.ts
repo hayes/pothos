@@ -65,6 +65,7 @@ function prismaFieldConfig(
       const rows = takeSlots(
         await (isList ? applied : (applied.limit(1) as Executable)).all(),
         model,
+        config.adapter.recordOf(applied),
       );
       return isList ? rows : (rows[0] ?? null);
     },
@@ -170,11 +171,13 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
                 paths: CONNECTION_NODE_PATHS,
                 seed: { columns: cursorColumns(planned.order) },
               }),
+            ).then(async (applied) =>
+              takeSlots(
+                await (applied as unknown as { all(): Promise<Record<string, unknown>[]> }).all(),
+                model,
+                config.adapter.recordOf(applied),
+              ),
             )
-              .then((applied) =>
-                (applied as unknown as { all(): Promise<Record<string, unknown>[]> }).all(),
-              )
-              .then((rows) => takeSlots(rows, model))
           : Promise.resolve([]);
 
         // Counts the collection the resolver returned, before pagination.

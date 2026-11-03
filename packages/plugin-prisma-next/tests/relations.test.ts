@@ -644,6 +644,90 @@ describe('to-one consumers', () => {
   });
 });
 
+describe('filtered to-one relations', () => {
+  function schema() {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({ id: t.exposeID('id'), firstName: t.exposeString('firstName') }),
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        alice: t.relation('author', { nullable: true, query: { where: { firstName: 'Alice' } } }),
+        bob: t.relation('author', { nullable: true, query: { where: { firstName: 'Bob' } } }),
+        authorName: t.string({
+          select: { author: true },
+          resolve: (post) => post.author.firstName,
+        }),
+        aliceName: t.string({
+          nullable: true,
+          select: { author: { where: { firstName: 'Alice' } } },
+          resolve: (post) => post.author?.firstName ?? null,
+        }),
+        // Reads a relation it never selected.
+        unselected: t.string({
+          nullable: true,
+          resolve: (post) => (post as { author?: { firstName: string } }).author?.firstName ?? null,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaField({
+          type: ['Post'],
+          resolve: () => db.orm.Post.orderBy((post) => post.id.asc()),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  // p-bob-draft, p-bob1, p-draft1, p-hello
+  const authors = ['Bob', 'Bob', 'Alice', 'Alice'];
+  const onlyAlice = authors.map((name) => (name === 'Alice' ? name : null));
+
+  it('loads a filtered to-one relation alone in one statement, off the row', async () => {
+    const result = await run(schema(), '{ posts { alice { firstName } unselected } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts).toEqual(
+      onlyAlice.map((name) => ({ alice: name && { firstName: name }, unselected: null })),
+    );
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it.each([
+    '{ posts { alice { firstName } authorName } }',
+    '{ posts { authorName alice { firstName } } }',
+  ])('never shows the declared relation as a filtered one: %s', async (source) => {
+    const result = await run(schema(), source);
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts).toEqual(
+      authors.map((name, i) => ({
+        authorName: name,
+        alice: onlyAlice[i] && { firstName: onlyAlice[i] },
+      })),
+    );
+    // The ORM includes a to-one relation once, so the filtered one reloads.
+    expect(result.statements).toHaveLength(2);
+  });
+
+  it('gives each filtered load of a field select and helper its own version', async () => {
+    const result = await run(
+      schema(),
+      '{ posts { aliceName bob { firstName } authorName alice { id } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts).toEqual(
+      authors.map((name, i) => ({
+        aliceName: onlyAlice[i],
+        bob: name === 'Bob' ? { firstName: 'Bob' } : null,
+        authorName: name,
+        alice: onlyAlice[i] && { id: 'u-alice' },
+      })),
+    );
+  });
+});
+
 describe('plugins that wrap resolvers', () => {
   // Listed before prismaNext, its onOutputFieldConfig runs after prismaNext's.
   class WrapResolvePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
@@ -685,20 +769,25 @@ describe('plugins that wrap resolvers', () => {
     ]);
   });
 
-  // Listed after prismaNext, it wraps the resolver inside prismaNext's wrapper.
+  // Listed after prismaNext, it wraps the resolver inside prismaNext's wrapper, and hands it a new
+  // object with the parent's columns.
   class ReplaceParentPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override wrapResolve(
       resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
       fieldConfig: PothosOutputFieldConfig<Types>,
     ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+      const columns = (parent: object) =>
+        Object.fromEntries(
+          Object.entries(parent).filter(([, value]) => value === null || typeof value !== 'object'),
+        );
       return fieldConfig.name.startsWith('replaced')
-        ? (parent, args, context, info) => resolver({ ...(parent as object) }, args, context, info)
+        ? (parent, args, context, info) => resolver(columns(parent as object), args, context, info)
         : resolver;
     }
   }
   SchemaBuilder.registerPlugin('prismaNextTestReplaceParent' as never, ReplaceParentPlugin);
 
-  // A copy holds the row's columns and the relations its type selects, but not a helper's slots.
+  // A new object holds the row's columns, but not a helper's slots.
   it('reloads the parent of a field helper when another plugin replaced it', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [prismaNextPlugin, 'prismaNextTestReplaceParent' as never],
@@ -768,6 +857,80 @@ describe('plugins that wrap resolvers', () => {
       ['Alice', 'Bob', 'Carol'].map((viewer) => ({ viewer, replacedPost: null })),
     );
     expect(result.statements).toHaveLength(1);
+  });
+});
+
+describe('plugins that pass resolvers a shallow copy of the parent', () => {
+  // Hands the resolvers of User and Post fields `{ ...parent }`, before or after prismaNext's
+  // wrapper. A copy holds the row's values and the slots it carries.
+  class CopyParentPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override wrapResolve(
+      resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+      fieldConfig: PothosOutputFieldConfig<Types>,
+    ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+      return ['User', 'Post'].includes(fieldConfig.parentType)
+        ? (parent, args, context, info) => resolver({ ...(parent as object) }, args, context, info)
+        : resolver;
+    }
+  }
+  SchemaBuilder.registerPlugin('prismaNextTestCopyParent' as never, CopyParentPlugin);
+
+  function schema(position: 'before' | 'after' | 'none') {
+    const copy = 'prismaNextTestCopyParent' as never;
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins:
+        position === 'before'
+          ? [copy, prismaNextPlugin]
+          : position === 'after'
+            ? [prismaNextPlugin, copy]
+            : [prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        author: t.relation('author'),
+        alice: t.relation('author', { nullable: true, query: { where: { firstName: 'Alice' } } }),
+      }),
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        posts: t.relation('posts'),
+        published: t.relation('posts', { query: { where: { published: 1 } } }),
+        postCount: t.relationCount('posts'),
+        titles: t.stringList({
+          select: { posts: { where: { published: 0 } } },
+          resolve: (user) => user.posts.map((post) => post.title),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it.each([
+    '{ users { posts { id } } }',
+    '{ users { posts { author { id } } } }',
+    '{ users { posts { author { posts { author { posts { id } } } } } } }',
+    '{ users { published { id alice { id } } postCount titles posts { author { id } } } }',
+  ])('reads the slots of a copied parent without reloading it: %s', async (query) => {
+    const expected = await run(schema('none'), query);
+    expect(expected.errors).toBeUndefined();
+    expect(expected.statements).toHaveLength(1);
+    for (const position of ['before', 'after'] as const) {
+      const result = await run(schema(position), query);
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual(expected.data);
+      expect(result.statements).toHaveLength(1);
+    }
   });
 });
 

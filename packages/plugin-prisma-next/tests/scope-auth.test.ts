@@ -913,6 +913,77 @@ describe('a field that reloads a to-one relation with its own query', () => {
   });
 });
 
+describe('a filtered to-one relation beside a field that selects the declared one', () => {
+  describe.each([
+    ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
+    ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
+  ] as const)('scope auth %s the prisma plugin', (_name, plugins) => {
+    function denyBobSchema() {
+      const builder = new SchemaBuilder<{
+        PrismaNextContract: SampleContract;
+        AuthScopes: { allowed: boolean; never: boolean };
+      }>({
+        plugins: plugins as never,
+        relay: {},
+        scopeAuth: { authScopes: () => ({ allowed: true, never: false }) },
+        prismaNext: { client: ctx.client },
+      });
+      builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.prismaObject('Post', {
+        fields: (t) => ({
+          id: t.exposeID('id'),
+          alice: t.relation('author', { query: { where: { firstName: 'Alice' } } }),
+          // A deny-list: hides the content of Bob's posts.
+          content: t.string({
+            nullable: true,
+            select: { author: true, content: true },
+            authScopes: (post) =>
+              post.author?.id === 'u-bob' ? { never: true } : { allowed: true },
+            resolve: (post) => post.content,
+          }),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          posts: t.prismaField({
+            type: ['Post'],
+            resolve: () => ctx.orm.Post.orderBy((post) => post.id.asc()),
+          }),
+        }),
+      });
+      return builder.toSchema();
+    }
+
+    it.each([
+      '{ posts { id content } }',
+      '{ posts { id alice { id } content } }',
+      '{ posts { id content alice { id } } }',
+    ])('shows authScopes the declared relation: %s', async (source) => {
+      const result = await runCaptured(denyBobSchema(), source);
+      expect(result.errors?.map((error) => error.message)).toEqual([
+        'Not authorized to resolve Post.content',
+        'Not authorized to resolve Post.content',
+      ]);
+      expect(
+        result.data.posts.map(({ id, content }: { id: string; content: unknown }) => [id, content]),
+      ).toEqual([
+        ['p-bob-draft', null],
+        ['p-bob1', null],
+        ['p-draft1', 'WIP'],
+        ['p-hello', 'Welcome.'],
+      ]);
+      if (source.includes('alice')) {
+        expect(result.data.posts.map((post: { alice: unknown }) => post.alice)).toEqual([
+          null,
+          null,
+          { id: 'u-alice' },
+          { id: 'u-alice' },
+        ]);
+      }
+    });
+  });
+});
+
 // To-many slots beneath a shared walk answer with the rows their own arguments loaded, whichever
 // invocation's name they were written under. The expected values come from the plugin before walks
 // were shared, at 7d1bece5c.

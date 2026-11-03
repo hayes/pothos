@@ -44,6 +44,7 @@ import {
   EMPTY,
   type FieldSlots,
   fieldSlots,
+  leftOut,
   loadedSlots,
   type PrismaNextSelectFn,
   type PrismaNextSelection,
@@ -51,7 +52,6 @@ import {
   parentForType,
   type RawSelect,
   recordFieldPosition,
-  refineDroppedToOne,
   refineKeptToOne,
   rowOf,
   scopeOf,
@@ -381,6 +381,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         const slots = mapping && fieldSlots(parent, mapping.position);
         if (
           mapping &&
+          !leftOut(parent, mapping.position) &&
           computedRelations.every((name) => loadedSlots(parent, name)) &&
           (!loaded || (slots && loaded(slots, context, info)))
         ) {
@@ -393,16 +394,17 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         .loadSelection(info, rowOf(parent), missing)
         .then(({ row, mapping }) => {
           const position = mapping?.position;
-          // The ORM includes a to-one relation once, so the reloaded row holds this field's version
-          // of it, which its helper reads from a slot. Plugins see the row the field had when it
-          // holds the declared relation, and otherwise the reloaded one without it.
-          const scope = position && scopeOf(position);
+          // The reload gives a filtered to-one relation's include to this field, whose version its
+          // helper reads from a slot. Plugins see the row the field had when it holds the declared
+          // relation, and otherwise the reloaded one, which holds no version of it.
           const reloaded =
-            refinedToOne === undefined
+            refinedToOne === undefined || missing.length
               ? reader.parent(row, mapping)
-              : missing.length
-                ? refineDroppedToOne(reader.parent(row, mapping), row, refinedToOne, scope)
-                : refineKeptToOne(reader.parent(parent, null), row, refinedToOne, scope);
+              : refineKeptToOne(
+                  reader.parent(parent, null),
+                  fieldSlots(row, position)?.rows(refinedToOne),
+                  position && scopeOf(position),
+                );
           return handOver(reloaded, position, args, context, info);
         });
     };

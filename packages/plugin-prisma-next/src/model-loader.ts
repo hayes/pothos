@@ -271,8 +271,13 @@ export class ModelLoader {
       this.config.adapter.toQuery(batch.root),
       batch.root.model,
       this.context,
+      batch.load.kind === 'parent',
     ) as MapperCollection & { all(): Promise<readonly Row[]> };
-    const rows = takeSlots(await query.all(), batch.root.model);
+    const rows = takeSlots(
+      await query.all(),
+      batch.root.model,
+      this.config.adapter.recordOf(query),
+    );
     const byKey = new Map(rows.map((row) => [key(fields.map((field) => row[field])), row]));
     for (const { request, key } of keyed) {
       const row = byKey.get(key);
