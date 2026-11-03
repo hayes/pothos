@@ -131,6 +131,11 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   const ref = refFor(this.builder, type);
   const config = getPluginConfig(this.builder);
   const modelKey = ref.modelKey as string;
+  if (rest.query !== undefined) {
+    throw new Error(
+      `t.prismaConnection for '${modelKey}' has no \`query\` option. Filter the collection resolve returns instead.`,
+    );
+  }
   const model = getModel(config.contract, modelKey);
   const settings = connectionSettings(config, modelKey, {
     defaultSize,

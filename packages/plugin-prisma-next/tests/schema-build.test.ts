@@ -315,6 +315,23 @@ describe('contracts', () => {
 });
 
 describe('options validated when the schema is built', () => {
+  it('rejects a query on t.prismaConnection, which would be ignored', () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaConnection({
+          type: 'User',
+          query: () => ({ where: { id: 'u-bob' } }),
+          resolve: () => db.orm.User,
+        } as never),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow(
+      "t.prismaConnection for 'User' has no `query` option.",
+    );
+  });
+
   it('rejects an orderBy column that is not a field, and a model without a key', () => {
     const builder = createBuilder();
     expect(() =>
