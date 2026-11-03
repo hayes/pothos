@@ -60,8 +60,8 @@ With `AsyncSelections: true` in the builder's types, the function can be async.
 
 ### Paginating a list
 
-For simple offset pagination, pass the field's arguments through to `limit` and `offset`. Always
-include an `orderBy` so pages are stable:
+The [offset pattern for root fields](./objects#paginating-a-list) works for relations too, through
+`query`:
 
 ```ts
 posts: t.relation('posts', {
@@ -74,8 +74,7 @@ posts: t.relation('posts', {
 }),
 ```
 
-For cursor-based pagination with page info and total counts, use `t.relatedConnection` instead. See
-[Connections](./connections#paginate-a-relation).
+For cursor-based pagination, use [`t.relatedConnection`](./connections#paginate-a-relation).
 
 ## Counts and other aggregates
 

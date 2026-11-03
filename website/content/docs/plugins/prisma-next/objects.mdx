@@ -126,8 +126,29 @@ builder.queryType({
 });
 ```
 
-Don't call `.all()`, `.first()` or `.include()` on the Collection yourself. To filter a relation, use
-its field's [`query`](./relations#filtering-and-sorting).
+Filter, order and limit the Collection as usual, but don't call `.all()`, `.first()` or `.include()`
+on it yourself. To filter a relation, use its field's [`query`](./relations#filtering-and-sorting).
+
+### Paginating a list
+
+For simple offset pagination, apply the field's arguments with `limit` and `offset`. Always include
+an `orderBy` so pages are stable:
+
+```ts
+builder.queryFields((t) => ({
+  posts: t.prismaField({
+    type: ['Post'],
+    args: { limit: t.arg.int(), offset: t.arg.int() },
+    resolve: (_root, args, ctx) =>
+      ctx.db.orm.Post.orderBy((post) => post.createdAt.desc())
+        .limit(args.limit ?? 10)
+        .offset(args.offset ?? 0),
+  }),
+}));
+```
+
+For cursor-based pagination with page info and total counts, use `t.prismaConnection` instead. See
+[Connections](./connections#paginate-a-query-field).
 
 ### Mutations
 
