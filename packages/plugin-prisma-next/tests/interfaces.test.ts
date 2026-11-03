@@ -1,4 +1,5 @@
 import SchemaBuilder from '@pothos/core';
+import type { HasRow } from '@prisma/orm-family-sql/orm-client';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin from '../src';
@@ -583,6 +584,45 @@ describe('inherited selections', () => {
         "'Named' and 'User' both select relation 'posts', with different arguments.",
       );
     });
+  });
+
+  // One function computes the same keys wherever it runs, so this fails at build time.
+  it('rejects selects of one row that share a function for a relation', () => {
+    const builder = createBuilder();
+    const counts = (sub: { count(): HasRow<unknown> }) => ({ total: sub.count() });
+    const Counted = builder.prismaInterface('User', {
+      variant: 'Counted',
+      select: { posts: counts },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.prismaObject('User', { interfaces: [Counted], select: { posts: counts } });
+    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    expect(() => builder.toSchema()).toThrow(
+      "'Counted' and 'User' both select relation 'posts' with the same function. Its values " +
+        'would be computed twice under the same names. Select it in the interface only; the ' +
+        'type inherits it.',
+    );
+  });
+
+  it("lets a type read a relation function's values its interface selects", async () => {
+    const builder = createBuilder();
+    const Counted = builder.prismaInterface('User', {
+      variant: 'Counted',
+      select: { posts: (sub) => ({ total: sub.count() }) },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    const User = builder.prismaObject('User', {
+      interfaces: [Counted],
+      fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({ type: User, resolve: () => db.orm.User.where({ id: 'u-alice' }) }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ user { total } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ user: { total: 2 } });
   });
 
   // Implementations of one interface are different types, so each row is one of them and reads

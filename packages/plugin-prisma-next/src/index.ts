@@ -317,9 +317,20 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   private assertSelectsAgree(typeConfig: PothosTypeConfig, modelKey: string) {
     const model = getModel(this.config.contract, modelKey);
     const loads = new Map<string, { type: string; query: unknown }>();
+    const computes = new Map<string, Map<unknown, string>>();
     for (const { name: type, raw } of this.typeLevelSelects(typeConfig)) {
       for (const [relation, value] of splitSelect(raw, model, PothosSchemaError).relations) {
         if (typeof value === 'function') {
+          // One function computes the same keys each time, which assertOneWriter rejects per row.
+          const fns = computes.get(relation) ?? new Map<unknown, string>();
+          computes.set(relation, fns);
+          const first = fns.get(value);
+          if (first !== undefined) {
+            throw new PothosSchemaError(
+              `'${first}' and '${type}' both select relation '${relation}' with the same function. Its values would be computed twice under the same names. Select it in the interface only; the type inherits it.`,
+            );
+          }
+          fns.set(value, type);
           continue;
         }
         const query = value === true ? undefined : definedQuery(value);
