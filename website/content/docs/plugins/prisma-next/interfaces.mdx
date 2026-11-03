@@ -10,6 +10,8 @@ interface. Objects implementing it must use the same model, or one of its
 ```ts
 const Person = builder.prismaInterface('User', {
   variant: 'Person',
+  select: ['email'],
+  resolveType: (user) => (user.email.endsWith('@admin.example.com') ? 'Admin' : 'User'),
   fields: (t) => ({
     id: t.exposeID('id'),
     firstName: t.exposeString('firstName'),
@@ -18,8 +20,6 @@ const Person = builder.prismaInterface('User', {
 
 builder.prismaObject('User', {
   interfaces: [Person],
-  select: ['email'],
-  isTypeOf: (user) => !user.email.endsWith('@admin.example.com'),
   fields: (t) => ({
     email: t.exposeString('email'),
   }),
@@ -30,16 +30,14 @@ builder.prismaObject('User', {
 and `t.relatedConnection`. A relation also returns an interface when its target model is registered
 with `prismaInterface`, as in [Native inheritance](#native-inheritance).
 
-Give the implementations an `isTypeOf`, or the interface a `resolveType`. List the columns an
-`isTypeOf` reads in that object's `select`, and the columns a `resolveType` reads in the
-interface's `select`:
+Objects don't take `isTypeOf`. Give the interface a `resolveType` to pick each row's type, and
+list the columns it reads in the interface's `select`. An interface of a model with variants
+resolves rows by its discriminator without one, as in [Native inheritance](#native-inheritance):
 
 ```ts
 builder.prismaObject('User', {
   variant: 'Admin',
   interfaces: [Person],
-  select: ['email'],
-  isTypeOf: (user) => user.email.endsWith('@admin.example.com'),
   fields: (t) => ({
     email: t.exposeString('email'),
   }),
@@ -52,6 +50,12 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
+
+To return a row through `Node` or an interface from `builder.interfaceRef()`, brand it with the
+type's `addBrand`, such as `User.addBrand(row)`, which requires the key plus the type's `select`.
+Unbranded, it fails with `Abstract type ... must resolve`. A row with a `__typename`, or a
+hand-written `resolveType` on such an interface, skips that check like a cast, so the row may lack
+the type's `select`.
 
 Add fields with `prismaInterfaceField` or `prismaInterfaceFields`, passing the ref:
 
@@ -69,8 +73,8 @@ Interfaces accept `variant` like objects do, for a [type variant](./variants) of
 ## Selections
 
 An object's fields can read its interfaces' `select`. A row loaded through the interface also
-loads each implementation's `select`, so `isTypeOf` and type-level `authScopes` can read it
-without a `... on Type` fragment (see [With scope-auth](./setup#with-scope-auth) for plugin order).
+loads each implementation's `select`, so type-level `authScopes` can read it without a
+`... on Type` fragment.
 
 A type's `select` takes only `true` for a to-one relation.
 
@@ -110,10 +114,9 @@ builder.queryType({
 
 - Return a variant type from `orm.Base.variant(value)`. Prisma doesn't filter `orm.Bug` by the
   discriminator, so its type is rejected.
-- A relation declared on a variant loads only from a collection narrowed to it. A type's `select`
-  can still name one: beneath `orm.Task`, the rows don't have it, and that type's fields reload
-  through `orm.Task.variant('bug')` in one more statement. `isTypeOf` and `authScopes` read the row
-  without reloading it.
+- A relation declared on a variant loads only from a collection narrowed to it. A variant type's
+  `select` can't name one, and is rejected when the schema is built. Put it in a field's `select`,
+  or use a relation field.
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
 - A relation name declared by several variants can't be loaded, because a level of the query holds
   one relation of a name. A field or `select` that names it fails when the schema is built. The

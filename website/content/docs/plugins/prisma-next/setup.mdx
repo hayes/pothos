@@ -336,26 +336,6 @@ messages name models and columns for your logs. Enable error masking on your ser
 Yoga does by default, so clients see a generic message for those. A `PothosValidationError` is a
 `GraphQLError`, which masking passes through.
 
-## With scope-auth
-
-List `ScopeAuthPlugin` first (the usual [plugin order](../scope-auth#plugin-order)), so
-`authScopes` run before this plugin reloads anything and a denied request runs no reload query. A
-row this plugin didn't fully load, such as `{ id }` returned from a plain `t.field` or a parent
-whose field is in a skipped `@defer` fragment, then reaches `authScopes` without its `select`ed
-data, so write checks that fail closed:
-
-```ts
-builder.prismaObject('User', {
-  select: ['email'],
-  authScopes: (user, ctx) => user.email === ctx.email, // false when email is missing
-  fields: (t) => ({ id: t.exposeID('id') }),
-});
-```
-
-If `authScopes` need `select`ed columns or relations on those rows, or you use `runScopesOnType`,
-list `prismaNextPlugin` before `ScopeAuthPlugin`. The reload query then runs before `authScopes`,
-even for requests that are then denied.
-
 ## Databases
 
 PostgreSQL and SQLite are supported. MySQL supports reads only: its contracts have no aggregates,

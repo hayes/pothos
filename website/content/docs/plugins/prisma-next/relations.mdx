@@ -139,12 +139,15 @@ relations.
 
 ## Loading without a parent query
 
-A row returned from a plain `t.field` can resolve relations and other selections it is missing,
-as long as it includes its primary key. They are loaded through the plugin's
-[`client`](./setup#plugin-options), batched across parents. A row returned for a
-`prismaInterface` of a model with variants also needs its discriminator, which picks the row's
-type before any field runs. `ModelReturnShape<Types, 'User'>` and
-`InterfaceReturnShape<Types, 'Task'>` name these rows, for example as a helper's return type.
+A row returned from a plain `t.field` must include its primary key and the type's `select`, its
+columns and to-one relations. A full row from `db.orm.User.first()` works when that `select` names
+only columns. A row returned for a `prismaInterface` needs the interface's `select` plus, on a model
+with variants, its discriminator, which picks the row's type before any field runs. Selections of
+the type's fields that the row is missing are loaded through the plugin's
+[`client`](./setup#plugin-options), batched across parents.
+`ObjectReturnShape<Types, 'User', typeof User.$inferType>` and
+`InterfaceReturnShape<Types, 'Task', typeof Task.$inferType>` name these rows, for example as a
+helper's return type.
 
 The same loader handles fields that load one to-one relation with different filters, which
 Prisma can't include in one query.

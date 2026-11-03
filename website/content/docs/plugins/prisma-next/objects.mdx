@@ -214,13 +214,9 @@ The `select` of a type takes only `true` for a to-one relation. The ORM includes
 once per row, and every reader of the row shares a type's `select`. A field with a filter loads its
 own version of the relation, reloading the row when the rest of the query needs the unfiltered one.
 
-`authScopes` and `isTypeOf` on a type read the row as it was loaded, without reloading it. When a
-plain field hands a row over, such as `resolve: (post) => post` returning a type with
-`select: { author: true }`, those checks see `author` as `undefined`, or as `null` if a field loaded
-a filtered `author` on that row. Don't treat `null` there as "no author". Resolvers on the type
-reload the relation and get the right value. A relation
-[declared on a variant](./interfaces#native-inheritance) reads the same way on rows loaded from a
-collection not narrowed to that variant.
+A field returning the type must return the key plus the type's `select`, so type-level checks such
+as `authScopes` always see its columns and relations. A field's own `select` loads for that field,
+and may be missing under `@defer` until the field resolves.
 
 A field's `select` can also be a function of the field's arguments and context returning the
 object form. A column array is a static `select` only. With `AsyncSelections: true` in the

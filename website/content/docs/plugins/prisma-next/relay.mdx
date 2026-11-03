@@ -80,15 +80,30 @@ build-time client.
 
 ## Several node types for one model
 
-Use `isTypeOf` to decide which type a row belongs to. It can only read columns in the type's
-`select`:
+Nodes don't take `isTypeOf`. Each type has its own global IDs, so `node` and `nodes` return the
+type the ID names. Where one field can return several of them, return a
+[`prismaInterface`](./interfaces) with a `resolveType`, or brand each row with its type's ref:
 
 ```ts
-builder.prismaNode('Post', {
+const DraftPost = builder.prismaNode('Post', {
   variant: 'DraftPost',
   id: { field: 'id' },
-  select: ['published'],
-  isTypeOf: (post) => post.published === 0,
   fields: (t) => ({ title: t.exposeString('title') }),
 });
+
+builder.queryField('latestDraft', (t) =>
+  t.field({
+    type: builder.nodeInterfaceRef(),
+    nullable: true,
+    resolve: async (_root, _args, ctx) => {
+      const post = await ctx.db.orm.Post.where({ published: 0 }).first();
+      return post && DraftPost.addBrand(post);
+    },
+  }),
+);
 ```
+
+`addBrand` accepts a row or a list, and its types require the key plus the type's `select`. A row
+returned unbranded through `Node` or another interface that isn't a `prismaInterface` fails with
+`Abstract type ... must resolve`. A row with a `__typename`, or one a hand-written `resolveType`
+names, skips that check like a cast, so it may lack the type's `select`.
