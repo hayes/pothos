@@ -47,7 +47,7 @@ export async function docCodeBlocks(website, page, language, { includesOnly = fa
 export function parseCodeBlocks(source, language) {
   const blocks = [];
   function visit(node) {
-    if (node.type === 'code' && (!language || node.lang === language)) {
+    if (node.type === 'code' && (!language || [language].flat().includes(node.lang))) {
       blocks.push(`${node.value}\n`);
     }
     for (const child of node.children ?? []) {

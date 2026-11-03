@@ -97,10 +97,7 @@ export async function checkPrismaNextDocExamples(root, tsc) {
         '',
       );
       const groups = { sample: [], inheritance: [] };
-      for (const block of [
-        ...parseCodeBlocks(source, 'ts'),
-        ...parseCodeBlocks(source, 'typescript'),
-      ]) {
+      for (const block of parseCodeBlocks(source, ['ts', 'typescript'])) {
         if (postgresOnly.test(block)) {
           skipped++;
           continue;
