@@ -2,6 +2,7 @@ import { completeValue, isThenable, type MaybePromise } from '@pothos/core';
 import { type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import { PRISMA_NEXT_CONFIG } from '../constants.js';
+import type { PlannedCollection } from '../types/collections.js';
 import type { MapperCollection, PrismaNextAdapter, PrismaNextPlan } from './adapter.js';
 import { assertNoIncludes } from './collection-state.js';
 import { assertContextObject, type PrismaNextConfig } from './config.js';
@@ -98,7 +99,7 @@ export async function collectionFromInfo<C extends object>({
   context,
   info,
   ...target
-}: CollectionFromInfoOptions<C>): Promise<C> {
+}: CollectionFromInfoOptions<C>): Promise<PlannedCollection<C>> {
   assertNoIncludes(collection);
   const config = configFor(info.schema);
   const mapper = collection as unknown as MapperCollection;
@@ -114,8 +115,8 @@ export async function collectionFromInfo<C extends object>({
         config.adapter.emit(mapper, planned.selection, planned.model, context),
         planned.model,
         config.adapter,
-      ) as unknown as C)
-    : collection;
+      ) as unknown as PlannedCollection<C>)
+    : (collection as PlannedCollection<C>);
 }
 
 const schemaConfigs = new WeakMap<GraphQLSchema, PrismaNextConfig>();

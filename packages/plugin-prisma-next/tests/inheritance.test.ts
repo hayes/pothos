@@ -804,6 +804,62 @@ describe('native model inheritance', () => {
     ]);
   });
 
+  it("loads the discriminator into an interface's planned rows when the query selects no field", async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: db.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      select: ['title'],
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    const tasks = prismaConnectionHelpers(builder, task, {});
+    const loaded: { type?: string }[] = [];
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        taskPage: t.connection({
+          type: task,
+          select: { tasks: tasks.page },
+          resolve: (user, args, ctx) => {
+            loaded.push(...user.tasks);
+            return tasks.resolve(user.tasks, args, ctx, user);
+          },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+        taskPage: t.connection({
+          type: task,
+          resolve: async (_root, args, ctx, info) => {
+            const page = await tasks.applyPagination(db.orm.Task, args, ctx, info);
+            const rows = await page.collection.all();
+            loaded.push(...rows);
+            return page.wrap(rows);
+          },
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      `{
+        users { taskPage(first: 5) { edges { node { __typename } } } }
+        taskPage(first: 5) { edges { node { __typename } } }
+      }`,
+    );
+    expect(result.errors).toBeUndefined();
+    const typenames = {
+      edges: [{ node: { __typename: 'Bug' } }, { node: { __typename: 'Feature' } }],
+    };
+    expect(result.data).toEqual({ users: [{ taskPage: typenames }], taskPage: typenames });
+    // The interface's selection includes the discriminator even when only `__typename` is asked.
+    expect(loaded.map((row) => row.type)).toEqual(['bug', 'feature', 'bug', 'feature']);
+  });
+
   it.each([
     [
       'an interface after object fields',

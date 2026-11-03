@@ -118,6 +118,19 @@ export type VariantModelKeys<TContract extends AnyContract, M extends string> =
       }[keyof Variants]
     : never;
 
+/** The key of the variant model of base model `M` whose discriminator value is `Value`. */
+export type VariantModelKeyOf<TContract extends AnyContract, M extends string, Value> =
+  ModelDefOf<TContract, M> extends { readonly variants: infer Variants }
+    ? Value extends keyof Variants
+      ? Variants[Value] extends {
+          readonly model: infer Variant extends string;
+          readonly namespace: infer Ns extends string;
+        }
+        ? NamespacedModelKey<TContract, Ns, Variant>
+        : never
+      : never
+    : never;
+
 export type VariantValue<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, BaseModelKey<TContract, M>> extends {
     readonly variants: infer Variants;
@@ -194,7 +207,7 @@ export type PlannedRow<Types extends SchemaTypes, M extends ModelKey<Types>> = (
 ] extends [never]
   ? Row<Types, M>
   : Pick<Row<Types, M>, IdentityFields<Types, M> & keyof Row<Types, M>> & Partial<Row<Types, M>>) &
-  PlannedRowBrand;
+  PlannedRowBrand<M>;
 
 /** A model's to-one relations. */
 export type ToOneRelationKeys<Types extends SchemaTypes, M extends ModelKey<Types>> = {
@@ -208,21 +221,41 @@ type ReturnedKeys<Types extends SchemaTypes, M extends ModelKey<Types>> =
   | ToOneRelationKeys<Types, M>;
 
 /**
+ * A row built outside the loader that a type of model `M` accepts: its key and what its `Shape`
+ * holds other than to-many relations and computed values. A model without an identity needs its
+ * whole row.
+ */
+type BuiltReturnShape<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  Shape,
+> = Shape extends unknown
+  ? [IdentityFields<Types, M>] extends [never]
+    ? Row<Types, M> & Pick<Shape, ToOneRelationKeys<Types, M> & keyof Shape>
+    : Pick<Shape, ReturnedKeys<Types, M> & keyof Shape>
+  : never;
+
+/**
+ * A row the loader planned that a type of model `M` accepts: one of `M` or of a variant of `M`,
+ * whose rows hold `M`'s fields. It is matched by its brand alone, so that tsc names the keys a row
+ * lacks rather than the brand when a row fits neither this nor `BuiltReturnShape`.
+ */
+type PlannedReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>> = PlannedRowBrand<
+  M | VariantModelKeys<Types['PrismaNextContract'], M>
+> &
+  ModelBrand<M>;
+
+/**
  * What a field returning a type of model `M` may resolve to, given the type's `Shape`: its key and
  * everything its `select` and its interfaces' `select`s load, other than to-many relations and
  * computed values, which the loader reloads. A model without an identity can't be reloaded, so it
  * needs its whole row. Plugins listed before this one, such as scope-auth, read the row before any
- * reload, so it must hold what the type's `select` promises. A row the loader planned, a
- * `PlannedRow`, also fits. It is matched by its brand alone, so that tsc names the keys a row lacks
- * rather than the brand when a row fits neither.
+ * reload, so it must hold what the type's `select` promises. A row the loader planned for `M` or
+ * one of its variants, a `PlannedRow`, also fits.
  */
 export type ObjectReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> =
-  | (Shape extends unknown
-      ? [IdentityFields<Types, M>] extends [never]
-        ? Row<Types, M> & Pick<Shape, ToOneRelationKeys<Types, M> & keyof Shape>
-        : Pick<Shape, ReturnedKeys<Types, M> & keyof Shape>
-      : never)
-  | (PlannedRowBrand & ModelBrand<M>);
+  | BuiltReturnShape<Types, M, Shape>
+  | PlannedReturnShape<Types, M>;
 
 /** The field naming a base model's variant, or `never` for other models. */
 type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Types>> =
@@ -234,14 +267,17 @@ type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Types>> =
 
 /**
  * What a field returning a model's `prismaInterface` may resolve to: `ObjectReturnShape`, and for a
- * discriminated model also the discriminator, because the interface routes rows to variants before
- * fields run.
+ * discriminated model a row built outside the loader also needs the discriminator, because the
+ * interface routes rows to variants before fields run. A planned row always loads it, since the
+ * interface's selection includes it.
  */
 export type InterfaceReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> = [
   DiscriminatorField<Types, M>,
 ] extends [never]
   ? ObjectReturnShape<Types, M, Shape>
-  : ObjectReturnShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
+  :
+      | (BuiltReturnShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>)
+      | PlannedReturnShape<Types, M>;
 
 export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {
   [prismaModelBrand]?: infer M;

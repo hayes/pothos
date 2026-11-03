@@ -79,7 +79,7 @@ export {
 } from './object-ref.js';
 export { PrismaNextObjectFieldBuilder } from './prisma-next-field-builder.js';
 export type { PrismaNextRelationCountOptions } from './types/aggregates.js';
-export type { CollectionFor, ResolverCollection } from './types/collections.js';
+export type { CollectionFor, PlannedCollection, ResolverCollection } from './types/collections.js';
 export type {
   ConnectionOrderBy,
   ConnectionQueryLiteral,

@@ -4,10 +4,20 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
+import type { PostgresClient } from '@prisma/orm-postgres/runtime';
 import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
-import prismaNextPlugin from '../../src';
+import type { GraphQLResolveInfo } from 'graphql';
+import { expectTypeOf } from 'vitest';
+import prismaNextPlugin, {
+  collectionFromInfo,
+  type PlannedRow,
+  type PlannedRowBrand,
+  prismaConnectionHelpers,
+} from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
+import type { Contract as InheritanceNamespacesContract } from '../inheritance-namespaces/contract';
+import type { Contract as NamespacesContract } from '../namespaces/contract';
 
 declare const client: SqliteClient<Contract>;
 type UserRow = DefaultModelRow<Contract, 'User'>;
@@ -101,3 +111,153 @@ inheritance.queryType({
     bugWithoutTitle: t.field({ type: Bug, resolve: () => ({ id: 't', severity: 'high' }) }),
   }),
 });
+
+// A row the loader planned fits a type of its model, whatever the type's select, since the query
+// planned that select into it. Only a planned row of the type's model, or of a variant of it, fits.
+type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
+type InheritanceTypes = PothosSchemaTypes.ExtendDefaultTypes<{
+  PrismaNextContract: InheritanceContract;
+}>;
+declare const plannedPost: PlannedRow<Types, 'Post'>;
+declare const plannedComment: PlannedRow<Types, 'Comment'>;
+declare const plannedTask: PlannedRow<InheritanceTypes, 'Task'>;
+declare const plannedBug: PlannedRow<InheritanceTypes, 'Bug'>;
+declare const plannedFeature: PlannedRow<InheritanceTypes, 'Feature'>;
+declare const info: GraphQLResolveInfo;
+declare const inheritanceClient: SqliteClient<InheritanceContract>;
+
+builder.queryFields((t) => ({
+  plannedPost: t.field({ type: Authored, resolve: () => plannedPost }),
+  // @ts-expect-error a planned row of another model
+  plannedComment: t.field({ type: Authored, resolve: () => plannedComment }),
+  // @ts-expect-error a planned row of another model, beneath a non-null list
+  plannedComments: t.field({ type: [Titled], resolve: () => [plannedComment] }),
+}));
+
+inheritance.queryFields((t) => ({
+  // A planned row of the interface's model, or of a variant, holds the discriminator: the
+  // interface's selection includes it.
+  plannedTask: t.field({ type: Task, resolve: () => plannedTask }),
+  plannedBugAsTask: t.field({ type: Task, resolve: () => plannedBug }),
+  plannedBug: t.field({ type: Bug, resolve: () => plannedBug }),
+  // @ts-expect-error a planned row of the base model may be another variant
+  plannedTaskAsBug: t.field({ type: Bug, resolve: () => plannedTask }),
+  // @ts-expect-error a planned row of a sibling variant
+  plannedFeatureAsBug: t.field({ type: Bug, resolve: () => plannedFeature }),
+}));
+
+// Connection helpers page a prismaInterface of a discriminated model.
+const tasks = prismaConnectionHelpers(inheritance, Task, {});
+inheritance.prismaObjectField('User', 'taskPage', (t) =>
+  t.connection({
+    type: Task,
+    select: { tasks: tasks.page },
+    resolve: (user, args, ctx) => tasks.resolve(user.tasks, args, ctx, user),
+  }),
+);
+
+// The rows of a collection from `collectionFromInfo` are planned rows of the collection's model,
+// so they fit a type whose select loads a to-one relation, which the collection's own row lacks.
+// A payload holds the rows as the type's `$inferType`, which a planned row fits.
+const RenamePostPayload = builder
+  .objectRef<{ post: typeof Authored.$inferType | null }>('RenamePostPayload')
+  .implement({
+    fields: (t) => ({ post: t.field({ type: Authored, nullable: true, resolve: (p) => p.post }) }),
+  });
+const RetitlePayload = builder
+  .objectRef<{ post: typeof Titled.$inferType | null }>('RetitlePayload')
+  .implement({
+    fields: (t) => ({ post: t.field({ type: Titled, nullable: true, resolve: (p) => p.post }) }),
+  });
+builder.mutationType({
+  fields: (t) => ({
+    renamePostPayload: t.field({
+      type: RenamePostPayload,
+      resolve: async (_root, _args, context, info) => {
+        const posts = await collectionFromInfo({
+          collection: client.orm.Post.where({ id: 'p' }),
+          context,
+          info,
+          path: ['post'],
+        });
+        return { post: await posts.update({ title: 'Renamed' }) };
+      },
+    }),
+    retitlePayload: t.field({
+      type: RetitlePayload,
+      resolve: async (_root, _args, context, info) => {
+        const posts = await collectionFromInfo({
+          collection: client.orm.Post.where({ id: 'p' }),
+          context,
+          info,
+          path: ['post'],
+        });
+        return { post: await posts.update({ title: 'Renamed' }) };
+      },
+    }),
+    unplannedPayload: t.field({
+      type: RenamePostPayload,
+      // @ts-expect-error a row the ORM returns without collectionFromInfo lacks the select's `author`
+      resolve: async () => ({
+        post: await client.orm.Post.where({ id: 'p' }).update({ title: 'x' }),
+      }),
+    }),
+    renamePost: t.field({
+      type: Authored,
+      nullable: true,
+      resolve: async (_root, _args, context, info) => {
+        const posts = await collectionFromInfo({
+          collection: client.orm.Post.where({ id: 'p' }),
+          context,
+          info,
+        });
+        return posts.update({ title: 'Renamed' });
+      },
+    }),
+    firstPost: t.field({
+      type: Authored,
+      nullable: true,
+      resolve: async (_root, _args, context, info) =>
+        (await collectionFromInfo({ collection: client.orm.Post, context, info })).first(),
+    }),
+    comment: t.field({
+      type: Authored,
+      nullable: true,
+      resolve: async (_root, _args, context, info) =>
+        // @ts-expect-error a planned row of another model
+        (await collectionFromInfo({ collection: client.orm.Comment, context, info })).first(),
+    }),
+  }),
+});
+
+export async function plannedCollections() {
+  const posts = await collectionFromInfo({ collection: client.orm.Post, context: {}, info });
+  for await (const post of posts.all()) {
+    expectTypeOf(post).toExtend<PlannedRowBrand<'Post'>>();
+    expectTypeOf(post.title).toEqualTypeOf<string>();
+  }
+  // A collection narrowed to a variant plans rows of the variant model.
+  const bugs = await collectionFromInfo({
+    collection: inheritanceClient.orm.Task.variant('bug'),
+    context: {},
+    info,
+  });
+  expectTypeOf((await bugs.first())!).toExtend<PlannedRowBrand<'Bug'>>();
+  expectTypeOf((await bugs.first())!).not.toExtend<PlannedRowBrand<'Task'>>();
+  // In a contract with several namespaces, the key names the collection's namespace.
+  const namespaced = {} as PostgresClient<NamespacesContract>;
+  const users = await collectionFromInfo({
+    collection: namespaced.orm.nsa.User,
+    context: {},
+    info,
+  });
+  expectTypeOf((await users.first())!).toExtend<PlannedRowBrand<'nsa.User'>>();
+  expectTypeOf((await users.first())!).not.toExtend<PlannedRowBrand<'nsb.User'>>();
+  const crossNamespace = {} as PostgresClient<InheritanceNamespacesContract>;
+  const chores = await collectionFromInfo({
+    collection: crossNamespace.orm.inha.Task.variant('chore'),
+    context: {},
+    info,
+  });
+  expectTypeOf((await chores.first())!).toExtend<PlannedRowBrand<'inhb.Chore'>>();
+}

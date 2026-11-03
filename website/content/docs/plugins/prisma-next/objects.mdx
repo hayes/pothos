@@ -99,9 +99,11 @@ or `delete`:
 ```ts
 import { collectionFromInfo } from '@pothos/plugin-prisma-next';
 
-const RenameUserPayload = builder.objectRef<{ user: unknown }>('RenameUserPayload').implement({
-  fields: (t) => ({ user: t.field({ type: User, nullable: true, resolve: (p) => p.user as never }) }),
-});
+const RenameUserPayload = builder
+  .objectRef<{ user: typeof User.$inferType | null }>('RenameUserPayload')
+  .implement({
+    fields: (t) => ({ user: t.field({ type: User, nullable: true, resolve: (p) => p.user }) }),
+  });
 
 builder.mutationField('renameUser', (t) =>
   t.field({
