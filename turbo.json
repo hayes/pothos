@@ -23,6 +23,10 @@
       "dependsOn": ["generate", "^build"],
       "outputs": []
     },
+    "type:compat": {
+      "dependsOn": ["generate", "^build"],
+      "outputs": []
+    },
     "test": {
       "dependsOn": ["generate", "^build"],
       "outputs": []
