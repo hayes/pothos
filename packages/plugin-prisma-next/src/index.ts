@@ -322,7 +322,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         if (typeof value === 'function') {
           continue;
         }
-        const query = definedOptions(value === true ? undefined : definedQuery(value));
+        const query = value === true ? undefined : definedQuery(value);
         const first = loads.get(relation);
         if (!first) {
           loads.set(relation, { type, query });
@@ -759,13 +759,6 @@ function assertNoVariantRelations(
       );
     }
   }
-}
-
-/** A query without its undefined options, which load nothing different. */
-function definedOptions(query: unknown) {
-  return (
-    query && Object.fromEntries(Object.entries(query).filter(([, option]) => option !== undefined))
-  );
 }
 
 function typeParent(parent: unknown, scopes: readonly string[]) {

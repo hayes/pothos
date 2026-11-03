@@ -694,7 +694,6 @@ interface DeclarativeQuery {
 /** The options of a relation's `query`, as `DeclarativeQuery` declares them. */
 export const RELATION_QUERY_KEYS = ['where', 'orderBy', 'limit', 'offset'];
 
-/** A declarative query with at least one option set, or undefined. The types check its shape. */
 /**
  * Throws for a `query` the types would reject, such as an untyped caller's, instead of dropping
  * the filter beside an unknown option or inside a promise.
@@ -717,10 +716,25 @@ export function assertQueryOptions(value: unknown, allowed: readonly string[], o
   }
 }
 
+/**
+ * A declarative query without the options that load nothing different, or undefined when none is
+ * left: an undefined option, and a `where` or `orderBy` that is an empty object or list. The types
+ * check its shape.
+ */
 export function definedQuery(value: unknown): DeclarativeQuery | undefined {
-  return value && Object.values(value).some((option) => option !== undefined)
-    ? (value as DeclarativeQuery)
-    : undefined;
+  if (!value) {
+    return undefined;
+  }
+  const options = Object.entries(value);
+  const kept = options.filter(
+    ([, option]) =>
+      option !== undefined &&
+      !(typeof option === 'object' && Object.keys(option as object).length === 0),
+  );
+  if (!kept.length) {
+    return undefined;
+  }
+  return (kept.length === options.length ? value : Object.fromEntries(kept)) as DeclarativeQuery;
 }
 
 export function applyQuery(collection: MapperCollection, query: DeclarativeQuery) {

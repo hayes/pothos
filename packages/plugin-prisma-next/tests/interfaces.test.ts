@@ -686,15 +686,20 @@ describe('inherited selections', () => {
     const query = { where: { published: 1 } };
     const Named = builder.prismaInterface('User', {
       variant: 'Named',
-      select: { posts: query },
+      select: { posts: query, comments: true },
       resolveType: () => 'User',
       fields: (t) => ({
         interfaceIds: t.idList({ resolve: (user) => user.posts.map((post) => post.id) }),
+        comments: t.int({ resolve: (user) => user.comments.length }),
       }),
     });
     const User = builder.prismaObject('User', {
       interfaces: [Named],
-      select: { posts: { where: { published: 1 }, limit: undefined } },
+      // An undefined option, and an empty where or orderBy, load the same rows.
+      select: {
+        posts: { where: { published: 1 }, limit: undefined },
+        comments: { where: {}, orderBy: [] },
+      },
       fields: (t) => ({
         ownIds: t.idList({ resolve: (user) => user.posts.map((post) => post.id) }),
       }),
@@ -713,12 +718,12 @@ describe('inherited selections', () => {
     });
     const result = await run(
       builder.toSchema(),
-      '{ users { interfaceIds ownIds } named { interfaceIds ... on User { ownIds } } }',
+      '{ users { interfaceIds ownIds comments } named { interfaceIds comments ... on User { ownIds } } }',
     );
     expect(result.errors).toBeUndefined();
     const users = [
-      { interfaceIds: ['p-hello'], ownIds: ['p-hello'] },
-      { interfaceIds: ['p-bob1'], ownIds: ['p-bob1'] },
+      { interfaceIds: ['p-hello'], ownIds: ['p-hello'], comments: 1 },
+      { interfaceIds: ['p-bob1'], ownIds: ['p-bob1'], comments: 1 },
     ];
     expect(result.data).toEqual({ users, named: users });
     expect(result.statements).toHaveLength(2);
