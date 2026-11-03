@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { PrismaNextAdapter } from '../src/utils/adapter';
 import { createBuilder, run, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
@@ -68,6 +69,53 @@ describe('planning fragments that expand at every level', () => {
     return `{ user { ${selection} } }`;
   }
 
+  // One named fragment per level, selecting the relation beneath each implementation: every level
+  // holds `implementations` field nodes with the same selection set, so the document is linear in
+  // its depth while its paths multiply at every level.
+  function namedDocument(depth: number, implementations: number) {
+    const fragments: string[] = [];
+
+    for (let level = 1; level <= depth; level += 1) {
+      const next = level === depth ? '... on Linked { linked }' : `...L${level + 1}`;
+      const selections = Array.from({ length: implementations }, (_, i) =>
+        level % 2 === 1
+          ? `... on CyclicUser${i + 1} { posts { ${next} } }`
+          : `... on CyclicPost${i + 1} { author { ${next} } }`,
+      );
+
+      fragments.push(`fragment L${level} on Linked { ${selections.join(' ')} }`);
+    }
+
+    return `{ user { ...L1 } } ${fragments.join(' ')}`;
+  }
+
+  /**
+   * Runs `document`, bounding the planning work it costs: tree copies quadratic in its depth, by
+   * `perLevel` for each of the invocations a level makes.
+   */
+  async function runBounded(
+    implementations: number,
+    depth: number,
+    document: (depth: number, implementations: number) => string,
+    perLevel = 20,
+  ) {
+    const copies = vi.spyOn(PrismaNextAdapter.prototype, 'toQuery');
+    const { calls, schema } = cyclicSchema(implementations);
+    copies.mockClear();
+
+    const started = performance.now();
+    const result = await run(schema, document(depth, implementations));
+    const toQueryCalls = copies.mock.calls.length;
+
+    copies.mockRestore();
+    expect(result.errors).toBeUndefined();
+    expect(toQueryCalls).toBeLessThan(perLevel * (implementations + 1) * depth * depth);
+    expect(performance.now() - started).toBeLessThan(2000);
+    expect(result.statements).toHaveLength(1);
+
+    return calls;
+  }
+
   // Planning beneath every invocation, or a slot per implementation, ran out of time or heap here.
   it.each([
     [1, 18, 18],
@@ -78,11 +126,21 @@ describe('planning fragments that expand at every level', () => {
     [2, 36, 54],
     [6, 96, 336],
   ])('with %i implementations at depth %i it makes %i relation calls', async (implementations, depth, expected) => {
-    const { calls, schema } = cyclicSchema(implementations);
-    const result = await run(schema, cyclicDocument(depth));
-    expect(result.errors).toBeUndefined();
+    const calls = await runBounded(implementations, depth, cyclicDocument);
     expect(calls.posts).toBe(expected);
-    expect(result.statements).toHaveLength(1);
+  });
+
+  // A walk per field node made 44,286 relation calls at depth 10 and ran out of heap at 12.
+  it.each([
+    [3, 10, 30],
+    [3, 20, 60],
+    [3, 40, 120],
+    [2, 36, 72],
+  ])('with a named fragment per level, %i implementations at depth %i make %i relation calls', async (implementations, depth, expected) => {
+    // Each field node is invoked twice, by the plain walk and the expanding one, and each play
+    // merges every node's relation query: twice the copies of one node reached on each type.
+    const calls = await runBounded(implementations, depth, namedDocument, 40);
+    expect(calls.posts).toBe(expected);
   });
 });
 
