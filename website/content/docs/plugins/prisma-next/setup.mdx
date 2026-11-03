@@ -3,8 +3,8 @@ title: Setup
 description: Setting up the Prisma Next plugin
 ---
 
-This page covers installing the plugin, connecting it to your Prisma client, and running operations
-in a transaction.
+This page covers installing the plugin, connecting it to your Prisma client, and running writes in
+transactions.
 
 ## Install
 
@@ -63,6 +63,85 @@ and the rest of these docs use that shorter form, `ctx.db.orm.User`.
 
 Always pass a context object when you execute an operation, such as `contextValue: {}`.
 
+## Transactions
+
+Pothos doesn't create transactions for you. To run a mutation's writes in one, call `transaction`
+in the resolver, then return the result from `ctx.db` once it commits:
+
+```ts
+import { randomUUID } from 'node:crypto';
+
+builder.mutationField('signUp', (t) =>
+  t.prismaField({
+    type: 'User',
+    args: {
+      email: t.arg.string({ required: true }),
+      firstName: t.arg.string({ required: true }),
+      lastName: t.arg.string({ required: true }),
+    },
+    resolve: async (_root, args, ctx) => {
+      const id = await ctx.db.transaction(async (tx) => {
+        const user = await tx.orm.User.create({ ...args, id: randomUUID() });
+        await tx.orm.Post.create({
+          id: randomUUID(),
+          authorId: user.id,
+          title: 'Hello!',
+          content: '',
+          createdAt: new Date(),
+        });
+        return user.id;
+      });
+      return ctx.db.orm.User.where({ id });
+    },
+  }),
+);
+```
+
+To read the result inside the transaction too, build the last write with
+[`collectionFromInfo`](./objects#mutations) and return the row it writes:
+
+```ts
+import { collectionFromInfo } from '@pothos/plugin-prisma-next';
+
+builder.mutationField('renameUser', (t) =>
+  t.field({
+    type: User,
+    nullable: true,
+    args: { id: t.arg.id({ required: true }), firstName: t.arg.string({ required: true }) },
+    resolve: (_root, args, ctx, info) =>
+      ctx.db.transaction(async (tx) => {
+        const users = await collectionFromInfo({
+          collection: tx.orm.User.where({ id: String(args.id) }),
+          context: ctx,
+          info,
+        });
+        return users.update({ firstName: args.firstName });
+      }),
+  }),
+);
+```
+
+Don't return a `tx.orm` Collection from the callback: it runs after the transaction ends, and fails.
+
+When every read and write of an operation must share one transaction, use a
+[client per request](#use-a-different-client-per-request) and call `graphql()` inside the
+transaction:
+
+```ts
+const result = await db.transaction(async (tx) => {
+  const result = await graphql({
+    schema,
+    source,
+    contextValue: { db: tx },
+  });
+  // GraphQL reports errors in the result rather than rejecting, so throw to roll back.
+  if (result.errors?.length) {
+    throw result.errors[0];
+  }
+  return result;
+});
+```
+
 ## Use a different client per request
 
 To give each request its own client, such as a transaction, pass a function as `client` along with
@@ -80,27 +159,6 @@ const builder = new SchemaBuilder<{
     client: (ctx) => ctx.db,
     context: db.context,
   },
-});
-```
-
-### Transactions
-
-Pothos doesn't create transactions for you. To run an operation in one, call `graphql()` inside the
-transaction callback and pass the transaction as `ctx.db`. With `client: (ctx) => ctx.db`, the
-plugin's own queries use it too:
-
-```ts
-const result = await db.transaction(async (tx) => {
-  const result = await graphql({
-    schema,
-    source,
-    contextValue: { db: tx },
-  });
-  // GraphQL reports errors in the result rather than rejecting, so throw to roll back.
-  if (result.errors?.length) {
-    throw result.errors[0];
-  }
-  return result;
 });
 ```
 
