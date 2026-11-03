@@ -55,9 +55,9 @@ order by relation columns, aggregates or expressions. Nullable columns sort null
 orderBy: { score: { direction: 'desc', nulls: 'first' } },
 ```
 
-Unless the order already covers a unique key, the plugin adds one to the end, in the direction of
-the last column. That's the primary key or, if it can't be ordered, the first non-null unique key
-that can. On PostgreSQL, index the order columns with matching null placement. For
+If the order doesn't include a unique key, the plugin adds the primary key to the end, in the same
+direction as the last column. If the primary key can't be ordered, it uses the first non-null unique
+key that can. On PostgreSQL, index the order columns with matching null placement. For
 `{ score: 'desc' }`, that's `CREATE INDEX ON post (score DESC NULLS LAST, id DESC)`.
 
 To let clients choose the order, pass a function of the arguments:
@@ -80,7 +80,8 @@ each request that returns such an order.
 When the nodes aren't a relation of the parent, such as the users who commented on a post, define
 the connection yourself with `t.connection` and page it with `prismaConnectionHelpers`. The helper
 takes a model name or a prisma type ref, and `orderBy`, `defaultSize`, `maxSize`, `args` and
-`query` as `t.relatedConnection` does. Its `totalCount` only takes `true`.
+`query` as `t.relatedConnection` does. Its `totalCount` takes `true`, but not a function. For a
+custom count, see below.
 
 ### Paginate through a join model
 
