@@ -214,9 +214,11 @@ The `select` of a type takes only `true` for a to-one relation. The ORM includes
 once per row, and every reader of the row shares a type's `select`. A field with a filter loads its
 own version of the relation, reloading the row when the rest of the query needs the unfiltered one.
 
-A field returning the type must return the key plus the type's `select`, so type-level checks such
-as `authScopes` always see its columns and relations. A field's own `select` loads for that field,
-and may be missing under `@defer` until the field resolves.
+A field returning the type must return the key plus the columns and to-one relations of the type's
+`select`, so type-level checks such as `authScopes` see them. To-many relations and computed values
+in a type's `select`, and fields' own `select`s, load per field, so a type-level check shouldn't
+rely on them unless the row came from a prisma field, relation or connection. A field's own
+`select` may be missing under `@defer` until the field resolves.
 
 A field's `select` can also be a function of the field's arguments and context returning the
 object form. A column array is a static `select` only. With `AsyncSelections: true` in the

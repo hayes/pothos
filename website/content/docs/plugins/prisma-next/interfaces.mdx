@@ -57,6 +57,11 @@ Unbranded, it fails with `Abstract type ... must resolve`. A row with a `__typen
 hand-written `resolveType` on such an interface, skips that check like a cast, so the row may lack
 the type's `select`.
 
+A plain row returned for a `prismaInterface` is only typed to hold the interface's `select` plus the
+discriminator. An implementation's own `select`, such as `Bug`'s `severity`, loads per field, so for
+type-level checks that read it, return the row from a prisma field or brand it with that type's
+`addBrand`, which requires its `select`.
+
 Add fields with `prismaInterfaceField` or `prismaInterfaceFields`, passing the ref:
 
 ```ts
