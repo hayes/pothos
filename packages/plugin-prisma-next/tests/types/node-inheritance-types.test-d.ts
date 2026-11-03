@@ -1,7 +1,8 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
+import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, { type CollectionFor, type ModelName } from '../../src';
+import prismaNextPlugin, { type ModelKey, prismaConnectionHelpers } from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -10,7 +11,7 @@ const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
   relay: {},
   prismaNext: { client: null as never },
 });
-const collection = null as never;
+const collection = () => null as never;
 
 builder.prismaNode('User', {
   variant: 'UndeclaredNode',
@@ -26,6 +27,7 @@ builder.prismaNode('User', {
   select: ['email'],
   id: {
     field: 'id',
+    parse: (id) => id,
     resolve: (user) => {
       expectTypeOf(user.id).toEqualTypeOf<string>();
       expectTypeOf(user.email).toEqualTypeOf<string>();
@@ -39,6 +41,7 @@ const CompoundNode = builder.prismaNode('Post', {
   variant: 'CompoundNode',
   id: {
     field: ['authorId', 'id'],
+    parse: (id) => id.split(':') as [string, string],
     resolve: (post) => `${post.authorId}:${post.id}`,
   },
   collection,
@@ -94,9 +97,50 @@ builder.prismaNode('User', {
   variant: 'UndeclaredIdResolver',
   id: {
     field: 'id',
+    parse: (id) => id,
     // @ts-expect-error `email` is declared by neither `id.field` nor `select`
     resolve: (user) => user.email,
   },
+  collection,
+  fields: () => ({}),
+});
+// An ID `resolve` encodes, `parse` must decode, or `node(id:)` would find no row.
+builder.prismaNode('User', {
+  variant: 'ResolveWithoutParse',
+  // @ts-expect-error `resolve` needs `parse`
+  id: { field: 'id', resolve: (user: { id: string }) => user.id },
+  collection,
+  fields: () => ({}),
+});
+// The ID takes field options, such as other plugins' and `description`.
+builder.prismaNode('User', {
+  variant: 'IdFieldOptions',
+  id: {
+    field: 'id',
+    description: 'The user ID',
+    deprecationReason: 'Use handle',
+    extensions: { audited: true },
+    resolve: undefined,
+  },
+  collection,
+  fields: () => ({}),
+});
+builder.prismaNode('User', {
+  variant: 'IdFieldOptionsAndResolve',
+  id: {
+    field: 'id',
+    description: 'The user ID',
+    parse: (id) => id,
+    // An async `resolve` is allowed, as for other ID fields.
+    resolve: async (user) => user.id,
+  },
+  collection,
+  fields: () => ({}),
+});
+builder.prismaNode('User', {
+  variant: 'IdFieldOwnOptions',
+  // @ts-expect-error the ID's `type` is set by the node
+  id: { field: 'id', type: 'String' },
   collection,
   fields: () => ({}),
 });
@@ -110,13 +154,14 @@ builder.prismaNode('User', {
 
 // Native inheritance: variants inherit their base's columns and relations, never siblings'.
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: InheritanceContract }>;
-expectTypeOf<ModelName<Types>>().toEqualTypeOf<'Bug' | 'Feature' | 'Note' | 'Task' | 'User'>();
+expectTypeOf<ModelKey<Types>>().toEqualTypeOf<'Bug' | 'Feature' | 'Note' | 'Task' | 'User'>();
 const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });
-declare const orm: { Task: CollectionFor<Types, 'Task'> };
+declare const client: SqliteClient<InheritanceContract>;
+const { orm } = client;
 const task = inheritance.prismaInterface('Task', {
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -133,6 +178,9 @@ const bug = inheritance.prismaObject('Bug', {
     severity: t.exposeString('severity'),
     owner: t.relation('owner'),
     reviewer: t.relation('reviewer', { nullable: true }),
+    // @ts-expect-error the contract makes `reviewer` nullable, like a nullable column
+    requiredReviewer: t.relation('reviewer', { nullable: false }),
+    requiredOwner: t.relation('owner', { nullable: false }),
     // @ts-expect-error a sibling variant's column
     priority: t.exposeInt('priority'),
     // @ts-expect-error unknown relations are rejected on a variant with its own relations
@@ -156,8 +204,13 @@ const feature = inheritance.prismaObject('Feature', {
 const user = inheritance.prismaObject('User', { variant: 'UserRef', fields: () => ({}) });
 inheritance.prismaObject('User', {
   fields: (t) => ({
+    // A select function's rows of a variant carry its base's columns.
+    reviewTitles: t.stringList({
+      select: { reviews: (sub) => ({ reviewRows: sub }) },
+      resolve: (u) => u.reviewRows.map((review) => review.title),
+    }),
     bugs: t.relation('tasks', { type: bug }),
-    bugPage: t.relatedConnection('tasks', { type: bug, cursor: 'id' }),
+    bugPage: t.relatedConnection('tasks', { type: bug }),
     // @ts-expect-error an unrelated model's ref
     users: t.relation('tasks', { type: user }),
     // @ts-expect-error `reviews` targets Bug, so its sibling Feature is rejected
@@ -165,7 +218,6 @@ inheritance.prismaObject('User', {
     unrelatedPage: t.relatedConnection('tasks', {
       // @ts-expect-error an unrelated model's ref
       type: user,
-      cursor: 'id',
     }),
   }),
 });
@@ -176,11 +228,30 @@ inheritance.queryType({
     all: t.prismaField({ type: ['Bug'], resolve: () => orm.Task }),
     // @ts-expect-error another variant's rows
     wrong: t.prismaField({ type: ['Bug'], resolve: () => orm.Task.variant('feature') }),
+    // @ts-expect-error a variant's own collection isn't narrowed to its rows
+    ownCollection: t.prismaField({ type: ['Bug'], resolve: () => orm.Bug }),
     tasks: t.prismaField({ type: ['Task'], resolve: () => orm.Task }),
+    // A base type takes a collection narrowed to one of its variants.
+    bugsAsTasks: t.prismaField({ type: ['Task'], resolve: () => orm.Task.variant('bug') }),
     bugPage: t.prismaConnection({
       type: 'Bug',
-      cursor: ['title', 'id'],
+      orderBy: { title: 'asc' },
       resolve: () => orm.Task.variant('bug'),
+    }),
+    bugPageFromOwn: t.prismaConnection({
+      type: 'Bug',
+      // @ts-expect-error a variant's own collection isn't narrowed to its rows
+      resolve: () => orm.Bug,
+    }),
+    bugPageFromBase: t.prismaConnection({
+      type: 'Bug',
+      // @ts-expect-error the base collection would load every variant
+      resolve: () => orm.Task,
+    }),
+    bugPageFromSibling: t.prismaConnection({
+      type: 'Bug',
+      // @ts-expect-error another variant's rows
+      resolve: () => orm.Task.variant('feature'),
     }),
     // The interface routes a row by its discriminator before any field runs, so a plain field
     // returning it needs `type` beside the key.
@@ -190,4 +261,59 @@ inheritance.queryType({
     // A variant's own type needs no discriminator.
     bugByKey: t.field({ type: bug, resolve: () => ({ id: 't1' }) }),
   }),
+});
+
+// `collection` and `applyPagination` take the same collections as `resolve`.
+inheritance.prismaNode('Bug', {
+  variant: 'NarrowedBugNode',
+  id: { field: 'id' },
+  collection: () => orm.Task.variant('bug'),
+  fields: () => ({}),
+});
+inheritance.prismaNode('Bug', {
+  variant: 'OwnCollectionBugNode',
+  id: { field: 'id' },
+  // @ts-expect-error a variant's own collection isn't narrowed to its rows
+  collection: () => orm.Bug,
+  fields: () => ({}),
+});
+inheritance.prismaNode('Bug', {
+  variant: 'BaseCollectionBugNode',
+  id: { field: 'id' },
+  // @ts-expect-error the base collection would load every variant
+  collection: () => orm.Task,
+  fields: () => ({}),
+});
+inheritance.prismaNode('Bug', {
+  variant: 'SiblingCollectionBugNode',
+  id: { field: 'id' },
+  // @ts-expect-error another variant's rows
+  collection: () => orm.Task.variant('feature'),
+  fields: () => ({}),
+});
+const bugHelpers = prismaConnectionHelpers(inheritance, bug, {});
+bugHelpers.applyPagination(orm.Task.variant('bug'), {}, {});
+// @ts-expect-error a variant's own collection isn't narrowed to its rows
+bugHelpers.applyPagination(orm.Bug, {}, {});
+// @ts-expect-error the base collection would load every variant
+bugHelpers.applyPagination(orm.Task, {}, {});
+// @ts-expect-error another variant's rows
+bugHelpers.applyPagination(orm.Task.variant('feature'), {}, {});
+
+// `collection` receives the builder's context type.
+const withContext = new SchemaBuilder<{
+  Context: { viewerId: string };
+  PrismaNextContract: InheritanceContract;
+}>({
+  plugins: [RelayPlugin, prismaNextPlugin],
+  relay: {},
+  prismaNext: { client },
+});
+withContext.prismaNode('Bug', {
+  id: { field: 'id' },
+  collection: (ctx) => {
+    expectTypeOf(ctx).toEqualTypeOf<{ viewerId: string }>();
+    return client.orm.Task.variant('bug');
+  },
+  fields: () => ({}),
 });

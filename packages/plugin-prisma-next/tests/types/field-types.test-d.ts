@@ -15,7 +15,8 @@ import prismaNextPlugin, {
   prismaConnectionHelpers,
   type Row,
 } from '../../src';
-import type { ExposableColumn, SelectColumnCheck } from '../../src/internal-types';
+import type { ExposableColumn } from '../../src/types/fields';
+import type { SelectColumnCheck } from '../../src/types/selections';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -95,6 +96,16 @@ builder.prismaObject('User', {
       unknown: t.variant(Viewer, { nope: true }),
       // @ts-expect-error `select` lists columns
       badSelect: t.variant(Viewer, { select: ['nope'] }),
+      // `select` also takes the object form, and isNull's parent has what it selects.
+      objectSelect: t.variant(Viewer, {
+        select: { email: true },
+        isNull: (user) => {
+          expectTypeOf(user.email).toEqualTypeOf<string>();
+          return false;
+        },
+      }),
+      // @ts-expect-error the object form lists columns
+      badObjectSelect: t.variant(Viewer, { select: { nope: true } }),
       // @ts-expect-error t.variant installs its own resolver
       resolver: t.variant(Viewer, { resolve: () => null }),
       // @ts-expect-error a variant of another model
@@ -136,8 +147,8 @@ builder.prismaObject('Post', {
     const author = t.relation('author');
     const comments = t.relation('comments');
     // Connections take the builder's default field nullability, nullable here.
-    const page = t.relatedConnection('comments', { cursor: 'id', nullable: false });
-    const nullablePage = t.relatedConnection('comments', { cursor: 'id' });
+    const page = t.relatedConnection('comments', { nullable: false });
+    const nullablePage = t.relatedConnection('comments', {});
     expectTypeOf(author).toEqualTypeOf<FieldRef<Types, UserRow, 'PrismaNextObject'>>();
     expectTypeOf(comments).toEqualTypeOf<
       FieldRef<Types, readonly Row<Types, 'Comment'>[], 'PrismaNextObject'>
@@ -155,11 +166,10 @@ builder.prismaObject('Post', {
 builder.queryFields((t) => {
   const posts = t.prismaConnection({
     type: 'Post',
-    cursor: 'id',
     nullable: false,
     resolve: () => orm.Post,
   });
-  const nullablePosts = t.prismaConnection({ type: 'Post', cursor: 'id', resolve: () => orm.Post });
+  const nullablePosts = t.prismaConnection({ type: 'Post', resolve: () => orm.Post });
   expectTypeOf(posts).toEqualTypeOf<FieldRef<Types, ConnectionShape<Types, PostRow, false>>>();
   expectTypeOf(nullablePosts).toEqualTypeOf<
     FieldRef<Types, ConnectionShape<Types, PostRow, true>>
@@ -169,18 +179,19 @@ builder.queryFields((t) => {
 
 // prismaConnectionHelpers takes a ref (a named type or a variant) as well as a model name.
 {
-  const byName = prismaConnectionHelpers(builder, 'User', { cursor: 'id' });
+  const byName = prismaConnectionHelpers(builder, 'User', {});
   expectTypeOf(byName.ref).toEqualTypeOf<PrismaNextObjectRef<Types, 'User'>>();
   const byRef = prismaConnectionHelpers(builder, Viewer, {
-    cursor: 'email',
+    orderBy: { email: 'asc' },
     resolveNode: (user) => {
+      // Without a relation given `nodeSelection()`, nothing is planned into the rows: they are whole.
       expectTypeOf(user).toEqualTypeOf<UserRow>();
       return user;
     },
   });
   expectTypeOf(byRef.ref).toEqualTypeOf(Viewer);
-  // @ts-expect-error the cursor names a column of the ref's model
-  prismaConnectionHelpers(builder, Viewer, { cursor: 'title' });
+  // @ts-expect-error the order names a column of the ref's model
+  prismaConnectionHelpers(builder, Viewer, { orderBy: { title: 'asc' } });
   // @ts-expect-error a ref's model takes that model's collection
   byRef.applyPagination(orm.Post, {}, {});
 
@@ -190,7 +201,7 @@ builder.queryFields((t) => {
     prismaNext: { client: null as never },
   });
   const Bug = inheritance.prismaObject('Bug', { fields: (t) => ({ id: t.exposeID('id') }) });
-  const bugs = prismaConnectionHelpers(inheritance, Bug, { cursor: ['severity', 'id'] });
+  const bugs = prismaConnectionHelpers(inheritance, Bug, { orderBy: { severity: 'asc' } });
   expectTypeOf(bugs.ref).toEqualTypeOf(Bug);
 }
 
@@ -307,7 +318,6 @@ export const typesDiffer: UserFieldBuilder<Narrow, Narrow> = otherTypes;
     ownNodes: t.prismaField({ type: [OwnNode], resolve: () => orm.User }),
     ownPostConnection: t.prismaConnection({
       type: OwnPost,
-      cursor: 'id',
       resolve: () => orm.Post,
     }),
     // @ts-expect-error a ref of another builder's contract
@@ -315,7 +325,7 @@ export const typesDiffer: UserFieldBuilder<Narrow, Narrow> = otherTypes;
     // @ts-expect-error a list of another builder's refs
     otherUsers: t.prismaField({ type: [OtherUser], resolve: () => orm.User }),
     // @ts-expect-error an interface ref of another builder's contract
-    otherConn: t.prismaConnection({ type: OtherIface, cursor: 'id', resolve: () => orm.User }),
+    otherConn: t.prismaConnection({ type: OtherIface, resolve: () => orm.User }),
   }));
 }
 
@@ -342,7 +352,6 @@ builder.queryField('queryOption', (t) =>
 builder.queryField('queryConnectionOption', (t) =>
   t.prismaConnection({
     type: 'User',
-    cursor: 'id',
     testQueryOption: true,
     resolve: () => orm.User,
   }),
@@ -354,7 +363,6 @@ builder.mutationField('mutationOption', (t) =>
 builder.mutationField('mutationConnectionOption', (t) =>
   t.prismaConnection({
     type: 'User',
-    cursor: 'id',
     // @ts-expect-error only query fields have this option
     testQueryOption: true,
     resolve: () => orm.User,
@@ -390,7 +398,6 @@ builder.prismaObject('User', {
     }),
     page: t.prismaConnection({
       type: 'Post',
-      cursor: 'id',
       select: ['firstName'],
       resolve: (user) => {
         expectTypeOf(user.firstName).toEqualTypeOf<string>();
@@ -413,7 +420,6 @@ declare const pageRequests: AsyncIterable<{ authorId: string }>;
 builder.subscriptionField('postPage', (t) =>
   t.prismaConnection({
     type: 'Post',
-    cursor: 'id',
     subscribe: () => pageRequests,
     resolve: (request) => {
       expectTypeOf(request).toEqualTypeOf<{ authorId: string }>();

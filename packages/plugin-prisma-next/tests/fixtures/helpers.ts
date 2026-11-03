@@ -15,7 +15,11 @@ import {
   specifiedDirectives,
 } from 'graphql';
 import { afterAll } from 'vitest';
-import prismaNextPlugin, { type PrismaNextPluginOptions } from '../../src';
+import prismaNextPlugin, {
+  type AnyContract,
+  type PrismaNextExecutionContext,
+  type PrismaNextPluginOptions,
+} from '../../src';
 import type { Contract as CollisionContract } from './collision-contract';
 import {
   type CapturedExecution,
@@ -28,13 +32,32 @@ import {
   withCapture,
 } from './runtime';
 
-export * from './runtime';
+export {
+  type CapturedExecution,
+  createSqliteRuntime,
+  loadContract,
+  type SampleContract,
+  sampleContract,
+  sampleDdl,
+  type TestRuntimeContext,
+  withCapture,
+} from './runtime';
 
-export const collisionContract = loadContract<CollisionContract>(
+/**
+ * The execution context a client function is passed with, for a schema that is only built. Its
+ * codecs are never read.
+ */
+export function buildOnlyContext<C extends AnyContract>(
+  contract: C,
+): PrismaNextExecutionContext<C> {
+  return { contract, contractCodecs: { forColumn: () => undefined } };
+}
+
+const collisionContract = loadContract<CollisionContract>(
   new URL('./collision-contract.json', import.meta.url),
 );
 
-export const collisionDdl = `
+const collisionDdl = `
   CREATE TABLE sheet (id INTEGER PRIMARY KEY, name TEXT NOT NULL, meta TEXT, role TEXT, count INTEGER);
   CREATE TABLE "row" (id INTEGER PRIMARY KEY, sheetId INTEGER NOT NULL, label TEXT NOT NULL);
   CREATE TABLE note (id INTEGER PRIMARY KEY, sheetId INTEGER NOT NULL, text TEXT, uniq TEXT UNIQUE);
@@ -74,27 +97,39 @@ export function useSampleDb() {
 }
 export const useCollisionDb = () => useDatabase(collisionContract, collisionDdl);
 
-export type SampleOptions<Context = object> = Omit<
-  PrismaNextPluginOptions<SampleContract, Context>,
-  'client' | 'contract'
+/** The `SchemaTypes` of the builders `createBuilder` makes. */
+interface SampleTypes<Context extends object> {
+  PrismaNextContract: SampleContract;
+  Context: Context;
+  AsyncSelections: true;
+}
+
+type SamplePluginOptions<Context extends object> = PrismaNextPluginOptions<
+  PothosSchemaTypes.ExtendDefaultTypes<SampleTypes<Context>>
+>;
+
+export type SampleOptions<Context extends object = object> = Omit<
+  SamplePluginOptions<Context>,
+  'client' | 'context'
 > & {
-  client?: PrismaNextPluginOptions<SampleContract, Context>['client'];
-  /** Used with a client function. */
-  contract?: SampleContract;
+  client?: SamplePluginOptions<Context>['client'];
+  /** Passed with a client function. Defaults to the sample database's. */
+  context?: PrismaNextExecutionContext<SampleContract>;
 };
 
 export function createBuilder<Context extends object = object>({
-  client = sampleDb?.client ?? sqlite({ contract: sampleContract }),
-  contract = sampleContract,
+  client,
+  context,
   ...options
 }: SampleOptions<Context> = {}) {
-  return new SchemaBuilder<{ PrismaNextContract: SampleContract; Context: Context }>({
+  const sample = sampleDb?.client ?? sqlite({ contract: sampleContract });
+  return new SchemaBuilder<SampleTypes<Context>>({
     plugins: [ErrorsPlugin, RelayPlugin, prismaNextPlugin],
     relay: { nodesOnConnection: true },
     prismaNext:
       typeof client === 'function'
-        ? { client, contract, ...options }
-        : { client, ...options },
+        ? { client, context: context ?? sample.context, ...options }
+        : { client: client ?? sample, ...options },
   });
 }
 
@@ -102,7 +137,7 @@ export function deferSchema(builder: { toSchema(options?: object): GraphQLSchema
   return builder.toSchema({ directives: [...specifiedDirectives, GraphQLDeferDirective] });
 }
 
-export interface RunResult {
+interface RunResult {
   // biome-ignore lint/suspicious/noExplicitAny: assertions walk arbitrary response data
   data: any;
   errors?: readonly GraphQLError[];

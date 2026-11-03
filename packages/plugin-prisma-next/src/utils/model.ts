@@ -1,10 +1,7 @@
 import { PothosSchemaError } from '@pothos/core';
 import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
-import { type Codec, readContractValue } from '@prisma/orm-framework/components/codec';
-import { canonicalStringify } from '@prisma/orm-framework/utils/canonical-stringify';
-import type { AnyContract, PrismaNextExecutionContext } from '../types.js';
+import type { AnyContract } from '../types/models.js';
 import {
-  fieldStorage,
   modelDiscriminator,
   relatedModelKey,
   resolveContractModel,
@@ -31,30 +28,54 @@ export interface PrismaNextRelation {
 }
 
 export interface PrismaNextModel {
-  readonly name: string;
+  /** The model key of the hierarchy's root. */
+  readonly key: string;
   readonly relations: Record<string, PrismaNextRelation>;
+  /**
+   * Relation names several variants declare. A level of the query holds one relation of a name,
+   * so none of them is in `relations`, and the rest of the hierarchy loads without them.
+   */
+  readonly sharedVariantRelations: ReadonlySet<string>;
   readonly columns: ReadonlySet<string>;
 }
 
-function buildColumnSet(contract: AnyContract, modelName: string): ReadonlySet<string> {
-  const fields = resolveContractModel(contract, modelName)?.fields ?? {};
+/**
+ * The error for loading a relation name several variants of `model` declare: a `PothosSchemaError`
+ * when the schema is built, and an `Error` for a `select` a function returned for a request.
+ */
+export function sharedVariantRelationError(
+  owner: string,
+  name: string,
+  model: PrismaNextModel,
+  ErrorClass: new (message: string) => Error = PothosSchemaError,
+) {
+  return new ErrorClass(
+    `Relation '${name}' on ${owner} is declared under the same name by several variants of model '${model.key}', so it can't be loaded. Give it a name no other variant uses.`,
+  );
+}
+
+function buildColumnSet(contract: AnyContract, modelKey: string): ReadonlySet<string> {
+  const fields = resolveContractModel(contract, modelKey)?.fields ?? {};
   // A base collection also selects its variants' columns, so they count as the model's columns
   // even though other variants' rows lack them.
-  const variants = Object.values(modelDiscriminator(contract, modelName)?.variants ?? {});
+  const variants = modelDiscriminator(contract, modelKey)?.variants ?? [];
   return new Set([
     ...Object.keys(fields),
-    ...variants.flatMap((variant) =>
-      Object.keys(resolveContractModel(contract, relatedModelKey(contract, variant))?.fields ?? {}),
+    ...variants.flatMap(({ key }) =>
+      Object.keys(resolveContractModel(contract, key)?.fields ?? {}),
     ),
   ]);
 }
 
-/** Non-null unique keys, primary key first. Undefined for a model without SQL storage. */
-export function getModelUniqueKeys(
+/**
+ * A model's identities: its non-null primary and unique keys, primary key first. Undefined for a
+ * model without SQL storage.
+ */
+export function getModelIdentities(
   contract: AnyContract,
-  modelName: string,
+  modelKey: string,
 ): string[][] | undefined {
-  const model = resolveContractModel(contract, modelName);
+  const model = resolveContractModel(contract, modelKey);
   const storage = model?.storage;
   const table = storage?.table
     ? resolveStorageTable(contract.storage, storage.table, storage.namespaceId)?.table
@@ -69,7 +90,7 @@ export function getModelUniqueKeys(
       index.unique && !index.where && index.columns ? [index.columns] : [],
     ),
   ];
-  const uniqueKeys: string[][] = [];
+  const identities: string[][] = [];
   for (const columns of keys) {
     const fields = columns.map((column) =>
       Object.keys(model.fields).find(
@@ -78,14 +99,36 @@ export function getModelUniqueKeys(
       ),
     );
     if (fields.length && fields.every((field) => field !== undefined)) {
-      uniqueKeys.push(fields as string[]);
+      identities.push(fields as string[]);
     }
   }
-  return uniqueKeys;
+  return identities;
 }
 
-export function getIdentityFields(contract: AnyContract, modelName: string): string[] {
-  return getModelUniqueKeys(contract, modelName)?.[0] ?? [];
+/** Postgres timestamps read as a JavaScript `Date`, which holds milliseconds. */
+const DATE_TIMESTAMP_CODECS = new Set(['pg/timestamptz-date@1', 'pg/timestamp-date@1']);
+
+/**
+ * Why a field's values can't place a row in a cursor or node ID, if they can't: a timestamp finer
+ * than milliseconds comes back from a `Date` changed. Bare `DateTime` is `timestamptz(3)`.
+ */
+export function truncatedDateProblem(
+  contract: AnyContract,
+  modelKey: string,
+  field: string,
+): string | undefined {
+  const type = resolveContractModel(contract, modelKey)?.fields[field]?.type as
+    | { codecId?: string; typeParams?: { precision?: number } }
+    | undefined;
+  return type?.codecId &&
+    DATE_TIMESTAMP_CODECS.has(type.codecId) &&
+    !((type.typeParams?.precision ?? 6) <= 3)
+    ? `'${modelKey}.${field}' is a timestamp finer than milliseconds read as a JavaScript Date, which drops the rest. Declare it as TimestamptzTemporal, or with a precision of 3 or less`
+    : undefined;
+}
+
+export function getIdentityFields(contract: AnyContract, modelKey: string): string[] {
+  return getModelIdentities(contract, modelKey)?.[0] ?? [];
 }
 
 const modelCache = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
@@ -95,7 +138,7 @@ const modelCache = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
  * so `... on Bug` beneath a `Task` plans into the same query.
  */
 export function getModel(contract: AnyContract, key: string): PrismaNextModel {
-  const name = rootModelKey(contract, key);
+  const root = rootModelKey(contract, key) ?? key;
   let models = modelCache.get(contract);
 
   if (!models) {
@@ -103,29 +146,32 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
     modelCache.set(contract, models);
   }
 
-  let model = models.get(name);
+  let model = models.get(root);
 
   if (!model) {
     const relations: Record<string, PrismaNextRelation> = {};
+    const sharedVariantRelations = new Set<string>();
 
-    model = { name, relations, columns: buildColumnSet(contract, name) };
+    model = {
+      key: root,
+      relations,
+      sharedVariantRelations,
+      columns: buildColumnSet(contract, root),
+    };
     // Registered before its relations resolve, so a cycle finds it.
-    models.set(name, model);
+    models.set(root, model);
 
     const addRelations = (modelKey: string, variant?: string) => {
       for (const [relationName, relation] of Object.entries(
         resolveContractModel(contract, modelKey)?.relations ?? {},
       )) {
         if (variant !== undefined && relations[relationName]) {
-          if (relations[relationName].declaredByVariant === undefined) {
-            continue;
+          if (relations[relationName].declaredByVariant !== undefined) {
+            sharedVariantRelations.add(relationName);
           }
-          throw new PothosSchemaError(
-            `Relation '${relationName}' is declared by several variants of model '${name}'. ` +
-              'Relations declared on variants need distinct names.',
-          );
+          continue;
         }
-        const targetModel = relatedModelKey(contract, relation.to);
+        const targetModel = relatedModelKey(contract, relation.to)!;
         const targetVariant = variantOf(contract, targetModel);
         relations[relationName] = {
           // orm-client resolves N:M junctions itself, so they include like any to-many relation.
@@ -146,83 +192,15 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
       }
     };
 
-    addRelations(name);
+    addRelations(root);
     // Relations declared on variants are tagged with the variant they need.
-    for (const [value, variant] of Object.entries(
-      modelDiscriminator(contract, name)?.variants ?? {},
-    )) {
-      addRelations(relatedModelKey(contract, variant), value);
+    for (const { key: variant, value } of modelDiscriminator(contract, root)?.variants ?? []) {
+      addRelations(variant, value);
+    }
+    for (const relationName of sharedVariantRelations) {
+      delete relations[relationName];
     }
   }
 
   return model;
-}
-
-/** A column codec. Cursors, node IDs and loader keys hold values in its stored JSON form. */
-interface ColumnCodec {
-  encode(value: unknown): unknown;
-  decode(stored: unknown): unknown;
-  /** Equal for values the column's data type holds equal, such as the decimals 0.5 and 0.50. */
-  key(value: unknown): string;
-}
-
-type CodecContext = Pick<PrismaNextExecutionContext<AnyContract>, 'contractCodecs'>;
-
-export type FieldCodecs = (field: string) => ColumnCodec | undefined;
-
-const codecCache = new WeakMap<CodecContext, Map<string, ColumnCodec | null>>();
-
-export function getColumnCodec(
-  contract: AnyContract,
-  context: CodecContext,
-  modelName: string,
-  field: string,
-): ColumnCodec | undefined {
-  let codecs = codecCache.get(context);
-  if (!codecs) {
-    codecs = new Map();
-    codecCache.set(context, codecs);
-  }
-  const cacheKey = `${modelName}\0${field}`;
-  let columnCodec = codecs.get(cacheKey);
-  if (columnCodec === undefined) {
-    columnCodec = createColumnCodec(contract, context, modelName, field) ?? null;
-    codecs.set(cacheKey, columnCodec);
-  }
-  return columnCodec ?? undefined;
-}
-
-function createColumnCodec(
-  contract: AnyContract,
-  context: CodecContext,
-  modelName: string,
-  field: string,
-): ColumnCodec | undefined {
-  const storage = fieldStorage(contract, modelName, field);
-  if (!storage) {
-    return undefined;
-  }
-  const { namespaceId, column } = storage;
-  const codec = context.contractCodecs.forColumn(namespaceId, storage.table, column) as
-    | Codec
-    | undefined;
-  if (!codec) {
-    return undefined;
-  }
-  const table = resolveStorageTable(contract.storage, storage.table, namespaceId)?.table;
-  const typeParams = (table?.columns[column] as { typeParams?: unknown } | undefined)?.typeParams;
-  const encode = (value: unknown) => codec.dataType.toContract(codec.toDataTypeValue(value));
-  return {
-    encode,
-    decode: (stored) => readContractValue(codec, stored as never, typeParams),
-    key: (value) => {
-      const stored = encode(value);
-      return codec.dataType.equalityKey?.(stored) ?? canonicalStringify(stored);
-    },
-  };
-}
-
-/** Identity for a value whose column has no codec. */
-export function rawKey(value: unknown): string {
-  return canonicalStringify(value);
 }

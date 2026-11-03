@@ -1,19 +1,20 @@
-// Extension keys. A name says what its extension holds and can differ from the key string, which
-// stays fixed because code outside the plugin may read it.
+// Extension keys.
 
-/** The contract model a prisma type is based on, set by the plugin on objects and interfaces. */
+/** The model key a prisma type is based on, set by the plugin on objects and interfaces. */
 export const PRISMA_NEXT_MODEL = 'pothosPrismaNextModel';
 /** A type's `select` as written. */
-export const PRISMA_NEXT_TYPE_SELECT = 'pothosPrismaNextSelect';
-/** A field's selection as the planner reads it: a static query or a select function. */
-export const PRISMA_NEXT_FIELD_SELECTION = 'pothosPrismaNextFieldSelect';
+export const PRISMA_NEXT_TYPE_SELECT = 'pothosPrismaNextTypeSelect';
+/** A field's selection as the planner reads it: a static selection or a select function. */
+export const PRISMA_NEXT_FIELD_SELECTION = 'pothosPrismaNextFieldSelection';
 /** A planned field's check that the data it reads is on the parent it resolves with. */
-export const PRISMA_NEXT_LOADED = 'pothosPrismaNextLoaded';
+export const PRISMA_NEXT_LOADED_CHECK = 'pothosPrismaNextLoadedCheck';
 /** Marks a hierarchy interface that routes rows with the plugin's discriminator `resolveType`. */
 export const PRISMA_NEXT_DISCRIMINATED = 'pothosPrismaNextDiscriminated';
-/** Whether a field's selection comes from its own `select` option. */
-export const PRISMA_NEXT_FIELD_HAS_SELECT = 'pothosPrismaNextDeclaredSelect';
 /** A prisma interface's registry of its implementations' selections, one per schema build. */
 export const PRISMA_NEXT_IMPLEMENTATIONS = 'pothosPrismaNextImplementations';
 /** The to-one relation a field loads with its own query or variant, replacing the declared one. */
 export const PRISMA_NEXT_REFINED_TO_ONE = 'pothosPrismaNextRefinedToOne';
+/** Marks a connection's field that doesn't read the connection's rows, so they aren't loaded for it. */
+export const PRISMA_NEXT_CONNECTION_AGGREGATE = 'pothosPrismaNextConnectionAggregate';
+/** The plugin's config, on each prisma type, so `collectionFromInfo` finds it from `info.schema`. */
+export const PRISMA_NEXT_CONFIG = 'pothosPrismaNextConfig';

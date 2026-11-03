@@ -3,7 +3,8 @@ import { PrismaNextInterfaceRef } from '../interface-ref.js';
 import { PrismaNextObjectRef } from '../object-ref.js';
 import { defaultTypeName } from './contract.js';
 
-type AnyRef =
+/** A prisma object or interface ref of any model. */
+export type AnyRef =
   | PrismaNextObjectRef<SchemaTypes, never, never>
   | PrismaNextInterfaceRef<SchemaTypes, never, never>;
 
@@ -21,7 +22,7 @@ const provisional = new WeakSet<AnyRef>();
  * lookup with `kind: 'Interface'` replaces.
  */
 export function getRefFromContractModel<Types extends SchemaTypes>(
-  modelName: string,
+  modelKey: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   kind?: 'Interface' | 'Object',
 ): AnyRef {
@@ -30,10 +31,10 @@ export function getRefFromContractModel<Types extends SchemaTypes>(
     cache = new Map();
     refMap.set(builder, cache);
   }
-  let ref = cache.get(modelName);
+  let ref = cache.get(modelKey);
   if (!ref) {
-    ref = createRef(modelName, kind ?? 'Object');
-    cache.set(modelName, ref);
+    ref = createRef(modelKey, kind ?? 'Object');
+    cache.set(modelKey, ref);
     if (!kind) {
       provisional.add(ref);
     }
@@ -43,14 +44,14 @@ export function getRefFromContractModel<Types extends SchemaTypes>(
       const [first, then] =
         kind === 'Interface' ? ['Object', 'Interface'] : ['Interface', 'Object'];
       throw new PothosSchemaError(
-        `Model '${modelName}' was used with prisma${first} or prisma${first}Field(s) and then ` +
+        `Model '${modelKey}' was used with prisma${first} or prisma${first}Field(s) and then ` +
           `with prisma${then} or prisma${then}Field(s), so its default type would be both an ` +
           "object and an interface. Use 'variant' instead of the default name on one of them.",
       );
     }
-    const replacement = createRef(modelName, kind);
+    const replacement = createRef(modelKey, kind);
     builder.configStore.associateParamWithRef(ref as never, replacement as never);
-    cache.set(modelName, replacement);
+    cache.set(modelKey, replacement);
     ref = replacement;
   }
   if (kind) {
@@ -59,10 +60,10 @@ export function getRefFromContractModel<Types extends SchemaTypes>(
   return ref;
 }
 
-function createRef(modelName: string, kind: 'Interface' | 'Object'): AnyRef {
+function createRef(modelKey: string, kind: 'Interface' | 'Object'): AnyRef {
   return kind === 'Interface'
-    ? new PrismaNextInterfaceRef(defaultTypeName(modelName), modelName as never)
-    : new PrismaNextObjectRef(defaultTypeName(modelName), modelName as never);
+    ? new PrismaNextInterfaceRef(defaultTypeName(modelKey), modelKey as never)
+    : new PrismaNextObjectRef(defaultTypeName(modelKey), modelKey as never);
 }
 
 /** A prisma ref as given, or the default ref of the model a name names. */

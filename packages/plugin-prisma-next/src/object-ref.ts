@@ -5,15 +5,15 @@ import {
   type SchemaTypes,
   typeBrandKey,
 } from '@pothos/core';
-import type { ModelName, ModelReturnShape, Row } from './types.js';
+import type { ModelKey, ModelReturnShape, Row } from './types/models.js';
 
-export const prismaModelKey = Symbol.for('Pothos.prismaNextModelKey');
+export const prismaModelBrand = Symbol.for('Pothos.prismaNextModelBrand');
 /** Type-only: the contract a ref's builder was created with. */
-export const prismaContractKey = Symbol.for('Pothos.prismaNextContractKey');
+export const prismaContractBrand = Symbol.for('Pothos.prismaNextContractBrand');
 
 /** Marks a row shape with its model. It is an interface so that declaration emit can name it. */
 export interface ModelBrand<M> {
-  readonly [prismaModelKey]?: M;
+  readonly [prismaModelBrand]?: M;
 }
 
 type WithBrand<T> = T & { [typeBrandKey]: string };
@@ -24,20 +24,20 @@ type Branded<V> = V extends readonly unknown[] ? { [K in keyof V]: WithBrand<V[K
 
 export class PrismaNextObjectRef<
   Types extends SchemaTypes,
-  M extends ModelName<Types>,
+  M extends ModelKey<Types>,
   Shape = Row<Types, M>,
 > extends ObjectRef<Types, ModelReturnShape<Types, M>, Shape> {
-  declare readonly [prismaModelKey]: M;
+  declare readonly [prismaModelBrand]: M;
 
-  declare readonly [prismaContractKey]: Types['PrismaNextContract'];
+  declare readonly [prismaContractBrand]: Types['PrismaNextContract'];
 
   declare readonly [abstractReturnShapeKey]: WithBrand<Shape>;
 
-  readonly modelName: M;
+  readonly modelKey: M;
 
-  constructor(name: string, modelName: M) {
+  constructor(name: string, modelKey: M) {
     super(name);
-    this.modelName = modelName;
+    this.modelKey = modelKey;
   }
 
   /** Brands rows (or a list of them) as this type, for abstract positions such as unions. */

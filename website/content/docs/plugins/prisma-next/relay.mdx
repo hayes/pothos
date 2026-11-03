@@ -22,11 +22,14 @@ builder.prismaNode('Post', {
 
 - `id.field`: a column, or a list of columns. They must include a complete non-null primary or
   unique key; otherwise the schema build fails.
-- `id.resolve` / `id.parse`: custom serialization of the ID. When `resolve` changes the value,
-  `parse` must turn it back into the key's values. Otherwise `node(id:)` finds no row and returns
-  `null`.
-- `collection`: the Collection nodes load from, or a function of the context returning one, to
-  apply per-request filters. Defaults to the model's collection on the plugin's `client`.
+- `id.parse` / `id.resolve`: custom serialization of the ID. `parse` turns the ID back into the
+  key's values. `resolve` changes the encoded value, so it requires `parse`: the types reject it
+  alone, since `node(id:)` would find no row.
+- Other `id` options, such as `description`, `extensions` or another plugin's `authScopes`, are
+  passed to the ID field.
+- `collection`: a function of the context returning the Collection nodes load from. Defaults to
+  the model's collection on the plugin's `client`. See
+  [Filter node lookups](#filter-node-lookups).
 
 ```ts
 builder.prismaNode('Comment', {
@@ -42,8 +45,38 @@ builder.prismaNode('Comment', {
 By default IDs encode the key columns with the client's column codecs, and
 `t.arg.globalID({ for: ref })` receives the decoded values.
 
-`node` and `nodes` lookups with the same path are batched into one query, with the selection
-applied.
+An ID column must hold the value it is read as. A Postgres timestamp read as a JavaScript `Date`
+keeps milliseconds, so an `id.field` with a precision above 3, or none, is a schema build error;
+bare `DateTime` is `timestamptz(3)` and works. Use `TimestamptzTemporal` for finer timestamps.
+
+`node` and `nodes` lookups of one type are batched into one query, with the selection applied,
+including aliased `node` fields whose selections can load together.
+
+## Filter node lookups
+
+`collection` runs for each batch of lookups, so it can use the request's client and filter by the
+request's values:
+
+```ts
+builder.prismaNode('Post', {
+  id: { field: 'id' },
+  collection: (ctx) => ctx.db.orm.Post.where({ authorId: ctx.viewerId }),
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+```
+
+`node` and `nodes` return `null` for a row the filter excludes.
+
+Return the collection filtered but otherwise unshaped: one with `limit()`, `offset()`, `cursor()`
+or `include()` is rejected, since the plugin pages the lookups and includes what the query
+selects. On a [variant](./interfaces) model, return it narrowed with `orm.Base.variant(value)`.
+
+`collection` applies only to `node` and `nodes` lookups, so it isn't access control. Rows reached
+through `t.relation`, `t.relatedConnection`, `prismaField` or `prismaConnection` don't pass through
+it, and neither do reloads of a parent row's missing selections, which read the model's collection
+on the plugin's `client`. Use auth checks on the type to restrict rows everywhere: a function
+`client` restricts rows only if the client it returns is scoped, and a resolver can still return a
+build-time client.
 
 ## Several node types for one model
 

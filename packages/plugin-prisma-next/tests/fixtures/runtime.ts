@@ -30,7 +30,7 @@ export function withCapture<T>(captures: CapturedExecution[], fn: () => Promise<
   return captureStore.run(captures, fn);
 }
 
-export const captureMiddleware: SqlMiddleware = {
+const captureMiddleware: SqlMiddleware = {
   name: 'pothos-test-capture',
   familyId: 'sql',
   beforeEncode(plan) {
@@ -45,6 +45,7 @@ export interface SqliteRuntime<C extends SqliteContract> {
   client: ReturnType<typeof sqlite<C>>;
   orm: ReturnType<typeof sqlite<C>>['orm'];
   contract: C;
+  path: string;
   cleanup: () => Promise<void>;
 }
 
@@ -78,6 +79,7 @@ export function createSqliteRuntime<C extends SqliteContract>(
     client,
     orm: client.orm,
     contract,
+    path,
     cleanup: async () => {
       await client.close();
       rmSync(dir, { recursive: true, force: true });

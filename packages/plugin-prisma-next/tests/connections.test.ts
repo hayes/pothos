@@ -1,10 +1,12 @@
 import { OrderByItem, ParamRef } from '@prisma/orm-family-sql/relational-core/ast';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { prismaConnectionHelpers } from '../src';
 import {
   type CapturedExecution,
   createBuilder,
+  deferSchema,
   run,
+  runIncremental,
   type SampleOptions,
   useSampleDb,
   withCapture,
@@ -27,26 +29,21 @@ function schema(options: SampleOptions = {}) {
   builder.prismaObject('User', {
     fields: (t) => ({
       id: t.exposeID('id'),
-      posts: t.relatedConnection('posts', { cursor: 'id', totalCount: true }),
-      postsAlt: t.relatedConnection('posts', { cursor: 'id', totalCount: true }),
+      posts: t.relatedConnection('posts', { totalCount: true }),
+      postsAlt: t.relatedConnection('posts', { totalCount: true }),
       published: t.relatedConnection('posts', {
-        cursor: 'id',
         totalCount: true,
         query: { where: { published: 1 } },
       }),
-      callableCount: t.relatedConnection('posts', { cursor: 'id', totalCount: () => 23 }),
+      callableCount: t.relatedConnection('posts', { totalCount: () => 23 }),
       wrapped: t.relatedConnection('posts', {
-        cursor: 'id',
         totalCount: true,
         errors: { types: [] },
       }),
-      sized: t.relatedConnection('posts', { cursor: 'id', defaultSize: 1, maxSize: 1 }),
+      sized: t.relatedConnection('posts', { defaultSize: 1, maxSize: 1 }),
       ordered: t.relatedConnection('posts', {
-        cursor: ['title', 'id'],
         args: { newest: t.arg.boolean() },
-        query: (args) => ({
-          orderBy: (post) => (args.newest ? post.title.desc() : post.title.asc()),
-        }),
+        orderBy: (args) => ({ title: args.newest ? 'desc' : 'asc' }),
       }),
     }),
   });
@@ -55,81 +52,65 @@ function schema(options: SampleOptions = {}) {
       users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
       userPage: t.prismaConnection({
         type: 'User',
-        cursor: 'id',
         totalCount: true,
         errors: { types: [] },
         resolve: () => db.orm.User,
       }),
       posts: t.prismaConnection({
         type: 'Post',
-        cursor: 'id',
         totalCount: true,
         resolve: () => db.orm.Post,
       }),
       postsByDate: t.prismaConnection({
         type: 'Post',
-        cursor: ['createdAt', 'id'],
+        orderBy: { createdAt: 'asc' },
         resolve: () => db.orm.Post,
       }),
       sizedPosts: t.prismaConnection({
         type: 'Post',
-        cursor: 'id',
         defaultSize: 1,
         maxSize: 2,
         resolve: () => db.orm.Post,
       }),
       orderedPosts: t.prismaConnection({
         type: 'Post',
-        cursor: ['title', 'id'],
         args: { newest: t.arg.boolean() },
-        orderBy: (args) => (post) => (args.newest ? post.title.desc() : post.title.asc()),
+        orderBy: (args) => ({ title: args.newest ? 'desc' : 'asc' }),
         resolve: () => db.orm.Post,
       }),
-      wrongOrder: t.prismaConnection({
+      sortedPosts: t.prismaConnection({
         type: 'Post',
-        cursor: ['title', 'id'],
-        orderBy: () => (post) => post.id.asc(),
+        args: { sort: t.arg.string({ required: true }) },
+        orderBy: (args) => ({ [args.sort]: 'desc' }),
         resolve: () => db.orm.Post,
       }),
       preordered: t.prismaConnection({
         type: 'Post',
-        cursor: 'id',
         totalCount: true,
         resolve: () => db.orm.Post.orderBy((post) => post.id.desc()),
       }),
       newestFirst: t.prismaConnection({
         type: 'Post',
-        cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
-        resolve: (_root, args) => {
-          // Core pages backward for `last`, or for `before` without `first` or `after`.
-          const backward =
-            args.first == null && (args.last != null || (!!args.before && !args.after));
-          return db.orm.Post.orderBy((post) =>
-            backward ? post.createdAt.asc() : post.createdAt.desc(),
-          );
-        },
+        orderBy: { createdAt: 'desc', id: 'asc' },
+        resolve: () => db.orm.Post,
       }),
       callableCount: t.prismaConnection({
         type: 'Post',
-        cursor: 'id',
         totalCount: () => 42,
         resolve: () => db.orm.Post,
       }),
       countRejects: t.prismaConnection({
         type: 'Post',
-        cursor: 'id',
         totalCount: failing('count-failed'),
         resolve: () => db.orm.Post,
       }),
       rowsReject: t.prismaConnection({
         type: 'Post',
-        cursor: 'id',
         totalCount: () => 9,
         resolve: failing('rows-failed') as never,
       }),
       countThrows: t.prismaConnection({
         type: 'Post',
-        cursor: 'id',
         totalCount: (() => {
           throw new Error('sync-throw');
         }) as never,
@@ -137,7 +118,6 @@ function schema(options: SampleOptions = {}) {
       }),
       nullable: t.prismaConnection({
         type: 'Post',
-        cursor: 'id',
         nullable: true,
         totalCount: true,
         resolve: () => null,
@@ -392,61 +372,6 @@ describe('page sizes', () => {
     });
   });
 
-  it.each([
-    [{ maxConnectionSize: 0 }, 'prismaNext.maxConnectionSize must be a positive integer, got 0.'],
-    [
-      { defaultConnectionSize: 1e20 },
-      'prismaNext.defaultConnectionSize must be a positive integer, got 100000000000000000000.',
-    ],
-  ])('rejects plugin option %j when the schema is built, without any connection fields', (options, message) => {
-    expect(() => {
-      const builder = createBuilder(options);
-      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
-      builder.toSchema();
-    }).toThrow(message);
-  });
-
-  it.each([
-    [{ defaultSize: -1 }, 'Connection defaultSize must be a positive integer, got -1.'],
-    [{ maxSize: 1.5 }, 'Connection maxSize must be a positive integer, got 1.5.'],
-  ])('rejects connection option %j when the schema is built', (sizes, message) => {
-    expect(() => {
-      const builder = createBuilder();
-      builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-      builder.queryType({
-        fields: (t) => ({
-          posts: t.prismaConnection({
-            type: 'Post',
-            cursor: 'id',
-            ...sizes,
-            resolve: () => db.orm.Post,
-          }),
-        }),
-      });
-      builder.toSchema();
-    }).toThrow(message);
-  });
-
-  it('rejects a size callback result that is not a positive integer before SQL', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.prismaConnection({
-          type: 'Post',
-          cursor: 'id',
-          defaultSize: () => Number.NaN,
-          resolve: () => db.orm.Post,
-        }),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ posts { edges { node { id } } } }');
-    expect(result.errors?.[0].message).toBe(
-      'Connection defaultSize callback must return a positive integer, got NaN.',
-    );
-    expect(result.statements).toHaveLength(0);
-  });
-
   it('applies per-field sizes to related connections', async () => {
     const result = await query(
       '{ users { a: sized { nodes { id } } b: sized(first: 5) { nodes { id } } } }',
@@ -488,47 +413,31 @@ describe('orderBy', () => {
     expect(ids(result.data.users[0].down)).toEqual(['p-hello', 'p-draft1']);
   });
 
-  it('rejects an order outside the cursor order before SQL', async () => {
-    const result = await query('{ wrongOrder(first: 1) { edges { node { id } } } }');
-    expect(result.errors?.[0].message).toMatch(/cursor's columns in cursor order/);
-    expect(result.statements).toHaveLength(0);
-  });
-
-  const mismatch = /^Invalid cursor: it was issued under a different ordering/;
-
-  it("rejects a cursor from another request's ordering before SQL", async () => {
-    const down = await query('{ orderedPosts(first: 1, newest: true) { pageInfo { endCursor } } }');
-    const cursor = down.data.orderedPosts.pageInfo.endCursor;
-    const up = await query(
-      'query ($after: String) { orderedPosts(first: 1, after: $after) { edges { node { id } } } }',
-      { after: cursor },
+  it('orders by a computed column, and fails the field for one that is not orderable', async () => {
+    const result = await query(
+      '{ a: sortedPosts(sort: "title", first: 1) { nodes { id } } b: sortedPosts(sort: "nope") { nodes { id } } }',
     );
-    expect(up.errors?.map((error) => error.message)).toEqual([expect.stringMatching(mismatch)]);
-    expect(up.statements).toHaveLength(0);
-    // The same ordering still accepts it.
-    const again = await query(
-      'query ($after: String) { orderedPosts(first: 1, newest: true, after: $after) { edges { node { id } } } }',
-      { after: cursor },
-    );
-    expect(ids(again.data.orderedPosts)).toEqual(['p-draft1']);
-  });
-
-  it("rejects a related connection cursor from another request's ordering", async () => {
-    const first = await query(
-      '{ users { down: ordered(first: 1, newest: true) { pageInfo { endCursor } } } }',
-    );
-    const cursor = first.data.users[0].down.pageInfo.endCursor;
-    const next = await query(
-      'query ($after: String) { users { down: ordered(first: 1, newest: true, after: $after) { edges { node { id } } } up: ordered(first: 1, after: $after) { edges { node { id } } } } }',
-      { after: cursor },
-    );
-    expect(ids(next.data.users[0].down)).toEqual(['p-draft1']);
-    expect(next.data.users[0].up).toBeNull();
-    expect(next.errors?.[0].message).toMatch(mismatch);
-    expect(next.errors?.map((error) => error.path)).toEqual([
-      ['users', 0, 'up'],
-      ['users', 1, 'up'],
+    expect(result.data).toEqual({ a: { nodes: [{ id: 'p-hello' }] }, b: null });
+    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
+      [['b'], "Connection orderBy can't order by 'Post.nope' is not a field of the model."],
     ]);
+  });
+
+  it('accepts a cursor after a direction flip, and rejects one from other columns before SQL', async () => {
+    const down = await query('{ orderedPosts(first: 2, newest: true) { pageInfo { endCursor } } }');
+    const flipped = await query(
+      'query ($after: String) { orderedPosts(first: 1, after: $after) { edges { node { id } } } }',
+      { after: down.data.orderedPosts.pageInfo.endCursor },
+    );
+    expect(flipped.errors).toBeUndefined();
+    expect(ids(flipped.data.orderedPosts)).toEqual(['p-hello']);
+    const byId = await query('{ posts(first: 1) { pageInfo { endCursor } } }');
+    const other = await query(
+      'query ($after: String) { orderedPosts(first: 1, after: $after) { edges { node { id } } } }',
+      { after: byId.data.posts.pageInfo.endCursor },
+    );
+    expect(other.errors?.map((error) => error.message)).toEqual(['Invalid cursor.']);
+    expect(other.statements).toHaveLength(0);
   });
 });
 
@@ -539,23 +448,18 @@ describe('related connection errors', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         id: t.exposeID('id'),
-        posts: t.relatedConnection('posts', { cursor: 'id', nullable: true }),
+        posts: t.relatedConnection('posts', { nullable: true }),
         ordered: t.relatedConnection('posts', {
-          cursor: ['title', 'id'],
           nullable: true,
-          args: { byId: t.arg.boolean() },
-          query: (args) => ({
-            orderBy: (post) => (args.byId ? post.id.asc() : post.title.asc()),
-          }),
+          args: { sort: t.arg.string() },
+          orderBy: (args) => ({ [args.sort ?? 'title']: 'asc' }),
         }),
         sometimesOrdered: t.relatedConnection('posts', {
-          cursor: ['title', 'id'],
           nullable: true,
           args: { newest: t.arg.boolean() },
-          query: (args) => (args.newest ? { orderBy: (post) => post.title.desc() } : {}),
+          orderBy: (args) => (args.newest ? { title: 'desc' } : undefined),
         }),
         sized: t.relatedConnection('posts', {
-          cursor: 'id',
           nullable: true,
           args: { boom: t.arg.boolean() },
           maxSize: (args) => {
@@ -565,13 +469,7 @@ describe('related connection errors', () => {
             return 5;
           },
         }),
-        zeroSize: t.relatedConnection('posts', {
-          cursor: 'id',
-          nullable: true,
-          defaultSize: () => 0,
-        }),
         guarded: t.relatedConnection('posts', {
-          cursor: 'id',
           nullable: true,
           totalCount: true,
           query: (_args, ctx) => {
@@ -597,10 +495,13 @@ describe('related connection errors', () => {
   it.each([
     ['an undecodable cursor', 'posts(first: 1, after: "nope")', /Invalid cursor/],
     ['a negative page size', 'posts(first: -1)', /first/],
-    ['a size callback that returns 0', 'zeroSize', /defaultSize callback must return a positive/],
     ['a throwing size callback', 'sized(boom: true, first: 1)', /size callback failed/],
+    ['a column that is not orderable', 'ordered(sort: "nope", first: 1)', /not a field/],
+    ['a throwing query callback', 'guarded(first: 1)', /not allowed/],
+    ['a throwing query callback beneath totalCount', 'guarded', /not allowed/],
   ])('fails only the connection field, without planning it, for %s', async (_name, field, message) => {
-    const result = await run(errorSchema(), `{ users { id c: ${field} { nodes { id } } } }`);
+    const selection = field === 'guarded' ? 'totalCount' : 'nodes { id }';
+    const result = await run(errorSchema(), `{ users { id c: ${field} { ${selection} } } }`);
     expect(result.data.users).toEqual([
       { id: 'u-alice', c: null },
       { id: 'u-bob', c: null },
@@ -614,20 +515,7 @@ describe('related connection errors', () => {
     expect(result.statements[0].sql).not.toMatch(/post/i);
   });
 
-  it.each([
-    ['an orderBy outside the cursor order', 'ordered(byId: true, first: 1)', /cursor order/],
-    ['a throwing query callback', 'guarded(first: 1)', /not allowed/],
-    ['a throwing query callback beneath totalCount', 'guarded', /not allowed/],
-  ])('fails the statement for %s', async (_name, field, message) => {
-    const selection = field === 'guarded' ? 'totalCount' : 'nodes { id }';
-    const result = await run(errorSchema(), `{ users { id c: ${field} { ${selection} } } }`);
-    expect(result.data.users).toBeNull();
-    expect(result.errors?.map((error) => error.path)).toEqual([['users']]);
-    expect(result.errors?.[0].message).toMatch(message);
-    expect(result.statements).toHaveLength(0);
-  });
-
-  it('fails only the connection field for a cursor from an ordering the query callback dropped', async () => {
+  it('fails only the connection field for a cursor from columns the orderBy callback dropped', async () => {
     const first = await run(
       errorSchema(),
       '{ users { c: sometimesOrdered(first: 1, newest: true) { pageInfo { endCursor } } } }',
@@ -646,9 +534,7 @@ describe('related connection errors', () => {
       ['users', 0, 'c'],
       ['users', 1, 'c'],
     ]);
-    expect(
-      result.errors?.every((error) => /issued under a different ordering/.test(error.message)),
-    ).toBe(true);
+    expect(result.errors?.every((error) => error.message === 'Invalid cursor.')).toBe(true);
   });
 
   it('plans the same connections normally when their callbacks succeed', async () => {
@@ -670,7 +556,7 @@ describe('related connection errors', () => {
 
 describe('related connection arguments', () => {
   function argsSchema() {
-    const calls = { query: 0 };
+    const calls = { order: 0 };
     const builder = createBuilder();
     const Big = builder.scalarType(
       'Big' as never,
@@ -684,15 +570,11 @@ describe('related connection arguments', () => {
       fields: (t) => ({
         id: t.exposeID('id'),
         posts: t.relatedConnection('posts', {
-          cursor: ['title', 'id'],
           nullable: true,
           args: { order: t.arg.stringList(), big: t.arg({ type: Big }) },
-          query: (args) => {
-            calls.query += 1;
-            return {
-              orderBy: (post) =>
-                args.order?.[0] === 'desc' ? post.title.desc() : post.title.asc(),
-            };
+          orderBy: (args) => {
+            calls.order += 1;
+            return { title: args.order?.[0] === 'desc' ? 'desc' : 'asc' };
           },
         }),
       }),
@@ -711,11 +593,11 @@ describe('related connection arguments', () => {
   it.each([
     ['no arguments', ''],
     ['a bigint argument', '(big: "5")'],
-  ])('runs the query callback once per request and argument set for %s', async (_name, args) => {
+  ])('runs the orderBy callback once per request and argument set for %s', async (_name, args) => {
     const { schema, calls } = argsSchema();
     const result = await run(schema, `{ users { id posts${args} { nodes { id } } } }`);
     expect(result.errors).toBeUndefined();
-    expect(calls.query).toBe(1);
+    expect(calls.order).toBe(1);
   });
 
   it('encodes each alias under the ordering its list argument chose', async () => {
@@ -739,8 +621,636 @@ describe('related connection arguments', () => {
   });
 });
 
+// Each user's first post with the default order, title descending, and with `order: "asc"`.
+const titleDesc = ['p-hello', 'p-bob1'];
+const titleAsc = ['p-draft1', 'p-bob-draft'];
+const firstIds = (users: { posts: { nodes: { id: string }[] } }[]) =>
+  users.map((user) => user.posts.nodes[0]!.id);
+
+describe('related connection state', () => {
+  class Stamp {
+    constructor(readonly value: string) {}
+  }
+
+  function stateSchema() {
+    const calls = { sizes: 0 };
+    const builder = createBuilder();
+    const At = builder.scalarType(
+      'At' as never,
+      {
+        serialize: (value: Stamp) => value.value,
+        parseValue: (value: unknown) => new Stamp(value as string),
+      } as never,
+    ) as never;
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        posts: t.relatedConnection('posts', {
+          nullable: true,
+          args: { at: t.arg({ type: At }), order: t.arg.string() },
+          defaultSize: () => {
+            calls.sizes += 1;
+            return 1;
+          },
+          orderBy: (args) =>
+            args.order === 'date'
+              ? { createdAt: 'desc' }
+              : { title: args.order === 'asc' ? 'asc' : 'desc' },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    return { schema: builder.toSchema(), deferring: deferSchema(builder), calls };
+  }
+
+  it('keeps the ordering and page sizes for an argument it cannot serialize', async () => {
+    const { schema, calls } = stateSchema();
+    const result = await run(
+      schema,
+      '{ users { posts(at: "now", first: 1) { pageInfo { endCursor } nodes { id } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(calls.sizes).toBe(1);
+    expect(firstIds(result.data.users)).toEqual(titleDesc);
+  });
+
+  it('encodes under the ordering of aliases that share one load', async () => {
+    const { schema } = stateSchema();
+    const result = await run(
+      schema,
+      '{ users { a: posts(first: 1) { pageInfo { endCursor } nodes { id } } b: posts(first: 1) { pageInfo { endCursor } nodes { id } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.statements).toHaveLength(1);
+    const [alice] = result.data.users;
+    expect(alice.a).toEqual(alice.b);
+    expect(alice.a.nodes).toEqual([{ id: 'p-hello' }]);
+  });
+
+  it('keeps aliases apart whose orderBy callback chose different orders for the same arguments', async () => {
+    let calls = 0;
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relatedConnection('posts', {
+          orderBy: () => {
+            calls += 1;
+            return { title: calls % 2 ? 'asc' : 'desc' };
+          },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ users { a: posts(first: 1) { nodes { id } } b: posts(first: 1) { nodes { id } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0]).toEqual({
+      a: { nodes: [{ id: 'p-draft1' }] },
+      b: { nodes: [{ id: 'p-hello' }] },
+    });
+  });
+
+  it('keeps aliases with different arguments apart', async () => {
+    const { schema } = stateSchema();
+    const result = await run(
+      schema,
+      '{ users { up: posts(order: "asc") { nodes { id } } down: posts { nodes { id } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const [alice] = result.data.users;
+    expect(alice.up.nodes).toEqual([{ id: 'p-draft1' }]);
+    expect(alice.down.nodes).toEqual([{ id: 'p-hello' }]);
+  });
+
+  it('keeps the same field apart in different parts of a query', async () => {
+    const { schema } = stateSchema();
+    const result = await run(
+      schema,
+      `{
+        up: users { posts(order: "asc") { nodes { id } } }
+        down: users { posts { nodes { id } } }
+      }`,
+    );
+    expect(result.errors).toBeUndefined();
+    expect(firstIds(result.data.up)).toEqual(titleAsc);
+    expect(firstIds(result.data.down)).toEqual(titleDesc);
+  });
+
+  it('merges a field selected in a fragment', async () => {
+    const { schema } = stateSchema();
+    const result = await run(
+      schema,
+      `{ users { posts(first: 1) { nodes { id } } ...More } }
+      fragment More on User { posts(first: 1) { pageInfo { endCursor } } }`,
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.statements).toHaveLength(1);
+    expect(firstIds(result.data.users)).toEqual(titleDesc);
+    expect(result.data.users[0].posts.pageInfo.endCursor).toEqual(expect.any(String));
+  });
+
+  describe('when the parent reloads for a deferred field', () => {
+    const deferred = (args: string, selection: string) =>
+      `{ users { id ... @defer { posts(${args}) { ${selection} } } } }`;
+
+    it('encodes under the ordering the reload paged with and runs size callbacks once', async () => {
+      const { deferring, calls } = stateSchema();
+      const result = await runIncremental(
+        deferring,
+        deferred('first: 1', 'pageInfo { endCursor } nodes { id }'),
+      );
+      expect(result.patchErrors).toEqual([]);
+      expect(result.initialStatements).toBe(1);
+      expect(result.patches).toHaveLength(2);
+      expect(firstIds(result.patches as never).sort()).toEqual([...titleDesc].sort());
+      expect(calls.sizes).toBe(1);
+    });
+
+    it('checks a cursor against the ordering the reload paged with', async () => {
+      const { schema, deferring } = stateSchema();
+      const first = await run(
+        schema,
+        '{ users { posts(order: "date", first: 1) { pageInfo { endCursor } } } }',
+      );
+      const after = first.data.users[0].posts.pageInfo.endCursor;
+      const result = await runIncremental(
+        deferring,
+        deferred(`first: 1, after: "${after}"`, 'nodes { id }'),
+      );
+      expect(result.patches).toEqual([{ posts: null }, { posts: null }]);
+      expect(result.patchErrors).toHaveLength(2);
+      expect(String(result.patchErrors[0])).toMatch(/Invalid cursor\./);
+    });
+
+    it('fails only the field for a bad cursor', async () => {
+      const { deferring } = stateSchema();
+      const result = await runIncremental(deferring, deferred('after: "nope"', 'nodes { id }'));
+      expect(result.patches).toEqual([{ posts: null }, { posts: null }]);
+      expect(result.patchErrors).toHaveLength(2);
+      expect(String(result.patchErrors[0])).toMatch(/Invalid cursor/);
+    });
+  });
+
+  it('counts a totalCount under @defer', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relatedConnection('posts', { totalCount: true }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+        posts: t.prismaConnection({
+          type: 'Post',
+          totalCount: true,
+          resolve: () => db.orm.Post,
+        }),
+      }),
+    });
+    const result = await runIncremental(
+      deferSchema(builder),
+      `{
+        users { posts(first: 1) { nodes { id } ... @defer { totalCount } } }
+        posts(first: 1) { ... @defer { totalCount } }
+      }`,
+    );
+    expect(result.initial.errors).toBeUndefined();
+    expect(result.patchErrors).toEqual([]);
+    expect(result.initial.data).toMatchObject({
+      users: [{ posts: { nodes: [{ id: 'p-draft1' }] } }, expect.anything()],
+    });
+    expect(result.patches).toEqual(
+      expect.arrayContaining([{ totalCount: 2 }, { totalCount: 2 }, { totalCount: 4 }]),
+    );
+  });
+
+  it('keeps state for a field an implementation inherits from an interface', async () => {
+    const calls = { sizes: 0 };
+    const builder = createBuilder();
+    const WithPosts = builder.prismaInterface('User', {
+      variant: 'WithPosts',
+      fields: (t) => ({
+        posts: t.relatedConnection('posts', {
+          nullable: true,
+          defaultSize: () => {
+            calls.sizes += 1;
+            return 1;
+          },
+          orderBy: () => ({ title: 'desc' }),
+        }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const User = builder.prismaObject('User', {
+      interfaces: [WithPosts],
+      isTypeOf: () => true,
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: [User],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+        withPosts: t.prismaField({
+          type: [WithPosts],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const selections = [
+      '{ users { posts(first: 1) { nodes { id } } } }',
+      '{ users: withPosts { posts(first: 1) { nodes { id } } } }',
+    ];
+    for (const selection of selections) {
+      calls.sizes = 0;
+      const result = await run(schema, selection);
+      expect(result.errors).toBeUndefined();
+      expect(result.statements).toHaveLength(1);
+      expect(firstIds(result.data.users)).toEqual(titleDesc);
+      expect(calls.sizes).toBe(1);
+    }
+    const bad = await run(schema, '{ withPosts { posts(after: "nope") { nodes { id } } } }');
+    expect(bad.data.withPosts).toEqual([{ posts: null }, { posts: null }]);
+    expect(bad.errors?.every((error) => /Invalid cursor/.test(error.message))).toBe(true);
+  });
+});
+
+describe('connection objects', () => {
+  it("carry the field's parent and arguments", async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const pageFields = {
+      fields: (
+        c: PothosSchemaTypes.ObjectFieldBuilder<
+          PothosSchemaTypes.ExtendDefaultTypes<{}>,
+          { parent?: { id: string }; args: { first?: number | null } }
+        >,
+      ) => ({
+        owner: c.string({ nullable: true, resolve: (page) => page.parent?.id ?? 'root' }),
+        asked: c.int({ nullable: true, resolve: (page) => page.args.first }),
+      }),
+    };
+    builder.prismaObject('User', {
+      fields: (t) => ({ posts: t.relatedConnection('posts', {}, pageFields as never) }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+        posts: t.prismaConnection(
+          { type: 'Post', resolve: () => db.orm.Post },
+          pageFields as never,
+        ),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ posts(first: 1) { owner asked } users { posts(first: 2) { owner asked } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      posts: { owner: 'root', asked: 1 },
+      users: [{ posts: { owner: 'u-alice', asked: 2 } }, { posts: { owner: 'u-bob', asked: 2 } }],
+    });
+  });
+});
+
+describe('connection aggregates', () => {
+  // biome-ignore lint/suspicious/noExplicitAny: a page's shape isn't what these tests check
+  const pageLength = (t: any) => ({
+    totalCount: t.int({ resolve: (page: { edges: unknown[] }) => page.edges.length }),
+  });
+
+  function aggregateSchema() {
+    const builder = createBuilder();
+    const Post = builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const Prebuilt = builder.connectionObject(
+      { type: Post, name: 'PrebuiltPosts', fields: pageLength },
+      { name: 'PrebuiltPostsEdge' },
+    );
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        own: t.relatedConnection('posts', {}, { fields: pageLength }),
+        prebuilt: t.relatedConnection('posts', {}, Prebuilt as never),
+        counted: t.relatedConnection('posts', { totalCount: true }),
+      }),
+    });
+    const posts = { type: 'Post', resolve: () => db.orm.Post } as const;
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+        own: t.prismaConnection(posts, { fields: pageLength }),
+        prebuilt: t.prismaConnection(posts, Prebuilt as never),
+        counted: t.prismaConnection({ ...posts, totalCount: true }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it.each([
+    'own',
+    'prebuilt',
+  ])('loads the page for a user-defined totalCount without the option on t.prismaConnection (%s)', async (field) => {
+    const result = await run(aggregateSchema(), `{ ${field}(first: 2) { totalCount } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data[field].totalCount).toBe(2);
+    expect(result.statements[0].sql).not.toMatch(/count\(/i);
+  });
+
+  it.each([
+    'own',
+    'prebuilt',
+  ])('loads the page for a user-defined totalCount without the option on t.relatedConnection (%s)', async (field) => {
+    const result = await run(aggregateSchema(), `{ users { ${field} { totalCount } } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0][field].totalCount).toBe(2);
+    expect(result.statements[0].sql).not.toMatch(/count\(/i);
+  });
+
+  it('counts for a prebuilt connection made with the helpers connectionOptions', async () => {
+    const builder = createBuilder();
+    const Post = builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const pages = prismaConnectionHelpers(builder, 'Post', { totalCount: true });
+    const Prebuilt = builder.connectionObject(
+      pages.connectionOptions({ type: Post, name: 'CountedPosts' }),
+      { name: 'CountedPostsEdge' },
+    );
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaConnection(
+          { type: 'Post', totalCount: true, resolve: () => db.orm.Post },
+          Prebuilt as never,
+        ),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ posts(first: 1) { totalCount } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts.totalCount).toBe(4);
+    expect(result.statements[0].sql).not.toMatch(/limit/i);
+  });
+
+  it('sees the generated count through a direct errors result', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaConnection({
+          type: 'Post',
+          totalCount: true,
+          errors: { types: [], directResult: true },
+          resolve: () => db.orm.Post,
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ posts(first: 1) { ... on QueryPostsConnection { totalCount } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts.totalCount).toBe(4);
+    expect(result.statements[0].sql).not.toMatch(/limit/i);
+  });
+
+  it('skips rows for the generated count, __typename and an alias on t.prismaConnection', async () => {
+    const result = await run(
+      aggregateSchema(),
+      '{ counted(first: 2) { n: totalCount totalCount __typename } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.counted).toMatchObject({ n: 4, totalCount: 4 });
+    expect(result.statements).toHaveLength(1);
+    expect(result.statements[0].sql).not.toMatch(/limit/i);
+  });
+
+  it('skips rows for the generated count, __typename and an alias on t.relatedConnection', async () => {
+    const result = await run(
+      aggregateSchema(),
+      '{ users { counted { n: totalCount __typename } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0].counted).toMatchObject({ n: 2 });
+    expect(result.statements).toHaveLength(1);
+    expect(result.statements[0].sql).toMatch(/count\(/i);
+    expect(result.statements[0].sql).not.toMatch(/limit/i);
+  });
+});
+
+describe('a user-defined totalCount with the totalCount option', () => {
+  // biome-ignore lint/suspicious/noExplicitAny: shared by connections of different parents
+  const readCount = (t: any) => ({
+    totalCount: t.int({
+      nullable: true,
+      resolve: (page: { totalCount?: number }) => page.totalCount,
+    }),
+  });
+
+  function userCountSchema() {
+    const builder = createBuilder();
+    const Post = builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const Prebuilt = builder.connectionObject(
+      { type: Post, name: 'UserCountPosts', fields: readCount },
+      { name: 'UserCountPostsEdge' },
+    );
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        prebuilt: t.relatedConnection('posts', { totalCount: true }, Prebuilt as never),
+        override: t.relatedConnection(
+          'posts',
+          { totalCount: true },
+          {
+            fields: (c) => ({
+              totalCount: c.int({ nullable: true, resolve: (page) => page.totalCount }),
+            }),
+          },
+        ),
+        callback: t.relatedConnection('posts', { totalCount: () => 99 }, { fields: readCount }),
+        // Reads the page, which the count leaves empty.
+        pageLength: t.relatedConnection(
+          'posts',
+          { totalCount: true },
+          {
+            fields: (c) => ({
+              totalCount: c.int({ resolve: (page) => (page.edges as unknown[]).length }),
+            }),
+          },
+        ),
+      }),
+    });
+    const posts = { type: 'Post', totalCount: true, resolve: () => db.orm.Post } as const;
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+        prebuilt: t.prismaConnection(posts, Prebuilt as never),
+        override: t.prismaConnection(posts, {
+          fields: (c) => ({
+            totalCount: c.int({ nullable: true, resolve: (page) => page.totalCount }),
+          }),
+        }),
+        callback: t.prismaConnection({ ...posts, totalCount: () => 99 }, { fields: readCount }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it.each([
+    ['prebuilt', 4, 1],
+    ['override', 4, 1],
+    ['callback', 99, 0],
+  ])('reads the count without loading rows on t.prismaConnection (%s)', async (field, total, statements) => {
+    const result = await run(userCountSchema(), `{ ${field}(first: 1) { totalCount } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data[field].totalCount).toBe(total);
+    expect(result.statements).toHaveLength(statements);
+    expect(result.statements.filter(({ sql }) => /limit/i.test(sql))).toHaveLength(0);
+  });
+
+  it.each([
+    ['prebuilt', 2],
+    ['override', 2],
+    ['callback', 99],
+  ])('reads the count without loading rows on t.relatedConnection (%s)', async (field, total) => {
+    const result = await run(userCountSchema(), `{ users { ${field} { totalCount } } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0][field].totalCount).toBe(total);
+    expect(result.statements).toHaveLength(1);
+    expect(result.statements[0].sql).not.toMatch(/limit/i);
+  });
+
+  it('gives a totalCount that reads the page an empty one', async () => {
+    const result = await run(userCountSchema(), '{ users { pageLength { totalCount } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0].pageLength.totalCount).toBe(0);
+  });
+
+  it("counts for an override in the helpers' connectionOptions", async () => {
+    const builder = createBuilder();
+    const Post = builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const pages = prismaConnectionHelpers(builder, 'Post', { totalCount: true });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.connection(
+          {
+            type: Post,
+            resolve: async (_parent, args, ctx, info) => {
+              const { collection, totalCountPromise, wrap } = await pages.applyPagination(
+                db.orm.Post,
+                args,
+                ctx,
+                info,
+              );
+              return wrap(await collection.all(), await totalCountPromise);
+            },
+          },
+          pages.connectionOptions({ fields: readCount }),
+        ),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ posts(first: 1) { totalCount } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts.totalCount).toBe(4);
+  });
+
+  describe('from globalConnectionField', () => {
+    function globalCountSchema() {
+      const builder = createBuilder();
+      builder.globalConnectionField('totalCount', (t) =>
+        t.int({
+          nullable: true,
+          resolve: (page) => {
+            const { totalCount, edges } = page as unknown as {
+              totalCount?: number;
+              edges: unknown[];
+            };
+            return totalCount ?? edges.length;
+          },
+        }),
+      );
+      const Post = builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+      const Prebuilt = builder.connectionObject(
+        { type: Post, name: 'GlobalCountPosts' },
+        { name: 'GlobalCountPostsEdge' },
+      );
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          counted: t.relatedConnection('posts', { totalCount: true }),
+          prebuilt: t.relatedConnection('posts', { totalCount: true }, Prebuilt as never),
+        }),
+      });
+      const posts = { type: 'Post', resolve: () => db.orm.Post } as const;
+      builder.queryType({
+        fields: (t) => ({
+          users: t.prismaField({
+            type: ['User'],
+            resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          }),
+          counted: t.prismaConnection({ ...posts, totalCount: true }),
+          prebuilt: t.prismaConnection({ ...posts, totalCount: true }, Prebuilt as never),
+        }),
+      });
+      return builder.toSchema();
+    }
+
+    // With the option set, the generated field and a prebuilt connection's global one are the
+    // count, so neither loads rows.
+    it.each([
+      ['counted', 1],
+      ['prebuilt', 1],
+    ])('reads the count with the option on t.prismaConnection (%s)', async (field, statements) => {
+      const result = await run(globalCountSchema(), `{ ${field}(first: 1) { totalCount } }`);
+      expect(result.errors).toBeUndefined();
+      expect(result.data[field].totalCount).toBe(4);
+      expect(result.statements).toHaveLength(statements);
+    });
+
+    it.each([
+      'counted',
+      'prebuilt',
+    ])('reads the count with the option on t.relatedConnection (%s)', async (field) => {
+      const result = await run(
+        globalCountSchema(),
+        `{ users { ${field}(first: 1) { totalCount } } }`,
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.users[0][field].totalCount).toBe(2);
+    });
+  });
+});
+
 describe('base collections', () => {
-  const helper = () => prismaConnectionHelpers(createBuilder(), 'Post', { cursor: 'id' });
+  const helper = () => prismaConnectionHelpers(createBuilder(), 'Post', {});
 
   type PageArgs = { first?: number; last?: number; after?: string; before?: string };
   interface Page {
@@ -769,6 +1279,7 @@ describe('base collections', () => {
       /unpaginated Collection/,
     ],
     ['distinct', () => db.orm.Post.distinct('title'), /distinct/],
+    ['include', () => db.orm.Post.include('author'), /already includes 'author'/],
   ])('rejects a base with %s before SQL', async (_name, base, message) => {
     const statements: CapturedExecution[] = [];
     await withCapture(statements, () =>
@@ -785,7 +1296,7 @@ describe('base collections', () => {
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
       fields: (t) => ({
-        posts: t.prismaConnection({ type: 'Post', cursor: 'id', resolve: base as never }),
+        posts: t.prismaConnection({ type: 'Post', resolve: base as never }),
       }),
     });
     const result = await run(builder.toSchema(), '{ posts(first: 1) { edges { node { id } } } }');
@@ -794,40 +1305,19 @@ describe('base collections', () => {
   });
 
   it.each([
-    [
-      'an expression',
-      () => db.orm.Post.orderBy(() => OrderByItem.asc(new ParamRef(BigInt(1)))),
-      {
-        first: 2,
-      },
-    ],
-    ['another column', () => db.orm.Post.orderBy((p) => p.title.asc()), { first: 2 }],
-    [
-      'extra columns',
-      () => db.orm.Post.orderBy([(p) => p.id.asc(), (p) => p.title.asc()]),
-      {
-        first: 2,
-      },
-    ],
-    ['the opposite direction', () => db.orm.Post.orderBy((p) => p.id.desc()), { first: 2 }],
-    [
-      'the forward order on a backward page',
-      () => db.orm.Post.orderBy((p) => p.id.asc()),
-      {
-        last: 2,
-      },
-    ],
-  ])('rejects a base ordered by %s instead of silently reordering', async (_name, base, args) => {
+    ['an expression', () => db.orm.Post.orderBy(() => OrderByItem.asc(new ParamRef(BigInt(1))))],
+    ['the order the connection uses', () => db.orm.Post.orderBy((p) => p.id.asc())],
+  ])('rejects a base ordered by %s instead of paging it wrongly', async (_name, base) => {
     const statements: CapturedExecution[] = [];
     await withCapture(statements, () =>
-      expect(helper().applyPagination(base() as never, args, {})).rejects.toThrow(
-        /must match a prefix/,
+      expect(helper().applyPagination(base() as never, { first: 2 }, {})).rejects.toThrow(
+        /unordered, unpaginated Collection/,
       ),
     );
     expect(statements).toHaveLength(0);
   });
 
-  it('pages a base ordered per direction for a descending cursor', async () => {
+  it('pages a descending order in both directions', async () => {
     const all = await query('{ newestFirst(first: 10) { edges { node { id } } } }');
     expect(all.errors).toBeUndefined();
     const order = ids(all.data.newestFirst);
@@ -851,65 +1341,17 @@ describe('base collections', () => {
 
   it('validates the base even when only totalCount is selected', async () => {
     const result = await query('{ preordered(first: 1) { totalCount } }');
-    expect(result.errors?.[0].message).toMatch(/must match a prefix/);
+    expect(result.errors?.[0].message).toMatch(/unordered, unpaginated Collection/);
     expect(result.statements).toHaveLength(0);
   });
 
-  it('accepts a base whose order matches the cursor, forward and backward', async () => {
-    const forward = await page(
-      helper(),
-      db.orm.Post.orderBy((p) => p.id.asc()),
-      { first: 2 },
-    );
-    expect(ids(forward)).toEqual(['p-bob-draft', 'p-bob1']);
-    const next = await page(
-      helper(),
-      db.orm.Post.orderBy((p) => p.id.asc()),
-      {
-        first: 2,
-        after: forward.pageInfo.endCursor!,
-      },
-    );
-    expect(ids(next)).toEqual(['p-draft1', 'p-hello']);
-    const backward = await page(
-      helper(),
-      db.orm.Post.orderBy((p) => p.id.desc()),
-      {
-        last: 2,
-        before: next.edges[1].cursor,
-      },
-    );
-    expect(ids(backward)).toEqual(['p-bob1', 'p-draft1']);
-  });
-
-  it('extends a matching order prefix with the cursor tie-breaker', async () => {
-    const pages = prismaConnectionHelpers(createBuilder(), 'Post', {
-      cursor: [{ field: 'published', direction: 'desc' }, 'id'],
-    });
-    const result = await page(
-      pages,
-      db.orm.Post.orderBy((p) => p.published.desc()),
-      { first: 4 },
-    );
-    expect(ids(result)).toEqual(['p-bob1', 'p-hello', 'p-bob-draft', 'p-draft1']);
-  });
-
   it.each([
-    [
-      'descending',
-      [{ field: 'id', direction: 'desc' }],
-      ['p-hello', 'p-draft1', 'p-bob1', 'p-bob-draft'],
-    ],
-    [
-      'mixed',
-      [
-        { field: 'published', direction: 'desc' },
-        { field: 'id', direction: 'asc' },
-      ],
-      ['p-bob1', 'p-hello', 'p-bob-draft', 'p-draft1'],
-    ],
-  ] as const)('traverses every row and bounded range with %s ordering', async (_name, cursor, expected) => {
-    const pages = prismaConnectionHelpers(createBuilder(), 'Post', { cursor });
+    ['descending', { id: 'desc' }, ['p-hello', 'p-draft1', 'p-bob1', 'p-bob-draft']],
+    ['mixed', { published: 'desc', id: 'asc' }, ['p-bob1', 'p-hello', 'p-bob-draft', 'p-draft1']],
+  ] as const)('traverses every row and bounded range with %s ordering', async (_name, orderBy, expected) => {
+    const pages = prismaConnectionHelpers(createBuilder(), 'Post', {
+      orderBy: orderBy as Record<string, 'asc' | 'desc'>,
+    });
     const read = (args: { first?: number; last?: number; after?: string; before?: string }) =>
       page(pages, db.orm.Post, args);
     const cursors: string[] = [];
@@ -945,7 +1387,7 @@ describe('prismaConnectionHelpers', () => {
         id: t.exposeID('id'),
         firstName: t.exposeString('firstName'),
         lastName: t.string({
-          select: async () => ['lastName'],
+          select: async () => ({ lastName: true }),
           resolve: (user) => user.lastName,
         }),
         posts: t.relation('posts'),
@@ -953,14 +1395,12 @@ describe('prismaConnectionHelpers', () => {
     });
     builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
     const search = prismaConnectionHelpers(builder, 'User', {
-      cursor: 'id',
       args: (t) => ({ name: t.string() }),
       query: (args) => ({ where: args.name ? { firstName: args.name } : undefined }),
       totalCount: true,
     });
     const named = prismaConnectionHelpers(builder, 'User', {
-      cursor: 'id',
-      totalCount: () => 7,
+      totalCount: true,
       resolveNode: (user) => ({ user, decoratedAt: 'decorated' }),
     });
     const Decorated = builder
@@ -1038,7 +1478,7 @@ describe('prismaConnectionHelpers', () => {
       '{ decorated(first: 1) { totalCount pageInfo { endCursor } edges { node { userId firstName decoratedAt } } } }',
     );
     expect(first.data.decorated).toMatchObject({
-      totalCount: 7,
+      totalCount: 2,
       edges: [{ node: { userId: 'u-alice', firstName: 'Alice', decoratedAt: 'decorated' } }],
     });
     const second = await run(
@@ -1052,7 +1492,6 @@ describe('prismaConnectionHelpers', () => {
   it('leaves nodes untouched when resolveNode is absent', async () => {
     const off = false as boolean;
     const pages = prismaConnectionHelpers(createBuilder(), 'User', {
-      cursor: 'id',
       resolveNode: off ? (user) => ({ user }) : undefined,
     });
     const result = await pages.applyPagination(db.orm.User, { first: 1 }, {});
@@ -1061,26 +1500,24 @@ describe('prismaConnectionHelpers', () => {
     });
   });
 
-  it('starts a count only when it is read, and caches it', async () => {
-    const count = vi.fn(async () => 17);
-    const pages = prismaConnectionHelpers(createBuilder(), 'User', {
-      cursor: 'id',
-      totalCount: count,
+  it('starts a count only when it is read, and runs it once', async () => {
+    const statements: CapturedExecution[] = [];
+    const counts = () => statements.filter(({ sql }) => /count\(/i.test(sql)).length;
+    await withCapture(statements, async () => {
+      const pages = prismaConnectionHelpers(createBuilder(), 'User', { totalCount: true });
+      const result = await pages.applyPagination(db.orm.User, {}, {});
+      await Promise.resolve();
+      expect(counts()).toBe(0);
+      expect(await result.totalCountPromise).toBe(2);
+      expect(await result.totalCountPromise).toBe(2);
+      expect(counts()).toBe(1);
     });
-    const result = await pages.applyPagination(db.orm.User, {}, {});
-    await Promise.resolve();
-    expect(count).not.toHaveBeenCalled();
-    const promise = result.totalCountPromise;
-    expect(result.totalCountPromise).toBe(promise);
-    expect(await promise).toBe(17);
-    expect(count).toHaveBeenCalledTimes(1);
   });
 
   it('does not count when the query does not select totalCount', async () => {
-    const count = vi.fn(async () => 17);
     const builder = createBuilder();
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    const pages = prismaConnectionHelpers(builder, 'User', { cursor: 'id', totalCount: count });
+    const pages = prismaConnectionHelpers(builder, 'User', { totalCount: true });
     builder.queryType({
       fields: (t) => ({
         users: t.connection(
@@ -1097,13 +1534,13 @@ describe('prismaConnectionHelpers', () => {
     });
     const result = await run(builder.toSchema(), '{ users { edges { node { id } } } }');
     expect(result.errors).toBeUndefined();
-    expect(count).not.toHaveBeenCalled();
+    expect(result.statements.map(({ sql }) => sql).join()).not.toMatch(/count\(/i);
   });
 
   it('fails totalCount when wrap is not given a count', async () => {
     const builder = createBuilder();
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    const pages = prismaConnectionHelpers(builder, 'User', { cursor: 'id', totalCount: true });
+    const pages = prismaConnectionHelpers(builder, 'User', { totalCount: true });
     builder.queryType({
       fields: (t) => ({
         users: t.connection(
@@ -1122,8 +1559,243 @@ describe('prismaConnectionHelpers', () => {
     const result = await run(builder.toSchema(), '{ users { totalCount } }');
     expect(result.data.users).toBeNull();
     expect(result.errors?.map((error) => error.message)).toEqual([
-      "totalCount has no count. Pass one to the connection helpers' wrap, for example wrap(rows, await totalCountPromise).",
+      "totalCount has no count. Pass one to the connection helpers' wrap, as in wrap(rows, await totalCountPromise), or pass resolve the parent its field was given.",
     ]);
+  });
+
+  // Post.comments → Comment.author: the page follows the comments, while each node is a user.
+  function commentersSchema({
+    calls = { orderBy: 0, query: 0 },
+    resolveRows = (rows: readonly object[], _post: object) => rows,
+  } = {}) {
+    const builder = createBuilder();
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        firstName: t.exposeString('firstName'),
+        posts: t.relation('posts'),
+      }),
+    });
+    const commenters = prismaConnectionHelpers(builder, 'Comment', {
+      orderBy: () => {
+        calls.orderBy += 1;
+        return { createdAt: 'desc' };
+      },
+      query: () => {
+        calls.query += 1;
+        return {};
+      },
+      totalCount: true,
+      select: (nodeSelection) => ({ body: true, author: nodeSelection() }),
+      resolveNode: (comment) => comment.author,
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        commenters: t.connection(
+          {
+            type: User,
+            select: { comments: commenters.page },
+            resolve: (post, args, ctx) =>
+              commenters.resolve(
+                resolveRows(post.comments, post) as typeof post.comments,
+                args,
+                ctx,
+                post,
+              ),
+          },
+          commenters.connectionOptions({}),
+        ),
+        pagedComments: t.int({
+          select: { comments: commenters.page },
+          resolve: (post) => post.comments.length,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaField({
+          type: ['Post'],
+          resolve: () => db.orm.Post.where({ published: 1 }).orderBy((post) => post.id.asc()),
+        }),
+        commenters: t.connection(
+          {
+            type: User,
+            resolve: async (_root, args, ctx, info) => {
+              const { collection, totalCountPromise, wrap } = await commenters.applyPagination(
+                db.orm.Comment,
+                args,
+                ctx,
+                info,
+              );
+              return wrap(await collection.all(), await totalCountPromise);
+            },
+          },
+          commenters.connectionOptions({}),
+        ),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it('loads a page through a join model in the parent statement with page', async () => {
+    const first = await run(
+      commentersSchema(),
+      '{ posts { id commenters(first: 1) { totalCount pageInfo { endCursor hasNextPage } edges { node { firstName posts { id } } } } } }',
+    );
+    expect(first.errors).toBeUndefined();
+    expect(first.statements).toHaveLength(1);
+    expect(first.data.posts).toMatchObject([
+      { id: 'p-bob1', commenters: { totalCount: 0, edges: [] } },
+      {
+        id: 'p-hello',
+        commenters: {
+          totalCount: 2,
+          pageInfo: { hasNextPage: true },
+          edges: [{ node: { firstName: 'Alice', posts: [{ id: 'p-hello' }, { id: 'p-draft1' }] } }],
+        },
+      },
+    ]);
+    const after = first.data.posts[1].commenters.pageInfo.endCursor;
+    const second = await run(
+      commentersSchema(),
+      'query ($after: String) { posts { commenters(first: 1, after: $after) { edges { node { firstName } } } } }',
+      { variables: { after } },
+    );
+    expect(second.statements).toHaveLength(1);
+    expect(second.data.posts[1].commenters.edges).toEqual([{ node: { firstName: 'Bob' } }]);
+  });
+
+  it('keeps the count of a page off the parent row, so a filtered page keeps it', async () => {
+    const keys: string[][] = [];
+    const result = await run(
+      commentersSchema({
+        resolveRows: (rows, post) => {
+          keys.push(Object.keys(post));
+          return rows.filter(() => true);
+        },
+      }),
+      '{ posts { id commenters(first: 1) { totalCount } other: commenters(first: 1) { totalCount edges { node { firstName } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts.map((post: { other: unknown }) => post.other)).toEqual([
+      { totalCount: 0, edges: [] },
+      { totalCount: 2, edges: [{ node: { firstName: 'Alice' } }] },
+    ]);
+    expect(keys.flat().filter((key) => key.includes(':'))).toEqual([]);
+  });
+
+  it('loads no rows of a page when only totalCount is selected', async () => {
+    const result = await run(commentersSchema(), '{ posts { commenters { totalCount } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts).toEqual([
+      { commenters: { totalCount: 0 } },
+      { commenters: { totalCount: 2 } },
+    ]);
+    expect(result.statements).toHaveLength(1);
+    expect(result.statements[0].sql).toMatch(/count\(/i);
+    expect(result.statements[0].sql).not.toMatch(/limit/i);
+  });
+
+  it('loads the rows of a page whose selection reads no count', async () => {
+    const alone = await run(commentersSchema(), '{ posts { commenters { __typename } } }');
+    expect(alone.errors).toBeUndefined();
+    expect(alone.data.posts).toEqual([
+      { commenters: { __typename: 'PostCommentersConnection' } },
+      { commenters: { __typename: 'PostCommentersConnection' } },
+    ]);
+    const result = await run(
+      commentersSchema(),
+      '{ posts { a: commenters { __typename } b: commenters { totalCount } pagedComments } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts).toEqual([
+      { a: { __typename: 'PostCommentersConnection' }, b: { totalCount: 0 }, pagedComments: 0 },
+      { a: { __typename: 'PostCommentersConnection' }, b: { totalCount: 2 }, pagedComments: 2 },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('loads the rows of a page for a field that is not a connection', async () => {
+    const result = await run(commentersSchema(), '{ posts { pagedComments } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts).toEqual([{ pagedComments: 0 }, { pagedComments: 2 }]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it("runs a page's options once per selection, not per parent row", async () => {
+    const calls = { orderBy: 0, query: 0 };
+    const result = await run(
+      commentersSchema({ calls }),
+      '{ posts { commenters(first: 1) { edges { node { firstName } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts).toHaveLength(2);
+    expect(calls).toEqual({ orderBy: 1, query: 1 });
+  });
+
+  it('fails only the connection field when a page is given an invalid cursor', async () => {
+    const result = await run(
+      commentersSchema(),
+      '{ posts { id commenters(first: 1, after: "nope") { edges { node { firstName } } } } }',
+    );
+    expect(result.data.posts).toEqual([
+      { id: 'p-bob1', commenters: null },
+      { id: 'p-hello', commenters: null },
+    ]);
+    expect(result.errors?.every((error) => /Invalid cursor/.test(error.message))).toBe(true);
+    expect(result.statements).toHaveLength(1);
+    expect(result.statements[0].sql).not.toMatch(/comment/);
+  });
+
+  it('plans the nodes through a join model with applyPagination and info', async () => {
+    const result = await run(
+      commentersSchema(),
+      '{ commenters(first: 2) { totalCount edges { node { firstName posts { id } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.commenters).toEqual({
+      totalCount: 2,
+      edges: [
+        { node: { firstName: 'Alice', posts: [{ id: 'p-hello' }, { id: 'p-draft1' }] } },
+        { node: { firstName: 'Bob', posts: [{ id: 'p-bob1' }, { id: 'p-bob-draft' }] } },
+      ],
+    });
+    expect(result.statements.filter(({ sql }) => !/count\(/i.test(sql))).toHaveLength(1);
+  });
+
+  it('loads whole rows for resolveNode without a node relation, even with info', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const pages = prismaConnectionHelpers(builder, 'Post', {
+      resolveNode: (post) => ({ post, loadedAt: 'now' }),
+    });
+    const Wrapped = builder
+      .objectRef<{ post: { title: string }; loadedAt: string }>('Wrapped')
+      .implement({
+        fields: (t) => ({
+          title: t.string({ resolve: (node) => node.post.title }),
+          loadedAt: t.exposeString('loadedAt'),
+        }),
+      });
+    builder.queryType({
+      fields: (t) => ({
+        wrapped: t.connection({
+          type: Wrapped,
+          resolve: async (_root, args, ctx, info) => {
+            const { collection, wrap } = await pages.applyPagination(db.orm.Post, args, ctx, info);
+            return wrap(await collection.all());
+          },
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ wrapped(first: 1) { edges { node { title loadedAt } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.wrapped.edges).toEqual([{ node: { title: 'Bob draft', loadedAt: 'now' } }]);
+    expect(result.statements).toHaveLength(1);
   });
 
   it('pages a named type when given its ref instead of the model name', async () => {
@@ -1133,7 +1805,7 @@ describe('prismaConnectionHelpers', () => {
       variant: 'UserCard',
       fields: (t) => ({ name: t.exposeString('firstName') }),
     });
-    const pages = prismaConnectionHelpers(builder, Card, { cursor: 'id' });
+    const pages = prismaConnectionHelpers(builder, Card, {});
     expect(pages.ref).toBe(Card);
     builder.queryType({
       fields: (t) => ({
@@ -1169,7 +1841,6 @@ describe('prismaConnection orderBy', () => {
       fields: (t) => ({
         posts: t.prismaConnection({
           type: 'Post',
-          cursor: ['title', 'id'],
           args: { newest: t.arg.boolean() },
           orderBy: orderBy as never,
           resolve: () => db.orm.Post.where({ authorId: 'u-alice' }),
@@ -1181,11 +1852,11 @@ describe('prismaConnection orderBy', () => {
   const desc = ['p-hello', 'p-draft1'];
 
   it.each<[string, unknown]>([
-    ['a list', [(p: Post) => p.title.desc(), (p: Post) => p.id.desc()]],
-    ['a list from the args', () => [(p: Post) => p.title.desc(), (p: Post) => p.id.desc()]],
+    ['a literal', { title: 'desc' }],
+    ['a literal with null placement', { title: { direction: 'desc', nulls: 'first' } }],
     [
-      'a selector from the args',
-      (args: { newest: boolean }) => (p: Post) => (args.newest ? p.title.desc() : p.title.asc()),
+      'a callback of the args',
+      (args: { newest: boolean }) => ({ title: args.newest ? 'desc' : 'asc' }),
     ],
   ])('orders by %s', async (_name, orderBy) => {
     const result = await run(schema(orderBy), '{ posts(newest: true) { nodes { id } } }');
@@ -1193,19 +1864,17 @@ describe('prismaConnection orderBy', () => {
     expect(result.data.posts.nodes.map((node: { id: string }) => node.id)).toEqual(desc);
   });
 
-  it('passes the ORM tools to a selector', async () => {
-    let tools: unknown;
-    const orderBy = () => (p: Post, orm: unknown) => {
-      tools = orm;
-      return p.title.asc();
-    };
+  it.each<[string, unknown]>([
+    ['omitted', undefined],
+    ['empty', {}],
+    ['a callback returning nothing', () => undefined],
+  ])('orders by the primary key when %s', async (_name, orderBy) => {
     const result = await run(schema(orderBy), '{ posts { nodes { id } } }');
-    expect(result.errors).toBeUndefined();
-    expect(tools).toBeDefined();
+    expect(result.data.posts.nodes).toEqual([{ id: 'p-draft1' }, { id: 'p-hello' }]);
+  });
+
+  it('appends the key in the direction of the last column', async () => {
+    const result = await run(schema({ published: 'desc' }), '{ posts { nodes { id } } }');
+    expect(result.statements[0].sql).toMatch(/ORDER BY .*published.* DESC, .*id.* DESC/);
   });
 });
-
-type Post = {
-  id: { desc(): never };
-  title: { asc(): never; desc(): never };
-};

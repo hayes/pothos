@@ -1,8 +1,8 @@
 import { PothosSchemaError } from '@pothos/core';
 import type { GraphQLInterfaceType, GraphQLSchema } from 'graphql';
 import { PRISMA_NEXT_MODEL } from '../constants.js';
-import type { AnyContract } from '../types.js';
-import { modelDiscriminator, relatedModelKey } from './contract.js';
+import type { AnyContract } from '../types/models.js';
+import { modelDiscriminator } from './contract.js';
 
 const cache = new WeakMap<GraphQLInterfaceType, Map<string, string>>();
 
@@ -22,10 +22,7 @@ export function variantTypeNames(
   const model = iface.extensions?.[PRISMA_NEXT_MODEL] as string;
   const implementations = schema.getPossibleTypes(iface);
   names = new Map();
-  for (const [value, variant] of Object.entries(
-    modelDiscriminator(contract, model)?.variants ?? {},
-  )) {
-    const variantModel = relatedModelKey(contract, variant);
+  for (const { value, key: variantModel } of modelDiscriminator(contract, model)?.variants ?? []) {
     const types = implementations.filter(
       (type) => type.extensions?.[PRISMA_NEXT_MODEL] === variantModel,
     );
@@ -42,4 +39,13 @@ export function variantTypeNames(
   }
   cache.set(iface, names);
   return names;
+}
+
+/** Checks, when the schema is built, that each variant of the interface's model has one type. */
+export function assertVariantTypes(
+  contract: AnyContract,
+  schema: GraphQLSchema,
+  iface: GraphQLInterfaceType,
+) {
+  variantTypeNames(contract, schema, iface);
 }

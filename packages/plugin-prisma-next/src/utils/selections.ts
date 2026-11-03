@@ -4,25 +4,35 @@ import {
   getTypeBrand,
   isThenable,
   type MaybePromise,
-  PothosValidationError,
 } from '@pothos/core';
-import type { Position, SelectFn } from '@pothos/selection-mapper';
-import { getNamedType } from 'graphql';
+import type {
+  NestedSelection,
+  Position,
+  SelectedFieldNode,
+  SelectFn,
+} from '@pothos/selection-mapper';
+import { type GraphQLResolveInfo, getNamedType } from 'graphql';
 import { PRISMA_NEXT_MODEL } from '../constants.js';
-import type { AnyContract } from '../types.js';
+import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import { variantForRelationType } from './contract.js';
-import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model.js';
+import {
+  getModel,
+  type PrismaNextModel,
+  type PrismaNextRelation,
+  sharedVariantRelationError,
+} from './model.js';
 
 /*
  * Scopes and slot keys
  *
  * A scope names one consumer of a to-many relation. A field's scope is `Type.alias`, joined with
  * `/` beneath the scopes of the fields above it (`Query.users/User.posts`), where `Type` is the
- * first type the selection was planned on with that definition of the field (see `slotOwner`). A type-level `select`
- * uses the type's name as its scope. Type names have no dot, so the two kinds never collide.
+ * first type the selection was planned on with that definition of the field (see `slotOwner`). A
+ * type-level `select` uses the type's name as its scope. Type names have no dot, so the two kinds
+ * never collide.
  *
- * In a query, a to-many relation and its computed values are keyed `relation:scope`, so each
+ * In a selection, a to-many relation and its computed values are keyed `relation:scope`, so each
  * consumer gets its own `combine()` slot. In the combined value the ORM returns, a consumer's rows
  * are keyed `scope` and its computed values `scope:key`. Consumers that load the same rows share a
  * slot, keyed by their scopes joined with a space.
@@ -51,14 +61,14 @@ export interface Narrowing {
  */
 export interface RelationArgs {
   /** A declarative query object, or the field that defines the load together with its arguments. */
-  query?: unknown;
+  loadIdentity?: unknown;
   variant?: Narrowing;
   [REFINE]?: Refine;
 }
 
 export interface ComputedSelection {
-  /** Identifies the computed values, like `RelationArgs.query`. */
-  query: unknown;
+  /** Identifies the computed values, like `RelationArgs.loadIdentity`. */
+  loadIdentity: unknown;
   [COMPUTE]: Compute;
 }
 
@@ -68,20 +78,88 @@ export interface ComputedSelection {
  * it. A to-many relation and its computed values are keyed `relation:scope`. Consumers with
  * different arguments then get separate `combine()` slots and still load in one statement.
  */
-export interface PrismaNextQuery {
+export interface PrismaNextSelection {
   /** `null` selects every column. */
   columns?: readonly string[] | null;
-  relations?: Record<string, PrismaNextQuery>;
+  relations?: Record<string, PrismaNextSelection>;
   computed?: Record<string, ComputedSelection>;
   args?: RelationArgs;
 }
 
-export type PrismaNextSelectFn = SelectFn<PrismaNextQuery>;
+export type PrismaNextSelectFn = SelectFn<PrismaNextSelection>;
 
-export const EMPTY: PrismaNextQuery = Object.freeze({});
+export const EMPTY: PrismaNextSelection = Object.freeze({});
 
-export const SLOT = ':';
-export const SHARED_SCOPES = ' ';
+/** Marks a field `select` entry that loads a connection helper's page of a to-many relation. */
+export const CONNECTION_PAGE = Symbol('prismaNextConnectionPage');
+
+/** Marks the relation of a connection helper's `select` that holds the nodes. */
+export const NODE_SELECTION = Symbol('prismaNextNodeSelection');
+
+/** The field a `select` function was invoked for, which a page entry plans beneath. */
+interface FieldPlanning {
+  scope: string;
+  args: object;
+  ctx: object;
+  nested: NestedSelection<PrismaNextSelection>;
+  selected: SelectedFieldNode;
+  position: Position;
+}
+
+/** What a field's select function threw, by the position it was planned at. */
+const planningFailures = new WeakMap<Position, { error: unknown }>();
+
+/**
+ * A field's select function that, when it throws or rejects, records the error at its position and
+ * selects nothing, so the query it was planned into still runs. The empty selection keeps the
+ * field's mapping, which leads its resolver to the position, and the resolver throws the error
+ * (`throwPlanningFailure`). A select that fails beneath it records its own position, so only the
+ * field that failed does.
+ */
+export function recordingFailures(select: PrismaNextSelectFn): PrismaNextSelectFn {
+  return (args, ctx, nested, selected, position) => {
+    const fail = (error: unknown) => {
+      planningFailures.set(position, { error });
+      return EMPTY;
+    };
+    try {
+      const query = select(args, ctx, nested, selected, position);
+      return isThenable(query) ? Promise.resolve(query).catch(fail) : query;
+    } catch (error) {
+      return fail(error);
+    }
+  };
+}
+
+/** Throws what the select function of the field planned at `position` threw, if it threw. */
+export function throwPlanningFailure(position: Position | undefined) {
+  const failure = position && planningFailures.get(position);
+  if (failure) {
+    throw failure.error;
+  }
+}
+
+/** Plans the page a `select` entry loads from relation `name`. */
+export type PlanPage = (
+  relation: PrismaNextRelation,
+  name: string,
+  field: FieldPlanning,
+) => MaybePromise<PrismaNextSelection>;
+
+function isPageEntry(value: unknown): value is { [CONNECTION_PAGE]: PlanPage } {
+  return typeof value === 'object' && value !== null && CONNECTION_PAGE in value;
+}
+
+/** Separates a relation from a scope in a selection key, and a scope from a slot's computed key. */
+export const KEY_SEPARATOR = ':';
+/** Joins the scopes of consumers that share a slot. */
+export const SCOPE_SEPARATOR = ' ';
+
+/**
+ * The key a connection's count is computed under. Its leading `KEY_SEPARATOR` keeps it off the
+ * parent row: it stays in the consumer's slot, which the connection reads.
+ */
+export const COUNT_SLOT = `${KEY_SEPARATOR}count`;
 
 const scopes = new WeakMap<Position, string>();
 /** The type each definition of a field is named after, per selection of the field. */
@@ -124,18 +202,18 @@ function slotOwner({ node, field, type }: Position) {
   return owner;
 }
 
-/** The query key a consumer at `scope` uses for a to-many relation or its computed values. */
+/** The selection key a consumer at `scope` uses for a to-many relation or its computed values. */
 function slotKey(relation: string, scope: string) {
-  return `${relation}${SLOT}${scope}`;
+  return `${relation}${KEY_SEPARATOR}${scope}`;
 }
 
 function relationKey(relation: PrismaNextRelation, name: string, scope: string) {
   return relation.isToMany ? slotKey(name, scope) : name;
 }
 
-/** The relation a query key refers to. */
+/** The relation a selection key refers to. */
 export function relationName(key: string) {
-  const separator = key.indexOf(SLOT);
+  const separator = key.indexOf(KEY_SEPARATOR);
   return separator < 0 ? key : key.slice(0, separator);
 }
 
@@ -144,168 +222,351 @@ function isTypeScope(scope: string) {
   return !scope.includes('.');
 }
 
-interface Combined {
-  /** The combined value of each to-many relation loaded through `combine()`, by relation name. */
-  slots: Record<string, Record<string, unknown>>;
-  /** Every scope that has a slot on the row. */
-  scopes: Set<string>;
-  /** The scopes written back onto the row. Null when the row is frozen and was left as returned. */
-  lifted: readonly string[] | null;
+type Row = Record<string, unknown>;
+
+/** What the consumers of one to-many relation loaded through `combine()`, by consumer scope. */
+interface RelationSlots {
+  readonly rows: ReadonlyMap<string, unknown>;
+  readonly values: ReadonlyMap<string, Row>;
 }
 
-/** The combined relations taken off each row a statement returned. */
-const combined = new WeakMap<object, Combined>();
-/** Each row's views, keyed by the scopes they show. */
-const views = new WeakMap<object, Map<string, object>>();
-/** The row each view was made from. */
-const viewRows = new WeakMap<object, object>();
+/** What `takeSlots` took off a row, shared by the row and every projection of it. */
+interface RowSlots {
+  /** The row `takeSlots` returned. Undefined for a row with no slots. */
+  readonly row: Row | undefined;
+  /** The slots of each to-many relation loaded through `combine()`, by relation name. */
+  readonly slots: Readonly<Record<string, RelationSlots>>;
+  /** Every scope that has a slot on the row. */
+  readonly scopes: ReadonlySet<string>;
+  /**
+   * Whether type-level selects loaded different versions of a relation or computed value. None is
+   * then written onto the row, and each type's readers get a projection with their own.
+   */
+  readonly conflict: boolean;
+  /** Projections of the row, keyed by the scopes they write onto it. */
+  projections?: Map<string, object>;
+  /** A to-one relation a field reloaded with its own query or variant, by the field's scope. */
+  refined?: Map<string, unknown>;
+}
+
+/** A row `takeSlots` returned with nothing taken off it. */
+const PLAIN: RowSlots = Object.freeze({
+  row: undefined,
+  slots: Object.freeze({}),
+  scopes: new Set<string>(),
+  conflict: false,
+});
+
+/** The slots of each row `takeSlots` returned, and of each projection of one. */
+const rowSlots = new WeakMap<object, RowSlots>();
 
 /**
- * Moves the `combine()` slots off the rows a statement returned. A to-many relation loaded through
- * `combine()` comes back as an object with one slot per consumer scope, and `scopedView` gives each
- * reader the slots of its own scopes. When exactly one type-level select loaded slots on a row,
- * its rows and computed values are written back under their own keys. A reader that bypasses the
- * plugin's resolvers then sees the shape that type selected.
+ * Takes the `combine()` slots off the rows a statement returned. A to-many relation loaded through
+ * `combine()` comes back as an object with one slot per consumer scope. A row with one is copied
+ * without it, and the copy gets the rows and computed values its type-level selects loaded, unless
+ * they disagree. Field helpers read their own slots through `fieldSlots`. The ORM's rows are never
+ * changed: a row with no slots, and none beneath it, is returned as it is.
  */
-export function materializeRows<T>(rows: T, model: PrismaNextModel): T {
+export function takeSlots<T>(rows: T, model: PrismaNextModel): T {
   if (Array.isArray(rows)) {
-    for (const row of rows) {
-      materializeRows(row, model);
+    let copy: unknown[] | undefined;
+    for (let i = 0; i < rows.length; i += 1) {
+      const row: unknown = rows[i];
+      const next = takeSlots(row, model);
+      if (next !== row) {
+        copy ??= [...rows];
+        copy[i] = next;
+      }
     }
-  } else if (rows && typeof rows === 'object') {
-    materializeRow(rows as Record<string, unknown>, model);
+    return (copy ?? rows) as T;
   }
-  return rows;
+  return rows && typeof rows === 'object' ? (takeRowSlots(rows as Row, model) as T) : rows;
 }
 
-function materializeRow(row: Record<string, unknown>, model: PrismaNextModel) {
-  let entry: Combined | undefined;
-  for (const name of Object.keys(model.relations)) {
+// Takes fresh ORM rows only. A row whose slots were already taken off would lose them.
+function takeRowSlots(row: Row, model: PrismaNextModel): Row {
+  let nested: Row | undefined;
+  let slots: Record<string, RelationSlots> | undefined;
+  let scopes: Set<string> | undefined;
+  for (const name in model.relations) {
     const relation = model.relations[name]!;
     const value = row[name];
     if (!value || typeof value !== 'object') {
       continue;
     }
     if (!relation.isToMany || Array.isArray(value)) {
-      materializeRows(value, relation.target);
+      const next = takeSlots(value, relation.target);
+      if (next !== value) {
+        nested ??= {};
+        nested[name] = next;
+      }
       continue;
     }
-    entry ??= { slots: {}, scopes: new Set(), lifted: null };
-    const slots: Record<string, unknown> = {};
-    entry.slots[name] = slots;
+    const rows = new Map<string, unknown>();
+    const values = new Map<string, Row>();
+    slots ??= {};
+    scopes ??= new Set();
+    slots[name] = { rows, values };
     for (const [key, slot] of Object.entries(value)) {
-      // Rows are keyed by scope and computed values by `scope:key`.
+      // Rows are keyed by scope and computed values by `scope:key`. Consumers that share either are
+      // keyed by their scopes joined with a space.
       const scope = relationName(key);
       if (scope === key) {
-        materializeRows(slot, relation.target);
-        for (const consumer of key.split(SHARED_SCOPES)) {
-          slots[consumer] = slot;
-          entry.scopes.add(consumer);
+        const loaded = takeSlots(slot, relation.target);
+        for (const consumer of key.split(SCOPE_SEPARATOR)) {
+          rows.set(consumer, loaded);
+          scopes.add(consumer);
         }
       } else {
-        slots[key] = slot;
-        entry.scopes.add(scope);
-      }
-    }
-  }
-  if (!entry) {
-    return;
-  }
-  combined.set(row, entry);
-  if (!Object.isFrozen(row)) {
-    for (const name of Object.keys(entry.slots)) {
-      delete row[name];
-    }
-    const typeScopes = [...entry.scopes].filter(isTypeScope);
-    entry.lifted = typeScopes.length === 1 ? typeScopes : [];
-    lift(row, entry, entry.lifted);
-  }
-}
-
-/** Writes the rows and computed values that `scopes` loaded onto `target`. Later scopes win. */
-function lift(target: Record<string, unknown>, entry: Combined, scopes: readonly string[]) {
-  for (const name of Object.keys(entry.slots)) {
-    const slots = entry.slots[name]!;
-    for (const scope of scopes) {
-      const prefix = `${scope}${SLOT}`;
-      for (const key of Object.keys(slots)) {
-        if (key === scope) {
-          target[name] = slots[key];
-        } else if (key.startsWith(prefix)) {
-          target[key.slice(prefix.length)] = slots[key];
+        for (const consumer of scope.split(SCOPE_SEPARATOR)) {
+          const own = values.get(consumer) ?? {};
+          own[key.slice(scope.length + KEY_SEPARATOR.length)] = slot;
+          values.set(consumer, own);
+          scopes.add(consumer);
         }
       }
     }
   }
+  if (!slots || !scopes) {
+    const next = nested ? Object.assign(copyOf(row), nested) : row;
+    rowSlots.set(next, PLAIN);
+    return next;
+  }
+  const next = copyOf(row);
+  for (const name of Object.keys(slots)) {
+    delete next[name];
+  }
+  Object.assign(next, nested);
+  const typeScopes = [...scopes].filter(isTypeScope);
+  const conflict = disagree(slots, typeScopes);
+  if (!conflict) {
+    lift(next, slots, typeScopes);
+  }
+  rowSlots.set(next, { row: next, slots, scopes, conflict });
+  return next;
 }
 
-/** The row a view was made from, or `value` itself. */
-export function rowOfView<T>(value: T): T {
-  return (viewRows.get(value as object) as T | undefined) ?? value;
+/** Whether two of `scopes` loaded different rows of a relation, or computed the same key. */
+function disagree(slots: RowSlots['slots'], scopes: readonly string[]) {
+  if (scopes.length < 2) {
+    return false;
+  }
+  const computed = new Set<string>();
+  for (const { rows, values } of Object.values(slots)) {
+    if (
+      new Set(scopes.filter((scope) => rows.has(scope)).map((scope) => rows.get(scope))).size > 1
+    ) {
+      return true;
+    }
+    for (const scope of scopes) {
+      for (const key of Object.keys(values.get(scope) ?? {})) {
+        if (computed.has(key)) {
+          return true;
+        }
+        computed.add(key);
+      }
+    }
+  }
+  return false;
 }
 
 /**
- * The row as a reader at `scopes` sees it. `value` may be the row or another view of it. The view
- * has the row's columns and each to-many relation and computed value as those scopes loaded it,
- * with later scopes winning. A relation those scopes did not load is absent. Views are cached per
- * row and set of scopes, so per-row caches such as scope-auth's see a single parent object. When
- * the row already holds what those scopes loaded, the row itself is returned.
+ * Writes the rows and computed values that `scopes` loaded onto `target`. Later scopes win. A
+ * connection's count stays in its slot, and a page counted without rows has none.
  */
-export function scopedView(value: object, scopes: readonly (string | undefined)[]): object {
-  const row = rowOfView(value);
-  const entry = combined.get(row);
-  if (!entry) {
-    return row;
-  }
-  const present = scopes.filter(
-    (scope): scope is string => scope !== undefined && entry.scopes.has(scope),
-  );
-  const { lifted } = entry;
-  if (lifted && present.length === lifted.length && present.every((s, i) => s === lifted[i])) {
-    return row;
-  }
-  let cache = views.get(row);
-  if (!cache) {
-    cache = new Map();
-    views.set(row, cache);
-  }
-  const key = present.join(' ');
-  let view = cache.get(key);
-  if (!view) {
-    // Start from the columns alone, without what was written back onto the row.
-    const copy = copyOf(row) as Record<string, unknown>;
-    for (const name of Object.keys(entry.slots)) {
-      delete copy[name];
-    }
-    for (const scope of lifted ?? []) {
-      const prefix = `${scope}${SLOT}`;
-      for (const slots of Object.values(entry.slots)) {
-        for (const key of Object.keys(slots)) {
-          if (key.startsWith(prefix)) {
-            delete copy[key.slice(prefix.length)];
-          }
-        }
+function lift(target: Row, slots: RowSlots['slots'], scopes: readonly string[]) {
+  for (const scope of scopes) {
+    for (const name of Object.keys(slots)) {
+      const { rows, values } = slots[name]!;
+      const { [COUNT_SLOT]: count, ...computed } = values.get(scope) ?? {};
+      if (rows.has(scope)) {
+        target[name] = rows.get(scope);
+      } else if (count !== undefined) {
+        target[name] = [];
       }
+      Object.assign(target, computed);
     }
-    lift(copy, entry, present);
-    viewRows.set(copy, row);
-    cache.set(key, copy);
-    view = copy;
   }
-  return view;
 }
 
-/** A copy of a view, or of the row itself, without `key`. */
-export function viewWithout(view: object, key: string): object {
-  const copy = copyOf(view) as Record<string, unknown>;
-  delete copy[key];
-  viewRows.set(copy, rowOfView(view));
-  return copy;
+/** Whether the statement that returned `row` loaded to-many relation `name` into slots. */
+export function loadedSlots(row: object, name: string) {
+  return !!rowSlots.get(row)?.slots[name];
 }
 
-/** Copies a row, which may be frozen, into a writable object with the same type brand. */
-function copyOf(row: object): object {
-  const copy = Object.assign(Object.create(Object.getPrototypeOf(row)) as object, row);
+/** The row `takeSlots` returned that `value` is, or is a projection of. */
+export function rowOf(value: object): object {
+  return rowSlots.get(value)?.row ?? value;
+}
+
+/** A copy of `base` with what `scopes` loaded written onto it, cached per row and scopes. */
+function projection(entry: RowSlots, base: object, scopes: readonly string[]) {
+  const key = scopes.join(SCOPE_SEPARATOR);
+  entry.projections ??= new Map();
+  let projected = entry.projections.get(key);
+  if (!projected) {
+    const copy = copyOf(base);
+    lift(copy, entry.slots, scopes);
+    rowSlots.set(copy, entry);
+    entry.projections.set(key, copy);
+    projected = copy;
+  }
+  return projected;
+}
+
+/**
+ * The parent the readers of a type see, whose type-level selects are `scopes`, the declaring type
+ * last: the row itself, unless type-level selects disagree about what they loaded. Then it is a
+ * projection with the rows and values `scopes` loaded, cached so per-row caches such as
+ * scope-auth's see one object.
+ */
+export function parentForType(value: object, scopes: readonly string[]): object {
+  const entry = rowSlots.get(value);
+  const row = entry?.row ?? value;
+  if (!entry?.conflict) {
+    return row;
+  }
+  const present = scopes.filter((scope) => entry.scopes.has(scope));
+  return present.length ? projection(entry, row, present) : row;
+}
+
+/** The position each parent `parentForField` returned a copy for was planned at. */
+const fieldParents = new WeakMap<object, Position>();
+
+/**
+ * The parent a field with its own `select` sees: the type's, with what the field's select loaded
+ * at `position` written onto a copy of it. Nothing else sees the copy.
+ */
+export function parentForField(
+  value: object,
+  scopes: readonly string[],
+  position: Position | undefined,
+) {
+  const base = parentForType(value, scopes);
+  const entry = rowSlots.get(value);
+  const scope = position && scopeOf(position);
+  if (!entry || scope === undefined || !entry.scopes.has(scope)) {
+    return base;
+  }
+  const present = entry.conflict ? scopes.filter((type) => entry.scopes.has(type)) : [];
+  const parent = projection(entry, base, [...present, scope]);
+  fieldParents.set(parent, position!);
+  return parent;
+}
+
+/** The slots of the field whose parent `parentForField` returned, which its helpers read. */
+export function slotsOfFieldParent(parent: object): FieldSlots | undefined {
+  const position = fieldParents.get(parent);
+  return position && fieldSlots(parent, position);
+}
+
+/**
+ * Records a to-one relation a field loaded with its own query or variant by reloading `row`, for
+ * the field's helper to read at `scope`, and returns the parent the field's plugins see: `parent`,
+ * the row the field had, which holds the declared relation.
+ */
+export function refineKeptToOne(
+  parent: object,
+  row: Row,
+  name: string,
+  scope: string | undefined,
+): object {
+  const entry = rowSlots.get(parent);
+  if (!entry?.row) {
+    return withRefined(parent, entry, row[name], scope);
+  }
+  if (scope !== undefined) {
+    entry.refined ??= new Map();
+    entry.refined.set(scope, row[name]);
+  }
+  return parent;
+}
+
+/**
+ * As `refineKeptToOne`, for a field whose parent reloaded for its columns too. `parent` is then a
+ * view of `row`, and plugins see a copy of it without the relation, so no plugin mistakes the
+ * field's version for the declared one.
+ */
+export function refineDroppedToOne(
+  parent: object,
+  row: Row,
+  name: string,
+  scope: string | undefined,
+): object {
+  const target = copyOf(parent);
+  delete target[name];
+  return withRefined(target, rowSlots.get(parent), row[name], scope);
+}
+
+function withRefined(
+  target: object,
+  entry: RowSlots | undefined,
+  value: unknown,
+  scope: string | undefined,
+) {
+  rowSlots.set(target, {
+    row: target as Row,
+    slots: entry?.slots ?? PLAIN.slots,
+    scopes: entry?.scopes ?? PLAIN.scopes,
+    conflict: false,
+    refined: new Map(scope === undefined ? [] : [[scope, value]]),
+  });
+  return target;
+}
+
+/** What a field helper's selection loaded on its parent. */
+export interface FieldSlots {
+  /** The position that planned the helper, which its connection plan is keyed by. */
+  position: Position | undefined;
+  /** The rows of relation `name` the helper loaded. */
+  rows(name: string): unknown;
+  /** The value the helper computed as `key` from relation `name`. */
+  value(name: string, key: string): unknown;
+}
+
+/**
+ * The slots a field helper planned at `position` reads on `parent`. Undefined when `parent` is not
+ * a row `takeSlots` returned, or a projection of one: another plugin replaced it, and the
+ * helper reloads it.
+ */
+export function fieldSlots(parent: object, position: Position | undefined): FieldSlots | undefined {
+  const entry = rowSlots.get(parent);
+  if (!entry) {
+    return undefined;
+  }
+  const scope = position && scopeOf(position);
+  const values = (name: string) =>
+    scope === undefined ? undefined : entry.slots[name]?.values.get(scope);
+  return {
+    position,
+    rows: (name) => {
+      const own = entry.slots[name];
+      if (own) {
+        return scope === undefined ? undefined : own.rows.get(scope);
+      }
+      return scope !== undefined && entry.refined?.has(scope)
+        ? entry.refined.get(scope)
+        : (parent as Row)[name];
+    },
+    value: (name, key) => values(name)?.[key],
+  };
+}
+
+/** The position `wrapResolve` resolved each field helper's slots at. */
+const fieldPositions = new WeakMap<GraphQLResolveInfo, Position | undefined>();
+
+export function recordFieldPosition(info: GraphQLResolveInfo, position: Position | undefined) {
+  fieldPositions.set(info, position);
+}
+
+/** The position that loaded the slots of the field helper `info` resolves. */
+export function fieldPositionFor(info: GraphQLResolveInfo) {
+  return fieldPositions.get(info);
+}
+
+/** Copies a row into a writable object with the same prototype and type brand. */
+function copyOf(row: object): Row {
+  const copy = Object.assign(Object.create(Object.getPrototypeOf(row)) as object, row) as Row;
   const brand = getTypeBrand(row);
   if (brand) {
     brandWithType(copy, brand);
@@ -323,47 +584,8 @@ interface DeclarativeQuery {
   offset?: number;
 }
 
-const DECLARATIVE_KEYS = new Set(['where', 'orderBy', 'limit', 'offset']);
-
-function isDeclarative(value: unknown): value is DeclarativeQuery {
-  return (
-    !!value &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    Object.keys(value).length > 0 &&
-    Object.keys(value).every((key) => DECLARATIVE_KEYS.has(key))
-  );
-}
-
-/**
- * Checks that a `query` is an object of `allowed` options, or nothing. An unknown option would
- * otherwise be ignored, along with the filter beside it in a shape that isn't declarative.
- */
-export function assertQueryOptions(
-  value: unknown,
-  allowed: readonly string[],
-  owner: string,
-): asserts value is Record<string, unknown> | null | undefined {
-  if (value == null) {
-    return;
-  }
-  if (isThenable(value)) {
-    throw new PothosValidationError(`query on ${owner} can't be async. Return it synchronously.`);
-  }
-  const expected = `Use { ${allowed.map((key) => `${key}?`).join(', ')} }.`;
-  if (typeof value !== 'object' || Array.isArray(value)) {
-    throw new PothosValidationError(`query on ${owner} must be an object. ${expected}`);
-  }
-  const unknownKeys = Object.keys(value).filter((key) => !allowed.includes(key));
-  if (unknownKeys.length > 0) {
-    const names = unknownKeys.map((key) => `'${key}'`).join(', ');
-    throw new PothosValidationError(`query on ${owner} has unknown options ${names}. ${expected}`);
-  }
-}
-
-/** Returns `value` if it is a declarative query with at least one option set, and throws if it isn't a query. */
-export function definedQuery(value: unknown, owner: string): DeclarativeQuery | undefined {
-  assertQueryOptions(value, [...DECLARATIVE_KEYS], owner);
+/** A declarative query with at least one option set, or undefined. The types check its shape. */
+export function definedQuery(value: unknown): DeclarativeQuery | undefined {
   return value && Object.values(value).some((option) => option !== undefined)
     ? (value as DeclarativeQuery)
     : undefined;
@@ -387,17 +609,17 @@ export function applyQuery(collection: MapperCollection, query: DeclarativeQuery
 }
 
 /**
- * The args of a relation load. `query` identifies the load and `refine` applies it to the
+ * The args of a relation load. `loadIdentity` identifies the load and `refine` applies it to the
  * relation's collection. `variant` narrows a relation typed as a variant of its target.
  */
 export function relationArgs(
   relation: PrismaNextRelation,
   {
-    query,
+    loadIdentity,
     refine,
     variant,
   }: {
-    query: unknown;
+    loadIdentity: unknown;
     refine: ((rel: MapperCollection) => MapperCollection) | undefined;
     variant?: string;
   },
@@ -409,7 +631,7 @@ export function relationArgs(
       ? undefined
       : { value: variant };
   return {
-    ...(query === undefined ? {} : { query }),
+    ...(loadIdentity === undefined ? {} : { loadIdentity }),
     ...(narrowing ? { variant: narrowing } : {}),
     ...(refine ? { [REFINE]: refine } : {}),
   };
@@ -420,44 +642,45 @@ export function rowsSelection(
   relation: PrismaNextRelation,
   name: string,
   scope: string,
-  child: MaybePromise<PrismaNextQuery>,
-): MaybePromise<PrismaNextQuery> {
+  child: MaybePromise<PrismaNextSelection>,
+): MaybePromise<PrismaNextSelection> {
   return completeValue(child, (resolved) => ({
     relations: { [relationKey(relation, name, scope)]: resolved },
   }));
 }
 
-/** The values a consumer at `scope` computes from relation `name`. `query` identifies them. */
+/** The values a consumer at `scope` computes from relation `name`, identified by `loadIdentity`. */
 export function computedSelection(
   name: string,
   scope: string,
-  query: unknown,
+  loadIdentity: unknown,
   compute: Compute,
-): PrismaNextQuery {
-  return { computed: { [slotKey(name, scope)]: { query, [COMPUTE]: compute } } };
+): PrismaNextSelection {
+  return { computed: { [slotKey(name, scope)]: { loadIdentity, [COMPUTE]: compute } } };
 }
 
-/** Checks that a `select` is a column array or an object, which `splitSelect` relies on. */
-export function assertSelectShape(raw: unknown, owner: string): asserts raw is RawSelect {
-  if (!raw || typeof raw !== 'object') {
-    throw new PothosValidationError(
-      `select on ${owner} must be a column array or an object of columns and relations, got ${JSON.stringify(raw)}.`,
-    );
-  }
-}
-
-/** The columns and relations of a `select`, without validating them. */
-export function splitSelect(raw: RawSelect, model: PrismaNextModel | undefined) {
+/**
+ * The columns and relations of a `select`. The types check its entries. `ErrorClass` is
+ * `PothosSchemaError` for a `select` checked when the schema is built.
+ */
+export function splitSelect(
+  raw: RawSelect,
+  model: PrismaNextModel,
+  ErrorClass?: new (message: string) => Error,
+) {
   const columns: string[] = [];
   const relations: [string, unknown][] = [];
   for (const [key, value] of Array.isArray(raw)
     ? raw.map((column) => [column, true] as const)
     : Object.entries(raw)) {
-    if (value === false || value == null) {
+    // A conditional entry can leave a key undefined, or null in what a select function returns.
+    if (value == null) {
       continue;
     }
-    if (model?.relations[key]) {
+    if (model.relations[key]) {
       relations.push([key, value]);
+    } else if (model.sharedVariantRelations.has(key)) {
+      throw sharedVariantRelationError(`a select of model '${model.key}'`, key, model, ErrorClass);
     } else {
       columns.push(key);
     }
@@ -465,17 +688,7 @@ export function splitSelect(raw: RawSelect, model: PrismaNextModel | undefined) 
   return { columns, relations };
 }
 
-export function toOneFunctionMessage(owner: string, name: string) {
-  return `select on '${owner}': the function form of to-one relation '${name}' requires combine(), which the ORM supports only for to-many relations. Use a relation field with query options or a declarative select instead.`;
-}
-
-function shapeError(owner: string, key: string, problem: string) {
-  return new PothosValidationError(
-    `select: '${key}' ${problem} on ${owner}. Use \`true\`, \`{ where?, orderBy?, limit?, offset? }\`, or a function \`(sub) => ({ key: value })\` for a relation.`,
-  );
-}
-
-interface SelectScope {
+interface SelectCompilation {
   scope: string;
   args: object;
   /** Identifies the select's function entries, together with `args`. */
@@ -484,56 +697,35 @@ interface SelectScope {
    * Plans the rows a relation entry loads, starting from `seed`. A field plans them beneath its
    * own selection. A type-level select includes them as they are.
    */
-  rows(relation: PrismaNextRelation, seed: PrismaNextQuery): MaybePromise<PrismaNextQuery>;
+  rows(relation: PrismaNextRelation, seed: PrismaNextSelection): MaybePromise<PrismaNextSelection>;
+  /** The field a field's `select` plans for. The types allow page entries only there. */
+  field?: FieldPlanning;
 }
 
 /** Compiles a `select` object or column list. Each relation entry is one consumer at `scope`. */
 function compileSelect(
   raw: RawSelect,
-  model: PrismaNextModel | undefined,
-  owner: string,
-  { scope, args, source, rows }: SelectScope,
-): MaybePromise<PrismaNextQuery> {
-  assertSelectShape(raw, owner);
-  const { columns, relations } = splitSelect(raw, model);
-  for (const column of Array.isArray(raw) ? [] : columns) {
-    const value = (raw as Record<string, unknown>)[column];
-    if (value !== true) {
-      throw shapeError(
-        owner,
-        column,
-        typeof value === 'function' || isDeclarative(value)
-          ? 'is not a relation'
-          : 'has an unrecognized value shape',
+  model: PrismaNextModel,
+  { scope, args, source, rows, field }: SelectCompilation,
+): MaybePromise<PrismaNextSelection> {
+  // Compiled for a request, which may be the first to see what a select function returns.
+  const { columns, relations } = splitSelect(raw, model, Error);
+  const parts = relations.map(([name, value]) => {
+    const relation = model.relations[name]!;
+    if (isPageEntry(value)) {
+      return value[CONNECTION_PAGE](relation, name, field!);
+    }
+    if (typeof value === 'function') {
+      // The types keep computed keys apart from each other and from the parent's fields.
+      return computedSelection(name, scope, { source, args }, (sub, ctx) =>
+        (value as (sub: MapperCollection, args: object, ctx: object) => Record<string, unknown>)(
+          sub,
+          args,
+          ctx,
+        ),
       );
     }
-  }
-  const parts = relations.map(([name, value]) => {
-    const relation = model!.relations[name]!;
-    if (typeof value === 'function') {
-      if (!relation.isToMany) {
-        throw new PothosValidationError(toOneFunctionMessage(owner, name));
-      }
-      return computedSelection(name, scope, { source, args }, (sub, ctx) => {
-        const values = (
-          value as (sub: MapperCollection, args: object, ctx: object) => Record<string, unknown>
-        )(sub, args, ctx);
-        // Computed values are written onto the parent row, so they can't reuse its field names.
-        const clash = Object.keys(values).find(
-          (key) => model!.columns.has(key) || Object.hasOwn(model!.relations, key),
-        );
-        if (clash !== undefined) {
-          throw new PothosValidationError(
-            `select on ${owner}: '${name}' computes '${clash}', which is a column or relation of model ${model!.name}. Give the computed value another name.`,
-          );
-        }
-        return values;
-      });
-    }
-    if (value !== true && !isDeclarative(value)) {
-      throw shapeError(owner, name, 'has an unrecognized value shape');
-    }
-    const query = value === true ? undefined : value;
+    const query = value === true ? undefined : definedQuery(value);
     return rowsSelection(
       relation,
       name,
@@ -541,13 +733,13 @@ function compileSelect(
       rows(relation, {
         columns: null,
         args: relationArgs(relation, {
-          query,
+          loadIdentity: query,
           refine: query && ((rel) => applyQuery(rel, query)),
         }),
       }),
     );
   });
-  const settled = parts.some(isThenable) ? Promise.all(parts) : (parts as PrismaNextQuery[]);
+  const settled = parts.some(isThenable) ? Promise.all(parts) : (parts as PrismaNextSelection[]);
   return completeValue(settled, (resolved) => ({
     columns,
     relations: Object.assign({}, ...resolved.map((part) => part.relations)),
@@ -557,44 +749,57 @@ function compileSelect(
 
 /** Compiles a type-level `select`. Its relations load every column, in the type's own slots. */
 export function compileTypeSelect(raw: RawSelect, model: PrismaNextModel, typeName: string) {
-  return compileSelect(raw, model, typeName, {
+  return compileSelect(raw, model, {
     scope: typeName,
     args: {},
     source: typeName,
     rows: (_relation, seed) => seed,
-  }) as PrismaNextQuery;
+  }) as PrismaNextSelection;
+}
+
+/** `option`, or what it returns for `args` and `ctx` when it's a function, passed to `next`. */
+export function completeOption<T, R>(
+  option: T | ((args: object, ctx: object) => MaybePromise<T>),
+  args: object,
+  ctx: object,
+  next: (value: T) => R,
+) {
+  return completeValue(
+    typeof option === 'function'
+      ? (option as (args: object, ctx: object) => MaybePromise<T>)(args, ctx)
+      : option,
+    next,
+  );
 }
 
 /**
- * Compiles a field's `select` for the planner. A select of columns alone becomes a static query.
- * Anything else becomes a select function that plans each relation entry as a consumer at the
- * field's position.
+ * Compiles a field's `select` for the planner. A select of columns alone becomes a static
+ * selection. Anything else becomes a select function that plans each relation entry as a consumer
+ * at the field's position.
  */
 export function compileFieldSelect(
   contract: AnyContract,
   raw: RawSelect | ((args: object, ctx: object) => MaybePromise<RawSelect | null | undefined>),
-  model: PrismaNextModel | undefined,
-  owner: string,
-): PrismaNextQuery | PrismaNextSelectFn {
+  model: PrismaNextModel,
+): PrismaNextSelection | PrismaNextSelectFn {
   if (typeof raw !== 'function') {
     const { columns, relations } = splitSelect(raw, model);
-    if (
-      relations.length === 0 &&
-      (Array.isArray(raw) || columns.every((column) => raw[column as never] === true))
-    ) {
+    if (relations.length === 0) {
       return { columns };
     }
   }
-  return (args, ctx, nested, _selected, position) => {
+  return (args, ctx, nested, selected, position) => {
     const returnModelKey = getNamedType(position.field.type).extensions?.[PRISMA_NEXT_MODEL] as
       | string
       | undefined;
     const returnModel =
       returnModelKey === undefined ? undefined : getModel(contract, returnModelKey);
-    const select: SelectScope = {
-      scope: scopeOf(position),
+    const scope = scopeOf(position);
+    const select: SelectCompilation = {
+      scope,
       args,
       source: raw,
+      field: { scope, args, ctx, nested, selected, position },
       rows: (relation, seed) => {
         // A field that returns another model has a selection set that can't load from these rows.
         if (returnModel && returnModel !== relation.target) {
@@ -606,6 +811,7 @@ export function compileFieldSelect(
           `Field '${position.field.name}'`,
           relation.targetModel,
           returnModelKey,
+          Error,
         );
         return nested(
           variant === undefined
@@ -614,8 +820,6 @@ export function compileFieldSelect(
         );
       },
     };
-    return completeValue(typeof raw === 'function' ? raw(args, ctx) : raw, (value) =>
-      compileSelect(value ?? {}, model, owner, select),
-    );
+    return completeOption(raw, args, ctx, (value) => compileSelect(value ?? {}, model, select));
   };
 }

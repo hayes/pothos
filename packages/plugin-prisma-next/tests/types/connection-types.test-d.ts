@@ -1,15 +1,17 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { PostgresClient } from '@prisma/orm-postgres/runtime';
+import type { GraphQLResolveInfo } from 'graphql';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type CollectionFor,
+  type ConnectionHelperRow,
+  type ConnectionOrderBy,
   type ConnectionQueryLiteral,
-  type CursorSpec,
-  type ModelName,
+  type ModelReturnShape,
+  type NodeSelection,
   prismaConnectionHelpers,
 } from '../../src';
-import type { CursorCheck, UnknownCursorColumn } from '../../src/types';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as PostgresContract } from '../postgres/contract';
 
@@ -31,98 +33,91 @@ builder.prismaObject('User', {
   select: ['email'],
   fields: (t) => ({
     posts: t.relatedConnection('posts', {
-      cursor: ['title', 'id'],
       type: SummaryRef,
       args: { newest: t.arg.boolean() },
-      query: (args, _ctx) => {
+      orderBy: (args, _ctx) => {
         expectTypeOf(args.newest).toEqualTypeOf<boolean | null | undefined>();
-        return {
-          where: (post) => post.authorId.eq('me'),
-          orderBy: (post) => (args.newest ? post.title.desc() : post.title.asc()),
-        };
+        return { title: args.newest ? 'desc' : 'asc' };
       },
+      query: (args) => ({ where: (post) => post.authorId.eq(args.newest ? 'me' : 'you') }),
       totalCount: (user) => user.email.length,
     }),
-    published: t.relatedConnection('posts', { cursor: 'id', query: { where: { published: 1 } } }),
-    pair: t.relatedConnection('posts', {
-      cursor: ['title', 'id'],
-      query: { orderBy: [(post) => post.title.desc(), (post) => post.id.desc()] },
-    }),
+    published: t.relatedConnection('posts', { query: { where: { published: 1 } } }),
+    defaultOrder: t.relatedConnection('posts', {}),
+    pair: t.relatedConnection('posts', { orderBy: { title: 'desc', id: 'desc' } }),
     notACondition: t.relatedConnection('posts', {
-      cursor: 'id',
       // @ts-expect-error a where callback returns a condition
       query: { where: () => 42 },
     }),
     unknownQueryKey: t.relatedConnection('posts', {
-      cursor: 'id',
       // @ts-expect-error the connection args own the page size
       query: { where: { published: 1 }, limit: 5 },
     }),
+    orderInQuery: t.relatedConnection('posts', {
+      // @ts-expect-error the order is the connection's `orderBy`
+      query: { orderBy: (post) => post.title.desc() },
+    }),
     unknownCallbackKey: t.relatedConnection('posts', {
-      cursor: 'id',
       // @ts-expect-error unknown query options are rejected in a callback's result too
       query: () => ({ where: { published: 1 }, take: 1 }),
     }),
     limitBesideWhereInCallback: t.relatedConnection('posts', {
-      cursor: 'id',
       // @ts-expect-error the connection args own the page size
       query: () => ({ where: { published: 1 }, limit: 1 }),
     }),
     limitInCallback: t.relatedConnection('posts', {
-      cursor: 'id',
       // @ts-expect-error the connection args own the page size
       query: () => ({ limit: 1 }),
     }),
     noQueryFromCallback: t.relatedConnection('posts', {
-      cursor: 'id',
       args: { published: t.arg.int() },
       query: (args) =>
         args.published == null ? undefined : { where: { published: args.published } },
     }),
-    alwaysUndefinedQuery: t.relatedConnection('posts', { cursor: 'id', query: () => undefined }),
+    alwaysUndefinedQuery: t.relatedConnection('posts', { query: () => undefined }),
     topLevelWhere: t.relatedConnection('posts', {
-      cursor: 'id',
       // @ts-expect-error filters go in `query`
       where: { published: 1 },
     }),
-    // @ts-expect-error a connection requires a cursor
-    missingCursor: t.relatedConnection('posts', {}),
-    badCursor: t.relatedConnection('posts', {
-      // @ts-expect-error not a column of Post
-      cursor: 'slug',
+    cursor: t.relatedConnection('posts', {
+      // @ts-expect-error `orderBy` replaced `cursor`
+      cursor: 'id',
     }),
     limit: t.relatedConnection('posts', {
-      cursor: 'id',
       // @ts-expect-error the connection args own the page size
       limit: 5,
     }),
-    badWhere: t.relatedConnection('posts', {
-      cursor: 'id',
-      // @ts-expect-error a `where` callback returns a condition
-      where: () => 42,
-    }),
-    notAnItem: t.relatedConnection('posts', {
-      cursor: 'id',
-      // @ts-expect-error orderBy returns order items, not a column
-      query: { orderBy: (post) => post.id },
-    }),
     resolver: t.relatedConnection('posts', {
-      cursor: 'id',
       // @ts-expect-error the plugin owns the resolver
       resolve: () => [],
     }),
     excess: t.relatedConnection('posts', {
-      cursor: 'id',
       // @ts-expect-error unknown option
-      orderByy: () => [],
+      orderByy: { id: 'asc' },
     }),
+    // A user-defined `totalCount` reads the count from the connection without a cast.
+    counted: t.relatedConnection(
+      'posts',
+      { totalCount: true },
+      {
+        fields: (c) => ({
+          totalCount: c.int({
+            nullable: true,
+            resolve: (page) => {
+              expectTypeOf(page.totalCount).toEqualTypeOf<number | undefined>();
+              expectTypeOf(page.parent.email).toEqualTypeOf<string>();
+              return page.totalCount;
+            },
+          }),
+        }),
+      },
+    ),
   }),
 });
 
 builder.prismaObject('Post', {
   fields: (t) => ({
     comments: t.relatedConnection('comments', {
-      cursor: 'id',
       // @ts-expect-error a totalCount callback only sees declared columns
       totalCount: (post) => post.title.length,
     }),
@@ -133,55 +128,40 @@ builder.queryType({
   fields: (t) => ({
     ordered: t.prismaConnection({
       type: 'Post',
-      cursor: ['title', 'id'],
       args: { newest: t.arg.boolean() },
       orderBy: (args, context) => {
         expectTypeOf(context).not.toBeAny();
-        return args.newest
-          ? [(post) => post.title.desc(), (post) => post.id.asc()]
-          : (post) => post.title.asc();
+        return args.newest ? { title: 'desc', id: 'asc' } : { title: 'asc' };
       },
-      resolve: () => orm.Post.orderBy((post) => post.title.asc()),
+      resolve: () => orm.Post,
     }),
-    nullableCursor: t.prismaConnection({
+    nullsFirst: t.prismaConnection({
       type: 'Post',
-      cursor: [{ field: 'score', nulls: 'first' }, 'id'],
+      orderBy: { score: { nulls: 'first' } },
       resolve: () => orm.Post,
     }),
     nullable: t.prismaConnection({
       type: 'Post',
-      cursor: 'id',
       nullable: true,
       resolve: () => null,
     }),
     required: t.prismaConnection({
       type: 'Post',
-      cursor: 'id',
       nullable: false,
       // @ts-expect-error the field isn't nullable
       resolve: () => null,
     }),
-    unknownColumn: t.prismaConnection({
-      type: 'Post',
-      cursor: 'id',
-      // @ts-expect-error `nope` isn't a Post column
-      orderBy: (post) => post.nope.asc(),
-      resolve: () => orm.Post,
-    }),
-    // @ts-expect-error `cursor` is required
-    missing: t.prismaConnection({ type: 'Post', resolve: () => orm.Post }),
+    defaultOrder: t.prismaConnection({ type: 'Post', resolve: () => orm.Post }),
     // @ts-expect-error a connection's type is one model's type, not a list
-    list: t.prismaConnection({ type: ['Post'], cursor: 'id', resolve: () => orm.Post }),
+    list: t.prismaConnection({ type: ['Post'], resolve: () => orm.Post }),
     query: t.prismaConnection({
       type: 'User',
-      cursor: 'id',
       // @ts-expect-error `query` (plugin-prisma's shape) isn't supported
       query: () => ({ where: {} }),
       resolve: () => orm.User,
     }),
     edgesNullable: t.prismaConnection({
       type: 'User',
-      cursor: 'id',
       // @ts-expect-error edges are always non-null
       edgesNullable: true,
       resolve: () => orm.User,
@@ -191,11 +171,19 @@ builder.queryType({
       type: 'Tag',
       resolve: () => orm.Post,
     }),
+    counted: t.prismaConnection(
+      { type: 'Post', totalCount: true, resolve: () => orm.Post },
+      {
+        fields: (c) => ({
+          totalCount: c.int({ nullable: true, resolve: (page) => page.totalCount }),
+          first: c.int({ nullable: true, resolve: (page) => page.args.first }),
+        }),
+      },
+    ),
   }),
 });
 
-// Cursor values use the client's column codecs, so Temporal columns need nothing extra; bytes
-// columns can't order a cursor.
+// Temporal columns order with the client's codecs; bytes columns can't order a connection.
 declare const client: PostgresClient<PostgresContract>;
 const postgres = new SchemaBuilder<{ PrismaNextContract: PostgresContract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
@@ -206,197 +194,171 @@ postgres.queryType({
   fields: (t) => ({
     temporal: t.prismaConnection({
       type: 'Entry',
-      cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
-      resolve: () => client.orm.public.Entry,
-    }),
-    bare: t.prismaConnection({
-      type: 'Entry',
-      cursor: ['createdAt', 'id'],
-      resolve: () => client.orm.public.Entry,
-    }),
-    codec: t.prismaConnection({
-      type: 'Entry',
-      // @ts-expect-error cursor columns take no codec
-      cursor: [{ field: 'createdAt', codec: 'column' }, 'id'],
+      orderBy: { createdAt: 'desc', id: 'asc' },
       resolve: () => client.orm.public.Entry,
     }),
     bytes: t.prismaConnection({
       type: 'Entry',
-      // @ts-expect-error a bytes column can't order a cursor
-      cursor: ['payload', 'id'],
+      // @ts-expect-error a bytes column can't order a connection
+      orderBy: { payload: 'asc' },
       resolve: () => client.orm.public.Entry,
     }),
   }),
 });
 
-// A root connection's `orderBy` is a function of the args and context, or a list of selectors.
+// `orderBy` is a declaration: a direction per column, or `{ direction, nulls }`.
 builder.queryFields((t) => ({
-  curriedOrderBy: t.prismaConnection({
+  unknownColumn: t.prismaConnection({
     type: 'Post',
-    cursor: ['title', 'id'],
-    args: { newest: t.arg.boolean() },
-    orderBy: (args, _ctx) => (post, tools) => {
-      expectTypeOf(args.newest).toEqualTypeOf<boolean | null | undefined>();
-      expectTypeOf(tools.fns).not.toBeAny();
-      return args.newest ? post.title.desc() : post.title.asc();
-    },
-    resolve: () => orm.Post,
-  }),
-  orderByList: t.prismaConnection({
-    type: 'Post',
-    cursor: ['title', 'id'],
-    orderBy: [(post) => post.title.desc(), (post) => post.id.desc()],
-    resolve: () => orm.Post,
-  }),
-  orderByListFromArgs: t.prismaConnection({
-    type: 'Post',
-    cursor: ['title', 'id'],
-    orderBy: () => [(post) => post.title.desc(), (post) => post.id.desc()],
-    resolve: () => orm.Post,
-  }),
-  accessorFirstOrderBy: t.prismaConnection({
-    type: 'Post',
-    cursor: 'id',
-    // @ts-expect-error the first function takes the args and context
-    orderBy: (post) => post.id.asc(),
-    resolve: () => orm.Post,
-  }),
-  unknownOrderColumn: t.prismaConnection({
-    type: 'Post',
-    cursor: 'id',
     // @ts-expect-error `nope` isn't a column of Post
-    orderBy: () => (post) => post.nope.asc(),
+    orderBy: { nope: 'asc' },
+    resolve: () => orm.Post,
+  }),
+  unknownBesideKnown: t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error `titel` isn't a column of Post
+    orderBy: { title: 'asc', titel: 'asc' },
+    resolve: () => orm.Post,
+  }),
+  unknownFromCallback: t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error a callback's result is checked as well
+    orderBy: () => ({ title: 'asc', titel: 'asc' }),
+    resolve: () => orm.Post,
+  }),
+  unknownInBranch: t.prismaConnection({
+    type: 'Post',
+    args: { newest: t.arg.boolean() },
+    // @ts-expect-error every branch is checked
+    orderBy: (args) => (args.newest ? { titel: 'desc' } : { title: 'asc' }),
+    resolve: () => orm.Post,
+  }),
+  unknownBesideKeyInBranch: t.prismaConnection({
+    type: 'Post',
+    args: { newest: t.arg.boolean() },
+    // @ts-expect-error every branch is checked, even one that also names a real column
+    orderBy: (args) => (args.newest ? { titel: 'desc', id: 'asc' } : { title: 'asc' }),
+    resolve: () => orm.Post,
+  }),
+  badDirection: t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error a direction is `asc` or `desc`
+    orderBy: { title: 'sideways' },
+    resolve: () => orm.Post,
+  }),
+  badEntryKey: t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error an entry takes `direction` and `nulls`
+    orderBy: { title: { dir: 'asc' } },
+    resolve: () => orm.Post,
+  }),
+  nullsOnRequired: t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error a non-null column has no nulls to place
+    orderBy: { title: { direction: 'desc', nulls: 'first' } },
+    resolve: () => orm.Post,
+  }),
+  nullsOnRequiredFromCallback: t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error a callback's result is checked as well
+    orderBy: () => ({ id: { nulls: 'last' } }),
+    resolve: () => orm.Post,
+  }),
+  // A computed key widens to `string`, which is checked when the request runs.
+  computed: t.prismaConnection({
+    type: 'Post',
+    args: { sort: t.arg.string({ required: true }) },
+    orderBy: (args) => ({ [args.sort]: 'desc' }),
+    resolve: () => orm.Post,
+  }),
+  accessor: t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error `orderBy` takes a declaration, not the ORM's accessor callback
+    orderBy: () => (post: { id: { asc(): unknown } }) => post.id.asc(),
     resolve: () => orm.Post,
   }),
 }));
 
-// The connection signatures infer the model and the cursor together. The cursor must still infer
-// as written, not widen to `CursorSpec`, so `ExactCursor` sees each entry's keys.
-declare function inferCursor<M extends ModelName<Types>, C extends CursorSpec<Types, M>>(
-  model: M,
-  cursor: C,
-): C;
 expectTypeOf<ConnectionQueryLiteral<Types, 'Post'>>().toHaveProperty('where');
-// An unknown column is named in the error, rather than buried in the columns' union.
-expectTypeOf<CursorCheck<Types, 'Post', 'nope'>>().toEqualTypeOf<UnknownCursorColumn<'nope'>>();
-expectTypeOf<CursorCheck<Types, 'Post', readonly ['nope', 'id']>>().toEqualTypeOf<
-  readonly [UnknownCursorColumn<'nope'>, 'id']
->();
-expectTypeOf(inferCursor('Post', 'title')).toEqualTypeOf<'title'>();
-expectTypeOf(inferCursor('Post', ['title', 'id'])).toEqualTypeOf<['title', 'id']>();
-builder.prismaObject('User', {
-  variant: 'CursorEntryKeys',
-  fields: (t) => ({
-    posts: t.relatedConnection('posts', {
-      // @ts-expect-error cursor entries take only `field`, `direction` and `nulls`
-      cursor: [{ field: 'title', dir: 'asc' }, 'id'],
-    }),
-    unknownInTuple: t.relatedConnection('posts', {
-      // @ts-expect-error not a column of Post
-      cursor: ['nope', 'id'],
-    }),
-    unknownField: t.relatedConnection('posts', {
-      // @ts-expect-error not a column of Post
-      cursor: [{ field: 'nope' }, 'id'],
-    }),
-    badDirection: t.relatedConnection('posts', {
-      // @ts-expect-error a direction is `asc` or `desc`
-      cursor: [{ field: 'title', direction: 'sideways' }, 'id'],
-    }),
-    empty: t.relatedConnection('posts', {
-      // @ts-expect-error a cursor has at least one column
-      cursor: [],
-    }),
-    conditionalCursor: t.relatedConnection('posts', {
-      cursor: Math.random() > 0.5 ? ['title', 'id'] : 'id',
-    }),
-    conditionalEntry: t.relatedConnection('posts', {
-      cursor: Math.random() > 0.5 ? [{ field: 'title', direction: 'desc' }, 'id'] : 'id',
-    }),
-    badConditionalCursor: t.relatedConnection('posts', {
-      // @ts-expect-error every branch of a cursor is checked
-      cursor: Math.random() > 0.5 ? ['nope', 'id'] : 'id',
-    }),
-    notAColumn: t.relatedConnection('posts', {
-      // @ts-expect-error a cursor is a column or a list of them
-      cursor: 1,
-    }),
-  }),
-});
-prismaConnectionHelpers(builder, 'Post', {
-  // @ts-expect-error cursor entries take only `field`, `direction` and `nulls`
-  cursor: [{ field: 'title', dir: 'asc' }, 'id'],
-});
+expectTypeOf<ConnectionOrderBy<Types, 'Post'>>().toHaveProperty('title');
+// Bytes columns aren't orderable, so they aren't keys of the declaration.
+type EntryTypes = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: PostgresContract }>;
+expectTypeOf<
+  'payload' extends keyof ConnectionOrderBy<EntryTypes, 'Entry'> ? 1 : 0
+>().toEqualTypeOf<0>();
 
 // prismaConnectionHelpers options: refs, `query`, and callbacks that see the field's args.
 const UserNode = builder.prismaInterface('User', {
   name: 'UserNode',
   fields: (t) => ({ id: t.exposeID('id') }),
 });
-const byInterface = prismaConnectionHelpers(builder, UserNode, { cursor: 'id' });
+const byInterface = prismaConnectionHelpers(builder, UserNode, {});
 expectTypeOf(byInterface.ref).toEqualTypeOf(UserNode);
-const byObject = prismaConnectionHelpers(builder, SummaryRef, { cursor: 'id' });
+const byObject = prismaConnectionHelpers(builder, SummaryRef, {});
 expectTypeOf(byObject.ref).toEqualTypeOf(SummaryRef);
 prismaConnectionHelpers(builder, 'User', {
-  cursor: [{ field: 'firstName', direction: 'desc' }, 'id'],
   args: (t) => ({ q: t.string(), size: t.int() }),
+  orderBy: (args) => (args.q ? { firstName: 'desc', id: 'asc' } : undefined),
   defaultSize: (args) => args.size ?? 10,
   maxSize: (args, _ctx) => (args.q ? 5 : 50),
-  totalCount: (args) => (args.q ? 1 : 2),
+  totalCount: true,
   query: (args) => ({
     where: (user, tools) => {
       expectTypeOf(tools).not.toBeAny();
       return args.q ? user.firstName.eq(args.q) : user.id.neq('');
     },
-    orderBy: (user) => user.firstName.asc(),
   }),
 });
 prismaConnectionHelpers(builder, 'User', {
-  cursor: 'id',
   // @ts-expect-error a where callback returns a condition
   query: { where: () => 'oops' },
 });
 prismaConnectionHelpers(builder, 'User', {
-  cursor: 'id',
   // @ts-expect-error unknown query options are rejected in a callback's result too
   query: () => ({ where: { id: 'x' }, take: 1 }),
 });
 prismaConnectionHelpers(builder, 'User', {
-  cursor: 'id',
   // @ts-expect-error unknown query options are rejected in an object too
   query: { where: { id: 'x' }, take: 1 },
 });
-prismaConnectionHelpers(builder, 'User', { cursor: 'id', query: () => undefined });
+prismaConnectionHelpers(builder, 'User', { query: () => undefined });
 prismaConnectionHelpers(builder, 'User', {
-  cursor: 'id',
   args: (t) => ({ q: t.string() }),
   query: (args) => (args.q ? { where: { firstName: args.q } } : undefined),
 });
 prismaConnectionHelpers(builder, 'User', {
   // @ts-expect-error not a column of User
-  cursor: 'slug',
+  orderBy: { slug: 'asc' },
 });
 prismaConnectionHelpers(builder, 'User', {
-  cursor: 'id',
   // @ts-expect-error filters go in `query`
   where: { id: 'u' },
 });
+prismaConnectionHelpers(builder, 'User', {
+  // @ts-expect-error a custom count is passed to `wrap` or `resolve`
+  totalCount: () => 1,
+});
 
 // prismaConnectionHelpers: `resolveNode` decides the node shape; cursors still read the rows.
+// Without `info` the rows are whole. With it, and from `page`, they hold their key and what the
+// selection needs, typed as `ModelReturnShape`, unless `resolveNode` gets them without a relation
+// given `nodeSelection()`: nothing is planned into them then, and they are whole.
+declare const info: GraphQLResolveInfo;
 export async function helperShapes() {
   const wrapper = prismaConnectionHelpers(builder, 'User', {
-    cursor: 'id',
     resolveNode: (user) => ({ user }),
   });
   const page = await wrapper.applyPagination(orm.User, { first: 1 }, {});
+  // @ts-expect-error a collection with its own select would leave out the ordered columns
+  wrapper.applyPagination(orm.User.select('id'), { first: 1 }, {});
   const result = page.wrap(await page.collection.all());
   expectTypeOf(result.edges[0]!.node.user.id).toEqualTypeOf<string>();
+  expectTypeOf(result.edges[0]!.node.user.email).toEqualTypeOf<string>();
   expectTypeOf(result.edges[0]!.cursor).toEqualTypeOf<string>();
   // @ts-expect-error `node` is the wrapper, not the row
   result.edges[0]!.node.id;
 
   const union = prismaConnectionHelpers(builder, 'User', {
-    cursor: 'id',
     resolveNode: (user): { kind: 'user'; user: typeof user } | { kind: 'empty' } =>
       user.firstName ? { kind: 'user', user } : { kind: 'empty' },
   });
@@ -406,35 +368,32 @@ export async function helperShapes() {
   >();
 
   const plain = prismaConnectionHelpers(builder, 'User', {
-    cursor: 'id',
     query: { where: (user) => user.firstName.eq('Alice') },
   });
-  const plainPage = await plain.applyPagination(orm.User, { first: 1 }, {});
-  expectTypeOf(plainPage.wrap([{ id: 'a', firstName: 'Alice' }]).edges[0]!.node).toEqualTypeOf<{
-    id: string;
-    firstName: string;
-  }>();
+  const loaded = await plain.applyPagination(orm.User, { first: 1 }, {});
   expectTypeOf(
-    plainPage.wrap(await plainPage.collection.all()).edges[0]!.node.id,
+    loaded.wrap(await loaded.collection.all()).edges[0]!.node.email,
   ).toEqualTypeOf<string>();
+  // @ts-expect-error without `info` the collection loads whole rows, so `wrap` takes them
+  loaded.wrap([{ id: 'a', firstName: 'Alice' }]);
+  const planned = await plain.applyPagination(orm.User, { first: 1 }, {}, info);
+  const plannedRows = await planned.collection.all();
+  expectTypeOf(plannedRows[0]!.id).toEqualTypeOf<string>();
+  expectTypeOf(plannedRows[0]!.email).toEqualTypeOf<string | undefined>();
+  expectTypeOf(planned.wrap([{ id: 'a', firstName: 'Alice' }]).edges[0]!.node).toEqualTypeOf<
+    ModelReturnShape<Types, 'User'>
+  >();
 
-  const narrowRows = [{ id: 'a', firstName: 'Alice' }];
   const spreading = prismaConnectionHelpers(builder, 'User', {
-    cursor: 'id',
     resolveNode: (user) => ({ ...user, extra: 1 }),
   });
-  const spreadPage = await spreading.applyPagination(orm.User, { first: 1 }, {});
-  // @ts-expect-error a spreading callback would claim columns these rows lack
-  spreadPage.wrap(narrowRows);
-  // @ts-expect-error the wrapper form would put the full row under `.user`
-  page.wrap(narrowRows);
+  const spreadPage = await spreading.applyPagination(orm.User, { first: 1 }, {}, info);
   const full = spreadPage.wrap(await spreadPage.collection.all());
   expectTypeOf(full.edges[0]!.node.extra).toEqualTypeOf<number>();
   expectTypeOf(full.edges[0]!.node.email).toEqualTypeOf<string>();
 
   const enabled = Math.random() > 0.5;
   const conditional = prismaConnectionHelpers(builder, 'User', {
-    cursor: 'id',
     resolveNode: enabled ? (user) => ({ user }) : undefined,
   });
   const conditionalPage = await conditional.applyPagination(orm.User, {}, {});
@@ -448,8 +407,7 @@ export async function helperShapes() {
   }
 
   const primitive = prismaConnectionHelpers(builder, 'User', {
-    cursor: 'id',
-    resolveNode: (user) => user.firstName,
+    resolveNode: (user) => user.id,
   });
   const primitivePage = await primitive.applyPagination(orm.User, {}, {});
   expectTypeOf(
@@ -457,13 +415,61 @@ export async function helperShapes() {
   ).toEqualTypeOf<string>();
 
   const promised = prismaConnectionHelpers(builder, 'User', {
-    cursor: 'id',
     resolveNode: (user) => Promise.resolve({ user }),
   });
   const promisedPage = await promised.applyPagination(orm.User, {}, {});
   const promisedNode = promisedPage.wrap(await promisedPage.collection.all()).edges[0]!.node;
   expectTypeOf((await promisedNode).user.id).toEqualTypeOf<string>();
 }
+
+// prismaConnectionHelpers through a join model: `select` names the relation holding the nodes,
+// and `page` loads the connection in a field's `select`.
+const Commenter = builder.prismaObject('User', {
+  variant: 'Commenter',
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
+const commenters = prismaConnectionHelpers(builder, 'Comment', {
+  select: (nodeSelection) => ({ body: true, author: nodeSelection() }),
+  resolveNode: (comment) => {
+    expectTypeOf(comment.body).toEqualTypeOf<string>();
+    expectTypeOf(comment.author).toEqualTypeOf<ModelReturnShape<Types, 'User'>>();
+    return comment.author;
+  },
+});
+builder.prismaObjectField('Post', 'commenters', (t) =>
+  t.connection({
+    type: Commenter,
+    select: { comments: commenters.page },
+    resolve: (post, args, ctx) => {
+      expectTypeOf(post.comments).toEqualTypeOf<
+        readonly ConnectionHelperRow<Types, 'Comment', { body: true; author: NodeSelection }>[]
+      >();
+      return commenters.resolve(post.comments, args, ctx, post);
+    },
+  }),
+);
+builder.prismaObjectField('Post', 'commentersById', (t) =>
+  t.connection({
+    type: Commenter,
+    // @ts-expect-error the page is of Comment rows, not of a relation to another model
+    select: { views: commenters.page },
+    resolve: () => null as never,
+  }),
+);
+builder.prismaObject('Post', {
+  variant: 'PostWithPagedComments',
+  // @ts-expect-error a page loads for a field's connection, not with every row of a type
+  select: { comments: commenters.page },
+  fields: () => ({}),
+});
+prismaConnectionHelpers(builder, 'Post', {
+  // @ts-expect-error a to-many relation can't hold the nodes
+  select: (nodeSelection) => ({ author: true, comments: nodeSelection() }),
+});
+prismaConnectionHelpers(builder, 'Comment', {
+  // @ts-expect-error not a column or relation of Comment
+  select: () => ({ bodyy: true }),
+});
 
 // Without `nullable`, root fields and connections follow the builder's default field nullability.
 const nonNullBuilder = new SchemaBuilder<{
@@ -479,7 +485,7 @@ nonNullBuilder.queryType({
   fields: (t) => {
     const user = t.prismaField({ type: 'User', resolve: () => orm.User });
     expectTypeOf<null extends typeof user.$inferType ? true : false>().toEqualTypeOf<false>();
-    const posts = t.prismaConnection({ type: 'Post', cursor: 'id', resolve: () => orm.Post });
+    const posts = t.prismaConnection({ type: 'Post', resolve: () => orm.Post });
     expectTypeOf(posts.$inferType.edges).not.toBeUnknown();
     expectTypeOf<null extends typeof posts.$inferType ? true : false>().toEqualTypeOf<false>();
     return {
@@ -489,10 +495,9 @@ nonNullBuilder.queryType({
       nullUser: t.prismaField({ type: 'User', resolve: () => null }),
       nullableUser: t.prismaField({ type: 'User', nullable: true, resolve: () => null }),
       // @ts-expect-error the connection is non-null by default
-      nullPosts: t.prismaConnection({ type: 'Post', cursor: 'id', resolve: () => null }),
+      nullPosts: t.prismaConnection({ type: 'Post', resolve: () => null }),
       nullablePosts: t.prismaConnection({
         type: 'Post',
-        cursor: 'id',
         nullable: true,
         resolve: () => null,
       }),
@@ -514,13 +519,11 @@ builder.prismaObject('User', {
   fields: (t) => ({
     narrowed: t.prismaConnection({
       type: 'Post',
-      cursor: 'id',
       totalCount: (user) => user.firstName.length,
       resolve: () => orm.Post,
     }),
     unselected: t.prismaConnection({
       type: 'Post',
-      cursor: 'id',
       // @ts-expect-error `email` is not in the type's select
       totalCount: (user) => user.email.length,
       resolve: () => orm.Post,
@@ -533,7 +536,6 @@ builder.prismaObject('User', {
   fields: (t) => ({
     noSelect: t.prismaConnection({
       type: 'Post',
-      cursor: 'id',
       totalCount: (user) => user.id.length,
       resolve: () => orm.Post,
     }),
@@ -543,7 +545,6 @@ builder.prismaObject('User', {
 builder.queryField('totalCountOnQuery', (t) =>
   t.prismaConnection({
     type: 'Post',
-    cursor: 'id',
     totalCount: (root) => {
       expectTypeOf(root).toEqualTypeOf<{}>();
 
@@ -557,7 +558,6 @@ declare const counts: AsyncIterable<number>;
 builder.subscriptionField('totalCountOnSubscription', (t) =>
   t.prismaConnection({
     type: 'Post',
-    cursor: 'id',
     subscribe: () => counts,
     totalCount: (count) => {
       expectTypeOf(count).toEqualTypeOf<number>();
@@ -566,4 +566,33 @@ builder.subscriptionField('totalCountOnSubscription', (t) =>
     },
     resolve: () => orm.Post,
   }),
+);
+
+// The helpers' `connectionOptions` types a `fields` callback, so it needs no annotation.
+const counted = prismaConnectionHelpers(builder, 'User', { totalCount: true });
+builder.queryField('countedUsers', (t) =>
+  t.connection(
+    {
+      type: counted.ref,
+      resolve: async (_root, args, ctx) => {
+        const { collection, totalCountPromise, wrap } = await counted.applyPagination(
+          orm.User,
+          args,
+          ctx,
+        );
+        return wrap(await collection.all(), await totalCountPromise);
+      },
+    },
+    counted.connectionOptions({
+      fields: (c) => ({
+        doubled: c.int({
+          nullable: true,
+          resolve: (page) => {
+            expectTypeOf(page.totalCount).toEqualTypeOf<number | undefined>();
+            return page.totalCount === undefined ? null : page.totalCount * 2;
+          },
+        }),
+      }),
+    }),
+  ),
 );

@@ -1,98 +1,80 @@
 import { readFileSync } from 'node:fs';
-import SchemaBuilder from '@pothos/core';
+import SchemaBuilder, { PothosSchemaError } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { type GraphQLObjectType, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin, { type AnyContract, prismaConnectionHelpers } from '../src';
-import { createBuilder, run, sampleContract, useSampleDb } from './fixtures/helpers';
+import {
+  buildOnlyContext,
+  createBuilder,
+  run,
+  sampleContract,
+  useSampleDb,
+} from './fixtures/helpers';
 import { junctionContract } from './fixtures/junction';
 
 const db = useSampleDb();
 const ok = (builder: ReturnType<typeof createBuilder>) =>
   builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
 
-describe('select shape', () => {
-  const invalid: [string, unknown][] = [
-    ['a string', 'email'],
-    ['a number', 1],
-    ['true', true],
-    ['false', false],
-    ['null', null],
-  ];
-
-  it.each(invalid)('rejects %s as a field select', (_name, select) => {
-    const builder = createBuilder();
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
-        x: t.string({ select: select as any, resolve: () => '' }),
-      }),
-    });
-    ok(builder);
-    expect(() => builder.toSchema()).toThrow(/select on 'User\.x' must be a column array or/);
-  });
-
-  it.each(invalid)('rejects %s as a type select', (_name, select) => {
-    const builder = createBuilder();
-    // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
-    builder.prismaObject('User', { select: select as any, fields: () => ({}) });
-    ok(builder);
-    expect(() => builder.toSchema()).toThrow(/select on 'User' must be a column array or/);
-  });
-
-  it.each(
-    invalid.filter(([, select]) => select !== null),
-  )('fails a select function that returns %s', async (_name, select) => {
-    const builder = createBuilder();
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
-        x: t.string({ select: (() => select) as any, resolve: () => '' }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
-    });
-    const result = await run(builder.toSchema(), '{ users { x } }');
-    expect(result.errors?.[0].message).toMatch(/select on User must be a column array or/);
-  });
-});
-
 describe('object registration', () => {
-  it.each([
-    ['prismaObject', 'prismaObject'],
-    ['prismaInterface', 'prismaInterface'],
-  ] as const)('rejects name together with variant on %s', (_label, method) => {
+  it('renames the default type with `name`, which model keys then refer to', async () => {
     const builder = createBuilder();
-    // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
-    expect(() => (builder as any)[method]('User', { name: 'A', variant: 'B' })).toThrow(
-      /`name` and `variant`.*'User'/,
-    );
-  });
-
-  it('rejects name together with variant on prismaNode', () => {
-    const builder = createBuilder();
-    expect(() =>
-      // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
-      (builder as any).prismaNode('User', { id: { field: 'id' }, name: 'A', variant: 'B' }),
-    ).toThrow(/`name` and `variant`.*'User'/);
-  });
-
-  it('rejects a query option on prismaConnection', () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const AuthUser = builder.prismaObject('User', {
+      name: 'AuthUser',
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => ({ title: t.exposeString('title'), author: t.relation('author') }),
+    });
+    builder.prismaObjectField('User', 'extra', (t) => t.exposeString('lastName'));
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaConnection({
-          type: 'User',
-          cursor: 'id',
-          resolve: () => db.orm.User,
-          // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
-          ...({ query: { where: { id: 'x' } } } as any),
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User.where({ id: 'u-bob' }) }),
+        posts: t.prismaField({
+          type: ['Post'],
+          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
         }),
       }),
     });
-    expect(() => builder.toSchema()).toThrow(/t\.prismaConnection doesn't take `query`/);
+    const schema = builder.toSchema();
+    expect(schema.getType('User')).toBeUndefined();
+    expect(AuthUser.name).toBe('AuthUser');
+    const result = await run(
+      schema,
+      '{ users { __typename firstName extra } posts { author { __typename firstName } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      users: [{ __typename: 'AuthUser', firstName: 'Bob', extra: 'Brown' }],
+      posts: [{ author: { __typename: 'AuthUser', firstName: 'Alice' } }],
+    });
+  });
+
+  it.each([
+    ['without options', {}],
+    ['with a name', { name: 'Renamed' }],
+  ])('rejects a second registration of the default type (%s)', (_label, second) => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    expect(() =>
+      builder.prismaObject('User', {
+        ...second,
+        fields: (t) => ({ email: t.exposeString('email') }),
+      }),
+    ).toThrow(
+      new PothosSchemaError(
+        "Model 'User' already has a type registered without a 'variant'. Give one of them a 'variant', or add fields with prismaObjectField(s).",
+      ),
+    );
+  });
+
+  it('rejects a prismaNode beside a default type of the same model', () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    expect(() => builder.prismaNode('User', { id: { field: 'id' }, fields: () => ({}) })).toThrow(
+      /Model 'User' already has a type registered without a 'variant'/,
+    );
   });
 
   it('names a variant by `variant`', () => {
@@ -111,7 +93,7 @@ describe('object registration', () => {
     const builder = createBuilder();
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('User', {
-      name: 'AdminUser',
+      variant: 'AdminUser',
       fields: (t) => ({ adminField: t.exposeString('firstName') }),
     });
     builder.prismaObjectField('User', 'extra', (t) => t.exposeString('firstName'));
@@ -148,7 +130,10 @@ describe('object registration', () => {
     ],
   ])('reports an unresolved default type when only a variant is registered (%s)', (_name, use, message) => {
     const builder = createBuilder();
-    builder.prismaObject('User', { name: 'AdminUser', fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      variant: 'AdminUser',
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
     use(builder);
     ok(builder);
     expect(() => builder.toSchema()).toThrow(message);
@@ -166,32 +151,6 @@ describe('object registration', () => {
     expect(() =>
       interfaceFirst.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) }),
     ).toThrow(message);
-  });
-
-  it('rejects an interface select that conflicts with its object on a model without a key', () => {
-    const define = (interfaceWhere: { published: number }) => {
-      const builder = createBuilder();
-      const Base = builder.prismaInterface('PostView', {
-        name: 'ViewBase',
-        select: { post: { where: interfaceWhere } },
-        fields: (t) => ({ viewer: t.exposeString('viewer') }),
-      });
-      builder.prismaObject('PostView', {
-        interfaces: [Base],
-        select: { post: { where: { published: 1 } } },
-        fields: (t) => ({
-          title: t.string({ nullable: true, resolve: (view) => view.post?.title }),
-        }),
-      });
-      ok(builder);
-      return builder;
-    };
-    expect(() => define({ published: 1 }).toSchema()).not.toThrow();
-    expect(() => define({ published: 0 }).toSchema()).toThrow(
-      "The select of prismaInterface 'ViewBase' conflicts with the select of 'PostView', so its " +
-        "fields would always reload model 'PostView', which has no non-null primary or unique " +
-        "key. Add a primary or unique key to 'PostView', or make the selections compatible.",
-    );
   });
 
   it('keeps descriptions and extensions on plugin fields', () => {
@@ -221,22 +180,6 @@ describe('object registration', () => {
     expect(fields.title.extensions.custom).toBe('select');
     expect(fields.posts).toMatchObject({ description: 'posts' });
     expect(fields.posts.extensions.custom).toBe('relation');
-  });
-
-  it('rejects t.variant with nullable: false and isNull', () => {
-    const builder = createBuilder();
-    const Strict = builder.prismaObject('User', {
-      variant: 'Strict',
-      fields: (t) => ({ id: t.exposeID('id') }),
-    });
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        // @ts-expect-error `isNull` can return null, so the types reject `nullable: false` too
-        strict: t.variant(Strict, { nullable: false, isNull: () => false }),
-      }),
-    });
-    ok(builder);
-    expect(() => builder.toSchema()).toThrow(/\bnullable: false\b/);
   });
 
   it('exposes scalar columns through each expose helper', async () => {
@@ -295,81 +238,7 @@ describe('object registration', () => {
 // For schemas that are built but never executed.
 const noClient = () => ({ orm: {} });
 
-describe('models validated when the schema is built', () => {
-  it.each([
-    [
-      'prismaObject',
-      (builder: ReturnType<typeof createBuilder>) =>
-        builder.prismaObject('Usr' as never, { fields: () => ({}) }),
-    ],
-    [
-      'prismaInterface',
-      (builder: ReturnType<typeof createBuilder>) =>
-        builder.prismaInterface('Usr' as never, { fields: () => ({}) }),
-    ],
-    [
-      'prismaNode',
-      (builder: ReturnType<typeof createBuilder>) =>
-        builder.prismaNode('Usr' as never, { id: { field: 'id' }, fields: () => ({}) } as never),
-    ],
-  ])('rejects an unknown model in %s', (_name, define) => {
-    const builder = createBuilder();
-    expect(() => {
-      define(builder);
-      ok(builder);
-      builder.toSchema();
-    }).toThrow("Model 'Usr' not found in the prismaNext contract.");
-  });
-
-  it('rejects a prismaField returning a Collection of another model', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.queryType({
-      fields: (t) => ({
-        users: t.prismaField({ type: ['User'], resolve: () => db.orm.Post as never }),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ users { id } }');
-    expect(result.errors?.[0].message).toBe(
-      "Fields returning model 'User' must return a Collection of that model, not orm.Post.",
-    );
-    expect(result.statements).toHaveLength(0);
-  });
-
-  it('rejects a Collection of another model in prismaConnectionHelpers', async () => {
-    const helper = prismaConnectionHelpers(createBuilder(), 'Post', { cursor: 'id' });
-    await expect(helper.applyPagination(db.orm.User as never, { first: 1 }, {})).rejects.toThrow(
-      "Fields returning model 'Post' must return a Collection of that model",
-    );
-  });
-
-  it('rejects a Collection of another model from a prismaNode collection option', async () => {
-    const builder = createBuilder();
-    builder.prismaNode('User', {
-      id: { field: 'id' },
-      collection: () => db.orm.Post as never,
-      fields: (t) => ({ firstName: t.exposeString('firstName') }),
-    });
-    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
-    const id = Buffer.from('User:u-alice').toString('base64');
-    const result = await run(builder.toSchema(), `{ node(id: "${id}") { id } }`);
-    expect(result.errors?.[0].message).toBe(
-      "Fields returning model 'User' must return a Collection of that model, not orm.Post.",
-    );
-    expect(result.statements).toHaveLength(0);
-  });
-});
-
 describe('contracts', () => {
-  it('rejects a contract from a non-SQL family', () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: never }>({
-      plugins: [prismaNextPlugin],
-      prismaNext: { client: noClient, contract: { targetFamily: 'mongo' } as never },
-    });
-    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
-    expect(() => builder.toSchema()).toThrow(/only supports SQL contracts/);
-  });
-
   const model = (fields: string[], relations: object = {}, table = 'table') => ({
     fields: Object.fromEntries(fields.map((field) => [field, { nullable: false }])),
     relations,
@@ -417,7 +286,7 @@ describe('contracts', () => {
     } as unknown as AnyContract;
     const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
       plugins: [prismaNextPlugin],
-      prismaNext: { client: noClient, contract },
+      prismaNext: { client: noClient, context: buildOnlyContext(contract) },
     });
     const untyped = builder as unknown as {
       prismaObject(
@@ -446,50 +315,67 @@ describe('contracts', () => {
 });
 
 describe('options validated when the schema is built', () => {
-  it('requires a client, and a contract beside a client function', () => {
-    const define = (prismaNext: object) =>
-      new SchemaBuilder<{ PrismaNextContract: typeof sampleContract }>({
-        plugins: [prismaNextPlugin],
-        prismaNext: prismaNext as never,
-      }).prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    expect(() => define({})).toThrow(/requires prismaNext\.client/);
-    expect(() => define({ client: noClient })).toThrow(/prismaNext\.contract is required/);
-    expect(() => define({ client: noClient, contract: sampleContract })).not.toThrow();
-  });
-
-  it('requires a cursor of distinct columns covering a non-null unique key', () => {
+  it('rejects an orderBy column that is not a field, and a model without a key', () => {
     const builder = createBuilder();
-    expect(() => prismaConnectionHelpers(builder, 'User', { cursor: 'firstName' })).toThrow(
-      /must include every field of a non-null primary or unique key.*unique tie-breaker/,
-    );
-    expect(() => prismaConnectionHelpers(builder, 'User', { cursor: ['id', 'id'] })).toThrow(
-      /distinct columns/,
-    );
-    expect(() => prismaConnectionHelpers(builder, 'User', { cursor: [] as never })).toThrow(
-      /cannot be empty/,
-    );
     expect(() =>
-      prismaConnectionHelpers(builder, 'User', { cursor: ['firstName', 'id'] }),
+      prismaConnectionHelpers(builder, 'User', { orderBy: { nope: 'asc' } as never }),
+    ).toThrow("Connection orderBy can't order by 'User.nope' is not a field of the model.");
+    expect(() =>
+      prismaConnectionHelpers(builder, 'User', { orderBy: { firstName: 'asc' } }),
     ).not.toThrow();
-    expect(() => prismaConnectionHelpers(builder, 'User', { cursor: 'email' })).not.toThrow();
+    expect(() => prismaConnectionHelpers(builder, 'PostView', {})).toThrow(
+      /'PostView' page by a non-null primary or unique key/,
+    );
   });
 
-  it('does not accept a nullable unique column as the cursor key', () => {
+  it('does not page by a nullable unique column', () => {
     const contract = structuredClone(sampleContract);
     Object.assign(contract.storage.namespaces.__unbound__.entries.table.post, {
+      primaryKey: undefined,
       uniques: [{ columns: ['score'] }],
     });
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof contract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
       relay: {},
-      prismaNext: { client: noClient, contract },
+      prismaNext: { client: noClient, context: buildOnlyContext(contract) },
     });
-    expect(() => prismaConnectionHelpers(builder, 'Post', { cursor: 'score' })).toThrow(
+    expect(() => prismaConnectionHelpers(builder, 'Post', { orderBy: { score: 'asc' } })).toThrow(
       /non-null primary or unique key/,
     );
-    expect(() =>
-      prismaConnectionHelpers(builder, 'Post', { cursor: ['score', 'id'] }),
-    ).not.toThrow();
+  });
+
+  // Postgres `DateTime` is `timestamptz(3)`, which a JavaScript Date holds exactly.
+  it.each([
+    [undefined, true],
+    [6, true],
+    [3, false],
+  ])('pages and identifies by a Date timestamp of precision %s only when it holds the value: %s', (precision, rejected) => {
+    const contract = structuredClone(sampleContract);
+    Object.assign(contract.domain.namespaces.__unbound__.models.Post.fields.createdAt, {
+      type: {
+        codecId: 'pg/timestamptz-date@1',
+        kind: 'scalar',
+        ...(precision === undefined ? {} : { typeParams: { precision } }),
+      },
+    });
+    const builder = new SchemaBuilder<{ PrismaNextContract: typeof contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: noClient, context: buildOnlyContext(contract) },
+    });
+    const page = () => prismaConnectionHelpers(builder, 'Post', { orderBy: { createdAt: 'asc' } });
+    const node = () =>
+      builder.prismaNode('Post', {
+        id: { field: ['createdAt', 'id'] },
+        fields: (t) => ({ title: t.exposeString('title') }),
+      });
+    if (rejected) {
+      expect(page).toThrow(/'Post\.createdAt' .*TimestamptzTemporal/);
+      expect(node).toThrow(/prismaNode 'Post' id\.field .*TimestamptzTemporal/);
+    } else {
+      expect(page).not.toThrow();
+      expect(node).not.toThrow();
+    }
   });
 
   it('rejects a bytes cursor column', () => {
@@ -499,10 +385,10 @@ describe('options validated when the schema is built', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
       relay: {},
-      prismaNext: { client: noClient, contract },
+      prismaNext: { client: noClient, context: buildOnlyContext(contract) },
     });
     expect(() =>
-      prismaConnectionHelpers(builder, 'Entry' as never, { cursor: ['payload', 'id'] as never }),
+      prismaConnectionHelpers(builder, 'Entry' as never, { orderBy: { payload: 'asc' } as never }),
     ).toThrow(/'Entry\.payload'.*bytes/);
   });
 });

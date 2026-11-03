@@ -8,14 +8,14 @@ import {
   PothosValidationError,
   parseCursorConnectionArgs,
 } from '@pothos/core';
-import { deepEqual } from '@pothos/selection-mapper';
 import { and, or } from '@prisma/orm-family-sql/orm-client';
-import { type AnyExpression, OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
-import type { AnyContract } from '../types.js';
+import type { AnyExpression, OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
+import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
+import type { FieldCodecs } from './codecs.js';
 import { getCollectionPaginationState } from './collection-state.js';
 import { resolveContractModel } from './contract.js';
-import { type FieldCodecs, getModelUniqueKeys } from './model.js';
+import { getModelIdentities, truncatedDateProblem } from './model.js';
 
 // The subset of orm-client's `ModelAccessor` used here, without its contract generics.
 interface ComparableColumn {
@@ -28,148 +28,141 @@ interface ComparableColumn {
   desc(options?: { nulls?: 'first' | 'last' }): OrderByItem;
 }
 
-export type RequestOrderBy = (
-  model: Record<string, ComparableColumn>,
-  tools: unknown,
-) => OrderByItem | readonly OrderByItem[];
+type Direction = 'asc' | 'desc';
 
-type CursorField =
-  | string
-  | {
-      field: string;
-      direction?: 'asc' | 'desc';
-      /** Where nulls sort in the forward order. Nullable fields default to last. */
-      nulls?: 'first' | 'last';
-    };
-export type CursorInput = CursorField | readonly CursorField[];
+/** A connection's `orderBy` as written: a direction per column, or `{ direction, nulls }`. */
+export type OrderByDecl = Readonly<
+  Record<string, Direction | { direction?: Direction; nulls?: 'first' | 'last' } | undefined>
+>;
 
-/** A cursor column as `validateCursor` returns it. */
-interface CursorColumnOrder {
+/** One column of a connection's order. Nullable columns always have a null placement. */
+interface OrderColumn {
   readonly field: string;
-  readonly direction: 'asc' | 'desc';
+  readonly direction: Direction;
   readonly nulls?: 'first' | 'last';
 }
 
-export type CursorOrder = readonly CursorColumnOrder[];
+type CursorOrder = readonly OrderColumn[];
 
 export const cursorColumns = (order: CursorOrder): string[] => order.map(({ field }) => field);
 
 const BYTES_CODEC = /\/(bytea|bytes|blob)@/;
 
 /**
- * Validates a cursor spec. The cursor must cover a non-null unique key, so rows with equal sort
- * values are never skipped between pages.
+ * Resolves a connection's `orderBy` to the order it pages by. The model's first non-null key of
+ * orderable columns is appended in the last column's direction, unless the order covers a key
+ * already, so every row has its own position. A literal is checked when the schema is built, and a
+ * callback's result for each request, as a computed key escapes the types.
  */
-export function validateCursor(
+export function connectionOrder(
   contract: AnyContract,
-  modelName: string,
-  cursor: CursorInput,
-): CursorOrder {
-  const entries = (Array.isArray(cursor) ? cursor : [cursor]) as readonly CursorField[];
-  const columns = entries.map((entry) => (typeof entry === 'string' ? { field: entry } : entry));
-  const fields = columns.map(({ field }) => field);
-  if (!fields.length || new Set(fields).size !== fields.length) {
-    throw new PothosSchemaError(
-      'A connection cursor must contain distinct columns and cannot be empty.',
-    );
-  }
-  const model = resolveContractModel(contract, modelName);
-  const keys = getModelUniqueKeys(contract, modelName);
-  if (!model || !keys) {
-    throw new PothosSchemaError(
-      `Connection cursor requires SQL storage metadata for model '${modelName}'.`,
-    );
-  }
-  for (const field of fields) {
-    if (!model.fields[field]) {
-      throw new PothosSchemaError(
-        `Connection cursor '${modelName}.${field}' must be a model field.`,
-      );
+  modelKey: string,
+  orderBy: OrderByDecl | ((args: never, ctx: never) => OrderByDecl | undefined) | undefined,
+): (args: object, ctx: object) => CursorOrder {
+  const model = resolveContractModel(contract, modelKey)!;
+  const problem = (field: string) => {
+    const type = model.fields[field]?.type as { codecId?: string } | undefined;
+    if (!type) {
+      return `'${modelKey}.${field}' is not a field of the model`;
     }
-    const type = model.fields[field].type as { codecId?: string } | undefined;
-    if (type?.codecId && BYTES_CODEC.test(type.codecId)) {
-      throw new PothosSchemaError(
-        `Connection cursor '${modelName}.${field}' is a bytes column, which the ORM can't order. Use a different cursor column.`,
-      );
-    }
-  }
-  const selected = new Set(fields);
-  if (!keys.some((key) => key.every((field) => selected.has(field)))) {
+    return type.codecId && BYTES_CODEC.test(type.codecId)
+      ? `'${modelKey}.${field}' is a bytes column, which the ORM can't order`
+      : truncatedDateProblem(contract, modelKey, field);
+  };
+  const keys = getModelIdentities(contract, modelKey) ?? [];
+  const key = keys.find((columns) => columns.every((field) => !problem(field)));
+  if (!key) {
+    const reason = keys[0]?.map(problem).find(Boolean);
     throw new PothosSchemaError(
-      `Connection cursor for '${modelName}' must include every field of a non-null primary or unique key. Add a unique tie-breaker such as id.`,
+      `Connections of '${modelKey}' page by a non-null primary or unique key of orderable columns, which it doesn't have${reason ? `: ${reason}` : ''}.`,
     );
   }
-  return columns.map(({ field, direction = 'asc', nulls }) => {
-    const placement = nulls ?? (model.fields[field]!.nullable ? 'last' : undefined);
-    return placement ? { field, direction, nulls: placement } : { field, direction };
-  });
+  const resolve = (decl: OrderByDecl | undefined, ErrorClass: new (message: string) => Error) => {
+    const order: OrderColumn[] = [];
+    for (const [field, entry] of Object.entries(decl ?? {})) {
+      if (entry === undefined) {
+        continue;
+      }
+      const reason = problem(field);
+      if (reason) {
+        throw new ErrorClass(`Connection orderBy can't order by ${reason}.`);
+      }
+      const { direction = 'asc', nulls } = typeof entry === 'string' ? { direction: entry } : entry;
+      const placement = nulls ?? (model.fields[field]!.nullable ? 'last' : undefined);
+      order.push(placement ? { field, direction, nulls: placement } : { field, direction });
+    }
+    const named = new Set(cursorColumns(order));
+    if (!keys.some((columns) => columns.every((field) => named.has(field)))) {
+      const direction = order[order.length - 1]?.direction ?? 'asc';
+      for (const field of key.filter((field) => !named.has(field))) {
+        order.push({ field, direction });
+      }
+    }
+    return order;
+  };
+  if (typeof orderBy === 'function') {
+    return (args, ctx) => resolve(orderBy(args as never, ctx as never), Error);
+  }
+  const order = resolve(orderBy, PothosSchemaError);
+  return () => order;
 }
 
 // Values are encoded in their column codec's stored form. Nulls skip the codec.
-function encodeValues(fields: readonly string[], values: readonly unknown[], codecs: FieldCodecs) {
-  const encoded = values.map((value, i) => {
-    const codec = value == null ? undefined : codecs(fields[i]!);
-    return codec ? codec.encode(value) : value;
-  });
+export function encodeValues(
+  fields: readonly string[],
+  values: readonly unknown[],
+  codecs: FieldCodecs,
+) {
+  const encoded = values.map((value, i) =>
+    value == null ? value : codecs(fields[i]!).encode(value),
+  );
   return encoded.length === 1 ? encodeCursorChunk(encoded[0]) : encodeCursorTuple(encoded);
 }
 
-/** A decoding failure. Each caller turns it into an error with its own wording. */
-class DecodeError extends Error {}
-
-function decodeValues(
+/** The values of `fields` in `payload`, or undefined when it doesn't hold them. */
+export function decodeValues(
   fields: readonly string[],
   payload: string,
   codecs: FieldCodecs,
-): Record<string, unknown> {
+): Record<string, unknown> | undefined {
   let decoded: unknown;
   try {
     decoded = decodeCursorChunk(payload);
   } catch {
-    throw new DecodeError('malformed payload');
+    return undefined;
   }
   // Checked against `fields` rather than the decoded shape, as a JSON column can hold an array.
   const values = fields.length === 1 ? [decoded] : decoded;
   if (!Array.isArray(values) || values.length !== fields.length) {
-    throw new DecodeError(
-      `expected ${fields.length} value(s), got ${Array.isArray(values) ? values.length : 1}`,
-    );
+    return undefined;
   }
   const out: Record<string, unknown> = {};
-  fields.forEach((field, i) => {
-    const codec = values[i] == null ? undefined : codecs(field);
-    try {
-      out[field] = codec ? codec.decode(values[i]) : values[i];
-    } catch {
-      throw new DecodeError(`invalid ${field} value`);
-    }
-  });
+  try {
+    fields.forEach((field, i) => {
+      out[field] = values[i] == null ? values[i] : codecs(field).decode(values[i]);
+    });
+  } catch {
+    return undefined;
+  }
   return out;
 }
 
-function rethrowDecodeError(error: unknown, prefix: string): never {
-  throw error instanceof DecodeError
-    ? new PothosValidationError(`${prefix}: ${error.message}.`)
-    : error;
-}
-
 /**
- * Cursors have the form `PNC:<signature>:<chunk>`, and a multi-column cursor's chunk is a `T:`
- * tuple. The signature records the ordering that issued the cursor, so the cursor is only
- * accepted under that ordering.
+ * Cursors have the form `PNC:<hash>:<chunk>`, and a multi-column cursor's chunk is a `T:` tuple.
+ * The hash is of the ordered column names alone, so a cursor from an order over other columns is
+ * refused, and one from the same columns in other directions still pages. It tells orders apart
+ * and is not tamper protection: the values are only base64 encoded.
  */
 const CURSOR_PREFIX = 'PNC:';
 
-/**
- * Encodes each cursor column's name, direction (`a` or `d`) and null placement (`f`, `l` or none),
- * so `title.a,id.dl` means `title asc`, then `id desc` with nulls last. A request's `orderBy` can
- * change the direction and placement, and the same values point to a different position under
- * another ordering.
- */
-function orderingSignature(order: CursorOrder): string {
-  return order
-    .map(({ field, direction, nulls }) => `${field}.${direction[0]}${nulls?.[0] ?? ''}`)
-    .join(',');
+// 32-bit FNV-1a.
+function columnsHash(order: CursorOrder): string {
+  const text = cursorColumns(order).join(',');
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
 }
 
 function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: FieldCodecs) {
@@ -177,97 +170,38 @@ function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: 
   const values = fields.map((field) => {
     // A missing column would encode as null and page from the wrong position.
     if (row[field] === undefined) {
-      throw new PothosValidationError(
+      throw new Error(
         `Cannot encode a cursor: the row is missing cursor column '${field}'. Select the cursor columns on the paginated collection.`,
       );
     }
     return row[field];
   });
   return encodeBase64(
-    `${CURSOR_PREFIX}${orderingSignature(order)}:${encodeValues(fields, values, codecs)}`,
+    `${CURSOR_PREFIX}${columnsHash(order)}:${encodeValues(fields, values, codecs)}`,
   );
 }
 
 /**
- * With `checkOrdering: false`, a cursor issued under any ordering is accepted. Callers pass it
- * before the request's `orderBy` is known and check the ordering once it is.
+ * Decodes a cursor boundary. A null is only valid on a column with a null placement. The message
+ * never echoes the payload, which logs often capture verbatim.
  */
 function decodeCursor(
   order: CursorOrder,
   value: string,
   codecs: FieldCodecs,
-  { checkOrdering = true }: { checkOrdering?: boolean } = {},
 ): Record<string, unknown> {
-  // Messages never echo the payload, which logs often capture verbatim.
-  let payload: string;
+  let payload: string | undefined;
   try {
     payload = decodeBase64(value);
-  } catch {
-    throw new PothosValidationError('Invalid cursor: not valid base64.');
+  } catch {}
+  const prefix = `${CURSOR_PREFIX}${columnsHash(order)}:`;
+  const values = payload?.startsWith(prefix)
+    ? decodeValues(cursorColumns(order), payload.slice(prefix.length), codecs)
+    : undefined;
+  if (!values || order.some(({ field, nulls }) => values[field] === null && !nulls)) {
+    throw new PothosValidationError('Invalid cursor.');
   }
-  if (!payload.startsWith(CURSOR_PREFIX)) {
-    throw new PothosValidationError('Invalid cursor: not a cursor from this plugin.');
-  }
-  const separator = payload.indexOf(':', CURSOR_PREFIX.length);
-  const signature = separator === -1 ? '' : payload.slice(CURSOR_PREFIX.length, separator);
-  if (!/^[^.,]+\.[ad][fl]?(?:,[^.,]+\.[ad][fl]?)*$/.test(signature)) {
-    throw new PothosValidationError('Invalid cursor: missing or malformed ordering signature.');
-  }
-  if (checkOrdering && signature !== orderingSignature(order)) {
-    throw new PothosValidationError(
-      'Invalid cursor: it was issued under a different ordering of this connection. Request the first page again with the new ordering.',
-    );
-  }
-  try {
-    return decodeValues(cursorColumns(order), payload.slice(separator + 1), codecs);
-  } catch (error) {
-    return rethrowDecodeError(error, 'Invalid cursor');
-  }
-}
-
-/** Tags node IDs that aren't plain strings, so they decode back to their own type. */
-const ID_PREFIX = 'PNI:';
-
-export function encodeNodeId(
-  modelName: string,
-  fields: readonly string[],
-  row: Record<string, unknown>,
-  codecs: FieldCodecs,
-): string {
-  const values = fields.map((field) => {
-    if (row[field] == null) {
-      throw new PothosValidationError(
-        `prismaNode '${modelName}' row is missing id field '${field}'.`,
-      );
-    }
-    return row[field];
-  });
-  const payload = encodeValues(fields, values, codecs);
-  // A string stays readable unless it could be mistaken for a tagged payload.
-  return payload.startsWith('S:') && !payload.startsWith(`S:${ID_PREFIX}`)
-    ? payload.slice(2)
-    : `${ID_PREFIX}${payload}`;
-}
-
-/** Decodes a node ID. Returns a tuple of the values of `fields` when `tuple` is set. */
-export function parseNodeId(
-  modelName: string,
-  fields: readonly string[],
-  id: string,
-  codecs: FieldCodecs,
-  { tuple }: { tuple: boolean },
-): unknown {
-  let values: Record<string, unknown>;
-  try {
-    values = decodeValues(
-      fields,
-      id.startsWith(ID_PREFIX) ? id.slice(ID_PREFIX.length) : encodeCursorChunk(id),
-      codecs,
-    );
-  } catch (error) {
-    return rethrowDecodeError(error, `Invalid prismaNode '${modelName}' ID`);
-  }
-  return tuple ? fields.map((field) => values[field]) : values[fields[0]!];
+  return values;
 }
 
 // Compares rows with the cursor lexicographically. Each OR clause requires the earlier columns to
@@ -292,7 +226,7 @@ function buildLexicographicPredicate(
       let comparison: unknown;
       if (v === null) {
         // Nothing lies beyond a null boundary when nulls sort beyond it, and every non-null row
-        // does otherwise. `decodeBoundary` only accepts a null on a column with a null placement.
+        // does otherwise. `decodeCursor` only accepts a null on a column with a null placement.
         comparison = nullsBeyond
           ? and(col.isNull() as never, col.isNotNull() as never)
           : col.isNotNull();
@@ -308,213 +242,99 @@ function buildLexicographicPredicate(
   };
 }
 
-interface CursorPaginationParams {
+/** How a connection pages for one request: its order, column codecs and page sizes. */
+export interface CursorPlan {
   order: CursorOrder;
-  before: string | undefined;
-  after: string | undefined;
-  limit: number;
-  expectedSize: number;
-  inverted: boolean;
-  codecs: FieldCodecs;
-  hasNextPage: (resultSize: number) => boolean;
-  hasPreviousPage: (resultSize: number) => boolean;
-}
-
-interface CursorPaginationResult<C extends MapperCollection> extends CursorPaginationParams {
-  collection: C;
-}
-
-interface PaginationOptions {
   codecs: FieldCodecs;
   defaultSize?: number;
   maxSize?: number;
 }
 
-export function buildPaginationParams(
-  order: CursorOrder,
+interface CursorPaginationParams extends CursorPlan {
+  before: string | undefined;
+  after: string | undefined;
+  limit: number;
+  expectedSize: number;
+  inverted: boolean;
+  hasNextPage: (resultSize: number) => boolean;
+  hasPreviousPage: (resultSize: number) => boolean;
+}
+
+function buildPaginationParams(
+  plan: CursorPlan,
   args: PothosSchemaTypes.DefaultConnectionArguments,
-  options: PaginationOptions,
 ): CursorPaginationParams {
   return {
-    ...parseCursorConnectionArgs({
-      args,
-      defaultSize: options.defaultSize,
-      maxSize: options.maxSize,
-    }),
-    order,
-    codecs: options.codecs,
+    ...parseCursorConnectionArgs({ args, defaultSize: plan.defaultSize, maxSize: plan.maxSize }),
+    ...plan,
   };
 }
 
-/** Connection bases may be ordered, but cannot carry a limit, offset, cursor, or distinct. */
-export function assertUnpaginatedCollection(collection: unknown): void {
-  const { paginated, distinct } = getCollectionPaginationState(collection);
-  if (paginated) {
-    throw new PothosValidationError(
-      'Connection resolvers must return an unpaginated Collection without cursor(), limit(), or offset().',
+/**
+ * The connection orders, filters past the cursor and limits the collection, so one that is
+ * already ordered, limited or distinct would page silently wrong.
+ */
+function assertBareCollection(collection: unknown): void {
+  const { orderBy, paginated, distinct } = getCollectionPaginationState(collection);
+  if (orderBy.length || paginated) {
+    throw new Error(
+      "Connection resolvers must return an unordered, unpaginated Collection without orderBy(), cursor(), limit(), or offset(). Use the connection's orderBy option to order it.",
     );
   }
   if (distinct) {
-    throw new PothosValidationError(
+    throw new Error(
       'Connection resolvers cannot return a Collection with distinct() or distinctOn(): the rows a page keeps would depend on the columns the selection adds.',
     );
   }
 }
 
-/**
- * Applies a request's `orderBy` to the cursor ordering. Columns it doesn't name keep their default
- * direction and null placement.
- */
-function applyOrderByOption(
-  base: MapperCollection,
-  order: CursorOrder,
-  orderBy: RequestOrderBy,
-): CursorOrder {
-  const cols = cursorColumns(order);
-  let items: readonly OrderByItem[] = [];
-  // Called only to run the callback with the ORM's column accessors. The result is discarded.
-  base.orderBy((c: Record<string, ComparableColumn>, tools: unknown) => {
-    const selected = orderBy(c, tools);
-    items = selected instanceof OrderByItem ? [selected] : selected;
-    if (
-      items.length > cols.length ||
-      items.some(
-        (item, i) =>
-          !(item instanceof OrderByItem) || !deepEqual(item.expr, c[cols[i]!]!.asc().expr),
-      )
-    ) {
-      throw new PothosValidationError(
-        `Connection orderBy must order by the cursor's columns in cursor order (${cols.join(', ')}).`,
-      );
-    }
-    return c[cols[0]!]!.asc();
-  });
-  return order.map((column, i) => {
-    const item = items[i];
-    if (!item) {
-      return column;
-    }
-    const nulls = item.nulls ?? column.nulls;
-    return { field: column.field, direction: item.dir, ...(nulls ? { nulls } : {}) };
-  });
-}
-
-/** Decodes a cursor boundary. A null is only valid on a column with a null placement. */
-function decodeBoundary(
-  order: CursorOrder,
-  value: string,
-  codecs: FieldCodecs,
-  options?: { checkOrdering?: boolean },
-): Record<string, unknown> {
-  const boundary = decodeCursor(order, value, codecs, options);
-  for (const { field, nulls } of order) {
-    if (boundary[field] === null && !nulls) {
-      throw new PothosValidationError(`Invalid cursor: invalid ${field} value.`);
-    }
-  }
-  return boundary;
-}
-
 function applyToCollection<C extends MapperCollection>(
   baseCollection: C,
-  params: CursorPaginationParams,
-  checkOrdering: boolean,
+  { order, before, after, limit, inverted, codecs }: CursorPaginationParams,
 ): C {
-  const { order, before, after, limit, inverted, codecs } = params;
-
-  const orderSelectors = order.map(
-    ({ field, direction, nulls }) =>
-      (c: Record<string, ComparableColumn>) => {
-        const forward = c[field]![direction](nulls ? { nulls } : undefined);
-        return inverted ? forward.reverse() : forward;
-      },
+  let collection = baseCollection.orderBy(
+    order.map(({ field, direction, nulls }) => (c: Record<string, ComparableColumn>) => {
+      const forward = c[field]![direction](nulls ? { nulls } : undefined);
+      return inverted ? forward.reverse() : forward;
+    }),
   );
-  // orderBy() appends and can't be reset, so only the entries missing from the existing
-  // prefix are added.
-  const existing = getCollectionPaginationState(baseCollection).orderBy;
-  const ordered = baseCollection.orderBy(
-    orderSelectors.length === 1 ? orderSelectors[0]! : orderSelectors,
-  );
-  const expected = getCollectionPaginationState(ordered).orderBy.slice(existing.length);
-  if (
-    existing.length > expected.length ||
-    existing.some((item, i) => !(item instanceof OrderByItem) || !deepEqual(item, expected[i]))
-  ) {
-    throw new PothosValidationError(
-      'Connection Collection orderBy() must match a prefix of the cursor ordering for this page direction, and nullable cursor columns must specify the same `nulls` placement. Backward pagination requires reversed ordering; return an unordered Collection to support both directions.',
-    );
-  }
-  const withOrder =
-    existing.length === 0
-      ? ordered
-      : existing.length === expected.length
-        ? baseCollection
-        : baseCollection.orderBy(orderSelectors.slice(existing.length));
-
   // The ORM's `cursor()` takes one boundary in the order's direction and can't place nulls, so
   // the boundaries are applied as filters.
-  let collection: MapperCollection = withOrder;
   if (after) {
     collection = collection.where(
-      buildLexicographicPredicate(
-        order,
-        decodeBoundary(order, after, codecs, { checkOrdering }),
-        'gt',
-      ),
+      buildLexicographicPredicate(order, decodeCursor(order, after, codecs), 'gt'),
     );
   }
   if (before) {
     collection = collection.where(
-      buildLexicographicPredicate(
-        order,
-        decodeBoundary(order, before, codecs, { checkOrdering }),
-        'lt',
-      ),
+      buildLexicographicPredicate(order, decodeCursor(order, before, codecs), 'lt'),
     );
   }
   return collection.limit(limit) as C;
 }
 
-/**
- * Throws what pagination would throw for `args`, without a collection. A request's `orderBy` only
- * runs against a collection, so a connection whose ordering can change passes
- * `checkOrdering: false` here and checks the ordering once it is known.
- */
+/** Throws what pagination would throw for `args`, without a collection. */
 export function validateCursorArgs(
-  order: CursorOrder,
+  plan: CursorPlan,
   args: PothosSchemaTypes.DefaultConnectionArguments,
-  codecs: FieldCodecs,
-  options?: { checkOrdering?: boolean },
 ): void {
-  const { before, after } = buildPaginationParams(order, args, { codecs });
+  const { before, after, order, codecs } = buildPaginationParams(plan, args);
   if (after) {
-    decodeBoundary(order, after, codecs, options);
+    decodeCursor(order, after, codecs);
   }
   if (before) {
-    decodeBoundary(order, before, codecs, options);
+    decodeCursor(order, before, codecs);
   }
 }
 
+/** Orders `baseCollection`, filters it past the cursors and limits it to the page. */
 export function applyCursorPagination<C extends MapperCollection>(
   baseCollection: C,
-  order: CursorOrder,
+  plan: CursorPlan,
   args: PothosSchemaTypes.DefaultConnectionArguments,
-  options: PaginationOptions & {
-    orderBy?: RequestOrderBy | undefined;
-    /** False accepts a cursor from any ordering. The caller then checks the ordering itself. */
-    checkOrdering?: boolean;
-  },
-): CursorPaginationResult<C> {
-  assertUnpaginatedCollection(baseCollection);
-  const params = buildPaginationParams(
-    options.orderBy ? applyOrderByOption(baseCollection, order, options.orderBy) : order,
-    args,
-    options,
-  );
-  return {
-    ...params,
-    collection: applyToCollection(baseCollection, params, options.checkOrdering ?? true),
-  };
+): C {
+  assertBareCollection(baseCollection);
+  return applyToCollection(baseCollection, buildPaginationParams(plan, args));
 }
 
 interface PageInfo {
@@ -528,6 +348,9 @@ export interface ConnectionPage<Row> {
   edges: Array<{ node: Row; cursor: string }>;
   pageInfo: PageInfo;
   totalCount?: number;
+  /** The connection field's parent and arguments, as the sibling plugins pass them. */
+  parent?: unknown;
+  args?: PothosSchemaTypes.DefaultConnectionArguments;
 }
 
 /**
@@ -536,9 +359,11 @@ export interface ConnectionPage<Row> {
  */
 export function buildConnectionPage<Row extends Record<string, unknown>>(
   rows: readonly Row[],
-  pagination: CursorPaginationParams,
-  totalCount?: number,
+  plan: CursorPlan,
+  args: PothosSchemaTypes.DefaultConnectionArguments,
+  { totalCount, parent }: Pick<ConnectionPage<Row>, 'totalCount' | 'parent'> = {},
 ): ConnectionPage<Row> {
+  const pagination = buildPaginationParams(plan, args);
   const needsCopy = pagination.inverted || rows.length > pagination.expectedSize;
   const trimmed: Row[] = needsCopy ? rows.slice(0, pagination.expectedSize) : (rows as Row[]);
   const ordered = pagination.inverted ? trimmed.reverse() : trimmed;
@@ -558,6 +383,8 @@ export function buildConnectionPage<Row extends Record<string, unknown>>(
   });
 
   return {
+    parent,
+    args,
     edges,
     // Lazy as well, so a row whose cursor can't be encoded only fails a client that selects it.
     pageInfo: {

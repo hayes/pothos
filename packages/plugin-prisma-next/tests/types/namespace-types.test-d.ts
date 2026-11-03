@@ -5,16 +5,17 @@ import type { NamespaceId } from '@prisma/orm-framework/contract/types';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type CollectionFor,
-  type ModelName,
+  type ModelKey,
   prismaConnectionHelpers,
   type Row,
 } from '../../src';
 import type { Contract as SampleContract } from '../fixtures/sample-contract';
+import type { Contract as InheritanceContract } from '../inheritance-namespaces/contract';
 import type { Contract } from '../namespaces/contract';
 
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
 
-expectTypeOf<ModelName<Types>>().toEqualTypeOf<'nsa.User' | 'nsb.User' | 'Post' | 'Org'>();
+expectTypeOf<ModelKey<Types>>().toEqualTypeOf<'nsa.User' | 'nsa.Post' | 'nsa.Org' | 'nsb.User'>();
 expectTypeOf<Row<Types, 'nsb.User'>>().toEqualTypeOf<{ id: string; name: string }>();
 expectTypeOf<Row<Types, 'nsa.User'>>().toEqualTypeOf<{ id: number; orgId: number }>();
 
@@ -28,12 +29,14 @@ declare const orm: {
   nsb: { User: CollectionFor<Types, 'nsb.User'> };
 };
 
-// @ts-expect-error a bare name that several namespaces share is ambiguous
+// @ts-expect-error a bare name isn't a key in a contract with several namespaces
 builder.prismaObject('User', { fields: () => ({}) });
 // @ts-expect-error only the contract's model keys are accepted
 builder.prismaObject('nsa.Nope', { fields: () => ({}) });
-// @ts-expect-error a qualified name is only valid for a shared model name
-builder.prismaObject('nsa.Post', { fields: () => ({}) });
+// @ts-expect-error every key is qualified in a contract with several namespaces, even a unique name
+builder.prismaObject('Post', { fields: () => ({}) });
+// @ts-expect-error `Post` is only in `nsa`
+builder.prismaObject('nsb.Post', { fields: () => ({}) });
 
 builder.prismaObject('nsb.User', {
   fields: (t) => ({
@@ -51,7 +54,7 @@ builder.prismaObject('nsa.User', {
     name: t.exposeString('name'),
   }),
 });
-builder.prismaObject('Post', {
+builder.prismaObject('nsa.Post', {
   select: { user: true },
   fields: (t) => ({
     user: t.relation('user', { query: { where: (user) => user.orgId.eq(1) } }),
@@ -67,12 +70,11 @@ builder.prismaObject('Post', {
     }),
   }),
 });
-builder.prismaObject('Org', {
+builder.prismaObject('nsa.Org', {
   fields: (t) => ({
     users: t.relatedConnection('users', {
-      cursor: 'id',
+      orderBy: { orgId: 'asc' },
       query: {
-        orderBy: (user) => user.orgId.asc(),
         where: (user, tools) => {
           expectTypeOf(tools).toEqualTypeOf<ModelCallbackTools<Contract, 'User', 'nsa'>>();
           // @ts-expect-error `name` is a column of the other namespace's User
@@ -88,7 +90,6 @@ builder.prismaObject('Org', {
       },
     }),
     badOrder: t.relatedConnection('users', {
-      cursor: 'id',
       // @ts-expect-error `name` is a column of the other namespace's User
       query: { orderBy: (user) => user.name.asc() },
     }),
@@ -103,16 +104,49 @@ builder.queryType({
     extra: t.prismaField({ type: ['nsa.User'], resolve: () => orm.nsa.User, nope: 1 }),
     // @ts-expect-error the other namespace's collection returns a different model
     b: t.prismaField({ type: ['nsb.User'], resolve: () => orm.nsa.User }),
+    bPage: t.prismaConnection({
+      type: 'nsb.User',
+      // @ts-expect-error the other namespace's collection returns a different model
+      resolve: () => orm.nsa.User,
+    }),
   }),
 });
+builder.prismaNode('nsb.User', {
+  name: 'NsbNode',
+  id: { field: 'id' },
+  collection: () => orm.nsb.User,
+  fields: () => ({}),
+});
+builder.prismaNode('nsb.User', {
+  name: 'WrongNsbNode',
+  id: { field: 'id' },
+  // @ts-expect-error `M` comes from the model key, so the other namespace's collection can't widen it
+  collection: () => orm.nsa.User,
+  fields: () => ({}),
+});
+builder.prismaNode('nsb.User', {
+  name: 'PlainCollectionNode',
+  id: { field: 'id' },
+  // @ts-expect-error `collection` is a function, so it can't stay bound to the build-time client
+  collection: orm.nsb.User,
+  fields: () => ({}),
+});
 prismaConnectionHelpers(builder, 'nsa.User', {
-  cursor: 'id',
   query: { where: (user) => user.orgId.eq(1) },
 });
 prismaConnectionHelpers(builder, 'nsb.User', {
-  cursor: 'id',
   // @ts-expect-error `orgId` belongs to the other namespace's User
   query: { where: (user) => user.orgId.eq(1) },
+});
+const nsbUsers = prismaConnectionHelpers(builder, 'nsb.User', {});
+nsbUsers.applyPagination(orm.nsb.User, {}, {});
+// @ts-expect-error the helper is for the other namespace's User
+nsbUsers.applyPagination(orm.nsa.User, {}, {});
+
+builder.prismaObject('nsa.Post', {
+  variant: 'LimitedNamespacedSelect',
+  // @ts-expect-error a to-one relation in a type's select takes only true under a qualified key too
+  select: { user: { limit: 1 } },
 });
 
 // Every generated namespace reference relocated, so default-namespace assumptions can't pass.
@@ -137,8 +171,11 @@ const tenant = new SchemaBuilder<{ PrismaNextContract: TenantContract }>({
   prismaNext: { client: null as never },
 });
 expectTypeOf<Row<TenantTypes, 'Post'>['score']>().toEqualTypeOf<number | null>();
+// A single named namespace keeps bare keys, and its qualified form isn't one.
+expectTypeOf<ModelKey<TenantTypes>>().toEqualTypeOf<'Comment' | 'Post' | 'PostView' | 'User'>();
+// @ts-expect-error a contract with one namespace has bare keys
+tenant.prismaObject('tenant.Post', { fields: () => ({}) });
 prismaConnectionHelpers(tenant, 'Post', {
-  cursor: 'id',
   query: {
     where: (post) => {
       // @ts-expect-error accessors keep numeric scalar types outside the default namespace
@@ -158,6 +195,89 @@ tenant.prismaObject('User', {
         },
       },
     }),
-    score: t.relationAggregate('posts', { op: 'sum', field: 'score' }),
+    score: t.float({
+      nullable: true,
+      select: { posts: (posts) => ({ score: posts.sum('score') }) },
+      resolve: (user) => {
+        expectTypeOf(user.score).toEqualTypeOf<number | null>();
+        return user.score;
+      },
+    }),
+  }),
+});
+
+// Both `Task` hierarchies given one variant value, so only the namespace tells their `Bug`s apart.
+type RenameVariant<T> = T extends string
+  ? T
+  : T extends readonly unknown[]
+    ? { [K in keyof T]: RenameVariant<T[K]> }
+    : T extends (...args: never[]) => unknown
+      ? T
+      : T extends object
+        ? { [K in keyof T as K extends 'b' ? 'bug' : K]: RenameVariant<T[K]> }
+        : T;
+type SameValueContract = RenameVariant<InheritanceContract>;
+type SameValueTypes = PothosSchemaTypes.ExtendDefaultTypes<{
+  PrismaNextContract: SameValueContract;
+}>;
+const sameValue = new SchemaBuilder<{ PrismaNextContract: SameValueContract }>({
+  plugins: [RelayPlugin, prismaNextPlugin],
+  relay: {},
+  prismaNext: { client: null as never },
+});
+declare const sameValueOrm: {
+  inha: { Task: CollectionFor<SameValueTypes, 'inha.Task'> };
+  inhb: { Task: CollectionFor<SameValueTypes, 'inhb.Task'> };
+};
+const inhaBug = sameValueOrm.inha.Task.variant('bug');
+const inhbBug = sameValueOrm.inhb.Task.variant('bug');
+expectTypeOf(inhaBug.modelName).toEqualTypeOf(inhbBug.modelName);
+sameValue.prismaNode('inha.Bug', {
+  name: 'ABug',
+  id: { field: 'id' },
+  collection: () => inhaBug,
+  fields: () => ({}),
+});
+sameValue.prismaNode('inhb.Bug', {
+  name: 'BBug',
+  id: { field: 'id' },
+  collection: () => inhbBug,
+  fields: () => ({}),
+});
+sameValue.prismaNode('inha.Bug', {
+  name: 'CrossedBug',
+  id: { field: 'id' },
+  // @ts-expect-error the same model name and variant value in another namespace
+  collection: () => inhbBug,
+  fields: () => ({}),
+});
+sameValue.queryType({
+  fields: (t) => ({
+    bugs: t.prismaField({ type: ['inha.Bug'], resolve: () => inhaBug }),
+    // @ts-expect-error the same model name and variant value in another namespace
+    crossed: t.prismaField({ type: ['inha.Bug'], resolve: () => inhbBug }),
+    // A variant loads through its base, whose namespace can differ from its own.
+    chores: t.prismaField({
+      type: ['inhb.Chore'],
+      resolve: () => sameValueOrm.inha.Task.variant('chore'),
+    }),
+  }),
+});
+
+// A select function's collection is the related model's, in its own namespace.
+builder.prismaObject('nsa.Org', {
+  variant: 'OrgSelectFunctions',
+  fields: (t) => ({
+    members: t.int({
+      select: { users: (sub) => ({ members: sub.where({ orgId: 1 }).count() }) },
+      resolve: (org) => org.members,
+    }),
+    nsbColumn: t.int({
+      select: {
+        // @ts-expect-error `name` is a column of `nsb.User`, not of `nsa.User`
+        users: (sub) => ({ named: sub.where({ name: 'x' }).count() }),
+      },
+      resolve: () => 0,
+    }),
   }),
 });

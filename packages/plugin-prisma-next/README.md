@@ -91,7 +91,6 @@ A related connection:
 // Pages through the relation inside the query that loads the user.
 builder.prismaObjectField('User', 'postConnection', (t) =>
   t.relatedConnection('posts', {
-    cursor: 'id',
     query: { where: { published: 1 } },
     totalCount: true,
   }),
@@ -112,18 +111,17 @@ A root connection, ordered per request:
 ```ts
 posts: t.prismaConnection({
   type: 'Post',
-  cursor: 'id',
   totalCount: true,
   args: { newestFirst: t.arg.boolean() },
-  // Chooses the direction per request; the plugin reverses it for backward pages.
-  orderBy: (args) => (post) => (args.newestFirst ? post.id.desc() : post.id.asc()),
+  // Chooses the order per request; the plugin reverses it for backward pages.
+  orderBy: (args) => ({ createdAt: args.newestFirst ? 'desc' : 'asc' }),
   resolve: () => db.orm.Post.where({ published: 1 }),
 }),
 ```
 
 PostgreSQL and SQLite are supported, MySQL supports reads only (not covered by CI), and MongoDB is
-not supported. Execute operations with a context object (`contextValue`), because the plugin
-keeps per-request state on it.
+not supported. A context object is required: execute every operation with one (`contextValue`),
+because the plugin keeps per-request state on it.
 
 See the [Prisma Next plugin docs](https://pothos-graphql.dev/docs/plugins/prisma-next) for the
 full documentation.

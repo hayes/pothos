@@ -136,11 +136,11 @@ describe('rows a resolver returns', () => {
 describe('rows the plugin loaded', () => {
   function helperSchema(
     configure: (builder: ReturnType<typeof createBuilder>) => void,
-    onRows: (rows: readonly { id: string }[]) => void,
+    onRows: (rows: readonly { id: string; posts?: readonly object[] }[]) => void,
   ) {
     const builder = createBuilder();
     configure(builder);
-    const helper = prismaConnectionHelpers(builder, 'User', { cursor: 'id' });
+    const helper = prismaConnectionHelpers(builder, 'User', {});
     builder.queryType({
       fields: (t) => ({
         users: t.connection({
@@ -176,6 +176,39 @@ describe('rows the plugin loaded', () => {
     expect(result.data.users.nodes).toEqual([
       { label: 'cached u-alice' },
       { label: 'cached u-bob' },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('keeps the identity of loaded rows and their relations when nothing was combined', async () => {
+    const loaded = new WeakSet<object>();
+    const schema = helperSchema(
+      (builder) => {
+        builder.prismaObject('User', {
+          select: { posts: true },
+          fields: (t) => ({
+            same: t.boolean({ resolve: (user) => loaded.has(user) }),
+            posts: t.relation('posts'),
+          }),
+        });
+        builder.prismaObject('Post', {
+          fields: (t) => ({ same: t.boolean({ resolve: (post) => loaded.has(post) }) }),
+        });
+      },
+      (rows) => {
+        for (const row of rows) {
+          loaded.add(row);
+          for (const post of row.posts ?? []) {
+            loaded.add(post);
+          }
+        }
+      },
+    );
+    const result = await run(schema, '{ users { nodes { same posts { same } } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users.nodes).toEqual([
+      { same: true, posts: [{ same: true }, { same: true }] },
+      { same: true, posts: [{ same: true }, { same: true }] },
     ]);
     expect(result.statements).toHaveLength(1);
   });
@@ -355,7 +388,6 @@ describe('rows the plugin loaded', () => {
       fields: (t) => ({
         total: t.int({ resolve: (user) => user.total }),
         postsPage: t.relatedConnection('posts', {
-          cursor: 'id',
           query: { where: { published: 1 } },
           totalCount: true,
         }),
@@ -374,7 +406,6 @@ describe('rows the plugin loaded', () => {
         posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }),
         page: t.prismaConnection({
           type: 'User',
-          cursor: 'id',
           totalCount: true,
           resolve: () => db.orm.User,
         }),
@@ -418,7 +449,7 @@ describe('model members named like plugin slots', () => {
       fields: (t) => ({
         count: t.exposeInt('count', { nullable: true }),
         rowsRel: t.relation('rows'),
-        notes: t.relatedConnection('notes', { cursor: 'id', totalCount: true }),
+        notes: t.relatedConnection('notes', { totalCount: true }),
         meta: t.string({
           nullable: true,
           select: ['meta'],

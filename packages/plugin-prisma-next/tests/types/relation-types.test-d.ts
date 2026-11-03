@@ -5,6 +5,7 @@ import type {
   Collection,
   DefaultModelRow,
 } from '@prisma/orm-family-sql/orm-client';
+import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type RelatedModel,
@@ -13,7 +14,7 @@ import prismaNextPlugin, {
   type RelationWhere,
   type SelectObjectSpec,
 } from '../../src';
-import type { SelectCheck } from '../../src/internal-types';
+import type { SelectCheck } from '../../src/types/selections';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -87,6 +88,7 @@ builder.prismaObject('User', {
       resolve: () => [],
     }),
     count: t.relationCount('posts'),
+    // @ts-expect-error a count is never null
     nullableCount: t.relationCount('posts', { nullable: true }),
     publishedCount: t.relationCount('posts', { where: { published: 1 } }),
     countByFlag: t.relationCount('posts', {
@@ -120,7 +122,7 @@ builder.prismaObject('Post', {
       },
     }),
     // @ts-expect-error relatedConnection takes a to-many relation
-    authorPage: t.relatedConnection('author', { cursor: 'id' }),
+    authorPage: t.relatedConnection('author', {}),
     // A to-one relation has no function form: it needs combine(), which only to-many relations
     // have.
     authorName: t.string({
@@ -149,19 +151,43 @@ type AuthorFunctionForm = Extract<
   (...args: never[]) => unknown
 >;
 expectTypeOf<AuthorFunctionForm>().toHaveProperty(
-  'To-one relations take true or { where, orderBy, limit, offset }, not a function',
+  'To-one relations take true or { where }, not a function',
 );
 expectTypeOf<AuthorFunctionForm>().parameter(0).toEqualTypeOf<AuthorFunctionForm>();
 
 // The select check's error names the accepted forms for a to-one function only.
 expectTypeOf<SelectCheck<Types, 'Post', { author: () => {} }>>().toEqualTypeOf<{
-  'Invalid value in select: author': 'To-one relations take true or { where, orderBy, limit, offset }, not a function';
+  'Invalid value in select: author': 'To-one relations take true or { where }, not a function';
 }>();
-expectTypeOf<SelectCheck<Types, 'Post', { author: { limit: 'x' } }>>().toEqualTypeOf<{
-  'Invalid value in select: author': never;
-}>();
+// A to-one relation loads one row, so `where` is its only option.
+expectTypeOf<keyof SelectCheck<Types, 'Post', { author: { limit: 1 } }>>().toEqualTypeOf<
+  'Unknown key in select: author.limit' | 'Invalid value in select: author'
+>();
 expectTypeOf<SelectCheck<Types, 'User', { posts: (sub: never) => never }>>().toEqualTypeOf<{
   'Invalid value in select: posts': never;
+}>();
+// A computed key's error is on the entry's result, so the default output names the key and reason.
+expectTypeOf<SelectCheck<Types, 'Post', { comments: () => { title: never } }>>().toEqualTypeOf<{
+  readonly comments: (sub: never) => { readonly title: 'Computed key names a column or relation' };
+}>();
+expectTypeOf<
+  SelectCheck<Types, 'Post', { comments: () => Record<string, never> }>
+>().toEqualTypeOf<{
+  readonly comments: (
+    sub: never,
+  ) => 'Computed keys must be literal: a union-typed or generic key widens to string';
+}>();
+// A `string` key is reported on its own entry, without blaming another entry's literal keys.
+expectTypeOf<
+  SelectCheck<
+    Types,
+    'User',
+    { posts: () => Record<string, never>; comments: () => { total: never } }
+  >
+>().toEqualTypeOf<{
+  readonly posts: (
+    sub: never,
+  ) => 'Computed keys must be literal: a union-typed or generic key widens to string';
 }>();
 
 builder.prismaObject('User', {
@@ -201,77 +227,31 @@ builder.prismaObject('User', {
   }),
 });
 
-// Aggregates: the op and field come from the contract; `type` picks a lossless result scalar.
+// Counts are `Int`, and `where` takes a shorthand filter or a callback of the args and context.
 builder.prismaObject('User', {
   variant: 'Aggregates',
   fields: (t) => {
-    const count = t.relationAggregate('posts', { op: 'count' });
-    const countField = t.relationAggregate('posts', { op: 'count', field: 'title' });
-    const nullableCount = t.relationAggregate('posts', { op: 'count', nullable: true });
-    const sum = t.relationAggregate('posts', { op: 'sum', field: 'published' });
-    const avg = t.relationAggregate('posts', { op: 'avg', field: 'score' });
-    const requiredSum = t.relationAggregate('posts', {
-      op: 'sum',
-      field: 'score',
-      nullable: false,
-    });
-    const countBigInt = t.relationAggregate('posts', { op: 'countBigInt', type: 'BigInt' });
-    const sumBigInt = t.relationAggregate('posts', {
-      op: 'sumBigInt',
-      field: 'published',
-      type: 'BigInt',
-    });
-    const minText = t.relationAggregate('posts', { op: 'min', field: 'title', type: 'String' });
-    expectTypeOf(t.relationCount('posts').$inferType).toEqualTypeOf<number>();
-    expectTypeOf(t.relationCount('posts', { nullable: true }).$inferType).toEqualTypeOf<
-      number | null
-    >();
+    const count = t.relationCount('posts');
     expectTypeOf(count.$inferType).toEqualTypeOf<number>();
-    expectTypeOf(countField.$inferType).toEqualTypeOf<number>();
-    expectTypeOf(nullableCount.$inferType).toEqualTypeOf<number | null>();
-    expectTypeOf(sum.$inferType).toEqualTypeOf<number | null>();
-    expectTypeOf(avg.$inferType).toEqualTypeOf<number | null>();
-    expectTypeOf(requiredSum.$inferType).toEqualTypeOf<number>();
-    expectTypeOf(countBigInt.$inferType).toEqualTypeOf<bigint>();
-    expectTypeOf(sumBigInt.$inferType).toEqualTypeOf<bigint | null>();
-    expectTypeOf(minText.$inferType).toEqualTypeOf<string | null>();
-    // @ts-expect-error `sum` needs a field
-    t.relationAggregate('posts', { op: 'sum' });
-    // @ts-expect-error `title` isn't numeric
-    t.relationAggregate('posts', { op: 'sum', field: 'title' });
-    // @ts-expect-error `nope` isn't a column
-    t.relationAggregate('posts', { op: 'count', field: 'nope' });
-    // @ts-expect-error lossless results need a GraphQL scalar that accepts bigint
-    t.relationAggregate('posts', { op: 'countBigInt' });
-    // @ts-expect-error Float can't serialize bigint without a lossy conversion
-    t.relationAggregate('posts', { op: 'countBigInt', type: 'Float' });
-    // @ts-expect-error SQLite does not declare avgDecimal
-    t.relationAggregate('posts', { op: 'avgDecimal', field: 'published', type: 'String' });
-    // @ts-expect-error sumBigInt does not accept floating point fields
-    t.relationAggregate('posts', { op: 'sumBigInt', field: 'score', type: 'BigInt' });
-    // @ts-expect-error no scalar's Output is a Date, so `type` can't be satisfied
-    t.relationAggregate('posts', { op: 'max', field: 'createdAt', type: 'String' });
+    // @ts-expect-error a count is never null
+    t.relationCount('posts', { nullable: true });
+    // `nullable: false` states what a count is, as in plugin-prisma.
+    t.relationCount('posts', { nullable: false });
     // @ts-expect-error a `where` callback returns a condition
     t.relationCount('posts', { where: () => 'oops' });
-    // @ts-expect-error a `where` callback returns a condition
-    t.relationAggregate('posts', { op: 'sum', field: 'published', where: () => 42 });
     t.relationCount('posts', { where: () => (post) => post.published.eq(1) });
     t.relationCount('posts', { where: () => ({ published: 1 }) });
     t.relationCount('posts', {
       args: { published: t.arg.int() },
       where: (args) => (args.published == null ? undefined : { published: args.published }),
     });
-    t.relationAggregate('posts', {
-      op: 'sum',
-      field: 'published',
-      args: { published: t.arg.int({ required: true }) },
-      where: (args, _ctx) => (post) => post.published.eq(args.published),
-    });
     // @ts-expect-error the callback takes the args and context, and may return the accessor callback
     t.relationCount('posts', { where: (post) => post.published.eq(1) });
     // @ts-expect-error unknown columns in a shorthand result are rejected
     t.relationCount('posts', { where: () => ({ draft: 1 }) });
-    return { count, sum, countBigInt };
+    // @ts-expect-error a count is of a to-many relation
+    t.relationCount('author');
+    return { count };
   },
 });
 
@@ -335,7 +315,7 @@ builder.prismaObject('Post', {
     expectTypeOf(comments.$inferType).toEqualTypeOf<
       readonly DefaultModelRow<Contract, 'Comment'>[]
     >();
-    const commentPage = t.relatedConnection('comments', { cursor: 'id' });
+    const commentPage = t.relatedConnection('comments', {});
     // Nullable as the relay plugin makes it: by the builder's default field nullability.
     expectTypeOf(commentPage.$inferType).toBeNullable();
     expectTypeOf(commentPage.$inferType!.edges).not.toBeUnknown();
@@ -376,8 +356,83 @@ builder.prismaObject('User', {
   variant: 'WithInterfacePosts',
   fields: (t) => ({
     posts: t.relation('posts', { type: NamedPost }),
-    page: t.relatedConnection('posts', { cursor: 'id', type: NamedPost }),
+    page: t.relatedConnection('posts', { type: NamedPost }),
     // @ts-expect-error `posts` are Posts, not Users
-    wrongPage: t.relatedConnection('posts', { cursor: 'id', type: NamedUser }),
+    wrongPage: t.relatedConnection('posts', { type: NamedUser }),
+  }),
+});
+
+// A to-many relation's `query` callback may return a refinement of the relation's collection,
+// which can apply fragments.
+declare const sqliteClient: SqliteClient<Contract>;
+const publishedFragment = sqliteClient.orm.Post.fragment((posts) => posts.where({ published: 1 }));
+builder.prismaObject('User', {
+  variant: 'RefinedQueries',
+  fields: (t) => ({
+    refined: t.relation('posts', {
+      query: () => (posts) => posts.where({ published: 1 }).orderBy((post) => post.title.asc()),
+    }),
+    withArgs: t.relation('posts', {
+      args: { published: t.arg.int({ required: true }) },
+      query: (args) => (posts) => posts.where({ published: args.published }),
+    }),
+    fragment: t.relation('posts', { query: () => (posts) => posts.with(publishedFragment) }),
+    // @ts-expect-error a refinement returns the relation's collection
+    notCollection: t.relation('posts', { query: () => () => 'nope' }),
+    // @ts-expect-error a refinement of another model's collection
+    otherModel: t.relation('posts', { query: () => () => sqliteClient.orm.User }),
+  }),
+});
+
+// A to-one relation's `query` takes only `where`, and no refinement.
+builder.prismaObject('Post', {
+  variant: 'ToOneQueries',
+  fields: (t) => ({
+    where: t.relation('author', { query: { where: { firstName: 'Alice' } } }),
+    whereCallback: t.relation('author', { query: () => ({ where: { firstName: 'Alice' } }) }),
+    // @ts-expect-error a to-one relation's query takes only `where`
+    limited: t.relation('author', { query: { limit: 1 } }),
+    // @ts-expect-error a to-one relation's query takes only `where`
+    orderedCallback: t.relation('author', { query: () => ({ offset: 1 }) }),
+    // @ts-expect-error a to-one relation takes no refinement
+    refined: t.relation('author', { query: () => (author: unknown) => author }),
+  }),
+});
+
+// Async `select`, `query` and count `where` callbacks need `AsyncSelections: true`.
+builder.prismaObject('User', {
+  variant: 'SyncSelections',
+  fields: (t) => ({
+    // @ts-expect-error an async query needs AsyncSelections
+    asyncQuery: t.relation('posts', { query: async () => ({ where: { published: 1 } }) }),
+    // @ts-expect-error an async where needs AsyncSelections
+    asyncCount: t.relationCount('posts', { where: async () => ({ published: 1 }) }),
+    asyncCountWithArgs: t.relationCount('posts', {
+      args: { published: t.arg.int({ required: true }) },
+      // @ts-expect-error an async where needs AsyncSelections, with typed parameters too
+      where: async (args) => ({ published: args.published }),
+    }),
+    // @ts-expect-error an async select needs AsyncSelections
+    asyncSelect: t.string({ select: async () => ({ email: true }), resolve: () => '' }),
+  }),
+});
+const asyncBuilder = new SchemaBuilder<{ PrismaNextContract: Contract; AsyncSelections: true }>({
+  plugins: [RelayPlugin, prismaNextPlugin],
+  relay: {},
+  prismaNext: { client: null as never },
+});
+asyncBuilder.prismaObject('User', {
+  fields: (t) => ({
+    asyncQuery: t.relation('posts', { query: async () => ({ where: { published: 1 } }) }),
+    asyncRefinement: t.relation('posts', {
+      query: async () => (posts) => posts.where({ published: 1 }),
+    }),
+    asyncCount: t.relationCount('posts', { where: async () => ({ published: 1 }) }),
+    asyncSelect: t.string({
+      select: async () => ({ email: true }),
+      resolve: (user) => user.email,
+    }),
+    // @ts-expect-error unknown query keys are rejected in an async result too
+    asyncUnknown: t.relation('posts', { query: async () => ({ nope: 1 }) }),
   }),
 });

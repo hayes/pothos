@@ -24,7 +24,7 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
       constant: t.string({ resolve: () => 'constant' }),
       greeting: t.string({
         args: { formal: t.arg.boolean({ required: true }) },
-        select: (args) => (args.formal ? ['lastName'] : ['firstName']),
+        select: (args) => (args.formal ? { lastName: true } : { firstName: true }),
         resolve: (user, args) =>
           args.formal ? `Greetings, ${user.lastName}` : `Hi, ${user.firstName}`,
       }),
@@ -42,8 +42,16 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
         args: { flag: t.arg.int({ required: true }) },
         where: (args) => (p) => p.published.eq(args.flag),
       }),
-      maxPublished: t.relationAggregate('posts', { op: 'max', field: 'published' }),
-      minPublished: t.relationAggregate('posts', { op: 'min', field: 'published' }),
+      maxPublished: t.float({
+        nullable: true,
+        select: { posts: (sub) => ({ maxPublished: sub.max('published') }) },
+        resolve: (user) => user.maxPublished,
+      }),
+      minPublished: t.float({
+        nullable: true,
+        select: { posts: (sub) => ({ minPublished: sub.min('published') }) },
+        resolve: (user) => user.minPublished,
+      }),
       postStats: t.string({
         select: {
           posts: (sub) => ({
@@ -58,9 +66,8 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
         select: { posts: true },
         resolve: (user) => user.posts.map((post) => post.title).join(', '),
       }),
-      postsConnection: t.relatedConnection('posts', { cursor: 'id', totalCount: true }),
+      postsConnection: t.relatedConnection('posts', { totalCount: true }),
       publishedConnection: t.relatedConnection('posts', {
-        cursor: 'id',
         totalCount: true,
         query: { where: { published: 1 } },
       }),
@@ -109,13 +116,12 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
       posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }),
       usersConnection: t.prismaConnection({
         type: User,
-        cursor: 'id',
         totalCount: true,
         resolve: () => db.orm.User,
       }),
       postsByDate: t.prismaConnection({
         type: 'Post',
-        cursor: ['createdAt', 'id'],
+        orderBy: { createdAt: 'asc' },
         resolve: () => db.orm.Post,
       }),
     }),

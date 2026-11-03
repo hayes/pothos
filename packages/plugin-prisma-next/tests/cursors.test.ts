@@ -43,8 +43,8 @@ beforeAll(async () => {
 
 type Args = { first?: number; last?: number; after?: string; before?: string };
 
-function pages(cursor: unknown) {
-  const helper = prismaConnectionHelpers(createBuilder(), 'Post', { cursor: cursor as 'id' });
+function pages(orderBy: unknown) {
+  const helper = prismaConnectionHelpers(createBuilder(), 'Post', { orderBy: orderBy as {} });
   return {
     async read(base: unknown, args: Args) {
       const page = await helper.applyPagination(base as typeof db.orm.Post, args, {});
@@ -61,13 +61,13 @@ const idsOf = (page: { edges: { node: { id: string } }[] }) => page.edges.map((e
 
 describe('cursor values', () => {
   it.each([
-    ['ISO-shaped strings', ['title', 'id']],
-    ['large and fractional numbers', ['score', 'id']],
-    ['integers, descending', [{ field: 'published', direction: 'desc' }, 'id']],
-    ['dates with milliseconds', ['createdAt', 'id']],
-    ['a long string near the size cap', ['id']],
-  ])('round trips %s', async (_name, cursor) => {
-    const { read } = pages(cursor);
+    ['ISO-shaped strings', { title: 'asc' }],
+    ['large and fractional numbers', { score: 'asc' }],
+    ['integers, descending', { published: 'desc' }],
+    ['dates with milliseconds', { createdAt: 'asc' }],
+    ['a long string near the size cap', {}],
+  ])('round trips %s', async (_name, orderBy) => {
+    const { read } = pages(orderBy);
     const base = db.orm.Post.where({ content: 'cursor-values' });
     const all = idsOf(await read(base, { first: 10 }));
     expect(all).toHaveLength(3);
@@ -91,7 +91,7 @@ describe('cursor values', () => {
   });
 
   it('pages a nullable column, with null boundaries kept out of its codec', async () => {
-    const byScore = pages(['score', 'id']);
+    const byScore = pages({ score: 'asc' });
     const nullable = db.orm.Post.where({ title: 'nullable-sort' });
     const seen: string[] = [];
     let after: string | undefined;
@@ -104,39 +104,51 @@ describe('cursor values', () => {
   });
 
   it('rejects a cursor issued for other columns in the same directions', async () => {
-    const byTitle = pages(['title', 'id']);
-    const byContent = pages(['content', 'id']);
+    const byTitle = pages({ title: 'asc' });
+    const byContent = pages({ content: 'asc' });
     const cursor = await byTitle.cursorOf({ id: 'n-1', title: 'nullable-sort' });
     await expect(byContent.read(db.orm.Post, { first: 1, after: cursor })).rejects.toThrow(
-      /^Invalid cursor: it was issued under a different ordering/,
+      /^Invalid cursor\.$/,
     );
   });
 
-  it('accepts a cursor only under the null placement it was issued for', async () => {
-    const nullsFirst = pages([{ field: 'score', nulls: 'first' }, 'id']);
-    const nullsLast = pages([{ field: 'score', nulls: 'last' }, 'id']);
-    const cursor = await nullsFirst.cursorOf({ id: 'n-1', score: null });
+  it('accepts a cursor under another direction or null placement of the same columns', async () => {
+    const cursor = await pages({ score: { nulls: 'first' } }).cursorOf({ id: 'n-1', score: null });
     const base = db.orm.Post.where({ title: 'nullable-sort' });
-    expect(idsOf(await nullsFirst.read(base, { first: 1, after: cursor }))).toEqual(['n-4']);
-    await expect(nullsLast.read(base, { first: 1, after: cursor })).rejects.toThrow(
-      /^Invalid cursor: it was issued under a different ordering/,
+    const page = await pages({ score: { direction: 'desc', nulls: 'last' }, id: 'asc' }).read(
+      base,
+      {
+        first: 1,
+        after: cursor,
+      },
     );
+    expect(idsOf(page)).toEqual(['n-4']);
+  });
+
+  it('keeps column names out of a cursor', async () => {
+    const cursor = await pages({ createdAt: 'desc' }).cursorOf({
+      id: 'p-1',
+      createdAt: new Date('2026-01-01'),
+    });
+    const decoded = Buffer.from(cursor, 'base64').toString();
+    expect(decoded).toMatch(/^PNC:[0-9a-z]+:T:/);
+    expect(decoded).not.toMatch(/createdAt|\bid\b/);
   });
 
   it('refuses to encode a row missing a cursor column, but encodes a null', async () => {
-    const { cursorOf } = pages(['score', 'id']);
+    const { cursorOf } = pages({ score: 'asc' });
     await expect(cursorOf({ score: 1 })).rejects.toThrow(/missing cursor column 'id'/);
     await expect(cursorOf({ id: 'p', score: null })).resolves.toEqual(expect.any(String));
   });
 
   it('refuses to encode a value its column codec does not hold', async () => {
     class Instant {}
-    const { cursorOf } = pages(['createdAt', 'id']);
+    const { cursorOf } = pages({ createdAt: 'asc' });
     await expect(cursorOf({ id: 'p', createdAt: new Instant() })).rejects.toThrow();
   });
 
   it('builds a page without encoding cursors until one is read', async () => {
-    const helper = prismaConnectionHelpers(createBuilder(), 'Post', { cursor: ['title', 'id'] });
+    const helper = prismaConnectionHelpers(createBuilder(), 'Post', { orderBy: { title: 'asc' } });
     const page = await helper.applyPagination(db.orm.Post, { first: 2 }, {});
     // A narrowed select without the cursor columns still pages nodes.
     const wrapped = page.wrap([{ id: 'p-1' }, { id: 'p-2' }] as never);
@@ -148,7 +160,7 @@ describe('cursor values', () => {
   it('fails only the cursor fields of a row whose cursor cannot be encoded', async () => {
     const builder = createBuilder();
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    const pages = prismaConnectionHelpers(builder, 'Post', { cursor: ['title', 'id'] });
+    const pages = prismaConnectionHelpers(builder, 'Post', { orderBy: { title: 'asc' } });
     builder.queryType({
       fields: (t) => ({
         posts: t.connection({
@@ -199,16 +211,16 @@ describe('rejected cursors', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         id: t.exposeID('id'),
-        posts: t.relatedConnection('posts', { cursor: 'id', nullable: true }),
+        posts: t.relatedConnection('posts', { nullable: true }),
       }),
     });
     builder.queryType({
       fields: (t) => ({
         users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
-        posts: t.prismaConnection({ type: 'Post', cursor: 'id', resolve: () => db.orm.Post }),
+        posts: t.prismaConnection({ type: 'Post', resolve: () => db.orm.Post }),
         dated: t.prismaConnection({
           type: 'Post',
-          cursor: ['createdAt', 'id'],
+          orderBy: { createdAt: 'asc' },
           resolve: () => db.orm.Post,
         }),
       }),
@@ -218,91 +230,52 @@ describe('rejected cursors', () => {
 
   const raw = (payload: string) => Buffer.from(payload).toString('base64');
   const marker = 'PAYLOAD-MARKER';
-  const signatureError = /^Invalid cursor: missing or malformed ordering signature\.$/;
+  // The `PNC:<hash>:` prefix of a real cursor from `field`, so a payload reaches its decoding.
+  async function prefixOf(field: string) {
+    const page = await run(schema(), `{ ${field}(first: 1) { pageInfo { endCursor } } }`);
+    return Buffer.from(page.data[field].pageInfo.endCursor, 'base64')
+      .toString()
+      .match(/^PNC:[^:]+:/)![0];
+  }
 
-  it.each([
-    ['not base64', 'posts', `!!!${marker}`, /not valid base64/],
-    ['from another plugin', 'posts', raw(`GPC:S:${marker}`), /not a cursor from this plugin/],
-    ['not a tagged chunk', 'posts', raw(`PNC:{"${marker}":1}`), signatureError],
-    ['without an ordering signature', 'posts', raw(`PNC:S:${marker}`), signatureError],
-    ['without a separator', 'posts', raw('PNC:a'), signatureError],
-    ['without column names', 'posts', raw(`PNC:a:S:${marker}`), signatureError],
+  it.each<[string, string, (prefix: string) => string]>([
+    ['not base64', 'posts', () => `!!!${marker}`],
+    ['from another plugin', 'posts', () => raw(`GPC:S:${marker}`)],
+    ['without a hash', 'posts', () => raw(`PNC:S:${marker}`)],
+    ['without a separator', 'posts', () => raw('PNC:a')],
+    ['not a tagged chunk', 'posts', (prefix) => raw(`${prefix}{"${marker}":1}`)],
+    ['wider than the order', 'dated', (prefix) => raw(`${prefix}T:["S:${marker}","S:b","S:c"]`)],
+    ['with one value for two columns', 'dated', (prefix) => raw(`${prefix}S:${marker}`)],
     [
-      'wider than the cursor',
+      'its column codec cannot decode',
       'dated',
-      raw(`PNC:createdAt.a,id.a:T:["S:${marker}","S:b","S:c"]`),
-      /expected 2/,
+      (prefix) => raw(`${prefix}T:["S:${marker}","S:p"]`),
     ],
-  ])('rejects a cursor %s without echoing it', async (_name, field, cursor, message) => {
+    [
+      'with a __proto__ object',
+      'posts',
+      (prefix) => raw(`${prefix}O:{"__proto__":{"polluted":1}}`),
+    ],
+  ])('rejects a cursor %s without echoing it', async (_name, field, cursor) => {
     const result = await run(
       schema(),
       `query ($c: String) { ${field}(after: $c) { edges { cursor } } }`,
-      { variables: { c: cursor } },
+      { variables: { c: cursor(await prefixOf(field)) } },
     );
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors?.[0].message).toMatch(/^Invalid cursor: /);
-    expect(result.errors?.[0].message).toMatch(message);
-    expect(result.errors?.[0].message).not.toContain(marker);
+    expect(result.errors?.map((error) => error.message)).toEqual(['Invalid cursor.']);
     expect(result.statements).toHaveLength(0);
+    expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
   });
 
-  it('rejects a compound cursor with more values than the cursor has columns', async () => {
-    const page = await run(schema(), '{ dated(first: 1) { pageInfo { endCursor } } }');
-    const [, payload] = Buffer.from(page.data.dated.pageInfo.endCursor, 'base64')
-      .toString()
-      .match(/^PNC:createdAt\.a,id\.a:T:(.*)$/)!;
-    const wider = raw(
-      `PNC:createdAt.a,id.a:T:${JSON.stringify([...JSON.parse(payload), 'S:extra'])}`,
-    );
-    const result = await run(
-      schema(),
-      'query ($c: String) { dated(after: $c) { edges { cursor } } }',
-      { variables: { c: wider } },
-    );
-    expect(result.errors?.[0].message).toMatch(/Invalid cursor.*expected 2 value/);
-  });
-
-  it('rejects a single-value cursor where a compound one is expected', async () => {
-    const result = await run(
-      schema(),
-      'query ($c: String) { dated(after: $c) { edges { cursor } } }',
-      { variables: { c: raw('PNC:createdAt.a,id.a:S:p-hello') } },
-    );
-    expect(result.errors?.[0].message).toMatch(/Invalid cursor.*expected 2 value/);
-  });
-
-  it("rejects another connection's cursor, whose ordering differs", async () => {
+  it("rejects another connection's cursor, whose columns differ", async () => {
     const page = await run(schema(), '{ posts(first: 1) { pageInfo { endCursor } } }');
     const result = await run(
       schema(),
       'query ($c: String) { dated(after: $c) { edges { cursor } } }',
       { variables: { c: page.data.posts.pageInfo.endCursor } },
     );
-    expect(result.errors?.[0].message).toMatch(/Invalid cursor: it was issued under a different/);
+    expect(result.errors?.[0].message).toBe('Invalid cursor.');
     expect(result.statements).toHaveLength(0);
-  });
-
-  it('hides a codec decoding error and the cursor payload', async () => {
-    const result = await run(
-      schema(),
-      'query ($c: String) { dated(after: $c) { edges { cursor } } }',
-      { variables: { c: raw(`PNC:createdAt.a,id.a:T:["S:${marker}","S:p"]`) } },
-    );
-    expect(result.errors?.[0].message).toBe('Invalid cursor: invalid createdAt value.');
-    expect(result.statements).toHaveLength(0);
-  });
-
-  it('rejects a __proto__ object payload without touching Object.prototype', async () => {
-    const result = await run(
-      schema(),
-      'query ($c: String) { posts(after: $c) { edges { cursor } } }',
-      {
-        variables: { c: raw('PNC:id.a:O:{"__proto__":{"polluted":1}}') },
-      },
-    );
-    expect(result.errors?.[0].message).toBe('Invalid cursor: invalid id value.');
-    expect(result.statements).toHaveLength(0);
-    expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
   });
 
   it('fails only the connection field holding the bad cursor', async () => {
@@ -332,12 +305,12 @@ describe('rejected cursors', () => {
         fields: (t) => ({
           byText: t.prismaConnection({
             type: 'Note',
-            cursor: ['text', 'id'],
+            orderBy: { text: 'asc' },
             resolve: () => collision.orm.Note,
           }),
           bySheet: t.prismaConnection({
             type: 'Note',
-            cursor: ['sheetId', 'id'],
+            orderBy: { sheetId: 'asc' },
             resolve: () => collision.orm.Note,
           }),
         }),
@@ -347,18 +320,22 @@ describe('rejected cursors', () => {
       const nullText = page.data.byText.edges.find(
         (edge: { node: { id: string } }) => edge.node.id === '21',
       ).cursor;
-      // Re-signed for `bySheet`'s ordering, so the null itself is what's rejected.
+      // Re-signed for `bySheet`'s columns, so the null itself is what's rejected.
+      const sheet = await run(s, '{ bySheet(first: 1) { pageInfo { endCursor } } }');
+      const prefix = Buffer.from(sheet.data.bySheet.pageInfo.endCursor, 'base64')
+        .toString()
+        .match(/^PNC:[^:]+:/)![0];
       const resigned = raw(
         Buffer.from(nullText, 'base64')
           .toString()
-          .replace(/^PNC:[^:]+:/, 'PNC:sheetId.a,id.a:'),
+          .replace(/^PNC:[^:]+:/, prefix),
       );
       const result = await run(
         s,
         'query ($c: String) { bySheet(after: $c) { edges { cursor } } }',
         { variables: { c: resigned } },
       );
-      expect(result.errors?.[0].message).toBe('Invalid cursor: invalid sheetId value.');
+      expect(result.errors?.[0].message).toBe('Invalid cursor.');
     });
   });
 });
@@ -382,10 +359,10 @@ describe('nullable cursor columns', () => {
     ['desc', 'first'],
     ['desc', 'last'],
   ] as const)('%s, nulls %s', (direction, nulls) => {
-    const cursor = [{ field: 'score', direction, nulls }, 'id'];
+    const orderBy = { score: { direction, nulls }, id: 'asc' };
 
     it('pages every bounded interval forward and backward without losing nulls or ties', async () => {
-      const { read, cursorOf } = pages(cursor);
+      const { read, cursorOf } = pages(orderBy);
       const expected = sorted(direction, nulls);
       const cursors = await Promise.all(expected.map((row) => cursorOf(row)));
       const base = db.orm.Post.where({ title: 'nullable-sort' });
@@ -414,7 +391,7 @@ describe('nullable cursor columns', () => {
         fields: (t) => ({
           id: t.exposeID('id'),
           posts: t.relatedConnection('posts', {
-            cursor: [{ field: 'score', direction, nulls }, 'id'],
+            orderBy: { score: { direction, nulls }, id: 'asc' },
             query: { where: { title: 'nullable-sort' } },
             totalCount: true,
           }),
@@ -450,7 +427,7 @@ describe('nullable cursor columns', () => {
       fields: (t) => ({
         posts: t.prismaConnection({
           type: 'Post',
-          cursor: ['score', 'id'],
+          orderBy: { score: 'asc', id: 'asc' },
           resolve: () => db.orm.Post.where({ title: 'nullable-sort' }),
         }),
       }),
@@ -458,29 +435,9 @@ describe('nullable cursor columns', () => {
     const expected = sorted('asc', 'last').map(({ id }) => ({ id }));
     const result = await run(builder.toSchema(), '{ posts(first: 6) { nodes { id } } }');
     expect(result.data.posts.nodes).toEqual(expected);
-    const page = await pages(['score', 'id']).read(db.orm.Post.where({ title: 'nullable-sort' }), {
+    const page = await pages({ score: 'asc' }).read(db.orm.Post.where({ title: 'nullable-sort' }), {
       first: 6,
     });
     expect(page.edges.map((edge) => ({ id: edge.node.id }))).toEqual(expected);
-  });
-
-  it('accepts a base ordering that states the null placement, and rejects one that does not', async () => {
-    const nullable = db.orm.Post.where({ title: 'nullable-sort' });
-    const placed = await pages([{ field: 'score', nulls: 'last' }, 'id']).read(
-      nullable.orderBy([(p) => p.score.asc({ nulls: 'last' }), (p) => p.id.asc()]),
-      { first: 3 },
-    );
-    expect(idsOf(placed)).toEqual(['n-3', 'n-6', 'n-2']);
-    const prefix = await pages([{ field: 'score', direction: 'desc', nulls: 'last' }, 'id']).read(
-      nullable.orderBy((p) => p.score.desc({ nulls: 'last' })),
-      { first: 2 },
-    );
-    expect(idsOf(prefix)).toEqual(['n-2', 'n-5']);
-    await expect(
-      pages(['score', 'id']).read(
-        nullable.orderBy((p) => p.score.asc()),
-        { first: 1 },
-      ),
-    ).rejects.toThrow(/must match a prefix/);
   });
 });

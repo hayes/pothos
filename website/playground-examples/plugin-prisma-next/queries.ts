@@ -12,11 +12,10 @@ builder.queryType({
     // #region posts-query
     posts: t.prismaConnection({
       type: 'Post',
-      cursor: 'id',
       totalCount: true,
       args: { newestFirst: t.arg.boolean() },
       // Chooses the direction per request; the plugin reverses it for backward pages.
-      orderBy: (args) => (post) => (args.newestFirst ? post.id.desc() : post.id.asc()),
+      orderBy: (args) => ({ id: args.newestFirst ? 'desc' : 'asc' }),
       resolve: () => db.orm.Post.where({ published: 1 }),
     }),
     // #endregion posts-query
