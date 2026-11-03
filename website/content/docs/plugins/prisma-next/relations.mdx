@@ -23,12 +23,12 @@ builder.prismaObject('Post', {
 });
 ```
 
-Relations are loaded with `.include(...)` on the parent's Collection, so
+The plugin loads relations with `.include()` on the parent's Collection, so
 `{ me { posts { author { id } } } }` runs as one Collection call.
 
-To-many relations are non-null lists. To-one relations are non-null when their foreign key is
-non-null and they have no `query` or variant `type` that could filter the row out. Pass `nullable`
-to override.
+To-many relations are non-null lists. A to-one relation is non-null when its foreign key is
+non-null, unless it has a `query` or a variant `type`, either of which can filter the row out. Pass
+`nullable` to override.
 
 ## Filtering and sorting
 
@@ -44,8 +44,8 @@ posts: t.relation('posts', {
 }),
 ```
 
-For a to-many relation, the function can instead return a function that refines the relation's
-collection, for example to apply a fragment:
+For a to-many relation, the `query` function can also return a function that takes the relation's
+Collection and returns a refined one, for example to apply a fragment:
 
 ```ts
 const published = db.orm.Post.fragment((posts) => posts.where({ published: 1 }));
@@ -73,11 +73,11 @@ builder.prismaObject('User', {
 ```
 
 `where` takes the same values as a relation's `query.where`, or a function of the arguments and
-context returning one. A count is always a non-null `Int`; to hide it from some users without
-nulling the parent, use a nullable field with a `select`, as below.
+context returning one. A count is always a non-null `Int`, so an auth check that denies it nulls the parent. To hide a
+count from some users, use a nullable field with a `select`, as below.
 
-For other aggregates, use a field `select`. The function receives the relation's Collection, and
-each key it returns is added to the parent row. Keys must be literal strings:
+For other aggregates, give a field a `select` function. It receives the relation's Collection. Each
+key it returns is added to the parent row, and must be a literal string:
 
 ```ts
 builder.prismaObject('User', {
@@ -106,10 +106,10 @@ columns on the junction, model it as its own model and use two relations.
 
 ## Loading without a parent query
 
-A row returned from a plain `t.field` must include its primary key and the columns and to-one
-relations of the type's `select`. Other selections are loaded through the plugin's `client`,
-batched across parents. `typeof User.$inferType` names this row type.
+When a plain `t.field` returns a row, the row must include its primary key and the columns and
+to-one relations in the type's `select`. The plugin loads anything else the query needs in a
+separate, batched query. `typeof User.$inferType` is the type of such a row.
 
-Rows are reloaded by their primary key, or the first non-null unique key if there isn't one (return
-the whole row for such a model). A model with neither can't be reloaded, so its fields must be
-loaded by the parent query.
+That query finds the row by its primary key. For a model without one, it uses the first non-null
+unique key, and a plain `t.field` must return the whole row. A model with neither can only be loaded
+through a prisma field, relation or connection.

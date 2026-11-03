@@ -19,8 +19,8 @@ builder.queryFields((t) => ({
 }));
 ```
 
-Return a Collection without ordering, paging or `include()`. The plugin orders and pages it and
-adds the selection for the nodes.
+Return a Collection without ordering, paging or `include()`. The plugin orders it, pages it, and
+adds what the query selects.
 
 - `orderBy`: the columns to order by, or `(args, ctx) => orderBy`. Defaults to the primary key. See
   [Ordering and cursors](#ordering-and-cursors).
@@ -34,15 +34,15 @@ Connection and edge types can be customized as with the [Relay plugin](../relay)
 
 ## Ordering and cursors
 
-`orderBy` takes the model's own columns, each with a direction. Relation columns, aggregates and
-expressions can't be used, because a cursor holds the values of its order columns. Nullable columns
-sort nulls last unless you set `nulls`:
+`orderBy` takes columns of the model, each with a direction. You can't order by relation columns,
+aggregates or expressions. Nullable columns sort nulls last unless you set `nulls`:
 
 ```ts
 orderBy: { score: { direction: 'desc', nulls: 'first' } },
 ```
 
-The primary key (or first non-null unique key) is appended so pages have a stable order. On
+The plugin adds the primary key (or the first non-null unique key) to the end of the order, so pages
+are stable. On
 PostgreSQL, index the order columns with matching null placement, such as
 `CREATE INDEX ON post (score DESC NULLS LAST, id DESC)` for `{ score: 'desc' }`.
 
@@ -50,9 +50,9 @@ The function form chooses the order per request:
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ posts(first: 2, newestFirst: true) { totalCount edges { node { title } } pageInfo { endCursor hasNextPage } } }"'>playground-examples/plugin-prisma-next/queries.ts#posts-query</include>
 
-Cursors are base64-encoded column values, readable by clients, so don't order by columns clients
-shouldn't see. A cursor is only valid for the order it was issued with; otherwise the field fails
-with `Invalid cursor`.
+A cursor holds the values of the order columns in base64, so clients can read them. Don't order by
+columns clients shouldn't see. A cursor only works with the order it came from, and fails with
+`Invalid cursor` otherwise.
 
 - Bytes columns can't be ordered.
 - On PostgreSQL, a timestamp read as a JavaScript `Date` keeps only milliseconds, so ordering by
@@ -68,19 +68,19 @@ filters with `query`: `{ where }` or `(args, ctx) => ({ where })`. `totalCount` 
 matching `query.where`, unless
 [`filterConnectionTotalCount`](./setup#plugin-options) is `false`.
 
-Each parent's page is a separate lookup within the query, so index the foreign key together with
-the order columns.
+The database pages each parent's rows separately, so index the foreign key together with the order
+columns.
 
 ## Connection helpers
 
-`prismaConnectionHelpers` applies the same paging to a connection you define with `t.connection`,
-such as users reached through the comments on a post. It takes a model name or a prisma type ref,
-and the options of `t.relatedConnection`.
+`prismaConnectionHelpers` pages a connection you define yourself with `t.connection`. Use it when
+the nodes aren't a relation of the parent, such as the users who commented on a post. It takes a
+model name or a prisma type ref, and the options of `t.relatedConnection`.
 
 ### Through a join model
 
-`select` names what each row loads, and `nodeSelection()` marks the relation that holds the nodes.
-`resolveNode` maps each row to its node:
+Here each row is a `Comment`. `select` lists what each comment loads, and `nodeSelection()` marks
+`author` as the relation that holds the node. `resolveNode` returns the node for each comment:
 
 ```ts
 import { prismaConnectionHelpers } from '@pothos/plugin-prisma-next';
@@ -104,8 +104,8 @@ builder.prismaObjectField('Post', 'commenters', (t) =>
 );
 ```
 
-`page` is a `select` entry that loads one page of the relation, and its count, in the parent's
-query. Pass `resolve` the parent the field received, not a copy, since it carries the count.
+`commenters.page` loads one page of comments, and their count, with the post. Pass
+`commenters.resolve` the post the resolver received, not a copy, because the count is stored on it.
 
 ### Paging a collection
 
@@ -131,7 +131,7 @@ builder.queryFields((t) => ({
 }));
 ```
 
-With `info`, the rows load only what the query selects; without it, every column.
+With `info`, each row loads what the query selects. Without it, rows load every column.
 `totalCountPromise` is `undefined` when `totalCount` isn't selected.
 
 `connectionOptions` adds the `totalCount` field. For a custom count, leave `totalCount` unset, add

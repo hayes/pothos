@@ -42,7 +42,7 @@ less (bare `DateTime` is fine). Use `TimestamptzTemporal` for finer timestamps.
 
 ## Filter node lookups
 
-`collection` is a function of the context, so it can filter by the request:
+`collection` receives the context, so it can filter by the current user:
 
 ```ts
 builder.prismaNode('Post', {
@@ -55,13 +55,14 @@ builder.prismaNode('Post', {
 `node` and `nodes` return `null` for rows the filter excludes. Only filter the collection; don't
 call `limit()`, `offset()`, `cursor()` or `include()` on it.
 
-`collection` only applies to `node` and `nodes`; rows reached through relations and other fields
-don't pass through it. Neither it nor a function `client` is access control, so restrict rows with
-auth checks on the type.
+`collection` only applies to `node` and `nodes`. Rows reached through relations and other fields
+don't pass through it. Neither `collection` nor a function `client` is access control, so restrict
+rows with auth checks on the type.
 
 ## Several node types for one model
 
-Each node type has its own global IDs. Where one field can return several of them, return a
+Each node type has its own global IDs. When one field can return more than one of these types,
+return a
 [`prismaInterface`](./interfaces) with a `resolveType`, or brand each row with its type's
 `addBrand`:
 

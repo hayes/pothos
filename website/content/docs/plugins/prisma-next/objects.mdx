@@ -19,14 +19,14 @@ builder.prismaObject('User', {
 });
 ```
 
-Each model has one primary type, which `type: 'User'` and `t.relation` refer to. Add fields to it
-with [`prismaObjectFields`](#adding-fields), or define more types for the same model with
+Each model has one `prismaObject`. To add fields to it elsewhere, use
+[`prismaObjectFields`](#adding-fields). To expose the same model as another GraphQL type, define a
 [`variant`](./variants).
 
 ## Prisma fields
 
-`t.prismaField` resolves to an unexecuted Collection. The plugin adds the selection for the query
-and runs it.
+A `t.prismaField` resolver returns a Collection without running it. The plugin adds what the query
+selects, then runs it.
 
 ```ts
 builder.queryType({
@@ -45,7 +45,7 @@ field's [`query`](./relations#filtering-and-sorting).
 
 ### Mutations
 
-Perform the write, then return a Collection that reads the result by its key:
+Run the write, then return a Collection that finds the updated row by its ID:
 
 ```ts
 builder.mutationType({
@@ -70,24 +70,10 @@ builder.mutationType({
 
 See [Transactions](./setup#transactions) to run the write and the reads in one transaction.
 
-### Payloads
-
-A payload type can hold the result's ID and load it with a `t.prismaField`:
-
-```ts
-const RenameUserPayload = builder.objectRef<{ userId: string }>('RenameUserPayload').implement({
-  fields: (t) => ({
-    user: t.prismaField({
-      type: 'User',
-      resolve: (payload, _args, ctx) => ctx.db.orm.User.where({ id: payload.userId }),
-    }),
-  }),
-});
-```
-
-To load the result with the write itself, apply the selection with `collectionFromInfo`. `path`
-leads from the field to the rows, and `typeName` picks the type when it leads to an interface or
-union. This works for writes that return the row, such as `update` or `delete`:
+To load the result in the write itself, use `collectionFromInfo`. It adds what the query selects to
+the Collection, so writes that return the row, such as `update` and `delete`, return everything the
+query needs. Pass `path: ['user']` when the resolver returns a payload containing a `user` field.
+For an interface or union, pass `typeName` to pick the type:
 
 ```ts
 import { collectionFromInfo } from '@pothos/plugin-prisma-next';
@@ -132,8 +118,8 @@ builder.subscriptionType({
 
 ## Selections
 
-`select` on the type loads data whenever the type is queried; `select` on a field loads it when
-that field is queried. The primary key is always loaded.
+A `select` on the type is loaded whenever the type is queried. A `select` on a field is loaded only
+when that field is queried. The primary key is always loaded.
 
 ```ts
 builder.prismaObject('User', {
@@ -180,8 +166,7 @@ authorName: t.string({
 ```
 
 A field's `select` can also be a function of its arguments and context. With `AsyncSelections: true`
-in the builder's types, it can be async. Columns selected by only some branches are optional on the
-parent:
+in the builder's types, it can be async. A column that only some branches select is optional on the parent:
 
 ```ts
 email: t.string({
@@ -194,9 +179,9 @@ email: t.string({
 `select`, `query`, `where` and `orderBy` callbacks run once per planned query, not per row, so keep
 them free of side effects.
 
-Type-level checks such as `authScopes` can rely on the key and the columns and to-one relations of
-the type's `select`. Anything else may not be loaded yet, unless the row came from a prisma field,
-relation or connection.
+Type-level checks such as `authScopes` always see the primary key and the columns and to-one
+relations in the type's `select`. Other data may not be loaded yet, unless the row came from a
+prisma field, relation or connection.
 
 ## Adding fields
 
@@ -212,8 +197,8 @@ builder.prismaObjectField('User', 'displayName', (t) =>
 );
 ```
 
-Pass the ref returned by `prismaObject` instead of the model name to read the type's `select` in
-the parent, or to extend a [variant](./variants):
+If the resolver reads the type's `select`, pass the ref that `prismaObject` returns instead of the
+model name. A variant's ref adds fields to that [variant](./variants).
 
 ```ts
 const User = builder.prismaObject('User', {

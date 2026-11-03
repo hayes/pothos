@@ -19,8 +19,8 @@ const Viewer = builder.prismaObject('User', {
 These are unrelated to variant models in the contract, which map to
 [interfaces](./interfaces#native-inheritance).
 
-The model name always refers to the primary type, so use the returned ref wherever you want the
-variant. Return it from a relation with `type`:
+The model name always refers to the main type. To return the variant, pass its ref as `type`. On a
+relation:
 
 ```ts
 author: t.relation('author', { type: Viewer }),
@@ -40,8 +40,8 @@ builder.queryFields((t) => ({
 
 ## Variant fields
 
-`t.variant` exposes the same row as another variant without another query. It can only read the
-columns in its `select`. `isNull` returns `null` for some rows:
+`t.variant` returns the same row as another variant, without another query. To return `null` for
+some rows, pass `isNull`. It can only read the columns in the field's `select`:
 
 ```ts
 builder.prismaObject('User', {

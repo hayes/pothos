@@ -45,13 +45,13 @@ builder.queryFields((t) => ({
 `t.prismaField`, `t.prismaConnection`, `t.relation` and `t.relatedConnection` all accept an
 interface ref as `type`. Objects don't take `isTypeOf`.
 
-An implementation's fields can read the interface's `select`, and rows loaded through the interface
-also load each implementation's type-level `select`.
+Fields on an implementing type can read the interface's `select`. Rows loaded through the interface
+also load each implementing type's `select`.
 
 To return a row through `Node` or an interface from `builder.interfaceRef()`, brand it with the
 type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
-`Abstract type ... must resolve`. Routing a row by hand with `__typename` or a `resolveType` that
-returns a type name skips `addBrand`'s check that the row has the type's key and `select`.
+`Abstract type ... must resolve`. If you route a row yourself, with a `__typename` or a `resolveType` that returns a type name,
+TypeScript doesn't check that the row has the type's key and `select`.
 
 Add fields with `prismaInterfaceField` or `prismaInterfaceFields`:
 
@@ -66,8 +66,9 @@ builder.prismaInterfaceField(Person, 'displayName', (t) =>
 
 ## Native inheritance
 
-A base model with variant models in the contract maps to an interface, with an object for each
-variant. Rows resolve to their variant's type by the discriminator, so no `resolveType` is needed:
+When a contract model has variant models, register the base model with `prismaInterface` and each
+variant with `prismaObject`. Each row resolves to its variant's type by the discriminator, so you
+don't need a `resolveType`:
 
 ```ts
 const task = builder.prismaInterface('Task', {

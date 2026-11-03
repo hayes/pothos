@@ -52,9 +52,8 @@ builder.queryType({
 export const schema = builder.toSchema();
 ```
 
-`@pothos/plugin-relay` is only needed for nodes and connections. SQLite and MySQL work the same way
-with their own Prisma packages; a SQLite client has no schema level, so the rest of these docs
-write `ctx.db.orm.User`.
+`@pothos/plugin-relay` is only needed for nodes and connections. SQLite and MySQL work the same way with their own Prisma packages. SQLite clients don't group models
+by schema, so the other pages use `ctx.db.orm.User`.
 
 Execute every operation with a context object, such as `contextValue: {}`. The plugin keeps
 per-request state on it.
@@ -89,9 +88,9 @@ const builder = new SchemaBuilder<{
 
 ## Transactions
 
-Pothos doesn't create transactions. Execute GraphQL inside the transaction callback and pass the
-transaction as `ctx.db`, using [`client: (ctx) => ctx.db`](#configure-the-builder) so the plugin's
-own loads use it too:
+Pothos doesn't create transactions. Run `graphql()` inside the transaction callback and pass the
+transaction as `ctx.db`. With [`client: (ctx) => ctx.db`](#configure-the-builder), the plugin's own
+queries use it too:
 
 ```ts
 const result = await db.transaction(async (tx) => {
@@ -110,8 +109,8 @@ const result = await db.transaction(async (tx) => {
 
 ## Namespaced models
 
-In a contract with several namespaces, model keys are written `'ns.Model'`. The GraphQL name
-defaults to the bare model name, so rename one of two models that share a name:
+With several namespaces, model names include the namespace, such as `'auth.User'`. GraphQL type
+names leave it out, so give one of two models with the same name a `name`:
 
 ```ts
 builder.prismaObject('auth.User', {
