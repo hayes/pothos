@@ -111,4 +111,12 @@ export type HasAggregates<Types extends SchemaTypes> = string extends keyof Extr
 
 /** `totalCount: true` runs a count aggregate, so it needs a target that has them. */
 export type TotalCountFlag<Types extends SchemaTypes> =
-  HasAggregates<Types> extends true ? boolean : false;
+  HasAggregates<Types> extends true ? boolean : false | (true & TotalCountNeedsAggregates);
+
+/**
+ * Names the problem with `totalCount: true` on a target without aggregates, as
+ * `true & TotalCountNeedsAggregates`. No written value matches it, and it stays a `boolean`.
+ */
+interface TotalCountNeedsAggregates {
+  readonly 'totalCount: true runs a count aggregate, which this target (MySQL) lacks. Pass a callback': never;
+}

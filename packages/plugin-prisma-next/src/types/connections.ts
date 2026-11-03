@@ -99,9 +99,21 @@ export type ConnectionOrderBy<Types extends SchemaTypes, M extends ModelKey<Type
     | {
         readonly direction?: OrderDirection;
         /** Where nulls sort. Only a nullable column has them. */
-        readonly nulls?: null extends Row<Types, M>[Column] ? 'first' | 'last' : never;
+        readonly nulls?: null extends Row<Types, M>[Column]
+          ? 'first' | 'last'
+          : ('first' | 'last') & NullsOnNonNullColumn<Column>;
       };
 };
+
+/**
+ * Names the problem with `nulls` on a non-null column, where `never` would only say "not
+ * assignable to undefined". A brand on the values rather than `never`, so the error reads
+ * `'first' & NullsOnNonNullColumn<'title'>`, no written value matches it, and the option stays
+ * assignable to what the runtime takes.
+ */
+interface NullsOnNonNullColumn<Column> {
+  readonly 'A non-null column has no nulls to place': Column;
+}
 
 /**
  * A connection's `orderBy`. `Literal` is inferred from what's written and its columns are checked,
