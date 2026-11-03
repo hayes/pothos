@@ -45,21 +45,23 @@ field's [`query`](./relations#filtering-and-sorting).
 
 ### Mutations
 
-Perform the write, then return a Collection for the result:
+Perform the write, then return a Collection that reads the result by its key:
 
 ```ts
 builder.mutationType({
   fields: (t) => ({
     renameUser: t.prismaField({
       type: 'User',
+      nullable: true,
       args: {
         id: t.arg.id({ required: true }),
         firstName: t.arg.string({ required: true }),
       },
       resolve: async (_root, args, ctx) => {
-        const user = ctx.db.orm.User.where({ id: String(args.id) });
-        await user.update({ firstName: args.firstName });
-        return user;
+        const user = await ctx.db.orm.User.where({ id: String(args.id) }).update({
+          firstName: args.firstName,
+        });
+        return user && ctx.db.orm.User.where({ id: user.id });
       },
     }),
   }),
