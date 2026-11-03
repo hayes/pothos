@@ -697,8 +697,13 @@ export function assertQueryOptions(value: unknown, allowed: readonly string[], o
   if (isThenable(value)) {
     throw new Error(`query on ${owner} can't be async. Return it synchronously.`);
   }
+  // An undefined option drops nothing, so a shared options object with `orderBy: undefined` passes.
   const unknownKeys =
-    value == null ? [] : Object.keys(value).filter((key) => !allowed.includes(key));
+    value == null
+      ? []
+      : Object.entries(value)
+          .filter(([key, option]) => option !== undefined && !allowed.includes(key))
+          .map(([key]) => key);
   if (unknownKeys.length > 0) {
     throw new Error(
       `query on ${owner} has unknown options ${unknownKeys.map((key) => `'${key}'`).join(', ')}. Use { ${allowed.map((key) => `${key}?`).join(', ')} }.`,

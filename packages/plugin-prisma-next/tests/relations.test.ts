@@ -1164,6 +1164,15 @@ describe('invalid query options', () => {
     expect(result.errors?.[0].message).toMatch(message);
   });
 
+  it('accepts an unknown option whose value is undefined', async () => {
+    const result = await run(
+      relationSchema({ where: { published: 1 }, orderBy: undefined }),
+      '{ users { posts { id } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(() => connectionSchema({ orderBy: undefined })).not.toThrow();
+  });
+
   it('rejects an unknown option in a relatedConnection query object when the schema is built', () => {
     expect(() => connectionSchema({ take: 1 })).toThrow(
       /^query on 'User\.posts' has unknown options 'take'/,
