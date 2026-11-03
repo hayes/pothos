@@ -213,6 +213,41 @@ describe('rows the plugin loaded', () => {
     expect(result.statements).toHaveLength(1);
   });
 
+  it('adds nothing to a row it takes slots off', async () => {
+    const captured: object[] = [];
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        alice: t.relation('author', { nullable: true, query: { where: { firstName: 'Alice' } } }),
+        published: t.relation('comments', { query: { where: { id: 'c-1' } } }),
+        seen: t.boolean({
+          resolve: (post) => {
+            captured.push(post);
+            return true;
+          },
+        }),
+      }),
+    });
+    builder.prismaObject('Comment', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaField({
+          type: ['Post'],
+          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ posts { alice { id } published { id } seen } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toEqual({ id: 'p-hello' });
+    expect(Object.getOwnPropertySymbols(captured[0])).toEqual([]);
+  });
+
   it('never mutates shared rows while handing each consumer its own values', async () => {
     let snapshot = '';
     let frozen: readonly object[] = [];

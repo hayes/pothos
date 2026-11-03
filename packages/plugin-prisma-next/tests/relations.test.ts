@@ -862,15 +862,34 @@ describe('plugins that wrap resolvers', () => {
 
 describe('plugins that pass resolvers a shallow copy of the parent', () => {
   // Hands the resolvers of User and Post fields `{ ...parent }`, before or after prismaNext's
-  // wrapper. A copy holds the row's values and the slots it carries.
+  // wrapper. For the aliases `context.dropHello` lists, the copy's `posts` lacks 'p-hello'. With
+  // `context.published`, `User.posts` gets a parent built by hand around another field's list.
   class CopyParentPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override wrapResolve(
       resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
       fieldConfig: PothosOutputFieldConfig<Types>,
     ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-      return ['User', 'Post'].includes(fieldConfig.parentType)
-        ? (parent, args, context, info) => resolver({ ...(parent as object) }, args, context, info)
-        : resolver;
+      if (!['User', 'Post'].includes(fieldConfig.parentType)) {
+        return resolver;
+      }
+      return (parent, args, context, info) => {
+        const copy: Record<string, unknown> = { ...(parent as object) };
+        const { dropHello, published } = context as {
+          dropHello?: string[];
+          published?: Map<unknown, unknown>;
+        };
+        if (dropHello?.includes(info.path.key as string) && Array.isArray(copy.posts)) {
+          copy.posts = copy.posts.filter((post: { id: string }) => post.id !== 'p-hello');
+        }
+        // Keeps the published posts `titles` sees, and builds `posts` a parent holding them.
+        if (published && fieldConfig.name === 'titles') {
+          published.set(copy.id, copy.posts);
+        }
+        if (published && fieldConfig.name === 'posts') {
+          return resolver({ id: copy.id, posts: published.get(copy.id) }, args, context, info);
+        }
+        return resolver(copy, args, context, info);
+      };
     }
   }
   SchemaBuilder.registerPlugin('prismaNextTestCopyParent' as never, CopyParentPlugin);
@@ -886,25 +905,46 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
             : [prismaNextPlugin],
       prismaNext: { client: db.client },
     });
+    builder.prismaObject('Comment', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('Post', {
       fields: (t) => ({
         id: t.exposeID('id'),
         author: t.relation('author'),
+        comments: t.relation('comments'),
         alice: t.relation('author', { nullable: true, query: { where: { firstName: 'Alice' } } }),
       }),
     });
-    builder.prismaObject('User', {
+    const User = builder.prismaObject('User', {
       fields: (t) => ({
         id: t.exposeID('id'),
+        comments: t.relation('comments'),
         posts: t.relation('posts'),
+        ordered: t.relation('posts', { query: { orderBy: (post) => post.id.asc() } }),
         published: t.relation('posts', { query: { where: { published: 1 } } }),
         postCount: t.relationCount('posts'),
         titles: t.stringList({
           select: { posts: { where: { published: 0 } } },
           resolve: (user) => user.posts.map((post) => post.title),
         }),
+        postIds: t.stringList({
+          select: { posts: true },
+          resolve: (user) => user.posts.map((post) => post.id),
+        }),
       }),
     });
+    builder.prismaObjectFields(User, (t) => ({
+      // Parents built by hand, with the published posts as `posts`, and the row's comments.
+      twin: t.field({
+        type: User,
+        select: { comments: true, posts: { where: { published: 1 } } },
+        resolve: (user) => ({ id: user.id, comments: user.comments, posts: user.posts }) as never,
+      }),
+      bare: t.field({
+        type: User,
+        select: { posts: { where: { published: 1 } } },
+        resolve: (user) => ({ id: user.id, posts: user.posts }) as never,
+      }),
+    }));
     builder.queryType({
       fields: (t) => ({
         users: t.prismaField({
@@ -916,11 +956,13 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
     return builder.toSchema();
   }
 
+  // Each row holds a relation it loaded whole, by which its copies are recognized.
   it.each([
     '{ users { posts { id } } }',
     '{ users { posts { author { id } } } }',
     '{ users { posts { author { posts { author { posts { id } } } } } } }',
-    '{ users { published { id alice { id } } postCount titles posts { author { id } } } }',
+    '{ users { posts { comments { id } alice { id } } } }',
+    '{ users { comments { id } published { id comments { id } alice { id } } postCount titles } }',
   ])('reads the slots of a copied parent without reloading it: %s', async (query) => {
     const expected = await run(schema('none'), query);
     expect(expected.errors).toBeUndefined();
@@ -931,6 +973,55 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
       expect(result.data).toEqual(expected.data);
       expect(result.statements).toHaveLength(1);
     }
+  });
+
+  it('reloads a copied parent that holds no relation it loaded whole', async () => {
+    const query = '{ users { published { id } postCount titles } }';
+    const expected = await run(schema('none'), query);
+    for (const position of ['before', 'after'] as const) {
+      const result = await run(schema(position), query);
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual(expected.data);
+    }
+  });
+
+  it.each([
+    '{ users { id a: postIds b: postIds ordered { id } } }',
+    '{ users { id comments { id } a: postIds b: postIds ordered { id } } }',
+  ])('keeps the relations a plugin changed on its copy: %s', async (query) => {
+    for (const position of ['before', 'after'] as const) {
+      const result = await run(schema(position), query, { context: { dropHello: ['a'] } });
+      expect(result.errors).toBeUndefined();
+      const [alice] = result.data.users;
+      expect(alice.a).toEqual(['p-draft1']);
+      expect([...alice.b].sort()).toEqual(['p-draft1', 'p-hello']);
+      expect(alice.ordered).toEqual([{ id: 'p-draft1' }, { id: 'p-hello' }]);
+    }
+  });
+
+  it('never serves a filtered list a parent built by hand holds as the whole relation', async () => {
+    const result = await run(
+      schema('none'),
+      '{ users { id twin { posts { id } } bare { posts { id } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const [alice] = result.data.users;
+    for (const parent of [alice.twin, alice.bare]) {
+      expect(parent.posts.map((post: { id: string }) => post.id).sort()).toEqual([
+        'p-draft1',
+        'p-hello',
+      ]);
+    }
+    // `titles` loads the drafts, which the plugin hands `posts` as its parent's.
+    const swapped = await run(schema('before'), '{ users { titles posts { id } } }', {
+      context: { published: new Map() },
+    });
+    expect(swapped.errors).toBeUndefined();
+    expect(swapped.data.users[0].titles).toEqual(['Draft #1']);
+    expect(swapped.data.users[0].posts.map((post: { id: string }) => post.id).sort()).toEqual([
+      'p-draft1',
+      'p-hello',
+    ]);
   });
 });
 
