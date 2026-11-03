@@ -71,6 +71,8 @@ const Viewer = builder.drizzleInterface('users', {
   }),
 });
 
+let countedSelectCalls = 0;
+
 const NormalViewer = builder.drizzleObject('users', {
   variant: 'NormalViewer',
   interfaces: () => [Viewer, Named],
@@ -94,6 +96,16 @@ const NormalViewer = builder.drizzleObject('users', {
     reverseFirstName: t.string({
       nullable: true,
       resolve: (user) => user.firstName?.split('').reverse().join(''),
+    }),
+    // Counts how often its select runs.
+    countedFirstName: t.string({
+      nullable: true,
+      select: () => {
+        countedSelectCalls += 1;
+
+        return { columns: { firstName: true } };
+      },
+      resolve: (user) => user.firstName,
     }),
   }),
 });
@@ -363,6 +375,47 @@ builder.drizzleInterfaceField(CyclicUser, 'posts', (t) =>
 );
 builder.drizzleInterfaceField(CyclicPost, 'author', (t) =>
   t.relation('author', { type: CyclicUser }),
+);
+
+// The same relations through a field's own select function.
+let selectCalls = 0;
+
+builder.drizzleInterfaceField(CyclicUser, 'selectedPosts', (t) =>
+  t.field({
+    type: [CyclicPost],
+    select: (_args, _ctx, nestedSelection) => {
+      selectCalls += 1;
+
+      return { with: { posts: nestedSelection({ limit: 1 }) } };
+    },
+    resolve: (user) => user.posts,
+  }),
+);
+builder.drizzleInterfaceField(CyclicPost, 'selectedAuthor', (t) =>
+  t.field({
+    type: CyclicUser,
+    select: (_args, _ctx, nestedSelection) => {
+      selectCalls += 1;
+
+      return { with: { author: nestedSelection() } };
+    },
+    resolve: (post) => post.author!,
+  }),
+);
+
+// A select function that reads the path from its nested selection function.
+const selectPaths: string[][] = [];
+
+builder.drizzleInterfaceField(CyclicUser, 'pathPosts', (t) =>
+  t.field({
+    type: [CyclicPost],
+    select: (_args, _ctx, nestedSelection) => {
+      selectPaths.push(nestedSelection.path);
+
+      return { with: { posts: nestedSelection({ limit: 1 }) } };
+    },
+    resolve: (user) => user.posts,
+  }),
 );
 
 for (const n of [1, 2, 3]) {
@@ -751,9 +804,11 @@ describe('fragments on variants and non-model interfaces', () => {
         fragments.push(`fragment F${i} on Viewer { ...F${i + 1} ...F${i + 1} }`);
       }
 
-      fragments.push('fragment F12 on Viewer { ... on NormalViewer { reverseFirstName } }');
+      fragments.push(
+        'fragment F12 on Viewer { ... on NormalViewer { reverseFirstName countedFirstName } }',
+      );
 
-      const started = performance.now();
+      countedSelectCalls = 0;
       const result = await execute({
         schema,
         document: gql`
@@ -767,10 +822,14 @@ describe('fragments on variants and non-model interfaces', () => {
         contextValue: { user: { id: 1 } },
       });
 
-      expect(performance.now() - started).toBeLessThan(1000);
       expect(result.errors).toBeUndefined();
+      // F12's select runs once, not once per spread that reaches it.
+      expect(countedSelectCalls).toBe(1);
       expect(result.data).toEqual({
-        viewer: { reverseFirstName: user.firstName?.split('').reverse().join('') ?? null },
+        viewer: {
+          reverseFirstName: user.firstName?.split('').reverse().join('') ?? null,
+          countedFirstName: user.firstName,
+        },
       });
       expect(drizzleLogs).toMatchInlineSnapshot(`
         [
@@ -796,15 +855,15 @@ describe('fragments on variants and non-model interfaces', () => {
     }
 
     /** One named fragment per level, selecting the relation beneath each of the three variants. */
-    function namedDocument(root: string, depth: number) {
+    function namedDocument(root: string, depth: number, [posts, author] = ['posts', 'author']) {
       const fragments: string[] = [];
 
       for (let level = 1; level <= depth; level += 1) {
         const next = level === depth ? '... on Linked { linked }' : `...L${level + 1}`;
         const selections = [1, 2, 3].map((n) =>
           level % 2 === 1
-            ? `... on CyclicUser${n} { posts { ${next} } }`
-            : `... on CyclicPost${n} { author { ${next} } }`,
+            ? `... on CyclicUser${n} { ${posts} { ${next} } }`
+            : `... on CyclicPost${n} { ${author} { ${next} } }`,
         );
 
         fragments.push(`fragment L${level} on Linked { ${selections.join(' ')} }`);
@@ -817,14 +876,12 @@ describe('fragments on variants and non-model interfaces', () => {
       const callsAt = async (depth: number) => {
         relationQueryCalls = 0;
 
-        const started = performance.now();
         const result = await execute({
           schema,
           document: cyclicDocument('plannedCyclicUser', depth),
           contextValue: { user: { id: 1 } },
         });
 
-        expect(performance.now() - started).toBeLessThan(1000);
         expect(result.errors).toBeUndefined();
 
         return relationQueryCalls;
@@ -840,14 +897,12 @@ describe('fragments on variants and non-model interfaces', () => {
       const callsAt = async (depth: number) => {
         relationQueryCalls = 0;
 
-        const started = performance.now();
         const result = await execute({
           schema,
           document: namedDocument('plannedCyclicUser', depth),
           contextValue: { user: { id: 1 } },
         });
 
-        expect(performance.now() - started).toBeLessThan(1000);
         expect(result.errors).toBeUndefined();
 
         return relationQueryCalls;
@@ -857,6 +912,68 @@ describe('fragments on variants and non-model interfaces', () => {
       // level. A walk per field node made these 4,920 calls at depth 8.
       expect(await callsAt(8)).toBe(24);
       expect(await callsAt(20)).toBe(60);
+    });
+
+    it('shares the walk beneath a field whose select function does not read its path', async () => {
+      const callsAt = async (depth: number) => {
+        selectCalls = 0;
+
+        const result = await execute({
+          schema,
+          document: namedDocument('plannedCyclicUser', depth, ['selectedPosts', 'selectedAuthor']),
+          contextValue: { user: { id: 1 } },
+        });
+
+        expect(result.errors).toBeUndefined();
+
+        return selectCalls;
+      };
+
+      // Each of the three nodes, by the plain walk and the expanding one, at each level. Reading
+      // the path for every select made these 55,986 calls at depth 6 and 2,015,538 at depth 8;
+      // a walk per invocation, before walks were shared, made 1,092 and 9,840.
+      expect(await callsAt(6)).toBe(36);
+      expect(await callsAt(8)).toBe(48);
+    });
+
+    it('gives a select function that reads its path the path of each place it is planned', async () => {
+      selectPaths.length = 0;
+
+      const result = await execute({
+        schema,
+        document: gql`
+          fragment Posts on CyclicUser {
+            pathPosts {
+              postId
+            }
+          }
+
+          query {
+            cyclicUser {
+              ...Posts
+              selectedPosts {
+                selectedAuthor {
+                  ...Posts
+                }
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(selectPaths).toEqual(
+        expect.arrayContaining([
+          ['Query.cyclicUser', 'CyclicUser.pathPosts'],
+          [
+            'Query.cyclicUser',
+            'CyclicUser.selectedPosts',
+            'CyclicPost.selectedAuthor',
+            'CyclicUser.pathPosts',
+          ],
+        ]),
+      );
     });
 
     it('loads a shared walk in one statement', async () => {

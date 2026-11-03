@@ -93,7 +93,12 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
                   pathInfo: PathInfo,
                 ) => {
                   // A field's select also reads its metadata from the nested selection function.
-                  const nestedQueryWithPath = Object.assign(nestedQuery, pathInfo);
+                  // Forwarded lazily: reading the path ties the walk beneath the field to this
+                  // invocation, so a select that never reads it keeps that walk shared.
+                  const nestedQueryWithPath = Object.defineProperties(nestedQuery, {
+                    path: { get: () => pathInfo.path, enumerable: true },
+                    segments: { get: () => pathInfo.segments, enumerable: true },
+                  });
                   return completeValue(
                     (select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {} | null)(
                       args,
