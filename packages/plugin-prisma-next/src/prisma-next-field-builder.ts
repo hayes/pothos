@@ -59,6 +59,7 @@ import {
   type ConnectionSettingsOptions,
   connectionNodes,
   connectionSettings,
+  countOf,
   pageSelection,
 } from './utils/connections.js';
 import { resolveContractModel, variantForRelationType } from './utils/contract.js';
@@ -434,7 +435,7 @@ export class PrismaNextObjectFieldBuilder<
     const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
       completeOption(where, args, ctx, (filter) =>
         computedSelection(relationName, scopeOf(position), { where, args }, (sub) => ({
-          value: (filter === undefined ? sub : sub.where(filter)).count(),
+          value: countOf(filter === undefined ? sub : sub.where(filter)),
         })),
       );
     return this.field({

@@ -155,9 +155,9 @@ describe.skipIf(!url)('MySQL', () => {
     });
   });
 
-  // The types reject counts on a contract without aggregates, so the plugin doesn't check for
-  // them: the ORM's missing `count` fails the query that would have counted.
-  it('fails counts the types reject with the ORM TypeError', async () => {
+  // The types reject counts on a contract without aggregates. An untyped one fails the query that
+  // would have counted.
+  it('fails counts the types reject with a readable error', async () => {
     // A related count is planned into its parent's query, which fails as a whole.
     for (const source of [
       '{ authors { bookTotals { totalCount } } }',
@@ -165,12 +165,18 @@ describe.skipIf(!url)('MySQL', () => {
     ]) {
       const result = await run(source);
       expect(result.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
-        { message: expect.stringMatching(/\.count is not a function$/), path: ['authors'] },
+        {
+          message: expect.stringMatching(/^Aggregate 'count' is not available/),
+          path: ['authors'],
+        },
       ]);
     }
     const root = await run('{ authorTotals { totalCount } }');
     expect(root.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
-      { message: 'a.count is not a function', path: ['authorTotals'] },
+      {
+        message: expect.stringMatching(/^Aggregate 'count' is not available/),
+        path: ['authorTotals'],
+      },
     ]);
   });
 

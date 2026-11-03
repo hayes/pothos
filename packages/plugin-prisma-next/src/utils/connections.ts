@@ -220,7 +220,7 @@ export function pageSelection(
   const narrow = (rel: MapperCollection) => (variant === undefined ? rel : rel.variant(variant));
   const counted = count
     ? computedSelection(name, scope, identity, (sub) => ({
-        [COUNT_SLOT]: (count.filtered ? filter(narrow(sub)) : narrow(sub)).count(),
+        [COUNT_SLOT]: countOf(count.filtered ? filter(narrow(sub)) : narrow(sub)),
       }))
     : EMPTY;
   if (!rows) {
@@ -238,17 +238,26 @@ export function pageSelection(
   }));
 }
 
+/** `collection`'s count, or a readable error for a target without aggregates, such as MySQL. */
+export function countOf(collection: object): unknown {
+  const { count } = collection as { count?: () => unknown };
+  if (typeof count !== 'function') {
+    throw new Error(
+      "Aggregate 'count' is not available on this ORM collection: its target has no aggregates.",
+    );
+  }
+  return count.call(collection);
+}
+
 /** Counts the collection's rows. A synchronous throw becomes a rejection. */
 export function aggregateCount(collection: unknown): Promise<number> {
   return Promise.resolve().then(() =>
     (
       collection as {
-        aggregate: (
-          fn: (a: { count: () => unknown }) => Record<string, unknown>,
-        ) => Promise<Record<string, number>>;
+        aggregate: (fn: (a: object) => Record<string, unknown>) => Promise<Record<string, number>>;
       }
     )
-      .aggregate((a) => ({ total: a.count() }))
+      .aggregate((a) => ({ total: countOf(a) }))
       .then((r) => r.total),
   );
 }
