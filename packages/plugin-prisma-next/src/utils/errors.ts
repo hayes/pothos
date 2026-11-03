@@ -1,8 +1,9 @@
 import type { GraphQLResolveInfo } from 'graphql';
 
 /**
- * Errors rethrown as they are: what a field's select function threw, and errors that already name
- * their field.
+ * Errors rethrown as they are: those of the app's code, the client and the database, which keep
+ * their class, and errors that already name their field. The plugin's own errors are named after
+ * the field.
  */
 const named = new WeakSet<object>();
 

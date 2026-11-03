@@ -36,6 +36,7 @@ import {
   PRISMA_NEXT_REFINED_TO_ONE,
   PRISMA_NEXT_TYPE_SELECT,
 } from './constants.js';
+import { isLoadedTypeRow } from './model-loader.js';
 import type { AnyContract } from './types/models.js';
 import { getPluginConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
@@ -333,7 +334,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return resolver;
     }
     const { config } = this;
-    const { modelKey, missingTypeData } = reader;
+    const { modelKey, missingTypeData, staticColumns } = reader;
     // A prisma type's parent is always a row.
     return (row, args, context, info) => {
       const parent = row as object;
@@ -341,9 +342,13 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       if (!missing) {
         return resolver(reader.typeParent(parent), args, context, info);
       }
+      // Loads the type's `select`s alone, so the field's select neither runs before the plugins
+      // listed first nor takes a relation the type's select loads.
       return reloadFor(info, () =>
-        config.loader(context, modelKey).loadSelection(info, rowOf(parent), missing),
-      ).then(({ row }) => resolver(reader.typeParent(row), args, context, info));
+        config
+          .loader(context, modelKey)
+          .loadTypeRow(info, rowOf(parent), missing, staticColumns ?? []),
+      ).then((loaded) => resolver(reader.typeParent(loaded), args, context, info));
     };
   }
 
@@ -370,6 +375,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       loaded,
       readsSlots,
       declaresOwnSelect,
+      staticColumns,
     } = reader;
     const refinedToOne = fieldConfig.extensions?.[PRISMA_NEXT_REFINED_TO_ONE] as string | undefined;
     // A field helper reads its slots at the position its mapping names. A reloaded row has a
@@ -392,7 +398,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       // The row as every type-level select of the parent type loaded it.
       const complete = parentForType(parent, parentScopes) as Record<string, unknown>;
       const missing = requiredOnRow.filter((name) => complete[name] === undefined);
-      if (!missing.length && !planned) {
+      // A row a load returned holds every scope of its type's `select`s, which is what a field
+      // without a select function is planned for.
+      if (
+        !missing.length &&
+        (!planned ||
+          (staticColumns !== undefined &&
+            isLoadedTypeRow(rowOf(parent)) &&
+            computedRelations.every((name) => loadedSlots(parent, name))))
+      ) {
         return handOver(reader.parent(parent, null), undefined, args, context, info);
       }
       const mapping = reader.mapping(parent, context, info);
@@ -461,19 +475,14 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // The parent is reloaded unless it has every column and relation its type and interfaces
     // select. Relations selected with a function aren't checked: they write computed values whose
     // keys only the function knows.
-    const typeRequired = [
-      ...new Set(
-        selects.flatMap((select) => [
+    const requiredOnRow = [
+      ...new Set([
+        ...selects.flatMap((select) => [
           ...select.columns,
           ...select.relations
             .filter(([, value]) => typeof value !== 'function')
             .map(([name]) => name),
         ]),
-      ),
-    ];
-    const requiredOnRow = [
-      ...new Set([
-        ...typeRequired,
         ...(typeof selection === 'function' ? [] : (selection.columns ?? [])),
       ]),
     ];
@@ -537,16 +546,22 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         return mapping;
       },
       parentScopes,
+      staticColumns: typeof selection === 'function' ? undefined : (selection.columns ?? []),
       missingTypeData:
-        typeRequired.length || computedRelations.length
+        requiredOnRow.length || computedRelations.length
           ? (parent) => {
               const complete = parentForType(parent, parentScopes) as Record<string, unknown>;
-              const lacks = (name: string) => complete[name] === undefined;
-              const unloaded = (name: string) => !loadedSlots(parent, name);
               // Checked first so a complete row allocates nothing.
-              return typeRequired.some(lacks) || computedRelations.some(unloaded)
-                ? [...typeRequired.filter(lacks), ...computedRelations.filter(unloaded)]
-                : undefined;
+              if (
+                requiredOnRow.every((name) => complete[name] !== undefined) &&
+                computedRelations.every((name) => loadedSlots(parent, name))
+              ) {
+                return undefined;
+              }
+              return [
+                ...requiredOnRow.filter((name) => complete[name] === undefined),
+                ...computedRelations.filter((name) => !loadedSlots(parent, name)),
+              ];
             }
           : () => undefined,
       typeParent: (row) => parentForType(row, declaringScopes),
@@ -579,9 +594,12 @@ interface FieldReader {
   parentScopes: string[];
   /**
    * The columns and relations the `select`s of the parent type and its interfaces load that `row`
-   * lacks, or undefined when it has them all.
+   * lacks, with the columns a field without a select function reads, such as the one `t.expose*`
+   * exposes, which its options see too. Undefined when it has them all.
    */
   missingTypeData(row: object): string[] | undefined;
+  /** The columns a field without a select function reads, or undefined for one with one. */
+  staticColumns: readonly string[] | undefined;
   /** The parent plugins around the field see: the row as the declaring type's `select`s load it. */
   typeParent(row: object): object;
   /** The parent the field's resolver and the plugins listed after this one get. */

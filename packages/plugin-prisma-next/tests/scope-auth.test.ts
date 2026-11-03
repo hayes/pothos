@@ -719,7 +719,8 @@ describe("a type's select before plugins listed first", () => {
     expect(seen).not.toContainEqual(expect.arrayContaining([undefined]));
     expect(seen).toContainEqual(alice('field'));
     expect(seen).toContainEqual(['label', 'alice@example.com']);
-    expect(statements.length).toBeLessThanOrEqual(2);
+    // The deferred field reloads the hand-built row after the first batch ran.
+    expect(statements).toHaveLength(2);
   });
 
   it('fails the field whose reload fails, naming it', async () => {
@@ -753,6 +754,69 @@ describe("a type's select before plugins listed first", () => {
       ],
     ]);
     expect(result.errors?.[0]?.originalError?.cause).toBeInstanceOf(Error);
+  });
+  it('reloads the column t.expose* exposes before its authScopes', async () => {
+    const seen: unknown[] = [];
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [ScopeAuthPlugin, prismaNextPlugin],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        firstName: t.exposeString('firstName', {
+          authScopes: (user) => {
+            seen.push(user.firstName);
+            return true;
+          },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        handBuilt: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) as never }),
+      }),
+    });
+    const result = await runCaptured(builder.toSchema(), '{ handBuilt { firstName } }');
+    expect(result.data).toEqual({ handBuilt: { firstName: 'Alice' } });
+    expect(seen).toEqual(['Alice']);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it("passes the app's own errors from a reload through as they are", async () => {
+    class TenantError extends Error {}
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [ScopeAuthPlugin, prismaNextPlugin],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: {
+        context: ctx.client.context,
+        client: () => {
+          throw new TenantError('no tenant');
+        },
+      },
+    });
+    const User = builder.prismaObject('User', {
+      select: ['email'],
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        handBuilt: t.field({
+          type: User,
+          nullable: true,
+          resolve: () => ({ id: 'u-alice' }) as never,
+        }),
+      }),
+    });
+    const result = await runCaptured(builder.toSchema(), '{ handBuilt { firstName } }');
+    expect(result.errors?.map((error) => error.message)).toEqual(['no tenant']);
+    expect(result.errors?.[0]?.originalError).toBeInstanceOf(TenantError);
   });
 });
 
@@ -1190,7 +1254,7 @@ describe('a field that reloads a to-one relation with its own query', () => {
       expect(seen).toEqual(['Bob']);
     });
 
-    it('never shows field authScopes the filtered relation as the declared one', async () => {
+    it('shows field authScopes the declared relation of a reloaded row, never the filtered one', async () => {
       const seen: unknown[] = [];
       const result = await runCaptured(
         byAliceSchema(seen, 'plain'),
@@ -1198,7 +1262,9 @@ describe('a field that reloads a to-one relation with its own query', () => {
       );
       expect(result.errors).toBeUndefined();
       expect(result.data.post.byAlice).toBeNull();
-      expect(seen.every((name) => name === undefined || name === 'Bob')).toBe(true);
+      expect(seen).toEqual(['Bob']);
+      // The type's select, then the field's filtered author.
+      expect(result.statements).toHaveLength(2);
     });
   });
 });

@@ -9,6 +9,7 @@ import type {
 import { type MapperCollection, PrismaNextAdapter } from './adapter.js';
 import { type FieldCodecs, getColumnCodec } from './codecs.js';
 import { collectionForModel, rootModelKey } from './contract.js';
+import { keepError } from './errors.js';
 
 type RequestClient = PrismaNextRequestClient<AnyContract>;
 type ExecutionContext = PrismaNextExecutionContext<AnyContract>;
@@ -61,7 +62,14 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
 
   const client: (ctx: object) => RequestClient =
     typeof clientOption === 'function'
-      ? requestCache((ctx) => clientOption(ctx as never))
+      ? requestCache((ctx) => {
+          try {
+            return clientOption(ctx as never);
+          } catch (error) {
+            // The app's error, which reaches the field as it is.
+            throw keepError(error);
+          }
+        })
       : () => clientOption;
   const collection = (ctx: object, modelKey: string) => {
     const root = rootModelKey(contract, modelKey) ?? modelKey;

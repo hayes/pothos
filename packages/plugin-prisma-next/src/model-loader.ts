@@ -55,6 +55,18 @@ interface Batch {
 interface Plans {
   parent: Map<string, MaybePromise<Played>>;
   node: Map<string, MaybePromise<Played>>;
+  type: Map<string, MaybePromise<Played>>;
+}
+
+/**
+ * Rows a parent or node load returned, whose plans include the `select`s of their type and its
+ * interfaces.
+ */
+const typeRows = new WeakSet<object>();
+
+/** Whether a parent or node load returned `row`. */
+export function isLoadedTypeRow(row: object): boolean {
+  return typeRows.has(row);
 }
 
 interface IdentityColumn {
@@ -96,7 +108,7 @@ export class ModelLoader {
   private plansFor(info: GraphQLResolveInfo): Plans {
     let plans = this.plans.get(info.variableValues);
     if (!plans) {
-      plans = { parent: new Map(), node: new Map() };
+      plans = { parent: new Map(), node: new Map(), type: new Map() };
       this.plans.set(info.variableValues, plans);
     }
     return plans;
@@ -143,6 +155,51 @@ export class ModelLoader {
       });
     };
     return completeValue(selection, load) as Promise<{ row: Row; mapping: Mapping | undefined }>;
+  }
+
+  /**
+   * The parent row reloaded with what the `select`s of `info`'s parent type and its interfaces load,
+   * and `columns`. Unlike `loadSelection`, it plans none of the field, so every field of a row
+   * shares it, and the type's relations are never left out for the field's. `missing` is as for
+   * `loadSelection`.
+   */
+  loadTypeRow(
+    info: GraphQLResolveInfo,
+    parent: object,
+    missing: readonly string[],
+    columns: readonly string[],
+  ): Promise<Row> {
+    if (!this.identity.length) {
+      throw noIdentityReloadError(info, this.modelKey, missing);
+    }
+    const type = info.parentType;
+    const key = [type.name, ...columns].join(' ');
+    const plans = this.plansFor(info).type;
+    let selection = plans.get(key);
+    if (!selection) {
+      const plan = new Plan(
+        this.config.adapter,
+        { context: this.context, info },
+        type,
+        undefined,
+        this.initial,
+      );
+      selection = completeValue(plan.finish(plan.enterParentType, type), (played) => {
+        if (columns.length) {
+          this.config.adapter.mergeQuery(played.root, { columns: [...columns] });
+        }
+        return played;
+      });
+      plans.set(key, selection);
+    }
+    const load = (played: Played) =>
+      this.stage(
+        played.root,
+        this.identity,
+        this.identity.map((field) => (parent as Row)[field]),
+        { kind: 'parent' },
+      ) as Promise<Row>;
+    return completeValue(selection, load) as Promise<Row>;
   }
 
   /** The row of a Relay node, planned for `info`'s selection on `typeName`, or null. */
@@ -276,7 +333,7 @@ export class ModelLoader {
 
   private async flush(batch: Batch): Promise<void> {
     const { collection } = batch.load;
-    const base = collection ? collection(this.context) : this.defaultCollection();
+    const base = collection ? userCode(() => collection(this.context)) : this.defaultCollection();
     if (getCollectionPaginationState(base).paginated) {
       throw new Error(
         `The collection for '${this.modelKey}' must be unpaginated. Return a collection without limit(), offset(), or cursor().`,
@@ -312,25 +369,32 @@ export class ModelLoader {
             ),
           ),
     );
-    let query: MapperCollection & { all(): Promise<readonly Row[]> };
-    try {
-      query = this.config.adapter.emit(
+    // A query callback the statement runs fails every field of the batch, as in a parent query.
+    const query = userCode(() =>
+      this.config.adapter.emit(
         filtered,
         this.config.adapter.toQuery(batch.root),
         batch.root.model,
         this.context,
         batch.load.kind === 'parent',
-      ) as typeof query;
+      ),
+    ) as MapperCollection & { all(): Promise<readonly Row[]> };
+    let loaded: readonly Row[];
+    try {
+      loaded = await query.all();
     } catch (error) {
-      // Thrown by a query callback, which fails every field of the batch as it does a parent query.
+      // The database's error, which reaches the field as it is.
       throw keepError(error);
     }
-    const rows = takeSlots(
-      await query.all(),
-      batch.root.model,
-      this.config.adapter.recordOf(query),
+    const rows = takeSlots(loaded, batch.root.model, this.config.adapter.recordOf(query));
+    const byKey = new Map(
+      rows.map((row) => {
+        if (batch.load.kind !== 'complete') {
+          typeRows.add(row);
+        }
+        return [key(fields.map((field) => row[field])), row];
+      }),
     );
-    const byKey = new Map(rows.map((row) => [key(fields.map((field) => row[field])), row]));
     for (const { request, key } of keyed) {
       const row = byKey.get(key);
       if (row || batch.load.kind !== 'parent') {
@@ -363,4 +427,16 @@ function noIdentityReloadError(
         'without @defer fragments or conflicting selections of the same relation.',
     ),
   );
+}
+
+/**
+ * Runs code of the app's, such as a query callback, or the client. What it throws reaches the
+ * field as it is, so its class still matches, as in the errors plugin's `types`.
+ */
+function userCode<T>(run: () => T): T {
+  try {
+    return run();
+  } catch (error) {
+    throw keepError(error);
+  }
 }
