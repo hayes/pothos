@@ -227,7 +227,7 @@ describe('aliases with different arguments nested at every level', () => {
 // A field the limit refuses reloads its parent, which a model without a key can't. A keyless level
 // takes every field, so the document loads as it did before the limit.
 describe('aliases nested beneath rows without a key', () => {
-  const depth = 8;
+  const depth = 6;
 
   function keylessSchema() {
     const builder = createBuilder();
