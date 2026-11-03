@@ -38,6 +38,7 @@ import {
   resolveType,
 } from './matches.js';
 import type { Plan, PlayKind } from './plan.js';
+import { selectionShape } from './shape.js';
 import type { NestedSelection, Position, SelectFn, WalkedType } from './types.js';
 
 /**
@@ -675,9 +676,10 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
         : include?.path?.length
           ? [include.path]
           : undefined;
-      // Everything a walk beneath this field node reads that the node does not fix. The paths are
-      // data: an include's segments are names and type names.
-      const walkKey = `${returnType.name}:${target.name}:${paths ? JSON.stringify(paths) : ''}`;
+      // Everything a walk beneath this field node reads: the shape of its selection set, not the
+      // node, so a fragment spread beneath many fields is walked once. The paths are data: an
+      // include's segments are names and type names.
+      const walkKey = `${selectionShape(info, fieldNode.selectionSet)}:${returnType.name}:${target.name}:${paths ? JSON.stringify(paths) : ''}`;
 
       const child = plan.nested(target, position, walkKey, (walked) => {
         if (paths) {

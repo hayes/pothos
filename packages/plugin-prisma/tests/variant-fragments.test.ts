@@ -694,6 +694,24 @@ describe('fragments on variants and non-model interfaces', () => {
       return parse(`{ cyclicUser { ${selection} } }`);
     }
 
+    /** One named fragment per level, selecting the relation beneath each of the three variants. */
+    function namedDocument(root: string, depth: number) {
+      const fragments: string[] = [];
+
+      for (let level = 1; level <= depth; level += 1) {
+        const next = level === depth ? '... on Linked { linked }' : `...L${level + 1}`;
+        const selections = [1, 2, 3].map((n) =>
+          level % 2 === 1
+            ? `... on CyclicUser${n} { posts { ${next} } }`
+            : `... on CyclicPost${n} { author { ${next} } }`,
+        );
+
+        fragments.push(`fragment L${level} on Linked { ${selections.join(' ')} }`);
+      }
+
+      return parse(`{ ${root} { ...L1 } } ${fragments.join(' ')}`);
+    }
+
     it('walks each relation once per type it is reached on, not once per path', async () => {
       const callsAt = async (depth: number) => {
         relationQueryCalls = 0;
@@ -717,6 +735,31 @@ describe('fragments on variants and non-model interfaces', () => {
       // Exponential planning made these 1,092 calls at depth 6 and 4,473,924 at depth 12.
       expect(await callsAt(6)).toBe(12);
       expect(await callsAt(12)).toBe(24);
+    });
+
+    it('walks a named fragment spread beneath every variant once per level', async () => {
+      const callsAt = async (depth: number) => {
+        relationQueryCalls = 0;
+        queries.length = 0;
+
+        const started = performance.now();
+        const result = await execute({
+          schema,
+          document: namedDocument('cyclicUser', depth),
+          contextValue: { user: { id: 1 } },
+        });
+
+        expect(performance.now() - started).toBeLessThan(1000);
+        expect(result.errors).toBeUndefined();
+        expect(queries).toHaveLength(1);
+
+        return relationQueryCalls;
+      };
+
+      // Each of the three `posts` nodes, by the plain walk and the expanding one, at each odd
+      // level. A walk per field node made these 4,920 calls at depth 8.
+      expect(await callsAt(8)).toBe(24);
+      expect(await callsAt(20)).toBe(60);
     });
 
     it('plans the same query with and without the fragments', async () => {

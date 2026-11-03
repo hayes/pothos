@@ -1299,6 +1299,98 @@ describe('fragments that expand at every level', () => {
     expect(await callsAt(40)).toEqual({ posts: 80, author: 80 });
   });
 
+  /**
+   * One named fragment per level, selecting the relation beneath each implementation, so every
+   * level holds three field nodes with the same selection set: a linear document whose paths
+   * multiply by three at every level. `fields` relations per implementation make the walks above
+   * a level hang beneath different plans.
+   */
+  function namedDocument(depth: number, fields: string[] = ['posts']) {
+    const fragments: string[] = [];
+
+    for (let level = 1; level <= depth; level += 1) {
+      const next = level === depth ? '... on Node { nid }' : `...L${level + 1}`;
+      const selections = [1, 2, 3].map((n) =>
+        level % 2 === 1
+          ? `... on U${n} { ${fields.map((field) => `${field} { ${next} }`).join(' ')} }`
+          : `... on P${n} { author { ${next} } }`,
+      );
+
+      fragments.push(`fragment L${level} on Node { ${selections.join(' ')} }`);
+    }
+
+    return `{ user { ...L1 } } ${fragments.join(' ')}`;
+  }
+
+  it('walks a selection set once however many field nodes spell it', async () => {
+    const callsAt = async (depth: number, fields?: string[]) => {
+      const { calls, types } = linkedSchema();
+      const info = await resolveInfo(types, namedDocument(depth, fields));
+      const started = performance.now();
+
+      queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+      expect(performance.now() - started).toBeLessThan(1000);
+
+      return calls;
+    };
+
+    // Per level, each of the three field nodes on its own implementation, once for the plain walk
+    // and once for the expanding one.
+    expect(await callsAt(6)).toEqual({ posts: 18, author: 18 });
+    expect(await callsAt(20)).toEqual({ posts: 60, author: 60 });
+    expect(await callsAt(40)).toEqual({ posts: 120, author: 120 });
+    // `posts` and `drafts` walk the same selection set beneath different plans.
+    expect(await callsAt(16, ['posts', 'drafts'])).toEqual({ posts: 48, author: 48 });
+  });
+
+  it('keeps the mappings of every field node that shares a walk', async () => {
+    const { types } = linkedSchema();
+    const info = await resolveInfo(types, namedDocument(4));
+    const context = {};
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context, info });
+
+    for (const type of ['U1', 'U2', 'U3']) {
+      const posts = getLoaderMapping(context, pathOf('user', 'posts'), type);
+
+      expect(Object.keys(posts!.nested).sort()).toEqual(['P1@author', 'P2@author', 'P3@author']);
+      expect(Object.keys(posts!.nested['P2@author'].nested).sort()).toEqual([
+        'U1@posts',
+        'U2@posts',
+        'U3@posts',
+      ]);
+    }
+  });
+
+  it('walks selection sets that differ only in an alias or an argument beneath them apart', async () => {
+    const { calls, types } = linkedSchema();
+    const info = await resolveInfo(
+      types,
+      /* GraphQL */ `
+        {
+          user {
+            posts { a: author { id } }
+            drafts { b: author { id } }
+            x: posts(take: 1) { author { posts(take: 2) { id } } }
+            y: posts(take: 1) { author { posts(take: 3) { id } } }
+          }
+        }
+      `,
+    );
+    const context = {};
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context, info });
+
+    // Shared, the `b` and `take: 3` walks would make neither call.
+    expect(calls).toEqual({ posts: 5, author: 4 });
+    expect(
+      Object.keys(getLoaderMapping(context, pathOf('user', 'posts'), 'UserI')!.nested),
+    ).toEqual(['PostI@a']);
+    expect(
+      Object.keys(getLoaderMapping(context, pathOf('user', 'drafts'), 'UserI')!.nested),
+    ).toEqual(['PostI@b']);
+  });
+
   it('keeps the mappings of every implementation a relation is reached on', async () => {
     const { types } = linkedSchema();
     const info = await resolveInfo(types, expandingDocument(4));

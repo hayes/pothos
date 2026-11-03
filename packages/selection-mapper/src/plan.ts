@@ -8,12 +8,7 @@
  * another occurrence of itself is still on the list and a play whose seed makes it fit takes it.
  */
 import { PothosValidationError } from '@pothos/core';
-import {
-  type FieldNode,
-  type GraphQLNamedType,
-  type GraphQLResolveInfo,
-  getNamedType,
-} from 'graphql';
+import { type GraphQLNamedType, type GraphQLResolveInfo, getNamedType } from 'graphql';
 import type { Adapter, NodeBase } from './adapter.js';
 import { type Mapping, type Mappings, setLoaderMappings, unionMappings } from './loader-map.js';
 import {
@@ -124,8 +119,11 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   /** Whether a field an expansion walks has no select, so it can only read the row as loaded. */
   expansionReadsRow = false;
 
-  /** The walks beneath the fields of this plan, by field node and then by `nested`'s `key`. */
-  private walks?: Map<FieldNode, Map<string, Plan<Model, Query, NodeType>>>;
+  /**
+   * The walks beneath every field of the plans hanging from one root, by `nested`'s `key`. Shared
+   * with the plan this one was created from, so the root creates it and every nested plan reads it.
+   */
+  private readonly walks: Map<string, Plan<Model, Query, NodeType>>;
 
   /**
    * The play `settle` ran, which a later play takes whole when the seed conflicts with none of
@@ -248,6 +246,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     this.context = source.context;
     this.info = source.info;
     this.skipDeferredFragments = source.skipDeferredFragments ?? adapter.skipDeferredFragments;
+    this.walks = source instanceof Plan ? source.walks : new Map();
 
     const model = modelOf(adapter, source.info.schema, type);
 
@@ -267,14 +266,15 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * beneath the field, which `walk` collects the first time this plan needs it.
    *
    * One field node is invoked once per type it is reached on, and a fragment on a non-model
-   * interface reaches it on the interface and on each implementation. Each of those walks would
-   * invoke the fields beneath it the same number of times, so a walk per invocation is exponential
-   * in the document's depth. What a walk collects depends only on `position.node` and `key`, unless
-   * a select function reads the position above it, so the invocations share one that did not:
-   * `positionRead` says it did. A walk that is still pending may yet read it, so it is not shared.
+   * interface reaches it on the interface and on each implementation. A named fragment spread at
+   * every level reaches the same selection set beneath several field nodes, which may hang beneath
+   * different plans. A walk per invocation is exponential in the document's depth either way.
    *
-   * Walks are kept per plan, so one field selected beneath two others (a fragment spread beneath
-   * both) is walked for each. A walk that throws is not kept, so a select function that catches
+   * What a walk collects depends only on `key`, which names the selection set by its shape (see
+   * shape.ts) and holds everything else the walk reads, unless a select function reads the
+   * position above it: `positionRead` says it did. Every other invocation with the same key, under
+   * any plan from the same root, shares a walk that did not. A walk that is still pending may yet
+   * read it, so it is not shared. A walk that throws is not kept, so a select function that catches
    * the failure can retry it.
    */
   nested(
@@ -283,16 +283,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     key: string,
     walk: (plan: Plan<Model, Query, NodeType>) => void,
   ): Plan<Model, Query, NodeType> {
-    this.walks ??= new Map();
-
-    let walks = this.walks.get(position.node);
-
-    if (!walks) {
-      walks = new Map();
-      this.walks.set(position.node, walks);
-    }
-
-    let walked = walks.get(key);
+    let walked = this.walks.get(key);
 
     if (!walked) {
       const created = new Plan(this.adapter, this, type, position);
@@ -305,7 +296,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       }
 
       if (!(created.positionRead || created.pending)) {
-        walks.set(key, created);
+        this.walks.set(key, created);
       }
 
       walked = created;
