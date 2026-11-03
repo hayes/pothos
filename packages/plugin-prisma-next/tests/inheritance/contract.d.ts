@@ -19,7 +19,7 @@ import type {
 } from '@prisma/orm-framework/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'8620f3c21ac2b83db6f8a63d1687d70d27dc45d3af6777af420816b66b16c496'>;
+  StorageHashBase<'b038077d991a8076a795742c5ac835c1fbdafba60501a1a589301be06c9fc264'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'260b8608d1aacaf1f690779a6cff39a12947c599597c5ba464ca75b9e775df53'>;
@@ -198,16 +198,22 @@ export namespace Models {
     ownerId: FieldOutputTypes['__unbound__']['Task']['ownerId'];
     title: FieldOutputTypes['__unbound__']['Task']['title'];
     type: 'feature';
+    championId: FieldOutputTypes['__unbound__']['Feature']['championId'];
+    code: FieldOutputTypes['__unbound__']['Feature']['code'];
     priority: FieldOutputTypes['__unbound__']['Feature']['priority'];
     notes: Note[];
     owner: User;
-    readonly [RelationKeys]?: 'notes' | 'owner';
+    champion: User | null;
+    featureNotes: Note[];
+    readonly [RelationKeys]?: 'notes' | 'owner' | 'champion' | 'featureNotes';
   };
   export type Note = {
+    featureCode: FieldOutputTypes['__unbound__']['Note']['featureCode'];
     id: FieldOutputTypes['__unbound__']['Note']['id'];
     taskId: FieldOutputTypes['__unbound__']['Note']['taskId'];
+    feature: Feature | null;
     task: AnyTask;
-    readonly [RelationKeys]?: 'task';
+    readonly [RelationKeys]?: 'feature' | 'task';
   };
   export type Task = {
     id: FieldOutputTypes['__unbound__']['Task']['id'];
@@ -221,9 +227,10 @@ export namespace Models {
   export type User = {
     email: FieldOutputTypes['__unbound__']['User']['email'];
     id: FieldOutputTypes['__unbound__']['User']['id'];
+    championed: Feature[];
     reviews: Bug[];
     tasks: AnyTask[];
-    readonly [RelationKeys]?: 'reviews' | 'tasks';
+    readonly [RelationKeys]?: 'championed' | 'reviews' | 'tasks';
   };
   export type AnyTask = Bug | Feature;
 }
@@ -257,6 +264,18 @@ type ContractBase = Omit<
           readonly table: {
             readonly feature: {
               columns: {
+                readonly championId: {
+                  readonly dataType: 'sqlite/text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
+                readonly code: {
+                  readonly dataType: 'sqlite/text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
                 readonly id: {
                   readonly dataType: 'sqlite/text';
                   readonly codecId: 'sqlite/text@1';
@@ -271,9 +290,28 @@ type ContractBase = Omit<
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
-              uniques: readonly [];
-              indexes: readonly [];
+              uniques: readonly [{ readonly columns: readonly ['code'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'feature_championId_idx_793ab7cd';
+                  readonly prefix: 'feature_championId_idx';
+                  readonly columns: readonly ['championId'];
+                  readonly unique: false;
+                },
+              ];
               foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'feature';
+                    readonly columns: readonly ['championId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'user';
+                    readonly columns: readonly ['id'];
+                  };
+                },
                 {
                   readonly source: {
                     readonly namespaceId: '__unbound__' & NamespaceId;
@@ -290,6 +328,12 @@ type ContractBase = Omit<
             };
             readonly note: {
               columns: {
+                readonly featureCode: {
+                  readonly dataType: 'sqlite/text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
                 readonly id: {
                   readonly dataType: 'sqlite/text';
                   readonly codecId: 'sqlite/text@1';
@@ -306,6 +350,12 @@ type ContractBase = Omit<
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [];
               indexes: readonly [
+                {
+                  readonly name: 'note_featureCode_idx_8ef74f12';
+                  readonly prefix: 'note_featureCode_idx';
+                  readonly columns: readonly ['featureCode'];
+                  readonly unique: false;
+                },
                 {
                   readonly name: 'note_taskId_idx_4965c936';
                   readonly prefix: 'note_taskId_idx';
@@ -324,6 +374,18 @@ type ContractBase = Omit<
                     readonly namespaceId: '__unbound__' & NamespaceId;
                     readonly tableName: 'task';
                     readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'note';
+                    readonly columns: readonly ['featureCode'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: '__unbound__' & NamespaceId;
+                    readonly tableName: 'feature';
+                    readonly columns: readonly ['code'];
                   };
                 },
               ];
@@ -477,16 +539,52 @@ type ContractBase = Omit<
           };
           readonly Feature: {
             readonly fields: {
+              readonly championId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+              readonly code: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
               readonly priority: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/integer@1' };
               };
             };
-            readonly relations: Record<string, never>;
+            readonly relations: {
+              readonly champion: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'User';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['championId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly featureNotes: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Note';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['code'];
+                  readonly targetFields: readonly ['featureCode'];
+                };
+              };
+            };
             readonly storage: {
               readonly table: 'feature';
               readonly namespaceId: '__unbound__';
-              readonly fields: { readonly priority: { readonly column: 'priority' } };
+              readonly fields: {
+                readonly championId: { readonly column: 'championId' };
+                readonly code: { readonly column: 'code' };
+                readonly priority: { readonly column: 'priority' };
+              };
             };
             readonly base: {
               readonly namespace: '__unbound__' & NamespaceId;
@@ -495,6 +593,10 @@ type ContractBase = Omit<
           };
           readonly Note: {
             readonly fields: {
+              readonly featureCode: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
               readonly id: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
@@ -505,6 +607,18 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly feature: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Feature';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['featureCode'];
+                  readonly targetFields: readonly ['code'];
+                };
+              };
               readonly task: {
                 readonly to: {
                   readonly namespace: '__unbound__' & NamespaceId;
@@ -522,6 +636,7 @@ type ContractBase = Omit<
               readonly table: 'note';
               readonly namespaceId: '__unbound__';
               readonly fields: {
+                readonly featureCode: { readonly column: 'featureCode' };
                 readonly id: { readonly column: 'id' };
                 readonly taskId: { readonly column: 'taskId' };
               };
@@ -605,6 +720,17 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly championed: {
+                readonly to: {
+                  readonly namespace: '__unbound__' & NamespaceId;
+                  readonly model: 'Feature';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['championId'];
+                };
+              };
               readonly reviews: {
                 readonly to: {
                   readonly namespace: '__unbound__' & NamespaceId;

@@ -7,6 +7,7 @@ import {
   resolveContractModel,
   rootModelKey,
   variantOf,
+  variantTableFields,
 } from './contract.js';
 
 export interface PrismaNextRelation {
@@ -37,6 +38,11 @@ export interface PrismaNextModel {
    */
   readonly sharedVariantRelations: ReadonlySet<string>;
   readonly columns: ReadonlySet<string>;
+  /**
+   * The columns each multi-table variant's own accessor reads, by discriminator value. A relation
+   * targeting such a variant model loads through it, so the base's other columns load separately.
+   */
+  readonly variantTableColumns: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
 /**
@@ -157,6 +163,12 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
       relations,
       sharedVariantRelations,
       columns: buildColumnSet(contract, root),
+      variantTableColumns: new Map(
+        (modelDiscriminator(contract, root)?.variants ?? []).flatMap(({ key, value }) => {
+          const fields = variantTableFields(contract, key);
+          return fields ? [[value, new Set(fields)] as const] : [];
+        }),
+      ),
     };
     // Registered before its relations resolve, so a cycle finds it.
     models.set(root, model);

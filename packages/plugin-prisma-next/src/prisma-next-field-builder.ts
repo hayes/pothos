@@ -682,9 +682,10 @@ function readSlots<T>(
 /**
  * Completes the rows of a relation that targets a variant model before its field returns them.
  * They loaded through the variant model's own accessor, which can't include the base model's
- * relations, so the planner left those out of the returned type's selection. One batched statement
- * loads them for every parent, so plugins listed before this one, such as scope-auth, see the to-one
- * relations the type's `select` promises.
+ * relations or, for a variant with a table of its own, read the base's columns, so the planner left
+ * those out of the returned type's selection. One batched statement loads them for every parent, so
+ * plugins listed before this one, such as scope-auth, see the columns and to-one relations the
+ * type's `select` promises.
  */
 function completeVariantRows<T>(
   builder: object,
@@ -703,7 +704,10 @@ function completeVariantRows<T>(
   }
   const list = (Array.isArray(rows) ? rows : [rows]) as Record<string, unknown>[];
   const completed = config.loader(context, relation.targetModel).completeRows(list, dropped);
-  return completed ? completed.then(() => rows) : rows;
+  // A row the base model narrowed to the variant doesn't have isn't of the variant.
+  return completed
+    ? completed.then((found) => (Array.isArray(rows) ? found : (found[0] ?? null)) as T)
+    : rows;
 }
 
 // An embed records no nullability, so its row may be absent.

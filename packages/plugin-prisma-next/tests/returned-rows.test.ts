@@ -120,14 +120,17 @@ const inheritanceDb = createSqliteRuntime(
   `
   CREATE TABLE user (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE);
   CREATE TABLE task (id TEXT PRIMARY KEY, title TEXT NOT NULL, type TEXT NOT NULL, ownerId TEXT NOT NULL, severity TEXT, reviewerId TEXT);
-  CREATE TABLE feature (id TEXT PRIMARY KEY REFERENCES task(id), priority INT NOT NULL);
-  CREATE TABLE note (id TEXT PRIMARY KEY, taskId TEXT NOT NULL);
+  CREATE TABLE feature (id TEXT PRIMARY KEY REFERENCES task(id), priority INT NOT NULL, code TEXT UNIQUE, championId TEXT);
+  CREATE TABLE note (id TEXT PRIMARY KEY, taskId TEXT NOT NULL, featureCode TEXT);
   INSERT INTO user VALUES ('u1', 'a@example.com'), ('u2', 'b@example.com');
   INSERT INTO task VALUES
     ('t1', 'bug1', 'bug', 'u1', 'high', 'u2'),
     ('t2', 'bug2', 'bug', 'u2', 'low', 'u1'),
     ('t3', 'feat1', 'feature', 'u1', NULL, 'u1');
-  INSERT INTO feature VALUES ('t3', 5);
+  INSERT INTO feature VALUES ('t3', 5, 'f3', NULL);
+  -- A feature row whose task row is a bug, so loading it through Task narrowed to Feature finds none.
+  INSERT INTO feature VALUES ('t1', 7, 'stray', NULL);
+  INSERT INTO note VALUES ('n1', 't3', 'f3'), ('n2', 't1', 'stray'), ('n3', 't2', NULL);
 `,
 );
 afterAll(() => inheritanceDb.cleanup());
@@ -212,5 +215,72 @@ describe('rows of a relation to a variant model with ScopeAuthPlugin listed firs
       ['t2', 'b@example.com'],
       ['t1', 'a@example.com'],
     ]);
+  });
+});
+
+// `Note.feature` is a to-one relation targeting the variant model Feature, whose rows load through
+// `orm.Feature`, which reads only the feature table, so it can't read Task's columns or include its
+// relations.
+function createToOneVariantSchema(seen: unknown[]) {
+  const builder = new SchemaBuilder<{
+    PrismaNextContract: InheritanceContract;
+    AuthScopes: { ok: boolean };
+  }>({
+    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    relay: {},
+    scopeAuth: { authScopes: () => ({ ok: true }) },
+    prismaNext: { client: inheritanceDb.client },
+  });
+  const Task = builder.prismaInterface('Task', {
+    fields: (t) => ({ title: t.exposeString('title') }),
+  });
+  builder.prismaObject('Bug', { interfaces: [Task], fields: () => ({}) });
+  builder.prismaObject('Feature', {
+    interfaces: [Task],
+    select: { title: true, owner: true },
+    authScopes: (feature) => {
+      seen.push([feature.id, feature.title, feature.owner?.email]);
+      return true;
+    },
+    fields: (t) => ({
+      priority: t.exposeInt('priority'),
+      ownerEmail: t.string({ nullable: true, resolve: (feature) => feature.owner?.email }),
+    }),
+  });
+  builder.prismaObject('Note', {
+    fields: (t) => ({
+      id: t.exposeID('id'),
+      feature: t.relation('feature', { nullable: true }),
+    }),
+  });
+  builder.queryType({
+    fields: (t) => ({
+      notes: t.prismaField({
+        type: ['Note'],
+        resolve: () => inheritanceDb.orm.Note.orderBy((row) => row.id.asc()),
+      }),
+    }),
+  });
+  return builder.toSchema();
+}
+
+describe('a to-one relation to a variant model with a table of its own', () => {
+  it("shows type-level authScopes the base columns and relations the variant's select loads", async () => {
+    const seen: unknown[] = [];
+    const statements: CapturedExecution[] = [];
+    const result = await withCapture(statements, () =>
+      run(createToOneVariantSchema(seen), '{ notes { id feature { priority ownerEmail } } }'),
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      notes: [
+        { id: 'n1', feature: { priority: 5, ownerEmail: 'a@example.com' } },
+        { id: 'n2', feature: null },
+        { id: 'n3', feature: null },
+      ],
+    });
+    expect(seen).toEqual([['t3', 'feat1', 'a@example.com']]);
+    // The notes with their features, and one batch loading Task's columns and relations.
+    expect(statements).toHaveLength(2);
   });
 });
