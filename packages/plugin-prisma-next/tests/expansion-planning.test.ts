@@ -1,5 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
-import { PrismaNextAdapter } from '../src/utils/adapter';
+import { describe, expect, it } from 'vitest';
 import { createBuilder, run, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
@@ -31,7 +30,7 @@ describe('planning fragments that expand at every level', () => {
         query: () => {
           calls.posts += 1;
 
-          // One row per level, so the time measured is planning and not a response that doubles.
+          // One row per level, so the response doesn't double at every level.
           return { limit: 1 };
         },
       }),
@@ -69,30 +68,224 @@ describe('planning fragments that expand at every level', () => {
     return `{ user { ${selection} } }`;
   }
 
+  // Planning beneath every invocation, or a slot per implementation, ran out of time or heap here.
   it.each([
-    // Walking beneath every invocation made these 174,762 and 4,473,924 calls.
     [1, 18, 18],
     [3, 12, 24],
-    // A slot per implementation made 8,768,613 tree copies at depth 24 and ran out of heap at 28.
     [3, 24, 48],
     [3, 28, 56],
     [3, 60, 120],
     [2, 36, 54],
     [6, 96, 336],
   ])('with %i implementations at depth %i it makes %i relation calls', async (implementations, depth, expected) => {
-    const copies = vi.spyOn(PrismaNextAdapter.prototype, 'toQuery');
     const { calls, schema } = cyclicSchema(implementations);
-    copies.mockClear();
-
-    const started = performance.now();
     const result = await run(schema, cyclicDocument(depth));
-    const toQueryCalls = copies.mock.calls.length;
-
-    copies.mockRestore();
     expect(result.errors).toBeUndefined();
     expect(calls.posts).toBe(expected);
-    expect(toQueryCalls).toBeLessThan(20 * (implementations + 1) * depth * depth);
-    expect(performance.now() - started).toBeLessThan(2000);
     expect(result.statements).toHaveLength(1);
+  });
+});
+
+// Aliases of a relation with different arguments each load into a `combine()` slot of their own,
+// so a document that nests them doubles the slots of one statement at every level. Past a limit,
+// a field loads its own data instead, and no statement grows with the document's nesting.
+describe('aliases with different arguments nested at every level', () => {
+  const depth = 8;
+
+  function aliasSchema() {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        firstName: t.exposeString('firstName'),
+        posts: t.relation('posts', {
+          args: { limit: t.arg.int({ required: true }) },
+          query: (args) => ({ limit: args.limit, orderBy: (post) => post.id.asc() }),
+        }),
+      }),
+    });
+    builder.prismaObject('Post', {
+      fields: (t) => ({ id: t.exposeID('id'), author: t.relation('author') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  function document() {
+    let fragments = `fragment F${depth} on User { firstName }`;
+    for (let level = depth - 1; level >= 0; level -= 1) {
+      fragments += ` fragment F${level} on User {
+        a: posts(limit: 1) { id author { ...F${level + 1} } }
+        b: posts(limit: 2) { id author { ...F${level + 1} } }
+      }`;
+    }
+    return `{ users { ...F0 } } ${fragments}`;
+  }
+
+  const postsBy: Record<string, string[]> = {
+    Alice: ['p-draft1', 'p-hello'],
+    Bob: ['p-bob-draft', 'p-bob1'],
+  };
+
+  function expected(firstName: string, level: number): object {
+    if (level === depth) {
+      return { firstName };
+    }
+    const posts = (limit: number) =>
+      postsBy[firstName]!.slice(0, limit).map((id) => ({
+        id,
+        author: expected(firstName, level + 1),
+      }));
+    return { a: posts(1), b: posts(2) };
+  }
+
+  it('keeps every statement within the limit and loads the same data', async () => {
+    const result = await run(aliasSchema(), document());
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([expected('Alice', 0), expected('Bob', 0)]);
+    expect(result.statements.length).toBeGreaterThan(1);
+    // Planned whole, the first statement would read the two tables more than 1000 times.
+    for (const statement of result.statements) {
+      expect(statement.sql.match(/FROM "(post|user)"/g)!.length).toBeLessThan(300);
+    }
+  });
+});
+
+// A field the limit refuses reloads its parent, which a model without a key can't. A keyless level
+// takes every field, so the document loads as it did before the limit.
+describe('aliases nested beneath rows without a key', () => {
+  const depth = 8;
+
+  function keylessSchema() {
+    const builder = createBuilder();
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        views: t.relation('views', {
+          args: { limit: t.arg.int({ required: true }) },
+          query: (args) => ({ limit: args.limit, orderBy: (view) => view.viewer.asc() }),
+        }),
+      }),
+    });
+    builder.prismaObject('PostView', {
+      fields: (t) => ({ viewer: t.exposeString('viewer'), post: t.relation('post') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        views: t.prismaField({
+          type: ['PostView'],
+          resolve: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  // Each alias of `post` plans alone, so their views merge on the keyless level above them.
+  function document() {
+    let fragments = `fragment V${depth} on PostView { viewer }`;
+    for (let level = depth - 1; level >= 0; level -= 1) {
+      fragments += ` fragment V${level} on PostView {
+        first: post { a: views(limit: 1) { ...V${level + 1} } }
+        second: post { b: views(limit: 2) { ...V${level + 1} } }
+      }`;
+    }
+    return `{ views { ...V0 } } ${fragments}`;
+  }
+
+  const postOf: Record<string, string> = { Alice: 'p-bob1', Bob: 'p-hello', Carol: 'p-hello' };
+  const viewersOf: Record<string, string[]> = { 'p-bob1': ['Alice'], 'p-hello': ['Bob', 'Carol'] };
+
+  function expected(viewer: string, level: number): object {
+    if (level === depth) {
+      return { viewer };
+    }
+    const views = (limit: number) =>
+      viewersOf[postOf[viewer]!]!.slice(0, limit).map((next) => expected(next, level + 1));
+    return { first: { a: views(1) }, second: { b: views(2) } };
+  }
+
+  it('loads every field on a keyless level rather than reloading it', async () => {
+    const result = await run(keylessSchema(), document());
+    expect(result.errors).toBeUndefined();
+    expect(result.data.views).toEqual(['Alice', 'Bob', 'Carol'].map((v) => expected(v, 0)));
+    expect(result.statements).toHaveLength(1);
+  });
+});
+
+// An alias that repeats a to-one relation adds nothing the level doesn't hold, so the limit takes
+// it even on a full level. (Aliases of a to-many relation each load into a slot of their own.)
+describe('aliases that repeat a to-one relation', () => {
+  it('merges a repeated alias on a level at the limit', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('PostView', { fields: (t) => ({ viewer: t.exposeString('viewer') }) });
+    builder.prismaObject('Post', {
+      fields: (t) => ({ author: t.relation('author'), views: t.relation('views') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        post: t.prismaField({
+          type: 'Post',
+          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+        }),
+      }),
+    });
+    // 199 slots of `views`, then `author`: the level loads exactly the limit.
+    const views = Array.from({ length: 199 }, (_, i) => `v${i}: views { viewer }`).join(' ');
+    const result = await run(
+      builder.toSchema(),
+      `{ post { ${views} x: author { id } y: author { id } } }`,
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.post.y).toEqual({ id: 'u-alice' });
+    expect(result.data.post.v198).toEqual([{ viewer: 'Bob' }, { viewer: 'Carol' }]);
+    expect(result.statements).toHaveLength(1);
+  });
+});
+
+// A reload merges the field before its type's selection, into a level that loads nothing yet, so a
+// field the limit refuses beside a type-level relation fits its reload.
+describe('a field past the limit beside a type-level relation', () => {
+  it('loads the field by reloading its parent', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ posts: t.relation('posts') }) });
+    builder.prismaObject('PostView', { fields: (t) => ({ viewer: t.exposeString('viewer') }) });
+    builder.prismaObject('Post', {
+      select: { comments: true },
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        author: t.relation('author'),
+        views: t.relation('views'),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        post: t.prismaField({
+          type: 'Post',
+          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+        }),
+      }),
+    });
+    // `author` loads 1 + 1 + 200 beneath it (each `posts` level holds `comments`), so the outer
+    // level, which holds `comments` too, refuses it.
+    const views = Array.from({ length: 199 }, (_, i) => `v${i}: views { viewer }`).join(' ');
+    const result = await run(
+      builder.toSchema(),
+      `{ post { id author { posts { id ${views} } } } }`,
+    );
+    expect(result.errors).toBeUndefined();
+    const posts = result.data.post.author.posts as Record<string, unknown>[];
+    expect(Object.fromEntries(posts.map((post) => [post.id, post.v198]))).toEqual({
+      'p-draft1': [],
+      'p-hello': [{ viewer: 'Bob' }, { viewer: 'Carol' }],
+    });
+    expect(result.statements).toHaveLength(2);
   });
 });

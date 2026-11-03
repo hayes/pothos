@@ -5,7 +5,12 @@ import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
 import type { PostgresClient } from '@prisma/orm-postgres/runtime';
 import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, { type CollectionFor, type ModelName, type Row } from '../../src';
+import prismaNextPlugin, {
+  type CollectionFor,
+  type ModelKey,
+  prismaConnectionHelpers,
+  type Row,
+} from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 import type { Contract as PostgresContract } from '../postgres/contract';
@@ -14,7 +19,7 @@ type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract
 type UserRow = DefaultModelRow<Contract, 'User'>;
 type PostRow = DefaultModelRow<Contract, 'Post'>;
 
-const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+const builder = new SchemaBuilder<{ PrismaNextContract: Contract; AsyncSelections: true }>({
   plugins: [RelayPlugin, prismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
@@ -22,7 +27,7 @@ const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
 const collection = null as never;
 declare const orm: { User: CollectionFor<Types, 'User'>; Post: CollectionFor<Types, 'Post'> };
 
-expectTypeOf<ModelName<Types>>().toEqualTypeOf<'User' | 'Post' | 'Comment' | 'PostView'>();
+expectTypeOf<ModelKey<Types>>().toEqualTypeOf<'User' | 'Post' | 'Comment' | 'PostView'>();
 expectTypeOf<Row<Types, 'User'>>().toEqualTypeOf<{
   id: string;
   firstName: string;
@@ -224,14 +229,18 @@ builder.prismaObject('User', {
   variant: 'FieldSelectFunctions',
   fields: (t) => ({
     columns: t.string({
-      select: () => ['email'],
+      select: () => ({ email: true }),
       resolve: (user) => {
         expectTypeOf(user.email).toEqualTypeOf<string>();
         // @ts-expect-error `lastName` isn't selected
         return user.lastName;
       },
     }),
-    asyncColumns: t.string({ select: async () => ['email'], resolve: (user) => user.email }),
+    // A function returns the object form. A column array is a static `select` only.
+    // @ts-expect-error a select function returns a select object
+    arrayFromFunction: t.string({ select: () => ['email'], resolve: () => '' }),
+    // @ts-expect-error a select function returns a select object
+    arrayFromAsyncFunction: t.string({ select: async () => ['email'], resolve: () => '' }),
     objectForm: t.string({
       select: () => ({ email: true, posts: true }),
       resolve: (user) => `${user.email}${user.posts.length}`,
@@ -255,7 +264,7 @@ builder.prismaObject('User', {
     // Columns only some branches select may be missing.
     branches: t.string({
       args: { formal: t.arg.boolean({ required: true }) },
-      select: (args) => (args.formal ? ['lastName'] : ['firstName']),
+      select: (args) => (args.formal ? { lastName: true } : { firstName: true }),
       resolve: (user) => {
         expectTypeOf(user.lastName).toEqualTypeOf<string | undefined>();
         expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
@@ -265,7 +274,7 @@ builder.prismaObject('User', {
     // A column every branch selects is present; one only some branches select may be missing.
     overlapping: t.string({
       args: { full: t.arg.boolean({ required: true }) },
-      select: (args) => (args.full ? ['email', 'firstName'] : ['email']),
+      select: (args) => (args.full ? { email: true, firstName: true } : { email: true }),
       resolve: (user) => {
         expectTypeOf(user.email).toEqualTypeOf<string>();
         expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
@@ -274,7 +283,7 @@ builder.prismaObject('User', {
     }),
     emptyBranch: t.string({
       args: { full: t.arg.boolean({ required: true }) },
-      select: (args) => (args.full ? ['lastName'] : []),
+      select: (args) => (args.full ? { lastName: true } : {}),
       resolve: (user) => {
         expectTypeOf(user.lastName).toEqualTypeOf<string | undefined>();
         return '';
@@ -284,9 +293,9 @@ builder.prismaObject('User', {
       args: { full: t.arg.boolean({ required: true }) },
       select: (args) => {
         if (args.full) {
-          return ['email', 'firstName'];
+          return { email: true, firstName: true };
         }
-        return ['email'];
+        return { email: true };
       },
       resolve: (user) => {
         expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
@@ -295,14 +304,14 @@ builder.prismaObject('User', {
     }),
     asyncOverlapping: t.string({
       args: { full: t.arg.boolean({ required: true }) },
-      select: async (args) => (args.full ? ['email', 'firstName'] : ['email']),
+      select: async (args) => (args.full ? { email: true, firstName: true } : { email: true }),
       resolve: (user) => {
         expectTypeOf(user.firstName).toEqualTypeOf<string | undefined>();
         return '';
       },
     }),
     singleBranch: t.string({
-      select: () => ['email', 'firstName'],
+      select: () => ({ email: true, firstName: true }),
       resolve: (user) => {
         expectTypeOf(user.email).toEqualTypeOf<string>();
         expectTypeOf(user.firstName).toEqualTypeOf<string>();
@@ -310,15 +319,15 @@ builder.prismaObject('User', {
       },
     }),
     asyncSingleBranch: t.string({
-      select: async () => ['email', 'firstName'],
+      select: async () => ({ email: true, firstName: true }),
       resolve: (user) => {
         expectTypeOf(user.firstName).toEqualTypeOf<string>();
         return '';
       },
     }),
     // An array variable may hold any of its columns.
-    variable: t.string({
-      select: () => someColumns,
+    staticVariable: t.string({
+      select: someColumns,
       resolve: (user) => {
         expectTypeOf(user.email).toEqualTypeOf<string | undefined>();
         return '';
@@ -345,7 +354,7 @@ builder.prismaObject('User', {
     }),
     columnTypo: t.string({
       // @ts-expect-error `emial` isn't a column
-      select: () => ['emial'],
+      select: () => ({ email: true, emial: true }),
       resolve: () => '',
     }),
     objectTypo: t.string({
@@ -355,7 +364,7 @@ builder.prismaObject('User', {
     }),
     asyncTypo: t.string({
       // @ts-expect-error `emial` isn't a column
-      select: async () => ['emial'],
+      select: async () => ({ emial: true }),
       resolve: () => '',
     }),
   }),
@@ -446,11 +455,9 @@ builder.prismaObject('Post', {
       },
     }),
     ordered: t.string({
+      // @ts-expect-error a to-one relation takes only `where`
       select: { author: { limit: 1 } },
-      resolve: (post) => {
-        expectTypeOf(post.author).toEqualTypeOf<UserRow>();
-        return '';
-      },
+      resolve: () => '',
     }),
     filtered: t.string({
       select: { author: { where: { firstName: 'Alice' } } },
@@ -461,17 +468,84 @@ builder.prismaObject('Post', {
     }),
   }),
 });
+// A type's select takes only `true` for a to-one relation. A field's select filters one.
 builder.prismaObject('Post', {
   variant: 'FilteredTypeSelect',
+  // @ts-expect-error a to-one relation in a type's select takes only true
   select: { author: { where: { firstName: 'Alice' } } },
+});
+builder.prismaObject('Post', {
+  variant: 'LimitedTypeSelect',
+  // @ts-expect-error a to-one relation in a type's select takes no query options either
+  select: { author: { limit: 1 } },
+});
+builder.prismaInterface('Post', {
+  name: 'FilteredInterfaceSelect',
+  // @ts-expect-error prismaInterface's select takes only true for a to-one relation too
+  select: { author: { where: { firstName: 'Alice' } } },
+});
+builder.prismaNode('Post', {
+  variant: 'FilteredNodeSelect',
+  id: { field: 'id' },
+  // @ts-expect-error prismaNode's select takes only true for a to-one relation too
+  select: { author: { where: { firstName: 'Alice' } } },
+});
+builder.prismaObject('Post', {
+  variant: 'ToOneFunctionTypeSelect',
+  // @ts-expect-error a to-one relation has no function form on a type either
+  select: { author: (author) => ({ name: author }) },
+});
+// However the query options reach a type's select.
+const limitedAuthor = { author: { limit: 1 } };
+declare const disjointSelect: { author: { limit: number } } | { comments: true };
+builder.prismaObject('Post', {
+  variant: 'ConditionalTypeSelect',
+  // @ts-expect-error one branch's to-one relation has query options
+  select: flag ? { author: { limit: 1 } } : ['title'],
+});
+builder.prismaObject('Post', {
+  variant: 'DisjointTypeSelect',
+  // @ts-expect-error one member's to-one relation has query options
+  select: disjointSelect,
+});
+builder.prismaObject('Post', {
+  variant: 'EmptyOptionsTypeSelect',
+  // @ts-expect-error empty options aren't `true`
+  select: { author: {} },
+});
+builder.prismaObject('Post', {
+  variant: 'VariableTypeSelect',
+  // @ts-expect-error a variable holds the query options
+  select: limitedAuthor,
+});
+builder.prismaObject('Post', {
+  variant: 'SpreadTypeSelect',
+  // @ts-expect-error a spread holds the query options
+  select: { ...limitedAuthor, title: true },
+});
+// A model that is only known through a generic still takes a select.
+export function genericTypeSelect<M extends 'User' | 'Post'>(model: M) {
+  builder.prismaObject(model, { variant: 'GenericTypeSelect', select: ['id'] });
+}
+// `true` and the to-many forms stay.
+builder.prismaObject('Post', {
+  variant: 'TrueTypeSelect',
+  select: { author: true, comments: { limit: 1 } },
   fields: (t) => ({
     name: t.string({
       resolve: (post) => {
-        expectTypeOf(post.author).toEqualTypeOf<UserRow | null>();
-        return '';
+        expectTypeOf(post.author).toEqualTypeOf<UserRow>();
+        return post.author.firstName;
       },
     }),
   }),
+});
+builder.prismaObject('User', {
+  variant: 'ToManyTypeSelects',
+  select: {
+    posts: { where: { published: 1 }, limit: 1 },
+    comments: (sub) => ({ commentTotal: sub.count() }),
+  },
 });
 
 // String-form cross-file helpers see only their own declared columns; ref forms see the type's.
@@ -663,6 +737,17 @@ withInput.queryType({
         return null;
       },
     }),
+    wrongModel: t.prismaFieldWithInput({
+      type: 'User',
+      input: { email: t.input.string({ required: true }) },
+      // @ts-expect-error `Post` rows can't resolve a `User` field
+      resolve: () => sqliteClient.orm.Post,
+    }),
+    rightModel: t.prismaFieldWithInput({
+      type: 'User',
+      input: { email: t.input.string({ required: true }) },
+      resolve: () => sqliteClient.orm.User,
+    }),
     required: t.prismaFieldWithInput({
       type: 'User',
       nullable: true,
@@ -676,7 +761,7 @@ withInput.queryType({
 });
 
 // client: the client itself, or a function of the request context that returns one (such as a
-// transaction) beside the contract.
+// transaction) beside the execution context of the client it comes from.
 type Context = { db: typeof db; tenantId: string };
 declare const db: { orm: typeof orm; context: { contract: Contract; contractCodecs: Codecs } };
 type Codecs = { forColumn(namespaceId: string, table: string, column: string): unknown };
@@ -694,7 +779,7 @@ new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
   plugins: [prismaNextPlugin],
   prismaNext: {
     client: () => null as unknown as Parameters<Parameters<typeof sqliteClient.transaction>[0]>[0],
-    contract: sqliteClient.contract,
+    context: sqliteClient.context,
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
@@ -705,17 +790,17 @@ new SchemaBuilder<{ PrismaNextContract: Contract }>({
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
   plugins: [prismaNextPlugin],
   prismaNext: {
-    client: (context) => {
-      expectTypeOf(context).toEqualTypeOf<Context>();
-      return { orm: context.db.orm };
+    client: (ctx) => {
+      expectTypeOf(ctx).toEqualTypeOf<Context>();
+      return { orm: ctx.db.orm };
     },
-    contract: db.context.contract,
+    context: db.context,
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
   plugins: [prismaNextPlugin],
-  // @ts-expect-error a client function needs the contract for building the schema
-  prismaNext: { client: (context) => context.db },
+  // @ts-expect-error a client function needs the execution context for building the schema
+  prismaNext: { client: (ctx) => ctx.db },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [prismaNextPlugin],
@@ -724,8 +809,8 @@ new SchemaBuilder<{ PrismaNextContract: Contract }>({
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [prismaNextPlugin],
-  // @ts-expect-error a client's contract already describes the schema
-  prismaNext: { client: db, contract: db.context.contract },
+  // @ts-expect-error reported on `context`: a client object carries its own, so it's only for a function
+  prismaNext: { client: db, context: db.context },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [prismaNextPlugin],
@@ -759,7 +844,7 @@ new SchemaBuilder<{ PrismaNextContract: Contract }>({
   prismaNext: {
     // @ts-expect-error collections of another contract
     client: () => ({ orm: inhClient.orm }),
-    contract: sqliteClient.contract,
+    context: sqliteClient.context,
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
@@ -774,39 +859,44 @@ new SchemaBuilder<{ PrismaNextContract: Contract; Context: OtherDbContext }>({
   prismaNext: {
     // @ts-expect-error the request's client is of another contract
     client: (ctx) => ({ orm: ctx.otherDb.orm }),
-    contract: sqliteClient.contract,
+    context: sqliteClient.context,
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: { db: typeof sqliteClient } }>({
   plugins: [prismaNextPlugin],
-  prismaNext: { client: (ctx) => ctx.db, contract: sqliteClient.contract },
+  prismaNext: { client: (ctx) => ctx.db, context: sqliteClient.context },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: OtherDbContext }>({
   plugins: [prismaNextPlugin],
-  prismaNext: { client: (ctx) => ({ orm: ctx.db.orm }), contract: sqliteClient.contract },
+  prismaNext: { client: (ctx) => ({ orm: ctx.db.orm }), context: sqliteClient.context },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [prismaNextPlugin],
   prismaNext: { client: { orm: { User: sqliteClient.orm.User }, context: db.context } },
 });
-new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
+const inhBuilder = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
   plugins: [prismaNextPlugin],
   prismaNext: { client: inhClient },
+});
+inhBuilder.prismaObject('Bug', {
+  variant: 'FilteredVariantSelect',
+  // @ts-expect-error a variant's to-one relation in a type's select takes only true
+  select: { reviewer: { limit: 1 } },
 });
 declare const sqliteTransaction: Parameters<Parameters<typeof sqliteClient.transaction>[0]>[0];
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [prismaNextPlugin],
-  prismaNext: { client: () => sqliteTransaction, contract: sqliteClient.contract },
+  prismaNext: { client: () => sqliteTransaction, context: sqliteClient.context },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [prismaNextPlugin],
-  prismaNext: { client: () => ({ orm: sqliteTransaction.orm }), contract: sqliteClient.contract },
+  prismaNext: { client: () => ({ orm: sqliteTransaction.orm }), context: sqliteClient.context },
 });
 declare const inhTransaction: Parameters<Parameters<typeof inhClient.transaction>[0]>[0];
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [prismaNextPlugin],
   // @ts-expect-error a transaction of another contract
-  prismaNext: { client: () => inhTransaction, contract: sqliteClient.contract },
+  prismaNext: { client: () => inhTransaction, context: sqliteClient.context },
 });
 
 // Function-form selects with object branches, whose columns are optional on the parent.
@@ -927,3 +1017,313 @@ builder.prismaObject('User', {
     }),
   }),
 });
+
+// Only columns belong in a `select` array. Nothing checks these at runtime.
+declare const stringsOrUndefined: (string | undefined)[];
+declare const unknownValue: unknown;
+builder.prismaObject('User', {
+  fields: (t) => ({
+    unknownColumnBesideUndefined: t.string({
+      // @ts-expect-error `firstNme` isn't a column, and `undefined` isn't one either
+      select: ['firstNme', undefined],
+      resolve: () => '',
+    }),
+    undefinedEntry: t.string({
+      // @ts-expect-error `undefined` isn't a column
+      select: ['email', undefined],
+      resolve: () => '',
+    }),
+    numberEntry: t.string({
+      // @ts-expect-error a number isn't a column
+      select: [1],
+      resolve: () => '',
+    }),
+    objectEntry: t.string({
+      // @ts-expect-error an object isn't a column
+      select: [{}],
+      resolve: () => '',
+    }),
+    booleanEntry: t.string({
+      // @ts-expect-error a boolean isn't a column
+      select: [true],
+      resolve: () => '',
+    }),
+    nestedArray: t.string({
+      // @ts-expect-error an array isn't a column
+      select: [['email']],
+      resolve: () => '',
+    }),
+    undefinedEntries: t.string({
+      // @ts-expect-error neither `string` nor `undefined` names a column
+      select: stringsOrUndefined,
+      resolve: () => '',
+    }),
+    functionUnknownColumnBesideUndefined: t.string({
+      // @ts-expect-error `firstNme` isn't a column
+      select: () => ({ firstNme: true, email: undefined }),
+      resolve: () => '',
+    }),
+    functionUndefinedEntry: t.string({
+      // @ts-expect-error `undefined` isn't a column
+      select: () => ({ email: true, undefined: true }),
+      resolve: () => '',
+    }),
+    functionNumberEntry: t.string({
+      // @ts-expect-error a column takes `true`, not a number
+      select: () => ({ email: 1 }),
+      resolve: () => '',
+    }),
+  }),
+});
+builder.prismaObject('User', {
+  variant: 'TypeUnknownColumnBesideUndefined',
+  // @ts-expect-error `firstNme` isn't a column, and `undefined` isn't one either
+  select: ['firstNme', undefined],
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'TypeUndefinedEntry',
+  // @ts-expect-error `undefined` isn't a column
+  select: ['email', undefined],
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'TypeNumberEntry',
+  // @ts-expect-error a number isn't a column
+  select: [1],
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'TypeObjectEntry',
+  // @ts-expect-error an object isn't a column
+  select: [{}],
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'TypeBooleanEntry',
+  // @ts-expect-error a boolean isn't a column
+  select: [true],
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'TypeNestedArray',
+  // @ts-expect-error an array isn't a column
+  select: [['email']],
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'TypeUndefinedEntries',
+  // @ts-expect-error neither `string` nor `undefined` names a column
+  select: stringsOrUndefined,
+  fields: () => ({}),
+});
+builder.prismaInterface('User', {
+  variant: 'InterfaceUndefinedEntry',
+  // @ts-expect-error `undefined` isn't a column
+  select: ['email', undefined],
+  fields: () => ({}),
+});
+
+// A numeric key is a key like any other, and names no column or relation.
+builder.prismaObject('User', {
+  fields: (t) => ({
+    onlyNumericKey: t.string({
+      // @ts-expect-error `0` isn't a column or relation
+      select: { 0: true },
+      resolve: () => '',
+    }),
+    numericKeyBesideColumn: t.string({
+      // @ts-expect-error `1` isn't a column or relation
+      select: { email: true, 1: true },
+      resolve: () => '',
+    }),
+    numericKeyBesideRelationOption: t.string({
+      // @ts-expect-error `0` isn't a relation option
+      select: { posts: { 0: true, limit: 1 } },
+      resolve: () => '',
+    }),
+  }),
+});
+builder.prismaObject('User', {
+  variant: 'TypeOnlyNumericKey',
+  // @ts-expect-error `0` isn't a column or relation
+  select: { 0: true },
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'TypeNumericKeyBesideColumn',
+  // @ts-expect-error `1` isn't a column or relation
+  select: { email: true, 1: true },
+  fields: () => ({}),
+});
+
+// A select function must return a selection, or nothing. A type's select can't be a function.
+builder.prismaObject('User', {
+  fields: (t) => ({
+    returnsUnknown: t.string({
+      // @ts-expect-error `unknown` may not be a selection
+      select: () => unknownValue,
+      resolve: () => '',
+    }),
+    resolvesToUnknown: t.string({
+      // @ts-expect-error `unknown` may not be a selection
+      select: async () => unknownValue,
+      resolve: () => '',
+    }),
+    returnsFunction: t.string({
+      // @ts-expect-error a select function can't return another function
+      select: () => () => ['email'],
+      resolve: () => '',
+    }),
+    returnsNull: t.string({ select: () => null, resolve: () => '' }),
+    returnsUndefined: t.string({ select: () => undefined, resolve: () => '' }),
+    resolvesToNull: t.string({ select: async () => null, resolve: () => '' }),
+    returnsColumnsOrNull: t.string({
+      select: () => (flag ? { email: true } : null),
+      resolve: (user) => {
+        expectTypeOf(user.email).toEqualTypeOf<string | undefined>();
+        return '';
+      },
+    }),
+  }),
+});
+builder.prismaObject('User', {
+  variant: 'TypeFunctionSelect',
+  // @ts-expect-error a type's select can't be a function
+  select: () => ['email'],
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'TypeFunctionBesideArray',
+  // @ts-expect-error a type's select can't be a function
+  select: flag ? () => ['email'] : ['firstName'],
+  fields: () => ({}),
+});
+
+// A branch with a `where` can filter a to-one relation out, so the relation may be null.
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    filteredInOneBranch: t.string({
+      select: { author: flag ? true : { where: { firstName: 'Alice' } } },
+      resolve: (post) => {
+        expectTypeOf(post.author).toEqualTypeOf<UserRow | null>();
+        return '';
+      },
+    }),
+    unfilteredInEveryBranch: t.string({
+      select: { author: flag ? true : {} },
+      resolve: (post) => {
+        expectTypeOf(post.author).toEqualTypeOf<UserRow>();
+        return '';
+      },
+    }),
+  }),
+});
+builder.prismaObject('Post', {
+  variant: 'FilteredInOneBranch',
+  // @ts-expect-error every branch of a type's select must pass
+  select: { author: flag ? true : { where: { firstName: 'Alice' } } },
+});
+
+// A function's branches that load a relation differently type it as either branch loads it.
+builder.prismaObject('Post', {
+  variant: 'FilteredInOneFunctionBranch',
+  fields: (t) => ({
+    author: t.string({
+      select: () => (flag ? { author: true } : { author: { where: { firstName: 'Alice' } } }),
+      resolve: (post) => {
+        expectTypeOf(post.author).toEqualTypeOf<UserRow | null>();
+        return '';
+      },
+    }),
+  }),
+});
+
+// An array variable may hold any of its columns, in a type's or a field's static `select`.
+builder.prismaObject('User', {
+  variant: 'VariableTypeSelect',
+  select: someColumns,
+  fields: (t) => ({
+    email: t.string({
+      resolve: (user) => {
+        expectTypeOf(user.email).toEqualTypeOf<string | undefined>();
+        return '';
+      },
+    }),
+  }),
+});
+
+const keyed = <K extends string, V>(key: K, value: V): { [P in K]: V } =>
+  ({ [key]: value }) as { [P in K]: V };
+
+// Computed values are written onto the parent, so each key has one source and no column's name.
+builder.prismaObject('Post', {
+  variant: 'ComputedKeys',
+  fields: (t) => ({
+    duplicate: t.int({
+      // @ts-expect-error `comments` and `views` both compute `n`
+      select: { comments: (sub) => ({ n: sub.count() }), views: (sub) => ({ n: sub.count() }) },
+      resolve: () => 0,
+    }),
+    // @ts-expect-error `title` is a column of Post
+    column: t.int({ select: { comments: (sub) => ({ title: sub.count() }) }, resolve: () => 0 }),
+    // @ts-expect-error `views` is a relation of Post
+    relation: t.int({ select: { comments: (sub) => ({ views: sub.count() }) }, resolve: () => 0 }),
+    branch: t.int({
+      // @ts-expect-error every branch is checked
+      select: () =>
+        flag
+          ? { comments: (sub) => ({ n: sub.count() }) }
+          : { comments: (sub) => ({ id: sub.count() }) },
+      resolve: () => 0,
+    }),
+    nonLiteral: t.int({
+      args: { key: t.arg.string({ required: true }) },
+      // @ts-expect-error a key built from the args can't be checked against the others
+      select: (args) => ({ comments: (sub) => ({ [args.key]: sub.count() }) }),
+      resolve: () => 0,
+    }),
+    mixed: t.int({
+      args: { key: t.arg.string({ required: true }) },
+      // @ts-expect-error a non-literal key beside literal ones is rejected too
+      select: (args) => ({ comments: (sub) => ({ [args.key]: sub.count(), n: sub.count() }) }),
+      resolve: () => 0,
+    }),
+    // TypeScript widens a key typed by a type parameter to `string`, so a generic helper declares
+    // its result as a mapped type.
+    generic: t.int({
+      select: { comments: (sub) => keyed('commentTotal', sub.count()) },
+      resolve: (post) => {
+        expectTypeOf(post.commentTotal).toEqualTypeOf<number>();
+        return post.commentTotal;
+      },
+    }),
+    several: t.int({
+      select: {
+        comments: (sub) => ({ commentCount: sub.count(), firstComment: sub.limit(1) }),
+        views: (sub) => ({ viewCount: sub.count() }),
+      },
+      resolve: (post) => post.commentCount + post.viewCount + post.firstComment.length,
+    }),
+  }),
+});
+builder.prismaObject('User', {
+  variant: 'DuplicateTypeLevelComputedKeys',
+  // @ts-expect-error a type's select is checked too
+  select: { posts: (sub) => ({ n: sub.count() }), comments: (sub) => ({ n: sub.count() }) },
+  fields: () => ({}),
+});
+
+// The plugin includes what the query selects, so a resolver's collection can't include relations.
+builder.queryFields((t) => ({
+  // @ts-expect-error `posts` is already included
+  included: t.prismaField({ type: ['User'], resolve: () => orm.User.include('posts') }),
+  includedPage: t.prismaConnection({
+    type: 'User',
+    // @ts-expect-error `posts` is already included
+    resolve: () => orm.User.include('posts'),
+  }),
+}));
+const userPages = prismaConnectionHelpers(builder, 'User', {});
+// @ts-expect-error `posts` is already included
+userPages.applyPagination(orm.User.include('posts'), {}, {});

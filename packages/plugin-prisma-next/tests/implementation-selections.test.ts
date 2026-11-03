@@ -7,7 +7,7 @@ describe("object fields reading an interface's select", () => {
   function withPosts(ownSelect: boolean) {
     const builder = createBuilder();
     const WithPosts = builder.prismaInterface('User', {
-      name: 'WithPosts',
+      variant: 'WithPosts',
       select: { posts: true },
       fields: (t) => ({ interfaceCount: t.int({ resolve: (user) => user.posts.length }) }),
     });
@@ -49,10 +49,59 @@ describe("object fields reading an interface's select", () => {
     expect(result.statements).toHaveLength(1);
   });
 
+  // Selects that agree load into one slot, so every field reads the row itself, not a projection.
+  it('gives fields the same row when interface and implementation select the same rows', async () => {
+    const parents: Record<string, object[]> = { iface: [], own: [] };
+    const builder = createBuilder();
+    const Published = builder.prismaInterface('User', {
+      variant: 'Published',
+      select: { posts: { where: { published: 1 } } },
+      fields: (t) => ({
+        ifaceCount: t.int({
+          resolve: (user) => {
+            parents.iface.push(user);
+            return user.posts.length;
+          },
+        }),
+      }),
+    });
+    const User = builder.prismaObject('User', {
+      interfaces: [Published],
+      isTypeOf: () => true,
+      select: { posts: { where: { published: 1 } } },
+      fields: (t) => ({
+        ownCount: t.int({
+          resolve: (user) => {
+            parents.own.push(user);
+            return user.posts.length;
+          },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: [User],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { ifaceCount ownCount } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { ifaceCount: 1, ownCount: 1 },
+      { ifaceCount: 1, ownCount: 1 },
+    ]);
+    expect(parents.own).toHaveLength(2);
+    expect(parents.own[0]).toBe(parents.iface[0]);
+    expect(parents.own[1]).toBe(parents.iface[1]);
+    expect(result.statements).toHaveLength(1);
+  });
+
   it("reads the interface's computed values", async () => {
     const builder = createBuilder();
     const Totals = builder.prismaInterface('User', {
-      name: 'UserTotals',
+      variant: 'UserTotals',
       select: { posts: (sub) => ({ total: sub.count() }) },
       fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
     });
@@ -84,7 +133,7 @@ describe("object fields reading an interface's select", () => {
   it("reloads a hand-built parent missing the interface's columns", async () => {
     const builder = createBuilder();
     const Named = builder.prismaInterface('User', {
-      name: 'NamedUser',
+      variant: 'NamedUser',
       select: ['firstName'],
       fields: (t) => ({ name: t.string({ resolve: (user) => user.firstName }) }),
     });
@@ -104,11 +153,11 @@ describe("object fields reading an interface's select", () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it("loads a conflicting interface's columns with the object's selection", async () => {
+  it("loads an interface's columns and to-one relation with the object's selection", async () => {
     const builder = createBuilder();
     const Base = builder.prismaInterface('Post', {
-      name: 'PostBase',
-      select: { content: true, author: { where: { firstName: 'Nobody' } } },
+      variant: 'PostBase',
+      select: { content: true, author: true },
       fields: (t) => ({
         baseAuthor: t.string({ nullable: true, resolve: (post) => post.author?.firstName }),
       }),
@@ -141,8 +190,8 @@ describe("object fields reading an interface's select", () => {
     const both = await run(schema, '{ posts { content baseAuthor ownAuthor } }');
     expect(both.errors).toBeUndefined();
     expect(both.data.posts).toEqual([
-      { content: expect.any(String), baseAuthor: null, ownAuthor: 'Alice' },
+      { content: expect.any(String), baseAuthor: 'Alice', ownAuthor: 'Alice' },
     ]);
-    expect(both.statements).toHaveLength(2);
+    expect(both.statements).toHaveLength(1);
   });
 });

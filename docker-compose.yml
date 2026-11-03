@@ -20,3 +20,38 @@ services:
       POSTGRES_PASSWORD: prisma
 
       POSTGRES_MULTIPLE_DATABASES: tests,drizzle
+
+  # The Prisma Next plugin's Postgres tests (POTHOS_PRISMA_NEXT_DATABASE_URL overrides the URL).
+  prisma-next-postgres:
+    image: postgres:18.2
+
+    restart: always
+
+    container_name: pothos-prisma-next-postgres
+
+    ports:
+      - '5456:5432'
+
+    environment:
+      POSTGRES_USER: prisma
+
+      POSTGRES_PASSWORD: prisma
+
+      POSTGRES_DB: prisma_next
+
+  # The Prisma Next plugin's MySQL tests, which run only with
+  # POTHOS_PRISMA_NEXT_MYSQL_URL=mysql://root:prisma@localhost:5478/prisma_next
+  prisma-next-mysql:
+    image: mysql:8.4
+
+    restart: always
+
+    container_name: pothos-prisma-next-mysql
+
+    ports:
+      - '5478:3306'
+
+    environment:
+      MYSQL_ROOT_PASSWORD: prisma
+
+      MYSQL_DATABASE: prisma_next

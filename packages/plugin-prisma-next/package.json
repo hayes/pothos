@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-prisma-next",
-  "version": "0.1.2",
+  "version": "0.0.0",
   "description": "Pothos integration for the Prisma ORM 8 SQL collection client",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -17,7 +17,6 @@
   "scripts": {
     "generate:contracts": "node tests/generate-contracts.mts",
     "type": "tsc --project tsconfig.type.json && tsc --project tsconfig.scope-auth.json && tsc --project tsconfig.missing-plugins.json",
-    "type:compat": "for v in 5.9.3 6.0.2; do for p in type scope-auth missing-plugins; do echo \"typescript@$v tsconfig.$p.json\" && pnpm dlx --package=typescript@$v tsc --project tsconfig.$p.json --noEmit --composite false --incremental false || exit 1; done; done",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
     "build:clean": "git clean -dfX esm lib",
     "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
@@ -49,7 +48,7 @@
     "@pothos/selection-mapper": "workspace:*"
   },
   "peerDependencies": {
-    "@pothos/core": "workspace:^",
+    "@pothos/core": "*",
     "@prisma/orm-family-sql": "8.0.0-rc.22",
     "@prisma/orm-framework": "8.0.0-rc.22",
     "graphql": "^16.10.0 || ^17.0.0"

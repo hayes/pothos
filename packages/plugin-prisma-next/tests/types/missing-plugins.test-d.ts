@@ -24,7 +24,7 @@ builder.prismaObject('User', {
     expectTypeOf(t.withAuth).toEqualTypeOf<typeof scopeAuthRequired>();
     return {
       // @ts-expect-error relatedConnection needs plugin-relay
-      posts: t.relatedConnection('posts', { cursor: 'id' }),
+      posts: t.relatedConnection('posts', {}),
       // @ts-expect-error withAuth needs plugin-scope-auth
       guarded: t.withAuth({ loggedIn: true }).exposeID('id'),
       // Fields that need no other plugin still work.
@@ -39,7 +39,7 @@ builder.queryFields((t) => {
   expectTypeOf(t.prismaFieldWithInput).toEqualTypeOf<typeof withInputRequired>();
   return {
     // @ts-expect-error prismaConnection needs plugin-relay
-    page: t.prismaConnection({ type: 'User', cursor: 'id', resolve: () => null as never }),
+    page: t.prismaConnection({ type: 'User', resolve: () => null as never }),
     // @ts-expect-error prismaFieldWithInput needs plugin-with-input
     created: t.prismaFieldWithInput({
       type: 'User',

@@ -1,15 +1,15 @@
-import SchemaBuilder from '@pothos/core';
+import { readFileSync } from 'node:fs';
+import SchemaBuilder, { PothosSchemaError } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import { printSchema } from 'graphql';
+import { contractFromJson } from '@prisma/orm-sqlite/static';
+import { GraphQLError, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import { loadContract, run, useDatabase } from './fixtures/helpers';
 import type { Contract } from './inheritance/contract';
 
 const contract = loadContract<Contract>(new URL('./inheritance/contract.json', import.meta.url));
-const db = useDatabase(
-  contract,
-  `
+const sql = `
   CREATE TABLE user (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE);
   CREATE TABLE task (id TEXT PRIMARY KEY, title TEXT NOT NULL, type TEXT NOT NULL, ownerId TEXT NOT NULL, severity TEXT, reviewerId TEXT);
   CREATE TABLE feature (id TEXT PRIMARY KEY REFERENCES task(id), priority INT NOT NULL);
@@ -19,8 +19,8 @@ const db = useDatabase(
   INSERT INTO feature VALUES ('t2', 5);
   CREATE TABLE note (id TEXT PRIMARY KEY, taskId TEXT NOT NULL);
   INSERT INTO note VALUES ('n1', 't1'), ('n2', 't2');
-`,
-);
+`;
+const db = useDatabase(contract, sql);
 
 function createSchema() {
   const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
@@ -56,11 +56,8 @@ function createSchema() {
         resolve: () => db.orm.Task.orderBy((row) => row.id.asc()),
       }),
       bugs: t.prismaField({ type: ['Bug'], resolve: () => db.orm.Task.variant('bug') }),
-      unfilteredBugs: t.prismaField({ type: ['Bug'], resolve: () => db.orm.Bug as never }),
-      baseAsBugs: t.prismaField({ type: ['Bug'], resolve: () => db.orm.Task as never }),
       featurePage: t.prismaConnection({
         type: 'Feature',
-        cursor: 'id',
         resolve: () => db.orm.Task.variant('feature'),
       }),
       users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
@@ -88,7 +85,7 @@ function createVariantSchema() {
       reviewer: t.relation('reviewer', { nullable: true }),
     }),
   });
-  const feature = builder.prismaNode('Feature', {
+  builder.prismaNode('Feature', {
     interfaces: [task],
     id: { field: 'id' },
     collection: () => db.orm.Task.variant('feature'),
@@ -106,8 +103,11 @@ function createVariantSchema() {
       bugs: t.relation('tasks', { type: bug }),
       bugPage: t.relatedConnection('tasks', {
         type: bug,
-        cursor: 'id',
         totalCount: true,
+      }),
+      newestBugs: t.relatedConnection('tasks', {
+        type: bug,
+        orderBy: () => ({ id: 'desc' }),
       }),
       reviews: t.relation('reviews'),
     }),
@@ -129,10 +129,6 @@ function createVariantSchema() {
       notes: t.prismaField({
         type: ['Note'],
         resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
-      }),
-      orphanFeature: t.field({
-        type: feature,
-        resolve: () => ({ title: 'orphan', priority: 1 }) as never,
       }),
     }),
   });
@@ -196,16 +192,7 @@ describe('native model inheritance', () => {
     });
   });
 
-  it.each([
-    'unfilteredBugs',
-    'baseAsBugs',
-  ])('rejects %s, which would load other variants', async (field) => {
-    const result = await run(createSchema(), `{ ${field} { id } }`);
-    expect(result.errors?.[0]?.message).toMatch(/orm\.Task\.variant\('bug'\)/);
-    expect(result.statements).toHaveLength(0);
-  });
-
-  it('fills variant fallbacks through the base collection', async () => {
+  it('reloads variants through the base collection', async () => {
     const result = await run(
       createSchema(),
       '{ tasks { id ... on Bug { owner { email } severity } } }',
@@ -247,6 +234,18 @@ describe('native model inheritance', () => {
       },
     ]);
     expect(result.statements).toHaveLength(1);
+  });
+
+  it('pages a connection typed as a variant under the order its orderBy chose', async () => {
+    const result = await run(
+      createVariantSchema(),
+      '{ users { newestBugs(first: 5) { pageInfo { endCursor } edges { node { title } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const [{ newestBugs }] = result.data.users;
+    expect(newestBugs.edges).toEqual([{ node: { title: 'bug1' } }]);
+    expect(newestBugs.pageInfo.endCursor).toEqual(expect.any(String));
+    expect(result.statements[0].sql).toMatch(/ORDER BY [^)]*"id" DESC/);
   });
 
   it('resolves a to-one relation typed as a variant to null for rows of another variant', async () => {
@@ -297,11 +296,14 @@ describe('native model inheritance', () => {
     expect(nested.statements).toHaveLength(1);
   });
 
-  it("names the base collection a variant's fallback needs when the client lacks it", async () => {
+  it("names the base collection a variant's reload needs when the client lacks it", async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
       relay: {},
-      prismaNext: { contract, client: () => ({ orm: { User: db.orm.User } }) as never },
+      prismaNext: {
+        context: db.client.context,
+        client: () => ({ orm: { User: db.orm.User } }) as never,
+      },
     });
     const bug = builder.prismaObject('Bug', {
       fields: (t) => ({ owner: t.relation('owner') }),
@@ -316,9 +318,38 @@ describe('native model inheritance', () => {
     );
   });
 
-  it('reports a node row without its id field', async () => {
-    const result = await run(createVariantSchema(), '{ orphanFeature { id } }');
-    expect(result.errors?.[0]?.message).toMatch(/identity field 'Feature\.id'/);
+  it("narrows a node's default collection to its variant", async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: db.client },
+    });
+    builder.prismaNode('Bug', {
+      id: { field: 'id' },
+      fields: (t) => ({ severity: t.exposeString('severity') }),
+    });
+    builder.prismaNode('Feature', {
+      id: { field: 'id' },
+      fields: (t) => ({ priority: t.exposeInt('priority') }),
+    });
+    builder.queryType({});
+    const id = (type: string, row: string) => Buffer.from(`${type}:${row}`).toString('base64');
+    const result = await run(
+      builder.toSchema(),
+      'query ($ids: [ID!]!) { nodes(ids: $ids) { __typename ... on Bug { severity } ... on Feature { priority } } }',
+      {
+        variables: {
+          ids: [id('Bug', 't1'), id('Bug', 't2'), id('Feature', 't2'), id('Feature', 't1')],
+        },
+      },
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.nodes).toEqual([
+      { __typename: 'Bug', severity: 'high' },
+      null,
+      { __typename: 'Feature', priority: 5 },
+      null,
+    ]);
   });
 
   it('does not reload inherited fields the interface query loaded', async () => {
@@ -530,7 +561,7 @@ describe('native model inheritance', () => {
     ])('routes to a type implementing base and variant interfaces (%s)', async (_, reversed) => {
       const schema = build((builder, task) => {
         const bugFields = builder.prismaInterface('Bug', {
-          name: 'BugFields',
+          variant: 'BugFields',
           interfaces: [task],
           resolveType: () => 'PlainBug',
           fields: (t) => ({ severity: t.exposeString('severity') }),
@@ -575,7 +606,7 @@ describe('native model inheritance', () => {
       expect(() =>
         build((builder, task) => {
           const featureFields = builder.prismaInterface('Feature', {
-            name: 'FeatureFields',
+            variant: 'FeatureFields',
             interfaces: [task],
             fields: () => ({}),
           });
@@ -594,7 +625,7 @@ describe('native model inheritance', () => {
       expect(() =>
         build((builder, task) => {
           const bugFields = builder.prismaInterface('Bug', {
-            name: 'BugFields',
+            variant: 'BugFields',
             interfaces: [task],
             fields: (t) => ({ severity: t.exposeString('severity') }),
           });
@@ -633,6 +664,34 @@ describe('native model inheritance', () => {
           builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
         }),
       ).toThrow(/variant model 'Bug' \('bug'\) has several implementing types \(Bug, BugReport\)/);
+    });
+
+    it('routes rows of an interface whose select is a column list', async () => {
+      const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+        plugins: [prismaNextPlugin],
+        prismaNext: { client: db.client },
+      });
+      const task = builder.prismaInterface('Task', {
+        select: ['title'],
+        fields: (t) => ({ heading: t.string({ resolve: (row) => row.title.toUpperCase() }) }),
+      });
+      builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+      builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+      builder.queryType({
+        fields: (t) => ({
+          tasks: t.prismaField({
+            type: [task],
+            resolve: () => db.orm.Task.orderBy((row) => row.id.asc()),
+          }),
+        }),
+      });
+      const result = await run(builder.toSchema(), '{ tasks { __typename heading } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.tasks).toEqual([
+        { __typename: 'Bug', heading: 'BUG1' },
+        { __typename: 'Feature', heading: 'FEAT1' },
+      ]);
+      expect(result.statements).toHaveLength(1);
     });
 
     it('leaves routing to a resolveType the interface declares', () => {
@@ -689,7 +748,7 @@ describe('native model inheritance', () => {
     [
       'names no variant',
       { id: 't9', title: 'plain', type: 'task' },
-      /type="task", which names no variant of model 'Task'/,
+      /discriminator 'type' that names no variant of model 'Task'/,
     ],
     ['was loaded without', { id: 't1', title: 'bug1' }, /loaded without its discriminator 'type'/],
   ])('reports an interface row whose discriminator %s', async (_name, row, message) => {
@@ -706,6 +765,11 @@ describe('native model inheritance', () => {
     });
     const result = await run(builder.toSchema(), '{ task { title } }');
     expect(result.errors?.[0].message).toMatch(message);
+    // Logs often capture messages, so the row's value stays out of it.
+    expect(result.errors?.[0].message).not.toContain('"task"');
+    // A developer's error, which a server that masks errors hides from the client.
+    expect(result.errors?.[0].originalError).toBeInstanceOf(Error);
+    expect(result.errors?.[0].originalError).not.toBeInstanceOf(GraphQLError);
   });
 
   it('resolves connection helpers made before the model is registered as an interface', async () => {
@@ -714,7 +778,7 @@ describe('native model inheritance', () => {
       relay: {},
       prismaNext: { client: db.client },
     });
-    const pages = prismaConnectionHelpers(builder, 'Task', { cursor: 'id' });
+    const pages = prismaConnectionHelpers(builder, 'Task', {});
     const task = builderTask(builder);
     builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
     builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
@@ -772,13 +836,308 @@ describe('native model inheritance', () => {
       relay: {},
       prismaNext: { client: db.client },
     });
-    const pages = prismaConnectionHelpers(builder, 'Feature', { cursor: ['priority', 'id'] });
+    const pages = prismaConnectionHelpers(builder, 'Feature', { orderBy: { priority: 'asc' } });
     const page = await pages.applyPagination(db.orm.Task.variant('feature'), {}, {});
     // The integer codec refuses a value it doesn't hold; without it the value encodes as is.
     const opaque = page.wrap([{ id: 't2', priority: { value: 'opaque' } } as never]);
     expect(() => opaque.pageInfo.endCursor).toThrow();
     expect(page.wrap([{ id: 't2', priority: 5 } as never]).pageInfo.endCursor).toEqual(
       expect.any(String),
+    );
+  });
+});
+
+describe("a variant's relations in a type's select", () => {
+  const email = 'a@example.com';
+
+  function reviewBuilder() {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: db.client },
+    });
+    const task = builderTask(builder);
+    builder.prismaObject('Feature', {
+      interfaces: [task],
+      fields: (t) => ({ priority: t.exposeInt('priority') }),
+    });
+    builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
+    builder.queryType({
+      fields: (t) => ({
+        tasks: t.prismaField({
+          type: ['Task'],
+          resolve: () => db.orm.Task.orderBy((row) => row.id.asc()),
+        }),
+        bugs: t.prismaField({ type: ['Bug'], resolve: () => db.orm.Task.variant('bug') }),
+      }),
+    });
+    return { builder, task };
+  }
+
+  function reviewedSchema() {
+    const { builder, task } = reviewBuilder();
+    builder.prismaObject('Bug', {
+      interfaces: [task],
+      select: { reviewer: true },
+      fields: (t) => ({
+        severity: t.exposeString('severity'),
+        reviewerEmail: t.string({ nullable: true, resolve: (bug) => bug.reviewer?.email }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  function viaInterfaceSchema() {
+    const { builder, task } = reviewBuilder();
+    const Rev = builder.prismaInterface('Bug', {
+      variant: 'Rev',
+      select: { reviewer: true },
+      fields: (t) => ({
+        r: t.string({ nullable: true, resolve: (bug) => bug.reviewer?.email }),
+      }),
+    });
+    builder.prismaObject('Bug', {
+      interfaces: [task, Rev],
+      fields: (t) => ({ severity: t.exposeString('severity') }),
+    });
+    return builder.toSchema();
+  }
+
+  it('loads in the one statement of a narrowed root', async () => {
+    const result = await run(reviewedSchema(), '{ bugs { severity reviewerEmail } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ bugs: [{ severity: 'high', reviewerEmail: email }] });
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('reloads through the variant beneath a root that is not narrowed', async () => {
+    const result = await run(
+      reviewedSchema(),
+      '{ tasks { title ... on Bug { severity reviewerEmail } ... on Feature { priority } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      tasks: [
+        { title: 'bug1', severity: 'high', reviewerEmail: email },
+        { title: 'feat1', priority: 5 },
+      ],
+    });
+    // One for the tasks, and one batch for the bug's fields.
+    expect(result.statements).toHaveLength(2);
+  });
+
+  it('has fields of a variant interface reload beneath a root that is not narrowed', async () => {
+    const result = await run(viaInterfaceSchema(), '{ tasks { ... on Rev { r } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ tasks: [{ r: email }, {}] });
+    expect(result.statements).toHaveLength(2);
+  });
+
+  it("loads a variant interface's select with the type's own fields on a narrowed root", async () => {
+    const schema = viaInterfaceSchema();
+    const fields = await run(schema, '{ bugs { severity } }');
+    expect(fields.errors).toBeUndefined();
+    expect(fields.data).toEqual({ bugs: [{ severity: 'high' }] });
+    expect(fields.statements).toHaveLength(1);
+    const inherited = await run(schema, '{ bugs { r } }');
+    expect(inherited.data).toEqual({ bugs: [{ r: email }] });
+    expect(inherited.statements).toHaveLength(1);
+  });
+
+  it("reloads a computed value of a variant's to-many relation", async () => {
+    // Moves `notes` to the variant, which the fixture's schema has no room for: a to-many relation
+    // needs a unique key on the variant.
+    const json = JSON.parse(
+      readFileSync(new URL('./inheritance/contract.json', import.meta.url), 'utf8'),
+    );
+    const { models } = json.domain.namespaces.__unbound__;
+    models.Bug.relations.notes = models.Task.relations.notes;
+    delete models.Task.relations.notes;
+    const moved = contractFromJson(json) as unknown as Contract;
+    const movedDb = useDatabase(moved, sql);
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: movedDb.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.prismaObject('Bug', {
+      interfaces: [task],
+      select: { notes: (sub) => ({ noteTotal: sub.count() }) },
+      fields: (t) => ({ noteTotal: t.int({ resolve: (bug) => bug.noteTotal }) }),
+    });
+    builder.prismaObject('Feature', { interfaces: [task] });
+    builder.queryType({
+      fields: (t) => ({
+        tasks: t.prismaField({
+          type: ['Task'],
+          resolve: () => movedDb.orm.Task.orderBy((row) => row.id.asc()),
+        }),
+        bugs: t.prismaField({ type: ['Bug'], resolve: () => movedDb.orm.Task.variant('bug') }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const narrowed = await run(schema, '{ bugs { noteTotal } }');
+    expect(narrowed.errors).toBeUndefined();
+    expect(narrowed.data).toEqual({ bugs: [{ noteTotal: 1 }] });
+    expect(narrowed.statements).toHaveLength(1);
+    const result = await run(schema, '{ tasks { ... on Bug { noteTotal } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ tasks: [{ noteTotal: 1 }, {}] });
+    expect(result.statements).toHaveLength(2);
+  });
+
+  it('reloads a computed value of a base relation beneath a relation targeting a variant', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: db.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.prismaObject('Bug', {
+      interfaces: [task],
+      select: { notes: (sub) => ({ noteTotal: sub.count() }) },
+      fields: (t) => ({ noteTotal: t.int({ resolve: (bug) => bug.noteTotal }) }),
+    });
+    builder.prismaObject('Feature', { interfaces: [task] });
+    builder.prismaObject('User', { fields: (t) => ({ reviews: t.relation('reviews') }) });
+    builder.queryType({
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+    });
+    const result = await run(builder.toSchema(), '{ users { reviews { noteTotal } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ users: [{ reviews: [{ noteTotal: 1 }] }] });
+  });
+
+  it("reloads a variant relation's computed value when a base relation's loaded", async () => {
+    // Adds a to-many relation to the variant, which the fixture's schema has no room for.
+    const json = JSON.parse(
+      readFileSync(new URL('./inheritance/contract.json', import.meta.url), 'utf8'),
+    );
+    const { models } = json.domain.namespaces.__unbound__;
+    models.Bug.relations.bugNotes = models.Task.relations.notes;
+    const movedDb = useDatabase(contractFromJson(json) as unknown as Contract, sql);
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: movedDb.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.prismaObject('Bug', {
+      interfaces: [task],
+      // The contract's type doesn't have `bugNotes`.
+      select: {
+        bugNotes: (sub: { count(): unknown }) => ({ noteTotal: sub.count() }),
+        notes: (sub: { count(): unknown }) => ({ baseTotal: sub.count() }),
+      } as unknown as ['title'],
+      fields: (t) => ({
+        noteTotal: t.int({ resolve: (bug) => (bug as unknown as { noteTotal: number }).noteTotal }),
+        baseTotal: t.int({ resolve: (bug) => (bug as unknown as { baseTotal: number }).baseTotal }),
+      }),
+    });
+    builder.prismaObject('Feature', { interfaces: [task] });
+    builder.queryType({
+      fields: (t) => ({
+        tasks: t.prismaField({
+          type: ['Task'],
+          resolve: () => movedDb.orm.Task.orderBy((row) => row.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ tasks { ... on Bug { noteTotal baseTotal } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ tasks: [{ noteTotal: 1, baseTotal: 1 }, {}] });
+  });
+});
+
+describe('a relation name two variants declare', () => {
+  const json = JSON.parse(
+    readFileSync(new URL('./inheritance/contract.json', import.meta.url), 'utf8'),
+  );
+  // Feature gets a `reviewer` like Bug's, through a column of its own table.
+  const { models } = json.domain.namespaces.__unbound__;
+  const { Bug, Feature } = models;
+  Feature.fields.reviewerId = Bug.fields.reviewerId;
+  Feature.storage.fields.reviewerId = Bug.storage.fields.reviewerId;
+  Feature.relations.reviewer = Bug.relations.reviewer;
+  json.storage.namespaces.__unbound__.entries.table.feature.columns.reviewerId =
+    json.storage.namespaces.__unbound__.entries.table.task.columns.reviewerId;
+  const sharedDb = useDatabase(
+    contractFromJson(json) as unknown as Contract,
+    sql
+      .replace('priority INT NOT NULL)', 'priority INT NOT NULL, reviewerId TEXT)')
+      .replace(
+        "INSERT INTO feature VALUES ('t2', 5)",
+        "INSERT INTO feature VALUES ('t2', 5, NULL)",
+      ),
+  );
+  const createSharedBuilder = (bugFields: (t: never) => object = () => ({})) => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: sharedDb.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      fields: (t) => ({ id: t.exposeID('id'), owner: t.relation('owner') }),
+    });
+    builder.prismaObject('Bug', { interfaces: [task], fields: bugFields as never });
+    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('User', {
+      fields: (t) => ({ email: t.exposeString('email'), tasks: t.relation('tasks') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        tasks: t.prismaField({
+          type: ['Task'],
+          resolve: () => sharedDb.orm.Task.orderBy((row) => row.id.asc()),
+        }),
+      }),
+    });
+    return builder;
+  };
+
+  it('leaves the rest of the hierarchy usable', async () => {
+    const result = await run(
+      createSharedBuilder().toSchema(),
+      '{ tasks { __typename id owner { email tasks { id } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.tasks.map((task: { __typename: string }) => task.__typename)).toEqual([
+      'Bug',
+      'Feature',
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('rejects a field that loads the shared name when the schema is built', () => {
+    const builder = createSharedBuilder(((t: { relation: (name: string) => unknown }) => ({
+      reviewer: t.relation('reviewer'),
+    })) as never);
+    expect(() => builder.toSchema()).toThrow(
+      new PothosSchemaError(
+        "Relation 'reviewer' on model 'Bug' is declared under the same name by several variants of model 'Task', so it can't be loaded. Give it a name no other variant uses.",
+      ),
+    );
+  });
+
+  it('rejects a select that names the shared name when the schema is built', () => {
+    const builder = createSharedBuilder(((t: { string: (options: object) => unknown }) => ({
+      reviewer: t.string({
+        nullable: true,
+        select: { reviewer: true },
+        resolve: () => null,
+      }),
+    })) as never);
+    expect(() => builder.toSchema()).toThrow(
+      "Relation 'reviewer' on a select of model 'Task' is declared under the same name by several variants",
     );
   });
 });

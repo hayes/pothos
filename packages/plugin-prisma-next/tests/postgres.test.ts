@@ -1,6 +1,6 @@
 import { Temporal } from '@js-temporal/polyfill';
-import SchemaBuilder from '@pothos/core';
-import RelayPlugin from '@pothos/plugin-relay';
+import SchemaBuilder, { PothosValidationError } from '@pothos/core';
+import RelayPlugin, { encodeGlobalID } from '@pothos/plugin-relay';
 import WithInputPlugin from '@pothos/plugin-with-input';
 import postgres from '@prisma/orm-postgres/runtime';
 import postgresServerless from '@prisma/orm-postgres/serverless';
@@ -40,7 +40,7 @@ function createSchema(db: { orm: typeof client.orm } = client) {
   const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
     plugins: [RelayPlugin, prismaNextPlugin],
     relay: {},
-    prismaNext: { client: () => db, contract },
+    prismaNext: { client: () => db, context: client.context },
   });
   builder.prismaNode('Account', {
     id: { field: 'id' },
@@ -58,7 +58,11 @@ function createSchema(db: { orm: typeof client.orm } = client) {
         select: { entries: (entries) => ({ average: entries.avgDecimal('wide') }) },
         resolve: (row) => (row.average === null ? null : String(row.average)),
       }),
-      amount: t.relationAggregate('entries', { op: 'sum', field: 'amount' }),
+      amount: t.float({
+        nullable: true,
+        select: { entries: (entries) => ({ amount: entries.sum('amount') }) },
+        resolve: (row) => row.amount,
+      }),
     }),
   });
   builder.prismaObject('Entry', {
@@ -85,23 +89,22 @@ function createSchema(db: { orm: typeof client.orm } = client) {
       }),
       timeline: t.prismaConnection({
         type: 'Entry',
-        cursor: [{ field: 'createdAt', direction: 'desc' }, 'id'],
+        orderBy: { createdAt: 'desc', id: 'asc' },
         resolve: () => orm.public.Entry,
       }),
       entries: t.prismaConnection({
         type: 'Entry',
-        cursor: 'id',
         totalCount: true,
         resolve: () => orm.public.Entry,
       }),
       byWide: t.prismaConnection({
         type: 'Entry',
-        cursor: [{ field: 'wide', direction: 'desc' }, 'id'],
+        orderBy: { wide: 'desc', id: 'asc' },
         resolve: () => orm.public.Entry,
       }),
       byExact: t.prismaConnection({
         type: 'Entry',
-        cursor: ['exact', 'id'],
+        orderBy: { exact: 'asc' },
         resolve: () => orm.public.Entry,
       }),
     }),
@@ -115,19 +118,19 @@ function nullableConnectionSchema(nulls: 'first' | 'last', direction: 'asc' | 'd
     relay: {},
     prismaNext: { client },
   });
-  const cursor = [{ field: 'sortLabel', direction, nulls }, 'id'] as const;
+  const orderBy = { sortLabel: { direction, nulls }, id: 'asc' } as const;
   builder.prismaObject('Entry', { fields: (t) => ({ id: t.exposeID('id') }) });
   builder.prismaObject('Account', {
     fields: (t) => ({
       id: t.exposeID('id'),
-      entries: t.relatedConnection('entries', { cursor, totalCount: true }),
+      entries: t.relatedConnection('entries', { orderBy, totalCount: true }),
     }),
   });
   builder.queryType({
     fields: (t) => ({
       entries: t.prismaConnection({
         type: 'Entry',
-        cursor,
+        orderBy,
         totalCount: true,
         resolve: () => client.orm.public.Entry,
       }),
@@ -150,11 +153,11 @@ function createMutationSchema() {
     plugins: [prismaNextPlugin, WithInputPlugin],
     prismaNext: {
       // The request context carries the transaction's `orm`.
-      client: (context) => {
+      client: (ctx) => {
         providerCalls += 1;
-        return context;
+        return ctx;
       },
-      contract,
+      context: client.context,
     },
   });
   builder.prismaObject('Account', {
@@ -252,7 +255,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       }
     });
 
-    it('completes serial input mutations and nested fallback reads before the next write', async () => {
+    it('completes serial input mutations and nested reloads before the next write', async () => {
       const fixture = createMutationSchema();
       const rollback = new Error('rollback serial mutation fixture');
       await expect(
@@ -532,7 +535,6 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         fields: (t) => ({
           events: t.prismaConnection({
             type: 'Event',
-            cursor: 'at',
             resolve: () => client.orm.public.Event,
           }),
           keyed: t.field({
@@ -569,7 +571,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       expect(second.data).toMatchObject({ events: { edges: [{ node: { label: 'two' } }] } });
     });
 
-    it('batches fallback loads keyed by Temporal identities', async () => {
+    it('batches reloads keyed by Temporal identities', async () => {
       const result = await graphql({
         schema: eventSchema(),
         source: '{ keyed { label } }',
@@ -689,6 +691,38 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       expect(loaded.errors).toBeUndefined();
       expect(loaded.data).toEqual({ node: { label: 'half' } });
     });
+
+    it('fails only the node whose ID its column codec rejects', async () => {
+      const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+        plugins: [RelayPlugin, prismaNextPlugin],
+        relay: {},
+        prismaNext: { client },
+      });
+      builder.prismaNode('Token', {
+        variant: 'TokenByWide',
+        id: { field: 'wide', parse: (id) => BigInt(id) },
+        fields: (t) => ({ label: t.exposeString('label') }),
+      });
+      builder.queryType({});
+      const result = await graphql({
+        schema: builder.toSchema(),
+        source: `query ($a: ID!, $b: ID!) {
+          a: node(id: $a) { ... on TokenByWide { label } }
+          b: node(id: $b) { ... on TokenByWide { label } }
+        }`,
+        variableValues: {
+          a: encodeGlobalID('TokenByWide', '9007199254740993'),
+          // Out of range for bigint, so the column codec rejects it.
+          b: encodeGlobalID('TokenByWide', '99999999999999999999999'),
+        },
+        contextValue: {},
+      });
+      expect(result.data).toEqual({ a: { label: 'half' }, b: null });
+      expect(result.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
+        { message: 'Invalid ID.', path: ['b'] },
+      ]);
+      expect(result.errors?.[0]?.originalError).toBeInstanceOf(PothosValidationError);
+    });
   });
 
   it('applies native null placement and the orderBy option in both directions', async () => {
@@ -702,10 +736,10 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       fields: (t) => ({
         entries: t.prismaConnection({
           type: 'Entry',
-          cursor: ['sortLabel', 'id'],
           args: { nullsFirst: t.arg.boolean() },
-          orderBy: (args) => (entry) =>
-            entry.sortLabel.asc({ nulls: args.nullsFirst ? 'first' : 'last' }),
+          orderBy: (args) => ({
+            sortLabel: { direction: 'asc', nulls: args.nullsFirst ? 'first' : 'last' },
+          }),
           resolve: () => client.orm.public.Entry,
         }),
       }),
@@ -758,6 +792,21 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
             }),
           ]),
         );
+        // A transaction has no `context`, so node IDs encode and decode with the codecs of the
+        // `context` passed beside the client function.
+        const schema = createSchema(tx);
+        const ids = await graphql({ schema, source: '{ accounts { id name } }', contextValue: {} });
+        const id = (ids.data?.accounts as { id: string; name: string }[]).find(
+          (account) => account.name === 'In transaction',
+        )?.id;
+        const node = await graphql({
+          schema,
+          source: 'query ($id: ID!) { node(id: $id) { ... on Account { name } } }',
+          variableValues: { id },
+          contextValue: {},
+        });
+        expect(node.errors).toBeUndefined();
+        expect(node.data).toEqual({ node: { name: 'In transaction' } });
         throw rollback;
       }),
     ).rejects.toBe(rollback);
@@ -773,11 +822,11 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
     }>({
       plugins: [prismaNextPlugin],
       prismaNext: {
-        client: (context) => {
+        client: (ctx) => {
           providerCalls += 1;
-          return context.tx;
+          return ctx.tx;
         },
-        contract,
+        context: client.context,
       },
     });
     builder.prismaObject('Account', {
@@ -804,7 +853,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       }),
     });
     const schema = builder.toSchema();
-    const rollback = new Error('rollback fallback fixture');
+    const rollback = new Error('rollback reload fixture');
     await expect(
       client.transaction(async (tx) => {
         await tx.orm.public.Account.where({ id: 'a' }).update({ name: 'In transaction' });

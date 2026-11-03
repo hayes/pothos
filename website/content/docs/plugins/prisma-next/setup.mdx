@@ -254,7 +254,9 @@ A PostgreSQL client groups collections by schema, as in `ctx.db.orm.public.User`
 use a SQLite client, where the same collection is `ctx.db.orm.User`.
 
 To load through a client chosen per request, such as a transaction, pass a function of the
-context as `client`. Pass `contract` as well, because the schema is built before any request:
+context as `client`. A transaction has no `context` of its own, so pass the `context` of the client
+it comes from as well. The plugin reads the contract from it when the schema is built, and the
+column codecs for cursors and node IDs when a request runs:
 
 ```ts
 import type { PostgresQueryMembers } from '@prisma/orm-postgres/runtime';
@@ -266,7 +268,7 @@ const builder = new SchemaBuilder<{
   plugins: [prismaNextPlugin],
   prismaNext: {
     client: (ctx) => ctx.db,
-    contract,
+    context: db.context,
   },
 });
 
@@ -292,27 +294,47 @@ prismaNext: {
 }
 ```
 
-- `client`: the Prisma client, or `(ctx) => client` together with `contract`. Required. The
+- `client`: the Prisma client, or `(ctx) => client` together with `context`. Required. The
   plugin also uses it to [load fields a parent query couldn't
   include](./relations#loading-without-a-parent-query) and for `node(id:)`.
 - `skipDeferredFragments`: leaves `@defer` fragments out of the initial query and loads them when
-  they execute. Defaults to `true`. Set it to `false` to load them eagerly. A model without a key
-  can't be reloaded, so its deferred fields need `false`.
+  they execute. Defaults to `true`. Set it to `false` to load them eagerly. A model without an
+  [identity](./relations#loading-without-a-parent-query) can't be reloaded, so its deferred
+  fields need `false`.
 - `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes, 20 and 100 when
   unset. Fields override them with `defaultSize` and `maxSize`, which can also be
-  `(args, ctx) => number`.
+  `(args, ctx) => number`. As in Pothos core, they aren't validated: use positive integers.
 - `filterConnectionTotalCount`: a `relatedConnection`'s `totalCount` counts the rows matching its
   `query.where`. Set to `false` to count every related row.
 
-Execute operations with a context object, such as `contextValue: {}`, because the plugin keeps
-per-request state on it.
+A context object is required: execute every operation with one, such as `contextValue: {}`,
+because the plugin keeps per-request state on it. An operation without one fails, and the plugin
+doesn't check for it first.
 
-Mistakes such as an unknown model or column, or a page size that isn't a positive integer, fail
-when the schema is defined or built, not at request time.
+The plugin relies on its types and doesn't check again at runtime what they already enforce, such as
+model keys or the shape of a `query`. Rules the types can't express, such as a node's `id.field`
+covering a key, fail when the schema is defined or built.
 
-A `where`, `orderBy` or `select` callback that throws fails the query it belongs to, and every
-field that query loads. An invalid cursor or page size from a client fails only its own field,
-before any query runs.
+A callback that runs while a field is planned fails only that field: a field's `select`, a
+relation's or connection's `query`, a `where` given the field's arguments, a connection's `orderBy`
+or page size, and an invalid cursor or page size from a client. The query the field was planned
+into still runs for its other fields. A `where` or `orderBy` callback given the model's columns,
+and an option the ORM rejects, such as a negative `limit`, fail the query it belongs to and every
+field that query loads.
+
+Keep these callbacks pure: compute the result from their arguments and context only, without side
+effects. They run when a query is planned, not per row, and the plugin decides how often: once per
+selection of the field however many parents it loads, again when a field reloads its parent, and
+for a `@defer` fragment only when it executes.
+
+## Errors
+
+Errors for a client's bad input, such as an invalid cursor or node ID, are `PothosValidationError`s
+with messages safe to show, such as `Invalid cursor.`. Errors in the schema's own code, such as a
+field that needs its parent reloaded on a model without an identity, are plain `Error`s whose
+messages name models and columns for your logs. Enable error masking on your server, as GraphQL
+Yoga does by default, so clients see a generic message for those. A `PothosValidationError` is a
+`GraphQLError`, which masking passes through.
 
 ## With scope-auth
 
@@ -337,19 +359,40 @@ even for requests that are then denied.
 ## Databases
 
 PostgreSQL and SQLite are supported. MySQL supports reads only: its contracts have no aggregates,
-so `totalCount: true`, `t.relationCount`, and `t.relationAggregate` are type errors, and Prisma's
+so `totalCount: true`, `t.relationCount`, and aggregates in a `select` are type errors, and Prisma's
 writes need a `returning` capability MySQL lacks. MySQL isn't tested in CI. MongoDB contracts are
-rejected when the schema is built.
+a type error.
 
 ## Namespaced models
 
-A model name that is unique in the contract is used as is. A name defined in several namespaces is
-written `'ns.Model'`; its default GraphQL name is `ns_Model`.
+A contract with one namespace uses bare model keys, such as `'User'`. In a contract with several
+namespaces, every key is written `'ns.Model'`, even when only one namespace defines that model. A
+bare `'User'` isn't a key there, and neither is `'public.User'` in a contract with one namespace.
 
 ```ts
 builder.prismaObject('billing.User', {
   fields: (t) => ({
     id: t.exposeID('id'),
+  }),
+});
+```
+
+The default GraphQL name of a type is the bare model name, so `'billing.User'` is `User`. Registering
+two models with the same name fails with a `Duplicate typename` error. Give one of them a `name`.
+The model key still refers to it:
+
+```ts
+builder.prismaObject('auth.User', {
+  name: 'AuthUser',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+builder.prismaObject('auth.Session', {
+  fields: (t) => ({
+    // Returns AuthUser.
+    user: t.relation('user'),
   }),
 });
 ```
@@ -377,6 +420,11 @@ const result = await db.transaction(async (tx) => {
   return result;
 });
 ```
+
+On SQLite, type `ctx.db` with `SqliteQueryMembers` from `@prisma/orm-sqlite/runtime` and run
+the transaction with `db.transaction` the same way. SQLite allows one writer at a time, so while the
+transaction is open a write through `db` rather than `tx` fails with `database is locked`, and a
+read through `db` doesn't see the transaction's writes.
 
 ## TypeScript
 

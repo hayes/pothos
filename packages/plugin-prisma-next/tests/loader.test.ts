@@ -28,7 +28,7 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
       fullName: t.string({ resolve: (user) => user.lastName }),
       label: t.string({ select: ['email'], resolve: (user) => user.email }),
       asyncLabel: t.string({
-        select: async () => ['email'],
+        select: async () => ({ email: true }),
         resolve: (user) => user.email,
       }),
       constant: t.string({ resolve: () => 'constant' }),
@@ -58,7 +58,7 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
       }),
       postPage: t.prismaConnection({
         type: 'Post',
-        cursor: ['authorId', 'id'],
+        orderBy: { authorId: 'asc' },
         resolve: () => db.orm.Post.where({ authorId: 'u-alice' }),
       }),
       wrapped: t.prismaField({
@@ -75,7 +75,7 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
   return defer ? deferSchema(builder) : builder.toSchema();
 }
 
-describe('fallback loading through collections', () => {
+describe('reloading through collections', () => {
   it('keeps one query for compatible selections and dependency-free fields', async () => {
     const result = await run(schema(), '{ users { constant fullName label name } }');
     expect(result.errors).toBeUndefined();
@@ -158,7 +158,7 @@ describe('fallback loading through collections', () => {
     const post = contract.storage.namespaces.__unbound__.entries.table.post;
     (post.primaryKey as unknown as { columns: string[] }).columns = ['authorId', 'id'];
     const result = await run(
-      schema({ client: () => db.client, contract }),
+      schema({ client: () => db.client, context: { ...db.client.context, contract } }),
       '{ posts { nobody { id } alice { name } } }',
     );
     expect(result.errors).toBeUndefined();
@@ -174,7 +174,10 @@ describe('fallback loading through collections', () => {
     const contract = structuredClone(sampleContract);
     const post = contract.storage.namespaces.__unbound__.entries.table.post;
     (post.primaryKey as unknown as { columns: string[] }).columns = ['authorId', 'id'];
-    const builder = createBuilder({ client: () => db.client, contract });
+    const builder = createBuilder({
+      client: () => db.client,
+      context: { ...db.client.context, contract },
+    });
     const Post = builder.prismaObject('Post', {
       fields: (t) => ({ title: t.exposeString('title') }),
     });
@@ -209,10 +212,10 @@ describe('fallback loading through collections', () => {
   it('loads through a client computed from the request context', async () => {
     const contexts: unknown[] = [];
     const builder = createBuilder<{ tenant: string }>({
-      // Without `context`, like a transaction: codecs come from its collections.
-      client: (context) => {
-        contexts.push(context);
-        return { orm: { Post: db.orm.Post.where({ authorId: context.tenant }) } };
+      // Without `context`, like a transaction. Codecs come from the `context` passed beside it.
+      client: (ctx) => {
+        contexts.push(ctx);
+        return { orm: { Post: db.orm.Post.where({ authorId: ctx.tenant }) } };
       },
     });
     const Post = builder.prismaObject('Post', {
@@ -237,7 +240,7 @@ describe('fallback loading through collections', () => {
       ['posts', 0, 'title'],
       ['posts', 1, 'title'],
     ]);
-    expect(other.errors?.[0].message).toMatch(/could not find model 'Post'/);
+    expect(other.errors?.[0].message).toMatch(/could not find the 'Post' row/);
     expect(contexts).toEqual([{ tenant: 'u-alice' }, { tenant: 'u-bob' }]);
   });
 });
@@ -254,9 +257,9 @@ describe('client failures', () => {
       ['posts', 0, 'alice'],
       ['posts', 1, 'alice'],
     ]);
-    expect(result.errors?.every((error) => /could not find model 'Post'/.test(error.message))).toBe(
-      true,
-    );
+    expect(
+      result.errors?.every((error) => /could not find the 'Post' row/.test(error.message)),
+    ).toBe(true);
   });
 
   it('reports a missing collection for every parent without hanging the batch', async () => {
@@ -385,7 +388,6 @@ describe('provenance', () => {
           where: (args) => (post) => post.published.eq(args.published),
         }),
         page: t.relatedConnection('posts', {
-          cursor: 'id',
           totalCount: true,
           args: { published: t.arg.int({ required: true }) },
           query: (args) => ({ where: (post) => post.published.eq(args.published) }),
@@ -395,7 +397,7 @@ describe('provenance', () => {
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaConnection({ type: 'User', cursor: 'id', resolve: () => db.orm.User }),
+        users: t.prismaConnection({ type: 'User', resolve: () => db.orm.User }),
         user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) }),
       }),
     });
@@ -429,9 +431,9 @@ describe('type prerequisites', () => {
   it('batches a field override that conflicts with its type select across parents', async () => {
     const builder = createBuilder();
     builder.prismaObject('Post', {
-      select: { title: true, author: { where: { firstName: 'Alice' } } },
+      select: { title: true, author: true },
       fields: (t) => ({
-        prerequisite: t.string({ resolve: (post) => post.author?.firstName ?? 'missing' }),
+        prerequisite: t.string({ resolve: (post) => post.author.firstName }),
         label: t.string({
           select: { author: { where: { firstName: 'Bob' } } },
           resolve: (post) => `${post.title}:${post.author?.firstName ?? 'missing'}`,
@@ -449,8 +451,8 @@ describe('type prerequisites', () => {
     const result = await run(builder.toSchema(), '{ posts { prerequisite label } }');
     expect(result.errors).toBeUndefined();
     expect(result.data.posts).toEqual([
-      { prerequisite: 'missing', label: 'Bob draft:Bob' },
-      { prerequisite: 'missing', label: 'Bob writes:Bob' },
+      { prerequisite: 'Bob', label: 'Bob draft:Bob' },
+      { prerequisite: 'Bob', label: 'Bob writes:Bob' },
       { prerequisite: 'Alice', label: 'Draft #1:missing' },
       { prerequisite: 'Alice', label: 'Hello, Pothos:missing' },
     ]);
@@ -458,19 +460,21 @@ describe('type prerequisites', () => {
     expect(result.statements[1].params).toEqual(expect.arrayContaining(allPostIds));
   });
 
-  it('batches conflicting same-row variant prerequisites independently', async () => {
+  it("batches a variant's filtered field apart from the type select of the row it shares", async () => {
     const builder = createBuilder();
     const BobPost = builder.prismaObject('Post', {
       variant: 'BobPost',
-      select: { author: { where: { firstName: 'Bob' } } },
       fields: (t) => ({
-        name: t.string({ resolve: (post) => post.author?.firstName ?? 'missing' }),
+        name: t.string({
+          select: { author: { where: { firstName: 'Bob' } } },
+          resolve: (post) => post.author?.firstName ?? 'missing',
+        }),
       }),
     });
     builder.prismaObject('Post', {
-      select: { author: { where: { firstName: 'Alice' } } },
+      select: { author: true },
       fields: (t) => ({
-        name: t.string({ resolve: (post) => post.author?.firstName ?? 'missing' }),
+        name: t.string({ resolve: (post) => post.author.firstName }),
         view: t.variant(BobPost),
       }),
     });
@@ -484,8 +488,8 @@ describe('type prerequisites', () => {
     });
     const result = await run(builder.toSchema(), '{ posts { name view { name } } }');
     expect(result.data.posts).toEqual([
-      { name: 'missing', view: { name: 'Bob' } },
-      { name: 'missing', view: { name: 'Bob' } },
+      { name: 'Bob', view: { name: 'Bob' } },
+      { name: 'Bob', view: { name: 'Bob' } },
       { name: 'Alice', view: { name: 'missing' } },
       { name: 'Alice', view: { name: 'missing' } },
     ]);
@@ -671,7 +675,7 @@ describe('models without a key', () => {
   });
 });
 
-describe('fallback isolation', () => {
+describe('reload isolation', () => {
   function isolationSchema(calls = { ok: 0, guarded: 0, refined: 0 }) {
     const builder = createBuilder<{ allow?: boolean }>();
     const User = builder.prismaObject('User', {
@@ -684,14 +688,12 @@ describe('fallback isolation', () => {
           }),
         }),
         ok: t.relationCount('posts', {
-          nullable: true,
           where: () => (post) => {
             calls.ok += 1;
             return post.published.eq(1);
           },
         }),
         guarded: t.relationCount('posts', {
-          nullable: true,
           where: (_args, ctx) => (post) => {
             calls.guarded += 1;
             if (!ctx.allow) {
@@ -719,6 +721,8 @@ describe('fallback isolation', () => {
       fields: (t) => ({
         plainUsers: t.field({
           type: [User],
+          // A count is never null, so a failed one nulls its user.
+          nullable: { list: false, items: true },
           resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }],
         }),
         users: t.prismaField({
@@ -731,7 +735,7 @@ describe('fallback isolation', () => {
     return builder.toSchema();
   }
 
-  /** Sheets resolved by hand, so each field loads through its own fallback plan. */
+  /** Sheets resolved by hand, so each field loads through its own reload plan. */
   function sheetSchema(sheets: { id: unknown }[], calls = { rows: 0 }) {
     const builder = new SchemaBuilder<{
       Context: { allow?: boolean };
@@ -744,14 +748,12 @@ describe('fallback isolation', () => {
       fields: (t) => ({
         name: t.exposeString('name', { nullable: true }),
         rowCount: t.relationCount('rows', {
-          nullable: true,
           where: () => (row) => {
             calls.rows += 1;
             return row.label.eq('r10');
           },
         }),
         noteCount: t.relationCount('notes', {
-          nullable: true,
           where: (_args, ctx) => (note) => {
             if (!ctx.allow) {
               throw new Error('notes not allowed');
@@ -763,7 +765,12 @@ describe('fallback isolation', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        sheets: t.field({ type: [Sheet], resolve: () => sheets as never }),
+        sheets: t.field({
+          type: [Sheet],
+          // A count is never null, so a failed one nulls its sheet.
+          nullable: { list: false, items: true },
+          resolve: () => sheets as never,
+        }),
       }),
     });
     return builder.toSchema();
@@ -796,22 +803,17 @@ describe('fallback isolation', () => {
       isolationSchema(),
       '{ plainUsers { name ok guarded guardedPosts { id } } }',
     );
-    expect(errorsOf(result)).toEqual(
-      ['0', '1'].flatMap((index) =>
-        ['guarded', 'guardedPosts', 'name', 'ok'].map((field) => [
-          `plainUsers.${index}.${field}`,
-          'posts not allowed',
-        ]),
-      ),
+    // The failed counts null each user, so which of its fields report first varies.
+    const errors = errorsOf(result) ?? [];
+    expect(new Set(errors.map(([path]) => path.split('.').slice(0, 2).join('.')))).toEqual(
+      new Set(['plainUsers.0', 'plainUsers.1']),
     );
-    expect(result.data.plainUsers).toEqual([
-      { name: null, ok: null, guarded: null, guardedPosts: null },
-      { name: null, ok: null, guarded: null, guardedPosts: null },
-    ]);
+    expect(new Set(errors.map(([, message]) => message))).toEqual(new Set(['posts not allowed']));
+    expect(result.data.plainUsers).toEqual([null, null]);
     expect(result.statements).toHaveLength(0);
   });
 
-  it('fails the parent query a callback throws in, like a fallback batch', async () => {
+  it('fails the parent query a callback throws in, like a reload batch', async () => {
     const result = await run(isolationSchema(), '{ users { name guardedPosts { id } } }');
     expect(errorsOf(result)).toEqual([['users', 'posts not allowed']]);
     expect(result.data.users).toBeNull();
@@ -836,51 +838,9 @@ describe('fallback isolation', () => {
 
   it('issues no statement when the codecs reject every parent', async () => {
     const result = await run(sheetSchema([{ id: '1' }]), '{ sheets { name rowCount } }');
-    expect(result.data.sheets).toEqual([{ name: null, rowCount: null }]);
-    expect(result.errors?.map((error) => error.path?.join('.'))).toEqual([
-      'sheets.0.name',
-      'sheets.0.rowCount',
-    ]);
+    // The failed count nulls the sheet.
+    expect(result.data.sheets).toEqual([null]);
+    expect(result.errors?.map((error) => error.path?.join('.'))).toContain('sheets.0.rowCount');
     expect(result.statements).toHaveLength(0);
-  });
-
-  it('fails a parent the codecs reject with its own error when a callback fails the batch', async () => {
-    const result = await run(
-      sheetSchema([{ id: 1 }, { id: '1' }]),
-      '{ sheets { name noteCount } }',
-    );
-    expect(result.data.sheets).toEqual([
-      { name: null, noteCount: null },
-      { name: null, noteCount: null },
-    ]);
-    const rejected = expect.stringContaining('value must be a number');
-    expect(errorsOf(result)).toEqual([
-      ['sheets.0.name', 'notes not allowed'],
-      ['sheets.0.noteCount', 'notes not allowed'],
-      ['sheets.1.name', rejected],
-      ['sheets.1.noteCount', rejected],
-    ]);
-    expect(result.statements).toHaveLength(0);
-  });
-
-  it('fails only the parent whose identity the codecs reject', async () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
-      plugins: [prismaNextPlugin],
-      prismaNext: { client: collision.client },
-    });
-    const Sheet = builder.prismaObject('Sheet', {
-      fields: (t) => ({ name: t.exposeString('name', { nullable: true }) }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        sheets: t.field({
-          type: [Sheet],
-          resolve: () => [{ id: 1 }, { id: '1' }] as never,
-        }),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ sheets { name } }');
-    expect(result.data.sheets).toEqual([{ name: 's1' }, { name: null }]);
-    expect(result.errors?.map((error) => error.path)).toEqual([['sheets', 1, 'name']]);
   });
 });

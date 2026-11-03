@@ -75,10 +75,8 @@ function schema() {
       adminView: t.variant(AdminView, { nullable: true, authScopes: { admin: true } }),
       email: t.withAuth({ admin: true }).exposeString('email', { nullable: true }),
       posts: t.withAuth({ admin: true }).relation('posts', { nullable: true }),
-      postCount: t.withAuth({ admin: true }).relationCount('posts', { nullable: true }),
-      postConnection: t
-        .withAuth({ admin: true })
-        .relatedConnection('posts', { cursor: 'id', nullable: true }),
+      postCount: t.withAuth({ admin: true }).relationCount('posts'),
+      postConnection: t.withAuth({ admin: true }).relatedConnection('posts', { nullable: true }),
     }),
   });
   builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
@@ -122,21 +120,30 @@ it('denies protected model fields without affecting the public sibling', async (
   const result = await execute({
     schema: schema(),
     document: parse(
-      '{ user { firstName email adminView { email } posts { title } postCount postConnection { edges { node { title } } } } }',
+      '{ user { firstName email adminView { email } posts { title } postConnection { edges { node { title } } } } }',
     ),
     contextValue: { admin: false },
   });
-  expect(result.errors).toHaveLength(5);
+  expect(result.errors).toHaveLength(4);
   expect(result.data).toEqual({
     user: {
       firstName: 'Alice',
       email: null,
       adminView: null,
       posts: null,
-      postCount: null,
       postConnection: null,
     },
   });
+});
+
+it('denies a protected count, which is never null, by nulling its parent', async () => {
+  const result = await execute({
+    schema: schema(),
+    document: parse('{ user { firstName postCount } }'),
+    contextValue: { admin: false },
+  });
+  expect(result.errors?.map((error) => error.path)).toEqual([['user', 'postCount']]);
+  expect(result.data).toEqual({ user: null });
 });
 
 it('does not execute the root collection when a root scope denies access', async () => {
@@ -314,7 +321,7 @@ describe.each(orders)("an implementation's select under an interface (%s)", (_, 
       prismaNext: { client: ctx.client },
     });
     const Named = builder.prismaInterface('User', {
-      name: 'Named',
+      variant: 'Named',
       resolveType: () => 'User',
       fields: (t) => ({ firstName: t.exposeString('firstName', { nullable: true }) }),
     });
@@ -367,7 +374,7 @@ it("reloads a hand-built row for an implementation's authScopes (prismaNext firs
     prismaNext: { client: ctx.client },
   });
   const Named = builder.prismaInterface('User', {
-    name: 'Named',
+    variant: 'Named',
     resolveType: () => 'User',
     fields: (t) => ({ firstName: t.exposeString('firstName', { nullable: true }) }),
   });
@@ -587,7 +594,7 @@ describe('rows a connection helper wraps', () => {
       }),
     });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    const helper = prismaConnectionHelpers(builder, User, { cursor: 'id' });
+    const helper = prismaConnectionHelpers(builder, User, {});
     builder.queryType({
       fields: (t) => ({
         users: t.connection({
@@ -756,7 +763,7 @@ describe('rows another field filtered', () => {
       const builder = auditBuilder(plugins);
       builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
       const Audited = builder.prismaObject('User', {
-        name: 'Audited',
+        variant: 'Audited',
         select: { posts: true },
         authScopes: (user) => {
           seen.auth.push(user.posts?.map((post) => post.id));
@@ -802,7 +809,7 @@ describe('rows another field filtered', () => {
       const builder = auditBuilder(plugins);
       builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
       const Audited = builder.prismaInterface('User', {
-        name: 'AuditedNode',
+        variant: 'AuditedNode',
         select: { posts: true },
         resolveType: (user) => {
           seen.push(user.posts?.map((post) => post.id));
@@ -811,7 +818,7 @@ describe('rows another field filtered', () => {
         fields: (t) => ({ id: t.exposeID('id') }),
       });
       builder.prismaObject('User', {
-        name: 'AuditedUser',
+        variant: 'AuditedUser',
         interfaces: [Audited],
         fields: () => ({}),
       });
@@ -947,7 +954,6 @@ describe('slots beneath shared walks', () => {
       own: t.relation('posts', { type: PI }),
       page: t.relatedConnection('posts', {
         type: PI,
-        cursor: 'id',
         query: { where: { published: 1 } },
         totalCount: true,
       }),

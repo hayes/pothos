@@ -40,8 +40,8 @@ describe.skipIf(!url)('MySQL', () => {
         // @ts-expect-error MySQL contracts have no aggregates.
         bookCount: t.relationCount('books'),
         // @ts-expect-error MySQL contracts have no aggregates.
-        bookTotals: t.relatedConnection('books', { cursor: 'id', totalCount: true }),
-        bookPages: t.relatedConnection('books', { cursor: 'id' }),
+        bookTotals: t.relatedConnection('books', { totalCount: true }),
+        bookPages: t.relatedConnection('books', {}),
       }),
     });
     builder.prismaObject('Book', {
@@ -59,12 +59,10 @@ describe.skipIf(!url)('MySQL', () => {
         }),
         authorPage: t.prismaConnection({
           type: 'Author',
-          cursor: 'id',
           resolve: () => client.orm.Author,
         }),
         authorTotals: t.prismaConnection({
           type: 'Author',
-          cursor: 'id',
           // @ts-expect-error MySQL contracts have no aggregates.
           totalCount: true,
           resolve: () => client.orm.Author,
@@ -157,13 +155,23 @@ describe.skipIf(!url)('MySQL', () => {
     });
   });
 
-  it('reports the missing count aggregate instead of a TypeError', async () => {
-    const related = await run('{ authors { bookTotals { totalCount } } }');
-    expect(related.errors?.[0]?.message).toMatch(/count aggregate/);
+  // The types reject counts on a contract without aggregates, so the plugin doesn't check for
+  // them: the ORM's missing `count` fails the query that would have counted.
+  it('fails counts the types reject with the ORM TypeError', async () => {
+    // A related count is planned into its parent's query, which fails as a whole.
+    for (const source of [
+      '{ authors { bookTotals { totalCount } } }',
+      '{ authors { bookCount } }',
+    ]) {
+      const result = await run(source);
+      expect(result.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
+        { message: expect.stringMatching(/\.count is not a function$/), path: ['authors'] },
+      ]);
+    }
     const root = await run('{ authorTotals { totalCount } }');
-    expect(root.errors?.[0]?.message).toMatch(/count aggregate/);
-    const relationCount = await run('{ authors { bookCount } }');
-    expect(relationCount.errors?.[0]?.message).toMatch(/Aggregate 'count' is not available/);
+    expect(root.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
+      { message: 'a.count is not a function', path: ['authorTotals'] },
+    ]);
   });
 
   it('pages backward within each parent', async () => {

@@ -1,20 +1,20 @@
 import { InterfaceRef, type SchemaTypes } from '@pothos/core';
-import { prismaContractKey } from './object-ref.js';
-import type { InterfaceReturnShape, ModelName, Row } from './types.js';
+import { prismaContractBrand } from './object-ref.js';
+import type { InterfaceReturnShape, ModelKey, Row } from './types/models.js';
 
-export const prismaInterfaceKey = Symbol.for('Pothos.prismaNextInterfaceKey');
+export const prismaInterfaceBrand = Symbol.for('Pothos.prismaNextInterfaceBrand');
 
 export class PrismaNextInterfaceRef<
   Types extends SchemaTypes,
-  M extends ModelName<Types>,
+  M extends ModelKey<Types>,
   Shape = Row<Types, M>,
 > extends InterfaceRef<Types, InterfaceReturnShape<Types, M>, Shape> {
-  declare readonly [prismaInterfaceKey]: M;
-  declare readonly [prismaContractKey]: Types['PrismaNextContract'];
-  readonly modelName: M;
+  declare readonly [prismaInterfaceBrand]: M;
+  declare readonly [prismaContractBrand]: Types['PrismaNextContract'];
+  readonly modelKey: M;
 
-  constructor(name: string, modelName: M) {
+  constructor(name: string, modelKey: M) {
     super(name);
-    this.modelName = modelName;
+    this.modelKey = modelKey;
   }
 }

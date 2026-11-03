@@ -1,6 +1,5 @@
-import { completeValue, PothosSchemaError, PothosValidationError } from '@pothos/core';
 import {
-  type IndirectInclude,
+  deepEqual,
   type MergeOptions,
   type Node,
   NodeAdapter,
@@ -12,9 +11,7 @@ import {
   type GraphQLField,
   type GraphQLNamedType,
   type GraphQLSchema,
-  getNamedType,
   isInterfaceType,
-  isObjectType,
 } from 'graphql';
 import {
   PRISMA_NEXT_FIELD_SELECTION,
@@ -22,7 +19,7 @@ import {
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_TYPE_SELECT,
 } from '../constants.js';
-import type { AnyContract } from '../types.js';
+import type { AnyContract } from '../types/models.js';
 import {
   getIdentityFields,
   getModel,
@@ -34,15 +31,16 @@ import {
   type ComputedSelection,
   compileTypeSelect,
   EMPTY,
+  KEY_SEPARATOR,
   type Narrowing,
-  type PrismaNextQuery,
   type PrismaNextSelectFn,
+  type PrismaNextSelection,
   type RawSelect,
   REFINE,
   type RelationArgs,
+  recordingFailures,
   relationName,
-  SHARED_SCOPES,
-  SLOT,
+  SCOPE_SEPARATOR,
 } from './selections.js';
 
 /**
@@ -58,41 +56,24 @@ export interface MapperCollection {
   limit(n: number): MapperCollection;
   offset(n: number): MapperCollection;
   variant(value: string): MapperCollection;
+  /** The count reducer for a `combine()` slot. Targets without aggregates, such as MySQL, lack it. */
+  count(): unknown;
   readonly state?: { readonly variantValue?: unknown };
 }
 
 export type PrismaNextNode = Node<PrismaNextModel>;
-export type PrismaNextPlan = Plan<PrismaNextModel, PrismaNextQuery>;
+export type PrismaNextPlan = Plan<PrismaNextModel, PrismaNextSelection>;
 
+/** Every selection key the plugin plans names a relation of its level's model. */
 function relationOf(model: PrismaNextModel, name: string): PrismaNextRelation {
-  const relation = model.relations[name];
-  if (!relation) {
-    throw new PothosValidationError(`Relation "${name}" does not exist on model ${model.name}`);
-  }
-  return relation;
+  return model.relations[name]!;
 }
 
-type Visitor = QueryVisitor<PrismaNextModel, PrismaNextQuery>;
-
-interface TypeSelection {
-  query?: PrismaNextQuery;
-  conflicting: Map<string, PrismaNextQuery>;
-  /**
-   * An implementation's to-one select that differs from another implementation's, or from the
-   * interface's own when `withInterface` is set. A row loaded as the interface holds one version
-   * of the relation, so the implementation can't read it.
-   */
-  toOneConflict?: { impl: string; relation: string; withInterface: boolean };
-  /**
-   * Two of the type's interfaces whose selects load a to-one relation differently. The type's
-   * rows plan one of them, so a row loaded as the other interface holds the wrong version.
-   */
-  interfaceToOneConflict?: { interfaces: [string, string]; relation: string };
-}
+type Visitor = QueryVisitor<PrismaNextModel, PrismaNextSelection>;
 
 /** The consumers of one relation on a level: their rows and computed values, by scope. */
 interface RelationConsumers {
-  rows: [string, PrismaNextQuery][];
+  rows: [string, PrismaNextSelection][];
   computed: [string, ComputedSelection][];
 }
 
@@ -101,14 +82,10 @@ interface RelationConsumers {
  * collection calls. `NodeAdapter` decides how nodes merge and conflict. Consumers of a to-many
  * relation never conflict, because each scope has its own slot.
  */
-export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQuery> {
+export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSelection> {
   override readonly skipDeferredFragments: boolean;
-  private readonly typeSelections = new WeakMap<GraphQLNamedType, TypeSelection>();
-  private readonly fieldSelections = new WeakMap<
-    GraphQLField<unknown, unknown>,
-    PrismaNextQuery | PrismaNextSelectFn | null
-  >();
-  private readonly rootLoadedTypes = new Set<string>();
+  private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSelection>();
+  private readonly withoutIdentity = new WeakMap<PrismaNextModel, boolean>();
 
   constructor(
     readonly contract: AnyContract,
@@ -124,314 +101,183 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
   }
 
   /**
-   * Records that a `prismaField`, `prismaConnection` or connection helper loads rows as
-   * `typeName`. These apply the selection in their resolver, so their fields carry no select.
-   */
-  loadsRowsOf(typeName: string) {
-    this.rootLoadedTypes.add(typeName);
-  }
-
-  /**
    * Records the selection of each object type that implements a prisma interface of the same
    * model. A row loaded as the interface may resolve as any of them, so the interface loads what
-   * each of them selects. The ORM includes a to-one relation once, so where the plugin loads rows
-   * as an interface, its implementations must load each to-one relation the same way as each
-   * other and as the interface, or the schema build fails. The same holds for two interfaces of
-   * one implementation when either of them is loaded.
+   * each of them selects.
    */
   registerImplementations(schema: GraphQLSchema) {
-    const interfaces = Object.values(schema.getTypeMap()).filter(
-      (type) => isInterfaceType(type) && this.modelFor(type),
-    );
-    for (const type of interfaces) {
-      const model = this.modelFor(type);
-      const selections = implementationsOf(type)!;
-      for (const impl of schema.getPossibleTypes(type as never)) {
-        if (this.modelFor(impl) === model) {
-          selections.set(impl.name, this.planTypeSelection(impl).query!);
-        }
-      }
-    }
-    // Rows are loaded as an interface by the plugin's root loaders and, conservatively, by any
-    // field with a select function, which may plan the interface beneath it. A plain field
-    // returns whatever rows its resolver loaded.
-    const loaded = new Set(this.rootLoadedTypes);
     for (const type of Object.values(schema.getTypeMap())) {
-      if (isObjectType(type) || isInterfaceType(type)) {
-        for (const field of Object.values(type.getFields())) {
-          if (typeof field.extensions?.[PRISMA_NEXT_FIELD_SELECTION] === 'function') {
-            const include = field.extensions.pothosIndirectInclude as IndirectInclude | undefined;
-            loaded.add(include?.getType() ?? getNamedType(field.type).name);
+      const model = isInterfaceType(type) ? this.modelFor(type) : undefined;
+      if (model) {
+        const selections = implementationsOf(type)!;
+        for (const impl of schema.getPossibleTypes(type as never)) {
+          if (this.modelFor(impl) === model) {
+            selections.set(impl.name, this.typeSelection(impl)!);
           }
         }
       }
     }
-    // Checked first: the pair conflict also surfaces as an implementation conflict on either
-    // interface, which would blame the implementation's select.
-    for (const type of interfaces) {
-      for (const impl of schema.getPossibleTypes(type as never)) {
-        const conflict = this.planTypeSelection(impl).interfaceToOneConflict;
-        // A row loaded as any interface of `impl` may resolve as `impl`, which reads both selects.
-        if (conflict && loaded.has(type.name)) {
-          const [first, second] = conflict.interfaces;
-          const { relation } = conflict;
-          throw new PothosSchemaError(
-            `The selects of prismaInterfaces '${first}' and '${second}' load to-one relation "${relation}" differently, and '${impl.name}' implements both. A row loaded as '${type.name}' loads "${relation}" once, and '${impl.name}' reads that row in isTypeOf, auth checks and fields. Make the selections of "${relation}" match.`,
-          );
-        }
-      }
-    }
-    for (const type of interfaces) {
-      const conflict = this.planTypeSelection(type).toOneConflict;
-      if (conflict && loaded.has(type.name)) {
-        const { impl, relation } = conflict;
-        throw new PothosSchemaError(
-          conflict.withInterface
-            ? `The select of '${impl}' loads to-one relation "${relation}" differently from the select of prismaInterface '${type.name}'. A row loaded as '${type.name}' loads "${relation}" once, and '${impl}' reads that row in isTypeOf, auth checks and fields. Make the selections of "${relation}" match.`
-            : `The select of '${impl}' loads to-one relation "${relation}" differently from another implementation of prismaInterface '${type.name}', whose rows load it once for all implementations. Make the selections of "${relation}" match.`,
-        );
-      }
-    }
-  }
-
-  typeSelection(type: GraphQLNamedType): PrismaNextQuery | undefined {
-    return this.planTypeSelection(type).query;
-  }
-
-  /** Interfaces whose `select` conflicts with the type's own, so their fields load separately. */
-  conflictingInterfaces(type: GraphQLNamedType): string[] {
-    return [...this.planTypeSelection(type).conflicting.keys()];
   }
 
   /**
-   * Plans a type's selection from its own `select` and then each of its interfaces' selects. An
-   * interface's columns always merge. Its relation and computed entries that conflict with what
-   * is already planned are set aside, and the fields that interface declares load them instead.
+   * A type's own `select`, each of its interfaces' selects and, for an interface, its
+   * implementations' selections: a row loaded as the interface is resolved as one of them, whose
+   * `isTypeOf`, auth checks and fields read it even when the query has no fragment on that type.
    *
-   * An interface also loads its implementations' selections. A row loaded as the interface is
-   * resolved as one of its implementations, whose `isTypeOf`, auth checks and fields read it even
-   * when the query has no fragment on that type. To-many relations and computed values use each
-   * implementation's own slots. The ORM includes a to-one relation once, so a to-one select that
-   * differs between implementations, or from the interface, is recorded as a conflict.
-   * `registerImplementations` rejects it where the plugin loads rows as the interface.
+   * They all fit one node. To-many relations and computed values use each type's own slots, and a
+   * to-one relation is always `true` in a type's `select`. It may hold relations only a level
+   * narrowed to a variant can include. `mergeQuery` leaves those out of any other level.
    */
-  private planTypeSelection(type: GraphQLNamedType) {
-    let selection = this.typeSelections.get(type);
-    if (!selection) {
-      const conflicting = new Map<string, PrismaNextQuery>();
-      const planned: TypeSelection = { conflicting };
-      selection = planned;
-      const model = this.modelFor(type);
-      if (model) {
-        const node = this.createNode(model);
-        const visited = new Set<GraphQLNamedType>();
-        // The type or interface whose select planned each to-one relation.
-        const toOneSources = new Map<string, string>();
-        const visit = (current: GraphQLNamedType) => {
-          if (visited.has(current)) {
-            return;
-          }
-          visited.add(current);
-          const raw = current.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
-          const own = raw && compileTypeSelect(raw, model, current.name);
-          if (own && current === type) {
-            this.mergeQuery(node, own);
-          } else if (own) {
-            const conflicts = this.mergeParts(node, own);
-            if (conflicts) {
-              conflicting.set(current.name, conflicts);
-            }
-            for (const key of Object.keys(conflicts?.relations ?? {})) {
-              const source = toOneSources.get(key);
-              if (source !== undefined && source !== type.name) {
-                planned.interfaceToOneConflict ??= {
-                  interfaces: [source, current.name],
-                  relation: key,
-                };
-              }
-            }
-          }
-          for (const key of Object.keys(own?.relations ?? {})) {
-            if (!key.includes(SLOT) && !toOneSources.has(key)) {
-              toOneSources.set(key, current.name);
-            }
-          }
-          for (const iface of 'getInterfaces' in current ? current.getInterfaces() : []) {
-            visit(iface);
-          }
-        };
-        visit(type);
-        const interfaceRelations = new Set(node.relations.keys());
-        for (const [impl, query] of implementationsOf(type) ?? []) {
-          const conflicts = this.mergeParts(node, query);
-          const toOnes = Object.keys(conflicts?.relations ?? {}).filter(
-            (key) => !key.includes(SLOT),
-          );
-          const toOne = toOnes.find((key) => !interfaceRelations.has(key));
-          if (toOne !== undefined && selection.toOneConflict?.withInterface !== false) {
-            selection.toOneConflict = { impl, relation: toOne, withInterface: false };
-          } else if (toOnes.length > 0) {
-            selection.toOneConflict ??= { impl, relation: toOnes[0], withInterface: true };
-          }
-        }
-        this.mergeQuery(node, { columns: getIdentityFields(this.contract, model.name) });
-        selection.query = this.toQuery(node);
+  typeSelection(type: GraphQLNamedType): PrismaNextSelection | undefined {
+    const cached = this.typeSelections.get(type);
+    const model = cached ? undefined : this.modelFor(type);
+    if (!model) {
+      return cached;
+    }
+    const node = this.createNode(model);
+    const visited = new Set<GraphQLNamedType>();
+    const visit = (current: GraphQLNamedType) => {
+      if (visited.has(current)) {
+        return;
       }
-      this.typeSelections.set(type, selection);
+      visited.add(current);
+      const raw = current.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
+      if (raw) {
+        super.mergeQuery(node, compileTypeSelect(raw, model, current.name));
+      }
+      for (const iface of 'getInterfaces' in current ? current.getInterfaces() : []) {
+        visit(iface);
+      }
+    };
+    visit(type);
+    for (const selection of implementationsOf(type)?.values() ?? []) {
+      super.mergeQuery(node, selection);
+    }
+    super.mergeQuery(node, { columns: getIdentityFields(this.contract, model.key) });
+    const selection = this.toQuery(node);
+    this.typeSelections.set(type, selection);
+    return selection;
+  }
+
+  fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
+    // An interface field counts as planned even without a select of its own. The implementation
+    // it resolves on then reads the slots the interface planned for it.
+    const own = field.extensions?.[PRISMA_NEXT_FIELD_SELECTION] as
+      | PrismaNextSelection
+      | PrismaNextSelectFn
+      | undefined;
+    return typeof own === 'function'
+      ? recordingFailures(own)
+      : (own ?? (implementationsOf(type) ? EMPTY : undefined));
+  }
+
+  visitQuery(selection: PrismaNextSelection, model: PrismaNextModel, visit: Visitor) {
+    if (selection.columns === null) {
+      visit.allColumns();
+    } else {
+      for (const column of selection.columns ?? []) {
+        visit.column(column);
+      }
+    }
+    for (const key of Object.keys(selection.relations ?? {})) {
+      visit.relation(key, relationOf(model, relationName(key)).target, selection.relations![key]);
+    }
+    for (const key of Object.keys(selection.computed ?? {})) {
+      visit.computed(key, selection.computed![key], 'relation');
+    }
+    visit.args(selection.args ?? EMPTY);
+  }
+
+  /**
+   * A field's relations the ORM can't include on a level are left for the loader, and so is a field
+   * that would take a level past `MAX_RELATION_LOADS`. Each level a plan plays is checked, so no
+   * statement grows past it, however the document nests aliases with different arguments.
+   */
+  override canMergeQuery(
+    node: PrismaNextNode,
+    selection: PrismaNextSelection,
+    options?: MergeOptions,
+  ): boolean {
+    return (
+      super.canMergeQuery(node, selection, options) &&
+      this.withoutUnloadable(selection, node) === selection &&
+      (loads(selection) === 0 || this.withinLoadLimit(node, selection))
+    );
+  }
+
+  /**
+   * Whether `node` can take the loads `selection` adds within `MAX_RELATION_LOADS`. A refused
+   * field reloads its parent, so a level of a model without an identity, which can't be reloaded,
+   * takes any selection. So does a level that loads nothing yet: a reload merges its field before
+   * the type's selection, so the field fits there however much it loads.
+   */
+  private withinLoadLimit(node: PrismaNextNode, selection: PrismaNextSelection) {
+    let withoutIdentity = this.withoutIdentity.get(node.model);
+    if (withoutIdentity === undefined) {
+      withoutIdentity = !getIdentityFields(this.contract, node.model.key).length;
+      this.withoutIdentity.set(node.model, withoutIdentity);
+    }
+    if (withoutIdentity) {
+      return true;
+    }
+    const held = this.toQuery(node);
+    const total = loads(held);
+    return total === 0 || total + loads(selection, held) <= MAX_RELATION_LOADS;
+  }
+
+  /**
+   * A type's selection merges whatever level it lands on, so what that level can't include is left
+   * out. The row then lacks it, which makes the type's fields reload through the variant's loader.
+   */
+  override mergeQuery(
+    node: PrismaNextNode,
+    selection: PrismaNextSelection,
+    options?: MergeOptions,
+  ) {
+    super.mergeQuery(node, this.withoutUnloadable(selection, node), options);
+  }
+
+  /** `selection`, itself when nothing changes, without what `node`'s level can't include. */
+  private withoutUnloadable(selection: PrismaNextSelection, { model, args }: PrismaNextNode) {
+    const narrowing = selection.args?.variant ?? (args as RelationArgs).variant;
+    const fits = ([key]: [string, unknown]) =>
+      canInclude(relationOf(model, relationName(key)), narrowing);
+    const relations = Object.entries(selection.relations ?? {});
+    const computed = Object.entries(selection.computed ?? {});
+    return relations.every(fits) && computed.every(fits)
+      ? selection
+      : {
+          ...selection,
+          relations: Object.fromEntries(relations.filter(fits)),
+          computed: Object.fromEntries(computed.filter(fits)),
+        };
+  }
+
+  toQuery(node: PrismaNextNode): PrismaNextSelection {
+    const selection: PrismaNextSelection = {
+      columns: node.columns && [...node.columns],
+      args: node.args,
+    };
+    if (node.relations.size > 0) {
+      selection.relations = {};
+      for (const [key, child] of node.relations) {
+        selection.relations[key] = this.toQuery(child);
+      }
+    }
+    if (node.computed.size > 0) {
+      selection.computed = Object.fromEntries(node.computed) as Record<string, ComputedSelection>;
     }
     return selection;
   }
 
-  /**
-   * Merges `query`'s columns and each of its relation and computed entries that fits beside what
-   * `node` holds. Returns the entries that don't fit, if any.
-   */
-  private mergeParts(node: PrismaNextNode, query: PrismaNextQuery): PrismaNextQuery | undefined {
-    this.mergeQuery(node, { columns: query.columns });
-    let conflicts: PrismaNextQuery | undefined;
-    for (const [key, child] of Object.entries(query.relations ?? {})) {
-      const part = { relations: { [key]: child } };
-      if (this.canMergeQuery(node, part)) {
-        this.mergeQuery(node, part);
-      } else {
-        conflicts ??= {};
-        conflicts.relations = { ...conflicts.relations, [key]: child };
-      }
-    }
-    for (const [key, value] of Object.entries(query.computed ?? {})) {
-      const part = { computed: { [key]: value } };
-      if (this.canMergeQuery(node, part)) {
-        this.mergeQuery(node, part);
-      } else {
-        conflicts ??= {};
-        conflicts.computed = { ...conflicts.computed, [key]: value };
-      }
-    }
-    return conflicts;
-  }
-
-  fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
-    let selection = this.fieldSelections.get(field);
-    if (selection === undefined) {
-      const own = field.extensions?.[PRISMA_NEXT_FIELD_SELECTION] as
-        | PrismaNextQuery
-        | PrismaNextSelectFn
-        | undefined;
-      // An interface field counts as planned even without a select of its own. The
-      // implementation it resolves on then reads the slots the interface planned for it.
-      selection = this.withInterfaceSelection(
-        field,
-        type,
-        own ?? (implementationsOf(type) ? EMPTY : undefined),
-      );
-      this.fieldSelections.set(field, selection ?? null);
-    }
-    return selection ?? undefined;
-  }
-
-  /** Adds the set-aside selection of the interface that declares `field`, if there is one. */
-  private withInterfaceSelection(
-    field: GraphQLField<unknown, unknown>,
-    type: WalkedType,
-    own: PrismaNextQuery | PrismaNextSelectFn | undefined,
-  ) {
-    const { conflicting } = this.planTypeSelection(type);
-    const iface =
-      conflicting.size > 0
-        ? type.getInterfaces().find((i) => conflicting.has(i.name) && i.getFields()[field.name])
-        : undefined;
-    if (!iface) {
-      return own;
-    }
-    const model = this.modelFor(type)!;
-    const ifaceSelection = conflicting.get(iface.name)!;
-    const merged = (query: PrismaNextQuery | false | null | undefined) =>
-      this.mergedQuery(model, [ifaceSelection, query || EMPTY]);
-    return typeof own === 'function'
-      ? (((...args) => completeValue(own(...args), merged)) as PrismaNextSelectFn)
-      : merged(own);
-  }
-
-  visitQuery(query: PrismaNextQuery, model: PrismaNextModel, visit: Visitor) {
-    if (query.columns === null) {
-      visit.allColumns();
-    } else {
-      for (const column of query.columns ?? []) {
-        if (!model.columns.has(column)) {
-          throw new PothosValidationError(
-            `select: '${column}' is not a column or relation on ${model.name}.`,
-          );
-        }
-        visit.column(column);
-      }
-    }
-    for (const key of Object.keys(query.relations ?? {})) {
-      visit.relation(key, relationOf(model, relationName(key)).target, query.relations![key]);
-    }
-    for (const key of Object.keys(query.computed ?? {})) {
-      // Throws for an unknown relation.
-      relationOf(model, relationName(key));
-      visit.computed(key, query.computed![key], 'relation');
-    }
-    visit.args(query.args ?? EMPTY);
-  }
-
-  /** Relations the ORM can't include on a level are left for the loader. */
-  override canMergeQuery(
-    node: PrismaNextNode,
-    query: PrismaNextQuery,
-    options?: MergeOptions,
-  ): boolean {
-    return (
-      super.canMergeQuery(node, query, options) &&
-      !variantIncludeError(query, node.model, (node.args as RelationArgs).variant)
-    );
-  }
-
-  toQuery(node: PrismaNextNode): PrismaNextQuery {
-    const query: PrismaNextQuery = { columns: node.columns && [...node.columns], args: node.args };
-    if (node.relations.size > 0) {
-      query.relations = {};
-      for (const [key, child] of node.relations) {
-        query.relations[key] = this.toQuery(child);
-      }
-    }
-    if (node.computed.size > 0) {
-      query.computed = Object.fromEntries(node.computed) as Record<string, ComputedSelection>;
-    }
-    return query;
-  }
-
-  /** Merges several selections into one without checking for conflicts. */
-  private mergedQuery(model: PrismaNextModel, queries: PrismaNextQuery[]): PrismaNextQuery {
-    const node = this.createNode(model);
-    for (const query of queries) {
-      this.mergeQuery(node, query);
-    }
-    return this.toQuery(node);
-  }
-
-  /** Applies `query` to `collection`, selecting its columns and including each relation once. */
+  /** Applies `selection` to `collection`: selects its columns and includes each relation once. */
   emit(
     collection: MapperCollection,
-    query: PrismaNextQuery,
+    selection: PrismaNextSelection,
     model: PrismaNextModel,
     ctx: object,
   ): MapperCollection {
-    const problem = variantIncludeError(query, model, query.args?.variant);
-    if (problem) {
-      throw new PothosValidationError(problem);
-    }
-    return this.emitLevel(collection, query, model, ctx);
-  }
-
-  private emitLevel(
-    collection: MapperCollection,
-    query: PrismaNextQuery,
-    model: PrismaNextModel,
-    ctx: object,
-  ): MapperCollection {
-    let result = query.columns?.length ? collection.select(...query.columns) : collection;
+    let result = selection.columns?.length ? collection.select(...selection.columns) : collection;
     // The ORM includes a relation once, so all of its consumers share one include.
     const consumers = new Map<string, RelationConsumers>();
     const consumersOf = (key: string) => {
@@ -443,11 +289,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
       }
       return { scope: key.slice(name.length + 1), entry };
     };
-    for (const [key, child] of Object.entries(query.relations ?? {})) {
+    for (const [key, child] of Object.entries(selection.relations ?? {})) {
       const { scope, entry } = consumersOf(key);
       entry.rows.push([scope, child]);
     }
-    for (const [key, value] of Object.entries(query.computed ?? {})) {
+    for (const [key, value] of Object.entries(selection.computed ?? {})) {
       const { scope, entry } = consumersOf(key);
       entry.computed.push([scope, value]);
     }
@@ -471,12 +317,12 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
           row[target.field].eq(target.value),
         )
       : rel;
-    const load = (query: PrismaNextQuery) => {
-      const narrowing = query.args?.variant;
+    const load = (selection: PrismaNextSelection) => {
+      const narrowing = selection.args?.variant;
       const narrowed =
         narrowing && !narrowing.throughVariantModel ? base.variant(narrowing.value) : base;
-      const refined = query.args?.[REFINE]?.(narrowed) ?? narrowed;
-      return this.emitLevel(refined, query, relation.target, ctx);
+      const refined = selection.args?.[REFINE]?.(narrowed) ?? narrowed;
+      return this.emit(refined, selection, relation.target, ctx);
     };
     // A to-one relation is keyed by its name alone, so it has one consumer and no computed values.
     if (!relation.isToMany) {
@@ -488,82 +334,94 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextQu
       // in a slot of their consumers, so readers at other scopes can't mistake them for that.
       return loadsWholeRelation(shared)
         ? load(shared)
-        : base.combine({ [rows.map(([scope]) => scope).join(SHARED_SCOPES)]: load(shared) });
+        : base.combine({ [rows.map(([scope]) => scope).join(SCOPE_SEPARATOR)]: load(shared) });
     }
     const slots: Record<string, unknown> = {};
-    for (const [scope, query] of rows) {
-      slots[scope] = load(query);
+    for (const [scope, selection] of rows) {
+      slots[scope] = load(selection);
     }
-    for (const [scope, value] of computed) {
+    for (const [scopes, value] of shareComputed(computed)) {
       const values = value[COMPUTE](base, ctx);
       for (const key of Object.keys(values)) {
-        slots[`${scope}${SLOT}${key}`] = values[key];
+        slots[`${scopes.join(SCOPE_SEPARATOR)}${KEY_SEPARATOR}${key}`] = values[key];
       }
     }
     return base.combine(slots);
   }
 
-  /** Merges the consumers of a relation into one query when their queries agree. */
-  private shareRows(model: PrismaNextModel, rows: [string, PrismaNextQuery][]) {
+  /** Merges the consumers of a relation into one selection when their selections agree. */
+  private shareRows(model: PrismaNextModel, rows: [string, PrismaNextSelection][]) {
     if (rows.length === 1) {
       return rows[0][1];
     }
     const node = this.createNode(model);
     this.mergeQuery(node, rows[0][1]);
-    for (const [, query] of rows.slice(1)) {
-      if (!this.canMergeQuery(node, query)) {
+    for (const [, selection] of rows.slice(1)) {
+      if (!this.canMergeQuery(node, selection)) {
         return undefined;
       }
-      this.mergeQuery(node, query);
+      this.mergeQuery(node, selection);
     }
     return this.toQuery(node);
   }
 }
 
-/** Whether a relation load has every row of the relation, rather than a filtered or paged part. */
-function loadsWholeRelation({ args }: PrismaNextQuery) {
-  return args?.query === undefined && (!args?.variant || args.variant.throughVariantModel);
+/**
+ * The most relations and computed values one level of a statement loads, counting those beneath
+ * it. Each to-many consumer with its own arguments is a `combine()` slot of its own, so a document
+ * that nests aliases with different arguments doubles them at every level.
+ */
+const MAX_RELATION_LOADS = 200;
+
+/** The relations and computed values `selection` loads, and those beneath, that `held` lacks. */
+function loads(selection: PrismaNextSelection, held?: PrismaNextSelection): number {
+  let count = 0;
+  for (const key of Object.keys(selection.computed ?? {})) {
+    count += held?.computed?.[key] === undefined ? 1 : 0;
+  }
+  for (const [key, child] of Object.entries(selection.relations ?? {})) {
+    const heldChild = held?.relations?.[key];
+    count += (heldChild ? 0 : 1) + loads(child, heldChild);
+  }
+  return count;
 }
 
 /**
- * Explains why the ORM can't include a relation of `query` at its level, if it can't. A relation
- * declared on a variant needs a level narrowed to that variant. A relation of the base model
- * can't be included beneath a relation that targets a variant model.
+ * Groups the consumers of a relation that compute the same values, so each value is computed
+ * once, however many aliases select it.
  */
-function variantIncludeError(
-  query: PrismaNextQuery,
-  model: PrismaNextModel,
-  narrowing: Narrowing | undefined,
-): string | undefined {
-  for (const key of [...Object.keys(query.relations ?? {}), ...Object.keys(query.computed ?? {})]) {
-    const name = relationName(key);
-    const relation = model.relations[name];
-    if (!relation) {
-      continue;
-    }
-    const declaredBy = relation.declaredByVariant;
-    if (declaredBy !== undefined && declaredBy !== narrowing?.value) {
-      return (
-        `Relation "${name}" is declared on variant '${declaredBy}' of model ${model.name}, so it loads only from a collection narrowed with .variant('${declaredBy}'). ` +
-        `Return orm.${model.name}.variant('${declaredBy}') (or a relation typed as that variant).`
-      );
-    }
-    if (narrowing?.throughVariantModel && declaredBy === undefined) {
-      return (
-        `Relation "${name}" is inherited from model ${model.name} and can't be included beneath a relation to a variant model: ` +
-        'the ORM loads those rows through the variant model, which only has its own relations.'
-      );
-    }
-    const child = query.relations?.[key];
-    const problem = child && variantIncludeError(child, relation.target, child.args?.variant);
-    if (problem) {
-      return problem;
+function shareComputed(computed: [string, ComputedSelection][]) {
+  const groups: [string[], ComputedSelection][] = [];
+  for (const [scope, value] of computed) {
+    const group = groups.find(([, other]) => deepEqual(other.loadIdentity, value.loadIdentity));
+    if (group) {
+      group[0].push(scope);
+    } else {
+      groups.push([[scope], value]);
     }
   }
-  return undefined;
+  return groups;
+}
+
+/** Whether a relation load has every row of the relation, rather than a filtered or paged part. */
+function loadsWholeRelation({ args }: PrismaNextSelection) {
+  return args?.loadIdentity === undefined && (!args?.variant || args.variant.throughVariantModel);
+}
+
+/**
+ * Whether the ORM can include `relation` on a level narrowed to `narrowing`. A relation declared on
+ * a variant needs a level narrowed to that variant. A relation of the base model can't be included
+ * beneath a relation that targets a variant model, which only has that variant's relations.
+ */
+function canInclude({ declaredByVariant }: PrismaNextRelation, narrowing: Narrowing | undefined) {
+  return declaredByVariant === undefined
+    ? !narrowing?.throughVariantModel
+    : declaredByVariant === narrowing?.value;
 }
 
 /** The registry of implementation selections a prisma interface carries. `onTypeConfig` adds it. */
 function implementationsOf(type: GraphQLNamedType) {
-  return type.extensions?.[PRISMA_NEXT_IMPLEMENTATIONS] as Map<string, PrismaNextQuery> | undefined;
+  return type.extensions?.[PRISMA_NEXT_IMPLEMENTATIONS] as
+    | Map<string, PrismaNextSelection>
+    | undefined;
 }

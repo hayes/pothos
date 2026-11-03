@@ -32,10 +32,10 @@ function createSchema() {
       id: t.exposeInt('id'),
       orgId: t.exposeInt('orgId'),
       posts: t.relation('posts', { query: { orderBy: (post) => post.id.asc() } }),
-      postsPage: t.relatedConnection('posts', { cursor: 'id', totalCount: true }),
+      postsPage: t.relatedConnection('posts', { totalCount: true }),
     }),
   });
-  const post = builder.prismaObject('Post', {
+  const post = builder.prismaObject('nsa.Post', {
     fields: (t) => ({
       id: t.exposeInt('id'),
       title: t.exposeString('title'),
@@ -43,6 +43,7 @@ function createSchema() {
     }),
   });
   const nsbUser = builder.prismaObject('nsb.User', {
+    name: 'NsbUser',
     fields: (t) => ({
       id: t.exposeString('id'),
       name: t.exposeString('name'),
@@ -51,8 +52,8 @@ function createSchema() {
   builder.queryType({
     fields: (t) => ({
       a: t.prismaField({ type: ['nsa.User'], resolve: () => nsa.User }),
-      b: t.prismaField({ type: ['nsb.User'], resolve: () => nsb.User }),
-      posts: t.prismaConnection({ type: 'Post', cursor: 'id', resolve: () => nsa.Post }),
+      b: t.prismaField({ type: [nsbUser], resolve: () => nsb.User }),
+      posts: t.prismaConnection({ type: 'nsa.Post', resolve: () => nsa.Post }),
       plain: t.field({
         type: post,
         resolve: () => ({ id: 1, title: 'first', userId: 1 }),
@@ -62,33 +63,6 @@ function createSchema() {
   });
   return builder.toSchema();
 }
-
-describe('qualified model names', () => {
-  it('rejects an ambiguous bare name, naming the qualified forms', () => {
-    const builder = createBuilder();
-    builder.prismaObject('User' as never, { fields: () => ({}) });
-    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
-    expect(() => builder.toSchema()).toThrow(
-      /Model 'User' exists in namespaces 'nsa', 'nsb'.*'nsa\.User'.*'nsb\.User'/,
-    );
-  });
-
-  it('rejects a qualified name in a namespace without that model', () => {
-    const builder = createBuilder();
-    builder.prismaObject('nsc.User' as never, { fields: () => ({}) });
-    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
-    expect(() => builder.toSchema()).toThrow(
-      "Model 'nsc.User' not found in the prismaNext contract.",
-    );
-  });
-
-  it('rejects a qualified name for a model only one namespace has', () => {
-    const builder = createBuilder();
-    builder.prismaObject('nsa.Post' as never, { fields: () => ({}) });
-    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
-    expect(() => builder.toSchema()).toThrow(/Use the bare name 'Post'/);
-  });
-});
 
 describe('models sharing a name across namespaces', () => {
   beforeAll(async () => {
@@ -114,10 +88,10 @@ describe('models sharing a name across namespaces', () => {
     await raw.end();
   });
 
-  it('gives qualified models distinct default GraphQL types', async () => {
+  it('loads models that share a name under distinct GraphQL types', async () => {
     const schema = createSchema();
     expect(Object.keys(schema.getTypeMap())).toEqual(
-      expect.arrayContaining(['nsa_User', 'nsb_User', 'Post']),
+      expect.arrayContaining(['User', 'NsbUser', 'Post']),
     );
     const result = await graphql({
       schema,
@@ -126,8 +100,8 @@ describe('models sharing a name across namespaces', () => {
     });
     expect(result).toEqual({
       data: {
-        a: [{ __typename: 'nsa_User', id: 1, orgId: 10 }],
-        b: [{ __typename: 'nsb_User', id: 'x', name: 'Xena' }],
+        a: [{ __typename: 'User', id: 1, orgId: 10 }],
+        b: [{ __typename: 'NsbUser', id: 'x', name: 'Xena' }],
       },
     });
   });
@@ -146,8 +120,8 @@ describe('models sharing a name across namespaces', () => {
       a: [
         {
           posts: [
-            { title: 'first', user: { __typename: 'nsa_User', orgId: 10 } },
-            { title: 'second', user: { __typename: 'nsa_User', orgId: 10 } },
+            { title: 'first', user: { __typename: 'User', orgId: 10 } },
+            { title: 'second', user: { __typename: 'User', orgId: 10 } },
           ],
           postsPage: { totalCount: 2, edges: [{ node: { id: 1 } }] },
         },
@@ -156,7 +130,7 @@ describe('models sharing a name across namespaces', () => {
     });
   });
 
-  it('finds fallback collections in a namespaced ORM client', async () => {
+  it('finds reload collections in a namespaced ORM client', async () => {
     const result = await graphql({
       schema: createSchema(),
       source: '{ plain { user { orgId } } plainB { name } }',
@@ -186,19 +160,21 @@ function createInheritanceSchema(bugName?: string) {
     interfaces: [aTask],
     fields: (t) => ({ severity: t.exposeString('severity') }),
   });
-  builder.prismaObject('Feature', {
+  builder.prismaObject('inha.Feature', {
     interfaces: [aTask],
     fields: (t) => ({ priority: t.exposeInt('priority') }),
   });
   // A variant in another namespace than its base.
-  builder.prismaObject('Chore', {
+  builder.prismaObject('inhb.Chore', {
     interfaces: [aTask],
     fields: (t) => ({ note: t.exposeString('note') }),
   });
   const bTask = builder.prismaInterface('inhb.Task', {
+    name: 'BTask',
     fields: (t) => ({ label: t.exposeString('label') }),
   });
   builder.prismaNode('inhb.Bug', {
+    name: 'BBug',
     interfaces: [bTask],
     id: { field: 'id' },
     collection: () => inhb.Task.variant('b'),
@@ -250,22 +226,22 @@ describe('native inheritance across namespaces', () => {
       source: `{
         aTasks {
           __typename title
-          ... on inha_Bug { severity }
+          ... on Bug { severity }
           ... on Feature { priority }
           ... on Chore { note }
         }
-        bTasks { __typename label ... on inhb_Bug { level } }
+        bTasks { __typename label ... on BBug { level } }
       }`,
       contextValue: {},
     });
     expect(result).toEqual({
       data: {
         aTasks: [
-          { __typename: 'inha_Bug', title: 'bug1', severity: 'high' },
+          { __typename: 'Bug', title: 'bug1', severity: 'high' },
           { __typename: 'Feature', title: 'feat1', priority: 5 },
           { __typename: 'Chore', title: 'chore1', note: 'sweep' },
         ],
-        bTasks: [{ __typename: 'inhb_Bug', label: 'b1', level: 7 }],
+        bTasks: [{ __typename: 'BBug', label: 'b1', level: 7 }],
       },
     });
   });
@@ -274,16 +250,16 @@ describe('native inheritance across namespaces', () => {
     const schema = createInheritanceSchema();
     const list = await graphql({
       schema,
-      source: '{ bTasks { ... on inhb_Bug { id } } }',
+      source: '{ bTasks { ... on BBug { id } } }',
       contextValue: {},
     });
     const id = (list.data as { bTasks: { id: string }[] }).bTasks[0].id;
     const result = await graphql({
       schema,
-      source: `{ node(id: "${id}") { __typename ... on inhb_Bug { label level } } }`,
+      source: `{ node(id: "${id}") { __typename ... on BBug { label level } } }`,
       contextValue: {},
     });
-    expect(result).toEqual({ data: { node: { __typename: 'inhb_Bug', label: 'b1', level: 7 } } });
+    expect(result).toEqual({ data: { node: { __typename: 'BBug', label: 'b1', level: 7 } } });
   });
 
   it('routes rows to a qualified variant registered under a custom name', async () => {

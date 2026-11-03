@@ -1,8 +1,15 @@
 import SchemaBuilder from '@pothos/core';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
-import { createBuilder, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
+import prismaNextPlugin from '../src';
+import {
+  createBuilder,
+  deferSchema,
+  run,
+  runIncremental,
+  useCollisionDb,
+  useSampleDb,
+} from './fixtures/helpers';
 
 const db = useSampleDb();
 const collision = useCollisionDb();
@@ -43,7 +50,7 @@ describe('prismaInterface', () => {
           nullable: true,
           resolve: () => db.orm.User.where({ id: 'u-bob' }),
         }),
-        userPage: t.prismaConnection({ type: User, cursor: 'id', resolve: () => db.orm.User }),
+        userPage: t.prismaConnection({ type: User, resolve: () => db.orm.User }),
         post: t.prismaField({
           type: 'Post',
           resolve: () => db.orm.Post.where({ id: 'p-hello' }),
@@ -118,7 +125,7 @@ describe('prismaInterface', () => {
   it('routes rows through a resolveType the interface declares', async () => {
     const builder = createBuilder();
     const Named = builder.prismaInterface('User', {
-      name: 'Named',
+      variant: 'Named',
       select: ['firstName'],
       resolveType: (user) => (user.firstName === 'Alice' ? 'Alice' : 'Other'),
       fields: (t) => ({ id: t.exposeID('id') }),
@@ -209,12 +216,12 @@ describe('inherited selections', () => {
   it('loads interface selections through concrete and interface roots', async () => {
     const builder = createBuilder();
     const Totals = builder.prismaInterface('User', {
-      name: 'UserTotals',
+      variant: 'UserTotals',
       select: { posts: (sub) => ({ total: sub.count() }) },
       fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
     });
     const Published = builder.prismaInterface('User', {
-      name: 'UserPublishedTotals',
+      variant: 'UserPublishedTotals',
       interfaces: [Totals],
       select: { posts: (sub) => ({ published: sub.where({ published: 1 }).count() }) },
       fields: (t) => ({ published: t.int({ resolve: (user) => user.published }) }),
@@ -261,7 +268,7 @@ describe('inherited selections', () => {
   it('loads interface prerequisites for fields without their own selection', async () => {
     const builder = createBuilder();
     const Named = builder.prismaInterface('User', {
-      name: 'NamedUser',
+      variant: 'NamedUser',
       select: ['firstName'],
       fields: (t) => ({ name: t.string({ resolve: (user) => user.firstName }) }),
     });
@@ -276,49 +283,10 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  function conflicting() {
-    const builder = createBuilder();
-    const Base = builder.prismaInterface('Post', {
-      name: 'PostBase',
-      select: { author: { where: { firstName: 'Alice' } } },
-      fields: (t) => ({
-        baseAuthor: t.string({ nullable: true, resolve: (post) => post.author?.firstName }),
-      }),
-    });
-    builder.prismaObject('Post', {
-      interfaces: [Base],
-      select: { author: { where: { firstName: 'Bob' } } },
-      fields: (t) => ({
-        ownAuthor: t.string({ nullable: true, resolve: (post) => post.author?.firstName }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.prismaField({
-          type: ['Post'],
-          resolve: () => db.orm.Post.orderBy((post) => post.id.asc()),
-        }),
-      }),
-    });
-    return builder.toSchema();
-  }
-
-  it('loads conflicting interface and object prerequisites in separate batches', async () => {
-    const result = await run(conflicting(), '{ posts { baseAuthor ownAuthor } }');
-    expect(result.errors).toBeUndefined();
-    expect(result.data.posts).toEqual([
-      { baseAuthor: null, ownAuthor: 'Bob' },
-      { baseAuthor: null, ownAuthor: 'Bob' },
-      { baseAuthor: 'Alice', ownAuthor: null },
-      { baseAuthor: 'Alice', ownAuthor: null },
-    ]);
-    expect(result.statements).toHaveLength(2);
-  });
-
   it("hands isTypeOf and other resolvers the type select's rows when a field combines them", async () => {
     const builder = createBuilder();
     const Named = builder.prismaInterface('User', {
-      name: 'Named',
+      variant: 'Named',
       fields: (t) => ({ firstName: t.exposeString('firstName') }),
     });
     const isTypeOfSaw: unknown[] = [];
@@ -371,7 +339,7 @@ describe('inherited selections', () => {
   it("hands each implementation's isTypeOf the rows its own select loads", async () => {
     const builder = createBuilder();
     const Person = builder.prismaInterface('User', {
-      name: 'Person',
+      variant: 'Person',
       select: { posts: { limit: 1 } },
       fields: (t) => ({ id: t.exposeID('id') }),
     });
@@ -404,26 +372,24 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  function ownerBuilder({ loadAccounts = true } = {}) {
+  function ownerBuilder() {
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { client: collision.client },
     });
     const Account = builder.prismaInterface('Owner', {
-      name: 'Account',
+      variant: 'Account',
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     builder.prismaObject('Profile', { fields: (t) => ({ id: t.exposeID('id') }) });
-    if (loadAccounts) {
-      builder.queryType({
-        fields: (t) => ({
-          accounts: t.prismaField({
-            type: [Account],
-            resolve: () => collision.orm.Owner.orderBy((owner) => owner.id.asc()),
-          }),
+    builder.queryType({
+      fields: (t) => ({
+        accounts: t.prismaField({
+          type: [Account],
+          resolve: () => collision.orm.Owner.orderBy((owner) => owner.id.asc()),
         }),
-      });
-    }
+      }),
+    });
     return { builder, Account };
   }
 
@@ -450,238 +416,222 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  // Post loads its author with other arguments than PostBase does.
-  function conflictingPostBuilder() {
-    const builder = createBuilder();
-    const PostBase = builder.prismaInterface('Post', {
-      name: 'PostBase',
-      select: { author: true },
-      fields: (t) => ({ id: t.exposeID('id') }),
-    });
-    builder.prismaNode('Post', {
-      id: { field: 'id' },
-      interfaces: [PostBase],
-      select: { author: { where: { firstName: 'Nobody' } } },
-      isTypeOf: (post) => post.author === null,
-    });
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    return { builder, PostBase };
-  }
-
-  it("rejects an implementation whose to-one select differs from a loaded interface's", () => {
-    const { builder, PostBase } = conflictingPostBuilder();
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.prismaField({ type: [PostBase], resolve: () => db.orm.Post }),
-      }),
-    });
-    // Rows loaded as PostBase would carry its unfiltered author, so Post's isTypeOf would reject
-    // every row.
-    expect(() => builder.toSchema()).toThrow(
-      `The select of 'Post' loads to-one relation "author" differently from the select of prismaInterface 'PostBase'.`,
-    );
-  });
-
-  it("rejects the conflict when a field's select plans the interface", () => {
-    const { builder, PostBase } = conflictingPostBuilder();
-    builder.prismaObjectField('User', 'posts', (t) =>
-      t.field({ type: [PostBase], select: { posts: true }, resolve: (user) => user.posts }),
-    );
-    builder.queryType({
-      fields: (t) => ({
-        user: t.prismaField({ type: 'User', resolve: () => db.orm.User }),
-      }),
-    });
-    expect(() => builder.toSchema()).toThrow(
-      `differently from the select of prismaInterface 'PostBase'.`,
-    );
-  });
-
-  it('rejects the conflict when connection helpers load the interface', () => {
-    const { builder, PostBase } = conflictingPostBuilder();
-    const pages = prismaConnectionHelpers(builder, PostBase, { cursor: 'id' });
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.connection({
-          type: pages.ref,
-          resolve: async (_parent, args, ctx, info) => {
-            const { collection, wrap } = await pages.applyPagination(db.orm.Post, args, ctx, info);
-            return wrap(await collection.all());
-          },
+  // The interface `Filtered` extends, and the type's list naming `Filtered` first, once made a
+  // lookup of `one` find `Filtered`'s filtered author, depending on how the two interfaces sort.
+  describe.each([
+    ['PostBase', 'Filtered'],
+    ['Zed', 'Abc'],
+  ])('a three-level hierarchy of %s and %s', (baseName, derivedName) => {
+    function threeLevels() {
+      const builder = createBuilder();
+      const Base = builder.prismaInterface('Post', {
+        variant: baseName,
+        select: { author: true },
+        fields: (t) => ({
+          one: t.string({ nullable: true, resolve: (post) => post.author.firstName }),
         }),
-      }),
+      });
+      const Derived = builder.prismaInterface('Post', {
+        variant: derivedName,
+        interfaces: [Base],
+        fields: (t) => ({
+          three: t.string({
+            nullable: true,
+            select: { author: { where: { firstName: 'Nobody' } } },
+            resolve: (post) => post.author?.firstName,
+          }),
+        }),
+      });
+      const Post = builder.prismaObject('Post', {
+        interfaces: [Derived, Base],
+        isTypeOf: () => true,
+      });
+      builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.queryType({
+        fields: (t) => ({
+          r: t.prismaField({ type: [Post], resolve: () => db.orm.Post.where({ id: 'p-hello' }) }),
+        }),
+      });
+      return builder.toSchema();
+    }
+
+    it("reads the base interface's unfiltered author", async () => {
+      const result = await run(threeLevels(), '{ r { one } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ r: [{ one: 'Alice' }] });
+      expect(result.statements).toHaveLength(1);
     });
-    expect(() => builder.toSchema()).toThrow(
-      `differently from the select of prismaInterface 'PostBase'.`,
-    );
-  });
 
-  it('builds when only a plain field returns the interface', () => {
-    const { builder, PostBase } = conflictingPostBuilder();
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.field({ type: [PostBase], resolve: () => [] }),
-      }),
+    it("gives a field's filter its own load", async () => {
+      const result = await run(threeLevels(), '{ r { one three } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ r: [{ one: 'Alice', three: null }] });
+      expect(result.statements).toHaveLength(2);
     });
-    expect(() => builder.toSchema()).not.toThrow();
   });
 
-  it('builds when the interface is only reached through node and nodes', () => {
-    const { builder } = conflictingPostBuilder();
-    builder.queryType({});
-    expect(printSchema(builder.toSchema())).toContain('interface PostBase');
-  });
-
-  // Post has no select of its own, and its two interfaces load its author differently.
-  function conflictingInterfacesBuilder(order: 'PostBase first' | 'Authored first') {
+  it("hands a middle interface's fields the rows its base selects, not an implementation's", async () => {
     const builder = createBuilder();
-    const PostBase = builder.prismaInterface('Post', {
-      name: 'PostBase',
-      select: { author: true },
+    const Base = builder.prismaInterface('Post', {
+      variant: 'Base',
+      select: { comments: { limit: 1, orderBy: (comment) => comment.id.asc() } },
       fields: (t) => ({ id: t.exposeID('id') }),
     });
-    const Authored = builder.prismaInterface('Post', {
-      name: 'Authored',
-      select: { author: { where: { firstName: 'Nobody' } } },
+    const Derived = builder.prismaInterface('Post', {
+      variant: 'Derived',
+      interfaces: [Base],
       fields: (t) => ({
-        authorName: t.string({ nullable: true, resolve: (post) => post.author?.firstName }),
+        derivedIds: t.idList({ resolve: (post) => post.comments.map((comment) => comment.id) }),
       }),
     });
     const Post = builder.prismaObject('Post', {
-      interfaces: order === 'PostBase first' ? [PostBase, Authored] : [Authored, PostBase],
+      interfaces: [Derived, Base],
+      select: { comments: { limit: 2, orderBy: (comment) => comment.id.asc() } },
       isTypeOf: () => true,
+      fields: (t) => ({
+        ownIds: t.idList({ resolve: (post) => post.comments.map((comment) => comment.id) }),
+      }),
     });
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    return { builder, types: { PostBase, Authored, Post } };
-  }
-
-  describe.each([
-    'PostBase first',
-    'Authored first',
-  ] as const)('two interfaces that load a to-one relation differently (%s)', (order) => {
-    const [first, second] =
-      order === 'PostBase first' ? ['PostBase', 'Authored'] : ['Authored', 'PostBase'];
-    const message = `The selects of prismaInterfaces '${first}' and '${second}' load to-one relation "author" differently, and 'Post' implements both.`;
-
-    it('rejects them when both are loaded', () => {
-      const { builder, types } = conflictingInterfacesBuilder(order);
-      builder.queryType({
-        fields: (t) => ({
-          bases: t.prismaField({ type: [types.PostBase], resolve: () => db.orm.Post }),
-          authored: t.prismaField({ type: [types.Authored], resolve: () => db.orm.Post }),
-        }),
-      });
-      expect(() => builder.toSchema()).toThrow(message);
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.prismaField({ type: [Post], resolve: () => db.orm.Post.where({ id: 'p-hello' }) }),
+      }),
     });
-
-    it.each(['PostBase', 'Authored'] as const)('rejects them when only %s is loaded', (loaded) => {
-      const { builder, types } = conflictingInterfacesBuilder(order);
-      builder.queryType({
-        fields: (t) => ({
-          posts: t.prismaField({ type: [types[loaded]], resolve: () => db.orm.Post }),
-        }),
-      });
-      expect(() => builder.toSchema()).toThrow(message);
-    });
-
-    it('builds when only the implementation is loaded', () => {
-      const { builder, types } = conflictingInterfacesBuilder(order);
-      builder.queryType({
-        fields: (t) => ({
-          posts: t.prismaField({ type: [types.Post], resolve: () => db.orm.Post }),
-        }),
-      });
-      expect(() => builder.toSchema()).not.toThrow();
-    });
+    const result = await run(builder.toSchema(), '{ posts { derivedIds ownIds } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts).toEqual([{ derivedIds: ['c-1'], ownIds: ['c-1', 'c-2'] }]);
+    expect(result.statements).toHaveLength(1);
   });
 
-  it('rejects the pair when only a third interface of the implementation is loaded', () => {
+  it("hands resolveType the rows the interface's select loads when its implementation's differ", async () => {
+    const seen: unknown[] = [];
     const builder = createBuilder();
-    const Titled = builder.prismaInterface('Post', {
-      name: 'Titled',
-      fields: (t) => ({ title: t.exposeString('title') }),
-    });
-    const PostBase = builder.prismaInterface('Post', {
-      name: 'PostBase',
-      select: { author: true },
+    const Named = builder.prismaInterface('User', {
+      variant: 'Named',
+      select: { posts: { where: { published: 1 } } },
+      resolveType: (user) => {
+        seen.push(user.posts.map((post) => post.id));
+        return 'User';
+      },
       fields: (t) => ({ id: t.exposeID('id') }),
     });
-    const Authored = builder.prismaInterface('Post', {
-      name: 'Authored',
-      select: { author: { where: { firstName: 'Nobody' } } },
-      fields: (t) => ({
-        authorName: t.string({ nullable: true, resolve: (post) => post.author?.firstName }),
-      }),
-    });
-    builder.prismaObject('Post', {
-      interfaces: [Titled, PostBase, Authored],
-      isTypeOf: () => true,
-    });
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.queryType({
-      fields: (t) => ({
-        titled: t.prismaField({ type: [Titled], resolve: () => db.orm.Post }),
-      }),
-    });
-    // Rows loaded as Titled resolve as Post, which reads both interfaces' author.
-    expect(() => builder.toSchema()).toThrow(
-      `The selects of prismaInterfaces 'PostBase' and 'Authored' load to-one relation "author" differently, and 'Post' implements both. A row loaded as 'Titled'`,
-    );
-  });
-
-  it('rejects implementations that load a to-one relation differently', () => {
-    const { builder, Account } = ownerBuilder();
-    builder.prismaObject('Owner', {
-      variant: 'WithProfile',
-      interfaces: [Account],
-      select: { profile: true },
-    });
-    builder.prismaObject('Owner', {
-      variant: 'WithoutProfile',
-      interfaces: [Account],
-      select: { profile: { where: { id: 1 } } },
-    });
-    expect(() => builder.toSchema()).toThrow(
-      `The select of 'WithoutProfile' loads to-one relation "profile" differently from another implementation of prismaInterface 'Account'`,
-    );
-  });
-
-  it('builds conflicting implementations when only a plain field returns the interface', async () => {
-    const { builder, Account } = ownerBuilder({ loadAccounts: false });
-    const WithProfile = builder.prismaObject('Owner', {
-      variant: 'WithProfile',
-      interfaces: [Account],
-      select: { profile: true },
-      fields: (t) => ({ profileId: t.id({ nullable: true, resolve: (o) => o.profile?.id }) }),
-    });
-    const WithoutProfile = builder.prismaObject('Owner', {
-      variant: 'WithoutProfile',
-      interfaces: [Account],
-      select: { profile: { where: { id: 1 } } },
-      fields: (t) => ({ profileId: t.id({ nullable: true, resolve: (o) => o.profile?.id }) }),
+    builder.prismaObject('User', {
+      interfaces: [Named],
+      select: { posts: true },
+      fields: (t) => ({ total: t.int({ resolve: (user) => user.posts.length }) }),
     });
     builder.queryType({
       fields: (t) => ({
-        accounts: t.field({ type: [Account], resolve: () => [] }),
-        withProfile: t.prismaField({
-          type: WithProfile,
-          resolve: () => collision.orm.Owner.where({ id: 1 }),
-        }),
-        withoutProfile: t.prismaField({
-          type: WithoutProfile,
-          resolve: () => collision.orm.Owner.where({ id: 1 }),
+        named: t.prismaField({
+          type: [Named],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
-    const result = await run(
-      builder.toSchema(),
-      '{ withProfile { profileId } withoutProfile { profileId } }',
-    );
+    const result = await run(builder.toSchema(), '{ named { id ... on User { total } } }');
     expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({
-      withProfile: { profileId: '5' },
-      withoutProfile: { profileId: null },
+    expect(result.data.named).toEqual([
+      { id: 'u-alice', total: 2 },
+      { id: 'u-bob', total: 2 },
+    ]);
+    expect(seen).toEqual([['p-hello'], ['p-bob1']]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  // An interface field without a select of its own is still planned on the interface, so the
+  // implementation it resolves on finds the plan that loaded its row instead of reloading it.
+  it('plans an interface field without a select for an implementation with a select', async () => {
+    const builder = createBuilder();
+    const Named = builder.prismaInterface('User', {
+      variant: 'Named',
+      resolveType: () => 'User',
+      fields: (t) => ({ label: t.string({ resolve: () => 'named' }) }),
     });
+    builder.prismaObject('User', {
+      interfaces: [Named],
+      select: { posts: { where: { published: 1 } } },
+      fields: (t) => ({ published: t.int({ resolve: (user) => user.posts.length }) }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        named: t.prismaField({
+          type: [Named],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ named { label } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.named).toEqual([{ label: 'named' }, { label: 'named' }]);
+    expect(result.statements).toHaveLength(1);
+  });
+});
+
+// A reloaded row has slots of its own, and a mapping other than the one looked up for the row the
+// field had. Its helpers read the reloaded row's slots at the position the reload planned them.
+describe("field helpers on a reloaded parent's slots", () => {
+  function reloadSchema() {
+    const builder = createBuilder();
+    const Named = builder.prismaInterface('User', {
+      variant: 'Named',
+      resolveType: () => 'User',
+      fields: (t) => ({
+        published: t.relation('posts', { query: { where: { published: 1 } } }),
+        count: t.relationCount('posts', { where: { published: 0 } }),
+        drafts: t.idList({
+          select: { posts: { where: { published: 0 } } },
+          resolve: (user) => user.posts.map((post) => post.id),
+        }),
+      }),
+    });
+    const User = builder.prismaObject('User', {
+      interfaces: [Named],
+      select: { posts: true },
+      fields: (t) => ({
+        total: t.int({ resolve: (user) => user.posts.length }),
+        own: t.relation('posts', { query: { where: { published: 0 } } }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        named: t.field({ type: Named, resolve: () => ({ id: 'u-alice' }) as never }),
+        user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) as never }),
+        users: t.prismaField({
+          type: [Named],
+          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    return builder;
+  }
+
+  const expected = {
+    published: [{ id: 'p-hello' }],
+    count: 1,
+    drafts: ['p-draft1'],
+    total: 2,
+    own: [{ id: 'p-draft1' }],
+  };
+  const selection = 'published { id } count drafts ... on User { total own { id } }';
+
+  it.each([
+    'named',
+    'user',
+  ])('reads the slots of a hand-built %s parent once reloaded', async (root) => {
+    const result = await run(reloadSchema().toSchema(), `{ ${root} { ${selection} } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data[root]).toEqual(expected);
+  });
+
+  it('reads the slots of a parent reloaded for a deferred fragment', async () => {
+    const result = await runIncremental(
+      deferSchema(reloadSchema()),
+      `{ users { ... @defer { ${selection} } } }`,
+    );
+    expect([...result.patchErrors, ...result.completedErrors]).toEqual([]);
+    expect(result.patches).toEqual([expected]);
   });
 });
 
@@ -715,7 +665,7 @@ describe('relations typed as an interface', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         posts: t.relation('posts', { type: Titled }),
-        page: t.relatedConnection('posts', { cursor: 'id', type: Titled }),
+        page: t.relatedConnection('posts', { type: Titled }),
       }),
     });
     builder.queryType({

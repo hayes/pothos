@@ -1,4 +1,3 @@
-import { PothosValidationError } from '@pothos/core';
 import { parse, printSchema, subscribe } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import { buildExampleSchema } from './example/schema';
@@ -145,23 +144,18 @@ describe('example schema', () => {
 });
 
 describe('root fields', () => {
-  it.each([
-    ['row', { id: 'u-alice' }],
-    ['rows', [{ id: 'u-alice' }]],
-  ])('reject an already materialized %s', async (_name, value) => {
+  it('returns null for a resolver that returns null', async () => {
     const builder = createBuilder();
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
       fields: (t) => ({
-        user: t.prismaField({ type: 'User', nullable: true, resolve: () => value as never }),
         none: t.prismaField({ type: 'User', nullable: true, resolve: () => null }),
       }),
     });
-    const result = await run(builder.toSchema(), '{ user { id } none { id } }');
-    expect(result.data).toEqual({ user: null, none: null });
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors?.[0].message).toMatch(/must return an ORM Collection or null/);
-    expect(result.errors?.[0].originalError).toBeInstanceOf(PothosValidationError);
+    const result = await run(builder.toSchema(), '{ none { id } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ none: null });
+    expect(result.statements).toHaveLength(0);
   });
 });
 

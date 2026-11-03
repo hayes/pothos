@@ -25,17 +25,27 @@ builder.prismaObject('Post', {
 
 Relations are loaded with `.include(...)` on the parent's Collection, so
 `{ me { posts { author { id } } } }` runs as one Collection call. Prisma decides how many SQL
-statements that takes.
+statements that takes. One call loads at most 200 relations and computed values, counting each
+alias of a relation with its own arguments. Fields past that load in further calls, so aliases
+nested at every level of a document can't grow one statement without limit. Rows of a model
+without an [identity](#loading-without-a-parent-query) can't be reloaded, so their fields always
+load with them.
+
+`t.relation`, `t.relationCount` and `t.relatedConnection` read what they
+loaded off the row this plugin returned. If something hands them another object, such as a copy
+another plugin's resolver wrapper makes, they reload the row in one more statement, or fail if
+its model has no identity to reload it by.
 
 - To-many relations are non-null lists.
 - To-one relations are non-null when their foreign key columns are non-null and they have
   neither a `query` nor a `type` for a [variant model](./interfaces#native-inheritance), either
-  of which could filter the row out. Pass `nullable` to override.
+  of which could filter the row out. Pass `nullable` to override, except that a relation whose
+  foreign key is nullable can't be made non-null, like a nullable column.
 
 ## Filtering and sorting
 
 `query` accepts `{ where, orderBy, limit, offset }`, or a function of the field's arguments and
-context returning one:
+context returning one. A to-one relation loads one row, so its `query` takes only `where`.
 
 ```ts
 posts: t.relation('posts', {
@@ -46,10 +56,24 @@ posts: t.relation('posts', {
 }),
 ```
 
-Aliases with different arguments, such as `posts` and `oldest: posts(oldestFirst: true)`, load in
-the same call.
+For a to-many relation, the function can instead return a refinement of the relation's
+collection, as `include()` takes one. It can apply a fragment or a custom collection's methods:
 
-## Counts and aggregates
+```ts
+const published = db.orm.Post.fragment((posts) => posts.where({ published: 1 }));
+
+posts: t.relation('posts', {
+  query: () => (posts) => posts.with(published).orderBy((post) => post.createdAt.desc()),
+}),
+```
+
+With `AsyncSelections: true` in the builder's types, the function can be async, as can a field's
+`select` function and a count's `where` function.
+
+Aliases with different arguments, such as `posts` and `oldest: posts(oldestFirst: true)`, load in
+the same call. Aliases of a count with the same arguments share one computed value.
+
+## Counts and other aggregates
 
 ```ts
 builder.prismaObject('User', {
@@ -60,8 +84,6 @@ builder.prismaObject('User', {
       args: { published: t.arg.int({ required: true }) },
       where: (args) => ({ published: args.published }),
     }),
-    totalScore: t.relationAggregate('posts', { op: 'sum', field: 'score' }),
-    firstTitle: t.relationAggregate('posts', { op: 'min', field: 'title', type: 'String' }),
   }),
 });
 ```
@@ -70,12 +92,20 @@ builder.prismaObject('User', {
 context that returns it. So a predicate that needs the arguments is
 `(args) => (post) => post.published.eq(args.published)`.
 
-Operations and fields come from the contract's aggregate types. `count` is a non-null `Int`;
-other operations are nullable `Float`s by default. Pass `type` for non-numeric results, or for a
-lossless operation such as `countBigInt` with a `BigInt` scalar.
+A count is a non-null `Int`. For other aggregates, such as a sum or a lossless `countBigInt`, use
+a field `select`. A function receives the relation's Collection, and each key it returns is added
+to the parent. A key can't be one that another relation of the `select` returns, or a column or
+relation of the parent's model; the types reject both. So keys must be literals: the types reject
+one built from the field's arguments, which they can't check. TypeScript also widens a key typed
+as a union of literals or a type parameter to `string`, so a generic helper that builds an entry
+needs an explicit mapped return type:
 
-For anything else, use a field `select`. A function receives the relation's Collection, and each
-key it returns is added to the parent:
+```ts
+const keyed = <K extends string, V>(key: K, value: V): { [P in K]: V } =>
+  ({ [key]: value }) as { [P in K]: V };
+
+// select: { posts: (posts) => keyed('total', posts.count()) }
+```
 
 ```ts
 builder.prismaObject('User', {
@@ -115,8 +145,8 @@ type before any field runs. `ModelReturnShape<Types, 'User'>` and
 The same loader handles fields that load one to-one relation with different filters, which
 Prisma can't include in one query.
 
-A model without a primary key is reloaded by its first non-null unique key. The types only know
-primary keys, so a plain `t.field` returning such a model must return its whole row. A model with
-neither can't be reloaded, so its fields must come from the parent query. A field that would need
-the loader fails with an error naming it. On such a model, a `prismaInterface` whose `select`
-conflicts with its object's fails the schema build, because those fields could never load.
+A row is reloaded by its identity: its primary key, or the first non-null unique key of a model
+without one. The types only know primary keys, so a plain `t.field` returning a model without one
+must return its whole row. A model with neither has no identity and can't be reloaded, so its
+fields must come from the parent query. A field that would need the loader fails with an error
+naming it.

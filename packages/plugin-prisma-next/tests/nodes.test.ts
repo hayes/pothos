@@ -1,5 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
+import { Collection } from '@prisma/orm-family-sql/orm-client';
+import sqlite from '@prisma/orm-sqlite/runtime';
 import { execute, type GraphQLObjectType, parse } from 'graphql';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import prismaNextPlugin from '../src';
@@ -7,6 +9,7 @@ import {
   createBuilder,
   globalId,
   run,
+  type SampleContract,
   sampleContract,
   useCollisionDb,
   useSampleDb,
@@ -26,35 +29,37 @@ function schema() {
     fields: (t) => ({
       firstName: t.exposeString('firstName'),
       posts: t.relation('posts'),
-      postPage: t.relatedConnection('posts', { cursor: 'id', totalCount: true }),
+      postPage: t.relatedConnection('posts', { totalCount: true }),
     }),
   });
   builder.prismaNode('User', {
     variant: 'AdminUser',
     id: { field: 'id' },
-    collection: db.orm.User,
     fields: (t) => ({ lastName: t.exposeString('lastName') }),
   });
   builder.prismaNode('Post', {
     id: { field: 'id' },
-    collection: db.orm.Post,
     fields: (t) => ({ title: t.exposeString('title'), author: t.relation('author') }),
   });
   const PostByAuthor = builder.prismaNode('Post', {
     variant: 'PostByAuthor',
     id: { field: ['authorId', 'id'] },
-    collection: db.orm.Post,
     fields: (t) => ({ title: t.exposeString('title') }),
   });
   builder.prismaNode('Comment', {
-    id: { field: 'id', resolve: (comment) => `comment:${comment.id}` },
-    collection: db.orm.Comment,
+    id: {
+      field: 'id',
+      description: 'The comment ID',
+      extensions: { audited: true },
+      parse: (id) => id.slice('comment:'.length),
+      resolve: (comment) => `comment:${comment.id}`,
+    },
     fields: (t) => ({ body: t.exposeString('body') }),
   });
   builder.queryType({
     fields: (t) => ({
       user: t.prismaField({ type: 'User', resolve: () => db.orm.User.where({ id: 'u-alice' }) }),
-      users: t.prismaConnection({ type: 'User', cursor: 'id', resolve: () => db.orm.User }),
+      users: t.prismaConnection({ type: 'User', resolve: () => db.orm.User }),
       comment: t.prismaField({
         type: 'Comment',
         resolve: () => db.orm.Comment.where({ id: 'c-1' }),
@@ -72,6 +77,12 @@ const query = (source: string, variables?: Record<string, unknown>, context = {}
   run(schema().schema, source, { variables, context });
 
 describe('Relay nodes', () => {
+  it("passes the id option's field options to the ID field", () => {
+    const id = (schema().schema.getType('Comment') as GraphQLObjectType).getFields().id!;
+    expect(id.description).toBe('The comment ID');
+    expect(id.extensions).toMatchObject({ audited: true });
+  });
+
   it('resolves node types through root, related and connection fields', async () => {
     const result = await query(`{
       user { id firstName posts { title author { firstName } } postPage(first: 1) { nodes { title } } }
@@ -107,6 +118,11 @@ describe('Relay nodes', () => {
   it('round trips compound IDs, and encodes what a custom id.resolve returns', async () => {
     const ids = await query('{ post { id } comment { id } }');
     expect(ids.data.comment.id).toBe(globalId('Comment', 'comment:c-1'));
+    const comment = await query('query ($id: ID!) { node(id: $id) { ... on Comment { body } } }', {
+      id: ids.data.comment.id,
+    });
+    expect(comment.errors).toBeUndefined();
+    expect(comment.data.node).toEqual({ body: expect.any(String) });
     const result = await query(
       'query ($id: ID!) { node(id: $id) { __typename ... on PostByAuthor { title } } }',
       { id: ids.data.post.id },
@@ -118,7 +134,6 @@ describe('Relay nodes', () => {
     const builder = createBuilder();
     const Person = builder.prismaNode('User', {
       id: { field: ['id'] },
-      collection: db.orm.User,
       fields: (t) => ({ firstName: t.exposeString('firstName') }),
     });
     const seen: unknown[] = [];
@@ -149,34 +164,15 @@ describe('Relay nodes', () => {
   });
 
   it.each([
-    ['malformed', 'PNI:MARKER-not-a-chunk', /ID: malformed payload/],
-    ['short', JSON.stringify(['MARKER']), /expected 2 value\(s\), got 1/],
-  ])('rejects a %s compound ID without echoing it', async (_name, payload, message) => {
+    ['malformed', 'PNI:MARKER-not-a-chunk'],
+    ['short', JSON.stringify(['MARKER'])],
+  ])('rejects a %s compound ID without echoing it', async (_name, payload) => {
     const result = await query('query ($id: ID!) { node(id: $id) { id } }', {
       id: globalId('PostByAuthor', payload),
     });
-    expect(result.errors?.[0].message).toMatch(message);
+    expect(result.errors?.[0].message).toBe('Invalid ID.');
     expect(result.errors?.[0].message).not.toContain('MARKER');
     expect(result.statements).toHaveLength(0);
-  });
-  it('explains a missing contextValue when encoding an ID', async () => {
-    const builder = createBuilder({ client: () => db.client, contract: sampleContract });
-    const Person = builder.prismaNode('User', {
-      id: { field: 'id' },
-      fields: (t) => ({ firstName: t.exposeString('firstName') }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        person: t.field({ type: Person, resolve: () => ({ id: 'u-alice' }) }),
-      }),
-    });
-    const result = await execute({
-      schema: builder.toSchema(),
-      document: parse('{ person { id } }'),
-    });
-    expect(result.errors?.[0].message).toMatch(
-      /^@pothos\/plugin-prisma-next requires an object contextValue \(resolving 'User\.id'\)/,
-    );
   });
 });
 
@@ -194,7 +190,7 @@ describe('node batching', () => {
     expect(result.statements[0].params).toEqual(expect.arrayContaining(['u-alice', 'u-bob']));
   });
 
-  it('keeps aliases, types and variants in separate batches', async () => {
+  it('batches aliases of one type, and keeps types and variants in separate batches', async () => {
     const result = await query(
       `query ($a: ID!, $b: ID!, $p: ID!, $v: ID!) {
         a: node(id: $a) { ... on User { firstName } }
@@ -215,7 +211,8 @@ describe('node batching', () => {
       p: { title: 'Hello, Pothos' },
       v: { __typename: 'AdminUser', lastName: 'Brown' },
     });
-    expect(users('user')(result.statements)).toHaveLength(3);
+    // `a` and `b` load in one statement, the variant `v` in another.
+    expect(users('user')(result.statements)).toHaveLength(2);
     expect(users('post')(result.statements)).toHaveLength(1);
   });
 
@@ -322,13 +319,11 @@ describe('node declarations', () => {
     const builder = createBuilder();
     builder.prismaNode('User', {
       id: { field: 'id' },
-      collection: db.orm.User,
       isTypeOf: (value) => (value as { isUser?: boolean }).isUser === true,
       fields: (t) => ({ name: t.exposeString('firstName') }),
     });
     builder.prismaNode('Post', {
       id: { field: 'id' },
-      collection: db.orm.Post,
       isTypeOf: async () => false,
       fields: (t) => ({ title: t.exposeString('title') }),
     });
@@ -339,6 +334,174 @@ describe('node declarations', () => {
     expect(isTypeOf('User', { isUser: true })).toBe(true);
     expect(isTypeOf('User', {})).toBe(false);
     expect(await isTypeOf('Post', {})).toBe(false);
+  });
+});
+
+describe('the collection option', () => {
+  const postTitle = 'query ($id: ID!) { node(id: $id) { ... on Post { title } } }';
+  const draft = globalId('Post', 'p-draft1');
+
+  it('hides the rows its filter excludes from node(id:), per request', async () => {
+    const builder = createBuilder<{ viewer: string }>();
+    builder.prismaNode('Post', {
+      id: { field: 'id' },
+      collection: (ctx) => db.orm.Post.where({ authorId: ctx.viewer }),
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.queryType({});
+    const s = builder.toSchema();
+    const variables = { id: draft };
+    const asAuthor = await run(s, postTitle, { variables, context: { viewer: 'u-alice' } });
+    expect(asAuthor.data).toEqual({ node: { title: 'Draft #1' } });
+    const asOther = await run(s, postTitle, { variables, context: { viewer: 'u-bob' } });
+    expect(asOther.errors).toBeUndefined();
+    expect(asOther.data).toEqual({ node: null });
+  });
+
+  it('does not filter rows reached through t.relation, prismaField or a parent reload', async () => {
+    const builder = createBuilder();
+    const Post = builder.prismaNode('Post', {
+      id: { field: 'id' },
+      collection: () => db.orm.Post.where({ id: 'nothing' }),
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({ posts: t.relation('posts', { query: { where: { id: 'p-draft1' } } }) }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        post: t.prismaField({
+          type: Post,
+          resolve: () => db.orm.Post.where({ id: 'p-draft1' }),
+        }),
+        alice: t.prismaField({
+          type: 'User',
+          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+        plain: t.field({ type: Post, resolve: () => ({ id: 'p-draft1' }) }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      `query ($id: ID!) {
+        node(id: $id) { id }
+        post { title }
+        alice { posts { title } }
+        plain { title }
+      }`,
+      { variables: { id: draft } },
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      node: null,
+      post: { title: 'Draft #1' },
+      alice: { posts: [{ title: 'Draft #1' }] },
+      plain: { title: 'Draft #1' },
+    });
+  });
+
+  it("loads a node on a client function's transaction", async () => {
+    const builder = createBuilder<{ db: Pick<typeof db.client, 'orm'> }>({
+      client: (ctx) => ctx.db,
+    });
+    builder.prismaNode('User', {
+      id: { field: 'id' },
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.prismaNode('User', {
+      variant: 'FilteredUser',
+      id: { field: 'id' },
+      collection: (ctx) => ctx.db.orm.User.where({ lastName: 'Uncommitted' }),
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({});
+    const s = builder.toSchema();
+    const source = `query ($id: ID!, $filtered: ID!) {
+      node(id: $id) { ... on User { firstName } }
+      filtered: node(id: $filtered) { ... on FilteredUser { firstName } }
+    }`;
+    const variables = {
+      id: globalId('User', 'u-tx'),
+      filtered: globalId('FilteredUser', 'u-tx'),
+    };
+    const rollback = new Error('rollback');
+    let inTransaction: unknown;
+    await expect(
+      db.client.transaction(async (tx) => {
+        await tx.orm.User.create({
+          id: 'u-tx',
+          firstName: 'Tess',
+          lastName: 'Uncommitted',
+          email: 'tess@example.com',
+        });
+        const result = await run(s, source, { variables, context: { db: tx } });
+        expect(result.errors).toBeUndefined();
+        inTransaction = result.data;
+        throw rollback;
+      }),
+    ).rejects.toBe(rollback);
+    // Only the transaction's client could see the row, which the rollback removed.
+    expect(inTransaction).toEqual({ node: { firstName: 'Tess' }, filtered: { firstName: 'Tess' } });
+    const after = await run(s, source, { variables, context: { db: db.client } });
+    expect(after.data).toEqual({ node: null, filtered: null });
+  });
+
+  it('loads root fields and nodes from a custom Collection subclass', async () => {
+    class UserCollection extends Collection<SampleContract, 'User'> {
+      named(firstName: string) {
+        return this.where({ firstName });
+      }
+    }
+    const client = sqlite({
+      contract: sampleContract,
+      path: db.path,
+      collections: { User: UserCollection },
+    });
+    try {
+      expect(client.orm.User).toBeInstanceOf(UserCollection);
+      const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+        plugins: [RelayPlugin, prismaNextPlugin],
+        relay: {},
+        prismaNext: { client },
+      });
+      builder.prismaNode('User', {
+        id: { field: 'id' },
+        collection: () => client.orm.User.named('Alice'),
+        fields: (t) => ({
+          firstName: t.exposeString('firstName'),
+          posts: t.relation('posts', { query: { where: { id: 'p-hello' } } }),
+        }),
+      });
+      builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
+      builder.queryType({
+        fields: (t) => ({
+          users: t.prismaField({ type: ['User'], resolve: () => client.orm.User.named('Bob') }),
+          userPage: t.prismaConnection({
+            type: 'User',
+            resolve: () => client.orm.User.named('Bob'),
+          }),
+        }),
+      });
+      const result = await run(
+        builder.toSchema(),
+        `query ($alice: ID!, $bob: ID!) {
+          users { firstName }
+          userPage(first: 1) { edges { node { firstName } } }
+          alice: node(id: $alice) { ... on User { firstName posts { title } } }
+          bob: node(id: $bob) { ... on User { firstName } }
+        }`,
+        { variables: { alice: globalId('User', 'u-alice'), bob: globalId('User', 'u-bob') } },
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        users: [{ firstName: 'Bob' }],
+        userPage: { edges: [{ node: { firstName: 'Bob' } }] },
+        alice: { firstName: 'Alice', posts: [{ title: 'Hello, Pothos' }] },
+        bob: null,
+      });
+    } finally {
+      await client.close();
+    }
   });
 });
 
@@ -379,7 +542,7 @@ describe('ID values', () => {
     const builder = createBuilder();
     const Node = builder.prismaNode(model, {
       id: id as never,
-      collection: collection as never,
+      collection: () => collection as never,
       fields: (t) => ({
         label: t.string({ resolve: (row) => (row as unknown as { label: string }).label }),
       }),
@@ -479,9 +642,7 @@ describe('ID values', () => {
     const result = await run(builder.toSchema(), 'query ($id: ID!) { node(id: $id) { id } }', {
       variables: { id: globalId('Post', 'u-alice:p-hello') },
     });
-    expect(result.errors?.[0].message).toBe(
-      "Invalid prismaNode 'Post' ID: expected 2 value(s), got 1.",
-    );
+    expect(result.errors?.[0].message).toBe('Invalid ID.');
     expect(result.statements).toHaveLength(0);
   });
 
@@ -516,9 +677,7 @@ describe('ID values', () => {
     const result = await run(builder.toSchema(), 'query ($id: ID!) { node(id: $id) { id } }', {
       variables: { id: globalId('Post', 'PNI:T:["S:p","S:MARKER"]') },
     });
-    expect(result.errors?.[0].message).toBe(
-      "Invalid prismaNode 'Post' ID: invalid createdAt value.",
-    );
+    expect(result.errors?.[0].message).toBe('Invalid ID.');
     expect(result.statements).toHaveLength(0);
   });
 });

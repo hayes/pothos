@@ -3,9 +3,11 @@ import SchemaBuilder, {
   type PothosOutputFieldConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { GraphQLScalarType, printSchema } from 'graphql';
+import { Collection } from '@prisma/orm-family-sql/orm-client';
+import sqlite from '@prisma/orm-sqlite/runtime';
+import { GraphQLError, type GraphQLFieldResolver, GraphQLScalarType, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
+import prismaNextPlugin from '../src';
 import { buildExampleSchema } from './example/schema';
 import {
   createBuilder,
@@ -13,6 +15,7 @@ import {
   run,
   type SampleContract,
   type SampleOptions,
+  sampleContract,
   useCollisionDb,
   useDatabase,
   useSampleDb,
@@ -141,7 +144,7 @@ describe('includes', () => {
       }),
     });
     const result = await run(builder.toSchema(), '{ rawUser { id posts { id } } }');
-    expect(result.errors?.[0].message).toMatch(/could not find model 'User'/);
+    expect(result.errors?.[0].message).toMatch(/could not find the 'User' row/);
     expect(result.errors?.[0].path).toEqual(['rawUser', 'posts']);
   });
 });
@@ -233,7 +236,6 @@ describe('relation queries', () => {
           },
         }),
         conn: t.relatedConnection('posts', {
-          cursor: 'id',
           query: {
             where: (post, orm) => {
               tools.connection = orm.fns;
@@ -289,40 +291,32 @@ describe('counts and aggregates', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it('keeps fractional sums and extrema, and applies custom and lossless result scalars', async () => {
+  it('reads other aggregates from a select function entry', async () => {
     const builder = new SchemaBuilder<{
       PrismaNextContract: typeof db.contract;
-      Scalars: {
-        Amount: { Input: number; Output: number };
-        BigInt: { Input: bigint; Output: bigint };
-      };
+      Scalars: { BigInt: { Input: bigint; Output: bigint } };
     }>({ plugins: [prismaNextPlugin], prismaNext: { client: db.client } });
-    builder.addScalarType(
-      'Amount',
-      new GraphQLScalarType({ name: 'Amount', serialize: (value) => Number(value).toFixed(2) }),
-    );
     builder.addScalarType(
       'BigInt',
       new GraphQLScalarType({ name: 'BigInt', serialize: (value) => String(value) }),
     );
     builder.prismaObject('User', {
       fields: (t) => ({
-        countBigInt: t.relationAggregate('posts', { op: 'countBigInt', type: 'BigInt' }),
-        sumBigInt: t.relationAggregate('posts', {
-          op: 'sumBigInt',
-          field: 'published',
-          type: 'BigInt',
+        stats: t.string({
+          select: {
+            posts: (sub) => ({
+              total: sub.sum('score'),
+              average: sub.avg('score'),
+              minimumTitle: sub.min('title'),
+              missing: sub.where({ id: 'absent' }).sum('score'),
+            }),
+          },
+          resolve: (user) => `${user.total}/${user.average}/${user.minimumTitle}/${user.missing}`,
         }),
-        minimumTitle: t.relationAggregate('posts', { op: 'min', field: 'title', type: 'String' }),
-        total: t.relationAggregate('posts', { op: 'sum', field: 'score' }),
-        minimum: t.relationAggregate('posts', { op: 'min', field: 'score' }),
-        maximum: t.relationAggregate('posts', { op: 'max', field: 'score' }),
-        average: t.relationAggregate('posts', { op: 'avg', field: 'score' }),
-        amount: t.relationAggregate('posts', { op: 'sum', field: 'score', type: 'Amount' }),
-        missing: t.relationAggregate('posts', {
-          op: 'sum',
-          field: 'score',
-          where: { id: 'absent' },
+        countBigInt: t.field({
+          type: 'BigInt',
+          select: { posts: (sub) => ({ countBigInt: sub.countBigInt() }) },
+          resolve: (user) => user.countBigInt,
         }),
       }),
     });
@@ -331,22 +325,9 @@ describe('counts and aggregates', () => {
         user: t.prismaField({ type: 'User', resolve: () => db.orm.User.where({ id: 'u-alice' }) }),
       }),
     });
-    const result = await run(
-      builder.toSchema(),
-      '{ user { countBigInt sumBigInt minimumTitle total minimum maximum average amount missing } }',
-    );
+    const result = await run(builder.toSchema(), '{ user { stats countBigInt } }');
     expect(result.errors).toBeUndefined();
-    expect(result.data.user).toEqual({
-      countBigInt: '2',
-      sumBigInt: '1',
-      minimumTitle: 'Draft #1',
-      total: 3.75,
-      minimum: 1.5,
-      maximum: 2.25,
-      average: 1.875,
-      amount: '3.75',
-      missing: null,
-    });
+    expect(result.data.user).toEqual({ stats: '3.75/1.875/Draft #1/null', countBigInt: '2' });
     expect(result.statements).toHaveLength(1);
   });
 });
@@ -362,7 +343,7 @@ describe('aliases of one to-many relation', () => {
         author: t.relation('author', { query: () => ({ where: (u) => u.id.neq('nobody') }) }),
         comments: t.relation('comments', { query: { orderBy: (c) => c.id.asc() } }),
         commentTotal: t.relationCount('comments'),
-        commentPage: t.relatedConnection('comments', { cursor: 'id', totalCount: true }),
+        commentPage: t.relatedConnection('comments', { totalCount: true }),
       }),
     });
     builder.prismaObject('User', {
@@ -377,7 +358,7 @@ describe('aliases of one to-many relation', () => {
             orderBy: (p) => p.id.asc(),
           }),
         }),
-        page: t.relatedConnection('posts', { cursor: 'id' }),
+        page: t.relatedConnection('posts', {}),
       }),
     });
     builder.queryType({
@@ -661,66 +642,6 @@ describe('to-one consumers', () => {
     const row = { x: unwrap(published), y: unwrap(drafts) };
     expect(result.data.posts).toEqual([{ a: unwrap({ posts: [row, row] }), b: unwrap(drafts) }]);
   });
-
-  it('rejects a static function-form selection on a to-one relation when the schema is built', () => {
-    const builder = createBuilder();
-    builder.prismaObject('Post', {
-      fields: (t) => ({
-        label: t.string({
-          // @ts-expect-error the types reject this; the runtime check covers untyped callers
-          select: { author: (author) => ({ rows: author.select('firstName') }) },
-          resolve: () => 'unexpected',
-        }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({ posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }) }),
-    });
-    expect(() => builder.toSchema()).toThrow(
-      "select on 'Post.label': the function form of to-one relation 'author' requires combine()",
-    );
-  });
-
-  it('rejects a function-form selection on a to-one relation from a select callback', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('Post', {
-      fields: (t) => ({
-        label: t.string({
-          // @ts-expect-error the types reject this; the runtime check covers untyped callers
-          select: () => ({ author: (author) => ({ rows: author.select('firstName') }) }),
-          resolve: () => 'unexpected',
-        }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({ posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }) }),
-    });
-    const result = await run(builder.toSchema(), '{ posts { label } }');
-    expect(result.errors?.[0].message).toMatch(
-      "select on 'Post': the function form of to-one relation 'author' requires combine()",
-    );
-    expect(result.statements).toHaveLength(0);
-  });
-
-  it('rejects a count of a to-one relation when the schema is built', () => {
-    const builder = createBuilder();
-    builder.prismaObject('Post', {
-      fields: (t) => ({ authorCount: t.relationCount('author' as never) }),
-    });
-    expect(() => builder.toSchema()).toThrow(
-      "Aggregate 'count' on 'Post.author' needs a to-many relation.",
-    );
-  });
-
-  it('rejects an aggregate of an unknown relation when the schema is built', () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        total: t.relationAggregate('nope' as never, { op: 'sum', field: 'score' } as never),
-      }),
-    });
-    expect(() => builder.toSchema()).toThrow("Relation 'nope' not found on model 'User'.");
-  });
 });
 
 describe('plugins that wrap resolvers', () => {
@@ -763,9 +684,94 @@ describe('plugins that wrap resolvers', () => {
       { postCount: 2, published: [{ id: 'p-bob1' }] },
     ]);
   });
+
+  // Listed after prismaNext, it wraps the resolver inside prismaNext's wrapper.
+  class ReplaceParentPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override wrapResolve(
+      resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+      fieldConfig: PothosOutputFieldConfig<Types>,
+    ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+      return fieldConfig.name.startsWith('replaced')
+        ? (parent, args, context, info) => resolver({ ...(parent as object) }, args, context, info)
+        : resolver;
+    }
+  }
+  SchemaBuilder.registerPlugin('prismaNextTestReplaceParent' as never, ReplaceParentPlugin);
+
+  // A copy holds the row's columns and the relations its type selects, but not a helper's slots.
+  it('reloads the parent of a field helper when another plugin replaced it', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [prismaNextPlugin, 'prismaNextTestReplaceParent' as never],
+      prismaNext: { client: db.client },
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      select: { posts: true },
+      fields: (t) => ({
+        kept: t.relationCount('posts'),
+        replaced: t.relationCount('posts'),
+        replacedPublished: t.relation('posts', { query: { where: { published: 1 } } }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ users { kept replaced replacedPublished { id } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { kept: 2, replaced: 2, replacedPublished: [{ id: 'p-hello' }] },
+    ]);
+    // The two replaced parents reload in one batch.
+    expect(result.statements).toHaveLength(2);
+  });
+
+  // A keyless row can't be reloaded: without a key every parent would read the first row.
+  it('fails a field helper whose replaced parent has no key to reload it by', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
+      plugins: [prismaNextPlugin, 'prismaNextTestReplaceParent' as never],
+      prismaNext: { client: db.client },
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('PostView', {
+      fields: (t) => ({
+        viewer: t.exposeString('viewer'),
+        replacedPost: t.relation('post', { nullable: true }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        views: t.prismaField({
+          type: ['PostView'],
+          resolve: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ views { viewer replacedPost { id } } }');
+    expect(result.errors).toHaveLength(3);
+    for (const error of result.errors!) {
+      expect(error.message).toMatch(
+        /^Field 'PostView\.replacedPost' needs its parent reloaded because it was left out of the query that loaded its parent.*model 'PostView' has no non-null primary or unique key/,
+      );
+      // A developer's error, which a server that masks errors hides from the client.
+      expect(error.originalError).toBeInstanceOf(Error);
+      expect(error.originalError).not.toBeInstanceOf(GraphQLError);
+    }
+    expect(result.data.views).toEqual(
+      ['Alice', 'Bob', 'Carol'].map((viewer) => ({ viewer, replacedPost: null })),
+    );
+    expect(result.statements).toHaveLength(1);
+  });
 });
 
-describe('invalid query options', () => {
+describe('empty queries', () => {
   const ownerBuilder = (options: object) => {
     const builder = createBuilder();
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
@@ -783,42 +789,6 @@ describe('invalid query options', () => {
     return builder;
   };
 
-  it('fails a query callback that returns an unknown key, rather than dropping its where', async () => {
-    const schema = ownerBuilder({
-      query: () => ({ where: { published: 1 }, take: 1 }),
-    }).toSchema();
-    const result = await run(schema, '{ users { posts { id } } }');
-    expect(result.errors?.[0].message).toMatch(/query on 'User\.posts'.*'take'/);
-    expect(result.data?.users).toBeFalsy();
-  });
-
-  it.each([
-    ['an array', () => []],
-    ['a string', () => 'published'],
-  ])('fails a query callback that returns %s', async (_name, query) => {
-    const result = await run(ownerBuilder({ query }).toSchema(), '{ users { posts { id } } }');
-    expect(result.errors?.[0].message).toMatch(/query on 'User\.posts'/);
-  });
-
-  it('fails a query callback that returns a promise, rather than dropping its filter', async () => {
-    const related = await run(
-      ownerBuilder({ query: async () => ({ where: { published: 1 } }) }).toSchema(),
-      '{ users { posts { id } } }',
-    );
-    expect(related.errors?.[0].message).toMatch(/query on 'User\.posts' can't be async/);
-    const connection = await run(
-      connectionBuilder(async () => ({ where: { published: 1 } })).toSchema(),
-      '{ users { page { nodes { id } } } }',
-    );
-    expect(connection.errors?.[0].message).toMatch(/query on 'User\.page' can't be async/);
-  });
-
-  it('rejects an unknown key in a query object when the schema is built', () => {
-    expect(() => ownerBuilder({ query: { where: { published: 1 }, take: 1 } }).toSchema()).toThrow(
-      /query on 'User\.posts'.*'take'/,
-    );
-  });
-
   it.each([
     ['nothing', () => undefined],
     ['an empty object', () => ({})],
@@ -828,55 +798,143 @@ describe('invalid query options', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data.users[0].posts).toHaveLength(2);
   });
+});
 
-  const connectionBuilder = (query: unknown) => {
-    const builder = createBuilder();
+describe('aliases of one computed value', () => {
+  const builder = createBuilder();
+  builder.prismaObject('User', {
+    fields: (t) => ({
+      firstName: t.exposeString('firstName'),
+      postCount: t.relationCount('posts'),
+      publishedCount: t.relationCount('posts', {
+        args: { published: t.arg.int({ required: true }) },
+        where: (args) => ({ published: args.published }),
+      }),
+    }),
+  });
+  builder.queryType({
+    fields: (t) => ({
+      users: t.prismaField({
+        type: ['User'],
+        resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+      }),
+    }),
+  });
+  const schema = builder.toSchema();
+  const counts = (sql: string) => sql.match(/COUNT\(\*\)/g)?.length ?? 0;
+
+  it('computes a value once for every alias that selects it the same way', async () => {
+    const aliases = Array.from({ length: 70 }, (_, i) => `a${i}: postCount`).join(' ');
+    const result = await run(schema, `{ users { firstName ${aliases} } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0]).toMatchObject({ firstName: 'Alice', a0: 2, a69: 2 });
+    expect(result.statements).toHaveLength(1);
+    expect(counts(result.statements[0]!.sql)).toBe(1);
+  });
+
+  it('computes aliases with different arguments separately', async () => {
+    const result = await run(
+      schema,
+      '{ users { a: publishedCount(published: 1) b: publishedCount(published: 1) c: publishedCount(published: 0) } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { a: 1, b: 1, c: 1 },
+      { a: 1, b: 1, c: 1 },
+    ]);
+    expect(counts(result.statements[0]!.sql)).toBe(2);
+  });
+});
+
+describe("a relation's query callback", () => {
+  const published = db.orm.Post.fragment((posts) => posts.where({ published: 1 }));
+
+  function schema(query: unknown, client: typeof db.client = db.client) {
+    const builder = createBuilder({ client });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('User', {
       fields: (t) => ({
-        // biome-ignore lint/suspicious/noExplicitAny: checks what an untyped caller can pass
-        page: t.relatedConnection('posts', { cursor: 'id', query: query as any }),
+        posts: t.relation('posts', {
+          args: { published: t.arg.int() },
+          query: query as never,
+        }),
       }),
     });
     builder.queryType({
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+          resolve: () => client.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
-    return builder;
-  };
+    return builder.toSchema();
+  }
 
   it.each([
-    ['a callback', () => ({ where: { published: 1 }, take: 1 })],
-    ['a callback with limit', () => ({ limit: 1 })],
-  ])('fails a relatedConnection query from %s with an unknown key', async (_name, query) => {
+    [
+      'a refinement',
+      () => (posts: typeof db.orm.Post) => posts.where({ published: 1 }).orderBy((p) => p.id.asc()),
+    ],
+    [
+      'a refinement applying a fragment',
+      () => (posts: typeof db.orm.Post) => posts.with(published),
+    ],
+    ['an async literal', async () => ({ where: { published: 1 } })],
+    [
+      'an async refinement',
+      async () => (posts: typeof db.orm.Post) => posts.where({ published: 1 }),
+    ],
+  ])('loads the relation with %s in one statement', async (_name, query) => {
+    const result = await run(schema(query), '{ users { posts { id } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { posts: [{ id: 'p-hello' }] },
+      { posts: [{ id: 'p-bob1' }] },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('reads the args, and keeps aliases with different args apart', async () => {
     const result = await run(
-      connectionBuilder(query).toSchema(),
-      '{ users { page { nodes { id } } } }',
+      schema(
+        (args: { published?: number | null }) => (posts: typeof db.orm.Post) =>
+          args.published == null ? posts : posts.where({ published: args.published }),
+      ),
+      '{ users { drafts: posts(published: 0) { id } live: posts(published: 1) { id } } }',
     );
-    expect(result.errors?.[0].message).toMatch(/query on 'User\.page'.*'(take|limit)'/);
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { drafts: [{ id: 'p-draft1' }], live: [{ id: 'p-hello' }] },
+      { drafts: [{ id: 'p-bob-draft' }], live: [{ id: 'p-bob1' }] },
+    ]);
+    expect(result.statements).toHaveLength(1);
   });
 
-  it('rejects an unknown key in a relatedConnection query object when the schema is built', () => {
-    expect(() => connectionBuilder({ take: 1 }).toSchema()).toThrow(
-      /query on 'User\.posts'.*'take'/,
-    );
-  });
-
-  it('rejects an unknown key in a connection helper query', async () => {
-    const builder = createBuilder();
-    expect(() =>
-      prismaConnectionHelpers(builder, 'Post', { cursor: 'id', query: { take: 1 } as never }),
-    ).toThrow(/query on connection helpers for 'Post'.*'take'/);
-    const helpers = prismaConnectionHelpers(builder, 'Post', {
-      cursor: 'id',
-      query: (() => ({ take: 1 })) as never,
+  it("receives a custom collection's instance, so its methods apply", async () => {
+    class PostCollection extends Collection<SampleContract, 'Post'> {
+      live() {
+        return this.where({ published: 1 });
+      }
+    }
+    const client = sqlite({
+      contract: sampleContract,
+      path: db.path,
+      collections: { Post: PostCollection },
     });
-    await expect(helpers.applyPagination(db.orm.Post, {}, {})).rejects.toThrow(
-      /query on connection helpers for 'Post'.*'take'/,
-    );
+    try {
+      // Upstream types an include refinement as the plain collection, so the method is cast to.
+      const result = await run(
+        schema(() => (posts: PostCollection) => posts.live(), client),
+        '{ users { posts { id } } }',
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.users).toEqual([
+        { posts: [{ id: 'p-hello' }] },
+        { posts: [{ id: 'p-bob1' }] },
+      ]);
+    } finally {
+      await client.close();
+    }
   });
 });

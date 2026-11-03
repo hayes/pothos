@@ -1,10 +1,10 @@
-import { execute, parse } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import { buildExampleSchema } from './example/schema';
 import {
   columnsOf,
   createBuilder,
   deferSchema,
+  globalId,
   postSubqueries,
   run,
   runIncremental,
@@ -146,7 +146,7 @@ describe('field select forms', () => {
         commentCount: t.int({ resolve: (user) => user.comments.length }),
         greeting: t.string({
           args: { formal: t.arg.boolean({ required: true }) },
-          select: (args) => (args.formal ? ['lastName'] : ['firstName']),
+          select: (args) => (args.formal ? { lastName: true } : { firstName: true }),
           resolve: (user, args) =>
             args.formal
               ? `Dear ${(user as { lastName?: string }).lastName}`
@@ -191,105 +191,71 @@ describe('field select forms', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  type FieldsOf = {
-    string(options: object): unknown;
-    exposeString(name: string): unknown;
-  };
-
-  it.each([
-    [
-      'a field select',
-      (t: FieldsOf) => ({
-        garbled: t.string({ select: { firstNme: true } as never, resolve: () => 'x' }),
-      }),
-      undefined,
-      /select on 'User\.garbled': 'firstNme' is not a column or relation on model User/,
-    ],
-    [
-      'an exposed field',
-      (t: FieldsOf) => ({
-        garbled: t.exposeString('firstNme'),
-      }),
-      undefined,
-      /'User\.garbled' exposes 'firstNme', which is not a column on model User/,
-    ],
-    [
-      'a type select',
-      () => ({}),
-      ['firstNme'],
-      /select on 'User': 'firstNme' is not a column or relation on model User/,
-    ],
-  ])('rejects an unknown column in %s when the schema is built', (_name, fields, select, message) => {
+  it('rejects exposing a computed value when the schema is built', () => {
     const builder = createBuilder();
-    builder.prismaObject('User', { select: select as never, fields: fields as never });
+    const User = builder.prismaObject('User', {
+      select: { posts: (sub) => ({ postCount: sub.count() }) },
+      fields: () => ({}),
+    });
+    builder.objectField(User, 'postCount', (t) => t.exposeInt('postCount'));
     builder.queryType({
       fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
     });
-    expect(() => builder.toSchema()).toThrow(message);
-  });
-
-  it('reports an unknown column from a select callback when the query runs', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        garbled: t.string({ select: () => ({ firstNme: true }) as never, resolve: () => 'x' }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
-    });
-    const result = await run(builder.toSchema(), '{ users { garbled } }');
-    expect(result.errors?.[0].message).toBe(
-      "select: 'firstNme' is not a column or relation on User.",
+    expect(() => builder.toSchema()).toThrow(
+      /'User\.postCount' exposes 'postCount', which is not a column on model User/,
     );
   });
 
-  it('reports a relation select of an unrecognized shape', async () => {
+  it('loads a relation selected with an empty object, as with true', async () => {
     const builder = createBuilder();
     builder.prismaObject('User', {
       fields: (t) => ({
-        malformed: t.string({
-          select: { posts: { whre: { published: 1 } } } as never,
-          resolve: () => 'x',
+        postCount: t.int({
+          select: { posts: {} },
+          resolve: (user) => user.posts.length,
+        }),
+      }),
+    });
+    const UserWithPosts = builder.prismaObject('User', {
+      variant: 'UserWithPosts',
+      select: { posts: {} },
+      fields: (t) => ({ postCount: t.int({ resolve: (user) => user.posts.length }) }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+        withPosts: t.prismaField({
+          type: [UserWithPosts],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { postCount } withPosts { postCount } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([{ postCount: 2 }, { postCount: 2 }]);
+    expect(result.data.withPosts).toEqual([{ postCount: 2 }, { postCount: 2 }]);
+  });
+
+  it('selects nothing for a null entry of what a select function returns', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        name: t.string({
+          args: { withEmail: t.arg.boolean() },
+          select: (args) => ({ firstName: true, email: args.withEmail ? true : null }),
+          resolve: (user) => user.firstName,
         }),
       }),
     });
     builder.queryType({
       fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
     });
-    const schema = builder.toSchema();
-    const malformed = await run(schema, '{ users { malformed } }');
-    expect(malformed.errors?.[0].message).toMatch(/unrecognized value shape/);
-    expect(malformed.statements).toHaveLength(0);
-  });
-
-  it('rejects a computed value named like a column or relation of the parent', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        email: t.exposeString('email'),
-        shadowed: t.string({
-          select: { posts: (sub) => ({ email: sub.count() }) },
-          resolve: (user) => String(user.email),
-        }),
-        relation: t.string({
-          select: { posts: (sub) => ({ comments: sub.count() }) },
-          resolve: () => 'x',
-        }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
-    });
-    const schema = builder.toSchema();
-    const shadowed = await run(schema, '{ users { email shadowed } }');
-    expect(shadowed.errors?.[0].message).toBe(
-      "select on User: 'posts' computes 'email', which is a column or relation of model User. Give the computed value another name.",
-    );
-    const relation = await run(schema, '{ users { relation } }');
-    expect(relation.errors?.[0].message).toMatch(
-      /computes 'comments', which is a column or relation/,
-    );
+    const result = await run(builder.toSchema(), '{ users { name(withEmail: false) } }');
+    expect(result.errors).toBeUndefined();
+    expect(columnsOf(result.statements[0].sql, 'user')).toEqual(new Set(['firstName', 'id']));
   });
 });
 
@@ -304,7 +270,7 @@ describe('async selects', () => {
       fields: (t) => ({
         total: t.int({ resolve: (user) => user.total }),
         asyncLastName: t.string({
-          select: () => later(['lastName'] as const),
+          select: () => later({ lastName: true } as const),
           resolve: (user) => (user as { lastName?: string }).lastName ?? 'missing',
         }),
         posts: t.relation('posts'),
@@ -313,7 +279,7 @@ describe('async selects', () => {
     builder.prismaObject('Post', {
       fields: (t) => ({
         asyncTitle: t.string({
-          select: () => later(['title'] as const),
+          select: () => later({ title: true } as const),
           resolve: (post) => (post as { title?: string }).title ?? 'missing',
         }),
       }),
@@ -323,7 +289,7 @@ describe('async selects', () => {
         posts: t.relation('posts'),
         drafts: t.relation('posts', { query: { where: { published: 0 } } }),
         admin: t.variant(Admin),
-        postsConnection: t.relatedConnection('posts', { cursor: 'id', totalCount: true }),
+        postsConnection: t.relatedConnection('posts', { totalCount: true }),
         pageCount: t.int({
           select: (() =>
             later({
@@ -378,7 +344,6 @@ describe('parents the plugin loads', () => {
       fields: (t) => ({
         firstName: t.exposeString('firstName'),
         posts: t.relatedConnection('posts', {
-          cursor: 'id',
           totalCount: (user) => {
             seen.push(user.email);
             return 7;
@@ -399,7 +364,10 @@ describe('parents the plugin loads', () => {
     expect(seen).toEqual(['alice@example.com']);
   });
 
-  it('forces a variant select into the row for isNull, whatever the query selects', async () => {
+  it.each([
+    ['an array', ['firstName'] as const],
+    ['an object', { firstName: true } as const],
+  ])('forces a variant select given as %s into the row for isNull, whatever the query selects', async (_name, select) => {
     const builder = createBuilder();
     const Admin = builder.prismaObject('User', {
       variant: 'Admin',
@@ -409,7 +377,7 @@ describe('parents the plugin loads', () => {
       fields: (t) => ({
         id: t.exposeID('id'),
         admin: t.variant(Admin, {
-          select: ['firstName'],
+          select,
           isNull: (user) => user.firstName !== 'Alice',
         }),
       }),
@@ -423,17 +391,6 @@ describe('parents the plugin loads', () => {
       { id: 'u-bob', admin: null },
     ]);
     expect(result.statements).toHaveLength(1);
-  });
-
-  it('fails up front without a contextValue, which holds the per-request state', async () => {
-    const schema = createExampleBuilder().toSchema();
-    for (const document of ['{ users { firstName } }', '{ users { id posts { id } } }']) {
-      const result = await execute({ schema, document: parse(document) });
-      expect(result.data).toEqual({ users: null });
-      expect(result.errors?.map((error) => error.message)).toEqual([
-        "@pothos/plugin-prisma-next requires an object contextValue (resolving 'Query.users'): it keeps per-request state on the context. Pass a context object, such as `{}`, when executing the operation.",
-      ]);
-    }
   });
 });
 
@@ -489,7 +446,6 @@ describe('root-style fields on a prisma type', () => {
         }),
         page: t.prismaConnection({
           type: 'Post',
-          cursor: 'id',
           select: ['email'],
           resolve: (user) =>
             db.orm.Post.where({ authorId: user.email === 'bob@example.com' ? 'u-bob' : '' }),
@@ -508,5 +464,140 @@ describe('root-style fields on a prisma type', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data.user.latest).toBeNull();
     expect(result.data.user.page.nodes).toHaveLength(2);
+  });
+});
+
+describe('a field whose selection fails to plan', () => {
+  const fail = () => {
+    throw new Error('not allowed');
+  };
+  const builder = createBuilder();
+  builder.prismaObject('User', {
+    fields: (t) => ({
+      firstName: t.exposeString('firstName'),
+      relation: t.relation('posts', { nullable: true, query: fail }),
+      count: t.relationCount('posts', { where: fail }),
+      connection: t.relatedConnection('posts', { query: fail }),
+      selected: t.string({
+        nullable: true,
+        select: fail,
+        resolve: () => 'unreachable',
+      }),
+      asyncSelected: t.string({
+        nullable: true,
+        select: async () => fail(),
+        resolve: () => 'unreachable',
+      }),
+      nested: t.relation('posts', { nullable: true }),
+    }),
+  });
+  builder.prismaObject('Post', {
+    fields: (t) => ({
+      title: t.exposeString('title'),
+      author: t.relation('author', { nullable: true, query: fail }),
+    }),
+  });
+  builder.queryType({
+    fields: (t) => ({
+      users: t.prismaField({
+        type: ['User'],
+        resolve: () => db.orm.User.where({ id: 'u-bob' }),
+      }),
+    }),
+  });
+  const schema = builder.toSchema();
+
+  it.each([
+    ['a relation query callback', 'relation { title }'],
+    ['a relatedConnection query callback', 'connection { edges { cursor } }'],
+    ['a field select function', 'selected'],
+    ['an async field select function', 'asyncSelected'],
+  ])('fails only that field for %s that throws', async (_name, field) => {
+    const result = await run(schema, `{ users { firstName ${field} } }`);
+    expect(result.errors?.map((error) => [error.message, error.path])).toEqual([
+      ['not allowed', ['users', 0, field.split(' ')[0]]],
+    ]);
+    expect(result.data.users).toEqual([{ firstName: 'Bob', [field.split(' ')[0]!]: null }]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('fails the count and, since a count is never null, its parent for a relationCount where callback that throws', async () => {
+    const result = await run(schema, '{ users { firstName count } }');
+    expect(result.errors?.map((error) => [error.message, error.path])).toEqual([
+      ['not allowed', ['users', 0, 'count']],
+    ]);
+    expect(result.data).toEqual({ users: null });
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('fails a field beneath a relation without failing the relation', async () => {
+    const result = await run(schema, '{ users { nested { title author { id: __typename } } } }');
+    expect(result.errors?.map((error) => error.path)).toEqual([
+      ['users', 0, 'nested', 0, 'author'],
+      ['users', 0, 'nested', 1, 'author'],
+    ]);
+    expect(result.data.users[0].nested.map((post: { title: string }) => post.title)).toEqual([
+      'Bob writes',
+      'Bob draft',
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+});
+
+describe('a collection that already includes a relation', () => {
+  const message =
+    "A collection returned to @pothos/plugin-prisma-next already includes 'posts'. Return it without include(): the plugin includes what the query selects. Filter a relation with its field's `query` option.";
+  const published = (posts: Parameters<Parameters<typeof db.orm.User.include>[1]>[0]) =>
+    posts.where({ published: 1 });
+  // The types reject it too, so it is cast to reach the runtime check.
+  const included = () => db.orm.User.include('posts', published) as never;
+
+  it.each([
+    ['prismaField', '{ users { posts { title } } }'],
+    ['prismaConnection', '{ userPage { edges { node { posts { title } } } } }'],
+    ['prismaNode', `{ node(id: "${globalId('User', 'u-bob')}") { id } }`],
+  ])('fails the %s that returns it', async (_name, source) => {
+    const builder = createBuilder();
+    builder.prismaNode('User', {
+      id: { field: 'id' },
+      collection: included,
+      fields: (t) => ({ posts: t.relation('posts') }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          nullable: true,
+          resolve: included,
+        }),
+        userPage: t.prismaConnection({
+          type: 'User',
+          nullable: true,
+          resolve: included,
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), source);
+    expect(result.errors?.map((error) => error.message)).toEqual([message]);
+    expect(result.errors?.[0]?.originalError?.constructor).toBe(Error);
+    expect(result.statements).toHaveLength(0);
+  });
+
+  it('fails a resolver whose union of collections type-checks', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          args: { flag: t.arg.boolean({ required: true }) },
+          resolve: (_parent, { flag }) => (flag ? db.orm.User.include('posts') : db.orm.User),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users(flag: true) { id } }');
+    expect(result.errors?.map((error) => error.message)).toEqual([message]);
+    expect(result.statements).toHaveLength(0);
   });
 });
