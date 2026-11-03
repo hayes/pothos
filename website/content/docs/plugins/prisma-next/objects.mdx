@@ -3,9 +3,7 @@ title: Objects
 description: Defining GraphQL types backed by contract models
 ---
 
-`builder.prismaObject` defines a GraphQL object type for a model in your contract. This page covers
-loading the data your fields need, query and mutation fields that return these types, and adding
-fields to a type from another file.
+`builder.prismaObject` defines a GraphQL object type for a model in your contract.
 
 ## Define a type
 
@@ -107,8 +105,8 @@ once per row, so keep them free of side effects.
 Auth checks on the type, and other plugins' field options such as `authScopes` and `grantScopes`,
 see the primary key and the columns and relations in the `select`s of the type and its interfaces.
 On a `t.expose*` field they also see the exposed column. Only `resolve` can read what a field's own
-`select` loads. A row that lacks any of this, such as one another plugin rebuilt, is loaded again
-before the check.
+`select` loads. If a row is missing any of this, such as one a resolver built itself, the plugin
+loads it again by its key before the check.
 
 ## Return a type from Query and Mutation fields
 
