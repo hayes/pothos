@@ -6,6 +6,7 @@
     "emitDeclarationOnly": true,
     "composite": false,
     "incremental": false,
+    "skipLibCheck": false,
     "rootDir": "tests",
     "outDir": "tests/declarations/node_modules/.emitted"
   },

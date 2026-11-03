@@ -1,6 +1,7 @@
 // Emits the package's declarations as an installed package, then emits declarations for the
 // consumer files beside this one. A type the consumer's exports name but the package's entry doesn't
-// export fails with TS2742 or TS2883. Pass the tsc command to run, e.g. `node emit.mts tsc`.
+// export fails with TS2742 or TS2883. Pass the tsc command to run, e.g. `node emit.mts tsc`. Runs
+// share one output directory, so run them one at a time.
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +21,11 @@ const installed = `${modules}plugin-under-test/`;
 function tsc(...args: string[]) {
   try {
     execFileSync(command, [...prefix, ...args], { cwd: root, stdio: 'inherit' });
-  } catch {
+  } catch (error) {
+    // tsc has printed its errors. Anything else, such as a command that didn't start, is printed here.
+    if ((error as { status?: number | null }).status == null) {
+      console.error(error);
+    }
     process.exit(1);
   }
 }
