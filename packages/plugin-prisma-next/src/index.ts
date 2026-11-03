@@ -318,8 +318,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
   /**
    * Passes every plugin's resolver wrapper the parent as the field's declaring type sees it: what
-   * the `select`s of the type, its interfaces and the field loaded. Reloads happen later, in this
-   * plugin's `wrapResolve`, so plugins listed before this one see the parent as first loaded.
+   * the `select`s of the type and its interfaces loaded. A field's own `select` is added later, in
+   * this plugin's `wrapResolve`, for its resolver only. A row without everything those `select`s
+   * load, such as one another plugin rebuilt, is reloaded first, so plugins listed before this one,
+   * such as scope-auth, see what the type promises.
    */
   override wrapArgMappers(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
@@ -329,14 +331,19 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (!resolver || !reader) {
       return resolver;
     }
+    const { config } = this;
+    const { modelKey, missingTypeData } = reader;
     // A prisma type's parent is always a row.
     return (row, args, context, info) => {
       const parent = row as object;
-      if (!reader.declaresOwnSelect) {
-        return resolver(reader.parent(parent, null), args, context, info);
+      const missing = missingTypeData(parent);
+      if (!missing) {
+        return resolver(reader.typeParent(parent), args, context, info);
       }
-      const mapping = reader.mapping(parent, context, info);
-      return resolver(reader.parent(parent, mapping), args, context, info);
+      return config
+        .loader(context, modelKey)
+        .loadSelection(info, rowOf(parent), missing)
+        .then(({ row }) => resolver(reader.typeParent(row), args, context, info));
     };
   }
 
@@ -362,6 +369,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       planned,
       loaded,
       readsSlots,
+      declaresOwnSelect,
     } = reader;
     const refinedToOne = fieldConfig.extensions?.[PRISMA_NEXT_REFINED_TO_ONE] as string | undefined;
     // A field helper reads its slots at the position its mapping names. A reloaded row has a
@@ -394,7 +402,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           mapping &&
           !leftOut(parent, mapping.position) &&
           computedRelations.every((name) => loadedSlots(parent, name)) &&
-          (!loaded || (slots && loaded(slots, context, info)))
+          (!loaded || (slots && loaded(slots, context, info))) &&
+          // What a field's own `select` loaded is read from the row's slots, which a parent this
+          // plugin didn't return, such as another plugin's copy, lacks.
+          (!declaresOwnSelect || slots)
         ) {
           setRowMappings(context, info, mapping.nested);
           return handOver(reader.parent(parent, mapping), mapping.position, args, context, info);
@@ -451,14 +462,19 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // The parent is reloaded unless it has every column and relation its type and interfaces
     // select. Relations selected with a function aren't checked: they write computed values whose
     // keys only the function knows.
-    const requiredOnRow = [
-      ...new Set([
-        ...selects.flatMap((select) => [
+    const typeRequired = [
+      ...new Set(
+        selects.flatMap((select) => [
           ...select.columns,
           ...select.relations
             .filter(([, value]) => typeof value !== 'function')
             .map(([name]) => name),
         ]),
+      ),
+    ];
+    const requiredOnRow = [
+      ...new Set([
+        ...typeRequired,
         ...(typeof selection === 'function' ? [] : (selection.columns ?? [])),
       ]),
     ];
@@ -495,8 +511,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         })
         .map((iface) => iface.name),
     ];
-    // A field's own `select` is part of the parent it sees. A field helper's slots are not. A
-    // static selection is only columns, so it has no slots either way.
+    // A field's own `select` is part of the parent its resolver sees. A field helper's slots are
+    // not. A static selection is only columns, so it has no slots either way.
     const declaresOwnSelect =
       typeof selection === 'function' &&
       (fieldConfig.pothosOptions as { select?: unknown }).select !== undefined;
@@ -522,6 +538,19 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         return mapping;
       },
       parentScopes,
+      missingTypeData:
+        typeRequired.length || computedRelations.length
+          ? (parent) => {
+              const complete = parentForType(parent, parentScopes) as Record<string, unknown>;
+              const lacks = (name: string) => complete[name] === undefined;
+              const unloaded = (name: string) => !loadedSlots(parent, name);
+              // Checked first so a complete row allocates nothing.
+              return typeRequired.some(lacks) || computedRelations.some(unloaded)
+                ? [...typeRequired.filter(lacks), ...computedRelations.filter(unloaded)]
+                : undefined;
+            }
+          : () => undefined,
+      typeParent: (row) => parentForType(row, declaringScopes),
       parent: (row, mapping) =>
         declaresOwnSelect
           ? parentForField(row, declaringScopes, mapping?.position)
@@ -549,7 +578,14 @@ interface FieldReader {
   mapping(parent: object, context: object, info: GraphQLResolveInfo): Mapping | null;
   /** The type-level selects of the parent type whose loads the row is checked for. */
   parentScopes: string[];
-  /** The parent every plugin around the field and its resolver get. */
+  /**
+   * The columns and relations the `select`s of the parent type and its interfaces load that `row`
+   * lacks, or undefined when it has them all.
+   */
+  missingTypeData(row: object): string[] | undefined;
+  /** The parent plugins around the field see: the row as the declaring type's `select`s load it. */
+  typeParent(row: object): object;
+  /** The parent the field's resolver and the plugins listed after this one get. */
   parent(row: object, mapping: Mapping | null | undefined): object;
 }
 

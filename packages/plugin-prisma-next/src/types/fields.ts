@@ -229,6 +229,11 @@ export type PrismaNextRootFieldWithInputOptions<
     >;
   };
 
+/**
+ * A field's `select` adds to the parent only its `resolve` sees. Other options, such as scope-auth's
+ * `authScopes`, run before the field's `select` loads, so they see the type's shape: its key and
+ * what the `select`s of the type and its interfaces load.
+ */
 export type PrismaNextObjectFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
@@ -240,7 +245,7 @@ export type PrismaNextObjectFieldOptions<
   ShapeWithSelection = ShapeFromSelect<Types, ParentShape, Select>,
 > = PothosSchemaTypes.ObjectFieldOptions<
   Types,
-  ShapeWithSelection,
+  ParentShape,
   Type,
   Nullable,
   Args,

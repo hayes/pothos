@@ -1,11 +1,16 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: the shared-walk schema names variants in loops
-import SchemaBuilder from '@pothos/core';
+import SchemaBuilder, {
+  BasePlugin,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
+} from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import {
   execute,
   experimentalExecuteIncrementally,
   GraphQLDeferDirective,
+  type GraphQLFieldResolver,
   type GraphQLSchema,
   parse,
   specifiedDirectives,
@@ -36,7 +41,7 @@ beforeAll(async () => {
     CREATE TABLE feature (id TEXT PRIMARY KEY REFERENCES task(id), priority INT NOT NULL, code TEXT UNIQUE, championId TEXT);
     INSERT INTO user VALUES ('u1', 'a@example.com');
     INSERT INTO task VALUES ('t1', 'bug1', 'bug', 'u1', 'high', 'u1'), ('t2', 'feat1', 'feature', 'u1', NULL, 'u1');
-    INSERT INTO feature VALUES ('t2', 5, NULL, NULL);
+    INSERT INTO feature VALUES ('t2', 5, NULL, 'u1');
   `,
   );
 });
@@ -181,6 +186,95 @@ function _narrowedParentShapeSurvivesWithAuth() {
       // @ts-expect-error the string form's parent carries only declared dependencies
       resolve: (row) => row.email,
     }),
+  }));
+}
+
+// A field's select widens the parent of its resolve only. Every other option, such as
+// `authScopes`, runs before the field's select loads, so it sees the type's select alone.
+function _fieldSelectWidensResolveOnly() {
+  const builder = new SchemaBuilder<{
+    PrismaNextContract: SampleContract;
+    AuthScopes: { admin: boolean };
+  }>({
+    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    relay: {},
+    scopeAuth: { authScopes: () => ({ admin: true }) },
+    prismaNext: { client: ctx.client },
+  });
+  const Post = builder.prismaObject('Post', {
+    select: { title: true, author: true },
+    fields: (t) => ({ id: t.exposeID('id') }),
+  });
+  const Comment = builder.prismaObject('Comment', { fields: (t) => ({ id: t.exposeID('id') }) });
+  const helper = prismaConnectionHelpers(builder, Comment, {});
+  builder.prismaObjectFields(Post, (t) => ({
+    field: t.field({
+      type: 'String',
+      select: { content: true, comments: true },
+      authScopes: (post) => {
+        post.title.toUpperCase();
+        post.author.firstName.toUpperCase();
+        // @ts-expect-error the field's select loads after authScopes run
+        post.content;
+        // @ts-expect-error the field's select loads after authScopes run
+        post.comments;
+        return true;
+      },
+      grantScopes: (post) => {
+        // @ts-expect-error the field's select loads after grantScopes run
+        post.comments;
+        return [];
+      },
+      resolve: (post) => `${post.title} ${post.content} ${post.comments.length}`,
+    }),
+    string: t.string({
+      select: ['content'],
+      authScopes: (post) => {
+        // @ts-expect-error the field's select loads after authScopes run
+        post.content;
+        return { admin: post.title !== '' };
+      },
+      resolve: (post) => post.content ?? '',
+    }),
+    stringList: t.stringList({
+      select: { comments: true },
+      // @ts-expect-error the field's select loads after authScopes run
+      authScopes: (post) => post.comments.length > 0,
+      resolve: (post) => post.comments.map((comment) => comment.id),
+    }),
+    withAuth: t.withAuth({ admin: true }).string({
+      select: ['content'],
+      // @ts-expect-error the field's select loads after authScopes run
+      authScopes: (post) => post.content !== null,
+      resolve: (post) => post.content ?? '',
+    }),
+    connection: t.connection({
+      type: Comment,
+      select: { comments: helper.page },
+      authScopes: (post) => {
+        // @ts-expect-error the field's select loads after authScopes run
+        post.comments;
+        return post.author.id !== '';
+      },
+      resolve: (post, args, context) => helper.resolve(post.comments, args, context, post),
+    }),
+    prismaField: t.prismaField({
+      type: 'User',
+      select: { content: true },
+      authScopes: (post) => {
+        // @ts-expect-error the field's select loads after authScopes run
+        post.content;
+        return true;
+      },
+      resolve: (post) =>
+        (post.content ? ctx.orm.User.where({ id: post.author.id }) : null) as never,
+    }),
+    relation: t.relation('comments', { authScopes: (post) => post.title !== '' }),
+    relationCount: t.relationCount('comments', { authScopes: (post) => post.title !== '' }),
+    relatedConnection: t.relatedConnection('comments', {
+      authScopes: (post) => post.author.id !== '',
+    }),
+    exposed: t.exposeString('title', { authScopes: (post) => post.author.id !== '' }),
   }));
 }
 
@@ -363,13 +457,15 @@ describe.each(orders)("an implementation's select under an interface (%s)", (_, 
   });
 });
 
-it("reloads a hand-built row for an implementation's authScopes (prismaNext first)", async () => {
+it.each(
+  orders,
+)("reloads a hand-built row for an implementation's authScopes (%s)", async (_, plugins) => {
   const seen: unknown[] = [];
   const builder = new SchemaBuilder<{
     PrismaNextContract: SampleContract;
     AuthScopes: { ok: boolean };
   }>({
-    plugins: [prismaNextPlugin, ScopeAuthPlugin],
+    plugins: [...plugins],
     scopeAuth: { authScopes: () => ({ ok: true }) },
     prismaNext: { client: ctx.client },
   });
@@ -449,7 +545,7 @@ describe.each(
   });
 });
 
-describe.each(orders)('field-level authScopes (%s)', (_, plugins) => {
+describe.each(orders)('field-level authScopes (%s)', (order, plugins) => {
   function fieldAuthSchema(seen: unknown[]) {
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
@@ -460,11 +556,16 @@ describe.each(orders)('field-level authScopes (%s)', (_, plugins) => {
       prismaNext: { client: ctx.client },
     });
     builder.prismaObject('User', {
+      select: ['email'],
       fields: (t) => ({
         publishedCount: t.int({
           select: { posts: { where: { published: 1 } } },
           authScopes: (user) => {
-            seen.push(Array.isArray(user.posts) ? user.posts.length : user.posts);
+            seen.push([
+              user.email,
+              // @ts-expect-error a field's select is loaded for its resolve only
+              Array.isArray(user.posts) ? user.posts.length : user.posts,
+            ]);
             return true;
           },
           resolve: (user) => user.posts.length,
@@ -484,57 +585,70 @@ describe.each(orders)('field-level authScopes (%s)', (_, plugins) => {
     return builder.toSchema();
   }
 
+  // Listed after this plugin, scope-auth gets the parent the field's resolve gets, but the types
+  // only promise what the type's select loads.
   it.each([
     '{ users { publishedCount } }',
     '{ users { publishedCount all { id } } }',
-  ])('see the rows the field selects, whatever else the query selects: %s', async (query) => {
+  ])("see the type's select, not the field's: %s", async (query) => {
     const seen: unknown[] = [];
     const result = await runCaptured(fieldAuthSchema(seen), query);
     expect(result.errors).toBeUndefined();
     expect(
       result.data.users.map((user: { publishedCount: number }) => user.publishedCount),
     ).toEqual([1, 1]);
-    expect(seen).toEqual([1, 1]);
+    const posts = order === 'scope-auth first' ? undefined : 1;
+    expect(seen).toEqual([
+      ['alice@example.com', posts],
+      ['bob@example.com', posts],
+    ]);
     expect(result.statements).toHaveLength(1);
   });
 });
 
-describe.each(orders)('field-level authScopes on a reloaded parent (%s)', (order, plugins) => {
-  // A reload runs inside this plugin's resolver wrapper, so a plugin listed before it sees the
-  // row as it was handed over.
-  const reloadedFirst = order === 'prismaNext first';
-  function reloadSchema(seen: unknown[], defer = false) {
+// Plugins listed before this one, such as scope-auth, get a parent holding what the type's select
+// and its interfaces' selects load. A row without it is reloaded before they run, in one batch per
+// field, and a row with it costs no statement.
+describe("a type's select before plugins listed first", () => {
+  function typeDataSchema(seen: unknown[], defer = false) {
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [...plugins],
+      plugins: [ScopeAuthPlugin, prismaNextPlugin],
       scopeAuth: { authScopes: () => ({ ok: true }) },
       prismaNext: { client: ctx.client },
     });
     const User = builder.prismaObject('User', {
+      select: { email: true, posts: true },
+      authScopes: (user) => {
+        seen.push(['type', user.email, user.posts?.length]);
+        return true;
+      },
       fields: (t) => ({
-        label: t.string({
-          select: ['email'],
+        firstName: t.exposeString('firstName', {
           authScopes: (user) => {
-            seen.push(user.email);
+            seen.push(['field', user.email, user.posts?.length]);
             return true;
           },
-          resolve: (user) => user.email,
         }),
-        postCount: t.int({
-          select: { posts: true },
+        label: t.string({
+          select: ['lastName'],
           authScopes: (user) => {
-            seen.push(Array.isArray(user.posts) ? user.posts.length : user.posts);
+            seen.push(['label', user.email]);
             return true;
           },
-          resolve: (user) => user.posts.length,
+          resolve: (user) => `${user.email} ${user.lastName}`,
         }),
       }),
     });
     builder.queryType({
       fields: (t) => ({
         handBuilt: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) as never }),
+        handBuiltList: t.field({
+          type: [User],
+          resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }] as never,
+        }),
         user: t.prismaField({
           type: 'User',
           resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
@@ -546,28 +660,119 @@ describe.each(orders)('field-level authScopes on a reloaded parent (%s)', (order
       : builder.toSchema();
   }
 
-  it('see the columns a reload adds to a hand-built row only when listed after this plugin', async () => {
+  const alice = (kind: string) => [kind, 'alice@example.com', 2];
+
+  it('costs no statement for a row the query loaded', async () => {
     const seen: unknown[] = [];
-    const result = await runCaptured(reloadSchema(seen), '{ handBuilt { label } }');
+    const result = await runCaptured(typeDataSchema(seen), '{ user { firstName label } }');
     expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({ handBuilt: { label: 'alice@example.com' } });
-    expect(seen).toEqual([reloadedFirst ? 'alice@example.com' : undefined]);
+    expect(result.data).toEqual({
+      user: { firstName: 'Alice', label: 'alice@example.com Andrews' },
+    });
+    expect(new Set(seen.map((entry) => JSON.stringify(entry)))).toEqual(
+      new Set(
+        [alice('type'), alice('field'), ['label', 'alice@example.com']].map((entry) =>
+          JSON.stringify(entry),
+        ),
+      ),
+    );
+    expect(result.statements).toHaveLength(1);
   });
 
-  it('see the relation a reload adds for a deferred field only when listed after this plugin', async () => {
+  it('reloads a hand-built row, in one statement for every parent', async () => {
     const seen: unknown[] = [];
-    const result = await experimentalExecuteIncrementally({
-      schema: reloadSchema(seen, true),
-      document: parse('{ user { label ... @defer { postCount } } }'),
-      contextValue: {},
+    const result = await runCaptured(typeDataSchema(seen), '{ handBuiltList { firstName } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ handBuiltList: [{ firstName: 'Alice' }, { firstName: 'Bob' }] });
+    expect(seen).not.toContainEqual(expect.arrayContaining([undefined]));
+    expect(seen).toContainEqual(alice('type'));
+    expect(seen).toContainEqual(alice('field'));
+    expect(seen).toContainEqual(['field', 'bob@example.com', 2]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('reloads a hand-built row once for a field that loads its own select', async () => {
+    const seen: unknown[] = [];
+    const result = await runCaptured(typeDataSchema(seen), '{ handBuilt { label } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ handBuilt: { label: 'alice@example.com Andrews' } });
+    expect(seen).toEqual([alice('type'), ['label', 'alice@example.com']]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('shows deferred fields what the type selects', async () => {
+    const seen: unknown[] = [];
+    const statements: CapturedExecution[] = [];
+    await withCapture(statements, async () => {
+      const result = await experimentalExecuteIncrementally({
+        schema: typeDataSchema(seen, true),
+        document: parse('{ handBuilt { firstName ... @defer { label } } }'),
+        contextValue: {},
+      });
+      if (!('initialResult' in result)) {
+        throw new Error('Expected an incremental result');
+      }
+      for await (const _patch of result.subsequentResults) {
+        // drain
+      }
     });
-    if (!('initialResult' in result)) {
-      throw new Error('Expected an incremental result');
+    expect(seen).not.toContainEqual(expect.arrayContaining([undefined]));
+    expect(seen).toContainEqual(alice('field'));
+    expect(seen).toContainEqual(['label', 'alice@example.com']);
+    expect(statements.length).toBeLessThanOrEqual(2);
+  });
+});
+
+// Another plugin's resolver wrapper hands the users field a rebuilt row without `email`.
+describe('rows another plugin rebuilt without what the type selects', () => {
+  class StripEmailPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override wrapResolve(
+      resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+      fieldConfig: PothosOutputFieldConfig<Types>,
+    ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+      if (fieldConfig.parentType !== 'Query') {
+        return resolver;
+      }
+      return async (parent, args, context, info) => {
+        const rows = (await resolver(parent, args, context, info)) as Record<string, unknown>[];
+        return rows.map(({ email: _email, ...rest }) => rest);
+      };
     }
-    for await (const _patch of result.subsequentResults) {
-      // drain
-    }
-    expect(seen).toEqual(['alice@example.com', reloadedFirst ? 2 : undefined]);
+  }
+  SchemaBuilder.registerPlugin('prismaNextTestStripEmail' as never, StripEmailPlugin as never);
+
+  it('reloads them before type-level authScopes run', async () => {
+    const seen: unknown[] = [];
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [ScopeAuthPlugin, 'prismaNextTestStripEmail' as never, prismaNextPlugin],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    builder.prismaObject('User', {
+      select: ['email'],
+      authScopes: (user) => {
+        seen.push(user.email);
+        return true;
+      },
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => ctx.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await runCaptured(builder.toSchema(), '{ users { firstName } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ users: [{ firstName: 'Alice' }, { firstName: 'Bob' }] });
+    expect(seen).toEqual(['alice@example.com', 'bob@example.com']);
+    // The users, and one reload of both rows.
+    expect(result.statements).toHaveLength(2);
   });
 });
 
@@ -625,6 +830,56 @@ describe('rows a connection helper wraps', () => {
       [expect.objectContaining({ id: 'p-bob1' })],
     ]);
     expect(result.statements).toHaveLength(1);
+  });
+});
+
+// `User.championed` targets Feature, a variant with a table of its own, whose rows load through
+// `orm.Feature`. It reads only the feature table, so a helper's page of them lacks the columns
+// Feature inherits from Task, such as `title`.
+describe("a connection helper's page of a variant with a table of its own", () => {
+  it("reloads the inherited columns the type's select loads before its authScopes", async () => {
+    const seen: unknown[] = [];
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: InheritanceContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+      relay: {},
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: inheritanceDb.client },
+    });
+    const Feature = builder.prismaObject('Feature', {
+      select: ['title'],
+      authScopes: (feature) => {
+        seen.push([feature.id, feature.title]);
+        return true;
+      },
+      fields: (t) => ({ priority: t.exposeInt('priority') }),
+    });
+    const helper = prismaConnectionHelpers(builder, Feature, {});
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        championPage: t.connection({
+          type: Feature,
+          select: { championed: helper.page },
+          resolve: (user, args, context) => helper.resolve(user.championed, args, context, user),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => inheritanceDb.orm.User }),
+      }),
+    });
+    const result = await runCaptured(
+      builder.toSchema(),
+      '{ users { championPage(first: 5) { edges { node { priority } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([{ championPage: { edges: [{ node: { priority: 5 } }] } }]);
+    expect(seen).toEqual([['t2', 'feat1']]);
+    // The users with their features, and one reload of Task's columns.
+    expect(result.statements).toHaveLength(2);
   });
 });
 
@@ -915,7 +1170,7 @@ describe('a field that reloads a to-one relation with its own query', () => {
   });
 });
 
-describe('a filtered to-one relation beside a field that selects the declared one', () => {
+describe('a filtered to-one relation beside a type select of the declared one', () => {
   describe.each([
     ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
     ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
@@ -932,13 +1187,14 @@ describe('a filtered to-one relation beside a field that selects the declared on
       });
       builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
       builder.prismaObject('Post', {
+        select: { author: true },
         fields: (t) => ({
           id: t.exposeID('id'),
           alice: t.relation('author', { query: { where: { firstName: 'Alice' } } }),
           // A deny-list: hides the content of Bob's posts.
           content: t.string({
             nullable: true,
-            select: { author: true, content: true },
+            select: { content: true },
             authScopes: (post) =>
               post.author?.id === 'u-bob' ? { never: true } : { allowed: true },
             resolve: (post) => post.content,
