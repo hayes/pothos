@@ -314,27 +314,6 @@ describe('node declarations', () => {
     expect(result.data.echo).toBe('Note');
     expect(seen).toEqual([20]);
   });
-
-  it('keeps a user isTypeOf, sync or async', async () => {
-    const builder = createBuilder();
-    builder.prismaNode('User', {
-      id: { field: 'id' },
-      isTypeOf: (value) => (value as { isUser?: boolean }).isUser === true,
-      fields: (t) => ({ name: t.exposeString('firstName') }),
-    });
-    builder.prismaNode('Post', {
-      id: { field: 'id' },
-      isTypeOf: async () => false,
-      fields: (t) => ({ title: t.exposeString('title') }),
-    });
-    builder.queryType({});
-    const types = builder.toSchema().getTypeMap();
-    const isTypeOf = (name: string, value: object) =>
-      (types[name] as GraphQLObjectType).isTypeOf!(value, {}, {} as never);
-    expect(isTypeOf('User', { isUser: true })).toBe(true);
-    expect(isTypeOf('User', {})).toBe(false);
-    expect(await isTypeOf('Post', {})).toBe(false);
-  });
 });
 
 describe('the collection option', () => {

@@ -592,19 +592,21 @@ builder.prismaObjectField<'User', Row<Types, 'User'>>('User', 'escapeHatch', (t)
   t.string({ resolve: (user) => user.email }),
 );
 
-// Type-level callbacks read the type's selected columns without a cast.
+// Prisma types route through their interface's resolveType, so they take no isTypeOf.
 builder.prismaObject('Comment', {
-  select: ['body'],
-  isTypeOf: (comment) => comment.body.length > 0,
+  variant: 'CommentIsTypeOf',
+  // @ts-expect-error isTypeOf is not an option of prisma types
+  isTypeOf: () => true,
   fields: () => ({}),
 });
-builder.prismaObject('Comment', {
-  variant: 'CommentUnselected',
-  select: ['body'],
-  // @ts-expect-error only selected columns are on the row
-  isTypeOf: (comment) => comment.createdAt !== null,
+builder.prismaNode('Comment', {
+  variant: 'CommentNodeIsTypeOf',
+  id: { field: 'id' },
+  // @ts-expect-error isTypeOf is not an option of prisma types
+  isTypeOf: () => true,
   fields: () => ({}),
 });
+// resolveType reads the interface's selected columns without a cast.
 builder.prismaInterface('Comment', {
   variant: 'CommentInterface',
   select: ['body'],

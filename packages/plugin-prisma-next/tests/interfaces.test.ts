@@ -18,6 +18,8 @@ describe('prismaInterface', () => {
   function schema() {
     const builder = createBuilder();
     const User = builder.prismaInterface('User', {
+      select: ['firstName'],
+      resolveType: (user) => (user.firstName === 'Alice' ? 'Admin' : 'Regular'),
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     builder.prismaInterfaceFields(User, (t) => ({ firstName: t.exposeString('firstName') }));
@@ -25,8 +27,6 @@ describe('prismaInterface', () => {
     builder.prismaObject('User', {
       variant: 'Admin',
       interfaces: [User],
-      select: ['firstName'],
-      isTypeOf: (user) => user.firstName === 'Alice',
       fields: (t) => ({
         lastName: t.exposeString('lastName'),
         posts: t.relation('posts', { query: { orderBy: (post) => post.id.asc() } }),
@@ -35,8 +35,6 @@ describe('prismaInterface', () => {
     builder.prismaObject('User', {
       variant: 'Regular',
       interfaces: [User],
-      select: ['firstName'],
-      isTypeOf: (user) => user.firstName !== 'Alice',
       fields: (t) => ({ email: t.exposeString('email') }),
     });
     builder.prismaObject('Post', {
@@ -93,7 +91,7 @@ describe('prismaInterface', () => {
     expect(sdl).toMatch(/author: User!/);
   });
 
-  it('routes rows through isTypeOf, loading the columns it reads', async () => {
+  it('routes rows through resolveType, loading the columns it reads', async () => {
     const result = await run(
       schema(),
       `{
@@ -118,7 +116,7 @@ describe('prismaInterface', () => {
       userPage: { nodes: [{ id: 'u-alice', posts: [{ id: 'p-draft1' }, { id: 'p-hello' }] }] },
       post: { author: { firstName: 'Alice' } },
     });
-    // One per root field, each selecting the column isTypeOf reads.
+    // One per root field, each selecting the column resolveType reads.
     expect(result.statements).toHaveLength(4);
   });
 
@@ -154,7 +152,7 @@ describe('prismaInterface', () => {
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     builder.prismaInterfaceFields(Base, (t) => ({ firstName: t.exposeString('firstName') }));
-    builder.prismaObject('User', { interfaces: [Base], isTypeOf: () => true, fields: () => ({}) });
+    builder.prismaObject('User', { interfaces: [Base], fields: () => ({}) });
     builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
     const sdl = printSchema(builder.toSchema());
     expect(sdl).toMatch(/interface UserBase \{\n {2}firstName: String\n {2}id: ID\n\}/);
@@ -201,7 +199,6 @@ describe('prismaInterface', () => {
     });
     builder.prismaObject('User', {
       interfaces: [PostLike as never],
-      isTypeOf: () => true,
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
@@ -223,12 +220,12 @@ describe('inherited selections', () => {
     const Published = builder.prismaInterface('User', {
       variant: 'UserPublishedTotals',
       interfaces: [Totals],
+      resolveType: () => 'User',
       select: { posts: (sub) => ({ published: sub.where({ published: 1 }).count() }) },
       fields: (t) => ({ published: t.int({ resolve: (user) => user.published }) }),
     });
     const User = builder.prismaObject('User', {
       interfaces: [Totals, Published],
-      isTypeOf: () => true,
       select: { posts: true },
       fields: (t) => ({
         id: t.exposeID('id'),
@@ -284,23 +281,21 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it("hands isTypeOf and other resolvers the type select's rows when a field combines them", async () => {
+  it("hands resolveType and other resolvers the type select's rows when a field combines them", async () => {
     const builder = createBuilder();
+    const resolveTypeSaw: string[][] = [];
     const Named = builder.prismaInterface('User', {
       variant: 'Named',
+      select: { posts: true },
+      resolveType: (user) => {
+        resolveTypeSaw.push(user.posts.map((post) => post.title).sort());
+        return 'User';
+      },
       fields: (t) => ({ firstName: t.exposeString('firstName') }),
     });
-    const isTypeOfSaw: unknown[] = [];
     builder.prismaObject('User', {
       interfaces: [Named],
       select: { posts: true },
-      isTypeOf: (user) => {
-        const posts: unknown = user.posts;
-        isTypeOfSaw.push(
-          Array.isArray(posts) ? posts.map((post: { title: string }) => post.title).sort() : posts,
-        );
-        return Array.isArray(posts);
-      },
       fields: (t) => ({
         titles: t.stringList({ resolve: (user) => user.posts.map((post) => post.title).sort() }),
         published: t.relation('posts', { query: { where: { published: 1 } } }),
@@ -329,32 +324,37 @@ describe('inherited selections', () => {
         },
       ],
     });
-    // graphql-js calls isTypeOf to resolve the interface, then again to complete the object.
-    expect(isTypeOfSaw.length).toBeGreaterThan(0);
-    expect(new Set(isTypeOfSaw.map((titles) => JSON.stringify(titles)))).toEqual(
-      new Set([JSON.stringify(['Draft #1', 'Hello, Pothos'])]),
-    );
+    expect(resolveTypeSaw).toEqual([['Draft #1', 'Hello, Pothos']]);
     expect(result.statements).toHaveLength(1);
   });
 
-  it("hands each implementation's isTypeOf the rows its own select loads", async () => {
+  // resolveType sees the interface's select, while each implementation's fields read the rows its
+  // own select loads, all through the one statement of the interface root.
+  it("hands each implementation's fields the rows its own select loads", async () => {
     const builder = createBuilder();
+    const resolveTypeSaw: number[] = [];
     const Person = builder.prismaInterface('User', {
       variant: 'Person',
       select: { posts: { limit: 1 } },
+      resolveType: (user) => {
+        resolveTypeSaw.push(user.posts.length);
+        return user.id === 'u-alice' ? 'Prolific' : 'Quiet';
+      },
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     builder.prismaObject('User', {
       variant: 'Prolific',
       interfaces: [Person],
       select: { posts: true },
-      isTypeOf: (user) => user.posts.length >= 2,
+      fields: (t) => ({ total: t.int({ resolve: (user) => user.posts.length }) }),
     });
     builder.prismaObject('User', {
       variant: 'Quiet',
       interfaces: [Person],
-      select: { posts: true },
-      isTypeOf: (user) => user.posts.length < 2,
+      select: { posts: { where: { published: 0 } } },
+      fields: (t) => ({
+        drafts: t.idList({ resolve: (user) => user.posts.map((post) => post.id) }),
+      }),
     });
     builder.queryType({
       fields: (t) => ({
@@ -364,25 +364,40 @@ describe('inherited selections', () => {
         }),
       }),
     });
-    const result = await run(builder.toSchema(), '{ people { __typename id } }');
+    const result = await run(
+      builder.toSchema(),
+      '{ people { __typename id ... on Prolific { total } ... on Quiet { drafts } } }',
+    );
     expect(result.errors).toBeUndefined();
     expect(result.data.people).toEqual([
-      { __typename: 'Prolific', id: 'u-alice' },
-      { __typename: 'Prolific', id: 'u-bob' },
+      { __typename: 'Prolific', id: 'u-alice', total: 2 },
+      { __typename: 'Quiet', id: 'u-bob', drafts: ['p-bob-draft'] },
     ]);
+    expect(resolveTypeSaw).toEqual([1, 1]);
     expect(result.statements).toHaveLength(1);
   });
 
-  function ownerBuilder() {
+  it("loads a to-one select for resolveType and an implementation's fields through the interface", async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
       plugins: [prismaNextPlugin],
       prismaNext: { client: collision.client },
     });
     const Account = builder.prismaInterface('Owner', {
       variant: 'Account',
+      select: { profile: true },
+      resolveType: (owner) => (owner.profile === null ? 'WithoutProfile' : 'WithProfile'),
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     builder.prismaObject('Profile', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('Owner', {
+      variant: 'WithProfile',
+      interfaces: [Account],
+      select: { profile: true },
+      fields: (t) => ({
+        profileId: t.id({ nullable: true, resolve: (owner) => owner.profile?.id }),
+      }),
+    });
+    builder.prismaObject('Owner', { variant: 'WithoutProfile', interfaces: [Account] });
     builder.queryType({
       fields: (t) => ({
         accounts: t.prismaField({
@@ -391,27 +406,13 @@ describe('inherited selections', () => {
         }),
       }),
     });
-    return { builder, Account };
-  }
-
-  it("loads an implementation's to-one select for isTypeOf through the interface", async () => {
-    const { builder, Account } = ownerBuilder();
-    builder.prismaObject('Owner', {
-      variant: 'WithProfile',
-      interfaces: [Account],
-      select: { profile: true },
-      isTypeOf: (owner) => owner.profile !== null,
-    });
-    builder.prismaObject('Owner', {
-      variant: 'WithoutProfile',
-      interfaces: [Account],
-      select: { profile: true },
-      isTypeOf: (owner) => owner.profile === null,
-    });
-    const result = await run(builder.toSchema(), '{ accounts { __typename id } }');
+    const result = await run(
+      builder.toSchema(),
+      '{ accounts { __typename id ... on WithProfile { profileId } } }',
+    );
     expect(result.errors).toBeUndefined();
     expect(result.data.accounts).toEqual([
-      { __typename: 'WithProfile', id: '1' },
+      { __typename: 'WithProfile', id: '1', profileId: expect.anything() },
       { __typename: 'WithoutProfile', id: '2' },
     ]);
     expect(result.statements).toHaveLength(1);
@@ -445,7 +446,6 @@ describe('inherited selections', () => {
       });
       const Post = builder.prismaObject('Post', {
         interfaces: [Derived, Base],
-        isTypeOf: () => true,
       });
       builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
       builder.queryType({
@@ -488,7 +488,6 @@ describe('inherited selections', () => {
     const Post = builder.prismaObject('Post', {
       interfaces: [Derived, Base],
       select: { comments: { limit: 2, orderBy: (comment) => comment.id.asc() } },
-      isTypeOf: () => true,
       fields: (t) => ({
         ownIds: t.idList({ resolve: (post) => post.comments.map((comment) => comment.id) }),
       }),
@@ -642,22 +641,22 @@ describe('relations typed as an interface', () => {
     const NamedUser = builder.prismaInterface('User', {
       variant: 'NamedUser',
       select: ['firstName'],
+      resolveType: () => 'NamedUserImpl',
       fields: (t) => ({ name: t.string({ resolve: (user) => user.firstName }) }),
     });
     builder.prismaObject('User', {
       variant: 'NamedUserImpl',
       interfaces: [NamedUser],
-      isTypeOf: () => true,
       fields: (t) => ({ email: t.exposeString('email') }),
     });
     const Titled = builder.prismaInterface('Post', {
       variant: 'Titled',
+      resolveType: () => 'TitledPost',
       fields: (t) => ({ title: t.exposeString('title') }),
     });
     builder.prismaObject('Post', {
       variant: 'TitledPost',
       interfaces: [Titled],
-      isTypeOf: () => true,
       fields: () => ({}),
     });
     builder.prismaObject('Post', {

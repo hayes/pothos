@@ -759,18 +759,14 @@ describe('rows another field filtered', () => {
 
   describe.each(orders)('scope auth %s the prisma plugin', (_name, plugins) => {
     it.each(queries)('hides them from a type-level select with %s', async (_label, source) => {
-      const seen: { auth: unknown[]; isTypeOf: unknown[] } = { auth: [], isTypeOf: [] };
+      const seen: unknown[] = [];
       const builder = auditBuilder(plugins);
       builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
       const Audited = builder.prismaObject('User', {
         variant: 'Audited',
         select: { posts: true },
         authScopes: (user) => {
-          seen.auth.push(user.posts?.map((post) => post.id));
-          return true;
-        },
-        isTypeOf: (user) => {
-          seen.isTypeOf.push(user.posts?.map((post) => post.id));
+          seen.push(user.posts?.map((post) => post.id));
           return true;
         },
         fields: (t) => ({
@@ -797,11 +793,10 @@ describe('rows another field filtered', () => {
       expect(result.data.users).toMatchObject([
         { drafts: [{ id: 'p-draft1' }], audited: { id: 'u-alice' } },
       ]);
-      for (const ids of [...seen.auth, ...seen.isTypeOf]) {
+      for (const ids of seen) {
         expect(ids === undefined || (ids as string[]).length === 2).toBe(true);
       }
-      expect(seen.auth.length).toBeGreaterThan(0);
-      expect(seen.isTypeOf.length).toBeGreaterThan(0);
+      expect(seen.length).toBeGreaterThan(0);
     });
 
     it('hides them from a resolveType', async () => {

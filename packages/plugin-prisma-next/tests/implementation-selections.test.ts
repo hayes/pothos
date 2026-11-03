@@ -13,7 +13,6 @@ describe("object fields reading an interface's select", () => {
     });
     const User = builder.prismaObject('User', {
       interfaces: [WithPosts],
-      isTypeOf: () => true,
       ...(ownSelect ? { select: ['firstName'] } : {}),
       fields: (t) => ({
         id: t.exposeID('id'),
@@ -67,7 +66,6 @@ describe("object fields reading an interface's select", () => {
     });
     const User = builder.prismaObject('User', {
       interfaces: [Published],
-      isTypeOf: () => true,
       select: { posts: { where: { published: 1 } } },
       fields: (t) => ({
         ownCount: t.int({
@@ -107,7 +105,6 @@ describe("object fields reading an interface's select", () => {
     });
     const User = builder.prismaObject('User', {
       interfaces: [Totals],
-      isTypeOf: () => true,
       fields: (t) => ({
         id: t.exposeID('id'),
         doubled: t.int({ resolve: (user) => user.total * 2 }),
@@ -139,7 +136,6 @@ describe("object fields reading an interface's select", () => {
     });
     const User = builder.prismaObject('User', {
       interfaces: [Named],
-      isTypeOf: () => true,
       fields: (t) => ({ shout: t.string({ resolve: (user) => user.firstName.toUpperCase() }) }),
     });
     builder.queryType({

@@ -87,14 +87,7 @@ export type PrismaNextObjectOptions<
   ObjectTypeOptions<Types, ObjectRef<Types, Shape>, Shape, Interfaces>,
   'fields' | 'isTypeOf'
 > &
-  PrismaNextTypeOptions<Types, M, Shape> & {
-    /** Receives the row as loaded for this type, with its key and the columns in `select`. */
-    isTypeOf?: (
-      row: Shape,
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) => MaybePromise<boolean>;
-  };
+  PrismaNextTypeOptions<Types, M, Shape>;
 
 export type PrismaNextInterfaceOptions<
   Types extends SchemaTypes,

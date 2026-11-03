@@ -288,7 +288,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     return selects;
   }
 
-  /** Passes `isTypeOf` the row as the type's `select`s loaded it. */
+  /**
+   * Passes an `isTypeOf` the row as the type's `select`s loaded it. Prisma types take no `isTypeOf`
+   * option, but plugins add one, such as scope-auth with `runScopesOnType`.
+   */
   override wrapIsTypeOf(
     isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined,
     typeConfig: PothosObjectTypeConfig,

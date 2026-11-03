@@ -887,6 +887,7 @@ describe('related connection state', () => {
     const builder = createBuilder();
     const WithPosts = builder.prismaInterface('User', {
       variant: 'WithPosts',
+      resolveType: () => 'User',
       fields: (t) => ({
         posts: t.relatedConnection('posts', {
           nullable: true,
@@ -901,7 +902,6 @@ describe('related connection state', () => {
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     const User = builder.prismaObject('User', {
       interfaces: [WithPosts],
-      isTypeOf: () => true,
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     builder.queryType({
