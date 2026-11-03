@@ -344,8 +344,8 @@ Enabling this has a couple of limitations:
 #### Loading the parent for type scopes
 
 With `runScopesOnType`, type scopes run before any field of the type resolves, so they see the
-object exactly as the parent field returned it. A plugin can change this by setting the
-`pothosScopeAuthParent` extension on an object type. Scope auth calls it with the parent, the
+object exactly as the parent field returned it. To change this, set the `pothosScopeAuthParent`
+extension on an object type. Scope auth calls it with the parent, the
 context, and the resolve info, and runs the type's scopes on whatever it returns. The type's own
 `isTypeOf` still gets the original object.
 
