@@ -99,23 +99,6 @@ builder.mutationField('renameUser', (t) =>
 );
 ```
 
-### Subscriptions
-
-`resolve` receives each value `subscribe` yields and returns a Collection to load it from:
-
-```ts
-builder.subscriptionType({
-  fields: (t) => ({
-    userChanged: t.prismaField({
-      type: 'User',
-      nullable: true,
-      subscribe: (_root, _args, ctx) => ctx.pubsub.subscribe('userChanged'),
-      resolve: (id, _args, ctx) => ctx.db.orm.User.where({ id }),
-    }),
-  }),
-});
-```
-
 ## Selections
 
 A `select` on the type is loaded whenever the type is queried. A `select` on a field is loaded only
