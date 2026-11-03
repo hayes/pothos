@@ -45,7 +45,7 @@ import type { AnyContract } from './types/models.js';
 import { getPluginConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
 import { reloadFor } from './utils/errors.js';
-import { getModel, ownTableVariantRowsError, type PrismaNextModel } from './utils/model.js';
+import { getModel, ownTableVariantRowsError } from './utils/model.js';
 import {
   compileFieldSelect,
   definedQuery,
@@ -258,9 +258,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         `Field '${declaring.name}.${fieldConfig.name}' exposes '${exposed}', which is not a column on model ${model.key}.`,
       );
     }
-    if (select !== undefined && typeof select !== 'function') {
-      this.assertRowsReadable(fieldConfig, select, model);
-    }
     const selection =
       select !== undefined
         ? compileFieldSelect(this.config.contract, select, model)
@@ -283,24 +280,31 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   /**
    * Rejects a field's static `select` that hands the field rows of a variant model with a table of
    * its own, as `compileFieldSelect` does for what a select function returns. A field returning the
-   * relation's model plans the rows through its own selection set instead.
+   * relation's model plans the rows through its own selection set instead. Checked on the field's
+   * final config, since a plugin that runs later, such as plugin-errors, can change its type.
    */
-  private assertRowsReadable(
-    fieldConfig: PothosOutputFieldConfig<Types>,
-    raw: RawSelect,
-    model: PrismaNextModel,
-  ) {
-    for (const [name, value] of splitSelect(raw, model, PothosSchemaError).relations) {
+  private assertRowsReadable(fieldConfig: PothosOutputFieldConfig<Types>) {
+    const { select } = fieldConfig.pothosOptions as { select?: unknown };
+    if (typeof select !== 'object' || select === null) {
+      return;
+    }
+    const modelKey = this.buildCache.getTypeConfig(
+      fieldConfig.declaringType ?? fieldConfig.parentType,
+    ).extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+    if (modelKey === undefined) {
+      return;
+    }
+    const { contract } = this.config;
+    const model = getModel(contract, modelKey);
+    for (const [name, value] of splitSelect(select as RawSelect, model, PothosSchemaError)
+      .relations) {
       const relation = model.relations[name]!;
       if (!loadsOwnTableVariantRows(relation, value)) {
         continue;
       }
       const returnModel = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type))
         .extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-      if (
-        returnModel === undefined ||
-        getModel(this.config.contract, returnModel) !== relation.target
-      ) {
+      if (returnModel === undefined || getModel(contract, returnModel) !== relation.target) {
         throw ownTableVariantRowsError(`field '${fieldConfig.name}'`, name, relation);
       }
     }
@@ -450,6 +454,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+    this.assertRowsReadable(fieldConfig);
     const reader = this.createFieldReader(fieldConfig);
     if (!reader) {
       return resolver;

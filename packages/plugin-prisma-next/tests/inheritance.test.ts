@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import SchemaBuilder, { PothosSchemaError } from '@pothos/core';
+import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
 import { contractFromJson } from '@prisma/orm-sqlite/static';
 import { GraphQLError, printSchema } from 'graphql';
@@ -1328,9 +1329,11 @@ describe('a relation targeting a variant model with a table of its own', () => {
     expect(result.statements).toHaveLength(4);
   });
 
-  function selectBuilder() {
+  function selectBuilder(
+    plugins: (typeof ErrorsPlugin | typeof prismaNextPlugin)[] = [prismaNextPlugin],
+  ) {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [prismaNextPlugin],
+      plugins,
       prismaNext: { client: db.client },
     });
     const feature = builder.prismaObject('Feature', {
@@ -1402,6 +1405,62 @@ describe('a relation targeting a variant model with a table of its own', () => {
     const result = await run(builder.toSchema(), '{ notes { selected { title } } }');
     expect(result.errors).toBeUndefined();
     expect(result.data.notes).toEqual([{ selected: null }, { selected: { title: 'feat1' } }]);
+  });
+
+  it("plans the rows of a field's select for a field returning a list of them", async () => {
+    const { builder, feature } = selectBuilder();
+    builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        selected: t.field({
+          type: [feature],
+          select: { championed: true },
+          resolve: (user) => user.championed,
+        }),
+      }),
+    });
+    builder.queryField('users', (t) =>
+      t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+    );
+    const result = await run(builder.toSchema(), '{ users { selected { title } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([{ selected: [{ title: 'feat1' }] }]);
+  });
+
+  it("rejects a field's select returning them through another plugin's type", () => {
+    // plugin-errors changes the field's type after this plugin's onOutputFieldConfig runs.
+    const { builder, feature } = selectBuilder([ErrorsPlugin, prismaNextPlugin]);
+    builder.prismaObject('Note', {
+      fields: (t) => ({
+        selected: t.field({
+          type: feature,
+          nullable: true,
+          errors: {},
+          select: { feature: true },
+          resolve: (note) => note.feature,
+        }),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow(`The select of field 'selected' ${rowsError}`);
+  });
+
+  it("builds a field's static select that computes values from them", async () => {
+    const { builder } = selectBuilder();
+    builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        championCount: t.int({
+          select: { championed: (sub) => ({ total: sub.count() }) },
+          resolve: (user) => user.total,
+        }),
+      }),
+    });
+    builder.queryField('users', (t) =>
+      t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+    );
+    const result = await run(builder.toSchema(), '{ users { championCount } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([{ championCount: 1 }]);
   });
 
   // A feature row for the bug t1, which `orm.Feature` reads but Task narrowed to Feature doesn't.
