@@ -15,7 +15,7 @@ import {
   setRowFieldMapping,
 } from '@pothos/selection-mapper';
 import { and, or } from '@prisma/orm-family-sql/orm-client';
-import type { GraphQLResolveInfo } from 'graphql';
+import type { GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/adapter.js';
 import { assertNoIncludes, getCollectionPaginationState } from './utils/collection-state.js';
 import type { PrismaNextConfig } from './utils/config.js';
@@ -158,21 +158,21 @@ export class ModelLoader {
   }
 
   /**
-   * The parent row reloaded with what the `select`s of `info`'s parent type and its interfaces load,
-   * and `columns`. Unlike `loadSelection`, it plans none of the field, so every field of a row
-   * shares it, and the type's relations are never left out for the field's. `missing` is as for
-   * `loadSelection`.
+   * The parent row reloaded with what the `select`s of `type`, by default `info`'s parent type, and
+   * its interfaces load, and `columns`. Unlike `loadSelection`, it plans none of the field, so
+   * every field of a row shares it, and the type's relations are never left out for the field's.
+   * `missing` is as for `loadSelection`.
    */
   loadTypeRow(
     info: GraphQLResolveInfo,
     parent: object,
     missing: readonly string[],
     columns: readonly string[],
+    type: GraphQLObjectType = info.parentType,
   ): Promise<Row> {
     if (!this.identity.length) {
       throw noIdentityReloadError(info, this.modelKey, missing);
     }
-    const type = info.parentType;
     const key = [type.name, ...columns].join(' ');
     const plans = this.plansFor(info).type;
     let selection = plans.get(key);

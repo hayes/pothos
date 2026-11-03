@@ -4,6 +4,7 @@ import './field-builder.js';
 import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
+  type MaybePromise,
   type PothosInterfaceTypeConfig,
   type PothosObjectTypeConfig,
   type PothosOutputFieldConfig,
@@ -21,6 +22,7 @@ import {
 import {
   type GraphQLFieldResolver,
   type GraphQLIsTypeOfFn,
+  type GraphQLObjectType,
   type GraphQLResolveInfo,
   type GraphQLSchema,
   type GraphQLTypeResolver,
@@ -208,6 +210,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         [PRISMA_NEXT_CONFIG]: this.config,
         // Filled in afterBuild by registerImplementations.
         ...(typeConfig.kind === 'Interface' ? { [PRISMA_NEXT_IMPLEMENTATIONS]: new Map() } : {}),
+        // Read by scope-auth, whose `runScopesOnType` checks run from `isTypeOf`, before any
+        // field reloads the row.
+        ...(typeConfig.kind === 'Object'
+          ? { pothosScopeAuthParent: this.createTypeParentLoader(typeConfig.name) }
+          : {}),
       },
     };
   }
@@ -461,6 +468,47 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       : this.typeLevelSelects(typeConfig.name).map(({ name }) => name);
   }
 
+  /**
+   * The row a type's type-level checks should see: the row as the `select`s of the type and its
+   * interfaces load it. A row without everything they load, such as a copy or a variant row a
+   * connection helper loaded through its own table, is reloaded, batched with the other rows of
+   * the request. A complete row is returned as it is, without a promise.
+   */
+  private createTypeParentLoader(typeName: string) {
+    let check: TypeRowCheck | undefined;
+    return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
+      check ??= this.createTypeRowCheck(typeName);
+      const { modelKey, missingTypeData, typeParent } = check;
+      // A prisma type's parent is always a row.
+      const row = parent as object;
+      const missing = missingTypeData(row);
+      if (!missing) {
+        return typeParent(row);
+      }
+      const type = info.schema.getType(typeName) as GraphQLObjectType;
+      return reloadFor(info, () =>
+        this.config.loader(context, modelKey).loadTypeRow(info, rowOf(row), missing, [], type),
+      ).then(typeParent);
+    };
+  }
+
+  /** What `createTypeParentLoader` checks a row of `typeName` for. */
+  private createTypeRowCheck(typeName: string): TypeRowCheck {
+    const typeConfig = this.buildCache.getTypeConfig(typeName);
+    const modelKey = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string;
+    const model = getModel(this.config.contract, modelKey);
+    const selects = this.typeLevelSelects(typeName).map(({ name, raw }) => ({
+      name,
+      ...splitSelect(raw, model),
+    }));
+    const scopes = selects.map((select) => select.name);
+    return {
+      modelKey,
+      missingTypeData: typeDataCheck(selects, []).missingTypeData,
+      typeParent: (row) => parentForType(row, scopes),
+    };
+  }
+
   /** How a planned field finds and reads its parent. Undefined for fields the plugin skips. */
   private createFieldReader(fieldConfig: PothosOutputFieldConfig<Types>): FieldReader | undefined {
     const extensions = fieldConfig.extensions ?? {};
@@ -480,36 +528,13 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       name,
       ...splitSelect(raw, model),
     }));
-    // The parent is reloaded unless it has every column and relation its type and interfaces
-    // select. Relations selected with a function aren't checked: they write computed values whose
-    // keys only the function knows.
-    const requiredOnRow = [
-      ...new Set([
-        ...selects.flatMap((select) => [
-          ...select.columns,
-          ...select.relations
-            .filter(([, value]) => typeof value !== 'function')
-            .map(([name]) => name),
-        ]),
-        ...(typeof selection === 'function' ? [] : (selection.columns ?? [])),
-      ]),
-    ];
-    // A function's keys aren't checked, so a relation a level can't include is checked by whether
-    // its slots came back.
-    const computedRelations = [
-      ...new Set(
-        selects.flatMap((select) =>
-          select.relations.filter(([, value]) => typeof value === 'function').map(([name]) => name),
-        ),
-      ),
-    ];
-    // The scopes whose rows and values the parent shows. A field sees what the selects of the type
-    // that declares it and of that type's interfaces loaded, never an implementation's version of a
-    // relation. The declaring type comes after its interfaces, so its own select wins. Every scope
-    // of the parent type must have loaded, or the parent reloads.
-    const parentScopes = selects
-      .filter((select) => select.relations.length > 0)
-      .map((select) => select.name);
+    const { requiredOnRow, computedRelations, parentScopes, missingTypeData } = typeDataCheck(
+      selects,
+      typeof selection === 'function' ? [] : (selection.columns ?? []),
+    );
+    // A field sees what the selects of the type that declares it and of that type's interfaces
+    // loaded, never an implementation's version of a relation. The declaring type comes after its
+    // interfaces, so its own select wins.
     const declared = new Set(this.typeLevelSelects(declaring).map(({ name }) => name));
     const declaringScopes = parentScopes.filter((scope) => declared.has(scope));
     // A field planned on an interface has its mapping recorded under the interface, but it
@@ -555,23 +580,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       },
       parentScopes,
       staticColumns: typeof selection === 'function' ? undefined : (selection.columns ?? []),
-      missingTypeData:
-        requiredOnRow.length || computedRelations.length
-          ? (parent) => {
-              const complete = parentForType(parent, parentScopes) as Record<string, unknown>;
-              // Checked first so a complete row allocates nothing.
-              if (
-                requiredOnRow.every((name) => complete[name] !== undefined) &&
-                computedRelations.every((name) => loadedSlots(parent, name))
-              ) {
-                return undefined;
-              }
-              return [
-                ...requiredOnRow.filter((name) => complete[name] === undefined),
-                ...computedRelations.filter((name) => !loadedSlots(parent, name)),
-              ];
-            }
-          : () => undefined,
+      missingTypeData,
       typeParent: (row) => parentForType(row, declaringScopes),
       parent: (row, mapping) =>
         declaresOwnSelect
@@ -579,6 +588,70 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           : parentForType(row, declaringScopes),
     };
   }
+}
+
+interface TypeRowCheck {
+  modelKey: string;
+  /** What `FieldReader.missingTypeData` returns, without a field's columns. */
+  missingTypeData(row: object): string[] | undefined;
+  /** The row as the type's `select`s load it. */
+  typeParent(row: object): object;
+}
+
+/**
+ * What a row must hold for the type-level `selects` of a type, listed with the deepest interface
+ * first and the type itself last, and `columns`, and the check for it.
+ */
+function typeDataCheck(
+  selects: readonly (ReturnType<typeof splitSelect> & { name: string })[],
+  columns: readonly string[],
+) {
+  // The parent is reloaded unless it has every column and relation its type and interfaces
+  // select. Relations selected with a function aren't checked: they write computed values whose
+  // keys only the function knows.
+  const requiredOnRow = [
+    ...new Set([
+      ...selects.flatMap((select) => [
+        ...select.columns,
+        ...select.relations
+          .filter(([, value]) => typeof value !== 'function')
+          .map(([name]) => name),
+      ]),
+      ...columns,
+    ]),
+  ];
+  // A function's keys aren't checked, so a relation a level can't include is checked by whether
+  // its slots came back.
+  const computedRelations = [
+    ...new Set(
+      selects.flatMap((select) =>
+        select.relations.filter(([, value]) => typeof value === 'function').map(([name]) => name),
+      ),
+    ),
+  ];
+  // The scopes whose rows and values the parent shows. Every scope of the type must have loaded,
+  // or the parent reloads.
+  const parentScopes = selects
+    .filter((select) => select.relations.length > 0)
+    .map((select) => select.name);
+  const missingTypeData =
+    requiredOnRow.length || computedRelations.length
+      ? (parent: object) => {
+          const complete = parentForType(parent, parentScopes) as Record<string, unknown>;
+          // Checked first so a complete row allocates nothing.
+          if (
+            requiredOnRow.every((name) => complete[name] !== undefined) &&
+            computedRelations.every((name) => loadedSlots(parent, name))
+          ) {
+            return undefined;
+          }
+          return [
+            ...requiredOnRow.filter((name) => complete[name] === undefined),
+            ...computedRelations.filter((name) => !loadedSlots(parent, name)),
+          ];
+        }
+      : () => undefined;
+  return { requiredOnRow, computedRelations, parentScopes, missingTypeData };
 }
 
 interface FieldReader {

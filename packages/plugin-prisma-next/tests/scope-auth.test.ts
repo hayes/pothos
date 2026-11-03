@@ -1,11 +1,13 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: the shared-walk schema names variants in loops
 import SchemaBuilder, {
   BasePlugin,
+  isThenable,
   type PothosOutputFieldConfig,
+  type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
+import ScopeAuthPlugin, { type ScopeAuthParentLoader } from '@pothos/plugin-scope-auth';
 import {
   execute,
   experimentalExecuteIncrementally,
@@ -980,11 +982,156 @@ describe("a connection helper's page of a variant with a table of its own", () =
   });
 });
 
+// With `runScopesOnType`, type-level authScopes run from `isTypeOf`, before any field of the type
+// can reload its row. Scope-auth gets the row they see from `pothosScopeAuthParent`.
+describe('runScopesOnType on rows without what the type selects', () => {
+  // Records whether each parent the prisma plugin's `pothosScopeAuthParent` returns is a promise.
+  // Type configs pass through plugins last to first, so this one is listed before it.
+  const parentResults: string[] = [];
+  class RecordScopeAuthParentPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
+      const load = typeConfig.extensions?.pothosScopeAuthParent as
+        | ScopeAuthParentLoader
+        | undefined;
+      if (!load) {
+        return typeConfig;
+      }
+      const record: ScopeAuthParentLoader = (parent, context, info) => {
+        const result = load(parent, context, info);
+        parentResults.push(isThenable(result) ? 'promise' : 'value');
+        return result;
+      };
+      return {
+        ...typeConfig,
+        extensions: { ...typeConfig.extensions, pothosScopeAuthParent: record },
+      };
+    }
+  }
+  SchemaBuilder.registerPlugin(
+    'prismaNextTestRecordScopeAuthParent' as never,
+    RecordScopeAuthParentPlugin as never,
+  );
+
+  function userSchema(seen: unknown[]) {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [ScopeAuthPlugin, 'prismaNextTestRecordScopeAuthParent' as never, prismaNextPlugin],
+      scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType: true },
+      prismaNext: { client: ctx.client },
+    });
+    const User = builder.prismaObject('User', {
+      select: { email: true, posts: true },
+      authScopes: (user) => {
+        seen.push([user.email, user.posts?.length]);
+        return true;
+      },
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: 'User',
+          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        }),
+        copied: t.field({
+          type: User,
+          resolve: async () => {
+            const row = await ctx.orm.User.where({ id: 'u-alice' }).first();
+            const { email: _email, ...copy } = row!;
+            return copy as never;
+          },
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it('hands type-level authScopes a loaded row as it is, without a promise', async () => {
+    const seen: unknown[] = [];
+    parentResults.length = 0;
+    const result = await runCaptured(userSchema(seen), '{ user { firstName } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ user: { firstName: 'Alice' } });
+    expect(seen).toEqual([['alice@example.com', 2]]);
+    expect(parentResults).toEqual(['value']);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('reloads a copied row before type-level authScopes run', async () => {
+    const seen: unknown[] = [];
+    parentResults.length = 0;
+    const result = await runCaptured(userSchema(seen), '{ copied { firstName } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ copied: { firstName: 'Alice' } });
+    expect(seen).toEqual([['alice@example.com', 2]]);
+    expect(parentResults).toEqual(['promise']);
+    // The user, the reload for the type's authScopes, and the field's own reload of the copy.
+    expect(result.statements).toHaveLength(3);
+  });
+
+  // `User.championed` targets Feature, which has a table of its own, so a helper's page of them
+  // lacks the columns Feature inherits from Task, such as `title`.
+  it("reloads a variant's inherited columns from a connection helper's page", async () => {
+    const seen: unknown[] = [];
+    parentResults.length = 0;
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: InheritanceContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [
+        ScopeAuthPlugin,
+        'prismaNextTestRecordScopeAuthParent' as never,
+        RelayPlugin,
+        prismaNextPlugin,
+      ],
+      relay: {},
+      scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType: true },
+      prismaNext: { client: inheritanceDb.client },
+    });
+    const Feature = builder.prismaObject('Feature', {
+      select: ['title'],
+      authScopes: (feature) => {
+        seen.push([feature.id, feature.title]);
+        return true;
+      },
+      fields: (t) => ({ priority: t.exposeInt('priority') }),
+    });
+    const helper = prismaConnectionHelpers(builder, Feature, {});
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        championPage: t.connection({
+          type: Feature,
+          select: { championed: helper.page },
+          resolve: (user, args, context) => helper.resolve(user.championed, args, context, user),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => inheritanceDb.orm.User }),
+      }),
+    });
+    const result = await runCaptured(
+      builder.toSchema(),
+      '{ users { championPage(first: 5) { edges { node { priority } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([{ championPage: { edges: [{ node: { priority: 5 } }] } }]);
+    expect(seen).toEqual([['t2', 'feat1']]);
+    expect(parentResults).toEqual(['promise']);
+    // The users with their features, the reload for the type's authScopes, and the field's own
+    // reload of the page's row.
+    expect(result.statements).toHaveLength(3);
+  });
+});
+
 // With `runScopesOnType`, type-level authScopes run from `isTypeOf`, on the row the parent field
 // resolved. Two implementations of an interface, reached from a root list and from a relation.
 type AdminPostSelect = true | { readonly where: { readonly published: 1 } } | undefined;
 
-describe.each(orders)('runScopesOnType through an interface (%s)', (order, plugins) => {
+describe.each(orders)('runScopesOnType through an interface (%s)', (_order, plugins) => {
   function runScopesSchema(seen: unknown[], adminPosts: AdminPostSelect) {
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
@@ -1068,25 +1215,11 @@ describe.each(orders)('runScopesOnType through an interface (%s)', (order, plugi
     expect(relationSeen).toEqual([memberSeen]);
   });
 
-  if (order === 'prismaNext first') {
-    it('loads the relation each implementation selects with different arguments', async () => {
-      const { rootSeen, relationSeen } = await run({ where: { published: 1 } });
-      expect(rootSeen).toEqual([['Admin', 'alice@example.com', ['p-hello']], memberSeen]);
-      expect(relationSeen).toEqual([memberSeen]);
-    });
-  } else {
-    // Scope-auth's `isTypeOf` wraps this plugin's, so it reads the shared row, which holds neither
-    // implementation's `posts`. A to-many relation in a type's select isn't part of what a returned
-    // row must hold, so a type-level check listed first can't rely on it. This is a known limit.
-    it('hands neither implementation the relation when they select it with different arguments', async () => {
-      const { rootSeen, relationSeen } = await run({ where: { published: 1 } });
-      expect(rootSeen).toEqual([
-        ['Admin', 'alice@example.com', undefined],
-        ['Member', 'bob@example.com', undefined],
-      ]);
-      expect(relationSeen).toEqual([['Member', 'bob@example.com', undefined]]);
-    });
-  }
+  it('loads the relation each implementation selects with different arguments', async () => {
+    const { rootSeen, relationSeen } = await run({ where: { published: 1 } });
+    expect(rootSeen).toEqual([['Admin', 'alice@example.com', ['p-hello']], memberSeen]);
+    expect(relationSeen).toEqual([memberSeen]);
+  });
 });
 
 describe('rows another field filtered', () => {
