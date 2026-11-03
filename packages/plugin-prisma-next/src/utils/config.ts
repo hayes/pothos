@@ -27,6 +27,24 @@ export interface PrismaNextConfig {
   loader(ctx: object, modelKey: string): ModelLoader;
 }
 
+/** Per-request state lives on the context object, so a request without one fails up front. */
+export function assertContextObject(ctx: unknown) {
+  if (ctx === null || (typeof ctx !== 'object' && typeof ctx !== 'function')) {
+    throw new Error(
+      '@pothos/plugin-prisma-next requires an object contextValue: it keeps per-request state on the context. Pass a context object, such as `{}`, when executing the operation.',
+    );
+  }
+}
+
+/** A per-request cache, kept on the request's context object. */
+function requestCache<T>(create: (ctx: object) => T) {
+  const cache = createContextCache(create);
+  return (ctx: object) => {
+    assertContextObject(ctx);
+    return cache(ctx);
+  };
+}
+
 export const getPluginConfig = createContextCache((builder: object): PrismaNextConfig => {
   const options = (
     (builder as { options: object }).options as {
@@ -43,7 +61,7 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
 
   const client: (ctx: object) => RequestClient =
     typeof clientOption === 'function'
-      ? createContextCache((ctx: object) => clientOption(ctx as never))
+      ? requestCache((ctx) => clientOption(ctx as never))
       : () => clientOption;
   const collection = (ctx: object, modelKey: string) => {
     const root = rootModelKey(contract, modelKey) ?? modelKey;
@@ -58,7 +76,7 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
     }
     return found;
   };
-  const loaders = createContextCache(() => new Map<string, ModelLoader>());
+  const loaders = requestCache(() => new Map<string, ModelLoader>());
   const config: PrismaNextConfig = {
     contract,
     adapter: new PrismaNextAdapter(contract, options.skipDeferredFragments ?? true),

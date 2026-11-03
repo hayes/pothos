@@ -1,3 +1,4 @@
+import { execute, parse } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import { buildExampleSchema } from './example/schema';
 import {
@@ -599,5 +600,18 @@ describe('a collection that already includes a relation', () => {
     const result = await run(builder.toSchema(), '{ users(flag: true) { id } }');
     expect(result.errors?.map((error) => error.message)).toEqual([message]);
     expect(result.statements).toHaveLength(0);
+  });
+});
+
+describe('the context', () => {
+  it('fails up front without a contextValue, which holds the per-request state', async () => {
+    const schema = createExampleBuilder().toSchema();
+    for (const document of ['{ users { firstName } }', '{ users { id posts { id } } }']) {
+      const result = await execute({ schema, document: parse(document) });
+      expect(result.data).toEqual({ users: null });
+      expect(result.errors?.map((error) => error.message)).toEqual([
+        expect.stringMatching(/^@pothos\/plugin-prisma-next requires an object contextValue/),
+      ]);
+    }
   });
 });
