@@ -288,7 +288,10 @@ describe('inherited selections', () => {
       variant: 'Named',
       select: { posts: true },
       resolveType: (user) => {
-        resolveTypeSaw.push(user.posts.map((post) => post.title).sort());
+        // Typed without to-many relations, which a row a resolver built needn't hold. This row
+        // was planned, so it holds the select's.
+        const { posts } = user as typeof user & { posts: { title: string }[] };
+        resolveTypeSaw.push(posts.map((post) => post.title).sort());
         return 'User';
       },
       fields: (t) => ({ firstName: t.exposeString('firstName') }),
@@ -592,6 +595,7 @@ describe('inherited selections', () => {
       fields: () => ({}),
     });
     builder.prismaObject('User', {
+      variant: 'A',
       interfaces: [Named],
       select: { posts: { limit: 1 } },
     });
@@ -621,17 +625,16 @@ describe('inherited selections', () => {
       fields: (t) => ({
         ownIds: t.idList({ resolve: (user) => user.posts.map((post) => post.id) }),
       }),
-      variant: 'A',
     });
     builder.queryType({
       fields: (t) => ({
-        named: t.prismaField({
-          type: [Named],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
         users: t.prismaField({
           type: [User],
           resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
+        named: t.prismaField({
+          type: [Named],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });

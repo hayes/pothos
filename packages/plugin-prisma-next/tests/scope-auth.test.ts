@@ -1349,7 +1349,9 @@ describe('rows another field filtered', () => {
         variant: 'AuditedNode',
         select: { posts: true },
         resolveType: (user) => {
-          seen.push(user.posts?.map((post) => post.id));
+          // Typed without `posts`, which a returned row needn't hold. Read to check it isn't the
+          // rows `drafts` filtered.
+          seen.push((user as { posts?: unknown }).posts);
           return 'AuditedUser';
         },
         fields: (t) => ({ id: t.exposeID('id') }),
@@ -1378,8 +1380,7 @@ describe('rows another field filtered', () => {
         '{ users { drafts { id } audited { id } } }',
       );
       expect(result.errors).toBeUndefined();
-      expect(seen).toHaveLength(1);
-      expect(seen[0] === undefined || (seen[0] as string[]).length === 2).toBe(true);
+      expect(seen).toEqual([undefined]);
     });
   });
 });

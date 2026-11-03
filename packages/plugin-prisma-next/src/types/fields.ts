@@ -15,6 +15,7 @@ import type {
   InterfaceRef,
   InterfaceTypeOptions,
   MaybePromise,
+  ObjectParam,
   ObjectRef,
   ObjectTypeOptions,
   OutputRefShape,
@@ -23,12 +24,12 @@ import type {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import type { GraphQLResolveInfo } from 'graphql';
+import type { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
 import type { prismaInterfaceBrand } from '../interface-ref.js';
 import type { PrismaNextObjectRef, prismaContractBrand, prismaModelBrand } from '../object-ref.js';
 import type { PrismaNextObjectFieldBuilder } from '../prisma-next-field-builder.js';
 import type { ResolverCollection } from './collections.js';
-import type { FieldParentShape, ModelKey, Row } from './models.js';
+import type { FieldParentShape, ModelKey, ResolveTypeParent, Row } from './models.js';
 import type { RequiresNullable } from './relations.js';
 import type {
   PrismaNextFieldSelect,
@@ -94,8 +95,18 @@ export type PrismaNextInterfaceOptions<
   M extends ModelKey<Types>,
   Shape,
   Interfaces extends InterfaceParam<Types>[],
-> = Omit<InterfaceTypeOptions<Types, InterfaceRef<Types, Shape>, Shape, Interfaces>, 'fields'> &
-  PrismaNextTypeOptions<Types, M, Shape>;
+> = Omit<
+  InterfaceTypeOptions<Types, InterfaceRef<Types, Shape>, Shape, Interfaces>,
+  'fields' | 'resolveType'
+> &
+  PrismaNextTypeOptions<Types, M, Shape> & {
+    resolveType?: (
+      parent: ResolveTypeParent<Types, M, Shape>,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+      type: GraphQLInterfaceType,
+    ) => MaybePromise<ObjectParam<Types> | string | null | undefined>;
+  };
 
 /**
  * The field options a `prismaNode`'s `id` takes beside its own, such as `description` or the

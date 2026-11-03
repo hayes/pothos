@@ -78,6 +78,32 @@ Authored.addBrand(postRow);
 Titled.addBrand({ title: 'Hello' });
 Titled.addBrand({ id: 'p', title: 'Hello' });
 
+// resolveType reads what every row a field returning the interface holds, before any reload: the
+// columns and to-one relations of the interface's select, but not its to-many relations or
+// computed values.
+builder.prismaInterface('Post', {
+  variant: 'Routed',
+  select: {
+    title: true,
+    author: true,
+    comments: true,
+    views: (sub) => ({ viewCount: sub.count() }),
+  },
+  resolveType: (post) => {
+    expectTypeOf(post.id).toEqualTypeOf<string>();
+    expectTypeOf(post.title).toEqualTypeOf<string>();
+    expectTypeOf(post.author).toEqualTypeOf<UserRow>();
+    // @ts-expect-error a returned row needn't hold a to-many relation
+    post.comments;
+    // @ts-expect-error a returned row needn't hold a computed value
+    post.viewCount;
+    // @ts-expect-error not in the select
+    post.published;
+    return 'RoutedPost';
+  },
+  fields: () => ({}),
+});
+
 // A prismaInterface of a discriminated model also needs the discriminator.
 const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
   plugins: [prismaNextPlugin],

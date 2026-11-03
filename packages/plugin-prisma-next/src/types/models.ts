@@ -279,6 +279,17 @@ export type InterfaceReturnShape<Types extends SchemaTypes, M extends ModelKey<T
   ? ObjectReturnShape<Types, M, Shape>
   : ObjectReturnShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
 
+/**
+ * The parent a `prismaInterface`'s `resolveType` reads: what every row `InterfaceReturnShape`
+ * accepts holds. A row a resolver built needn't hold the to-many relations and computed values of
+ * the interface's `select`, and `resolveType` runs before anything reloads it.
+ */
+export type ResolveTypeParent<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> = [
+  DiscriminatorField<Types, M>,
+] extends [never]
+  ? BuiltReturnShape<Types, M, Shape>
+  : BuiltReturnShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
+
 export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {
   [prismaModelBrand]?: infer M;
 }
