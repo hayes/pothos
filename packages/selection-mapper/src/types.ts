@@ -26,11 +26,13 @@ export type WalkedType = GraphQLInterfaceType | GraphQLObjectType;
 export interface Position {
   /**
    * The field this one is selected beneath, or undefined at the field the plan started from.
-   * Reading it during planning has a cost. A field reached on several types (a fragment expanding
-   * to the implementations of an interface) normally shares the walk beneath it between them; a
-   * read keeps every walk it reads through from being shared, so each invocation is walked with
-   * its true path, and a document can make that exponential in its depth for those walks. Read
-   * after planning, it is the first invocation's: the plain walk's, where there is one.
+   * Reading it during planning has a cost. Invocations of a field at different places normally
+   * share the walk beneath it; a read keeps every walk it reads through from being shared, so
+   * each place is walked with its own path. That is one walk per path the document has, which a
+   * document whose fragments branch at every level makes exponential in its depth. A fragment
+   * expanding to the implementations of an interface adds no path: an implementation that
+   * inherits the field takes the invocation on the type the document names it on. Read after
+   * planning, it is the first invocation's: the plain walk's, where there is one.
    */
   readonly parent: Position | undefined;
   /**

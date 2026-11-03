@@ -50,6 +50,46 @@ interface Invocation extends Mapping {
   pending?: number;
 }
 
+/** The plays an invocation's merge was collected for, as bits, so it is collected once for each. */
+const IN_PLAIN = 1;
+const IN_EXPANDING = 2;
+const IN_BOTH = IN_PLAIN | IN_EXPANDING;
+
+/**
+ * One select function's invocation within a walk, which a later walk of the same field node, at
+ * the same place, takes instead of invoking the select function again: its query, its mapping and
+ * so the plan beneath it.
+ */
+interface FieldInvocation<Query> {
+  type: WalkedType;
+  /** The mapping key without its type: the alias path from the walked field. */
+  relative: string;
+  /** What the field is defined by; see `definitionOf`. */
+  definition: unknown;
+  key: string;
+  alias: string;
+  query: MaybePromise<Query | false | null | undefined>;
+  mapping: Invocation;
+  /** The plays its merge has been collected for. */
+  collected: number;
+}
+
+/**
+ * The invocations of one walk by field node. Local to a walk, so the invocations it holds go with
+ * it.
+ */
+type Invocations<Query> = Map<FieldNode, FieldInvocation<Query>[]>;
+
+/**
+ * What defines a field, to tell an implementation's copy of an interface field from an override.
+ * Pothos builds every implementation's copy of an inherited field from the interface's own field
+ * options, so those agree exactly when the field was not redefined. A field built elsewhere has no
+ * options, and only an identical select function says the same.
+ */
+function definitionOf(field: Position['field'], selection: unknown): unknown {
+  return field.extensions?.pothosOptions ?? selection;
+}
+
 /**
  * The position of one select invocation. Its own link is exact for that invocation, and reading
  * further up is what ties a walk to the invocations above it, so `parent` tells the plan.
@@ -163,11 +203,13 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
     }
   }
 
+  const invocations: Invocations<Query> = new Map();
+
   for (const { type, selectionSets, indirectPath } of resolved) {
     const walked = new Set<string>();
 
     for (const selections of selectionSets) {
-      walkSelections(plan, type, selections, indirectPath, true, walked, undefined);
+      walkSelections(plan, type, selections, indirectPath, true, walked, undefined, invocations);
     }
   }
 }
@@ -337,11 +379,12 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
   fieldsApply: boolean,
   visited: Set<string>,
   onlyIn: PlayKind | undefined,
+  invocations: Invocations<Query>,
 ) {
   for (const selection of selections) {
     if (selection.kind === Kind.FIELD) {
       if (fieldsApply) {
-        walkField(plan, type, selection, indirectPath, onlyIn);
+        walkField(plan, type, selection, indirectPath, onlyIn, invocations);
       }
 
       continue;
@@ -370,6 +413,7 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
           fragment.typeCondition ? types.length > 0 : fieldsApply,
           visited,
           walk.onlyIn,
+          invocations,
         );
       }
     }
@@ -395,8 +439,9 @@ interface FragmentWalk {
  * expansion never makes a document fail or a field reload.
  *
  * The plain walk comes first. No play sees the order, since each takes only its own kind's merges,
- * but a walk beneath a field is shared with the first invocation that made it (see `Plan.nested`),
- * so a position recorded beneath one, read at resolve time, holds the types the document names.
+ * but the expanding walk takes the plain one's invocation of a field it reaches again (see
+ * `walkField`), and a walk beneath a field is shared with the first invocation that made it (see
+ * `Plan.nested`), so a position recorded beneath either holds the types the document names.
  */
 function fragmentWalks<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -504,13 +549,19 @@ function selectsFields(selections: readonly SelectionNode[]): boolean {
   );
 }
 
-/** Collects what `fieldNode` (a field of `type`) selects. */
+/**
+ * Collects what `fieldNode` (a field of `type`) selects. A select function is invoked once per
+ * place in a walk: the plain and expanding walks of an expansion reach a field node again, and the
+ * second takes the first's invocation (see `reusedInvocation`), so they share its query, mapping
+ * and the plan beneath it. `invocations` holds the walk's; without it every call invokes.
+ */
 export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   type: WalkedType,
   fieldNode: FieldNode,
   indirectPath: string[],
   onlyIn: PlayKind | undefined,
+  invocations?: Invocations<Query>,
 ) {
   const { info, context, adapter } = plan;
   const name = fieldNode.name.value;
@@ -536,10 +587,22 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   }
 
   const alias = fieldNode.alias?.value ?? name;
-  const key = `${type.name}@${indirectPath.length > 0 ? `${indirectPath.join('.')}.` : ''}${alias}`;
+  const relative = `${indirectPath.length > 0 ? `${indirectPath.join('.')}.` : ''}${alias}`;
+  const key = `${type.name}@${relative}`;
 
   if (typeof selection !== 'function') {
     collectField(plan, key, alias, selection, EMPTY_MAPPING, onlyIn);
+
+    return;
+  }
+
+  const definition = definitionOf(field, selection);
+  const known = invocations?.get(fieldNode);
+  const reused =
+    known && reusedInvocation(known, type, relative, definition, onlyIn === 'expanding');
+
+  if (reused) {
+    collectInvocation(plan, reused, onlyIn);
 
     return;
   }
@@ -557,13 +620,101 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   const query = isThenable(args)
     ? args.then((mapped) => runSelect(plan, select, mapped, position, mapping))
     : runSelect(plan, select, args, position, mapping);
+  const invocation: FieldInvocation<Query> = {
+    type,
+    relative,
+    definition,
+    key,
+    alias,
+    query,
+    mapping,
+    collected: 0,
+  };
+
+  if (known) {
+    known.push(invocation);
+  } else {
+    invocations?.set(fieldNode, [invocation]);
+  }
+
+  collectInvocation(plan, invocation, onlyIn);
+}
+
+/**
+ * The invocation already made in this walk that a walk of the same field node as `type`, at
+ * `relative`, takes instead of invoking again: one made as `type` itself, or, in an expanding
+ * walk, one made as an interface of `type` that defines the field the same way.
+ *
+ * The second is the plain walk's invocation of a field the document names on the interface (`...
+ * on Node { ... on UserI { posts } }` beneath `UserI`), which the expanding walk reaches on each
+ * implementation. The plain invocation already plans the field for every row of the interface,
+ * with the same select function, arguments and selection set, so the implementations differ only
+ * in the type their positions name. They take the plain one's, whose positions hold the type the
+ * document names, as they would beneath a shared walk; its mapping key names the interface, which
+ * a resolver on an implementation finds the way it finds a plain play's. An implementation that
+ * redefines the field is invoked as itself.
+ */
+function reusedInvocation<Query>(
+  known: FieldInvocation<Query>[],
+  type: WalkedType,
+  relative: string,
+  definition: unknown,
+  expanding: boolean,
+): FieldInvocation<Query> | undefined {
+  let inherited: FieldInvocation<Query> | undefined;
+
+  for (const invocation of known) {
+    if (invocation.relative !== relative) {
+      continue;
+    }
+
+    if (invocation.type === type) {
+      return invocation;
+    }
+
+    if (
+      expanding &&
+      !inherited &&
+      invocation.definition === definition &&
+      isInterfaceType(invocation.type) &&
+      type.getInterfaces().includes(invocation.type)
+    ) {
+      inherited = invocation;
+    }
+  }
+
+  return inherited;
+}
+
+/**
+ * Collects `invocation`'s merge for the plays of kind `onlyIn` that do not take it yet. A play
+ * takes one merge per invocation: a second copy of the same query and mapping would change
+ * nothing it decides.
+ */
+function collectInvocation<Model, Query, NodeType extends NodeBase<Model>>(
+  plan: Plan<Model, Query, NodeType>,
+  invocation: FieldInvocation<Query>,
+  onlyIn: PlayKind | undefined,
+) {
+  const wanted = onlyIn === 'plain' ? IN_PLAIN : onlyIn === 'expanding' ? IN_EXPANDING : IN_BOTH;
+  const missing = wanted & ~invocation.collected;
+
+  if (missing === 0) {
+    return;
+  }
+
+  invocation.collected |= missing;
+
+  const kind: PlayKind | undefined =
+    missing === IN_BOTH ? undefined : missing === IN_PLAIN ? 'plain' : 'expanding';
+  const { key, alias, query, mapping } = invocation;
 
   if (isThenable(query)) {
     plan.chain(query as PromiseLike<Query | false | null | undefined>, (resolved) =>
-      collectField(plan, key, alias, resolved, mapping, onlyIn),
+      collectField(plan, key, alias, resolved, mapping, kind),
     );
   } else {
-    collectField(plan, key, alias, query, mapping, onlyIn);
+    collectField(plan, key, alias, query, mapping, kind);
   }
 }
 

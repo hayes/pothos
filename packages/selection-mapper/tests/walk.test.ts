@@ -1278,7 +1278,7 @@ describe('fragments that expand at every level', () => {
     return `{ user { ${selection} } }`;
   }
 
-  it('runs each relation once per type it is reached on, not once per path', async () => {
+  it('runs each relation once per level, however many implementations it is reached on', async () => {
     const callsAt = async (depth: number) => {
       const { calls, types } = linkedSchema();
       const info = await resolveInfo(types, expandingDocument(depth));
@@ -1287,10 +1287,11 @@ describe('fragments that expand at every level', () => {
       return calls;
     };
 
-    // The interface and three implementations of it (Latest is not covered by Node), per level.
-    expect(await callsAt(6)).toEqual({ posts: 12, author: 12 });
-    expect(await callsAt(12)).toEqual({ posts: 24, author: 24 });
-    expect(await callsAt(40)).toEqual({ posts: 80, author: 80 });
+    // Each relation is named on the interface. The expansion reaches it on the three
+    // implementations Node covers as well, which take the interface's invocation.
+    expect(await callsAt(6)).toEqual({ posts: 3, author: 3 });
+    expect(await callsAt(12)).toEqual({ posts: 6, author: 6 });
+    expect(await callsAt(40)).toEqual({ posts: 20, author: 20 });
   });
 
   /**
@@ -1299,12 +1300,12 @@ describe('fragments that expand at every level', () => {
    * multiply by three at every level. `fields` relations per implementation make the walks above
    * a level hang beneath different plans.
    */
-  function namedDocument(depth: number, fields: string[] = ['posts']) {
+  function namedDocument(depth: number, fields: string[] = ['posts'], variants = [1, 2, 3]) {
     const fragments: string[] = [];
 
     for (let level = 1; level <= depth; level += 1) {
       const next = level === depth ? '... on Node { nid }' : `...L${level + 1}`;
-      const selections = [1, 2, 3].map((n) =>
+      const selections = variants.map((n) =>
         level % 2 === 1
           ? `... on U${n} { ${fields.map((field) => `${field} { ${next} }`).join(' ')} }`
           : `... on P${n} { author { ${next} } }`,
@@ -1325,13 +1326,13 @@ describe('fragments that expand at every level', () => {
       return calls;
     };
 
-    // Per level, each of the three field nodes on its own implementation, once for the plain walk
-    // and once for the expanding one.
-    expect(await callsAt(6)).toEqual({ posts: 18, author: 18 });
-    expect(await callsAt(20)).toEqual({ posts: 60, author: 60 });
-    expect(await callsAt(40)).toEqual({ posts: 120, author: 120 });
+    // Per level, each of the three field nodes on its own implementation. The plain and expanding
+    // walks reach each as the same implementation, and share its invocation.
+    expect(await callsAt(6)).toEqual({ posts: 9, author: 9 });
+    expect(await callsAt(20)).toEqual({ posts: 30, author: 30 });
+    expect(await callsAt(40)).toEqual({ posts: 60, author: 60 });
     // `posts` and `drafts` walk the same selection set beneath different plans.
-    expect(await callsAt(16, ['posts', 'drafts'])).toEqual({ posts: 48, author: 48 });
+    expect(await callsAt(16, ['posts', 'drafts'])).toEqual({ posts: 24, author: 24 });
   });
 
   it('keeps the mappings of every field node that shares a walk', async () => {
@@ -1382,7 +1383,7 @@ describe('fragments that expand at every level', () => {
     ).toEqual(['PostI@b']);
   });
 
-  it('keeps the mappings of every implementation a relation is reached on', async () => {
+  it('records an expanded relation under the interface the document names it on', async () => {
     const { types } = linkedSchema();
     const info = await resolveInfo(types, expandingDocument(4));
     const context = {};
@@ -1404,14 +1405,12 @@ describe('fragments that expand at every level', () => {
       },
     });
 
-    const posts = getLoaderMapping(context, pathOf('user', 'posts'), 'U2');
+    // An implementation's resolver falls back to its interfaces, as it does for a plain play.
+    const posts = getLoaderMapping(context, pathOf('user', 'posts'), 'UserI');
 
-    expect(Object.keys(posts!.nested).sort()).toEqual(['P1@author', 'P2@author', 'P3@author']);
-    expect(Object.keys(posts!.nested['P3@author'].nested).sort()).toEqual([
-      'U1@posts',
-      'U2@posts',
-      'U3@posts',
-    ]);
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'U2')).toBeNull();
+    expect(Object.keys(posts!.nested)).toEqual(['PostI@author']);
+    expect(Object.keys(posts!.nested['PostI@author'].nested)).toEqual(['UserI@posts']);
   });
 
   it('gives every invocation its own relation query over the shared walk', async () => {
@@ -1467,13 +1466,19 @@ describe('fragments that expand at every level', () => {
   const postTypes = ['PostI', 'P1', 'P2', 'P3'];
   const authorThroughNode =
     '{ user { ... on Node { ... on UserI { posts { ... on PostI { author { id } } } } } } }';
-  const everyPath = ['UserI', 'U1', 'U2', 'U3'].map((type) => [
+  // The expansion reaches `posts` on U1, U2 and U3 too, but the document names it on UserI.
+  const namedPath = [['Query.user', 'UserI.posts', 'PostI.author']];
+  // Field nodes on each variant: every one is a path of its own.
+  const authorThroughVariants = `{ user { ... on Node { ${['U1', 'U2', 'U3']
+    .map((type) => `... on ${type} { posts { ...Author } }`)
+    .join(' ')} } } } fragment Author on PostI { author { id } }`;
+  const everyVariantPath = ['U1', 'U2', 'U3'].map((type) => [
     'Query.user',
     `${type}.posts`,
     'PostI.author',
   ]);
 
-  it('walks again beneath every type when a select function reads what is above it', async () => {
+  it('hands a select function that reads what is above it the path the document names', async () => {
     const seen: string[][] = [];
     const { types } = linkedSchema();
 
@@ -1487,7 +1492,25 @@ describe('fragments that expand at every level', () => {
 
     queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
 
-    expect(seen).toEqual(everyPath);
+    expect(seen).toEqual(namedPath);
+  });
+
+  it('walks again beneath every path when a select function reads what is above it', async () => {
+    const seen: string[][] = [];
+    const { types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      seen.push(chainOf(position));
+
+      return { select: { author: nested({}) } };
+    });
+
+    const info = await resolveInfo(types, authorThroughVariants);
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    // Once each: the plain and expanding walks reach every variant's `posts` as that variant.
+    expect(seen).toEqual(everyVariantPath);
   });
 
   it('walks again when a select function reads what is above it after an await', async () => {
@@ -1504,11 +1527,11 @@ describe('fragments that expand at every level', () => {
       select: { posts: await nested({}) },
     }));
 
-    const info = await resolveInfo(types, authorThroughNode);
+    const info = await resolveInfo(types, authorThroughVariants);
 
     await Plan.fromInfo(new FakeAdapter(linkedModels), { context: {}, info });
 
-    expect(seen).toEqual(everyPath);
+    expect(seen).toEqual(everyVariantPath);
   });
 
   it('shares a walk whose select functions read only their own link', async () => {
@@ -1521,11 +1544,12 @@ describe('fragments that expand at every level', () => {
       return { select: { author: nested({}) } };
     });
 
-    const info = await resolveInfo(types, expandingDocument(6));
+    // Three paths more per level, each `author` its own: shared, one walk per field node.
+    const info = await resolveInfo(types, namedDocument(6));
 
     queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
 
-    expect(calls).toEqual({ posts: 12, author: 12 });
+    expect(calls).toEqual({ posts: 9, author: 9 });
   });
 
   it('shares a walk whose select functions read the chain through walkParent', async () => {
@@ -1548,14 +1572,14 @@ describe('fragments that expand at every level', () => {
       return { select: { author: nested({}) } };
     });
 
-    const info = await resolveInfo(types, expandingDocument(6));
+    const info = await resolveInfo(types, namedDocument(6));
 
     queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
 
-    // The same field through `parent` is the test above: one chain per invocation.
-    expect(calls).toEqual({ posts: 12, author: 12 });
-    // Each walk is shared, so a chain is the first invocation's: the plain walk's, at every level.
-    expect(seen[0]).toEqual(['Query.user', 'UserI.posts', 'PostI.author']);
+    // Through `parent`, each of the 9 + 81 + 729 paths beneath the first level would be its own.
+    expect(calls).toEqual({ posts: 9, author: 9 });
+    // Each walk is shared, so a chain is the first invocation's at every level.
+    expect(seen[0]).toEqual(['Query.user', 'U1.posts', 'P1.author']);
   });
 
   it('pays for a read of the path only in the walks above the read', async () => {
@@ -1581,7 +1605,7 @@ describe('fragments that expand at every level', () => {
 
     queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
 
-    expect(calls).toEqual({ posts: 24, author: 24 });
+    expect(calls).toEqual({ posts: 6, author: 6 });
   });
 
   it('walks a fragment again under another field, whose position differs', async () => {
@@ -1659,6 +1683,104 @@ describe('fragments that expand at every level', () => {
       select: { id: true, posts: { select: { id: true, title: true } } },
     });
     expect(attempts).toBe(2);
+  });
+
+  describe('select functions that read the path', () => {
+    /** Every chain the fields down to `depth` are reached through in `namedDocument`. */
+    function chainsOf(depth: number, variants: number[], levels: (level: number) => boolean) {
+      const chains: string[][] = [];
+      let above = [['Query.user']];
+
+      for (let level = 1; level <= depth; level += 1) {
+        above = above.flatMap((chain) =>
+          variants.map((n) => [...chain, level % 2 === 1 ? `U${n}.posts` : `P${n}.author`]),
+        );
+
+        if (levels(level)) {
+          chains.push(...above);
+        }
+      }
+
+      return chains.map((chain) => chain.join('/')).sort();
+    }
+
+    /** Plans `document` with `posts` and `author` reading their path, or not. */
+    async function plan(document: string, reads: { select: boolean; query?: boolean }) {
+      const seen: string[] = [];
+      const { types } = linkedSchema();
+      const relation =
+        (name: 'author' | 'posts'): SelectFn<FakeMap> =>
+        (_args, _ctx, nested, _selected, position) => {
+          if (reads.select) {
+            seen.push(chainOf(position).join('/'));
+          }
+
+          return {
+            select: {
+              [name]: nested(
+                reads.query && name === 'posts'
+                  ? (_queryArgs: object, _queryCtx: object, at: Position) => {
+                      seen.push(chainOf(at).join('/'));
+
+                      return {};
+                    }
+                  : {},
+              ),
+            },
+          };
+        };
+
+      selectOn(types, ['UserI', 'U1', 'U2', 'U3'], 'posts', relation('posts'));
+      selectOn(types, postTypes, 'author', relation('author'));
+
+      const context = {};
+      const info = await resolveInfo(types, document);
+      const query = queryFromInfo(new FakeAdapter(linkedModels), { context, info });
+
+      return { seen, query };
+    }
+
+    it.each([
+      [6, [1, 2, 3]],
+      [8, [1, 2, 3]],
+      [8, [1]],
+    ])('runs once per path beneath a named fragment per level, depth %i, variants %j', async (depth, variants) => {
+      const document = namedDocument(depth, ['posts'], variants);
+      const { seen, query } = await plan(document, { select: true });
+
+      // The plain and expanding walks reach every variant's field as that variant, at the same
+      // place, so they share one invocation: one call per distinct path, as without expansions.
+      expect(seen.length).toBe(new Set(seen).size);
+      expect(seen.sort()).toEqual(chainsOf(depth, variants, () => true));
+      expect(query).toEqual((await plan(document, { select: false })).query);
+    });
+
+    it('runs a relation query that reads its path once per path', async () => {
+      const document = namedDocument(8);
+      const { seen, query } = await plan(document, { select: false, query: true });
+
+      expect(seen.length).toBe(2460);
+      expect(seen.sort()).toEqual(chainsOf(8, [1, 2, 3], (level) => level % 2 === 1));
+      expect(query).toEqual((await plan(document, { select: false })).query);
+    });
+
+    it('runs once per level beneath a fragment on the interface inside each expansion', async () => {
+      const document = expandingDocument(8);
+      const { seen, query } = await plan(document, { select: true });
+
+      // U1, U2 and U3 take the invocation made on the interface the document names.
+      expect(seen).toEqual(
+        Array.from({ length: 8 }, (_, index) =>
+          [
+            'Query.user',
+            ...Array.from({ length: index + 1 }, (__, level) =>
+              level % 2 === 0 ? 'UserI.posts' : 'PostI.author',
+            ),
+          ].join('/'),
+        ),
+      );
+      expect(query).toEqual((await plan(document, { select: false })).query);
+    });
   });
 
   describe('a variant only the expansion entered', () => {
