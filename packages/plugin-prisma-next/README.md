@@ -53,7 +53,8 @@ builder.prismaObject('User', {
 });
 ```
 
-A query field returns the Collection without running it:
+A query field, in `builder.queryType({ fields: (t) => ({ ... }) })`, returns the Collection without
+running it:
 
 ```ts
 users: t.prismaField({
