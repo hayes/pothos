@@ -94,3 +94,14 @@ export const UserStats = builder.prismaObject('User', {
   },
   fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
 });
+
+export const resolveUserPage = (
+  rows: Parameters<typeof userPages.resolve>[0],
+  ctx: object,
+  parent: object,
+) => userPages.resolve(rows, {}, ctx, parent);
+
+export const paginateUsers = (collection: Parameters<typeof userPages.applyPagination>[0]) =>
+  userPages.applyPagination(collection, {}, {});
+
+export const userPageEntry = userPages.page;

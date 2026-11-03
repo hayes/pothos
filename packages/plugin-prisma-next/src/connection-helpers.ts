@@ -164,7 +164,13 @@ type PageNode<Node, PageRow, MaybeRow extends boolean> = [Node] extends [never]
     ? Node | PageRow
     : Node;
 
-interface PaginatedCollection<Types extends SchemaTypes, M extends ModelKey<Types>, PageRow, Node> {
+/** What `applyPagination` returns: the paged collection, its count, and `wrap` for its rows. */
+export interface PaginatedCollection<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  PageRow,
+  Node,
+> {
   collection: CollectionFor<Types, M, PageRow>;
   /** The count, run on first read. Undefined when `info` is given and doesn't select it. */
   totalCountPromise: Promise<number> | undefined;

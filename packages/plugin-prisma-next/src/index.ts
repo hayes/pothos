@@ -66,6 +66,7 @@ import { assertVariantTypes } from './utils/variant-types.js';
 export type {
   ConnectionHelperRow,
   HelperRef,
+  PaginatedCollection,
   PrismaConnectionHelperOptions,
   PrismaConnectionHelpers,
 } from './connection-helpers.js';
@@ -124,7 +125,13 @@ export type {
   RelationQuery,
   RelationWhere,
 } from './types/relations.js';
-export type { NodeSelection, PrismaNextSelectSpec, SelectObjectSpec } from './types/selections.js';
+export type {
+  ConnectionPageEntry,
+  NodeSelection,
+  PrismaNextSelectSpec,
+  SelectObjectSpec,
+} from './types/selections.js';
+export type { ConnectionPage } from './utils/cursors.js';
 export { type CollectionFromInfoOptions, collectionFromInfo } from './utils/map-query.js';
 
 const pluginName = 'prismaNext';
