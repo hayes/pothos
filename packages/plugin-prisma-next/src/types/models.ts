@@ -252,9 +252,8 @@ type PlannedReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>> = 
  * What a field returning a type of model `M` may resolve to, given the type's `Shape`: its key and
  * everything its `select` and its interfaces' `select`s load, other than to-many relations and
  * computed values, which the loader reloads. A model without an identity can't be reloaded, so it
- * needs its whole row. Plugins listed before this one, such as scope-auth, read the row before any
- * reload, so it must hold what the type's `select` promises. A row the loader planned for `M` or
- * one of its variants, a `PlannedRow`, also fits.
+ * needs its whole row. A row the loader planned for `M` or one of its variants, a `PlannedRow`,
+ * also fits.
  */
 export type ObjectReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> =
   | BuiltReturnShape<Types, M, Shape>
