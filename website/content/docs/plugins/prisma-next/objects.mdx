@@ -191,6 +191,9 @@ email: t.string({
 }),
 ```
 
+`select`, `query`, `where` and `orderBy` callbacks run once per planned query, not per row, so keep
+them free of side effects.
+
 Type-level checks such as `authScopes` can rely on the key and the columns and to-one relations of
 the type's `select`. Anything else may not be loaded yet, unless the row came from a prisma field,
 relation or connection.

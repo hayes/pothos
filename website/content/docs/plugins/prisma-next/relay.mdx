@@ -55,8 +55,9 @@ builder.prismaNode('Post', {
 `node` and `nodes` return `null` for rows the filter excludes. Only filter the collection; don't
 call `limit()`, `offset()`, `cursor()` or `include()` on it.
 
-`collection` only applies to `node` and `nodes`, so it isn't access control. Rows reached through
-relations, connections or prisma fields don't pass through it. Use auth checks on the type instead.
+`collection` only applies to `node` and `nodes`; rows reached through relations and other fields
+don't pass through it. Neither it nor a function `client` is access control, so restrict rows with
+auth checks on the type.
 
 ## Several node types for one model
 

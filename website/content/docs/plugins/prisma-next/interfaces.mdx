@@ -50,7 +50,8 @@ also load each implementation's type-level `select`.
 
 To return a row through `Node` or an interface from `builder.interfaceRef()`, brand it with the
 type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
-`Abstract type ... must resolve`.
+`Abstract type ... must resolve`. Routing a row by hand with `__typename` or a `resolveType` that
+returns a type name skips `addBrand`'s check that the row has the type's key and `select`.
 
 Add fields with `prismaInterfaceField` or `prismaInterfaceFields`:
 
