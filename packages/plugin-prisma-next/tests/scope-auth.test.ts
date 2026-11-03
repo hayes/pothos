@@ -1301,12 +1301,9 @@ describe('rows another field filtered', () => {
   ];
 
   describe.each(orders)('scope auth %s the prisma plugin', (_name, plugins) => {
-    // With scope auth listed first, the check may see `posts` unloaded: a to-many relation in a
-    // type's select isn't part of what a returned row must hold, which is a known limit. It never
-    // sees the rows another field filtered.
-    it.each(
-      queries,
-    )('hides them from a type-level select, which may see the to-many relation unloaded, with %s', async (_label, source) => {
+    // A returned row needn't hold the to-many relations of its type's select, so the check sees
+    // the row reloaded with them, never the rows another field filtered.
+    it.each(queries)('hides them from a type-level select, with %s', async (_label, source) => {
       const seen: unknown[] = [];
       const builder = auditBuilder(plugins);
       builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
@@ -1314,7 +1311,7 @@ describe('rows another field filtered', () => {
         variant: 'Audited',
         select: { posts: true },
         authScopes: (user) => {
-          seen.push(user.posts?.map((post) => post.id));
+          seen.push(user.posts.map((post) => post.id).sort());
           return true;
         },
         fields: (t) => ({
@@ -1341,10 +1338,7 @@ describe('rows another field filtered', () => {
       expect(result.data.users).toMatchObject([
         { drafts: [{ id: 'p-draft1' }], audited: { id: 'u-alice' } },
       ]);
-      for (const ids of seen) {
-        expect(ids === undefined || (ids as string[]).length === 2).toBe(true);
-      }
-      expect(seen.length).toBeGreaterThan(0);
+      expect(seen).toEqual([['p-draft1', 'p-hello']]);
     });
 
     it('hides them from a resolveType', async () => {
