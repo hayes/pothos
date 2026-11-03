@@ -60,6 +60,22 @@ export function sharedVariantRelationError(
   );
 }
 
+/**
+ * The error for a `select` whose rows of `name` the caller reads: the relation targets a variant
+ * model with a table of its own, whose rows load without the base's columns. A `PothosSchemaError`
+ * when the schema is built, and an `Error` for a `select` planned for a request.
+ */
+export function ownTableVariantRowsError(
+  owner: string,
+  name: string,
+  relation: PrismaNextRelation,
+  ErrorClass: new (message: string) => Error = PothosSchemaError,
+) {
+  return new ErrorClass(
+    `The select of ${owner} loads the rows of relation '${name}', which targets variant model '${relation.targetModel}' with a table of its own. Its rows load through '${relation.targetModel}', which can't read the columns it inherits. Load them with t.relation('${name}') or t.relatedConnection('${name}') instead.`,
+  );
+}
+
 function buildColumnSet(contract: AnyContract, modelKey: string): ReadonlySet<string> {
   const fields = resolveContractModel(contract, modelKey)?.fields ?? {};
   // A base collection also selects its variants' columns, so they count as the model's columns

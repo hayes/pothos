@@ -704,7 +704,8 @@ function completeVariantRows<T>(
   }
   const list = (Array.isArray(rows) ? rows : [rows]) as Record<string, unknown>[];
   const completed = config.loader(context, relation.targetModel).completeRows(list, dropped);
-  // A row the base model narrowed to the variant doesn't have isn't of the variant.
+  // A row the base model narrowed to the variant doesn't have isn't of the variant. Only rows that
+  // complete are checked, so without a completion such a row stays, and its fields fail to reload.
   return completed
     ? completed.then((found) => (Array.isArray(rows) ? found : (found[0] ?? null)) as T)
     : rows;

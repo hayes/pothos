@@ -1328,6 +1328,62 @@ describe('a relation targeting a variant model with a table of its own', () => {
     expect(result.statements).toHaveLength(4);
   });
 
+  function selectBuilder() {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const feature = builder.prismaObject('Feature', {
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        notes: t.prismaField({
+          type: ['Note'],
+          resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
+        }),
+      }),
+    });
+    return { builder, feature };
+  }
+  const rowsError =
+    "loads the rows of relation 'feature', which targets variant model 'Feature' with a table of its own. Its rows load through 'Feature', which can't read the columns it inherits. Load them with t.relation('feature') or t.relatedConnection('feature') instead.";
+
+  it("rejects a type's select that loads its rows when the schema is built", () => {
+    const { builder } = selectBuilder();
+    builder.prismaObject('Note', {
+      select: { feature: true },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    expect(() => builder.toSchema()).toThrow(`The select of type 'Note' ${rowsError}`);
+  });
+
+  it("rejects a field's select that reads its rows, and plans one returning them", async () => {
+    const { builder, feature } = selectBuilder();
+    builder.prismaObject('Note', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        featureTitle: t.string({
+          nullable: true,
+          select: { feature: true },
+          resolve: (note) => note.feature?.title,
+        }),
+        selected: t.field({
+          type: feature,
+          nullable: true,
+          select: { feature: true },
+          resolve: (note) => note.feature,
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const read = await run(schema, '{ notes { featureTitle } }');
+    expect(read.errors?.[0]?.message).toBe(`The select of field 'featureTitle' ${rowsError}`);
+    const planned = await run(schema, '{ notes { selected { title } } }');
+    expect(planned.errors).toBeUndefined();
+    expect(planned.data.notes).toEqual([{ selected: null }, { selected: { title: 'feat1' } }]);
+  });
+
   // A feature row for the bug t1, which `orm.Feature` reads but Task narrowed to Feature doesn't.
   const strayDb = useDatabase(
     contract,
