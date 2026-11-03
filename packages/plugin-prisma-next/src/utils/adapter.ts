@@ -356,7 +356,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     ctx: object,
     reloading = false,
   ): MapperCollection {
-    const [result, record] = this.emitLevel(collection, selection, model, ctx, reloading);
+    const [result, record] = this.emitLevel(collection, selection, model, ctx, reloading, {
+      next: 0,
+    });
     this.records.set(result, record);
     return result;
   }
@@ -372,6 +374,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     model: PrismaNextModel,
     ctx: object,
     reloading: boolean,
+    branches: BranchNames,
   ): [MapperCollection, IncludeRecord] {
     let result = selection.columns?.length ? collection.select(...selection.columns) : collection;
     const record: Record<string, IncludedRelation> = {};
@@ -398,7 +401,14 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       const relation = relationOf(model, name);
       // The ORM builds the include while `include` runs, so the record is complete when it returns.
       result = result.include(name, (rel) => {
-        const [included, recorded] = this.emitRelation(rel, relation, entry, ctx, reloading);
+        const [included, recorded] = this.emitRelation(
+          rel,
+          relation,
+          entry,
+          ctx,
+          reloading,
+          branches,
+        );
         record[name] = recorded;
         return included;
       });
@@ -412,6 +422,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     { rows, computed }: RelationConsumers,
     ctx: object,
     reloading: boolean,
+    branches: BranchNames,
   ): [MapperCollection, IncludedRelation] {
     const target = relation.targetVariantModel;
     // The ORM reads a single-table variant's rows through the base table without filtering them.
@@ -425,7 +436,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       const narrowed =
         narrowing && !narrowing.throughVariantModel ? base.variant(narrowing.value) : base;
       const refined = selection.args?.[REFINE]?.(narrowed) ?? narrowed;
-      return this.emitLevel(refined, selection, relation.target, ctx, false);
+      return this.emitLevel(refined, selection, relation.target, ctx, false, branches);
     };
     if (!relation.isToMany) {
       return this.emitToOne(relation.target, rows, load, reloading);
@@ -439,7 +450,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
         return [included, { nested }];
       }
       const key = rows.map(([scope]) => scope).join(SCOPE_SEPARATOR);
-      return [base.combine({ [key]: included }), { slots: { [key]: nested } }];
+      return this.combine(base, { [key]: included }, { [key]: nested }, branches);
     }
     const slots: Record<string, unknown> = {};
     const nested: Record<string, IncludeRecord> = {};
@@ -452,7 +463,31 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
         slots[`${scopes.join(SCOPE_SEPARATOR)}${KEY_SEPARATOR}${key}`] = values[key];
       }
     }
-    return [base.combine(slots), { slots: nested }];
+    return this.combine(base, slots, nested, branches);
+  }
+
+  /**
+   * Loads `slots` through `combine()`, each under a short name of its own in the statement: a
+   * number, then the last field of its key. The ORM aliases a branch by its name, cut to 63 bytes,
+   * and renames the ones that then collide one at a time. Slot keys spell out the fields above
+   * them, so beneath a deep document they would share their first 63 bytes, and naming them would
+   * cost time quadratic in their number.
+   */
+  private combine(
+    base: MapperCollection,
+    slots: Record<string, unknown>,
+    nested: Record<string, IncludeRecord>,
+    branches: BranchNames,
+  ): [MapperCollection, IncludedRelation] {
+    const named: Record<string, unknown> = {};
+    const names: Record<string, string> = {};
+    for (const key of Object.keys(slots)) {
+      const name = `${branches.next}/${key.slice(key.lastIndexOf('/') + 1)}`;
+      branches.next += 1;
+      named[name] = slots[key];
+      names[name] = key;
+    }
+    return [base.combine(named), { slots: nested, names }];
   }
 
   /**
@@ -504,6 +539,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     }
     return this.toQuery(node);
   }
+}
+
+/** Numbers the `combine()` branches of one statement. */
+interface BranchNames {
+  next: number;
 }
 
 /**

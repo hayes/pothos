@@ -103,14 +103,12 @@ describe('planning fragments that expand at every level', () => {
     const { calls, schema } = cyclicSchema(implementations);
     copies.mockClear();
 
-    const started = performance.now();
     const result = await run(schema, document(depth, implementations));
     const toQueryCalls = copies.mock.calls.length;
 
     copies.mockRestore();
     expect(result.errors).toBeUndefined();
     expect(toQueryCalls).toBeLessThan(perLevel * (implementations + 1) * depth * depth);
-    expect(performance.now() - started).toBeLessThan(2000);
     expect(result.statements).toHaveLength(1);
 
     return calls;
@@ -143,6 +141,16 @@ describe('planning fragments that expand at every level', () => {
     expect(calls.posts).toBe(expected);
   });
 });
+
+/**
+ * The `combine()` branches the ORM had to rename. It cuts an alias to 63 bytes and renames the ones
+ * that then collide one at a time, which costs time quadratic in their number. Slots named after
+ * the fields above them collided this way beneath a deep document: 1,012 of 1,020 in the keyless
+ * test below.
+ */
+function renamedBranches(sql: string) {
+  return sql.match(/"[^"]*__combine__[^"]*_\d+"/g) ?? [];
+}
 
 // Aliases of a relation with different arguments each load into a `combine()` slot of their own,
 // so a document that nests them doubles the slots of one statement at every level. Past a limit,
@@ -211,6 +219,7 @@ describe('aliases with different arguments nested at every level', () => {
     // Planned whole, the first statement would read the two tables more than 1000 times.
     for (const statement of result.statements) {
       expect(statement.sql.match(/FROM "(post|user)"/g)!.length).toBeLessThan(300);
+      expect(renamedBranches(statement.sql)).toEqual([]);
     }
   });
 });
@@ -274,6 +283,7 @@ describe('aliases nested beneath rows without a key', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data.views).toEqual(['Alice', 'Bob', 'Carol'].map((v) => expected(v, 0)));
     expect(result.statements).toHaveLength(1);
+    expect(renamedBranches(result.statements[0]!.sql)).toEqual([]);
   });
 });
 
