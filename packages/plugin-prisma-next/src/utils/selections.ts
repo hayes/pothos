@@ -296,74 +296,6 @@ const PLAIN: RowSlots = Object.freeze({
 /** The slots of each row `takeSlots` returned, and of each projection of one. */
 const rowSlots = new WeakMap<object, RowSlots>();
 
-/** A relation value a row `takeSlots` returned holds, with the row and the key it holds it under. */
-interface LoadedValue {
-  row: Row;
-  name: string;
-  identity: readonly string[];
-}
-
-/** The relation values of each row `takeSlots` returned, by the value. */
-const loadedValues = new WeakMap<object, LoadedValue>();
-
-/** Where `value`'s slots come from. */
-interface Found {
-  entry: RowSlots;
-  /** The row or projection whose values `value` holds. */
-  origin: object;
-  /** Whether `value` is a shallow copy another plugin made of `origin`. */
-  copy: boolean;
-}
-
-/**
- * The slots of `value`: its own, or those of the row it is a shallow copy of. Nothing is added to
- * a row, so a copy is recognized by a relation value it holds by reference under the key the row
- * holds it under, and by its key columns, which must match the row's. A copy holding no relation
- * value is not recognized, and its fields reload.
- */
-function lookup(value: object): Found | undefined {
-  const own = rowSlots.get(value);
-  if (own) {
-    return { entry: own, origin: value, copy: false };
-  }
-  const projected = copyProjectionSources.get(value);
-  if (projected) {
-    return projected;
-  }
-  for (const [key, held] of Object.entries(value)) {
-    const loaded = held && typeof held === 'object' ? loadedValues.get(held) : undefined;
-    if (loaded && loaded.name === key && loaded.row[key] === held && sameKey(value, loaded)) {
-      return { entry: rowSlots.get(loaded.row)!, origin: loaded.row, copy: true };
-    }
-  }
-  return undefined;
-}
-
-/** Whether `value` has the key columns of `row`, or its columns for a model without a key. */
-function sameKey(value: object, { row, identity }: LoadedValue) {
-  const columns = identity.length
-    ? identity
-    : Object.keys(row).filter((column) => {
-        const held = row[column];
-        return held === null || typeof held !== 'object';
-      });
-  return columns.every((column) => (value as Row)[column] === row[column]);
-}
-
-function slotsOf(value: object): RowSlots | undefined {
-  return lookup(value)?.entry;
-}
-
-/** Records the relation values `row` holds, by which a shallow copy of it is recognized. */
-function registerValues(row: Row, model: PrismaNextModel) {
-  for (const name in model.relations) {
-    const held = row[name];
-    if (held && typeof held === 'object') {
-      loadedValues.set(held, { row, name, identity: model.identity });
-    }
-  }
-}
-
 /**
  * Takes the slots off the rows a statement returned, reading them by what `emit` included
  * (`record`). A to-many relation loaded through `combine()` comes back as an object with one slot
@@ -459,7 +391,6 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
   if (!slots && !toOne) {
     const next = nested ? Object.assign(copyOf(row), nested) : row;
     rowSlots.set(next, PLAIN);
-    registerValues(next, model);
     return next;
   }
   const next = copyOf(row);
@@ -480,7 +411,6 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
     lift(next, entry, typeScopes);
   }
   rowSlots.set(next, entry);
-  registerValues(next, model);
   return next;
 }
 
@@ -512,40 +442,29 @@ function disagree(slots: RowSlots['slots'], scopes: readonly string[]) {
  * Writes the rows and computed values that `scopes` loaded onto `target`. Later scopes win. A
  * connection's count stays in its slot, and a page counted without rows has none. A filtered
  * to-one relation left out of the statement is removed, so no reader takes another version of it
- * for its own. Only keys `writable` allows are written.
+ * for its own.
  */
-function lift(
-  target: Row,
-  { slots, toOne }: RowSlots,
-  scopes: readonly string[],
-  writable: (key: string) => boolean = () => true,
-) {
-  const write = (key: string, value: unknown) => {
-    if (writable(key)) {
-      if (value === undefined) {
-        delete target[key];
-      } else {
-        target[key] = value;
-      }
-    }
-  };
+function lift(target: Row, { slots, toOne }: RowSlots, scopes: readonly string[]) {
   for (const scope of scopes) {
     for (const name of Object.keys(slots)) {
       const { rows, values } = slots[name]!;
       const { [COUNT_SLOT]: count, ...computed } = values.get(scope) ?? {};
       if (rows.has(scope)) {
-        write(name, rows.get(scope));
+        target[name] = rows.get(scope);
       } else if (count !== undefined) {
-        write(name, []);
+        target[name] = [];
       }
-      for (const key of Object.keys(computed)) {
-        write(key, computed[key]);
-      }
+      Object.assign(target, computed);
     }
     for (const name of Object.keys(toOne)) {
       const own = toOne[name]!;
       if (own.has(scope)) {
-        write(name, own.get(scope));
+        const value = own.get(scope);
+        if (value === undefined) {
+          delete target[name];
+        } else {
+          target[name] = value;
+        }
       }
     }
   }
@@ -553,7 +472,7 @@ function lift(
 
 /** Whether the statement that returned `row` loaded to-many relation `name` into slots. */
 export function loadedSlots(row: object, name: string) {
-  return !!slotsOf(row)?.slots[name];
+  return !!rowSlots.get(row)?.slots[name];
 }
 
 /**
@@ -561,7 +480,7 @@ export function loadedSlots(row: object, name: string) {
  * statement that loaded `row`, because another load of the relation took its include.
  */
 export function leftOut(row: object, position: Position | undefined) {
-  const entry = slotsOf(row);
+  const entry = rowSlots.get(row);
   if (!entry || !position) {
     return false;
   }
@@ -569,10 +488,9 @@ export function leftOut(row: object, position: Position | undefined) {
   return Object.values(entry.toOne).some((own) => own.has(scope) && own.get(scope) === undefined);
 }
 
-/** The row `takeSlots` returned that `value` is, is a projection of, or is a shallow copy of. */
+/** The row `takeSlots` returned that `value` is, or is a projection of. */
 export function rowOf(value: object): object {
-  const found = lookup(value);
-  return found ? (found.entry.row ?? found.origin) : value;
+  return rowSlots.get(value)?.row ?? value;
 }
 
 /** A copy of `base` with what `scopes` loaded written onto it, cached per row and scopes. */
@@ -590,64 +508,20 @@ function projection(entry: RowSlots, base: object, scopes: readonly string[]) {
   return projected;
 }
 
-/** The projections made of each shallow copy, keyed by the scopes they write onto it. */
-const copyProjections = new WeakMap<object, Map<string, object>>();
-/** Where the slots of each projection of a shallow copy come from. */
-const copyProjectionSources = new WeakMap<object, Found>();
-
-/**
- * A copy of `copy`, a shallow copy another plugin made of `origin`, with what `scopes` loaded
- * written onto it, cached per copy and scopes. A key the plugin set, changed or removed keeps the
- * plugin's value.
- */
-function projectionOfCopy(
-  entry: RowSlots,
-  copy: object,
-  origin: object,
-  scopes: readonly string[],
-) {
-  const key = scopes.join(SCOPE_SEPARATOR);
-  let projections = copyProjections.get(copy);
-  if (!projections) {
-    projections = new Map();
-    copyProjections.set(copy, projections);
-  }
-  let projected = projections.get(key);
-  if (!projected) {
-    const target = copyOf(copy);
-    lift(
-      target,
-      entry,
-      scopes,
-      (name) => name in copy === name in origin && (copy as Row)[name] === (origin as Row)[name],
-    );
-    projections.set(key, target);
-    copyProjectionSources.set(target, { entry, origin, copy: true });
-    projected = target;
-  }
-  return projected;
-}
-
 /**
  * The parent the readers of a type see, whose type-level selects are `scopes`, the declaring type
  * last: the row itself, unless type-level selects disagree about what they loaded. Then it is a
  * projection with the rows and values `scopes` loaded, cached so per-row caches such as
- * scope-auth's see one object. A shallow copy another plugin made of a row stays that copy.
+ * scope-auth's see one object.
  */
 export function parentForType(value: object, scopes: readonly string[]): object {
-  const found = lookup(value);
-  if (!found) {
-    return value;
-  }
-  const { entry, copy } = found;
-  const row = copy ? value : (entry.row ?? value);
-  const present = entry.conflict ? scopes.filter((scope) => entry.scopes.has(scope)) : [];
-  if (!present.length) {
+  const entry = rowSlots.get(value);
+  const row = entry?.row ?? value;
+  if (!entry?.conflict) {
     return row;
   }
-  return copy
-    ? projectionOfCopy(entry, value, found.origin, present)
-    : projection(entry, row, present);
+  const present = scopes.filter((scope) => entry.scopes.has(scope));
+  return present.length ? projection(entry, row, present) : row;
 }
 
 /** The position each parent `parentForField` returned a copy for was planned at. */
@@ -663,16 +537,13 @@ export function parentForField(
   position: Position | undefined,
 ) {
   const base = parentForType(value, scopes);
-  const found = lookup(value);
+  const entry = rowSlots.get(value);
   const scope = position && scopeOf(position);
-  if (!found || scope === undefined || !found.entry.scopes.has(scope)) {
+  if (!entry || scope === undefined || !entry.scopes.has(scope)) {
     return base;
   }
-  const { entry } = found;
   const present = entry.conflict ? scopes.filter((type) => entry.scopes.has(type)) : [];
-  const parent = found.copy
-    ? projectionOfCopy(entry, value, found.origin, [...present, scope])
-    : projection(entry, base, [...present, scope]);
+  const parent = projection(entry, base, [...present, scope]);
   fieldParents.set(parent, position!);
   return parent;
 }
@@ -689,7 +560,7 @@ export function slotsOfFieldParent(parent: object): FieldSlots | undefined {
  * row the field had, which holds the declared relation.
  */
 export function refineKeptToOne(parent: object, value: unknown, scope: string | undefined): object {
-  const entry = slotsOf(parent);
+  const entry = rowSlots.get(parent);
   if (!entry?.row) {
     rowSlots.set(parent, {
       row: parent as Row,
@@ -720,20 +591,14 @@ export interface FieldSlots {
 
 /**
  * The slots a field helper planned at `position` reads on `parent`. Undefined when `parent` is not
- * a row `takeSlots` returned, a projection of one, or a shallow copy of either: another plugin
- * replaced it, and the helper reloads it.
+ * a row `takeSlots` returned or a projection of one: another plugin replaced it, and the helper
+ * reloads it.
  */
 export function fieldSlots(parent: object, position: Position | undefined): FieldSlots | undefined {
-  const found = lookup(parent);
-  if (!found) {
+  const entry = rowSlots.get(parent);
+  if (!entry) {
     return undefined;
   }
-  const { entry, origin, copy } = found;
-  // A copy's value is the loaded one only while it is the row's. Another one reloads.
-  const held = (name: string) => {
-    const value = (parent as Row)[name];
-    return !copy || value === (origin as Row)[name] ? value : undefined;
-  };
   const scope = position && scopeOf(position);
   const values = (name: string) =>
     scope === undefined ? undefined : entry.slots[name]?.values.get(scope);
@@ -748,7 +613,7 @@ export function fieldSlots(parent: object, position: Position | undefined): Fiel
         return entry.refined.get(scope);
       }
       const toOne = entry.toOne[name];
-      return scope !== undefined && toOne?.has(scope) ? toOne.get(scope) : held(name);
+      return scope !== undefined && toOne?.has(scope) ? toOne.get(scope) : (parent as Row)[name];
     },
     value: (name, key) => values(name)?.[key],
   };

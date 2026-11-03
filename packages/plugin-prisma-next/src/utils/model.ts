@@ -37,8 +37,6 @@ export interface PrismaNextModel {
    */
   readonly sharedVariantRelations: ReadonlySet<string>;
   readonly columns: ReadonlySet<string>;
-  /** The columns of the model's first identity, empty for a model without one. */
-  readonly identity: readonly string[];
 }
 
 /**
@@ -153,18 +151,12 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
   if (!model) {
     const relations: Record<string, PrismaNextRelation> = {};
     const sharedVariantRelations = new Set<string>();
-    let identity: string[] | undefined;
 
     model = {
       key: root,
       relations,
       sharedVariantRelations,
       columns: buildColumnSet(contract, root),
-      // Read when rows load, since a contract a schema is built from may not resolve identities.
-      get identity() {
-        identity ??= getIdentityFields(contract, root);
-        return identity;
-      },
     };
     // Registered before its relations resolve, so a cycle finds it.
     models.set(root, model);

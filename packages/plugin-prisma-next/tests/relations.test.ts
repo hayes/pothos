@@ -862,7 +862,8 @@ describe('plugins that wrap resolvers', () => {
 
 describe('plugins that pass resolvers a shallow copy of the parent', () => {
   // Hands the resolvers of User and Post fields `{ ...parent }`, before or after prismaNext's
-  // wrapper. For the aliases `context.dropHello` lists, the copy's `posts` lacks 'p-hello'. With
+  // wrapper. With `context.copyPosts`, the copy's `posts` is a new list. For the aliases
+  // `context.dropHello` lists, the copy's `posts` lacks 'p-hello'. With
   // `context.published`, `User.posts` gets a parent built by hand around another field's list.
   class CopyParentPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override wrapResolve(
@@ -878,6 +879,9 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
           dropHello?: string[];
           published?: Map<unknown, unknown>;
         };
+        if ((context as { copyPosts?: boolean }).copyPosts && Array.isArray(copy.posts)) {
+          copy.posts = [...copy.posts];
+        }
         if (dropHello?.includes(info.path.key as string) && Array.isArray(copy.posts)) {
           copy.posts = copy.posts.filter((post: { id: string }) => post.id !== 'p-hello');
         }
@@ -956,32 +960,46 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
     return builder.toSchema();
   }
 
-  // Each row holds a relation it loaded whole, by which its copies are recognized.
+  // A copy is a parent the plugin didn't load, so the fields that read its slots reload it. The
+  // counts are those of 6aeb30660, before copies were recognized.
   it.each([
-    '{ users { posts { id } } }',
-    '{ users { posts { author { id } } } }',
-    '{ users { posts { author { posts { author { posts { id } } } } } } }',
-    '{ users { posts { comments { id } alice { id } } } }',
-    '{ users { comments { id } published { id comments { id } alice { id } } postCount titles } }',
-  ])('reads the slots of a copied parent without reloading it: %s', async (query) => {
+    ['{ users { posts { id } } }', 2, 2],
+    ['{ users { posts { author { id } } } }', 3, 3],
+    ['{ users { posts { author { posts { author { posts { id } } } } } } }', 6, 6],
+    ['{ users { posts { comments { id } alice { id } } } }', 3, 3],
+    [
+      '{ users { comments { id } published { id comments { id } alice { id } } postCount titles } }',
+      3,
+      3,
+    ],
+    ['{ users { published { id } postCount titles } }', 2, 2],
+  ] as const)('resolves a copied parent as the row: %s', async (query, before, after) => {
     const expected = await run(schema('none'), query);
     expect(expected.errors).toBeUndefined();
     expect(expected.statements).toHaveLength(1);
-    for (const position of ['before', 'after'] as const) {
+    for (const [position, count] of [
+      ['before', before],
+      ['after', after],
+    ] as const) {
       const result = await run(schema(position), query);
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual(expected.data);
-      expect(result.statements).toHaveLength(1);
+      expect(result.statements).toHaveLength(count);
     }
   });
 
-  it('reloads a copied parent that holds no relation it loaded whole', async () => {
-    const query = '{ users { published { id } postCount titles } }';
-    const expected = await run(schema('none'), query);
-    for (const position of ['before', 'after'] as const) {
-      const result = await run(schema(position), query);
-      expect(result.errors).toBeUndefined();
-      expect(result.data).toEqual(expected.data);
+  it('reloads a parent whose relation a plugin replaced with a new list', async () => {
+    for (const query of [
+      '{ users { comments { id } posts { id } } }',
+      '{ users { posts { id } } }',
+      '{ users { comments { id } posts { id } published { id } postCount } }',
+    ]) {
+      const expected = await run(schema('none'), query);
+      for (const position of ['before', 'after'] as const) {
+        const result = await run(schema(position), query, { context: { copyPosts: true } });
+        expect(result.errors).toBeUndefined();
+        expect(result.data).toEqual(expected.data);
+      }
     }
   });
 
