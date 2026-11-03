@@ -74,7 +74,8 @@ authorName: t.string({
 ```
 
 A field's `select` can also be a function of its arguments and context. With `AsyncSelections: true`
-in the builder's types, it can be async. A column that only some branches select is optional on the parent:
+in the builder's types, it can be async. A column that only some branches select is optional on the
+parent:
 
 ```ts
 email: t.string({
@@ -138,10 +139,9 @@ builder.mutationType({
 
 See [Transactions](./setup#transactions) to run the write and the reads in one transaction.
 
-To load the result in the write itself, use `collectionFromInfo`. It adds what the query selects to
-the Collection, so writes that return the row, such as `update` and `delete`, return everything the
-query needs. Pass `path: ['user']` when the resolver returns a payload containing a `user` field.
-For an interface or union, pass `typeName` to pick the type:
+To load the result in the write itself, use `collectionFromInfo`. Writes that return the row, such
+as `update`, then return what the query selects. Pass `path: ['user']` when the resolver returns a
+payload containing a `user` field. For an interface or union, pass `typeName` to pick the type:
 
 ```ts
 import { collectionFromInfo } from '@pothos/plugin-prisma-next';

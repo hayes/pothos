@@ -41,18 +41,16 @@ aggregates or expressions. Nullable columns sort nulls last unless you set `null
 orderBy: { score: { direction: 'desc', nulls: 'first' } },
 ```
 
-The plugin adds the primary key (or the first non-null unique key) to the end of the order, so pages
-are stable. On
-PostgreSQL, index the order columns with matching null placement, such as
-`CREATE INDEX ON post (score DESC NULLS LAST, id DESC)` for `{ score: 'desc' }`.
+The primary key is added to the end of the order. On PostgreSQL, index the order columns with
+matching null placement, such as `CREATE INDEX ON post (score DESC NULLS LAST, id DESC)` for `{
+score: 'desc' }`.
 
 The function form chooses the order per request:
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ posts(first: 2, newestFirst: true) { totalCount edges { node { title } } pageInfo { endCursor hasNextPage } } }"'>playground-examples/plugin-prisma-next/queries.ts#posts-query</include>
 
-A cursor holds the values of the order columns in base64, so clients can read them. Don't order by
-columns clients shouldn't see. A cursor only works with the order it came from, and fails with
-`Invalid cursor` otherwise.
+Cursors contain the values of the order columns, readable by clients, so don't order by columns
+clients shouldn't see.
 
 - Bytes columns can't be ordered.
 - On PostgreSQL, a timestamp read as a JavaScript `Date` keeps only milliseconds, so ordering by
@@ -63,13 +61,11 @@ columns clients shouldn't see. A cursor only works with the order it came from, 
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ users { fullName postConnection(first: 1) { totalCount edges { node { title } } pageInfo { endCursor hasNextPage } } } }"'>playground-examples/plugin-prisma-next/types/user.ts#user-post-connection</include>
 
-The page loads with the parent query. It takes the same options as `t.prismaConnection`, and
-filters with `query`: `{ where }` or `(args, ctx) => ({ where })`. `totalCount` counts the rows
-matching `query.where`, unless
-[`filterConnectionTotalCount`](./setup#plugin-options) is `false`.
+`t.relatedConnection` takes the same options as `t.prismaConnection`, and filters with `query`: `{
+where }` or `(args, ctx) => ({ where })`. `totalCount` counts the rows matching `query.where`,
+unless [`filterConnectionTotalCount`](./setup#plugin-options) is `false`.
 
-The database pages each parent's rows separately, so index the foreign key together with the order
-columns.
+Index the foreign key together with the order columns.
 
 ## Connection helpers
 
@@ -104,8 +100,8 @@ builder.prismaObjectField('Post', 'commenters', (t) =>
 );
 ```
 
-`commenters.page` loads one page of comments, and their count, with the post. Pass
-`commenters.resolve` the post the resolver received, not a copy, because the count is stored on it.
+`commenters.page` loads one page of comments with the post, and `commenters.resolve` builds the
+connection from them.
 
 ### Paging a collection
 

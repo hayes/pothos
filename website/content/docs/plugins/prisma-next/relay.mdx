@@ -35,8 +35,6 @@ builder.prismaNode('Comment', {
 });
 ```
 
-`node` and `nodes` lookups of one type are batched into one query.
-
 On PostgreSQL, a timestamp ID column read as a JavaScript `Date` must have a precision of 3 or
 less (bare `DateTime` is fine). Use `TimestamptzTemporal` for finer timestamps.
 
@@ -62,8 +60,7 @@ rows with auth checks on the type.
 ## Several node types for one model
 
 Each node type has its own global IDs. When one field can return more than one of these types,
-return a
-[`prismaInterface`](./interfaces) with a `resolveType`, or brand each row with its type's
+return a [`prismaInterface`](./interfaces) with a `resolveType`, or brand each row with its type's
 `addBrand`:
 
 ```ts

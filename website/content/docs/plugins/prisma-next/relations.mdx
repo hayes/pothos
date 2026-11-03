@@ -23,9 +23,6 @@ builder.prismaObject('Post', {
 });
 ```
 
-The plugin loads relations with `.include()` on the parent's Collection, so
-`{ me { posts { author { id } } } }` runs as one Collection call.
-
 To-many relations are non-null lists. A to-one relation is non-null when its foreign key is
 non-null, unless it has a `query` or a variant `type`, either of which can filter the row out. Pass
 `nullable` to override.
@@ -73,8 +70,8 @@ builder.prismaObject('User', {
 ```
 
 `where` takes the same values as a relation's `query.where`, or a function of the arguments and
-context returning one. A count is always a non-null `Int`, so an auth check that denies it nulls the parent. To hide a
-count from some users, use a nullable field with a `select`, as below.
+context returning one. A count is always a non-null `Int`, so an auth check that denies it nulls the
+parent. To hide a count from some users, use a nullable field with a `select`, as below.
 
 For other aggregates, give a field a `select` function. It receives the relation's Collection. Each
 key it returns is added to the parent row, and must be a literal string:
@@ -104,12 +101,8 @@ builder.prismaObject('User', {
 Relations defined with `rel.manyToMany({ through, from, to })` work with `t.relation`. To expose
 columns on the junction, model it as its own model and use two relations.
 
-## Loading without a parent query
+## Returning rows from other fields
 
-When a plain `t.field` returns a row, the row must include its primary key and the columns and
-to-one relations in the type's `select`. The plugin loads anything else the query needs in a
-separate, batched query. `typeof User.$inferType` is the type of such a row.
-
-That query finds the row by its primary key. For a model without one, it uses the first non-null
-unique key, and a plain `t.field` must return the whole row. A model with neither can only be loaded
-through a prisma field, relation or connection.
+A plain `t.field` that returns a model's type must return the primary key and the columns and
+to-one relations in the type's `select`. `typeof User.$inferType` is that row type. For a model
+without a primary key, return the whole row.

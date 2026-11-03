@@ -45,13 +45,13 @@ builder.queryFields((t) => ({
 `t.prismaField`, `t.prismaConnection`, `t.relation` and `t.relatedConnection` all accept an
 interface ref as `type`. Objects don't take `isTypeOf`.
 
-Fields on an implementing type can read the interface's `select`. Rows loaded through the interface
-also load each implementing type's `select`.
+Fields on an implementing type can read the interface's `select`.
 
 To return a row through `Node` or an interface from `builder.interfaceRef()`, brand it with the
 type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
-`Abstract type ... must resolve`. If you route a row yourself, with a `__typename` or a `resolveType` that returns a type name,
-TypeScript doesn't check that the row has the type's key and `select`.
+`Abstract type ... must resolve`. If you route a row yourself, with a `__typename` or a
+`resolveType` that returns a type name, TypeScript doesn't check that the row has the type's key and
+`select`.
 
 Add fields with `prismaInterfaceField` or `prismaInterfaceFields`:
 
@@ -104,7 +104,6 @@ builder.queryType({
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
 - A relation declared on a variant can't be in the variant type's `select`. Use a field's `select`
   or `t.relation`.
-- A relation name declared by more than one variant can't be loaded.
 - Pass a variant's ref as `type` to `t.relation` or `t.relatedConnection` to return only that
   variant's rows.
 - A row returned from a plain `t.field` needs the interface's `select` and the discriminator.
