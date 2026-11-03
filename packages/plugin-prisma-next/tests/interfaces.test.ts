@@ -599,8 +599,8 @@ describe('inherited selections', () => {
     builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
     expect(() => builder.toSchema()).toThrow(
       "'Counted' and 'User' both select relation 'posts' with the same function. Its values " +
-        'would be computed twice under the same names. Select it in the interface only; the ' +
-        'type inherits it.',
+        'would be computed twice under the same names. Select it in one interface only; ' +
+        'the types that implement it inherit it.',
     );
   });
 

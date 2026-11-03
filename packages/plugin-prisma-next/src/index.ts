@@ -327,7 +327,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           const first = fns.get(value);
           if (first !== undefined) {
             throw new PothosSchemaError(
-              `'${first}' and '${type}' both select relation '${relation}' with the same function. Its values would be computed twice under the same names. Select it in the interface only; the type inherits it.`,
+              `'${first}' and '${type}' both select relation '${relation}' with the same function. Its values would be computed twice under the same names. Select it in one interface only; the types that implement it inherit it.`,
             );
           }
           fns.set(value, type);
