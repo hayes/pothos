@@ -258,7 +258,7 @@ export type ObjectReturnShape<Types extends SchemaTypes, M extends ModelKey<Type
   | PlannedReturnShape<Types, M>;
 
 /** The field naming a base model's variant, or `never` for other models. */
-type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Types>> =
+export type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Types>> =
   ModelDefOf<Types['PrismaNextContract'], M> extends {
     readonly discriminator: { readonly field: infer F extends string };
   }
@@ -267,17 +267,15 @@ type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Types>> =
 
 /**
  * What a field returning a model's `prismaInterface` may resolve to: `ObjectReturnShape`, and for a
- * discriminated model a row built outside the loader also needs the discriminator, because the
- * interface routes rows to variants before fields run. A planned row always loads it, since the
- * interface's selection includes it.
+ * discriminated model also the discriminator, because the interface routes rows to variants before
+ * fields run. A row planned for another type of the model, such as one of its variants' types,
+ * needn't hold it, so a planned row needs it too.
  */
 export type InterfaceReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> = [
   DiscriminatorField<Types, M>,
 ] extends [never]
   ? ObjectReturnShape<Types, M, Shape>
-  :
-      | (BuiltReturnShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>)
-      | PlannedReturnShape<Types, M>;
+  : ObjectReturnShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
 
 export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {
   [prismaModelBrand]?: infer M;

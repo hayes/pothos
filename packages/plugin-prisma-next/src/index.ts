@@ -74,6 +74,7 @@ export {
   type ModelBrand,
   type PlannedRowBrand,
   PrismaNextObjectRef,
+  plannedRowBrand,
   prismaContractBrand,
   prismaModelBrand,
 } from './object-ref.js';

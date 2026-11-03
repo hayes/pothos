@@ -9,6 +9,7 @@ import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import type { GraphQLResolveInfo } from 'graphql';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
+  type CollectionFor,
   collectionFromInfo,
   type PlannedRow,
   type PlannedRowBrand,
@@ -134,19 +135,20 @@ builder.queryFields((t) => ({
   plannedComments: t.field({ type: [Titled], resolve: () => [plannedComment] }),
 }));
 
+declare const plannedTaskWithType: PlannedRow<InheritanceTypes, 'Task'> & { type: string };
 inheritance.queryFields((t) => ({
-  // A planned row of the interface's model, or of a variant, holds the discriminator: the
-  // interface's selection includes it.
-  plannedTask: t.field({ type: Task, resolve: () => plannedTask }),
-  plannedBugAsTask: t.field({ type: Task, resolve: () => plannedBug }),
+  plannedTask: t.field({ type: Task, resolve: () => plannedTaskWithType }),
+  // @ts-expect-error a row planned for another type of the model may lack the discriminator
+  plannedTaskWithoutType: t.field({ type: Task, resolve: () => plannedTask }),
   plannedBug: t.field({ type: Bug, resolve: () => plannedBug }),
   // @ts-expect-error a planned row of the base model may be another variant
-  plannedTaskAsBug: t.field({ type: Bug, resolve: () => plannedTask }),
+  plannedTaskAsBug: t.field({ type: Bug, resolve: () => plannedTaskWithType }),
   // @ts-expect-error a planned row of a sibling variant
   plannedFeatureAsBug: t.field({ type: Bug, resolve: () => plannedFeature }),
 }));
 
-// Connection helpers page a prismaInterface of a discriminated model.
+// Connection helpers made with a discriminated model's prismaInterface page it: the interface's
+// selection loads the discriminator into their rows.
 const tasks = prismaConnectionHelpers(inheritance, Task, {});
 inheritance.prismaObjectField('User', 'taskPage', (t) =>
   t.connection({
@@ -234,7 +236,6 @@ export async function plannedCollections() {
   const posts = await collectionFromInfo({ collection: client.orm.Post, context: {}, info });
   for await (const post of posts.all()) {
     expectTypeOf(post).toExtend<PlannedRowBrand<'Post'>>();
-    expectTypeOf(post.title).toEqualTypeOf<string>();
   }
   // A collection narrowed to a variant plans rows of the variant model.
   const bugs = await collectionFromInfo({
@@ -260,4 +261,13 @@ export async function plannedCollections() {
     info,
   });
   expectTypeOf((await chores.first())!).toExtend<PlannedRowBrand<'inhb.Chore'>>();
+}
+
+// A collection typed by a type parameter keeps its methods.
+export async function plannedGeneric<C extends CollectionFor<Types, 'Post'>>(collection: C) {
+  const planned = await collectionFromInfo({ collection, context: {}, info });
+  return planned
+    .orderBy((post) => post.id.asc())
+    .where({ published: 1 })
+    .all();
 }

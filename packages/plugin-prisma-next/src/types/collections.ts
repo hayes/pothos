@@ -1,12 +1,12 @@
 import type { SchemaTypes } from '@pothos/core';
 import type {
   Collection,
+  CollectionRowOf,
   CollectionTypeState,
   DefaultCollectionTypeState,
   HasRow,
   HasTypeState,
   IncludeScalar,
-  Including,
 } from '@prisma/orm-family-sql/orm-client';
 import type { PlannedRowBrand } from '../object-ref.js';
 import type {
@@ -121,12 +121,18 @@ type CollectionModelKey<C> = C extends {
     : never
   : never;
 
+/** The rows of a planned collection: its own, branded as planned rows of its model. */
+type PlannedRows<C> = C extends HasRow
+  ? [CollectionModelKey<C>] extends [never]
+    ? unknown
+    : HasRow<CollectionRowOf<C> & PlannedRowBrand<CollectionModelKey<C>>>
+  : unknown;
+
 /**
  * The collection `collectionFromInfo` returns: its reads and writes return rows the loader planned,
- * so they fit a field returning a type of their model, as a `PlannedRow` does.
+ * so they fit a field returning a type of their model, as a `PlannedRow` does. It is `C` itself
+ * with the rows branded, so a collection typed by a type parameter keeps its methods. Narrowing
+ * the rows' columns with `select()` drops columns the selection planned, which the brand doesn't
+ * track: return such rows only to types whose `select` they hold.
  */
-export type PlannedCollection<C> = C extends HasRow
-  ? [CollectionModelKey<C>] extends [never]
-    ? C
-    : Including<C, PlannedRowBrand<CollectionModelKey<C>>>
-  : C;
+export type PlannedCollection<C> = C & PlannedRows<C>;
