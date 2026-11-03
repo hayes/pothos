@@ -48,6 +48,17 @@ query {
 }
 ```
 
+## Relay connections
+
+With the [Relay plugin](/docs/plugins/relay), `t.relatedConnection` turns a relation into a
+paginated connection:
+
+<include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ users { fullName postConnection(first: 1) { totalCount edges { node { title } } pageInfo { endCursor hasNextPage } } } }"'>playground-examples/plugin-prisma-next/types/user.ts#user-post-connection</include>
+
+`t.prismaConnection` does the same for query fields. See
+[Connections](/docs/plugins/prisma-next/connections).
+
+## Next steps
+
 To get started, follow [Setup](/docs/plugins/prisma-next/setup), then read
 [Objects](/docs/plugins/prisma-next/objects) and [Relations](/docs/plugins/prisma-next/relations).
-[Connections](/docs/plugins/prisma-next/connections) covers pagination.
