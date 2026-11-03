@@ -9,9 +9,10 @@ const responses = new Map();
 async function fetchOnce(route) {
   for (let attempt = 1; ; attempt++) {
     try {
-      const response = await route.fetch({ timeout: 20000 });
-      if (response.status() >= 500 && attempt < 3) {
-        continue;
+      const response = await route.fetch({ timeout: 15000 });
+      // Don't cache a server error or rate limit for the rest of the run.
+      if (response.status() >= 500 || response.status() === 429) {
+        throw new Error(`${response.status()} ${route.request().url()}`);
       }
       // The body arrives decoded, so drop the headers that describe the encoded one.
       const { 'content-encoding': _, 'content-length': __, ...headers } = response.headers();
@@ -20,6 +21,7 @@ async function fetchOnce(route) {
       if (attempt >= 3) {
         throw error;
       }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 }
