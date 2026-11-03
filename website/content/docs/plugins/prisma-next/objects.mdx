@@ -3,15 +3,16 @@ title: Objects
 description: Defining GraphQL types backed by contract models
 ---
 
-## Defining types
+`builder.prismaObject` defines a GraphQL object type for a model in your contract. This page covers
+loading the data your fields need, query and mutation fields that return these types, and adding
+fields to a type from another file.
 
-`builder.prismaObject` takes a contract model name and the usual object type options. Column types
-are inferred from the contract.
+## Define a type
+
+Pass the model name and the usual object type options. Column types come from the contract.
 
 ```ts
 builder.prismaObject('User', {
-  // Optional, defaults to the model name
-  name: 'PostAuthor',
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
@@ -19,28 +20,31 @@ builder.prismaObject('User', {
 });
 ```
 
+The GraphQL type is named after the model. Pass `name` to call it something else.
+
 Each model has one `prismaObject`. To add fields to it elsewhere, use
 [`prismaObjectFields`](#adding-fields). To expose the same model as another GraphQL type, define a
 [`variant`](./variants).
 
 ## Selections
 
-A `select` on the type is loaded whenever the type is queried. A `select` on a field is loaded only
-when that field is queried. The primary key is always loaded.
+A field that reads columns it doesn't expose, or data from a relation, declares them with `select`.
+The plugin then loads them along with the rest of the query.
 
 ```ts
 builder.prismaObject('User', {
+  // Loaded whenever a User is queried
   select: { firstName: true, lastName: true },
   fields: (t) => ({
     fullName: t.string({
       resolve: (user) => `${user.firstName} ${user.lastName}`,
     }),
-    initials: t.string({
-      select: ['firstName', 'lastName'],
-      resolve: (user) => `${user.firstName[0]}${user.lastName[0]}`,
+    // Loaded only when emailDomain is queried
+    emailDomain: t.string({
+      select: ['email'],
+      resolve: (user) => user.email.split('@')[1] ?? '',
     }),
-    publishedPostCount: t.field({
-      type: 'Int',
+    publishedPostCount: t.int({
       select: {
         posts: (posts) => ({ publishedCount: posts.where({ published: 1 }).count() }),
       },
@@ -49,6 +53,9 @@ builder.prismaObject('User', {
   }),
 });
 ```
+
+A `select` on the type is loaded whenever the type is queried, and every field can read it. A
+`select` on a field is loaded only when that field is queried. The primary key is always loaded.
 
 A `select` accepts:
 
@@ -60,41 +67,51 @@ A `select` accepts:
   `{ posts: (posts) => ({ postCount: posts.count() }) }`. Each key (`postCount`) is added to the
   row, so it can't reuse a column or relation name.
 
-Read computed keys with a resolver; `t.expose*` only works on columns.
+Read these computed keys in a resolver; `t.expose*` only works on columns.
 
-To filter a to-one relation, use the object form in a field's `select`. The result can be `null`
-even when the foreign key is required:
+A filtered to-one relation can be `null` even when its foreign key is required. Here a comment shows
+its post's title only when the post is published:
 
 ```ts
-authorName: t.string({
-  nullable: true,
-  select: { author: { where: { firstName: 'Alice' } } },
-  resolve: (post) => post.author?.firstName ?? null,
-}),
+builder.prismaObject('Comment', {
+  fields: (t) => ({
+    postTitle: t.string({
+      nullable: true,
+      select: { post: { where: { published: 1 } } },
+      resolve: (comment) => comment.post?.title ?? null,
+    }),
+  }),
+});
 ```
 
-A field's `select` can also be a function of its arguments and context. With `AsyncSelections: true`
-in the builder's types, it can be async. A column that only some branches select is optional on the
-parent:
+### Selecting per request
+
+A field's `select` can also be a function of its arguments and context. Here only admins load the
+email. A column that only some branches select is optional on the parent:
 
 ```ts
 email: t.string({
   nullable: true,
-  select: (_args, ctx) => (ctx.isAdmin ? { email: true, firstName: true } : { firstName: true }),
+  select: (_args, ctx) => (ctx.isAdmin ? { email: true } : {}),
   resolve: (user) => user.email ?? null,
 }),
 ```
 
-`select`, `query`, `where` and `orderBy` callbacks run once per planned query, not per row, so keep
-them free of side effects.
+With `AsyncSelections: true` in the builder's types, the function can be async.
 
-Type-level checks such as `authScopes` always see the primary key and the columns and to-one
-relations in the type's `select`. Other data may not be loaded yet, unless the row came from a
-prisma field, relation or connection.
+`select`, `query`, `where` and `orderBy` callbacks run once when the plugin builds the query, not
+once per row, so keep them free of side effects.
 
-## Prisma fields
+### Auth checks on the type
 
-A `t.prismaField` resolver returns a Collection without running it. The plugin adds what the query
+Type-level checks, such as `authScopes` on the type, can rely on the primary key and on the columns
+and to-one relations in the type's `select`. Anything else may not be loaded yet, unless the row came
+from a `t.prismaField`, `t.relation` or connection.
+
+## Return a type from Query and Mutation fields
+
+Use `t.prismaField` for fields on `Query`, `Mutation`, or any other type that return your model
+types. Its resolver returns a Collection without running it. The plugin adds what the query
 selects, then runs it.
 
 ```ts
@@ -109,12 +126,12 @@ builder.queryType({
 });
 ```
 
-Don't call `.all()`, `.first()` or `.include()` on the Collection. To filter a relation, use its
-field's [`query`](./relations#filtering-and-sorting).
+Don't call `.all()`, `.first()` or `.include()` on the Collection yourself. To filter a relation, use
+its field's [`query`](./relations#filtering-and-sorting).
 
 ### Mutations
 
-Run the write, then return a Collection that finds the updated row by its ID:
+A mutation can run the write, then return a Collection that finds the updated row by its ID:
 
 ```ts
 builder.mutationType({
@@ -137,18 +154,20 @@ builder.mutationType({
 });
 ```
 
-See [Transactions](./setup#transactions) to run the write and the reads in one transaction.
-
-To load the result in the write itself, use `collectionFromInfo`. Writes that return the row, such
-as `update`, then return what the query selects. Pass `path: ['user']` when the resolver returns a
-payload containing a `user` field. For an interface or union, pass `typeName` to pick the type:
+That reads the row again after the write. To skip the second read, build the write's Collection with
+`collectionFromInfo`, which adds what the query selects. Writes that return the row, such as
+`update`, then return everything the response needs. When the resolver returns a payload, pass the
+path to the row's field, such as `path: ['user']`. For an interface or union, pass `typeName` to
+pick the type:
 
 ```ts
 import { collectionFromInfo } from '@pothos/plugin-prisma-next';
 
-const RenameUserPayload = builder.objectRef<{ user: unknown }>('RenameUserPayload').implement({
-  fields: (t) => ({ user: t.field({ type: User, nullable: true, resolve: (p) => p.user as never }) }),
-});
+const RenameUserPayload = builder
+  .objectRef<{ user: typeof User.$inferType | null }>('RenameUserPayload')
+  .implement({
+    fields: (t) => ({ user: t.expose('user', { type: User, nullable: true }) }),
+  });
 
 builder.mutationField('renameUser', (t) =>
   t.field({
@@ -167,10 +186,12 @@ builder.mutationField('renameUser', (t) =>
 );
 ```
 
+See [Transactions](./setup#transactions) to run the write and the reads in one transaction.
+
 ## Adding fields
 
-`builder.objectField` doesn't support `select`. Use `prismaObjectField` or `prismaObjectFields`
-instead:
+To add fields to a type from another file, use `prismaObjectField` or `prismaObjectFields`.
+`builder.objectField` won't work here because it doesn't support `select`.
 
 ```ts
 builder.prismaObjectField('User', 'displayName', (t) =>
@@ -182,18 +203,17 @@ builder.prismaObjectField('User', 'displayName', (t) =>
 ```
 
 If the resolver reads the type's `select`, pass the ref that `prismaObject` returns instead of the
-model name. A variant's ref adds fields to that [variant](./variants).
+model name. Passing a variant's ref adds fields to that [variant](./variants).
 
 ```ts
 const User = builder.prismaObject('User', {
-  select: ['firstName'],
+  select: { firstName: true, lastName: true },
   fields: (t) => ({ id: t.exposeID('id') }),
 });
 
-builder.prismaObjectField(User, 'displayName', (t) =>
+builder.prismaObjectField(User, 'initials', (t) =>
   t.string({
-    select: ['lastName'],
-    resolve: (user) => `${user.firstName} ${user.lastName}`,
+    resolve: (user) => `${user.firstName[0]}${user.lastName[0]}`,
   }),
 );
 ```

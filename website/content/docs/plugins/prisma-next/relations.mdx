@@ -3,7 +3,8 @@ title: Relations
 description: Adding relations to Prisma-backed types
 ---
 
-`t.relation` exposes a relation from the contract:
+Use `t.relation` to expose a relation from your contract as a field. The plugin loads it with the
+parent's query, so a user's posts come back with the user:
 
 ```ts
 builder.prismaObject('User', {
@@ -23,14 +24,15 @@ builder.prismaObject('Post', {
 });
 ```
 
-To-many relations are non-null lists. A to-one relation is non-null when its foreign key is
-non-null, unless it has a `query` or a variant `type`, either of which can filter the row out. Pass
-`nullable` to override.
+To-many relations are non-null lists. A to-one relation, like `author`, is non-null when its foreign
+key is non-null, unless it has a `query` or a variant `type`, either of which can filter the row
+out. Pass `nullable` to override.
 
 ## Filtering and sorting
 
-`query` accepts `{ where, orderBy, limit, offset }`, or a function of the field's arguments and
-context returning one. A to-one relation's `query` takes only `where`.
+Pass `query` to filter, sort, or limit the related rows. It takes `{ where, orderBy, limit, offset }`,
+or a function of the field's arguments and context that returns one. Here clients choose the sort
+order:
 
 ```ts
 posts: t.relation('posts', {
@@ -41,8 +43,10 @@ posts: t.relation('posts', {
 }),
 ```
 
+A to-one relation's `query` takes only `where`.
+
 For a to-many relation, the `query` function can also return a function that takes the relation's
-Collection and returns a refined one, for example to apply a fragment:
+Collection and returns a refined one. Use this to apply a fragment:
 
 ```ts
 const published = db.orm.Post.fragment((posts) => posts.where({ published: 1 }));
@@ -54,14 +58,36 @@ posts: t.relation('posts', {
 
 With `AsyncSelections: true` in the builder's types, the function can be async.
 
+### Paginating a list
+
+For simple offset pagination, pass the field's arguments through to `limit` and `offset`. Always
+include an `orderBy` so pages are stable:
+
+```ts
+posts: t.relation('posts', {
+  args: { limit: t.arg.int(), offset: t.arg.int() },
+  query: (args) => ({
+    orderBy: (post) => post.createdAt.desc(),
+    limit: args.limit ?? 10,
+    offset: args.offset ?? 0,
+  }),
+}),
+```
+
+For cursor-based pagination with page info and total counts, use `t.relatedConnection` instead. See
+[Connections](./connections#paginate-a-relation).
+
 ## Counts and other aggregates
+
+`t.relationCount` adds an `Int` field that counts a to-many relation. Pass `where` to count only some
+rows:
 
 ```ts
 builder.prismaObject('User', {
   fields: (t) => ({
     postCount: t.relationCount('posts'),
     publishedPostCount: t.relationCount('posts', { where: { published: 1 } }),
-    postCountByState: t.relationCount('posts', {
+    postCountByStatus: t.relationCount('posts', {
       args: { published: t.arg.int({ required: true }) },
       where: (args) => ({ published: args.published }),
     }),
@@ -70,27 +96,21 @@ builder.prismaObject('User', {
 ```
 
 `where` takes the same values as a relation's `query.where`, or a function of the arguments and
-context returning one. A count is always a non-null `Int`, so an auth check that denies it nulls the
-parent. To hide a count from some users, use a nullable field with a `select`, as below.
+context that returns one.
 
-For other aggregates, give a field a `select` function. It receives the relation's Collection. Each
-key it returns is added to the parent row, and must be a literal string:
+Count fields are always non-null, so if an auth check denies one, GraphQL nulls the parent instead.
+To hide a count from some users, use a nullable field with a `select`, as below.
+
+For sums and other aggregates, give a field a `select` function on the relation. It receives the
+relation's Collection. Each key it returns is added to the parent row, and must be a literal string:
 
 ```ts
 builder.prismaObject('User', {
   fields: (t) => ({
-    latestPostTitle: t.field({
-      type: 'String',
+    totalPostScore: t.float({
       nullable: true,
-      select: { posts: { orderBy: (post) => post.createdAt.desc(), limit: 1 } },
-      resolve: (user) => user.posts[0]?.title ?? null,
-    }),
-    postStats: t.field({
-      type: 'String',
-      select: {
-        posts: (posts) => ({ total: posts.count(), score: posts.sum('score') }),
-      },
-      resolve: (user) => `${user.total} posts, score ${user.score}`,
+      select: { posts: (posts) => ({ totalPostScore: posts.sum('score') }) },
+      resolve: (user) => user.totalPostScore,
     }),
   }),
 });
@@ -99,10 +119,10 @@ builder.prismaObject('User', {
 ## Many-to-many
 
 Relations defined with `rel.manyToMany({ through, from, to })` work with `t.relation`. To expose
-columns on the junction, model it as its own model and use two relations.
+columns from the junction table, define the junction as its own model and use two relations.
 
 ## Returning rows from other fields
 
-A plain `t.field` that returns a model's type must return the primary key and the columns and
-to-one relations in the type's `select`. `typeof User.$inferType` is that row type. For a model
-without a primary key, return the whole row.
+If a plain `t.field` returns a model's type, instead of `t.prismaField` or `t.relation`, it must
+return the primary key and the columns and to-one relations in the type's `select`.
+`typeof User.$inferType` is that row type. For a model without a primary key, return the whole row.

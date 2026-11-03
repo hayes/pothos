@@ -10,10 +10,10 @@ import { Callout } from 'fumadocs-ui/components/callout';
   release.
 </Callout>
 
-The Prisma Next plugin defines GraphQL types from the models in a
-[Prisma ORM 8](https://github.com/prisma/orm) contract. Your resolvers return Collections, and the
-plugin adds what each query selects before running them. It supports relations, counts, variants, interfaces,
-and Relay nodes and connections.
+The Prisma Next plugin lets you build GraphQL types from the models in a
+[Prisma ORM 8](https://github.com/prisma/orm) contract. Your resolvers return a Prisma Collection
+without running it, and the plugin adds the columns and relations each GraphQL query asks for before
+running it. It supports relations, counts, variants, interfaces, and Relay nodes and connections.
 
 For Prisma ORM 7, use [`@pothos/plugin-prisma`](/docs/plugins/prisma) instead. The two can't be used
 together.
@@ -21,17 +21,18 @@ together.
 The [playground example](/playground?example=plugin-prisma-next) runs the examples below against
 SQLite in the browser, and its **SQL** tab shows the statements each query runs.
 
-## Example
+## A first look
 
-A `User` type with a computed name and a filtered relation:
+Here is a `User` type with a computed name and a list of published posts:
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next"'>playground-examples/plugin-prisma-next/types/user.ts#user</include>
 
-A root field returns an unexecuted Collection:
+The `users` query field returns the Collection of users without running it:
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ users { fullName posts { title author { email } } } }"'>playground-examples/plugin-prisma-next/queries.ts#users-query</include>
 
-This query loads the users, their posts, and each post's author in one Collection call:
+For a query like this one, the plugin loads the users, their posts, and each post's author with that
+one Collection:
 
 ```graphql
 query {
@@ -47,6 +48,6 @@ query {
 }
 ```
 
-See [Setup](/docs/plugins/prisma-next/setup), [Objects](/docs/plugins/prisma-next/objects),
-[Relations](/docs/plugins/prisma-next/relations), and
-[Connections](/docs/plugins/prisma-next/connections).
+To get started, follow [Setup](/docs/plugins/prisma-next/setup), then read
+[Objects](/docs/plugins/prisma-next/objects) and [Relations](/docs/plugins/prisma-next/relations).
+[Connections](/docs/plugins/prisma-next/connections) covers pagination.

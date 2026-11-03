@@ -3,10 +3,12 @@ title: Interfaces
 description: GraphQL interfaces backed by contract models
 ---
 
-`builder.prismaInterface` takes the same options as `builder.prismaObject` and creates an
-interface. Objects implementing it must use the same model, or one of its
-[variant models](#native-inheritance). Give the interface a `resolveType`, and list the columns it
-reads in the interface's `select`:
+Use `builder.prismaInterface` to define a GraphQL interface backed by a model. It takes the same
+options as `builder.prismaObject`. The objects that implement it must use the same model, or one of
+its [variant models](#native-inheritance).
+
+Here admins and regular users share a `Person` interface. `resolveType` picks the type from the
+email, so the interface lists `email` in its `select`:
 
 ```ts
 const Person = builder.prismaInterface('User', {
@@ -22,7 +24,7 @@ const Person = builder.prismaInterface('User', {
 builder.prismaObject('User', {
   interfaces: [Person],
   fields: (t) => ({
-    email: t.exposeString('email'),
+    posts: t.relation('posts'),
   }),
 });
 
@@ -43,17 +45,11 @@ builder.queryFields((t) => ({
 ```
 
 `t.prismaField`, `t.prismaConnection`, `t.relation` and `t.relatedConnection` all accept an
-interface ref as `type`. Objects don't take `isTypeOf`.
+interface ref as `type`. Fields on an implementing type can read the interface's `select`.
+Implementing objects don't accept `isTypeOf`.
 
-Fields on an implementing type can read the interface's `select`.
-
-To return a row through `Node` or an interface from `builder.interfaceRef()`, brand it with the
-type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
-`Abstract type ... must resolve`. If you route a row yourself, with a `__typename` or a
-`resolveType` that returns a type name, TypeScript doesn't check that the row has the type's key and
-`select`.
-
-Add fields with `prismaInterfaceField` or `prismaInterfaceFields`:
+To add fields to the interface from another file, use `prismaInterfaceField` or
+`prismaInterfaceFields`:
 
 ```ts
 builder.prismaInterfaceField(Person, 'displayName', (t) =>
@@ -64,14 +60,23 @@ builder.prismaInterfaceField(Person, 'displayName', (t) =>
 );
 ```
 
+## Returning rows from other fields
+
+To return a row through `Node`, or through an interface from `builder.interfaceRef()`, brand it with
+the type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
+`Abstract type ... must resolve`. If you route a row yourself, with a `__typename` or a
+`resolveType` that returns a type name, TypeScript doesn't check that the row has the type's key and
+`select`.
+
 ## Native inheritance
 
-When a contract model has variant models, register the base model with `prismaInterface` and each
-variant with `prismaObject`. Each row resolves to its variant's type by the discriminator, so you
-don't need a `resolveType`:
+If your contract uses variant models (a base model with a discriminator column), register the base
+model with `prismaInterface` and each variant with `prismaObject`. Each row resolves to its
+variant's type by the discriminator, so you don't need a `resolveType`. In this example, `Bug` is a
+variant of `Task`:
 
 ```ts
-const task = builder.prismaInterface('Task', {
+const Task = builder.prismaInterface('Task', {
   fields: (t) => ({
     id: t.exposeID('id'),
     owner: t.relation('owner'),
@@ -79,7 +84,7 @@ const task = builder.prismaInterface('Task', {
 });
 
 builder.prismaObject('Bug', {
-  interfaces: [task],
+  interfaces: [Task],
   fields: (t) => ({
     severity: t.exposeString('severity'),
   }),
@@ -88,7 +93,7 @@ builder.prismaObject('Bug', {
 builder.queryType({
   fields: (t) => ({
     tasks: t.prismaField({
-      type: [task],
+      type: [Task],
       resolve: (_root, _args, ctx) => ctx.db.orm.Task,
     }),
     bugs: t.prismaField({
@@ -99,8 +104,8 @@ builder.queryType({
 });
 ```
 
-- Return a variant's rows from `orm.Base.variant(value)`, not `orm.Bug`, which Prisma doesn't
-  filter by the discriminator.
+- Load a variant's rows with `ctx.db.orm.Task.variant('bug')`, not `ctx.db.orm.Bug`, which Prisma
+  doesn't filter by the discriminator.
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
 - A relation declared on a variant can't be in the variant type's `select`. Use a field's `select`
   or `t.relation`.

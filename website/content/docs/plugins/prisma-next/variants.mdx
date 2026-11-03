@@ -3,7 +3,9 @@ title: Variants
 description: Multiple GraphQL types backed by the same contract model
 ---
 
-A variant is an additional GraphQL type for a model. Define one with `variant` instead of `name`:
+Variants let you expose one model as more than one GraphQL type. For example, a `Viewer` type can
+show signed-in users their own email and drafts, which the public `User` type leaves out. Define a
+variant with `variant` instead of `name`:
 
 ```ts
 const Viewer = builder.prismaObject('User', {
@@ -19,14 +21,10 @@ const Viewer = builder.prismaObject('User', {
 These are unrelated to variant models in the contract, which map to
 [interfaces](./interfaces#native-inheritance).
 
-The model name always refers to the main type. To return the variant, pass its ref as `type`. On a
-relation:
+## Return a variant
 
-```ts
-author: t.relation('author', { type: Viewer }),
-```
-
-Or from a root field:
+Wherever you use the model name, such as `'User'`, you get the main type. To return the variant,
+pass its ref as `type`, for example from a root field:
 
 ```ts
 builder.queryFields((t) => ({
@@ -38,16 +36,18 @@ builder.queryFields((t) => ({
 }));
 ```
 
-## Variant fields
+`t.relation` takes a variant's ref as `type` the same way.
 
-`t.variant` returns the same row as another variant, without another query. To return `null` for
-some rows, pass `isNull`. It can only read the columns in the field's `select`:
+## Switch to another variant
+
+`t.variant` adds a field that returns the same row as another variant, without another query. To
+return `null` for some rows, pass `isNull`. It sees the primary key and the columns in the field's
+`select`. Here `User.viewer` returns the `Viewer` type only for the signed-in user:
 
 ```ts
 builder.prismaObject('User', {
   fields: (t) => ({
     viewer: t.variant(Viewer, {
-      select: { id: true },
       isNull: (user, _args, ctx) => user.id !== ctx.userId,
     }),
   }),
@@ -56,7 +56,7 @@ builder.prismaObject('User', {
 
 ## Adding fields
 
-Pass the variant's ref to `prismaObjectField` or `prismaObjectFields`:
+To add fields to a variant, pass its ref to `prismaObjectField` or `prismaObjectFields`:
 
 ```ts
 builder.prismaObjectField(Viewer, 'displayName', (t) =>

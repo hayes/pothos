@@ -3,7 +3,10 @@ title: Setup
 description: Setting up the Prisma Next plugin
 ---
 
-## Installing
+This page covers installing the plugin, connecting it to your Prisma client, and running operations
+in a transaction.
+
+## Install
 
 Set up Prisma ORM 8 (`8.0.0-rc.22`) and your contract with the
 [Prisma Next documentation](https://github.com/prisma/orm), then install the plugin:
@@ -52,14 +55,18 @@ builder.queryType({
 export const schema = builder.toSchema();
 ```
 
-`@pothos/plugin-relay` is only needed for nodes and connections. SQLite and MySQL work the same way
-with their own Prisma packages. SQLite clients don't group models by schema, so the other pages use
-`ctx.db.orm.User`.
+You only need `@pothos/plugin-relay` for nodes and connections.
 
-Execute every operation with a context object, such as `contextValue: {}`.
+This example uses PostgreSQL, where the client groups models by schema (`ctx.db.orm.public.User`).
+SQLite and MySQL work the same way with their own Prisma packages. SQLite clients don't group models,
+and the rest of these docs use that shorter form, `ctx.db.orm.User`.
 
-To use a different client per request, such as a transaction, pass a function as `client` along
-with the base client's `context`:
+Always pass a context object when you execute an operation, such as `contextValue: {}`.
+
+## Use a different client per request
+
+To give each request its own client, such as a transaction, pass a function as `client` along with
+the base client's `context`:
 
 ```ts
 import type { PostgresQueryMembers } from '@prisma/orm-postgres/runtime';
@@ -76,21 +83,11 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-## Plugin options
+### Transactions
 
-- `client`: the Prisma client, or `(ctx) => client` together with `context`. Required.
-- `skipDeferredFragments`: load `@defer` fragments when they execute instead of in the initial
-  query. Defaults to `true`.
-- `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes. Default to 20 and
-  100.
-- `filterConnectionTotalCount`: when `true` (the default), a `relatedConnection`'s `totalCount`
-  only counts rows matching its `query.where`.
-
-## Transactions
-
-Pothos doesn't create transactions. Run `graphql()` inside the transaction callback and pass the
-transaction as `ctx.db`. With [`client: (ctx) => ctx.db`](#configure-the-builder), the plugin's own
-queries use it too:
+Pothos doesn't create transactions for you. To run an operation in one, call `graphql()` inside the
+transaction callback and pass the transaction as `ctx.db`. With `client: (ctx) => ctx.db`, the
+plugin's own queries use it too:
 
 ```ts
 const result = await db.transaction(async (tx) => {
@@ -107,10 +104,11 @@ const result = await db.transaction(async (tx) => {
 });
 ```
 
-## Namespaced models
+## Models in several namespaces
 
-With several namespaces, model names include the namespace, such as `'auth.User'`. GraphQL type
-names leave it out, so give one of two models with the same name a `name`:
+If your contract has more than one namespace, refer to models by their full name, such as
+`'auth.User'`. GraphQL type names leave the namespace out, so when two namespaces both have a
+`User`, give one of them a `name`:
 
 ```ts
 builder.prismaObject('auth.User', {
@@ -120,6 +118,18 @@ builder.prismaObject('auth.User', {
   }),
 });
 ```
+
+## Plugin options
+
+These go under `prismaNext` in the builder options.
+
+- `client`: the Prisma client, or `(ctx) => client` together with `context`. Required.
+- `skipDeferredFragments`: load `@defer` fragments when they execute instead of in the initial
+  query. Defaults to `true`.
+- `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes. Default to 20 and
+  100.
+- `filterConnectionTotalCount`: when `true` (the default), a `relatedConnection`'s `totalCount`
+  only counts rows matching its `query.where`.
 
 ## Limitations
 
