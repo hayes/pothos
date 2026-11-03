@@ -61,7 +61,7 @@ export type ModelKeys<TContract extends AnyContract> = {
 // Upstream's `RelationsOf` collapses to `Record<string, never>` in generic positions, so relations
 // are read from the model def. A model without relations emits `Record<string, never>`, whose index
 // signature would make every string a relation key, so it is dropped.
-type OwnRelationsOfModel<TContract extends AnyContract, M extends string> =
+export type OwnRelationsOfModel<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends {
     readonly relations: infer Rels extends Record<string, unknown>;
   }

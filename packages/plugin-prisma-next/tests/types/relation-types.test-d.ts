@@ -277,15 +277,22 @@ builder.prismaObject('User', {
   },
 });
 
-// A to-one relation is nullable when its contract relation is, as Bug.reviewer is.
+// A to-one relation is nullable when its contract relation is, as Bug.reviewer is. A variant's own
+// relation loads only in a field's select.
 const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
   plugins: [prismaNextPlugin],
   prismaNext: { client: null as never },
 });
 inheritance.prismaObject('Bug', {
-  select: { reviewer: true, owner: true },
+  variant: 'ReviewedBug',
+  // @ts-expect-error a variant's own relation loads only in a field's select
+  select: { reviewer: true },
+});
+inheritance.prismaObject('Bug', {
+  select: { owner: true },
   fields: (t) => ({
     names: t.string({
+      select: { reviewer: true },
       resolve: (bug) => {
         expectTypeOf(bug.reviewer).toEqualTypeOf<DefaultModelRow<
           InheritanceContract,

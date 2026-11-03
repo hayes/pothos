@@ -847,7 +847,7 @@ describe('native model inheritance', () => {
   });
 });
 
-describe("a variant's relations in a type's select", () => {
+describe("a variant's relations in a field's select", () => {
   const email = 'a@example.com';
 
   function reviewBuilder() {
@@ -878,10 +878,13 @@ describe("a variant's relations in a type's select", () => {
     const { builder, task } = reviewBuilder();
     builder.prismaObject('Bug', {
       interfaces: [task],
-      select: { reviewer: true },
       fields: (t) => ({
         severity: t.exposeString('severity'),
-        reviewerEmail: t.string({ nullable: true, resolve: (bug) => bug.reviewer?.email }),
+        reviewerEmail: t.string({
+          nullable: true,
+          select: { reviewer: true },
+          resolve: (bug) => bug.reviewer?.email,
+        }),
       }),
     });
     return builder.toSchema();
@@ -891,9 +894,12 @@ describe("a variant's relations in a type's select", () => {
     const { builder, task } = reviewBuilder();
     const Rev = builder.prismaInterface('Bug', {
       variant: 'Rev',
-      select: { reviewer: true },
       fields: (t) => ({
-        r: t.string({ nullable: true, resolve: (bug) => bug.reviewer?.email }),
+        r: t.string({
+          nullable: true,
+          select: { reviewer: true },
+          resolve: (bug) => bug.reviewer?.email,
+        }),
       }),
     });
     builder.prismaObject('Bug', {
@@ -902,6 +908,28 @@ describe("a variant's relations in a type's select", () => {
     });
     return builder.toSchema();
   }
+
+  it.each([
+    ['an object', 'prismaObject', 'Bug'],
+    ['a variant interface', 'prismaInterface', 'Rev'],
+  ] as const)("rejects one in the select of %s", (_name, method, typeName) => {
+    const { builder, task } = reviewBuilder();
+    const options = {
+      ...(method === 'prismaObject' ? { interfaces: [task] } : { variant: typeName }),
+      select: { reviewer: true },
+      fields: (t: { exposeString: (name: 'severity') => unknown }) => ({
+        severity: t.exposeString('severity'),
+      }),
+    };
+    // The types reject it too, as tests/types/relation-types.test-d.ts checks.
+    builder[method]('Bug', options as never);
+    if (method === 'prismaInterface') {
+      builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+    }
+    expect(() => builder.toSchema()).toThrow(
+      `The select of type '${typeName}' includes relation 'reviewer', which only variant 'bug' of model 'Task' declares. Rows of the type can load through 'Task', which can't include it. Load it in a field instead, with t.relation('reviewer') or a field's select, such as t.field({ select: { reviewer: true }, ... }).`,
+    );
+  });
 
   it('loads in the one statement of a narrowed root', async () => {
     const result = await run(reviewedSchema(), '{ bugs { severity reviewerEmail } }');
@@ -944,7 +972,7 @@ describe("a variant's relations in a type's select", () => {
     expect(inherited.statements).toHaveLength(1);
   });
 
-  it("reloads a computed value of a variant's to-many relation", async () => {
+  it("reloads a computed value of a variant's to-many relation in a field's select", async () => {
     // Moves `notes` to the variant, which the fixture's schema has no room for: a to-many relation
     // needs a unique key on the variant.
     const json = JSON.parse(
@@ -965,8 +993,12 @@ describe("a variant's relations in a type's select", () => {
     });
     builder.prismaObject('Bug', {
       interfaces: [task],
-      select: { notes: (sub) => ({ noteTotal: sub.count() }) },
-      fields: (t) => ({ noteTotal: t.int({ resolve: (bug) => bug.noteTotal }) }),
+      fields: (t) => ({
+        noteTotal: t.int({
+          select: { notes: (sub) => ({ noteTotal: sub.count() }) },
+          resolve: (bug) => bug.noteTotal,
+        }),
+      }),
     });
     builder.prismaObject('Feature', { interfaces: [task] });
     builder.queryType({
@@ -1031,14 +1063,16 @@ describe("a variant's relations in a type's select", () => {
     });
     builder.prismaObject('Bug', {
       interfaces: [task],
-      // The contract's type doesn't have `bugNotes`.
-      select: {
-        bugNotes: (sub: { count(): unknown }) => ({ noteTotal: sub.count() }),
-        notes: (sub: { count(): unknown }) => ({ baseTotal: sub.count() }),
-      } as unknown as ['title'],
+      select: { notes: (sub) => ({ baseTotal: sub.count() }) },
       fields: (t) => ({
-        noteTotal: t.int({ resolve: (bug) => (bug as unknown as { noteTotal: number }).noteTotal }),
-        baseTotal: t.int({ resolve: (bug) => (bug as unknown as { baseTotal: number }).baseTotal }),
+        noteTotal: t.int({
+          // The contract's type doesn't have `bugNotes`.
+          select: {
+            bugNotes: (sub: { count(): unknown }) => ({ noteTotal: sub.count() }),
+          } as never,
+          resolve: (bug) => (bug as unknown as { noteTotal: number }).noteTotal,
+        }),
+        baseTotal: t.int({ resolve: (bug) => bug.baseTotal }),
       }),
     });
     builder.prismaObject('Feature', { interfaces: [task] });

@@ -36,6 +36,7 @@ import {
   PRISMA_NEXT_REFINED_TO_ONE,
   PRISMA_NEXT_TYPE_SELECT,
 } from './constants.js';
+import type { AnyContract } from './types/models.js';
 import { getPluginConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
 import { getModel } from './utils/model.js';
@@ -184,6 +185,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     if (model === undefined) {
       return typeConfig;
+    }
+    const raw = typeConfig.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
+    if (raw && ownModel) {
+      assertNoVariantRelations(raw, ownModel, typeConfig.name, contract);
     }
     return {
       ...typeConfig,
@@ -555,6 +560,27 @@ function inheritedMapping(mapping: Mapping | null, own: boolean, definition: unk
     mapping.position.field.extensions?.pothosOptions === definition
     ? mapping
     : null;
+}
+
+/**
+ * A type's rows can load through the base model's collection, which can't include a relation only a
+ * variant declares, so a type's `select` can't name one.
+ */
+function assertNoVariantRelations(
+  raw: RawSelect,
+  modelKey: string,
+  typeName: string,
+  contract: AnyContract,
+) {
+  const model = getModel(contract, modelKey);
+  for (const [name] of splitSelect(raw, model, PothosSchemaError).relations) {
+    const variant = model.relations[name]!.declaredByVariant;
+    if (variant !== undefined) {
+      throw new PothosSchemaError(
+        `The select of type '${typeName}' includes relation '${name}', which only variant '${variant}' of model '${model.key}' declares. Rows of the type can load through '${model.key}', which can't include it. Load it in a field instead, with t.relation('${name}') or a field's select, such as t.field({ select: { ${name}: true }, ... }).`,
+      );
+    }
+  }
 }
 
 function typeParent(parent: unknown, scopes: readonly string[]) {

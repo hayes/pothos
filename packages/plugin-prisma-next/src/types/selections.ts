@@ -10,10 +10,12 @@ import type { HasRow } from '@prisma/orm-family-sql/orm-client';
 import type { prismaInterfaceBrand } from '../interface-ref.js';
 import type { CONNECTION_PAGE, NODE_SELECTION } from '../utils/selections.js';
 import type {
+  BaseModelKey,
   ExtractModel,
   IsUnion,
   ModelKey,
   ObjectBaseShape,
+  OwnRelationsOfModel,
   RelationKeys,
   Row,
   VariantModelKeys,
@@ -152,6 +154,25 @@ type TypeSelectToOneCheck<Types extends SchemaTypes, M extends ModelKey<Types>, 
           : `A to-one relation in a type's select takes only true, filter it in a field's select: ${K &
               string}`]: never;
     };
+
+/**
+ * Rejects a relation only a variant declares in a type's `select`. A type's rows can load through
+ * the base model's collection, which can't include it, so it goes in a field's `select` instead.
+ */
+type VariantRelationCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = [
+  BaseModelKey<Types['PrismaNextContract'], M>,
+] extends [never]
+  ? unknown
+  : [Select] extends [readonly unknown[]]
+    ? unknown
+    : {
+        [K in keyof Select &
+          keyof OwnRelationsOfModel<
+            Types['PrismaNextContract'],
+            M
+          > as `A variant's own relation loads only in a field's select, such as t.relation or t.field({ select }): ${K &
+          string}`]: never;
+      };
 
 type ToOneFunctionMessage = 'To-one relations take true or { where }, not a function';
 
@@ -546,7 +567,8 @@ export type TypeSelectCheck<Types extends SchemaTypes, M extends ModelKey<Types>
     NoInfer<
       SelectCheck<Types, M, Select> &
         NoTypeLevelPage<Select> &
-        TypeSelectToOneCheck<Types, M, Select>
+        TypeSelectToOneCheck<Types, M, Select> &
+        VariantRelationCheck<Types, M, Select>
     >;
 };
 

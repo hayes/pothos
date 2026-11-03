@@ -129,8 +129,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    * `isTypeOf`, auth checks and fields read it even when the query has no fragment on that type.
    *
    * They all fit one node. To-many relations and computed values use each type's own slots, and a
-   * to-one relation is always `true` in a type's `select`. It may hold relations only a level
-   * narrowed to a variant can include. `mergeQuery` leaves those out of any other level.
+   * to-one relation is always `true` in a type's `select`. A type's `select` can't name a relation
+   * only a variant declares, but a base model's relation can't be included beneath a relation that
+   * targets a variant model. `mergeQuery` leaves those out of such a level.
    */
   typeSelection(type: GraphQLNamedType): PrismaNextSelection | undefined {
     const cached = this.typeSelections.get(type);
@@ -249,8 +250,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   }
 
   /**
-   * A type's selection merges whatever level it lands on, so what that level can't include is left
-   * out. The row then lacks it, which makes the type's fields reload through the variant's loader.
+   * A type's selection merges whatever level it lands on, so what that level can't include, a base
+   * relation beneath a relation targeting a variant model, is left out. The row then lacks it,
+   * which makes the type's fields reload it.
    */
   override mergeQuery(
     node: PrismaNextNode,
