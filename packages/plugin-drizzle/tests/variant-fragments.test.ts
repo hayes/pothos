@@ -417,6 +417,31 @@ builder.drizzleInterfaceField(CyclicUser, 'pathPosts', (t) =>
     resolve: (user) => user.posts,
   }),
 );
+builder.drizzleInterfaceField(CyclicPost, 'pathAuthor', (t) =>
+  t.field({
+    type: CyclicUser,
+    select: (_args, _ctx, nestedSelection) => {
+      selectPaths.push(nestedSelection.path);
+
+      return { with: { author: nestedSelection() } };
+    },
+    resolve: (post) => post.author!,
+  }),
+);
+
+// A relation query that reads its path.
+const queryPaths: string[][] = [];
+
+builder.drizzleInterfaceField(CyclicUser, 'pathRelPosts', (t) =>
+  t.relation('posts', {
+    type: CyclicPost,
+    query: (_args, _ctx, path) => {
+      queryPaths.push(path!.path);
+
+      return { limit: 1 };
+    },
+  }),
+);
 
 for (const n of [1, 2, 3]) {
   builder.drizzleObject('users', {
@@ -840,27 +865,39 @@ describe('fragments on variants and non-model interfaces', () => {
   });
 
   describe('fragments on a non-model interface at every level of a cyclic document', () => {
-    /** Each of `depth` relation levels selected through `... on Linked`. */
-    function cyclicDocument(root: string, depth: number) {
-      let selection = '... on Linked { linked }';
+    /** Each of `depth` relation levels selected through `... on Linked`, or without it. */
+    function cyclicDocument(
+      root: string,
+      depth: number,
+      [posts, author] = ['posts', 'author'],
+      { linked = true, leaf = '... on Linked { linked }' } = {},
+    ) {
+      const through = (selection: string) =>
+        linked ? `... on Linked { ${selection} }` : selection;
+      let selection = leaf;
 
       for (let level = depth; level >= 1; level -= 1) {
         selection =
           level % 2 === 1
-            ? `... on Linked { ... on CyclicUser { posts { ${selection} } } }`
-            : `... on Linked { ... on CyclicPost { author { ${selection} } } }`;
+            ? through(`... on CyclicUser { ${posts} { ${selection} } }`)
+            : through(`... on CyclicPost { ${author} { ${selection} } }`);
       }
 
       return parse(`{ ${root} { ${selection} } }`);
     }
 
     /** One named fragment per level, selecting the relation beneath each of the three variants. */
-    function namedDocument(root: string, depth: number, [posts, author] = ['posts', 'author']) {
+    function namedDocument(
+      root: string,
+      depth: number,
+      [posts, author] = ['posts', 'author'],
+      variants = [1, 2, 3],
+    ) {
       const fragments: string[] = [];
 
       for (let level = 1; level <= depth; level += 1) {
         const next = level === depth ? '... on Linked { linked }' : `...L${level + 1}`;
-        const selections = [1, 2, 3].map((n) =>
+        const selections = variants.map((n) =>
           level % 2 === 1
             ? `... on CyclicUser${n} { ${posts} { ${next} } }`
             : `... on CyclicPost${n} { ${author} { ${next} } }`,
@@ -887,10 +924,11 @@ describe('fragments on variants and non-model interfaces', () => {
         return relationQueryCalls;
       };
 
-      // Only `posts` counts: the interface and its three variants, at each of the odd levels.
-      // Exponential planning made these 1,092 calls at depth 6 and 4,473,924 at depth 12.
-      expect(await callsAt(6)).toBe(12);
-      expect(await callsAt(12)).toBe(24);
+      // Only `posts` counts: once at each of the odd levels. Its three variants take the
+      // invocation on the interface. Exponential planning made these 1,092 calls at depth 6 and
+      // 4,473,924 at depth 12.
+      expect(await callsAt(6)).toBe(3);
+      expect(await callsAt(12)).toBe(6);
     });
 
     it('walks a named fragment spread beneath every variant once per level', async () => {
@@ -908,10 +946,10 @@ describe('fragments on variants and non-model interfaces', () => {
         return relationQueryCalls;
       };
 
-      // Each of the three `posts` nodes, by the plain walk and the expanding one, at each odd
-      // level. A walk per field node made these 4,920 calls at depth 8.
-      expect(await callsAt(8)).toBe(24);
-      expect(await callsAt(20)).toBe(60);
+      // Each of the three `posts` nodes at each odd level, the plain walk and the expanding one
+      // sharing it. A walk per field node made these 4,920 calls at depth 8.
+      expect(await callsAt(8)).toBe(12);
+      expect(await callsAt(20)).toBe(30);
     });
 
     it('shares the walk beneath a field whose select function does not read its path', async () => {
@@ -929,11 +967,10 @@ describe('fragments on variants and non-model interfaces', () => {
         return selectCalls;
       };
 
-      // Each of the three nodes, by the plain walk and the expanding one, at each level. Reading
-      // the path for every select made these 55,986 calls at depth 6 and 2,015,538 at depth 8;
-      // a walk per invocation, before walks were shared, made 1,092 and 9,840.
-      expect(await callsAt(6)).toBe(36);
-      expect(await callsAt(8)).toBe(48);
+      // Each of the three nodes at each level. Reading the path for every select makes one call
+      // per path, 1,092 at depth 6 and 9,840 at depth 8 (see below).
+      expect(await callsAt(6)).toBe(18);
+      expect(await callsAt(8)).toBe(24);
     });
 
     it('gives a select function that reads its path the path of each place it is planned', async () => {
@@ -974,6 +1011,118 @@ describe('fragments on variants and non-model interfaces', () => {
           ],
         ]),
       );
+    });
+
+    describe('a select function or relation query that reads its path', () => {
+      /** Every path the fields down to `depth` are planned at in `namedDocument`. */
+      function pathsOf(depth: number, variants: number[], [posts, author]: string[]) {
+        const paths: string[] = [];
+        let above = ['Query.plannedCyclicUser'];
+
+        for (let level = 1; level <= depth; level += 1) {
+          above = above.flatMap((path) =>
+            variants.map((n) =>
+              level % 2 === 1
+                ? `${path}/CyclicUser${n}.${posts}`
+                : `${path}/CyclicPost${n}.${author}`,
+            ),
+          );
+          paths.push(...above);
+        }
+
+        return paths.sort();
+      }
+
+      async function plan(document: ReturnType<typeof parse>) {
+        selectPaths.length = 0;
+        queryPaths.length = 0;
+
+        const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
+
+        expect(result.errors).toBeUndefined();
+
+        return [...selectPaths, ...queryPaths].map((path) => path.join('/')).sort();
+      }
+
+      it.each([
+        [6, [1, 2, 3]],
+        [8, [1, 2, 3]],
+        [8, [1]],
+      ])('plans a select function once per path, depth %i, variants %j', async (depth, variants) => {
+        const fields: [string, string] = ['pathPosts', 'pathAuthor'];
+        const seen = await plan(namedDocument('plannedCyclicUser', depth, fields, variants));
+
+        // The plain and expanding walks share each invocation. Each was walked once by each before,
+        // and every invocation walked its own subtree: 2,015,538 calls at depth 8 for 9,840 paths.
+        expect(seen).toEqual(pathsOf(depth, variants, fields));
+      });
+
+      it('plans a relation query once per path', async () => {
+        const fields: [string, string] = ['pathRelPosts', 'author'];
+        const seen = await plan(namedDocument('plannedCyclicUser', 8, fields));
+
+        // `posts` at the four odd levels: 3 + 27 + 243 + 2,187 paths, where 287,934 calls were made.
+        expect(seen).toEqual(
+          pathsOf(8, [1, 2, 3], fields).filter((path) => path.endsWith('.pathRelPosts')),
+        );
+      });
+
+      it('plans a field in a fragment on the interface once per level', async () => {
+        const seen = await plan(
+          cyclicDocument('plannedCyclicUser', 8, ['pathPosts', 'pathAuthor']),
+        );
+
+        // The variants the expansion reaches each field on take the invocation on the interface,
+        // so a path names the types the document does. Each variant made its own before: 87,380.
+        expect(seen).toEqual(
+          Array.from({ length: 8 }, (_, index) =>
+            [
+              'Query.plannedCyclicUser',
+              ...Array.from({ length: index + 1 }, (__, level) =>
+                level % 2 === 0 ? 'CyclicUser.pathPosts' : 'CyclicPost.pathAuthor',
+              ),
+            ].join('/'),
+          ).sort(),
+        );
+      });
+
+      /** Loads `document` with aliases, so fields that read their path answer like those that do not. */
+      async function load(document: ReturnType<typeof parse>) {
+        clearDrizzleLogs();
+
+        const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
+
+        expect(result.errors).toBeUndefined();
+
+        return { data: result.data, sql: [...drizzleLogs] };
+      }
+
+      it('loads what a select function that does not read its path loads', async () => {
+        const reading = await load(
+          namedDocument('cyclicUser', 4, ['p: pathPosts', 'a: pathAuthor']),
+        );
+
+        expect(reading.sql).toHaveLength(1);
+        expect(reading.data).toMatchObject({
+          cyclicUser: { p: [{ a: { p: [{ a: { linked: 'linked' } }] } }] },
+        });
+        expect(reading).toEqual(
+          await load(namedDocument('cyclicUser', 4, ['p: selectedPosts', 'a: selectedAuthor'])),
+        );
+      });
+
+      it('loads beneath a fragment on the interface what it loads without the fragment', async () => {
+        const fields: [string, string] = ['p: pathPosts', 'a: pathAuthor'];
+        const reading = await load(cyclicDocument('cyclicUser', 4, fields, { leaf: 'userId' }));
+
+        expect(reading.sql).toHaveLength(1);
+        expect(reading.data).toMatchObject({
+          cyclicUser: { p: [{ a: { p: [{ a: { userId: '1' } }] } }] },
+        });
+        expect(reading).toEqual(
+          await load(cyclicDocument('cyclicUser', 4, fields, { linked: false, leaf: 'userId' })),
+        );
+      });
     });
 
     it('loads a shared walk in one statement', async () => {
