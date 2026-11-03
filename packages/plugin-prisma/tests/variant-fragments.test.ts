@@ -64,6 +64,8 @@ const Viewer = builder.prismaInterface('User', {
   }),
 });
 
+let countedSelectCalls = 0;
+
 const NormalViewer = builder.prismaObject('User', {
   variant: 'NormalViewer',
   interfaces: () => [Viewer, Named],
@@ -83,6 +85,16 @@ const NormalViewer = builder.prismaObject('User', {
     reverseName: t.string({
       nullable: true,
       resolve: (user) => user.name?.split('').reverse().join(''),
+    }),
+    // Counts how often its select runs.
+    countedName: t.string({
+      nullable: true,
+      select: () => {
+        countedSelectCalls += 1;
+
+        return { name: true };
+      },
+      resolve: (user) => user.name,
     }),
   }),
 });
@@ -648,9 +660,9 @@ describe('fragments on variants and non-model interfaces', () => {
         fragments.push(`fragment F${i} on Viewer { ...F${i + 1} ...F${i + 1} }`);
       }
 
-      fragments.push('fragment F12 on Viewer { ... on NormalViewer { reverseName } }');
+      fragments.push('fragment F12 on Viewer { ... on NormalViewer { reverseName countedName } }');
 
-      const started = performance.now();
+      countedSelectCalls = 0;
       const result = await execute({
         schema,
         document: gql`
@@ -664,10 +676,14 @@ describe('fragments on variants and non-model interfaces', () => {
         contextValue: { user: { id: 1 } },
       });
 
-      expect(performance.now() - started).toBeLessThan(1000);
       expect(result.errors).toBeUndefined();
+      // F12's select runs once, not once per spread that reaches it.
+      expect(countedSelectCalls).toBe(1);
       expect(result.data).toEqual({
-        viewer: { reverseName: user.name?.split('').reverse().join('') ?? null },
+        viewer: {
+          reverseName: user.name?.split('').reverse().join('') ?? null,
+          countedName: user.name,
+        },
       });
       expect(queries).toEqual([
         {
@@ -717,14 +733,12 @@ describe('fragments on variants and non-model interfaces', () => {
         relationQueryCalls = 0;
         queries.length = 0;
 
-        const started = performance.now();
         const result = await execute({
           schema,
           document: cyclicDocument(depth),
           contextValue: { user: { id: 1 } },
         });
 
-        expect(performance.now() - started).toBeLessThan(1000);
         expect(result.errors).toBeUndefined();
         expect(queries).toHaveLength(1);
 
@@ -742,14 +756,12 @@ describe('fragments on variants and non-model interfaces', () => {
         relationQueryCalls = 0;
         queries.length = 0;
 
-        const started = performance.now();
         const result = await execute({
           schema,
           document: namedDocument('cyclicUser', depth),
           contextValue: { user: { id: 1 } },
         });
 
-        expect(performance.now() - started).toBeLessThan(1000);
         expect(result.errors).toBeUndefined();
         expect(queries).toHaveLength(1);
 

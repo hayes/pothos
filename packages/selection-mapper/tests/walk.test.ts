@@ -859,12 +859,9 @@ describe('repeated fragment spreads', () => {
       schema,
       `{ person { id ...F1 } }\n${fragmentChain(12, '... on Viewer { email }')}`,
     );
-    const started = performance.now();
-
     expect(queryFromInfo(counting, { context: {}, info })).toEqual({
       select: { posts: { take: 5 }, id: true, email: true },
     });
-    expect(performance.now() - started).toBeLessThan(1000);
     // The variant is entered once and its field applied once, not 2^11 times each.
     expect(calls).toEqual({ typeSelection: 1, fieldSelection: 1 });
   });
@@ -1285,10 +1282,7 @@ describe('fragments that expand at every level', () => {
     const callsAt = async (depth: number) => {
       const { calls, types } = linkedSchema();
       const info = await resolveInfo(types, expandingDocument(depth));
-      const started = performance.now();
-
       queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
-      expect(performance.now() - started).toBeLessThan(1000);
 
       return calls;
     };
@@ -1326,10 +1320,7 @@ describe('fragments that expand at every level', () => {
     const callsAt = async (depth: number, fields?: string[]) => {
       const { calls, types } = linkedSchema();
       const info = await resolveInfo(types, namedDocument(depth, fields));
-      const started = performance.now();
-
       queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
-      expect(performance.now() - started).toBeLessThan(1000);
 
       return calls;
     };
