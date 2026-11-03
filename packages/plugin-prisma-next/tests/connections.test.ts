@@ -423,14 +423,21 @@ describe('orderBy', () => {
     ]);
   });
 
-  it('accepts a cursor after a direction flip, and rejects one from other columns before SQL', async () => {
-    const down = await query('{ orderedPosts(first: 2, newest: true) { pageInfo { endCursor } } }');
-    const flipped = await query(
+  it("rejects a cursor from another request's ordering or columns before SQL", async () => {
+    const down = await query('{ orderedPosts(first: 1, newest: true) { pageInfo { endCursor } } }');
+    const cursor = down.data.orderedPosts.pageInfo.endCursor;
+    const up = await query(
       'query ($after: String) { orderedPosts(first: 1, after: $after) { edges { node { id } } } }',
-      { after: down.data.orderedPosts.pageInfo.endCursor },
+      { after: cursor },
     );
-    expect(flipped.errors).toBeUndefined();
-    expect(ids(flipped.data.orderedPosts)).toEqual(['p-hello']);
+    expect(up.errors?.map((error) => error.message)).toEqual(['Invalid cursor.']);
+    expect(up.statements).toHaveLength(0);
+    // The same ordering still accepts it.
+    const again = await query(
+      'query ($after: String) { orderedPosts(first: 1, newest: true, after: $after) { edges { node { id } } } }',
+      { after: cursor },
+    );
+    expect(ids(again.data.orderedPosts)).toEqual(['p-draft1']);
     const byId = await query('{ posts(first: 1) { pageInfo { endCursor } } }');
     const other = await query(
       'query ($after: String) { orderedPosts(first: 1, after: $after) { edges { node { id } } } }',
@@ -438,6 +445,34 @@ describe('orderBy', () => {
     );
     expect(other.errors?.map((error) => error.message)).toEqual(['Invalid cursor.']);
     expect(other.statements).toHaveLength(0);
+  });
+
+  it("rejects a related connection cursor from another request's ordering", async () => {
+    const first = await query(
+      '{ users { down: ordered(first: 1, newest: true) { pageInfo { endCursor } } } }',
+    );
+    const cursor = first.data.users[0].down.pageInfo.endCursor;
+    const next = await query(
+      'query ($after: String) { users { down: ordered(first: 1, newest: true, after: $after) { edges { node { id } } } up: ordered(first: 1, after: $after) { edges { node { id } } } } }',
+      { after: cursor },
+    );
+    expect(ids(next.data.users[0].down)).toEqual(['p-draft1']);
+    expect(next.data.users[0].up).toBeNull();
+    expect(next.errors?.map((error) => [error.path, error.message])).toEqual([
+      [['users', 0, 'up'], 'Invalid cursor.'],
+      [['users', 1, 'up'], 'Invalid cursor.'],
+    ]);
+  });
+
+  it("rejects a cursor from another model's connection before SQL", async () => {
+    const posts = await query('{ posts(first: 1) { pageInfo { endCursor } } }');
+    const users = await query(
+      'query ($after: String) { userPage(first: 1, after: $after) { edges { node { id } } } }',
+      { after: posts.data.posts.pageInfo.endCursor },
+    );
+    expect(users.data.userPage).toBeNull();
+    expect(users.errors?.map((error) => error.message)).toEqual(['Invalid cursor.']);
+    expect(users.statements).toHaveLength(0);
   });
 });
 

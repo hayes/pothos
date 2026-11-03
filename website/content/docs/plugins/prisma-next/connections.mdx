@@ -75,11 +75,13 @@ Column names are checked by type. A computed key, such as `{ [args.sort]: 'desc'
 when the request runs, and an unknown or unorderable column fails the field.
 
 A cursor holds the row's values for the ordered columns, in their column codec's stored form,
-and a short hash of the column names. The values are only base64 encoded, so a client can read
-them; don't order by a column whose values it mustn't see. The hash is not tamper protection. A
-cursor from an order over other columns fails with `Invalid cursor` before any query runs, while
-one from the same columns in another direction or null placement is accepted and pages from that
-row's position.
+and a short hash of the order: the model, and each column's name, direction and null placement.
+The values are only base64 encoded, so a client can read them; don't order by a column whose
+values it mustn't see. The hash is not tamper protection. A cursor is only valid under the order
+it was issued for: one from another model, other columns, another direction or another null
+placement fails with `Invalid cursor` before any query runs. A connection whose `orderBy`
+callback picks the order per request accepts a cursor only from a request that chose the same
+order.
 
 Cursor values are encoded with the client's column codecs, so any orderable column works,
 including Temporal and decimal columns.

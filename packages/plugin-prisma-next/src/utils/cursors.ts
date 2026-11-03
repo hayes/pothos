@@ -42,9 +42,17 @@ interface OrderColumn {
   readonly nulls?: 'first' | 'last';
 }
 
-type CursorOrder = readonly OrderColumn[];
+/**
+ * The order a connection pages by: its model's contract key and the columns, with each column's
+ * effective direction and null placement.
+ */
+interface CursorOrder {
+  readonly model: string;
+  readonly columns: readonly OrderColumn[];
+}
 
-export const cursorColumns = (order: CursorOrder): string[] => order.map(({ field }) => field);
+export const cursorColumns = (order: CursorOrder): string[] =>
+  order.columns.map(({ field }) => field);
 
 const BYTES_CODEC = /\/(bytea|bytes|blob)@/;
 
@@ -91,14 +99,14 @@ export function connectionOrder(
       const placement = nulls ?? (model.fields[field]!.nullable ? 'last' : undefined);
       order.push(placement ? { field, direction, nulls: placement } : { field, direction });
     }
-    const named = new Set(cursorColumns(order));
+    const named = new Set(order.map(({ field }) => field));
     if (!keys.some((columns) => columns.every((field) => named.has(field)))) {
       const direction = order[order.length - 1]?.direction ?? 'asc';
       for (const field of key.filter((field) => !named.has(field))) {
         order.push({ field, direction });
       }
     }
-    return order;
+    return { model: modelKey, columns: order };
   };
   if (typeof orderBy === 'function') {
     return (args, ctx) => resolve(orderBy(args as never, ctx as never), Error);
@@ -149,15 +157,19 @@ export function decodeValues(
 
 /**
  * Cursors have the form `PNC:<hash>:<chunk>`, and a multi-column cursor's chunk is a `T:` tuple.
- * The hash is of the ordered column names alone, so a cursor from an order over other columns is
- * refused, and one from the same columns in other directions still pages. It tells orders apart
- * and is not tamper protection: the values are only base64 encoded.
+ * The hash is of the order's model and, per column, its name, direction and null placement, so a
+ * cursor from another model or any other order is refused rather than paging from a position that
+ * means something else. It keeps column names out of the cursor and tells orders apart, and is not
+ * tamper protection: the values are only base64 encoded.
  */
 const CURSOR_PREFIX = 'PNC:';
 
-// 32-bit FNV-1a.
-function columnsHash(order: CursorOrder): string {
-  const text = cursorColumns(order).join(',');
+// 32-bit FNV-1a. Model keys and field names are identifiers, so the separators can't collide.
+function orderHash({ model, columns }: CursorOrder): string {
+  const text = [
+    model,
+    ...columns.map(({ field, direction, nulls }) => `${field} ${direction} ${nulls ?? ''}`),
+  ].join(',');
   let hash = 0x811c9dc5;
   for (let i = 0; i < text.length; i += 1) {
     hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193);
@@ -177,7 +189,7 @@ function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: 
     return row[field];
   });
   return encodeBase64(
-    `${CURSOR_PREFIX}${columnsHash(order)}:${encodeValues(fields, values, codecs)}`,
+    `${CURSOR_PREFIX}${orderHash(order)}:${encodeValues(fields, values, codecs)}`,
   );
 }
 
@@ -194,11 +206,11 @@ function decodeCursor(
   try {
     payload = decodeBase64(value);
   } catch {}
-  const prefix = `${CURSOR_PREFIX}${columnsHash(order)}:`;
+  const prefix = `${CURSOR_PREFIX}${orderHash(order)}:`;
   const values = payload?.startsWith(prefix)
     ? decodeValues(cursorColumns(order), payload.slice(prefix.length), codecs)
     : undefined;
-  if (!values || order.some(({ field, nulls }) => values[field] === null && !nulls)) {
+  if (!values || order.columns.some(({ field, nulls }) => values[field] === null && !nulls)) {
     throw new PothosValidationError('Invalid cursor.');
   }
   return values;
@@ -212,8 +224,8 @@ function buildLexicographicPredicate(
   op: 'gt' | 'lt',
 ): (c: Record<string, ComparableColumn>) => unknown {
   return (c) => {
-    const clauses = order.map(({ field, direction, nulls }, i) => {
-      const equalities = order
+    const clauses = order.columns.map(({ field, direction, nulls }, i) => {
+      const equalities = order.columns
         .slice(0, i)
         .map(({ field: prev }) =>
           values[prev] === null ? c[prev]!.isNull() : c[prev]!.eq(values[prev]),
@@ -293,7 +305,7 @@ function applyToCollection<C extends MapperCollection>(
   { order, before, after, limit, inverted, codecs }: CursorPaginationParams,
 ): C {
   let collection = baseCollection.orderBy(
-    order.map(({ field, direction, nulls }) => (c: Record<string, ComparableColumn>) => {
+    order.columns.map(({ field, direction, nulls }) => (c: Record<string, ComparableColumn>) => {
       const forward = c[field]![direction](nulls ? { nulls } : undefined);
       return inverted ? forward.reverse() : forward;
     }),

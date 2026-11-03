@@ -112,17 +112,50 @@ describe('cursor values', () => {
     );
   });
 
-  it('accepts a cursor under another direction or null placement of the same columns', async () => {
-    const cursor = await pages({ score: { nulls: 'first' } }).cursorOf({ id: 'n-1', score: null });
+  it('accepts a cursor only under the null placement it was issued for', async () => {
+    const nullsFirst = pages({ score: { nulls: 'first' } });
+    const cursor = await nullsFirst.cursorOf({ id: 'n-1', score: null });
     const base = db.orm.Post.where({ title: 'nullable-sort' });
-    const page = await pages({ score: { direction: 'desc', nulls: 'last' }, id: 'asc' }).read(
-      base,
-      {
-        first: 1,
-        after: cursor,
-      },
+    expect(idsOf(await nullsFirst.read(base, { first: 1, after: cursor }))).toEqual(['n-4']);
+    // The default placement for a nullable column is nulls last.
+    for (const orderBy of [{ score: 'asc' }, { score: { nulls: 'last' } }]) {
+      await expect(pages(orderBy).read(base, { first: 1, after: cursor })).rejects.toThrow(
+        /^Invalid cursor\.$/,
+      );
+    }
+  });
+
+  it.each([
+    ['another direction', { score: 'desc' }],
+    ['another direction of the appended key', { score: 'asc', id: 'desc' }],
+  ])('rejects a cursor under %s', async (_name, orderBy) => {
+    const issued = pages({ score: 'asc' });
+    const cursor = await issued.cursorOf({ id: 'n-3', score: 1 });
+    const base = db.orm.Post.where({ title: 'nullable-sort' });
+    expect(idsOf(await issued.read(base, { first: 1, after: cursor }))).toEqual(['n-6']);
+    await expect(pages(orderBy).read(base, { first: 1, after: cursor })).rejects.toThrow(
+      /^Invalid cursor\.$/,
     );
-    expect(idsOf(page)).toEqual(['n-4']);
+  });
+
+  it('accepts a cursor under an order naming the appended key column in its direction', async () => {
+    const cursor = await pages({ score: 'asc' }).cursorOf({ id: 'n-3', score: 1 });
+    const base = db.orm.Post.where({ title: 'nullable-sort' });
+    const page = await pages({ score: 'asc', id: 'asc' }).read(base, { first: 1, after: cursor });
+    expect(idsOf(page)).toEqual(['n-6']);
+  });
+
+  it("rejects a cursor from another model's connection over the same columns", async () => {
+    const posts = pages({});
+    const users = prismaConnectionHelpers(createBuilder(), 'User', {});
+    const cursor = await posts.cursorOf({ id: 'u-alice' });
+    await expect(
+      users.applyPagination(db.orm.User, { first: 1, after: cursor }, {}),
+    ).rejects.toThrow(/^Invalid cursor\.$/);
+    const page = await users.applyPagination(db.orm.User, { first: 1 }, {});
+    const own = page.wrap([{ id: 'u-alice' } as never]).edges[0].cursor;
+    const next = await users.applyPagination(db.orm.User, { first: 1, after: own }, {});
+    expect((await next.collection.all()).map((row: { id: string }) => row.id)).toEqual(['u-bob']);
   });
 
   it('keeps column names out of a cursor', async () => {
