@@ -912,7 +912,7 @@ describe("a variant's relations in a field's select", () => {
   it.each([
     ['an object', 'prismaObject', 'Bug'],
     ['a variant interface', 'prismaInterface', 'Rev'],
-  ] as const)("rejects one in the select of %s", (_name, method, typeName) => {
+  ] as const)('rejects one in the select of %s', (_name, method, typeName) => {
     const { builder, task } = reviewBuilder();
     const options = {
       ...(method === 'prismaObject' ? { interfaces: [task] } : { variant: typeName }),

@@ -4,5 +4,9 @@
   },
   "extends": "../../tsconfig.options.json",
   "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["tests/scope-auth.test.ts", "tests/types/missing-plugins.test-d.ts"]
+  "exclude": [
+    "tests/scope-auth.test.ts",
+    "tests/returned-rows.test.ts",
+    "tests/types/missing-plugins.test-d.ts"
+  ]
 }

@@ -884,8 +884,8 @@ const inhBuilder = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }
 });
 inhBuilder.prismaObject('Bug', {
   variant: 'FilteredVariantSelect',
-  // @ts-expect-error a variant's to-one relation in a type's select takes only true
-  select: { reviewer: { limit: 1 } },
+  // @ts-expect-error a to-one relation in a variant type's select takes only true
+  select: { owner: { limit: 1 } },
 });
 declare const sqliteTransaction: Parameters<Parameters<typeof sqliteClient.transaction>[0]>[0];
 new SchemaBuilder<{ PrismaNextContract: Contract }>({

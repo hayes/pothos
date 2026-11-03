@@ -8,8 +8,8 @@ import prismaNextPlugin, {
   type ConnectionHelperRow,
   type ConnectionOrderBy,
   type ConnectionQueryLiteral,
-  type PlannedRow,
   type NodeSelection,
+  type PlannedRow,
   prismaConnectionHelpers,
 } from '../../src';
 import type { TotalCountFlag } from '../../src/types/aggregates';
