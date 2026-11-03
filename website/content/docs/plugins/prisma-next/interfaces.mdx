@@ -48,6 +48,13 @@ builder.queryFields((t) => ({
 interface ref as `type`. Fields on an implementing type can read the interface's `select`.
 Implementing objects don't accept `isTypeOf`.
 
+`resolveType` sees the columns and to-one relations in the interface's `select`, but not its to-many
+relations, counts or aggregates.
+
+An interface and a type that implements it, or two interfaces of one type, can't select the same
+relation with different arguments in their type-level `select`. The schema build throws. Put the
+filtered relation in a field's `select` instead.
+
 To add fields to the interface from another file, use `prismaInterfaceField` or
 `prismaInterfaceFields`:
 
