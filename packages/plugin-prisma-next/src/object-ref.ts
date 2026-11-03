@@ -11,8 +11,11 @@ export const prismaModelBrand = Symbol.for('Pothos.prismaNextModelBrand');
 /** Type-only: the contract a ref's builder was created with. */
 export const prismaContractBrand = Symbol.for('Pothos.prismaNextContractBrand');
 
-/** Type-only: marks the rows the loader planned, see `PlannedRow`. */
-export const plannedRowBrand = Symbol.for('Pothos.prismaNextPlannedRow');
+/**
+ * Marks the rows the loader planned, see `PlannedRow`. It exists only in types, so code outside the
+ * loader can't build a row that claims it.
+ */
+declare const plannedRowBrand: unique symbol;
 
 /** Marks a row the loader planned. It is an interface so that declaration emit can name it. */
 export interface PlannedRowBrand {
