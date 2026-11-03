@@ -91,7 +91,10 @@ export type ModelKey<Types extends SchemaTypes> = Types['PrismaNextContract'] ex
     : ModelKeySentinel
   : ModelKeySentinel;
 
-/** The row of a model's own fields. */
+/**
+ * The row of a model's own fields, as the ORM client returns it. A relation a `select` loads whole
+ * holds these rows. A variant's `Row` also holds its base's fields.
+ */
 export type OwnRow<TContract extends AnyContract, M extends string> = DefaultModelRow<
   TContract,
   BareModelName<M>,

@@ -105,6 +105,7 @@ export type {
   InterfaceReturnShape,
   ModelKey,
   ObjectReturnShape,
+  OwnRow,
   PlannedRow,
   RelationKeys,
   Row,
