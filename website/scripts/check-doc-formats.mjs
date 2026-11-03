@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright';
 import { docCodeBlocks, parseCodeBlocks } from './doc-code-blocks.mjs';
+import { launchBrowser } from './launch-browser.mjs';
 
 // Check the actual production outputs: compiling MDX successfully does not
 // establish that its source includes survived the separate text pipeline.
@@ -36,9 +36,7 @@ const [index, full, sitemap] = await Promise.all([
   get('/llms-full.txt'),
   get('/sitemap.xml'),
 ]);
-const browser = await chromium.launch({
-  executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
-});
+const browser = await launchBrowser();
 const page = await browser.newPage();
 let snippets = 0;
 let includes = 0;
