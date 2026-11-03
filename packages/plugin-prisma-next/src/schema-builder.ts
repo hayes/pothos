@@ -41,6 +41,11 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelKey<Type
 ) {
   const { contract } = getPluginConfig(builder);
   const isInterface = kind === 'Interface';
+  if (options.variant !== undefined && options.name !== undefined) {
+    throw new PothosSchemaError(
+      `Set only one of 'name' and 'variant' on the type for model '${modelKey as string}': a variant's name is its 'variant'.`,
+    );
+  }
   // Only a variant is a type of its own. Any other registration is the model's default type, which
   // `t.relation` and helpers given a model key resolve to, and `name` only renames it.
   const ref =

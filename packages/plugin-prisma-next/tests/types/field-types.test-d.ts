@@ -58,6 +58,15 @@ const Viewer = builder.prismaObject('User', {
 // `variant` names a type that shares its model, so it can't be set beside `name`.
 // @ts-expect-error only one of `name` and `variant`
 builder.prismaObject('User', { name: 'A', variant: 'B', fields: () => ({}) });
+// @ts-expect-error only one of `name` and `variant`
+builder.prismaInterface('User', { name: 'A', variant: 'B', fields: () => ({}) });
+// @ts-expect-error only one of `name` and `variant`
+builder.prismaNode('User', {
+  name: 'A',
+  variant: 'B',
+  id: { field: 'id' },
+  fields: () => ({}),
+});
 
 // t.variant takes the options of any object field, and its shape says when it can be null.
 builder.prismaObject('User', {
