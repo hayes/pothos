@@ -724,7 +724,8 @@ describe.each(orders)('runScopesOnType through an interface (%s)', (order, plugi
     });
   } else {
     // Scope-auth's `isTypeOf` wraps this plugin's, so it reads the shared row, which holds neither
-    // implementation's `posts`. The setup docs say to list prismaNextPlugin first for this.
+    // implementation's `posts`. A to-many relation in a type's select isn't part of what a returned
+    // row must hold, so a type-level check listed first can't rely on it. This is a known limit.
     it('hands neither implementation the relation when they select it with different arguments', async () => {
       const { rootSeen, relationSeen } = await run({ where: { published: 1 } });
       expect(rootSeen).toEqual([
@@ -758,7 +759,12 @@ describe('rows another field filtered', () => {
   ];
 
   describe.each(orders)('scope auth %s the prisma plugin', (_name, plugins) => {
-    it.each(queries)('hides them from a type-level select with %s', async (_label, source) => {
+    // With scope auth listed first, the check may see `posts` unloaded: a to-many relation in a
+    // type's select isn't part of what a returned row must hold, which is a known limit. It never
+    // sees the rows another field filtered.
+    it.each(
+      queries,
+    )('hides them from a type-level select, which may see the to-many relation unloaded, with %s', async (_label, source) => {
       const seen: unknown[] = [];
       const builder = auditBuilder(plugins);
       builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
@@ -1011,6 +1017,11 @@ describe('slots beneath shared walks', () => {
     });
     const PI = b.prismaInterface('Post', {
       variant: 'PI',
+      select: ['published'],
+      resolveType: (p: any) => {
+        seen.push(['resolveType', 'PI', p.published]);
+        return p.published === 1 ? 'P1' : 'P2';
+      },
       fields: (t: any) => ({ pid: t.exposeID('id') }),
     });
     const pub = (t: any) => t.relation('posts', { type: PI, query: { where: { published: 1 } } });
@@ -1061,18 +1072,11 @@ describe('slots beneath shared walks', () => {
         author: t.relation('author', { type: UI }),
       }),
     });
-    for (const [n, published] of [
-      ['P1', 1],
-      ['P2', 0],
-    ] as const) {
+    for (const n of ['P1', 'P2']) {
       b.prismaObject('Post', {
         variant: n,
         interfaces: [PI, L],
         select: { published: true, comments: true },
-        isTypeOf: (p: any) => {
-          seen.push(['isTypeOf', n, p.published]);
-          return p.published === published;
-        },
         fields: (t: any) => ({
           commentCount: t.int({ resolve: (p: any) => p.comments.length }),
           guarded: t.variant(Guarded, { nullable: true }),
@@ -1157,11 +1161,10 @@ describe('slots beneath shared walks', () => {
         ],
       },
       seen: [
-        '["isTypeOf","P1",0]',
-        '["isTypeOf","P1",1]',
-        '["isTypeOf","P2",0]',
         '["resolveType","Alice"]',
         '["resolveType","Bob"]',
+        '["resolveType","PI",0]',
+        '["resolveType","PI",1]',
       ],
       errors: [],
     },
@@ -1173,11 +1176,10 @@ describe('slots beneath shared walks', () => {
         ],
       },
       seen: [
-        '["isTypeOf","P1",0]',
-        '["isTypeOf","P1",1]',
-        '["isTypeOf","P2",0]',
         '["resolveType","Alice"]',
         '["resolveType","Bob"]',
+        '["resolveType","PI",0]',
+        '["resolveType","PI",1]',
       ],
       errors: [],
     },
@@ -1195,11 +1197,10 @@ describe('slots beneath shared walks', () => {
         ],
       },
       seen: [
-        '["isTypeOf","P1",0]',
-        '["isTypeOf","P1",1]',
-        '["isTypeOf","P2",0]',
         '["resolveType","Alice"]',
         '["resolveType","Bob"]',
+        '["resolveType","PI",0]',
+        '["resolveType","PI",1]',
       ],
       errors: [],
     },
@@ -1237,11 +1238,10 @@ describe('slots beneath shared walks', () => {
         ],
       },
       seen: [
-        '["isTypeOf","P1",0]',
-        '["isTypeOf","P1",1]',
-        '["isTypeOf","P2",0]',
         '["resolveType","Alice"]',
         '["resolveType","Bob"]',
+        '["resolveType","PI",0]',
+        '["resolveType","PI",1]',
       ],
       errors: [],
     },
@@ -1252,7 +1252,7 @@ describe('slots beneath shared walks', () => {
           { a: { nodes: [{ pid: 'p-bob1' }] }, b: { nodes: [{ pid: 'p-bob1' }] }, nPub: 1 },
         ],
       },
-      seen: ['["isTypeOf","P1",1]', '["resolveType","Alice"]', '["resolveType","Bob"]'],
+      seen: ['["resolveType","Alice"]', '["resolveType","Bob"]', '["resolveType","PI",1]'],
       errors: [],
     },
     type_level_handover: {
@@ -1283,11 +1283,10 @@ describe('slots beneath shared walks', () => {
         ],
       },
       seen: [
-        '["isTypeOf","P1",0]',
-        '["isTypeOf","P1",1]',
-        '["isTypeOf","P2",0]',
         '["resolveType","Alice"]',
         '["resolveType","Bob"]',
+        '["resolveType","PI",0]',
+        '["resolveType","PI",1]',
       ],
       errors: [],
     },
@@ -1314,11 +1313,10 @@ describe('slots beneath shared walks', () => {
       seen: [
         '["auth","Bob draft"]',
         '["auth","Hello, Pothos"]',
-        '["isTypeOf","P1",0]',
-        '["isTypeOf","P1",1]',
-        '["isTypeOf","P2",0]',
         '["resolveType","Alice"]',
         '["resolveType","Bob"]',
+        '["resolveType","PI",0]',
+        '["resolveType","PI",1]',
       ],
       errors: [],
     },
@@ -1348,10 +1346,9 @@ describe('slots beneath shared walks', () => {
       seen: [
         '["auth","Bob draft"]',
         '["auth","Draft #1"]',
-        '["isTypeOf","P1",0]',
-        '["isTypeOf","P2",0]',
         '["resolveType","Alice"]',
         '["resolveType","Bob"]',
+        '["resolveType","PI",0]',
       ],
       errors: [
         'Not authorized to read fields for GuardedPost',
@@ -1382,11 +1379,10 @@ describe('slots beneath shared walks', () => {
         ],
       },
       seen: [
-        '["isTypeOf","P1",0]',
-        '["isTypeOf","P1",1]',
-        '["isTypeOf","P2",0]',
         '["resolveType","Alice"]',
         '["resolveType","Bob"]',
+        '["resolveType","PI",0]',
+        '["resolveType","PI",1]',
       ],
       errors: [],
     },
