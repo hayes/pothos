@@ -166,6 +166,7 @@ describe('collectionFromInfo with the scope-auth plugin listed first', () => {
   it('still applies the type scopes to the rows', async () => {
     const result = await run(schema(), '{ user { firstName } }', { signedIn: false });
     expect(result.errors?.[0]?.message).toMatch(/Not authorized/);
-    expect(result.data?.user?.firstName ?? null).toBeNull();
+    // The row loads, but the type's scopes hide its fields.
+    expect(result.data).toEqual({ user: { firstName: null } });
   });
 });
