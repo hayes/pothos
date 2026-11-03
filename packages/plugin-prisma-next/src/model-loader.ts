@@ -20,7 +20,7 @@ import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/a
 import { assertNoIncludes, getCollectionPaginationState } from './utils/collection-state.js';
 import type { PrismaNextConfig } from './utils/config.js';
 import { variantOf } from './utils/contract.js';
-import { getIdentityFields, type PrismaNextModel } from './utils/model.js';
+import { getIdentityFields, getModel, type PrismaNextModel } from './utils/model.js';
 import { type PrismaNextSelection, takeSlots, throwPlanningFailure } from './utils/selections.js';
 
 type Row = Record<string, unknown>;
@@ -35,11 +35,12 @@ interface Request {
 /**
  * What a staged request loads. Requests join any batch of the same load whose plan they merge
  * with. A node load is of one type, whose `id.field` and `collection` it uses, and resolves a
- * missing row to null. For a parent load, a missing row is an error.
+ * missing row to null. For a parent load, a missing row is an error. A completion load adds to rows
+ * the loader just returned, and leaves a row it can't find as it is.
  */
 type Load =
   | { kind: 'node'; typeName: string; collection: ((ctx: object) => MapperCollection) | undefined }
-  | { kind: 'parent'; typeName?: undefined; collection?: undefined };
+  | { kind: 'parent' | 'complete'; typeName?: undefined; collection?: undefined };
 
 interface Batch {
   load: Load;
@@ -77,6 +78,8 @@ export class ModelLoader {
    */
   private readonly plans = new WeakMap<object, Plans>();
   private readonly staged = new Set<Batch>();
+  /** The plan root `completeRows` stages for each selection. */
+  private readonly completions = new WeakMap<PrismaNextSelection, PrismaNextNode>();
 
   constructor(
     private readonly context: object,
@@ -174,6 +177,45 @@ export class ModelLoader {
       });
     };
     return completeValue(selection, load) as Promise<Row | null>;
+  }
+
+  /**
+   * Loads `selection`'s relations onto `rows`, rows of this loader's variant model that loaded
+   * through the variant model's own accessor, which can't include the base model's relations. They
+   * load here through the base model narrowed to the variant, batched with every other request.
+   */
+  completeRows(rows: readonly Row[], selection: PrismaNextSelection): Promise<void> | undefined {
+    // A model without an identity can't be reloaded. Its fields fail as they would otherwise.
+    if (!rows.length || !this.identity.length) {
+      return undefined;
+    }
+    const { adapter } = this.config;
+    let root = this.completions.get(selection);
+    if (!root) {
+      root = adapter.createNode(getModel(this.config.contract, this.modelKey));
+      if (this.initial) {
+        adapter.mergeQuery(root, this.initial);
+      }
+      adapter.mergeQuery(root, selection);
+      this.completions.set(selection, root);
+    }
+    const names = Object.keys(selection.relations ?? {});
+    return Promise.all(
+      rows.map((row) =>
+        this.stage(
+          root,
+          this.identity,
+          this.identity.map((field) => row[field]),
+          { kind: 'complete' },
+        ).then((loaded) => {
+          if (loaded) {
+            for (const name of names) {
+              row[name] = loaded[name];
+            }
+          }
+        }),
+      ),
+    ).then(() => undefined);
   }
 
   private stage(
@@ -281,7 +323,7 @@ export class ModelLoader {
     const byKey = new Map(rows.map((row) => [key(fields.map((field) => row[field])), row]));
     for (const { request, key } of keyed) {
       const row = byKey.get(key);
-      if (row || batch.load.kind === 'node') {
+      if (row || batch.load.kind !== 'parent') {
         request.resolve(row ?? null);
       } else {
         request.reject(

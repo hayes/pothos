@@ -16,7 +16,7 @@ import {
 } from '@pothos/core';
 import type { Position } from '@pothos/selection-mapper';
 import type { ContractRelation } from '@prisma/orm-framework/contract/types';
-import type { GraphQLResolveInfo } from 'graphql';
+import { type GraphQLNamedType, type GraphQLResolveInfo, getNamedType } from 'graphql';
 import {
   PRISMA_NEXT_FIELD_SELECTION,
   PRISMA_NEXT_LOADED_CHECK,
@@ -411,7 +411,15 @@ export class PrismaNextObjectFieldBuilder<
           : {}),
       },
       resolve: (parent: object, _args: object, context: object, info: GraphQLResolveInfo) =>
-        readSlots(this.builder, parent, context, info, (slots) => slots.rows(relationName)),
+        readSlots(this.builder, parent, context, info, (slots) =>
+          completeVariantRows(
+            this.builder,
+            relation,
+            getNamedType(info.returnType),
+            context,
+            slots.rows(relationName),
+          ),
+        ),
     } as never) as never;
   }
 
@@ -602,7 +610,15 @@ export class PrismaNextObjectFieldBuilder<
         readSlots(this.builder, parent, context, info, async (slots) => {
           const planned = plans.get(slots.position!)!;
           const { needsRows, count } = settings.selectionFor(context, info);
-          const rows = needsRows ? slots.rows(name) : [];
+          const rows = needsRows
+            ? await completeVariantRows(
+                this.builder,
+                relation,
+                info.schema.getType(relatedTypeName),
+                context,
+                slots.rows(name),
+              )
+            : [];
           const totalCount =
             count === 'aggregate'
               ? (slots.value(name, COUNT_SLOT) as number | undefined)
@@ -661,6 +677,33 @@ function readSlots<T>(
       // nothing yet, so the field always fits and has a mapping.
       .then(({ row, mapping }) => read(fieldSlots(row, mapping?.position)!))
   );
+}
+
+/**
+ * Completes the rows of a relation that targets a variant model before its field returns them.
+ * They loaded through the variant model's own accessor, which can't include the base model's
+ * relations, so the planner left those out of the returned type's selection. One batched statement
+ * loads them for every parent, so plugins listed before this one, such as scope-auth, see the to-one
+ * relations the type's `select` promises.
+ */
+function completeVariantRows<T>(
+  builder: object,
+  relation: PrismaNextRelation,
+  type: GraphQLNamedType | null | undefined,
+  context: object,
+  rows: T,
+): MaybePromise<T> {
+  const config = getPluginConfig(builder);
+  const dropped =
+    relation.targetVariantModel && type
+      ? config.adapter.droppedBeneathVariantModel(type, relation)
+      : undefined;
+  if (!dropped || rows == null) {
+    return rows;
+  }
+  const list = (Array.isArray(rows) ? rows : [rows]) as Record<string, unknown>[];
+  const completed = config.loader(context, relation.targetModel).completeRows(list, dropped);
+  return completed ? completed.then(() => rows) : rows;
 }
 
 // An embed records no nullability, so its row may be absent.

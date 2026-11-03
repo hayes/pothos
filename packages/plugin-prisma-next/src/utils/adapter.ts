@@ -88,6 +88,10 @@ interface RelationConsumers {
 export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSelection> {
   override readonly skipDeferredFragments: boolean;
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSelection>();
+  private readonly beneathVariantModel = new WeakMap<
+    GraphQLNamedType,
+    PrismaNextSelection | null
+  >();
   private readonly withoutIdentity = new WeakMap<PrismaNextModel, boolean>();
   private readonly records = new WeakMap<object, IncludeRecord>();
 
@@ -162,6 +166,31 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     const selection = this.toQuery(node);
     this.typeSelections.set(type, selection);
     return selection;
+  }
+
+  /**
+   * The to-one relations of `type`'s selection that `mergeQuery` leaves out of a level loading
+   * through a variant model's own accessor: the base model's relations. A relation field returning
+   * such rows loads them before it returns the rows, so plugins listed before this one see what the
+   * type's `select` promises. Undefined when the level loses none.
+   */
+  droppedBeneathVariantModel(
+    type: GraphQLNamedType,
+    { targetVariantModel, target }: PrismaNextRelation,
+  ): PrismaNextSelection | undefined {
+    let dropped = this.beneathVariantModel.get(type);
+    if (dropped === undefined) {
+      const narrowing: Narrowing = { value: targetVariantModel!.value, throughVariantModel: true };
+      const relations = Object.entries(this.typeSelection(type)?.relations ?? {}).filter(
+        ([key]) =>
+          key === relationName(key) &&
+          !relationOf(target, key).isToMany &&
+          !canInclude(relationOf(target, key), narrowing),
+      );
+      dropped = relations.length ? { relations: Object.fromEntries(relations) } : null;
+      this.beneathVariantModel.set(type, dropped);
+    }
+    return dropped ?? undefined;
   }
 
   fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
@@ -251,8 +280,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
 
   /**
    * A type's selection merges whatever level it lands on, so what that level can't include, a base
-   * relation beneath a relation targeting a variant model, is left out. The row then lacks it,
-   * which makes the type's fields reload it.
+   * relation beneath a relation targeting a variant model, is left out. The relation field loads
+   * the to-one relations left out of the type's selection before returning the rows (see
+   * `droppedBeneathVariantModel`), and the type's fields reload the rest.
    */
   override mergeQuery(
     node: PrismaNextNode,
