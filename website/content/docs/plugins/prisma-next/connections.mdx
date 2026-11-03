@@ -55,9 +55,10 @@ order by relation columns, aggregates or expressions. Nullable columns sort null
 orderBy: { score: { direction: 'desc', nulls: 'first' } },
 ```
 
-The primary key is added to the end of the order. On PostgreSQL, index the order columns with
-matching null placement. For `{ score: 'desc' }`, that's
-`CREATE INDEX ON post (score DESC NULLS LAST, id DESC)`.
+Unless the order already covers a unique key, the plugin adds one to the end, in the direction of
+the last column. That's the primary key or, if it can't be ordered, the first non-null unique key
+that can. On PostgreSQL, index the order columns with matching null placement. For
+`{ score: 'desc' }`, that's `CREATE INDEX ON post (score DESC NULLS LAST, id DESC)`.
 
 To let clients choose the order, pass a function of the arguments:
 
@@ -67,15 +68,19 @@ Cursors contain the values of the order columns, readable by clients, so don't o
 clients shouldn't see.
 
 - Bytes columns can't be ordered.
-- On PostgreSQL, a timestamp read as a JavaScript `Date` keeps only milliseconds, so ordering by
-  one with a precision above 3 is a schema build error. Bare `DateTime` is fine; use
-  `TimestamptzTemporal` for finer timestamps.
+- On PostgreSQL, a timestamp read as a JavaScript `Date` keeps only milliseconds, so you can't
+  order by one with a precision above 3. Bare `DateTime` is fine; use `TimestamptzTemporal` for
+  finer timestamps.
+
+An `orderBy` object that breaks these rules fails the schema build. An `orderBy` function fails
+each request that returns such an order.
 
 ## Custom connections
 
 When the nodes aren't a relation of the parent, such as the users who commented on a post, define
 the connection yourself with `t.connection` and page it with `prismaConnectionHelpers`. The helper
-takes a model name or a prisma type ref, and the options of `t.relatedConnection`.
+takes a model name or a prisma type ref, and `orderBy`, `defaultSize`, `maxSize`, `args` and
+`query` as `t.relatedConnection` does. Its `totalCount` only takes `true`.
 
 ### Paginate through a join model
 
