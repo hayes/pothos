@@ -23,6 +23,73 @@ Each model has one `prismaObject`. To add fields to it elsewhere, use
 [`prismaObjectFields`](#adding-fields). To expose the same model as another GraphQL type, define a
 [`variant`](./variants).
 
+## Selections
+
+A `select` on the type is loaded whenever the type is queried. A `select` on a field is loaded only
+when that field is queried. The primary key is always loaded.
+
+```ts
+builder.prismaObject('User', {
+  select: { firstName: true, lastName: true },
+  fields: (t) => ({
+    fullName: t.string({
+      resolve: (user) => `${user.firstName} ${user.lastName}`,
+    }),
+    initials: t.string({
+      select: ['firstName', 'lastName'],
+      resolve: (user) => `${user.firstName[0]}${user.lastName[0]}`,
+    }),
+    publishedPostCount: t.field({
+      type: 'Int',
+      select: {
+        posts: (posts) => ({ publishedCount: posts.where({ published: 1 }).count() }),
+      },
+      resolve: (user) => user.publishedCount,
+    }),
+  }),
+});
+```
+
+A `select` accepts:
+
+- `{ column: true }` or `['column']`: a column.
+- `{ relation: true }`: the related rows.
+- `{ relation: { where, orderBy, limit, offset } }`: filtered or sorted related rows. A to-one
+  relation takes only `where`, and only in a field's `select`.
+- `{ relation: (collection) => ({ ... }) }`: counts or aggregates of a to-many relation. Each key is
+  added to the parent row, so it can't reuse a column or relation name.
+
+Read computed keys with a resolver; `t.expose*` only works on columns.
+
+To filter a to-one relation, use the object form in a field's `select`. The result can be `null`
+even when the foreign key is required:
+
+```ts
+authorName: t.string({
+  nullable: true,
+  select: { author: { where: { firstName: 'Alice' } } },
+  resolve: (post) => post.author?.firstName ?? null,
+}),
+```
+
+A field's `select` can also be a function of its arguments and context. With `AsyncSelections: true`
+in the builder's types, it can be async. A column that only some branches select is optional on the parent:
+
+```ts
+email: t.string({
+  nullable: true,
+  select: (_args, ctx) => (ctx.isAdmin ? { email: true, firstName: true } : { firstName: true }),
+  resolve: (user) => user.email ?? null,
+}),
+```
+
+`select`, `query`, `where` and `orderBy` callbacks run once per planned query, not per row, so keep
+them free of side effects.
+
+Type-level checks such as `authScopes` always see the primary key and the columns and to-one
+relations in the type's `select`. Other data may not be loaded yet, unless the row came from a
+prisma field, relation or connection.
+
 ## Prisma fields
 
 A `t.prismaField` resolver returns a Collection without running it. The plugin adds what the query
@@ -98,73 +165,6 @@ builder.mutationField('renameUser', (t) =>
   }),
 );
 ```
-
-## Selections
-
-A `select` on the type is loaded whenever the type is queried. A `select` on a field is loaded only
-when that field is queried. The primary key is always loaded.
-
-```ts
-builder.prismaObject('User', {
-  select: { firstName: true, lastName: true },
-  fields: (t) => ({
-    fullName: t.string({
-      resolve: (user) => `${user.firstName} ${user.lastName}`,
-    }),
-    initials: t.string({
-      select: ['firstName', 'lastName'],
-      resolve: (user) => `${user.firstName[0]}${user.lastName[0]}`,
-    }),
-    publishedPostCount: t.field({
-      type: 'Int',
-      select: {
-        posts: (posts) => ({ publishedCount: posts.where({ published: 1 }).count() }),
-      },
-      resolve: (user) => user.publishedCount,
-    }),
-  }),
-});
-```
-
-A `select` accepts:
-
-- `{ column: true }` or `['column']`: a column.
-- `{ relation: true }`: the related rows.
-- `{ relation: { where, orderBy, limit, offset } }`: filtered or sorted related rows. A to-one
-  relation takes only `where`, and only in a field's `select`.
-- `{ relation: (collection) => ({ ... }) }`: counts or aggregates of a to-many relation. Each key is
-  added to the parent row, so it can't reuse a column or relation name.
-
-Read computed keys with a resolver; `t.expose*` only works on columns.
-
-To filter a to-one relation, use the object form in a field's `select`. The result can be `null`
-even when the foreign key is required:
-
-```ts
-authorName: t.string({
-  nullable: true,
-  select: { author: { where: { firstName: 'Alice' } } },
-  resolve: (post) => post.author?.firstName ?? null,
-}),
-```
-
-A field's `select` can also be a function of its arguments and context. With `AsyncSelections: true`
-in the builder's types, it can be async. A column that only some branches select is optional on the parent:
-
-```ts
-email: t.string({
-  nullable: true,
-  select: (_args, ctx) => (ctx.isAdmin ? { email: true, firstName: true } : { firstName: true }),
-  resolve: (user) => user.email ?? null,
-}),
-```
-
-`select`, `query`, `where` and `orderBy` callbacks run once per planned query, not per row, so keep
-them free of side effects.
-
-Type-level checks such as `authScopes` always see the primary key and the columns and to-one
-relations in the type's `select`. Other data may not be loaded yet, unless the row came from a
-prisma field, relation or connection.
 
 ## Adding fields
 
