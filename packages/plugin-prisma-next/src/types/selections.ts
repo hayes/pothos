@@ -54,7 +54,16 @@ type FieldSelectColumn<Types extends SchemaTypes, ParentShape> =
  */
 type FieldSelectArray<Types extends SchemaTypes, ParentShape> =
   | readonly []
-  | readonly [FieldSelectColumn<Types, ParentShape>, ...FieldSelectColumn<Types, ParentShape>[]];
+  | readonly [FieldSelectEntry<Types, ParentShape>, ...FieldSelectEntry<Types, ParentShape>[]];
+
+/**
+ * Any string, still completing the columns, so an unknown column reaches `ValidateFieldSelect`,
+ * which names it. With only the columns here, an array of nothing but unknown columns fails as
+ * `'titel'` not assignable to `never` on TypeScript 7.
+ */
+type FieldSelectEntry<Types extends SchemaTypes, ParentShape> =
+  | FieldSelectColumn<Types, ParentShape>
+  | (string & {});
 
 /**
  * A column array, a `select` object, or a function of the args and context returning a `select`

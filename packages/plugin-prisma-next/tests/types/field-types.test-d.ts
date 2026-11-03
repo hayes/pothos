@@ -16,7 +16,12 @@ import prismaNextPlugin, {
   type Row,
 } from '../../src';
 import type { ExposableColumn } from '../../src/types/fields';
-import type { SelectColumnCheck } from '../../src/types/selections';
+import type { ObjectBaseShape } from '../../src/types/models';
+import type {
+  PrismaNextFieldSelect,
+  SelectColumnCheck,
+  ValidateFieldSelect,
+} from '../../src/types/selections';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -210,6 +215,13 @@ builder.queryFields((t) => {
 expectTypeOf<SelectColumnCheck<Types, 'User', string>>().toEqualTypeOf<
   'id' | 'firstName' | 'lastName' | 'email'
 >();
+// A field's array takes any string, so an array of only unknown columns reaches the check, which
+// names them, instead of failing as `'frstName'` not assignable to `never`.
+type UserShape = ObjectBaseShape<Types, 'User'>;
+expectTypeOf<readonly ['frstName']>().toExtend<PrismaNextFieldSelect<Types, UserShape, {}>>();
+expectTypeOf<ValidateFieldSelect<Types, UserShape, readonly ['frstName']>>().toEqualTypeOf<
+  readonly [{ readonly 'Unknown column in select': 'frstName' }]
+>();
 builder.prismaObject('User', {
   variant: 'ArraySelectTypo',
   // @ts-expect-error `emial` isn't a column
@@ -218,6 +230,11 @@ builder.prismaObject('User', {
     typo: t.string({
       // @ts-expect-error `frstName` isn't a column
       select: ['firstName', 'frstName'],
+      resolve: () => '',
+    }),
+    onlyTypos: t.string({
+      // @ts-expect-error `frstName` isn't a column, with no valid column beside it
+      select: ['frstName'],
       resolve: () => '',
     }),
     // @ts-expect-error User has no Int column
