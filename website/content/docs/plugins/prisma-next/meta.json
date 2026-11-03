@@ -5,9 +5,9 @@
     "setup",
     "objects",
     "relations",
+    "connections",
     "interfaces",
     "relay",
-    "connections",
     "variants"
   ]
 }
