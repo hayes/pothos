@@ -65,7 +65,7 @@ export type WithNsId<State extends CollectionTypeState, NsId extends string> = O
 export type CollectionFor<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
-  R = OwnRow<Types['PrismaNextContract'], M>,
+  R = OwnRow<Types, M>,
 > = Collection<
   Types['PrismaNextContract'],
   BareModelName<M>,
@@ -83,7 +83,7 @@ export type ResolverCollection<Types extends SchemaTypes, M extends ModelKey<Typ
   IncludeFreeRow<Types, M>
 > &
   ([BaseModelKey<Types['PrismaNextContract'], M>] extends [never]
-    ? HasRow<OwnRow<Types['PrismaNextContract'], M>> &
+    ? HasRow<OwnRow<Types, M>> &
         HasTypeState<{
           // A collection narrowed to a variant loads rows of the base type too.
           readonly variantValue: string | undefined;

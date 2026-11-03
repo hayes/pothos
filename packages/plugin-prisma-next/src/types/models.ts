@@ -95,19 +95,19 @@ export type ModelKey<Types extends SchemaTypes> = Types['PrismaNextContract'] ex
  * The row of a model's own fields, as the ORM client returns it, such as the rows of a relation
  * loaded with `select: { posts: true }`. A variant's `Row` also has its base's fields.
  */
-export type OwnRow<TContract extends AnyContract, M extends ModelKeys<TContract>> = DefaultModelRow<
-  TContract,
+export type OwnRow<Types extends SchemaTypes, M extends ModelKey<Types>> = DefaultModelRow<
+  Types['PrismaNextContract'],
   BareModelName<M>,
-  NamespaceOf<TContract, M>
+  NamespaceOf<Types['PrismaNextContract'], M>
 >;
 
 /** A model's row. A variant's also has its base's fields. */
 export type Row<Types extends SchemaTypes, M extends ModelKey<Types>> = [
   BaseModelKey<Types['PrismaNextContract'], M>,
 ] extends [never]
-  ? OwnRow<Types['PrismaNextContract'], M>
-  : OwnRow<Types['PrismaNextContract'], M> &
-      OwnRow<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>;
+  ? OwnRow<Types, M>
+  : OwnRow<Types, M> &
+      OwnRow<Types, Extract<BaseModelKey<Types['PrismaNextContract'], M>, ModelKey<Types>>>;
 
 export type VariantModelKeys<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends { readonly variants: infer Variants }
