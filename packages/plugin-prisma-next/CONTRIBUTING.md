@@ -54,3 +54,10 @@ POTHOS_PRISMA_NEXT_MYSQL_URL=mysql://root:prisma@localhost:5478/prisma_next pnpm
 ```
 
 The MySQL server takes a few seconds to accept connections after it starts.
+
+## Type checks
+
+`pnpm type` checks the package and its type tests (`tests/types/*.test-d.ts`) with the
+repository's TypeScript. The plugin's types also have to work on older compilers, so run
+`pnpm type:compat` after changing anything in `src/types/` or the type tests. It checks the same
+projects with TypeScript 5.9 and 6.0, whose inference and error messages differ from TypeScript 7.
