@@ -338,7 +338,7 @@ Enabling this has a couple of limitations:
 2. Fields of types that set `runScopesOnType` to true will not be able to use `skipTypeScopes` or
    `skipInterfaceScopes`.
 
-#### Changing the parent type scopes see
+#### Loading the parent for type scopes
 
 With `runScopesOnType`, type scopes run before any field of the type resolves, so they see the
 object exactly as the parent field returned it. A plugin can change this by setting the
