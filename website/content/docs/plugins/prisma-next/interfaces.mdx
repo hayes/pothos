@@ -109,6 +109,9 @@ builder.queryType({
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
 - A relation declared on a variant can't be in the variant type's `select`. Use a field's `select`
   or `t.relation`.
+- A relation to a variant with its own table can filter and sort only on that variant's own fields,
+  not on the fields it inherits. Load its rows with `t.relation` or `t.relatedConnection`, not a
+  `select`.
 - Pass a variant's ref as `type` to `t.relation` or `t.relatedConnection` to return only that
   variant's rows.
 - A row returned from a plain `t.field` needs the interface's `select` and the discriminator.
