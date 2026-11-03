@@ -23,7 +23,7 @@ Pick the error class by who has to act on it:
 
 - **The developer, while the schema is built:** `PothosSchemaError`.
 - **The API client, for bad input:** `PothosValidationError`, with a message that is safe to show:
-  no model or column names, and nothing the client sent. A bad cursor is just `Invalid cursor.`.
+  no model or column names, and nothing the client sent, such as `Invalid cursor.` for a bad cursor.
 - **The developer, during a request:** a plain `Error`, whose message keeps the detail for logs
   but leaves out row values.
 
