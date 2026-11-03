@@ -52,6 +52,36 @@ export type RelationCountWhereParam<
       ? never
       : (args: InputShapeFromFields<Args>, context: Types['Context']) => PromiseLike<unknown>);
 
+type CountWhereCallbackMessage =
+  "A count's where callback takes (args, ctx) and returns a where filter or the ORM's predicate, such as () => (c) => c.body.eq('x')";
+
+/**
+ * `any`, including the `any` a type error inside the callback leaves. Only `any` extends both a
+ * promise and a number; `0 extends 1 & Result` misses that error type on TypeScript 7.
+ */
+type IsAnyResult<Result> = [Result] extends [never]
+  ? false
+  : [Result] extends [PromiseLike<unknown> & 0]
+    ? true
+    : false;
+
+/**
+ * A callback that returns `any`, such as the ORM's predicate `(c) => c.body.eq('x')` passed
+ * directly, whose `c` is the field's args, would otherwise be reported as async. Without
+ * `AsyncSelections`, `CheckAsyncSelection` rejects an `any` result either way, so this changes only
+ * the message.
+ */
+type RelationCountWhereCheck<
+  Types extends SchemaTypes,
+  Where,
+> = true extends Types['AsyncSelections']
+  ? unknown
+  : [Where] extends [(...args: never[]) => infer Result]
+    ? IsAnyResult<Result> extends true
+      ? CountWhereCallbackMessage
+      : CheckAsyncSelection<Types, Where>
+    : CheckAsyncSelection<Types, Where>;
+
 export type PrismaNextRelationCountOptions<
   Types extends SchemaTypes,
   ParentModel extends ModelKey<Types>,
@@ -67,7 +97,7 @@ export type PrismaNextRelationCountOptions<
   // is checked as the `where` it allows.
   where?: [RelationCountWhereParam<Types, ParentModel, RelName, Args>] extends [Where]
     ? NoInfer<RelationCountWhere<Types, ParentModel, RelName, Args>>
-    : Where & CheckAsyncSelection<Types, Where>;
+    : Where & RelationCountWhereCheck<Types, Where>;
   /** A count is never null. */
   nullable?: false;
 };
