@@ -7,7 +7,7 @@ import { Collection } from '@prisma/orm-family-sql/orm-client';
 import sqlite from '@prisma/orm-sqlite/runtime';
 import { GraphQLError, type GraphQLFieldResolver, GraphQLScalarType, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import { buildExampleSchema } from './example/schema';
 import {
   createBuilder,
@@ -936,5 +936,93 @@ describe("a relation's query callback", () => {
     } finally {
       await client.close();
     }
+  });
+});
+
+// The types reject these, so they come from plain JS or a cast. Each would otherwise drop the
+// filter beside an unknown option or inside a promise.
+describe('invalid query options', () => {
+  function relationSchema(query: unknown) {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({ posts: t.relation('posts', { query: query as never }) }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  function connectionSchema(query: unknown) {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({ page: t.relatedConnection('posts', { query: query as never }) }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it('fails a relation query callback that returns an unknown option', async () => {
+    const result = await run(
+      relationSchema(() => ({ where: { published: 1 }, take: 1 })),
+      '{ users { posts { id } } }',
+    );
+    expect(result.errors?.[0].message).toMatch(
+      /^query on 'User\.posts' has unknown options 'take'/,
+    );
+    expect(result.data?.users).toBeFalsy();
+  });
+
+  it('rejects an unknown option in a relation query object when the schema is built', () => {
+    expect(() => relationSchema({ where: { published: 1 }, take: 1 })).toThrow(
+      /^query on 'User\.posts' has unknown options 'take'/,
+    );
+  });
+
+  it.each([
+    [
+      'an unknown option',
+      () => ({ where: { published: 1 }, take: 1 }),
+      /has unknown options 'take'/,
+    ],
+    ['a page size', () => ({ limit: 1 }), /has unknown options 'limit'/],
+    ['a promise', async () => ({ where: { published: 1 } }), /can't be async/],
+  ])('fails a relatedConnection query callback that returns %s', async (_name, query, message) => {
+    const result = await run(connectionSchema(query), '{ users { page { nodes { id } } } }');
+    expect(result.errors?.[0].message).toMatch(/^query on 'User\.posts' /);
+    expect(result.errors?.[0].message).toMatch(message);
+  });
+
+  it('rejects an unknown option in a relatedConnection query object when the schema is built', () => {
+    expect(() => connectionSchema({ take: 1 })).toThrow(
+      /^query on 'User\.posts' has unknown options 'take'/,
+    );
+  });
+
+  it('rejects an unknown option or a promise from a connection helper query', async () => {
+    const builder = createBuilder();
+    expect(() => prismaConnectionHelpers(builder, 'Post', { query: { take: 1 } as never })).toThrow(
+      /^query on connection helpers for 'Post' has unknown options 'take'/,
+    );
+    const unknownKey = prismaConnectionHelpers(builder, 'Post', {
+      query: (() => ({ take: 1 })) as never,
+    });
+    await expect(unknownKey.applyPagination(db.orm.Post, {}, {})).rejects.toThrow(
+      /^query on connection helpers for 'Post' has unknown options 'take'/,
+    );
+    const promised = prismaConnectionHelpers(builder, 'Post', {
+      query: (async () => ({ where: { published: 1 } })) as never,
+    });
+    await expect(promised.applyPagination(db.orm.Post, {}, {})).rejects.toThrow(
+      /^query on connection helpers for 'Post' can't be async/,
+    );
   });
 });

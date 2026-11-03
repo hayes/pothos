@@ -305,7 +305,12 @@ export function prismaConnectionHelpers<
   const config = getPluginConfig(builder);
   const model = getModel(config.contract, modelKey);
   const owner = `connection helpers for '${modelKey}'`;
-  const settings = connectionSettings(config, modelKey, options);
+  const settings = connectionSettings(
+    config,
+    modelKey,
+    options,
+    `connection helpers for '${modelKey}'`,
+  );
   const { resolveNode } = options;
 
   // What `select` loads with each row beside its key and cursor columns.

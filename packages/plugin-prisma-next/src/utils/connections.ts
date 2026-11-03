@@ -21,6 +21,7 @@ import {
 } from './cursors.js';
 import type { PrismaNextRelation } from './model.js';
 import {
+  assertQueryOptions,
   COUNT_SLOT,
   computedSelection,
   EMPTY,
@@ -92,7 +93,12 @@ export function connectionSettings(
   config: PrismaNextConfig,
   modelKey: string,
   { defaultSize, maxSize, totalCount, orderBy, query }: ConnectionSettingsOptions,
+  /** Names the connection in a `query` error. */
+  owner = `'${modelKey}'`,
 ) {
+  if (typeof query !== 'function') {
+    assertQueryOptions(query, ['where'], owner);
+  }
   const orderFor = connectionOrder(config.contract, modelKey, orderBy);
   const resolveSize = (option: SizeOption | undefined, args: object, ctx: object) =>
     typeof option === 'function' ? option(args as never, ctx as never) : option;
@@ -143,6 +149,7 @@ export function connectionSettings(
       };
       validateCursorArgs(plan, args);
       const value = typeof query === 'function' ? query(args, ctx) : query;
+      assertQueryOptions(value, ['where'], owner);
       return { ...plan, where: (value as { where?: unknown } | undefined)?.where };
     },
   };

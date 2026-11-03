@@ -584,7 +584,27 @@ interface DeclarativeQuery {
   offset?: number;
 }
 
+/** The options of a relation's `query`, as `DeclarativeQuery` declares them. */
+export const RELATION_QUERY_KEYS = ['where', 'orderBy', 'limit', 'offset'];
+
 /** A declarative query with at least one option set, or undefined. The types check its shape. */
+/**
+ * Throws for a `query` the types would reject, such as an untyped caller's, instead of dropping
+ * the filter beside an unknown option or inside a promise.
+ */
+export function assertQueryOptions(value: unknown, allowed: readonly string[], owner: string) {
+  if (isThenable(value)) {
+    throw new Error(`query on ${owner} can't be async. Return it synchronously.`);
+  }
+  const unknownKeys =
+    value == null ? [] : Object.keys(value).filter((key) => !allowed.includes(key));
+  if (unknownKeys.length > 0) {
+    throw new Error(
+      `query on ${owner} has unknown options ${unknownKeys.map((key) => `'${key}'`).join(', ')}. Use { ${allowed.map((key) => `${key}?`).join(', ')} }.`,
+    );
+  }
+}
+
 export function definedQuery(value: unknown): DeclarativeQuery | undefined {
   return value && Object.values(value).some((option) => option !== undefined)
     ? (value as DeclarativeQuery)

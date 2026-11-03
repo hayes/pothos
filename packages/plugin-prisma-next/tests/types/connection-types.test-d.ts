@@ -77,6 +77,10 @@ builder.prismaObject('User', {
         args.published == null ? undefined : { where: { published: args.published } },
     }),
     alwaysUndefinedQuery: t.relatedConnection('posts', { query: () => undefined }),
+    asyncQuery: t.relatedConnection('posts', {
+      // @ts-expect-error a connection's query is planned synchronously
+      query: async () => ({ where: { published: 1 } }),
+    }),
     topLevelWhere: t.relatedConnection('posts', {
       // @ts-expect-error filters go in `query`
       where: { published: 1 },
@@ -341,6 +345,10 @@ prismaConnectionHelpers(builder, 'User', {
   query: { where: { id: 'x' }, take: 1 },
 });
 prismaConnectionHelpers(builder, 'User', { query: () => undefined });
+prismaConnectionHelpers(builder, 'User', {
+  // @ts-expect-error a connection's query is planned synchronously
+  query: async () => ({ where: { id: 'x' } }),
+});
 prismaConnectionHelpers(builder, 'User', {
   args: (t) => ({ q: t.string() }),
   query: (args) => (args.q ? { where: { firstName: args.q } } : undefined),
