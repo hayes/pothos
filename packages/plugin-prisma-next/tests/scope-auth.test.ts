@@ -17,8 +17,8 @@ import {
   parse,
   specifiedDirectives,
 } from 'graphql';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
+import { afterAll, beforeAll, describe, expect, expectTypeOf, it } from 'vitest';
+import prismaNextPlugin, { type PothosPrismaNextPlugin, prismaConnectionHelpers } from '../src';
 import {
   type CapturedExecution,
   createSqliteRuntime,
@@ -985,6 +985,12 @@ describe("a connection helper's page of a variant with a table of its own", () =
 // With `runScopesOnType`, type-level authScopes run from `isTypeOf`, before any field of the type
 // can reload its row. Scope-auth gets the row they see from `pothosScopeAuthParent`.
 describe('runScopesOnType on rows without what the type selects', () => {
+  it("supplies a loader of scope-auth's type", () => {
+    expectTypeOf<
+      ReturnType<PothosPrismaNextPlugin<SchemaTypes>['createTypeParentLoader']>
+    >().toExtend<ScopeAuthParentLoader>();
+  });
+
   // Records whether each parent the prisma plugin's `pothosScopeAuthParent` returns is a promise.
   // Type configs pass through plugins last to first, so this one is listed before it.
   const parentResults: string[] = [];
@@ -1017,7 +1023,13 @@ describe('runScopesOnType on rows without what the type selects', () => {
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [ScopeAuthPlugin, 'prismaNextTestRecordScopeAuthParent' as never, prismaNextPlugin],
+      plugins: [
+        ScopeAuthPlugin,
+        'prismaNextTestRecordScopeAuthParent' as never,
+        RelayPlugin,
+        prismaNextPlugin,
+      ],
+      relay: {},
       scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType: true },
       prismaNext: { client: ctx.client },
     });
@@ -1027,7 +1039,20 @@ describe('runScopesOnType on rows without what the type selects', () => {
         seen.push([user.email, user.posts?.length]);
         return true;
       },
-      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+      fields: (t) => ({
+        firstName: t.exposeString('firstName'),
+        // Reads only what the type selects, so it shares the reload of the type's authScopes.
+        greeting: t.string({ resolve: (user) => `Hi ${user.email}` }),
+      }),
+    });
+    const Post = builder.prismaNode('Post', {
+      id: { field: 'id' },
+      select: ['title'],
+      authScopes: (post) => {
+        seen.push([post.id, post.title]);
+        return true;
+      },
+      fields: (t) => ({ heading: t.string({ resolve: (post) => post.title }) }),
     });
     builder.queryType({
       fields: (t) => ({
@@ -1040,6 +1065,14 @@ describe('runScopesOnType on rows without what the type selects', () => {
           resolve: async () => {
             const row = await ctx.orm.User.where({ id: 'u-alice' }).first();
             const { email: _email, ...copy } = row!;
+            return copy as never;
+          },
+        }),
+        copiedPost: t.field({
+          type: Post,
+          resolve: async () => {
+            const row = await ctx.orm.Post.where({ id: 'p-hello' }).first();
+            const { title: _title, ...copy } = row!;
             return copy as never;
           },
         }),
@@ -1067,8 +1100,32 @@ describe('runScopesOnType on rows without what the type selects', () => {
     expect(result.data).toEqual({ copied: { firstName: 'Alice' } });
     expect(seen).toEqual([['alice@example.com', 2]]);
     expect(parentResults).toEqual(['promise']);
-    // The user, the reload for the type's authScopes, and the field's own reload of the copy.
+    // The user, the reload for the type's authScopes, and the field's own reload of the copy,
+    // which also loads the column it exposes.
     expect(result.statements).toHaveLength(3);
+  });
+
+  it("shares the type's reload with a field that reads only what the type selects", async () => {
+    const seen: unknown[] = [];
+    parentResults.length = 0;
+    const result = await runCaptured(userSchema(seen), '{ copied { greeting } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ copied: { greeting: 'Hi alice@example.com' } });
+    expect(seen).toEqual([['alice@example.com', 2]]);
+    expect(parentResults).toEqual(['promise']);
+    // The user, and one reload for both the type's authScopes and the field.
+    expect(result.statements).toHaveLength(2);
+  });
+
+  it('reloads a copied Relay node row before type-level authScopes run', async () => {
+    const seen: unknown[] = [];
+    parentResults.length = 0;
+    const result = await runCaptured(userSchema(seen), '{ copiedPost { heading } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ copiedPost: { heading: 'Hello, Pothos' } });
+    expect(seen).toEqual([['p-hello', 'Hello, Pothos']]);
+    expect(parentResults).toEqual(['promise']);
+    expect(result.statements).toHaveLength(2);
   });
 
   // `User.championed` targets Feature, which has a table of its own, so a helper's page of them

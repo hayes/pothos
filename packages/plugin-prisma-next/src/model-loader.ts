@@ -56,6 +56,8 @@ interface Plans {
   parent: Map<string, MaybePromise<Played>>;
   node: Map<string, MaybePromise<Played>>;
   type: Map<string, MaybePromise<Played>>;
+  /** The rows `loadTypeRow` loaded, by the row they reload and the plan's key. */
+  typeRows: WeakMap<object, Map<string, Promise<Row>>>;
 }
 
 /**
@@ -108,7 +110,7 @@ export class ModelLoader {
   private plansFor(info: GraphQLResolveInfo): Plans {
     let plans = this.plans.get(info.variableValues);
     if (!plans) {
-      plans = { parent: new Map(), node: new Map(), type: new Map() };
+      plans = { parent: new Map(), node: new Map(), type: new Map(), typeRows: new WeakMap() };
       this.plans.set(info.variableValues, plans);
     }
     return plans;
@@ -158,9 +160,10 @@ export class ModelLoader {
   }
 
   /**
-   * The parent row reloaded with what the `select`s of `type`, by default `info`'s parent type, and
-   * its interfaces load, and `columns`. Unlike `loadSelection`, it plans none of the field, so
-   * every field of a row shares it, and the type's relations are never left out for the field's.
+   * The parent row reloaded with what the `select`s of `type` and its interfaces load, and
+   * `columns`. Unlike `loadSelection`, it plans none of the field, so every field of a row shares
+   * it, and the type's relations are never left out for the field's. A row reloaded with the same
+   * plan again, such as by scope-auth's type check and then a field, shares the first load.
    * `missing` is as for `loadSelection`.
    */
   loadTypeRow(
@@ -168,13 +171,18 @@ export class ModelLoader {
     parent: object,
     missing: readonly string[],
     columns: readonly string[],
-    type: GraphQLObjectType = info.parentType,
+    type: GraphQLObjectType,
   ): Promise<Row> {
     if (!this.identity.length) {
       throw noIdentityReloadError(info, this.modelKey, missing);
     }
     const key = [type.name, ...columns].join(' ');
-    const plans = this.plansFor(info).type;
+    const { type: plans, typeRows } = this.plansFor(info);
+    let loads = typeRows.get(parent);
+    const loaded = loads?.get(key);
+    if (loaded) {
+      return loaded;
+    }
     let selection = plans.get(key);
     if (!selection) {
       const plan = new Plan(
@@ -199,7 +207,13 @@ export class ModelLoader {
         this.identity.map((field) => (parent as Row)[field]),
         { kind: 'parent' },
       ) as Promise<Row>;
-    return completeValue(selection, load) as Promise<Row>;
+    const row = completeValue(selection, load) as Promise<Row>;
+    if (!loads) {
+      loads = new Map();
+      typeRows.set(parent, loads);
+    }
+    loads.set(key, row);
+    return row;
   }
 
   /** The row of a Relay node, planned for `info`'s selection on `typeName`, or null. */

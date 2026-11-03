@@ -362,7 +362,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return reloadFor(info, () =>
         config
           .loader(context, modelKey)
-          .loadTypeRow(info, rowOf(parent), missing, staticColumns ?? []),
+          .loadTypeRow(info, rowOf(parent), missing, staticColumns ?? [], info.parentType),
       ).then((loaded) => resolver(reader.typeParent(loaded), args, context, info));
     };
   }
@@ -472,10 +472,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    * The row a type's type-level checks should see: the row as the `select`s of the type and its
    * interfaces load it. A row without everything they load, such as a copy or a variant row a
    * connection helper loaded through its own table, is reloaded, batched with the other rows of
-   * the request. A complete row is returned as it is, without a promise.
+   * the request. A complete row is returned as it is, without a promise. The loader matches
+   * `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin doesn't import.
    */
-  private createTypeParentLoader(typeName: string) {
+  createTypeParentLoader(typeName: string) {
     let check: TypeRowCheck | undefined;
+    let type: GraphQLObjectType | undefined;
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
       check ??= this.createTypeRowCheck(typeName);
       const { modelKey, missingTypeData, typeParent } = check;
@@ -485,9 +487,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       if (!missing) {
         return typeParent(row);
       }
-      const type = info.schema.getType(typeName) as GraphQLObjectType;
+      type ??= info.schema.getType(typeName) as GraphQLObjectType;
+      const objectType = type;
       return reloadFor(info, () =>
-        this.config.loader(context, modelKey).loadTypeRow(info, rowOf(row), missing, [], type),
+        this.config
+          .loader(context, modelKey)
+          .loadTypeRow(info, rowOf(row), missing, [], objectType),
       ).then(typeParent);
     };
   }
@@ -501,11 +506,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       name,
       ...splitSelect(raw, model),
     }));
-    const scopes = selects.map((select) => select.name);
+    const { parentScopes, missingTypeData } = typeDataCheck(selects, []);
     return {
       modelKey,
-      missingTypeData: typeDataCheck(selects, []).missingTypeData,
-      typeParent: (row) => parentForType(row, scopes),
+      missingTypeData,
+      typeParent: (row) => parentForType(row, parentScopes),
     };
   }
 
