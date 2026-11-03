@@ -1,7 +1,10 @@
 // Each export's declaration must name only types the package exports from its entry.
-import SchemaBuilder from '@pothos/core';
+import SchemaBuilder, { type FieldMap, type FieldRef } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import prismaNextPlugin, { prismaConnectionHelpers } from 'plugin-under-test';
+import prismaNextPlugin, {
+  type PrismaNextObjectRef,
+  prismaConnectionHelpers,
+} from 'plugin-under-test';
 import type { Contract } from '../fixtures/sample-contract';
 
 export const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
@@ -105,3 +108,34 @@ export const paginateUsers = (collection: Parameters<typeof userPages.applyPagin
   userPages.applyPagination(collection, {}, {});
 
 export const userPageEntry = userPages.page;
+
+// Helpers made from refs: `ref`, `page` and `resolve` carry the ref's type and its selection.
+export const postWithAuthorPages = prismaConnectionHelpers(builder, PostWithAuthor, {
+  select: () => ({ author: true }),
+  resolveNode: (post) => ({ post, author: post.author }),
+});
+
+export const userNodePages = prismaConnectionHelpers(builder, UserNode, {});
+
+export const userWithPostsPages = prismaConnectionHelpers(builder, UserWithPosts, {
+  resolveNode: (user) => user,
+});
+
+// `prismaObjectField(s)` return void, so the fields are declared beside the call. `satisfies`
+// types `t` from the method, so the declaration names its field builder and parent shape.
+type Types = typeof builder.$inferSchemaTypes;
+type ShapeOf<Ref> = Ref extends PrismaNextObjectRef<Types, 'Post', infer Shape> ? Shape : never;
+
+export const postWithAuthorFields = ((t): FieldMap => ({
+  authorEmail: t.string({ resolve: (post) => post.author.email }),
+  author: t.relation('author'),
+})) satisfies Parameters<
+  typeof builder.prismaObjectFields<'Post', ShapeOf<typeof PostWithAuthor>>
+>[1];
+
+builder.prismaObjectFields(PostWithAuthor, postWithAuthorFields);
+
+export const userPostCountField = ((t): FieldRef<Types, unknown> =>
+  t.relationCount('posts')) satisfies Parameters<typeof builder.prismaObjectField<'User'>>[2];
+
+builder.prismaObjectField('User', 'postCount', userPostCountField);
