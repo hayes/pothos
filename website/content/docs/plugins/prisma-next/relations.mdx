@@ -92,9 +92,13 @@ builder.prismaObject('User', {
 context that returns it. So a predicate that needs the arguments is
 `(args) => (post) => post.published.eq(args.published)`.
 
-A count is a non-null `Int`. For other aggregates, such as a sum or a lossless `countBigInt`, use
-a field `select`. A function receives the relation's Collection, and each key it returns is added
-to the parent. A key can't be one that another relation of the `select` returns, or a column or
+A count is a non-null `Int`, and `nullable` can't change that. So when the count fails, such as
+when its field's `authScopes` deny it, GraphQL nulls its parent object (or the nearest nullable
+field above it), as for any non-null field. To hide a count from some users and keep the parent,
+expose it as a nullable field with a `select`, described next.
+
+For other aggregates, such as a sum or a lossless `countBigInt`, use a field `select`. A function
+receives the relation's Collection, and each key it returns is added to the parent. A key can't be one that another relation of the `select` returns, or a column or
 relation of the parent's model; the types reject both. So keys must be literals: the types reject
 one built from the field's arguments, which they can't check. TypeScript also widens a key typed
 as a union of literals or a type parameter to `string`, so a generic helper that builds an entry
