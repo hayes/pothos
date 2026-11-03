@@ -33,10 +33,10 @@ beforeAll(async () => {
     `
     CREATE TABLE user (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE);
     CREATE TABLE task (id TEXT PRIMARY KEY, title TEXT NOT NULL, type TEXT NOT NULL, ownerId TEXT NOT NULL, severity TEXT, reviewerId TEXT);
-    CREATE TABLE feature (id TEXT PRIMARY KEY REFERENCES task(id), priority INT NOT NULL);
+    CREATE TABLE feature (id TEXT PRIMARY KEY REFERENCES task(id), priority INT NOT NULL, code TEXT UNIQUE, championId TEXT);
     INSERT INTO user VALUES ('u1', 'a@example.com');
     INSERT INTO task VALUES ('t1', 'bug1', 'bug', 'u1', 'high', 'u1'), ('t2', 'feat1', 'feature', 'u1', NULL, 'u1');
-    INSERT INTO feature VALUES ('t2', 5);
+    INSERT INTO feature VALUES ('t2', 5, NULL, NULL);
   `,
   );
 });

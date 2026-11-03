@@ -12,13 +12,13 @@ const contract = loadContract<Contract>(new URL('./inheritance/contract.json', i
 const sql = `
   CREATE TABLE user (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE);
   CREATE TABLE task (id TEXT PRIMARY KEY, title TEXT NOT NULL, type TEXT NOT NULL, ownerId TEXT NOT NULL, severity TEXT, reviewerId TEXT);
-  CREATE TABLE feature (id TEXT PRIMARY KEY REFERENCES task(id), priority INT NOT NULL);
+  CREATE TABLE feature (id TEXT PRIMARY KEY REFERENCES task(id), priority INT NOT NULL, code TEXT UNIQUE, championId TEXT);
   INSERT INTO user VALUES ('u1', 'a@example.com');
   -- The feature row carries a reviewerId only Bug maps, so a relation to Bug must filter it out.
   INSERT INTO task VALUES ('t1', 'bug1', 'bug', 'u1', 'high', 'u1'), ('t2', 'feat1', 'feature', 'u1', NULL, 'u1');
-  INSERT INTO feature VALUES ('t2', 5);
-  CREATE TABLE note (id TEXT PRIMARY KEY, taskId TEXT NOT NULL);
-  INSERT INTO note VALUES ('n1', 't1'), ('n2', 't2');
+  INSERT INTO feature VALUES ('t2', 5, 'f2', 'u1');
+  CREATE TABLE note (id TEXT PRIMARY KEY, taskId TEXT NOT NULL, featureCode TEXT);
+  INSERT INTO note VALUES ('n1', 't1', NULL), ('n2', 't2', 'f2');
 `;
 const db = useDatabase(contract, sql);
 
@@ -804,6 +804,62 @@ describe('native model inheritance', () => {
     ]);
   });
 
+  it("loads the discriminator into an interface's planned rows when the query selects no field", async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: db.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      select: ['title'],
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    const tasks = prismaConnectionHelpers(builder, task, {});
+    const loaded: { type?: string }[] = [];
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        taskPage: t.connection({
+          type: task,
+          select: { tasks: tasks.page },
+          resolve: (user, args, ctx) => {
+            loaded.push(...user.tasks);
+            return tasks.resolve(user.tasks, args, ctx, user);
+          },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+        taskPage: t.connection({
+          type: task,
+          resolve: async (_root, args, ctx, info) => {
+            const page = await tasks.applyPagination(db.orm.Task, args, ctx, info);
+            const rows = await page.collection.all();
+            loaded.push(...rows);
+            return page.wrap(rows);
+          },
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      `{
+        users { taskPage(first: 5) { edges { node { __typename } } } }
+        taskPage(first: 5) { edges { node { __typename } } }
+      }`,
+    );
+    expect(result.errors).toBeUndefined();
+    const typenames = {
+      edges: [{ node: { __typename: 'Bug' } }, { node: { __typename: 'Feature' } }],
+    };
+    expect(result.data).toEqual({ users: [{ taskPage: typenames }], taskPage: typenames });
+    // The interface's selection includes the discriminator even when only `__typename` is asked.
+    expect(loaded.map((row) => row.type)).toEqual(['bug', 'feature', 'bug', 'feature']);
+  });
+
   it.each([
     [
       'an interface after object fields',
@@ -1108,10 +1164,10 @@ describe('a relation name two variants declare', () => {
   const sharedDb = useDatabase(
     contractFromJson(json) as unknown as Contract,
     sql
-      .replace('priority INT NOT NULL)', 'priority INT NOT NULL, reviewerId TEXT)')
+      .replace('championId TEXT)', 'championId TEXT, reviewerId TEXT)')
       .replace(
-        "INSERT INTO feature VALUES ('t2', 5)",
-        "INSERT INTO feature VALUES ('t2', 5, NULL)",
+        "INSERT INTO feature VALUES ('t2', 5, 'f2', 'u1')",
+        "INSERT INTO feature VALUES ('t2', 5, 'f2', 'u1', NULL)",
       ),
   );
   const createSharedBuilder = (bugFields: (t: never) => object = () => ({})) => {
@@ -1173,5 +1229,181 @@ describe('a relation name two variants declare', () => {
     expect(() => builder.toSchema()).toThrow(
       "Relation 'reviewer' on a select of model 'Task' is declared under the same name by several variants",
     );
+  });
+});
+
+describe('a relation targeting a variant model with a table of its own', () => {
+  // The ORM loads Feature's rows through `orm.Feature`, which reads only the feature table, so
+  // Task's columns and relations load separately.
+  function createFeatureSchema(database = db) {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: database.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      fields: (t) => ({ title: t.exposeString('title'), owner: t.relation('owner') }),
+    });
+    builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('Feature', {
+      interfaces: [task],
+      fields: (t) => ({
+        priority: t.exposeInt('priority'),
+        champion: t.relation('champion', { nullable: true }),
+        featureNotes: t.relation('featureNotes'),
+      }),
+    });
+    builder.prismaObject('Note', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        feature: t.relation('feature', { nullable: true }),
+      }),
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        email: t.exposeString('email'),
+        championed: t.relation('championed'),
+        championPage: t.relatedConnection('championed', { orderBy: () => ({ id: 'asc' }) }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        notes: t.prismaField({
+          type: ['Note'],
+          resolve: () => database.orm.Note.orderBy((row) => row.id.asc()),
+        }),
+        users: t.prismaField({ type: ['User'], resolve: () => database.orm.User }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  const feature = { title: 'feat1', priority: 5, owner: { email } };
+
+  it('loads the base columns and relations of a to-one relation', async () => {
+    const result = await run(
+      createFeatureSchema(),
+      '{ notes { id feature { title priority owner { email } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.notes).toEqual([
+      { id: 'n1', feature: null },
+      { id: 'n2', feature },
+    ]);
+    // The notes with their features, the discriminator Task's select loads, and the fields' reload.
+    expect(result.statements).toHaveLength(3);
+  });
+
+  it('loads the base columns and relations of a to-many relation and connection', async () => {
+    const result = await run(
+      createFeatureSchema(),
+      `{ users {
+        championed { title priority owner { email } }
+        championPage { edges { node { title priority } } }
+      } }`,
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      {
+        championed: [feature],
+        championPage: { edges: [{ node: { title: 'feat1', priority: 5 } }] },
+      },
+    ]);
+    // The users with their rows, one batch loading the discriminator Task's select loads for both
+    // fields, and one reloading the fields.
+    expect(result.statements).toHaveLength(3);
+  });
+
+  it("includes the variant's own relations and nests beneath them", async () => {
+    const result = await run(
+      createFeatureSchema(),
+      '{ notes { feature { champion { email } featureNotes { id feature { title } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.notes[1]).toEqual({
+      feature: { champion: { email }, featureNotes: [{ id: 'n2', feature: { title: 'feat1' } }] },
+    });
+    // The notes with what nests beneath, the discriminator for each level of features, and the
+    // nested title's reload.
+    expect(result.statements).toHaveLength(4);
+  });
+
+  function selectBuilder() {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const feature = builder.prismaObject('Feature', {
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        notes: t.prismaField({
+          type: ['Note'],
+          resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
+        }),
+      }),
+    });
+    return { builder, feature };
+  }
+  const rowsError =
+    "loads the rows of relation 'feature', which targets variant model 'Feature' with a table of its own. Its rows load through 'Feature', which can't read the columns it inherits. Load them with t.relation('feature') or t.relatedConnection('feature') instead.";
+
+  it("rejects a type's select that loads its rows when the schema is built", () => {
+    const { builder } = selectBuilder();
+    builder.prismaObject('Note', {
+      select: { feature: true },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    expect(() => builder.toSchema()).toThrow(`The select of type 'Note' ${rowsError}`);
+  });
+
+  it("rejects a field's select that reads its rows, and plans one returning them", async () => {
+    const { builder, feature } = selectBuilder();
+    builder.prismaObject('Note', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        featureTitle: t.string({
+          nullable: true,
+          select: { feature: true },
+          resolve: (note) => note.feature?.title,
+        }),
+        selected: t.field({
+          type: feature,
+          nullable: true,
+          select: { feature: true },
+          resolve: (note) => note.feature,
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const read = await run(schema, '{ notes { featureTitle } }');
+    expect(read.errors?.[0]?.message).toBe(`The select of field 'featureTitle' ${rowsError}`);
+    const planned = await run(schema, '{ notes { selected { title } } }');
+    expect(planned.errors).toBeUndefined();
+    expect(planned.data.notes).toEqual([{ selected: null }, { selected: { title: 'feat1' } }]);
+  });
+
+  // A feature row for the bug t1, which `orm.Feature` reads but Task narrowed to Feature doesn't.
+  const strayDb = useDatabase(
+    contract,
+    `${sql}
+      INSERT INTO feature VALUES ('t1', 7, 'stray', 'u1');
+      UPDATE note SET featureCode = 'stray' WHERE id = 'n1';`,
+  );
+
+  it("leaves out a row of the variant's table whose base row is another variant", async () => {
+    const result = await run(
+      createFeatureSchema(strayDb),
+      '{ notes { id feature { title } } users { championed { title } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      notes: [
+        { id: 'n1', feature: null },
+        { id: 'n2', feature: { title: 'feat1' } },
+      ],
+      users: [{ championed: [{ title: 'feat1' }] }],
+    });
   });
 });

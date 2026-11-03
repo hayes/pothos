@@ -18,7 +18,13 @@ import type {
   ConnectionQueryLiteral,
   ConnectionQueryOption,
 } from './types/connections.js';
-import type { ModelKey, PlannedRow, RelationKeys, Row } from './types/models.js';
+import type {
+  DiscriminatorField,
+  ModelKey,
+  PlannedRow,
+  RelationKeys,
+  Row,
+} from './types/models.js';
 import type {
   DefaultRelationNullable,
   IsToMany,
@@ -141,6 +147,16 @@ type NodeSourceRow<Types extends SchemaTypes, M extends ModelKey<Types>, Select>
   ? LoadedHelperRow<Types, M, Select>
   : ConnectionHelperRow<Types, M, Select>;
 
+/**
+ * A planned row of the helpers' page. The rows of helpers made with a discriminated model's
+ * `prismaInterface` also hold the discriminator, which the interface's selection includes.
+ */
+type HelperRow<Types extends SchemaTypes, M extends ModelKey<Types>, Select, Ref> = [Ref] extends [
+  PrismaNextInterfaceRef<Types, M, unknown>,
+]
+  ? ConnectionHelperRow<Types, M, Select> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>
+  : ConnectionHelperRow<Types, M, Select>;
+
 /** A page's node: what `resolveNode` returns, or the row when it isn't given. */
 type PageNode<Node, PageRow, MaybeRow extends boolean> = [Node] extends [never]
   ? PageRow
@@ -183,17 +199,17 @@ export interface PrismaConnectionHelpers<
    * in the parent's query, with the selection beneath the connection's nodes, and its count when
    * `totalCount` is selected. Pass the rows to `resolve`.
    */
-  page: ConnectionPageEntry<M, ConnectionHelperRow<Types, M, Select>>;
+  page: ConnectionPageEntry<M, HelperRow<Types, M, Select, Ref>>;
   /**
    * The connection for the rows `page` loaded. `parent` is the parent the field's resolver was
    * given, not a copy of it: it holds the page's count and plan.
    */
   resolve(
-    rows: readonly ConnectionHelperRow<Types, M, Select>[],
+    rows: readonly HelperRow<Types, M, Select, Ref>[],
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
     parent: object,
-  ): ConnectionPage<PageNode<Node, ConnectionHelperRow<Types, M, Select>, MaybeRow>>;
+  ): ConnectionPage<PageNode<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>>;
   /**
    * Pages a collection the resolver loads itself. With `info`, it selects what the nodes need.
    * Returns a promise when a `select` callback beneath the connection is async.
@@ -219,8 +235,8 @@ export interface PrismaConnectionHelpers<
     PaginatedCollection<
       Types,
       M,
-      ConnectionHelperRow<Types, M, Select>,
-      PageNode<Node, ConnectionHelperRow<Types, M, Select>, MaybeRow>
+      HelperRow<Types, M, Select, Ref>,
+      PageNode<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>
     >
   >;
 }

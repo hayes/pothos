@@ -1,21 +1,26 @@
 import type { SchemaTypes } from '@pothos/core';
 import type {
   Collection,
+  CollectionRowOf,
   CollectionTypeState,
   DefaultCollectionTypeState,
   HasRow,
   HasTypeState,
   IncludeScalar,
 } from '@prisma/orm-family-sql/orm-client';
+import type { PlannedRowBrand } from '../object-ref.js';
 import type {
   AnyContract,
   BareModelName,
   BaseModelKey,
   ModelKey,
+  ModelKeys,
+  NamespacedModelKey,
   NamespaceOf,
   OwnRow,
   RelationKeys,
   Row,
+  VariantModelKeyOf,
   VariantValue,
 } from './models.js';
 
@@ -95,3 +100,39 @@ type IncludeFreeRow<Types extends SchemaTypes, M extends ModelKey<Types>> = {
     ? never
     : unknown;
 };
+
+/**
+ * The key of the model a collection's rows belong to: the model it reads, or the variant model
+ * `variant()` narrowed it to. A collection of a contract with several namespaces that names no
+ * namespace has every model of that name.
+ */
+type CollectionModelKey<C> = C extends {
+  readonly modelName: infer Name extends string;
+  readonly ctx: { readonly context: { readonly contract: infer TContract extends AnyContract } };
+} & HasTypeState<infer State extends CollectionTypeState>
+  ? (
+      [State['nsId']] extends [never]
+        ? Extract<ModelKeys<TContract>, Name | `${string}.${Name}`>
+        : NamespacedModelKey<TContract, State['nsId'], Name>
+    ) extends infer M extends string
+    ? State['variantValue'] extends string
+      ? VariantModelKeyOf<TContract, M, State['variantValue']>
+      : M
+    : never
+  : never;
+
+/** The rows of a planned collection: its own, branded as planned rows of its model. */
+type PlannedRows<C> = C extends HasRow
+  ? [CollectionModelKey<C>] extends [never]
+    ? unknown
+    : HasRow<CollectionRowOf<C> & PlannedRowBrand<CollectionModelKey<C>>>
+  : unknown;
+
+/**
+ * The collection `collectionFromInfo` returns: its reads and writes return rows the loader planned,
+ * so they fit a field returning a type of their model, as a `PlannedRow` does. It is `C` itself
+ * with the rows branded, so a collection typed by a type parameter keeps its methods. Narrowing
+ * the rows' columns with `select()` drops columns the selection planned, which the brand doesn't
+ * track: return such rows only to types whose `select` they hold.
+ */
+export type PlannedCollection<C> = C & PlannedRows<C>;

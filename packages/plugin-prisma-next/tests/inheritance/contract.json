@@ -79,6 +79,20 @@
               "namespace": "__unbound__"
             },
             "fields": {
+              "championId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "code": {
+                "nullable": true,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              },
               "priority": {
                 "nullable": false,
                 "type": {
@@ -87,9 +101,47 @@
                 }
               }
             },
-            "relations": {},
+            "relations": {
+              "champion": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "championId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "__unbound__"
+                }
+              },
+              "featureNotes": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "code"
+                  ],
+                  "targetFields": [
+                    "featureCode"
+                  ]
+                },
+                "to": {
+                  "model": "Note",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
             "storage": {
               "fields": {
+                "championId": {
+                  "column": "championId"
+                },
+                "code": {
+                  "column": "code"
+                },
                 "priority": {
                   "column": "priority"
                 }
@@ -100,6 +152,13 @@
           },
           "Note": {
             "fields": {
+              "featureCode": {
+                "nullable": true,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -116,6 +175,22 @@
               }
             },
             "relations": {
+              "feature": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "featureCode"
+                  ],
+                  "targetFields": [
+                    "code"
+                  ]
+                },
+                "to": {
+                  "model": "Feature",
+                  "namespace": "__unbound__"
+                }
+              },
               "task": {
                 "cardinality": "N:1",
                 "nullable": false,
@@ -135,6 +210,9 @@
             },
             "storage": {
               "fields": {
+                "featureCode": {
+                  "column": "featureCode"
+                },
                 "id": {
                   "column": "id"
                 },
@@ -260,6 +338,21 @@
               }
             },
             "relations": {
+              "championed": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "championId"
+                  ]
+                },
+                "to": {
+                  "model": "Feature",
+                  "namespace": "__unbound__"
+                }
+              },
               "reviews": {
                 "cardinality": "1:N",
                 "on": {
@@ -315,6 +408,16 @@
           "table": {
             "feature": {
               "columns": {
+                "championId": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": true
+                },
+                "code": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "sqlite/text@1",
                   "dataType": "sqlite/text",
@@ -327,6 +430,25 @@
                 }
               },
               "foreignKeys": [
+                {
+                  "index": {
+                    "name": "feature_championId_idx_793ab7cd"
+                  },
+                  "source": {
+                    "columns": [
+                      "championId"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "feature"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "user"
+                  }
+                },
                 {
                   "index": {
                     "primaryKey": true
@@ -348,16 +470,36 @@
                   }
                 }
               ],
-              "indexes": [],
+              "indexes": [
+                {
+                  "columns": [
+                    "championId"
+                  ],
+                  "name": "feature_championId_idx_793ab7cd",
+                  "prefix": "feature_championId_idx",
+                  "unique": false
+                }
+              ],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
               },
-              "uniques": []
+              "uniques": [
+                {
+                  "columns": [
+                    "code"
+                  ]
+                }
+              ]
             },
             "note": {
               "columns": {
+                "featureCode": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "sqlite/text@1",
                   "dataType": "sqlite/text",
@@ -388,9 +530,36 @@
                     "namespaceId": "__unbound__",
                     "tableName": "task"
                   }
+                },
+                {
+                  "index": {
+                    "name": "note_featureCode_idx_8ef74f12"
+                  },
+                  "source": {
+                    "columns": [
+                      "featureCode"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "note"
+                  },
+                  "target": {
+                    "columns": [
+                      "code"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "feature"
+                  }
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "featureCode"
+                  ],
+                  "name": "note_featureCode_idx_8ef74f12",
+                  "prefix": "note_featureCode_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "taskId"
@@ -526,7 +695,7 @@
         "id": "__unbound__"
       }
     },
-    "storageHash": "8620f3c21ac2b83db6f8a63d1687d70d27dc45d3af6777af420816b66b16c496"
+    "storageHash": "b038077d991a8076a795742c5ac835c1fbdafba60501a1a589301be06c9fc264"
   },
   "capabilities": {
     "sql": {

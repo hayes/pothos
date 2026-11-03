@@ -1,4 +1,5 @@
 import { PothosSchemaError } from '@pothos/core';
+import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
 import type { SqlModelStorage } from '@prisma/orm-family-sql/contract/types';
 import type { ContractModelBase } from '@prisma/orm-framework/contract/types';
 import type { AnyContract } from '../types/models.js';
@@ -160,6 +161,28 @@ export function variantOf(
   };
   const own = table(modelKey);
   return { root, field: discriminator.field, value, sharesTable: !own || own === table(root) };
+}
+
+/**
+ * The fields a multi-table variant model's own accessor reads: those stored in its table and the
+ * key it shares with its base. Undefined for any other model.
+ */
+export function variantTableFields(contract: AnyContract, modelKey: string): string[] | undefined {
+  const entry = modelEntry(contract, modelKey);
+  const storage = entry?.raw.storage;
+  if (!entry?.base || !storage?.table || (variantOf(contract, modelKey)?.sharesTable ?? true)) {
+    return undefined;
+  }
+  const key =
+    resolveStorageTable(contract.storage, storage.table, storage.namespaceId)?.table.primaryKey
+      ?.columns ?? [];
+  const baseColumns = entry.base.raw.storage?.fields ?? {};
+  return [
+    ...Object.keys(entry.raw.fields),
+    ...Object.keys(entry.base.raw.fields).filter((field) =>
+      key.includes(baseColumns[field]?.column ?? field),
+    ),
+  ];
 }
 
 /**

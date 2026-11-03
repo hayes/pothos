@@ -25,17 +25,28 @@ function schema() {
   builder.prismaObject('Post', {
     fields: (t) => ({ title: t.exposeString('title'), author: t.relation('author') }),
   });
-  const Payload = builder.objectRef<{ user: unknown }>('RenamePayload').implement({
+  // Its select loads a to-one relation, which a row returned to it must hold.
+  const Authored = builder.prismaObject('Post', {
+    variant: 'AuthoredPost',
+    select: { author: true },
     fields: (t) => ({
-      user: t.field({ type: User, nullable: true, resolve: (p) => p.user as never }),
+      title: t.exposeString('title'),
+      authorName: t.string({ resolve: (post) => post.author.firstName }),
     }),
   });
-  const Stats = builder.objectRef<{ user: unknown; posts: number }>('UserStats').implement({
+  type PlannedUser = typeof User.$inferType | null;
+  const Payload = builder.objectRef<{ user: PlannedUser }>('RenamePayload').implement({
     fields: (t) => ({
-      user: t.field({ type: User, nullable: true, resolve: (p) => p.user as never }),
+      user: t.field({ type: User, nullable: true, resolve: (p) => p.user }),
+    }),
+  });
+  const Stats = builder.objectRef<{ user: PlannedUser; posts: number }>('UserStats').implement({
+    fields: (t) => ({
+      user: t.field({ type: User, nullable: true, resolve: (p) => p.user }),
       posts: t.exposeInt('posts'),
     }),
   });
+  const loadedPosts: object[] = [];
   builder.queryType({
     fields: (t) => ({
       user: t.field({
@@ -83,6 +94,22 @@ function schema() {
           return users.all();
         },
       }),
+      authored: t.field({
+        type: Authored,
+        nullable: true,
+        resolve: async (_root, _args, context, info) => {
+          const posts = await collectionFromInfo({
+            collection: db.orm.Post.where({ id: 'p-hello' }),
+            context,
+            info,
+          });
+          const post = await posts.first();
+          if (post) {
+            loadedPosts.push(post);
+          }
+          return post;
+        },
+      }),
       iterated: t.field({
         type: [User],
         resolve: async (_root, _args, context, info) => {
@@ -112,7 +139,7 @@ function schema() {
       }),
     }),
   });
-  return builder.toSchema();
+  return Object.assign(builder.toSchema(), { loadedPosts });
 }
 
 describe('collectionFromInfo', () => {
@@ -127,6 +154,18 @@ describe('collectionFromInfo', () => {
       postCount: 2,
       drafts: [{ title: 'Draft #1', author: { firstName: 'Alice' } }],
     });
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it("loads the to-one relations the returned type's select names into the rows", async () => {
+    const built = schema();
+    const result = await run(built, '{ authored { title } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.authored).toEqual({ title: 'Hello, Pothos' });
+    // The row holds `author` before any field of the type resolves.
+    expect(built.loadedPosts).toEqual([
+      expect.objectContaining({ author: expect.objectContaining({ id: 'u-alice' }) }),
+    ]);
     expect(result.statements).toHaveLength(1);
   });
 

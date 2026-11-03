@@ -7,6 +7,7 @@ import {
   resolveContractModel,
   rootModelKey,
   variantOf,
+  variantTableFields,
 } from './contract.js';
 
 export interface PrismaNextRelation {
@@ -37,6 +38,11 @@ export interface PrismaNextModel {
    */
   readonly sharedVariantRelations: ReadonlySet<string>;
   readonly columns: ReadonlySet<string>;
+  /**
+   * The columns each multi-table variant's own accessor reads, by discriminator value. A relation
+   * targeting such a variant model loads through it, so the base's other columns load separately.
+   */
+  readonly variantTableColumns: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
 /**
@@ -51,6 +57,22 @@ export function sharedVariantRelationError(
 ) {
   return new ErrorClass(
     `Relation '${name}' on ${owner} is declared under the same name by several variants of model '${model.key}', so it can't be loaded. Give it a name no other variant uses.`,
+  );
+}
+
+/**
+ * The error for a `select` whose rows of `name` the caller reads: the relation targets a variant
+ * model with a table of its own, whose rows load without the base's columns. A `PothosSchemaError`
+ * when the schema is built, and an `Error` for a `select` planned for a request.
+ */
+export function ownTableVariantRowsError(
+  owner: string,
+  name: string,
+  relation: PrismaNextRelation,
+  ErrorClass: new (message: string) => Error = PothosSchemaError,
+) {
+  return new ErrorClass(
+    `The select of ${owner} loads the rows of relation '${name}', which targets variant model '${relation.targetModel}' with a table of its own. Its rows load through '${relation.targetModel}', which can't read the columns it inherits. Load them with t.relation('${name}') or t.relatedConnection('${name}') instead.`,
   );
 }
 
@@ -157,6 +179,12 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
       relations,
       sharedVariantRelations,
       columns: buildColumnSet(contract, root),
+      variantTableColumns: new Map(
+        (modelDiscriminator(contract, root)?.variants ?? []).flatMap(({ key, value }) => {
+          const fields = variantTableFields(contract, key);
+          return fields ? [[value, new Set(fields)] as const] : [];
+        }),
+      ),
     };
     // Registered before its relations resolve, so a cycle finds it.
     models.set(root, model);

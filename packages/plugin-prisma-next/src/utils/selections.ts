@@ -18,6 +18,7 @@ import type { MapperCollection } from './adapter.js';
 import { variantForRelationType } from './contract.js';
 import {
   getModel,
+  ownTableVariantRowsError,
   type PrismaNextModel,
   type PrismaNextRelation,
   sharedVariantRelationError,
@@ -789,7 +790,11 @@ interface SelectCompilation {
    * Plans the rows a relation entry loads, starting from `seed`. A field plans them beneath its
    * own selection. A type-level select includes them as they are.
    */
-  rows(relation: PrismaNextRelation, seed: PrismaNextSelection): MaybePromise<PrismaNextSelection>;
+  rows(
+    relation: PrismaNextRelation,
+    name: string,
+    seed: PrismaNextSelection,
+  ): MaybePromise<PrismaNextSelection>;
   /** The field a field's `select` plans for. The types allow page entries only there. */
   field?: FieldPlanning;
 }
@@ -822,7 +827,7 @@ function compileSelect(
       relation,
       name,
       scope,
-      rows(relation, {
+      rows(relation, name, {
         columns: null,
         args: relationArgs(relation, {
           loadIdentity: query,
@@ -845,7 +850,7 @@ export function compileTypeSelect(raw: RawSelect, model: PrismaNextModel, typeNa
     scope: typeName,
     args: {},
     source: typeName,
-    rows: (_relation, seed) => seed,
+    rows: (_relation, _name, seed) => seed,
   }) as PrismaNextSelection;
 }
 
@@ -892,7 +897,12 @@ export function compileFieldSelect(
       args,
       source: raw,
       field: { scope, args, ctx, nested, selected, position },
-      rows: (relation, seed) => {
+      rows: (relation, name, seed) => {
+        // Rows the field's selection set doesn't plan are read as they load, which for a variant
+        // model with a table of its own is without the columns it inherits.
+        if (returnModel !== relation.target && relation.targetVariantModel?.sharesTable === false) {
+          throw ownTableVariantRowsError(`field '${position.field.name}'`, name, relation, Error);
+        }
         // A field that returns another model has a selection set that can't load from these rows.
         if (returnModel && returnModel !== relation.target) {
           return seed;

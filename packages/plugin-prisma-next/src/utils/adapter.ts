@@ -135,7 +135,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    * They all fit one node. To-many relations and computed values use each type's own slots, and a
    * to-one relation is always `true` in a type's `select`. A type's `select` can't name a relation
    * only a variant declares, but a base model's relation can't be included beneath a relation that
-   * targets a variant model. `mergeQuery` leaves those out of such a level.
+   * targets a variant model, nor a base column read beneath one that targets a variant with a table
+   * of its own. `mergeQuery` leaves those out of such a level.
    */
   typeSelection(type: GraphQLNamedType): PrismaNextSelection | undefined {
     const cached = this.typeSelections.get(type);
@@ -169,10 +170,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   }
 
   /**
-   * The to-one relations of `type`'s selection that `mergeQuery` leaves out of a level loading
-   * through a variant model's own accessor: the base model's relations. A relation field returning
-   * such rows loads them before it returns the rows, so plugins listed before this one see what the
-   * type's `select` promises. Undefined when the level loses none.
+   * The columns and to-one relations of `type`'s selection that `mergeQuery` leaves out of a level
+   * loading through a variant model's own accessor: the base model's relations and, for a variant
+   * with a table of its own, the base's columns. A relation field returning such rows loads them
+   * before it returns the rows, so plugins listed before this one see what the type's `select`
+   * promises. Undefined when the level loses none.
    */
   droppedBeneathVariantModel(
     type: GraphQLNamedType,
@@ -181,13 +183,22 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     let dropped = this.beneathVariantModel.get(type);
     if (dropped === undefined) {
       const narrowing: Narrowing = { value: targetVariantModel!.value, throughVariantModel: true };
-      const relations = Object.entries(this.typeSelection(type)?.relations ?? {}).filter(
+      const selection = this.typeSelection(type);
+      const readable = readableColumns(target, narrowing);
+      const columns = (selection?.columns ?? []).filter((column) => !readable?.has(column));
+      const relations = Object.entries(selection?.relations ?? {}).filter(
         ([key]) =>
           key === relationName(key) &&
           !relationOf(target, key).isToMany &&
           !canInclude(relationOf(target, key), narrowing),
       );
-      dropped = relations.length ? { relations: Object.fromEntries(relations) } : null;
+      dropped =
+        (readable && columns.length) || relations.length
+          ? {
+              ...(readable && columns.length ? { columns } : {}),
+              ...(relations.length ? { relations: Object.fromEntries(relations) } : {}),
+            }
+          : null;
       this.beneathVariantModel.set(type, dropped);
     }
     return dropped ?? undefined;
@@ -279,9 +290,10 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   }
 
   /**
-   * A type's selection merges whatever level it lands on, so what that level can't include, a base
-   * relation beneath a relation targeting a variant model, is left out. The relation field loads
-   * the to-one relations left out of the type's selection before returning the rows (see
+   * A type's selection merges whatever level it lands on, so what that level can't load, a base
+   * relation beneath a relation targeting a variant model or a base column beneath one targeting a
+   * variant with a table of its own, is left out. The relation field loads the columns and to-one
+   * relations left out of the type's selection before returning the rows (see
    * `droppedBeneathVariantModel`), and the type's fields reload the rest.
    */
   override mergeQuery(
@@ -292,17 +304,23 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     super.mergeQuery(node, this.withoutUnloadable(selection, node), options);
   }
 
-  /** `selection`, itself when nothing changes, without what `node`'s level can't include. */
+  /** `selection`, itself when nothing changes, without what `node`'s level can't load. */
   private withoutUnloadable(selection: PrismaNextSelection, { model, args }: PrismaNextNode) {
     const narrowing = selection.args?.variant ?? (args as RelationArgs).variant;
     const fits = ([key]: [string, unknown]) =>
       canInclude(relationOf(model, relationName(key)), narrowing);
+    const readable = readableColumns(model, narrowing);
+    const columnFits = (column: string) => !readable || readable.has(column);
     const relations = Object.entries(selection.relations ?? {});
     const computed = Object.entries(selection.computed ?? {});
-    return relations.every(fits) && computed.every(fits)
+    return relations.every(fits) &&
+      computed.every(fits) &&
+      (selection.columns ?? []).every(columnFits)
       ? selection
       : {
           ...selection,
+          // `null`, every column the level reads, stays as it is.
+          columns: selection.columns ? selection.columns.filter(columnFits) : selection.columns,
           relations: Object.fromEntries(relations.filter(fits)),
           computed: Object.fromEntries(computed.filter(fits)),
         };
@@ -586,6 +604,16 @@ function canInclude({ declaredByVariant }: PrismaNextRelation, narrowing: Narrow
   return declaredByVariant === undefined
     ? !narrowing?.throughVariantModel
     : declaredByVariant === narrowing?.value;
+}
+
+/**
+ * The columns a level narrowed to `narrowing` can read, when it can't read all of the model's. A
+ * multi-table variant model's own accessor reads only its own table and the key it shares.
+ */
+function readableColumns(model: PrismaNextModel, narrowing: Narrowing | undefined) {
+  return narrowing?.throughVariantModel
+    ? model.variantTableColumns.get(narrowing.value)
+    : undefined;
 }
 
 /** The registry of implementation selections a prisma interface carries. `onTypeConfig` adds it. */

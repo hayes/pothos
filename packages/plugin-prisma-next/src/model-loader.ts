@@ -36,7 +36,7 @@ interface Request {
  * What a staged request loads. Requests join any batch of the same load whose plan they merge
  * with. A node load is of one type, whose `id.field` and `collection` it uses, and resolves a
  * missing row to null. For a parent load, a missing row is an error. A completion load adds to rows
- * the loader just returned, and leaves a row it can't find as it is.
+ * the loader just returned, and leaves out a row it can't find.
  */
 type Load =
   | { kind: 'node'; typeName: string; collection: ((ctx: object) => MapperCollection) | undefined }
@@ -180,11 +180,13 @@ export class ModelLoader {
   }
 
   /**
-   * Loads `selection`'s relations onto `rows`, rows of this loader's variant model that loaded
-   * through the variant model's own accessor, which can't include the base model's relations. They
-   * load here through the base model narrowed to the variant, batched with every other request.
+   * Loads `selection`'s columns and relations onto `rows`, rows of this loader's variant model that
+   * loaded through the variant model's own accessor, which can't include the base model's relations
+   * or, for a variant with a table of its own, read the base's columns. They load here through the
+   * base model narrowed to the variant, batched with every other request. Resolves to the rows it
+   * found: the variant model's own table can hold a row whose base row is of another variant.
    */
-  completeRows(rows: readonly Row[], selection: PrismaNextSelection): Promise<void> | undefined {
+  completeRows(rows: readonly Row[], selection: PrismaNextSelection): Promise<Row[]> | undefined {
     // A model without an identity can't be reloaded. Its fields fail as they would otherwise.
     if (!rows.length || !this.identity.length) {
       return undefined;
@@ -199,7 +201,7 @@ export class ModelLoader {
       adapter.mergeQuery(root, selection);
       this.completions.set(selection, root);
     }
-    const names = Object.keys(selection.relations ?? {});
+    const names = [...(selection.columns ?? []), ...Object.keys(selection.relations ?? {})];
     return Promise.all(
       rows.map((row) =>
         this.stage(
@@ -213,9 +215,10 @@ export class ModelLoader {
               row[name] = loaded[name];
             }
           }
+          return loaded && row;
         }),
       ),
-    ).then(() => undefined);
+    ).then((completed) => completed.filter((row) => row !== null));
   }
 
   private stage(

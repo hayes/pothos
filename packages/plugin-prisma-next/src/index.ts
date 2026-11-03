@@ -39,7 +39,7 @@ import {
 import type { AnyContract } from './types/models.js';
 import { getPluginConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
-import { getModel } from './utils/model.js';
+import { getModel, ownTableVariantRowsError } from './utils/model.js';
 import {
   compileFieldSelect,
   EMPTY,
@@ -74,12 +74,13 @@ export {
   type ModelBrand,
   type PlannedRowBrand,
   PrismaNextObjectRef,
+  plannedRowBrand,
   prismaContractBrand,
   prismaModelBrand,
 } from './object-ref.js';
 export { PrismaNextObjectFieldBuilder } from './prisma-next-field-builder.js';
 export type { PrismaNextRelationCountOptions } from './types/aggregates.js';
-export type { CollectionFor, ResolverCollection } from './types/collections.js';
+export type { CollectionFor, PlannedCollection, ResolverCollection } from './types/collections.js';
 export type {
   ConnectionOrderBy,
   ConnectionQueryLiteral,
@@ -575,7 +576,14 @@ function assertNoVariantRelations(
   contract: AnyContract,
 ) {
   const model = getModel(contract, modelKey);
-  for (const [name] of splitSelect(raw, model, PothosSchemaError).relations) {
+  for (const [name, value] of splitSelect(raw, model, PothosSchemaError).relations) {
+    // A function entry computes values from the relation, rather than loading its rows.
+    if (
+      typeof value !== 'function' &&
+      model.relations[name]!.targetVariantModel?.sharesTable === false
+    ) {
+      throw ownTableVariantRowsError(`type '${typeName}'`, name, model.relations[name]!);
+    }
     const variant = model.relations[name]!.declaredByVariant;
     if (variant !== undefined) {
       throw new PothosSchemaError(

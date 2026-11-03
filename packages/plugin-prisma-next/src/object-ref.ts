@@ -12,14 +12,18 @@ export const prismaModelBrand = Symbol.for('Pothos.prismaNextModelBrand');
 export const prismaContractBrand = Symbol.for('Pothos.prismaNextContractBrand');
 
 /**
- * Marks the rows the loader planned, see `PlannedRow`. It exists only in types, so code outside the
- * loader can't build a row that claims it.
+ * Type-only: marks the rows the loader planned, see `PlannedRow`. No row holds it at runtime. It is
+ * exported so that a module whose declarations name a planned row, such as an exported function
+ * returning one without an annotation, can import it for declaration emit.
  */
-declare const plannedRowBrand: unique symbol;
+export const plannedRowBrand = Symbol.for('Pothos.prismaNextPlannedRowBrand');
 
-/** Marks a row the loader planned. It is an interface so that declaration emit can name it. */
-export interface PlannedRowBrand {
-  readonly [plannedRowBrand]: true;
+/**
+ * Marks a row the loader planned as a row of model `M`. It is an interface so that declaration emit
+ * can name it.
+ */
+export interface PlannedRowBrand<M> {
+  readonly [plannedRowBrand]: M;
 }
 
 /** Marks a row shape with its model. It is an interface so that declaration emit can name it. */
@@ -32,7 +36,8 @@ type WithBrand<T> = T & { [typeBrandKey]: string };
 // being a weak type. A row that shares none of those keys would otherwise fail to match it. A
 // planned row is never weak, and leaving it without the index signature keeps tsc from blaming
 // its brand when a row lacks what the type's `select` needs.
-type Brandable<Shape> = Shape extends PlannedRowBrand ? Shape : Shape & Record<string, unknown>;
+type Brandable<Shape> =
+  Shape extends PlannedRowBrand<unknown> ? Shape : Shape & Record<string, unknown>;
 type Branded<V> = V extends readonly unknown[] ? { [K in keyof V]: WithBrand<V[K]> } : WithBrand<V>;
 
 export class PrismaNextObjectRef<
