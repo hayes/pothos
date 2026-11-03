@@ -986,9 +986,10 @@ describe("a connection helper's page of a variant with a table of its own", () =
 // can reload its row. Scope-auth gets the row they see from `pothosScopeAuthParent`.
 describe('runScopesOnType on rows without what the type selects', () => {
   it("supplies a loader of scope-auth's type", () => {
-    expectTypeOf<
-      ReturnType<PothosPrismaNextPlugin<SchemaTypes>['createTypeParentLoader']>
-    >().toExtend<ScopeAuthParentLoader>();
+    // The method is private, which an indexed access type still reads.
+    type Loader = ReturnType<PothosPrismaNextPlugin<SchemaTypes>['createTypeParentLoader']>;
+    expectTypeOf<Loader>().not.toBeAny();
+    expectTypeOf<Loader>().toExtend<ScopeAuthParentLoader>();
   });
 
   // Records whether each parent the prisma plugin's `pothosScopeAuthParent` returns is a promise.

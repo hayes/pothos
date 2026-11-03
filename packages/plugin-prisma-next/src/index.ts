@@ -505,7 +505,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    * the request. A complete row is returned as it is, without a promise. The loader matches
    * `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin doesn't import.
    */
-  createTypeParentLoader(typeName: string) {
+  private createTypeParentLoader(typeName: string) {
     let check: TypeRowCheck | undefined;
     let type: GraphQLObjectType | undefined;
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
