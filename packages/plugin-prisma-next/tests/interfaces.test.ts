@@ -608,6 +608,79 @@ describe('inherited selections', () => {
     expect(() => builder.toSchema()).not.toThrow();
   });
 
+  // A select function's keys are only known once it runs, so the rows it loaded are checked. Equal
+  // values fail too, so the error shows up with any data.
+  it('rejects selects of one row that compute the same key, with any values', async () => {
+    const builder = createBuilder();
+    const Counted = builder.prismaInterface('User', {
+      variant: 'Counted',
+      select: { posts: (sub) => ({ total: sub.count() }) },
+      resolveType: () => 'User',
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    const User = builder.prismaObject('User', {
+      interfaces: [Counted],
+      select: { posts: (sub) => ({ total: sub.count() }) },
+      fields: (t) => ({ email: t.exposeString('email') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({ type: User, resolve: () => db.orm.User.where({ id: 'u-alice' }) }),
+        counted: t.prismaField({
+          type: Counted,
+          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const message =
+      "'Counted' and 'User' both compute 'total' from relation 'posts' in their select. A row " +
+      'holds one value for it, which the fields and auth checks of both types read. Give one of ' +
+      'them a different name.';
+    for (const query of ['{ user { id email } }', '{ counted { id ... on User { email } } }']) {
+      const result = await run(schema, query);
+      expect(result.errors?.map((error) => error.message)).toContain(message);
+    }
+  });
+
+  it('lets sibling implementations compute the same key', async () => {
+    const builder = createBuilder();
+    const Person = builder.prismaInterface('User', {
+      variant: 'Person',
+      resolveType: (user) => (user.id === 'u-alice' ? 'All' : 'Published'),
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    for (const [variant, where] of [
+      ['All', {}],
+      ['Published', { published: 1 }],
+    ] as const) {
+      builder.prismaObject('User', {
+        variant,
+        interfaces: [Person],
+        select: { posts: (sub) => ({ count: sub.where(where).count() }) },
+        fields: (t) => ({ count: t.int({ resolve: (user) => user.count }) }),
+      });
+    }
+    builder.queryType({
+      fields: (t) => ({
+        people: t.prismaField({
+          type: [Person],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ people { __typename ... on All { count } ... on Published { count } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.people).toEqual([
+      { __typename: 'All', count: 2 },
+      { __typename: 'Published', count: 1 },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
   it('reads a relation the selects of a type and its interface load alike', async () => {
     const builder = createBuilder();
     const query = { where: { published: 1 } };

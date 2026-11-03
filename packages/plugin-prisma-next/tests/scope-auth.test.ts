@@ -1447,6 +1447,60 @@ describe('a relation an interface and its implementation select alike', () => {
   });
 });
 
+// A row holds one value per computed key, so an interface and its implementation whose selects
+// compute the same key from different queries would each pass their auth check on the other's.
+describe('a key an interface and its implementation both compute', () => {
+  describe.each([
+    ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
+    ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
+  ] as const)('scope auth %s the prisma plugin', (_name, plugins) => {
+    it('fails every field of the type, whatever the values', async () => {
+      const builder = new SchemaBuilder<{
+        PrismaNextContract: SampleContract;
+        AuthScopes: { ok: boolean };
+      }>({
+        plugins: plugins as never,
+        relay: {},
+        scopeAuth: { authScopes: () => ({ ok: true }) },
+        prismaNext: { client: ctx.client },
+      });
+      const Limited = builder.prismaInterface('User', {
+        variant: 'Limited',
+        select: { posts: (sub) => ({ total: sub.count() }) },
+        authScopes: (user) => user.total <= 1,
+        resolveType: () => 'User',
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+      const User = builder.prismaObject('User', {
+        interfaces: [Limited],
+        select: { posts: (sub) => ({ total: sub.where({ published: 1 }).count() }) },
+        fields: (t) => ({ email: t.exposeString('email') }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          users: t.prismaField({
+            type: [User],
+            resolve: () => ctx.orm.User.orderBy((user) => user.id.asc()),
+          }),
+        }),
+      });
+      // Alice has two posts, one published, and Bob one of each, so both counts differ.
+      const result = await runCaptured(builder.toSchema(), '{ users { id email } }');
+      expect(result.data.users).toEqual([
+        { id: null, email: null },
+        { id: null, email: null },
+      ]);
+      expect(new Set(result.errors?.map((error) => error.message))).toEqual(
+        new Set([
+          "'Limited' and 'User' both compute 'total' from relation 'posts' in their select. A " +
+            'row holds one value for it, which the fields and auth checks of both types read. ' +
+            'Give one of them a different name.',
+        ]),
+      );
+    });
+  });
+});
+
 describe('a field that reloads a to-one relation with its own query', () => {
   describe.each([
     ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],

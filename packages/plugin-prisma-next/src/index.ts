@@ -311,8 +311,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   /**
    * A row holds one version of each relation the `select`s of its type and interfaces load, which
    * every reader of the row sees. So two of those `select`s that load a relation's rows must load
-   * them with the same query. Function entries compute values rather than load rows, so they
-   * aren't compared.
+   * them with the same query. Function entries compute values rather than load rows, and their keys
+   * are only known once they run, so `parentForType` checks them on the rows they loaded.
    */
   private assertSelectsAgree(typeConfig: PothosTypeConfig, modelKey: string) {
     const model = getModel(this.config.contract, modelKey);
@@ -364,8 +364,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * Passes every plugin's resolver wrapper the parent as the field's declaring type sees it: what
-   * the `select`s of the type and its interfaces loaded. A field's own `select` is added later, in
+   * Passes every plugin's resolver wrapper the parent as the field's type sees it: what the
+   * `select`s of the type and its interfaces loaded. A field's own `select` is added later, in
    * this plugin's `wrapResolve`, for its resolver only. A row without everything those `select`s
    * load, such as one another plugin rebuilt, is reloaded first, so plugins listed before this one,
    * such as scope-auth, see what the type promises.
@@ -558,7 +558,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { contract } = this.config;
     const model = getModel(contract, modelKey);
-    const declaring = fieldConfig.declaringType ?? fieldConfig.parentType;
     const selects = this.typeLevelSelects(fieldConfig.parentType).map(({ name, raw }) => ({
       name,
       ...splitSelect(raw, model),
@@ -567,11 +566,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       selects,
       typeof selection === 'function' ? [] : (selection.columns ?? []),
     );
-    // A field sees what the selects of the type that declares it and of that type's interfaces
-    // loaded. `assertSelectsAgree` keeps them to one version of a relation's rows, but two select
-    // functions can compute the same key, and the field reads its declaring type's value.
-    const declared = new Set(this.typeLevelSelects(declaring).map(({ name }) => name));
-    const declaringScopes = parentScopes.filter((scope) => declared.has(scope));
     // A field planned on an interface has its mapping recorded under the interface, but it
     // resolves on the object type.
     const parentTypes = [
@@ -616,11 +610,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       parentScopes,
       staticColumns: typeof selection === 'function' ? undefined : (selection.columns ?? []),
       missingTypeData,
-      typeParent: (row) => parentForType(row, declaringScopes),
+      typeParent: (row) => parentForType(row, parentScopes),
       parent: (row, mapping) =>
         declaresOwnSelect
-          ? parentForField(row, declaringScopes, mapping?.position)
-          : parentForType(row, declaringScopes),
+          ? parentForField(row, parentScopes, mapping?.position)
+          : parentForType(row, parentScopes),
     };
   }
 }
@@ -716,7 +710,12 @@ interface FieldReader {
   missingTypeData(row: object): string[] | undefined;
   /** The columns a field without a select function reads, or undefined for one with one. */
   staticColumns: readonly string[] | undefined;
-  /** The parent plugins around the field see: the row as the declaring type's `select`s load it. */
+  /**
+   * The parent plugins around the field see: the row as the `select`s of the parent type and its
+   * interfaces load it. A field an interface declares sees it too: `assertSelectsAgree` keeps those
+   * selects to one version of a relation's rows, and `parentForType` rejects two of them computing
+   * the same key.
+   */
   typeParent(row: object): object;
   /** The parent the field's resolver and the plugins listed after this one get. */
   parent(row: object, mapping: Mapping | null | undefined): object;

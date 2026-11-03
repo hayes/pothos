@@ -515,10 +515,10 @@ function projection(entry: RowSlots, base: object, scopes: readonly string[]) {
 }
 
 /**
- * The parent the readers of a type see, whose type-level selects are `scopes`, the declaring type
- * last: the row itself, unless type-level selects disagree about what they loaded. Then it is a
- * projection with the rows and values `scopes` loaded, cached so per-row caches such as
- * scope-auth's see one object.
+ * The parent the readers of a type see, whose type-level selects are `scopes`, the type last: the
+ * row itself, unless type-level selects disagree about what they loaded. Then it is a projection
+ * with the rows and values `scopes` loaded, cached so per-row caches such as scope-auth's see one
+ * object.
  */
 export function parentForType(value: object, scopes: readonly string[]): object {
   const entry = rowSlots.get(value);
@@ -527,7 +527,41 @@ export function parentForType(value: object, scopes: readonly string[]): object 
     return row;
   }
   const present = scopes.filter((scope) => entry.scopes.has(scope));
-  return present.length ? projection(entry, row, present) : row;
+  if (!present.length) {
+    return row;
+  }
+  if (!entry.projections?.has(present.join(SCOPE_SEPARATOR))) {
+    assertOneWriter(entry, present);
+  }
+  return projection(entry, row, present);
+}
+
+/**
+ * Throws when two `select`s of one type compute the same key, of which the type's parent holds one
+ * value that the fields and auth checks of both read. A select function's keys are only known
+ * once it runs, so this is checked on the rows it loaded, whatever their values. `disagree` flags
+ * every such row, as it does rows where implementations of one interface compute the same key.
+ */
+function assertOneWriter({ slots }: RowSlots, scopes: readonly string[]) {
+  const writers = new Map<string, { scope: string; relation: string }>();
+  for (const scope of scopes) {
+    for (const [relation, { values }] of Object.entries(slots)) {
+      for (const key of Object.keys(values.get(scope) ?? {})) {
+        const first = writers.get(key);
+        if (!first) {
+          writers.set(key, { scope, relation });
+          continue;
+        }
+        const from =
+          first.relation === relation
+            ? `relation '${relation}'`
+            : `relations '${first.relation}' and '${relation}'`;
+        throw new Error(
+          `'${first.scope}' and '${scope}' both compute '${key}' from ${from} in their select. A row holds one value for it, which the fields and auth checks of both types read. Give one of them a different name.`,
+        );
+      }
+    }
+  }
 }
 
 /** The position each parent `parentForField` returned a copy for was planned at. */
