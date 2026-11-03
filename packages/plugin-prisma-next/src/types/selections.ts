@@ -536,10 +536,13 @@ export type ShapeFromObjectSelect<
 export type TypeSelectCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = {
   // Picked by the form of `Select` rather than a union of both, which a failing object `select`
   // is reported against as not assignable to `undefined`. The field spec, rather than
-  // `TypeSelectObjectSpec`, so the checks below name what a type's `select` can't take.
-  select?: ([Select] extends [readonly unknown[]]
-    ? readonly (keyof Row<Types, M> & string)[]
-    : SelectObjectSpec<Types, M>) &
+  // `TypeSelectObjectSpec`, so the checks below name what a type's `select` can't take. While
+  // completing, `Select` is `unknown`, so both forms are offered.
+  select?: (unknown extends Select
+    ? readonly (keyof Row<Types, M> & string)[] | SelectObjectSpec<Types, M>
+    : [Select] extends [readonly unknown[]]
+      ? readonly (keyof Row<Types, M> & string)[]
+      : SelectObjectSpec<Types, M>) &
     NoInfer<
       SelectCheck<Types, M, Select> &
         NoTypeLevelPage<Select> &
