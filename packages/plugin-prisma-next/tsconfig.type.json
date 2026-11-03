@@ -5,6 +5,7 @@
   "extends": "../../tsconfig.options.json",
   "include": ["src/**/*", "tests/**/*"],
   "exclude": [
+    "tests/declarations/*.ts",
     "tests/scope-auth.test.ts",
     "tests/returned-rows.test.ts",
     "tests/types/missing-plugins.test-d.ts"

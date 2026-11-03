@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.type.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "composite": false,
+    "incremental": false,
+    "rootDir": "tests",
+    "outDir": "tests/declarations/node_modules/.emitted"
+  },
+  "include": [
+    "tests/declarations/*.ts",
+    "tests/fixtures/sample-contract.d.ts",
+    "tests/inheritance/contract.d.ts",
+    "tests/namespaces/contract.d.ts"
+  ],
+  "exclude": []
+}
