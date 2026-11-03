@@ -29,8 +29,10 @@ export interface ModelBrand<M> {
 
 type WithBrand<T> = T & { [typeBrandKey]: string };
 // The index signature stops a shape of only optional keys, such as a type without `select`, from
-// being a weak type. A row that shares none of those keys would otherwise fail to match it.
-type Brandable<Shape> = Shape & Record<string, unknown>;
+// being a weak type. A row that shares none of those keys would otherwise fail to match it. A
+// planned row is never weak, and leaving it without the index signature keeps tsc from blaming
+// its brand when a row lacks what the type's `select` needs.
+type Brandable<Shape> = Shape extends PlannedRowBrand ? Shape : Shape & Record<string, unknown>;
 type Branded<V> = V extends readonly unknown[] ? { [K in keyof V]: WithBrand<V[K]> } : WithBrand<V>;
 
 export class PrismaNextObjectRef<

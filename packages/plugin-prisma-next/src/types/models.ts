@@ -212,7 +212,9 @@ type ReturnedKeys<Types extends SchemaTypes, M extends ModelKey<Types>> =
  * everything its `select` and its interfaces' `select`s load, other than to-many relations and
  * computed values, which the loader reloads. A model without an identity can't be reloaded, so it
  * needs its whole row. Plugins listed before this one, such as scope-auth, read the row before any
- * reload, so it must hold what the type's `select` promises. A row the loader planned also fits.
+ * reload, so it must hold what the type's `select` promises. A row the loader planned, a
+ * `PlannedRow`, also fits. It is matched by its brand alone, so that tsc names the keys a row lacks
+ * rather than the brand when a row fits neither.
  */
 export type ObjectReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> =
   | (Shape extends unknown
@@ -220,7 +222,7 @@ export type ObjectReturnShape<Types extends SchemaTypes, M extends ModelKey<Type
         ? Row<Types, M> & Pick<Shape, ToOneRelationKeys<Types, M> & keyof Shape>
         : Pick<Shape, ReturnedKeys<Types, M> & keyof Shape>
       : never)
-  | PlannedRow<Types, M>;
+  | (PlannedRowBrand & ModelBrand<M>);
 
 /** The field naming a base model's variant, or `never` for other models. */
 type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Types>> =
