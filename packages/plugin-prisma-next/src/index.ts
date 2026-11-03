@@ -214,8 +214,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         // Filled in afterBuild by registerImplementations.
         ...(typeConfig.kind === 'Interface' ? { [PRISMA_NEXT_IMPLEMENTATIONS]: new Map() } : {}),
         // Read by scope-auth, whose `runScopesOnType` checks run from `isTypeOf`, before any
-        // field reloads the row.
-        ...(typeConfig.kind === 'Object'
+        // field reloads the row. The builder's plugin list is complete before any type is built,
+        // so this holds whichever order the two plugins are listed in.
+        ...(typeConfig.kind === 'Object' &&
+        (this.builder.options.plugins as readonly string[] | undefined)?.includes('scopeAuth')
           ? { pothosScopeAuthParent: this.createTypeParentLoader(typeConfig.name) }
           : {}),
       },

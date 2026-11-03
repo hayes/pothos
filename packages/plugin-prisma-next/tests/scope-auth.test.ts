@@ -339,6 +339,23 @@ const orders = [
   ['prismaNext first', [prismaNextPlugin, ScopeAuthPlugin]],
 ] as const;
 
+describe.each(orders)("the type's parent loader (%s)", (_, plugins) => {
+  it('is added to prisma object types for scope-auth', () => {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: InheritanceContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: inheritanceDb.client },
+    });
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    const schema = builder.toSchema();
+    expect(schema.getType('User')?.extensions?.pothosScopeAuthParent).toBeTypeOf('function');
+  });
+});
+
 describe.each(orders)("an implementation's select under an interface (%s)", (_, plugins) => {
   function variantSchema(seen: unknown[]) {
     const builder = new SchemaBuilder<{
