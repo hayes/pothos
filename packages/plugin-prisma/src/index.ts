@@ -95,7 +95,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     const { pothosPrismaSelect: select, pothosPrismaInclude: include } = (typeConfig.extensions ??
       {}) as { pothosPrismaSelect?: IncludeMap; pothosPrismaInclude?: IncludeMap };
 
-    return {
+    const config: PothosTypeConfig = {
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
@@ -106,6 +106,62 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         pothosPrismaTypeSelection:
           select || include ? Object.freeze({ select, include }) : model ? INCLUDE_ALL : undefined,
       },
+    };
+    const typeKeys = typeLevelKeys(config);
+    const loaderCache = config.extensions?.pothosPrismaLoader as
+      | ((context: object) => ModelLoader)
+      | undefined;
+    const plugins: readonly string[] | undefined = this.builder.options.plugins;
+
+    if (
+      config.kind !== 'Object' ||
+      !loaderCache ||
+      config.extensions?.pothosPrismaFallbackDisabled ||
+      typeKeys.length === 0 ||
+      !plugins?.includes('scopeAuth')
+    ) {
+      return config;
+    }
+
+    return {
+      ...config,
+      extensions: {
+        ...config.extensions,
+        // Read by scope-auth, whose `runScopesOnType` checks run from `isTypeOf`, before any
+        // field's `wrapArgMappers` can reload the row.
+        pothosScopeAuthParent: this.typeParentLoader(config.name, typeKeys, loaderCache),
+      },
+    };
+  }
+
+  /**
+   * The parent scope-auth's type checks see (a `ScopeAuthParentLoader`, which this plugin doesn't
+   * import): the row itself when it has the type's `select`/`include`, else the row
+   * `wrapArgMappers` reloads for the type's own fields, so the check and those fields share one
+   * load.
+   */
+  private typeParentLoader(
+    typeName: string,
+    typeKeys: string[],
+    loaderCache: (context: object) => ModelLoader,
+  ) {
+    let root: PrismaNode | undefined;
+
+    return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
+      const row = parent as Record<string, unknown>;
+
+      for (const key of typeKeys) {
+        if (row[key] === undefined) {
+          root ??= this.typeNode(
+            info.schema.getType(typeName) as GraphQLObjectType,
+            undefined,
+          ).root;
+
+          return loaderCache(context).loadTypeSelection(root, row);
+        }
+      }
+
+      return row;
     };
   }
 

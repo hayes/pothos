@@ -4,6 +4,7 @@ import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   completeValue,
+  type MaybePromise,
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
@@ -71,13 +72,67 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       }
     }
 
-    return {
+    const config: PothosTypeConfig = {
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
         pothosDrizzleModel: model,
         pothosDrizzleTable: table,
       },
+    };
+    const typeKeys = typeLevelKeys(config);
+    const modelLoader = config.extensions?.pothosDrizzleLoader as
+      | ReturnType<typeof ModelLoader.forModel>
+      | undefined;
+    const plugins: readonly string[] | undefined = this.builder.options.plugins;
+
+    if (
+      config.kind !== 'Object' ||
+      !modelLoader ||
+      typeKeys.length === 0 ||
+      !plugins?.includes('scopeAuth')
+    ) {
+      return config;
+    }
+
+    return {
+      ...config,
+      extensions: {
+        ...config.extensions,
+        // Read by scope-auth, whose `runScopesOnType` checks run from `isTypeOf`, before any
+        // field's `wrapArgMappers` can reload the row.
+        pothosScopeAuthParent: this.typeParentLoader(config.name, typeKeys, modelLoader),
+      },
+    };
+  }
+
+  /**
+   * The parent scope-auth's type checks see (a `ScopeAuthParentLoader`, which this plugin doesn't
+   * import): the row itself when it has the type's `select`, else the row `wrapArgMappers` reloads
+   * for the type's own fields, so the check and those fields share one load.
+   */
+  private typeParentLoader(
+    typeName: string,
+    typeKeys: string[],
+    modelLoader: ReturnType<typeof ModelLoader.forModel>,
+  ) {
+    let root: DrizzleNode | undefined;
+
+    return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
+      const row = parent as Record<string, unknown>;
+
+      for (const key of typeKeys) {
+        if (row[key] === undefined) {
+          root ??= this.typeNode(
+            info.schema.getType(typeName) as GraphQLObjectType,
+            undefined,
+          ).root;
+
+          return modelLoader(context).loadTypeSelection(root, row);
+        }
+      }
+
+      return row;
     };
   }
 
