@@ -43,6 +43,12 @@ export default pluginName;
 
 let inResolveType = false;
 export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  /**
+   * Marks the versions that read a type's `pothosScopeAuthParent` extension, so plugins that set it
+   * can reject older ones without importing this package or parsing versions.
+   */
+  static readonly readsParentExtension = true;
+
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,

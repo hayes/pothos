@@ -10,6 +10,7 @@ query selects before running them.
 
 For Prisma ORM 7, use [`@pothos/plugin-prisma`](https://pothos-graphql.dev/docs/plugins/prisma)
 instead. The two can't be used together.
+With `@pothos/plugin-scope-auth`, use version 4.3.0 or newer.
 
 ## Example
 

@@ -151,6 +151,25 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     return getPluginConfig(this.builder);
   }
 
+  /**
+   * Older scope-auth versions ignore `pothosScopeAuthParent`, so their `runScopesOnType` checks
+   * would see rows without what the type selects.
+   */
+  override beforeBuild() {
+    if (!this.builder.options.plugins?.includes('scopeAuth')) {
+      return;
+    }
+    // Read from core's registry, since scope-auth is an optional peer this plugin doesn't import.
+    const { plugins } = this.builder.constructor as unknown as {
+      plugins: Record<string, { readsParentExtension?: boolean } | undefined>;
+    };
+    if (!plugins.scopeAuth?.readsParentExtension) {
+      throw new PothosSchemaError(
+        '@pothos/plugin-prisma-next requires @pothos/plugin-scope-auth 4.3.0 or newer.',
+      );
+    }
+  }
+
   override onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
     if (typeConfig.kind !== 'Object' && typeConfig.kind !== 'Interface') {
       return typeConfig;
