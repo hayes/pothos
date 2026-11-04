@@ -1481,6 +1481,110 @@ describe('a relation targeting a variant model with a table of its own', () => {
     });
   });
 
+  // What a relation's rows lose depends on the variant it targets, not only on the returned type.
+  describe('rows of relations targeting different variants returned as one interface', () => {
+    function taskBuilder() {
+      const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+        plugins: [prismaNextPlugin],
+        prismaNext: { client: db.client },
+      });
+      const task = builder.prismaInterface('Task', {
+        fields: (t) => ({ title: t.exposeString('title') }),
+      });
+      builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+      builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+      builder.queryType({
+        fields: (t) => ({
+          notes: t.prismaField({
+            type: ['Note'],
+            resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
+          }),
+          users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+        }),
+      });
+      return { builder, task };
+    }
+
+    it("completes each field's select rows after another variant's", async () => {
+      const { builder, task } = taskBuilder();
+      builder.prismaObject('Note', {
+        fields: (t) => ({
+          task: t.field({
+            type: task,
+            nullable: true,
+            select: { feature: true },
+            resolve: (note) => note.feature,
+          }),
+        }),
+      });
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          reviews: t.field({
+            type: [task],
+            select: { reviews: true },
+            resolve: (user) => user.reviews,
+          }),
+        }),
+      });
+      const schema = builder.toSchema();
+      const first = await run(schema, '{ users { reviews { __typename } } }');
+      expect(first.errors).toBeUndefined();
+      expect(first.data.users).toEqual([{ reviews: [{ __typename: 'Bug' }] }]);
+      const second = await run(schema, '{ notes { task { __typename title } } }');
+      expect(second.errors).toBeUndefined();
+      expect(second.data.notes).toEqual([
+        { task: null },
+        { task: { __typename: 'Feature', title: 'feat1' } },
+      ]);
+    });
+
+    it("completes a field's select rows of two relations returned together", async () => {
+      const { builder, task } = taskBuilder();
+      builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          tasks: t.field({
+            type: [task],
+            select: { reviews: true, championed: true },
+            resolve: (user) => [...user.reviews, ...user.championed],
+          }),
+        }),
+      });
+      const result = await run(builder.toSchema(), '{ users { tasks { __typename title } } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.users).toEqual([
+        {
+          tasks: [
+            { __typename: 'Bug', title: 'bug1' },
+            { __typename: 'Feature', title: 'feat1' },
+          ],
+        },
+      ]);
+    });
+
+    it('completes the rows of two relations returning the interface', async () => {
+      const { builder, task } = taskBuilder();
+      builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          reviews: t.relation('reviews', { type: task }),
+          championed: t.relation('championed', { type: task }),
+        }),
+      });
+      const result = await run(
+        builder.toSchema(),
+        '{ users { reviews { __typename title } championed { __typename title } } }',
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.users).toEqual([
+        {
+          reviews: [{ __typename: 'Bug', title: 'bug1' }],
+          championed: [{ __typename: 'Feature', title: 'feat1' }],
+        },
+      ]);
+    });
+  });
+
   it("rejects a field's select returning them through another plugin's type", () => {
     // plugin-errors changes the field's type after this plugin's onOutputFieldConfig runs.
     const { builder, feature } = selectBuilder([ErrorsPlugin, prismaNextPlugin]);

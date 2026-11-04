@@ -88,9 +88,10 @@ interface RelationConsumers {
 export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSelection> {
   override readonly skipDeferredFragments: boolean;
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSelection>();
+  /** What `droppedBeneathVariantModel` found, by type and then by relation. */
   private readonly beneathVariantModel = new WeakMap<
     GraphQLNamedType,
-    PrismaNextSelection | null
+    Map<PrismaNextRelation, PrismaNextSelection | null>
   >();
   private readonly withoutIdentity = new WeakMap<PrismaNextModel, boolean>();
   private readonly records = new WeakMap<object, IncludeRecord>();
@@ -178,10 +179,16 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    */
   droppedBeneathVariantModel(
     type: GraphQLNamedType,
-    { targetVariantModel, target }: PrismaNextRelation,
+    relation: PrismaNextRelation,
   ): PrismaNextSelection | undefined {
-    let dropped = this.beneathVariantModel.get(type);
+    let byRelation = this.beneathVariantModel.get(type);
+    if (!byRelation) {
+      byRelation = new Map();
+      this.beneathVariantModel.set(type, byRelation);
+    }
+    let dropped = byRelation.get(relation);
     if (dropped === undefined) {
+      const { targetVariantModel, target } = relation;
       const narrowing: Narrowing = { value: targetVariantModel!.value, throughVariantModel: true };
       const selection = this.typeSelection(type);
       const readable = readableColumns(target, narrowing);
@@ -199,7 +206,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
               ...(relations.length ? { relations: Object.fromEntries(relations) } : {}),
             }
           : null;
-      this.beneathVariantModel.set(type, dropped);
+      byRelation.set(relation, dropped);
     }
     return dropped ?? undefined;
   }
