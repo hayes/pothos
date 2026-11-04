@@ -77,6 +77,7 @@ const UserWithProfile = builder.drizzleObject('users', {
   fields: (t) => ({
     id: t.exposeID('id'),
     username: t.exposeString('username'),
+    authedUsername: t.withAuth({ ok: true }).exposeString('username'),
   }),
 });
 
@@ -356,6 +357,18 @@ describe('authScopes see the parent data their types promise', () => {
     expect(seen.typeWith).toEqual([user.profile?.bio]);
     // The root query, one type-level reload shared by both fields, then their own batched reload.
     expect(drizzleLogs).toHaveLength(3);
+  });
+
+  it("a `t.withAuth` field's row is reloaded before type authScopes run", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ plainWithProfile { authedUsername } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ plainWithProfile: { authedUsername: user.username } });
+    expect(seen.typeWith).toEqual([user.profile?.bio]);
   });
 
   it("an inherited field's row the plugin didn't load gets the implementing type's select", async () => {
