@@ -49,33 +49,11 @@ export function fieldScopeReaders<Types extends SchemaTypes>(
       (parent.kind === 'Object' && !!scopeOptions(parent).skipInterfaceScopes));
   const runsOnField = (config: PothosTypeConfig) =>
     !(scopeOptions(config).runScopesOnType ?? runScopesOnType ?? false);
-  // The steps scope-auth's `createStepsForType` builds for `config`.
-  const addTypeSteps = (config: PothosTypeConfig, skipType: boolean, skipInterfaces: boolean) => {
-    const { authScopes, grantScopes } = scopeOptions(config);
-
-    if ((authScopes && !skipType) || grantScopes) {
-      readers.add(config.name);
-    }
-
-    if (
-      skipInterfaces ||
-      (config.kind !== 'Object' && config.kind !== 'Interface') ||
-      (config.kind === 'Object' && scopeOptions(config).skipInterfaceScopes)
-    ) {
-      return;
-    }
-
-    for (const iface of config.interfaces) {
-      const interfaceConfig = buildCache.getTypeConfig(iface, 'Interface');
-
-      if (scopeOptions(interfaceConfig).authScopes) {
-        readers.add(interfaceConfig.name);
-      }
-    }
-  };
 
   if (runsOnField(declaring)) {
     addTypeSteps(
+      readers,
+      buildCache,
       declaring,
       !!field.skipTypeScopes || skipDeclaring,
       !!field.skipInterfaceScopes || skipDeclaring,
@@ -83,7 +61,7 @@ export function fieldScopeReaders<Types extends SchemaTypes>(
   }
 
   if (inherited && runsOnField(parent)) {
-    addTypeSteps(parent, !!field.skipTypeScopes, !!field.skipInterfaceScopes);
+    addTypeSteps(readers, buildCache, parent, !!field.skipTypeScopes, !!field.skipInterfaceScopes);
   }
 
   if (field.authScopes || field.grantScopes) {
@@ -91,6 +69,56 @@ export function fieldScopeReaders<Types extends SchemaTypes>(
   }
 
   return readers;
+}
+
+/**
+ * The types whose checks scope-auth runs on a row of `typeName` from `isTypeOf`, with
+ * `runScopesOnType`: the steps its `createStepsForType` builds for the type.
+ */
+export function typeScopeReaders<Types extends SchemaTypes>(
+  buildCache: BuildCache<Types>,
+  typeName: string,
+): Set<string> {
+  const readers = new Set<string>();
+
+  addTypeSteps(readers, buildCache, buildCache.getTypeConfig(typeName), false, false);
+
+  return readers;
+}
+
+/**
+ * Adds the types whose checks scope-auth's `createStepsForType` runs for `config` to `readers`:
+ * its own `authScopes` (unless `skipType`) and `grantScopes`, and its interfaces' `authScopes`
+ * (unless `skipInterfaces`, or an object type's `skipInterfaceScopes`).
+ */
+function addTypeSteps<Types extends SchemaTypes>(
+  readers: Set<string>,
+  buildCache: BuildCache<Types>,
+  config: PothosTypeConfig,
+  skipType: boolean,
+  skipInterfaces: boolean,
+) {
+  const { authScopes, grantScopes } = scopeOptions(config);
+
+  if ((authScopes && !skipType) || grantScopes) {
+    readers.add(config.name);
+  }
+
+  if (
+    skipInterfaces ||
+    (config.kind !== 'Object' && config.kind !== 'Interface') ||
+    (config.kind === 'Object' && scopeOptions(config).skipInterfaceScopes)
+  ) {
+    return;
+  }
+
+  for (const iface of config.interfaces) {
+    const interfaceConfig = buildCache.getTypeConfig(iface, 'Interface');
+
+    if (scopeOptions(interfaceConfig).authScopes) {
+      readers.add(interfaceConfig.name);
+    }
+  }
 }
 
 /**

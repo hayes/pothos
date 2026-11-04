@@ -28,6 +28,7 @@ import type { FieldMap } from './util/relation-map.js';
 import {
   fieldScopeReaders,
   hasTypeScopes,
+  typeScopeReaders,
   uncheckedReload,
   uncheckedScopesMessage,
 } from './util/scope-checks.js';
@@ -138,26 +139,32 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
    * The parent scope-auth's type checks see (a `ScopeAuthParentLoader`, which this plugin doesn't
    * import): the row itself when it has the type's `select`/`include`, else the row
    * `wrapArgMappers` reloads for the type's own fields, so the check and those fields share one
-   * load.
+   * load. A reload that can't hold what an interface's authScopes read is refused, as it is for
+   * those fields.
    */
   private typeParentLoader(
     typeName: string,
     typeKeys: string[],
     loaderCache: (context: object) => ModelLoader,
   ) {
-    let root: PrismaNode | undefined;
+    let node: TypeReloadNode | undefined;
+    let unchecked: string | undefined;
 
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
       const row = parent as Record<string, unknown>;
 
       for (const key of typeKeys) {
         if (row[key] === undefined) {
-          root ??= this.typeNode(
-            info.schema.getType(typeName) as GraphQLObjectType,
-            undefined,
-          ).root;
+          if (!node) {
+            node = this.typeNode(info.schema.getType(typeName) as GraphQLObjectType, undefined);
+            unchecked = uncheckedReload(node.skipped, typeScopeReaders(this.buildCache, typeName));
+          }
 
-          return loaderCache(context).loadTypeSelection(root, row);
+          if (unchecked) {
+            throw new PothosValidationError(unchecked);
+          }
+
+          return loaderCache(context).loadTypeSelection(node.root, row);
         }
       }
 

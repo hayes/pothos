@@ -7,7 +7,11 @@ import { gql } from 'graphql-tag';
 import DrizzlePlugin from '../src';
 import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
 
-const seen: { type: unknown[]; impl: unknown[] } = { type: [], impl: [] };
+const seen: { type: unknown[]; impl: unknown[]; published: unknown[] } = {
+  type: [],
+  impl: [],
+  published: [],
+};
 
 const bioOf = (user: { profile?: { bio: string | null } | null }) =>
   user.profile === undefined ? 'missing' : user.profile?.bio;
@@ -63,8 +67,75 @@ builder.drizzleObject('users', {
   fields: () => ({}),
 });
 
+// Allows only when the posts its select loads, which match nothing, are there, so it always denies.
+// A row can't hold its posts and its implementation's at once.
+const RestrictedIface = builder.drizzleInterface('users', {
+  variant: 'RestrictedIface',
+  select: { with: { posts: { where: { published: 2 } } } },
+  authScopes: (user) => user.posts.length > 0,
+  resolveType: () => 'RestrictedImpl',
+  fields: (t) => ({
+    restrictedId: t.exposeID('id'),
+  }),
+});
+
+const RestrictedImpl = builder.drizzleObject('users', {
+  variant: 'RestrictedImpl',
+  interfaces: [RestrictedIface],
+  select: { with: { posts: { where: { published: 1 } } } },
+  fields: (t) => ({
+    secret: t.string({ resolve: () => 'secret' }),
+  }),
+});
+
+// The same conflict, with no authScopes on the interface.
+const DraftsIface = builder.drizzleInterface('users', {
+  variant: 'DraftsIface',
+  select: { with: { posts: { where: { published: 0 } } } },
+  resolveType: () => 'PublishedImpl',
+  fields: (t) => ({
+    draftsId: t.exposeID('id'),
+  }),
+});
+
+const PublishedImpl = builder.drizzleObject('users', {
+  variant: 'PublishedImpl',
+  interfaces: [DraftsIface],
+  select: { with: { posts: { where: { published: 1 } } } },
+  authScopes: (user) => {
+    seen.published.push(user.posts.every((post) => post.published));
+    return true;
+  },
+  fields: () => ({}),
+});
+
+// Its interfaces' checks never run on it, only its own.
+const SkippingImpl = builder.drizzleObject('users', {
+  variant: 'SkippingImpl',
+  interfaces: [RestrictedIface],
+  skipInterfaceScopes: true,
+  authScopes: () => true,
+  select: { with: { posts: { where: { published: 1 } } } },
+  fields: (t) => ({
+    open: t.string({ resolve: () => 'open' }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
+    skipping: t.field({
+      type: SkippingImpl,
+      resolve: () => ({ id: 1 }) as never,
+    }),
+    restricted: t.field({
+      type: RestrictedImpl,
+      nullable: true,
+      resolve: () => ({ id: 1 }) as never,
+    }),
+    published: t.field({
+      type: PublishedImpl,
+      resolve: () => ({ id: 1 }) as never,
+    }),
     planned: t.drizzleField({
       type: User,
       resolve: (query) => db.query.users.findFirst(query({ where: { id: 1 } })) as never,
@@ -105,6 +176,7 @@ describe('runScopesOnType checks see the type select', () => {
     clearDrizzleLogs();
     seen.type = [];
     seen.impl = [];
+    seen.published = [];
   });
 
   it('is set only for types with a type-level select, and only with ScopeAuthPlugin', () => {
@@ -175,5 +247,46 @@ describe('runScopesOnType checks see the type select', () => {
 
     expect(result.errors).toBeUndefined();
     expect(seen.impl).toEqual([bios.get(1)]);
+  });
+
+  it.each([
+    ['its implementation', 'secret'],
+    ['itself', 'restrictedId'],
+  ])("a reload can't check an interface's authScopes on a field %s declares when their selects conflict", async (_declarer, field) => {
+    const result = await execute({
+      schema,
+      document: gql`{ restricted { ${field} } }`,
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({ restricted: null });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Type-level selections of RestrictedIface and RestrictedImpl conflict on relation "posts", so RestrictedIface\'s scope checks can\'t run on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
+    ]);
+    expect(drizzleLogs).toHaveLength(0);
+  });
+
+  it("a conflicting interface without authScopes doesn't block its implementation", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ published { draftsId } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ published: { draftsId: '1' } });
+    // The implementation's filter wins, as it does on a row planned for it.
+    expect(seen.published).toEqual([true]);
+  });
+
+  it("a type that skips its interfaces' scopes is reloaded despite their conflict", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ skipping { open } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ skipping: { open: 'open' } });
   });
 });

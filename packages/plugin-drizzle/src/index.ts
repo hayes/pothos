@@ -21,6 +21,7 @@ import { getSchemaConfig } from './utils/config.js';
 import {
   fieldScopeReaders,
   hasTypeScopes,
+  typeScopeReaders,
   uncheckedReload,
   uncheckedScopesMessage,
 } from './utils/scope-checks.js';
@@ -109,26 +110,32 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
   /**
    * The parent scope-auth's type checks see (a `ScopeAuthParentLoader`, which this plugin doesn't
    * import): the row itself when it has the type's `select`, else the row `wrapArgMappers` reloads
-   * for the type's own fields, so the check and those fields share one load.
+   * for the type's own fields, so the check and those fields share one load. A reload that can't
+   * hold what an interface's authScopes read is refused, as it is for those fields.
    */
   private typeParentLoader(
     typeName: string,
     typeKeys: string[],
     modelLoader: ReturnType<typeof ModelLoader.forModel>,
   ) {
-    let root: DrizzleNode | undefined;
+    let node: TypeReloadNode | undefined;
+    let unchecked: string | undefined;
 
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
       const row = parent as Record<string, unknown>;
 
       for (const key of typeKeys) {
         if (row[key] === undefined) {
-          root ??= this.typeNode(
-            info.schema.getType(typeName) as GraphQLObjectType,
-            undefined,
-          ).root;
+          if (!node) {
+            node = this.typeNode(info.schema.getType(typeName) as GraphQLObjectType, undefined);
+            unchecked = uncheckedReload(node.skipped, typeScopeReaders(this.buildCache, typeName));
+          }
 
-          return modelLoader(context).loadTypeSelection(root, row);
+          if (unchecked) {
+            throw new PothosValidationError(unchecked);
+          }
+
+          return modelLoader(context).loadTypeSelection(node.root, row);
         }
       }
 

@@ -21,10 +21,11 @@ const client = db.$extends({
   },
 });
 
-const seen: { post: unknown[]; user: unknown[]; impl: unknown[] } = {
+const seen: { post: unknown[]; user: unknown[]; impl: unknown[]; postsImpl: unknown[] } = {
   post: [],
   user: [],
   impl: [],
+  postsImpl: [],
 };
 
 const authorOf = (post: { author?: { firstName: string } }) =>
@@ -91,8 +92,75 @@ builder.prismaObject('Post', {
   fields: () => ({}),
 });
 
+// Allows only when the posts its include loads, which match nothing, are there, so it always
+// denies. A row can't hold its posts and its implementation's at once.
+const RestrictedIface = builder.prismaInterface('User', {
+  variant: 'RestrictedIface',
+  include: { posts: { where: { id: { lt: 0 } } } },
+  authScopes: (user) => user.posts.length > 0,
+  resolveType: () => 'RestrictedImpl',
+  fields: (t) => ({
+    restrictedId: t.exposeID('id'),
+  }),
+});
+
+const RestrictedImpl = builder.prismaObject('User', {
+  variant: 'RestrictedImpl',
+  interfaces: [RestrictedIface],
+  include: { posts: { where: { id: { gt: 0 } } } },
+  fields: (t) => ({
+    secret: t.string({ resolve: () => 'secret' }),
+  }),
+});
+
+// The same conflict, with no authScopes on the interface.
+const NoPostsIface = builder.prismaInterface('User', {
+  variant: 'NoPostsIface',
+  include: { posts: { where: { id: { lt: 0 } } } },
+  resolveType: () => 'PostsImpl',
+  fields: (t) => ({
+    noPostsId: t.exposeID('id'),
+  }),
+});
+
+const PostsImpl = builder.prismaObject('User', {
+  variant: 'PostsImpl',
+  interfaces: [NoPostsIface],
+  include: { posts: { where: { id: { gt: 0 } } } },
+  authScopes: (user) => {
+    seen.postsImpl.push(user.posts.length > 0);
+    return true;
+  },
+  fields: () => ({}),
+});
+
+// Its interfaces' checks never run on it, only its own.
+const SkippingImpl = builder.prismaObject('User', {
+  variant: 'SkippingImpl',
+  interfaces: [RestrictedIface],
+  skipInterfaceScopes: true,
+  authScopes: () => true,
+  include: { posts: { where: { id: { gt: 0 } } } },
+  fields: (t) => ({
+    open: t.string({ resolve: () => 'open' }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
+    skipping: t.field({
+      type: SkippingImpl,
+      resolve: () => ({ id: 1 }) as never,
+    }),
+    restricted: t.field({
+      type: RestrictedImpl,
+      nullable: true,
+      resolve: () => ({ id: 1 }) as never,
+    }),
+    postsImpl: t.field({
+      type: PostsImpl,
+      resolve: () => ({ id: 1 }) as never,
+    }),
     planned: t.prismaField({
       type: Post,
       resolve: (query) => client.post.findUniqueOrThrow({ ...query, where: { id: 1 } }),
@@ -142,6 +210,7 @@ describe('prisma runScopesOnType checks see the type include', () => {
     seen.post = [];
     seen.user = [];
     seen.impl = [];
+    seen.postsImpl = [];
   });
 
   it('is set only for types with a type-level selection, and only with ScopeAuthPlugin', () => {
@@ -225,5 +294,46 @@ describe('prisma runScopesOnType checks see the type include', () => {
 
     expect(result.errors).toBeUndefined();
     expect(seen.impl).toEqual([authors.get(1)]);
+  });
+
+  it.each([
+    ['its implementation', 'secret'],
+    ['itself', 'restrictedId'],
+  ])("a reload can't check an interface's authScopes on a field %s declares when their includes conflict", async (_declarer, field) => {
+    const result = await execute({
+      schema,
+      document: gql`{ restricted { ${field} } }`,
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({ restricted: null });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Type-level selections of RestrictedIface and RestrictedImpl conflict on relation "posts", so RestrictedIface\'s scope checks can\'t run on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
+    ]);
+    expect(queries).toBe(0);
+  });
+
+  it("a conflicting interface without authScopes doesn't block its implementation", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ postsImpl { noPostsId } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ postsImpl: { noPostsId: '1' } });
+    // The implementation's filter wins, as it does on a row planned for it.
+    expect(seen.postsImpl).toEqual([true]);
+  });
+
+  it("a type that skips its interfaces' scopes is reloaded despite their conflict", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ skipping { open } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ skipping: { open: 'open' } });
   });
 });
