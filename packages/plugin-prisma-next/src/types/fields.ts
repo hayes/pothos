@@ -135,8 +135,14 @@ type PrismaNextTypeOptions<Types extends SchemaTypes, M extends ModelKey<Types>,
   select?: readonly (keyof Row<Types, M> & string)[] | TypeSelectObjectSpec<Types, M>;
   fields?: (
     // Passed explicitly because some editors leave the default unresolved, and `t.expose*` then
-    // demands `nullable: true` on every column.
-    t: PrismaNextObjectFieldBuilder<Types, M, FieldParentShape<Types, M, Shape>, Row<Types, M>>,
+    // demands `nullable: true` on every column. `NoInfer`, because `M` is already known, and
+    // inferring from the row would measure the variance of upstream's row types (~20 ms).
+    t: PrismaNextObjectFieldBuilder<
+      Types,
+      M,
+      FieldParentShape<Types, M, Shape>,
+      NoInfer<Row<Types, M>>
+    >,
   ) => FieldMap;
 } & NameOrVariant;
 

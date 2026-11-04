@@ -187,18 +187,30 @@ declare global {
           NameOrVariant,
       ) => PrismaNextInterfaceRef<Types, M, Shape>;
 
+      // The row argument is `NoInfer`: `M` comes from `type`, and inferring from the row would
+      // measure the variance of upstream's row types.
       prismaObjectField: <M extends ModelKey<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fieldName: string,
         field: (
-          t: PrismaNextObjectFieldBuilder<Types, M, FieldParentShape<Types, M, Shape>>,
+          t: PrismaNextObjectFieldBuilder<
+            Types,
+            M,
+            FieldParentShape<Types, M, Shape>,
+            NoInfer<Row<Types, M>>
+          >,
         ) => FieldRef<Types, unknown>,
       ) => void;
 
       prismaObjectFields: <M extends ModelKey<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fields: (
-          t: PrismaNextObjectFieldBuilder<Types, M, FieldParentShape<Types, M, Shape>>,
+          t: PrismaNextObjectFieldBuilder<
+            Types,
+            M,
+            FieldParentShape<Types, M, Shape>,
+            NoInfer<Row<Types, M>>
+          >,
         ) => FieldMap,
       ) => void;
 
@@ -206,14 +218,24 @@ declare global {
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fieldName: string,
         field: (
-          t: PrismaNextObjectFieldBuilder<Types, M, FieldParentShape<Types, M, Shape>>,
+          t: PrismaNextObjectFieldBuilder<
+            Types,
+            M,
+            FieldParentShape<Types, M, Shape>,
+            NoInfer<Row<Types, M>>
+          >,
         ) => FieldRef<Types, unknown>,
       ) => void;
 
       prismaInterfaceFields: <M extends ModelKey<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fields: (
-          t: PrismaNextObjectFieldBuilder<Types, M, FieldParentShape<Types, M, Shape>>,
+          t: PrismaNextObjectFieldBuilder<
+            Types,
+            M,
+            FieldParentShape<Types, M, Shape>,
+            NoInfer<Row<Types, M>>
+          >,
         ) => FieldMap,
       ) => void;
 
