@@ -1585,9 +1585,10 @@ describe('a relation targeting a variant model with a table of its own', () => {
       const { builder, task } = taskBuilder();
       builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
       builder.prismaObject('User', {
+        // The option's type offers only the target model's refs, though the base's resolves too.
         fields: (t) => ({
-          reviews: t.relation('reviews', { type: task }),
-          championed: t.relation('championed', { type: task }),
+          reviews: t.relation('reviews', { type: task as never }),
+          championed: t.relation('championed', { type: task as never }),
         }),
       });
       const result = await run(
