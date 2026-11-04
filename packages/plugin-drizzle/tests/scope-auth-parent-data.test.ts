@@ -491,8 +491,8 @@ describe('authScopes see the parent data their types promise', () => {
 
     expect(result.errors).toBeUndefined();
     expect(seen.type).toEqual([user.username]);
-    // The type's select, then the `id` field's own reload.
-    expect(drizzleLogs).toHaveLength(2);
+    // The type's select, whose reload the `id` field resolves with.
+    expect(drizzleLogs).toHaveLength(1);
   });
 
   it("a planned row has the type's relations without a reload", async () => {
@@ -517,8 +517,8 @@ describe('authScopes see the parent data their types promise', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ plainWithProfile: { id: '1', username: user.username } });
     expect(seen.typeWith).toEqual([user.profile?.bio]);
-    // The root query, one type-level reload shared by both fields, then their own batched reload.
-    expect(drizzleLogs).toHaveLength(3);
+    // The root query and one type-level reload, which both fields resolve with.
+    expect(drizzleLogs).toHaveLength(2);
   });
 
   it("a `t.withAuth` field's row is reloaded before type authScopes run", async () => {
@@ -542,8 +542,8 @@ describe('authScopes see the parent data their types promise', () => {
 
     expect(plain.errors).toBeUndefined();
     expect(seen.impl).toEqual([user.profile?.bio]);
-    // The root query, the type-level selections, then the field's own reload.
-    expect(drizzleLogs).toHaveLength(3);
+    // The root query and the type-level selections, which the field resolves with.
+    expect(drizzleLogs).toHaveLength(2);
 
     seen.impl = [];
     clearDrizzleLogs();
@@ -730,7 +730,7 @@ describe('authScopes see the parent data their types promise', () => {
 
     expect(result.errors).toBeUndefined();
     expect(seen.excluded).toEqual([user.username]);
-    // The type's select, then the `id` field's own reload.
-    expect(drizzleLogs).toHaveLength(2);
+    // The type's select, whose reload the `id` field resolves with.
+    expect(drizzleLogs).toHaveLength(1);
   });
 });

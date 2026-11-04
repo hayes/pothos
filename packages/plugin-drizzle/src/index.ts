@@ -318,8 +318,28 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       throw new Error(`ModelLoader not found for type ${parentConfig.name}`);
     }
 
+    // An exposed column (a select of columns alone) needs nothing the plan maps beneath it.
+    const select = fieldConfig.extensions.pothosDrizzleSelect as Record<string, unknown>;
+    const ownColumns =
+      !loadedCheck &&
+      typeof select === 'object' &&
+      Object.keys(select).every((key) => key === 'columns')
+        ? truthyKeys(select.columns)
+        : null;
+
     return (parent, args, context, info) => {
       const mapping = findLoaderMapping(context, info, parent, parentTypes);
+
+      // A row the type's reload filled, for scope-auth's checks, holds the field's columns when
+      // its table does: resolved with it instead of loading the row again.
+      if (
+        !mapping &&
+        ownColumns &&
+        modelLoader(context).isTypeRow(parent) &&
+        ownColumns.every((key) => (parent as Record<string, unknown>)[key] !== undefined)
+      ) {
+        return resolver(parent, args, context, info);
+      }
 
       if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
         // Recorded under the field's own parent type as well, so its resolver finds the pathInfo

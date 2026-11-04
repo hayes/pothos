@@ -49,6 +49,8 @@ export class ModelLoader {
 
   // The row each `loadTypeSelection` resolves to, per row and node.
   private typeRows = new WeakMap<object, Map<DrizzleNode, Promise<Record<string, unknown>>>>();
+  // The rows `loadTypeSelection` resolved to.
+  private filledRows = new WeakSet<object>();
 
   config: PothosDrizzleSchemaConfig;
   adapter: DrizzleAdapter;
@@ -203,11 +205,22 @@ export class ModelLoader {
     let load = loads.get(root);
 
     if (!load) {
-      load = this.stageQuery({ root }, model).then((loaded) => fillRow(model, loaded));
+      load = this.stageQuery({ root }, model).then((loaded) => {
+        const filled = fillRow(model, loaded);
+
+        this.filledRows.add(filled);
+
+        return filled;
+      });
       loads.set(root, load);
     }
 
     return load;
+  }
+
+  /** Whether `row` is one `loadTypeSelection` resolved to. */
+  isTypeRow(row: unknown): boolean {
+    return typeof row === 'object' && row !== null && this.filledRows.has(row);
   }
 
   stageQuery(played: Pick<DrizzlePlayedPlan, 'root'>, model: object) {

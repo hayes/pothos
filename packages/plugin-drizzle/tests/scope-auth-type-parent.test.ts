@@ -150,9 +150,8 @@ describe('runScopesOnType checks see the type select', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ plain: { id: '1' } });
     expect(seen.type).toEqual([bios.get(1)]);
-    // The root query, the type check's reload, which the field's type-level check reuses, and the
-    // field's own reload.
-    expect(drizzleLogs).toHaveLength(3);
+    // The root query and the type check's reload, which the field reuses.
+    expect(drizzleLogs).toHaveLength(2);
   });
 
   it('the rows of a list are reloaded in one batch', async () => {
@@ -164,7 +163,7 @@ describe('runScopesOnType checks see the type select', () => {
 
     expect(result.errors).toBeUndefined();
     expect(seen.type).toEqual([bios.get(1), bios.get(2)]);
-    expect(drizzleLogs).toHaveLength(3);
+    expect(drizzleLogs).toHaveLength(2);
   });
 
   it("a row planned through an interface is reloaded with the implementation's select", async () => {
