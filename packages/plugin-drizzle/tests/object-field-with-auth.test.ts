@@ -34,6 +34,8 @@ const User = builder.drizzleNode('users', {
     firstName: t.withAuth({ allowed: true }).exposeString('firstName', { nullable: true }),
     posts: t.withAuth({ allowed: true }).relation('posts', { nullable: true }),
     postsConnection: t.withAuth({ allowed: true }).relatedConnection('posts', { nullable: true }),
+    // a field's own `authScopes` replace the ones from `withAuth`, as in scope-auth and prisma
+    username: t.withAuth({ allowed: true }).exposeString('username', { authScopes: () => true }),
   }),
 });
 
@@ -54,6 +56,7 @@ const document = gql`
       edges {
         node {
           firstName
+          username
           posts {
             id
           }
@@ -102,6 +105,7 @@ it('resolves withAuth fields on a drizzle object when the scope passes', async (
 });
 
 it('rejects withAuth fields on a drizzle object when the scope fails', async () => {
+  const [user] = await db.query.users.findMany({ limit: 1, orderBy: { id: 'asc' } });
   const result = await execute({ schema, document, contextValue: { allowed: false } });
 
   expect(result.errors?.map((error) => error.message)).toEqual([
@@ -111,7 +115,11 @@ it('rejects withAuth fields on a drizzle object when the scope fails', async () 
   ]);
   expect(result.data).toEqual({
     users: {
-      edges: [{ node: { firstName: null, posts: null, postsConnection: null } }],
+      edges: [
+        {
+          node: { firstName: null, username: user.username, posts: null, postsConnection: null },
+        },
+      ],
     },
   });
 });

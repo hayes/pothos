@@ -232,7 +232,8 @@ declare global {
           Types['DrizzleRelations'][Table]
         > = {},
       >(
-        type: Table | DrizzleRef<Types, Table>,
+        // biome-ignore lint/suspicious/noExplicitAny: a ref from before `withAuth` replaced the context
+        type: Table | DrizzleRef<any, Table>,
         // The concrete query intersection contextually types callbacks while Selection retains literals.
         options: Selection &
           DBQueryConfig<'many', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]> &

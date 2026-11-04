@@ -537,7 +537,8 @@ export class DrizzleObjectFieldBuilder<
   }
 
   variant<
-    Variant extends DrizzleRef<Types, TableConfig['name']> | TableConfig['name'],
+    // biome-ignore lint/suspicious/noExplicitAny: a ref from before `withAuth` replaced the context
+    Variant extends DrizzleRef<any, TableConfig['name']> | TableConfig['name'],
     Args extends InputFieldMap,
     Nullable,
     ResolveShape,

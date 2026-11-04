@@ -68,3 +68,26 @@ it('accepts a withAuth field from drizzleObjectField', () => {
     t.withAuth({ loggedIn: true }).exposeString('username'),
   );
 });
+
+it('accepts object and node refs in variant after withAuth', () => {
+  builder.drizzleObjectField(User, 'nodeVariant', (t) =>
+    t.withAuth({ loggedIn: true }).variant(UserNode),
+  );
+  builder.drizzleObjectField(UserNode, 'objectVariant', (t) =>
+    t.withAuth({ loggedIn: true }).variant(User),
+  );
+});
+
+it('accepts a ref in drizzleQueryFromInfo after withAuth', () => {
+  builder.queryField('fromInfo', (t) => {
+    const authed = t.withAuth({ loggedIn: true });
+
+    return authed.boolean({
+      resolve: (_root, _args, context, info) => {
+        authed.drizzleQueryFromInfo(User, { context, info });
+
+        return true;
+      },
+    });
+  });
+});
