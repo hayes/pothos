@@ -163,6 +163,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return;
     }
     // Read from core's registry, since scope-auth is an optional peer this plugin doesn't import.
+    // `SchemaBuilder.plugins` is a static core keeps out of its public type, hence the cast.
     const { plugins } = this.builder.constructor as unknown as {
       plugins: Record<string, { readsParentExtension?: boolean } | undefined>;
     };
