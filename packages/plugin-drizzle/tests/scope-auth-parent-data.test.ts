@@ -17,10 +17,11 @@ const builder = new SchemaBuilder<{
   scopeAuth: { authScopes: () => ({ ok: true }) },
 });
 
-const seen: { type: unknown[]; field: unknown[]; typeWith: unknown[] } = {
+const seen: { type: unknown[]; field: unknown[]; typeWith: unknown[]; impl: unknown[] } = {
   type: [],
   field: [],
   typeWith: [],
+  impl: [],
 };
 
 const User = builder.drizzleObject('users', {
@@ -66,6 +67,27 @@ const UserWithProfile = builder.drizzleObject('users', {
   }),
 });
 
+const IfaceUser = builder.drizzleInterface('users', {
+  variant: 'IfaceUser',
+  select: { columns: { id: true } },
+  resolveType: () => 'ImplUser',
+  fields: (t) => ({
+    ifaceId: t.exposeID('id'),
+  }),
+});
+
+// scope-auth also runs the implementing type's authScopes on the field the interface declares.
+const ImplUser = builder.drizzleObject('users', {
+  variant: 'ImplUser',
+  interfaces: [IfaceUser],
+  select: { columns: { id: true }, with: { profile: { columns: { bio: true } } } },
+  authScopes: (user) => {
+    seen.impl.push(user.profile === undefined ? 'missing' : user.profile?.bio);
+    return true;
+  },
+  fields: () => ({}),
+});
+
 builder.queryType({
   fields: (t) => ({
     planned: t.drizzleField({
@@ -79,6 +101,18 @@ builder.queryType({
     partial: t.field({
       type: User,
       resolve: () => ({ id: 1 }) as never,
+    }),
+    implPlanned: t.drizzleField({
+      type: ImplUser,
+      resolve: (query) => db.query.users.findFirst(query({ where: { id: 1 } })) as never,
+    }),
+    implPlain: t.field({
+      type: ImplUser,
+      resolve: () => db.query.users.findFirst({ where: { id: 1 } }) as never,
+    }),
+    ifacePlanned: t.drizzleField({
+      type: IfaceUser,
+      resolve: (query) => db.query.users.findFirst(query({ where: { id: 1 } })) as never,
     }),
     plannedWithProfile: t.drizzleField({
       type: UserWithProfile,
@@ -105,6 +139,7 @@ describe('authScopes see the parent data their types promise', () => {
     seen.type = [];
     seen.field = [];
     seen.typeWith = [];
+    seen.impl = [];
   });
 
   it("a planned row has the field's select without a reload", async () => {
@@ -192,5 +227,43 @@ describe('authScopes see the parent data their types promise', () => {
     expect(seen.typeWith).toEqual([user.profile?.bio]);
     // The root query and one reload shared by both fields.
     expect(drizzleLogs).toHaveLength(2);
+  });
+
+  it("an inherited field's row the plugin didn't load gets the implementing type's select", async () => {
+    const plain = await execute({
+      schema,
+      document: gql`{ implPlain { ifaceId } }`,
+      contextValue: {},
+    });
+
+    expect(plain.errors).toBeUndefined();
+    expect(seen.impl).toEqual([user.profile?.bio]);
+    expect(drizzleLogs).toHaveLength(2);
+
+    seen.impl = [];
+    clearDrizzleLogs();
+
+    const planned = await execute({
+      schema,
+      document: gql`{ implPlanned { ifaceId } }`,
+      contextValue: {},
+    });
+
+    expect(planned.errors).toBeUndefined();
+    expect(seen.impl).toEqual([user.profile?.bio]);
+    expect(drizzleLogs).toHaveLength(1);
+  });
+
+  it('a row planned through the interface is not reloaded for the implementing type', async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ ifacePlanned { ifaceId } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    // The plan only walked the interface, so its row lacks the implementing type's select.
+    expect(seen.impl).toEqual(['missing']);
+    expect(drizzleLogs).toHaveLength(1);
   });
 });

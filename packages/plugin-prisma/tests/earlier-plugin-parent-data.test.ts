@@ -53,10 +53,11 @@ interface Row {
   profile?: { bio: string | null } | null;
 }
 
-const seen: { type: unknown[]; field: unknown[]; typeInclude: unknown[] } = {
+const seen: { type: unknown[]; field: unknown[]; typeInclude: unknown[]; impl: unknown[] } = {
   type: [],
   field: [],
   typeInclude: [],
+  impl: [],
 };
 
 const recordProfile = (into: unknown[]) => (user: Row) => {
@@ -93,6 +94,24 @@ const UserWithProfile = builder.prismaObject('User', {
   }),
 });
 
+const IfaceUser = builder.prismaInterface('User', {
+  variant: 'IfaceUser',
+  select: { id: true },
+  resolveType: () => 'ImplUser',
+  fields: (t) => ({
+    ifaceId: t.exposeID('id'),
+  }),
+});
+
+// The implementing type's type-level checks also run on the field the interface declares.
+const ImplUser = builder.prismaObject('User', {
+  variant: 'ImplUser',
+  interfaces: [IfaceUser],
+  select: { id: true, profile: { select: { bio: true } } },
+  extensions: { recordParent: recordProfile(seen.impl) },
+  fields: () => ({}),
+});
+
 builder.queryType({
   fields: (t) => ({
     planned: t.prismaField({
@@ -106,6 +125,18 @@ builder.queryType({
     partial: t.field({
       type: User,
       resolve: () => ({ id: 1 }) as never,
+    }),
+    implPlanned: t.prismaField({
+      type: ImplUser,
+      resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
+    }),
+    implPlain: t.field({
+      type: ImplUser,
+      resolve: () => prisma.user.findUniqueOrThrow({ where: { id: 1 } }) as never,
+    }),
+    ifacePlanned: t.prismaField({
+      type: IfaceUser,
+      resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
     }),
     plannedWithProfile: t.prismaField({
       type: UserWithProfile,
@@ -132,6 +163,7 @@ describe('plugins listed before prisma see the parent data its types promise', (
     seen.type.length = 0;
     seen.field.length = 0;
     seen.typeInclude.length = 0;
+    seen.impl.length = 0;
   });
 
   afterAll(async () => {
@@ -224,5 +256,43 @@ describe('plugins listed before prisma see the parent data its types promise', (
     expect(seen.typeInclude).toEqual([user.profile?.bio, user.profile?.bio]);
     // The root query and one reload shared by both fields.
     expect(queries).toHaveLength(2);
+  });
+
+  it("an inherited field's row the plugin didn't load gets the implementing type's select", async () => {
+    const plain = await execute({
+      schema,
+      document: gql`{ implPlain { ifaceId } }`,
+      contextValue: {},
+    });
+
+    expect(plain.errors).toBeUndefined();
+    expect(seen.impl).toEqual([user.profile?.bio]);
+    expect(queries).toHaveLength(2);
+
+    seen.impl.length = 0;
+    queries.length = 0;
+
+    const planned = await execute({
+      schema,
+      document: gql`{ implPlanned { ifaceId } }`,
+      contextValue: {},
+    });
+
+    expect(planned.errors).toBeUndefined();
+    expect(seen.impl).toEqual([user.profile?.bio]);
+    expect(queries).toHaveLength(1);
+  });
+
+  it('a row planned through the interface is not reloaded for the implementing type', async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ ifacePlanned { ifaceId } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    // The plan only walked the interface, so its row lacks the implementing type's select.
+    expect(seen.impl).toEqual(['missing']);
+    expect(queries).toHaveLength(1);
   });
 });

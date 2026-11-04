@@ -186,20 +186,28 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     const declaringConfig = fieldConfig.declaringType
       ? this.buildCache.getTypeConfig(fieldConfig.declaringType)
       : parentConfig;
-    const { pothosPrismaSelect: typeSelect, pothosPrismaInclude: typeInclude } =
-      (declaringConfig.extensions ?? {}) as { pothosPrismaSelect?: {}; pothosPrismaInclude?: {} };
+    // Relation fields, the only ones with a fallback, can't declare a `select`.
     const ownSelect =
-      fieldConfig.kind === 'PrismaObject' && !fieldConfig.extensions?.pothosPrismaFallback
+      fieldConfig.kind === 'PrismaObject'
         ? (fieldConfig.pothosOptions as { select?: unknown }).select
         : undefined;
     const required = [
-      ...selectedKeys(typeSelect),
-      ...selectedKeys(typeInclude),
+      ...typeLevelKeys(declaringConfig),
       ...(typeof ownSelect === 'object' ? selectedKeys(ownSelect) : []),
     ];
+    // scope-auth also runs the implementing type's checks on a field an interface declares. Its
+    // type-level selection is only checked on a row no plan loaded, so a planned query through
+    // the interface keeps its query count.
+    const implementationKeys =
+      declaringConfig === parentConfig
+        ? []
+        : typeLevelKeys(parentConfig).filter((key) => !required.includes(key));
     // A function `select` only shows its keys when it runs, so the plan's mapping is asked instead.
     const parentTypes =
-      typeof ownSelect === 'function' ? this.prismaParentTypes(parentConfig, fieldConfig) : null;
+      typeof ownSelect === 'function' || implementationKeys.length
+        ? this.prismaParentTypes(parentConfig, fieldConfig)
+        : null;
+    const checkMapping = typeof ownSelect === 'function';
 
     if (!required.length && !parentTypes) {
       return resolver;
@@ -216,8 +224,17 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         }
       }
 
-      if (!missing && parentTypes && !findMapping(context, info, parent, parentTypes)) {
+      if (!missing && checkMapping && !findMapping(context, info, parent, parentTypes!)) {
         missing = true;
+      }
+
+      if (!missing) {
+        for (const key of implementationKeys) {
+          if (row[key] === undefined) {
+            missing = !findMapping(context, info, parent, parentTypes!);
+            break;
+          }
+        }
       }
 
       if (!missing) {
@@ -290,7 +307,8 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         return resolver(parent, args, context, info);
       }
 
-      // `wrapArgMappers` already reloaded this row with the field's selection.
+      // `wrapArgMappers` already reloaded this row with the field's selection. The reload records
+      // the mappings beneath the field but not the field's own, so the lookup above misses it.
       if (reloadedRows.get(info) === parent) {
         return resolver(parent, args, context, info);
       }
@@ -371,6 +389,16 @@ function findMapping(
   }
 
   return null;
+}
+
+/** The top-level keys a type's `select` or `include` puts on its rows. */
+function typeLevelKeys(typeConfig: PothosTypeConfig) {
+  const { pothosPrismaSelect, pothosPrismaInclude } = (typeConfig.extensions ?? {}) as {
+    pothosPrismaSelect?: {};
+    pothosPrismaInclude?: {};
+  };
+
+  return [...selectedKeys(pothosPrismaSelect), ...selectedKeys(pothosPrismaInclude)];
 }
 
 /** The top-level keys a `select` or `include` map puts on the row. */

@@ -3,4 +3,4 @@
 '@pothos/plugin-drizzle': patch
 ---
 
-A parent row missing the data of a field's `select` or its type's `select`/`include` is now reloaded before `authScopes` run, so plugins listed before this one see the data their types promise.
+For rows the plugin didn't load, a field's `select` and its type's `select`/`include` data are now loaded before `authScopes` run.

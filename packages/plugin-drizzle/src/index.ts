@@ -189,18 +189,30 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     const declaringConfig = fieldConfig.declaringType
       ? this.buildCache.getTypeConfig(fieldConfig.declaringType)
       : parentConfig;
-    const typeSelect = declaringConfig.extensions?.pothosDrizzleSelect;
+    // Relation fields can't declare a `select`, so none is read from them here.
     const ownSelect =
       fieldConfig.kind === 'DrizzleObject'
         ? (fieldConfig.pothosOptions as { select?: unknown }).select
         : undefined;
     const required = [
-      ...selectedKeys(typeSelect),
+      ...selectedKeys(declaringConfig.extensions?.pothosDrizzleSelect),
       ...(typeof ownSelect === 'object' ? selectedKeys(ownSelect) : []),
     ];
+    // scope-auth also runs the implementing type's checks on a field an interface declares. Its
+    // type-level selection is only checked on a row no plan loaded, so a planned query through
+    // the interface keeps its query count.
+    const implementationKeys =
+      declaringConfig === parentConfig
+        ? []
+        : selectedKeys(parentConfig.extensions?.pothosDrizzleSelect).filter(
+            (key) => !required.includes(key),
+          );
     // A function `select` only shows its keys when it runs, so the plan's mapping is asked instead.
     const parentTypes =
-      typeof ownSelect === 'function' ? this.drizzleParentTypes(parentConfig, fieldConfig) : null;
+      typeof ownSelect === 'function' || implementationKeys.length
+        ? this.drizzleParentTypes(parentConfig, fieldConfig)
+        : null;
+    const checkMapping = typeof ownSelect === 'function';
 
     if (!required.length && !parentTypes) {
       return resolver;
@@ -217,8 +229,17 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         }
       }
 
-      if (!missing && parentTypes && !findMapping(context, info, parent, parentTypes)) {
+      if (!missing && checkMapping && !findMapping(context, info, parent, parentTypes!)) {
         missing = true;
+      }
+
+      if (!missing) {
+        for (const key of implementationKeys) {
+          if (row[key] === undefined) {
+            missing = !findMapping(context, info, parent, parentTypes!);
+            break;
+          }
+        }
       }
 
       if (!missing) {
