@@ -301,6 +301,28 @@ const PLAIN: RowSlots = Object.freeze({
 /** The slots of each row `takeSlots` returned, and of each projection of one. */
 const rowSlots = new WeakMap<object, RowSlots>();
 
+/** The relation each row of a variant model loaded through, by the row `takeSlots` returned. */
+const variantRows = new WeakMap<object, PrismaNextRelation>();
+
+function markVariantRows(rows: unknown, relation: PrismaNextRelation) {
+  if (!relation.targetVariantModel || !rows || typeof rows !== 'object') {
+    return;
+  }
+  for (const row of Array.isArray(rows) ? rows : [rows]) {
+    if (row && typeof row === 'object') {
+      variantRows.set(row, relation);
+    }
+  }
+}
+
+/**
+ * The relation targeting a variant model that `row` loaded through, which left out the base
+ * model's columns and relations the variant model's own accessor can't read.
+ */
+export function loadedThrough(row: object) {
+  return variantRows.get(row);
+}
+
 /**
  * Takes the slots off the rows a statement returned, reading them by what `emit` included
  * (`record`). A to-many relation loaded through `combine()` comes back as an object with one slot
@@ -350,6 +372,7 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
         // A filtered version never stands in for the relation on the row.
         taken.push(name);
         const loaded = takeSlots(value, relation.target, included.nested);
+        markVariantRows(loaded, relation);
         for (const scope of included.scopes) {
           own.set(scope, loaded);
           scopes.add(scope);
@@ -362,6 +385,7 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
     }
     if (!relation.isToMany || Array.isArray(value)) {
       const next = takeSlots(value, relation.target, included?.nested);
+      markVariantRows(next, relation);
       if (next !== value) {
         nested ??= {};
         nested[name] = next;
@@ -380,6 +404,7 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
       const scope = relationName(key);
       if (scope === key) {
         const loaded = takeSlots(slot, relation.target, included?.slots?.[key]);
+        markVariantRows(loaded, relation);
         for (const consumer of key.split(SCOPE_SEPARATOR)) {
           rows.set(consumer, loaded);
           scopes.add(consumer);

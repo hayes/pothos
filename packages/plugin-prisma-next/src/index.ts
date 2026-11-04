@@ -4,6 +4,7 @@ import './field-builder.js';
 import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
+  completeValue,
   type MaybePromise,
   type PothosInterfaceTypeConfig,
   type PothosObjectTypeConfig,
@@ -67,6 +68,7 @@ import {
   splitSelect,
   throwPlanningFailure,
 } from './utils/selections.js';
+import { completeReturnedVariantRows } from './utils/variant-rows.js';
 import { assertVariantTypes } from './utils/variant-types.js';
 
 export type {
@@ -516,7 +518,14 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       if (readsSlots) {
         recordFieldPosition(info, position);
       }
-      return resolver(parent, args, context, info);
+      const result = resolver(parent, args, context, info);
+      // Rows of a variant model the field's select loaded lack what the base model holds, such as
+      // the discriminator an interface's resolveType reads, which `t.relation` completes too.
+      return declaresOwnSelect
+        ? completeValue(result, (value) =>
+            completeReturnedVariantRows(this.builder, value, context, info),
+          )
+        : result;
     };
 
     return (row, args, context, info) => {

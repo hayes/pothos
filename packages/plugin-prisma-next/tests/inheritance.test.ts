@@ -1427,6 +1427,60 @@ describe('a relation targeting a variant model with a table of its own', () => {
     expect(result.data.users).toEqual([{ selected: [{ title: 'feat1' }] }]);
   });
 
+  // The rows load through `orm.Feature`, without Task's discriminator, which the interface's
+  // resolveType reads before any field reloads them.
+  it("completes the rows of a field's select for a field returning their interface", async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('Feature', {
+      interfaces: [task],
+      fields: (t) => ({ priority: t.exposeInt('priority') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        notes: t.prismaField({
+          type: ['Note'],
+          resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
+        }),
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+      }),
+    });
+    builder.prismaObject('Note', {
+      fields: (t) => ({
+        task: t.field({
+          type: task,
+          nullable: true,
+          select: { feature: true },
+          resolve: (note) => note.feature,
+        }),
+      }),
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        tasks: t.field({
+          type: [task],
+          select: { championed: true },
+          resolve: (user) => user.championed,
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ notes { task { __typename title ... on Feature { priority } } } users { tasks { __typename title } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      notes: [{ task: null }, { task: { __typename: 'Feature', title: 'feat1', priority: 5 } }],
+      users: [{ tasks: [{ __typename: 'Feature', title: 'feat1' }] }],
+    });
+  });
+
   it("rejects a field's select returning them through another plugin's type", () => {
     // plugin-errors changes the field's type after this plugin's onOutputFieldConfig runs.
     const { builder, feature } = selectBuilder([ErrorsPlugin, prismaNextPlugin]);

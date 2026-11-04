@@ -16,7 +16,7 @@ import {
 } from '@pothos/core';
 import type { Position } from '@pothos/selection-mapper';
 import type { ContractRelation } from '@prisma/orm-framework/contract/types';
-import { type GraphQLNamedType, type GraphQLResolveInfo, getNamedType } from 'graphql';
+import { type GraphQLResolveInfo, getNamedType } from 'graphql';
 import {
   PRISMA_NEXT_FIELD_SELECTION,
   PRISMA_NEXT_LOADED_CHECK,
@@ -85,6 +85,7 @@ import {
   scopeOf,
   splitSelect,
 } from './utils/selections.js';
+import { completeVariantRows } from './utils/variant-rows.js';
 
 type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
   PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
@@ -680,38 +681,6 @@ function readSlots<T>(
       // nothing yet, so the field always fits and has a mapping.
       .then(({ row, mapping }) => read(fieldSlots(row, mapping?.position)!))
   );
-}
-
-/**
- * Completes the rows of a relation that targets a variant model before its field returns them.
- * They loaded through the variant model's own accessor, which can't include the base model's
- * relations or, for a variant with a table of its own, read the base's columns, so the planner left
- * those out of the returned type's selection. One batched statement loads them for every parent, so
- * plugins listed before this one, such as scope-auth, see the columns and to-one relations the
- * type's `select` promises.
- */
-function completeVariantRows<T>(
-  builder: object,
-  relation: PrismaNextRelation,
-  type: GraphQLNamedType | null | undefined,
-  context: object,
-  info: GraphQLResolveInfo,
-  rows: T,
-): MaybePromise<T> {
-  const config = getPluginConfig(builder);
-  const dropped =
-    relation.targetVariantModel && type
-      ? config.adapter.droppedBeneathVariantModel(type, relation)
-      : undefined;
-  if (!dropped || rows == null) {
-    return rows;
-  }
-  const list = (Array.isArray(rows) ? rows : [rows]) as Record<string, unknown>[];
-  const completed = config.loader(context, relation.targetModel).completeRows(list, dropped);
-  const found = completed && reloadFor(info, () => completed);
-  // A row the base model narrowed to the variant doesn't have isn't of the variant. Only rows that
-  // complete are checked, so without a completion such a row stays, and its fields fail to reload.
-  return found ? found.then((kept) => (Array.isArray(rows) ? kept : (kept[0] ?? null)) as T) : rows;
 }
 
 // An embed records no nullability, so its row may be absent.
