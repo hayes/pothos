@@ -32,6 +32,12 @@ const OverrideUser = builder.drizzleInterface('users', {
   resolveType: (_user, ctx) => ctx.typeName,
   fields: (t) => ({
     posts: t.relation('posts', { type: Post, query: { limit: 3, orderBy: { postId: 'asc' } } }),
+    // The same relation through a static field select.
+    recent: t.field({
+      type: [Post],
+      select: { with: { posts: { limit: 3, orderBy: { postId: 'asc' } } } },
+      resolve: (user) => user.posts,
+    }),
   }),
 });
 
@@ -46,6 +52,11 @@ builder.drizzleObject('users', {
   select: { columns: { id: true } },
   fields: (t) => ({
     posts: t.relation('posts', { type: Post, query: { limit: 1, orderBy: { postId: 'desc' } } }),
+    recent: t.field({
+      type: [Post],
+      select: { with: { posts: { limit: 1, orderBy: { postId: 'desc' } } } },
+      resolve: (user) => user.posts,
+    }),
   }),
 });
 
@@ -75,10 +86,16 @@ describe('an implementation that overrides an interface field', () => {
     clearDrizzleLogs();
   });
 
-  it.each([
-    ['plainly', '{ user { posts { id } } }'],
-    ['beneath an expansion', '{ user { ... on Linked { ... on OverrideUser { posts { id } } } } }'],
-  ])('loads the override with its own arguments when selected %s', async (_, document) => {
+  it.each(
+    ['posts', 'recent'].flatMap((field) => [
+      [field, 'plainly', `{ user { ${field} { id } } }`],
+      [
+        field,
+        'beneath an expansion',
+        `{ user { ... on Linked { ... on OverrideUser { ${field} { id } } } } }`,
+      ],
+    ]),
+  )('loads the override of %s with its own arguments when selected %s', async (field, _, document) => {
     const overriding = await ids(1, 'desc');
     const inherited = await ids(3, 'asc');
 
@@ -91,9 +108,11 @@ describe('an implementation that overrides an interface field', () => {
     });
 
     expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({ user: { posts: overriding } });
-    // The parent query loads the interface's posts, which the override does not read.
-    expect(drizzleLogs).toHaveLength(2);
+    expect(result.data).toEqual({ user: { [field]: overriding } });
+    // The parent query loads the interface's selection, which the override does not read, and the
+    // override reloads the user. A static select plans nothing beneath it, so the posts it
+    // returns load their own `id` once more.
+    expect(drizzleLogs).toHaveLength(field === 'posts' ? 2 : 3);
 
     clearDrizzleLogs();
 
@@ -104,7 +123,7 @@ describe('an implementation that overrides an interface field', () => {
     });
 
     expect(inheriting.errors).toBeUndefined();
-    expect(inheriting.data).toEqual({ user: { posts: inherited } });
-    expect(drizzleLogs).toHaveLength(1);
+    expect(inheriting.data).toEqual({ user: { [field]: inherited } });
+    expect(drizzleLogs).toHaveLength(field === 'posts' ? 1 : 2);
   });
 });
