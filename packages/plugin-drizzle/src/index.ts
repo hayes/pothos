@@ -9,7 +9,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, setFieldMapping } from '@pothos/selection-mapper';
+import { getLoaderMapping, type Mapping, setFieldMapping } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
@@ -177,7 +177,11 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
 
       if (!mapping) {
         for (const parentType of parentTypes) {
-          mapping = getLoaderMapping(context, info.path, parentType, parent);
+          mapping = inheritedMapping(
+            getLoaderMapping(context, info.path, parentType, parent),
+            parentType === fieldConfig.parentType,
+            fieldConfig.pothosOptions,
+          );
           if (mapping) {
             break;
           }
@@ -206,3 +210,18 @@ function wrapSelect(selected: {} | null) {
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosDrizzlePlugin, {});
+
+/**
+ * A mapping recorded under an interface answers for this field only when the field was planned
+ * with the same definition: an implementation that overrides it (other relation arguments, say)
+ * would otherwise read what the interface's field loaded. Pothos builds an inherited field from
+ * the interface's own options, so the two agree exactly when the field was not redefined. A static
+ * selection records no position and runs nothing that could differ.
+ */
+function inheritedMapping(mapping: Mapping | null, own: boolean, definition: unknown) {
+  return own ||
+    !mapping?.position ||
+    mapping.position.field.extensions?.pothosOptions === definition
+    ? mapping
+    : null;
+}
