@@ -325,13 +325,17 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       throw new Error(`ModelLoader not found for type ${parentConfig.name}`);
     }
 
-    // An exposed column (a select of columns alone) needs nothing the plan maps beneath it.
+    // An exposed column (a select of columns alone) needs nothing the plan maps beneath it. Only
+    // columns it names: one that excludes columns needs every other column of the table.
     const select = fieldConfig.extensions.pothosDrizzleSelect as Record<string, unknown>;
     const ownColumns =
       !loadedCheck &&
       typeof select === 'object' &&
-      Object.keys(select).every((key) => key === 'columns')
-        ? truthyKeys(select.columns)
+      Object.keys(select).every((key) => key === 'columns') &&
+      select.columns !== null &&
+      typeof select.columns === 'object' &&
+      Object.values(select.columns).every((value) => value === true)
+        ? Object.keys(select.columns)
         : null;
 
     return (parent, args, context, info) => {

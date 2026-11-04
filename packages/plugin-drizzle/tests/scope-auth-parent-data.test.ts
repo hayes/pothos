@@ -316,8 +316,27 @@ const BothScopedImpl = builder.drizzleObject('users', {
   }),
 });
 
+// The type's reload holds only these columns.
+const NamedUser = builder.drizzleObject('users', {
+  variant: 'NamedUser',
+  select: { columns: { id: true, username: true } },
+  fields: (t) => ({
+    lastName: t.exposeString('lastName', { nullable: true }),
+    // Every column but `lastName`, which the type's reload doesn't hold.
+    firstName: t.string({
+      nullable: true,
+      select: { columns: { lastName: false } },
+      resolve: (user) => user.firstName,
+    }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
+    partialNamed: t.field({
+      type: NamedUser,
+      resolve: () => ({ id: 1 }) as never,
+    }),
     granting: t.field({
       type: GrantingImpl,
       nullable: true,
@@ -719,6 +738,32 @@ describe('authScopes see the parent data their types promise', () => {
     expect(result.errors?.map((error) => error.message)).toEqual([
       'Type-level selections of ScopedIface and ScopedDraftsIface conflict on relation "posts", so ScopedIface\'s scope checks can\'t run on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
     ]);
+  });
+
+  it("an exposed column the type's reload doesn't hold is loaded for its field", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ partialNamed { lastName } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ partialNamed: { lastName: 'Reichel' } });
+    // The type's select, then the field's own reload.
+    expect(drizzleLogs).toHaveLength(2);
+  });
+
+  it("a field's exclusion-only select is loaded, not read from the type's reload", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ partialNamed { firstName } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ partialNamed: { firstName: 'Mason' } });
+    // The type's select, then the field's own reload.
+    expect(drizzleLogs).toHaveLength(2);
   });
 
   it('a row without the columns an exclusion-only select keeps is reloaded', async () => {
