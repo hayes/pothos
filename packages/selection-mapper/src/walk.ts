@@ -654,7 +654,9 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
  * walk, one made as an interface of `type` that defines the field the same way.
  *
  * The first covers the plain and expanding walks reaching one field node as one type, and two
- * nodes of one shape. The second covers a field the document names on the model interface (`...
+ * nodes of one shape. A node that takes another's invocation is never handed to a select
+ * function: the position (`position.node`) and the selected-field lookup are the first node's,
+ * which has the same alias, arguments, directives and selection set. The second covers a field the document names on the model interface (`...
  * on Node { ... on UserI { posts } }` beneath `UserI`), which the expanding walk reaches on each
  * implementation: the plain invocation already plans it for every row of the interface, with the
  * same definition, arguments and selection set, so the implementations differ only in the type
