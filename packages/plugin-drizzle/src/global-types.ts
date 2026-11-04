@@ -2,6 +2,7 @@ import type {
   FieldKind,
   FieldMap,
   FieldNullability,
+  GenericFieldRef,
   InputFieldMap,
   InterfaceParam,
   MaybeAsyncSelection,
@@ -128,7 +129,9 @@ declare global {
       >(
         type: Type,
         fieldName: string,
-        field: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldRef<Types>,
+        field: (
+          t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>,
+        ) => GenericFieldRef<unknown>,
       ) => void;
 
       drizzleInterfaceField: <
@@ -148,7 +151,9 @@ declare global {
       >(
         type: Type,
         fieldName: string,
-        field: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldRef<Types>,
+        field: (
+          t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>,
+        ) => GenericFieldRef<unknown>,
       ) => void;
 
       drizzleObjectFields: <
@@ -227,7 +232,8 @@ declare global {
           Types['DrizzleRelations'][Table]
         > = {},
       >(
-        type: Table | DrizzleRef<Types, Table>,
+        // biome-ignore lint/suspicious/noExplicitAny: a ref from before `withAuth` replaced the context
+        type: Table | DrizzleRef<any, Table>,
         // The concrete query intersection contextually types callbacks while Selection retains literals.
         options: Selection &
           DBQueryConfig<'many', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]> &
@@ -318,13 +324,9 @@ declare global {
             Nullable extends boolean,
             ResolveReturnShape,
             Args extends InputFieldMap = {},
-            Shape = Type extends DrizzleRef<
-              // biome-ignore lint/suspicious/noExplicitAny: this is fine
-              any,
-              keyof Types['DrizzleRelations'],
-              infer S
-            >
-              ? S
+            // biome-ignore lint/suspicious/noExplicitAny: this is fine
+            Shape = Type extends DrizzleRef<any, keyof Types['DrizzleRelations']>
+              ? Type['$inferType']
               :
                   | BuildQueryResult<
                       Types['DrizzleRelations'],
@@ -479,6 +481,13 @@ declare global {
     }
 
     export interface ConnectionShapeHelper<Types extends SchemaTypes, T, Nullable> {}
+
+    export interface ScopeAuthFieldAuthScopes<
+      Types extends SchemaTypes,
+      Parent,
+      Args extends {} = {},
+    > {}
+    export interface ScopeAuthContextForAuth<Types extends SchemaTypes, Scopes extends {}> {}
 
     export interface FieldWithInputBaseOptions<
       Types extends SchemaTypes,
