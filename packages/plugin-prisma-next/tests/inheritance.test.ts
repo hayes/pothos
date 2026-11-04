@@ -1481,30 +1481,49 @@ describe('a relation targeting a variant model with a table of its own', () => {
     });
   });
 
+  function taskBuilder() {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    builder.queryType({
+      fields: (t) => ({
+        notes: t.prismaField({
+          type: ['Note'],
+          resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
+        }),
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+      }),
+    });
+    return { builder, task };
+  }
+
+  it("reports a field's select returning copies of the rows it loaded", async () => {
+    const { builder, task } = taskBuilder();
+    builder.prismaObject('Note', {
+      fields: (t) => ({
+        task: t.field({
+          type: task,
+          nullable: true,
+          select: { feature: true },
+          resolve: (note) => note.feature && { ...note.feature },
+        }),
+      }),
+    });
+    builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
+    const result = await run(builder.toSchema(), '{ notes { task { title } } }');
+    expect(result.errors?.[0]?.message).toMatch(
+      /A field with its own select must return the rows it loaded, not copies of them\.$/,
+    );
+  });
+
   // What a relation's rows lose depends on the variant it targets, not only on the returned type.
   describe('rows of relations targeting different variants returned as one interface', () => {
-    function taskBuilder() {
-      const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-        plugins: [prismaNextPlugin],
-        prismaNext: { client: db.client },
-      });
-      const task = builder.prismaInterface('Task', {
-        fields: (t) => ({ title: t.exposeString('title') }),
-      });
-      builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
-      builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
-      builder.queryType({
-        fields: (t) => ({
-          notes: t.prismaField({
-            type: ['Note'],
-            resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
-          }),
-          users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
-        }),
-      });
-      return { builder, task };
-    }
-
     it("completes each field's select rows after another variant's", async () => {
       const { builder, task } = taskBuilder();
       builder.prismaObject('Note', {
