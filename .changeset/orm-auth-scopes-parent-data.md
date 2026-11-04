@@ -3,4 +3,4 @@
 '@pothos/plugin-drizzle': patch
 ---
 
-For rows the plugin didn't load, a field's `select` and its type's `select`/`include` data are now loaded before `authScopes` run.
+When scope-auth is installed, for rows the plugin didn't load, the type's `select`/`include` data (and that of the interfaces it implements) is now loaded before `authScopes` run. A field's own `select` is still loaded after them, for its resolver.

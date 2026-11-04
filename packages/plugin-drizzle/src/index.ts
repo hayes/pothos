@@ -9,11 +9,13 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, setFieldMapping } from '@pothos/selection-mapper';
-import type { TableRelationalConfig } from 'drizzle-orm';
-import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
+import { findLoaderMapping, setFieldMapping } from '@pothos/selection-mapper';
+import { getColumns, type Table, type TableRelationalConfig } from 'drizzle-orm';
+import type { GraphQLFieldResolver, GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import type { PathInfo } from './types.js';
+import { type DrizzleNode, drizzleAdapter } from './utils/adapter.js';
+import { getSchemaConfig } from './utils/config.js';
 
 export { drizzleConnectionHelpers } from './connection-helpers.js';
 export { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
@@ -32,6 +34,8 @@ const pluginName = 'drizzle';
 export default pluginName;
 
 export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  private typeNodes = new WeakMap<GraphQLObjectType, Map<string | undefined, DrizzleNode>>();
+
   override onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
     if (typeConfig.kind !== 'Object' && typeConfig.kind !== 'Interface') {
       return typeConfig;
@@ -162,9 +166,11 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
   }
 
   /**
-   * Core runs this wrapper outside every plugin's `wrapResolve`, so a parent missing what the
-   * type's `select` or the field's `select` loads is reloaded here, before plugins listed earlier,
-   * such as scope-auth, read it. A row that has it passes through untouched.
+   * Core runs this wrapper outside every plugin's `wrapResolve`, so a parent missing what its
+   * type's `select` loads is reloaded here, before plugins listed earlier, such as scope-auth, read
+   * it. Only the type-level selections are loaded, never the field's own `select`, which
+   * `wrapResolve` loads for the field's resolver as it always has. A row that has them passes
+   * through untouched.
    */
   override wrapArgMappers(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
@@ -174,49 +180,14 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       return resolver;
     }
 
-    const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
-    const modelLoader = parentConfig.extensions?.pothosDrizzleLoader as
-      | ReturnType<typeof ModelLoader.forModel>
-      | undefined;
+    const reload = this.typeReload(fieldConfig);
 
-    if (!modelLoader) {
+    if (!reload) {
       return resolver;
     }
 
-    // A field an interface declares is checked against the interface's type-level selection: a
-    // query that reaches the implementation only through the interface doesn't plan the
-    // implementation's own.
-    const declaringConfig = fieldConfig.declaringType
-      ? this.buildCache.getTypeConfig(fieldConfig.declaringType)
-      : parentConfig;
-    // Relation fields can't declare a `select`, so none is read from them here.
-    const ownSelect =
-      fieldConfig.kind === 'DrizzleObject'
-        ? (fieldConfig.pothosOptions as { select?: unknown }).select
-        : undefined;
-    const required = [
-      ...selectedKeys(declaringConfig.extensions?.pothosDrizzleSelect),
-      ...(typeof ownSelect === 'object' ? selectedKeys(ownSelect) : []),
-    ];
-    // scope-auth also runs the implementing type's checks on a field an interface declares. Its
-    // type-level selection is only checked on a row no plan loaded, so a planned query through
-    // the interface keeps its query count.
-    const implementationKeys =
-      declaringConfig === parentConfig
-        ? []
-        : selectedKeys(parentConfig.extensions?.pothosDrizzleSelect).filter(
-            (key) => !required.includes(key),
-          );
-    // A function `select` only shows its keys when it runs, so the plan's mapping is asked instead.
-    const parentTypes =
-      typeof ownSelect === 'function' || implementationKeys.length
-        ? this.drizzleParentTypes(parentConfig, fieldConfig)
-        : null;
-    const checkMapping = typeof ownSelect === 'function';
-
-    if (!required.length && !parentTypes) {
-      return resolver;
-    }
+    const { modelLoader, required, implementationKeys, parentTypes, declaringType } = reload;
+    let root: DrizzleNode | undefined;
 
     return (parent, args, context, info) => {
       const row = parent as Record<string, unknown>;
@@ -229,14 +200,10 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         }
       }
 
-      if (!missing && checkMapping && !findMapping(context, info, parent, parentTypes!)) {
-        missing = true;
-      }
-
       if (!missing) {
         for (const key of implementationKeys) {
           if (row[key] === undefined) {
-            missing = !findMapping(context, info, parent, parentTypes!);
+            missing = !findLoaderMapping(context, info, parent, parentTypes);
             break;
           }
         }
@@ -246,15 +213,11 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         return resolver(parent, args, context, info);
       }
 
-      return modelLoader(context)
-        .loadSelection(info, row)
-        .then((result) => {
-          if (result) {
-            reloadedRows.set(info, result);
-          }
+      root ??= this.typeNode(info.parentType, declaringType);
 
-          return resolver(result, args, context, info);
-        });
+      return modelLoader(context)
+        .loadTypeSelection(root, row)
+        .then((loaded) => resolver(loaded, args, context, info));
     };
   }
 
@@ -285,7 +248,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     }
 
     return (parent, args, context, info) => {
-      const mapping = findMapping(context, info, parent, parentTypes);
+      const mapping = findLoaderMapping(context, info, parent, parentTypes);
 
       if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
         // Recorded under the field's own parent type as well, so its resolver finds the pathInfo
@@ -296,17 +259,119 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         return resolver(parent, args, context, info);
       }
 
-      // `wrapArgMappers` already reloaded this row with the field's selection. The loader records
-      // the field's mapping against it when the plan has one, which a select that returns nothing
-      // doesn't.
-      if (reloadedRows.get(info) === parent) {
-        return resolver(parent, args, context, info);
-      }
-
       return modelLoader(context)
         .loadSelection(info, parent as object)
         .then((result) => resolver(result, args, context, info));
     };
+  }
+
+  /**
+   * What `wrapArgMappers` checks a field's parent for: null when scope-auth isn't installed or the
+   * field's type checks read no type-level selection.
+   */
+  private typeReload(fieldConfig: PothosOutputFieldConfig<Types>) {
+    const plugins: readonly string[] | undefined = this.builder.options.plugins;
+    const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
+    const modelLoader = parentConfig.extensions?.pothosDrizzleLoader as
+      | ReturnType<typeof ModelLoader.forModel>
+      | undefined;
+
+    if (!plugins?.includes('scopeAuth') || !modelLoader) {
+      return null;
+    }
+
+    // A field an interface declares is checked against the interface's type-level selection: a
+    // query that reaches the implementation only through the interface doesn't plan the
+    // implementation's own.
+    const declaringConfig = fieldConfig.declaringType
+      ? this.buildCache.getTypeConfig(fieldConfig.declaringType)
+      : parentConfig;
+    const required = typeLevelKeys(declaringConfig);
+    // scope-auth also runs the implementing type's authScopes on a field an interface declares.
+    // Its type-level selection is only checked on a row no plan loaded, so a planned query through
+    // the interface keeps its query count.
+    const implementationKeys =
+      declaringConfig === parentConfig
+        ? []
+        : typeLevelKeys(parentConfig).filter((key) => !required.includes(key));
+
+    if (!required.length && !implementationKeys.length) {
+      return null;
+    }
+
+    return {
+      modelLoader,
+      required,
+      implementationKeys,
+      parentTypes: this.drizzleParentTypes(parentConfig, fieldConfig),
+      declaringType: fieldConfig.declaringType,
+    };
+  }
+
+  /**
+   * The node a row of `type` is reloaded with for a field `declaringType` declares (none for the
+   * type's own fields), built once per pair. Fields whose nodes agree share one, so each row is
+   * reloaded once.
+   */
+  private typeNode(type: GraphQLObjectType, declaringType: string | undefined) {
+    let nodes = this.typeNodes.get(type);
+
+    if (!nodes) {
+      const { root, skipped } = this.typeLevelNode(type, undefined);
+
+      nodes = new Map([[undefined, root]]);
+
+      for (const iface of type.getInterfaces()) {
+        if (!skipped.has(iface.name)) {
+          nodes.set(iface.name, root);
+        }
+      }
+
+      this.typeNodes.set(type, nodes);
+    }
+
+    let node = nodes.get(declaringType);
+
+    if (!node) {
+      node = this.typeLevelNode(type, declaringType).root;
+      nodes.set(declaringType, node);
+    }
+
+    return node;
+  }
+
+  /**
+   * The type-level selections scope-auth's checks on a field of `type` read: the type's, the one
+   * of the interface that declares the field, and those of the other drizzle interfaces `type`
+   * implements, less any that conflicts with them (`skipped`), which their rows can't hold at once.
+   */
+  private typeLevelNode(type: GraphQLObjectType, declaringType: string | undefined) {
+    const adapter = drizzleAdapter(getSchemaConfig(this.builder));
+    const root = adapter.createNode(adapter.modelFor(type)!);
+    const interfaces = type.getInterfaces().filter((iface) => adapter.modelFor(iface));
+    const skipped = new Set<string>();
+
+    for (const required of [type, ...interfaces.filter(({ name }) => name === declaringType)]) {
+      const selection = adapter.typeSelection(required);
+
+      if (selection) {
+        adapter.mergeQuery(root, selection);
+      }
+    }
+
+    for (const iface of interfaces) {
+      const selection = iface.name === declaringType ? undefined : adapter.typeSelection(iface);
+
+      if (selection) {
+        if (adapter.canMergeQuery(root, selection)) {
+          adapter.mergeQuery(root, selection);
+        } else {
+          skipped.add(iface.name);
+        }
+      }
+    }
+
+    return { root, skipped };
   }
 
   /** The field's parent type and the drizzle interfaces it implements. */
@@ -336,55 +401,42 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
   }
 }
 
-/** The row `wrapArgMappers` reloaded for a field, keyed by the field's resolve info. */
-const reloadedRows = new WeakMap<GraphQLResolveInfo, object>();
-
 /**
- * Asked of the row: a mapping recorded for this row wins over the plan's, which answers for the
- * rows the planned query loaded.
+ * The top-level keys a type's `select` (`columns`, `with`, `extras`) puts on its rows. A `columns`
+ * that only excludes selects every other column of the table.
  */
-function findMapping(
-  context: object,
-  info: GraphQLResolveInfo,
-  parent: unknown,
-  parentTypes: Set<string>,
-) {
-  const mapping = getLoaderMapping(context, info.path, info.parentType.name, parent);
+function typeLevelKeys(typeConfig: PothosTypeConfig): string[] {
+  const { pothosDrizzleSelect: selection, pothosDrizzleTable } = typeConfig.extensions ?? {};
 
-  if (mapping) {
-    return mapping;
-  }
-
-  for (const parentType of parentTypes) {
-    const found = getLoaderMapping(context, info.path, parentType, parent);
-    if (found) {
-      return found;
-    }
-  }
-
-  return null;
-}
-
-/** The top-level keys a drizzle selection (`columns`, `with`, `extras`) puts on the row. */
-function selectedKeys(selection: unknown): string[] {
   if (!selection || typeof selection !== 'object') {
     return [];
   }
 
   const { columns, with: relations, extras } = selection as Record<string, unknown>;
-  const keys: string[] = [];
+  const keys = [...truthyKeys(relations), ...truthyKeys(extras)];
+  const selected = truthyKeys(columns);
 
-  for (const part of [columns, relations, extras]) {
-    if (part && typeof part === 'object') {
-      for (const key of Object.keys(part)) {
-        if ((part as Record<string, unknown>)[key]) {
-          keys.push(key);
-        }
+  if (selected.length > 0) {
+    keys.push(...selected);
+  } else if (columns && Object.values(columns).some((value) => value === false)) {
+    const { table } = pothosDrizzleTable as TableRelationalConfig;
+
+    for (const key of Object.keys(getColumns(table as Table))) {
+      if ((columns as Record<string, unknown>)[key] !== false) {
+        keys.push(key);
       }
     }
   }
 
   return keys;
+}
+
+function truthyKeys(part: unknown): string[] {
+  if (!part || typeof part !== 'object') {
+    return [];
+  }
+
+  return Object.keys(part).filter((key) => (part as Record<string, unknown>)[key]);
 }
 
 /** A falsy selection means the field selects nothing from the parent row. */

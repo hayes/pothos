@@ -14,12 +14,12 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, setRowMappings } from '@pothos/selection-mapper';
-import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
+import { findLoaderMapping, setRowMappings } from '@pothos/selection-mapper';
+import type { GraphQLFieldResolver, GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
 import type { IncludeMap, PrismaModelTypes } from './types.js';
-import { INCLUDE_ALL, type PrismaPlan } from './util/adapter.js';
+import { INCLUDE_ALL, type PrismaNode, type PrismaPlan, prismaAdapter } from './util/adapter.js';
 import { formatPrismaCursor, parsePrismaCursor } from './util/cursors.js';
 import { getModel, getRefFromModel } from './util/datamodel.js';
 import { type FallbackPlanRecipe, fallbackQueryFromInfo, queryFromInfo } from './util/map-query.js';
@@ -53,6 +53,8 @@ export const ObjectFieldBuilder = InternalPrismaObjectFieldBuilder as new <
 ) => PothosSchemaTypes.PrismaObjectFieldBuilder<Types, Model, Shape>;
 
 export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  private typeNodes = new WeakMap<GraphQLObjectType, Map<string | undefined, PrismaNode>>();
+
   constructor(cache: BuildCache<Types>) {
     super(cache, pluginName);
   }
@@ -159,9 +161,11 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
   }
 
   /**
-   * Core runs this wrapper outside every plugin's `wrapResolve`, so a parent missing what the
-   * type's `select`/`include` or the field's `select` loads is reloaded here, before plugins
-   * listed earlier, such as scope-auth, read it. A row that has it passes through untouched.
+   * Core runs this wrapper outside every plugin's `wrapResolve`, so a parent missing what its
+   * type's `select`/`include` loads is reloaded here, before plugins listed earlier, such as
+   * scope-auth, read it. Only the type-level selections are loaded, never the field's own `select`,
+   * which `wrapResolve` loads for the field's resolver as it always has. A row that has them passes
+   * through untouched.
    */
   override wrapArgMappers(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
@@ -171,47 +175,14 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       return resolver;
     }
 
-    const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
-    const loaderCache = parentConfig.extensions?.pothosPrismaLoader as
-      | ((context: object) => ModelLoader)
-      | undefined;
+    const reload = this.typeReload(fieldConfig);
 
-    if (!loaderCache) {
+    if (!reload) {
       return resolver;
     }
 
-    // A field an interface declares is checked against the interface's type-level selection: a
-    // query that reaches the implementation only through the interface doesn't plan the
-    // implementation's own.
-    const declaringConfig = fieldConfig.declaringType
-      ? this.buildCache.getTypeConfig(fieldConfig.declaringType)
-      : parentConfig;
-    // Relation fields, the only ones with a fallback, can't declare a `select`.
-    const ownSelect =
-      fieldConfig.kind === 'PrismaObject'
-        ? (fieldConfig.pothosOptions as { select?: unknown }).select
-        : undefined;
-    const required = [
-      ...typeLevelKeys(declaringConfig),
-      ...(typeof ownSelect === 'object' ? selectedKeys(ownSelect) : []),
-    ];
-    // scope-auth also runs the implementing type's checks on a field an interface declares. Its
-    // type-level selection is only checked on a row no plan loaded, so a planned query through
-    // the interface keeps its query count.
-    const implementationKeys =
-      declaringConfig === parentConfig
-        ? []
-        : typeLevelKeys(parentConfig).filter((key) => !required.includes(key));
-    // A function `select` only shows its keys when it runs, so the plan's mapping is asked instead.
-    const parentTypes =
-      typeof ownSelect === 'function' || implementationKeys.length
-        ? this.prismaParentTypes(parentConfig, fieldConfig)
-        : null;
-    const checkMapping = typeof ownSelect === 'function';
-
-    if (!required.length && !parentTypes) {
-      return resolver;
-    }
+    const { loaderCache, required, implementationKeys, parentTypes, declaringType } = reload;
+    let root: PrismaNode | undefined;
 
     return (parent, args, context, info) => {
       const row = parent as Record<string, unknown>;
@@ -224,14 +195,10 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         }
       }
 
-      if (!missing && checkMapping && !findMapping(context, info, parent, parentTypes!)) {
-        missing = true;
-      }
-
       if (!missing) {
         for (const key of implementationKeys) {
           if (row[key] === undefined) {
-            missing = !findMapping(context, info, parent, parentTypes!);
+            missing = !findLoaderMapping(context, info, parent, parentTypes);
             break;
           }
         }
@@ -241,15 +208,11 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         return resolver(parent, args, context, info);
       }
 
-      return loaderCache(context)
-        .loadSelection(info, row)
-        .then((result) => {
-          if (result) {
-            reloadedRows.set(info, result);
-          }
+      root ??= this.typeNode(info.parentType, declaringType);
 
-          return resolver(result, args, context, info);
-        });
+      return loaderCache(context)
+        .loadTypeSelection(root, row)
+        .then((loaded) => resolver(loaded, args, context, info));
     };
   }
 
@@ -297,19 +260,13 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     const parentTypes = this.prismaParentTypes(parentConfig, fieldConfig);
 
     return (parent, args, context, info) => {
-      const mapping = findMapping(context, info, parent, parentTypes);
+      const mapping = findLoaderMapping(context, info, parent, parentTypes);
 
       if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
         // Against the row it resolves with: a sibling row of the same list may have been loaded
         // by another plan, and must keep answering from that one.
         setRowMappings(context, info, mapping.nested);
 
-        return resolver(parent, args, context, info);
-      }
-
-      // `wrapArgMappers` already reloaded this row with the field's selection. The reload records
-      // the mappings beneath the field but not the field's own, so the lookup above misses it.
-      if (reloadedRows.get(info) === parent) {
         return resolver(parent, args, context, info);
       }
 
@@ -333,6 +290,85 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         .loadSelection(info, parent as object)
         .then((result) => resolver(result, args, context, info));
     };
+  }
+
+  /**
+   * What `wrapArgMappers` checks a field's parent for: null when scope-auth isn't installed, the
+   * field's type checks read no type-level selection, or the type opted out of fallback queries.
+   */
+  private typeReload(fieldConfig: PothosOutputFieldConfig<Types>) {
+    const plugins: readonly string[] | undefined = this.builder.options.plugins;
+    const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
+    const loaderCache = parentConfig.extensions?.pothosPrismaLoader as
+      | ((context: object) => ModelLoader)
+      | undefined;
+
+    if (
+      !plugins?.includes('scopeAuth') ||
+      !loaderCache ||
+      parentConfig.extensions?.pothosPrismaFallbackDisabled
+    ) {
+      return null;
+    }
+
+    // A field an interface declares is checked against the interface's type-level selection: a
+    // query that reaches the implementation only through the interface doesn't plan the
+    // implementation's own.
+    const declaringConfig = fieldConfig.declaringType
+      ? this.buildCache.getTypeConfig(fieldConfig.declaringType)
+      : parentConfig;
+    const required = typeLevelKeys(declaringConfig);
+    // scope-auth also runs the implementing type's checks on a field an interface declares. Its
+    // type-level selection is only checked on a row no plan loaded, so a planned query through
+    // the interface keeps its query count.
+    const implementationKeys =
+      declaringConfig === parentConfig
+        ? []
+        : typeLevelKeys(parentConfig).filter((key) => !required.includes(key));
+
+    if (!required.length && !implementationKeys.length) {
+      return null;
+    }
+
+    return {
+      loaderCache,
+      required,
+      implementationKeys,
+      parentTypes: this.prismaParentTypes(parentConfig, fieldConfig),
+      declaringType: fieldConfig.declaringType,
+    };
+  }
+
+  /**
+   * The node a row of `type` is reloaded with for a field `declaringType` declares (none for the
+   * type's own fields), built once per pair. Fields whose nodes agree share one, so each row is
+   * reloaded once.
+   */
+  private typeNode(type: GraphQLObjectType, declaringType: string | undefined) {
+    let nodes = this.typeNodes.get(type);
+
+    if (!nodes) {
+      const { root, skipped } = typeLevelNode(type, undefined);
+
+      nodes = new Map([[undefined, root]]);
+
+      for (const iface of type.getInterfaces()) {
+        if (!skipped.has(iface.name)) {
+          nodes.set(iface.name, root);
+        }
+      }
+
+      this.typeNodes.set(type, nodes);
+    }
+
+    let node = nodes.get(declaringType);
+
+    if (!node) {
+      node = typeLevelNode(type, declaringType).root;
+      nodes.set(declaringType, node);
+    }
+
+    return node;
   }
 
   /** The field's parent type and the prisma interfaces it implements. */
@@ -362,33 +398,37 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
   }
 }
 
-/** The row `wrapArgMappers` reloaded for a field, keyed by the field's resolve info. */
-const reloadedRows = new WeakMap<GraphQLResolveInfo, object>();
-
 /**
- * Asked of the row: a mapping recorded for this row wins over the plan's, which answers for the
- * rows the planned query loaded.
+ * The type-level selections scope-auth's checks on a field of `type` read: the type's, the one of
+ * the interface that declares the field, and those of the other prisma interfaces `type`
+ * implements, less any that conflicts with them (`skipped`), which their rows can't hold at once.
  */
-function findMapping(
-  context: object,
-  info: GraphQLResolveInfo,
-  parent: unknown,
-  parentTypes: Set<string>,
-) {
-  const mapping = getLoaderMapping(context, info.path, info.parentType.name, parent);
+function typeLevelNode(type: GraphQLObjectType, declaringType: string | undefined) {
+  const root = prismaAdapter.createNode(prismaAdapter.modelFor(type)!);
+  const interfaces = type.getInterfaces().filter((iface) => prismaAdapter.modelFor(iface));
+  const skipped = new Set<string>();
 
-  if (mapping) {
-    return mapping;
-  }
+  for (const required of [type, ...interfaces.filter(({ name }) => name === declaringType)]) {
+    const selection = prismaAdapter.typeSelection(required);
 
-  for (const parentType of parentTypes) {
-    const found = getLoaderMapping(context, info.path, parentType, parent);
-    if (found) {
-      return found;
+    if (selection) {
+      prismaAdapter.mergeQuery(root, selection);
     }
   }
 
-  return null;
+  for (const iface of interfaces) {
+    const selection = iface.name === declaringType ? undefined : prismaAdapter.typeSelection(iface);
+
+    if (selection) {
+      if (prismaAdapter.canMergeQuery(root, selection)) {
+        prismaAdapter.mergeQuery(root, selection);
+      } else {
+        skipped.add(iface.name);
+      }
+    }
+  }
+
+  return { root, skipped };
 }
 
 /** The top-level keys a type's `select` or `include` puts on its rows. */

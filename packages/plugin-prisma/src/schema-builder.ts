@@ -73,6 +73,8 @@ function definePrismaType(
       pothosPrismaFieldMap: fieldMap,
       pothosPrismaSelect: select && { ...idSelection, ...select },
       pothosPrismaLoader: ModelLoader.forRef(ref, type, findUnique, builder),
+      // `findUnique: null` opts the type out of fallback queries, so its rows are never reloaded.
+      pothosPrismaFallbackDisabled: findUnique === null,
     },
     name,
     fields: fields

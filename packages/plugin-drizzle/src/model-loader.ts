@@ -47,6 +47,9 @@ export class ModelLoader {
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
+  // The row each `loadTypeSelection` resolves to, per row and node.
+  private typeRows = new WeakMap<object, Map<DrizzleNode, Promise<Record<string, unknown>>>>();
+
   config: PothosDrizzleSchemaConfig;
   adapter: DrizzleAdapter;
   table: TableRelationalConfig;
@@ -183,7 +186,31 @@ export class ModelLoader {
     });
   }
 
-  stageQuery(played: DrizzlePlayedPlan, model: object) {
+  /**
+   * `model` with what it is missing of `root`, a node of type-level selections, loaded onto it:
+   * values the row already has win over the loaded ones. Batched with the other loads of the
+   * tick, and the same row for every field that asks with the same node, so a check cached per
+   * parent, such as scope-auth's type checks, runs once.
+   */
+  loadTypeSelection(root: DrizzleNode, model: object): Promise<Record<string, unknown>> {
+    let loads = this.typeRows.get(model);
+
+    if (!loads) {
+      loads = new Map();
+      this.typeRows.set(model, loads);
+    }
+
+    let load = loads.get(root);
+
+    if (!load) {
+      load = this.stageQuery({ root }, model).then((loaded) => fillRow(model, loaded));
+      loads.set(root, load);
+    }
+
+    return load;
+  }
+
+  stageQuery(played: Pick<DrizzlePlayedPlan, 'root'>, model: object) {
     for (const entry of this.staged) {
       // Node to node: the batch takes the field's play whole, never through a query.
       if (this.adapter.canMergeNode(entry.root, played.root)) {
@@ -200,7 +227,7 @@ export class ModelLoader {
     return this.initLoad(played, model);
   }
 
-  initLoad(played: DrizzlePlayedPlan, model: object) {
+  initLoad(played: Pick<DrizzlePlayedPlan, 'root'>, model: object) {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
     const root = this.adapter.createNode(played.root.model);
 
@@ -282,6 +309,19 @@ export class ModelLoader {
 
     return promise.promise;
   }
+}
+
+/** `loaded` with the values `row` defines over it. */
+function fillRow(row: object, loaded: Record<string, unknown> | null) {
+  const filled: Record<string, unknown> = { ...loaded };
+
+  for (const [key, value] of Object.entries(row)) {
+    if (value !== undefined) {
+      filled[key] = value;
+    }
+  }
+
+  return filled;
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {

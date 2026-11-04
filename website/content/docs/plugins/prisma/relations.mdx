@@ -109,6 +109,12 @@ builder.prismaObject('User', {
 A type in include mode can also opt out of fallback queries with `findUnique: null`. A field that
 would need one will throw `Missing findUnique for User` instead of querying.
 
+When `ScopeAuthPlugin` is installed, a parent row the plugin didn't load (one returned from a
+plain `t.field`, say) is reloaded with what it is missing of its type's `select`/`include` before
+`authScopes` run, so type and field checks see the data the type promises. A field's own `select`
+is loaded after `authScopes` run, so the parent a field's `authScopes` receive can be missing that
+data. A type that opted out of fallback queries is never reloaded.
+
 ### Filters, Sorting, and arguments
 
 So far we have been describing very simple queries without any arguments, filtering, or sorting. For

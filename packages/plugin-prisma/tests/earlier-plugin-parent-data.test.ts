@@ -14,26 +14,34 @@ type PrismaTypes = PrismaTypesFromClient<typeof prisma>;
 type Recorder = (parent: never) => void;
 
 // Stands in for scope-auth, which can't be a dev dependency here (scope-auth depends on this
-// package): it calls the field's and the parent type's `recordParent` with the parent its
-// wrapper receives, as scope-auth calls `authScopes`.
-const pluginName = 'recordParentTest' as keyof PothosSchemaTypes.Plugins<SchemaTypes>;
+// package), and is registered under its name, which the prisma plugin checks for: it calls the field's, the parent type's and its interfaces' `recordParent` with the
+// parent its wrapper receives, as scope-auth calls `authScopes`. A recorder that throws denies.
+const pluginName = 'scopeAuth' as keyof PothosSchemaTypes.Plugins<SchemaTypes>;
 
 class RecordParentPlugin extends BasePlugin<SchemaTypes> {
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, object, object>,
     fieldConfig: PothosOutputFieldConfig<SchemaTypes>,
   ): GraphQLFieldResolver<unknown, object, object> {
-    const typeRecorder = this.buildCache.getTypeConfig(fieldConfig.parentType).extensions
-      ?.recordParent as Recorder | undefined;
-    const fieldRecorder = fieldConfig.extensions?.recordParent as Recorder | undefined;
+    const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
+    const recorders = [
+      parentConfig.extensions?.recordParent,
+      ...(parentConfig.kind === 'Object' || parentConfig.kind === 'Interface'
+        ? parentConfig.interfaces.map(
+            (iface) => this.buildCache.getTypeConfig(iface).extensions?.recordParent,
+          )
+        : []),
+      fieldConfig.extensions?.recordParent,
+    ].filter(Boolean) as Recorder[];
 
-    if (!typeRecorder && !fieldRecorder) {
+    if (recorders.length === 0) {
       return resolver;
     }
 
     return (parent, args, context, info) => {
-      typeRecorder?.(parent as never);
-      fieldRecorder?.(parent as never);
+      for (const recorder of recorders) {
+        recorder(parent as never);
+      }
 
       return resolver(parent, args, context, info);
     };
@@ -53,11 +61,24 @@ interface Row {
   profile?: { bio: string | null } | null;
 }
 
-const seen: { type: unknown[]; field: unknown[]; typeInclude: unknown[]; impl: unknown[] } = {
+const seen: {
+  type: unknown[];
+  field: unknown[];
+  typeInclude: unknown[];
+  impl: unknown[];
+  iface: unknown[];
+  customProfile: unknown[];
+  redacted: unknown[];
+  conflict: unknown[];
+} = {
   type: [],
   field: [],
   typeInclude: [],
   impl: [],
+  iface: [],
+  customProfile: [],
+  redacted: [],
+  conflict: [],
 };
 
 const recordProfile = (into: unknown[]) => (user: Row) => {
@@ -112,8 +133,140 @@ const ImplUser = builder.prismaObject('User', {
   fields: () => ({}),
 });
 
+// Stands in for a check that reads the type's posts: it allows only when they include a draft,
+// which the type's filter never loads, so it always denies.
+const PublishedAuthor = builder.prismaObject('User', {
+  variant: 'PublishedAuthor',
+  include: { posts: { where: { published: true } } },
+  extensions: {
+    recordParent: (user: { posts?: { published: boolean }[] }) => {
+      if (!user.posts?.some((post) => !post.published)) {
+        throw new Error('Not authorized');
+      }
+    },
+  },
+  fields: (t) => ({
+    // Selects the author's posts without the type's filter.
+    postCount: t.int({
+      select: () => ({ posts: true }),
+      resolve: (user) => user.posts.length,
+    }),
+  }),
+});
+
+// The interface's type-level checks run on its implementation's fields, as scope-auth runs them.
+const ProfileIface = builder.prismaInterface('User', {
+  variant: 'ProfileIface',
+  select: { profile: { select: { bio: true } } },
+  resolveType: () => 'NoProfileImpl',
+  extensions: { recordParent: recordProfile(seen.iface) },
+  fields: (t) => ({
+    profileIfaceId: t.exposeID('id'),
+  }),
+});
+
+const NoProfileImpl = builder.prismaObject('User', {
+  variant: 'NoProfileImpl',
+  // @ts-expect-error The shape lacks the interface's select, which a row built by hand can too.
+  interfaces: [ProfileIface],
+  select: { id: true },
+  fields: () => ({}),
+});
+
+// Opted out of fallback queries.
+const NoFallbackUser = builder.prismaObject('User', {
+  variant: 'NoFallbackUser',
+  findUnique: null,
+  include: { profile: true },
+  extensions: { recordParent: recordProfile(seen.typeInclude) },
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
+builder.prismaObject('Profile', {
+  fields: (t) => ({
+    bio: t.exposeString('bio', { nullable: true }),
+  }),
+});
+
+const CustomRelationUser = builder.prismaObject('User', {
+  variant: 'CustomRelationUser',
+  select: { id: true, email: true },
+  fields: (t) => ({
+    profile: t.relation('profile', {
+      nullable: true,
+      resolve: (_query, user) => {
+        seen.customProfile.push(user.id);
+
+        return null;
+      },
+    }),
+  }),
+});
+
+const RedactedUser = builder.prismaObject('User', {
+  variant: 'RedactedUser',
+  include: { profile: true },
+  extensions: { recordParent: (user: Row) => seen.redacted.push(user.email) },
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
+// The interface and its implementation filter the same relation differently.
+const DraftsIface = builder.prismaInterface('User', {
+  variant: 'DraftsIface',
+  include: { posts: { where: { published: false } } },
+  resolveType: () => 'PublishedImpl',
+  fields: (t) => ({
+    draftsIfaceId: t.exposeID('id'),
+  }),
+});
+
+const PublishedImpl = builder.prismaObject('User', {
+  variant: 'PublishedImpl',
+  interfaces: [DraftsIface],
+  include: { posts: { where: { published: true } } },
+  extensions: {
+    recordParent: (user: { posts?: { published: boolean }[] }) =>
+      seen.conflict.push(user.posts?.every((post) => post.published)),
+  },
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
+    redacted: t.field({
+      type: RedactedUser,
+      resolve: async () =>
+        ({
+          ...(await prisma.user.findUniqueOrThrow({ where: { id: 1 } })),
+          email: 'redacted',
+        }) as never,
+    }),
+    plainPublishedImpl: t.field({
+      type: PublishedImpl,
+      resolve: () => prisma.user.findUniqueOrThrow({ where: { id: 1 } }) as never,
+    }),
+    plainAuthor: t.field({
+      type: PublishedAuthor,
+      resolve: () => prisma.user.findUniqueOrThrow({ where: { id: 1 } }) as never,
+    }),
+    partialNoProfileImpl: t.field({
+      type: NoProfileImpl,
+      resolve: () => ({ id: 1 }) as never,
+    }),
+    plainNoFallback: t.field({
+      type: NoFallbackUser,
+      resolve: () => prisma.user.findUniqueOrThrow({ where: { id: 1 } }) as never,
+    }),
+    partialCustomRelation: t.field({
+      type: CustomRelationUser,
+      resolve: () => ({ id: 1 }) as never,
+    }),
     planned: t.prismaField({
       type: User,
       resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
@@ -164,6 +317,10 @@ describe('plugins listed before prisma see the parent data its types promise', (
     seen.field.length = 0;
     seen.typeInclude.length = 0;
     seen.impl.length = 0;
+    seen.iface.length = 0;
+    seen.customProfile.length = 0;
+    seen.redacted.length = 0;
+    seen.conflict.length = 0;
   });
 
   afterAll(async () => {
@@ -184,7 +341,7 @@ describe('plugins listed before prisma see the parent data its types promise', (
     expect(queries).toHaveLength(1);
   });
 
-  it("a row the plugin didn't load is reloaded with the field's select before earlier plugins run", async () => {
+  it("a field's select is loaded for its resolver, after earlier plugins run", async () => {
     const result = await execute({
       schema,
       document: gql`{ plain { id bio } }`,
@@ -193,12 +350,13 @@ describe('plugins listed before prisma see the parent data its types promise', (
 
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ plain: { id: '1', bio: user.profile?.bio ?? null } });
-    expect(seen.field).toEqual([user.profile?.bio]);
+    // The row has the type's select, so nothing is reloaded before the field's checks run.
+    expect(seen.field).toEqual(['missing']);
     // The root query and one batched reload, as before.
     expect(queries).toHaveLength(2);
   });
 
-  it('a function select is loaded before earlier plugins run, planned or not', async () => {
+  it('a function select is planned, but not loaded before earlier plugins run', async () => {
     const planned = await execute({
       schema,
       document: gql`{ planned { bioFromFunction } }`,
@@ -216,7 +374,8 @@ describe('plugins listed before prisma see the parent data its types promise', (
     });
 
     expect(plain.errors).toBeUndefined();
-    expect(seen.field).toEqual([user.profile?.bio, user.profile?.bio]);
+    expect(plain.data).toEqual({ plain: { bioFromFunction: user.profile?.bio ?? null } });
+    expect(seen.field).toEqual([user.profile?.bio, 'missing']);
     expect(queries).toHaveLength(3);
   });
 
@@ -229,7 +388,8 @@ describe('plugins listed before prisma see the parent data its types promise', (
 
     expect(result.errors).toBeUndefined();
     expect(seen.type).toEqual([user.email]);
-    expect(queries).toHaveLength(1);
+    // The type's select, then the `id` field's own reload.
+    expect(queries).toHaveLength(2);
   });
 
   it("a planned row has the type's include without a reload", async () => {
@@ -267,7 +427,8 @@ describe('plugins listed before prisma see the parent data its types promise', (
 
     expect(plain.errors).toBeUndefined();
     expect(seen.impl).toEqual([user.profile?.bio]);
-    expect(queries).toHaveLength(2);
+    // The root query, the type-level selections, then the field's own reload.
+    expect(queries).toHaveLength(3);
 
     seen.impl.length = 0;
     queries.length = 0;
@@ -294,5 +455,75 @@ describe('plugins listed before prisma see the parent data its types promise', (
     // The plan only walked the interface, so its row lacks the implementing type's select.
     expect(seen.impl).toEqual(['missing']);
     expect(queries).toHaveLength(1);
+  });
+  it("a field's select doesn't replace the type's filtered relation the type's checks read", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ plainAuthor { postCount } }`,
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({ plainAuthor: { postCount: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual(['Not authorized']);
+  });
+
+  it("an inherited field's row the plugin didn't load gets its interface's select", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ partialNoProfileImpl { profileIfaceId } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(seen.iface).toEqual([user.profile?.bio]);
+  });
+
+  it('a type that opted out of fallback queries is not reloaded', async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ plainNoFallback { email } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ plainNoFallback: { email: user.email } });
+    expect(seen.typeInclude).toEqual(['missing']);
+    expect(queries).toHaveLength(1);
+  });
+
+  it('a reload fills what the row is missing without replacing what it has', async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ redacted { email } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ redacted: { email: 'redacted' } });
+    expect(seen.redacted).toEqual(['redacted']);
+  });
+
+  it("an interface whose select conflicts with its implementation's is left out of the reload", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ plainPublishedImpl { email } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ plainPublishedImpl: { email: user.email } });
+    expect(seen.conflict).toEqual([true]);
+  });
+
+  it("a relation's own resolver still runs for a row reloaded with the type's select", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ partialCustomRelation { profile { bio } } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ partialCustomRelation: { profile: null } });
+    expect(seen.customProfile).toEqual([1]);
   });
 });
