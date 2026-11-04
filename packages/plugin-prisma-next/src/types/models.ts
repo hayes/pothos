@@ -94,8 +94,17 @@ export type ModelKey<Types extends SchemaTypes> = Types['PrismaNextContract'] ex
 /**
  * The row of a model's own fields, as the ORM client returns it, such as the rows of a relation
  * loaded with `select: { posts: true }`. A variant's `Row` also has its base's fields.
+ *
+ * TypeScript compares two instantiations of an alias by their arguments, and measures upstream's
+ * `DefaultModelRow` as not depending on its model, so one model's row would pass as any other's.
+ * The `out` annotation states the variance it can't measure: rows of different models don't
+ * match, while errors and hovers keep naming `OwnRow<Types, M>`.
  */
-export type OwnRow<Types extends SchemaTypes, M extends ModelKey<Types>> = DefaultModelRow<
+export type OwnRow<Types extends SchemaTypes, out M extends ModelKey<Types>> = {
+  [K in keyof DefaultModelRowOf<Types, M>]: DefaultModelRowOf<Types, M>[K];
+};
+
+type DefaultModelRowOf<Types extends SchemaTypes, M extends ModelKey<Types>> = DefaultModelRow<
   Types['PrismaNextContract'],
   BareModelName<M>,
   NamespaceOf<Types['PrismaNextContract'], M>
