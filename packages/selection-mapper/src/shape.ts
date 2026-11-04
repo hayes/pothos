@@ -6,6 +6,7 @@
 import { PothosValidationError } from '@pothos/core';
 import {
   type ASTNode,
+  type FieldNode,
   type GraphQLResolveInfo,
   Kind,
   print,
@@ -13,10 +14,11 @@ import {
   type SelectionSetNode,
 } from 'graphql';
 
-/** One document's shapes: the id interned for each selection's text, and each set's id. */
+/** One document's shapes: the id interned for each selection's text, and each set's and field's id. */
 interface Shapes {
   ids: Map<string, number>;
   sets: WeakMap<SelectionSetNode, number>;
+  fields: WeakMap<FieldNode, number>;
 }
 
 /**
@@ -29,18 +31,34 @@ export function selectionShape(
   info: GraphQLResolveInfo,
   selectionSet: SelectionSetNode | undefined,
 ): number {
-  if (!selectionSet) {
-    return 0;
+  return selectionSet ? shapeOfSet(shapesOf(info), selectionSet) : 0;
+}
+
+/**
+ * The shape of a field selection: its alias, name, arguments, directives and the shape of its
+ * selection set. Two field nodes with one shape select the same thing under the same response key.
+ */
+export function fieldShape(info: GraphQLResolveInfo, field: FieldNode): number {
+  const shapes = shapesOf(info);
+  let id = shapes.fields.get(field);
+
+  if (id === undefined) {
+    id = shapeOfSelection(shapes, field);
+    shapes.fields.set(field, id);
   }
 
+  return id;
+}
+
+function shapesOf(info: GraphQLResolveInfo): Shapes {
   let shapes = shapesByFragments.get(info.fragments);
 
   if (!shapes) {
-    shapes = { ids: new Map(), sets: new WeakMap() };
+    shapes = { ids: new Map(), sets: new WeakMap(), fields: new WeakMap() };
     shapesByFragments.set(info.fragments, shapes);
   }
 
-  return shapeOfSet(shapes, selectionSet);
+  return shapes;
 }
 
 function shapeOfSet(shapes: Shapes, selectionSet: SelectionSetNode): number {

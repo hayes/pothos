@@ -1193,6 +1193,8 @@ describe('fragments that expand at every level', () => {
     type Query { user: UserI, stray: UserI }
     interface Node { nid: String }
     interface Other { other: String, selected: String }
+    interface HasPosts { posts(take: Int): [PostI] }
+    interface HasAuthor { author: UserI }
     interface UserI {
       id: ID
       posts(take: Int): [PostI]
@@ -1204,12 +1206,12 @@ describe('fragments that expand at every level', () => {
     ${[1, 2, 3]
       .map(
         (n) => `
-          type U${n} implements UserI & Node {
+          type U${n} implements UserI & Node & HasPosts {
             id: ID, nid: String, first: String, second: String
             posts(take: Int): [PostI]
             drafts: [PostI]
           }
-          type P${n} implements PostI & Node { id: ID, nid: String, author: UserI }
+          type P${n} implements PostI & Node & HasAuthor { id: ID, nid: String, author: UserI }
         `,
       )
       .join('')}
@@ -1820,6 +1822,52 @@ describe('fragments that expand at every level', () => {
       // place, so they share one invocation: one call per distinct path, as without expansions.
       expect(seen.length).toBe(new Set(seen).size);
       expect(seen.sort()).toEqual(chainsOf(depth, variants, () => true));
+      expect(query).toEqual((await plan(document, { select: false })).query);
+    });
+
+    /**
+     * At every level, the relation selected on the model interface beneath `Node` and again on the
+     * non-model interface that only the implementations share, or twice under one response key.
+     */
+    function repeatedDocument(depth: number, repeat: 'onImplementations' | 'twice') {
+      const fragments: string[] = [];
+
+      for (let level = 1; level <= depth; level += 1) {
+        const next = level === depth ? 'id' : `...L${level + 1}`;
+        const [model, own, field] =
+          level % 2 === 1 ? ['UserI', 'HasPosts', 'posts'] : ['PostI', 'HasAuthor', 'author'];
+        const again =
+          repeat === 'twice'
+            ? `... on Node { ... on ${model} { ${field} { ${next} } } }`
+            : `... on ${own} { ${field} { ${next} } }`;
+
+        fragments.push(
+          `fragment L${level} on ${model} { ... on Node { ... on ${model} { ${field} { ${next} } } } ${again} }`,
+        );
+      }
+
+      return `{ user { ...L1 } } ${fragments.join(' ')}`;
+    }
+
+    it.each([
+      ['on the implementations', 'onImplementations', 6],
+      ['twice under one response key', 'twice', 8],
+    ] as const)('runs once per level for a field selected again %s', async (_, repeat, depth) => {
+      const document = repeatedDocument(depth, repeat);
+      const { seen, query } = await plan(document, { select: true });
+
+      // Each repeat has the shape of the field on the interface, at the same place, so it takes
+      // that invocation: one path per level, as the document has.
+      expect(seen).toEqual(
+        Array.from({ length: depth }, (_level, index) =>
+          [
+            'Query.user',
+            ...Array.from({ length: index + 1 }, (__, level) =>
+              level % 2 === 0 ? 'UserI.posts' : 'PostI.author',
+            ),
+          ].join('/'),
+        ),
+      );
       expect(query).toEqual((await plan(document, { select: false })).query);
     });
 

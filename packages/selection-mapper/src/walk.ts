@@ -38,7 +38,7 @@ import {
   resolveType,
 } from './matches.js';
 import type { Plan, PlayKind } from './plan.js';
-import { selectionShape } from './shape.js';
+import { fieldShape, selectionShape } from './shape.js';
 import type { NestedSelection, Position, SelectFn, WalkedType } from './types.js';
 
 /**
@@ -56,9 +56,9 @@ const IN_EXPANDING = 2;
 const IN_BOTH = IN_PLAIN | IN_EXPANDING;
 
 /**
- * One select function's invocation within a walk, which a later walk of the same field node, at
- * the same place, takes instead of invoking the select function again: its query, its mapping and
- * so the plan beneath it.
+ * One select function's invocation within a walk, which a later visit to a field of the same shape
+ * at the same place takes instead of invoking the select function again: its query, its mapping
+ * and so the plan beneath it.
  */
 interface FieldInvocation<Query> {
   type: WalkedType;
@@ -75,16 +75,23 @@ interface FieldInvocation<Query> {
 }
 
 /**
- * The invocations of one walk by field node. Local to a walk, so the invocations it holds go with
- * it.
+ * The invocations of one walk by the shape of the field node (see `fieldShape`): two nodes of one
+ * shape select the same thing under the same response key, so one invocation answers for both.
+ * Local to a walk, so the invocations it holds go with it.
  */
-type Invocations<Query> = Map<FieldNode, FieldInvocation<Query>[]>;
+type Invocations<Query> = Map<number, FieldInvocation<Query>[]>;
 
 /**
  * What defines a field, to tell an implementation's copy of an interface field from an override.
  * Pothos builds every implementation's copy of an inherited field from the interface's own field
- * options, so those agree exactly when the field was not redefined. A field built elsewhere has no
- * options, and only an identical select function says the same.
+ * options, so those agree exactly when the field was not redefined, the way plugin-prisma-next
+ * names slots and every plugin's resolver accepts an interface's mapping. A field built elsewhere
+ * has no options, and only an identical select function says the same.
+ *
+ * `Adapter.fieldSelection` is handed the walked type and may vary a selection by it. Only a select
+ * function is ever reused, and the adapters vary only a static selection by type (prisma-next's
+ * empty selection for an interface field without one), so a select function is taken to depend on
+ * the field's definition alone.
  */
 function definitionOf(field: Position['field'], selection: unknown): unknown {
   return field.extensions?.pothosOptions ?? selection;
@@ -597,7 +604,8 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   }
 
   const definition = definitionOf(field, selection);
-  const known = invocations?.get(fieldNode);
+  const shape = fieldShape(info, fieldNode);
+  const known = invocations?.get(shape);
   const reused =
     known && reusedInvocation(known, type, relative, definition, onlyIn === 'expanding');
 
@@ -634,25 +642,26 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   if (known) {
     known.push(invocation);
   } else {
-    invocations?.set(fieldNode, [invocation]);
+    invocations?.set(shape, [invocation]);
   }
 
   collectInvocation(plan, invocation, onlyIn);
 }
 
 /**
- * The invocation already made in this walk that a walk of the same field node as `type`, at
+ * The invocation already made in this walk that a visit to a field of the same shape as `type`, at
  * `relative`, takes instead of invoking again: one made as `type` itself, or, in an expanding
  * walk, one made as an interface of `type` that defines the field the same way.
  *
- * The second is the plain walk's invocation of a field the document names on the interface (`...
+ * The first covers the plain and expanding walks reaching one field node as one type, and two
+ * nodes of one shape. The second covers a field the document names on the model interface (`...
  * on Node { ... on UserI { posts } }` beneath `UserI`), which the expanding walk reaches on each
- * implementation. The plain invocation already plans the field for every row of the interface,
- * with the same select function, arguments and selection set, so the implementations differ only
- * in the type their positions name. They take the plain one's, whose positions hold the type the
- * document names, as they would beneath a shared walk; its mapping key names the interface, which
- * a resolver on an implementation finds the way it finds a plain play's. An implementation that
- * redefines the field is invoked as itself.
+ * implementation: the plain invocation already plans it for every row of the interface, with the
+ * same definition, arguments and selection set, so the implementations differ only in the type
+ * their positions name. They take the plain one's, whose positions name the interface, as they
+ * would beneath a shared walk. Its mapping is recorded under the interface's key, and a resolver
+ * on an implementation accepts a mapping recorded under an interface only for the same definition
+ * of the field. An implementation that redefines the field is invoked as itself.
  */
 function reusedInvocation<Query>(
   known: FieldInvocation<Query>[],
