@@ -1,4 +1,5 @@
 import SchemaBuilder from '@pothos/core';
+import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute } from '@pothos/test-utils';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { parse } from 'graphql';
@@ -7,9 +8,13 @@ import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } f
 
 // An implementation that redefines an interface field with other relation arguments, selected
 // beneath the interface: the interface's plan must not answer for it.
-const builder = new SchemaBuilder<{ DrizzleRelations: DrizzleRelations }>({
-  plugins: [DrizzlePlugin],
+const builder = new SchemaBuilder<{
+  DrizzleRelations: DrizzleRelations;
+  Context: { typeName: string };
+}>({
+  plugins: [ScopeAuthPlugin, DrizzlePlugin],
   drizzle: { client: () => db, getTableConfig, relations },
+  scopeAuth: { authScopes: () => ({}) },
 });
 
 const Linked = builder.interfaceRef<object>('Linked').implement({
@@ -24,7 +29,7 @@ const Post = builder.drizzleObject('posts', {
 const OverrideUser = builder.drizzleInterface('users', {
   variant: 'OverrideUser',
   select: { columns: { id: true } },
-  resolveType: (_user, ctx: { typeName: string }) => ctx.typeName,
+  resolveType: (_user, ctx) => ctx.typeName,
   fields: (t) => ({
     posts: t.relation('posts', { type: Post, query: { limit: 3, orderBy: { postId: 'asc' } } }),
   }),
