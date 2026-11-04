@@ -1,21 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Imported through a variable so tsc doesn't load scope-auth's global types, which would require
-// `scopeAuth` options in the other test files tsconfig.type.json checks.
-const scopeAuth: string = '@pothos/plugin-scope-auth';
-
 // Each test registers its own `scopeAuth` plugin, so each loads a fresh copy of core.
 async function build() {
   const { default: SchemaBuilder } = await import('@pothos/core');
   const { default: prismaNextPlugin } = await import('../src');
-  const { buildOnlyContext, sampleContract } = await import('./fixtures/helpers');
+  const { sampleContract } = await import('./fixtures/runtime');
   const builder = new SchemaBuilder<{ PrismaNextContract: typeof sampleContract }>({
-    plugins: ['scopeAuth' as never, prismaNextPlugin],
+    plugins: ['scopeAuth', prismaNextPlugin],
+    scopeAuth: { authScopes: () => ({}) },
     prismaNext: {
       client: () => {
         throw new Error('not executed');
       },
-      context: buildOnlyContext(sampleContract),
+      // A build-only context, whose codecs are never read.
+      context: { contract: sampleContract, contractCodecs: { forColumn: () => undefined } },
     },
   });
   builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
@@ -37,7 +35,7 @@ describe('@pothos/plugin-scope-auth versions', () => {
   });
 
   it('builds with the current scope-auth', async () => {
-    await import(scopeAuth);
+    await import('@pothos/plugin-scope-auth');
     const toSchema = await build();
     expect(toSchema).not.toThrow();
   });

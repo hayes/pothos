@@ -7,6 +7,7 @@
   "exclude": [
     "declarations/*.ts",
     "scope-auth.test.ts",
+    "scope-auth-version.test.ts",
     "collection-from-info-scope-auth.test.ts",
     "types/missing-plugins.test-d.ts"
   ]
