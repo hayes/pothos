@@ -158,6 +158,84 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     return undefined;
   }
 
+  /**
+   * Core runs this wrapper outside every plugin's `wrapResolve`, so a parent missing what the
+   * type's `select`/`include` or the field's `select` loads is reloaded here, before plugins
+   * listed earlier, such as scope-auth, read it. A row that has it passes through untouched.
+   */
+  override wrapArgMappers(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    if (!resolver) {
+      return resolver;
+    }
+
+    const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
+    const loaderCache = parentConfig.extensions?.pothosPrismaLoader as
+      | ((context: object) => ModelLoader)
+      | undefined;
+
+    if (!loaderCache) {
+      return resolver;
+    }
+
+    // A field an interface declares is checked against the interface's type-level selection: a
+    // query that reaches the implementation only through the interface doesn't plan the
+    // implementation's own.
+    const declaringConfig = fieldConfig.declaringType
+      ? this.buildCache.getTypeConfig(fieldConfig.declaringType)
+      : parentConfig;
+    const { pothosPrismaSelect: typeSelect, pothosPrismaInclude: typeInclude } =
+      (declaringConfig.extensions ?? {}) as { pothosPrismaSelect?: {}; pothosPrismaInclude?: {} };
+    const ownSelect =
+      fieldConfig.kind === 'PrismaObject' && !fieldConfig.extensions?.pothosPrismaFallback
+        ? (fieldConfig.pothosOptions as { select?: unknown }).select
+        : undefined;
+    const required = [
+      ...selectedKeys(typeSelect),
+      ...selectedKeys(typeInclude),
+      ...(typeof ownSelect === 'object' ? selectedKeys(ownSelect) : []),
+    ];
+    // A function `select` only shows its keys when it runs, so the plan's mapping is asked instead.
+    const parentTypes =
+      typeof ownSelect === 'function' ? this.prismaParentTypes(parentConfig, fieldConfig) : null;
+
+    if (!required.length && !parentTypes) {
+      return resolver;
+    }
+
+    return (parent, args, context, info) => {
+      const row = parent as Record<string, unknown>;
+      let missing = false;
+
+      for (const key of required) {
+        if (row[key] === undefined) {
+          missing = true;
+          break;
+        }
+      }
+
+      if (!missing && parentTypes && !findMapping(context, info, parent, parentTypes)) {
+        missing = true;
+      }
+
+      if (!missing) {
+        return resolver(parent, args, context, info);
+      }
+
+      return loaderCache(context)
+        .loadSelection(info, row)
+        .then((result) => {
+          if (result) {
+            reloadedRows.set(info, result);
+          }
+
+          return resolver(result, args, context, info);
+        });
+    };
+  }
+
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object, unknown>,
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -199,43 +277,21 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       plans: createContextCache(() => new Map<string, MaybePromise<PrismaPlan>>()),
     };
 
-    const parentTypes = new Set([fieldConfig.parentType]);
-
-    if (parentConfig.kind === 'Interface' || parentConfig.kind === 'Object') {
-      for (const iface of parentConfig.interfaces) {
-        const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
-        // A mapping recorded under the interface answers for this field only when the field is the
-        // interface's own, inherited: an implementation that redefines it (other relation
-        // arguments, say) would otherwise read what the interface's field loaded.
-        if (
-          interfaceConfig.extensions?.pothosPrismaModel &&
-          this.interfaceFieldOptions(interfaceConfig.name, fieldConfig.name) ===
-            fieldConfig.pothosOptions
-        ) {
-          parentTypes.add(interfaceConfig.name);
-        }
-      }
-    }
+    const parentTypes = this.prismaParentTypes(parentConfig, fieldConfig);
 
     return (parent, args, context, info) => {
-      // Asked of the row: a mapping recorded for this row wins over the plan's, which answers
-      // for the rows the planned query loaded.
-      let mapping = getLoaderMapping(context, info.path, info.parentType.name, parent);
-
-      if (!mapping) {
-        for (const parentType of parentTypes) {
-          mapping = getLoaderMapping(context, info.path, parentType, parent);
-          if (mapping) {
-            break;
-          }
-        }
-      }
+      const mapping = findMapping(context, info, parent, parentTypes);
 
       if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
         // Against the row it resolves with: a sibling row of the same list may have been loaded
         // by another plan, and must keep answering from that one.
         setRowMappings(context, info, mapping.nested);
 
+        return resolver(parent, args, context, info);
+      }
+
+      // `wrapArgMappers` already reloaded this row with the field's selection.
+      if (reloadedRows.get(info) === parent) {
         return resolver(parent, args, context, info);
       }
 
@@ -260,6 +316,70 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         .then((result) => resolver(result, args, context, info));
     };
   }
+
+  /** The field's parent type and the prisma interfaces it implements. */
+  private prismaParentTypes(
+    parentConfig: PothosTypeConfig,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ) {
+    const parentTypes = new Set([parentConfig.name]);
+
+    if (parentConfig.kind === 'Interface' || parentConfig.kind === 'Object') {
+      for (const iface of parentConfig.interfaces) {
+        const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
+        // A mapping recorded under the interface answers for this field only when the field is the
+        // interface's own, inherited: an implementation that redefines it (other relation
+        // arguments, say) would otherwise read what the interface's field loaded.
+        if (
+          interfaceConfig.extensions?.pothosPrismaModel &&
+          this.interfaceFieldOptions(interfaceConfig.name, fieldConfig.name) ===
+            fieldConfig.pothosOptions
+        ) {
+          parentTypes.add(interfaceConfig.name);
+        }
+      }
+    }
+
+    return parentTypes;
+  }
+}
+
+/** The row `wrapArgMappers` reloaded for a field, keyed by the field's resolve info. */
+const reloadedRows = new WeakMap<GraphQLResolveInfo, object>();
+
+/**
+ * Asked of the row: a mapping recorded for this row wins over the plan's, which answers for the
+ * rows the planned query loaded.
+ */
+function findMapping(
+  context: object,
+  info: GraphQLResolveInfo,
+  parent: unknown,
+  parentTypes: Set<string>,
+) {
+  const mapping = getLoaderMapping(context, info.path, info.parentType.name, parent);
+
+  if (mapping) {
+    return mapping;
+  }
+
+  for (const parentType of parentTypes) {
+    const found = getLoaderMapping(context, info.path, parentType, parent);
+    if (found) {
+      return found;
+    }
+  }
+
+  return null;
+}
+
+/** The top-level keys a `select` or `include` map puts on the row. */
+function selectedKeys(selection: object | null | undefined): string[] {
+  if (!selection) {
+    return [];
+  }
+
+  return Object.keys(selection).filter((key) => (selection as Record<string, unknown>)[key]);
 }
 
 /** A falsy selection means the field selects nothing from the parent row. */

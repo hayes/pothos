@@ -161,6 +161,82 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     return undefined;
   }
 
+  /**
+   * Core runs this wrapper outside every plugin's `wrapResolve`, so a parent missing what the
+   * type's `select` or the field's `select` loads is reloaded here, before plugins listed earlier,
+   * such as scope-auth, read it. A row that has it passes through untouched.
+   */
+  override wrapArgMappers(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    if (!resolver) {
+      return resolver;
+    }
+
+    const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
+    const modelLoader = parentConfig.extensions?.pothosDrizzleLoader as
+      | ReturnType<typeof ModelLoader.forModel>
+      | undefined;
+
+    if (!modelLoader) {
+      return resolver;
+    }
+
+    // A field an interface declares is checked against the interface's type-level selection: a
+    // query that reaches the implementation only through the interface doesn't plan the
+    // implementation's own.
+    const declaringConfig = fieldConfig.declaringType
+      ? this.buildCache.getTypeConfig(fieldConfig.declaringType)
+      : parentConfig;
+    const typeSelect = declaringConfig.extensions?.pothosDrizzleSelect;
+    const ownSelect =
+      fieldConfig.kind === 'DrizzleObject'
+        ? (fieldConfig.pothosOptions as { select?: unknown }).select
+        : undefined;
+    const required = [
+      ...selectedKeys(typeSelect),
+      ...(typeof ownSelect === 'object' ? selectedKeys(ownSelect) : []),
+    ];
+    // A function `select` only shows its keys when it runs, so the plan's mapping is asked instead.
+    const parentTypes =
+      typeof ownSelect === 'function' ? this.drizzleParentTypes(parentConfig, fieldConfig) : null;
+
+    if (!required.length && !parentTypes) {
+      return resolver;
+    }
+
+    return (parent, args, context, info) => {
+      const row = parent as Record<string, unknown>;
+      let missing = false;
+
+      for (const key of required) {
+        if (row[key] === undefined) {
+          missing = true;
+          break;
+        }
+      }
+
+      if (!missing && parentTypes && !findMapping(context, info, parent, parentTypes)) {
+        missing = true;
+      }
+
+      if (!missing) {
+        return resolver(parent, args, context, info);
+      }
+
+      return modelLoader(context)
+        .loadSelection(info, row)
+        .then((result) => {
+          if (result) {
+            reloadedRows.set(info, result);
+          }
+
+          return resolver(result, args, context, info);
+        });
+    };
+  }
+
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object, unknown>,
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -177,7 +253,47 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       | ((value: unknown, info: GraphQLResolveInfo, context: object) => boolean)
       | undefined;
 
-    const parentTypes = new Set([fieldConfig.parentType]);
+    const parentTypes = this.drizzleParentTypes(parentConfig, fieldConfig);
+
+    const modelLoader = parentConfig.extensions?.pothosDrizzleLoader as ReturnType<
+      typeof ModelLoader.forModel
+    >;
+
+    if (!modelLoader) {
+      throw new Error(`ModelLoader not found for type ${parentConfig.name}`);
+    }
+
+    return (parent, args, context, info) => {
+      const mapping = findMapping(context, info, parent, parentTypes);
+
+      if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
+        // Recorded under the field's own parent type as well, so its resolver finds the pathInfo
+        // it was planned with, whichever same-model type the plan was made for. Against the row
+        // it resolves with: a sibling row of the same list may have been loaded by another plan.
+        setFieldMapping(context, info, mapping, parent);
+
+        return resolver(parent, args, context, info);
+      }
+
+      // `wrapArgMappers` already reloaded this row with the field's selection. The loader records
+      // the field's mapping against it when the plan has one, which a select that returns nothing
+      // doesn't.
+      if (reloadedRows.get(info) === parent) {
+        return resolver(parent, args, context, info);
+      }
+
+      return modelLoader(context)
+        .loadSelection(info, parent as object)
+        .then((result) => resolver(result, args, context, info));
+    };
+  }
+
+  /** The field's parent type and the drizzle interfaces it implements. */
+  private drizzleParentTypes(
+    parentConfig: PothosTypeConfig,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ) {
+    const parentTypes = new Set([parentConfig.name]);
 
     if (parentConfig.kind === 'Interface' || parentConfig.kind === 'Object') {
       for (const iface of parentConfig.interfaces) {
@@ -195,42 +311,59 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       }
     }
 
-    const modelLoader = parentConfig.extensions?.pothosDrizzleLoader as ReturnType<
-      typeof ModelLoader.forModel
-    >;
+    return parentTypes;
+  }
+}
 
-    if (!modelLoader) {
-      throw new Error(`ModelLoader not found for type ${parentConfig.name}`);
+/** The row `wrapArgMappers` reloaded for a field, keyed by the field's resolve info. */
+const reloadedRows = new WeakMap<GraphQLResolveInfo, object>();
+
+/**
+ * Asked of the row: a mapping recorded for this row wins over the plan's, which answers for the
+ * rows the planned query loaded.
+ */
+function findMapping(
+  context: object,
+  info: GraphQLResolveInfo,
+  parent: unknown,
+  parentTypes: Set<string>,
+) {
+  const mapping = getLoaderMapping(context, info.path, info.parentType.name, parent);
+
+  if (mapping) {
+    return mapping;
+  }
+
+  for (const parentType of parentTypes) {
+    const found = getLoaderMapping(context, info.path, parentType, parent);
+    if (found) {
+      return found;
     }
+  }
 
-    return (parent, args, context, info) => {
-      // Asked of the row: a mapping recorded for this row wins over the plan's, which answers
-      // for the rows the planned query loaded.
-      let mapping = getLoaderMapping(context, info.path, info.parentType.name, parent);
+  return null;
+}
 
-      if (!mapping) {
-        for (const parentType of parentTypes) {
-          mapping = getLoaderMapping(context, info.path, parentType, parent);
-          if (mapping) {
-            break;
-          }
+/** The top-level keys a drizzle selection (`columns`, `with`, `extras`) puts on the row. */
+function selectedKeys(selection: unknown): string[] {
+  if (!selection || typeof selection !== 'object') {
+    return [];
+  }
+
+  const { columns, with: relations, extras } = selection as Record<string, unknown>;
+  const keys: string[] = [];
+
+  for (const part of [columns, relations, extras]) {
+    if (part && typeof part === 'object') {
+      for (const key of Object.keys(part)) {
+        if ((part as Record<string, unknown>)[key]) {
+          keys.push(key);
         }
       }
-
-      if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
-        // Recorded under the field's own parent type as well, so its resolver finds the pathInfo
-        // it was planned with, whichever same-model type the plan was made for. Against the row
-        // it resolves with: a sibling row of the same list may have been loaded by another plan.
-        setFieldMapping(context, info, mapping, parent);
-
-        return resolver(parent, args, context, info);
-      }
-
-      return modelLoader(context)
-        .loadSelection(info, parent as object)
-        .then((result) => resolver(result, args, context, info));
-    };
+    }
   }
+
+  return keys;
 }
 
 /** A falsy selection means the field selects nothing from the parent row. */
