@@ -28,11 +28,13 @@ export interface Position {
    * The field this one is selected beneath, or undefined at the field the plan started from.
    * Reading it during planning has a cost. Invocations of a field at different places normally
    * share the walk beneath it; a read keeps every walk it reads through from being shared, so
-   * each place is walked with its own path. That is one walk per path the document has, which a
-   * document whose fragments branch at every level makes exponential in its depth. A fragment
-   * expanding to the implementations of an interface adds no path: an implementation that
-   * inherits the field takes the invocation on the type the document names it on. Read after
-   * planning, it is the first invocation's: the plain walk's, where there is one.
+   * each invocation is walked with its own path, which a document whose fragments branch at every
+   * level makes exponential in its depth. A fragment expanding to the implementations of an
+   * interface walks its fields as each implementation, which adds an invocation, and a path,
+   * per implementation, unless the same field is selected at the same place on an interface the
+   * implementation inherits it from: the implementation then takes that invocation, and its path
+   * names the interface. Read after planning, it is the first invocation's: the plain walk's,
+   * where there is one.
    */
   readonly parent: Position | undefined;
   /**
