@@ -303,7 +303,9 @@ export class ModelLoader {
       (candidate) =>
         candidate.load.kind === load.kind &&
         candidate.load.typeName === load.typeName &&
-        this.config.adapter.canMergeNode(candidate.root, root),
+        // Every row reloading through one selection stages the same root, which joins the batch
+        // it was merged into without checking the merge again.
+        (candidate.merged.has(root) || this.config.adapter.canMergeNode(candidate.root, root)),
     );
     if (!batch) {
       const created: Batch = {

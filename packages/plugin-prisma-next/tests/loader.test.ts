@@ -1,7 +1,8 @@
 import SchemaBuilder from '@pothos/core';
 import { execute, parse } from 'graphql';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import prismaNextPlugin from '../src';
+import { PrismaNextAdapter } from '../src/utils/adapter';
 import {
   createBuilder,
   deferSchema,
@@ -207,6 +208,33 @@ describe('reloading through collections', () => {
     ]);
     expect(result.statements).toHaveLength(1);
     expect(result.statements[0].params).toEqual(expect.arrayContaining(['p-hello', 'p-draft1']));
+  });
+
+  it('checks whether a reload joins a batch once per selection, not once per row', async () => {
+    const builder = createBuilder();
+    const Post = builder.prismaObject('Post', {
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        posts: t.field({
+          type: [Post],
+          resolve: () => Array.from({ length: 200 }, (_, i) => ({ id: allPostIds[i % 4] })),
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const merges = vi.spyOn(PrismaNextAdapter.prototype, 'canMergeNode');
+    try {
+      const result = await run(schema, '{ posts { title } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.posts).toHaveLength(200);
+      expect(result.statements).toHaveLength(1);
+      // Every row reloads through the same selection, which joins the batch it was merged into.
+      expect(merges.mock.calls.length).toBeLessThan(4);
+    } finally {
+      merges.mockRestore();
+    }
   });
 
   it('loads through a client computed from the request context', async () => {
