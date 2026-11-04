@@ -26,6 +26,7 @@ const seen: {
   excluded: unknown[];
   redacted: unknown[];
   conflict: unknown[];
+  scoped: unknown[];
 } = {
   type: [],
   field: [],
@@ -35,6 +36,7 @@ const seen: {
   excluded: [],
   redacted: [],
   conflict: [],
+  scoped: [],
 };
 
 const User = builder.drizzleObject('users', {
@@ -205,11 +207,140 @@ const RestrictedImpl = builder.drizzleObject('users', {
   select: { with: { posts: { where: { published: 1 } } } },
   fields: (t) => ({
     secret: t.string({ nullable: true, resolve: () => 'secret' }),
+    skipsInterfaces: t.string({ skipInterfaceScopes: true, resolve: () => 'open' }),
+  }),
+});
+
+// Grants from posts its select loads, which match nothing: the grant comes only from a row that
+// holds its implementation's posts instead.
+const GrantingIface = builder.drizzleInterface('users', {
+  variant: 'GrantingIface',
+  select: { with: { posts: { where: { published: 2 } } } },
+  grantScopes: (user) => (user.posts.length > 0 ? ['posts'] : []),
+  resolveType: () => 'GrantingImpl',
+  fields: (t) => ({
+    grantingId: t.exposeID('id', { nullable: true }),
+  }),
+});
+
+const GrantingImpl = builder.drizzleObject('users', {
+  variant: 'GrantingImpl',
+  interfaces: [GrantingIface],
+  select: { with: { posts: { where: { published: 1 } } } },
+  fields: () => ({}),
+});
+
+// No type-level checks, but a field whose own check reads the interface's posts.
+const FieldScopedIface = builder.drizzleInterface('users', {
+  variant: 'FieldScopedIface',
+  select: { with: { posts: { where: { published: 2 } } } },
+  resolveType: () => 'FieldScopedImpl',
+  fields: (t) => ({
+    fieldScoped: t.string({
+      nullable: true,
+      authScopes: (user) => user.posts.length > 0,
+      resolve: () => 'secret',
+    }),
+  }),
+});
+
+const FieldScopedImpl = builder.drizzleObject('users', {
+  variant: 'FieldScopedImpl',
+  interfaces: [FieldScopedIface],
+  select: { with: { posts: { where: { published: 1 } } } },
+  fields: () => ({}),
+});
+
+// Its interfaces' checks never run on its fields.
+const SkippingImpl = builder.drizzleObject('users', {
+  variant: 'SkippingImpl',
+  interfaces: [RestrictedIface],
+  skipInterfaceScopes: true,
+  select: { with: { posts: { where: { published: 1 } } } },
+  fields: (t) => ({
+    open: t.string({ resolve: () => 'open' }),
+  }),
+});
+
+// The unscoped interface comes first in the schema and conflicts with the scoped one.
+const UnscopedIface = builder.drizzleInterface('users', {
+  variant: 'DraftsUnscopedIface',
+  select: { with: { posts: { where: { published: 0 } } } },
+  resolveType: () => 'ScopedFirstImpl',
+  fields: (t) => ({
+    unscopedId: t.exposeID('id'),
+  }),
+});
+
+const ScopedIface = builder.drizzleInterface('users', {
+  variant: 'ScopedIface',
+  select: { with: { posts: { where: { published: 1 } } } },
+  authScopes: (user) => {
+    seen.scoped.push(user.posts.every((post) => post.published));
+    return true;
+  },
+  resolveType: () => 'ScopedFirstImpl',
+  fields: (t) => ({
+    scopedId: t.exposeID('id'),
+  }),
+});
+
+const ScopedFirstImpl = builder.drizzleObject('users', {
+  variant: 'ScopedFirstImpl',
+  // @ts-expect-error The shape lacks the interfaces' posts, which a row built by hand can too.
+  interfaces: [UnscopedIface, ScopedIface],
+  select: { columns: { username: true } },
+  fields: (t) => ({
+    open: t.string({ resolve: () => 'open' }),
+  }),
+});
+
+// Two scoped interfaces that conflict with each other, not with their implementation.
+const ScopedDraftsIface = builder.drizzleInterface('users', {
+  variant: 'ScopedDraftsIface',
+  select: { with: { posts: { where: { published: 0 } } } },
+  authScopes: () => true,
+  resolveType: () => 'BothScopedImpl',
+  fields: (t) => ({
+    draftsId: t.exposeID('id'),
+  }),
+});
+
+const BothScopedImpl = builder.drizzleObject('users', {
+  variant: 'BothScopedImpl',
+  // @ts-expect-error The shape lacks the interfaces' posts, which a row built by hand can too.
+  interfaces: [ScopedIface, ScopedDraftsIface],
+  select: { columns: { username: true } },
+  fields: (t) => ({
+    open: t.string({ nullable: true, resolve: () => 'open' }),
   }),
 });
 
 builder.queryType({
   fields: (t) => ({
+    granting: t.field({
+      type: GrantingImpl,
+      nullable: true,
+      resolve: () => ({ id: 1 }) as never,
+    }),
+    fieldScoped: t.field({
+      type: FieldScopedImpl,
+      nullable: true,
+      resolve: () => ({ id: 1 }) as never,
+    }),
+    skipping: t.field({
+      type: SkippingImpl,
+      resolve: () => ({ id: 1 }) as never,
+    }),
+    scopedFirst: t.field({
+      type: ScopedFirstImpl,
+      resolve: () => ({ id: 1 }) as never,
+    }),
+    bothScoped: t.field({
+      type: BothScopedImpl,
+      nullable: true,
+      resolve: () => ({ id: 1 }) as never,
+    }),
     restricted: t.field({
       type: RestrictedImpl,
       nullable: true,
@@ -297,6 +428,7 @@ describe('authScopes see the parent data their types promise', () => {
     seen.excluded = [];
     seen.redacted = [];
     seen.conflict = [];
+    seen.scoped = [];
   });
 
   it("a planned row has the field's select without a reload", async () => {
@@ -510,9 +642,83 @@ describe('authScopes see the parent data their types promise', () => {
 
     expect(result.data).toEqual({ restricted: { [field]: null } });
     expect(result.errors?.map((error) => error.message)).toEqual([
-      'Type-level selections of RestrictedIface and RestrictedImpl conflict on relation "posts", so RestrictedIface\'s authScopes can\'t be checked on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
+      'Type-level selections of RestrictedIface and RestrictedImpl conflict on relation "posts", so RestrictedIface\'s scope checks can\'t run on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
     ]);
     expect(drizzleLogs).toHaveLength(0);
+  });
+
+  it("a reload can't run a conflicting interface's grantScopes on the fields it declares", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ granting { grantingId } }`,
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({ granting: { grantingId: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Type-level selections of GrantingIface and GrantingImpl conflict on relation "posts", so GrantingIface\'s scope checks can\'t run on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
+    ]);
+    expect(drizzleLogs).toHaveLength(0);
+  });
+
+  it("a reload can't run a field's authScopes typed as a conflicting interface's row", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ fieldScoped { fieldScoped } }`,
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({ fieldScoped: { fieldScoped: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Type-level selections of FieldScopedIface and FieldScopedImpl conflict on relation "posts", so FieldScopedIface\'s scope checks can\'t run on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
+    ]);
+  });
+
+  it("a type that skips its interfaces' scopes is reloaded despite their conflict", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ skipping { open } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ skipping: { open: 'open' } });
+  });
+
+  it("a field that skips its interfaces' scopes is reloaded despite their conflict", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ restricted { skipsInterfaces } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ restricted: { skipsInterfaces: 'open' } });
+  });
+
+  it('a scoped interface keeps its selection over an unscoped one before it', async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ scopedFirst { open } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ scopedFirst: { open: 'open' } });
+    expect(seen.scoped).toEqual([true]);
+  });
+
+  it('names the interface a skipped interface conflicts with', async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ bothScoped { open } }`,
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({ bothScoped: { open: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Type-level selections of ScopedIface and ScopedDraftsIface conflict on relation "posts", so ScopedIface\'s scope checks can\'t run on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
+    ]);
   });
 
   it('a row without the columns an exclusion-only select keeps is reloaded', async () => {

@@ -15,6 +15,8 @@ type Recorder = (parent: never) => void;
 
 interface ScopedOptions {
   authScopes?: Recorder;
+  grantScopes?: () => string[];
+  skipInterfaceScopes?: boolean;
 }
 
 // Stands in for scope-auth, which can't be a dev dependency here (scope-auth depends on this
@@ -273,8 +275,50 @@ const RestrictedImpl = builder.prismaObject('User', {
   }),
 });
 
+// Only grants, from posts its include loads, which match nothing.
+const grantingScopes: ScopedOptions = { grantScopes: () => [] };
+
+const GrantingIface = builder.prismaInterface('User', {
+  ...grantingScopes,
+  variant: 'GrantingIface',
+  include: { posts: { where: { id: { lt: 0 } } } },
+  resolveType: () => 'GrantingImpl',
+  fields: (t) => ({
+    grantingId: t.exposeID('id', { nullable: true }),
+  }),
+});
+
+const GrantingImpl = builder.prismaObject('User', {
+  variant: 'GrantingImpl',
+  interfaces: [GrantingIface],
+  include: { posts: { where: { published: true } } },
+  fields: () => ({}),
+});
+
+// Its interfaces' checks never run on its fields.
+const skippingScopes: ScopedOptions = { skipInterfaceScopes: true };
+
+const SkippingImpl = builder.prismaObject('User', {
+  ...skippingScopes,
+  variant: 'SkippingImpl',
+  interfaces: [RestrictedIface],
+  include: { posts: { where: { published: true } } },
+  fields: (t) => ({
+    open: t.string({ resolve: () => 'open' }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
+    granting: t.field({
+      type: GrantingImpl,
+      nullable: true,
+      resolve: () => ({ id: 1 }) as never,
+    }),
+    skipping: t.field({
+      type: SkippingImpl,
+      resolve: () => ({ id: 1 }) as never,
+    }),
     restricted: t.field({
       type: RestrictedImpl,
       nullable: true,
@@ -585,9 +629,34 @@ describe('plugins listed before prisma see the parent data its types promise', (
 
     expect(result.data).toEqual({ restricted: { [field]: null } });
     expect(result.errors?.map((error) => error.message)).toEqual([
-      'Type-level selections of RestrictedIface and RestrictedImpl conflict on relation "posts", so RestrictedIface\'s authScopes can\'t be checked on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
+      'Type-level selections of RestrictedIface and RestrictedImpl conflict on relation "posts", so RestrictedIface\'s scope checks can\'t run on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
     ]);
     expect(queries).toHaveLength(0);
+  });
+
+  it("a reload can't run a conflicting interface's grantScopes on the fields it declares", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ granting { grantingId } }`,
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({ granting: { grantingId: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Type-level selections of GrantingIface and GrantingImpl conflict on relation "posts", so GrantingIface\'s scope checks can\'t run on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
+    ]);
+    expect(queries).toHaveLength(0);
+  });
+
+  it("a type that skips its interfaces' scopes is reloaded despite their conflict", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ skipping { open } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ skipping: { open: 'open' } });
   });
 
   it("a relation's own resolver still runs for a row reloaded with the type's select", async () => {

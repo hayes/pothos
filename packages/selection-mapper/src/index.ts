@@ -31,5 +31,6 @@ export type {
   Position,
   SelectedFieldNode,
   SelectFn,
+  TypeLevelConflict,
   WalkedType,
 } from './types.js';
