@@ -997,6 +997,59 @@ describe("a connection helper's page of a variant with a table of its own", () =
     // The users with their features, and one reload of Task's columns.
     expect(result.statements).toHaveLength(2);
   });
+
+  // A field Feature inherits from an interface without a model reads the row as Feature's select
+  // loads it too, so its authScopes can't pass on a row missing `title`.
+  it.each([
+    ['field', false],
+    ['runScopesOnType', true],
+  ])('reloads them for a field of an interface without a model (%s)', async (_, onType) => {
+    const seen: unknown[] = [];
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: InheritanceContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+      relay: {},
+      scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType: onType },
+      prismaNext: { client: inheritanceDb.client },
+    });
+    const Labeled = builder.interfaceRef<{ id: string }>('Labeled').implement({
+      fields: (t) => ({ label: t.string({ resolve: (row) => `label ${row.id}` }) }),
+    });
+    const Feature = builder.prismaObject('Feature', {
+      interfaces: [Labeled],
+      select: ['title'],
+      authScopes: (feature) => {
+        seen.push([feature.id, feature.title]);
+        return feature.title !== 'feat1';
+      },
+      fields: (t) => ({ priority: t.exposeInt('priority') }),
+    });
+    const helper = prismaConnectionHelpers(builder, Feature, {});
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        championPage: t.connection({
+          type: Feature,
+          select: { championed: helper.page },
+          resolve: (user, args, context) => helper.resolve(user.championed, args, context, user),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => inheritanceDb.orm.User }),
+      }),
+    });
+    const result = await runCaptured(
+      builder.toSchema(),
+      '{ users { championPage(first: 5) { edges { node { label } } } } }',
+    );
+    expect(seen).toEqual([['t2', 'feat1']]);
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      expect.stringContaining('Not authorized'),
+    ]);
+  });
 });
 
 // With `runScopesOnType`, type-level authScopes run from `isTypeOf`, before any field of the type

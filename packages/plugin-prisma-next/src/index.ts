@@ -239,9 +239,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (extensions[PRISMA_NEXT_FIELD_SELECTION] !== undefined) {
       return fieldConfig;
     }
-    const declaring = this.buildCache.getTypeConfig(
+    // A field an interface without a model declares still resolves on the implementation's rows,
+    // so it reads them as the implementation's `select`s load them.
+    const declaringConfig = this.buildCache.getTypeConfig(
       fieldConfig.declaringType ?? fieldConfig.parentType,
     );
+    const modelLessInterface = !declaringConfig.extensions?.[PRISMA_NEXT_MODEL];
+    const declaring = modelLessInterface
+      ? this.buildCache.getTypeConfig(fieldConfig.parentType)
+      : declaringConfig;
     const modelKey = declaring.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
     if (modelKey === undefined) {
       return fieldConfig;
@@ -251,9 +257,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     };
     const exposed = extensions.pothosExposedField;
     const model = getModel(this.config.contract, modelKey);
+    const exposesColumn = typeof exposed === 'string' && model.columns.has(exposed);
     // `builder.objectField`'s `t.expose*` accepts any key of the parent, such as a computed value,
-    // which no query can select as a column.
-    if (select === undefined && typeof exposed === 'string' && !model.columns.has(exposed)) {
+    // which no query can select as a column. An interface without a model only knows its own shape.
+    if (
+      select === undefined &&
+      typeof exposed === 'string' &&
+      !exposesColumn &&
+      !modelLessInterface
+    ) {
       throw new PothosSchemaError(
         `Field '${declaring.name}.${fieldConfig.name}' exposes '${exposed}', which is not a column on model ${model.key}.`,
       );
@@ -261,7 +273,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const selection =
       select !== undefined
         ? compileFieldSelect(this.config.contract, select, model)
-        : typeof exposed === 'string'
+        : exposesColumn
           ? { columns: [exposed] }
           : this.typeLevelSelects(fieldConfig.parentType).length
             ? EMPTY
