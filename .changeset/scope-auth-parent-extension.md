@@ -2,4 +2,4 @@
 '@pothos/plugin-scope-auth': minor
 ---
 
-Add the `pothosScopeAuthParent` type extension, which lets a plugin load the parent that type `authScopes` see when `runScopesOnType` is enabled.
+With `runScopesOnType`, type scopes can see the full parent row when a plugin such as `@pothos/plugin-prisma-next` supplies it, instead of only what the parent field returned.

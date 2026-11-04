@@ -338,39 +338,6 @@ Enabling this has a couple of limitations:
 2. Fields of types that set `runScopesOnType` to true will not be able to use `skipTypeScopes` or
    `skipInterfaceScopes`.
 
-#### Loading the parent for type scopes
-
-With `runScopesOnType`, type scopes run before any field of the type resolves, so they see the
-object exactly as the parent field returned it. To change this, set the `pothosScopeAuthParent`
-extension on an object type. Scope auth calls it with the parent, the
-context, and the resolve info, and runs the type's scopes on whatever it returns. The type's
-`grantScopes` and the `scopeAuth.unauthorizedError` builder option get that object too. The type's
-own `isTypeOf` still gets the original object.
-
-The [Prisma Next plugin](/docs/plugins/prisma-next) sets this extension so type scopes see the
-columns and relations a type selects, even when a resolver returned a partial row.
-
-```typescript
-import type { ScopeAuthParentLoader } from '@pothos/plugin-scope-auth';
-
-const loadArticle: ScopeAuthParentLoader<Context> = (article, context) =>
-  context.loadArticle((article as { id: string }).id);
-
-builder.objectType(Article, {
-  runScopesOnType: true,
-  extensions: {
-    pothosScopeAuthParent: loadArticle,
-  },
-  // Sees the article loadArticle returned
-  authScopes: (article) => article.published,
-  fields: (t) => ({
-    title: t.exposeString('title'),
-  }),
-});
-```
-
-The function can return a promise, and the check waits for it.
-
 ### Generalized auth functions with field specific arguments
 
 The scopes we have covered so far have all been related to information that applies to a full
