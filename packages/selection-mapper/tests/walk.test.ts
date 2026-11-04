@@ -1513,6 +1513,74 @@ describe('fragments that expand at every level', () => {
     expect(seen).toEqual(everyVariantPath);
   });
 
+  it('hands a select function that reads what is above it after an await the named path', async () => {
+    const seen: string[][] = [];
+    const { types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', async (_args, _ctx, nested, _selected, position) => {
+      await Promise.resolve();
+      seen.push(chainOf(position));
+
+      return { select: { author: await nested({}) } };
+    });
+    selectOn(types, ['UserI', 'U1', 'U2', 'U3'], 'posts', async (_args, _ctx, nested) => ({
+      select: { posts: await nested({}) },
+    }));
+
+    const info = await resolveInfo(types, authorThroughNode);
+
+    await Plan.fromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    // U1, U2 and U3 take the async invocation of `posts` made on UserI.
+    expect(seen).toEqual(namedPath);
+  });
+
+  it('shares a walk whose select functions read only their own link', async () => {
+    const { calls, types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      calls.author +=
+        position.node.name.value.length > 0 && position.field && position.type ? 1 : 0;
+
+      return { select: { author: nested({}) } };
+    });
+
+    const info = await resolveInfo(types, expandingDocument(6));
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(calls).toEqual({ posts: 3, author: 3 });
+  });
+
+  it('shares a walk whose select functions read the chain through walkParent', async () => {
+    const seen: string[][] = [];
+    const { calls, types } = linkedSchema();
+    const walkChain = (position: Position) => {
+      const path: string[] = [];
+
+      for (let at: Position | undefined = position; at; at = at.walkParent) {
+        path.push(`${at.type.name}.${at.node.name.value}`);
+      }
+
+      return path.reverse();
+    };
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      calls.author += 1;
+      seen.push(walkChain(position));
+
+      return { select: { author: nested({}) } };
+    });
+
+    const info = await resolveInfo(types, expandingDocument(6));
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(calls).toEqual({ posts: 3, author: 3 });
+    // Each walk is shared, so a chain is the first invocation's: the plain walk's, at every level.
+    expect(seen[0]).toEqual(['Query.user', 'UserI.posts', 'PostI.author']);
+  });
+
   it('walks again when a select function reads what is above it after an await', async () => {
     const seen: string[][] = [];
     const { types } = linkedSchema();
@@ -1534,7 +1602,7 @@ describe('fragments that expand at every level', () => {
     expect(seen).toEqual(everyVariantPath);
   });
 
-  it('shares a walk whose select functions read only their own link', async () => {
+  it('shares a walk whose select functions read only their own link, beneath every variant', async () => {
     const { calls, types } = linkedSchema();
 
     selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
@@ -1552,7 +1620,7 @@ describe('fragments that expand at every level', () => {
     expect(calls).toEqual({ posts: 9, author: 9 });
   });
 
-  it('shares a walk whose select functions read the chain through walkParent', async () => {
+  it('shares a walk whose select functions read the chain through walkParent, beneath every variant', async () => {
     const seen: string[][] = [];
     const { calls, types } = linkedSchema();
     const walkChain = (position: Position) => {
