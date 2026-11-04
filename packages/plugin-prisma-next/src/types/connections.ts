@@ -32,10 +32,17 @@ import type {
   RelationWhere,
 } from './relations.js';
 
-/** What a connection applies before paging. Its order is the connection's `orderBy`. */
-export interface ConnectionQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> {
+/**
+ * What a connection applies before paging. Its order is the connection's `orderBy`.
+ *
+ * An alias rather than an interface: it is both a type parameter's constraint and its default, and
+ * TypeScript gives an interface constraint a `this` argument, so the default no longer matches it
+ * by identity and checking it computes the variance of `RelationWhere` and of upstream's
+ * `RelationPredicate`, which costs about 100 ms in each file with a connection.
+ */
+export type ConnectionQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   where?: RelationWhere<Types, M>;
-}
+};
 
 /**
  * A connection's `query`. `Literal` is inferred from what's written, and only checked for unknown
