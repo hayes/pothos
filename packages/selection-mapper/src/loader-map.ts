@@ -313,3 +313,32 @@ export function getLoaderMapping(
 
   return cached.mappings.get(key) ?? null;
 }
+
+/**
+ * The mapping recorded for the field `info` resolves on `row`, asked of the field's runtime parent
+ * type first and then of each of `parentTypes`, such as the interfaces the field is inherited
+ * from. Like `getLoaderMapping`, a mapping recorded for the row wins over the plan's, which
+ * answers for the rows the planned query loaded.
+ */
+export function findLoaderMapping(
+  ctx: object,
+  info: GraphQLResolveInfo,
+  row: unknown,
+  parentTypes: Iterable<string>,
+): Mapping | null {
+  const mapping = getLoaderMapping(ctx, info.path, info.parentType.name, row);
+
+  if (mapping) {
+    return mapping;
+  }
+
+  for (const parentType of parentTypes) {
+    const found = getLoaderMapping(ctx, info.path, parentType, row);
+
+    if (found) {
+      return found;
+    }
+  }
+
+  return null;
+}

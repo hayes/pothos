@@ -12,6 +12,7 @@ it('exports only what the plugins use', () => {
       'NodeAdapter',
       'cacheKey',
       'deepEqual',
+      'findLoaderMapping',
       'getLoaderMapping',
       'selectedFieldNames',
       'setFieldMapping',
