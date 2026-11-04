@@ -58,10 +58,45 @@ builder.prismaObject('User', {
   }),
 });
 
+// Two parents declare the same relation with other arguments. Pothos builds the inherited field
+// from the parent listed last, so that parent's plan answers for it.
+const FirstParent = builder.prismaInterface('User', {
+  variant: 'FirstParentUser',
+  select: { id: true },
+  resolveType: () => 'InheritingBothUser',
+  fields: (t) => ({
+    posts: t.relation('posts', { type: Post, query: { take: 1, orderBy: { id: 'desc' } } }),
+  }),
+});
+const SecondParent = builder.prismaInterface('User', {
+  variant: 'SecondParentUser',
+  select: { id: true },
+  resolveType: () => 'InheritingBothUser',
+  fields: (t) => ({
+    posts: t.relation('posts', { type: Post, query: { take: 3, orderBy: { id: 'asc' } } }),
+  }),
+});
+const BothParents = builder.prismaInterface('User', {
+  variant: 'BothParentsUser',
+  interfaces: [FirstParent, SecondParent],
+  select: { id: true },
+  resolveType: () => 'InheritingBothUser',
+});
+
+builder.prismaObject('User', {
+  variant: 'InheritingBothUser',
+  interfaces: [FirstParent, SecondParent, BothParents],
+  select: { id: true },
+});
+
 builder.queryType({
   fields: (t) => ({
     user: t.prismaField({
       type: OverrideUser,
+      resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
+    }),
+    bothParents: t.prismaField({
+      type: BothParents,
       resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
     }),
   }),
@@ -120,6 +155,35 @@ describe('an implementation that overrides an interface field', () => {
 
     expect(inheriting.errors).toBeUndefined();
     expect(inheriting.data).toEqual({ user: { [field]: inherited } });
+    expect(queries).toHaveLength(1);
+  });
+});
+
+describe('a field inherited from the last of several parents that declare it', () => {
+  afterEach(() => {
+    queries.length = 0;
+  });
+
+  it('reads the relation the parent query loaded', async () => {
+    const expected = (
+      await prisma.post.findMany({
+        where: { authorId: 1 },
+        take: 3,
+        orderBy: { id: 'asc' },
+        select: { id: true },
+      })
+    ).map((post) => ({ id: String(post.id) }));
+
+    queries.length = 0;
+
+    const result = await execute({
+      schema,
+      document: parse('{ bothParents { posts { id } } }'),
+      contextValue: { typeName: 'InheritingBothUser' },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ bothParents: { posts: expected } });
     expect(queries).toHaveLength(1);
   });
 });

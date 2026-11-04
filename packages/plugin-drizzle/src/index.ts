@@ -147,7 +147,10 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       return own.pothosOptions;
     }
 
-    for (const parent of this.buildCache.getTypeConfig(iface, 'Interface').interfaces) {
+    const parents = this.buildCache.getTypeConfig(iface, 'Interface').interfaces;
+
+    // Of several parents that declare the field, Pothos builds it from the one listed last.
+    for (const parent of [...parents].reverse()) {
       const options = this.interfaceFieldOptions(
         this.buildCache.getTypeConfig(parent, 'Interface').name,
         name,
