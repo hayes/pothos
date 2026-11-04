@@ -50,10 +50,19 @@ export function completeReturnedVariantRows(
   const list: unknown[] = Array.isArray(value) ? value : [value];
   const byRelation = new Map<PrismaNextRelation, object[]>();
   for (const row of list) {
-    const relation = row && typeof row === 'object' ? loadedThrough(row) : undefined;
-    if (relation) {
-      byRelation.set(relation, [...(byRelation.get(relation) ?? []), row as object]);
+    if (!row || typeof row !== 'object') {
+      continue;
     }
+    const relation = loadedThrough(row);
+    if (!relation) {
+      continue;
+    }
+    let rows = byRelation.get(relation);
+    if (!rows) {
+      rows = [];
+      byRelation.set(relation, rows);
+    }
+    rows.push(row);
   }
   if (!byRelation.size) {
     return value;
