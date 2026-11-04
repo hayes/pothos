@@ -30,6 +30,12 @@ const OverrideUser = builder.prismaInterface('User', {
   resolveType: (_user, ctx) => ctx.typeName,
   fields: (t) => ({
     posts: t.relation('posts', { type: Post, query: { take: 3, orderBy: { id: 'asc' } } }),
+    // The same relation through a static field select.
+    recent: t.field({
+      type: [Post],
+      select: { posts: { take: 3, orderBy: { id: 'asc' } } },
+      resolve: (user) => user.posts,
+    }),
   }),
 });
 
@@ -44,6 +50,11 @@ builder.prismaObject('User', {
   select: { id: true },
   fields: (t) => ({
     posts: t.relation('posts', { type: Post, query: { take: 1, orderBy: { id: 'desc' } } }),
+    recent: t.field({
+      type: [Post],
+      select: { posts: { take: 1, orderBy: { id: 'desc' } } },
+      resolve: (user) => user.posts,
+    }),
   }),
 });
 
@@ -73,10 +84,16 @@ describe('an implementation that overrides an interface field', () => {
     queries.length = 0;
   });
 
-  it.each([
-    ['plainly', '{ user { posts { id } } }'],
-    ['beneath an expansion', '{ user { ... on Linked { ... on OverrideUser { posts { id } } } } }'],
-  ])('loads the override with its own arguments when selected %s', async (_, document) => {
+  it.each(
+    ['posts', 'recent'].flatMap((field) => [
+      [field, 'plainly', `{ user { ${field} { id } } }`],
+      [
+        field,
+        'beneath an expansion',
+        `{ user { ... on Linked { ... on OverrideUser { ${field} { id } } } } }`,
+      ],
+    ]),
+  )('loads the override of %s with its own arguments when selected %s', async (field, _, document) => {
     const overriding = await ids(1, 'desc');
     const inherited = await ids(3, 'asc');
 
@@ -89,8 +106,8 @@ describe('an implementation that overrides an interface field', () => {
     });
 
     expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({ user: { posts: overriding } });
-    // The parent query loads the interface's posts, which the override does not read.
+    expect(result.data).toEqual({ user: { [field]: overriding } });
+    // The parent query loads the interface's selection, which the override does not read.
     expect(queries).toHaveLength(2);
 
     queries.length = 0;
@@ -102,7 +119,7 @@ describe('an implementation that overrides an interface field', () => {
     });
 
     expect(inheriting.errors).toBeUndefined();
-    expect(inheriting.data).toEqual({ user: { posts: inherited } });
+    expect(inheriting.data).toEqual({ user: { [field]: inherited } });
     expect(queries).toHaveLength(1);
   });
 });

@@ -14,7 +14,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, type Mapping, setRowMappings } from '@pothos/selection-mapper';
+import { getLoaderMapping, setRowMappings } from '@pothos/selection-mapper';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
@@ -132,6 +132,32 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     return fieldConfig;
   }
 
+  /**
+   * The options of the field `name` as `iface` defines it, or inherits it from an interface of its
+   * own. Pothos builds an implementation's copy of an inherited field from those same options, so
+   * they differ exactly when the implementation redefines the field.
+   */
+  private interfaceFieldOptions(iface: string, name: string): unknown {
+    const own = this.builder.configStore.getFields(iface, 'Interface').get(name);
+
+    if (own) {
+      return own.pothosOptions;
+    }
+
+    for (const parent of this.buildCache.getTypeConfig(iface, 'Interface').interfaces) {
+      const options = this.interfaceFieldOptions(
+        this.buildCache.getTypeConfig(parent, 'Interface').name,
+        name,
+      );
+
+      if (options !== undefined) {
+        return options;
+      }
+    }
+
+    return undefined;
+  }
+
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object, unknown>,
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -178,7 +204,14 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     if (parentConfig.kind === 'Interface' || parentConfig.kind === 'Object') {
       for (const iface of parentConfig.interfaces) {
         const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
-        if (interfaceConfig.extensions?.pothosPrismaModel) {
+        // A mapping recorded under the interface answers for this field only when the field is the
+        // interface's own, inherited: an implementation that redefines it (other relation
+        // arguments, say) would otherwise read what the interface's field loaded.
+        if (
+          interfaceConfig.extensions?.pothosPrismaModel &&
+          this.interfaceFieldOptions(interfaceConfig.name, fieldConfig.name) ===
+            fieldConfig.pothosOptions
+        ) {
           parentTypes.add(interfaceConfig.name);
         }
       }
@@ -191,11 +224,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
       if (!mapping) {
         for (const parentType of parentTypes) {
-          mapping = inheritedMapping(
-            getLoaderMapping(context, info.path, parentType, parent),
-            parentType === fieldConfig.parentType,
-            fieldConfig.pothosOptions,
-          );
+          mapping = getLoaderMapping(context, info.path, parentType, parent);
           if (mapping) {
             break;
           }
@@ -246,18 +275,3 @@ SchemaBuilder.registerPlugin(pluginName, PothosPrismaPlugin, {
     },
   }),
 });
-
-/**
- * A mapping recorded under an interface answers for this field only when the field was planned
- * with the same definition: an implementation that overrides it (other relation arguments, say)
- * would otherwise read what the interface's field loaded. Pothos builds an inherited field from
- * the interface's own options, so the two agree exactly when the field was not redefined. A static
- * selection records no position and runs nothing that could differ.
- */
-function inheritedMapping(mapping: Mapping | null, own: boolean, definition: unknown) {
-  return own ||
-    !mapping?.position ||
-    mapping.position.field.extensions?.pothosOptions === definition
-    ? mapping
-    : null;
-}
