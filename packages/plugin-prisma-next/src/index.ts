@@ -156,7 +156,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    * would see rows without what the type selects.
    */
   override beforeBuild() {
-    if (!this.builder.options.plugins?.includes('scopeAuth')) {
+    const names: readonly string[] | undefined = this.builder.options.plugins;
+    if (!names?.includes('scopeAuth')) {
       return;
     }
     // Read from core's registry, since scope-auth is an optional peer this plugin doesn't import.
