@@ -137,7 +137,13 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     if (parentConfig.kind === 'Interface' || parentConfig.kind === 'Object') {
       for (const iface of parentConfig.interfaces) {
         const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
-        if (interfaceConfig.extensions?.pothosDrizzleModel) {
+        // A mapping recorded under an interface answers only for an implementation that inherits
+        // the field: an override selects something else, and the interface's rows are not its own.
+        if (
+          interfaceConfig.extensions?.pothosDrizzleModel &&
+          fieldOptions(this.builder.configStore, interfaceConfig.name, fieldConfig.name) ===
+            fieldConfig.pothosOptions
+        ) {
           parentTypes.add(interfaceConfig.name);
         }
       }
@@ -184,6 +190,34 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
 /** A falsy selection means the field selects nothing from the parent row. */
 function wrapSelect(selected: {} | null) {
   return selected ? { columns: {}, ...selected } : null;
+}
+
+/**
+ * The options of the field definition a type exposes under `name`: its own, or else the one it
+ * inherits, where a later interface wins as it does when the type's fields are built.
+ */
+function fieldOptions<Types extends SchemaTypes>(
+  configStore: PothosSchemaTypes.SchemaBuilder<Types>['configStore'],
+  typeName: string,
+  name: string,
+): unknown {
+  const own = configStore.getFields(typeName).get(name);
+
+  if (own) {
+    return own.pothosOptions;
+  }
+
+  const typeConfig = configStore.getTypeConfig(typeName);
+  let inherited: unknown;
+
+  if (typeConfig.kind === 'Interface' || typeConfig.kind === 'Object') {
+    for (const iface of typeConfig.interfaces) {
+      inherited =
+        fieldOptions(configStore, configStore.getTypeConfig(iface).name, name) ?? inherited;
+    }
+  }
+
+  return inherited;
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosDrizzlePlugin, {});
