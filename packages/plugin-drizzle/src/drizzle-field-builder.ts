@@ -74,6 +74,22 @@ const RootBuilder: {
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
 
+type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
+  PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
+    Context: infer T;
+  }
+    ? T extends object
+      ? T
+      : object
+    : object;
+
+type FieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {} = {}> =
+  PothosSchemaTypes.ScopeAuthFieldAuthScopes<Types, Parent, Args> extends {
+    Scopes: infer T;
+  }
+    ? T
+    : never;
+
 // Older Drizzle declarations omit the relational config parameters supported at runtime.
 // Supported versions return either SQL or an object containing optional SQL chunks.
 type RelationsFilterToSQL = (
@@ -108,6 +124,17 @@ export class DrizzleObjectFieldBuilder<
   exposeIDList = this.createExpose(['ID']);
 
   exposeStringList = this.createExpose(['String']);
+
+  withAuth: 'scopeAuth' extends PluginName
+    ? <Scopes extends FieldAuthScopes<Types, Shape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => DrizzleObjectFieldBuilder<
+        Omit<Types, 'Context'> & { Context: ContextForAuth<Types, Scopes> },
+        TableConfig,
+        Shape,
+        ExposableShape
+      >
+    : '@pothos/plugin-scope-auth is required to use this method' = withAuth as never;
 
   table: string;
 
@@ -510,7 +537,8 @@ export class DrizzleObjectFieldBuilder<
   }
 
   variant<
-    Variant extends DrizzleRef<Types, TableConfig['name']> | TableConfig['name'],
+    // biome-ignore lint/suspicious/noExplicitAny: a ref from before `withAuth` replaced the context
+    Variant extends DrizzleRef<any, TableConfig['name']> | TableConfig['name'],
     Args extends InputFieldMap,
     Nullable,
     ResolveShape,
@@ -874,4 +902,24 @@ function pickSelection(selection: { columns?: {}; extras?: unknown; with?: unkno
     extras: selection?.extras,
     with: selection?.with,
   };
+}
+
+/** A field builder of the same type whose fields all carry `scopes`. */
+function withAuth(
+  this: DrizzleObjectFieldBuilder<SchemaTypes, TableRelationalConfig, {}>,
+  scopes: {},
+) {
+  const builder = new DrizzleObjectFieldBuilder(
+    this.typename,
+    this.builder,
+    this.table,
+    this.graphqlKind,
+  ) as unknown as { createField: (options: Record<string, unknown>) => unknown };
+  const originalCreateField = builder.createField;
+
+  builder.createField = function createField(options) {
+    return originalCreateField.call(this, { authScopes: scopes, ...options });
+  };
+
+  return builder as never;
 }
