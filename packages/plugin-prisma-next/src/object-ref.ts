@@ -40,10 +40,12 @@ type Brandable<Shape> =
   Shape extends PlannedRowBrand<unknown> ? Shape : Shape & Record<string, unknown>;
 type Branded<V> = V extends readonly unknown[] ? { [K in keyof V]: WithBrand<V[K]> } : WithBrand<V>;
 
+// The variance annotations are the measured variances. Measuring them walks the row and return
+// shapes, which each file that relates two refs, such as `t.variant(ref)`, would pay for.
 export class PrismaNextObjectRef<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  Shape = Row<Types, M>,
+  in out Types extends SchemaTypes,
+  out M extends ModelKey<Types>,
+  out Shape = Row<Types, M>,
 > extends ObjectRef<Types, ObjectReturnShape<Types, M, Shape>, Shape> {
   declare readonly [prismaModelBrand]: M;
 
