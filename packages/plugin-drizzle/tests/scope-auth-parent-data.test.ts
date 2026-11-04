@@ -187,8 +187,34 @@ const PublishedImpl = builder.drizzleObject('users', {
   }),
 });
 
+// Allows only when the posts its select loads, which match nothing, are there, so it always denies.
+// A row can't hold its posts and its implementation's at once.
+const RestrictedIface = builder.drizzleInterface('users', {
+  variant: 'RestrictedIface',
+  select: { with: { posts: { where: { published: 2 } } } },
+  authScopes: (user) => user.posts.length > 0,
+  resolveType: () => 'RestrictedImpl',
+  fields: (t) => ({
+    restrictedId: t.exposeID('id', { nullable: true }),
+  }),
+});
+
+const RestrictedImpl = builder.drizzleObject('users', {
+  variant: 'RestrictedImpl',
+  interfaces: [RestrictedIface],
+  select: { with: { posts: { where: { published: 1 } } } },
+  fields: (t) => ({
+    secret: t.string({ nullable: true, resolve: () => 'secret' }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
+    restricted: t.field({
+      type: RestrictedImpl,
+      nullable: true,
+      resolve: () => ({ id: 1 }) as never,
+    }),
     redacted: t.field({
       type: RedactedUser,
       resolve: async () =>
@@ -200,6 +226,10 @@ builder.queryType({
     plainPublishedImpl: t.field({
       type: PublishedImpl,
       resolve: () => db.query.users.findFirst({ where: { id: 1 } }) as never,
+    }),
+    partialPublishedImpl: t.field({
+      type: PublishedImpl,
+      resolve: () => ({ id: 1 }) as never,
     }),
     plainAuthor: t.field({
       type: PublishedAuthor,
@@ -453,6 +483,36 @@ describe('authScopes see the parent data their types promise', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ plainPublishedImpl: { username: user.username } });
     expect(seen.conflict).toEqual([true]);
+  });
+
+  it("a conflicting interface without authScopes doesn't block the fields it declares", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ partialPublishedImpl { draftsIfaceId } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ partialPublishedImpl: { draftsIfaceId: '1' } });
+    // The implementation's filter wins, as it does on a row planned for it.
+    expect(seen.conflict).toEqual([true]);
+  });
+
+  it.each([
+    ['its implementation', 'secret'],
+    ['itself', 'restrictedId'],
+  ])("a reload can't check an interface's authScopes on a field %s declares when their selects conflict", async (_declarer, field) => {
+    const result = await execute({
+      schema,
+      document: gql`{ restricted { ${field} } }`,
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({ restricted: { [field]: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Type-level selections of RestrictedIface and RestrictedImpl conflict on relation "posts", so RestrictedIface\'s authScopes can\'t be checked on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
+    ]);
+    expect(drizzleLogs).toHaveLength(0);
   });
 
   it('a row without the columns an exclusion-only select keeps is reloaded', async () => {

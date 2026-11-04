@@ -13,9 +13,14 @@ import { getDatamodel } from './generated.js';
 type PrismaTypes = PrismaTypesFromClient<typeof prisma>;
 type Recorder = (parent: never) => void;
 
+interface ScopedOptions {
+  authScopes?: Recorder;
+}
+
 // Stands in for scope-auth, which can't be a dev dependency here (scope-auth depends on this
 // package), and is registered under its name, which the prisma plugin checks for: it calls the field's, the parent type's and its interfaces' `recordParent` with the
-// parent its wrapper receives, as scope-auth calls `authScopes`. A recorder that throws denies.
+// parent its wrapper receives, as scope-auth calls `authScopes`. A recorder that throws denies. An
+// interface's `authScopes` option, which this builder's types don't know, runs as one too.
 const pluginName = 'scopeAuth' as keyof PothosSchemaTypes.Plugins<SchemaTypes>;
 
 class RecordParentPlugin extends BasePlugin<SchemaTypes> {
@@ -27,9 +32,11 @@ class RecordParentPlugin extends BasePlugin<SchemaTypes> {
     const recorders = [
       parentConfig.extensions?.recordParent,
       ...(parentConfig.kind === 'Object' || parentConfig.kind === 'Interface'
-        ? parentConfig.interfaces.map(
-            (iface) => this.buildCache.getTypeConfig(iface).extensions?.recordParent,
-          )
+        ? parentConfig.interfaces.flatMap((iface) => {
+            const { extensions, pothosOptions } = this.buildCache.getTypeConfig(iface);
+
+            return [extensions?.recordParent, (pothosOptions as ScopedOptions).authScopes];
+          })
         : []),
       fieldConfig.extensions?.recordParent,
     ].filter(Boolean) as Recorder[];
@@ -237,8 +244,46 @@ const PublishedImpl = builder.prismaObject('User', {
   }),
 });
 
+// Denies unless the posts its include loads, which match nothing, are there. A row can't hold its
+// posts and its implementation's at once.
+const restrictedScopes: ScopedOptions = {
+  authScopes: (user: { posts?: unknown[] }) => {
+    if (!user.posts?.length) {
+      throw new Error('Not authorized');
+    }
+  },
+};
+
+const RestrictedIface = builder.prismaInterface('User', {
+  ...restrictedScopes,
+  variant: 'RestrictedIface',
+  include: { posts: { where: { id: { lt: 0 } } } },
+  resolveType: () => 'RestrictedImpl',
+  fields: (t) => ({
+    restrictedId: t.exposeID('id', { nullable: true }),
+  }),
+});
+
+const RestrictedImpl = builder.prismaObject('User', {
+  variant: 'RestrictedImpl',
+  interfaces: [RestrictedIface],
+  include: { posts: { where: { published: true } } },
+  fields: (t) => ({
+    secret: t.string({ nullable: true, resolve: () => 'secret' }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
+    restricted: t.field({
+      type: RestrictedImpl,
+      nullable: true,
+      resolve: () => ({ id: 1 }) as never,
+    }),
+    partialPublishedImpl: t.field({
+      type: PublishedImpl,
+      resolve: () => ({ id: 1 }) as never,
+    }),
     redacted: t.field({
       type: RedactedUser,
       resolve: async () =>
@@ -513,6 +558,36 @@ describe('plugins listed before prisma see the parent data its types promise', (
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ plainPublishedImpl: { email: user.email } });
     expect(seen.conflict).toEqual([true]);
+  });
+
+  it("a conflicting interface without checks doesn't block the fields it declares", async () => {
+    const result = await execute({
+      schema,
+      document: gql`{ partialPublishedImpl { draftsIfaceId } }`,
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ partialPublishedImpl: { draftsIfaceId: '1' } });
+    // The implementation's filter wins, as it does on a row planned for it.
+    expect(seen.conflict).toEqual([true]);
+  });
+
+  it.each([
+    ['its implementation', 'secret'],
+    ['itself', 'restrictedId'],
+  ])("a reload can't check an interface's authScopes on a field %s declares when their selects conflict", async (_declarer, field) => {
+    const result = await execute({
+      schema,
+      document: gql`{ restricted { ${field} } }`,
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({ restricted: { [field]: null } });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Type-level selections of RestrictedIface and RestrictedImpl conflict on relation "posts", so RestrictedIface\'s authScopes can\'t be checked on a row Pothos reloads. Move the relation arguments to a field-level select on one of the types.',
+    ]);
+    expect(queries).toHaveLength(0);
   });
 
   it("a relation's own resolver still runs for a row reloaded with the type's select", async () => {

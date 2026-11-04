@@ -12,6 +12,7 @@ import SchemaBuilder, {
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
+  PothosValidationError,
   type SchemaTypes,
 } from '@pothos/core';
 import { findLoaderMapping, setRowMappings } from '@pothos/selection-mapper';
@@ -53,7 +54,7 @@ export const ObjectFieldBuilder = InternalPrismaObjectFieldBuilder as new <
 ) => PothosSchemaTypes.PrismaObjectFieldBuilder<Types, Model, Shape>;
 
 export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  private typeNodes = new WeakMap<GraphQLObjectType, Map<string | undefined, PrismaNode>>();
+  private typeNodes = new WeakMap<GraphQLObjectType, Map<string | undefined, TypeReloadNode>>();
 
   constructor(cache: BuildCache<Types>) {
     super(cache, pluginName);
@@ -182,7 +183,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     }
 
     const { loaderCache, required, implementationKeys, parentTypes, declaringType } = reload;
-    let root: PrismaNode | undefined;
+    let node: TypeReloadNode | undefined;
 
     return (parent, args, context, info) => {
       const row = parent as Record<string, unknown>;
@@ -208,10 +209,14 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         return resolver(parent, args, context, info);
       }
 
-      root ??= this.typeNode(info.parentType, declaringType);
+      node ??= this.typeNode(info.parentType, declaringType);
+
+      if (node.unchecked) {
+        throw new PothosValidationError(node.unchecked);
+      }
 
       return loaderCache(context)
-        .loadTypeSelection(root, row)
+        .loadTypeSelection(node.root, row)
         .then((loaded) => resolver(loaded, args, context, info));
     };
   }
@@ -348,13 +353,13 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     let nodes = this.typeNodes.get(type);
 
     if (!nodes) {
-      const { root, skipped } = typeLevelNode(type, undefined);
+      const { node, skipped } = this.typeLevelNode(type, undefined);
 
-      nodes = new Map([[undefined, root]]);
+      nodes = new Map([[undefined, node]]);
 
       for (const iface of type.getInterfaces()) {
         if (!skipped.has(iface.name)) {
-          nodes.set(iface.name, root);
+          nodes.set(iface.name, node);
         }
       }
 
@@ -364,11 +369,61 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     let node = nodes.get(declaringType);
 
     if (!node) {
-      node = typeLevelNode(type, declaringType).root;
+      node = this.typeLevelNode(type, declaringType).node;
       nodes.set(declaringType, node);
     }
 
     return node;
+  }
+
+  /**
+   * The type-level selections scope-auth's checks on a field of `type` read: the type's, then the
+   * one of the interface that declares the field, then those of the other prisma interfaces `type`
+   * implements, less any that conflicts with them (`skipped`), which their rows can't hold at once.
+   * The type's own wins, as it does on a row planned for it. A skipped interface with authScopes
+   * would be checked against another type's data, so the reload is refused (`unchecked`).
+   */
+  private typeLevelNode(type: GraphQLObjectType, declaringType: string | undefined) {
+    const root = prismaAdapter.createNode(prismaAdapter.modelFor(type)!);
+    const interfaces = type.getInterfaces().filter((iface) => prismaAdapter.modelFor(iface));
+    const skipped = new Set<string>();
+    let unchecked: string | undefined;
+    const selection = prismaAdapter.typeSelection(type);
+
+    if (selection) {
+      prismaAdapter.mergeQuery(root, selection);
+    }
+
+    for (const iface of [
+      ...interfaces.filter(({ name }) => name === declaringType),
+      ...interfaces.filter(({ name }) => name !== declaringType),
+    ]) {
+      const selection = prismaAdapter.typeSelection(iface);
+
+      if (!selection) {
+        continue;
+      }
+
+      if (prismaAdapter.canMergeQuery(root, selection)) {
+        prismaAdapter.mergeQuery(root, selection);
+      } else {
+        skipped.add(iface.name);
+
+        if (
+          !unchecked &&
+          (this.buildCache.getTypeConfig(iface.name).pothosOptions as { authScopes?: unknown })
+            .authScopes
+        ) {
+          unchecked = uncheckedScopesMessage(
+            iface.name,
+            type.name,
+            prismaAdapter.firstConflict(root, selection),
+          );
+        }
+      }
+    }
+
+    return { node: { root, unchecked }, skipped };
   }
 
   /** The field's parent type and the prisma interfaces it implements. */
@@ -398,39 +453,6 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
   }
 }
 
-/**
- * The type-level selections scope-auth's checks on a field of `type` read: the type's, the one of
- * the interface that declares the field, and those of the other prisma interfaces `type`
- * implements, less any that conflicts with them (`skipped`), which their rows can't hold at once.
- */
-function typeLevelNode(type: GraphQLObjectType, declaringType: string | undefined) {
-  const root = prismaAdapter.createNode(prismaAdapter.modelFor(type)!);
-  const interfaces = type.getInterfaces().filter((iface) => prismaAdapter.modelFor(iface));
-  const skipped = new Set<string>();
-
-  for (const required of [type, ...interfaces.filter(({ name }) => name === declaringType)]) {
-    const selection = prismaAdapter.typeSelection(required);
-
-    if (selection) {
-      prismaAdapter.mergeQuery(root, selection);
-    }
-  }
-
-  for (const iface of interfaces) {
-    const selection = iface.name === declaringType ? undefined : prismaAdapter.typeSelection(iface);
-
-    if (selection) {
-      if (prismaAdapter.canMergeQuery(root, selection)) {
-        prismaAdapter.mergeQuery(root, selection);
-      } else {
-        skipped.add(iface.name);
-      }
-    }
-  }
-
-  return { root, skipped };
-}
-
 /** The top-level keys a type's `select` or `include` puts on its rows. */
 function typeLevelKeys(typeConfig: PothosTypeConfig) {
   const { pothosPrismaSelect, pothosPrismaInclude } = (typeConfig.extensions ?? {}) as {
@@ -448,6 +470,29 @@ function selectedKeys(selection: object | null | undefined): string[] {
   }
 
   return Object.keys(selection).filter((key) => (selection as Record<string, unknown>)[key]);
+}
+
+/** A type's reload node, or why its rows can't be reloaded for scope-auth's checks. */
+interface TypeReloadNode {
+  root: PrismaNode;
+  unchecked?: string;
+}
+
+/**
+ * Why `iface`'s authScopes can't run on a row of `type` Pothos reloads: the row can hold only one
+ * of their conflicting selections. Modelled on the planner's error for the same conflict.
+ */
+function uncheckedScopesMessage(
+  iface: string,
+  type: string,
+  conflict: { kind: string; name: string } | undefined,
+) {
+  const unchecked = `so ${iface}'s authScopes can't be checked on a row Pothos reloads.`;
+
+  // Prisma reports every conflict, `_count` included, as a relation's.
+  return conflict
+    ? `Type-level selections of ${iface} and ${type} conflict on relation "${conflict.name}", ${unchecked} Move the relation arguments to a field-level select on one of the types.`
+    : `Type-level selections of ${iface} and ${type} conflict, ${unchecked} Move the conflicting selection to a field-level select on one of the types.`;
 }
 
 /** A falsy selection means the field selects nothing from the parent row. */

@@ -7,6 +7,7 @@ import SchemaBuilder, {
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
+  PothosValidationError,
   type SchemaTypes,
 } from '@pothos/core';
 import { findLoaderMapping, setFieldMapping } from '@pothos/selection-mapper';
@@ -34,7 +35,7 @@ const pluginName = 'drizzle';
 export default pluginName;
 
 export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  private typeNodes = new WeakMap<GraphQLObjectType, Map<string | undefined, DrizzleNode>>();
+  private typeNodes = new WeakMap<GraphQLObjectType, Map<string | undefined, TypeReloadNode>>();
 
   override onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
     if (typeConfig.kind !== 'Object' && typeConfig.kind !== 'Interface') {
@@ -187,7 +188,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     }
 
     const { modelLoader, required, implementationKeys, parentTypes, declaringType } = reload;
-    let root: DrizzleNode | undefined;
+    let node: TypeReloadNode | undefined;
 
     return (parent, args, context, info) => {
       const row = parent as Record<string, unknown>;
@@ -213,10 +214,14 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         return resolver(parent, args, context, info);
       }
 
-      root ??= this.typeNode(info.parentType, declaringType);
+      node ??= this.typeNode(info.parentType, declaringType);
+
+      if (node.unchecked) {
+        throw new PothosValidationError(node.unchecked);
+      }
 
       return modelLoader(context)
-        .loadTypeSelection(root, row)
+        .loadTypeSelection(node.root, row)
         .then((loaded) => resolver(loaded, args, context, info));
     };
   }
@@ -317,13 +322,13 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     let nodes = this.typeNodes.get(type);
 
     if (!nodes) {
-      const { root, skipped } = this.typeLevelNode(type, undefined);
+      const { node, skipped } = this.typeLevelNode(type, undefined);
 
-      nodes = new Map([[undefined, root]]);
+      nodes = new Map([[undefined, node]]);
 
       for (const iface of type.getInterfaces()) {
         if (!skipped.has(iface.name)) {
-          nodes.set(iface.name, root);
+          nodes.set(iface.name, node);
         }
       }
 
@@ -333,7 +338,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     let node = nodes.get(declaringType);
 
     if (!node) {
-      node = this.typeLevelNode(type, declaringType).root;
+      node = this.typeLevelNode(type, declaringType).node;
       nodes.set(declaringType, node);
     }
 
@@ -341,37 +346,54 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
   }
 
   /**
-   * The type-level selections scope-auth's checks on a field of `type` read: the type's, the one
-   * of the interface that declares the field, and those of the other drizzle interfaces `type`
+   * The type-level selections scope-auth's checks on a field of `type` read: the type's, then the
+   * one of the interface that declares the field, then those of the other drizzle interfaces `type`
    * implements, less any that conflicts with them (`skipped`), which their rows can't hold at once.
+   * The type's own wins, as it does on a row planned for it. A skipped interface with authScopes
+   * would be checked against another type's data, so the reload is refused (`unchecked`).
    */
   private typeLevelNode(type: GraphQLObjectType, declaringType: string | undefined) {
     const adapter = drizzleAdapter(getSchemaConfig(this.builder));
     const root = adapter.createNode(adapter.modelFor(type)!);
     const interfaces = type.getInterfaces().filter((iface) => adapter.modelFor(iface));
     const skipped = new Set<string>();
+    let unchecked: string | undefined;
+    const selection = adapter.typeSelection(type);
 
-    for (const required of [type, ...interfaces.filter(({ name }) => name === declaringType)]) {
-      const selection = adapter.typeSelection(required);
-
-      if (selection) {
-        adapter.mergeQuery(root, selection);
-      }
+    if (selection) {
+      adapter.mergeQuery(root, selection);
     }
 
-    for (const iface of interfaces) {
-      const selection = iface.name === declaringType ? undefined : adapter.typeSelection(iface);
+    for (const iface of [
+      ...interfaces.filter(({ name }) => name === declaringType),
+      ...interfaces.filter(({ name }) => name !== declaringType),
+    ]) {
+      const selection = adapter.typeSelection(iface);
 
-      if (selection) {
-        if (adapter.canMergeQuery(root, selection)) {
-          adapter.mergeQuery(root, selection);
-        } else {
-          skipped.add(iface.name);
+      if (!selection) {
+        continue;
+      }
+
+      if (adapter.canMergeQuery(root, selection)) {
+        adapter.mergeQuery(root, selection);
+      } else {
+        skipped.add(iface.name);
+
+        if (
+          !unchecked &&
+          (this.buildCache.getTypeConfig(iface.name).pothosOptions as { authScopes?: unknown })
+            .authScopes
+        ) {
+          unchecked = uncheckedScopesMessage(
+            iface.name,
+            type.name,
+            adapter.firstConflict(root, selection),
+          );
         }
       }
     }
 
-    return { root, skipped };
+    return { node: { root, unchecked }, skipped };
   }
 
   /** The field's parent type and the drizzle interfaces it implements. */
@@ -437,6 +459,33 @@ function truthyKeys(part: unknown): string[] {
   }
 
   return Object.keys(part).filter((key) => (part as Record<string, unknown>)[key]);
+}
+
+/** A type's reload node, or why its rows can't be reloaded for scope-auth's checks. */
+interface TypeReloadNode {
+  root: DrizzleNode;
+  unchecked?: string;
+}
+
+/**
+ * Why `iface`'s authScopes can't run on a row of `type` Pothos reloads: the row can hold only one
+ * of their conflicting selections. Modelled on the planner's error for the same conflict.
+ */
+function uncheckedScopesMessage(
+  iface: string,
+  type: string,
+  conflict: { kind: string; name: string } | undefined,
+) {
+  const unchecked = `so ${iface}'s authScopes can't be checked on a row Pothos reloads.`;
+
+  switch (conflict?.kind) {
+    case 'relation':
+      return `Type-level selections of ${iface} and ${type} conflict on relation "${conflict.name}", ${unchecked} Move the relation arguments to a field-level select on one of the types.`;
+    case 'extra':
+      return `Type-level selections of ${iface} and ${type} conflict on extra "${conflict.name}", ${unchecked} Define the extra with the same function on both types, or move it to a field-level select on one of the types.`;
+    default:
+      return `Type-level selections of ${iface} and ${type} conflict, ${unchecked} Move the conflicting selection to a field-level select on one of the types.`;
+  }
 }
 
 /** A falsy selection means the field selects nothing from the parent row. */
