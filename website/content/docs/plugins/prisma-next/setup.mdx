@@ -140,6 +140,9 @@ const result = await db.transaction(async (tx) => {
 });
 ```
 
+With `@defer` or `@stream`, read every incremental result inside the callback: they load after the
+initial result, and fail once the transaction has ended.
+
 ## Use a different client per request
 
 To give each request its own client, such as a transaction, pass a function as `client` along with
