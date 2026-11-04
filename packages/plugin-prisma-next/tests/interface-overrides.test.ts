@@ -43,10 +43,14 @@ describe("an implementation's override of an interface field", () => {
     });
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.prismaObject('User', { variant: 'A', interfaces: [I] });
+    // A non-model interface both implementations share, so a fragment on it expands.
+    const Linked = builder.interfaceRef<object>('Linked').implement({
+      fields: (t) => ({ linked: t.string({ resolve: () => 'linked' }) }),
+    });
+    builder.prismaObject('User', { variant: 'A', interfaces: [I, Linked] });
     builder.prismaObject('User', {
       variant: 'B',
-      interfaces: [I],
+      interfaces: [I, Linked],
       fields: (t) => ({
         pub: t.relation('posts', { query: { where: { published: 0 } } }),
         narrowed: t.relation('posts', { query: { where: { published: 0 } } }),
@@ -100,6 +104,23 @@ describe("an implementation's override of an interface field", () => {
     expect(result.errors).toBeUndefined();
     expect(ids(result.data.users[0][field]).sort()).toEqual(alice);
     expect(ids(result.data.users[1][field]).sort()).toEqual(bob);
+  });
+
+  it.each([
+    'pub',
+    'selected',
+    'computed',
+  ])('applies an overriding %s beneath a fragment that expands to the implementations', async (field) => {
+    const selection = field === 'pub' ? `${field} { id }` : field;
+    const result = await run(
+      schema(),
+      `{ users { id ... on Linked { ... on I { ${selection} } } } }`,
+    );
+    const values = (user: Record<string, unknown>) =>
+      field === 'pub' ? ids(user[field] as { id: string }[]).sort() : user[field];
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users.map(values)).toEqual([['p-hello'], ['p-bob-draft']]);
   });
 
   it('applies an overriding relation count', async () => {
