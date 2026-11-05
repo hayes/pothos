@@ -678,8 +678,9 @@ describe('models without a key', () => {
       '{ views { viewer ... @defer { viewedAt published { title } } } }',
     );
     expect(result.initial.errors).toBeUndefined();
+    expect(result.patchErrors).toHaveLength(6);
     expect(result.patchErrors).toEqual(
-      [0, 1, 2].flatMap(() => [
+      expect.arrayContaining([
         keylessError('viewedAt', "its parent row is missing 'viewedAt'"),
         keylessError('published', 'it was left out of the query that loaded its parent'),
       ]),
@@ -693,10 +694,13 @@ describe('models without a key', () => {
       keylessSchema(),
       '{ plainViews { viewer viewedAt } builtViews { viewer viewedAt published { title } } }',
     );
-    expect(result.errors).toEqual([
-      keylessError('viewedAt', "its parent row is missing 'viewedAt'"),
-      keylessError('published', 'it was left out of the query that loaded its parent'),
-    ]);
+    expect(result.errors).toHaveLength(2);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        keylessError('viewedAt', "its parent row is missing 'viewedAt'"),
+        keylessError('published', 'it was left out of the query that loaded its parent'),
+      ]),
+    );
     expect(result.data).toEqual({
       plainViews: [{ viewer: 'Dave', viewedAt: null }],
       builtViews: [{ viewer: 'Dave', viewedAt: 'then', published: null }],

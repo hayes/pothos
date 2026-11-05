@@ -461,23 +461,35 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (!resolver || !reader) {
       return resolver;
     }
-    const { config } = this;
-    const { modelKey, missingTypeData, staticColumns } = reader;
     // A prisma type's parent is always a row.
-    return (row, args, context, info) => {
-      const parent = row as object;
-      const missing = missingTypeData(parent);
-      if (!missing) {
-        return resolver(reader.typeParent(parent), args, context, info);
-      }
-      // Loads the type's `select`s alone, so the field's select neither runs before the plugins
-      // listed first nor takes a relation the type's select loads.
-      return reloadFor(info, () =>
-        config
-          .loader(context, modelKey)
-          .loadTypeRow(info, rowOf(parent), missing, staticColumns ?? [], info.parentType),
-      ).then((loaded) => resolver(reader.typeParent(loaded), args, context, info));
-    };
+    return (row, args, context, info) =>
+      completeValue(this.typeRow(reader, row as object, context, info, info.parentType), (parent) =>
+        resolver(parent, args, context, info),
+      );
+  }
+
+  /**
+   * `parent` as the `select`s of its type and interfaces load it. A row without everything they
+   * load, such as a copy another plugin made, is reloaded with them alone, batched with the other
+   * rows of the request, so a field's select neither runs before the plugins listed first nor takes
+   * a relation the type's select loads.
+   */
+  private typeRow(
+    check: TypeRowCheck,
+    parent: object,
+    context: object,
+    info: GraphQLResolveInfo,
+    type: GraphQLObjectType,
+  ): MaybePromise<object> {
+    const missing = check.missingTypeData(parent);
+    if (!missing) {
+      return check.typeParent(parent);
+    }
+    return reloadFor(info, () =>
+      this.config
+        .loader(context, check.modelKey)
+        .loadTypeRow(info, rowOf(parent), missing, check.staticColumns ?? [], type),
+    ).then(check.typeParent);
   }
 
   /**
@@ -590,36 +602,25 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * The row a type's type-level checks should see: the row as the `select`s of the type and its
-   * interfaces load it. A row without everything they load, such as a copy or a variant row a
-   * connection helper loaded through its own table, is reloaded, batched with the other rows of
-   * the request. A complete row is returned as it is, without a promise. The loader matches
+   * The row a type's type-level checks should see, as `typeRow` returns it. The loader matches
    * `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin doesn't import.
    */
   private createTypeParentLoader(typeName: string) {
     let check: TypeRowCheck | undefined;
     let type: GraphQLObjectType | undefined;
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
-      check ??= this.createTypeRowCheck(typeName);
-      const { modelKey, missingTypeData, typeParent } = check;
-      // A prisma type's parent is always a row.
-      const row = parent as object;
-      const missing = missingTypeData(row);
-      if (!missing) {
-        return typeParent(row);
-      }
+      check ??= this.typeRowCheck(typeName, undefined);
       type ??= info.schema.getType(typeName) as GraphQLObjectType;
-      const objectType = type;
-      return reloadFor(info, () =>
-        this.config
-          .loader(context, modelKey)
-          .loadTypeRow(info, rowOf(row), missing, [], objectType),
-      ).then(typeParent);
+      // A prisma type's parent is always a row.
+      return this.typeRow(check, parent as object, context, info, type);
     };
   }
 
-  /** What `createTypeParentLoader` checks a row of `typeName` for. */
-  private createTypeRowCheck(typeName: string): TypeRowCheck {
+  /**
+   * What a row of `typeName` must hold for the `select`s of the type and its interfaces, and
+   * `staticColumns`, the columns a field without a select function reads.
+   */
+  private typeRowCheck(typeName: string, staticColumns: readonly string[] | undefined) {
     const typeConfig = this.buildCache.getTypeConfig(typeName);
     const modelKey = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string;
     const model = getModel(this.config.contract, modelKey);
@@ -627,11 +628,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       name,
       ...splitSelect(raw, model),
     }));
-    const { parentScopes, missingTypeData } = typeDataCheck(selects, []);
+    const check = typeDataCheck(selects, staticColumns ?? []);
     return {
+      ...check,
       modelKey,
-      missingTypeData,
-      typeParent: (row) => parentForType(row, parentScopes),
+      staticColumns,
+      typeParent: (row: object) => parentForType(row, check.parentScopes),
     };
   }
 
@@ -648,15 +650,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return undefined;
     }
     const { contract } = this.config;
-    const model = getModel(contract, modelKey);
-    const selects = this.typeLevelSelects(fieldConfig.parentType).map(({ name, raw }) => ({
-      name,
-      ...splitSelect(raw, model),
-    }));
-    const { requiredOnRow, computedRelations, parentScopes, missingTypeData } = typeDataCheck(
-      selects,
-      typeof selection === 'function' ? [] : (selection.columns ?? []),
-    );
+    const staticColumns = typeof selection === 'function' ? undefined : (selection.columns ?? []);
+    const check = this.typeRowCheck(fieldConfig.parentType, staticColumns);
+    const { parentScopes } = check;
     // A field planned on an interface has its mapping recorded under the interface, but it
     // resolves on the object type.
     const parentTypes = [
@@ -678,9 +674,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       typeof selection === 'function' &&
       (fieldConfig.pothosOptions as { select?: unknown }).select !== undefined;
     return {
-      modelKey,
-      requiredOnRow,
-      computedRelations,
+      ...check,
       planned: typeof selection === 'function' || parentScopes.length > 0,
       loaded: extensions[PRISMA_NEXT_LOADED_CHECK] as Loaded | undefined,
       declaresOwnSelect,
@@ -697,24 +691,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         }
         return mapping;
       },
-      parentScopes,
-      staticColumns: typeof selection === 'function' ? undefined : (selection.columns ?? []),
-      missingTypeData,
-      typeParent: (row) => parentForType(row, parentScopes),
       parent: (row, mapping) =>
         declaresOwnSelect
           ? parentForField(row, parentScopes, mapping?.position)
           : parentForType(row, parentScopes),
     };
   }
-}
-
-interface TypeRowCheck {
-  modelKey: string;
-  /** What `FieldReader.missingTypeData` returns, without a field's columns. */
-  missingTypeData(row: object): string[] | undefined;
-  /** The row as the type's `select`s load it. */
-  typeParent(row: object): object;
 }
 
 /**
@@ -773,12 +755,9 @@ function typeDataCheck(
   return { requiredOnRow, computedRelations, parentScopes, missingTypeData };
 }
 
-interface FieldReader {
-  modelKey: string;
-  /** The columns and relations the parent row must hold, or it reloads. */
-  requiredOnRow: string[];
-  /** Scopes that must have slots on the row, or the parent reloads. */
-  computedRelations: string[];
+type TypeRowCheck = ReturnType<PothosPrismaNextPlugin<SchemaTypes>['typeRowCheck']>;
+
+interface FieldReader extends TypeRowCheck {
   planned: boolean;
   loaded: Loaded | undefined;
   /** Whether `parent` includes the field's own `select`. */
@@ -790,22 +769,6 @@ interface FieldReader {
   readsSlots: boolean;
   /** The field's loader mapping. */
   mapping(parent: object, context: object, info: GraphQLResolveInfo): Mapping | null;
-  /** The type-level selects of the parent type whose loads the row is checked for. */
-  parentScopes: string[];
-  /**
-   * The columns and relations the `select`s of the parent type and its interfaces load that `row`
-   * lacks, with the columns a field without a select function reads, such as the one `t.expose*`
-   * exposes, which its options see too. Undefined when it has them all.
-   */
-  missingTypeData(row: object): string[] | undefined;
-  /** The columns a field without a select function reads, or undefined for one with one. */
-  staticColumns: readonly string[] | undefined;
-  /**
-   * The parent plugins around the field see: the row as the `select`s of the parent type and its
-   * interfaces load it. A field an interface declares sees it too: `assertSelectsAgree` keeps those
-   * selects to one version of a relation's rows.
-   */
-  typeParent(row: object): object;
   /** The parent the field's resolver and the plugins listed after this one get. */
   parent(row: object, mapping: Mapping | null | undefined): object;
 }
