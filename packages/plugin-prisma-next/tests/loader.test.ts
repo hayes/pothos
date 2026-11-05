@@ -140,6 +140,28 @@ describe('reloading through collections', () => {
     expect(result.statements[0].params).toEqual(expect.arrayContaining(['p-hello', 'p-draft1']));
   });
 
+  it("keeps the keys a resolver added that aren't the model's when a field reloads", async () => {
+    const builder = createBuilder();
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        postCount: t.string({
+          select: { posts: true },
+          resolve: (user) =>
+            `${(user as { nickname?: string }).nickname}: ${user.posts.length} posts`,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.field({ type: User, resolve: () => ({ id: 'u-alice', nickname: 'Al' }) as never }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ user { postCount } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user).toEqual({ postCount: 'Al: 2 posts' });
+    expect(result.statements).toHaveLength(1);
+  });
+
   it('checks whether a reload joins a batch once per selection, not once per row', async () => {
     const builder = createBuilder();
     const Post = builder.prismaObject('Post', {

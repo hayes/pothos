@@ -158,14 +158,15 @@ export class ModelLoader {
     const load = (played: Played) => {
       const values = this.identity.map((field) => (parent as Row)[field]);
       const staged = this.stage(played.root, this.identity, values, { kind: 'parent' });
-      return staged.then((row) => {
+      return staged.then((reloaded) => {
+        const row = withOtherKeys(reloaded!, parent, played.root.model);
         // The plan is walked from the parent type, so the field's own mapping is keyed by the
         // parent type and the field's response key.
         const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
         if (mapping) {
-          setRowFieldMapping(this.context, info, mapping, row!);
+          setRowFieldMapping(this.context, info, mapping, row);
         }
-        return { row: row!, mapping };
+        return { row, mapping };
       });
     };
     return completeValue(selection, load) as Promise<{ row: Row; mapping: Mapping | undefined }>;
