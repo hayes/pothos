@@ -12,8 +12,7 @@ Set up Prisma ORM 8 (`8.0.0-rc.22`) and your contract with the
 npm install --save @pothos/core @pothos/plugin-prisma-next graphql
 ```
 
-Requires Node.js 22.18+ or 24+. The Prisma CLI needs 24.11+ on Node.js 24, and SQLite needs 22.20+
-on Node.js 22. You can't use this plugin alongside `@pothos/plugin-prisma`.
+You can't use this plugin alongside `@pothos/plugin-prisma`.
 If you use [`@pothos/plugin-scope-auth`](/docs/plugins/scope-auth), it needs to be 4.3.0 or newer.
 
 ## Configure the builder
@@ -27,7 +26,7 @@ import { contract, db } from './prisma/db';
 
 const builder = new SchemaBuilder<{
   PrismaNextContract: typeof contract;
-  Context: { db: typeof db };
+  Context: { db: typeof db; userId: string; isAdmin: boolean };
 }>({
   plugins: [prismaNextPlugin],
   prismaNext: { client: db },
@@ -54,9 +53,11 @@ export const schema = builder.toSchema();
 
 For nodes and connections, also install and add [`@pothos/plugin-relay`](/docs/plugins/relay).
 
-This example uses PostgreSQL, where the client groups models by schema (`ctx.db.orm.public.User`).
-SQLite and MySQL work the same way with their own Prisma packages. Their clients don't group models,
-and the rest of these docs use that shorter form, `ctx.db.orm.User`.
+This example uses PostgreSQL:
+
+- The client groups models by schema (`ctx.db.orm.public.User`).
+- SQLite and MySQL work the same way with their own Prisma packages. Their clients don't group
+  models, and the rest of these docs use that shorter form, `ctx.db.orm.User`.
 
 Pass a context object, such as `contextValue: {}`, when you execute an operation. The plugin keeps
 per-request state on it.

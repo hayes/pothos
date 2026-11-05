@@ -51,10 +51,13 @@ Implementing objects don't accept `isTypeOf`.
 `resolveType` sees the columns and to-one relations in the interface's `select`, but not its to-many
 relations, counts or aggregates.
 
-An interface and a type that implements it, or two interfaces of one type, can't select the same
-relation with different arguments in their type-level `select`. The schema build throws. Load the
-other version with `t.relation` or a field's `select`. If a type and its interface compute a value
-under the same name, the type's value wins everywhere, including in the interface's auth checks.
+When a type and its interfaces both select data:
+
+- An interface and a type that implements it, or two interfaces of one type, can't select the same
+  relation with different arguments in their type-level `select`. The schema build throws. Load the
+  other version with `t.relation` or a field's `select`.
+- If a type and its interface compute a value under the same name, the type's value wins
+  everywhere, including in the interface's auth checks.
 
 To add fields to the interface from another file, use `prismaInterfaceField` or
 `prismaInterfaceFields`:
@@ -70,11 +73,12 @@ builder.prismaInterfaceField(Person, 'displayName', (t) =>
 
 ## Returning rows from other fields
 
-To return a row through `Node`, or through an interface from `builder.interfaceRef()`, brand it with
-the type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
-`Abstract type ... must resolve`. If you route a row yourself, with a `__typename` or a
-`resolveType` that returns a type name, TypeScript doesn't check that the row has the type's key and
-`select`.
+To return a row through `Node`, or through an interface from `builder.interfaceRef()`:
+
+- Brand it with the type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
+  `Abstract type ... must resolve`.
+- If you route a row yourself, with a `__typename` or a `resolveType` that returns a type name,
+  TypeScript doesn't check that the row has the type's key and `select`.
 
 ## Native inheritance
 

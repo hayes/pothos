@@ -55,10 +55,13 @@ order by relation columns, aggregates or expressions. Nullable columns sort null
 orderBy: { score: { direction: 'desc', nulls: 'first' } },
 ```
 
-If the order doesn't include a unique key, the plugin adds the primary key to the end, in the same
-direction as the last column. If the primary key can't be ordered, it uses the first non-null unique
-key that can. On PostgreSQL, index the order columns with matching null placement. For
-`{ score: 'desc' }`, that's `CREATE INDEX ON post (score DESC NULLS LAST, id DESC)`.
+If the order doesn't include a unique key:
+
+- The plugin adds the primary key to the end, in the same direction as the last column.
+- If the primary key can't be ordered, it uses the first non-null unique key that can.
+
+On PostgreSQL, index the order columns with matching null placement. For `{ score: 'desc' }`, that's
+`CREATE INDEX ON post (score DESC NULLS LAST, id DESC)`.
 
 To let clients choose the order, pass a function of the arguments:
 

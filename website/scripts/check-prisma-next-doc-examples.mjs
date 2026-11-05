@@ -1,17 +1,18 @@
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { parseCodeBlocks } from './doc-code-blocks.mjs';
 
-// Type-check the inline TypeScript on the Prisma Next pages. Source includes come from the
+// Type-check the inline TypeScript on the Prisma Next pages and the plugin's README. Source includes come from the
 // playground example, which `type:examples` already checks.
 //
 // Each page becomes one module, its blocks in order, so later blocks can use refs that earlier
 // blocks define. Blocks run against the plugin's SQLite test contract, or its inheritance contract
 // for Task variants. Postgres-only blocks (schema-grouped clients, `auth.User`) have no matching
-// contract and are skipped.
+// contract and are skipped, as are blocks that create their own builder.
 const pagesDirectory = 'website/content/docs/plugins/prisma-next';
-const postgresOnly = /orm\.public\b|'auth\.|@prisma\/orm-postgres/;
+const readme = 'packages/plugin-prisma-next/README.md';
+const skip = /orm\.public\b|'auth\.|@prisma\/orm-postgres|new SchemaBuilder\b/;
 
 const preamble = (contract) => `import SchemaBuilder from '@pothos/core';
 import prismaNextPlugin from '@pothos/plugin-prisma-next';
@@ -88,17 +89,18 @@ export async function checkPrismaNextDocExamples(root, tsc) {
   let skipped = 0;
   try {
     const files = [];
-    for (const page of (await readdir(join(root, pagesDirectory))).sort()) {
-      if (!page.endsWith('.mdx')) {
-        continue;
-      }
-      const source = (await readFile(join(root, pagesDirectory, page), 'utf8')).replace(
+    const pages = (await readdir(join(root, pagesDirectory)))
+      .filter((page) => page.endsWith('.mdx'))
+      .sort()
+      .map((page) => join(pagesDirectory, page));
+    for (const page of [...pages, readme]) {
+      const source = (await readFile(join(root, page), 'utf8')).replace(
         /<include(?:regions)?\b[^>]*>[^<]*<\/include(?:regions)?>/g,
         '',
       );
       const groups = { sample: [], inheritance: [] };
       for (const block of parseCodeBlocks(source, ['ts', 'typescript'])) {
-        if (postgresOnly.test(block)) {
+        if (skip.test(block)) {
           skipped++;
           continue;
         }
@@ -113,7 +115,8 @@ export async function checkPrismaNextDocExamples(root, tsc) {
           group === 'sample'
             ? '../tests/fixtures/sample-contract'
             : '../tests/inheritance/contract';
-        const file = join(fixture, `${page.replace(/\.mdx$/, '')}-${group}.ts`);
+        const name = page === readme ? 'README' : basename(page, '.mdx');
+        const file = join(fixture, `${name}-${group}.ts`);
         await writeFile(file, pageModule(blocks, contract));
         files.push(file);
       }
