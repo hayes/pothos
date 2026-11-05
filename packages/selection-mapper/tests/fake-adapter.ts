@@ -9,6 +9,7 @@ import {
   type GraphQLResolveInfo,
   parse,
 } from 'graphql';
+import { expect } from 'vitest';
 import type { Adapter, Mappings, Node, QueryVisitor, SelectFn, WalkedType } from '../src';
 import { NodeAdapter, Plan } from '../src';
 import type { NodeBase } from '../src/adapter';
@@ -248,4 +249,12 @@ export function fieldNodeOf(info: GraphQLResolveInfo): FieldNode {
 /** Whether an object has any own enumerable key: `toQuery` writes `true` for an empty selection. */
 function hasKeys(value: object) {
   return Object.keys(value).length > 0;
+}
+
+/** An error clients see as `Unexpected error.`, whose `cause` has `detail`. */
+export function unexpected(detail: string) {
+  return expect.objectContaining({
+    message: 'Unexpected error.',
+    cause: expect.objectContaining({ message: expect.stringContaining(detail) }),
+  });
 }

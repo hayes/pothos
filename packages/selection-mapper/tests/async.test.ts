@@ -9,17 +9,10 @@ import {
   mappingsOf,
   queryFromInfo,
   resolveInfo,
+  unexpected,
 } from './fake-adapter';
 import { countPromises } from './promise-spy';
 import { createTestAdapter, createTestSchema, type Wrap, withSelects, withWraps } from './schema';
-
-/** An error clients see as `Unexpected error.`, whose `cause` has `detail`. */
-function unexpected(detail: string) {
-  return expect.objectContaining({
-    message: 'Unexpected error.',
-    cause: expect.objectContaining({ message: expect.stringContaining(detail) }),
-  });
-}
 
 const schema = createTestSchema();
 const adapter = createTestAdapter();
