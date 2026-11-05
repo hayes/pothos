@@ -457,11 +457,9 @@ describe('orderBy', () => {
       'query ($after: String) { users { down: ordered(first: 1, newest: true, after: $after) { edges { node { id } } } up: ordered(first: 1, after: $after) { edges { node { id } } } } }',
       { after: cursor },
     );
-    expect(ids(next.data.users[0].down)).toEqual(['p-draft1']);
-    expect(next.data.users[0].up).toBeNull();
+    expect(next.data.users).toBeNull();
     expect(next.errors?.map((error) => [error.path, error.message])).toEqual([
-      [['users', 0, 'up'], 'Invalid cursor.'],
-      [['users', 1, 'up'], 'Invalid cursor.'],
+      [['users'], 'Invalid cursor.'],
     ]);
   });
 
@@ -536,23 +534,16 @@ describe('related connection errors', () => {
     ['a column that is not orderable', 'ordered(sort: "nope", first: 1)', /^Unexpected error\.$/],
     ['a throwing query callback', 'guarded(first: 1)', /not allowed/],
     ['a throwing query callback beneath totalCount', 'guarded', /not allowed/],
-  ])('fails only the connection field, without planning it, for %s', async (_name, field, message) => {
+  ])('fails the root field, without querying, for %s', async (_name, field, message) => {
     const selection = field === 'guarded' ? 'totalCount' : 'nodes { id }';
     const result = await run(errorSchema(), `{ users { id c: ${field} { ${selection} } } }`);
-    expect(result.data.users).toEqual([
-      { id: 'u-alice', c: null },
-      { id: 'u-bob', c: null },
-    ]);
-    expect(result.errors?.map((error) => error.path)).toEqual([
-      ['users', 0, 'c'],
-      ['users', 1, 'c'],
-    ]);
+    expect(result.data.users).toBeNull();
+    expect(result.errors?.map((error) => error.path)).toEqual([['users']]);
     expect(result.errors?.every((error) => message.test(error.message))).toBe(true);
-    expect(result.statements).toHaveLength(1);
-    expect(result.statements[0].sql).not.toMatch(/post/i);
+    expect(result.statements).toHaveLength(0);
   });
 
-  it('fails only the connection field for a cursor from columns the orderBy callback dropped', async () => {
+  it('fails the root field for a cursor from columns the orderBy callback dropped', async () => {
     const first = await run(
       errorSchema(),
       '{ users { c: sometimesOrdered(first: 1, newest: true) { pageInfo { endCursor } } } }',
@@ -563,15 +554,10 @@ describe('related connection errors', () => {
       'query ($after: String) { users { id posts(first: 1) { nodes { id } } c: sometimesOrdered(first: 1, after: $after) { nodes { id } } } }',
       { variables: { after } },
     );
-    expect(result.data.users).toEqual([
-      { id: 'u-alice', posts: { nodes: [{ id: 'p-draft1' }] }, c: null },
-      { id: 'u-bob', posts: { nodes: [{ id: 'p-bob-draft' }] }, c: null },
+    expect(result.data.users).toBeNull();
+    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
+      [['users'], 'Invalid cursor.'],
     ]);
-    expect(result.errors?.map((error) => error.path)).toEqual([
-      ['users', 0, 'c'],
-      ['users', 1, 'c'],
-    ]);
-    expect(result.errors?.every((error) => error.message === 'Invalid cursor.')).toBe(true);
   });
 
   it('plans the same connections normally when their callbacks succeed', async () => {
@@ -932,7 +918,7 @@ describe('related connection state', () => {
       expect(calls.sizes).toBe(1);
     }
     const bad = await run(schema, '{ withPosts { posts(after: "nope") { nodes { id } } } }');
-    expect(bad.data.withPosts).toEqual([{ posts: null }, { posts: null }]);
+    expect(bad.data.withPosts).toBeNull();
     expect(bad.errors?.every((error) => /Invalid cursor/.test(error.message))).toBe(true);
   });
 });
@@ -1773,18 +1759,14 @@ describe('prismaConnectionHelpers', () => {
     expect(calls).toEqual({ orderBy: 1, query: 1 });
   });
 
-  it('fails only the connection field when a page is given an invalid cursor', async () => {
+  it('fails the root field when a page is given an invalid cursor', async () => {
     const result = await run(
       commentersSchema(),
       '{ posts { id commenters(first: 1, after: "nope") { edges { node { firstName } } } } }',
     );
-    expect(result.data.posts).toEqual([
-      { id: 'p-bob1', commenters: null },
-      { id: 'p-hello', commenters: null },
-    ]);
+    expect(result.data.posts).toBeNull();
     expect(result.errors?.every((error) => /Invalid cursor/.test(error.message))).toBe(true);
-    expect(result.statements).toHaveLength(1);
-    expect(result.statements[0].sql).not.toMatch(/comment/);
+    expect(result.statements).toHaveLength(0);
   });
 
   it('plans the nodes through a join model with applyPagination and info', async () => {

@@ -66,7 +66,6 @@ import {
   rowOf,
   scopeOf,
   splitSelect,
-  throwPlanningFailure,
 } from './utils/selections.js';
 import { completeReturnedVariantRows } from './utils/variant-rows.js';
 import { assertVariantTypes } from './utils/variant-types.js';
@@ -707,7 +706,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
             fieldConfig.pothosOptions,
           );
         }
-        throwPlanningFailure(mapping?.position);
         return mapping;
       },
       parentScopes,
@@ -801,7 +799,7 @@ interface FieldReader {
    * `t.variant` is the one such helper whose resolver doesn't.
    */
   readsSlots: boolean;
-  /** The field's loader mapping. Throws what the field's select function threw, if it threw. */
+  /** The field's loader mapping. */
   mapping(parent: object, context: object, info: GraphQLResolveInfo): Mapping | null;
   /** The type-level selects of the parent type whose loads the row is checked for. */
   parentScopes: string[];

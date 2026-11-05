@@ -17,7 +17,7 @@ import { PRISMA_NEXT_MODEL } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import { variantForRelationType } from './contract.js';
-import { InternalError, keepError } from './errors.js';
+import { InternalError } from './errors.js';
 import {
   getModel,
   ownTableVariantRowsError,
@@ -110,40 +110,6 @@ interface FieldPlanning {
   nested: NestedSelection<PrismaNextSelection>;
   selected: SelectedFieldNode;
   position: Position;
-}
-
-/** What a field's select function threw, by the position it was planned at. */
-const planningFailures = new WeakMap<Position, { error: unknown }>();
-
-/**
- * A field's select function that, when it throws or rejects, records the error at its position and
- * selects nothing, so the query it was planned into still runs. The empty selection keeps the
- * field's mapping, which leads its resolver to the position, and the resolver throws the error
- * (`throwPlanningFailure`). A select that fails beneath it records its own position, so only the
- * field that failed does.
- */
-export function recordingFailures(select: PrismaNextSelectFn): PrismaNextSelectFn {
-  return (args, ctx, nested, selected, position) => {
-    const fail = (error: unknown) => {
-      // The resolver rethrows it as it is.
-      planningFailures.set(position, { error: keepError(error) });
-      return EMPTY;
-    };
-    try {
-      const query = select(args, ctx, nested, selected, position);
-      return isThenable(query) ? Promise.resolve(query).catch(fail) : query;
-    } catch (error) {
-      return fail(error);
-    }
-  };
-}
-
-/** Throws what the select function of the field planned at `position` threw, if it threw. */
-export function throwPlanningFailure(position: Position | undefined) {
-  const failure = position && planningFailures.get(position);
-  if (failure) {
-    throw failure.error;
-  }
 }
 
 /** Plans the page a `select` entry loads from relation `name`. */

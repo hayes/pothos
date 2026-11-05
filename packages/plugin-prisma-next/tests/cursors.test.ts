@@ -312,16 +312,14 @@ describe('rejected cursors', () => {
     expect(result.statements).toHaveLength(0);
   });
 
-  it('fails only the connection field holding the bad cursor', async () => {
+  it('fails the root field whose query holds the bad cursor', async () => {
     const result = await run(
       schema(),
       '{ users { id posts(first: 1, after: "!!!") { edges { node { id } } } } }',
     );
-    expect(result.data.users[0]).toEqual({ id: 'u-alice', posts: null });
-    expect(result.errors?.[0].message).toMatch(/Invalid cursor/);
-    expect(result.errors?.map((error) => error.path)).toEqual([
-      ['users', 0, 'posts'],
-      ['users', 1, 'posts'],
+    expect(result.data.users).toBeNull();
+    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
+      [['users'], 'Invalid cursor.'],
     ]);
   });
 

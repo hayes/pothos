@@ -469,7 +469,7 @@ describe('root-style fields on a prisma type', () => {
   });
 });
 
-describe('a field whose selection fails to plan', () => {
+describe('a selection that fails to plan', () => {
   const fail = () => {
     throw new Error('not allowed');
   };
@@ -509,40 +509,21 @@ describe('a field whose selection fails to plan', () => {
   });
   const schema = builder.toSchema();
 
+  // As in plugin-prisma, the error fails the root field whose query the selection is planned into.
   it.each([
     ['a relation query callback', 'relation { title }'],
     ['a relatedConnection query callback', 'connection { edges { cursor } }'],
     ['a field select function', 'selected'],
     ['an async field select function', 'asyncSelected'],
-  ])('fails only that field for %s that throws', async (_name, field) => {
+    ['a relationCount where callback', 'count'],
+    ['a relation query callback beneath a relation', 'nested { title author { id: __typename } }'],
+  ])('fails the root field for %s that throws', async (_name, field) => {
     const result = await run(schema, `{ users { firstName ${field} } }`);
     expect(result.errors?.map((error) => [error.message, error.path])).toEqual([
-      ['not allowed', ['users', 0, field.split(' ')[0]]],
-    ]);
-    expect(result.data.users).toEqual([{ firstName: 'Bob', [field.split(' ')[0]!]: null }]);
-    expect(result.statements).toHaveLength(1);
-  });
-
-  it('fails the count and, since a count is never null, its parent for a relationCount where callback that throws', async () => {
-    const result = await run(schema, '{ users { firstName count } }');
-    expect(result.errors?.map((error) => [error.message, error.path])).toEqual([
-      ['not allowed', ['users', 0, 'count']],
+      ['not allowed', ['users']],
     ]);
     expect(result.data).toEqual({ users: null });
-    expect(result.statements).toHaveLength(1);
-  });
-
-  it('fails a field beneath a relation without failing the relation', async () => {
-    const result = await run(schema, '{ users { nested { title author { id: __typename } } } }');
-    expect(result.errors?.map((error) => error.path)).toEqual([
-      ['users', 0, 'nested', 0, 'author'],
-      ['users', 0, 'nested', 1, 'author'],
-    ]);
-    expect(result.data.users[0].nested.map((post: { title: string }) => post.title)).toEqual([
-      'Bob writes',
-      'Bob draft',
-    ]);
-    expect(result.statements).toHaveLength(1);
+    expect(result.statements).toHaveLength(0);
   });
 });
 

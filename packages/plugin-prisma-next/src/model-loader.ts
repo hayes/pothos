@@ -1,6 +1,7 @@
 import {
   brandWithType,
   completeValue,
+  isThenable,
   type MaybePromise,
   type OutputType,
   PothosValidationError,
@@ -22,7 +23,7 @@ import type { PrismaNextConfig } from './utils/config.js';
 import { variantOf } from './utils/contract.js';
 import { InternalError, keepError } from './utils/errors.js';
 import { getIdentityFields, getModel, type PrismaNextModel } from './utils/model.js';
-import { type PrismaNextSelection, takeSlots, throwPlanningFailure } from './utils/selections.js';
+import { type PrismaNextSelection, takeSlots } from './utils/selections.js';
 
 type Row = Record<string, unknown>;
 type Played = PlayedPlan<PrismaNextModel, PrismaNextSelection>;
@@ -134,11 +135,19 @@ export class ModelLoader {
     const plans = this.plansFor(info).parent;
     let selection = plans.get(key);
     if (!selection) {
-      selection = Plan.forParentRow(this.config.adapter, {
-        context: this.context,
-        info,
-        initial: this.initial,
-      });
+      // The field's select runs here, so what it throws reaches the field as it is.
+      const planned: MaybePromise<Played> = userCode(() =>
+        Plan.forParentRow(this.config.adapter, {
+          context: this.context,
+          info,
+          initial: this.initial,
+        }),
+      );
+      selection = isThenable(planned)
+        ? (Promise.resolve(planned) as Promise<Played>).catch((error: unknown) => {
+            throw keepError(error);
+          })
+        : planned;
       plans.set(key, selection);
     }
     const load = (played: Played) => {
@@ -148,8 +157,6 @@ export class ModelLoader {
         // The plan is walked from the parent type, so the field's own mapping is keyed by the
         // parent type and the field's response key.
         const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
-        // A field whose select function failed throws that error rather than resolving.
-        throwPlanningFailure(mapping?.position);
         if (mapping) {
           setRowFieldMapping(this.context, info, mapping, row!);
         }

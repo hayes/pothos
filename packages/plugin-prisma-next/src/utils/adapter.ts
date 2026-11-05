@@ -41,7 +41,6 @@ import {
   type RawSelect,
   REFINE,
   type RelationArgs,
-  recordingFailures,
   relationName,
   SCOPE_SEPARATOR,
 } from './selections.js';
@@ -218,9 +217,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       | PrismaNextSelection
       | PrismaNextSelectFn
       | undefined;
-    return typeof own === 'function'
-      ? recordingFailures(own)
-      : (own ?? (implementationsOf(type) ? EMPTY : undefined));
+    return own ?? (implementationsOf(type) ? EMPTY : undefined);
   }
 
   visitQuery(selection: PrismaNextSelection, model: PrismaNextModel, visit: Visitor) {
