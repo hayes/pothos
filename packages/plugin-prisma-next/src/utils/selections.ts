@@ -351,12 +351,21 @@ export function rowOf(value: object): object {
   return rowSlots.get(value)?.row ?? value;
 }
 
-/** A copy of `base` with what `scopes` loaded written onto it, cached per row and scopes. */
-function projection(entry: RowSlots, base: object, scopes: readonly string[]) {
+/**
+ * A copy of `base` with what `scopes` loaded written onto it, cached per row and scopes. `check`
+ * runs before a copy is made.
+ */
+function projection(
+  entry: RowSlots,
+  base: object,
+  scopes: readonly string[],
+  check?: (entry: RowSlots, scopes: readonly string[]) => void,
+) {
   const key = scopes.join(SCOPE_SEPARATOR);
   entry.projections ??= new Map();
   let projected = entry.projections.get(key);
   if (!projected) {
+    check?.(entry, scopes);
     const copy = copyOf(base);
     lift(copy, entry, scopes);
     rowSlots.set(copy, entry);
@@ -377,10 +386,7 @@ export function parentForType(value: object, scopes: readonly string[]): object 
   if (!entry || !scopes.some((scope) => entry.scopes.has(scope))) {
     return row;
   }
-  if (!entry.projections?.has(scopes.join(SCOPE_SEPARATOR))) {
-    assertOneWriter(entry, scopes);
-  }
-  return projection(entry, row, scopes);
+  return projection(entry, row, scopes, assertOneWriter);
 }
 
 /**
