@@ -1581,6 +1581,96 @@ describe('a relation targeting a variant model with a table of its own', () => {
       ]);
     });
 
+    describe("a field's select rows returned as another list value", () => {
+      const tasks = [
+        { __typename: 'Bug', title: 'bug1' },
+        { __typename: 'Feature', title: 'feat1' },
+      ];
+      it('completes promised rows', async () => {
+        const { builder, task } = taskBuilder();
+        builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+        builder.prismaObject('User', {
+          fields: (t) => ({
+            tasks: t.field({
+              type: [task],
+              select: { reviews: true, championed: true },
+              resolve: (user) =>
+                [...user.reviews, ...user.championed].map((row) => Promise.resolve(row)),
+            }),
+          }),
+        });
+        const result = await run(builder.toSchema(), '{ users { tasks { __typename title } } }');
+        expect(result.errors).toBeUndefined();
+        expect(result.data.users).toEqual([{ tasks }]);
+        // As for an array of the rows: the users with their rows, the discriminator Feature's rows
+        // lack, and the title's reload.
+        expect(result.statements).toHaveLength(3);
+      });
+
+      it('completes rows returned as a Set', async () => {
+        const { builder, task } = taskBuilder();
+        builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+        builder.prismaObject('User', {
+          fields: (t) => ({
+            tasks: t.field({
+              type: [task],
+              select: { reviews: true, championed: true },
+              resolve: (user) => new Set([...user.reviews, ...user.championed]),
+            }),
+          }),
+        });
+        const result = await run(builder.toSchema(), '{ users { tasks { __typename title } } }');
+        expect(result.errors).toBeUndefined();
+        expect(result.data.users).toEqual([{ tasks }]);
+        expect(result.statements).toHaveLength(3);
+      });
+
+      it('completes rows returned as an async iterable', async () => {
+        const { builder, task } = taskBuilder();
+        builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+        builder.prismaObject('User', {
+          fields: (t) => ({
+            tasks: t.field({
+              type: [task],
+              select: { reviews: true, championed: true },
+              resolve: async function* rows(user) {
+                yield* user.reviews;
+                yield* user.championed;
+              },
+            }),
+          }),
+        });
+        const result = await run(builder.toSchema(), '{ users { tasks { __typename title } } }');
+        expect(result.errors).toBeUndefined();
+        expect(result.data.users).toEqual([{ tasks }]);
+      });
+
+      it('keeps a rejected or null item as that item', async () => {
+        const { builder, task } = taskBuilder();
+        builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+        builder.prismaObject('User', {
+          fields: (t) => ({
+            tasks: t.field({
+              type: [task],
+              nullable: { list: false, items: true },
+              select: { reviews: true, championed: true },
+              resolve: (user) => [
+                Promise.reject(new Error('Not loaded')),
+                null,
+                ...user.reviews.map((row) => Promise.resolve(row)),
+                ...user.championed,
+              ],
+            }),
+          }),
+        });
+        const result = await run(builder.toSchema(), '{ users { tasks { __typename title } } }');
+        expect(result.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
+          { message: 'Not loaded', path: ['users', 0, 'tasks', 0] },
+        ]);
+        expect(result.data.users).toEqual([{ tasks: [null, null, ...tasks] }]);
+      });
+    });
+
     it('completes the rows of two relations returning the interface', async () => {
       const { builder, task } = taskBuilder();
       builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });

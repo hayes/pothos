@@ -1,5 +1,11 @@
-import { isThenable, type MaybePromise } from '@pothos/core';
-import { type GraphQLNamedType, type GraphQLResolveInfo, getNamedType } from 'graphql';
+import { completeValue, isThenable, type MaybePromise } from '@pothos/core';
+import {
+  type GraphQLNamedType,
+  type GraphQLResolveInfo,
+  getNamedType,
+  getNullableType,
+  isListType,
+} from 'graphql';
 import { getPluginConfig } from './config.js';
 import { reloadFor } from './errors.js';
 import type { PrismaNextRelation } from './model.js';
@@ -39,7 +45,8 @@ export function completeVariantRows<T>(
 
 /**
  * `completeVariantRows` for what a field with its own `select` returned: the rows of a relation
- * that targets a variant model, which the field's select loaded, as a row or a list of them.
+ * that targets a variant model, which the field's select loaded, as a row or a list of them. A list
+ * can be any iterable, and its items promises, which settle before the rows complete.
  */
 export function completeReturnedVariantRows(
   builder: object,
@@ -47,14 +54,54 @@ export function completeReturnedVariantRows(
   context: object,
   info: GraphQLResolveInfo,
 ): unknown {
-  const list: unknown[] = Array.isArray(value) ? value : [value];
+  if (Array.isArray(value)) {
+    return completeReturnedList(builder, value, context, info, false);
+  }
+  if (value && typeof value === 'object' && isListType(getNullableType(info.returnType))) {
+    if (Symbol.asyncIterator in value) {
+      return completeEach(builder, value as AsyncIterable<unknown>, context, info);
+    }
+    if (Symbol.iterator in value) {
+      return completeReturnedList(builder, [...(value as Iterable<unknown>)], context, info, false);
+    }
+  }
+  return completeValue(
+    completeReturnedList(builder, [value], context, info, false),
+    (rows) => rows[0] ?? null,
+  );
+}
+
+async function* completeEach(
+  builder: object,
+  items: AsyncIterable<unknown>,
+  context: object,
+  info: GraphQLResolveInfo,
+) {
+  for await (const item of items) {
+    yield* await completeReturnedList(builder, [await item], context, info, false);
+  }
+}
+
+/**
+ * Completes the rows among `list`'s items. A promised item settles first: a rejected one stays as
+ * its promise, which `settled` lists hold, for GraphQL to report as that item's error.
+ */
+function completeReturnedList(
+  builder: object,
+  list: unknown[],
+  context: object,
+  info: GraphQLResolveInfo,
+  settled: boolean,
+): MaybePromise<unknown[]> {
   const byRelation = new Map<PrismaNextRelation, object[]>();
+  let promised = false;
   for (const row of list) {
     if (!row || typeof row !== 'object') {
       continue;
     }
     const relation = loadedThrough(row);
     if (!relation) {
+      promised ||= !settled && isThenable(row);
       continue;
     }
     let rows = byRelation.get(relation);
@@ -64,20 +111,39 @@ export function completeReturnedVariantRows(
     }
     rows.push(row);
   }
+  if (promised) {
+    return Promise.all(
+      list.map((item) =>
+        isThenable(item)
+          ? item.then(
+              (row) => [row],
+              () => [item],
+            )
+          : [item],
+      ),
+    ).then((items) =>
+      completeReturnedList(
+        builder,
+        items.map(([item]) => item),
+        context,
+        info,
+        true,
+      ),
+    );
+  }
   if (!byRelation.size) {
-    return value;
+    return list;
   }
   const type = getNamedType(info.returnType);
   const completions = [...byRelation].map(([relation, rows]) =>
     completeVariantRows(builder, relation, type, context, info, rows),
   );
+  // Rows of each relation that didn't complete aren't of the variant.
   const keep = (completed: object[][]) => {
     const kept = new Set(completed.flat());
-    // Rows of each relation that didn't complete aren't of the variant.
-    const rows = list.filter(
+    return list.filter(
       (row) => !(row && typeof row === 'object' && loadedThrough(row)) || kept.has(row),
     );
-    return Array.isArray(value) ? rows : (rows[0] ?? null);
   };
   return completions.some(isThenable)
     ? Promise.all(completions).then(keep)
