@@ -151,12 +151,24 @@ describe('findMatches', () => {
     fragments.push('fragment F12 on Person { posts { id } }');
 
     const info = await resolveInfo(schema, `{ person { ...F1 } }\n${fragments.join('\n')}`);
-    const started = performance.now();
+    // Counts how often the last fragment's selections are traversed.
+    const { selectionSet } = info.fragments.F12;
+    const { selections } = selectionSet;
+    let traversals = 0;
+
+    Object.defineProperty(selectionSet, 'selections', {
+      get: () => {
+        traversals += 1;
+
+        return selections;
+      },
+    });
+
     const matches = findMatches(info, getNamedType(info.returnType), fieldNodeOf(info), [
       [{ name: 'posts' }],
     ]);
 
-    expect(performance.now() - started).toBeLessThan(1000);
+    expect(traversals).toBe(1);
     expect(matches.map((match) => [match.type.name, match.path])).toEqual([['Post', ['posts']]]);
   });
 

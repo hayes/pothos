@@ -8,6 +8,7 @@ export { deepEqual } from './deep-equal.js';
 export {
   cacheKey,
   getLoaderMapping,
+  type Mapping,
   type Mappings,
   setFieldMapping,
   setLoaderMappings,
@@ -21,10 +22,12 @@ export {
   selectedFieldNames,
 } from './matches.js';
 export { type Node, NodeAdapter, type QueryVisitor } from './node.js';
+export { mappingParentTypes } from './parent-types.js';
 export { Plan, type PlayedPlan } from './plan.js';
 export type {
   MergeOptions,
   NestedSelection,
+  ParentRowOptions,
   Position,
   SelectedFieldNode,
   SelectFn,

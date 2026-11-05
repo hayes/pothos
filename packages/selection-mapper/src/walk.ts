@@ -4,12 +4,7 @@
  * `Plan` import below is a type import, so nothing here runs at import time and the pair is not a
  * runtime cycle.
  */
-import {
-  getMappedArgumentValues,
-  isThenable,
-  type MaybePromise,
-  PothosValidationError,
-} from '@pothos/core';
+import { getMappedArgumentValues, isThenable, type MaybePromise } from '@pothos/core';
 import {
   type FieldNode,
   type FragmentDefinitionNode,
@@ -17,12 +12,14 @@ import {
   type GraphQLNamedType,
   getNamedType,
   type InlineFragmentNode,
+  isAbstractType,
   isInterfaceType,
   isObjectType,
   Kind,
   type SelectionNode,
 } from 'graphql';
 import type { NodeBase } from './adapter.js';
+import { unexpectedError } from './errors.js';
 import { EMPTY_MAPPING, type Mapping, unionMappings } from './loader-map.js';
 import {
   collectSelectedFieldNames,
@@ -37,6 +34,7 @@ import {
   resolveType,
 } from './matches.js';
 import type { Plan } from './plan.js';
+import { fieldShape, selectionShape } from './shape.js';
 import type { NestedSelection, Position, SelectFn, WalkedType } from './types.js';
 
 /**
@@ -46,6 +44,55 @@ import type { NestedSelection, Position, SelectFn, WalkedType } from './types.js
  */
 interface Invocation extends Mapping {
   pending?: number;
+}
+
+/**
+ * The select invocations of one walk, by the shape of the field node (see `fieldShape`) and the
+ * mapping key: two nodes of one shape at one place select the same thing under the same response
+ * key, so the first invocation answers for both, and the second is neither invoked nor collected.
+ * Local to a walk, so what it holds goes with it.
+ */
+type Invocations = Set<string>;
+
+/**
+ * What defines a field, to tell an implementation's copy of an interface field from an override.
+ * Pothos builds every implementation's copy of an inherited field from the interface's own field
+ * options, so those agree exactly when the field was not redefined, the way plugin-prisma-next
+ * names slots and every plugin's resolver accepts an interface's mapping. A field built elsewhere
+ * has no options, and only an identical select function says the same.
+ *
+ * `Adapter.fieldSelection` is handed the walked type and may vary a selection by it. Only a select
+ * function is ever moved to the interface, and the adapters vary only a static selection by type
+ * (prisma-next's empty selection for an interface field without one), so a select function is
+ * taken to depend on the field's definition alone.
+ */
+function definitionOf(field: Position['field'], selection: unknown): unknown {
+  return field.extensions?.pothosOptions ?? selection;
+}
+
+/**
+ * The position of one select invocation. Its own link is exact for that invocation, and reading
+ * further up is what ties a walk to the invocations above it, so `parent` tells the plan.
+ */
+function positionIn(
+  plan: { readonly position?: Position; positionRead: boolean },
+  type: WalkedType,
+  field: Position['field'],
+  node: FieldNode,
+): Position {
+  return {
+    get parent() {
+      plan.positionRead = true;
+
+      return plan.position;
+    },
+    get walkParent() {
+      return plan.position;
+    },
+    type,
+    field,
+    node,
+  };
 }
 
 /** Collects a type's type-level selection, once, before its fields are walked. */
@@ -131,15 +178,17 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
     const entered = new Set<string>();
 
     for (const selections of selectionSets) {
-      enterVariants(plan, type, selections, entered);
+      enterVariants(plan, type, type, selections, entered);
     }
   }
+
+  const invocations: Invocations = new Set();
 
   for (const { type, selectionSets, indirectPath } of resolved) {
     const walked = new Set<string>();
 
     for (const selections of selectionSets) {
-      walkSelections(plan, type, selections, indirectPath, true, walked);
+      walkSelections(plan, type, selections, indirectPath, true, walked, invocations);
     }
   }
 }
@@ -214,11 +263,11 @@ function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
 type Fragment = FragmentDefinitionNode | InlineFragmentNode;
 
 /**
- * Whether `fragment` was already expanded under `key` in the pass `visited` belongs to, recording
- * it if not. A valid fragment DAG can spread the same fragment at every level, so expanding every
+ * Whether `fragment` was already visited under `key` in the pass `visited` belongs to, recording
+ * it if not. A valid fragment DAG can spread the same fragment at every level, so visiting every
  * spread is exponential in its depth. Inline fragments cannot repeat.
  */
-function expandedBefore(visited: Set<string>, key: string, fragment: Fragment): boolean {
+function visitedBefore(visited: Set<string>, key: string, fragment: Fragment): boolean {
   if (fragment.kind !== Kind.FRAGMENT_DEFINITION) {
     return false;
   }
@@ -238,9 +287,16 @@ function expandedBefore(visited: Set<string>, key: string, fragment: Fragment): 
  * First pass: enters every same-model variant a fragment under `selections` moves the plan to,
  * before any field is merged, so a conflict between two type-level selections is reported
  * whichever order the fragments appear in and never depends on a field-level select.
+ *
+ * `selections` are walked as `type`, and variants are entered relative to `origin`, the type the
+ * plan was last entered as. They differ only under a fragment that did not move the plan, such as
+ * an expansion that selects no fields of its own: it narrows the walk to the implementations it
+ * covers without entering them, so a nested fragment that selects fields enters the variant
+ * instead.
  */
 function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
+  origin: WalkedType,
   type: WalkedType,
   selections: readonly SelectionNode[],
   visited: Set<string>,
@@ -252,17 +308,26 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
 
     const fragment = applicableFragment(plan, selection);
 
-    if (!fragment || expandedBefore(visited, type.name, fragment)) {
+    if (!fragment || visitedBefore(visited, `${origin.name}>${type.name}`, fragment)) {
       continue;
     }
 
-    const as = fragmentTypeOf(plan, type, fragment);
+    const { types, isExpansion } = fragmentTypesOf(plan, type, fragment);
+    // A typed fragment directly under `origin` moves the plan to its type. An expansion, an
+    // untyped fragment, or one nested under a fragment that did not move the plan, moves it only
+    // when it selects fields of its own.
+    const enters =
+      types.length > 0 &&
+      ((fragment.typeCondition && !isExpansion && type === origin) ||
+        selectsFields(fragment.selectionSet.selections));
 
-    if (as && as !== type) {
-      enterVariant(plan, type, as);
+    for (const as of types.length > 0 ? types : [type]) {
+      if (enters && as !== origin) {
+        enterVariant(plan, origin, as);
+      }
+
+      enterVariants(plan, enters ? as : origin, as, fragment.selectionSet.selections, visited);
     }
-
-    enterVariants(plan, as ?? type, fragment.selectionSet.selections, visited);
   }
 }
 
@@ -278,11 +343,13 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
   indirectPath: string[],
   fieldsApply: boolean,
   visited: Set<string>,
+  invocations: Invocations,
+  expandedFrom?: WalkedType,
 ) {
   for (const selection of selections) {
     if (selection.kind === Kind.FIELD) {
       if (fieldsApply) {
-        walkField(plan, type, selection, indirectPath);
+        walkField(plan, type, selection, indirectPath, invocations, expandedFrom);
       }
 
       continue;
@@ -290,22 +357,44 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
 
     const fragment = applicableFragment(plan, selection);
 
-    if (!fragment || expandedBefore(visited, `${type.name}:${fieldsApply}`, fragment)) {
+    if (
+      !fragment ||
+      visitedBefore(visited, `${type.name}:${fieldsApply}:${expandedFrom?.name}`, fragment)
+    ) {
       continue;
     }
 
-    const as = fragmentTypeOf(plan, type, fragment);
+    const { types, isExpansion } = fragmentTypesOf(plan, type, fragment);
 
-    walkSelections(
-      plan,
-      as ?? type,
-      fragment.selectionSet.selections,
-      indirectPath,
-      // An untyped fragment inherits; a typed one applies iff it can apply to `type`.
-      fragment.typeCondition ? as !== undefined : fieldsApply,
-      visited,
-    );
+    for (const as of types.length > 0 ? types : [type]) {
+      walkSelections(
+        plan,
+        as,
+        fragment.selectionSet.selections,
+        indirectPath,
+        // An untyped fragment inherits; a typed one applies iff it can apply to `type`.
+        fragment.typeCondition ? types.length > 0 : fieldsApply,
+        visited,
+        invocations,
+        isExpansion ? type : expandedFrom && keptBy(plan, expandedFrom, fragment),
+      );
+    }
   }
+}
+
+/**
+ * `expandedFrom` while fields under `fragment` still name it: the fragment is untyped, on
+ * `expandedFrom` or an interface it implements, or expands it again. A fragment narrowing to one
+ * type names its fields on that type.
+ */
+function keptBy<Model, Query, NodeType extends NodeBase<Model>>(
+  plan: Plan<Model, Query, NodeType>,
+  expandedFrom: WalkedType,
+  fragment: Fragment,
+): WalkedType | undefined {
+  const { types, isExpansion } = fragmentTypesOf(plan, expandedFrom, fragment);
+
+  return isExpansion || types[0] === expandedFrom ? expandedFrom : undefined;
 }
 
 /**
@@ -324,50 +413,94 @@ function applicableFragment<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * The type to walk `fragment` as while walking `type`, or undefined when the fragment cannot
- * apply to `type` (its fields are suppressed; nested fragments are still classified against
- * `type`). An untyped fragment inherits `type`. An object type accepts a fragment on itself or on
- * an interface it implements, walked as itself: a plan on an object type is a plan on rows of that
- * type, so a fragment on any other object type cannot apply to them. An interface accepts a
- * fragment on another type of the same model, walked as that type, so that type's own selection
- * is planned for the rows that resolve to it.
+ * The types to walk `fragment` as while walking `type`, or none when the fragment cannot apply to
+ * `type` (its fields are suppressed; nested fragments are still classified against `type`). An
+ * untyped fragment inherits `type`. A type accepts a fragment on itself or on an interface it
+ * implements, walked as itself: a plan on an object type is a plan on rows of that type, so a
+ * fragment on any other object type cannot apply to them. An interface also accepts a fragment
+ * on another type of the same model, walked as that type, so that type's own selection is planned
+ * for the rows that resolve to it. A fragment on an abstract type of no model (`... on Node`
+ * beneath a model interface), or of another model, is an expansion. It is walked as each
+ * implementation of `type` it covers, so the variants' type-level selections are planned for their
+ * rows and the fields it selects load with the parent query. When those selections conflict, the
+ * play throws, as it does for two same-model fragments.
  */
-function fragmentTypeOf<Model, Query, NodeType extends NodeBase<Model>>(
+function fragmentTypesOf<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   type: WalkedType,
   fragment: Fragment,
-): WalkedType | undefined {
+): { types: WalkedType[]; isExpansion: boolean } {
   if (!fragment.typeCondition) {
-    return type;
+    return { types: [type], isExpansion: false };
   }
 
-  const condition = plan.info.schema.getType(fragment.typeCondition.name.value)!;
+  const { schema } = plan.info;
+  const condition = schema.getType(fragment.typeCondition.name.value)!;
 
-  if (condition === type) {
-    return type;
+  if (isOfType(type, condition)) {
+    return { types: [type], isExpansion: false };
   }
 
-  if (isInterfaceType(condition) && type.getInterfaces().includes(condition)) {
-    return type;
+  if (!isInterfaceType(type)) {
+    return { types: [], isExpansion: false };
   }
+
+  const model = plan.adapter.modelFor(type);
 
   if (
-    isInterfaceType(type) &&
     (isObjectType(condition) || isInterfaceType(condition)) &&
-    plan.adapter.modelFor(condition) === plan.adapter.modelFor(type)
+    plan.adapter.modelFor(condition) === model
   ) {
-    return condition;
+    return { types: [condition], isExpansion: false };
   }
 
-  return undefined;
+  if (isAbstractType(condition)) {
+    return {
+      types: schema
+        .getPossibleTypes(type)
+        .filter(
+          (possible) =>
+            schema.isSubType(condition, possible) && plan.adapter.modelFor(possible) === model,
+        ),
+      isExpansion: plan.adapter.modelFor(condition) !== model,
+    };
+  }
+
+  return { types: [], isExpansion: false };
 }
 
-/** Collects what `fieldNode` (a field of `type`) selects. */
+/** Whether `type` is `condition` itself or implements it. */
+function isOfType(type: WalkedType, condition: GraphQLNamedType) {
+  return (
+    condition === type || (isInterfaceType(condition) && type.getInterfaces().includes(condition))
+  );
+}
+
+/** Whether `selections` select a field directly; `__typename` reads nothing from the row. */
+function selectsFields(selections: readonly SelectionNode[]): boolean {
+  return selections.some(
+    (selection) => selection.kind === Kind.FIELD && !selection.name.value.startsWith('__'),
+  );
+}
+
+/**
+ * Collects what `fieldNode` (a field of `type`) selects. A select function is invoked once per
+ * place in a walk; `invocations` holds the walk's, and without it every call invokes.
+ *
+ * Beneath an expansion of the model interface `expandedFrom`, a field an implementation inherits
+ * unchanged (see `definitionOf`) is planned on the interface: invoked once rather than once per
+ * implementation, so a select function reading `Position.parent` sees one path per level. A
+ * resolver on an implementation accepts the interface's mapping for the same definition. A
+ * redefined field, or one under a fragment narrowing to the implementation, is planned as the
+ * implementation.
+ */
 export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
-  type: WalkedType,
+  walkedType: WalkedType,
   fieldNode: FieldNode,
   indirectPath: string[],
+  invocations?: Invocations,
+  expandedFrom?: WalkedType,
 ) {
   const { info, context, adapter } = plan;
   const name = fieldNode.name.value;
@@ -376,30 +509,48 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
     return;
   }
 
-  const field = type.getFields()[name];
+  const walkedField = walkedType.getFields()[name];
 
-  if (!field) {
-    throw new PothosValidationError(`Unknown field ${name} on ${type.name}`);
+  if (!walkedField) {
+    throw unexpectedError(`Unknown field ${name} on ${walkedType.name}`);
   }
 
-  const selection = adapter.fieldSelection(field, type);
+  const selection = adapter.fieldSelection(walkedField, walkedType);
 
   if (!selection) {
     return;
   }
 
   const alias = fieldNode.alias?.value ?? name;
-  const key = `${type.name}@${indirectPath.length > 0 ? `${indirectPath.join('.')}.` : ''}${alias}`;
+  const relative = `${indirectPath.length > 0 ? `${indirectPath.join('.')}.` : ''}${alias}`;
 
   if (typeof selection !== 'function') {
-    collectField(plan, key, alias, selection, EMPTY_MAPPING);
+    collectField(plan, `${walkedType.name}@${relative}`, alias, selection, EMPTY_MAPPING);
 
     return;
   }
 
+  const inherited = expandedFrom?.getFields()[name];
+  const [type, field] =
+    expandedFrom &&
+    inherited &&
+    definitionOf(inherited, adapter.fieldSelection(inherited, expandedFrom)) ===
+      definitionOf(walkedField, selection)
+      ? [expandedFrom, inherited]
+      : [walkedType, walkedField];
+
+  const key = `${type.name}@${relative}`;
+  const place = `${fieldShape(info, fieldNode)}:${key}`;
+
+  if (invocations?.has(place)) {
+    return;
+  }
+
+  invocations?.add(place);
+
   // Where this field is, linked to where the plan it was found in hangs. One link, built once per
   // select invocation; nothing walks it unless the adapter's callback asks.
-  const position: Position = { parent: plan.position, type, field, node: fieldNode };
+  const position = positionIn(plan, type, field, fieldNode);
   // This invocation's mapping; every nested plan it makes records into `mapping.nested`, which
   // stays invisible to the plan until the invocation's query is accepted.
   const mapping: Invocation = { nested: {}, position };
@@ -469,7 +620,7 @@ function collectField<Model, Query, NodeType extends NodeBase<Model>>(
 
   if (mapping.pending) {
     // Only a select invocation can be pending, and every one of those has a position.
-    throw new PothosValidationError(
+    throw unexpectedError(
       `The selection function of ${fieldName(mapping.position!)} returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.`,
     );
   }
@@ -523,23 +674,17 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
         return (query ?? ({} as Query)) as Query;
       }
 
-      const child = plan.nested(target, position);
+      const paths = include?.paths?.length
+        ? include.paths
+        : include?.path?.length
+          ? [include.path]
+          : undefined;
+      // Everything a walk beneath this field node reads: the shape of its selection set, not the
+      // node, so a fragment spread beneath many fields is walked once. The paths are data: an
+      // include's segments are names and type names.
+      const walkKey = `${selectionShape(info, fieldNode.selectionSet)}:${returnType.name}:${target.name}:${paths ? JSON.stringify(paths) : ''}`;
 
-      try {
-        if (isThenable(query)) {
-          child.chain(query as PromiseLike<Query | null | undefined>, (resolved) =>
-            mergeQuery(child, resolved),
-          );
-        } else {
-          mergeQuery(child, query);
-        }
-
-        const paths = include?.paths?.length
-          ? include.paths
-          : include?.path?.length
-            ? [include.path]
-            : undefined;
-
+      const child = plan.nested(target, position, walkKey, (walked) => {
         if (paths) {
           // Each match is walked as its own type; the wrapper's selection set is not walked.
           const matches = matchesForModel(
@@ -552,7 +697,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
           );
 
           walkBranches(
-            child,
+            walked,
             matches.map((match) => ({
               // As `Plan.fromInfo` does for its own paths: a matched type with a model is walked
               // with it, and one without (an interface, a wrapper) as the type asked for, so its
@@ -571,14 +716,19 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
             deferred: false,
           });
 
-          walkBranches(child, [
+          walkBranches(walked, [
             ...(target === returnType ? [] : [asType(target)]),
             asType(returnType),
           ]);
         }
-      } catch (error) {
-        child.abandon();
-        throw error;
+      });
+
+      if (isThenable(query)) {
+        child.chain(query as PromiseLike<Query | null | undefined>, (resolved) =>
+          mergeQuery(child, resolved),
+        );
+      } else {
+        mergeQuery(child, query);
       }
 
       // A promise behind the declared synchronous type, as `finish` returns one.
