@@ -203,8 +203,8 @@ describe('prismaInterface', () => {
     });
     builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
     expect(() => builder.toSchema()).toThrow(
-      "'User' is based on model 'User' but implements prismaInterface 'PostLike', based on " +
-        "unrelated model 'Post'. A type can only implement prismaInterfaces of one model hierarchy.",
+      "'User' is of model 'User' but implements prismaInterface 'PostLike' of model 'Post'. " +
+        "A type can only implement the prismaInterfaces of its model and of its model's root.",
     );
   });
 });

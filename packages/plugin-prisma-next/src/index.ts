@@ -191,46 +191,26 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { contract } = this.config;
     const ownModel = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    let model = ownModel;
-    // The interface a type without its own model took its model from.
-    let modelSource: string | undefined;
-    for (const iface of typeConfig.interfaces) {
-      const ifaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
-      const ifaceModel = ifaceConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-      if (ifaceModel) {
-        const basis = modelSource
-          ? `takes model '${model}' from prismaInterface '${modelSource}' but also implements`
-          : `is based on model '${model}' but implements`;
-        const root = model && rootModelKey(contract, model);
-        if (root !== undefined && root === rootModelKey(contract, ifaceModel)) {
-          if (ifaceModel !== root && model !== ifaceModel) {
-            // A type without its own model takes the most specific one of its interfaces.
-            if (model === root && !ownModel) {
-              model = ifaceModel;
-              modelSource = ifaceConfig.name;
-              continue;
-            }
-            // Not every row of this type is of the interface's variant, so it can't implement the
-            // interface.
-            throw new PothosSchemaError(
-              `'${typeConfig.name}' ${basis} prismaInterface '${ifaceConfig.name}', based on ` +
-                `variant model '${ifaceModel}'. A type can only implement the prismaInterfaces ` +
-                `of '${root}' and of one of its variants.`,
-            );
-          }
-          continue;
-        }
-        if (model && model !== ifaceModel) {
-          throw new PothosSchemaError(
-            `'${typeConfig.name}' ${basis} prismaInterface '${ifaceConfig.name}', based on ` +
-              `unrelated model '${ifaceModel}'. A type can only implement prismaInterfaces of ` +
-              'one model hierarchy.',
-          );
-        }
-        if (!model) {
-          modelSource = ifaceConfig.name;
-        }
-        model = ifaceModel;
+    const interfaces = typeConfig.interfaces
+      .map((iface) => this.buildCache.getTypeConfig(iface, 'Interface'))
+      .map((iface) => ({
+        name: iface.name,
+        model: iface.extensions?.[PRISMA_NEXT_MODEL] as string | undefined,
+      }))
+      .filter((iface): iface is { name: string; model: string } => iface.model !== undefined);
+    // A type without its own model takes the most specific model of its interfaces.
+    const model =
+      ownModel ??
+      (
+        interfaces.find((iface) => rootModelKey(contract, iface.model) !== iface.model) ??
+        interfaces[0]
+      )?.model;
+    const root = model && (rootModelKey(contract, model) ?? model);
+    for (const iface of interfaces) {
+      if (iface.model !== model && iface.model !== root) {
+        throw new PothosSchemaError(
+          `'${typeConfig.name}' is of model '${model}' but implements prismaInterface '${iface.name}' of model '${iface.model}'. A type can only implement the prismaInterfaces of its model and of its model's root.`,
+        );
       }
     }
     if (model === undefined) {

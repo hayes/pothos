@@ -598,9 +598,8 @@ describe('native model inheritance', () => {
           });
         }),
       ).toThrow(
-        "'Hybrid' takes model 'Bug' from prismaInterface 'BugFields' but also implements " +
-          "prismaInterface 'FeatureFields', based on variant model 'Feature'. A type can only " +
-          "implement the prismaInterfaces of 'Task' and of one of its variants.",
+        "'Hybrid' is of model 'Bug' but implements prismaInterface 'FeatureFields' of model 'Feature'. " +
+          "A type can only implement the prismaInterfaces of its model and of its model's root.",
       );
     });
 
@@ -618,8 +617,8 @@ describe('native model inheritance', () => {
           });
         }),
       ).toThrow(
-        "'Bug' is based on model 'Bug' but implements prismaInterface 'FeatureFields', " +
-          "based on variant model 'Feature'.",
+        "'Bug' is of model 'Bug' but implements prismaInterface 'FeatureFields' of model 'Feature'. " +
+          "A type can only implement the prismaInterfaces of its model and of its model's root.",
       );
     });
 
@@ -640,9 +639,8 @@ describe('native model inheritance', () => {
           builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
         }),
       ).toThrow(
-        "'PlainTask' is based on model 'Task' but implements prismaInterface 'BugFields', " +
-          "based on variant model 'Bug'. A type can only implement the prismaInterfaces of " +
-          "'Task' and of one of its variants.",
+        "'PlainTask' is of model 'Task' but implements prismaInterface 'BugFields' of model 'Bug'. " +
+          "A type can only implement the prismaInterfaces of its model and of its model's root.",
       );
     });
 
