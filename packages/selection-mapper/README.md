@@ -12,9 +12,9 @@ their own. Use the plugins.
 The surface is what those plugins import and nothing more: `Plan` (with the statics `Plan.fromInfo`
 and `Plan.forParentRow`), `Adapter` and `NodeAdapter`, the loader-map helpers (`cacheKey`,
 `getLoaderMapping`, `setFieldMapping`, `setLoaderMappings`, `setRowFieldMapping`,
-`setRowMappings`), `selectedFieldNames` and `deepEqual`. Turning a plan into the query a resolver
-is handed is each plugin's own job — prisma's `queryFromInfo` and drizzle's differ — so neither of
-them is here.
+`setRowMappings`), `mappingParentTypes`, `selectedFieldNames` and `deepEqual`. Turning a plan
+into the query a resolver is handed is each plugin's own job — prisma's `queryFromInfo` and
+drizzle's differ — so neither of them is here.
 
 ## Vocabulary
 

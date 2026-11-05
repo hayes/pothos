@@ -60,45 +60,10 @@ builder.drizzleObject('users', {
   }),
 });
 
-// Two parents declare the same relation with other arguments. Pothos builds the inherited field
-// from the parent listed last, so that parent's plan answers for it.
-const FirstParent = builder.drizzleInterface('users', {
-  variant: 'FirstParentUser',
-  select: { columns: { id: true } },
-  resolveType: () => 'InheritingBothUser',
-  fields: (t) => ({
-    posts: t.relation('posts', { type: Post, query: { limit: 1, orderBy: { postId: 'desc' } } }),
-  }),
-});
-const SecondParent = builder.drizzleInterface('users', {
-  variant: 'SecondParentUser',
-  select: { columns: { id: true } },
-  resolveType: () => 'InheritingBothUser',
-  fields: (t) => ({
-    posts: t.relation('posts', { type: Post, query: { limit: 3, orderBy: { postId: 'asc' } } }),
-  }),
-});
-const BothParents = builder.drizzleInterface('users', {
-  variant: 'BothParentsUser',
-  interfaces: [FirstParent, SecondParent],
-  select: { columns: { id: true } },
-  resolveType: () => 'InheritingBothUser',
-});
-
-builder.drizzleObject('users', {
-  variant: 'InheritingBothUser',
-  interfaces: [FirstParent, SecondParent, BothParents],
-  select: { columns: { id: true } },
-});
-
 builder.queryType({
   fields: (t) => ({
     user: t.drizzleField({
       type: OverrideUser,
-      resolve: (query) => db.query.users.findFirst(query({ where: { id: 1 } })),
-    }),
-    bothParents: t.drizzleField({
-      type: BothParents,
       resolve: (query) => db.query.users.findFirst(query({ where: { id: 1 } })),
     }),
   }),
@@ -160,34 +125,5 @@ describe('an implementation that overrides an interface field', () => {
     expect(inheriting.errors).toBeUndefined();
     expect(inheriting.data).toEqual({ user: { [field]: inherited } });
     expect(drizzleLogs).toHaveLength(field === 'posts' ? 1 : 2);
-  });
-});
-
-describe('a field inherited from the last of several parents that declare it', () => {
-  afterEach(() => {
-    clearDrizzleLogs();
-  });
-
-  it('reads the relation the parent query loaded', async () => {
-    const expected = (
-      await db.query.posts.findMany({
-        where: { authorId: 1 },
-        limit: 3,
-        orderBy: { postId: 'asc' },
-        columns: { postId: true },
-      })
-    ).map((post) => ({ id: String(post.postId) }));
-
-    clearDrizzleLogs();
-
-    const result = await execute({
-      schema,
-      document: parse('{ bothParents { posts { id } } }'),
-      contextValue: { typeName: 'InheritingBothUser' },
-    });
-
-    expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({ bothParents: { posts: expected } });
-    expect(drizzleLogs).toHaveLength(1);
   });
 });

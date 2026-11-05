@@ -13,7 +13,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, setRowMappings } from '@pothos/selection-mapper';
+import { getLoaderMapping, mappingParentTypes, setRowMappings } from '@pothos/selection-mapper';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
@@ -131,35 +131,6 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     return fieldConfig;
   }
 
-  /**
-   * The options of the field `name` as `iface` defines it, or inherits it from an interface of its
-   * own. Pothos builds an implementation's copy of an inherited field from those same options, so
-   * they differ exactly when the implementation redefines the field.
-   */
-  private interfaceFieldOptions(iface: string, name: string): unknown {
-    const own = this.builder.configStore.getFields(iface, 'Interface').get(name);
-
-    if (own) {
-      return own.pothosOptions;
-    }
-
-    const parents = this.buildCache.getTypeConfig(iface, 'Interface').interfaces;
-
-    // Of several parents that declare the field, Pothos builds it from the one listed last.
-    for (const parent of [...parents].reverse()) {
-      const options = this.interfaceFieldOptions(
-        this.buildCache.getTypeConfig(parent, 'Interface').name,
-        name,
-      );
-
-      if (options !== undefined) {
-        return options;
-      }
-    }
-
-    return undefined;
-  }
-
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object, unknown>,
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -201,23 +172,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       plans: createContextCache(() => new Map<string, MaybePromise<PrismaPlan>>()),
     };
 
-    const parentTypes = new Set([fieldConfig.parentType]);
-
-    if (parentConfig.kind === 'Interface' || parentConfig.kind === 'Object') {
-      for (const iface of parentConfig.interfaces) {
-        const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
-        // A mapping recorded under the interface answers for this field only when the field is the
-        // interface's own, inherited: an implementation that redefines it (other relation
-        // arguments, say) would otherwise read what the interface's field loaded.
-        if (
-          interfaceConfig.extensions?.pothosPrismaModel &&
-          this.interfaceFieldOptions(interfaceConfig.name, fieldConfig.name) ===
-            fieldConfig.pothosOptions
-        ) {
-          parentTypes.add(interfaceConfig.name);
-        }
-      }
-    }
+    const parentTypes = mappingParentTypes(this.buildCache, fieldConfig, 'pothosPrismaModel');
 
     return (parent, args, context, info) => {
       // Asked of the row: a mapping recorded for this row wins over the plan's, which answers

@@ -22,6 +22,7 @@ export {
   selectedFieldNames,
 } from './matches.js';
 export { type Node, NodeAdapter, type QueryVisitor } from './node.js';
+export { mappingParentTypes } from './parent-types.js';
 export { Plan, type PlayedPlan } from './plan.js';
 export type {
   MergeOptions,
