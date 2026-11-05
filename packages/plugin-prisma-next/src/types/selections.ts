@@ -126,19 +126,6 @@ export type InterfaceSelectShape<
   : unknown;
 
 /**
- * `SelectObjectSpec` for the `select` of a type, where a to-one relation is `true` or nothing. Every
- * reader of a row shares the type's to-one includes, so only a field's `select`, which reloads, can
- * filter one.
- */
-export type TypeSelectObjectSpec<Types extends SchemaTypes, M extends ModelKey<Types>> = {
-  readonly [K in keyof SelectObjectSpec<Types, M>]?: K extends RelationKeys<Types, M>
-    ? IsToMany<Types, M, K> extends true
-      ? SelectObjectSpec<Types, M>[K]
-      : true
-    : SelectObjectSpec<Types, M>[K];
-};
-
-/**
  * Rejects anything but `true` on a to-one relation in a type's `select`, naming the problem. The
  * spec `TypeSelectCheck` checks against takes a to-one `{ where }`, so this check reports it.
  */
@@ -533,9 +520,8 @@ export type ShapeFromObjectSelect<
  */
 export type TypeSelectCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = {
   // Picked by the form of `Select` rather than a union of both, which a failing object `select`
-  // is reported against as not assignable to `undefined`. The field spec, rather than
-  // `TypeSelectObjectSpec`, so the checks below name what a type's `select` can't take. While
-  // completing, `Select` is `unknown`, so both forms are offered.
+  // is reported against as not assignable to `undefined`. The checks below name what a type's
+  // `select` can't take. While completing, `Select` is `unknown`, so both forms are offered.
   select?: (unknown extends Select
     ? readonly (keyof Row<Types, M> & string)[] | SelectObjectSpec<Types, M>
     : [Select] extends [readonly unknown[]]

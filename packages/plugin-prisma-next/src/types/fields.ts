@@ -33,8 +33,8 @@ import type { FieldParentShape, ModelKey, ResolveTypeParent, Row } from './model
 import type { RequiresNullable } from './relations.js';
 import type {
   PrismaNextFieldSelect,
+  SelectObjectSpec,
   ShapeFromSelect,
-  TypeSelectObjectSpec,
   ValidateFieldSelect,
 } from './selections.js';
 
@@ -132,7 +132,7 @@ export type NameOrVariant = { name?: never; variant?: string } | { name?: string
 
 type PrismaNextTypeOptions<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> = {
   /** Columns and relations to always load for this type, as a column array or a `select` object. */
-  select?: readonly (keyof Row<Types, M> & string)[] | TypeSelectObjectSpec<Types, M>;
+  select?: readonly (keyof Row<Types, M> & string)[] | SelectObjectSpec<Types, M>;
   fields?: (
     // Passed explicitly because some editors leave the default unresolved, and `t.expose*` then
     // demands `nullable: true` on every column. `NoInfer`, because `M` is already known, and
