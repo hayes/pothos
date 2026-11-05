@@ -781,12 +781,6 @@ function assertNoVariantRelations(
     if (loadsOwnTableVariantRows(model.relations[name]!, value)) {
       throw ownTableVariantRowsError(`type '${typeName}'`, name, model.relations[name]!);
     }
-    const variant = model.relations[name]!.declaredByVariant;
-    if (variant !== undefined) {
-      throw new PothosSchemaError(
-        `The select of type '${typeName}' includes relation '${name}', which only variant '${variant}' of model '${model.key}' declares. Rows of the type can load through '${model.key}', which can't include it. Load it in a field instead, with t.relation('${name}') or a field's select, such as t.field({ select: { ${name}: true }, ... }).`,
-      );
-    }
   }
 }
 

@@ -967,28 +967,6 @@ describe("a variant's relations in a field's select", () => {
     return builder.toSchema();
   }
 
-  it.each([
-    ['an object', 'prismaObject', 'Bug'],
-    ['a variant interface', 'prismaInterface', 'Rev'],
-  ] as const)('rejects one in the select of %s', (_name, method, typeName) => {
-    const { builder, task } = reviewBuilder();
-    const options = {
-      ...(method === 'prismaObject' ? { interfaces: [task] } : { variant: typeName }),
-      select: { reviewer: true },
-      fields: (t: { exposeString: (name: 'severity') => unknown }) => ({
-        severity: t.exposeString('severity'),
-      }),
-    };
-    // The types reject it too, as tests/types/relation-types.test-d.ts checks.
-    builder[method]('Bug', options as never);
-    if (method === 'prismaInterface') {
-      builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
-    }
-    expect(() => builder.toSchema()).toThrow(
-      `The select of type '${typeName}' includes relation 'reviewer', which only variant 'bug' of model 'Task' declares. Rows of the type can load through 'Task', which can't include it. Load it in a field instead, with t.relation('reviewer') or a field's select, such as t.field({ select: { reviewer: true }, ... }).`,
-    );
-  });
-
   it('loads in the one statement of a narrowed root', async () => {
     const result = await run(reviewedSchema(), '{ bugs { severity reviewerEmail } }');
     expect(result.errors).toBeUndefined();

@@ -155,31 +155,6 @@ describe.skipIf(!url)('MySQL', () => {
     });
   });
 
-  // The types reject counts on a contract without aggregates. An untyped one fails the query that
-  // would have counted.
-  it('fails counts the types reject with a readable error', async () => {
-    // A related count is planned into its parent's query, which fails as a whole.
-    for (const source of [
-      '{ authors { bookTotals { totalCount } } }',
-      '{ authors { bookCount } }',
-    ]) {
-      const result = await run(source);
-      expect(result.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
-        {
-          message: expect.stringMatching(/^Aggregate 'count' is not available/),
-          path: ['authors'],
-        },
-      ]);
-    }
-    const root = await run('{ authorTotals { totalCount } }');
-    expect(root.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
-      {
-        message: expect.stringMatching(/^Aggregate 'count' is not available/),
-        path: ['authorTotals'],
-      },
-    ]);
-  });
-
   it('pages backward within each parent', async () => {
     const result = await run(`{
       authors { bookPages(last: 1) { edges { node { title } } pageInfo { hasPreviousPage } } }

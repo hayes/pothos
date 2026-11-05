@@ -237,15 +237,9 @@ export function pageSelection(
   }));
 }
 
-/** `collection`'s count, or a readable error for a target without aggregates, such as MySQL. */
+/** `collection`'s count. The types reject counts on a target without aggregates, such as MySQL. */
 export function countOf(collection: object): unknown {
-  const { count } = collection as { count?: () => unknown };
-  if (typeof count !== 'function') {
-    throw new InternalError(
-      "Aggregate 'count' is not available on this ORM collection: its target has no aggregates.",
-    );
-  }
-  return count.call(collection);
+  return (collection as { count(): unknown }).count();
 }
 
 /** Counts the collection's rows. A synchronous throw becomes a rejection. */

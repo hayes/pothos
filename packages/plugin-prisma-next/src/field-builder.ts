@@ -1,7 +1,6 @@
 import {
   type FieldKind,
   type InputFieldMap,
-  PothosSchemaError,
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
@@ -132,11 +131,6 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   const ref = refFor(this.builder, type);
   const config = getPluginConfig(this.builder);
   const modelKey = ref.modelKey as string;
-  if (rest.query !== undefined) {
-    throw new PothosSchemaError(
-      `t.prismaConnection for '${modelKey}' has no \`query\` option. Filter the collection resolve returns instead.`,
-    );
-  }
   const model = getModel(config.contract, modelKey);
   const settings = connectionSettings(config, modelKey, {
     defaultSize,

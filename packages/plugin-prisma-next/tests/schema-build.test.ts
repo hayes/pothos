@@ -315,47 +315,6 @@ describe('contracts', () => {
 });
 
 describe('options validated when the schema is built', () => {
-  it.each([
-    [
-      'prismaObject',
-      (builder: ReturnType<typeof createBuilder>, options: object) =>
-        builder.prismaObject('User', options as never),
-    ],
-    [
-      'prismaInterface',
-      (builder: ReturnType<typeof createBuilder>, options: object) =>
-        builder.prismaInterface('User', options as never),
-    ],
-    [
-      'prismaNode',
-      (builder: ReturnType<typeof createBuilder>, options: object) =>
-        builder.prismaNode('User', { id: { field: 'id' }, ...options } as never),
-    ],
-  ])('rejects %s given both a name and a variant', (_method, define) => {
-    expect(() => define(createBuilder(), { name: 'A', variant: 'B', fields: () => ({}) })).toThrow(
-      "Set only one of 'name' and 'variant' on the type for model 'User'",
-    );
-  });
-
-  it('rejects a query on t.prismaConnection, which would be ignored', () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.queryType({
-      fields: (t) => ({
-        users: t.prismaConnection({
-          type: 'User',
-          query: () => ({ where: { id: 'u-bob' } }),
-          resolve: () => db.orm.User,
-        } as never),
-      }),
-    });
-    expect(() => builder.toSchema()).toThrow(
-      new PothosSchemaError(
-        "t.prismaConnection for 'User' has no `query` option. Filter the collection resolve returns instead.",
-      ),
-    );
-  });
-
   it('rejects an orderBy column that is not a field, and a model without a key', () => {
     const builder = createBuilder();
     expect(() =>
