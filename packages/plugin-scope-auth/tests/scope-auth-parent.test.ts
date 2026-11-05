@@ -1,5 +1,5 @@
 import SchemaBuilder from '@pothos/core';
-import { type GraphQLObjectType, type GraphQLResolveInfo, graphql } from 'graphql';
+import { type GraphQLObjectType, type GraphQLResolveInfo, graphql, graphqlSync } from 'graphql';
 import { vi } from 'vitest';
 import { getDatamodel } from '../prisma/generated';
 import ScopeAuthPlugin, { type ScopeAuthParentLoader } from '../src';
@@ -175,5 +175,145 @@ describe('pothosScopeAuthParent', () => {
       expect(loadParent).not.toHaveBeenCalled();
       expect(authScopes).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('pothosScopeAuthParent for field checks', () => {
+  function createFieldSchema(loadParent: ScopeAuthParentLoader<{ user: string }>) {
+    const seen: [string, unknown][] = [];
+    const builder = new SchemaBuilder<{
+      Context: { user: string };
+      AuthScopes: { user: string };
+    }>({
+      plugins: [ScopeAuthPlugin],
+      prisma: { client: db, dmmf: getDatamodel() },
+      scopeAuth: { authScopes: (context) => ({ user: (name) => name === context.user }) },
+    });
+    const Named = builder.interfaceRef<Row>('Named').implement({
+      fields: (t) => ({
+        inherited: t.string({
+          authScopes: (parent) => {
+            seen.push(['inherited', parent]);
+            return { user: parent.owner ?? '' };
+          },
+          resolve: (parent) => (parent.owner ? 'loaded' : 'original'),
+        }),
+      }),
+    });
+    const Item = builder.objectRef<Row>('Item').implement({
+      interfaces: [Named],
+      authScopes: (parent) => {
+        seen.push(['type', parent]);
+        return { user: parent.owner ?? '' };
+      },
+      grantScopes: (parent) => {
+        seen.push(['grants', parent]);
+        return [];
+      },
+      extensions: { pothosScopeAuthParent: loadParent },
+      fields: (t) => ({
+        field: t.string({
+          skipTypeScopes: true,
+          authScopes: (parent) => {
+            seen.push(['field', parent]);
+            return { user: parent.owner ?? '' };
+          },
+          grantScopes: (parent) => {
+            seen.push(['fieldGrants', parent]);
+            return [];
+          },
+          resolve: (parent) => (parent.owner ? 'loaded' : 'original'),
+        }),
+        a: t.string({ resolve: () => 'a' }),
+        b: t.string({ resolve: () => 'b' }),
+      }),
+    });
+    // Its checks read no parent, so they don't load one.
+    const Plain = builder.objectRef<Row>('Plain').implement({
+      authScopes: { user: 'alice' },
+      extensions: { pothosScopeAuthParent: loadParent },
+      fields: (t) => ({
+        mapped: t.string({ authScopes: { user: 'alice' }, resolve: () => 'mapped' }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        item: t.field({ type: Item, nullable: true, resolve: () => ({ id: '1' }) }),
+        plain: t.field({ type: Plain, nullable: true, resolve: () => ({ id: '1' }) }),
+      }),
+    });
+
+    return { schema: builder.toSchema(), seen };
+  }
+
+  const loaded = { id: '1', owner: 'alice' };
+
+  it('passes field checks the loaded parent, and the resolver the original', async () => {
+    const loadParent = vi.fn(() => loaded);
+    const { schema, seen } = createFieldSchema(loadParent);
+
+    const result = await graphql({
+      schema,
+      source: '{ item { field inherited } }',
+      contextValue: { user: 'alice' },
+    });
+    expect(result).toEqual({ data: { item: { field: 'original', inherited: 'original' } } });
+    expect(seen).toEqual(
+      expect.arrayContaining([
+        ['field', loaded],
+        ['fieldGrants', loaded],
+        ['inherited', loaded],
+        ['type', loaded],
+        ['grants', loaded],
+      ]),
+    );
+    expect(seen.every(([, parent]) => parent === loaded)).toBe(true);
+  });
+
+  it('runs type checks once per row across fields', async () => {
+    const loadParent = vi.fn(() => Promise.resolve(loaded));
+    const { schema, seen } = createFieldSchema(loadParent);
+
+    const result = await graphql({
+      schema,
+      source: '{ item { a b } }',
+      contextValue: { user: 'alice' },
+    });
+    expect(result).toEqual({ data: { item: { a: 'a', b: 'b' } } });
+    expect(seen.filter(([kind]) => kind === 'type')).toHaveLength(1);
+    expect(seen.filter(([kind]) => kind === 'grants')).toHaveLength(1);
+  });
+
+  it('denies a field check that fails on the loaded parent', async () => {
+    const { schema } = createFieldSchema(() => Promise.resolve(loaded));
+
+    const result = await graphql({
+      schema,
+      source: '{ item { field } }',
+      contextValue: { user: 'bob' },
+    });
+    expect(result.data).toEqual({ item: { field: null } });
+    expect(result.errors).toHaveLength(1);
+  });
+
+  it("doesn't load the parent for checks that don't read it", async () => {
+    const loadParent = vi.fn(() => loaded);
+    const { schema } = createFieldSchema(loadParent);
+
+    const result = await graphql({
+      schema,
+      source: '{ plain { mapped } }',
+      contextValue: { user: 'alice' },
+    });
+    expect(result).toEqual({ data: { plain: { mapped: 'mapped' } } });
+    expect(loadParent).not.toHaveBeenCalled();
+  });
+
+  it('resolves synchronously with a sync loader', () => {
+    const { schema } = createFieldSchema(() => loaded);
+
+    expect(
+      graphqlSync({ schema, source: '{ item { field a } }', contextValue: { user: 'alice' } }),
+    ).toEqual({ data: { item: { field: 'original', a: 'a' } } });
   });
 });

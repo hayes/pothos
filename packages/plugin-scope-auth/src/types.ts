@@ -128,6 +128,8 @@ export interface ForbiddenResult {
 
 export interface ResolveStep<Types extends SchemaTypes> {
   key?: string;
+  /** Whether the step reads the parent, which it then gets from `pothosScopeAuthParent`. */
+  readsParent?: boolean;
   run: (
     cache: RequestCache<Types>,
     parent: unknown,
@@ -237,10 +239,9 @@ export type ReplaceContext<Types extends SchemaTypes, Context extends object> = 
 };
 
 /**
- * A function a plugin sets as the `pothosScopeAuthParent` extension of an object type. With
- * `runScopesOnType`, it gets the value the type's `isTypeOf` checks and returns the parent the
- * type's scopes, grants and unauthorized errors see. The type's own `isTypeOf` still gets the
- * value it was passed.
+ * A function a plugin sets as the `pothosScopeAuthParent` extension of an object type. It gets the
+ * parent of the type's fields, or the value its `isTypeOf` checks, and returns the parent that
+ * scopes, grants and unauthorized errors see. Resolvers and `isTypeOf` still get the original.
  */
 export type ScopeAuthParentLoader<Context = object> = (
   parent: unknown,

@@ -44,8 +44,9 @@ export default pluginName;
 let inResolveType = false;
 export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   /**
-   * Marks the versions that read a type's `pothosScopeAuthParent` extension, so plugins that set it
-   * can reject older ones without importing this package or parsing versions.
+   * Marks the versions that pass every check that reads the parent what a type's
+   * `pothosScopeAuthParent` extension returns, so plugins that set it can reject older ones without
+   * importing this package or parsing versions.
    */
   static readonly readsParentExtension = true;
 
@@ -82,7 +83,8 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     );
 
     if (steps.length > 1) {
-      return resolveHelper(steps, this, fieldConfig);
+      // Graphql runs only object types' resolvers, so the parent is a row of `typeConfig`.
+      return resolveHelper(steps, this, fieldConfig, parentLoader(typeConfig));
     }
 
     return resolver;
@@ -181,12 +183,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       return isTypeOf;
     }
 
-    // Set by plugins whose rows can lack data the type's scopes read, such as prisma-next, to
-    // load the parent those scopes should see.
-    const loadParent = typeConfig.extensions?.pothosScopeAuthParent as
-      | ScopeAuthParentLoader<Types['Context']>
-      | undefined;
-    const runSteps = isTypeOfHelper(steps, this, isTypeOf, loadParent);
+    const runSteps = isTypeOfHelper(steps, this, isTypeOf, parentLoader(typeConfig));
 
     return (source, context, info) => {
       if (inResolveType) {
@@ -375,6 +372,16 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
 
     return steps;
   }
+}
+
+/**
+ * Set by plugins whose rows can lack data the checks read, such as prisma-next, to load the parent
+ * the checks should see.
+ */
+function parentLoader<Types extends SchemaTypes>({
+  extensions,
+}: Pick<PothosObjectTypeConfig, 'extensions'>) {
+  return extensions?.pothosScopeAuthParent as ScopeAuthParentLoader<Types['Context']> | undefined;
 }
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
