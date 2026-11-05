@@ -1,9 +1,12 @@
 import SchemaBuilder from '@pothos/core';
 import { execute } from '@pothos/test-utils';
+import { parse } from 'graphql';
 import { gql } from 'graphql-tag';
 import PrismaPlugin, { type PrismaTypesFromClient } from '../src';
 import { prisma, queries } from './example/builder';
 import { getDatamodel } from './generated.js';
+
+const argsOf = (logged: unknown[]) => logged.map((query) => (query as { args: unknown }).args);
 
 // Fragments that move between an interface and its variants, or onto an interface that is not
 // backed by a prisma model.
@@ -21,6 +24,8 @@ const builder = new SchemaBuilder<{
 const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
   fields: (t) => ({
     displayName: t.string({ nullable: true, resolve: () => null }),
+    // No select: NormalViewer loads `name` through its type-level select.
+    name: t.string({ nullable: true, resolve: (named) => named.name }),
   }),
 });
 
@@ -59,6 +64,8 @@ const Viewer = builder.prismaInterface('User', {
   }),
 });
 
+let countedSelectCalls = 0;
+
 const NormalViewer = builder.prismaObject('User', {
   variant: 'NormalViewer',
   interfaces: () => [Viewer, Named],
@@ -79,7 +86,58 @@ const NormalViewer = builder.prismaObject('User', {
       nullable: true,
       resolve: (user) => user.name?.split('').reverse().join(''),
     }),
+    // Counts how often its select runs.
+    countedName: t.string({
+      nullable: true,
+      select: () => {
+        countedSelectCalls += 1;
+
+        return { name: true };
+      },
+      resolve: (user) => user.name,
+    }),
   }),
+});
+
+// Implemented by LatestPostViewer and PostPairViewer, whose type-level selects conflict.
+const Tagged = builder.interfaceRef<{ id: number }>('Tagged').implement({
+  fields: (t) => ({
+    tag: t.string({ resolve: (user) => `tag-${user.id}` }),
+  }),
+});
+
+// Implemented only by LatestPostViewer, whose type-level select conflicts with
+// Viewer.recentPostIds. Relay compilers add `... on Node { id }` to a selection like this one.
+const Stamped = builder.interfaceRef<object>('Stamped').implement({
+  fields: (t) => ({
+    stamp: t.string({ resolve: () => 'stamped' }),
+  }),
+});
+
+// Fields with no select that read the row a variant's type-level select loaded, implemented only by
+// LabeledViewer, whose relation arguments conflict with Viewer.recentPostIds.
+const Labeled = builder
+  .interfaceRef<{ name: string | null; posts?: unknown[] }>('Labeled')
+  .implement({
+    fields: (t) => ({
+      label: t.string({ nullable: true, resolve: (user) => user.name }),
+      latestCount: t.int({ nullable: true, resolve: (user) => user.posts?.length }),
+    }),
+  });
+
+builder.prismaObject('User', {
+  variant: 'LabeledViewer',
+  interfaces: [Viewer, Labeled],
+  select: {
+    id: true,
+    name: true,
+    posts: {
+      take: 1,
+      select: {
+        id: true,
+      },
+    },
+  },
 });
 
 // No type-level select: an include-mode variant of a select-mode interface.
@@ -94,7 +152,7 @@ builder.prismaObject('User', {
 // Type-level relation arguments that conflict with Viewer.recentPostIds's field-level select.
 builder.prismaObject('User', {
   variant: 'LatestPostViewer',
-  interfaces: [Viewer],
+  interfaces: [Viewer, Tagged, Stamped],
   select: {
     id: true,
     posts: {
@@ -109,13 +167,15 @@ builder.prismaObject('User', {
       nullable: true,
       resolve: (user) => user.posts[0]?.id,
     }),
+    // Overrides Stamped.stamp with a select of its own, so a reload can answer it.
+    stamp: t.string({ select: { id: true }, resolve: (user) => `stamped-${user.id}` }),
   }),
 });
 
 // A second variant of Viewer whose type-level select conflicts with LatestPostViewer's.
 builder.prismaObject('User', {
   variant: 'PostPairViewer',
-  interfaces: [Viewer],
+  interfaces: [Viewer, Tagged],
   select: {
     id: true,
     posts: {
@@ -166,8 +226,66 @@ builder.prismaObject('User', {
   }),
 });
 
+// Model interfaces with relations back to each other, each implemented by three variants that also
+// implement a non-model interface: every level of a document can expand under `... on Linked`.
+const Linked = builder.interfaceRef<object>('Linked').implement({
+  fields: (t) => ({
+    linked: t.string({ resolve: () => 'linked' }),
+  }),
+});
+
+let relationQueryCalls = 0;
+
+const relationQuery = () => {
+  relationQueryCalls += 1;
+
+  return { take: 1 };
+};
+
+const CyclicUser = builder.prismaInterface('User', {
+  variant: 'CyclicUser',
+  select: { id: true },
+  resolveType: () => 'CyclicUser1',
+  fields: (t) => ({ userId: t.exposeID('id') }),
+});
+
+const CyclicPost = builder.prismaInterface('Post', {
+  variant: 'CyclicPost',
+  select: { id: true },
+  resolveType: () => 'CyclicPost1',
+  fields: (t) => ({ postId: t.exposeID('id') }),
+});
+
+builder.prismaInterfaceField(CyclicUser, 'posts', (t) =>
+  t.relation('posts', { type: CyclicPost, query: relationQuery }),
+);
+builder.prismaInterfaceField(CyclicPost, 'author', (t) =>
+  t.relation('author', { type: CyclicUser }),
+);
+
+for (const n of [1, 2, 3]) {
+  builder.prismaObject('User', {
+    variant: `CyclicUser${n}`,
+    interfaces: [CyclicUser, Linked],
+    select: { id: true },
+  });
+  builder.prismaObject('Post', {
+    variant: `CyclicPost${n}`,
+    interfaces: [CyclicPost, Linked],
+    select: { id: true },
+  });
+}
+
 builder.queryType({
   fields: (t) => ({
+    cyclicUser: t.prismaField({
+      type: CyclicUser,
+      resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
+    }),
+    viewers: t.prismaField({
+      type: [Viewer],
+      resolve: (query) => prisma.user.findMany({ ...query, take: 3 }),
+    }),
     viewer: t.prismaField({
       type: Viewer,
       resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
@@ -272,6 +390,34 @@ describe('fragments on variants and non-model interfaces', () => {
       expect(queries).toEqual(expectedQueries);
     });
 
+    it("loads a field without a select of its own through the variant's type-level select", async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              ...NamedFields
+            }
+          }
+
+          fragment NamedFields on Named {
+            name
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { name: user.name } });
+      expect(queries).toEqual([
+        {
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { select: { id: true, name: true }, where: { id: 1 } },
+        },
+      ]);
+    });
+
     it('finds fields in a fragment nested under one that does not apply to the type', async () => {
       const result = await execute({
         schema,
@@ -291,13 +437,61 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ viewer: { bio: user.profile?.bio ?? null } });
+      // Named covers NormalViewer alone, so bio is planned for NormalViewer rows, with its
+      // type-level select.
       expect(queries).toEqual([
         {
           action: 'findUniqueOrThrow',
           model: 'User',
-          args: { select: { id: true, profile: { select: { bio: true } } }, where: { id: 1 } },
+          args: {
+            select: { id: true, name: true, profile: { select: { bio: true } } },
+            where: { id: 1 },
+          },
         },
       ]);
+    });
+  });
+
+  describe('a fragment on a non-model interface whose implementations conflict', () => {
+    it('fails the query, as fragments naming the implementations do', async () => {
+      const documents = [
+        gql`
+          query {
+            viewer {
+              id
+              ... on Tagged {
+                tag
+              }
+            }
+          }
+        `,
+        gql`
+          query {
+            viewer {
+              ... on Tagged {
+                tag
+                ... on LatestPostViewer {
+                  latestPostId
+                }
+              }
+            }
+          }
+        `,
+      ];
+
+      for (const document of documents) {
+        const result = await execute({
+          schema,
+          document,
+          contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
+        });
+
+        expect(result.errors?.[0]?.message).toBe('Unexpected error.');
+        expect((result.errors?.[0]?.originalError?.cause as Error).message).toBe(
+          'Type-level selections of Viewer and PostPairViewer conflict on relation "posts". Move the relation arguments to a field-level select on one of the types.',
+        );
+        expect(queries).toEqual([]);
+      }
     });
   });
 
@@ -371,7 +565,8 @@ describe('fragments on variants and non-model interfaces', () => {
         contextValue: { user: { id: 1 } },
       });
 
-      expect(result.errors?.[0]?.message).toBe(
+      expect(result.errors?.[0]?.message).toBe('Unexpected error.');
+      expect((result.errors?.[0]?.originalError?.cause as Error).message).toBe(
         'Type-level selections of PostsViewer and RecentPostsViewer conflict on relation "posts". Move the relation arguments to a field-level select on one of the types.',
       );
     });
@@ -448,9 +643,9 @@ describe('fragments on variants and non-model interfaces', () => {
         fragments.push(`fragment F${i} on Viewer { ...F${i + 1} ...F${i + 1} }`);
       }
 
-      fragments.push('fragment F12 on Viewer { ... on NormalViewer { reverseName } }');
+      fragments.push('fragment F12 on Viewer { ... on NormalViewer { reverseName countedName } }');
 
-      const started = performance.now();
+      countedSelectCalls = 0;
       const result = await execute({
         schema,
         document: gql`
@@ -464,10 +659,14 @@ describe('fragments on variants and non-model interfaces', () => {
         contextValue: { user: { id: 1 } },
       });
 
-      expect(performance.now() - started).toBeLessThan(1000);
       expect(result.errors).toBeUndefined();
+      // F12's select runs once, not once per spread that reaches it.
+      expect(countedSelectCalls).toBe(1);
       expect(result.data).toEqual({
-        viewer: { reverseName: user.name?.split('').reverse().join('') ?? null },
+        viewer: {
+          reverseName: user.name?.split('').reverse().join('') ?? null,
+          countedName: user.name,
+        },
       });
       expect(queries).toEqual([
         {
@@ -475,6 +674,231 @@ describe('fragments on variants and non-model interfaces', () => {
           model: 'User',
           args: { select: { id: true, name: true }, where: { id: 1 } },
         },
+      ]);
+    });
+  });
+
+  describe('fragments on a non-model interface at every level of a cyclic document', () => {
+    /** Each of `depth` relation levels selected through `... on Linked`. */
+    function cyclicDocument(depth: number) {
+      let selection = '... on Linked { linked }';
+
+      for (let level = depth; level >= 1; level -= 1) {
+        selection =
+          level % 2 === 1
+            ? `... on Linked { ... on CyclicUser { posts { ${selection} } } }`
+            : `... on Linked { ... on CyclicPost { author { ${selection} } } }`;
+      }
+
+      return parse(`{ cyclicUser { ${selection} } }`);
+    }
+
+    /** One named fragment per level, selecting the relation beneath each of the three variants. */
+    function namedDocument(root: string, depth: number) {
+      const fragments: string[] = [];
+
+      for (let level = 1; level <= depth; level += 1) {
+        const next = level === depth ? '... on Linked { linked }' : `...L${level + 1}`;
+        const selections = [1, 2, 3].map((n) =>
+          level % 2 === 1
+            ? `... on CyclicUser${n} { posts { ${next} } }`
+            : `... on CyclicPost${n} { author { ${next} } }`,
+        );
+
+        fragments.push(`fragment L${level} on Linked { ${selections.join(' ')} }`);
+      }
+
+      return parse(`{ ${root} { ...L1 } } ${fragments.join(' ')}`);
+    }
+
+    it('walks each relation once per type it is reached on, not once per path', async () => {
+      const callsAt = async (depth: number) => {
+        relationQueryCalls = 0;
+        queries.length = 0;
+
+        const result = await execute({
+          schema,
+          document: cyclicDocument(depth),
+          contextValue: { user: { id: 1 } },
+        });
+
+        expect(result.errors).toBeUndefined();
+        expect(queries).toHaveLength(1);
+
+        return relationQueryCalls;
+      };
+
+      // Only `posts` counts: once at each of the odd levels. Its three variants take the
+      // invocation on the interface. Exponential planning made these 1,092 calls at depth 6 and
+      // 4,473,924 at depth 12.
+      expect(await callsAt(6)).toBe(3);
+      expect(await callsAt(12)).toBe(6);
+    });
+
+    it('walks a named fragment spread beneath every variant once per level', async () => {
+      const callsAt = async (depth: number) => {
+        relationQueryCalls = 0;
+        queries.length = 0;
+
+        const result = await execute({
+          schema,
+          document: namedDocument('cyclicUser', depth),
+          contextValue: { user: { id: 1 } },
+        });
+
+        expect(result.errors).toBeUndefined();
+        expect(queries).toHaveLength(1);
+
+        return relationQueryCalls;
+      };
+
+      // Each of the three `posts` nodes at each odd level, once. A walk per field node made these
+      // 4,920 calls at depth 8.
+      expect(await callsAt(8)).toBe(12);
+      expect(await callsAt(20)).toBe(30);
+    });
+
+    it('plans the same query with and without the fragments', async () => {
+      const withFragments = await execute({
+        schema,
+        document: cyclicDocument(2),
+        contextValue: { user: { id: 1 } },
+      });
+      const fragmentQueries = [...queries];
+
+      queries.length = 0;
+
+      const without = await execute({
+        schema,
+        document: gql`
+          query {
+            cyclicUser {
+              ... on CyclicUser1 {
+                linked
+              }
+              posts {
+                ... on CyclicPost1 {
+                  linked
+                }
+                author {
+                  userId
+                }
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(without.errors).toBeUndefined();
+      expect(withFragments.errors).toBeUndefined();
+      expect(argsOf(fragmentQueries)).toEqual(argsOf(queries));
+    });
+  });
+
+  describe('a fragment whose variant displaces a field from the parent query', () => {
+    const latestPost = { posts: { take: 1, select: { id: true } }, id: true };
+    const recentPosts = { posts: { take: 3, select: { id: true } }, id: true, name: true };
+
+    it('loads the variant and reloads the field', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              recentPostIds
+              ... on Stamped {
+                stamp
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { recentPostIds: expect.any(Array) } });
+      expect(argsOf(queries)).toEqual([
+        { select: latestPost, where: { id: 1 } },
+        { select: recentPosts, where: { id: 1 } },
+      ]);
+    });
+
+    it('reloads the field once per row of a list, in calls prisma batches', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewers {
+              recentPostIds
+              ... on Stamped {
+                stamp
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 } },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.viewers).toHaveLength(3);
+      expect(queries).toEqual([
+        { action: 'findMany', model: 'User', args: { select: latestPost, take: 3 } },
+        ...[1, 2, 3].map((id) => ({
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { select: recentPosts, where: { id } },
+        })),
+      ]);
+    });
+
+    it('loads the variant for fields with no select that read its row', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              recentPostIds
+              ... on Labeled {
+                label
+                latestCount
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 }, viewerType: 'LabeledViewer' },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        viewer: {
+          recentPostIds: expect.objectContaining({ length: 3 }),
+          label: user.name,
+          latestCount: 1,
+        },
+      });
+      expect(queries).toHaveLength(2);
+    });
+
+    it('loads the variant when no field is displaced', async () => {
+      const result = await execute({
+        schema,
+        document: gql`
+          query {
+            viewer {
+              ... on Stamped {
+                stamp
+              }
+            }
+          }
+        `,
+        contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({ viewer: { stamp: 'stamped-1' } });
+      expect(argsOf(queries)).toEqual([
+        { select: { posts: { take: 1, select: { id: true } }, id: true }, where: { id: 1 } },
       ]);
     });
   });
@@ -629,7 +1053,8 @@ describe('fragments on variants and non-model interfaces', () => {
       for (const document of documents) {
         const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
 
-        expect(result.errors?.[0]?.message).toMatch(
+        expect(result.errors?.[0]?.message).toBe('Unexpected error.');
+        expect((result.errors?.[0]?.originalError?.cause as Error).message).toMatch(
           /^Type-level selections of Viewer and (LatestPostViewer|PostPairViewer) conflict on relation "posts"\./,
         );
       }
