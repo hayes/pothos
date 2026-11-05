@@ -279,10 +279,9 @@ export function takeSlots<T>(rows: T, model: PrismaNextModel, record?: IncludeRe
 // Takes fresh ORM rows only. A row whose slots were already taken off would lose them.
 function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | undefined): Row {
   let nested: Row | undefined;
+  // Allocated only for a row with slots, which most rows lack.
   let slots: Record<string, RelationSlots> | undefined;
-  /** Relations whose value comes off the row. */
-  const taken: string[] = [];
-  const scopes = new Set<string>();
+  let scopes: Set<string> | undefined;
   for (const name in model.relations) {
     const relation = model.relations[name]!;
     const included = record?.[name];
@@ -299,11 +298,11 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
       }
       continue;
     }
-    taken.push(name);
     const rows = new Map<string, unknown>();
     const values = new Map<string, Row>();
     slots ??= {};
     slots[name] = { rows, values };
+    scopes ??= new Set();
     for (const [branch, slot] of Object.entries(value)) {
       // Rows are keyed by scope and computed values by `scope:key`. Consumers that share either are
       // keyed by their scopes joined with a space.
@@ -326,13 +325,14 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
       }
     }
   }
-  if (!slots) {
+  if (!(slots && scopes)) {
     const next = nested ? Object.assign(copyOf(row), nested) : row;
     rowSlots.set(next, PLAIN);
     return next;
   }
   const next = copyOf(row);
-  for (const name of taken) {
+  // The relations loaded into slots come off the row.
+  for (const name of Object.keys(slots)) {
     delete next[name];
   }
   Object.assign(next, nested);
