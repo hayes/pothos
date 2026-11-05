@@ -569,9 +569,18 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 /**
  * Unlike a field-level select, a type-level selection has no per-field fallback, so a relation
  * argument or a computed value that conflicts with what is already in the node is an error rather
- * than a rejection.
+ * than a rejection. It surfaces while a request runs, so the client sees a generic message and the
+ * detail is its `cause`, which responses leave out.
  */
 function variantConflict(type: WalkedType, variant: WalkedType, conflict: TypeLevelConflict) {
+  return new Error('Unexpected error.', { cause: variantConflictDetail(type, variant, conflict) });
+}
+
+function variantConflictDetail(
+  type: WalkedType,
+  variant: WalkedType,
+  conflict: TypeLevelConflict,
+) {
   switch (conflict.kind) {
     case 'relation':
       return new PothosValidationError(

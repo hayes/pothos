@@ -14,6 +14,14 @@ import {
 } from './fake-adapter';
 import { createTestAdapter, createTestSchema, models, withSelects } from './schema';
 
+/** The error a type-level conflict throws: generic, with `detail` as its cause's message. */
+function unexpected(detail: string) {
+  return expect.objectContaining({
+    message: 'Unexpected error.',
+    cause: expect.objectContaining({ message: expect.stringContaining(detail) }),
+  });
+}
+
 const schema = createTestSchema();
 const adapter = createTestAdapter();
 
@@ -315,7 +323,7 @@ describe('queryFromInfo', () => {
     // path matches instead: one rule, one answer.
     expect(() =>
       queryFromInfo(adapter, { context: {}, info, typeName: 'User', path: ['appointment'] }),
-    ).toThrow('Type-level selections of Viewer and Admin conflict on relation "posts"');
+    ).toThrow(unexpected('Type-level selections of Viewer and Admin conflict on relation "posts"'));
   });
 
   it('keeps only the matches of the model the root loads, with no typeName', async () => {
@@ -468,9 +476,7 @@ describe('fragments', () => {
       '{ person { id ... on Viewer { email } ... on Admin { id } } }',
     );
 
-    expect(() => queryFromInfo(adapter, { context: {}, info })).toThrow(
-      'Type-level selections of Person and Admin conflict on relation "posts"',
-    );
+    expect(() => queryFromInfo(adapter, { context: {}, info })).toThrow(unexpected('Type-level selections of Person and Admin conflict on relation "posts"'));
   });
 
   it('rejects a variant whose type-level extras conflict', async () => {
@@ -498,9 +504,7 @@ describe('fragments', () => {
 
     const other = await resolveInfo(schema, '{ person { id ... on Viewer { email } } }');
 
-    expect(() => queryFromInfo(withExtras, { context: {}, info: other })).toThrow(
-      'Type-level selections of Person and Viewer conflict on extra "total". Define the extra with the same function on both types, or move it to a field-level select on one of the types.',
-    );
+    expect(() => queryFromInfo(withExtras, { context: {}, info: other })).toThrow(unexpected('Type-level selections of Person and Viewer conflict on extra "total". Define the extra with the same function on both types, or move it to a field-level select on one of the types.'));
   });
 
   it('enters variants before any field is merged, so conflicts are order-independent', async () => {
@@ -761,7 +765,9 @@ describe('fragments', () => {
     it('still reports conflicting variants a document names directly', async () => {
       await expect(
         plan('{ person { ... on Viewer { email } ... on Admin { rank } ... on Node { id } } }'),
-      ).rejects.toThrow(/Type-level selections of Person and Admin conflict on relation "posts"/);
+      ).rejects.toThrow(
+        unexpected('Type-level selections of Person and Admin conflict on relation "posts"'),
+      );
     });
   });
 

@@ -759,7 +759,8 @@ describe('fragments on variants and non-model interfaces', () => {
         contextValue: { user: { id: 1 } },
       });
 
-      expect(result.errors?.[0]?.message).toBe(
+      expect(result.errors?.[0]?.message).toBe('Unexpected error.');
+      expect((result.errors?.[0]?.originalError?.cause as Error).message).toBe(
         'Type-level selections of PostsViewer and RecentPostsViewer conflict on relation "posts". Move the relation arguments to a field-level select on one of the types.',
       );
     });
@@ -1425,7 +1426,8 @@ describe('fragments on variants and non-model interfaces', () => {
       for (const document of documents) {
         const result = await execute({ schema, document, contextValue: { user: { id: 1 } } });
 
-        expect(result.errors?.[0]?.message).toMatch(
+        expect(result.errors?.[0]?.message).toBe('Unexpected error.');
+        expect((result.errors?.[0]?.originalError?.cause as Error).message).toMatch(
           /^Type-level selections of Viewer and (LatestPostViewer|PostPairViewer) conflict on relation "posts"\./,
         );
       }
@@ -1478,7 +1480,8 @@ describe('fragments on variants and non-model interfaces', () => {
         contextValue: { user: { id: 1 } },
       });
 
-      expect(result.errors?.[0]?.message).toBe(
+      expect(result.errors?.[0]?.message).toBe('Unexpected error.');
+      expect((result.errors?.[0]?.originalError?.cause as Error).message).toBe(
         'Type-level selections of NamedViewer and UppercaseViewer conflict on extra "casedFirstName". Define the extra with the same function on both types, or move it to a field-level select on one of the types.',
       );
     });
