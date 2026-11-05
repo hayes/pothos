@@ -372,9 +372,6 @@ export class PrismaNextObjectFieldBuilder<
     }
     const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) =>
       completeOption(query as unknown, args, ctx, (value) => {
-        if (typeof value !== 'function') {
-          assertQueryOptions(value, RELATION_QUERY_KEYS, owner);
-        }
         const spec = typeof value === 'function' ? undefined : definedQuery(value);
         const refine =
           typeof value === 'function'

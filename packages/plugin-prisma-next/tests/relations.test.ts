@@ -1246,35 +1246,10 @@ describe('invalid query options', () => {
     return builder.toSchema();
   }
 
-  it('fails a relation query callback that returns an unknown option', async () => {
-    const result = await run(
-      relationSchema(() => ({ where: { published: 1 }, take: 1 })),
-      '{ users { posts { id } } }',
-    );
-    expect(result.errors?.[0].message).toMatch(
-      /^query on 'User\.posts' has unknown options 'take'/,
-    );
-    expect(result.data?.users).toBeFalsy();
-  });
-
   it('rejects an unknown option in a relation query object when the schema is built', () => {
     expect(() => relationSchema({ where: { published: 1 }, take: 1 })).toThrow(
       /^query on 'User\.posts' has unknown options 'take'/,
     );
-  });
-
-  it.each([
-    [
-      'an unknown option',
-      () => ({ where: { published: 1 }, take: 1 }),
-      /has unknown options 'take'/,
-    ],
-    ['a page size', () => ({ limit: 1 }), /has unknown options 'limit'/],
-    ['a promise', async () => ({ where: { published: 1 } }), /can't be async/],
-  ])('fails a relatedConnection query callback that returns %s', async (_name, query, message) => {
-    const result = await run(connectionSchema(query), '{ users { page { nodes { id } } } }');
-    expect(result.errors?.[0].message).toMatch(/^query on 'User\.posts' /);
-    expect(result.errors?.[0].message).toMatch(message);
   });
 
   it('accepts an unknown option whose value is undefined', async () => {
@@ -1292,22 +1267,10 @@ describe('invalid query options', () => {
     );
   });
 
-  it('rejects an unknown option or a promise from a connection helper query', async () => {
+  it('rejects an unknown option in a connection helper query object', () => {
     const builder = createBuilder();
     expect(() => prismaConnectionHelpers(builder, 'Post', { query: { take: 1 } as never })).toThrow(
       /^query on connection helpers for 'Post' has unknown options 'take'/,
-    );
-    const unknownKey = prismaConnectionHelpers(builder, 'Post', {
-      query: (() => ({ take: 1 })) as never,
-    });
-    await expect(unknownKey.applyPagination(db.orm.Post, {}, {})).rejects.toThrow(
-      /^query on connection helpers for 'Post' has unknown options 'take'/,
-    );
-    const promised = prismaConnectionHelpers(builder, 'Post', {
-      query: (async () => ({ where: { published: 1 } })) as never,
-    });
-    await expect(promised.applyPagination(db.orm.Post, {}, {})).rejects.toThrow(
-      /^query on connection helpers for 'Post' can't be async/,
     );
   });
 });

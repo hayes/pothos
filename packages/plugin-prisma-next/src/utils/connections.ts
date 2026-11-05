@@ -149,7 +149,6 @@ export function connectionSettings(
       };
       validateCursorArgs(plan, args);
       const value = typeof query === 'function' ? query(args, ctx) : query;
-      assertQueryOptions(value, ['where'], owner);
       return { ...plan, where: (value as { where?: unknown } | undefined)?.where };
     },
   };

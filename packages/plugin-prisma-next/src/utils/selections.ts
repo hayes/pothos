@@ -4,6 +4,7 @@ import {
   getTypeBrand,
   isThenable,
   type MaybePromise,
+  PothosSchemaError,
 } from '@pothos/core';
 import type {
   NestedSelection,
@@ -720,12 +721,13 @@ interface DeclarativeQuery {
 export const RELATION_QUERY_KEYS = ['where', 'orderBy', 'limit', 'offset'];
 
 /**
- * Throws for a `query` the types would reject, such as an untyped caller's, instead of dropping
- * the filter beside an unknown option or inside a promise.
+ * Throws, when the schema is built, for a static `query` the types would reject, such as an
+ * untyped caller's, instead of dropping the filter beside an unknown option or inside a promise.
+ * What a `query` callback returns is left to the types.
  */
 export function assertQueryOptions(value: unknown, allowed: readonly string[], owner: string) {
   if (isThenable(value)) {
-    throw new Error(`query on ${owner} can't be async. Return it synchronously.`);
+    throw new PothosSchemaError(`query on ${owner} can't be async. Return it synchronously.`);
   }
   // An undefined option drops nothing, so a shared options object with `orderBy: undefined` passes.
   const unknownKeys =
@@ -735,7 +737,7 @@ export function assertQueryOptions(value: unknown, allowed: readonly string[], o
           .filter(([key, option]) => option !== undefined && !allowed.includes(key))
           .map(([key]) => key);
   if (unknownKeys.length > 0) {
-    throw new Error(
+    throw new PothosSchemaError(
       `query on ${owner} has unknown options ${unknownKeys.map((key) => `'${key}'`).join(', ')}. Use { ${allowed.map((key) => `${key}?`).join(', ')} }.`,
     );
   }
