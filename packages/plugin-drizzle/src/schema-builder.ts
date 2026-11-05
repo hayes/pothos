@@ -68,17 +68,17 @@ function defineDrizzleType(
       pothosDrizzleTable: schemaConfig.relations[table],
       pothosDrizzleSelect: typeSelect ?? select ?? true,
       pothosDrizzleLoader: loader,
-      // Read by scope-auth for the row its checks see.
-      ...(!isInterface && typeSelect
-        ? {
+      // Read by scope-auth for the row its checks see. Without a `select`, that is every column.
+      ...(isInterface
+        ? {}
+        : {
             pothosScopeAuthParent: typeParentLoader(
               loader,
               drizzleAdapter(schemaConfig),
               schemaConfig.relations[table],
-              typeSelect,
+              typeSelect ?? {},
             ),
-          }
-        : {}),
+          }),
     },
     name,
     fields: fields

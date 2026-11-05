@@ -36,19 +36,25 @@ export function deepEqual(left: unknown, right: unknown): boolean {
     return true;
   }
 
-  const leftPlain = isPlain(left);
+  // Two objects of `Object.prototype`, the common case, need no further check.
+  if (
+    Object.getPrototypeOf(left) !== Object.prototype ||
+    Object.getPrototypeOf(right) !== Object.prototype
+  ) {
+    const leftPlain = isPlain(left);
 
-  if (leftPlain !== isPlain(right)) {
-    return false;
-  }
+    if (leftPlain !== isPlain(right)) {
+      return false;
+    }
 
-  if (!leftPlain) {
-    return instancesEqual(left, right);
+    if (!leftPlain) {
+      return instancesEqual(left, right);
+    }
   }
 
   const keys = comparedKeys(left as Record<string, unknown>);
 
-  if (keys.length !== comparedKeys(right as Record<string, unknown>).length) {
+  if (keys.length !== definedKeyCount(right as Record<string, unknown>)) {
     return false;
   }
 
@@ -89,4 +95,16 @@ function instancesEqual(left: object, right: object) {
 
 function comparedKeys(value: Record<string, unknown>) {
   return Object.keys(value).filter((key) => value[key] !== undefined);
+}
+
+function definedKeyCount(value: Record<string, unknown>) {
+  let count = 0;
+
+  for (const key of Object.keys(value)) {
+    if (value[key] !== undefined) {
+      count += 1;
+    }
+  }
+
+  return count;
 }

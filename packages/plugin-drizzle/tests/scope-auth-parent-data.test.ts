@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import { graphql } from 'graphql';
+import { graphql, parse, subscribe } from 'graphql';
 import DrizzlePlugin from '../src';
 import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
 
@@ -87,6 +87,18 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
     }),
   });
 
+  // Without a `select`, it loads every column.
+  const PlainUser = builder.drizzleObject('users', {
+    variant: 'PlainUser',
+    authScopes: (user) => {
+      seen.push(user.username);
+      return true;
+    },
+    fields: (t) => ({
+      id: t.id({ resolve: (user) => user.id }),
+    }),
+  });
+
   const UncheckedUser = builder.drizzleObject('users', {
     variant: 'UncheckedUser',
     select: { columns: { id: true, username: true } },
@@ -97,6 +109,24 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
 
   // Returned by every mutation, which run one after the other.
   const sharedRow = { id: 1 };
+
+  // Every event yields this same object, mutated, so only a per-execution cache tells them apart.
+  const eventRow = { id: 1 };
+
+  builder.subscriptionType({
+    fields: (t) => ({
+      userEvents: t.field({
+        type: User,
+        subscribe: async function* () {
+          for (const id of [1, 2]) {
+            eventRow.id = id;
+            yield await Promise.resolve(eventRow);
+          }
+        },
+        resolve: (row) => row as never,
+      }),
+    }),
+  });
 
   builder.mutationType({
     fields: (t) => ({
@@ -122,8 +152,13 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
         type: UserWithProfile,
         resolve: () => ({ id: 1, username: 'redacted' }) as never,
       }),
+      partialProfileUser: t.field({
+        type: UserWithProfile,
+        resolve: () => ({ id: 1, profile: {} }) as never,
+      }),
       partialIfaceUser: t.field({ type: IfaceUser, resolve: () => ({ id: 1 }) as never }),
       namedUser: t.field({ type: NamedUser, resolve: () => ({ id: 1 }) as never }),
+      plainUser: t.field({ type: PlainUser, resolve: () => ({ id: 1 }) as never }),
       uncheckedUser: t.field({ type: UncheckedUser, resolve: () => ({ id: 1 }) as never }),
       user: t.drizzleField({
         type: User,
@@ -160,12 +195,19 @@ describe.each([
     expect(drizzleLogs).toHaveLength(1);
   });
 
-  it("passes field authScopes the relations the type's select loads", async () => {
+  it("passes field authScopes the type's select, with loaded values replacing the row's", async () => {
     const result = await run('{ redactedUser { username bio } }');
 
     expect(result).toEqual({ data: { redactedUser: { username: 'redacted', bio: null } } });
-    // The values the row has are kept.
-    expect(seen).toEqual([['redacted', user1!.profile!.bio]]);
+    expect(seen).toEqual([[user1!.username, user1!.profile!.bio]]);
+    expect(drizzleLogs).toHaveLength(1);
+  });
+
+  it('replaces a partial relation with the loaded one', async () => {
+    const result = await run('{ partialProfileUser { bio } }');
+
+    expect(result.errors).toBeUndefined();
+    expect(seen).toEqual([[user1!.username, user1!.profile!.bio]]);
     expect(drizzleLogs).toHaveLength(1);
   });
 
@@ -173,6 +215,14 @@ describe.each([
     const result = await run('{ namedUser { id } }');
 
     expect(result).toEqual({ data: { namedUser: { id: '1' } } });
+    expect(seen).toEqual([user1!.username]);
+    expect(drizzleLogs).toHaveLength(1);
+  });
+
+  it('reloads every column for a type without a select', async () => {
+    const result = await run('{ plainUser { id } }');
+
+    expect(result).toEqual({ data: { plainUser: { id: '1' } } });
     expect(seen).toEqual([user1!.username]);
     expect(drizzleLogs).toHaveLength(1);
   });
@@ -220,6 +270,26 @@ describe.each([
     const result = await run('mutation { a: touch { id } b: touch { id } }');
 
     expect(result.errors).toBeUndefined();
+    expect(drizzleLogs).toHaveLength(2);
+  });
+
+  it('reloads a row again for each subscription event', async () => {
+    const events = await subscribe({
+      schema,
+      document: parse('subscription { userEvents { id } }'),
+      contextValue: {},
+    });
+    const results: unknown[] = [];
+
+    for await (const event of events as AsyncIterable<unknown>) {
+      results.push(event);
+    }
+
+    expect(results).toEqual([
+      { data: { userEvents: { id: '1' } } },
+      { data: { userEvents: { id: '2' } } },
+    ]);
+    expect(seen).toEqual([user1!.username, user2!.username]);
     expect(drizzleLogs).toHaveLength(2);
   });
 });

@@ -732,6 +732,30 @@ describe('fragments', () => {
       );
     });
 
+    it('enters no variant for a fragment whose fields are all skipped', async () => {
+      const expected = await plan('{ person { id } }');
+      const planWith = async (query: string, variableValues?: Record<string, unknown>) =>
+        queryFromInfo(expansionAdapter, {
+          context: {},
+          info: await resolveInfo(expansionSchema, query, { variableValues }),
+        });
+
+      expect(await planWith('{ person { id ... on Named { name @skip(if: true) } } }')).toEqual(
+        expected,
+      );
+      expect(
+        await planWith(
+          'query ($x: Boolean!) { person { id ... on Named { name @include(if: $x) } } }',
+          { x: false },
+        ),
+      ).toEqual(expected);
+      expect(
+        await planWith(
+          'query { person { id ...F } } fragment F on Person { ...G } fragment G on Named { name @skip(if: true) }',
+        ),
+      ).toEqual(expected);
+    });
+
     it('throws when the variants a fragment covers conflict with another fragment', async () => {
       await expect(
         plan('{ person { ... on Ranked { rank } ... on Viewer { email } } }'),

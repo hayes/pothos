@@ -1,6 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import PrismaPlugin from '@pothos/plugin-prisma';
-import { graphql } from 'graphql';
+import { graphql, parse, subscribe } from 'graphql';
 import type PrismaTypes from '../prisma/generated';
 import { getDatamodel } from '../prisma/generated';
 import ScopeAuthPlugin from '../src';
@@ -94,6 +94,18 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
     }),
   });
 
+  // Without a `select` or `include`, it loads every scalar.
+  const PlainPost = builder.prismaObject('Post', {
+    variant: 'PlainPost',
+    authScopes: (post) => {
+      seen.push(post.title);
+      return true;
+    },
+    fields: (t) => ({
+      id: t.exposeID('id'),
+    }),
+  });
+
   const UncheckedUser = builder.prismaObject('User', {
     variant: 'UncheckedUser',
     select: { id: true, firstName: true },
@@ -104,6 +116,24 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
 
   // Returned by every mutation, which run one after the other.
   const sharedRow = { id: 1 };
+
+  // Every event yields this same object, mutated, so only a per-execution cache tells them apart.
+  const eventRow = { id: 1 };
+
+  builder.subscriptionType({
+    fields: (t) => ({
+      userEvents: t.field({
+        type: User,
+        subscribe: async function* () {
+          for (const id of [1, 2]) {
+            eventRow.id = id;
+            yield await Promise.resolve(eventRow);
+          }
+        },
+        resolve: (row) => row as never,
+      }),
+    }),
+  });
 
   builder.mutationType({
     fields: (t) => ({
@@ -136,6 +166,20 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
         type: Post,
         resolve: () => ({ id: 1, title: 'redacted' }) as never,
       }),
+      // Has the include, but not the scalars include mode loads.
+      postWithAuthor: t.field({
+        type: Post,
+        resolve: () =>
+          client.post.findUniqueOrThrow({
+            where: { id: 1 },
+            select: { id: true, author: true },
+          }) as never,
+      }),
+      postWithPartialAuthor: t.field({
+        type: Post,
+        resolve: () => ({ id: 1, author: { id: 1 } }) as never,
+      }),
+      plainPost: t.field({ type: PlainPost, resolve: () => ({ id: 1 }) as never }),
       completeUser: t.field({
         type: User,
         resolve: () => ({ id: 1, firstName: 'complete' }) as never,
@@ -157,7 +201,9 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
 }
 
 let authors: Map<number, string>;
+let titles: Map<number, string>;
 let firstName: string;
+let secondFirstName: string;
 
 beforeAll(async () => {
   const posts = await db.post.findMany({
@@ -165,7 +211,9 @@ beforeAll(async () => {
     include: { author: true },
   });
   authors = new Map(posts.map((post) => [post.id, post.author.firstName]));
+  titles = new Map(posts.map((post) => [post.id, post.title]));
   firstName = (await db.user.findUniqueOrThrow({ where: { id: 1 } })).firstName;
+  secondFirstName = (await db.user.findUniqueOrThrow({ where: { id: 2 } })).firstName;
 });
 
 beforeEach(() => {
@@ -209,11 +257,35 @@ describe.each([
     expect(queries).toBe(3);
   });
 
-  it("passes field authScopes the type's include, keeping the values the row has", async () => {
+  it("passes field authScopes the type's include, with loaded values replacing the row's", async () => {
     const result = await run('{ redactedPost { title authorName } }');
 
     expect(result).toEqual({ data: { redactedPost: { title: 'redacted', authorName: null } } });
-    expect(seen).toEqual([['redacted', authors.get(1)]]);
+    expect(seen).toEqual([[titles.get(1), authors.get(1)]]);
+    expect(queries).toBe(1);
+  });
+
+  it('reloads an include-mode row that has the include but not every scalar', async () => {
+    const result = await run('{ postWithAuthor { authorName } }');
+
+    expect(result.errors).toBeUndefined();
+    expect(seen).toEqual([[titles.get(1), authors.get(1)]]);
+    expect(queries).toBe(2);
+  });
+
+  it('reloads the scalars of a type without a select or include', async () => {
+    const result = await run('{ plainPost { id } }');
+
+    expect(result).toEqual({ data: { plainPost: { id: '1' } } });
+    expect(seen).toEqual([titles.get(1)]);
+    expect(queries).toBe(1);
+  });
+
+  it('replaces a partial relation with the loaded one', async () => {
+    const result = await run('{ postWithPartialAuthor { authorName } }');
+
+    expect(result.errors).toBeUndefined();
+    expect(seen).toEqual([[titles.get(1), authors.get(1)]]);
     expect(queries).toBe(1);
   });
 
@@ -252,6 +324,26 @@ describe.each([
     const result = await run('mutation { a: touch { id } b: touch { id } }');
 
     expect(result.errors).toBeUndefined();
+    expect(queries).toBe(2);
+  });
+
+  it('reloads a row again for each subscription event', async () => {
+    const events = await subscribe({
+      schema,
+      document: parse('subscription { userEvents { id } }'),
+      contextValue: {},
+    });
+    const results: unknown[] = [];
+
+    for await (const event of events as AsyncIterable<unknown>) {
+      results.push(event);
+    }
+
+    expect(results).toEqual([
+      { data: { userEvents: { id: '1' } } },
+      { data: { userEvents: { id: '2' } } },
+    ]);
+    expect(seen).toEqual([firstName, secondFirstName]);
     expect(queries).toBe(2);
   });
 });
