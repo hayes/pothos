@@ -350,7 +350,9 @@ describe('options validated when the schema is built', () => {
       }),
     });
     expect(() => builder.toSchema()).toThrow(
-      "t.prismaConnection for 'User' has no `query` option.",
+      new PothosSchemaError(
+        "t.prismaConnection for 'User' has no `query` option. Filter the collection resolve returns instead.",
+      ),
     );
   });
 
