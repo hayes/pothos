@@ -2358,7 +2358,7 @@ describe.each(
       prismaNext: { client: ctx.client },
     });
     const User = builder.prismaObject('User', {
-      select: ['email'],
+      select: ['email', 'firstName'],
       authScopes: (user) => {
         seen.push([user.email, user.firstName, (user as { nickname?: string }).nickname]);
         return true;
