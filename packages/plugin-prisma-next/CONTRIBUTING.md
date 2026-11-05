@@ -21,16 +21,17 @@ Check at runtime only:
 
 Pick the error class by who has to act on it:
 
-- **The developer, while the schema is built:** `PothosSchemaError`.
+- **The developer, while the schema is built:** `PothosSchemaError`, with the detail in its
+  message.
 - **The API client, for bad input:** `PothosValidationError`, with a message that is safe to show:
   no model or column names, and nothing the client sent, such as `Invalid cursor.` for a bad cursor.
-- **The developer, during a request:** a plain `Error`, whose message keeps the detail for logs
-  but leaves out row values.
+- **The developer, during a request:** `InternalError`. Clients see `Unexpected error.`, and the
+  detail, which leaves out row values, is in its `cause`.
 
 `PothosSchemaError` and `PothosValidationError` extend `GraphQLError`, which servers that mask
-errors, such as GraphQL Yoga, pass through to the client. A plain `Error` is masked. Code shared by
-the build and a request, such as `variantForRelationType` and `sharedVariantRelationError`, takes
-the error to throw, so the build path keeps `PothosSchemaError`.
+errors, such as GraphQL Yoga, pass through to the client. Code shared by the build and a request,
+such as `variantForRelationType` and `sharedVariantRelationError`, takes the error to throw, so the
+build path keeps `PothosSchemaError`.
 
 ## Running the tests
 
