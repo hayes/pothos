@@ -24,6 +24,7 @@ import {
   type SelectionNode,
 } from 'graphql';
 import type { NodeBase } from './adapter.js';
+import { unexpectedError } from './errors.js';
 import { EMPTY_MAPPING, type Mapping, unionMappings } from './loader-map.js';
 import {
   collectSelectedFieldNames,
@@ -779,7 +780,7 @@ function collectField<Model, Query, NodeType extends NodeBase<Model>>(
 
   if (mapping.pending) {
     // Only a select invocation can be pending, and every one of those has a position.
-    throw new PothosValidationError(
+    throw unexpectedError(
       `The selection function of ${fieldName(mapping.position!)} returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.`,
     );
   }

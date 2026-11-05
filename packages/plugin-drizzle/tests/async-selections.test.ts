@@ -441,9 +441,10 @@ describe('async selections', () => {
     );
 
     expect(logs).toHaveLength(0);
-    expect(result.errors?.map((error) => error.message)).toEqual([
+    expect(result.errors?.map((error) => (error.originalError?.cause as Error)?.message)).toEqual([
       'The selection function of User.unawaitedPosts returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.',
     ]);
+    expect(result.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
   });
 
   it('rejects a nested selection that was discarded, recording no mapping for it', async () => {
@@ -452,9 +453,10 @@ describe('async selections', () => {
     );
 
     expect(logs).toHaveLength(0);
-    expect(result.errors?.map((error) => error.message)).toEqual([
+    expect(result.errors?.map((error) => (error.originalError?.cause as Error)?.message)).toEqual([
       'The selection function of User.discardedPosts returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.',
     ]);
+    expect(result.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
     expect(getLoaderMapping(context, pathOf('user', 'discardedPosts'), 'User')).toBe(null);
   });
 

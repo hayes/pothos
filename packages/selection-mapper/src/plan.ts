@@ -10,6 +10,7 @@
 import { PothosValidationError } from '@pothos/core';
 import { type GraphQLNamedType, type GraphQLResolveInfo, getNamedType } from 'graphql';
 import type { Adapter, NodeBase } from './adapter.js';
+import { unexpectedError } from './errors.js';
 import { type Mapping, type Mappings, setLoaderMappings, unionMappings } from './loader-map.js';
 import {
   findMatches,
@@ -251,7 +252,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     const model = modelOf(adapter, source.info.schema, type);
 
     if (!model) {
-      throw new PothosValidationError(
+      throw unexpectedError(
         `Expected ${resolveType(source.info.schema, type).name} to have a model`,
       );
     }
@@ -573,27 +574,19 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
  * detail is its `cause`, which responses leave out.
  */
 function variantConflict(type: WalkedType, variant: WalkedType, conflict: TypeLevelConflict) {
-  // Still a `PothosValidationError`, as before, for code that matches on the class.
-  const error = new PothosValidationError('Unexpected error.');
-  error.cause = variantConflictDetail(type, variant, conflict);
-
-  return error;
-}
-
-function variantConflictDetail(type: WalkedType, variant: WalkedType, conflict: TypeLevelConflict) {
   switch (conflict.kind) {
     case 'relation':
-      return new PothosValidationError(
+      return unexpectedError(
         `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${conflict.name}". Move the relation arguments to a field-level select on one of the types.`,
       );
     case 'extra':
-      return new PothosValidationError(
+      return unexpectedError(
         `Type-level selections of ${type.name} and ${variant.name} conflict on extra "${conflict.name}". Define the extra with the same function on both types, or move it to a field-level select on one of the types.`,
       );
     default: {
       const unknown: never = conflict.kind;
 
-      return new PothosValidationError(`Unknown type-level conflict ${unknown as string}`);
+      return unexpectedError(`Unknown type-level conflict ${unknown as string}`);
     }
   }
 }

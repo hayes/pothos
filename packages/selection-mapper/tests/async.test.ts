@@ -13,6 +13,14 @@ import {
 import { countPromises } from './promise-spy';
 import { createTestAdapter, createTestSchema, type Wrap, withSelects, withWraps } from './schema';
 
+/** An error clients see as `Unexpected error.`, whose `cause` has `detail`. */
+function unexpected(detail: string) {
+  return expect.objectContaining({
+    message: 'Unexpected error.',
+    cause: expect.objectContaining({ message: expect.stringContaining(detail) }),
+  });
+}
+
 const schema = createTestSchema();
 const adapter = createTestAdapter();
 
@@ -121,7 +129,9 @@ describe('async callbacks', () => {
     const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
 
     expect(() => queryFromInfo(async, { context: {}, info })).toThrow(
-      'The selection function of User.posts returned while a nested selection it started was still pending',
+      unexpected(
+        'The selection function of User.posts returned while a nested selection it started was still pending',
+      ),
     );
 
     // ...so the select awaits it.
@@ -160,7 +170,9 @@ describe('async callbacks', () => {
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
 
     await expect(queryFromInfo(async, { context: {}, info })).rejects.toThrow(
-      'The selection function of User.posts returned while a nested selection it started was still pending',
+      unexpected(
+        'The selection function of User.posts returned while a nested selection it started was still pending',
+      ),
     );
   });
 
@@ -317,7 +329,9 @@ describe('async callbacks', () => {
     );
 
     expect(() => queryFromInfo(async, { context: {}, info })).toThrow(
-      'The selection function of User.postsConnection returned while a nested selection it started was still pending',
+      unexpected(
+        'The selection function of User.postsConnection returned while a nested selection it started was still pending',
+      ),
     );
   });
 
@@ -421,7 +435,7 @@ describe('a nested selection that was not awaited', () => {
 
       expect(() =>
         queryFromInfo(withWraps({ posts: discarding, author: rejecting }), { context, info }),
-      ).toThrow(message);
+      ).toThrow(unexpected(message));
       expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
     });
   });
@@ -446,7 +460,7 @@ describe('a nested selection that was not awaited', () => {
       const info = await resolveInfo(schema, source);
       const late = withWraps({ posts: discardingAsync(1), author: asyncRelation(undefined, 20) });
 
-      await expect(queryFromInfo(late, { context, info })).rejects.toThrow(message);
+      await expect(queryFromInfo(late, { context, info })).rejects.toThrow(unexpected(message));
       expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
 
       // The discarded plan completes after the invocation was refused: still nothing recorded.
