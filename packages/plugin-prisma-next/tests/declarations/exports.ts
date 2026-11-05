@@ -160,3 +160,5 @@ export const userPostCountField = ((t): FieldRef<Types, unknown> =>
   t.relationCount('posts')) satisfies Parameters<typeof builder.prismaObjectField<'User'>>[2];
 
 builder.prismaObjectField('User', 'postCount', userPostCountField);
+
+export const UserOrPost = builder.unionType('UserOrPost', { types: [User, PostWithAuthor] });

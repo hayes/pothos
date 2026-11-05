@@ -83,6 +83,7 @@ export {
   plannedRowBrand,
   prismaContractBrand,
   prismaModelBrand,
+  type TypeBrand,
 } from './object-ref.js';
 export { PrismaNextObjectFieldBuilder } from './prisma-next-field-builder.js';
 export type { PrismaNextRelationCountOptions } from './types/aggregates.js';

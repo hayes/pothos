@@ -31,7 +31,12 @@ export interface ModelBrand<M> {
   readonly [prismaModelBrand]?: M;
 }
 
-type WithBrand<T> = T & { [typeBrandKey]: string };
+/** A row branded with its GraphQL type. It is an interface so that declaration emit can name it. */
+export interface TypeBrand {
+  [typeBrandKey]: string;
+}
+
+type WithBrand<T> = T & TypeBrand;
 // The index signature stops a shape of only optional keys, such as a type without `select`, from
 // being a weak type. A row that shares none of those keys would otherwise fail to match it. A
 // planned row is never weak, and leaving it without the index signature keeps tsc from blaming
