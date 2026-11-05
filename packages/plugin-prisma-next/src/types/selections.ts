@@ -79,6 +79,18 @@ export type PrismaNextFieldSelect<Types extends SchemaTypes, ParentShape, Args> 
       ctx: Types['Context'],
     ) => MaybeAsyncSelection<Types, PrismaNextSelectSpec<Types, ParentShape>>);
 
+/** `PrismaNextFieldSelect` narrowed to the form `Select` is written in, so a failing object isn't reported against `undefined`. */
+export type PrismaNextFieldSelectForm<
+  Types extends SchemaTypes,
+  ParentShape,
+  Args,
+  Select,
+> = unknown extends Select
+  ? PrismaNextFieldSelect<Types, ParentShape, Args>
+  : [Select] extends [readonly unknown[] | ((...args: never[]) => unknown)]
+    ? PrismaNextFieldSelect<Types, ParentShape, Args>
+    : PrismaNextSelectSpec<Types, ParentShape>;
+
 /**
  * A field `select` entry that loads one page of a to-many relation whose rows are `Row`s of model
  * `M`, from `prismaConnectionHelpers(...).page`.
@@ -241,7 +253,7 @@ type ValidateSelectResult<Types extends SchemaTypes, ParentShape, Result> = [unk
     : NotASelect<Result>
   : [Extract<Result, readonly unknown[]>] extends [never]
     ? ValidateSelectValue<Types, ParentShape, Result>
-    : never;
+    : NotASelect<Result>;
 
 /** Names an unknown column in an error, where a plain `never` would only say "not assignable". */
 interface UnknownSelectColumn<Column> {

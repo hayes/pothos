@@ -52,7 +52,13 @@ export type PrismaNextRelationCountOptions<
   // is checked as the `where` it allows.
   where?: [RelationCountWhereParam<Types, ParentModel, RelName, Args>] extends [Where]
     ? NoInfer<RelationCountWhereParam<Types, ParentModel, RelName, Args>>
-    : Where & CheckAsyncSelection<Types, Where>;
+    : Where &
+        // A callback returning `any`, such as a misplaced predicate, already fails as itself.
+        (Where extends (...args: never[]) => infer Result
+          ? unknown extends Result
+            ? unknown
+            : CheckAsyncSelection<Types, Where>
+          : CheckAsyncSelection<Types, Where>);
   /** A count is never null. */
   nullable?: false;
 };

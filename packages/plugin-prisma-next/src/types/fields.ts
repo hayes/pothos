@@ -32,7 +32,7 @@ import type { ResolverCollection } from './collections.js';
 import type { FieldParentShape, ModelKey, ResolveTypeParent, Row } from './models.js';
 import type { RequiresNullable } from './relations.js';
 import type {
-  PrismaNextFieldSelect,
+  PrismaNextFieldSelectForm,
   SelectObjectSpec,
   ShapeFromSelect,
   ValidateFieldSelect,
@@ -280,7 +280,7 @@ export type PrismaNextObjectFieldOptions<
   > & {
     select?: Select &
       CheckAsyncSelection<Types, Select> &
-      PrismaNextFieldSelect<Types, ParentShape, InputShapeFromFields<Args>> &
+      PrismaNextFieldSelectForm<Types, ParentShape, InputShapeFromFields<Args>, Select> &
       // `Select` isn't inferred from the check, because inferring into it walks every branch.
       NoInfer<ValidateFieldSelect<Types, ParentShape, Select>>;
   };
