@@ -7,6 +7,7 @@ import {
   inArray,
   type SQL,
   sql,
+  type Table,
   type TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
@@ -48,8 +49,8 @@ export class ModelLoader {
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
-  // `loadTypeRow`'s loads, by row then root field. A loader serves one type in one request.
-  private typeRows = new WeakMap<object, Map<string | number, Promise<object>>>();
+  // `loadTypeRow`'s loads, by root field path then row. A loader serves one type in one request.
+  private typeRows = new WeakMap<GraphQLResolveInfo['path'], WeakMap<object, Promise<object>>>();
 
   config: PothosDrizzleSchemaConfig;
   adapter: DrizzleAdapter;
@@ -185,36 +186,50 @@ export class ModelLoader {
   }
 
   /**
-   * Reloads `model` with `root`'s selection, keeping its defined values. Cached per root field, so
-   * each mutation reloads.
+   * Reloads `model` with `root`'s selection. The loaded values of `keys` replace the row's, and its
+   * other values are kept. Cached per root field of each execution, so each mutation and each
+   * subscription event reloads.
    */
-  loadTypeRow(root: DrizzleNode, model: object, info: GraphQLResolveInfo): Promise<object> {
+  loadTypeRow(
+    root: DrizzleNode,
+    keys: readonly string[],
+    model: object,
+    info: GraphQLResolveInfo,
+  ): Promise<object> {
     let path = info.path;
 
     while (path.prev) {
       path = path.prev;
     }
 
-    let loads = this.typeRows.get(model);
+    // graphql makes a new path for each root field of each execution.
+    let loads = this.typeRows.get(path);
 
     if (!loads) {
-      loads = new Map();
-      this.typeRows.set(model, loads);
+      loads = new WeakMap();
+      this.typeRows.set(path, loads);
     }
 
-    let load = loads.get(path.key);
+    let load = loads.get(model);
 
     if (!load) {
       load = new Promise<Record<string, unknown> | null>((resolve) => {
         resolve(this.stageQuery({ root }, model));
-      }).then(
-        (loaded) => ({ ...loaded, ...definedValues(model) }),
-        (error: unknown) => {
+      })
+        .then((loaded) => {
+          const row: Record<string, unknown> = { ...model };
+
+          for (const key of keys) {
+            row[key] = loaded![key];
+          }
+
+          return row;
+        })
+        .catch((error: unknown) => {
           // Clients see only a generic message.
           throw new Error('Unexpected error.', { cause: error });
-        },
-      );
-      loads.set(path.key, load);
+        });
+      loads.set(model, load);
     }
 
     return load;
@@ -340,20 +355,25 @@ export function typeParentLoader(
 ): ScopeAuthParentLoader {
   const root = adapter.createNode(table);
   adapter.mergeQuery(root, selection);
-  // Read from the node, which resolves a `columns` map that only excludes.
-  const keys = [...(root.columns ?? []), ...root.relations.keys(), ...root.computed.keys()];
+  // Read from the node, which resolves a `columns` map that only excludes. A node without columns
+  // selects every column.
+  const keys = [
+    ...(root.columns ?? Object.keys(getColumns(table.table as Table))),
+    ...root.relations.keys(),
+    ...root.computed.keys(),
+  ];
 
   return (parent, context, info) => {
     const row = parent as Record<string, unknown>;
 
-    return keys.every((key) => row[key] !== undefined)
-      ? row
-      : loaders(context).loadTypeRow(root, row, info);
-  };
-}
+    for (let i = 0; i < keys.length; i += 1) {
+      if (row[keys[i]] === undefined) {
+        return loaders(context).loadTypeRow(root, keys, row, info);
+      }
+    }
 
-function definedValues(row: object) {
-  return Object.fromEntries(Object.entries(row).filter(([, value]) => value !== undefined));
+    return row;
+  };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {

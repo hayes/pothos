@@ -14,7 +14,7 @@ import { PrismaObjectRef } from './object-ref.js';
 import { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
 import type { PrismaDelegate, PrismaModelTypes, PrismaNodeOptions } from './types.js';
 import { getDefaultIDParser, getDefaultIDSerializer } from './util/cursors.js';
-import { getDelegateFromModel, getRefFromModel } from './util/datamodel.js';
+import { getDelegateFromModel, getModel, getRefFromModel } from './util/datamodel.js';
 import { getModelDescription } from './util/description.js';
 import { getClient, getDMMF } from './util/get-client.js';
 import { queryFromInfo } from './util/map-query.js';
@@ -79,10 +79,14 @@ function definePrismaType(
       // reloaded.
       ...(!isInterface && (select || include) && findUnique !== null
         ? {
-            pothosScopeAuthParent: typeParentLoader(loader, fieldMap, {
-              select: fullSelect,
-              include,
-            }),
+            pothosScopeAuthParent: typeParentLoader(
+              loader,
+              fieldMap,
+              { select: fullSelect, include },
+              getModel(type, builder)
+                .fields.filter((field) => field.kind === 'scalar' || field.kind === 'enum')
+                .map((field) => field.name),
+            ),
           }
         : {}),
     },

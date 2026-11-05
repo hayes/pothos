@@ -536,10 +536,12 @@ builder.prismaObject('User', {
 A type in include mode can also opt out of fallback queries with `findUnique: null`. A field that
 would need one will throw `Missing findUnique for User` instead of querying.
 
-With `ScopeAuthPlugin`, scope checks that read the parent see its type's `select`/`include`,
-even for a row returned from a plain `t.field`, unless the type sets `findUnique: null`. When
-`ScopeAuthPlugin` comes before `PrismaPlugin`, a field's own `select` is loaded after its
-`authScopes` run.
+With `ScopeAuthPlugin` 4.3.0 or later, scope checks that read the parent see its type's
+`select`/`include`, even for a row returned from a plain `t.field`, unless the type sets
+`findUnique: null`. A row missing that data is reloaded, so it must still exist: if the reload
+fails, the field fails with `Unexpected error.`. Return deleted rows from a `t.prismaField`, which
+loads the type's selection. When `ScopeAuthPlugin` comes before `PrismaPlugin`, a field's own
+`select` is loaded after its `authScopes` run.
 
 #### Filters, Sorting, and arguments
 
