@@ -936,6 +936,55 @@ describe('rows another plugin rebuilt without what the type selects', () => {
     // The users, and one reload of both rows.
     expect(result.statements).toHaveLength(2);
   });
+
+  class ForgePostsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override wrapResolve(
+      resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+      fieldConfig: PothosOutputFieldConfig<Types>,
+    ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+      if (fieldConfig.parentType !== 'Query') {
+        return resolver;
+      }
+      return async (parent, args, context, info) => {
+        const rows = (await resolver(parent, args, context, info)) as Record<string, unknown>[];
+        return rows.map(({ email: _email, ...rest }) => ({
+          ...rest,
+          posts: [{ id: 'p-forged', title: 'Forged' }],
+        }));
+      };
+    }
+  }
+  SchemaBuilder.registerPlugin('prismaNextTestForgePosts' as never, ForgePostsPlugin as never);
+
+  it("loads a relation the reload didn't, rather than keeping the rebuilt row's", async () => {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [ScopeAuthPlugin, 'prismaNextTestForgePosts' as never, prismaNextPlugin],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    builder.prismaObject('User', {
+      select: ['email'],
+      authScopes: () => true,
+      fields: (t) => ({ posts: t.relation('posts') }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const result = await runCaptured(builder.toSchema(), '{ users { posts { title } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      users: [{ posts: [{ title: 'Hello, Pothos' }, { title: 'Draft #1' }] }],
+    });
+  });
 });
 
 describe('rows a connection helper wraps', () => {
@@ -2321,15 +2370,23 @@ describe.each(
           nullable: true,
           resolve: (user) => (user as { nickname?: string }).nickname,
         }),
+        posts: t.relation('posts'),
       }),
     });
+    builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
     // Mutated between subscription events, each of which also gets it as the root value.
     const eventRow = { id: 'u-alice' };
     builder.queryType({
       fields: (t) => ({
         overridden: t.field({
           type: User,
-          resolve: () => ({ id: 'u-alice', firstName: 'Override', nickname: 'Al' }) as never,
+          resolve: () =>
+            ({
+              id: 'u-alice',
+              firstName: 'Override',
+              nickname: 'Al',
+              posts: [{ id: 'p-other', title: 'Not loaded' }],
+            }) as never,
         }),
       }),
     });
@@ -2350,7 +2407,7 @@ describe.each(
     return builder.toSchema();
   }
 
-  it('replaces the values the row has with loaded ones, keeping its other keys', async () => {
+  it("replaces the row's columns with loaded ones, keeping its other keys", async () => {
     const seen: unknown[] = [];
     const result = await runCaptured(reloadSchema(seen), '{ overridden { firstName nickname } }');
     expect(result.errors).toBeUndefined();

@@ -85,17 +85,14 @@ export class ModelLoader {
   private readonly initial: PrismaNextSelection | undefined;
   /**
    * Plans depend on the operation and its variables, which include `@skip` and `@include`
-   * arguments. They are cached per execution, keyed on `info.variableValues`, which graphql-js
-   * creates once per execution. Loader mappings are stored on the context by response path, so
+   * arguments. They are cached per operation, keyed on `info.variableValues`, which graphql-js
+   * creates once per operation and shares across its subscription events. Loader mappings are stored on the context by response path, so
    * operations running at the same time should not share a context.
    */
   private readonly plans = new WeakMap<object, Plans>();
   private readonly staged = new Set<Batch>();
-  /**
-   * The rows `loadTypeRow` loaded, by root field path, row, then type. graphql makes a new path for
-   * each root field of each execution.
-   */
-  private readonly typeRows = new WeakMap<object, WeakMap<object, Map<string, Promise<Row>>>>();
+  /** `loadTypeRow`'s loads, by root field path, row, then type. */
+  private readonly reloads = new WeakMap<object, WeakMap<object, Map<string, Promise<Row>>>>();
   /** The plan root `completeRows` stages for each selection. */
   private readonly completions = new WeakMap<PrismaNextSelection, PrismaNextNode>();
 
@@ -177,10 +174,9 @@ export class ModelLoader {
   /**
    * The parent row reloaded with every column and what the `select`s of `type` and its interfaces
    * load. Unlike `loadSelection`, it plans none of the field, so every field of a row shares it,
-   * and the type's relations are never left out for the field's. The loaded values replace the
-   * row's, and its other keys are kept. A row reloaded again under the same root field of one
-   * execution, such as by scope-auth's check and then the field, shares the first load. Under
-   * another root field, such as a later mutation, or in another subscription event, it loads again.
+   * and the type's relations are never left out for the field's. The row's keys that aren't the
+   * model's columns or relations are kept. Cached per root field of each execution, which graphql
+   * makes a new path for, so scope-auth's checks and the fields share one load.
    */
   loadTypeRow(info: GraphQLResolveInfo, parent: object, type: GraphQLObjectType): Promise<Row> {
     this.assertIdentity(info);
@@ -190,10 +186,10 @@ export class ModelLoader {
     while (root.prev) {
       root = root.prev;
     }
-    let rows = this.typeRows.get(root);
+    let rows = this.reloads.get(root);
     if (!rows) {
       rows = new WeakMap();
-      this.typeRows.set(root, rows);
+      this.reloads.set(root, rows);
     }
     let loads = rows.get(parent);
     const loaded = loads?.get(key);
@@ -222,7 +218,7 @@ export class ModelLoader {
         this.identity.map((field) => (parent as Row)[field]),
         { kind: 'parent' },
       ).then((reloaded) => {
-        const row = withOtherKeys(reloaded!, parent);
+        const row = withOtherKeys(reloaded!, parent, played.root.model);
         typeRows.add(row);
         return row;
       });

@@ -320,18 +320,27 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
 }
 
 /**
- * A copy of `loaded`, a row `takeSlots` returned, with the keys of `row` it didn't load, keeping
- * its slots.
+ * `loaded`, a row `takeSlots` returned, with the keys of `row` that aren't columns or relations of
+ * `model`. It is copied, keeping its slots, only when there are such keys, so a row reached through
+ * several parents stays one object.
  */
-export function withOtherKeys(loaded: Row, row: object): Row {
-  const entry = rowSlots.get(loaded) ?? PLAIN;
-  const next = copyOf(loaded);
+export function withOtherKeys(loaded: Row, row: object, model: PrismaNextModel): Row {
+  let next: Row | undefined;
   for (const key of Object.keys(row)) {
-    if (!Object.hasOwn(next, key) && !entry.slots[key]) {
+    if (
+      !model.columns.has(key) &&
+      !model.relations[key] &&
+      !model.sharedVariantRelations.has(key)
+    ) {
+      next ??= copyOf(loaded);
       next[key] = (row as Row)[key];
     }
   }
-  rowSlots.set(next, entry.row ? { row: next, slots: entry.slots, scopes: entry.scopes } : entry);
+  if (!next) {
+    return loaded;
+  }
+  const { row: own, slots, scopes } = rowSlots.get(loaded)!;
+  rowSlots.set(next, own ? { row: next, slots, scopes } : PLAIN);
   return next;
 }
 
