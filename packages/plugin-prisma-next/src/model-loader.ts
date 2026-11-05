@@ -411,8 +411,9 @@ export class ModelLoader {
     try {
       loaded = await query.all();
     } catch (error) {
-      // The database's error, which reaches the field as it is.
-      throw keepError(error);
+      // A node lookup's error reaches the field as it is. A reload's statement is the plugin's, so
+      // clients see its error as `Unexpected error.`.
+      throw batch.load.kind === 'node' ? keepError(error) : error;
     }
     const rows = takeSlots(loaded, batch.root.model, this.config.adapter.recordOf(query));
     const byKey = new Map(

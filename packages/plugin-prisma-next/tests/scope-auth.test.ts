@@ -30,6 +30,7 @@ import {
   loadContract,
   type SampleContract,
   type SqliteRuntime,
+  sampleDdl,
   type TestRuntimeContext,
   withCapture,
 } from './fixtures/runtime';
@@ -805,6 +806,49 @@ describe("a type's select before plugins listed first", () => {
     expect(result.data).toEqual({ handBuilt: { firstName: 'Alice' } });
     expect(seen).toEqual(['Alice']);
     expect(result.statements).toHaveLength(1);
+  });
+
+  it('fails a reload the database rejects with a generic error', async () => {
+    // A table without the `email` column the contract declares.
+    const db = createSqliteRuntime(
+      ctx.contract,
+      sampleDdl
+        .replace('email TEXT NOT NULL UNIQUE', 'nickname TEXT')
+        .replace(
+          /INSERT INTO user \(id, firstName, lastName, email\)/,
+          'INSERT INTO user (id, firstName, lastName, nickname)',
+        ),
+    );
+    try {
+      const builder = new SchemaBuilder<{
+        PrismaNextContract: SampleContract;
+        AuthScopes: { ok: boolean };
+      }>({
+        plugins: [ScopeAuthPlugin, prismaNextPlugin],
+        scopeAuth: { authScopes: () => ({ ok: true }) },
+        prismaNext: { client: db.client },
+      });
+      const User = builder.prismaObject('User', {
+        select: ['email'],
+        authScopes: () => true,
+        fields: (t) => ({ firstName: t.exposeString('firstName') }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          handBuilt: t.field({
+            type: User,
+            nullable: true,
+            resolve: () => ({ id: 'u-alice' }) as never,
+          }),
+        }),
+      });
+      const result = await runCaptured(builder.toSchema(), '{ handBuilt { firstName } }');
+      expect(result.errors?.map((error) => detailOf(error))).toEqual([
+        expect.stringMatching(/^User\.firstName: .*email/),
+      ]);
+    } finally {
+      await db.cleanup();
+    }
   });
 
   it("passes the app's own errors from a reload through as they are", async () => {
