@@ -22,10 +22,11 @@ interface Shapes {
 }
 
 /**
- * Per execution: a fragment spread is shaped by its name, which means the same definition only
- * within one fragment map. Each set is shaped once, so shaping costs one pass over the document.
+ * Per operation: a fragment spread is shaped by its name, which means the same definition only
+ * within one document. An operation's node belongs to one document and, unlike `info.fragments`,
+ * is the same in every execution of a cached document, so each set is shaped once per document.
  */
-const shapesByFragments = new WeakMap<object, Shapes>();
+const shapesByOperation = new WeakMap<object, Shapes>();
 
 export function selectionShape(
   info: GraphQLResolveInfo,
@@ -51,11 +52,11 @@ export function fieldShape(info: GraphQLResolveInfo, field: FieldNode): number {
 }
 
 function shapesOf(info: GraphQLResolveInfo): Shapes {
-  let shapes = shapesByFragments.get(info.fragments);
+  let shapes = shapesByOperation.get(info.operation);
 
   if (!shapes) {
     shapes = { ids: new Map(), sets: new WeakMap(), fields: new WeakMap() };
-    shapesByFragments.set(info.fragments, shapes);
+    shapesByOperation.set(info.operation, shapes);
   }
 
   return shapes;
