@@ -1,6 +1,6 @@
 {
   "name": "@pothos/selection-mapper",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "shared selection-to-query walker for Pothos ORM plugins",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
