@@ -640,10 +640,9 @@ describe('fragments on variants and non-model interfaces', () => {
   });
 
   describe('a fragment on a non-model interface whose implementations conflict', () => {
-    it('does not fail a query whose fragment covers conflicting implementations', async () => {
-      const result = await execute({
-        schema,
-        document: gql`
+    it('fails the query, as fragments naming the implementations do', async () => {
+      const documents = [
+        gql`
           query {
             viewer {
               id
@@ -653,22 +652,7 @@ describe('fragments on variants and non-model interfaces', () => {
             }
           }
         `,
-        contextValue: { user: { id: 1 } },
-      });
-
-      expect(result.errors).toBeUndefined();
-      expect(result.data).toEqual({ viewer: { id: '1' } });
-      expect(drizzleLogs).toMatchInlineSnapshot(`
-        [
-          "Query: select "d0"."id" as "id" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1]",
-        ]
-      `);
-    });
-
-    it('resolves the fragment beside a fragment on one of the implementations', async () => {
-      const result = await execute({
-        schema,
-        document: gql`
+        gql`
           query {
             viewer {
               ... on Tagged {
@@ -680,16 +664,21 @@ describe('fragments on variants and non-model interfaces', () => {
             }
           }
         `,
-        contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
-      });
+      ];
 
-      expect(result.errors).toBeUndefined();
-      expect(result.data).toEqual({ viewer: { tag: 'tag-1', latestPostId: expect.any(String) } });
-      expect(drizzleLogs).toMatchInlineSnapshot(`
-        [
-          "Query: select "d0"."id" as "id", (select json_group_array(json_object('postId', "postId")) as "r" from (select "d1"."id" as "postId" from "posts" as "d1" where "d0"."id" = "d1"."author_id" limit ?) as "t") as "posts" from "users" as "d0" where "d0"."id" = ? limit ? -- params: [1, 1, 1]",
-        ]
-      `);
+      for (const document of documents) {
+        const result = await execute({
+          schema,
+          document,
+          contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
+        });
+
+        expect(result.errors?.[0]?.message).toBe('Unexpected error.');
+        expect((result.errors?.[0]?.originalError?.cause as Error).message).toBe(
+          'Type-level selections of Viewer and PostPairViewer conflict on relation "posts". Move the relation arguments to a field-level select on one of the types.',
+        );
+        expect(drizzleLogs).toEqual([]);
+      }
     });
   });
 
@@ -947,8 +936,8 @@ describe('fragments on variants and non-model interfaces', () => {
         return relationQueryCalls;
       };
 
-      // Each of the three `posts` nodes at each odd level, the plain walk and the expanding one
-      // sharing it. A walk per field node made these 4,920 calls at depth 8.
+      // Each of the three `posts` nodes at each odd level, once. A walk per field node made these
+      // 4,920 calls at depth 8.
       expect(await callsAt(8)).toBe(12);
       expect(await callsAt(20)).toBe(30);
     });
@@ -1053,8 +1042,8 @@ describe('fragments on variants and non-model interfaces', () => {
         const fields: [string, string] = ['pathPosts', 'pathAuthor'];
         const seen = await plan(namedDocument('plannedCyclicUser', depth, fields, variants));
 
-        // The plain and expanding walks share each invocation. Each was walked once by each before,
-        // and every invocation walked its own subtree: 2,015,538 calls at depth 8 for 9,840 paths.
+        // When every invocation walked its own subtree, this made 2,015,538 calls at depth 8 for
+        // 9,840 paths.
         expect(seen).toEqual(pathsOf(depth, variants, fields));
       });
 
@@ -1183,8 +1172,8 @@ describe('fragments on variants and non-model interfaces', () => {
     });
   });
 
-  describe('a fragment that would cost a field its place in the parent query', () => {
-    it('does not reload a field because of a variant only the fragment entered', async () => {
+  describe('a fragment whose variant displaces a field from the parent query', () => {
+    it('loads the variant and reloads the field', async () => {
       const result = await execute({
         schema,
         document: gql`
@@ -1202,12 +1191,11 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ viewer: { recentPostIds: expect.any(Array) } });
-      expect(drizzleLogs).toHaveLength(1);
-      expect(drizzleLogs[0]).toContain('limit ?');
-      expect(drizzleLogs[0]).toContain('params: [3,');
+      expect(drizzleLogs).toHaveLength(2);
+      expect(drizzleLogs[1]).toContain('params: [3,');
     });
 
-    it('stays one statement for a list of rows', async () => {
+    it('reloads the field for a list of rows in one statement', async () => {
       const result = await execute({
         schema,
         document: gql`
@@ -1225,10 +1213,10 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data?.viewers).toHaveLength(3);
-      expect(drizzleLogs).toHaveLength(1);
+      expect(drizzleLogs).toHaveLength(2);
     });
 
-    it('keeps the expansion when the fragment holds a field with no select', async () => {
+    it('loads the variant for fields with no select that read its row', async () => {
       const result = await execute({
         schema,
         document: gql`
@@ -1256,7 +1244,7 @@ describe('fragments on variants and non-model interfaces', () => {
       expect(drizzleLogs).toHaveLength(2);
     });
 
-    it('still expands the fragment when no field is displaced', async () => {
+    it('loads the variant when no field is displaced', async () => {
       const result = await execute({
         schema,
         document: gql`

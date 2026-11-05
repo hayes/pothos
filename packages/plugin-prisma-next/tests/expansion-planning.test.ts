@@ -136,8 +136,7 @@ describe('planning fragments that expand at every level', () => {
     [3, 40, 60],
     [2, 36, 36],
   ])('with a named fragment per level, %i implementations at depth %i make %i relation calls', async (implementations, depth, expected) => {
-    // The plain walk and the expanding one share each field node's invocation, so the copies are
-    // bounded as for one node per level.
+    // Each field node is invoked once, so the copies are bounded as for one node per level.
     const calls = await runBounded(implementations, depth, namedDocument);
     expect(calls.posts).toBe(expected);
   });

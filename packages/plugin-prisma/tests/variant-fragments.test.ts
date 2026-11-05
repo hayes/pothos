@@ -453,10 +453,9 @@ describe('fragments on variants and non-model interfaces', () => {
   });
 
   describe('a fragment on a non-model interface whose implementations conflict', () => {
-    it('does not fail a query whose fragment covers conflicting implementations', async () => {
-      const result = await execute({
-        schema,
-        document: gql`
+    it('fails the query, as fragments naming the implementations do', async () => {
+      const documents = [
+        gql`
           query {
             viewer {
               id
@@ -466,24 +465,7 @@ describe('fragments on variants and non-model interfaces', () => {
             }
           }
         `,
-        contextValue: { user: { id: 1 } },
-      });
-
-      expect(result.errors).toBeUndefined();
-      expect(result.data).toEqual({ viewer: { id: '1' } });
-      expect(queries).toEqual([
-        {
-          action: 'findUniqueOrThrow',
-          model: 'User',
-          args: { select: { id: true }, where: { id: 1 } },
-        },
-      ]);
-    });
-
-    it('resolves the fragment beside a fragment on one of the implementations', async () => {
-      const result = await execute({
-        schema,
-        document: gql`
+        gql`
           query {
             viewer {
               ... on Tagged {
@@ -495,21 +477,21 @@ describe('fragments on variants and non-model interfaces', () => {
             }
           }
         `,
-        contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
-      });
+      ];
 
-      expect(result.errors).toBeUndefined();
-      expect(result.data).toEqual({ viewer: { tag: 'tag-1', latestPostId: expect.any(String) } });
-      expect(queries).toEqual([
-        {
-          action: 'findUniqueOrThrow',
-          model: 'User',
-          args: {
-            select: { id: true, posts: { take: 1, select: { id: true } } },
-            where: { id: 1 },
-          },
-        },
-      ]);
+      for (const document of documents) {
+        const result = await execute({
+          schema,
+          document,
+          contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
+        });
+
+        expect(result.errors?.[0]?.message).toBe('Unexpected error.');
+        expect((result.errors?.[0]?.originalError?.cause as Error).message).toBe(
+          'Type-level selections of Viewer and PostPairViewer conflict on relation "posts". Move the relation arguments to a field-level select on one of the types.',
+        );
+        expect(queries).toEqual([]);
+      }
     });
   });
 
@@ -770,8 +752,8 @@ describe('fragments on variants and non-model interfaces', () => {
         return relationQueryCalls;
       };
 
-      // Each of the three `posts` nodes at each odd level, the plain walk and the expanding one
-      // sharing it. A walk per field node made these 4,920 calls at depth 8.
+      // Each of the three `posts` nodes at each odd level, once. A walk per field node made these
+      // 4,920 calls at depth 8.
       expect(await callsAt(8)).toBe(12);
       expect(await callsAt(20)).toBe(30);
     });
@@ -814,10 +796,11 @@ describe('fragments on variants and non-model interfaces', () => {
     });
   });
 
-  describe('a fragment that would cost a field its place in the parent query', () => {
-    const recentPosts = { posts: { take: 3, select: { id: true } }, id: true };
+  describe('a fragment whose variant displaces a field from the parent query', () => {
+    const latestPost = { posts: { take: 1, select: { id: true } }, id: true };
+    const recentPosts = { posts: { take: 3, select: { id: true } }, id: true, name: true };
 
-    it('does not reload a field because of a variant only the fragment entered', async () => {
+    it('loads the variant and reloads the field', async () => {
       const result = await execute({
         schema,
         document: gql`
@@ -835,10 +818,13 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({ viewer: { recentPostIds: expect.any(Array) } });
-      expect(argsOf(queries)).toEqual([{ select: recentPosts, where: { id: 1 } }]);
+      expect(argsOf(queries)).toEqual([
+        { select: latestPost, where: { id: 1 } },
+        { select: recentPosts, where: { id: 1 } },
+      ]);
     });
 
-    it('stays one statement for a list of rows', async () => {
+    it('reloads the field once per row of a list, in calls prisma batches', async () => {
       const result = await execute({
         schema,
         document: gql`
@@ -856,10 +842,17 @@ describe('fragments on variants and non-model interfaces', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data?.viewers).toHaveLength(3);
-      expect(argsOf(queries)).toEqual([{ select: recentPosts, take: 3 }]);
+      expect(queries).toEqual([
+        { action: 'findMany', model: 'User', args: { select: latestPost, take: 3 } },
+        ...[1, 2, 3].map((id) => ({
+          action: 'findUniqueOrThrow',
+          model: 'User',
+          args: { select: recentPosts, where: { id } },
+        })),
+      ]);
     });
 
-    it('keeps the expansion when the fragment holds a field with no select', async () => {
+    it('loads the variant for fields with no select that read its row', async () => {
       const result = await execute({
         schema,
         document: gql`
@@ -887,7 +880,7 @@ describe('fragments on variants and non-model interfaces', () => {
       expect(queries).toHaveLength(2);
     });
 
-    it('still expands the fragment when no field is displaced', async () => {
+    it('loads the variant when no field is displaced', async () => {
       const result = await execute({
         schema,
         document: gql`

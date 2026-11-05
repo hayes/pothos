@@ -724,26 +724,24 @@ describe('fragments', () => {
       ).toEqual(await plan('{ person { ... on User { id } ... on Viewer { id } } }'));
     });
 
-    it('treats a fragment whose variants conflict as one that cannot apply', async () => {
-      const context = {};
-
-      expect(await plan('{ person { id ... on Named { name } } }', context)).toEqual(
-        await plan('{ person { id } }'),
-      );
-      expect(getLoaderMapping(context, pathOf('person', 'name'), 'User')).toBeNull();
-      expect(await plan('{ person { ... on Named { name ... on Viewer { email } } } }')).toEqual(
-        await plan('{ person { ... on Viewer { email } } }'),
+    it('throws when the variants a fragment covers conflict', async () => {
+      await expect(plan('{ person { id ... on Named { name } } }')).rejects.toThrow(
+        unexpected(
+          'Type-level selections of Person and Admin conflict on relation "posts". Move the relation arguments to a field-level select on one of the types.',
+        ),
       );
     });
 
-    it('treats a fragment as one that cannot apply when its variants conflict with another', async () => {
-      const direct = await plan('{ person { ... on Viewer { email } } }');
-
-      expect(await plan('{ person { ... on Ranked { rank } ... on Viewer { email } } }')).toEqual(
-        direct,
+    it('throws when the variants a fragment covers conflict with another fragment', async () => {
+      await expect(
+        plan('{ person { ... on Ranked { rank } ... on Viewer { email } } }'),
+      ).rejects.toThrow(
+        unexpected('Type-level selections of Person and Viewer conflict on relation "posts"'),
       );
-      expect(await plan('{ person { ... on Viewer { email } ... on Ranked { rank } } }')).toEqual(
-        direct,
+      await expect(
+        plan('{ person { ... on Viewer { email } ... on Ranked { rank } } }'),
+      ).rejects.toThrow(
+        unexpected('Type-level selections of Person and Admin conflict on relation "posts"'),
       );
 
       // Alone, Admin's selection agrees with Person's, so the field is planned for Admin rows.
@@ -755,17 +753,18 @@ describe('fragments', () => {
       });
     });
 
-    it('treats a fragment as one that cannot apply when its variants conflict with the seed', async () => {
+    it('throws when the variants a fragment covers conflict with the seed', async () => {
       const info = await resolveInfo(expansionSchema, '{ person { ... on Ranked { rank } } }');
-      const context = {};
-      const seeded = (await Plan.fromInfo(expansionAdapter, {
-        context,
-        info,
-        initial: { select: { posts: { take: 3 } } },
-      }))!;
 
-      expect(seeded.query()).toEqual({ select: { posts: { take: 3 }, id: true } });
-      expect(getLoaderMapping(context, pathOf('person', 'rank'), 'Admin')).toBeNull();
+      expect(() =>
+        Plan.fromInfo(expansionAdapter, {
+          context: {},
+          info,
+          initial: { select: { posts: { take: 3 } } },
+        }),
+      ).toThrow(
+        unexpected('Type-level selections of Person and Admin conflict on relation "posts"'),
+      );
     });
 
     it('still reports conflicting variants a document names directly', async () => {
@@ -1302,7 +1301,7 @@ describe('fragments that expand at every level', () => {
     };
 
     // Each relation is named on the interface. The expansion reaches it on the three
-    // implementations Node covers as well, which take the interface's invocation.
+    // implementations Node covers, which inherit it, so it is invoked once, on the interface.
     expect(await callsAt(6)).toEqual({ posts: 3, author: 3 });
     expect(await callsAt(12)).toEqual({ posts: 6, author: 6 });
     expect(await callsAt(40)).toEqual({ posts: 20, author: 20 });
@@ -1340,8 +1339,7 @@ describe('fragments that expand at every level', () => {
       return calls;
     };
 
-    // Per level, each of the three field nodes on its own implementation. The plain and expanding
-    // walks reach each as the same implementation, and share its invocation.
+    // Per level, each of the three field nodes on its own implementation, invoked once.
     expect(await callsAt(6)).toEqual({ posts: 9, author: 9 });
     expect(await callsAt(20)).toEqual({ posts: 30, author: 30 });
     expect(await callsAt(40)).toEqual({ posts: 60, author: 60 });
@@ -1419,7 +1417,7 @@ describe('fragments that expand at every level', () => {
       },
     });
 
-    // An implementation's resolver falls back to its interfaces, as it does for a plain play.
+    // An implementation's resolver falls back to its interfaces.
     const posts = getLoaderMapping(context, pathOf('user', 'posts'), 'UserI');
 
     expect(getLoaderMapping(context, pathOf('user', 'posts'), 'U2')).toBeNull();
@@ -1523,7 +1521,7 @@ describe('fragments that expand at every level', () => {
 
     queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
 
-    // Once each: the plain and expanding walks reach every variant's `posts` as that variant.
+    // Once each: the expansion reaches every variant's `posts` as that variant.
     expect(seen).toEqual(everyVariantPath);
   });
 
@@ -1591,7 +1589,7 @@ describe('fragments that expand at every level', () => {
     queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
 
     expect(calls).toEqual({ posts: 3, author: 3 });
-    // Each walk is shared, so a chain is the first invocation's: the plain walk's, at every level.
+    // Each walk is shared, so a chain is the first invocation's: the interface's, at every level.
     expect(seen[0]).toEqual(['Query.user', 'UserI.posts', 'PostI.author']);
   });
 
@@ -1830,8 +1828,8 @@ describe('fragments that expand at every level', () => {
       const document = namedDocument(depth, ['posts'], variants);
       const { seen, query } = await plan(document, { select: true });
 
-      // The plain and expanding walks reach every variant's field as that variant, at the same
-      // place, so they share one invocation: one call per distinct path, as without expansions.
+      // The expansion reaches every variant's field as that variant, once per place: one call per
+      // distinct path, as without expansions.
       expect(seen.length).toBe(new Set(seen).size);
       expect(seen.sort()).toEqual(chainsOf(depth, variants, () => true));
       expect(query).toEqual((await plan(document, { select: false })).query);
@@ -1912,69 +1910,31 @@ describe('fragments that expand at every level', () => {
   });
 
   describe('a variant only the expansion entered', () => {
-    it('plays plain when the variant would cost a field its place', async () => {
+    it('loads the variant and leaves a field it displaces to load on its own', async () => {
       const { types } = linkedSchema();
-      const info = await resolveInfo(types, '{ user { first ... on Other { selected } } }');
-      const context = {};
 
-      expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
-        select: { id: true, posts: { take: 3 } },
-      });
-      expect(getLoaderMapping(context, pathOf('user', 'first'), 'UserI')).not.toBeNull();
+      for (const document of [
+        '{ user { first ... on Other { selected } } }',
+        '{ user { ... on Other { selected } first } }',
+      ]) {
+        const context = {};
+        const info = await resolveInfo(types, document);
+
+        expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
+          select: { id: true, selected: true, posts: { take: 1 } },
+        });
+        expect(getLoaderMapping(context, pathOf('user', 'first'), 'UserI')).toBeNull();
+        expect(getLoaderMapping(context, pathOf('user', 'selected'), 'Latest')).not.toBeNull();
+      }
     });
 
-    it('plays plain whichever side of the fragment the field is on', async () => {
-      const { types } = linkedSchema();
-      const info = await resolveInfo(types, '{ user { ... on Other { selected } first } }');
-
-      expect(queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info })).toEqual({
-        select: { id: true, posts: { take: 3 } },
-      });
-    });
-
-    it('stays expanding when the fragment holds a field with no select to reload', async () => {
-      const { types } = linkedSchema();
-      const info = await resolveInfo(types, '{ user { first ... on Other { selected other } } }');
-      const context = {};
-
-      // `other` may read what Latest's type-level select loads, and has no way to reload it.
-      expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
-        select: { id: true, selected: true, posts: { take: 1 } },
-      });
-      expect(getLoaderMapping(context, pathOf('user', 'first'), 'UserI')).toBeNull();
-    });
-
-    it('stays expanding when nothing is displaced', async () => {
+    it('loads the variant when nothing is displaced', async () => {
       const { types } = linkedSchema();
       const info = await resolveInfo(types, '{ user { ... on Other { other } } }');
 
       expect(queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info })).toEqual({
         select: { id: true, posts: { take: 1 } },
       });
-    });
-
-    it('stays expanding when a field only conflicts with another field', async () => {
-      // `second` loses to `first` in either play. The variant has nothing to do with it, and an
-      // expansion that does not add a conflict is kept.
-      const untouched = createSchema(linkedSdl, {
-        UserI: {
-          model: 'User',
-          select: { select: { id: true } },
-          fields: {
-            first: { select: { posts: { take: 3 } } },
-            second: { select: { posts: { take: 4 } } },
-          },
-        },
-        Latest: { model: 'User', select: { select: { id: true, email: true } } },
-      });
-      const info = await resolveInfo(untouched, '{ user { first second ... on Other { other } } }');
-      const context = {};
-
-      expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
-        select: { id: true, email: true, posts: { take: 3 } },
-      });
-      expect(getLoaderMapping(context, pathOf('user', 'first'), 'UserI')).not.toBeNull();
-      expect(getLoaderMapping(context, pathOf('user', 'second'), 'UserI')).toBeNull();
     });
   });
 });

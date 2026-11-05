@@ -31,8 +31,6 @@ const LENIENT: MergeOptions = Object.freeze({ lenient: true });
  * variant's, or a field's. A play folds the list into a node; nothing is merged, accepted or
  * rejected before then.
  *
- * `onlyIn` marks a merge that only one kind of play takes; see `fragmentWalks` in walk.ts.
- *
  * A record holds its query by reference, so a select function that mutates the query it returned
  * after returning it changes what a later play builds — a bug in the select function. Nothing
  * copies it: a query is opaque to this package, which could only copy one by round-tripping it
@@ -40,22 +38,8 @@ const LENIENT: MergeOptions = Object.freeze({ lenient: true });
  */
 export type RootMerge<Query> =
   | { kind: 'type'; query: Query }
-  | { kind: 'variant'; type: WalkedType; variant: WalkedType; query: Query; onlyIn?: PlayKind }
-  | {
-      kind: 'field';
-      key: string;
-      alias: string;
-      query: Query;
-      mapping: Mapping;
-      onlyIn?: PlayKind;
-    };
-
-/**
- * The two ways a plan is played. For a fragment on an abstract type with no model, an expanding
- * play takes what was walked as each implementation the fragment covers. A plain play takes what
- * was walked as if the fragment could not apply.
- */
-export type PlayKind = 'expanding' | 'plain';
+  | { kind: 'variant'; type: WalkedType; variant: WalkedType; query: Query }
+  | { kind: 'field'; key: string; alias: string; query: Query; mapping: Mapping };
 
 /**
  * A plan played: the node its merges built and the mappings the accepted merges recorded. A play
@@ -95,9 +79,6 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   /** The traversal's whole output: every merge it collected, in the order it collected them. */
   private readonly merges: RootMerge<Query>[] = [];
 
-  /** Whether some merge is taken only by an expanding play. */
-  private hasExpandingMerges = false;
-
   /** The plan whose merges a play folds: this one, or a walk shared with other invocations. */
   private walk: Plan<Model, Query, NodeType> = this;
 
@@ -106,9 +87,6 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /** Whether a select function in this walk read the position above its own field. */
   positionRead = false;
-
-  /** Whether a field an expansion walks has no select, so it can only read the row as loaded. */
-  expansionReadsRow = false;
 
   /**
    * The walks beneath every field of the plans hanging from one root, by `nested`'s `key`. Shared
@@ -210,7 +188,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       // Every node selecting the field (one per fragment it appears under) plans into the same
       // row, so the loaded row satisfies each of them.
       for (const fieldNode of info.fieldNodes) {
-        walkField(plan, type, fieldNode, [], undefined);
+        walkField(plan, type, fieldNode, []);
       }
     } catch (error) {
       plan.abandon();
@@ -256,8 +234,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * setting. It holds the invocation's relation query and plays over a walk of the selection
    * beneath the field, which `walk` collects the first time this plan needs it.
    *
-   * One field node is invoked once per type it is reached on in a walk, except that the walks of
-   * an expansion share an invocation (see `walkField`). A named fragment spread at every level
+   * One field node is invoked once per type it is reached on in a walk (see `walkField`). A named fragment spread at every level
    * reaches the same selection set beneath several field nodes, which may hang beneath different
    * plans, so a walk per invocation is exponential in the document's depth.
    *
@@ -306,10 +283,6 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /** Appends one merge to the list a play folds. The traversal's only way to add to a plan. */
   collect(merge: RootMerge<Query>) {
-    if ('onlyIn' in merge && merge.onlyIn === 'expanding') {
-      this.hasExpandingMerges = true;
-    }
-
     this.merges.push(merge);
   }
 
@@ -384,83 +357,33 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       return { plan: this, root, mappings: settled.mappings };
     }
 
-    const first = seed ?? this.initial;
-
-    // An expanding play gives up when its expansion costs something, and a plain play is played
-    // instead.
-    return (
-      (this.walk.hasExpandingMerges && this.fold(first, 'expanding')) || this.fold(first, 'plain')
-    );
-  }
-
-  /**
-   * The merges a play of kind `play` takes, folded into a fresh node behind `first`. `first` is
-   * merged before anything else, so on a conflict it wins. A plain play throws a type-level
-   * conflict. An expanding play returns undefined on one, and on a field rejected because of a
-   * variant only an expansion entered: a fragment that selects nothing of the field would make it
-   * reload for every row, which is never worth what the variant saves. It keeps a second node
-   * without those variants to tell that from a field that loses to another field, which would lose
-   * in a plain play too.
-   *
-   * It does not give up when an expansion holds a field with no select: that field has nothing to
-   * reload with and reads the variant's type-level selection off the row, so correct data costs
-   * the displaced field its reload.
-   */
-  private fold(first: Query | undefined, play: 'plain'): PlayedPlan<Model, Query, NodeType>;
-  private fold(
-    first: Query | undefined,
-    play: PlayKind,
-  ): PlayedPlan<Model, Query, NodeType> | undefined;
-  private fold(
-    first: Query | undefined,
-    play: PlayKind,
-  ): PlayedPlan<Model, Query, NodeType> | undefined {
     const { adapter } = this;
     const root = adapter.createNode(this.model);
-    const unexpanded = play === 'expanding' ? adapter.createNode(this.model) : undefined;
     const mappings: Mappings = {};
-    const mergeBoth = (query: Query, options?: MergeOptions) => {
-      adapter.mergeQuery(root, query, options);
-
-      if (unexpanded) {
-        adapter.mergeQuery(unexpanded, query, options);
-      }
-    };
+    // Merged before anything else, so on a conflict it wins.
+    const first = seed ?? this.initial;
 
     if (first) {
-      mergeBoth(first);
+      adapter.mergeQuery(root, first);
     }
 
     if (this.relationQuery) {
-      mergeBoth(this.relationQuery, AS_QUERY);
+      adapter.mergeQuery(root, this.relationQuery, AS_QUERY);
     }
 
     for (const merge of this.walk.merges) {
-      if ('onlyIn' in merge && merge.onlyIn !== undefined && merge.onlyIn !== play) {
-        continue;
-      }
-
       switch (merge.kind) {
         case 'type':
-          mergeBoth(merge.query);
+          adapter.mergeQuery(root, merge.query);
           break;
         case 'variant': {
           const conflict = adapter.firstConflict(root, merge.query);
 
           if (conflict) {
-            if (play === 'expanding') {
-              return undefined;
-            }
-
             throw variantConflict(merge.type, merge.variant, conflict);
           }
 
-          if (merge.onlyIn === 'expanding') {
-            adapter.mergeQuery(root, merge.query);
-          } else {
-            mergeBoth(merge.query);
-          }
-
+          adapter.mergeQuery(root, merge.query);
           break;
         }
         case 'field': {
@@ -471,14 +394,8 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
           // A field's selection is merged, and its mapping recorded, only while it fits what is
           // already in the node; otherwise it is left out and its resolver loads its own data.
           if (adapter.canMergeQuery(root, merge.query, options)) {
-            mergeBoth(merge.query, options);
+            adapter.mergeQuery(root, merge.query, options);
             mappings[merge.key] = unionMappings(mappings[merge.key], merge.mapping);
-          } else if (
-            unexpanded &&
-            !this.walk.expansionReadsRow &&
-            adapter.canMergeQuery(unexpanded, merge.query, options)
-          ) {
-            return undefined;
           }
 
           break;
