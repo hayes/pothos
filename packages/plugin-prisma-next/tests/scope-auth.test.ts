@@ -16,6 +16,8 @@ import {
   experimentalExecuteIncrementally,
   GraphQLDeferDirective,
   type GraphQLFieldResolver,
+  type GraphQLIsTypeOfFn,
+  type GraphQLResolveInfo,
   type GraphQLSchema,
   parse,
   specifiedDirectives,
@@ -2135,6 +2137,21 @@ describe('slots beneath shared walks', () => {
   });
 });
 
+// Records the values passed to the `isTypeOf` it adds, to a test's `recordIsTypeOf`.
+let recordIsTypeOf: (parent: unknown) => void = () => {};
+class RecordIsTypeOfPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  override wrapIsTypeOf(isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined) {
+    return (parent: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
+      recordIsTypeOf(parent);
+      return isTypeOf ? isTypeOf(parent, context, info) : true;
+    };
+  }
+}
+SchemaBuilder.registerPlugin(
+  'prismaNextTestRecordIsTypeOf' as never,
+  RecordIsTypeOfPlugin as never,
+);
+
 // A type check that can't see the row it checks fails as the check itself would, so a client can't
 // tell why it was refused.
 describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
@@ -2207,5 +2224,42 @@ describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
     const denial = result.errors?.[0]?.originalError;
     expect(denial).toBeInstanceOf(ForbiddenError);
     expect(detailOf(denial?.cause)).toMatch(/'Limited' and 'Clashing' both compute 'total'/);
+  });
+
+  it("throws instead of handing another plugin's isTypeOf a row it can't project", async () => {
+    const seen: unknown[] = [];
+    recordIsTypeOf = (parent) => seen.push(parent);
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins, 'prismaNextTestRecordIsTypeOf'] as never,
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    const Limited = builder.prismaInterface('User', {
+      variant: 'Limited',
+      select: { posts: (sub) => ({ total: sub.count() }) },
+      resolveType: () => 'User',
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    const User = builder.prismaObject('User', {
+      interfaces: [Limited],
+      select: { posts: (sub) => ({ total: sub.where({ published: 1 }).count() }) },
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: [User],
+          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const result = await runCaptured(builder.toSchema(), '{ users { firstName } }');
+    expect(result.errors?.map(detailOf)).toEqual([
+      expect.stringMatching(/'Limited' and 'User' both compute 'total'/),
+    ]);
+    expect(seen).toEqual([]);
   });
 });

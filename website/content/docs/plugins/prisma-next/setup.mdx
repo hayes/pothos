@@ -197,5 +197,6 @@ These go under `prismaNext` in the builder options.
 - Errors from invalid input, such as a bad cursor, are safe to show. The plugin's other request
   errors reach clients as `Unexpected error.`, with the detail in the error's `cause` for your
   logs. Errors from your own code and the database pass through as they are and can name your
-  models and columns, so enable error masking (GraphQL Yoga does by default).
+  models and columns, so enable error masking (GraphQL Yoga does by default). In a scope-auth
+  `runScopesOnType` check, a row that fails to load is denied instead.
 - Use `"moduleResolution": "nodenext"` or `"bundler"`, since Prisma's packages are ESM-only.

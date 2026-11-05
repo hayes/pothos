@@ -188,7 +188,7 @@ export function variantTableFields(contract: AnyContract, modelKey: string): str
 /**
  * The variant a relation is narrowed to when its GraphQL type is backed by a variant of its
  * target. Throws an `ErrorClass` error for a type from the hierarchy the relation can't return: a
- * `PothosSchemaError` when the schema is built, and an `Error` when a request is planned.
+ * `PothosSchemaError` when the schema is built, and an `InternalError` when a request is planned.
  */
 export function variantForRelationType(
   contract: AnyContract,

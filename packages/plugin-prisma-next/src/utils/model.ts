@@ -47,7 +47,7 @@ export interface PrismaNextModel {
 
 /**
  * The error for loading a relation name several variants of `model` declare: a `PothosSchemaError`
- * when the schema is built, and an `Error` for a `select` a function returned for a request.
+ * when the schema is built, and an `InternalError` for a `select` a function returned for a request.
  */
 export function sharedVariantRelationError(
   owner: string,
@@ -63,7 +63,7 @@ export function sharedVariantRelationError(
 /**
  * The error for a `select` whose rows of `name` the caller reads: the relation targets a variant
  * model with a table of its own, whose rows load without the base's columns. A `PothosSchemaError`
- * when the schema is built, and an `Error` for a `select` planned for a request.
+ * when the schema is built, and an `InternalError` for a `select` planned for a request.
  */
 export function ownTableVariantRowsError(
   owner: string,
