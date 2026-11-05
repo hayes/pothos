@@ -19,6 +19,7 @@ import {
 } from './utils/adapter.js';
 import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
 import { planFromInfo } from './utils/map-query.js';
+import type { SelectionMap } from './utils/selections.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -46,6 +47,9 @@ export class ModelLoader {
     root: DrizzleNode;
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
+
+  // `loadTypeRow`'s loads, by row then root field. A loader serves one type in one request.
+  private typeRows = new WeakMap<object, Map<string | number, Promise<object>>>();
 
   config: PothosDrizzleSchemaConfig;
   adapter: DrizzleAdapter;
@@ -183,7 +187,43 @@ export class ModelLoader {
     });
   }
 
-  stageQuery(played: DrizzlePlayedPlan, model: object) {
+  /**
+   * Reloads `model` with `root`'s selection, keeping its defined values. Cached per root field, so
+   * each mutation reloads.
+   */
+  loadTypeRow(root: DrizzleNode, model: object, info: GraphQLResolveInfo): Promise<object> {
+    let path = info.path;
+
+    while (path.prev) {
+      path = path.prev;
+    }
+
+    let loads = this.typeRows.get(model);
+
+    if (!loads) {
+      loads = new Map();
+      this.typeRows.set(model, loads);
+    }
+
+    let load = loads.get(path.key);
+
+    if (!load) {
+      load = new Promise<Record<string, unknown> | null>((resolve) => {
+        resolve(this.stageQuery({ root }, model));
+      }).then(
+        (loaded) => ({ ...loaded, ...definedValues(model) }),
+        (error: unknown) => {
+          // Clients see only a generic message.
+          throw new Error('Unexpected error.', { cause: error });
+        },
+      );
+      loads.set(path.key, load);
+    }
+
+    return load;
+  }
+
+  stageQuery(played: Pick<DrizzlePlayedPlan, 'root'>, model: object) {
     for (const entry of this.staged) {
       // Node to node: the batch takes the field's play whole, never through a query.
       if (this.adapter.canMergeNode(entry.root, played.root)) {
@@ -200,7 +240,7 @@ export class ModelLoader {
     return this.initLoad(played, model);
   }
 
-  initLoad(played: DrizzlePlayedPlan, model: object) {
+  initLoad(played: Pick<DrizzlePlayedPlan, 'root'>, model: object) {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
     const root = this.adapter.createNode(played.root.model);
 
@@ -282,6 +322,41 @@ export class ModelLoader {
 
     return promise.promise;
   }
+}
+
+/** Matches `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin can't import. */
+type ScopeAuthParentLoader = (
+  parent: unknown,
+  context: object,
+  info: GraphQLResolveInfo,
+) => MaybePromise<unknown>;
+
+/**
+ * The parent scope-auth's checks see for a type with a `select`: the row when it has every
+ * top-level key of that selection, otherwise the row reloaded with it.
+ */
+export function typeParentLoader(
+  loaders: (context: object) => ModelLoader,
+  adapter: DrizzleAdapter,
+  table: TableRelationalConfig,
+  selection: SelectionMap,
+): ScopeAuthParentLoader {
+  const root = adapter.createNode(table);
+  adapter.mergeQuery(root, selection);
+  // Read from the node, which resolves a `columns` map that only excludes.
+  const keys = [...(root.columns ?? []), ...root.relations.keys(), ...root.computed.keys()];
+
+  return (parent, context, info) => {
+    const row = parent as Record<string, unknown>;
+
+    return keys.every((key) => row[key] !== undefined)
+      ? row
+      : loaders(context).loadTypeRow(root, row, info);
+  };
+}
+
+function definedValues(row: object) {
+  return Object.fromEntries(Object.entries(row).filter(([, value]) => value !== undefined));
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {

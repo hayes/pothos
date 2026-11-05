@@ -8,7 +8,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import { PrismaInterfaceRef } from './interface-ref.js';
-import { ModelLoader } from './model-loader.js';
+import { ModelLoader, typeParentLoader } from './model-loader.js';
 import { PrismaNodeRef } from './node-ref.js';
 import { PrismaObjectRef } from './object-ref.js';
 import { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
@@ -60,6 +60,8 @@ function definePrismaType(
   const name = options.variant ?? options.name ?? type;
   const fieldMap = getRelationMap(getDMMF(builder)).get(type)!;
   const idSelection = ModelLoader.getDefaultIDSelection(ref, type, builder);
+  const fullSelect = select && { ...idSelection, ...select };
+  const loader = ModelLoader.forRef(ref, type, findUnique, builder);
 
   ref.name = name;
 
@@ -71,8 +73,18 @@ function definePrismaType(
       pothosPrismaInclude: include,
       pothosPrismaModel: type,
       pothosPrismaFieldMap: fieldMap,
-      pothosPrismaSelect: select && { ...idSelection, ...select },
-      pothosPrismaLoader: ModelLoader.forRef(ref, type, findUnique, builder),
+      pothosPrismaSelect: fullSelect,
+      pothosPrismaLoader: loader,
+      // Read by scope-auth for the row its checks see. A type without a `findUnique` is never
+      // reloaded.
+      ...(!isInterface && (select || include) && findUnique !== null
+        ? {
+            pothosScopeAuthParent: typeParentLoader(loader, fieldMap, {
+              select: fullSelect,
+              include,
+            }),
+          }
+        : {}),
     },
     name,
     fields: fields
