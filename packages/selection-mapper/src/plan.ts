@@ -1,15 +1,6 @@
-/**
- * One root being planned: the two entry points that build one from a resolver's `info`, the
- * merges a traversal collected for it, and the fold that turns those merges into a node.
- *
- * A plan holds no node — playing it builds one — so the same plan can be played more than once,
- * behind a different seed each time. Playing is where a merge is accepted or rejected and the
- * only place a mapping is recorded; the traversal decides nothing, so a field that lost to
- * another occurrence of itself is still on the list and a play whose seed makes it fit takes it.
- */
-import { PothosValidationError } from '@pothos/core';
 import { type GraphQLNamedType, type GraphQLResolveInfo, getNamedType } from 'graphql';
 import type { Adapter, NodeBase } from './adapter.js';
+import { unexpectedError } from './errors.js';
 import { type Mapping, type Mappings, setLoaderMappings, unionMappings } from './loader-map.js';
 import {
   findMatches,
@@ -21,7 +12,14 @@ import {
   resolveType,
 } from './matches.js';
 import type { Node } from './node.js';
-import type { EntryOptions, MergeOptions, Position, WalkedType } from './types.js';
+import type {
+  EntryOptions,
+  MergeOptions,
+  ParentRowOptions,
+  Position,
+  TypeLevelConflict,
+  WalkedType,
+} from './types.js';
 import { type Branch, walkBranches, walkField } from './walk.js';
 
 // Shared, since neither carries anything per merge.
@@ -30,8 +28,8 @@ const LENIENT: MergeOptions = Object.freeze({ lenient: true });
 
 /**
  * One merge a traversal collected, in the order it happened: a type's selection, a same-model
- * variant's, a nested selection's relation query, or a field's. A play folds the list into a
- * node; nothing is merged, accepted or rejected before then.
+ * variant's, or a field's. A play folds the list into a node; nothing is merged, accepted or
+ * rejected before then.
  *
  * A record holds its query by reference, so a select function that mutates the query it returned
  * after returning it changes what a later play builds — a bug in the select function. Nothing
@@ -40,7 +38,6 @@ const LENIENT: MergeOptions = Object.freeze({ lenient: true });
  */
 export type RootMerge<Query> =
   | { kind: 'type'; query: Query }
-  | { kind: 'query'; query: Query }
   | { kind: 'variant'; type: WalkedType; variant: WalkedType; query: Query }
   | { kind: 'field'; key: string; alias: string; query: Query; mapping: Mapping };
 
@@ -81,6 +78,21 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /** The traversal's whole output: every merge it collected, in the order it collected them. */
   private readonly merges: RootMerge<Query>[] = [];
+
+  /** The plan whose merges a play folds: this one, or a walk shared with other invocations. */
+  private walk: Plan<Model, Query, NodeType> = this;
+
+  /** The relation query of the nested selection this plan was made for, merged ahead of `walk`. */
+  private relationQuery?: Query;
+
+  /** Whether a select function in this walk read the position above its own field. */
+  positionRead = false;
+
+  /**
+   * The walks beneath every field of the plans hanging from one root, by `nested`'s `key`. Shared
+   * with the plan this one was created from, so the root creates it and every nested plan reads it.
+   */
+  private readonly walks: Map<string, Plan<Model, Query, NodeType>>;
 
   /**
    * The play `settle` ran, which a later play takes whole when the seed conflicts with none of
@@ -162,15 +174,15 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * replaces the parent the field resolver sees, so besides the field's own selection it
    * carries the parent type's type-level selection. The field is what the row is loaded for, so
    * it is merged first and a type-level relation whose arguments conflict with it is left out.
+   * `initial` is merged before anything else.
    */
   static forParentRow<Model, Query, NodeType extends NodeBase<Model> = Node<Model>>(
     adapter: Adapter<Model, Query, NodeType>,
-    context: object,
-    info: GraphQLResolveInfo,
-    skipDeferredFragments?: boolean,
+    options: ParentRowOptions<Query>,
   ): PlayedPlan<Model, Query, NodeType> {
+    const { info } = options;
     const type = info.parentType;
-    const plan = new Plan(adapter, { context, info, skipDeferredFragments }, type);
+    const plan = new Plan(adapter, options, type, undefined, options.initial);
 
     try {
       // Every node selecting the field (one per fragment it appears under) plans into the same
@@ -203,11 +215,12 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     this.context = source.context;
     this.info = source.info;
     this.skipDeferredFragments = source.skipDeferredFragments ?? adapter.skipDeferredFragments;
+    this.walks = source instanceof Plan ? source.walks : new Map();
 
     const model = modelOf(adapter, source.info.schema, type);
 
     if (!model) {
-      throw new PothosValidationError(
+      throw unexpectedError(
         `Expected ${resolveType(source.info.schema, type).name} to have a model`,
       );
     }
@@ -218,10 +231,55 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
 
   /**
    * The plan beneath one nested selection: this plan's adapter, context, info and deferred
-   * setting, with merges of its own. It hangs beneath the field whose select function made it.
+   * setting. It holds the invocation's relation query and plays over a walk of the selection
+   * beneath the field, which `walk` collects the first time this plan needs it.
+   *
+   * One field node is invoked once per type it is reached on in a walk (see `walkField`). A named
+   * fragment spread at every level reaches the same selection set beneath several field nodes,
+   * which may hang beneath different plans, so a walk per invocation is exponential in the
+   * document's depth.
+   *
+   * What a walk collects depends only on `key`, which names the selection set by its shape (see
+   * shape.ts) and holds everything else the walk reads, unless a select function reads the
+   * position above it: `positionRead` says it did. Every other invocation with the same key, under
+   * any plan from the same root, shares a walk that did not. A walk that is still pending may yet
+   * read it, so it is not shared. A walk that throws is not kept, so a select function that catches
+   * the failure can retry it.
    */
-  nested(type: GraphQLNamedType, position: Position): Plan<Model, Query, NodeType> {
-    return new Plan(this.adapter, this, type, position);
+  nested(
+    type: GraphQLNamedType,
+    position: Position,
+    key: string,
+    walk: (plan: Plan<Model, Query, NodeType>) => void,
+  ): Plan<Model, Query, NodeType> {
+    let walked = this.walks.get(key);
+
+    if (!walked) {
+      const created = new Plan(this.adapter, this, type, position);
+
+      try {
+        walk(created);
+      } catch (error) {
+        created.abandon();
+        throw error;
+      }
+
+      if (!(created.positionRead || created.pending)) {
+        this.walks.set(key, created);
+      }
+
+      walked = created;
+    }
+
+    const plan = new Plan(this.adapter, this, type, position);
+
+    plan.walk = walked;
+
+    if (walked.pending) {
+      plan.chain(walked.pending, noop);
+    }
+
+    return plan;
   }
 
   /** Appends one merge to the list a play folds. The traversal's only way to add to a plan. */
@@ -230,12 +288,12 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   }
 
   /**
-   * The relation query of the nested selection this plan was made for. It takes the head of the
-   * list, so it is merged before the fields walked beneath it whether the callback that produced
-   * it answered at once or resolved after the walk. A nested plan has at most one.
+   * The relation query of the nested selection this plan was made for. It is merged ahead of the
+   * walk, whether the callback that produced it answered at once or resolved after the walk. A
+   * nested plan has at most one.
    */
   collectQuery(query: Query) {
-    this.merges.unshift({ kind: 'query', query });
+    this.relationQuery = query;
   }
 
   /**
@@ -283,39 +341,52 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * of a synchronous one.
    */
   play(seed?: Query): PlayedPlan<Model, Query, NodeType> {
+    const settled = this.reusable(seed);
+
+    if (settled) {
+      const root = this.adapter.createNode(this.model);
+
+      // A settled play already holds the plan's own `initial`, so only the seed is merged here.
+      // `mergeQuery` is not required to be idempotent. Every merge that play took still fits and
+      // every merge it left out still does not, so its node is taken whole.
+      if (seed) {
+        this.adapter.mergeQuery(root, seed);
+      }
+
+      this.adapter.mergeNode(root, settled.root);
+
+      return { plan: this, root, mappings: settled.mappings };
+    }
+
     const { adapter } = this;
     const root = adapter.createNode(this.model);
-    const settled = this.reusable(seed);
-    // Merged before anything else, so on a conflict it wins. A settled play already holds the
-    // plan's own `initial`, so reusing one merges the seed and nothing else: `mergeQuery` is not
-    // required to be idempotent.
-    const first = settled ? seed : (seed ?? this.initial);
+    const mappings: Mappings = {};
+    // Merged before anything else, so on a conflict it wins.
+    const first = seed ?? this.initial;
 
     if (first) {
       adapter.mergeQuery(root, first);
     }
 
-    if (settled) {
-      // Every merge that play took still fits and every merge it left out still does not, so
-      // the node it built is taken whole.
-      adapter.mergeNode(root, settled.root);
-
-      return { plan: this, root, mappings: settled.mappings };
+    if (this.relationQuery) {
+      adapter.mergeQuery(root, this.relationQuery, AS_QUERY);
     }
 
-    const mappings: Mappings = {};
-
-    for (const merge of this.merges) {
+    for (const merge of this.walk.merges) {
       switch (merge.kind) {
         case 'type':
           adapter.mergeQuery(root, merge.query);
           break;
-        case 'query':
-          adapter.mergeQuery(root, merge.query, AS_QUERY);
+        case 'variant': {
+          const conflict = adapter.firstConflict(root, merge.query);
+
+          if (conflict) {
+            throw variantConflict(merge.type, merge.variant, conflict);
+          }
+
+          adapter.mergeQuery(root, merge.query);
           break;
-        case 'variant':
-          this.mergeVariant(root, merge.type, merge.variant, merge.query);
-          break;
+        }
         case 'field': {
           // One options object for the pair: `mergeQuery` reads only the alias, and
           // `canMergeQuery` only the `ignoreArgs` beside it.
@@ -333,9 +404,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
         default: {
           const unknown: never = merge;
 
-          throw new PothosValidationError(
-            `Unknown root merge ${String((unknown as RootMerge<Query>).kind)}`,
-          );
+          throw unexpectedError(`Unknown root merge ${String((unknown as RootMerge<Query>).kind)}`);
         }
       }
     }
@@ -402,34 +471,29 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       ? this.played
       : undefined;
   }
+}
 
-  /**
-   * Unlike a field-level select, a type-level selection has no per-field fallback, so a relation
-   * argument or a computed value that conflicts with what is already in the node is an error
-   * rather than a rejection.
-   */
-  private mergeVariant(node: NodeType, type: WalkedType, variant: WalkedType, selection: Query) {
-    const conflict = this.adapter.firstConflict(node, selection);
+/**
+ * Unlike a field-level select, a type-level selection has no per-field fallback, so a relation
+ * argument or a computed value that conflicts with what is already in the node is an error rather
+ * than a rejection. It surfaces while a request runs, so the client sees a generic message and the
+ * detail is its `cause`, which responses leave out.
+ */
+function variantConflict(type: WalkedType, variant: WalkedType, conflict: TypeLevelConflict) {
+  switch (conflict.kind) {
+    case 'relation':
+      return unexpectedError(
+        `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${conflict.name}". Move the relation arguments to a field-level select on one of the types.`,
+      );
+    case 'extra':
+      return unexpectedError(
+        `Type-level selections of ${type.name} and ${variant.name} conflict on extra "${conflict.name}". Define the extra with the same function on both types, or move it to a field-level select on one of the types.`,
+      );
+    default: {
+      const unknown: never = conflict.kind;
 
-    if (conflict) {
-      switch (conflict.kind) {
-        case 'relation':
-          throw new PothosValidationError(
-            `Type-level selections of ${type.name} and ${variant.name} conflict on relation "${conflict.name}". Move the relation arguments to a field-level select on one of the types.`,
-          );
-        case 'extra':
-          throw new PothosValidationError(
-            `Type-level selections of ${type.name} and ${variant.name} conflict on extra "${conflict.name}". Define the extra with the same function on both types, or move it to a field-level select on one of the types.`,
-          );
-        default: {
-          const unknown: never = conflict.kind;
-
-          throw new PothosValidationError(`Unknown type-level conflict ${unknown as string}`);
-        }
-      }
+      return unexpectedError(`Unknown type-level conflict ${unknown as string}`);
     }
-
-    this.adapter.mergeQuery(node, selection);
   }
 }
 
@@ -442,7 +506,7 @@ function positionForResolvedField(info: GraphQLResolveInfo): Position | undefine
   const node = info.fieldNodes[0];
   const field = info.parentType?.getFields()[node.name.value];
 
-  return field && { parent: undefined, type: info.parentType, field, node };
+  return field && { parent: undefined, walkParent: undefined, type: info.parentType, field, node };
 }
 
 function normalizePaths(paths: PathSegment[][]): IndirectPathSegment[][] {

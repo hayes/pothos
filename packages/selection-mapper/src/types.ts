@@ -24,8 +24,26 @@ export type WalkedType = GraphQLInterfaceType | GraphQLObjectType;
  * about costs one link per select function and no arrays at all.
  */
 export interface Position {
-  /** The field this one is selected beneath, or undefined at the field the plan started from. */
+  /**
+   * The field this one is selected beneath, or undefined at the field the plan started from.
+   * Reading it during planning has a cost. Invocations of a field at different places normally
+   * share the walk beneath it; a read keeps every walk it reads through from being shared, so
+   * each invocation is walked with its own path, which a document whose fragments branch at every
+   * level makes exponential in its depth. A fragment expanding to the implementations of a model
+   * interface walks its fields as each implementation, which adds an invocation, and a path, per
+   * implementation, except for a field the implementation inherits unchanged from that interface
+   * and no fragment narrows to the implementation: it is invoked once, on the interface, and its
+   * path names the interface. Read after planning, it is the first invocation's.
+   */
   readonly parent: Position | undefined;
+  /**
+   * The same link as `parent`, read without keeping the walk beneath from being shared. Its chain
+   * is the one the shared walk holds, the first invocation's, and not always the true path, so it
+   * is only for a name that needs to agree with itself: one a plan writes into its query and a
+   * resolver beneath the same walk reads back through its mapping. Anything that depends on where
+   * a field really is reads `parent`.
+   */
+  readonly walkParent: Position | undefined;
   /** The type the field was walked on: its parent type, or a same-model type the plan moved to. */
   readonly type: WalkedType;
   readonly field: GraphQLField<unknown, unknown>;
@@ -86,6 +104,12 @@ export interface EntryOptions<Query> {
    */
   skipDeferredFragments?: boolean;
 }
+
+/** The options of `Plan.forParentRow`, which plans the field `info` resolves on its own. */
+export type ParentRowOptions<Query> = Pick<
+  EntryOptions<Query>,
+  'context' | 'info' | 'initial' | 'skipDeferredFragments'
+>;
 
 /** How one merge into an adapter's node differs from a plain one. */
 export interface MergeOptions {
