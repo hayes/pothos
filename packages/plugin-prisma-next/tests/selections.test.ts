@@ -494,9 +494,10 @@ describe('a selection that fails to plan', () => {
   builder.prismaObject('Post', {
     fields: (t) => ({
       title: t.exposeString('title'),
-      author: t.relation('author', { nullable: true, query: fail }),
+      comments: t.relation('comments', { query: fail }),
     }),
   });
+  builder.prismaObject('Comment', { fields: (t) => ({ id: t.exposeID('id') }) });
   builder.queryType({
     fields: (t) => ({
       users: t.prismaField({
@@ -514,7 +515,7 @@ describe('a selection that fails to plan', () => {
     ['a field select function', 'selected'],
     ['an async field select function', 'asyncSelected'],
     ['a relationCount where callback', 'count'],
-    ['a relation query callback beneath a relation', 'nested { title author { id: __typename } }'],
+    ['a relation query callback beneath a relation', 'nested { title comments { id } }'],
   ])('fails the root field for %s that throws', async (_name, field) => {
     const result = await run(schema, `{ users { firstName ${field} } }`);
     expect(result.errors?.map((error) => [error.message, error.path])).toEqual([

@@ -219,7 +219,6 @@ describe('rows the plugin loaded', () => {
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('Post', {
       fields: (t) => ({
-        alice: t.relation('author', { nullable: true, query: { where: { firstName: 'Alice' } } }),
         published: t.relation('comments', { query: { where: { id: 'c-1' } } }),
         seen: t.boolean({
           resolve: (post) => {
@@ -238,10 +237,7 @@ describe('rows the plugin loaded', () => {
         }),
       }),
     });
-    const result = await run(
-      builder.toSchema(),
-      '{ posts { alice { id } published { id } seen } }',
-    );
+    const result = await run(builder.toSchema(), '{ posts { published { id } seen } }');
     expect(result.errors).toBeUndefined();
     expect(captured).toHaveLength(1);
     expect(captured[0]).toEqual({ id: 'p-hello' });

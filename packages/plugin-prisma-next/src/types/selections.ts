@@ -126,23 +126,6 @@ export type InterfaceSelectShape<
   : unknown;
 
 /**
- * Rejects anything but `true` on a to-one relation in a type's `select`, naming the problem. The
- * spec `TypeSelectCheck` checks against takes a to-one `{ where }`, so this check reports it.
- */
-type TypeSelectToOneCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = [
-  Select,
-] extends [readonly unknown[]]
-  ? unknown
-  : {
-      [K in keyof Select & RelationKeys<Types, M> as IsToMany<Types, M, K> extends true
-        ? never
-        : NonNullable<Select[K]> extends true
-          ? never
-          : `A to-one relation in a type's select takes only true, filter it in a field's select: ${K &
-              string}`]: never;
-    };
-
-/**
  * Rejects a relation only a variant declares in a type's `select`. A type's rows can load through
  * the base model's collection, which can't include it, so it goes in a field's `select` instead.
  */
@@ -202,7 +185,7 @@ type SimpleRelationShape<Types extends SchemaTypes, M extends ModelKey<Types>, S
     ? never
     : S[K] extends true | RelationQueryValue<Types, M, K>
       ? K
-      : never]: RelationShape<Types, M, K, S[K]>;
+      : never]: RelationShape<Types, M, K>;
 } & {
   // A connection helper's page: the rows it loaded, which its `resolve` takes.
   [K in keyof S & RelationKeys<Types, M> as S[K] extends ConnectionPageEntry<unknown, unknown>
@@ -429,25 +412,12 @@ type InvalidSelectValueCheck<Types extends SchemaTypes, M extends ModelKey<Types
       }
   : unknown;
 
-/** `true` if any branch of a relation's entry has a `where`, and `never` if none does. */
-type EntryFilters<Entry> = Entry extends unknown
-  ? 'where' extends keyof Entry
-    ? true
-    : never
-  : never;
-
-/** A to-one relation is nullable when the contract says so or a `where` can filter it out. */
+/** A to-one relation is nullable when the contract says so. */
 type RelationShape<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   R extends RelationKeys<Types, M>,
-  Entry = true,
-> = RelationFieldShape<
-  Types,
-  M,
-  R,
-  [EntryFilters<Entry>] extends [never] ? DefaultRelationNullable<Types, M, R> : true
->;
+> = RelationFieldShape<Types, M, R, DefaultRelationNullable<Types, M, R>>;
 
 /**
  * A function-form `select` contributes what it returns. When its branches return different
@@ -479,7 +449,6 @@ type ShapeFromSelectValue<Types extends SchemaTypes, ParentShape, Select> =
         ? Merge<ParentShape & SelectedColumns<Pick<Row<Types, M>, K>, Select>>
         : Select extends Record<string, unknown>
           ? Merge<
-              // A field's relation is loaded separately, so its `where` can make it null.
               Omit<ParentShape, keyof SimpleRelationShape<Types, M, Select>> &
                 SimpleColumnShape<Types, M, Select> &
                 SimpleRelationShape<Types, M, Select> &
@@ -530,7 +499,6 @@ export type TypeSelectCheck<Types extends SchemaTypes, M extends ModelKey<Types>
     NoInfer<
       SelectCheck<Types, M, Select> &
         NoTypeLevelPage<Select> &
-        TypeSelectToOneCheck<Types, M, Select> &
         VariantRelationCheck<Types, M, Select>
     >;
 };

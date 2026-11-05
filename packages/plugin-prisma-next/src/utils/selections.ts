@@ -78,11 +78,8 @@ export interface ComputedSelection {
 /**
  * A selection on one model. Planned node trees are written back in the same shape. A to-many
  * relation and its computed values are keyed `relation:scope`. Consumers with different arguments
- * then get separate `combine()` slots and still load in one statement. A to-one relation loaded
- * whole is keyed by its name, so every reader of the row sees it there. A filtered one is keyed
- * `relation:scope` like a to-many relation. The ORM includes a to-one relation once, so `emit`
- * picks one load for it (see `PrismaNextAdapter.emitToOne`) and `takeSlots` moves a filtered one
- * off the row into a slot only its consumers read.
+ * then get separate `combine()` slots and still load in one statement. A to-one relation is always
+ * loaded whole and keyed by its name, so every reader of the row sees it there.
  */
 export interface PrismaNextSelection {
   /** `null` selects every column. */
@@ -180,15 +177,6 @@ function slotKey(relation: string, scope: string) {
   return `${relation}${KEY_SEPARATOR}${scope}`;
 }
 
-function relationKey(
-  relation: PrismaNextRelation,
-  name: string,
-  scope: string,
-  selection: PrismaNextSelection,
-) {
-  return relation.isToMany || !loadsWholeRelation(selection) ? slotKey(name, scope) : name;
-}
-
 /** Whether a relation load has every row of the relation, rather than a filtered or paged part. */
 export function loadsWholeRelation({ args }: PrismaNextSelection) {
   return args?.loadIdentity === undefined && (!args?.variant || args.variant.throughVariantModel);
@@ -202,10 +190,7 @@ export function relationName(key: string) {
 
 type Row = Record<string, unknown>;
 
-/**
- * What `emit` included for each relation of a level, which `takeSlots` reads the rows it loaded
- * by. Rows read without one keep every to-one relation they hold on the row.
- */
+/** What `emit` included for each relation of a level, which `takeSlots` reads its rows by. */
 export type IncludeRecord = Readonly<Record<string, IncludedRelation>>;
 
 export interface IncludedRelation {
@@ -215,10 +200,6 @@ export interface IncludedRelation {
   readonly slots?: Readonly<Record<string, IncludeRecord>>;
   /** The slot key of each `combine()` branch, by the branch's name in the statement. */
   readonly names?: Readonly<Record<string, string>>;
-  /** The filtered to-one consumers the include loaded for. Undefined for the whole relation. */
-  readonly scopes?: readonly string[];
-  /** The filtered to-one consumers left out of the include. Their fields reload. */
-  readonly dropped?: readonly string[];
 }
 
 /** What the consumers of one to-many relation loaded through `combine()`, by consumer scope. */
@@ -233,24 +214,16 @@ interface RowSlots {
   readonly row: Row | undefined;
   /** The slots of each to-many relation loaded through `combine()`, by relation name. */
   readonly slots: Readonly<Record<string, RelationSlots>>;
-  /**
-   * The filtered loads of each to-one relation, by consumer scope, by relation name. A consumer
-   * left out of the statement has `undefined`.
-   */
-  readonly toOne: Readonly<Record<string, ReadonlyMap<string, unknown>>>;
   /** Every scope that has a slot on the row. */
   readonly scopes: ReadonlySet<string>;
   /** Projections of the row, keyed by the scopes they write onto it. */
   projections?: Map<string, object>;
-  /** A to-one relation a field reloaded with its own query or variant, by the field's scope. */
-  refined?: Map<string, unknown>;
 }
 
 /** A row `takeSlots` returned with nothing taken off it. */
 const PLAIN: RowSlots = Object.freeze({
   row: undefined,
   slots: Object.freeze({}),
-  toOne: Object.freeze({}),
   scopes: new Set<string>(),
 });
 
@@ -282,9 +255,8 @@ export function loadedThrough(row: object) {
 /**
  * Takes the slots off the rows a statement returned, reading them by what `emit` included
  * (`record`). A to-many relation loaded through `combine()` comes back as an object with one slot
- * per consumer scope, and a to-one relation loaded for filtered consumers holds their version. A
- * row with either is copied without them, and the copy gets the rows and computed values its
- * type-level selects loaded, unless they disagree. Field helpers read their own slots through
+ * per consumer scope. A row with one is copied without it, and the copy gets the rows and computed
+ * values its type-level selects loaded, unless they disagree. Field helpers read their own slots through
  * `fieldSlots`. The ORM's rows are never changed: a row with no slots, and none beneath it, is
  * returned as it is.
  */
@@ -308,7 +280,6 @@ export function takeSlots<T>(rows: T, model: PrismaNextModel, record?: IncludeRe
 function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | undefined): Row {
   let nested: Row | undefined;
   let slots: Record<string, RelationSlots> | undefined;
-  let toOne: Record<string, Map<string, unknown>> | undefined;
   /** Relations whose value comes off the row. */
   const taken: string[] = [];
   const scopes = new Set<string>();
@@ -316,26 +287,6 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
     const relation = model.relations[name]!;
     const included = record?.[name];
     const value = row[name];
-    if (!relation.isToMany && (included?.scopes || included?.dropped?.length)) {
-      const own = new Map<string, unknown>();
-      toOne ??= {};
-      toOne[name] = own;
-      for (const scope of included.dropped ?? []) {
-        own.set(scope, undefined);
-        scopes.add(scope);
-      }
-      if (included.scopes) {
-        // A filtered version never stands in for the relation on the row.
-        taken.push(name);
-        const loaded = takeSlots(value, relation.target, included.nested);
-        markVariantRows(loaded, relation);
-        for (const scope of included.scopes) {
-          own.set(scope, loaded);
-          scopes.add(scope);
-        }
-        continue;
-      }
-    }
     if (!value || typeof value !== 'object') {
       continue;
     }
@@ -375,7 +326,7 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
       }
     }
   }
-  if (!slots && !toOne) {
+  if (!slots) {
     const next = nested ? Object.assign(copyOf(row), nested) : row;
     rowSlots.set(next, PLAIN);
     return next;
@@ -387,8 +338,7 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
   Object.assign(next, nested);
   rowSlots.set(next, {
     row: next,
-    slots: slots ?? PLAIN.slots,
-    toOne: toOne ?? PLAIN.toOne,
+    slots,
     scopes,
   });
   return next;
@@ -396,11 +346,9 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
 
 /**
  * Writes the rows and computed values that `scopes` loaded onto `target`. Later scopes win. A
- * connection's count stays in its slot, and a page counted without rows has none. A filtered
- * to-one relation left out of the statement is removed, so no reader takes another version of it
- * for its own.
+ * connection's count stays in its slot, and a page counted without rows has none.
  */
-function lift(target: Row, { slots, toOne }: RowSlots, scopes: readonly string[]) {
+function lift(target: Row, { slots }: RowSlots, scopes: readonly string[]) {
   for (const scope of scopes) {
     for (const name of Object.keys(slots)) {
       const { rows, values } = slots[name]!;
@@ -412,36 +360,12 @@ function lift(target: Row, { slots, toOne }: RowSlots, scopes: readonly string[]
       }
       Object.assign(target, computed);
     }
-    for (const name of Object.keys(toOne)) {
-      const own = toOne[name]!;
-      if (own.has(scope)) {
-        const value = own.get(scope);
-        if (value === undefined) {
-          delete target[name];
-        } else {
-          target[name] = value;
-        }
-      }
-    }
   }
 }
 
 /** Whether the statement that returned `row` loaded to-many relation `name` into slots. */
 export function loadedSlots(row: object, name: string) {
   return !!rowSlots.get(row)?.slots[name];
-}
-
-/**
- * Whether a filtered to-one relation the field planned at `position` selects was left out of the
- * statement that loaded `row`, because another load of the relation took its include.
- */
-export function leftOut(row: object, position: Position | undefined) {
-  const entry = rowSlots.get(row);
-  if (!entry || !position) {
-    return false;
-  }
-  const scope = scopeOf(position);
-  return Object.values(entry.toOne).some((own) => own.has(scope) && own.get(scope) === undefined);
 }
 
 /** The row `takeSlots` returned that `value` is, or is a projection of. */
@@ -513,30 +437,6 @@ export function slotsOfFieldParent(parent: object): FieldSlots | undefined {
   return position && fieldSlots(parent, position);
 }
 
-/**
- * Records `value`, a to-one relation a field reloaded with its own query or variant, for the
- * field's helper to read at `scope`, and returns the parent the field's plugins see: `parent`, the
- * row the field had, which holds the declared relation.
- */
-export function refineKeptToOne(parent: object, value: unknown, scope: string | undefined): object {
-  const entry = rowSlots.get(parent);
-  if (!entry?.row) {
-    rowSlots.set(parent, {
-      row: parent as Row,
-      slots: entry?.slots ?? PLAIN.slots,
-      toOne: entry?.toOne ?? PLAIN.toOne,
-      scopes: entry?.scopes ?? PLAIN.scopes,
-      refined: new Map(scope === undefined ? [] : [[scope, value]]),
-    });
-    return parent;
-  }
-  if (scope !== undefined) {
-    entry.refined ??= new Map();
-    entry.refined.set(scope, value);
-  }
-  return parent;
-}
-
 /** What a field helper's selection loaded on its parent. */
 export interface FieldSlots {
   /** The position that planned the helper, which its connection plan is keyed by. */
@@ -567,11 +467,7 @@ export function fieldSlots(parent: object, position: Position | undefined): Fiel
       if (own) {
         return scope === undefined ? undefined : own.rows.get(scope);
       }
-      if (scope !== undefined && entry.refined?.has(scope)) {
-        return entry.refined.get(scope);
-      }
-      const toOne = entry.toOne[name];
-      return scope !== undefined && toOne?.has(scope) ? toOne.get(scope) : (parent as Row)[name];
+      return (parent as Row)[name];
     },
     value: (name, key) => values(name)?.[key],
   };
@@ -710,7 +606,7 @@ export function rowsSelection(
   child: MaybePromise<PrismaNextSelection>,
 ): MaybePromise<PrismaNextSelection> {
   return completeValue(child, (resolved) => ({
-    relations: { [relationKey(relation, name, scope, resolved)]: resolved },
+    relations: { [relation.isToMany ? slotKey(name, scope) : name]: resolved },
   }));
 }
 
@@ -898,7 +794,8 @@ export function compileFieldSelect(
         if (returnModel && returnModel !== relation.target) {
           return seed;
         }
-        // A relation to a hierarchy's base, typed as one of its variants, loads that variant.
+        // A to-many relation to a hierarchy's base, typed as one of its variants, loads that
+        // variant. A to-one relation is keyed on the row by its name, so it loads whole.
         const variant = variantForRelationType(
           contract,
           `Field '${position.field.name}'`,
@@ -907,7 +804,7 @@ export function compileFieldSelect(
           InternalError,
         );
         return nested(
-          variant === undefined
+          variant === undefined || !relation.isToMany
             ? seed
             : { ...seed, args: { ...seed.args, variant: { value: variant } } },
         );

@@ -25,8 +25,8 @@ builder.prismaObject('Post', {
 ```
 
 To-many relations are non-null lists. A to-one relation, like `author`, is non-null when its foreign
-key is non-null, unless it has a `query` or a variant `type`, either of which can filter the row
-out. Pass `nullable` to override.
+key is non-null, unless it has a variant `type`, which can filter the row out. Pass `nullable` to
+override.
 
 ## Filtering and sorting
 
@@ -43,7 +43,8 @@ posts: t.relation('posts', {
 }),
 ```
 
-A to-one relation's `query` takes only `where`.
+A to-one relation takes no `query`. To filter one, select it in a field's `select` and return `null`
+from the resolver.
 
 For a to-many relation, the `query` function can also return a function that takes the relation's
 Collection and returns a refined one. Use this to apply a fragment:

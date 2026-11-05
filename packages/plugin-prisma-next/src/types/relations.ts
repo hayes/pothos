@@ -122,14 +122,9 @@ interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Typ
   offset?: number;
 }
 
-/** A to-one relation loads one row, so only `where` applies to it. */
-interface ToOneQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> {
-  where?: RelationWhere<Types, M>;
-}
-
 /**
- * The literal `query` a relation takes, and a relation's entry in a `select`: `where` for a to-one
- * relation.
+ * The literal `query` a to-many relation takes, and its entry in a `select`. A to-one relation is
+ * loaded whole, so it takes none.
  */
 export type RelationQueryValue<
   Types extends SchemaTypes,
@@ -138,7 +133,7 @@ export type RelationQueryValue<
 > =
   IsToMany<Types, M, R> extends true
     ? RelationQueryLiteral<Types, RelatedModel<Types, M, R>>
-    : ToOneQueryLiteral<Types, RelatedModel<Types, M, R>>;
+    : never;
 
 /**
  * Refines a to-many relation's collection, as an `include()` refinement does, so it can apply
@@ -153,8 +148,8 @@ type RelationRefinement<
 ) => RelationRefinementCollection<Types, M, R>;
 
 /**
- * A relation's `query`: the literal, or a callback of the args and context returning it or, for a
- * to-many relation, a refinement of the relation's collection.
+ * A to-many relation's `query`: the literal, or a callback of the args and context returning it or
+ * a refinement of the relation's collection. A to-one relation takes none.
  */
 export type RelationQuery<
   Types extends SchemaTypes,
@@ -162,18 +157,19 @@ export type RelationQuery<
   RelName extends RelationKeys<Types, ParentModel>,
   Args extends InputFieldMap,
 > =
-  | RelationQueryValue<Types, ParentModel, RelName>
-  | ((
-      args: InputShapeFromFields<Args>,
-      context: Types['Context'],
-    ) => MaybeAsyncSelection<
-      Types,
-      | RelationQueryValue<Types, ParentModel, RelName>
-      | (IsToMany<Types, ParentModel, RelName> extends true
-          ? RelationRefinement<Types, ParentModel, RelName>
-          : never)
-      | undefined
-    >);
+  IsToMany<Types, ParentModel, RelName> extends true
+    ?
+        | RelationQueryValue<Types, ParentModel, RelName>
+        | ((
+            args: InputShapeFromFields<Args>,
+            context: Types['Context'],
+          ) => MaybeAsyncSelection<
+            Types,
+            | RelationQueryValue<Types, ParentModel, RelName>
+            | RelationRefinement<Types, ParentModel, RelName>
+            | undefined
+          >)
+    : never;
 
 export type RelationRefinementCollection<
   Types extends SchemaTypes,
@@ -231,8 +227,8 @@ export interface RequiresNullable<Reason extends string> {
 
 /**
  * A to-one relation the contract makes nullable can resolve to null, like a nullable column, so it
- * can't be made non-null. A `query` or variant `type` that filters the row out is left to the
- * developer, who may know it always matches.
+ * can't be made non-null. A variant `type` that filters the row out is left to the developer, who
+ * may know it always matches.
  */
 type RelationNullableOption<
   Types extends SchemaTypes,
@@ -273,22 +269,19 @@ export type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
     };
 
 /**
- * A `query`, or a variant `type` that narrows the load, can filter a to-one relation's row out,
- * so either makes the field nullable by default.
+ * A variant `type` filters out a to-one relation's rows of other variants, so it makes the field
+ * nullable by default.
  */
 export type RelationNullable<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   R extends RelationKeys<Types, M>,
-  Query,
   TypeModel,
 > =
   IsToMany<Types, M, R> extends true
     ? false
-    : undefined extends Query
-      ? [TypeModel] extends [RelatedModel<Types, M, R>]
-        ? DefaultRelationNullable<Types, M, R>
-        : true
+    : [TypeModel] extends [RelatedModel<Types, M, R>]
+      ? DefaultRelationNullable<Types, M, R>
       : true;
 
 /** The rows a relation loads, as a list for a to-many relation and nullable as the field is. */

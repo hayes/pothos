@@ -261,6 +261,34 @@ describe('native model inheritance', () => {
     ]);
   });
 
+  it('narrows a to-one relation by its discriminator without a hierarchy interface', async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const bug = builder.prismaObject('Bug', {
+      fields: (t) => ({ severity: t.exposeString('severity', { nullable: true }) }),
+    });
+    builder.prismaObject('Note', {
+      fields: (t) => ({ id: t.exposeID('id'), bug: t.relation('task', { type: bug }) }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        notes: t.prismaField({
+          type: ['Note'],
+          resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ notes { id bug { severity } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.notes).toEqual([
+      { id: 'n1', bug: { severity: 'high' } },
+      { id: 'n2', bug: null },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
   it('filters a relation targeting a single-table variant by discriminator', async () => {
     const result = await run(createVariantSchema(), '{ users { reviews { title severity } } }');
     expect(result.data.users).toEqual([{ reviews: [{ title: 'bug1', severity: 'high' }] }]);

@@ -31,8 +31,8 @@ describe("an implementation's override of an interface field", () => {
       resolveType: (row) => (row.id === 'p-bob1' ? 'PB' : 'PA'),
       fields: (t) => ({
         id: t.exposeID('id'),
-        // Filtered down to nobody, so an override's own author is visible.
-        writer: t.relation('author', { nullable: true, query: { where: { id: 'nobody' } } }),
+        // Nobody, so an override's own author is visible.
+        writer: t.field({ type: User, nullable: true, resolve: () => null }),
       }),
     });
     builder.prismaObject('Post', { variant: 'PA', interfaces: [P] });
@@ -41,7 +41,7 @@ describe("an implementation's override of an interface field", () => {
       interfaces: [P],
       fields: (t) => ({ writer: t.relation('author', { nullable: true }) }),
     });
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const User = builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     // A non-model interface both implementations share, so a fragment on it expands.
     const Linked = builder.interfaceRef<object>('Linked').implement({

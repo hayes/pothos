@@ -447,7 +447,7 @@ builder.queryField('firstUser', (t) =>
   t.field({ type: PlainUser, nullable: true, resolve: () => orm.User.first() }),
 );
 
-// A required to-one relation is non-null when selected; a filtered selection can be null.
+// A required to-one relation is non-null when selected. It takes only `true`.
 builder.prismaObject('Post', {
   variant: 'ToOneSelects',
   select: { author: true },
@@ -459,20 +459,18 @@ builder.prismaObject('Post', {
       },
     }),
     ordered: t.string({
-      // @ts-expect-error a to-one relation takes only `where`
+      // @ts-expect-error a to-one relation takes only `true`
       select: { author: { limit: 1 } },
       resolve: () => '',
     }),
     filtered: t.string({
+      // @ts-expect-error a to-one relation takes only `true`
       select: { author: { where: { firstName: 'Alice' } } },
-      resolve: (post) => {
-        expectTypeOf(post.author).toEqualTypeOf<UserRow | null>();
-        return '';
-      },
+      resolve: () => '',
     }),
   }),
 });
-// A type's select takes only `true` for a to-one relation. A field's select filters one.
+// A type's select takes only `true` for a to-one relation.
 builder.prismaObject('Post', {
   variant: 'FilteredTypeSelect',
   // @ts-expect-error a to-one relation in a type's select takes only true
@@ -1206,22 +1204,18 @@ builder.prismaObject('User', {
   fields: () => ({}),
 });
 
-// A branch with a `where` can filter a to-one relation out, so the relation may be null.
+// Every branch of a select must pass, so none can filter a to-one relation.
 builder.prismaObject('Post', {
   fields: (t) => ({
     filteredInOneBranch: t.string({
+      // @ts-expect-error a to-one relation takes only `true`
       select: { author: flag ? true : { where: { firstName: 'Alice' } } },
-      resolve: (post) => {
-        expectTypeOf(post.author).toEqualTypeOf<UserRow | null>();
-        return '';
-      },
+      resolve: () => '',
     }),
-    unfilteredInEveryBranch: t.string({
-      select: { author: flag ? true : {} },
-      resolve: (post) => {
-        expectTypeOf(post.author).toEqualTypeOf<UserRow>();
-        return '';
-      },
+    filteredInOneFunctionBranch: t.string({
+      // @ts-expect-error a to-one relation takes only `true`
+      select: () => (flag ? { author: true } : { author: { where: { firstName: 'Alice' } } }),
+      resolve: () => '',
     }),
   }),
 });
@@ -1229,20 +1223,6 @@ builder.prismaObject('Post', {
   variant: 'FilteredInOneBranch',
   // @ts-expect-error every branch of a type's select must pass
   select: { author: flag ? true : { where: { firstName: 'Alice' } } },
-});
-
-// A function's branches that load a relation differently type it as either branch loads it.
-builder.prismaObject('Post', {
-  variant: 'FilteredInOneFunctionBranch',
-  fields: (t) => ({
-    author: t.string({
-      select: () => (flag ? { author: true } : { author: { where: { firstName: 'Alice' } } }),
-      resolve: (post) => {
-        expectTypeOf(post.author).toEqualTypeOf<UserRow | null>();
-        return '';
-      },
-    }),
-  }),
 });
 
 // An array variable may hold any of its columns, in a type's or a field's static `select`.

@@ -415,59 +415,6 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  // The interface `Filtered` extends, and the type's list naming `Filtered` first, once made a
-  // lookup of `one` find `Filtered`'s filtered author, depending on how the two interfaces sort.
-  describe.each([
-    ['PostBase', 'Filtered'],
-    ['Zed', 'Abc'],
-  ])('a three-level hierarchy of %s and %s', (baseName, derivedName) => {
-    function threeLevels() {
-      const builder = createBuilder();
-      const Base = builder.prismaInterface('Post', {
-        variant: baseName,
-        select: { author: true },
-        fields: (t) => ({
-          one: t.string({ nullable: true, resolve: (post) => post.author.firstName }),
-        }),
-      });
-      const Derived = builder.prismaInterface('Post', {
-        variant: derivedName,
-        interfaces: [Base],
-        fields: (t) => ({
-          three: t.string({
-            nullable: true,
-            select: { author: { where: { firstName: 'Nobody' } } },
-            resolve: (post) => post.author?.firstName,
-          }),
-        }),
-      });
-      const Post = builder.prismaObject('Post', {
-        interfaces: [Derived, Base],
-      });
-      builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-      builder.queryType({
-        fields: (t) => ({
-          r: t.prismaField({ type: [Post], resolve: () => db.orm.Post.where({ id: 'p-hello' }) }),
-        }),
-      });
-      return builder.toSchema();
-    }
-
-    it("reads the base interface's unfiltered author", async () => {
-      const result = await run(threeLevels(), '{ r { one } }');
-      expect(result.errors).toBeUndefined();
-      expect(result.data).toEqual({ r: [{ one: 'Alice' }] });
-      expect(result.statements).toHaveLength(1);
-    });
-
-    it("gives a field's filter its own load", async () => {
-      const result = await run(threeLevels(), '{ r { one three } }');
-      expect(result.errors).toBeUndefined();
-      expect(result.data).toEqual({ r: [{ one: 'Alice', three: null }] });
-      expect(result.statements).toHaveLength(2);
-    });
-  });
-
   // A row holds one version of a relation, which the fields and auth checks of its type and of its
   // interfaces all read, so their selects can't load it differently.
   describe('rejects selects of one row that load a relation differently', () => {

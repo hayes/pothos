@@ -38,7 +38,6 @@ import {
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_LOADED_CHECK,
   PRISMA_NEXT_MODEL,
-  PRISMA_NEXT_REFINED_TO_ONE,
   PRISMA_NEXT_TYPE_SELECT,
 } from './constants.js';
 import { isLoadedTypeRow } from './model-loader.js';
@@ -53,7 +52,6 @@ import {
   EMPTY,
   type FieldSlots,
   fieldSlots,
-  leftOut,
   loadedSlots,
   loadsOwnTableVariantRows,
   type PrismaNextSelectFn,
@@ -62,9 +60,7 @@ import {
   parentForType,
   type RawSelect,
   recordFieldPosition,
-  refineKeptToOne,
   rowOf,
-  scopeOf,
   splitSelect,
 } from './utils/selections.js';
 import { completeReturnedVariantRows } from './utils/variant-rows.js';
@@ -486,14 +482,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const {
       modelKey,
       computedRelations,
-      parentScopes,
       planned,
       loaded,
       readsSlots,
       declaresOwnSelect,
       staticColumns,
     } = reader;
-    const refinedToOne = fieldConfig.extensions?.[PRISMA_NEXT_REFINED_TO_ONE] as string | undefined;
     // A field helper reads its slots at the position its mapping names. A reloaded row has a
     // mapping of its own, so the position is recorded for each execution rather than looked up.
     const handOver = (
@@ -533,7 +527,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       const slots = mapping && fieldSlots(parent, mapping.position);
       if (
         mapping &&
-        !leftOut(parent, mapping.position) &&
         computedRelations.every((name) => loadedSlots(parent, name)) &&
         (!loaded || (slots && loaded(slots, context, info))) &&
         // What a field's own `select` loaded is read from the row's slots, which a parent this
@@ -545,21 +538,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       }
       return reloadFor(info, () =>
         config.loader(context, modelKey).loadSelection(info, rowOf(parent)),
-      ).then(({ row, mapping }) => {
-        const position = mapping?.position;
-        // The reload gives a filtered to-one relation's include to this field, whose version its
-        // helper reads from a slot. Plugins see the row the field had when it holds the declared
-        // relation, and otherwise the reloaded one, which holds no version of it.
-        const reloaded =
-          refinedToOne === undefined
-            ? reader.parent(row, mapping)
-            : refineKeptToOne(
-                reader.parent(parent, null),
-                fieldSlots(row, position)?.rows(refinedToOne),
-                position && scopeOf(position),
-              );
-        return handOver(reloaded, position, args, context, info);
-      });
+      ).then(({ row, mapping }) =>
+        handOver(reader.parent(row, mapping), mapping?.position, args, context, info),
+      );
     };
   }
 

@@ -385,7 +385,6 @@ export class ModelLoader {
         this.config.adapter.toQuery(batch.root),
         batch.root.model,
         this.context,
-        batch.load.kind === 'parent',
       ),
     ) as MapperCollection & { all(): Promise<readonly Row[]> };
     let loaded: readonly Row[];

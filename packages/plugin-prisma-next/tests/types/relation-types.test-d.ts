@@ -113,14 +113,7 @@ builder.prismaObject('User', {
 
 builder.prismaObject('Post', {
   fields: (t) => ({
-    author: t.relation('author', {
-      query: {
-        where: (user, tools) => {
-          expectTypeOf(tools.fns).not.toBeAny();
-          return user.id.neq('x');
-        },
-      },
-    }),
+    author: t.relation('author'),
     // @ts-expect-error relatedConnection takes a to-many relation
     authorPage: t.relatedConnection('author', {}),
     // A to-one relation has no function form: it needs combine(), which only to-many relations
@@ -145,20 +138,18 @@ builder.prismaObject('Post', {
   fields: () => ({}),
 });
 
-// A type's `select` takes only `true` for a to-one relation, and the error names it.
+// A `select` takes only `true` for a to-one relation, and the error names it.
 builder.prismaObject('Post', {
   variant: 'FilteredAuthorInTypeSelect',
-  // @ts-expect-error a type's select can't filter a to-one relation
+  // @ts-expect-error a select can't filter a to-one relation
   select: { author: { where: { id: 'x' } } },
   fields: () => ({}),
 });
 expectTypeOf<
   NonNullable<TypeSelectCheck<Types, 'Post', { author: { where: { id: 'x' } } }>['select']>
->().toHaveProperty(
-  "A to-one relation in a type's select takes only true, filter it in a field's select: author",
-);
+>().toHaveProperty('Invalid value in select: author');
 expectTypeOf<
-  "A to-one relation in a type's select takes only true, filter it in a field's select: author" extends keyof NonNullable<
+  'Invalid value in select: author' extends keyof NonNullable<
     TypeSelectCheck<Types, 'Post', { author: true }>['select']
   >
     ? 1
@@ -169,10 +160,10 @@ expectTypeOf<
 expectTypeOf<SelectCheck<Types, 'Post', { author: () => {} }>>().toEqualTypeOf<{
   'Invalid value in select: author': never;
 }>();
-// A to-one relation loads one row, so `where` is its only option.
-expectTypeOf<keyof SelectCheck<Types, 'Post', { author: { limit: 1 } }>>().toEqualTypeOf<
-  'Unknown key in select: author.limit' | 'Invalid value in select: author'
->();
+// A to-one relation is loaded whole, so it takes no options.
+expectTypeOf<
+  keyof SelectCheck<Types, 'Post', { author: { where: { id: 'x' } } }>
+>().toEqualTypeOf<'Invalid value in select: author'>();
 expectTypeOf<SelectCheck<Types, 'User', { posts: (sub: never) => never }>>().toEqualTypeOf<{
   'Invalid value in select: posts': never;
 }>();
@@ -309,25 +300,14 @@ inheritance.prismaObject('Note', {
   },
 });
 
-// A relation field's shape is the related rows. A `query` can filter a to-one relation's row out,
-// so it makes the field nullable unless `nullable` says otherwise.
+// A relation field's shape is the related rows.
 builder.prismaObject('Post', {
   variant: 'RelationShapes',
   fields: (t) => {
     const author = t.relation('author');
     expectTypeOf(author.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'>>();
-    const filtered = t.relation('author', { query: { where: { firstName: 'Alice' } } });
-    expectTypeOf(filtered.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'> | null>();
-    const byArgs = t.relation('author', {
-      args: { name: t.arg.string({ required: true }) },
-      query: (args) => ({ where: { firstName: args.name } }),
-    });
-    expectTypeOf(byArgs.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'> | null>();
-    const required = t.relation('author', {
-      nullable: false,
-      query: { where: { firstName: 'Alice' } },
-    });
-    expectTypeOf(required.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'>>();
+    const nullable = t.relation('author', { nullable: true });
+    expectTypeOf(nullable.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'> | null>();
     const comments = t.relation('comments', { query: { limit: 2 } });
     expectTypeOf(comments.$inferType).toEqualTypeOf<
       readonly DefaultModelRow<Contract, 'Comment'>[]
@@ -338,9 +318,7 @@ builder.prismaObject('Post', {
     expectTypeOf(commentPage.$inferType!.edges).not.toBeUnknown();
     return {
       author,
-      filtered,
-      byArgs,
-      required,
+      nullable,
       comments,
       commentPage,
       extraKey: t.relation('comments', {
@@ -401,16 +379,16 @@ builder.prismaObject('User', {
   }),
 });
 
-// A to-one relation's `query` takes only `where`, and no refinement.
+// A to-one relation is loaded whole, so it takes no `query`.
 builder.prismaObject('Post', {
   variant: 'ToOneQueries',
   fields: (t) => ({
+    // @ts-expect-error a to-one relation takes no query
     where: t.relation('author', { query: { where: { firstName: 'Alice' } } }),
+    // @ts-expect-error a to-one relation takes no query
     whereCallback: t.relation('author', { query: () => ({ where: { firstName: 'Alice' } }) }),
-    // @ts-expect-error a to-one relation's query takes only `where`
+    // @ts-expect-error a to-one relation takes no query
     limited: t.relation('author', { query: { limit: 1 } }),
-    // @ts-expect-error a to-one relation's query takes only `where`
-    orderedCallback: t.relation('author', { query: () => ({ offset: 1 }) }),
     // @ts-expect-error a to-one relation takes no refinement
     refined: t.relation('author', { query: () => (author: unknown) => author }),
   }),

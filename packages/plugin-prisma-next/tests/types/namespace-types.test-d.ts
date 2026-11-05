@@ -57,7 +57,7 @@ builder.prismaObject('nsa.User', {
 builder.prismaObject('nsa.Post', {
   select: { user: true },
   fields: (t) => ({
-    user: t.relation('user', { query: { where: (user) => user.orgId.eq(1) } }),
+    user: t.relation('user'),
     userWithExtra: t.relation('user', {
       // @ts-expect-error unknown options are rejected on qualified relation targets too
       nope: true,

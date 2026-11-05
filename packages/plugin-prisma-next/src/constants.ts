@@ -12,7 +12,5 @@ export const PRISMA_NEXT_LOADED_CHECK = 'pothosPrismaNextLoadedCheck';
 export const PRISMA_NEXT_DISCRIMINATED = 'pothosPrismaNextDiscriminated';
 /** A prisma interface's registry of its implementations' selections, one per schema build. */
 export const PRISMA_NEXT_IMPLEMENTATIONS = 'pothosPrismaNextImplementations';
-/** The to-one relation a field loads with its own query or variant, replacing the declared one. */
-export const PRISMA_NEXT_REFINED_TO_ONE = 'pothosPrismaNextRefinedToOne';
 /** The plugin's config, on each prisma type, so `collectionFromInfo` finds it from `info.schema`. */
 export const PRISMA_NEXT_CONFIG = 'pothosPrismaNextConfig';

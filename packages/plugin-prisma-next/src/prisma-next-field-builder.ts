@@ -21,7 +21,6 @@ import {
   PRISMA_NEXT_FIELD_SELECTION,
   PRISMA_NEXT_LOADED_CHECK,
   PRISMA_NEXT_MODEL,
-  PRISMA_NEXT_REFINED_TO_ONE,
 } from './constants.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
@@ -62,7 +61,11 @@ import {
   countOf,
   pageSelection,
 } from './utils/connections.js';
-import { resolveContractModel, variantForRelationType } from './utils/contract.js';
+import {
+  modelDiscriminator,
+  resolveContractModel,
+  variantForRelationType,
+} from './utils/contract.js';
 import { buildConnectionPage } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
@@ -328,9 +331,9 @@ export class PrismaNextObjectFieldBuilder<
   relation<
     RelName extends RelationKeys<Types, M>,
     Query extends RelationQuery<Types, M, RelName, Args> | undefined,
-    // The model of `type`. A variant of the target narrows the load.
+    // The model of `type`. A variant of the target narrows the rows.
     TypeModel extends RelationTypeModel<Types, M, RelName> = RelatedModel<Types, M, RelName>,
-    Nullable extends boolean = RelationNullable<Types, M, RelName, Query, TypeModel>,
+    Nullable extends boolean = RelationNullable<Types, M, RelName, TypeModel>,
     Args extends InputFieldMap = {},
     RelatedShape = Row<Types, RelatedModel<Types, M, RelName>>,
   >(
@@ -370,6 +373,12 @@ export class PrismaNextObjectFieldBuilder<
     if (typeof query !== 'function') {
       assertQueryOptions(query, RELATION_QUERY_KEYS, owner);
     }
+    // A to-one relation loads whole, keyed on the row by its name, so a variant `type` narrows it
+    // by the discriminator when the field resolves rather than in the load.
+    const discriminator =
+      variant === undefined || relation.isToMany
+        ? undefined
+        : modelDiscriminator(this.contract as AnyContract, relation.targetModel)!.field;
     const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) =>
       completeOption(query as unknown, args, ctx, (value) => {
         const spec = typeof value === 'function' ? undefined : definedQuery(value);
@@ -385,41 +394,43 @@ export class PrismaNextObjectFieldBuilder<
           relationName,
           scopeOf(position),
           nested({
-            columns: null,
-            args: relationArgs(relation, { loadIdentity: identity, refine, variant }),
+            columns: discriminator === undefined ? null : [discriminator],
+            args: relationArgs(relation, {
+              loadIdentity: identity,
+              refine,
+              variant: discriminator === undefined ? variant : undefined,
+            }),
           }),
         );
       });
     return this.field({
       ...rest,
       type: relation.isToMany ? [targetRef] : targetRef,
-      // A query or a variant type can filter a to-one relation's row out.
+      // A variant type can filter a to-one relation's row out.
       nullable:
         nullable ??
         (relation.isToMany
           ? false
-          : query !== undefined ||
-            variant !== undefined ||
-            isNullableToOne(this.#getRelationMeta(relationName))),
+          : variant !== undefined || isNullableToOne(this.#getRelationMeta(relationName))),
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
         [PRISMA_NEXT_LOADED_CHECK]: (slots: FieldSlots) => slots.rows(relationName) !== undefined,
-        ...(!relation.isToMany && (query !== undefined || variant !== undefined)
-          ? { [PRISMA_NEXT_REFINED_TO_ONE]: relationName }
-          : {}),
       },
       resolve: (parent: object, _args: object, context: object, info: GraphQLResolveInfo) =>
-        readSlots(this.builder, parent, context, info, (slots) =>
-          completeVariantRows(
-            this.builder,
-            relation,
-            getNamedType(info.returnType),
-            context,
-            info,
-            slots.rows(relationName),
-          ),
-        ),
+        readSlots(this.builder, parent, context, info, (slots) => {
+          const rows = slots.rows(relationName) as Record<string, unknown> | null;
+          return discriminator !== undefined && rows?.[discriminator] !== variant
+            ? null
+            : completeVariantRows(
+                this.builder,
+                relation,
+                getNamedType(info.returnType),
+                context,
+                info,
+                rows,
+              );
+        }),
     } as never) as never;
   }
 

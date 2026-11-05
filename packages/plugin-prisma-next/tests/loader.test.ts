@@ -35,7 +35,6 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
       }),
       constant: t.string({ resolve: () => 'constant' }),
       posts: t.relation('posts'),
-      publishedPosts: t.relation('posts', { query: { where: { published: 1 } } }),
     }),
   });
   const Post = builder.prismaObject('Post', {
@@ -43,9 +42,6 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
       title: t.exposeString('title'),
       label: t.string({ resolve: () => 'Post' }),
       author: t.relation('author'),
-      alice: t.relation('author', { nullable: true, query: { where: { firstName: 'Alice' } } }),
-      bob: t.relation('author', { nullable: true, query: { where: { firstName: 'Bob' } } }),
-      nobody: t.relation('author', { nullable: true, query: { where: { firstName: 'Nobody' } } }),
     }),
   });
   builder.queryType({
@@ -58,11 +54,6 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
         type: ['User'],
         resolve: () => db.orm.User.orderBy((u) => u.id.asc()),
       }),
-      postPage: t.prismaConnection({
-        type: 'Post',
-        orderBy: { authorId: 'asc' },
-        resolve: () => db.orm.Post.where({ authorId: 'u-alice' }),
-      }),
       wrapped: t.prismaField({
         type: ['Post'],
         errors: { types: [] },
@@ -70,7 +61,10 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
       }),
       plain: t.field({
         type: [Post],
-        resolve: () => [{ id: 'p-hello' }, { id: 'p-draft1' }],
+        resolve: () => [
+          { authorId: 'u-alice', id: 'p-hello' },
+          { authorId: 'u-alice', id: 'p-draft1' },
+        ],
       }),
     }),
   });
@@ -82,68 +76,6 @@ describe('reloading through collections', () => {
     const result = await run(schema(), '{ users { constant fullName label name } }');
     expect(result.errors).toBeUndefined();
     expect(result.statements).toHaveLength(1);
-  });
-
-  it('batches compatible consumers across parents and splits incompatible to-one branches', async () => {
-    const result = await run(
-      schema(),
-      '{ posts { nobody { id } a: alice { name } a2: alice { id } bob { name } } }',
-    );
-    expect(result.errors).toBeUndefined();
-    expect(result.data.posts).toEqual([
-      ...[0, 1].map(() => ({ nobody: null, a: null, a2: null, bob: { name: 'Bob' } })),
-      ...[0, 1].map(() => ({
-        nobody: null,
-        a: { name: 'Alice' },
-        a2: { id: 'u-alice' },
-        bob: null,
-      })),
-    ]);
-    expect(result.statements).toHaveLength(3);
-    for (const { sql, params } of result.statements.slice(1)) {
-      expect(sql).toMatch(/\bIN\b/);
-      expect(params).toEqual(expect.arrayContaining(allPostIds));
-    }
-  });
-
-  it('reloads a conflict beneath shared to-one consumers with independent nested selections', async () => {
-    const result = await run(
-      schema(),
-      '{ posts { a: author { posts { nobody { id } alice { name } } } b: author { posts { bob { name } } } } }',
-    );
-    expect(result.errors).toBeUndefined();
-    const [bobDraft, , , hello] = result.data.posts;
-    expect(bobDraft.a.posts).toEqual([0, 1].map(() => ({ nobody: null, alice: null })));
-    expect(bobDraft.b.posts).toEqual([0, 1].map(() => ({ bob: { name: 'Bob' } })));
-    expect(hello.a.posts).toEqual([0, 1].map(() => ({ nobody: null, alice: { name: 'Alice' } })));
-    expect(hello.b.posts).toEqual([0, 1].map(() => ({ bob: null })));
-    expect(result.statements).toHaveLength(2);
-  });
-
-  it.each([
-    [
-      'a connection',
-      '{ postPage(first: 2) { nodes { bob { name } alice { name publishedPosts { title author { name } } } } } }',
-      (data: { postPage: { nodes: unknown[] } }) => data.postPage.nodes,
-    ],
-    [
-      'an errors-plugin success wrapper',
-      '{ wrapped { ... on QueryWrappedSuccess { data { bob { name } alice { name publishedPosts { title author { name } } } } } } }',
-      (data: { wrapped: { data: unknown[] } }) => data.wrapped.data,
-    ],
-  ])('reloads a conflicting branch beneath %s with its whole subtree in one batch', async (_name, source, rows) => {
-    const result = await run(schema(), source);
-    expect(result.errors).toBeUndefined();
-    expect(rows(result.data)).toEqual(
-      [0, 1].map(() => ({
-        bob: null,
-        alice: {
-          name: 'Alice',
-          publishedPosts: [{ title: 'Hello, Pothos', author: { name: 'Alice' } }],
-        },
-      })),
-    );
-    expect(result.statements).toHaveLength(2);
   });
 
   it('does not reload fields with no declared dependencies beneath a wrapper', async () => {
@@ -161,15 +93,12 @@ describe('reloading through collections', () => {
     (post.primaryKey as unknown as { columns: string[] }).columns = ['authorId', 'id'];
     const result = await run(
       schema({ client: () => db.client, context: { ...db.client.context, contract } }),
-      '{ posts { nobody { id } alice { name } } }',
+      '{ plain { title } }',
     );
     expect(result.errors).toBeUndefined();
-    expect(result.data.posts).toEqual([
-      ...[0, 1].map(() => ({ nobody: null, alice: null })),
-      ...[0, 1].map(() => ({ nobody: null, alice: { name: 'Alice' } })),
-    ]);
-    expect(result.statements).toHaveLength(2);
-    expect(result.statements[1].sql).toMatch(/"authorId".*=.*\bAND\b.*"id".*\bOR\b/);
+    expect(result.data.plain).toEqual([{ title: 'Hello, Pothos' }, { title: 'Draft #1' }]);
+    expect(result.statements).toHaveLength(1);
+    expect(result.statements[0].sql).toMatch(/"authorId".*=.*\bAND\b.*"id".*\bOR\b/);
   });
 
   it('keeps rows that share part of a compound key apart', async () => {
@@ -279,12 +208,12 @@ describe('client failures', () => {
 
   it('fails each parent whose row the client excludes', async () => {
     const result = await run(
-      schema({ client: clientWith({ Post: db.orm.Post.where({ authorId: 'u-alice' }) }) }),
-      '{ posts { nobody { id } alice { name } } }',
+      schema({ client: clientWith({ Post: db.orm.Post.where({ authorId: 'u-bob' }) }) }),
+      '{ plain { title } }',
     );
     expect(result.errors?.map((error) => error.path)).toEqual([
-      ['posts', 0, 'alice'],
-      ['posts', 1, 'alice'],
+      ['plain', 0, 'title'],
+      ['plain', 1, 'title'],
     ]);
     expect(
       result.errors?.every((error) => /could not find the 'Post' row/.test(detailOf(error))),
@@ -294,9 +223,9 @@ describe('client failures', () => {
   it('reports a missing collection for every parent without hanging the batch', async () => {
     const result = await run(
       schema({ client: clientWith({ User: db.orm.User }) }),
-      '{ posts { nobody { id } alice { name } } }',
+      '{ plain { title } }',
     );
-    expect(result.errors).toHaveLength(4);
+    expect(result.errors).toHaveLength(2);
     expect(
       result.errors?.every((error) => /has no collection for 'Post'/.test(detailOf(error))),
     ).toBe(true);
@@ -446,77 +375,6 @@ describe('provenance', () => {
   });
 });
 
-describe('type prerequisites', () => {
-  it('batches a field override that conflicts with its type select across parents', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('Post', {
-      select: { title: true, author: true },
-      fields: (t) => ({
-        prerequisite: t.string({ resolve: (post) => post.author.firstName }),
-        label: t.string({
-          select: { author: { where: { firstName: 'Bob' } } },
-          resolve: (post) => `${post.title}:${post.author?.firstName ?? 'missing'}`,
-        }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.prismaField({
-          type: ['Post'],
-          resolve: () => db.orm.Post.orderBy((post) => post.id.asc()),
-        }),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ posts { prerequisite label } }');
-    expect(result.errors).toBeUndefined();
-    expect(result.data.posts).toEqual([
-      { prerequisite: 'Bob', label: 'Bob draft:Bob' },
-      { prerequisite: 'Bob', label: 'Bob writes:Bob' },
-      { prerequisite: 'Alice', label: 'Draft #1:missing' },
-      { prerequisite: 'Alice', label: 'Hello, Pothos:missing' },
-    ]);
-    expect(result.statements).toHaveLength(2);
-    expect(result.statements[1].params).toEqual(expect.arrayContaining(allPostIds));
-  });
-
-  it("batches a variant's filtered field apart from the type select of the row it shares", async () => {
-    const builder = createBuilder();
-    const BobPost = builder.prismaObject('Post', {
-      variant: 'BobPost',
-      fields: (t) => ({
-        name: t.string({
-          select: { author: { where: { firstName: 'Bob' } } },
-          resolve: (post) => post.author?.firstName ?? 'missing',
-        }),
-      }),
-    });
-    builder.prismaObject('Post', {
-      select: { author: true },
-      fields: (t) => ({
-        name: t.string({ resolve: (post) => post.author.firstName }),
-        view: t.variant(BobPost),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.prismaField({
-          type: ['Post'],
-          resolve: () => db.orm.Post.orderBy((post) => post.id.asc()),
-        }),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ posts { name view { name } } }');
-    expect(result.data.posts).toEqual([
-      { name: 'Bob', view: { name: 'Bob' } },
-      { name: 'Bob', view: { name: 'Bob' } },
-      { name: 'Alice', view: { name: 'missing' } },
-      { name: 'Alice', view: { name: 'missing' } },
-    ]);
-    expect(result.statements).toHaveLength(2);
-    expect(result.statements[1].params).toEqual(expect.arrayContaining(allPostIds));
-  });
-});
-
 describe('deferred fragments', () => {
   it('skips deferred selections with a provider and loads them in one batch', async () => {
     const result = await runIncremental(
@@ -584,9 +442,8 @@ describe('models without a key', () => {
           select: ['viewedAt'],
           resolve: (view) => String(view.viewedAt),
         }),
-        post: t.relation('post'),
-        published: t.relation('post', { nullable: true, query: { where: { published: 1 } } }),
-        draft: t.relation('post', { nullable: true, query: { where: { published: 0 } } }),
+        // Nullable, so a failed reload nulls only the field.
+        post: t.relation('post', { nullable: true }),
       }),
     });
     builder.queryType({
@@ -625,7 +482,7 @@ describe('models without a key', () => {
   it('loads relations and counts planned in the parent query', async () => {
     const result = await run(
       keylessSchema(),
-      '{ posts { title viewCount views { viewer post { title } } } views { viewer viewedAt published { title } } }',
+      '{ posts { title viewCount views { viewer post { title } } } views { viewer viewedAt post { title } } }',
     );
     expect(result.errors).toBeUndefined();
     expect(result.data.posts).toEqual([
@@ -636,55 +493,39 @@ describe('models without a key', () => {
       },
     ]);
     expect(result.data.views).toEqual([
-      { viewer: 'Alice', viewedAt: expect.any(String), published: { title: 'Bob writes' } },
-      { viewer: 'Bob', viewedAt: expect.any(String), published: { title: 'Hello, Pothos' } },
-      { viewer: 'Carol', viewedAt: expect.any(String), published: { title: 'Hello, Pothos' } },
+      { viewer: 'Alice', viewedAt: expect.any(String), post: { title: 'Bob writes' } },
+      { viewer: 'Bob', viewedAt: expect.any(String), post: { title: 'Hello, Pothos' } },
+      { viewer: 'Carol', viewedAt: expect.any(String), post: { title: 'Hello, Pothos' } },
     ]);
     expect(result.statements).toHaveLength(2);
-  });
-
-  it('fails only a to-one field left out of the parent query for a conflicting selection', async () => {
-    const result = await run(
-      keylessSchema(),
-      '{ posts { views { viewer published { title } draft { title } } } }',
-    );
-    expect(result.errors).toEqual([keylessError('draft'), keylessError('draft')]);
-    expect(result.data.posts[0].views).toEqual(
-      ['Bob', 'Carol'].map((viewer) => ({
-        viewer,
-        published: { title: 'Hello, Pothos' },
-        draft: null,
-      })),
-    );
-    expect(result.statements).toHaveLength(1);
   });
 
   it('fails deferred fields without loading them', async () => {
     const result = await runIncremental(
       keylessSchema(true),
-      '{ views { viewer ... @defer { viewedAt published { title } } } }',
+      '{ views { viewer ... @defer { viewedAt post { title } } } }',
     );
     expect(result.initial.errors).toBeUndefined();
     expect(result.patchErrors).toHaveLength(6);
     expect(result.patchErrors).toEqual(
-      expect.arrayContaining([keylessError('viewedAt'), keylessError('published')]),
+      expect.arrayContaining([keylessError('viewedAt'), keylessError('post')]),
     );
-    expect(result.patches).toEqual([0, 1, 2].map(() => ({ viewedAt: null, published: null })));
+    expect(result.patches).toEqual([0, 1, 2].map(() => ({ viewedAt: null, post: null })));
     expect(result.statements).toHaveLength(1);
   });
 
   it('fails fields on rows not loaded by a prisma field while siblings resolve', async () => {
     const result = await run(
       keylessSchema(),
-      '{ plainViews { viewer viewedAt } builtViews { viewer viewedAt published { title } } }',
+      '{ plainViews { viewer viewedAt } builtViews { viewer viewedAt post { title } } }',
     );
     expect(result.errors).toHaveLength(2);
     expect(result.errors).toEqual(
-      expect.arrayContaining([keylessError('viewedAt'), keylessError('published')]),
+      expect.arrayContaining([keylessError('viewedAt'), keylessError('post')]),
     );
     expect(result.data).toEqual({
       plainViews: [{ viewer: 'Dave', viewedAt: null }],
-      builtViews: [{ viewer: 'Dave', viewedAt: 'then', published: null }],
+      builtViews: [{ viewer: 'Dave', viewedAt: 'then', post: null }],
     });
     expect(result.statements).toHaveLength(0);
   });

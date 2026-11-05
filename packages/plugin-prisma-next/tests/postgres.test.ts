@@ -160,7 +160,7 @@ function createMutationSchema() {
       context: client.context,
     },
   });
-  builder.prismaObject('Account', {
+  const Account = builder.prismaObject('Account', {
     fields: (t) => ({
       id: t.exposeID('id'),
       name: t.exposeString('name'),
@@ -184,7 +184,12 @@ function createMutationSchema() {
   builder.prismaObject('Entry', {
     fields: (t) => ({
       id: t.exposeID('id'),
-      original: t.relation('account', { nullable: true, query: { where: { name: 'Alice' } } }),
+      // A row the plugin didn't load, so its fields reload.
+      reloaded: t.field({
+        type: Account,
+        select: ['accountId'],
+        resolve: (entry) => ({ id: entry.accountId }),
+      }),
       current: t.relation('account'),
     }),
   });
@@ -263,8 +268,8 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
           const result = await graphql({
             schema: fixture.schema,
             source: `mutation {
-            first: rename(input: { name: "First" }) { completedName entries { original { name } current { name } } }
-            second: rename(input: { name: "Second" }) { completedName entries { original { name } current { name } } }
+            first: rename(input: { name: "First" }) { completedName entries { reloaded { name } current { name } } }
+            second: rename(input: { name: "Second" }) { completedName entries { reloaded { name } current { name } } }
           }`,
             contextValue: { orm: tx.orm },
           });
@@ -273,15 +278,15 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
             first: {
               completedName: 'First',
               entries: [
-                { original: null, current: { name: 'First' } },
-                { original: null, current: { name: 'First' } },
+                { reloaded: { name: 'First' }, current: { name: 'First' } },
+                { reloaded: { name: 'First' }, current: { name: 'First' } },
               ],
             },
             second: {
               completedName: 'Second',
               entries: [
-                { original: null, current: { name: 'Second' } },
-                { original: null, current: { name: 'Second' } },
+                { reloaded: { name: 'Second' }, current: { name: 'Second' } },
+                { reloaded: { name: 'Second' }, current: { name: 'Second' } },
               ],
             },
           });
@@ -814,7 +819,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
     expect(result.rows[0].name).toBe('Alice');
   });
 
-  it('batch-loads conflicting to-one selections through the context transaction', async () => {
+  it('batch-loads reloads through the context transaction', async () => {
     let providerCalls = 0;
     const builder = new SchemaBuilder<{
       PrismaNextContract: Contract;
@@ -829,18 +834,15 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         context: client.context,
       },
     });
-    builder.prismaObject('Account', {
+    const Account = builder.prismaObject('Account', {
       fields: (t) => ({ name: t.exposeString('name') }),
     });
     builder.prismaObject('Entry', {
       fields: (t) => ({
-        original: t.relation('account', {
-          nullable: true,
-          query: { where: { name: 'Alice' } },
-        }),
-        current: t.relation('account', {
-          nullable: true,
-          query: { where: { name: 'In transaction' } },
+        account: t.field({
+          type: Account,
+          select: ['accountId'],
+          resolve: (entry) => ({ id: entry.accountId }),
         }),
       }),
     });
@@ -860,17 +862,17 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         statements = 0;
         const result = await graphql({
           schema,
-          source: '{ entries { original { name } current { name } } }',
+          source: '{ entries { account { name } } }',
           contextValue: { tx },
         });
         expect(result.errors).toBeUndefined();
         expect(result.data).toEqual({
           entries: [
-            { original: null, current: { name: 'In transaction' } },
-            { original: null, current: { name: 'In transaction' } },
+            { account: { name: 'In transaction' } },
+            { account: { name: 'In transaction' } },
           ],
         });
-        // The entries, then one batch for both parents' conflicting includes.
+        // The entries, then one batch reloading both parents' accounts.
         expect(statements).toBe(2);
         expect(providerCalls).toBe(1);
         throw rollback;

@@ -66,35 +66,6 @@ describe('includes', () => {
     ]);
   });
 
-  it('makes a to-one relation with a query nullable, since the query can filter its row out', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', { fields: (t) => ({ firstName: t.exposeString('firstName') }) });
-    builder.prismaObject('Post', {
-      fields: (t) => ({
-        id: t.exposeID('id'),
-        alice: t.relation('author', { query: { where: { firstName: 'Alice' } } }),
-        required: t.relation('author', {
-          nullable: false,
-          query: { where: { firstName: 'Alice' } },
-        }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }),
-      }),
-    });
-    const schema = builder.toSchema();
-    const sdl = printSchema(schema);
-    expect(sdl).toMatch(/type Post \{[^}]*\n {2}alice: User\n/);
-    expect(sdl).toMatch(/type Post \{[^}]*\n {2}required: User!\n/);
-    const result = await run(schema, '{ posts { id alice { firstName } } }');
-    expect(result.errors).toBeUndefined();
-    const authors = result.data.posts.map((post: { alice: unknown }) => post.alice);
-    expect(authors).toContainEqual(null);
-    expect(authors).toContainEqual({ firstName: 'Alice' });
-  });
-
   describe('the non-FK side of a 1:1', () => {
     const collision = useCollisionDb();
 
@@ -341,7 +312,7 @@ describe('aliases of one to-many relation', () => {
       fields: (t) => ({
         id: t.exposeID('id'),
         title: t.exposeString('title'),
-        author: t.relation('author', { query: () => ({ where: (u) => u.id.neq('nobody') }) }),
+        author: t.relation('author'),
         comments: t.relation('comments', { query: { orderBy: (c) => c.id.asc() } }),
         commentTotal: t.relationCount('comments'),
         commentPage: t.relatedConnection('comments', { totalCount: true }),
@@ -522,8 +493,6 @@ describe('to-one consumers', () => {
         wrapped: t.relation('author', {
           errors: { types: [], directResult, dataField: { name: dataName } },
         }),
-        alice: t.relation('author', { query: { where: { firstName: 'Alice' } } }),
-        bob: t.relation('author', { query: { where: { firstName: 'Bob' } } }),
         publishedAuthor: t.relation('author', { type: titles(1) }),
         draftAuthor: t.relation('author', { type: titles(0) }),
       }),
@@ -572,12 +541,12 @@ describe('to-one consumers', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it('keeps aliases of same-row variants apart under a refinement and an errors wrapper', async () => {
+  it('keeps aliases of same-row variants apart under aliases and an errors wrapper', async () => {
     const views = 'a: view { posts(published: 1) { id } } b: view { posts(published: 0) { id } }';
     const result = await run(
       schema(),
       `{
-        refined: posts { a: alice { id } b: alice { firstName ${views} } }
+        aliased: posts { a: author { id } b: author { firstName ${views} } }
         wrapped: posts {
           a: wrapped { ... on PostWrappedSuccess { data { ${views} } } }
           b: wrapped { ... on PostWrappedSuccess { data { view { posts(published: 0) { id } } } } }
@@ -586,7 +555,7 @@ describe('to-one consumers', () => {
     );
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({
-      refined: [{ a: { id: 'u-alice' }, b: { firstName: 'Alice', a: published, b: drafts } }],
+      aliased: [{ a: { id: 'u-alice' }, b: { firstName: 'Alice', a: published, b: drafts } }],
       wrapped: [{ a: { data: { a: published, b: drafts } }, b: { data: { view: drafts } } }],
     });
     // One per root field.
@@ -616,10 +585,10 @@ describe('to-one consumers', () => {
   it('keeps variant static refinements apart from the base type', async () => {
     const result = await run(
       schema({ staticFilters: true }),
-      '{ posts { alice { posts { id } view { posts { id } } } } }',
+      '{ posts { author { posts { id } view { posts { id } } } } }',
     );
     expect(result.errors).toBeUndefined();
-    expect(result.data.posts).toEqual([{ alice: { posts: [{ id: 'p-hello' }], view: drafts } }]);
+    expect(result.data.posts).toEqual([{ author: { posts: [{ id: 'p-hello' }], view: drafts } }]);
   });
 
   it.each([
@@ -642,90 +611,6 @@ describe('to-one consumers', () => {
     expect(result.errors).toBeUndefined();
     const row = { x: unwrap(published), y: unwrap(drafts) };
     expect(result.data.posts).toEqual([{ a: unwrap({ posts: [row, row] }), b: unwrap(drafts) }]);
-  });
-});
-
-describe('filtered to-one relations', () => {
-  function schema() {
-    const builder = createBuilder();
-    builder.prismaObject('User', {
-      fields: (t) => ({ id: t.exposeID('id'), firstName: t.exposeString('firstName') }),
-    });
-    builder.prismaObject('Post', {
-      fields: (t) => ({
-        id: t.exposeID('id'),
-        alice: t.relation('author', { nullable: true, query: { where: { firstName: 'Alice' } } }),
-        bob: t.relation('author', { nullable: true, query: { where: { firstName: 'Bob' } } }),
-        authorName: t.string({
-          select: { author: true },
-          resolve: (post) => post.author.firstName,
-        }),
-        aliceName: t.string({
-          nullable: true,
-          select: { author: { where: { firstName: 'Alice' } } },
-          resolve: (post) => post.author?.firstName ?? null,
-        }),
-        // Reads a relation it never selected.
-        unselected: t.string({
-          nullable: true,
-          resolve: (post) => (post as { author?: { firstName: string } }).author?.firstName ?? null,
-        }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.prismaField({
-          type: ['Post'],
-          resolve: () => db.orm.Post.orderBy((post) => post.id.asc()),
-        }),
-      }),
-    });
-    return builder.toSchema();
-  }
-
-  // p-bob-draft, p-bob1, p-draft1, p-hello
-  const authors = ['Bob', 'Bob', 'Alice', 'Alice'];
-  const onlyAlice = authors.map((name) => (name === 'Alice' ? name : null));
-
-  it('loads a filtered to-one relation alone in one statement, off the row', async () => {
-    const result = await run(schema(), '{ posts { alice { firstName } unselected } }');
-    expect(result.errors).toBeUndefined();
-    expect(result.data.posts).toEqual(
-      onlyAlice.map((name) => ({ alice: name && { firstName: name }, unselected: null })),
-    );
-    expect(result.statements).toHaveLength(1);
-  });
-
-  it.each([
-    '{ posts { alice { firstName } authorName } }',
-    '{ posts { authorName alice { firstName } } }',
-  ])('never shows the declared relation as a filtered one: %s', async (source) => {
-    const result = await run(schema(), source);
-    expect(result.errors).toBeUndefined();
-    expect(result.data.posts).toEqual(
-      authors.map((name, i) => ({
-        authorName: name,
-        alice: onlyAlice[i] && { firstName: onlyAlice[i] },
-      })),
-    );
-    // The ORM includes a to-one relation once, so the filtered one reloads.
-    expect(result.statements).toHaveLength(2);
-  });
-
-  it('gives each filtered load of a field select and helper its own version', async () => {
-    const result = await run(
-      schema(),
-      '{ posts { aliceName bob { firstName } authorName alice { id } } }',
-    );
-    expect(result.errors).toBeUndefined();
-    expect(result.data.posts).toEqual(
-      authors.map((name, i) => ({
-        aliceName: onlyAlice[i],
-        bob: name === 'Bob' ? { firstName: 'Bob' } : null,
-        authorName: name,
-        alice: onlyAlice[i] && { id: 'u-alice' },
-      })),
-    );
   });
 });
 
@@ -916,7 +801,6 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
         id: t.exposeID('id'),
         author: t.relation('author'),
         comments: t.relation('comments'),
-        alice: t.relation('author', { nullable: true, query: { where: { firstName: 'Alice' } } }),
       }),
     });
     const User = builder.prismaObject('User', {
@@ -967,9 +851,9 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
     ['{ users { posts { id } } }', 2, 2],
     ['{ users { posts { author { id } } } }', 3, 3],
     ['{ users { posts { author { posts { author { posts { id } } } } } } }', 6, 6],
-    ['{ users { posts { comments { id } alice { id } } } }', 3, 3],
+    ['{ users { posts { comments { id } author { id } } } }', 3, 3],
     [
-      '{ users { comments { id } published { id comments { id } alice { id } } postCount titles } }',
+      '{ users { comments { id } published { id comments { id } author { id } } postCount titles } }',
       3,
       3,
     ],

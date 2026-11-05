@@ -60,23 +60,23 @@ A `select` accepts:
 - Columns: `{ email: true }` or `['email']`.
 - Relations: `{ posts: true }`.
 - Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: (post) => post.createdAt.desc(), limit: 5 } }`.
-  A to-one relation takes only `where`, and only in a field's `select`.
+  A to-one relation takes only `true`.
 - Counts and aggregates of a to-many relation:
   `{ posts: (posts) => ({ postCount: posts.count() }) }`. Each key (`postCount`) is added to the
   row, so it can't reuse a column or relation name.
 
 Read these computed keys in a resolver; `t.expose*` only works on columns.
 
-A filtered to-one relation can be `null` even when its foreign key is required. Here a comment shows
-its post's title only when the post is published:
+To filter a to-one relation, select it and return `null` from the resolver. Here a comment shows its
+post's title only when the post is published:
 
 ```ts
 builder.prismaObject('Comment', {
   fields: (t) => ({
     postTitle: t.string({
       nullable: true,
-      select: { post: { where: { published: 1 } } },
-      resolve: (comment) => comment.post?.title ?? null,
+      select: { post: true },
+      resolve: (comment) => (comment.post.published ? comment.post.title : null),
     }),
   }),
 });
