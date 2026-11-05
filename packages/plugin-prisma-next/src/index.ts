@@ -1,9 +1,9 @@
-import './utils/plugin-conflict.js';
 import './global-types.js';
 import './field-builder.js';
 import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
+  type BuildCache,
   completeValue,
   type MaybePromise,
   type PothosInterfaceTypeConfig,
@@ -149,6 +149,18 @@ export default pluginName;
 type Loaded = (slots: FieldSlots, context: object, info: GraphQLResolveInfo) => boolean;
 
 export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  constructor(buildCache: BuildCache<Types>, name: keyof PothosSchemaTypes.Plugins<Types>) {
+    super(buildCache, name);
+    // Both plugins install the same prisma* builder methods, so whichever loads last replaces the
+    // other's. Core doesn't type the `plugins` registry on its default export.
+    if (Object.hasOwn((SchemaBuilder as unknown as { plugins: object }).plugins, 'prisma')) {
+      throw new PothosSchemaError(
+        '@pothos/plugin-prisma and @pothos/plugin-prisma-next both define builder.prismaObject, ' +
+          't.prismaField and the other prisma* methods, so they cannot be used in the same program.',
+      );
+    }
+  }
+
   private get config() {
     return getPluginConfig(this.builder);
   }
