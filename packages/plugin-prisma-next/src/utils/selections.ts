@@ -17,7 +17,7 @@ import { PRISMA_NEXT_MODEL } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import { variantForRelationType } from './contract.js';
-import { keepError } from './errors.js';
+import { InternalError, keepError } from './errors.js';
 import {
   getModel,
   ownTableVariantRowsError,
@@ -582,7 +582,7 @@ function assertOneWriter({ slots }: RowSlots, scopes: readonly string[]) {
           first.relation === relation
             ? `relation '${relation}'`
             : `relations '${first.relation}' and '${relation}'`;
-        throw new Error(
+        throw new InternalError(
           `'${first.scope}' and '${scope}' both compute '${key}' from ${from} in their select. A row holds one value for it, which the fields and auth checks of both types read. Give one of them a different name.`,
         );
       }
@@ -899,7 +899,7 @@ function compileSelect(
   { scope, args, source, rows, field }: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
   // Compiled for a request, which may be the first to see what a select function returns.
-  const { columns, relations } = splitSelect(raw, model, Error);
+  const { columns, relations } = splitSelect(raw, model, InternalError);
   const parts = relations.map(([name, value]) => {
     const relation = model.relations[name]!;
     if (isPageEntry(value)) {
@@ -995,7 +995,12 @@ export function compileFieldSelect(
         // model with a table of its own is without the columns it inherits. The plugin checks a
         // static select when the schema is built, so this catches what a select function returns.
         if (returnModel !== relation.target && relation.targetVariantModel?.sharesTable === false) {
-          throw ownTableVariantRowsError(`field '${position.field.name}'`, name, relation, Error);
+          throw ownTableVariantRowsError(
+            `field '${position.field.name}'`,
+            name,
+            relation,
+            InternalError,
+          );
         }
         // A field that returns another model has a selection set that can't load from these rows.
         if (returnModel && returnModel !== relation.target) {
@@ -1007,7 +1012,7 @@ export function compileFieldSelect(
           `Field '${position.field.name}'`,
           relation.targetModel,
           returnModelKey,
-          Error,
+          InternalError,
         );
         return nested(
           variant === undefined

@@ -6,10 +6,12 @@ import { PrismaNextAdapter } from '../src/utils/adapter';
 import {
   createBuilder,
   deferSchema,
+  detailOf,
   run,
   runIncremental,
   type SampleOptions,
   sampleContract,
+  unexpected,
   useCollisionDb,
   useSampleDb,
 } from './fixtures/helpers';
@@ -268,7 +270,7 @@ describe('reloading through collections', () => {
       ['posts', 0, 'title'],
       ['posts', 1, 'title'],
     ]);
-    expect(other.errors?.[0].message).toMatch(/could not find the 'Post' row/);
+    expect(detailOf(other.errors?.[0])).toMatch(/could not find the 'Post' row/);
     expect(contexts).toEqual([{ tenant: 'u-alice' }, { tenant: 'u-bob' }]);
   });
 });
@@ -286,7 +288,7 @@ describe('client failures', () => {
       ['posts', 1, 'alice'],
     ]);
     expect(
-      result.errors?.every((error) => /could not find the 'Post' row/.test(error.message)),
+      result.errors?.every((error) => /could not find the 'Post' row/.test(detailOf(error))),
     ).toBe(true);
   });
 
@@ -297,7 +299,7 @@ describe('client failures', () => {
     );
     expect(result.errors).toHaveLength(4);
     expect(
-      result.errors?.every((error) => /has no collection for 'Post'/.test(error.message)),
+      result.errors?.every((error) => /has no collection for 'Post'/.test(detailOf(error))),
     ).toBe(true);
   });
 
@@ -307,7 +309,7 @@ describe('client failures', () => {
       '{ posts { nobody { id } alice { name } } }',
     );
     expect(result.errors).toHaveLength(4);
-    expect(result.errors?.every((error) => /must be unpaginated/.test(error.message))).toBe(true);
+    expect(result.errors?.every((error) => /must be unpaginated/.test(detailOf(error)))).toBe(true);
     expect(result.statements).toHaveLength(1);
   });
 });
@@ -623,7 +625,8 @@ describe('models without a key', () => {
 
   const keylessError = (field: string, reason: string) =>
     expect.objectContaining({
-      message: expect.stringMatching(
+      message: 'Unexpected error.',
+      originalError: unexpected(
         new RegExp(
           `^Field 'PostView\\.${field}' needs its parent reloaded because ${reason}.*model 'PostView' has no non-null primary or unique key.*Add a primary or unique key to 'PostView'`,
         ),

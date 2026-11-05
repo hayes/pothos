@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { collectionFromInfo } from '../src';
 import {
   createBuilder,
+  detailOf,
   run,
   type SampleContract,
   sampleContract,
@@ -200,7 +201,7 @@ describe('collectionFromInfo', () => {
 
   it('rejects a collection that already includes a relation', async () => {
     const result = await run(schema(), '{ included { firstName } }');
-    expect(result.errors?.[0]?.message).toMatch(/already includes 'posts'/);
+    expect(detailOf(result.errors?.[0])).toMatch(/already includes 'posts'/);
   });
 
   it("runs a custom collection's methods, which read its private fields, on the collection", async () => {

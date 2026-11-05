@@ -7,7 +7,10 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import ScopeAuthPlugin, { type ScopeAuthParentLoader } from '@pothos/plugin-scope-auth';
+import ScopeAuthPlugin, {
+  ForbiddenError,
+  type ScopeAuthParentLoader,
+} from '@pothos/plugin-scope-auth';
 import {
   execute,
   experimentalExecuteIncrementally,
@@ -19,6 +22,7 @@ import {
 } from 'graphql';
 import { afterAll, beforeAll, describe, expect, expectTypeOf, it } from 'vitest';
 import prismaNextPlugin, { type PothosPrismaNextPlugin, prismaConnectionHelpers } from '../src';
+import { detailOf } from './fixtures/helpers';
 import {
   type CapturedExecution,
   createSqliteRuntime,
@@ -766,7 +770,7 @@ describe("a type's select before plugins listed first", () => {
       }),
     });
     const result = await runCaptured(builder.toSchema(), '{ handBuilt { firstName } }');
-    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
+    expect(result.errors?.map((error) => [error.path, detailOf(error)])).toEqual([
       [
         ['handBuilt', 'firstName'],
         "User.firstName: prismaNext.client has no collection for 'User'.",
@@ -1560,7 +1564,7 @@ describe('a key an interface and its implementation both compute', () => {
         { id: null, email: null },
         { id: null, email: null },
       ]);
-      expect(new Set(result.errors?.map((error) => error.message))).toEqual(
+      expect(new Set(result.errors?.map((error) => detailOf(error)))).toEqual(
         new Set([
           "'Limited' and 'User' both compute 'total' from relation 'posts' in their select. A " +
             'row holds one value for it, which the fields and auth checks of both types read. ' +
@@ -2128,5 +2132,80 @@ describe('slots beneath shared walks', () => {
       expected[name].seen,
     );
     expect(statements).toHaveLength(1);
+  });
+});
+
+// A type check that can't see the row it checks fails as the check itself would, so a client can't
+// tell why it was refused.
+describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
+  function schema() {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: plugins as never,
+      scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType: true },
+      prismaNext: { client: ctx.client },
+    });
+    const Limited = builder.prismaInterface('User', {
+      variant: 'Limited',
+      select: { posts: (sub) => ({ total: sub.count() }) },
+      resolveType: () => 'User',
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    const User = builder.prismaObject('User', {
+      interfaces: [Limited],
+      select: { email: true },
+      authScopes: (user) => user.email !== 'bob@example.com',
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    const Clashing = builder.prismaObject('User', {
+      variant: 'Clashing',
+      interfaces: [Limited],
+      select: { posts: (sub) => ({ total: sub.where({ published: 1 }).count() }) },
+      authScopes: () => true,
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.field({
+          type: User,
+          nullable: true,
+          args: { id: t.arg.id({ required: true }) },
+          // A row without the email the type selects, which the check reloads.
+          resolve: (_root, { id }) => ({ id: String(id) }) as never,
+        }),
+        clashing: t.prismaField({
+          type: [Clashing],
+          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it('denies a row whose reload fails as it denies a row the check refuses', async () => {
+    const refused = await runCaptured(schema(), '{ user(id: "u-bob") { firstName } }');
+    const missing = await runCaptured(schema(), '{ user(id: "u-nobody") { firstName } }');
+    expect(refused.errors?.map((error) => error.message)).toEqual([
+      'Not authorized to read fields for User',
+    ]);
+    expect(missing.errors?.map((error) => error.message)).toEqual(
+      refused.errors?.map((error) => error.message),
+    );
+    const denial = missing.errors?.[0]?.originalError;
+    expect(denial).toBeInstanceOf(ForbiddenError);
+    expect(detailOf(denial?.cause)).toMatch(/could not find the 'User' row/);
+  });
+
+  it('denies a row whose type selects compute the same key, naming neither', async () => {
+    const result = await runCaptured(schema(), '{ clashing { firstName } }');
+    expect(result.data).toEqual({ clashing: null });
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Not authorized to read fields for Clashing',
+    ]);
+    const denial = result.errors?.[0]?.originalError;
+    expect(denial).toBeInstanceOf(ForbiddenError);
+    expect(detailOf(denial?.cause)).toMatch(/'Limited' and 'Clashing' both compute 'total'/);
   });
 });

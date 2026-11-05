@@ -51,6 +51,7 @@ import {
   type ConnectionPage,
   cursorColumns,
 } from './utils/cursors.js';
+import { InternalError } from './utils/errors.js';
 import { applySelectionToCollection, planSelection } from './utils/map-query.js';
 import { getIdentityFields, getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
@@ -404,7 +405,7 @@ export function prismaConnectionHelpers<
         owner,
         relation.targetModel,
         modelKey,
-        Error,
+        InternalError,
       ),
       count: count === 'aggregate' ? { filtered: true } : undefined,
       // The nodes are planned into `nodeRelation`, or into the rows unless `resolveNode` makes them

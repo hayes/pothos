@@ -2,7 +2,14 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { beforeAll, describe, expect, it } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
-import { createBuilder, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
+import {
+  createBuilder,
+  detailOf,
+  run,
+  unexpected,
+  useCollisionDb,
+  useSampleDb,
+} from './fixtures/helpers';
 
 const db = useSampleDb();
 
@@ -170,7 +177,7 @@ describe('cursor values', () => {
 
   it('refuses to encode a row missing a cursor column, but encodes a null', async () => {
     const { cursorOf } = pages({ score: 'asc' });
-    await expect(cursorOf({ score: 1 })).rejects.toThrow(/missing cursor column 'id'/);
+    await expect(cursorOf({ score: 1 })).rejects.toThrow(unexpected(/missing cursor column 'id'/));
     await expect(cursorOf({ id: 'p', score: null })).resolves.toEqual(expect.any(String));
   });
 
@@ -187,7 +194,7 @@ describe('cursor values', () => {
     const wrapped = page.wrap([{ id: 'p-1' }, { id: 'p-2' }] as never);
     expect(wrapped.edges.map((edge) => edge.node)).toEqual([{ id: 'p-1' }, { id: 'p-2' }]);
     expect(wrapped.pageInfo.hasNextPage).toBe(false);
-    expect(() => wrapped.pageInfo.startCursor).toThrow(/missing cursor column 'title'/);
+    expect(() => wrapped.pageInfo.startCursor).toThrow(unexpected(/missing cursor column 'title'/));
   });
 
   it('fails only the cursor fields of a row whose cursor cannot be encoded', async () => {
@@ -230,7 +237,7 @@ describe('cursor values', () => {
       startCursor: result.data.posts.edges[0].cursor,
       endCursor: null,
     });
-    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
+    expect(result.errors?.map((error) => [error.path, detailOf(error)])).toEqual([
       [['posts', 'edges', 1, 'cursor'], expect.stringMatching(/missing cursor column 'title'/)],
       [['posts', 'pageInfo', 'endCursor'], expect.stringMatching(/missing cursor column 'title'/)],
     ]);

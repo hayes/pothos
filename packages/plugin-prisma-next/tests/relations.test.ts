@@ -11,6 +11,7 @@ import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import { buildExampleSchema } from './example/schema';
 import {
   createBuilder,
+  detailOf,
   postSubqueries,
   run,
   type SampleContract,
@@ -144,7 +145,7 @@ describe('includes', () => {
       }),
     });
     const result = await run(builder.toSchema(), '{ rawUser { id posts { id } } }');
-    expect(result.errors?.[0].message).toMatch(/could not find the 'User' row/);
+    expect(detailOf(result.errors?.[0])).toMatch(/could not find the 'User' row/);
     expect(result.errors?.[0].path).toEqual(['rawUser', 'posts']);
   });
 });
@@ -846,7 +847,7 @@ describe('plugins that wrap resolvers', () => {
     const result = await run(builder.toSchema(), '{ views { viewer replacedPost { id } } }');
     expect(result.errors).toHaveLength(3);
     for (const error of result.errors!) {
-      expect(error.message).toMatch(
+      expect(detailOf(error)).toMatch(
         /^Field 'PostView\.replacedPost' needs its parent reloaded because it was left out of the query that loaded its parent.*model 'PostView' has no non-null primary or unique key/,
       );
       // A developer's error, which a server that masks errors hides from the client.

@@ -1,4 +1,5 @@
 import type { CollectionState } from '@prisma/orm-family-sql/orm-client';
+import { InternalError } from './errors.js';
 
 // orm-client keeps `state` internal and has no public accessor for it.
 export function getCollectionPaginationState(collection: unknown): {
@@ -24,7 +25,7 @@ export function assertNoIncludes(collection: unknown) {
   const { state } = collection as { state?: CollectionState };
   const names = state?.includes.map((include) => `'${include.relationName}'`);
   if (names?.length) {
-    throw new Error(
+    throw new InternalError(
       `A collection returned to @pothos/plugin-prisma-next already includes ${names.join(', ')}. ` +
         "Return it without include(): the plugin includes what the query selects. Filter a relation with its field's `query` option.",
     );

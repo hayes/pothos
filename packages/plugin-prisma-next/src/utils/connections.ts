@@ -19,6 +19,7 @@ import {
   type OrderByDecl,
   validateCursorArgs,
 } from './cursors.js';
+import { InternalError } from './errors.js';
 import type { PrismaNextRelation } from './model.js';
 import {
   assertQueryOptions,
@@ -174,7 +175,7 @@ function withTotalCount(connectionOptions: object): object {
         // `wrap` without one, or `resolve` without the parent its field was given.
         resolve: (parent) => {
           if (parent.totalCount === undefined) {
-            throw new Error(
+            throw new InternalError(
               "totalCount has no count. Pass one to the connection helpers' wrap, as in wrap(rows, await totalCountPromise), or pass resolve the parent its field was given.",
             );
           }
@@ -241,7 +242,7 @@ export function pageSelection(
 export function countOf(collection: object): unknown {
   const { count } = collection as { count?: () => unknown };
   if (typeof count !== 'function') {
-    throw new Error(
+    throw new InternalError(
       "Aggregate 'count' is not available on this ORM collection: its target has no aggregates.",
     );
   }

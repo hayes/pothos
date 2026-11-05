@@ -5,6 +5,7 @@ import {
   columnsOf,
   createBuilder,
   deferSchema,
+  detailOf,
   globalId,
   postSubqueries,
   run,
@@ -580,8 +581,7 @@ describe('a collection that already includes a relation', () => {
       }),
     });
     const result = await run(builder.toSchema(), source);
-    expect(result.errors?.map((error) => error.message)).toEqual([message]);
-    expect(result.errors?.[0]?.originalError?.constructor).toBe(Error);
+    expect(result.errors?.map((error) => detailOf(error))).toEqual([message]);
     expect(result.statements).toHaveLength(0);
   });
 
@@ -598,7 +598,7 @@ describe('a collection that already includes a relation', () => {
       }),
     });
     const result = await run(builder.toSchema(), '{ users(flag: true) { id } }');
-    expect(result.errors?.map((error) => error.message)).toEqual([message]);
+    expect(result.errors?.map((error) => detailOf(error))).toEqual([message]);
     expect(result.statements).toHaveLength(0);
   });
 });
@@ -609,7 +609,7 @@ describe('the context', () => {
     for (const document of ['{ users { firstName } }', '{ users { id posts { id } } }']) {
       const result = await execute({ schema, document: parse(document) });
       expect(result.data).toEqual({ users: null });
-      expect(result.errors?.map((error) => error.message)).toEqual([
+      expect(result.errors?.map((error) => detailOf(error))).toEqual([
         expect.stringMatching(/^@pothos\/plugin-prisma-next requires an object contextValue/),
       ]);
     }

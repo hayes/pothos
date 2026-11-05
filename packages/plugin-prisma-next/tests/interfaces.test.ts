@@ -6,6 +6,7 @@ import prismaNextPlugin from '../src';
 import {
   createBuilder,
   deferSchema,
+  detailOf,
   run,
   runIncremental,
   useCollisionDb,
@@ -679,7 +680,7 @@ describe('inherited selections', () => {
       'them a different name.';
     for (const query of ['{ user { id email } }', '{ counted { id ... on User { email } } }']) {
       const result = await run(schema, query);
-      expect(result.errors?.map((error) => error.message)).toContain(message);
+      expect(result.errors?.map((error) => detailOf(error))).toContain(message);
     }
   });
 

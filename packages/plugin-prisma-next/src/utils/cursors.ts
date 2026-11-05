@@ -15,6 +15,7 @@ import type { MapperCollection } from './adapter.js';
 import type { FieldCodecs } from './codecs.js';
 import { getCollectionPaginationState } from './collection-state.js';
 import { resolveContractModel } from './contract.js';
+import { InternalError } from './errors.js';
 import { getModelIdentities, truncatedDateProblem } from './model.js';
 
 // The subset of orm-client's `ModelAccessor` used here, without its contract generics.
@@ -109,7 +110,7 @@ export function connectionOrder(
     return { model: modelKey, columns: order };
   };
   if (typeof orderBy === 'function') {
-    return (args, ctx) => resolve(orderBy(args as never, ctx as never), Error);
+    return (args, ctx) => resolve(orderBy(args as never, ctx as never), InternalError);
   }
   const order = resolve(orderBy, PothosSchemaError);
   return () => order;
@@ -182,7 +183,7 @@ function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: 
   const values = fields.map((field) => {
     // A missing column would encode as null and page from the wrong position.
     if (row[field] === undefined) {
-      throw new Error(
+      throw new InternalError(
         `Cannot encode a cursor: the row is missing cursor column '${field}'. Select the cursor columns on the paginated collection.`,
       );
     }
@@ -289,12 +290,12 @@ function buildPaginationParams(
 function assertBareCollection(collection: unknown): void {
   const { orderBy, paginated, distinct } = getCollectionPaginationState(collection);
   if (orderBy.length || paginated) {
-    throw new Error(
+    throw new InternalError(
       "Connection resolvers must return an unordered, unpaginated Collection without orderBy(), cursor(), limit(), or offset(). Use the connection's orderBy option to order it.",
     );
   }
   if (distinct) {
-    throw new Error(
+    throw new InternalError(
       'Connection resolvers cannot return a Collection with distinct() or distinctOn(): the rows a page keeps would depend on the columns the selection adds.',
     );
   }

@@ -9,7 +9,7 @@ import type {
 import { type MapperCollection, PrismaNextAdapter } from './adapter.js';
 import { type FieldCodecs, getColumnCodec } from './codecs.js';
 import { collectionForModel, rootModelKey } from './contract.js';
-import { keepError } from './errors.js';
+import { InternalError, keepError } from './errors.js';
 
 type RequestClient = PrismaNextRequestClient<AnyContract>;
 type ExecutionContext = PrismaNextExecutionContext<AnyContract>;
@@ -31,7 +31,7 @@ export interface PrismaNextConfig {
 /** Per-request state lives on the context object, so a request without one fails up front. */
 export function assertContextObject(ctx: unknown) {
   if (ctx === null || (typeof ctx !== 'object' && typeof ctx !== 'function')) {
-    throw new Error(
+    throw new InternalError(
       '@pothos/plugin-prisma-next requires an object contextValue: it keeps per-request state on the context. Pass a context object, such as `{}`, when executing the operation.',
     );
   }
@@ -80,7 +80,7 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
     // require it.
     if (!found) {
       const through = root === modelKey ? '' : ` (loaded through '${root}')`;
-      throw new Error(`prismaNext.client has no collection for '${modelKey}'${through}.`);
+      throw new InternalError(`prismaNext.client has no collection for '${modelKey}'${through}.`);
     }
     return found;
   };

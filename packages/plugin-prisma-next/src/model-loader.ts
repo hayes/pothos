@@ -20,7 +20,7 @@ import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/a
 import { assertNoIncludes, getCollectionPaginationState } from './utils/collection-state.js';
 import type { PrismaNextConfig } from './utils/config.js';
 import { variantOf } from './utils/contract.js';
-import { keepError } from './utils/errors.js';
+import { InternalError, keepError } from './utils/errors.js';
 import { getIdentityFields, getModel, type PrismaNextModel } from './utils/model.js';
 import { type PrismaNextSelection, takeSlots, throwPlanningFailure } from './utils/selections.js';
 
@@ -351,7 +351,7 @@ export class ModelLoader {
     const { collection } = batch.load;
     const base = collection ? userCode(() => collection(this.context)) : this.defaultCollection();
     if (getCollectionPaginationState(base).paginated) {
-      throw new Error(
+      throw new InternalError(
         `The collection for '${this.modelKey}' must be unpaginated. Return a collection without limit(), offset(), or cursor().`,
       );
     }
@@ -417,7 +417,7 @@ export class ModelLoader {
         request.resolve(row ?? null);
       } else {
         request.reject(
-          new Error(
+          new InternalError(
             `Reloading could not find the '${this.modelKey}' row of the parent's identity.`,
           ),
         );
@@ -435,8 +435,9 @@ function noIdentityReloadError(
     ? `its parent row is missing ${missing.map((name) => `'${name}'`).join(', ')}`
     : 'it was left out of the query that loaded its parent (a conflicting selection, a skipped ' +
       '@defer, or a parent not loaded through a prisma field)';
+  // It names its field, so `reloadFor` passes it on as it is.
   return keepError(
-    new Error(
+    new InternalError(
       `Field '${info.parentType.name}.${info.fieldName}' needs its parent reloaded because ${why}, ` +
         `but model '${modelKey}' has no non-null primary or unique key to reload it by. ` +
         `Add a primary or unique key to '${modelKey}', or load its rows through prisma fields ` +

@@ -1,6 +1,7 @@
 import { encodeCursorChunk, PothosValidationError } from '@pothos/core';
 import type { FieldCodecs } from './codecs.js';
 import { decodeValues, encodeValues } from './cursors.js';
+import { InternalError } from './errors.js';
 
 /** Tags node IDs that aren't plain strings, so they decode back to their own type. */
 const ID_PREFIX = 'PNI:';
@@ -14,7 +15,7 @@ export function encodeNodeId(
   const values = fields.map((field) => {
     // A missing value would encode as null, an ID no row has.
     if (row[field] == null) {
-      throw new Error(`prismaNode '${modelKey}' row is missing id field '${field}'.`);
+      throw new InternalError(`prismaNode '${modelKey}' row is missing id field '${field}'.`);
     }
     return row[field];
   });

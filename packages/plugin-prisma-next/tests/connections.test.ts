@@ -5,9 +5,11 @@ import {
   type CapturedExecution,
   createBuilder,
   deferSchema,
+  detailOf,
   run,
   runIncremental,
   type SampleOptions,
+  unexpected,
   useSampleDb,
   withCapture,
 } from './fixtures/helpers';
@@ -418,7 +420,7 @@ describe('orderBy', () => {
       '{ a: sortedPosts(sort: "title", first: 1) { nodes { id } } b: sortedPosts(sort: "nope") { nodes { id } } }',
     );
     expect(result.data).toEqual({ a: { nodes: [{ id: 'p-hello' }] }, b: null });
-    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
+    expect(result.errors?.map((error) => [error.path, detailOf(error)])).toEqual([
       [['b'], "Connection orderBy can't order by 'Post.nope' is not a field of the model."],
     ]);
   });
@@ -531,7 +533,8 @@ describe('related connection errors', () => {
     ['an undecodable cursor', 'posts(first: 1, after: "nope")', /Invalid cursor/],
     ['a negative page size', 'posts(first: -1)', /first/],
     ['a throwing size callback', 'sized(boom: true, first: 1)', /size callback failed/],
-    ['a column that is not orderable', 'ordered(sort: "nope", first: 1)', /not a field/],
+    // The developer's error, which the client sees only as `Unexpected error.`.
+    ['a column that is not orderable', 'ordered(sort: "nope", first: 1)', /^Unexpected error\.$/],
     ['a throwing query callback', 'guarded(first: 1)', /not allowed/],
     ['a throwing query callback beneath totalCount', 'guarded', /not allowed/],
   ])('fails only the connection field, without planning it, for %s', async (_name, field, message) => {
@@ -1318,7 +1321,9 @@ describe('base collections', () => {
   ])('rejects a base with %s before SQL', async (_name, base, message) => {
     const statements: CapturedExecution[] = [];
     await withCapture(statements, () =>
-      expect(helper().applyPagination(base() as never, { first: 1 }, {})).rejects.toThrow(message),
+      expect(helper().applyPagination(base() as never, { first: 1 }, {})).rejects.toThrow(
+        unexpected(message),
+      ),
     );
     expect(statements).toHaveLength(0);
   });
@@ -1335,7 +1340,7 @@ describe('base collections', () => {
       }),
     });
     const result = await run(builder.toSchema(), '{ posts(first: 1) { edges { node { id } } } }');
-    expect(result.errors?.[0].message).toMatch(message);
+    expect(detailOf(result.errors?.[0])).toMatch(message);
     expect(result.statements).toHaveLength(0);
   });
 
@@ -1346,7 +1351,7 @@ describe('base collections', () => {
     const statements: CapturedExecution[] = [];
     await withCapture(statements, () =>
       expect(helper().applyPagination(base() as never, { first: 2 }, {})).rejects.toThrow(
-        /unordered, unpaginated Collection/,
+        unexpected(/unordered, unpaginated Collection/),
       ),
     );
     expect(statements).toHaveLength(0);
@@ -1376,7 +1381,7 @@ describe('base collections', () => {
 
   it('validates the base even when only totalCount is selected', async () => {
     const result = await query('{ preordered(first: 1) { totalCount } }');
-    expect(result.errors?.[0].message).toMatch(/unordered, unpaginated Collection/);
+    expect(detailOf(result.errors?.[0])).toMatch(/unordered, unpaginated Collection/);
     expect(result.statements).toHaveLength(0);
   });
 
@@ -1593,7 +1598,7 @@ describe('prismaConnectionHelpers', () => {
     });
     const result = await run(builder.toSchema(), '{ users { totalCount } }');
     expect(result.data.users).toBeNull();
-    expect(result.errors?.map((error) => error.message)).toEqual([
+    expect(result.errors?.map((error) => detailOf(error))).toEqual([
       "totalCount has no count. Pass one to the connection helpers' wrap, as in wrap(rows, await totalCountPromise), or pass resolve the parent its field was given.",
     ]);
   });

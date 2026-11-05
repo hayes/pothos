@@ -430,7 +430,21 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (!isTypeOf || !scopes) {
       return isTypeOf;
     }
-    return (parent, context, info) => isTypeOf(typeParent(parent, scopes), context, info);
+    // Scope-auth's check gets its row from `pothosScopeAuthParent`, which fails the same way and
+    // turns the failure into its own denial, so a client can't tell the two apart.
+    const checkedByScopeAuth = !!typeConfig.extensions?.pothosScopeAuthParent;
+    return (parent, context, info) => {
+      let value: unknown;
+      try {
+        value = typeParent(parent, scopes);
+      } catch (error) {
+        if (!checkedByScopeAuth) {
+          throw error;
+        }
+        value = parent;
+      }
+      return isTypeOf(value, context, info);
+    };
   }
 
   /** Passes `resolveType` the row as the interface's `select`s loaded it. */

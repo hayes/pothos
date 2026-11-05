@@ -6,7 +6,7 @@ import { contractFromJson } from '@prisma/orm-sqlite/static';
 import { GraphQLError, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
-import { loadContract, run, useDatabase } from './fixtures/helpers';
+import { detailOf, loadContract, run, useDatabase } from './fixtures/helpers';
 import type { Contract } from './inheritance/contract';
 
 const contract = loadContract<Contract>(new URL('./inheritance/contract.json', import.meta.url));
@@ -314,7 +314,7 @@ describe('native model inheritance', () => {
       fields: (t) => ({ bug: t.field({ type: bug, resolve: () => ({ id: 't1' }) }) }),
     });
     const result = await run(builder.toSchema(), '{ bug { owner { email } } }');
-    expect(result.errors?.[0]?.message).toBe(
+    expect(detailOf(result.errors?.[0])).toBe(
       "Bug.owner: prismaNext.client has no collection for 'Bug' (loaded through 'Task').",
     );
   });
@@ -765,7 +765,7 @@ describe('native model inheritance', () => {
       fields: (t) => ({ task: t.field({ type: task, resolve: () => row as never }) }),
     });
     const result = await run(builder.toSchema(), '{ task { title } }');
-    expect(result.errors?.[0].message).toMatch(message);
+    expect(detailOf(result.errors?.[0])).toMatch(message);
     // Logs often capture messages, so the row's value stays out of it.
     expect(result.errors?.[0].message).not.toContain('"task"');
     // A developer's error, which a server that masks errors hides from the client.
@@ -1497,7 +1497,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
       }),
     });
     const result = await run(builder.toSchema(), '{ notes { featureTitle } }');
-    expect(result.errors?.[0]?.message).toBe(`The select of field 'featureTitle' ${rowsError}`);
+    expect(detailOf(result.errors?.[0])).toBe(`The select of field 'featureTitle' ${rowsError}`);
   });
 
   it("plans the rows of a field's select for a field returning them", async () => {
@@ -1627,7 +1627,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     });
     builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
     const result = await run(builder.toSchema(), '{ notes { task { title } } }');
-    expect(result.errors?.[0]?.message).toMatch(
+    expect(detailOf(result.errors?.[0])).toMatch(
       /A field with its own select must return the rows it loaded, not copies of them\.$/,
     );
   });

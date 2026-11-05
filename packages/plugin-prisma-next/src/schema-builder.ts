@@ -19,6 +19,7 @@ import type { ModelKey } from './types/models.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import { modelDiscriminator, resolveContractModel } from './utils/contract.js';
+import { InternalError } from './utils/errors.js';
 import { getModelIdentities, truncatedDateProblem } from './utils/model.js';
 import { encodeNodeId, parseNodeId } from './utils/node-ids.js';
 import { getRefFromContractModel } from './utils/refs.js';
@@ -82,7 +83,7 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelKey<Type
             const typeName = variantTypeNames(contract, info.schema, iface).get(value as string);
             // The row's value is left out of the message, which logs often capture.
             if (typeName === undefined) {
-              throw new Error(
+              throw new InternalError(
                 value === undefined
                   ? `prismaInterface '${iface.name}' row was loaded without its discriminator '${discriminator.field}'. Return it from a prisma field, or include '${discriminator.field}' in the row. A field with its own select must return the rows it loaded, not copies of them.`
                   : `prismaInterface '${iface.name}' row has a discriminator '${discriminator.field}' that names no variant of model '${modelKey as string}'.`,
