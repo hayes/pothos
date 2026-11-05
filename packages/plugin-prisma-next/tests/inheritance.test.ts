@@ -1329,6 +1329,116 @@ describe('a relation targeting a variant model with a table of its own', () => {
     expect(result.statements).toHaveLength(4);
   });
 
+  describe("connection helpers whose nodes are a relation's rows", () => {
+    function helperSchema() {
+      const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+        plugins: [RelayPlugin, prismaNextPlugin],
+        relay: {},
+        prismaNext: { client: db.client },
+      });
+      const task = builder.prismaInterface('Task', {
+        fields: (t) => ({ title: t.exposeString('title'), owner: t.relation('owner') }),
+      });
+      builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+      builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
+      builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+      const features = prismaConnectionHelpers(builder, 'Note', {
+        orderBy: () => ({ id: 'asc' }),
+        select: (nodeSelection) => ({ feature: nodeSelection() }),
+        resolveNode: (note) => note.feature,
+      });
+      const Feature = builder.prismaObject('Feature', {
+        interfaces: [task],
+        fields: (t) => ({ priority: t.exposeInt('priority') }),
+      });
+      builder.prismaObjectField(Feature, 'noteFeatures', (t) =>
+        t.connection(
+          {
+            type: Feature,
+            nodeNullable: true,
+            select: { featureNotes: features.page },
+            resolve: (feature, args, ctx) =>
+              features.resolve(feature.featureNotes, args, ctx, feature),
+          },
+          features.connectionOptions({}),
+        ),
+      );
+      builder.queryType({
+        fields: (t) => ({
+          noteFeatures: t.connection(
+            {
+              type: Feature,
+              nodeNullable: true,
+              resolve: async (_root, args, ctx, info) => {
+                const page = await features.applyPagination(
+                  db.orm.Note.where((note) => note.id.eq('n2')),
+                  args,
+                  ctx,
+                  info,
+                );
+                return page.wrap(await page.collection.all());
+              },
+            },
+            features.connectionOptions({}),
+          ),
+          unplannedNoteFeatures: t.connection(
+            {
+              type: Feature,
+              nodeNullable: true,
+              resolve: async (_root, args, ctx) => {
+                const page = await features.applyPagination(
+                  db.orm.Note.where((note) => note.id.eq('n2')),
+                  args,
+                  ctx,
+                );
+                return page.wrap(await page.collection.all());
+              },
+            },
+            features.connectionOptions({}),
+          ),
+          features: t.prismaField({
+            type: ['Feature'],
+            resolve: () => db.orm.Task.variant('feature'),
+          }),
+        }),
+      });
+      return builder.toSchema();
+    }
+
+    it("loads the base columns of a variant's nodes", async () => {
+      const result = await run(
+        helperSchema(),
+        '{ noteFeatures { edges { node { __typename title priority owner { email } } } } }',
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.noteFeatures.edges).toEqual([
+        { node: { __typename: 'Feature', ...feature } },
+      ]);
+      // The nodes, which read only the feature table, then the reloads of the fields reading Task.
+      expect(result.statements).toHaveLength(3);
+    });
+
+    it("loads the base columns of a variant's nodes paged without info", async () => {
+      const result = await run(
+        helperSchema(),
+        '{ unplannedNoteFeatures { edges { node { title priority owner { email } } } } }',
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.unplannedNoteFeatures.edges).toEqual([{ node: feature }]);
+    });
+
+    it("loads the base columns of a variant's nodes in a relation's page", async () => {
+      const result = await run(
+        helperSchema(),
+        '{ features { noteFeatures { edges { node { title priority owner { email } } } } } }',
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.features).toEqual([{ noteFeatures: { edges: [{ node: feature }] } }]);
+      // The nodes, which read only the feature table, then the reloads of the fields reading Task.
+      expect(result.statements).toHaveLength(3);
+    });
+  });
+
   function selectBuilder(
     plugins: (typeof ErrorsPlugin | typeof prismaNextPlugin)[] = [prismaNextPlugin],
   ) {

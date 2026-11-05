@@ -61,6 +61,7 @@ import {
   NODE_SELECTION,
   type PlanPage,
   type PrismaNextSelection,
+  relationArgs,
   slotsOfFieldParent,
   splitSelect,
   takeSlots,
@@ -339,6 +340,16 @@ export function prismaConnectionHelpers<
   const nodeMarker: NodeSelection = { [NODE_SELECTION]: true };
   const selected = splitSelect(options.select?.(() => nodeMarker) ?? {}, model);
   const nodeRelation = selected.relations.find(([, value]) => value === nodeMarker)?.[0];
+  // The nodes' planning starts from the relation's narrowing, so beneath a relation targeting a
+  // variant model it leaves out what the variant model's own accessor can't load.
+  const nodeSeed: PrismaNextSelection = nodeRelation
+    ? {
+        args: relationArgs(model.relations[nodeRelation]!, {
+          loadIdentity: undefined,
+          refine: undefined,
+        }),
+      }
+    : EMPTY;
   const whole: Record<string, PrismaNextSelection> = {};
   for (const [name, value] of selected.relations) {
     if (value !== nodeMarker) {
@@ -403,7 +414,7 @@ export function prismaConnectionHelpers<
             const own = withOwn(seed);
             const include = nodeType === undefined ? undefined : connectionNodes(nodeType);
             if (nodeRelation) {
-              return completeValue(include ? nested(true, include) : EMPTY, (nodes) =>
+              return completeValue(include ? nested(nodeSeed, include) : nodeSeed, (nodes) =>
                 withNodes(own, nodes),
               );
             }
@@ -433,7 +444,7 @@ export function prismaConnectionHelpers<
       const own = withOwn({ columns: cursorColumns(planned.order) });
       if (nodeRelation) {
         rows = completeValue(
-          planSelection(info, config, ctx, { paths: CONNECTION_NODE_PATHS }, EMPTY),
+          planSelection(info, config, ctx, { paths: CONNECTION_NODE_PATHS }, nodeSeed),
           (nodes) => emit(withNodes(own, nodes?.selection)),
         );
       } else if (resolveNode) {
