@@ -148,9 +148,6 @@ export default pluginName;
 
 type Loaded = (slots: FieldSlots, context: object, info: GraphQLResolveInfo) => boolean;
 
-/** Marks scope-auth's `isTypeOf` for a type with `pothosScopeAuthParent` (`scopeAuthLoadsParent`). */
-const SCOPE_AUTH_LOADS_PARENT = Symbol.for('@pothos/plugin-scope-auth/loadsParent');
-
 export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   private get config() {
     return getPluginConfig(this.builder);
@@ -433,22 +430,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (!isTypeOf || !scopes) {
       return isTypeOf;
     }
-    // Scope-auth's check reads its row through `pothosScopeAuthParent` before anything else, which
-    // fails the same way and becomes its ordinary denial, so a client can't tell the two apart.
-    // Any other check never sees a row the type's selects can't be read from.
-    const loadsParent = !!(isTypeOf as unknown as Record<symbol, unknown>)[SCOPE_AUTH_LOADS_PARENT];
-    return (parent, context, info) => {
-      let value: unknown;
-      try {
-        value = typeParent(parent, scopes);
-      } catch (error) {
-        if (!loadsParent) {
-          throw error;
-        }
-        value = parent;
-      }
-      return isTypeOf(value, context, info);
-    };
+    return (parent, context, info) => isTypeOf(typeParent(parent, scopes), context, info);
   }
 
   /** Passes `resolveType` the row as the interface's `select`s loaded it. */

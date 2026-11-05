@@ -7,10 +7,7 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import ScopeAuthPlugin, {
-  ForbiddenError,
-  type ScopeAuthParentLoader,
-} from '@pothos/plugin-scope-auth';
+import ScopeAuthPlugin, { type ScopeAuthParentLoader } from '@pothos/plugin-scope-auth';
 import {
   execute,
   experimentalExecuteIncrementally,
@@ -2152,8 +2149,7 @@ SchemaBuilder.registerPlugin(
   RecordIsTypeOfPlugin as never,
 );
 
-// A type check that can't see the row it checks fails as the check itself would, so a client can't
-// tell why it was refused.
+// A type check that can't see the row it checks fails with the plugin's generic error.
 describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
   function schema() {
     const builder = new SchemaBuilder<{
@@ -2201,29 +2197,20 @@ describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
     return builder.toSchema();
   }
 
-  it('denies a row whose reload fails as it denies a row the check refuses', async () => {
-    const refused = await runCaptured(schema(), '{ user(id: "u-bob") { firstName } }');
-    const missing = await runCaptured(schema(), '{ user(id: "u-nobody") { firstName } }');
-    expect(refused.errors?.map((error) => error.message)).toEqual([
-      'Not authorized to read fields for User',
+  it('fails a type check whose row fails to reload with a generic error', async () => {
+    const result = await runCaptured(schema(), '{ user(id: "u-nobody") { firstName } }');
+    expect(result.data).toEqual({ user: null });
+    expect(result.errors?.map(detailOf)).toEqual([
+      expect.stringMatching(/could not find the 'User' row/),
     ]);
-    expect(missing.errors?.map((error) => error.message)).toEqual(
-      refused.errors?.map((error) => error.message),
-    );
-    const denial = missing.errors?.[0]?.originalError;
-    expect(denial).toBeInstanceOf(ForbiddenError);
-    expect(detailOf(denial?.cause)).toMatch(/could not find the 'User' row/);
   });
 
-  it('denies a row whose type selects compute the same key, naming neither', async () => {
+  it('fails a type check whose type selects compute the same key with a generic error', async () => {
     const result = await runCaptured(schema(), '{ clashing { firstName } }');
     expect(result.data).toEqual({ clashing: null });
-    expect(result.errors?.map((error) => error.message)).toEqual([
-      'Not authorized to read fields for Clashing',
+    expect(result.errors?.map(detailOf)).toEqual([
+      expect.stringMatching(/'Limited' and 'Clashing' both compute 'total'/),
     ]);
-    const denial = result.errors?.[0]?.originalError;
-    expect(denial).toBeInstanceOf(ForbiddenError);
-    expect(detailOf(denial?.cause)).toMatch(/'Limited' and 'Clashing' both compute 'total'/);
   });
 
   it("throws instead of handing another plugin's isTypeOf a row it can't project", async () => {

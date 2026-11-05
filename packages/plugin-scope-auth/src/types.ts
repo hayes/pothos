@@ -247,9 +247,3 @@ export type ScopeAuthParentLoader<Context = object> = (
   context: Context,
   info: GraphQLResolveInfo,
 ) => MaybePromise<unknown>;
-
-/**
- * Set to `true` on the `isTypeOf` scope-auth builds for a type with a `pothosScopeAuthParent`
- * loader. Such a check passes the value it gets only to the loader before its scopes run.
- */
-export const scopeAuthLoadsParent = Symbol.for('@pothos/plugin-scope-auth/loadsParent');

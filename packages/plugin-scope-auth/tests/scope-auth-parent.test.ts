@@ -2,11 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import { type GraphQLObjectType, type GraphQLResolveInfo, graphql } from 'graphql';
 import { vi } from 'vitest';
 import { getDatamodel } from '../prisma/generated';
-import ScopeAuthPlugin, {
-  ForbiddenError,
-  type ScopeAuthParentLoader,
-  scopeAuthLoadsParent,
-} from '../src';
+import ScopeAuthPlugin, { type ScopeAuthParentLoader } from '../src';
 import { db } from './example/db';
 
 interface Row {
@@ -108,55 +104,15 @@ describe('pothosScopeAuthParent', () => {
     expect(isTypeOf).toHaveBeenCalledWith({ id: '1' }, { user: 'alice' }, expect.anything());
   });
 
-  it.each([
-    ['rejects', () => Promise.reject(new Error('load failed'))],
-    [
-      'throws',
-      () => {
-        throw new Error('load failed');
-      },
-    ],
-  ])('denies the type when the loader %s, as a failed check would', async (_name, loader) => {
-    const { schema, authScopes } = createSchema({ loadParent: loader });
-
-    const result = await graphql({ schema, source, contextValue: { user: 'alice' } });
-    const denied = await graphql({
-      schema: createSchema({ loadParent: (parent) => parent }).schema,
-      source,
-      contextValue: { user: 'bob' },
-    });
-    expect(result.data).toEqual({ item: null });
-    expect(result.errors?.map((error) => error.message)).toEqual(
-      denied.errors?.map((error) => error.message),
-    );
-    expect(result.errors?.[0].message).toBe('Not authorized to read fields for Item');
-    expect(result.errors?.[0].originalError).toBeInstanceOf(ForbiddenError);
-    expect((result.errors?.[0].originalError?.cause as Error).message).toBe('load failed');
-    expect(authScopes).not.toHaveBeenCalled();
-  });
-
-  it('marks the type check that reads its parent through the loader', () => {
-    const withLoader = createSchema({ loadParent: (parent) => parent }).schema;
-    const without = createSchema().schema;
-    const marked = (schema: typeof without) =>
-      (
-        (schema.getType('Item') as GraphQLObjectType).isTypeOf as unknown as Record<symbol, unknown>
-      )[scopeAuthLoadsParent];
-
-    expect(marked(withLoader)).toBe(true);
-    expect(marked(without)).toBeUndefined();
-  });
-
-  it('passes the unauthorized error the given value when the loader rejects', async () => {
-    const unauthorizedError = vi.fn((_parent: unknown) => 'denied');
-    const { schema } = createSchema({
+  it('fails the check when the loader rejects', async () => {
+    const { schema, authScopes } = createSchema({
       loadParent: () => Promise.reject(new Error('load failed')),
-      unauthorizedError,
     });
 
     const result = await graphql({ schema, source, contextValue: { user: 'alice' } });
-    expect(result.errors?.map((error) => error.message)).toEqual(['denied']);
-    expect(unauthorizedError.mock.calls[0][0]).toEqual({ id: '1' });
+    expect(result.data).toEqual({ item: null });
+    expect(result.errors?.map((error) => error.message)).toEqual(['load failed']);
+    expect(authScopes).not.toHaveBeenCalled();
   });
 
   it('passes the unauthorized error the loaded parent', async () => {

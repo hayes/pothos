@@ -32,7 +32,6 @@ import type {
   TypeAuthScopes,
   TypeGrantScopes,
 } from './types.js';
-import { scopeAuthLoadsParent } from './types.js';
 
 export * from './errors.js';
 export * from './types.js';
@@ -189,21 +188,13 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       | undefined;
     const runSteps = isTypeOfHelper(steps, this, isTypeOf, loadParent);
 
-    const checkType: GraphQLIsTypeOfFn<unknown, Types['Context']> = (source, context, info) => {
+    return (source, context, info) => {
       if (inResolveType) {
         return isTypeOf?.(source, context, info) ?? false;
       }
 
       return runSteps(source, context, info);
     };
-
-    if (loadParent) {
-      // Tells the plugin that set `pothosScopeAuthParent` that this check reads its row through the
-      // loader, so a row the loader can't load is denied rather than read.
-      Object.defineProperty(checkType, scopeAuthLoadsParent, { value: true });
-    }
-
-    return checkType;
   }
 
   createStepsForType(
