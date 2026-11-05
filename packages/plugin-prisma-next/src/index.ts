@@ -491,7 +491,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const { config } = this;
     const {
       modelKey,
-      computedRelations,
+      computedLoaded,
       planned,
       loaded,
       readsSlots,
@@ -550,9 +550,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       // without a select function is planned for.
       if (
         !planned ||
-        (staticColumns !== undefined &&
-          isLoadedTypeRow(rowOf(parent)) &&
-          computedRelations.every((name) => loadedSlots(parent, name)))
+        (staticColumns !== undefined && isLoadedTypeRow(rowOf(parent)) && computedLoaded(parent))
       ) {
         return handOver(reader.parent(parent, null), undefined, args, context, info);
       }
@@ -560,7 +558,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       const slots = mapping && fieldSlots(parent, mapping.position);
       if (
         mapping &&
-        computedRelations.every((name) => loadedSlots(parent, name)) &&
+        computedLoaded(parent) &&
         (!loaded || (slots && loaded(slots, context, info))) &&
         // What a field's own `select` loaded is read from the row's slots, which a parent this
         // plugin didn't return, such as another plugin's copy, lacks.
@@ -727,14 +725,15 @@ function typeDataCheck(
     ]),
   ];
   // A function's keys aren't checked, so a relation a level can't include is checked by whether
-  // its slots came back.
-  const computedRelations = [
-    ...new Set(
-      selects.flatMap((select) =>
-        select.relations.filter(([, value]) => typeof value === 'function').map(([name]) => name),
-      ),
-    ),
-  ];
+  // its slots came back for each select computing from it. Another type's slot for the relation
+  // doesn't count.
+  const computed = selects.flatMap((select) =>
+    select.relations
+      .filter(([, value]) => typeof value === 'function')
+      .map(([name]) => [select.name, name] as const),
+  );
+  const computedLoaded = (parent: object) =>
+    computed.every(([scope, name]) => loadedSlots(parent, name, scope));
   // The scopes whose rows and values the parent shows. Every scope of the type must have loaded,
   // or the parent reloads.
   const parentScopes = selects
@@ -742,12 +741,9 @@ function typeDataCheck(
     .map((select) => select.name);
   const hasTypeData = (parent: object) => {
     const complete = parentForType(parent, parentScopes) as Record<string, unknown>;
-    return (
-      requiredOnRow.every((name) => complete[name] !== undefined) &&
-      computedRelations.every((name) => loadedSlots(parent, name))
-    );
+    return requiredOnRow.every((name) => complete[name] !== undefined) && computedLoaded(parent);
   };
-  return { computedRelations, parentScopes, hasTypeData };
+  return { computedLoaded, parentScopes, hasTypeData };
 }
 
 type TypeRowCheck = ReturnType<PothosPrismaNextPlugin<SchemaTypes>['typeRowCheck']>;

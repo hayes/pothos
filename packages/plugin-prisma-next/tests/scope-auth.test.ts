@@ -2107,6 +2107,44 @@ describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
   });
 });
 
+// Another variant's slot for the same relation doesn't hold what this type's select computes.
+describe.each(orders)("a row of another variant's select (%s)", (_, plugins) => {
+  it.each([false, true])('reloads it for type checks (runScopesOnType: %s)', async (onType) => {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType: onType },
+      prismaNext: { client: ctx.client },
+    });
+    const Drafts = builder.prismaObject('User', {
+      variant: 'Drafts',
+      select: { posts: (sub) => ({ drafts: sub.where({ published: 0 }).count() }) },
+      // Passes on a row without `drafts`.
+      authScopes: (user) => !(user.drafts > 0),
+      fields: (t) => ({ drafts: t.int({ resolve: (user) => user.drafts }) }),
+    });
+    const Published = builder.prismaObject('User', {
+      variant: 'Published',
+      select: { posts: { where: { published: 1 } } },
+      fields: (t) => ({ asDrafts: t.field({ type: Drafts, resolve: (user) => user as never }) }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: Published,
+          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const result = await runCaptured(builder.toSchema(), '{ user { asDrafts { drafts } } }');
+    expect(result.errors?.map((error) => error.message)).toEqual([
+      'Not authorized to read fields for Drafts',
+    ]);
+  });
+});
+
 // A row reloaded for one root field isn't reused under the next, which a mutation can change it in.
 describe.each(orders)('a row two mutations return (%s)', (_, plugins) => {
   it("checks each mutation's result as it is after that mutation", async () => {

@@ -338,9 +338,12 @@ function lift(target: Row, { slots }: RowSlots, scopes: readonly string[]) {
   }
 }
 
-/** Whether the statement that returned `row` loaded to-many relation `name` into slots. */
-export function loadedSlots(row: object, name: string) {
-  return !!rowSlots.get(row)?.slots[name];
+/**
+ * Whether the statement that returned `row` loaded to-many relation `name` into slots for `scope`.
+ */
+export function loadedSlots(row: object, name: string, scope: string) {
+  const slot = rowSlots.get(row)?.slots[name];
+  return !!slot && (slot.rows.has(scope) || slot.values.has(scope));
 }
 
 /** The row `takeSlots` returned that `value` is, or is a projection of. */
