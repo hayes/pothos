@@ -78,7 +78,8 @@ export function isTypeOfHelper<Types extends SchemaTypes>(
     }
 
     // A parent that fails to load fails the first check, as its own denial, so the client can't
-    // tell the two apart. What the loader threw is the error's `cause`.
+    // tell the two apart. What the loader threw is the `cause` of the default error. An error
+    // `unauthorizedError` returns is thrown as it is, since it may be shared between requests.
     const deny = (cause: unknown): never => {
       const { errorMessage } = steps[0];
       const failure: AuthFailure = { kind: AuthScopeFailureType.Unknown };
@@ -89,11 +90,12 @@ export function isTypeOfHelper<Types extends SchemaTypes>(
             : errorMessage,
         failure,
       });
-      const denial = typeof error === 'string' ? new ForbiddenError(error, failure) : error;
-
-      if (denial.cause === undefined) {
-        denial.cause = cause;
+      if (typeof error !== 'string') {
+        throw error;
       }
+
+      const denial = new ForbiddenError(error, failure);
+      denial.cause = cause;
 
       throw denial;
     };

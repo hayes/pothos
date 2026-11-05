@@ -2,7 +2,11 @@ import SchemaBuilder from '@pothos/core';
 import { type GraphQLObjectType, type GraphQLResolveInfo, graphql } from 'graphql';
 import { vi } from 'vitest';
 import { getDatamodel } from '../prisma/generated';
-import ScopeAuthPlugin, { ForbiddenError, type ScopeAuthParentLoader } from '../src';
+import ScopeAuthPlugin, {
+  ForbiddenError,
+  type ScopeAuthParentLoader,
+  scopeAuthLoadsParent,
+} from '../src';
 import { db } from './example/db';
 
 interface Row {
@@ -129,6 +133,18 @@ describe('pothosScopeAuthParent', () => {
     expect(result.errors?.[0].originalError).toBeInstanceOf(ForbiddenError);
     expect((result.errors?.[0].originalError?.cause as Error).message).toBe('load failed');
     expect(authScopes).not.toHaveBeenCalled();
+  });
+
+  it('marks the type check that reads its parent through the loader', () => {
+    const withLoader = createSchema({ loadParent: (parent) => parent }).schema;
+    const without = createSchema().schema;
+    const marked = (schema: typeof without) =>
+      (
+        (schema.getType('Item') as GraphQLObjectType).isTypeOf as unknown as Record<symbol, unknown>
+      )[scopeAuthLoadsParent];
+
+    expect(marked(withLoader)).toBe(true);
+    expect(marked(without)).toBeUndefined();
   });
 
   it('passes the unauthorized error the given value when the loader rejects', async () => {
