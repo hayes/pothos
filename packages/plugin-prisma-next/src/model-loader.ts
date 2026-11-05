@@ -18,7 +18,6 @@ import {
 import { and, or } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/adapter.js';
-import { assertNoIncludes, getCollectionPaginationState } from './utils/collection-state.js';
 import type { PrismaNextConfig } from './utils/config.js';
 import { variantOf } from './utils/contract.js';
 import { InternalError, keepError } from './utils/errors.js';
@@ -350,12 +349,6 @@ export class ModelLoader {
   private async flush(batch: Batch): Promise<void> {
     const { collection } = batch.load;
     const base = collection ? userCode(() => collection(this.context)) : this.defaultCollection();
-    if (getCollectionPaginationState(base).paginated) {
-      throw new InternalError(
-        `The collection for '${this.modelKey}' must be unpaginated. Return a collection without limit(), offset(), or cursor().`,
-      );
-    }
-    assertNoIncludes(base);
     const { fields } = batch;
     const codecs = this.config.codecs(this.modelKey);
     const key = (values: readonly unknown[]) =>

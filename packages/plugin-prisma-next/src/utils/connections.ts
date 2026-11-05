@@ -17,7 +17,7 @@ import {
   connectionOrder,
   cursorColumns,
   type OrderByDecl,
-  validateCursorArgs,
+  withCursorValues,
 } from './cursors.js';
 import { InternalError } from './errors.js';
 import type { PrismaNextRelation } from './model.js';
@@ -137,18 +137,17 @@ export function connectionSettings(
     connectionOptions<T extends object>(connectionOptions: T): T {
       return totalCount ? (withTotalCount(connectionOptions) as T) : connectionOptions;
     },
-    /**
-     * Resolves the connection's sizes, order and `where` for one request and checks its cursors.
-     * What they throw while a field is planned fails only that field (see `recordingFailures`).
-     */
+    /** Resolves the connection's sizes, order, cursors and `where` for one request. */
     plan(args: object, ctx: object): ConnectionPlan {
-      const plan: CursorPlan = {
-        order: orderFor(args, ctx),
-        codecs: config.codecs(modelKey),
-        defaultSize: resolveSize(defaultSize, args, ctx) ?? config.defaultConnectionSize,
-        maxSize: resolveSize(maxSize, args, ctx) ?? config.maxConnectionSize,
-      };
-      validateCursorArgs(plan, args);
+      const plan = withCursorValues(
+        {
+          order: orderFor(args, ctx),
+          codecs: config.codecs(modelKey),
+          defaultSize: resolveSize(defaultSize, args, ctx) ?? config.defaultConnectionSize,
+          maxSize: resolveSize(maxSize, args, ctx) ?? config.maxConnectionSize,
+        },
+        args,
+      );
       const value = typeof query === 'function' ? query(args, ctx) : query;
       return { ...plan, where: (value as { where?: unknown } | undefined)?.where };
     },

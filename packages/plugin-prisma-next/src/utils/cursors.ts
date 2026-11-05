@@ -13,7 +13,6 @@ import type { AnyExpression, OrderByItem } from '@prisma/orm-family-sql/relation
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import type { FieldCodecs } from './codecs.js';
-import { getCollectionPaginationState } from './collection-state.js';
 import { resolveContractModel } from './contract.js';
 import { InternalError } from './errors.js';
 import { getModelIdentities, truncatedDateProblem } from './model.js';
@@ -255,12 +254,17 @@ function buildLexicographicPredicate(
   };
 }
 
-/** How a connection pages for one request: its order, column codecs and page sizes. */
+/**
+ * How a connection pages for one request: its order, column codecs, page sizes, and the values of
+ * its `after` and `before` cursors.
+ */
 export interface CursorPlan {
   order: CursorOrder;
   codecs: FieldCodecs;
   defaultSize?: number;
   maxSize?: number;
+  afterValues?: Record<string, unknown>;
+  beforeValues?: Record<string, unknown>;
 }
 
 interface CursorPaginationParams extends CursorPlan {
@@ -283,27 +287,9 @@ function buildPaginationParams(
   };
 }
 
-/**
- * The connection orders, filters past the cursor and limits the collection, so one that is
- * already ordered, limited or distinct would page silently wrong.
- */
-function assertBareCollection(collection: unknown): void {
-  const { orderBy, paginated, distinct } = getCollectionPaginationState(collection);
-  if (orderBy.length || paginated) {
-    throw new InternalError(
-      "Connection resolvers must return an unordered, unpaginated Collection without orderBy(), cursor(), limit(), or offset(). Use the connection's orderBy option to order it.",
-    );
-  }
-  if (distinct) {
-    throw new InternalError(
-      'Connection resolvers cannot return a Collection with distinct() or distinctOn(): the rows a page keeps would depend on the columns the selection adds.',
-    );
-  }
-}
-
 function applyToCollection<C extends MapperCollection>(
   baseCollection: C,
-  { order, before, after, limit, inverted, codecs }: CursorPaginationParams,
+  { order, afterValues, beforeValues, limit, inverted }: CursorPaginationParams,
 ): C {
   let collection = baseCollection.orderBy(
     order.columns.map(({ field, direction, nulls }) => (c: Record<string, ComparableColumn>) => {
@@ -313,31 +299,26 @@ function applyToCollection<C extends MapperCollection>(
   );
   // The ORM's `cursor()` takes one boundary in the order's direction and can't place nulls, so
   // the boundaries are applied as filters.
-  if (after) {
-    collection = collection.where(
-      buildLexicographicPredicate(order, decodeCursor(order, after, codecs), 'gt'),
-    );
+  if (afterValues) {
+    collection = collection.where(buildLexicographicPredicate(order, afterValues, 'gt'));
   }
-  if (before) {
-    collection = collection.where(
-      buildLexicographicPredicate(order, decodeCursor(order, before, codecs), 'lt'),
-    );
+  if (beforeValues) {
+    collection = collection.where(buildLexicographicPredicate(order, beforeValues, 'lt'));
   }
   return collection.limit(limit) as C;
 }
 
-/** Throws what pagination would throw for `args`, without a collection. */
-export function validateCursorArgs(
+/** `plan` with the values of the cursors in `args`. Throws for an invalid cursor or page size. */
+export function withCursorValues(
   plan: CursorPlan,
   args: PothosSchemaTypes.DefaultConnectionArguments,
-): void {
+): CursorPlan {
   const { before, after, order, codecs } = buildPaginationParams(plan, args);
-  if (after) {
-    decodeCursor(order, after, codecs);
-  }
-  if (before) {
-    decodeCursor(order, before, codecs);
-  }
+  return {
+    ...plan,
+    afterValues: after ? decodeCursor(order, after, codecs) : undefined,
+    beforeValues: before ? decodeCursor(order, before, codecs) : undefined,
+  };
 }
 
 /** Orders `baseCollection`, filters it past the cursors and limits it to the page. */
@@ -346,7 +327,6 @@ export function applyCursorPagination<C extends MapperCollection>(
   plan: CursorPlan,
   args: PothosSchemaTypes.DefaultConnectionArguments,
 ): C {
-  assertBareCollection(baseCollection);
   return applyToCollection(baseCollection, buildPaginationParams(plan, args));
 }
 

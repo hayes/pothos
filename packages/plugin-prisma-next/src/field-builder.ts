@@ -10,7 +10,7 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type { ConnectionOrderBy, PrismaNextConnectionFieldOptions } from './types/connections.js';
 import type { ModelKey } from './types/models.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { assertNoIncludes } from './utils/collection-state.js';
+import { assertConnectionCollection } from './utils/collection-state.js';
 import { getPluginConfig } from './utils/config.js';
 import {
   aggregateCount,
@@ -54,7 +54,6 @@ function prismaFieldConfig(
       if (collection == null) {
         return collection;
       }
-      assertNoIncludes(collection);
       const model = getModel(config.contract, modelKey);
       const applied = (await applySelectionToCollection(
         collection,
@@ -160,7 +159,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         if (userCollection == null) {
           return null;
         }
-        assertNoIncludes(userCollection);
+        assertConnectionCollection(userCollection);
         const planned = settings.plan(args, context);
         const { needsRows, count: countSource } = settings.selectionFor(context, info);
         // Runs for a count-only selection too, so the collection is still checked. No rows are

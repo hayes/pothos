@@ -33,7 +33,7 @@ import type {
 } from './types/relations.js';
 import type { ConnectionPageEntry, NodeSelection } from './types/selections.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { assertNoIncludes } from './utils/collection-state.js';
+import { assertConnectionCollection } from './utils/collection-state.js';
 import { getPluginConfig } from './utils/config.js';
 import {
   aggregateCount,
@@ -431,7 +431,7 @@ export function prismaConnectionHelpers<
     ctx: object,
     info: GraphQLResolveInfo | undefined,
   ) => {
-    assertNoIncludes(collection);
+    assertConnectionCollection(collection);
     const planned = settings.plan(args, ctx);
     const filtered = planned.where === undefined ? collection : collection.where(planned.where);
     const paged = applyCursorPagination(filtered, planned, args);

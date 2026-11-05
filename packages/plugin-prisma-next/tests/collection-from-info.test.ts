@@ -2,7 +2,6 @@ import { Collection } from '@prisma/orm-family-sql/orm-client';
 import sqlite from '@prisma/orm-sqlite/runtime';
 import { describe, expect, it } from 'vitest';
 import { collectionFromInfo } from '../src';
-import { detailOf } from './fixtures/errors';
 import {
   createBuilder,
   run,
@@ -82,17 +81,6 @@ function schema() {
           // An aggregate key named like a relation is a value, not rows of the relation.
           const { posts } = await users.aggregate((user) => ({ posts: user.count() }));
           return { user: await users.first(), posts };
-        },
-      }),
-      included: t.field({
-        type: [User],
-        resolve: async (_root, _args, context, info) => {
-          const users = await collectionFromInfo({
-            collection: db.orm.User.include('posts'),
-            context,
-            info,
-          });
-          return users.all();
         },
       }),
       authored: t.field({
@@ -197,11 +185,6 @@ describe('collectionFromInfo', () => {
       posts: 1,
       user: { firstName: 'Alice', drafts: [{ title: 'Draft #1' }] },
     });
-  });
-
-  it('rejects a collection that already includes a relation', async () => {
-    const result = await run(schema(), '{ included { firstName } }');
-    expect(detailOf(result.errors?.[0])).toMatch(/already includes 'posts'/);
   });
 
   it("runs a custom collection's methods, which read its private fields, on the collection", async () => {

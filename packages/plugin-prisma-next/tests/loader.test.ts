@@ -301,16 +301,6 @@ describe('client failures', () => {
       result.errors?.every((error) => /has no collection for 'Post'/.test(detailOf(error))),
     ).toBe(true);
   });
-
-  it('rejects a paginated collection before executing a truncated batch', async () => {
-    const result = await run(
-      schema({ client: clientWith({ Post: db.orm.Post.limit(1) }) }),
-      '{ posts { nobody { id } alice { name } } }',
-    );
-    expect(result.errors).toHaveLength(4);
-    expect(result.errors?.every((error) => /must be unpaginated/.test(detailOf(error)))).toBe(true);
-    expect(result.statements).toHaveLength(1);
-  });
 });
 
 describe('provenance', () => {

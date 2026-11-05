@@ -1,33 +1,37 @@
 import type { CollectionState } from '@prisma/orm-family-sql/orm-client';
 import { InternalError } from './errors.js';
 
-// orm-client keeps `state` internal and has no public accessor for it.
-export function getCollectionPaginationState(collection: unknown): {
-  orderBy: readonly unknown[];
-  paginated: boolean;
-  distinct: boolean;
-} {
-  const { state } = collection as { state?: CollectionState };
-  return {
-    orderBy: state?.orderBy ?? [],
-    paginated: state?.cursor != null || state?.limit !== undefined || state?.offset !== undefined,
-    distinct: !!state?.distinct?.length || !!state?.distinctOn?.length,
-  };
-}
-
 /**
- * Throws for a collection that already includes a relation. The plugin includes what the selection
- * needs, and a second include of a name loads both while the row keeps one, so the collection's own
- * include would be lost or would load rows no field reads. The types reject such a collection, but
- * not in a union with one that has no include, which TypeScript reduces to the latter.
+ * Throws for a collection a connection resolver returned that is already ordered, limited,
+ * distinct or including a relation. The connection orders, filters past the cursor and limits it,
+ * and the plugin includes what the selection needs, so such a collection would page silently
+ * wrong. orm-client keeps `state` internal and has no public accessor for it.
  */
-export function assertNoIncludes(collection: unknown) {
+export function assertConnectionCollection(collection: unknown): void {
   const { state } = collection as { state?: CollectionState };
-  const names = state?.includes.map((include) => `'${include.relationName}'`);
-  if (names?.length) {
+  if (!state) {
+    return;
+  }
+  const names = state.includes.map((include) => `'${include.relationName}'`);
+  if (names.length) {
     throw new InternalError(
       `A collection returned to @pothos/plugin-prisma-next already includes ${names.join(', ')}. ` +
         "Return it without include(): the plugin includes what the query selects. Filter a relation with its field's `query` option.",
+    );
+  }
+  if (
+    state.orderBy?.length ||
+    state.cursor != null ||
+    state.limit !== undefined ||
+    state.offset !== undefined
+  ) {
+    throw new InternalError(
+      "Connection resolvers must return an unordered, unpaginated Collection without orderBy(), cursor(), limit(), or offset(). Use the connection's orderBy option to order it.",
+    );
+  }
+  if (state.distinct?.length || state.distinctOn?.length) {
+    throw new InternalError(
+      'Connection resolvers cannot return a Collection with distinct() or distinctOn(): the rows a page keeps would depend on the columns the selection adds.',
     );
   }
 }

@@ -6,7 +6,6 @@ import {
   columnsOf,
   createBuilder,
   deferSchema,
-  globalId,
   postSubqueries,
   run,
   runIncremental,
@@ -527,59 +526,22 @@ describe('a selection that fails to plan', () => {
   });
 });
 
-describe('a collection that already includes a relation', () => {
-  const message =
-    "A collection returned to @pothos/plugin-prisma-next already includes 'posts'. Return it without include(): the plugin includes what the query selects. Filter a relation with its field's `query` option.";
-  const published = (posts: Parameters<Parameters<typeof db.orm.User.include>[1]>[0]) =>
-    posts.where({ published: 1 });
-  // The types reject it too, so it is cast to reach the runtime check.
-  const included = () => db.orm.User.include('posts', published) as never;
-
-  it.each([
-    ['prismaField', '{ users { posts { title } } }'],
-    ['prismaConnection', '{ userPage { edges { node { posts { title } } } } }'],
-    ['prismaNode', `{ node(id: "${globalId('User', 'u-bob')}") { id } }`],
-  ])('fails the %s that returns it', async (_name, source) => {
-    const builder = createBuilder();
-    builder.prismaNode('User', {
-      id: { field: 'id' },
-      collection: included,
-      fields: (t) => ({ posts: t.relation('posts') }),
-    });
-    builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
-    builder.queryType({
-      fields: (t) => ({
-        users: t.prismaField({
-          type: ['User'],
-          nullable: true,
-          resolve: included,
-        }),
-        userPage: t.prismaConnection({
-          type: 'User',
-          nullable: true,
-          resolve: included,
-        }),
-      }),
-    });
-    const result = await run(builder.toSchema(), source);
-    expect(result.errors?.map((error) => detailOf(error))).toEqual([message]);
-    expect(result.statements).toHaveLength(0);
-  });
-
-  it('fails a resolver whose union of collections type-checks', async () => {
+describe('a connection collection that already includes a relation', () => {
+  it('fails the prismaConnection that returns it', async () => {
+    const included = () =>
+      // The types reject it too, so it is cast to reach the runtime check.
+      db.orm.User.include('posts', (posts) => posts.where({ published: 1 })) as never;
     const builder = createBuilder();
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({
-          type: ['User'],
-          args: { flag: t.arg.boolean({ required: true }) },
-          resolve: (_parent, { flag }) => (flag ? db.orm.User.include('posts') : db.orm.User),
-        }),
+        userPage: t.prismaConnection({ type: 'User', nullable: true, resolve: included }),
       }),
     });
-    const result = await run(builder.toSchema(), '{ users(flag: true) { id } }');
-    expect(result.errors?.map((error) => detailOf(error))).toEqual([message]);
+    const result = await run(builder.toSchema(), '{ userPage { edges { node { id } } } }');
+    expect(result.errors?.map((error) => detailOf(error))).toEqual([
+      "A collection returned to @pothos/plugin-prisma-next already includes 'posts'. Return it without include(): the plugin includes what the query selects. Filter a relation with its field's `query` option.",
+    ]);
     expect(result.statements).toHaveLength(0);
   });
 });

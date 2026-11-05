@@ -4,7 +4,6 @@ import type { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import { PRISMA_NEXT_CONFIG } from '../constants.js';
 import type { PlannedCollection } from '../types/collections.js';
 import type { MapperCollection, PrismaNextAdapter, PrismaNextPlan } from './adapter.js';
-import { assertNoIncludes } from './collection-state.js';
 import { assertContextObject, type PrismaNextConfig } from './config.js';
 import type { PrismaNextModel } from './model.js';
 import { EMPTY, type IncludeRecord, type PrismaNextSelection, takeSlots } from './selections.js';
@@ -100,7 +99,6 @@ export async function collectionFromInfo<C extends object>({
   info,
   ...target
 }: CollectionFromInfoOptions<C>): Promise<PlannedCollection<C>> {
-  assertNoIncludes(collection);
   const config = configFor(info.schema);
   const mapper = collection as unknown as MapperCollection;
   const planned = await planSelection(
