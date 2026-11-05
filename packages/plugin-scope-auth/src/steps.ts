@@ -23,6 +23,7 @@ export function createTypeAuthScopesStep<Types extends SchemaTypes>(
   if (typeof authScopes === 'function') {
     return {
       key: typeAuthScopesStepKey(type),
+      readsParent: true,
       run: (state, parent, _args, _context, info) =>
         state.evaluateTypeScopeFunction(authScopes, type, parent, info),
       errorMessage: `Not authorized to read fields for ${type}`,
@@ -43,6 +44,7 @@ export function createTypeGrantScopesStep<Types extends SchemaTypes>(
 ): ResolveStep<Types> {
   return {
     key: typeGrantScopesStepKey(type),
+    readsParent: true,
     run: (state, parent, _args, context, info) =>
       state.grantTypeScopes(type, parent, forField ? info.path.prev : info.path, () =>
         grantScopes(parent, context),
@@ -56,6 +58,7 @@ export function createFieldAuthScopesStep<Types extends SchemaTypes>(
 ): ResolveStep<Types> {
   if (typeof authScopes === 'function') {
     return {
+      readsParent: true,
       errorMessage: (_parent, _args, _context, info) =>
         `Not authorized to resolve ${info.parentType}.${info.fieldName}`,
       run: (state, parent, args, context, info) => {
@@ -81,6 +84,7 @@ export function createFieldGrantScopesStep<Types extends SchemaTypes>(
   grantScopes: FieldGrantScopes<Types, {}, {}>,
 ): ResolveStep<Types> {
   return {
+    readsParent: typeof grantScopes === 'function',
     errorMessage: (_parent, _args, _context, info) =>
       `Unknown issue generating grants for ${info.parentType}.${info.fieldName}`,
     run: (state, parent, args, context, info) => {
