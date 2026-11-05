@@ -9,9 +9,11 @@ import {
 } from '@pothos/core';
 import { cacheKey, Plan, setRowMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
+import type { SelectionMap } from './types.js';
 import { type PrismaNode, type PrismaPlayedPlan, prismaAdapter } from './util/adapter.js';
 import { getDelegateFromModel, getModel } from './util/datamodel.js';
 import { getClient } from './util/get-client.js';
+import type { FieldMap } from './util/relation-map.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -274,7 +276,7 @@ export class ModelLoader {
     });
   }
 
-  stageQuery(played: PrismaPlayedPlan, model: object) {
+  stageQuery(played: Pick<PrismaPlayedPlan, 'root'>, model: object) {
     for (const entry of this.staged) {
       // Node to node: the batch takes the field's play whole, never through a query.
       if (prismaAdapter.canMergeNode(entry.root, played.root)) {
@@ -291,7 +293,7 @@ export class ModelLoader {
     return this.initLoad(played, model);
   }
 
-  initLoad(played: PrismaPlayedPlan, initialModel: {}) {
+  initLoad(played: Pick<PrismaPlayedPlan, 'root'>, initialModel: {}) {
     const delegate = getDelegateFromModel(
       getClient(this.builder, this.context as never),
       this.modelName,
@@ -360,6 +362,86 @@ export class ModelLoader {
 
     return promise.promise;
   }
+}
+
+/** Matches `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin can't import. */
+type ScopeAuthParentLoader = (
+  parent: unknown,
+  context: object,
+  info: GraphQLResolveInfo,
+) => MaybePromise<unknown>;
+
+/**
+ * The parent scope-auth's checks see for a type: the row when it has every top-level key of the
+ * type's selection, otherwise the row reloaded with it. `scalars` are the columns of include mode,
+ * which loads every scalar.
+ */
+export function typeParentLoader(
+  loaders: (context: object) => ModelLoader,
+  fieldMap: FieldMap,
+  selection: SelectionMap,
+  scalars: readonly string[],
+): ScopeAuthParentLoader {
+  const root = prismaAdapter.createNode(fieldMap);
+  prismaAdapter.mergeQuery(root, selection);
+  const keys = [
+    ...(root.columns ?? scalars),
+    ...root.relations.keys(),
+    ...(root.computed.size > 0 ? ['_count'] : []),
+  ];
+  // By root field path, which graphql makes for each root field of each execution, then row.
+  const loads = new WeakMap<GraphQLResolveInfo['path'], WeakMap<object, Promise<object>>>();
+  const reload = (row: Record<string, unknown>, context: object, info: GraphQLResolveInfo) => {
+    let path = info.path;
+
+    while (path.prev) {
+      path = path.prev;
+    }
+
+    let rows = loads.get(path);
+
+    if (!rows) {
+      rows = new WeakMap();
+      loads.set(path, rows);
+    }
+
+    let load = rows.get(row);
+
+    if (!load) {
+      load = new Promise<Record<string, unknown> | null>((resolve) => {
+        resolve(loaders(context).stageQuery({ root }, row));
+      })
+        .then((loaded) => {
+          // Loaded values win for the selection's keys. The row's other keys are kept.
+          const merged = { ...row };
+
+          for (const key of keys) {
+            merged[key] = loaded![key];
+          }
+
+          return merged;
+        })
+        .catch((error: unknown) => {
+          // Clients see only a generic message.
+          throw new Error('Unexpected error.', { cause: error });
+        });
+      rows.set(row, load);
+    }
+
+    return load;
+  };
+
+  return (parent, context, info) => {
+    const row = parent as Record<string, unknown>;
+
+    for (let i = 0; i < keys.length; i += 1) {
+      if (row[keys[i]] === undefined) {
+        return reload(row, context, info);
+      }
+    }
+
+    return row;
+  };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {

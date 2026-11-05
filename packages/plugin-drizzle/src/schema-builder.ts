@@ -12,10 +12,11 @@ import type { Column, TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
 import { DrizzleInterfaceRef } from './interface-ref.js';
-import { ModelLoader } from './model-loader.js';
+import { ModelLoader, typeParentLoader } from './model-loader.js';
 import { DrizzleNodeRef } from './node-ref.js';
 import { DrizzleObjectRef } from './object-ref.js';
 import type { DrizzleNodeOptions } from './types.js';
+import { drizzleAdapter } from './utils/adapter.js';
 import { getSchemaConfig } from './utils/config.js';
 import { getIDParser, getIDSerializer } from './utils/cursors.js';
 import { getRefFromModel } from './utils/refs.js';
@@ -55,15 +56,29 @@ function defineDrizzleType(
 
   ref.name = name;
 
+  const schemaConfig = getSchemaConfig(builder);
+  const typeSelect = typeof select === 'object' ? { columns: {}, ...select } : undefined;
+  const loader = ModelLoader.forModel(table, builder);
+
   const config = {
     ...options,
     extensions: {
       ...options.extensions,
       pothosDrizzleModel: table,
-      pothosDrizzleTable: getSchemaConfig(builder).relations[table],
-      pothosDrizzleSelect:
-        typeof select === 'object' ? { columns: {}, ...select } : (select ?? true),
-      pothosDrizzleLoader: ModelLoader.forModel(table, builder),
+      pothosDrizzleTable: schemaConfig.relations[table],
+      pothosDrizzleSelect: typeSelect ?? select ?? true,
+      pothosDrizzleLoader: loader,
+      // Read by scope-auth for the row its checks see. Without a `select`, that is every column.
+      ...(isInterface
+        ? {}
+        : {
+            pothosScopeAuthParent: typeParentLoader(
+              loader,
+              drizzleAdapter(schemaConfig),
+              schemaConfig.relations[table],
+              typeSelect ?? {},
+            ),
+          }),
     },
     name,
     fields: fields

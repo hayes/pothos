@@ -7,6 +7,7 @@ import {
   inArray,
   type SQL,
   sql,
+  type Table,
   type TableRelationalConfig,
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
@@ -19,6 +20,7 @@ import {
 } from './utils/adapter.js';
 import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
 import { planFromInfo } from './utils/map-query.js';
+import type { SelectionMap } from './utils/selections.js';
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -180,7 +182,7 @@ export class ModelLoader {
     });
   }
 
-  stageQuery(played: DrizzlePlayedPlan, model: object) {
+  stageQuery(played: Pick<DrizzlePlayedPlan, 'root'>, model: object) {
     for (const entry of this.staged) {
       // Node to node: the batch takes the field's play whole, never through a query.
       if (this.adapter.canMergeNode(entry.root, played.root)) {
@@ -197,7 +199,7 @@ export class ModelLoader {
     return this.initLoad(played, model);
   }
 
-  initLoad(played: DrizzlePlayedPlan, model: object) {
+  initLoad(played: Pick<DrizzlePlayedPlan, 'root'>, model: object) {
     const promise = createResolvablePromise<Record<string, unknown> | null>();
     const root = this.adapter.createNode(played.root.model);
 
@@ -279,6 +281,88 @@ export class ModelLoader {
 
     return promise.promise;
   }
+}
+
+/** Matches `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin can't import. */
+type ScopeAuthParentLoader = (
+  parent: unknown,
+  context: object,
+  info: GraphQLResolveInfo,
+) => MaybePromise<unknown>;
+
+/**
+ * The parent scope-auth's checks see for a type: the row when it has every top-level key of the
+ * type's selection, otherwise the row reloaded with it.
+ */
+export function typeParentLoader(
+  loaders: (context: object) => ModelLoader,
+  adapter: DrizzleAdapter,
+  table: TableRelationalConfig,
+  selection: SelectionMap,
+): ScopeAuthParentLoader {
+  const root = adapter.createNode(table);
+  adapter.mergeQuery(root, selection);
+  // Read from the node, which resolves a `columns` map that only excludes. A node without columns
+  // selects every column.
+  const keys = [
+    ...(root.columns ?? Object.keys(getColumns(table.table as Table))),
+    ...root.relations.keys(),
+    ...root.computed.keys(),
+  ];
+
+  // By root field path, which graphql makes for each root field of each execution, then row.
+  const loads = new WeakMap<GraphQLResolveInfo['path'], WeakMap<object, Promise<object>>>();
+  const reload = (row: Record<string, unknown>, context: object, info: GraphQLResolveInfo) => {
+    let path = info.path;
+
+    while (path.prev) {
+      path = path.prev;
+    }
+
+    let rows = loads.get(path);
+
+    if (!rows) {
+      rows = new WeakMap();
+      loads.set(path, rows);
+    }
+
+    let load = rows.get(row);
+
+    if (!load) {
+      load = new Promise<Record<string, unknown> | null>((resolve) => {
+        resolve(loaders(context).stageQuery({ root }, row));
+      })
+        .then((loaded) => {
+          // Loaded values win for the selection's keys. The row's other keys are kept.
+          const merged = { ...row };
+
+          for (const key of keys) {
+            merged[key] = loaded![key];
+          }
+
+          return merged;
+        })
+        .catch((error: unknown) => {
+          // Clients see only a generic message.
+          throw new Error('Unexpected error.', { cause: error });
+        });
+      rows.set(row, load);
+    }
+
+    return load;
+  };
+
+  return (parent, context, info) => {
+    const row = parent as Record<string, unknown>;
+
+    for (let i = 0; i < keys.length; i += 1) {
+      if (row[keys[i]] === undefined) {
+        return reload(row, context, info);
+      }
+    }
+
+    return row;
+  };
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {

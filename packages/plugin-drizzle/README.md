@@ -594,6 +594,12 @@ Use type selections for data required whenever the type is loaded, and field sel
 needed by a particular field. Both are merged into the parent query; they do not make each field
 an independent database query. See [Query planning](https://pothos-graphql.dev/docs/plugins/drizzle/query-planning).
 
+With `ScopeAuthPlugin`, scope checks that read the parent see what its type loads (its `select`, or
+every column), even for a row returned from a plain `t.field`. A row missing that data is reloaded,
+so a row that no longer exists fails the field with `Unexpected error.`. To return a deleted row,
+load it with a `t.drizzleField` query before deleting it. Only top-level keys are checked, so a row
+with a partly loaded relation isn't reloaded.
+
 ## Connections
 
 Connection fields combine cursor pagination with Pothos's selection planning. Define the rows a
