@@ -68,7 +68,7 @@ import {
   splitSelect,
 } from './utils/selections.js';
 import { completeReturnedVariantRows } from './utils/variant-rows.js';
-import { assertVariantTypes } from './utils/variant-types.js';
+import { variantTypeNames } from './utils/variant-types.js';
 
 export type {
   ConnectionHelperRow,
@@ -241,7 +241,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       assertNoVariantRelations(raw, ownModel, typeConfig.name, contract);
     }
     this.assertSelectsAgree(typeConfig, model);
-    const plugins: readonly string[] | undefined = this.builder.options.plugins;
     return {
       ...typeConfig,
       extensions: {
@@ -251,9 +250,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         // Filled in afterBuild by registerImplementations.
         ...(typeConfig.kind === 'Interface' ? { [PRISMA_NEXT_IMPLEMENTATIONS]: new Map() } : {}),
         // Read by scope-auth, whose `runScopesOnType` checks run from `isTypeOf`, before any
-        // field reloads the row. The builder's plugin list is complete before any type is built,
-        // so this holds whichever order the two plugins are listed in.
-        ...(typeConfig.kind === 'Object' && plugins?.includes('scopeAuth')
+        // field reloads the row.
+        ...(typeConfig.kind === 'Object'
           ? { pothosScopeAuthParent: this.createTypeParentLoader(typeConfig.name) }
           : {}),
       },
@@ -361,7 +359,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     adapter.registerImplementations(schema);
     for (const type of Object.values(schema.getTypeMap())) {
       if (isInterfaceType(type) && type.extensions?.[PRISMA_NEXT_DISCRIMINATED]) {
-        assertVariantTypes(contract, schema, type);
+        // Throws when a variant has no implementing type, or several.
+        variantTypeNames(contract, schema, type);
       }
     }
     return schema;

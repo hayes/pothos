@@ -40,12 +40,3 @@ export function variantTypeNames(
   cache.set(iface, names);
   return names;
 }
-
-/** Checks, when the schema is built, that each variant of the interface's model has one type. */
-export function assertVariantTypes(
-  contract: AnyContract,
-  schema: GraphQLSchema,
-  iface: GraphQLInterfaceType,
-) {
-  variantTypeNames(contract, schema, iface);
-}

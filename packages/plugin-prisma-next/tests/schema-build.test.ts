@@ -392,13 +392,3 @@ describe('options validated when the schema is built', () => {
     ).toThrow(/'Entry\.payload'.*bytes/);
   });
 });
-
-describe('scope-auth parent loader', () => {
-  it('is not added to object types when scope-auth is not installed', () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    ok(builder);
-    const schema = builder.toSchema();
-    expect(schema.getType('User')?.extensions).not.toHaveProperty('pothosScopeAuthParent');
-  });
-});

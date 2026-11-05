@@ -4,7 +4,7 @@ import type { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import { PRISMA_NEXT_CONFIG } from '../constants.js';
 import type { PlannedCollection } from '../types/collections.js';
 import type { MapperCollection, PrismaNextAdapter, PrismaNextPlan } from './adapter.js';
-import { assertContextObject, type PrismaNextConfig } from './config.js';
+import type { PrismaNextConfig } from './config.js';
 import type { PrismaNextModel } from './model.js';
 import { EMPTY, type IncludeRecord, type PrismaNextSelection, takeSlots } from './selections.js';
 
@@ -34,7 +34,6 @@ export function planSelection(
   target: PlanTarget,
   initial: PrismaNextSelection,
 ): MaybePromise<{ selection: PrismaNextSelection; model: PrismaNextModel } | undefined> {
-  assertContextObject(context);
   const plan = Plan.fromInfo(config.adapter, { context, info, ...target, initial });
   return (
     plan &&

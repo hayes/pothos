@@ -8,7 +8,6 @@ import {
   isObjectType,
   isUnionType,
 } from 'graphql';
-import { PRISMA_NEXT_CONNECTION_AGGREGATE } from '../constants.js';
 import type { MapperCollection } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
 import {
@@ -19,7 +18,6 @@ import {
   type OrderByDecl,
   withCursorValues,
 } from './cursors.js';
-import { InternalError } from './errors.js';
 import type { PrismaNextRelation } from './model.js';
 import {
   assertQueryOptions,
@@ -118,13 +116,11 @@ export function connectionSettings(
     if (!(names && returnType)) {
       return { needsRows: true, count: source };
     }
-    const type = connectionType(returnType);
-    const isAggregate = (name: string) =>
-      (source !== undefined && name === 'totalCount') ||
-      (isObjectType(type) &&
-        !!type.getFields()[name]?.extensions?.[PRISMA_NEXT_CONNECTION_AGGREGATE]);
+    const _type = connectionType(returnType);
     return {
-      needsRows: [...names].some((name) => name !== '__typename' && !isAggregate(name)),
+      needsRows: [...names].some(
+        (name) => name !== '__typename' && !(source !== undefined && name === 'totalCount'),
+      ),
       count: names.has('totalCount') ? source : undefined,
     };
   }
@@ -167,20 +163,8 @@ function withTotalCount(connectionOptions: object): object {
     fields: (
       t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>,
     ): Record<string, unknown> => ({
-      totalCount: t.int({
-        nullable: false,
-        extensions: { [PRISMA_NEXT_CONNECTION_AGGREGATE]: true },
-        // A missing count is an error rather than 0. Only the connection helpers can leave it out:
-        // `wrap` without one, or `resolve` without the parent its field was given.
-        resolve: (parent) => {
-          if (parent.totalCount === undefined) {
-            throw new InternalError(
-              "totalCount has no count. Pass one to the connection helpers' wrap, as in wrap(rows, await totalCountPromise), or pass resolve the parent its field was given.",
-            );
-          }
-          return parent.totalCount;
-        },
-      }),
+      // The connection helpers' `wrap` without a count leaves it out, which fails the field.
+      totalCount: t.int({ nullable: false, resolve: (parent) => parent.totalCount! }),
       ...(userFields ? userFields(t) : {}),
     }),
   };

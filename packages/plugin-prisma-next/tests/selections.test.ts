@@ -1,4 +1,3 @@
-import { execute, parse } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import { buildExampleSchema } from './example/schema';
 import { detailOf } from './fixtures/errors';
@@ -543,18 +542,5 @@ describe('a connection collection that already includes a relation', () => {
       "A collection returned to @pothos/plugin-prisma-next already includes 'posts'. Return it without include(): the plugin includes what the query selects. Filter a relation with its field's `query` option.",
     ]);
     expect(result.statements).toHaveLength(0);
-  });
-});
-
-describe('the context', () => {
-  it('fails up front without a contextValue, which holds the per-request state', async () => {
-    const schema = createExampleBuilder().toSchema();
-    for (const document of ['{ users { firstName } }', '{ users { id posts { id } } }']) {
-      const result = await execute({ schema, document: parse(document) });
-      expect(result.data).toEqual({ users: null });
-      expect(result.errors?.map((error) => detailOf(error))).toEqual([
-        expect.stringMatching(/^@pothos\/plugin-prisma-next requires an object contextValue/),
-      ]);
-    }
   });
 });

@@ -14,7 +14,5 @@ export const PRISMA_NEXT_DISCRIMINATED = 'pothosPrismaNextDiscriminated';
 export const PRISMA_NEXT_IMPLEMENTATIONS = 'pothosPrismaNextImplementations';
 /** The to-one relation a field loads with its own query or variant, replacing the declared one. */
 export const PRISMA_NEXT_REFINED_TO_ONE = 'pothosPrismaNextRefinedToOne';
-/** Marks a connection's field that doesn't read the connection's rows, so they aren't loaded for it. */
-export const PRISMA_NEXT_CONNECTION_AGGREGATE = 'pothosPrismaNextConnectionAggregate';
 /** The plugin's config, on each prisma type, so `collectionFromInfo` finds it from `info.schema`. */
 export const PRISMA_NEXT_CONFIG = 'pothosPrismaNextConfig';

@@ -58,8 +58,8 @@ This example uses PostgreSQL, where the client groups models by schema (`ctx.db.
 SQLite and MySQL work the same way with their own Prisma packages. Their clients don't group models,
 and the rest of these docs use that shorter form, `ctx.db.orm.User`.
 
-Pass a context object, such as `contextValue: {}`, when you execute an operation. The plugin throws
-without one.
+Pass a context object, such as `contextValue: {}`, when you execute an operation. The plugin keeps
+per-request state on it.
 
 ## Transactions
 
