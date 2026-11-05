@@ -2,14 +2,8 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { beforeAll, describe, expect, it } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
-import {
-  createBuilder,
-  detailOf,
-  run,
-  unexpected,
-  useCollisionDb,
-  useSampleDb,
-} from './fixtures/helpers';
+import { detailOf, unexpected } from './fixtures/errors';
+import { createBuilder, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
 

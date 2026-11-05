@@ -1,15 +1,14 @@
 import { OrderByItem, ParamRef } from '@prisma/orm-family-sql/relational-core/ast';
 import { describe, expect, it } from 'vitest';
 import { prismaConnectionHelpers } from '../src';
+import { detailOf, unexpected } from './fixtures/errors';
 import {
   type CapturedExecution,
   createBuilder,
   deferSchema,
-  detailOf,
   run,
   runIncremental,
   type SampleOptions,
-  unexpected,
   useSampleDb,
   withCapture,
 } from './fixtures/helpers';

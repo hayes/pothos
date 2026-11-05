@@ -9,9 +9,9 @@ import { GraphQLError, type GraphQLFieldResolver, GraphQLScalarType, printSchema
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import { buildExampleSchema } from './example/schema';
+import { detailOf } from './fixtures/errors';
 import {
   createBuilder,
-  detailOf,
   postSubqueries,
   run,
   type SampleContract,

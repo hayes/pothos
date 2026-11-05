@@ -3,10 +3,10 @@ import type { HasRow } from '@prisma/orm-family-sql/orm-client';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin from '../src';
+import { detailOf } from './fixtures/errors';
 import {
   createBuilder,
   deferSchema,
-  detailOf,
   run,
   runIncremental,
   useCollisionDb,

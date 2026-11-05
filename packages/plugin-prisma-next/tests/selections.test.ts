@@ -1,11 +1,11 @@
 import { execute, parse } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import { buildExampleSchema } from './example/schema';
+import { detailOf } from './fixtures/errors';
 import {
   columnsOf,
   createBuilder,
   deferSchema,
-  detailOf,
   globalId,
   postSubqueries,
   run,

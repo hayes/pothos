@@ -22,7 +22,7 @@ import {
 } from 'graphql';
 import { afterAll, beforeAll, describe, expect, expectTypeOf, it } from 'vitest';
 import prismaNextPlugin, { type PothosPrismaNextPlugin, prismaConnectionHelpers } from '../src';
-import { detailOf } from './fixtures/helpers';
+import { detailOf } from './fixtures/errors';
 import {
   type CapturedExecution,
   createSqliteRuntime,

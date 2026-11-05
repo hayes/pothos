@@ -3,15 +3,14 @@ import { execute, parse } from 'graphql';
 import { describe, expect, it, vi } from 'vitest';
 import prismaNextPlugin from '../src';
 import { PrismaNextAdapter } from '../src/utils/adapter';
+import { detailOf, unexpected } from './fixtures/errors';
 import {
   createBuilder,
   deferSchema,
-  detailOf,
   run,
   runIncremental,
   type SampleOptions,
   sampleContract,
-  unexpected,
   useCollisionDb,
   useSampleDb,
 } from './fixtures/helpers';

@@ -2,9 +2,9 @@ import { Collection } from '@prisma/orm-family-sql/orm-client';
 import sqlite from '@prisma/orm-sqlite/runtime';
 import { describe, expect, it } from 'vitest';
 import { collectionFromInfo } from '../src';
+import { detailOf } from './fixtures/errors';
 import {
   createBuilder,
-  detailOf,
   run,
   type SampleContract,
   sampleContract,

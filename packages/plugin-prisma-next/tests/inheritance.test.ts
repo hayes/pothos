@@ -6,7 +6,8 @@ import { contractFromJson } from '@prisma/orm-sqlite/static';
 import { GraphQLError, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
-import { detailOf, loadContract, run, useDatabase } from './fixtures/helpers';
+import { detailOf } from './fixtures/errors';
+import { loadContract, run, useDatabase } from './fixtures/helpers';
 import type { Contract } from './inheritance/contract';
 
 const contract = loadContract<Contract>(new URL('./inheritance/contract.json', import.meta.url));
