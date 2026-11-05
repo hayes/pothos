@@ -15,8 +15,10 @@ export class InternalError extends Error {
 }
 
 /**
- * Errors `reloadFor` rethrows as they are: those of the app's code, the client and the database,
- * which keep their class, and errors that already name their field.
+ * Errors `reloadFor` rethrows as they are: those of the app's code and the client, which keep their
+ * class, client-safe errors such as `Invalid ID.`, and errors that already name their field. A
+ * database error from a query the plugin issues isn't kept. Errors from running a collection a
+ * resolver returned never pass through `reloadFor`.
  */
 const kept = new WeakSet<object>();
 
