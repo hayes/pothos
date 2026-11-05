@@ -2018,3 +2018,55 @@ describe.each(orders)('a type check that cannot load its row (%s)', (_, plugins)
     ]);
   });
 });
+
+// A resolver on a row without what its type selects gets the type's data whichever plugins are
+// installed, and in whichever order.
+describe.each([
+  ['without scope-auth', [prismaNextPlugin]],
+  ...orders,
+] as const)('resolvers on partial rows (%s)', (_, plugins) => {
+  function partialSchema() {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    } as never);
+    const Related = builder.prismaObject('User', {
+      variant: 'Related',
+      select: { email: true, posts: true },
+      fields: (t) => ({
+        summary: t.string({ resolve: (user) => `${user.email} ${user.posts.length}` }),
+      }),
+    });
+    const Columns = builder.prismaObject('User', {
+      variant: 'Columns',
+      select: ['email'],
+      fields: (t) => ({ greeting: t.string({ resolve: (user) => `Hi ${user.email}` }) }),
+    });
+    const Exposed = builder.prismaObject('User', {
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        related: t.field({ type: Related, resolve: () => ({ id: 'u-alice' }) as never }),
+        columns: t.field({ type: Columns, resolve: () => ({ id: 'u-alice' }) as never }),
+        exposed: t.field({ type: Exposed, resolve: () => ({ id: 'u-alice' }) as never }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it.each([
+    ['{ related { summary } }', { related: { summary: 'alice@example.com 2' } }],
+    ['{ columns { greeting } }', { columns: { greeting: 'Hi alice@example.com' } }],
+    ['{ exposed { firstName } }', { exposed: { firstName: 'Alice' } }],
+  ])('%s', async (query, data) => {
+    const result = await runCaptured(partialSchema(), query);
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual(data);
+    expect(result.statements).toHaveLength(1);
+  });
+});
