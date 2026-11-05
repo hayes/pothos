@@ -19,7 +19,7 @@ import type { ModelKey } from './types/models.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import { modelDiscriminator, resolveContractModel } from './utils/contract.js';
-import { InternalError } from './utils/errors.js';
+import { InternalError, reloadFor } from './utils/errors.js';
 import { getModelIdentities, truncatedDateProblem } from './utils/model.js';
 import { encodeNodeId, parseNodeId } from './utils/node-ids.js';
 import { getRefFromContractModel } from './utils/refs.js';
@@ -299,9 +299,11 @@ schemaBuilderProto.prismaNode = function prismaNode<
       if (isTuple && (!Array.isArray(id) || id.length !== idFields.length)) {
         throw new PothosValidationError('Invalid ID.');
       }
-      return config
-        .loader(context, nodeModelKey)
-        .loadNode(info, typeName, idFields, isTuple ? (id as unknown[]) : [id], collection);
+      return reloadFor(info, () =>
+        config
+          .loader(context, nodeModelKey)
+          .loadNode(info, typeName, idFields, isTuple ? (id as unknown[]) : [id], collection),
+      );
     },
   });
 

@@ -3,8 +3,9 @@ import RelayPlugin from '@pothos/plugin-relay';
 import { Collection } from '@prisma/orm-family-sql/orm-client';
 import sqlite from '@prisma/orm-sqlite/runtime';
 import { execute, type GraphQLObjectType, parse } from 'graphql';
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { afterAll, describe, expect, expectTypeOf, it } from 'vitest';
 import prismaNextPlugin from '../src';
+import { detailOf } from './fixtures/errors';
 import {
   createBuilder,
   globalId,
@@ -14,6 +15,7 @@ import {
   useCollisionDb,
   useSampleDb,
 } from './fixtures/helpers';
+import { createSqliteRuntime } from './fixtures/runtime';
 
 const db = useSampleDb();
 
@@ -655,6 +657,75 @@ describe('ID values', () => {
     builder.queryType({});
     const result = await run(builder.toSchema(), 'query ($id: ID!) { node(id: $id) { id } }', {
       variables: { id: globalId('Post', 'PNI:T:["S:p","S:MARKER"]') },
+    });
+    expect(result.errors?.[0].message).toBe('Invalid ID.');
+    expect(result.statements).toHaveLength(0);
+  });
+});
+
+describe('node load errors', () => {
+  // The user table lacks the contract's email column.
+  const broken = createSqliteRuntime(
+    sampleContract,
+    `CREATE TABLE user (id TEXT PRIMARY KEY NOT NULL, firstName TEXT NOT NULL,
+       lastName TEXT NOT NULL);
+     INSERT INTO user (id, firstName, lastName) VALUES ('u-alice', 'Alice', 'Andrews');`,
+  );
+  afterAll(() => broken.cleanup());
+
+  function brokenSchema() {
+    const builder = createBuilder({ client: broken.client });
+    builder.prismaNode('User', {
+      id: { field: 'id' },
+      fields: (t) => ({ email: t.exposeString('email') }),
+    });
+    builder.queryType({});
+    return builder.toSchema();
+  }
+
+  it.each([
+    ['node', 'query ($id: ID!) { node(id: $id) { ... on User { email } } }'],
+    ['nodes', 'query ($id: ID!) { nodes(ids: [$id]) { ... on User { email } } }'],
+  ])('keeps a database error from %s out of the response', async (_name, source) => {
+    const result = await run(brokenSchema(), source, {
+      variables: { id: globalId('User', 'u-alice') },
+    });
+    expect(result.errors).toHaveLength(1);
+    expect(detailOf(result.errors?.[0])).toMatch(/email/);
+  });
+
+  it("passes an error a field's select throws through as it is", async () => {
+    const builder = createBuilder();
+    builder.prismaNode('User', {
+      id: { field: 'id' },
+      fields: (t) => ({
+        guarded: t.string({
+          select: () => {
+            throw new Error('select failed');
+          },
+          resolve: () => 'unreachable',
+        }),
+      }),
+    });
+    builder.queryType({});
+    const result = await run(
+      builder.toSchema(),
+      'query ($id: ID!) { node(id: $id) { ... on User { guarded } } }',
+      { variables: { id: globalId('User', 'u-alice') } },
+    );
+    expect(result.errors?.map((error) => error.message)).toEqual(['select failed']);
+  });
+
+  it('still reports an ID its column codec rejects as invalid', async () => {
+    const builder = createBuilder({ client: broken.client });
+    builder.prismaNode('User', {
+      // Parses to a value the text column's codec rejects when the batch keys it.
+      id: { field: 'id', parse: (id) => ({ value: id }) as never },
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({});
+    const result = await run(builder.toSchema(), 'query ($id: ID!) { node(id: $id) { id } }', {
+      variables: { id: globalId('User', 'u-alice') },
     });
     expect(result.errors?.[0].message).toBe('Invalid ID.');
     expect(result.statements).toHaveLength(0);

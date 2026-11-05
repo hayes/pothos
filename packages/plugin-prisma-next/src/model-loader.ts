@@ -244,13 +244,23 @@ export class ModelLoader {
     const plans = this.plansFor(info).node;
     let selection = plans.get(key);
     if (!selection) {
-      const plan = Plan.fromInfo(this.config.adapter, {
-        context: this.context,
-        info,
-        typeName,
-        initial: this.initial,
-      }) as MaybePromise<PrismaNextPlan>;
-      selection = completeValue(plan, (settled) => settled.play());
+      // As in `loadSelection`, what planning throws reaches the field as it is.
+      const planned: MaybePromise<Played> = userCode(() =>
+        completeValue(
+          Plan.fromInfo(this.config.adapter, {
+            context: this.context,
+            info,
+            typeName,
+            initial: this.initial,
+          }) as MaybePromise<PrismaNextPlan>,
+          (settled) => settled.play(),
+        ),
+      );
+      selection = isThenable(planned)
+        ? (Promise.resolve(planned) as Promise<Played>).catch((error: unknown) => {
+            throw keepError(error);
+          })
+        : planned;
       plans.set(key, selection);
     }
     const load = (played: Played) => {
@@ -377,7 +387,7 @@ export class ModelLoader {
         keyed.push({ request, key: key(request.values) });
       } catch (error) {
         request.reject(
-          batch.load.kind === 'node' ? new PothosValidationError('Invalid ID.') : error,
+          batch.load.kind === 'node' ? keepError(new PothosValidationError('Invalid ID.')) : error,
         );
       }
     }
