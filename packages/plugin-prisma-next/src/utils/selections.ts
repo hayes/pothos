@@ -200,11 +200,6 @@ export function relationName(key: string) {
   return separator < 0 ? key : key.slice(0, separator);
 }
 
-/** A type-level select's scope is the type's name, which has no dot. */
-function isTypeScope(scope: string) {
-  return !scope.includes('.');
-}
-
 type Row = Record<string, unknown>;
 
 /**
@@ -245,11 +240,6 @@ interface RowSlots {
   readonly toOne: Readonly<Record<string, ReadonlyMap<string, unknown>>>;
   /** Every scope that has a slot on the row. */
   readonly scopes: ReadonlySet<string>;
-  /**
-   * Whether type-level selects loaded different versions of a relation or computed value. None is
-   * then written onto the row, and each type's readers get a projection with their own.
-   */
-  readonly conflict: boolean;
   /** Projections of the row, keyed by the scopes they write onto it. */
   projections?: Map<string, object>;
   /** A to-one relation a field reloaded with its own query or variant, by the field's scope. */
@@ -262,7 +252,6 @@ const PLAIN: RowSlots = Object.freeze({
   slots: Object.freeze({}),
   toOne: Object.freeze({}),
   scopes: new Set<string>(),
-  conflict: false,
 });
 
 /** The slots of each row `takeSlots` returned, and of each projection of one. */
@@ -396,44 +385,13 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
     delete next[name];
   }
   Object.assign(next, nested);
-  // Type-level selects load to-one relations whole, so only to-many slots can disagree.
-  const typeScopes = [...scopes].filter(isTypeScope);
-  const entry: RowSlots = {
+  rowSlots.set(next, {
     row: next,
     slots: slots ?? PLAIN.slots,
     toOne: toOne ?? PLAIN.toOne,
     scopes,
-    conflict: disagree(slots ?? PLAIN.slots, typeScopes),
-  };
-  if (!entry.conflict) {
-    lift(next, entry, typeScopes);
-  }
-  rowSlots.set(next, entry);
+  });
   return next;
-}
-
-/** Whether two of `scopes` loaded different rows of a relation, or computed the same key. */
-function disagree(slots: RowSlots['slots'], scopes: readonly string[]) {
-  if (scopes.length < 2) {
-    return false;
-  }
-  const computed = new Set<string>();
-  for (const { rows, values } of Object.values(slots)) {
-    if (
-      new Set(scopes.filter((scope) => rows.has(scope)).map((scope) => rows.get(scope))).size > 1
-    ) {
-      return true;
-    }
-    for (const scope of scopes) {
-      for (const key of Object.keys(values.get(scope) ?? {})) {
-        if (computed.has(key)) {
-          return true;
-        }
-        computed.add(key);
-      }
-    }
-  }
-  return false;
 }
 
 /**
@@ -491,9 +449,16 @@ export function rowOf(value: object): object {
   return rowSlots.get(value)?.row ?? value;
 }
 
+/** The key of a list of scopes, memoized per list. */
+const scopeKeys = new WeakMap<readonly string[], string>();
+
 /** A copy of `base` with what `scopes` loaded written onto it, cached per row and scopes. */
 function projection(entry: RowSlots, base: object, scopes: readonly string[]) {
-  const key = scopes.join(SCOPE_SEPARATOR);
+  let key = scopeKeys.get(scopes);
+  if (key === undefined) {
+    key = scopes.join(SCOPE_SEPARATOR);
+    scopeKeys.set(scopes, key);
+  }
   entry.projections ??= new Map();
   let projected = entry.projections.get(key);
   if (!projected) {
@@ -507,32 +472,26 @@ function projection(entry: RowSlots, base: object, scopes: readonly string[]) {
 }
 
 /**
- * The parent the readers of a type see, whose type-level selects are `scopes`, the type last: the
- * row itself, unless type-level selects disagree about what they loaded. Then it is a projection
- * with the rows and values `scopes` loaded, cached so per-row caches such as scope-auth's see one
- * object.
+ * The parent the readers of a type see, whose type-level selects are `scopes`, the type last: a
+ * copy of the row with the rows and values they loaded, cached so per-row caches such as
+ * scope-auth's see one object.
  */
 export function parentForType(value: object, scopes: readonly string[]): object {
   const entry = rowSlots.get(value);
   const row = entry?.row ?? value;
-  if (!entry?.conflict) {
+  if (!entry || !scopes.some((scope) => entry.scopes.has(scope))) {
     return row;
   }
-  const present = scopes.filter((scope) => entry.scopes.has(scope));
-  if (!present.length) {
-    return row;
+  if (!entry.projections?.has(scopes.join(SCOPE_SEPARATOR))) {
+    assertOneWriter(entry, scopes);
   }
-  if (!entry.projections?.has(present.join(SCOPE_SEPARATOR))) {
-    assertOneWriter(entry, present);
-  }
-  return projection(entry, row, present);
+  return projection(entry, row, scopes);
 }
 
 /**
  * Throws when two `select`s of one type compute the same key, of which the type's parent holds one
  * value that the fields and auth checks of both read. A select function's keys are only known
- * once it runs, so this is checked on the rows it loaded, whatever their values. `disagree` flags
- * every such row, as it does rows where implementations of one interface compute the same key.
+ * once it runs, so this is checked on the rows it loaded, whatever their values.
  */
 function assertOneWriter({ slots }: RowSlots, scopes: readonly string[]) {
   const writers = new Map<string, { scope: string; relation: string }>();
@@ -574,8 +533,7 @@ export function parentForField(
   if (!entry || scope === undefined || !entry.scopes.has(scope)) {
     return base;
   }
-  const present = entry.conflict ? scopes.filter((type) => entry.scopes.has(type)) : [];
-  const parent = projection(entry, base, [...present, scope]);
+  const parent = projection(entry, base, [...scopes, scope]);
   fieldParents.set(parent, position!);
   return parent;
 }
@@ -599,7 +557,6 @@ export function refineKeptToOne(parent: object, value: unknown, scope: string | 
       slots: entry?.slots ?? PLAIN.slots,
       toOne: entry?.toOne ?? PLAIN.toOne,
       scopes: entry?.scopes ?? PLAIN.scopes,
-      conflict: false,
       refined: new Map(scope === undefined ? [] : [[scope, value]]),
     });
     return parent;
