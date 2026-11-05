@@ -9,6 +9,7 @@ import {
   mappingsOf,
   queryFromInfo,
   resolveInfo,
+  unexpected,
 } from './fake-adapter';
 import { countPromises } from './promise-spy';
 import { createTestAdapter, createTestSchema, type Wrap, withSelects, withWraps } from './schema';
@@ -121,7 +122,9 @@ describe('async callbacks', () => {
     const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
 
     expect(() => queryFromInfo(async, { context: {}, info })).toThrow(
-      'The selection function of User.posts returned while a nested selection it started was still pending',
+      unexpected(
+        'The selection function of User.posts returned while a nested selection it started was still pending',
+      ),
     );
 
     // ...so the select awaits it.
@@ -160,7 +163,9 @@ describe('async callbacks', () => {
     const info = await resolveInfo(schema, '{ user { posts { id } } }');
 
     await expect(queryFromInfo(async, { context: {}, info })).rejects.toThrow(
-      'The selection function of User.posts returned while a nested selection it started was still pending',
+      unexpected(
+        'The selection function of User.posts returned while a nested selection it started was still pending',
+      ),
     );
   });
 
@@ -317,7 +322,9 @@ describe('async callbacks', () => {
     );
 
     expect(() => queryFromInfo(async, { context: {}, info })).toThrow(
-      'The selection function of User.postsConnection returned while a nested selection it started was still pending',
+      unexpected(
+        'The selection function of User.postsConnection returned while a nested selection it started was still pending',
+      ),
     );
   });
 
@@ -349,7 +356,7 @@ describe('async callbacks', () => {
     const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
       at: ['Viewer', 'posts'],
     });
-    const plan = await Plan.forParentRow(withSelects(['posts'], deferred), {}, info);
+    const plan = await Plan.forParentRow(withSelects(['posts'], deferred), { context: {}, info });
 
     // The type-level `posts: { take: 5 }` conflicts with the field's `take: 2`, merged first.
     expect(adapter.toQuery(plan.root)).toEqual({
@@ -421,7 +428,7 @@ describe('a nested selection that was not awaited', () => {
 
       expect(() =>
         queryFromInfo(withWraps({ posts: discarding, author: rejecting }), { context, info }),
-      ).toThrow(message);
+      ).toThrow(unexpected(message));
       expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
     });
   });
@@ -446,7 +453,7 @@ describe('a nested selection that was not awaited', () => {
       const info = await resolveInfo(schema, source);
       const late = withWraps({ posts: discardingAsync(1), author: asyncRelation(undefined, 20) });
 
-      await expect(queryFromInfo(late, { context, info })).rejects.toThrow(message);
+      await expect(queryFromInfo(late, { context, info })).rejects.toThrow(unexpected(message));
       expect(getLoaderMapping(context, pathOf('user', 'posts'), 'User')).toBe(null);
 
       // The discarded plan completes after the invocation was refused: still nothing recorded.
@@ -514,7 +521,7 @@ describe('a plan that throws after a callback started', () => {
         { at: ['Viewer', 'posts'] },
       );
 
-      expect(() => Plan.forParentRow(failing, {}, info)).toThrow('sync');
+      expect(() => Plan.forParentRow(failing, { context: {}, info })).toThrow('sync');
       expect(calls).toBe(2);
     });
   });
@@ -567,7 +574,7 @@ describe('the synchronous path', () => {
       at: ['Viewer', 'posts'],
     });
 
-    expect(countPromises(() => Plan.forParentRow(adapter, {}, info)).promises).toBe(0);
+    expect(countPromises(() => Plan.forParentRow(adapter, { context: {}, info })).promises).toBe(0);
     expect(
       countPromises(() =>
         Plan.fromInfo(adapter, {

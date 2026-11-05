@@ -13,7 +13,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, setRowMappings } from '@pothos/selection-mapper';
+import { getLoaderMapping, mappingParentTypes, setRowMappings } from '@pothos/selection-mapper';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
@@ -172,16 +172,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       plans: createContextCache(() => new Map<string, MaybePromise<PrismaPlan>>()),
     };
 
-    const parentTypes = new Set([fieldConfig.parentType]);
-
-    if (parentConfig.kind === 'Interface' || parentConfig.kind === 'Object') {
-      for (const iface of parentConfig.interfaces) {
-        const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
-        if (interfaceConfig.extensions?.pothosPrismaModel) {
-          parentTypes.add(interfaceConfig.name);
-        }
-      }
-    }
+    const parentTypes = mappingParentTypes(this.buildCache, fieldConfig, 'pothosPrismaModel');
 
     return (parent, args, context, info) => {
       // Asked of the row: a mapping recorded for this row wins over the plan's, which answers

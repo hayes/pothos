@@ -17,10 +17,96 @@ describe('deepEqual', () => {
     expect(deepEqual({}, { orderBy: undefined, limit: 1 })).toBe(false);
   });
 
-  it('compares boxed and date values by their primitive value', () => {
+  it('compares dates by their time', () => {
     expect(deepEqual(new Date(1), new Date(1))).toBe(true);
+    expect(
+      deepEqual({ where: { createdAt: new Date(1) } }, { where: { createdAt: new Date(1) } }),
+    ).toBe(true);
     expect(deepEqual(new Date(1), new Date(2))).toBe(false);
     expect(deepEqual({}, new Date(1))).toBe(false);
     expect(deepEqual(new Date(1), {})).toBe(false);
+  });
+
+  it('compares opaque class instances through equals, or by identity', () => {
+    class Instant {
+      #value: number;
+      constructor(value: number) {
+        this.#value = value;
+      }
+      valueOf(): never {
+        throw new TypeError('use equals');
+      }
+      equals(other: Instant) {
+        return this.#value === other.#value;
+      }
+    }
+    class Hidden {
+      #value: number;
+      constructor(value: number) {
+        this.#value = value;
+      }
+      read() {
+        return this.#value;
+      }
+    }
+    const hidden = new Hidden(1);
+
+    expect(deepEqual(new Instant(1), new Instant(1))).toBe(true);
+    expect(deepEqual(new Instant(1), new Instant(2))).toBe(false);
+    expect(deepEqual(new Instant(1), {})).toBe(false);
+    expect(deepEqual(hidden, hidden)).toBe(true);
+    expect(deepEqual(new Hidden(1), new Hidden(1))).toBe(false);
+  });
+
+  it('compares class instances without equals by identity', () => {
+    class Point {
+      constructor(readonly x: number) {}
+    }
+    const point = new Point(1);
+
+    expect(deepEqual(point, point)).toBe(true);
+    expect(deepEqual(new Point(1), new Point(1))).toBe(false);
+    expect(deepEqual(new Point(1), { x: 1 })).toBe(false);
+  });
+
+  it('compares opaque instances symmetrically, and only with the same prototype', () => {
+    // An `equals` that accepts property bags, like Temporal's.
+    class Bag {
+      #year: number;
+      constructor(year: number) {
+        this.#year = year;
+      }
+      valueOf(): never {
+        throw new TypeError('use equals');
+      }
+      equals(other: { year?: number }) {
+        return other instanceof Bag ? this.#year === other.#year : other?.year === this.#year;
+      }
+    }
+    class Other {
+      valueOf(): never {
+        throw new TypeError('use equals');
+      }
+      equals() {
+        return true;
+      }
+    }
+
+    expect(deepEqual(new Bag(2020), { year: 2020 })).toBe(false);
+    expect(deepEqual({ year: 2020 }, new Bag(2020))).toBe(false);
+    expect(deepEqual(new Other(), new Bag(2020))).toBe(false);
+    expect(deepEqual(new Bag(2020), new Other())).toBe(false);
+    expect(deepEqual(new Bag(2020), new Bag(2020))).toBe(true);
+  });
+
+  it('compares typed arrays by identity, and buffers through equals', () => {
+    const bytes = new Uint8Array([1, 2]);
+
+    expect(deepEqual(bytes, bytes)).toBe(true);
+    expect(deepEqual(new Uint8Array([1, 2]), new Uint8Array([1, 2]))).toBe(false);
+    expect(deepEqual(new Uint8Array([1, 2]), { 0: 1, 1: 2 })).toBe(false);
+    expect(deepEqual(Buffer.from([1, 2]), Buffer.from([1, 2]))).toBe(true);
+    expect(deepEqual(Buffer.from([1, 2]), Buffer.from([1, 3]))).toBe(false);
+    expect(deepEqual(Buffer.from([1, 2]), new Uint8Array([1, 2]))).toBe(false);
   });
 });

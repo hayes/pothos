@@ -12,9 +12,9 @@ their own. Use the plugins.
 The surface is what those plugins import and nothing more: `Plan` (with the statics `Plan.fromInfo`
 and `Plan.forParentRow`), `Adapter` and `NodeAdapter`, the loader-map helpers (`cacheKey`,
 `getLoaderMapping`, `setFieldMapping`, `setLoaderMappings`, `setRowFieldMapping`,
-`setRowMappings`), `selectedFieldNames` and `deepEqual`. Turning a plan into the query a resolver
-is handed is each plugin's own job — prisma's `queryFromInfo` and drizzle's differ — so neither of
-them is here.
+`setRowMappings`), `mappingParentTypes`, `selectedFieldNames` and `deepEqual`. Turning a plan
+into the query a resolver is handed is each plugin's own job — prisma's `queryFromInfo` and
+drizzle's differ — so neither of them is here.
 
 ## Vocabulary
 
@@ -43,7 +43,7 @@ them is here.
   find its data in the loaded row; absent means the resolver loads its own data.
 - **Position** — where a field is: a link of `{ parent, type, field, node }` running back to the
   field an entry point was called for, handed to a select function and recorded with the field's
-  mapping.
+  mapping. `walkParent` is the same link as the shared walk holds it.
 
 ## The adapter contract
 
@@ -90,3 +90,7 @@ extends `Adapter` directly.
   reads none of it — an adapter that wants a path or a list of segments walks `parent` and
   materializes its own — and records it with the field's mapping, so a resolver can ask the same
   question the select path asked.
+- Reading `parent` during planning stops the walk it reads through from being shared, so each
+  place the field appears is walked again with its own path. `walkParent` reads the shared walk's
+  parents without that cost; they are the first invocation's, so use it only for a name that must
+  agree with itself, not for where a field really is.

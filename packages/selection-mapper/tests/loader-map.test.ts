@@ -9,6 +9,7 @@ import {
   setLoaderMappings,
   setRowFieldMapping,
   setRowMappings,
+  unionMappings,
 } from '../src/loader-map.js';
 
 type Path = GraphQLResolveInfo['path'];
@@ -142,6 +143,20 @@ describe('loader map', () => {
     expect(getLoaderMapping(ctx, child(next, 0, 'posts'), 'User', row)).toBe(planned);
   });
 
+  it('keeps a disagreeing row mapping off the siblings that agreed with the first plan', () => {
+    const ctx = {};
+    const root = pathOf('users');
+    const planned: Mapping = { nested: {} };
+    const reloaded: Mapping = { nested: {} };
+    const rows = [{}, {}, {}];
+    const paths = rows.map((_, i) => child(root, i, 'posts'));
+    setFieldMapping(ctx, info(paths[0]), planned, rows[0]);
+    setFieldMapping(ctx, info(paths[1]), reloaded, rows[1]);
+    expect(getLoaderMapping(ctx, paths[1], 'User', rows[1])).toBe(reloaded);
+    expect(getLoaderMapping(ctx, paths[0], 'User', rows[0])).toBe(planned);
+    expect(getLoaderMapping(ctx, paths[2], 'User', rows[2])).toBe(planned);
+  });
+
   it('does not give agreeing rows an override of their shared field mapping', () => {
     const ctx = {};
     const root = pathOf('users');
@@ -157,5 +172,37 @@ describe('loader map', () => {
     rows.forEach((row, i) => {
       expect(getLoaderMapping(ctx, paths[i], 'User', row)).toBe(replanned);
     });
+  });
+});
+
+describe('unionMappings', () => {
+  /** A mapping `depth` levels deep with two keys per level, both holding the level below. */
+  function sharedMapping(depth: number): Mapping {
+    let mapping: Mapping = { nested: {} };
+
+    for (let level = 0; level < depth; level += 1) {
+      mapping = { nested: { 'A@x': mapping, 'B@x': mapping } };
+    }
+
+    return mapping;
+  }
+
+  it('returns a mapping unioned with itself as it is', () => {
+    const mapping = sharedMapping(40);
+
+    expect(unionMappings(mapping, mapping)).toBe(mapping);
+  });
+
+  it('visits a pair of mappings once however many keys share it', () => {
+    const union = unionMappings(sharedMapping(40), sharedMapping(40));
+
+    let at = union;
+
+    for (let level = 0; level < 40; level += 1) {
+      expect(at.nested['A@x']).toBe(at.nested['B@x']);
+      at = at.nested['A@x'];
+    }
+
+    expect(at.nested).toEqual({});
   });
 });

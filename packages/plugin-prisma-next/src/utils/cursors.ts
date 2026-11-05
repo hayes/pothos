@@ -8,7 +8,6 @@ import {
   PothosValidationError,
   parseCursorConnectionArgs,
 } from '@pothos/core';
-import { deepEqual } from '@pothos/selection-mapper';
 import { and, or } from '@prisma/orm-family-sql/orm-client';
 import { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import type { AnyContract } from '../types.js';
@@ -338,7 +337,7 @@ function applyToCollection<C extends MapperCollection>(
   const expected = getCollectionPaginationState(ordered).orderBy.slice(existing.length);
   if (
     existing.length > expected.length ||
-    existing.some((item, i) => !(item instanceof OrderByItem) || !deepEqual(item, expected[i]))
+    existing.some((item, i) => !(item instanceof OrderByItem) || !sameAstNode(item, expected[i]))
   ) {
     throw new PothosValidationError(
       'Connection Collection orderBy() must match a prefix of the cursor ordering for this page direction. Backward pagination requires reversed ordering; return an unordered Collection to support both directions.',
@@ -451,4 +450,24 @@ export function buildConnectionPage<Row extends Record<string, unknown>>(
       hasNextPage: pagination.hasNextPage(rows.length),
     },
   };
+}
+
+/** Order items and their expressions are class instances, which `deepEqual` compares by identity. */
+function sameAstNode(left: unknown, right: unknown): boolean {
+  if (left === right) {
+    return true;
+  }
+  if (!(left && right && typeof left === 'object' && typeof right === 'object')) {
+    return false;
+  }
+  if (Object.getPrototypeOf(left) !== Object.getPrototypeOf(right)) {
+    return false;
+  }
+  const keys = Object.keys(left);
+  return (
+    keys.length === Object.keys(right).length &&
+    keys.every((key) =>
+      sameAstNode((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key]),
+    )
+  );
 }
