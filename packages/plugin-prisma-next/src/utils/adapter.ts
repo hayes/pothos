@@ -1,1189 +1,552 @@
-/**
- * How prisma-next's builder-chain query format maps onto `@pothos/selection-mapper`.
- *
- * The walker plans a selection set into a tree of `PrismaNextNode`s (the adapter's own node
- * type: columns, and relations holding alias-keyed branches and function-form entries) through
- * `PrismaNextSpec` maps, and `emit` turns the serialized root into `.select(...)` /
- * `.include(rel, ...)` / `.combine({...})` calls on the resolver's collection.
- *
- * Every relation consumer gets its own combine slot (`<alias>:<slot>`, or
- * `:object:<Type>:<slot>` for a type-level select), while compatible to-one consumers share one include. The adapter
- * extends `Adapter` directly and checks compatibility before accepting a field selection.
- * Loader mappings record accepted consumers; per-resolve overlays present their combine slots.
- */
-import { isThenable, PothosValidationError } from '@pothos/core';
 import {
-  Adapter,
   deepEqual,
   type MergeOptions,
-  type NestedSelection,
+  type Node,
+  NodeAdapter,
   type Plan,
-  type SelectFn,
+  type QueryVisitor,
   type WalkedType,
 } from '@pothos/selection-mapper';
-import { type GraphQLField, type GraphQLNamedType, getNamedType } from 'graphql';
-import { PRISMA_NEXT_FIELD_SELECT, PRISMA_NEXT_MODEL, PRISMA_NEXT_SELECT } from '../constants.js';
-import type { AnyContract } from '../types.js';
+import {
+  type GraphQLField,
+  type GraphQLNamedType,
+  type GraphQLSchema,
+  isInterfaceType,
+} from 'graphql';
+import {
+  PRISMA_NEXT_FIELD_SELECTION,
+  PRISMA_NEXT_IMPLEMENTATIONS,
+  PRISMA_NEXT_MODEL,
+  PRISMA_NEXT_TYPE_SELECT,
+} from '../constants.js';
+import type { AnyContract } from '../types/models.js';
 import {
   getIdentityFields,
   getModel,
   type PrismaNextModel,
   type PrismaNextRelation,
 } from './model.js';
-
-type TypeLevelConflict = { kind: 'relation'; name: string } | { kind: 'extra'; name: string };
-
-// ---------------------------------------------------------------------------------------------
-// The builder surface.
-// ---------------------------------------------------------------------------------------------
+import {
+  COMPUTE,
+  type ComputedSelection,
+  compileTypeSelect,
+  EMPTY,
+  type IncludedRelation,
+  type IncludeRecord,
+  KEY_SEPARATOR,
+  loadsWholeRelation,
+  type Narrowing,
+  type PrismaNextSelectFn,
+  type PrismaNextSelection,
+  type RawSelect,
+  REFINE,
+  type RelationArgs,
+  relationName,
+  SCOPE_SEPARATOR,
+} from './selections.js';
 
 /**
- * Loose structural shape the emitter chains into. The real orm-client
- * `Collection` is fully typed, but the plugin only knows the model
- * name and columns at runtime — so a fully-typed Collection would
- * collapse `.select(name)` to `keyof never`. Add a method here when
- * orm-client adds one the emitter needs.
+ * A loose shape of orm-client's `Collection`. The typed one collapses `.select(name)` to
+ * `keyof never` when the model is only known at runtime.
  */
 export interface MapperCollection {
   select(...fields: string[]): MapperCollection;
-  include(name: string, refine?: (rel: MapperCollection) => MapperCollection): MapperCollection;
+  include(name: string, refine?: (rel: MapperCollection) => unknown): MapperCollection;
   combine(spec: Record<string, unknown>): MapperCollection;
-  /**
-   * In-`include` scalar reducers. `count()` reduces a to-many relation
-   * to its row count; `sum`/`avg`/`min`/`max(field)` reduce it to the
-   * aggregate of a numeric column (`null` over an empty set). All four
-   * return prisma-next `IncludeScalar` brands that flow into a parent
-   * `combine({...})` spec, exactly like `count()`.
-   */
-  count(): unknown;
-  sum(field: string): unknown;
-  avg(field: string): unknown;
-  min(field: string): unknown;
-  max(field: string): unknown;
   where(input: unknown): MapperCollection;
   orderBy(input: unknown): MapperCollection;
-  /**
-   * Native keyset seek. Requires a prior `orderBy(...)` (the real
-   * orm-client type-gates this on `hasOrderBy`); seeks strictly past
-   * the given column→value boundary in the active orderBy direction
-   * (`>` for asc, `<` for desc). Single boundary only.
-   */
-  cursor(cursorValues: Record<string, unknown>): MapperCollection;
   limit(n: number): MapperCollection;
   offset(n: number): MapperCollection;
+  variant(value: string): MapperCollection;
+  /** The count reducer for a `combine()` slot. Targets without aggregates, such as MySQL, lack it. */
+  count(): unknown;
+  readonly state?: { readonly variantValue?: unknown };
 }
 
-// ---------------------------------------------------------------------------------------------
-// Spec: the `Query` the walker passes around.
-// ---------------------------------------------------------------------------------------------
+export type PrismaNextNode = Node<PrismaNextModel>;
+export type PrismaNextPlan = Plan<PrismaNextModel, PrismaNextSelection>;
 
-export type PrismaNextArgs = Record<string, unknown>;
+/** Every selection key the plugin plans names a relation of its level's model. */
+function relationOf(model: PrismaNextModel, name: string): PrismaNextRelation {
+  return model.relations[name]!;
+}
 
-/** Refines the relation collection before the branch's own selection is emitted onto it. */
-export type PrismaNextRefine = (rel: MapperCollection) => MapperCollection | null | undefined;
+type Visitor = QueryVisitor<PrismaNextModel, PrismaNextSelection>;
 
-/**
- * A function-form entry: the combine entries one consumer adds to a relation, each keyed
- * `<alias>:<key>` in the combine spec. Runs at emit time against the relation collection.
- */
-export type PrismaNextSpecFn = (sub: MapperCollection, ctx: object) => Record<string, unknown>;
-
-/** A function-form entry with the slot namespace it runs under (the serialized form). */
-export interface PrismaNextFnEntry {
-  /** Stable schema definition owning a callback compiled separately for each path. */
-  source?: object;
-  fn: PrismaNextSpecFn;
-  alias?: string;
-  /** The field arguments the function was bound to, so two selections under one alias compare. */
-  args?: PrismaNextArgs;
+/** The consumers of one relation on a level: their rows and computed values, by scope. */
+interface RelationConsumers {
+  rows: [string, PrismaNextSelection][];
+  computed: [string, ComputedSelection][];
 }
 
 /**
- * A selection on one level. On a relation entry it is one branch: its own nested selection,
- * the refine and args applied before the descent, and the slot it answers to (`<alias>:<slot>`,
- * `slot` defaulting to the relation name; a connection uses `rows`).
+ * Reads Prisma Next selections into the selection-mapper's node tree and turns planned nodes into
+ * collection calls. `NodeAdapter` decides how nodes merge and conflict. Consumers of a to-many
+ * relation never conflict, because each scope has its own slot.
  */
-export interface PrismaNextSpec {
-  /** Stable schema definition owning this relation query, preserved through batch merging. */
-  source?: object;
-  /**
-   * The slot namespace when the walker gives no field key: a type-level select carries
-   * `:object:<Type>`; a serialized branch carries the field alias it was walked under, so a
-   * spec round-trips through `merge` without a key.
-   */
-  alias?: string;
-  slot?: string;
-  /** The field's arguments: two consumers of one slot must agree on them. */
-  args?: PrismaNextArgs;
-  refine?: PrismaNextRefine;
-  columns?: readonly string[];
-  relations?: Record<string, PrismaNextRelationEntry | PrismaNextRelationEntry[]>;
-}
-
-/**
- * What a relation key holds: `true` (include, nothing beneath), a branch, or a function-form
- * entry. An array lists several consumers of one relation from one field (a connection: its
- * rows branch and its count).
- */
-export type PrismaNextRelationEntry = true | PrismaNextSpec | PrismaNextSpecFn | PrismaNextFnEntry;
-
-export type PrismaNextSelectFn = SelectFn<PrismaNextSpec>;
-export type PrismaNextPlan = Plan<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
-
-// ---------------------------------------------------------------------------------------------
-// Node: the accumulator.
-// ---------------------------------------------------------------------------------------------
-
-export interface PrismaNextBranch {
-  source?: object;
-  alias: string;
-  slot: string;
-  args: PrismaNextArgs;
-  refine?: PrismaNextRefine;
-  node: PrismaNextNode;
-}
-
-export interface PrismaNextFn {
-  source?: object;
-  alias: string;
-  fn: PrismaNextSpecFn;
-  args: PrismaNextArgs;
-}
-
-export interface PrismaNextRelationAcc {
-  meta: PrismaNextRelation;
-  /** Keyed `<alias>:<slot>`. */
-  branches: Map<string, PrismaNextBranch>;
-  /** Keyed by alias: one field adds one function to a relation. */
-  functions: Map<string, PrismaNextFn>;
-}
-
-export interface PrismaNextNode {
-  model: PrismaNextModel;
-  columns: Set<string>;
-  relations: Map<string, PrismaNextRelationAcc>;
-  /** Set by `merge` under `options.asQuery` on a nested plan's root; the parent's branch carries them. */
-  slot?: string;
-  refine?: PrismaNextRefine;
-}
-
-export function createPrismaNextNode(model: PrismaNextModel): PrismaNextNode {
-  return { model, columns: new Set(), relations: new Map() };
-}
-
-// ---------------------------------------------------------------------------------------------
-// Slot naming.
-// ---------------------------------------------------------------------------------------------
-
-/**
- * Combine-slot key separator. `:` is forbidden by GraphQL's Name
- * grammar (/^[_A-Za-z][_0-9A-Za-z]*$/), so combine keys produced by
- * the walker can NEVER collide with user-provided GraphQL aliases or
- * relation names. Object-level selects prefix with `:object:<typeName>`
- * so variants sharing a row but declaring distinct object-level selects
- * route to distinct combine slots.
- */
-const COMBINE_SEPARATOR = ':';
-const OBJECT_LEVEL_PREFIX = `${COMBINE_SEPARATOR}object${COMBINE_SEPARATOR}`;
-
-export function objectLevelFieldAlias(typeName: string): string {
-  return `${OBJECT_LEVEL_PREFIX}${typeName}`;
-}
-
-/** Combine slot key = `<graphqlFieldAlias>:<specKey>`; the per-field overlay reads it back. */
-export function selectBranchAlias(fieldAlias: string, specKey: string): string {
-  return `${fieldAlias}${COMBINE_SEPARATOR}${specKey}`;
-}
-
-/** The prefix a combine slot carries for one field alias. */
-export function fieldAliasPrefix(fieldAlias: string): string {
-  return `${fieldAlias}${COMBINE_SEPARATOR}`;
-}
-
-// ---------------------------------------------------------------------------------------------
-// Merge.
-// ---------------------------------------------------------------------------------------------
-
-function getOrCreateRelation(node: PrismaNextNode, name: string): PrismaNextRelationAcc {
-  let relation = node.relations.get(name);
-
-  if (!relation) {
-    const meta = node.model.relations[name];
-
-    if (!meta) {
-      throw new PothosValidationError(
-        `Relation "${name}" does not exist on model ${node.model.name}`,
-      );
-    }
-
-    relation = { meta, branches: new Map(), functions: new Map() };
-    node.relations.set(name, relation);
-
-    // Including a relation reads its parent-side FK columns, so prisma-next's nested-stitch
-    // works at depth 2+ even when the GraphQL query didn't ask for them.
-    for (const column of meta.localFields) {
-      node.columns.add(column);
-    }
-  }
-
-  return relation;
-}
-
-/**
- * A slot already present is unioned with the new selection: the walker applies one field once
- * per node that selects it (every `info.fieldNodes` entry; two fragments selecting the same
- * field), and those are the same field with the same arguments by GraphQL's own merge rules.
- * The same slot reached with other arguments (the same alias under `edges.node` and `nodes`
- * with different arguments) cannot share one include, so it is refused.
- */
-function addBranch(
-  relation: PrismaNextRelationAcc,
-  name: string,
-  alias: string,
-  spec: PrismaNextSpec,
-) {
-  const slot = spec.slot ?? name;
-  const id = selectBranchAlias(alias, slot);
-  const args = spec.args ?? {};
-  let branch = relation.branches.get(id);
-
-  // The ORM supports one include for a to-one relation. Keep every consumer's
-  // selection namespace, but only share the include when its query agrees.
-  if (!relation.meta.isToMany) {
-    for (const existing of relation.branches.values()) {
-      if (!deepEqual(existing.args, args) || !sameRefine(existing.refine, spec.refine)) {
-        throw new SelectionConflict(
-          name,
-          `Relation "${name}" is to-one and has incompatible queries under aliases "${selectBranchAlias(existing.alias, existing.slot)}" and "${id}". ` +
-            'The ORM does not support independent include branches for to-one relations (ORM.INCLUDE_UNSUPPORTED).',
-        );
-      }
-    }
-  }
-
-  if (!branch) {
-    branch = {
-      alias,
-      slot,
-      args,
-      refine: spec.refine,
-      source: spec.source,
-      node: createPrismaNextNode(relation.meta.target),
-    };
-    relation.branches.set(id, branch);
-  } else if (!deepEqual(branch.args, args) || !sameBranchRefine(branch, spec)) {
-    throw new SelectionConflict(
-      name,
-      `Relation "${name}" is selected twice under alias "${id}" with different queries. Alias one of the selections.`,
-    );
-  } else {
-    branch.refine ??= spec.refine;
-  }
-
-  mergeSpec(branch.node, spec, alias);
-}
-
-class SelectionConflict extends PothosValidationError {
-  constructor(
-    readonly relation: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-/** Check the shared to-one includes too: their child namespaces meet only at emission. */
-function validateIncludes(node: PrismaNextNode): void {
-  for (const relation of node.relations.values()) {
-    if (!relation.meta.isToMany && relation.branches.size > 1 && relation.functions.size === 0) {
-      const shared = createPrismaNextNode(relation.meta.target);
-      for (const branch of relation.branches.values()) {
-        mergeSpec(
-          shared,
-          scopeChildConsumers({ ...serializeNode(branch.node), alias: branch.alias }),
-          branch.alias,
-        );
-      }
-      validateIncludes(shared);
-    } else {
-      for (const branch of relation.branches.values()) {
-        validateIncludes(branch.node);
-      }
-    }
-  }
-}
-
-/**
- * A function-form entry merged into `relation`. `options.fn` binds the field's arguments into a
- * fresh closure per compile, so one relation selected twice under the same alias (under `nodes`
- * and under `edges { node }` of a connection, say) arrives as two different functions. Comparing
- * field definition and bound arguments identifies duplicates without equating different
- * fields that happen to use the same response alias. Unknown callbacks compare by identity.
- * Conflicts get separate fallback batches rather than keeping the first function for both.
- */
-function addFunction(
-  relation: PrismaNextRelationAcc,
-  name: string,
-  alias: string,
-  fn: PrismaNextSpecFn,
-  args: PrismaNextArgs,
-  source?: object,
-) {
-  const existing = relation.functions.get(alias);
-
-  if (!existing) {
-    relation.functions.set(alias, { alias, fn, args, source });
-  } else if (
-    !deepEqual(existing.args, args) ||
-    (existing.source ?? existing.fn) !== (source ?? fn)
-  ) {
-    throw new SelectionConflict(
-      name,
-      `Relation "${name}" is selected twice under alias "${alias}" with different queries. Alias one of the selections.`,
-    );
-  }
-}
-
-/** `spec` into `node`, relation entries slotted under `alias` unless they carry one. */
-function mergeSpec(node: PrismaNextNode, spec: PrismaNextSpec, alias: string | undefined) {
-  if (spec.columns) {
-    for (const column of spec.columns) {
-      node.columns.add(column);
-    }
-  }
-
-  if (!spec.relations) {
-    return;
-  }
-
-  for (const name of Object.keys(spec.relations)) {
-    const entries = spec.relations[name];
-    const relation = getOrCreateRelation(node, name);
-
-    for (const entry of Array.isArray(entries) ? entries : [entries]) {
-      if (isThenable(entry)) {
-        throw new PothosValidationError(
-          `Relation "${name}" was given a promise. Await nestedSelection() inside an async selection function.`,
-        );
-      }
-
-      if (entry === true) {
-        addBranch(relation, name, requireAlias(name, alias), {});
-      } else if (typeof entry === 'function') {
-        addFunction(relation, name, requireAlias(name, alias), entry, {});
-      } else if ('fn' in entry) {
-        addFunction(
-          relation,
-          name,
-          requireAlias(name, entry.alias ?? alias),
-          entry.fn,
-          entry.args ?? {},
-          entry.source,
-        );
-      } else {
-        addBranch(relation, name, requireAlias(name, entry.alias ?? alias), entry);
-      }
-    }
-  }
-}
-
-function requireAlias(name: string, alias: string | undefined): string {
-  if (alias === undefined) {
-    throw new PothosValidationError(
-      `Relation "${name}" was merged without a slot: the walker gave no field key and the entry carries no alias.`,
-    );
-  }
-
-  return alias;
-}
-
-function serializeNode(node: PrismaNextNode): PrismaNextSpec {
-  const spec: PrismaNextSpec = {};
-
-  if (node.slot) {
-    spec.slot = node.slot;
-  }
-
-  if (node.refine) {
-    spec.refine = node.refine;
-  }
-
-  if (node.columns.size > 0) {
-    spec.columns = [...node.columns];
-  }
-
-  if (node.relations.size === 0) {
-    return spec;
-  }
-
-  spec.relations = {};
-
-  for (const [name, relation] of node.relations) {
-    const entries: PrismaNextRelationEntry[] = [];
-
-    for (const branch of relation.branches.values()) {
-      entries.push({
-        alias: branch.alias,
-        slot: branch.slot,
-        args: branch.args,
-        ...(branch.source ? { source: branch.source } : {}),
-        ...(branch.refine ? { refine: branch.refine } : {}),
-        ...serializeNode(branch.node),
-      });
-    }
-
-    for (const fn of relation.functions.values()) {
-      entries.push({
-        alias: fn.alias,
-        fn: fn.fn,
-        args: fn.args,
-        ...(fn.source ? { source: fn.source } : {}),
-      });
-    }
-
-    spec.relations[name] = entries.length === 1 ? entries[0] : entries;
-  }
-
-  return spec;
-}
-
-// ---------------------------------------------------------------------------------------------
-// Compiling the plugin's `select` option shapes into specs.
-// ---------------------------------------------------------------------------------------------
-
-/**
- * The public `select` shape on `t.field` / `prismaObject`: a column array, or an object whose
- * keys are columns (`true`) or relations (`true`, a declarative refine, or a function-form
- * entry).
- */
-export type RawSelect = readonly string[] | Record<string, unknown>;
-
-/**
- * Declarative refine: `{ where?, orderBy?, limit?, offset? }`. Matches
- * the surface of the legacy `query` option. No scalar terminals
- * allowed by construction — anything else must go through function-form.
- */
-interface DeclarativeRefineSpec {
-  where?: unknown | ((accessor: unknown) => unknown);
-  orderBy?: (accessor: unknown) => unknown;
-  limit?: number;
-  offset?: number;
-}
-
-function isDeclarativeRefineSpec(value: unknown): value is DeclarativeRefineSpec {
-  if (value === null || typeof value !== 'object') {
-    return false;
-  }
-  const o = value as Record<string, unknown>;
-  // At least one of the declarative keys must be present, and the
-  // object can only contain declarative keys (so a function-returning
-  // object that happens to have a `where` property isn't misread).
-  const hasAny = 'where' in o || 'orderBy' in o || 'limit' in o || 'offset' in o;
-  if (!hasAny) {
-    return false;
-  }
-  for (const k of Object.keys(o)) {
-    if (k !== 'where' && k !== 'orderBy' && k !== 'limit' && k !== 'offset') {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * Compile a declarative refine into a callback the emitter applies to
- * the refinement collection. Where/orderBy callbacks receive the
- * model accessor; static `where` objects pass through to `.where()`
- * directly.
- */
-const declarativeRefines = new WeakMap<PrismaNextRefine, DeclarativeRefineSpec>();
-
-function sameRefine(a: PrismaNextRefine | undefined, b: PrismaNextRefine | undefined): boolean {
-  return (
-    a === b ||
-    !!(
-      a &&
-      b &&
-      declarativeRefines.has(a) &&
-      declarativeRefines.has(b) &&
-      deepEqual(declarativeRefines.get(a), declarativeRefines.get(b))
-    )
-  );
-}
-
-function sameBranchRefine(branch: PrismaNextBranch, spec: PrismaNextSpec): boolean {
-  return (
-    sameRefine(branch.refine, spec.refine) ||
-    !!(
-      branch.source &&
-      branch.source === spec.source &&
-      branch.refine &&
-      spec.refine &&
-      !declarativeRefines.has(branch.refine) &&
-      !declarativeRefines.has(spec.refine)
-    )
-  );
-}
-
-export function compileDeclarativeRefine(spec: DeclarativeRefineSpec): PrismaNextRefine {
-  const refine: PrismaNextRefine = (rel) => {
-    let r = rel;
-    if (spec.where !== undefined) {
-      r = r.where(spec.where);
-    }
-    if (spec.orderBy !== undefined) {
-      r = r.orderBy(spec.orderBy);
-    }
-    if (spec.limit !== undefined) {
-      r = r.limit(spec.limit);
-    }
-    if (spec.offset !== undefined) {
-      r = r.offset(spec.offset);
-    }
-    return r;
-  };
-  declarativeRefines.set(refine, spec);
-  return refine;
-}
-
-interface CompileOptions {
-  /** The model the keys are classified against. */
-  model: PrismaNextModel | undefined;
-  /** Where the select came from, for error messages. */
-  owner: string;
-  /** The prefix of the error messages (`select` or `prismaObject select`). */
-  label: string;
-  /** The slot namespace for entries that need one before the walker assigns a field alias. */
-  alias?: string;
-  /** The field's arguments, recorded on every branch. */
-  args?: PrismaNextArgs;
-  /**
-   * How a relation entry that includes rows (`true` or a declarative refine) gets its branch:
-   * the nested selection beneath the field when it can be walked, an empty branch otherwise.
-   */
-  branch?: (relation: PrismaNextRelation, query: PrismaNextSpec | undefined) => PrismaNextSpec;
-  /** How a function-form entry is bound to the field's args and context. */
-  fn?: (value: (...args: unknown[]) => unknown) => PrismaNextSpecFn;
-}
-
-/** Turns one `select` value into a spec. Throws on a key that is neither column nor relation. */
-export function compileSelect(raw: RawSelect, options: CompileOptions): PrismaNextSpec {
-  const columns: string[] = [];
-  const spec: PrismaNextSpec = options.alias === undefined ? {} : { alias: options.alias };
-
-  if (Array.isArray(raw)) {
-    for (const col of raw) {
-      if (typeof col === 'string') {
-        columns.push(col);
-      }
-    }
-
-    spec.columns = columns;
-
-    return spec;
-  }
-
-  const { model, owner, label } = options;
-  const relations: Record<string, PrismaNextRelationEntry> = {};
-  let hasRelations = false;
-
-  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (value === false || value === undefined || value === null) {
-      continue;
-    }
-
-    const relation = model?.relations[key];
-    const isKnownColumn = model?.columns?.has(key) ?? true;
-
-    if (value === true) {
-      if (relation) {
-        relations[key] = options.branch
-          ? { ...options.branch(relation, undefined), args: options.args ?? {} }
-          : true;
-        hasRelations = true;
-      } else if (isKnownColumn) {
-        columns.push(key);
-      } else {
-        throw new PothosValidationError(
-          `${label}: '${key}' is not a column or relation on ${owner}. ` +
-            'Check for a typo, or register the field via the contract.',
-        );
-      }
-    } else if (typeof value === 'function') {
-      if (!relation) {
-        throw new PothosValidationError(
-          `${label}: '${key}' has a function value but is not a relation on ${owner}.`,
-        );
-      }
-
-      relations[key] = options.fn
-        ? { fn: options.fn(value as (...args: unknown[]) => unknown), args: options.args ?? {} }
-        : (value as PrismaNextSpecFn);
-      hasRelations = true;
-    } else if (isDeclarativeRefineSpec(value)) {
-      if (!relation) {
-        throw new PothosValidationError(
-          `${label}: '${key}' has a { where, limit, offset, orderBy } entry but is not a relation on ${owner}.`,
-        );
-      }
-
-      const refine = compileDeclarativeRefine(value);
-
-      relations[key] = {
-        ...(options.branch ? options.branch(relation, { refine }) : { refine }),
-        args: options.args ?? {},
-      };
-      hasRelations = true;
-    } else {
-      // Anything that isn't true/false/declarative/function is a
-      // malformed spec. Most common cause: a typo in declarative-keys
-      // like `{ posts: { whre: ... } }`, which silently dropped before
-      // this guard.
-      throw new PothosValidationError(
-        `${label}: '${key}' has an unrecognized value shape. Use \`true\`, ` +
-          '`{ where?, orderBy?, limit?, offset? }`, or a function ' +
-          '`(sub, args, ctx) => spec`.',
-      );
-    }
-  }
-
-  if (columns.length > 0) {
-    spec.columns = columns;
-  }
-
-  if (hasRelations) {
-    spec.relations = relations;
-  }
-
-  return spec;
-}
-
-/** A select object whose entries are all columns: compiled once, no select function needed. */
-function isStaticColumns(raw: Record<string, unknown>, model: PrismaNextModel | undefined) {
-  return (
-    Object.values(raw).every((value) => value === true || !value) &&
-    Object.keys(raw).every((key) => !model?.relations[key])
-  );
-}
-
-interface FieldSelectExtensions {
-  pothosExposedField?: unknown;
-  pothosOptions?: { select?: unknown };
-  pothosIndirectInclude?: { getType: () => string; path?: unknown[]; paths?: unknown[] };
-  [PRISMA_NEXT_FIELD_SELECT]?: PrismaNextSpec | PrismaNextSelectFn;
-}
-
-/** Preserve schema definition identity across paths without changing the identity of nested consumers. */
-function withSelectionSource(spec: PrismaNextSpec, source: object): PrismaNextSpec {
-  if (!spec.relations) {
-    return spec;
-  }
-  const identifyEntry = (entry: PrismaNextRelationEntry): PrismaNextRelationEntry =>
-    typeof entry === 'function'
-      ? { fn: entry, source }
-      : entry === true
-        ? entry
-        : { ...entry, source: entry.source ?? source };
-  return {
-    ...spec,
-    relations: Object.fromEntries(
-      Object.entries(spec.relations).map(([name, entries]) => [
-        name,
-        Array.isArray(entries) ? entries.map(identifyEntry) : identifyEntry(entries),
-      ]),
-    ),
-  };
-}
-
-/**
- * The selection of one field of `parentModel`: the columns of `t.expose*` (`pothosExposedField`),
- * the `select` option (`pothosOptions.select`: columns, or relations that need a select function
- * so the nested selection beneath the field can be walked), and `t.variant` (a field-level
- * indirect include without a path: the variant type's selection set is walked on the same row).
- */
-function compileFieldSelection(
-  field: GraphQLField<unknown, unknown>,
-  parentModel: PrismaNextModel | undefined,
-  adapter: PrismaNextAdapter,
-): PrismaNextSpec | PrismaNextSelectFn | undefined {
-  const modelFor = (type: GraphQLNamedType) => adapter.modelFor(type);
-
-  const ext = (field.extensions ?? {}) as FieldSelectExtensions;
-
-  if (ext[PRISMA_NEXT_FIELD_SELECT]) {
-    return ext[PRISMA_NEXT_FIELD_SELECT];
-  }
-
-  const exposed = typeof ext.pothosExposedField === 'string' ? [ext.pothosExposedField] : [];
-  const raw = ext.pothosOptions?.select as
-    | RawSelect
-    | ((...args: unknown[]) => unknown)
-    | undefined;
-  // The model the field returns directly. Undefined for a scalar (a nested selection there is
-  // the query alone) and for a wrapper such as an errors-plugin result type (the walker follows
-  // its include; the adapter cannot without the schema, so it descends).
-  const returnModel = modelFor(getNamedType(field.type));
-  const indirect = ext.pothosIndirectInclude;
-  const owner = parentModel?.name ?? '(unknown model)';
-
-  const withColumns = (spec: PrismaNextSpec, extra: readonly string[]): PrismaNextSpec =>
-    extra.length === 0 ? spec : { ...spec, columns: [...extra, ...(spec.columns ?? [])] };
-
-  // t.variant: the same-row redirect into the named type's selection set, with the forced
-  // column reads of its `select` option applied to the same level.
-  if (indirect && !indirect.path?.length && !indirect.paths?.length) {
-    const forced = Array.isArray(raw) ? (raw as readonly string[]) : [];
-
-    return (_args, _ctx, nested, _selected, position) => {
-      const selection = nested(true) as PrismaNextSpec | PromiseLike<PrismaNextSpec>;
-      const finish = (spec: PrismaNextSpec) =>
-        withColumns(
-          scopeChildConsumers({
-            ...spec,
-            alias: position.node.alias?.value ?? position.node.name.value,
-          }),
-          [...exposed, ...forced],
-        );
-      return isThenable(selection) ? Promise.resolve(selection).then(finish) : finish(selection);
-    };
-  }
-
-  if (raw === undefined) {
-    return exposed.length > 0 ? { columns: exposed } : undefined;
-  }
-
-  const compile = (
-    value: RawSelect,
-    args: PrismaNextArgs,
-    nested: NestedSelection<PrismaNextSpec>,
-  ): PrismaNextSpec | Promise<PrismaNextSpec> => {
-    const pending: Promise<void>[] = [];
-    const branches: PrismaNextSpec[] = [];
-    let index = 0;
-    let replay = false;
-    const build = () =>
-      withColumns(
-        compileSelect(value, {
-          model: parentModel,
-          owner,
-          label: 'select',
-          args,
-          // The nested selection is walked as the field's return type, so when that type is
-          // known to be backed by another model than the relation's, the entry is a bare include.
-          branch: (relation, query) => {
-            const slot = index++;
-            if (replay) {
-              return branches[slot];
-            }
-            const selection = (
-              returnModel && returnModel !== relation.target ? (query ?? {}) : nested(query)
-            ) as PrismaNextSpec | PromiseLike<PrismaNextSpec>;
-            if (isThenable(selection)) {
-              pending.push(
-                Promise.resolve(selection).then((spec) => {
-                  branches[slot] = spec;
-                }),
-              );
-              return {};
-            }
-            branches[slot] = selection;
-            return selection;
-          },
-          fn: (value) => (sub, fnCtx) =>
-            (value as PrismaNextSpecFn & ((s: unknown, a: unknown, c: unknown) => never))(
-              sub,
-              args,
-              fnCtx,
-            ) as Record<string, unknown>,
-        }),
-        exposed,
-      );
-    const spec = build();
-    // The compiler spreads each branch into its relation entry. Rebuild with settled
-    // branches so no promise is spread, without invoking nested selections a second time.
-    return pending.length === 0
-      ? spec
-      : Promise.all(pending).then(() => {
-          replay = true;
-          index = 0;
-          return build();
-        });
-  };
-
-  if (typeof raw === 'function') {
-    return (args, ctx, nested) => {
-      const value = raw(args, ctx) as RawSelect | PromiseLike<RawSelect> | null | undefined;
-
-      return isThenable(value)
-        ? Promise.resolve(value).then((resolved) =>
-            compile(resolved ?? {}, args as PrismaNextArgs, nested),
-          )
-        : compile(value ?? {}, args as PrismaNextArgs, nested);
-    };
-  }
-
-  if (Array.isArray(raw) || isStaticColumns(raw as Record<string, unknown>, parentModel)) {
-    return withColumns(compileSelect(raw, { model: parentModel, owner, label: 'select' }), exposed);
-  }
-
-  return (args, _ctx, nested) => compile(raw, args as PrismaNextArgs, nested);
-}
-
-/**
- * The type's `PRISMA_NEXT_SELECT`, `string[]` or an object of columns and relation entries,
- * compiled once to a spec slotted under `:object:<Type>`.
- */
-function compileTypeSelection(
-  type: GraphQLNamedType,
-  model: PrismaNextModel | undefined,
-): PrismaNextSpec | undefined {
-  if (!model) {
-    return undefined;
-  }
-
-  const node = createPrismaNextNode(model);
-  const visited = new Set<GraphQLNamedType>();
-  let hasSelection = false;
-  const collect = (current: GraphQLNamedType) => {
-    if (visited.has(current)) {
-      return;
-    }
-    visited.add(current);
-    // Inherited fields retain their defining interface's resolver and slot namespace.
-    // Load those prerequisites even when the GraphQL return type is concrete.
-    if ('getInterfaces' in current) {
-      for (const iface of current.getInterfaces()) {
-        collect(iface);
-      }
-    }
-    const raw = current.extensions?.[PRISMA_NEXT_SELECT] as RawSelect | undefined;
-    if (!raw) {
-      return;
-    }
-    hasSelection = true;
-    const alias = objectLevelFieldAlias(current.name);
-    const spec = compileSelect(raw, {
-      model,
-      owner: current.name,
-      label: 'prismaObject select',
-      alias,
-      // A type-level function entry runs with no field arguments.
-      fn: (value) => (sub, ctx) => value(sub, {}, ctx) as Record<string, unknown>,
-    });
-    mergeSpec(node, withSelectionSource(spec, current), alias);
-  };
-  collect(type);
-  return hasSelection ? serializeNode(node) : undefined;
-}
-
-// ---------------------------------------------------------------------------------------------
-// The adapter, one per contract.
-// ---------------------------------------------------------------------------------------------
-
-/**
- * To-many consumers get separate combine slots; to-one consumers share a compatible query
- * or, with a Collection provider, leave conflicting fields for a fallback batch. Without a
- * provider they fail validation while merging. The contract and the compiled
- * selections cached against the schema's types and fields, are this object's own state.
- */
-export class PrismaNextAdapter extends Adapter<PrismaNextModel, PrismaNextSpec, PrismaNextNode> {
-  // Provider-enabled plans can leave deferred fields for the model loader.
+export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSelection> {
   override readonly skipDeferredFragments: boolean;
-  private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSpec | null>();
-  private readonly fieldSelections = new WeakMap<
-    GraphQLField<unknown, unknown>,
-    PrismaNextSpec | PrismaNextSelectFn | null
+  private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSelection>();
+  /** What `droppedBeneathVariantModel` found, by type and then by relation. */
+  private readonly beneathVariantModel = new WeakMap<
+    GraphQLNamedType,
+    Map<PrismaNextRelation, PrismaNextSelection | null>
   >();
+  private readonly withoutIdentity = new WeakMap<PrismaNextModel, boolean>();
+  private readonly records = new WeakMap<object, IncludeRecord>();
 
   constructor(
-    private readonly contract: AnyContract,
-    readonly fallback = false,
+    readonly contract: AnyContract,
+    skipDeferredFragments: boolean,
   ) {
     super();
-    this.skipDeferredFragments = fallback;
+    this.skipDeferredFragments = skipDeferredFragments;
   }
 
   modelFor(type: GraphQLNamedType): PrismaNextModel | undefined {
     const name = type.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-
     return name === undefined ? undefined : getModel(this.contract, name);
   }
 
-  typeSelection(type: GraphQLNamedType): PrismaNextSpec | undefined {
-    let spec = this.typeSelections.get(type);
-
-    if (spec === undefined) {
-      const model = this.modelFor(type);
-      spec = compileTypeSelection(type, model) ?? null;
-      if (this.fallback && model) {
-        spec = {
-          ...spec,
-          columns: [...(spec?.columns ?? []), ...getIdentityFields(this.contract, model.name)],
-        };
-      }
-      this.typeSelections.set(type, spec);
-    }
-
-    return spec ?? undefined;
-  }
-
-  // A `GraphQLField` belongs to one type (`type.getFields()`), so the compile is cached on it.
-  fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
-    let selection = this.fieldSelections.get(field);
-
-    if (selection === undefined) {
-      const compiled = compileFieldSelection(field, this.modelFor(type), this) ?? {};
-      selection =
-        typeof compiled === 'function'
-          ? (...args) => {
-              const spec = compiled(...args);
-              const finish = (value: PrismaNextSpec | false | null | undefined) =>
-                value ? withSelectionSource(value, field) : value;
-              return isThenable(spec) ? Promise.resolve(spec).then(finish) : finish(spec);
-            }
-          : withSelectionSource(compiled, field);
-      this.fieldSelections.set(field, selection);
-    }
-
-    return selection ?? undefined;
-  }
-
-  createNode(model: PrismaNextModel): PrismaNextNode {
-    return createPrismaNextNode(model);
-  }
-
   /**
-   * The slot namespace is the spec's own (`:object:<Type>`, or a serialized spec's field alias)
-   * or the response key of the field the traversal is merging. A relation query is the branch's
-   * refine and slot; its columns (a connection's cursor) are read on the relation.
+   * Records the selection of each object type that implements a prisma interface of the same
+   * model. A row loaded as the interface may resolve as any of them, so the interface loads what
+   * each of them selects.
    */
-  mergeQuery(node: PrismaNextNode, spec: PrismaNextSpec, options?: MergeOptions) {
-    if (this.fallback && options?.lenient) {
-      // Parent-row loads prioritize the field's own query over incompatible
-      // type-level prerequisites, matching the shared mapper's loader contract.
-      mergeSpec(node, { columns: spec.columns }, spec.alias ?? options.alias);
-      for (const [name, entries] of Object.entries(spec.relations ?? {})) {
-        for (const entry of Array.isArray(entries) ? entries : [entries]) {
-          const part = { ...spec, relations: { [name]: entry } };
-          if (this.canMergeQuery(node, part, { alias: options.alias })) {
-            mergeSpec(node, part, spec.alias ?? options.alias);
+  registerImplementations(schema: GraphQLSchema) {
+    for (const type of Object.values(schema.getTypeMap())) {
+      const model = isInterfaceType(type) ? this.modelFor(type) : undefined;
+      if (model) {
+        const selections = implementationsOf(type)!;
+        for (const impl of schema.getPossibleTypes(type as never)) {
+          if (this.modelFor(impl) === model) {
+            selections.set(impl.name, this.typeSelection(impl)!);
           }
         }
       }
-      return;
     }
-    if (options?.asQuery) {
-      if (spec.refine) {
-        node.refine = spec.refine;
-      }
-
-      if (spec.slot) {
-        node.slot = spec.slot;
-      }
-    }
-
-    mergeSpec(node, spec, spec.alias ?? options?.alias);
   }
 
+  /**
+   * A type's own `select`, each of its interfaces' selects and, for an interface, its
+   * implementations' selections: a row loaded as the interface is resolved as one of them, whose
+   * `isTypeOf`, auth checks and fields read it even when the query has no fragment on that type.
+   *
+   * They all fit one node. To-many relations and computed values use each type's own slots, and a
+   * to-one relation is always `true` in a type's `select`. A type's `select` can't name a relation
+   * only a variant declares, but a base model's relation can't be included beneath a relation that
+   * targets a variant model, nor a base column read beneath one that targets a variant with a table
+   * of its own. `mergeQuery` leaves those out of such a level.
+   */
+  typeSelection(type: GraphQLNamedType): PrismaNextSelection | undefined {
+    const cached = this.typeSelections.get(type);
+    const model = cached ? undefined : this.modelFor(type);
+    if (!model) {
+      return cached;
+    }
+    const node = this.createNode(model);
+    const visited = new Set<GraphQLNamedType>();
+    const visit = (current: GraphQLNamedType) => {
+      if (visited.has(current)) {
+        return;
+      }
+      visited.add(current);
+      const raw = current.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
+      if (raw) {
+        super.mergeQuery(node, compileTypeSelect(raw, model, current.name));
+      }
+      for (const iface of 'getInterfaces' in current ? current.getInterfaces() : []) {
+        visit(iface);
+      }
+    };
+    visit(type);
+    for (const selection of implementationsOf(type)?.values() ?? []) {
+      super.mergeQuery(node, selection);
+    }
+    super.mergeQuery(node, { columns: getIdentityFields(this.contract, model.key) });
+    const selection = this.toQuery(node);
+    this.typeSelections.set(type, selection);
+    return selection;
+  }
+
+  /**
+   * The columns and to-one relations of `type`'s selection that `mergeQuery` leaves out of a level
+   * loading through a variant model's own accessor: the base model's relations and, for a variant
+   * with a table of its own, the base's columns. A relation field returning such rows loads them
+   * before it returns the rows, so plugins listed before this one see what the type's `select`
+   * promises. Undefined when the level loses none.
+   */
+  droppedBeneathVariantModel(
+    type: GraphQLNamedType,
+    relation: PrismaNextRelation,
+  ): PrismaNextSelection | undefined {
+    let byRelation = this.beneathVariantModel.get(type);
+    if (!byRelation) {
+      byRelation = new Map();
+      this.beneathVariantModel.set(type, byRelation);
+    }
+    let dropped = byRelation.get(relation);
+    if (dropped === undefined) {
+      const { targetVariantModel, target } = relation;
+      const narrowing: Narrowing = { value: targetVariantModel!.value, throughVariantModel: true };
+      const selection = this.typeSelection(type);
+      const readable = readableColumns(target, narrowing);
+      const columns = (selection?.columns ?? []).filter((column) => !readable?.has(column));
+      const relations = Object.entries(selection?.relations ?? {}).filter(
+        ([key]) =>
+          key === relationName(key) &&
+          !relationOf(target, key).isToMany &&
+          !canInclude(relationOf(target, key), narrowing),
+      );
+      dropped =
+        (readable && columns.length) || relations.length
+          ? {
+              ...(readable && columns.length ? { columns } : {}),
+              ...(relations.length ? { relations: Object.fromEntries(relations) } : {}),
+            }
+          : null;
+      byRelation.set(relation, dropped);
+    }
+    return dropped ?? undefined;
+  }
+
+  fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
+    // An interface field counts as planned even without a select of its own. The implementation
+    // it resolves on then reads the slots the interface planned for it.
+    const own = field.extensions?.[PRISMA_NEXT_FIELD_SELECTION] as
+      | PrismaNextSelection
+      | PrismaNextSelectFn
+      | undefined;
+    return own ?? (implementationsOf(type) ? EMPTY : undefined);
+  }
+
+  visitQuery(selection: PrismaNextSelection, model: PrismaNextModel, visit: Visitor) {
+    if (selection.columns === null) {
+      visit.allColumns();
+    } else {
+      for (const column of selection.columns ?? []) {
+        visit.column(column);
+      }
+    }
+    for (const key of Object.keys(selection.relations ?? {})) {
+      visit.relation(key, relationOf(model, relationName(key)).target, selection.relations![key]);
+    }
+    for (const key of Object.keys(selection.computed ?? {})) {
+      visit.computed(key, selection.computed![key], 'relation');
+    }
+    visit.args(selection.args ?? EMPTY);
+  }
+
+  /**
+   * A field's relations the ORM can't include on a level are left for the loader, and so is a field
+   * that would take a level past `MAX_RELATION_LOADS`. Each level a plan plays is checked, so no
+   * statement grows past it, however the document nests aliases with different arguments.
+   */
   override canMergeQuery(
     node: PrismaNextNode,
-    spec: PrismaNextSpec,
+    selection: PrismaNextSelection,
     options?: MergeOptions,
   ): boolean {
-    if (!this.fallback) {
+    return (
+      super.canMergeQuery(node, selection, options) &&
+      this.withoutUnloadable(selection, node) === selection &&
+      (loads(selection) === 0 || this.withinLoadLimit(node, selection))
+    );
+  }
+
+  /**
+   * Whether `node` can take the loads `selection` adds within `MAX_RELATION_LOADS`. A refused
+   * field reloads its parent, so a level of a model without an identity, which can't be reloaded,
+   * takes any selection. So does a level that loads nothing yet: a reload merges its field before
+   * the type's selection, so the field fits there however much it loads.
+   */
+  private withinLoadLimit(node: PrismaNextNode, selection: PrismaNextSelection) {
+    let withoutIdentity = this.withoutIdentity.get(node.model);
+    if (withoutIdentity === undefined) {
+      withoutIdentity = !getIdentityFields(this.contract, node.model.key).length;
+      this.withoutIdentity.set(node.model, withoutIdentity);
+    }
+    if (withoutIdentity) {
       return true;
     }
-    return !this.conflict(node, spec, options);
+    const held = this.toQuery(node);
+    const total = loads(held);
+    return total === 0 || total + loads(selection, held) <= MAX_RELATION_LOADS;
   }
 
-  override firstConflict(
+  /**
+   * A type's selection merges whatever level it lands on, so what that level can't load, a base
+   * relation beneath a relation targeting a variant model or a base column beneath one targeting a
+   * variant with a table of its own, is left out. The relation field loads the columns and to-one
+   * relations left out of the type's selection before returning the rows (see
+   * `droppedBeneathVariantModel`), and the type's fields reload the rest.
+   */
+  override mergeQuery(
     node: PrismaNextNode,
-    spec: PrismaNextSpec,
-  ): TypeLevelConflict | undefined {
-    return this.fallback ? this.conflict(node, spec) : undefined;
-  }
-
-  private conflict(
-    node: PrismaNextNode,
-    spec: PrismaNextSpec,
+    selection: PrismaNextSelection,
     options?: MergeOptions,
-  ): TypeLevelConflict | undefined {
-    const copy = createPrismaNextNode(node.model);
-    try {
-      this.mergeNode(copy, node);
-      this.mergeQuery(copy, spec, options);
-      validateIncludes(copy);
-      return undefined;
-    } catch (error) {
-      if (error instanceof SelectionConflict) {
-        return { kind: 'relation', name: error.relation };
+  ) {
+    super.mergeQuery(node, this.withoutUnloadable(selection, node), options);
+  }
+
+  /** `selection`, itself when nothing changes, without what `node`'s level can't load. */
+  private withoutUnloadable(selection: PrismaNextSelection, { model, args }: PrismaNextNode) {
+    const narrowing = selection.args?.variant ?? (args as RelationArgs).variant;
+    const fits = ([key]: [string, unknown]) =>
+      canInclude(relationOf(model, relationName(key)), narrowing);
+    const readable = readableColumns(model, narrowing);
+    const columnFits = (column: string) => !readable || readable.has(column);
+    const relations = Object.entries(selection.relations ?? {});
+    const computed = Object.entries(selection.computed ?? {});
+    return relations.every(fits) &&
+      computed.every(fits) &&
+      (selection.columns ?? []).every(columnFits)
+      ? selection
+      : {
+          ...selection,
+          // `null`, every column the level reads, stays as it is.
+          columns: selection.columns ? selection.columns.filter(columnFits) : selection.columns,
+          relations: Object.fromEntries(relations.filter(fits)),
+          computed: Object.fromEntries(computed.filter(fits)),
+        };
+  }
+
+  toQuery(node: PrismaNextNode): PrismaNextSelection {
+    const selection: PrismaNextSelection = {
+      columns: node.columns && [...node.columns],
+      args: node.args,
+    };
+    if (node.relations.size > 0) {
+      selection.relations = {};
+      for (const [key, child] of node.relations) {
+        selection.relations[key] = this.toQuery(child);
       }
-      throw error;
     }
-  }
-
-  toQuery(node: PrismaNextNode): PrismaNextSpec {
-    return serializeNode(node);
-  }
-}
-
-const adapters = new WeakMap<AnyContract, PrismaNextAdapter>();
-const fallbackAdapters = new WeakMap<AnyContract, PrismaNextAdapter>();
-
-export function prismaNextAdapter(contract: AnyContract, fallback = false): PrismaNextAdapter {
-  const cache = fallback ? fallbackAdapters : adapters;
-  let adapter = cache.get(contract);
-
-  if (!adapter) {
-    adapter = new PrismaNextAdapter(contract, fallback);
-    cache.set(contract, adapter);
-  }
-
-  return adapter;
-}
-
-// ---------------------------------------------------------------------------------------------
-// Emission: a serialized spec as builder calls.
-// ---------------------------------------------------------------------------------------------
-
-function isBranch(entry: PrismaNextRelationEntry): entry is PrismaNextSpec {
-  return typeof entry === 'object' && !('fn' in entry);
-}
-
-/** Emits a serialized spec (every relation entry carries its alias) as a chain on `collection`. */
-export function emit(
-  collection: MapperCollection,
-  spec: PrismaNextSpec,
-  model: PrismaNextModel | undefined,
-  ctx: object,
-): MapperCollection {
-  let acc = collection;
-
-  if (spec.columns?.length) {
-    acc = acc.select(...spec.columns);
-  }
-
-  for (const name of Object.keys(spec.relations ?? {})) {
-    if (!model) {
-      throw new PothosValidationError(`Cannot include relation "${name}" without a model`);
+    if (node.computed.size > 0) {
+      selection.computed = Object.fromEntries(node.computed) as Record<string, ComputedSelection>;
     }
-
-    acc = emitRelation(acc, name, spec.relations![name], model, ctx);
+    return selection;
   }
 
-  return acc;
+  /**
+   * Applies `selection` to `collection`: selects its columns and includes each relation once. What
+   * it included is recorded for `recordOf`, which `takeSlots` reads the loaded rows by.
+   */
+  emit(
+    collection: MapperCollection,
+    selection: PrismaNextSelection,
+    model: PrismaNextModel,
+    ctx: object,
+  ): MapperCollection {
+    const [result, record] = this.emitLevel(collection, selection, model, ctx, { next: 0 });
+    this.records.set(result, record);
+    return result;
+  }
+
+  /** What `emit` included in `collection`, for `takeSlots` to read its rows by. */
+  recordOf(collection: object): IncludeRecord | undefined {
+    return this.records.get(collection);
+  }
+
+  private emitLevel(
+    collection: MapperCollection,
+    selection: PrismaNextSelection,
+    model: PrismaNextModel,
+    ctx: object,
+    branches: BranchNames,
+  ): [MapperCollection, IncludeRecord] {
+    let result = selection.columns?.length ? collection.select(...selection.columns) : collection;
+    const record: Record<string, IncludedRelation> = {};
+    // The ORM includes a relation once, so all of its consumers share one include.
+    const consumers = new Map<string, RelationConsumers>();
+    const consumersOf = (key: string) => {
+      const name = relationName(key);
+      let entry = consumers.get(name);
+      if (!entry) {
+        entry = { rows: [], computed: [] };
+        consumers.set(name, entry);
+      }
+      return { scope: key.slice(name.length + 1), entry };
+    };
+    for (const [key, child] of Object.entries(selection.relations ?? {})) {
+      const { scope, entry } = consumersOf(key);
+      entry.rows.push([scope, child]);
+    }
+    for (const [key, value] of Object.entries(selection.computed ?? {})) {
+      const { scope, entry } = consumersOf(key);
+      entry.computed.push([scope, value]);
+    }
+    for (const [name, entry] of consumers) {
+      const relation = relationOf(model, name);
+      // The ORM builds the include while `include` runs, so the record is complete when it returns.
+      result = result.include(name, (rel) => {
+        const [included, recorded] = this.emitRelation(rel, relation, entry, ctx, branches);
+        record[name] = recorded;
+        return included;
+      });
+    }
+    return [result, record];
+  }
+
+  private emitRelation(
+    rel: MapperCollection,
+    relation: PrismaNextRelation,
+    { rows, computed }: RelationConsumers,
+    ctx: object,
+    branches: BranchNames,
+  ): [MapperCollection, IncludedRelation] {
+    const target = relation.targetVariantModel;
+    // The ORM reads a single-table variant's rows through the base table without filtering them.
+    const base = target?.sharesTable
+      ? rel.where((row: Record<string, { eq(value: unknown): unknown }>) =>
+          row[target.field].eq(target.value),
+        )
+      : rel;
+    const load = (selection: PrismaNextSelection) => {
+      const narrowing = selection.args?.variant;
+      const narrowed =
+        narrowing && !narrowing.throughVariantModel ? base.variant(narrowing.value) : base;
+      const refined = selection.args?.[REFINE]?.(narrowed) ?? narrowed;
+      return this.emitLevel(refined, selection, relation.target, ctx, branches);
+    };
+    if (!relation.isToMany) {
+      // A to-one relation is keyed by its name, so it has one consumer.
+      const [included, nested] = load(rows[0]![1]);
+      return [included, { nested }];
+    }
+    const shared = computed.length === 0 ? this.shareRows(relation.target, rows) : undefined;
+    if (shared) {
+      // Rows that are all of the relation can be read as `row[relation]` by anyone. Any others go
+      // in a slot of their consumers, so readers at other scopes can't mistake them for that.
+      const [included, nested] = load(shared);
+      if (loadsWholeRelation(shared)) {
+        return [included, { nested }];
+      }
+      const key = rows.map(([scope]) => scope).join(SCOPE_SEPARATOR);
+      return this.combine(base, { [key]: included }, { [key]: nested }, branches);
+    }
+    const slots: Record<string, unknown> = {};
+    const nested: Record<string, IncludeRecord> = {};
+    for (const [scope, selection] of rows) {
+      [slots[scope], nested[scope]] = load(selection);
+    }
+    for (const [scopes, value] of shareComputed(computed)) {
+      const values = value[COMPUTE](base, ctx);
+      for (const key of Object.keys(values)) {
+        slots[`${scopes.join(SCOPE_SEPARATOR)}${KEY_SEPARATOR}${key}`] = values[key];
+      }
+    }
+    return this.combine(base, slots, nested, branches);
+  }
+
+  /**
+   * Loads `slots` through `combine()`, each named by a number unique in the statement and then its
+   * key. The ORM aliases a branch by its name cut to 63 bytes, and renames the ones that then
+   * collide one at a time. Slot keys spell out the fields above them, so beneath a deep document
+   * they would share their first 63 bytes, and naming them would cost time quadratic in their
+   * number. The alias starts with the relation's name, so a relation name past about 45 bytes cuts
+   * into the number and brings the renaming back, which is slower but still correct.
+   */
+  private combine(
+    base: MapperCollection,
+    slots: Record<string, unknown>,
+    nested: Record<string, IncludeRecord>,
+    branches: BranchNames,
+  ): [MapperCollection, IncludedRelation] {
+    const named: Record<string, unknown> = {};
+    const names: Record<string, string> = {};
+    for (const key of Object.keys(slots)) {
+      const name = `${branches.next}/${key}`;
+      branches.next += 1;
+      named[name] = slots[key];
+      names[name] = key;
+    }
+    return [base.combine(named), { slots: nested, names }];
+  }
+
+  /** Merges the consumers of a relation into one selection when their selections agree. */
+  private shareRows(model: PrismaNextModel, rows: [string, PrismaNextSelection][]) {
+    if (rows.length === 1) {
+      return rows[0][1];
+    }
+    const node = this.createNode(model);
+    this.mergeQuery(node, rows[0][1]);
+    for (const [, selection] of rows.slice(1)) {
+      if (!this.canMergeQuery(node, selection)) {
+        return undefined;
+      }
+      this.mergeQuery(node, selection);
+    }
+    return this.toQuery(node);
+  }
+}
+
+/** Numbers the `combine()` branches of one statement. */
+interface BranchNames {
+  next: number;
 }
 
 /**
- * Sharing a to-one row must not also share its consumers' child queries. Scope
- * the immediate child slots by their parent consumer; a further shared to-one
- * include adds another level when it is emitted. A to-many include owns its
- * rows, so its descendants keep their local namespaces.
+ * The most relations and computed values one level of a statement loads, counting those beneath
+ * it. Each to-many consumer with its own arguments is a `combine()` slot of its own, so a document
+ * that nests aliases with different arguments doubles them at every level.
  */
-function scopeChildConsumers(branch: PrismaNextSpec): PrismaNextSpec {
-  if (!branch.relations) {
-    return branch;
+const MAX_RELATION_LOADS = 200;
+
+/** The relations and computed values `selection` loads, and those beneath, that `held` lacks. */
+function loads(selection: PrismaNextSelection, held?: PrismaNextSelection): number {
+  let count = 0;
+  for (const key of Object.keys(selection.computed ?? {})) {
+    count += held?.computed?.[key] === undefined ? 1 : 0;
   }
-  const relations: NonNullable<PrismaNextSpec['relations']> = {};
-  for (const [name, entries] of Object.entries(branch.relations)) {
-    relations[name] = (Array.isArray(entries) ? entries : [entries]).map((entry) => {
-      const child = entry === true ? {} : typeof entry === 'function' ? { fn: entry } : entry;
-      return { ...child, alias: selectBranchAlias(branch.alias!, child.alias ?? branch.alias!) };
-    });
+  for (const [key, child] of Object.entries(selection.relations ?? {})) {
+    const heldChild = held?.relations?.[key];
+    count += (heldChild ? 0 : 1) + loads(child, heldChild);
   }
-  return { ...branch, relations };
+  return count;
 }
 
-// Single-consumer fast path: `.include(rel, cb => …)` direct — at most one branch and no
-// function-form entry. Several branches or any function-form entry goes through
-// `.combine({...})` for collision-free aliasing. The single-consumer path avoids
-// an unnecessary combine. Function-form to-one slots require an ORM combine result, which
-// the public include API cannot return; reject them rather than dropping their values.
-function emitRelation(
-  parent: MapperCollection,
-  name: string,
-  entries: PrismaNextRelationEntry | PrismaNextRelationEntry[],
-  model: PrismaNextModel,
-  ctx: object,
-): MapperCollection {
-  const meta = model.relations[name];
-
-  if (!meta) {
-    throw new PothosValidationError(`Relation "${name}" does not exist on model ${model.name}`);
-  }
-
-  const list = Array.isArray(entries) ? entries : [entries];
-  const branches = list.filter(isBranch);
-  const functions = list.filter(
-    (entry): entry is PrismaNextFnEntry | PrismaNextSpecFn => !isBranch(entry) && entry !== true,
-  );
-
-  if (!meta.isToMany && functions.length > 0) {
-    throw new PothosValidationError(
-      `Function-form selection on to-one relation "${name}" requires combine(), which the ORM supports only for to-many relations (ORM.INCLUDE_UNSUPPORTED). ` +
-        'Use a relation field with query options or a declarative select instead.',
-    );
-  }
-
-  if (!meta.isToMany && branches.length > 1 && functions.length === 0) {
-    const shared = createPrismaNextNode(meta.target);
-    for (const branch of branches) {
-      mergeSpec(shared, scopeChildConsumers(branch), branch.alias);
+/**
+ * Groups the consumers of a relation that compute the same values, so each value is computed
+ * once, however many aliases select it.
+ */
+function shareComputed(computed: [string, ComputedSelection][]) {
+  const groups: [string[], ComputedSelection][] = [];
+  for (const [scope, value] of computed) {
+    const group = groups.find(([, other]) => deepEqual(other.loadIdentity, value.loadIdentity));
+    if (group) {
+      group[0].push(scope);
+    } else {
+      groups.push([[scope], value]);
     }
-    return parent.include(name, (rel) =>
-      emitBranch({ ...serializeNode(shared), refine: branches[0].refine }, rel, meta.target, ctx),
-    );
   }
-
-  if (branches.length <= 1 && functions.length === 0) {
-    const branch = branches[0];
-
-    // No branch (a bare `true` entry): a no-refine include so the relation still preloads.
-    return branch
-      ? parent.include(name, (rel) => emitBranch(branch, rel, meta.target, ctx))
-      : parent.include(name);
-  }
-
-  return parent.include(name, (rel) => {
-    // Combine spec keys are namespaced with `:` (GraphQL-forbidden), so
-    // collisions with reserved JS object keys can't be forged from user
-    // input. A plain object is safe.
-    const combined: Record<string, unknown> = {};
-
-    for (const branch of branches) {
-      combined[selectBranchAlias(branch.alias!, branch.slot ?? name)] = emitBranch(
-        branch,
-        rel,
-        meta.target,
-        ctx,
-      );
-    }
-
-    for (const entry of functions) {
-      const { fn, alias } = typeof entry === 'function' ? { fn: entry, alias: undefined } : entry;
-      const result = fn(rel, ctx);
-
-      if (result && typeof result === 'object') {
-        const prefix = fieldAliasPrefix(alias!);
-
-        for (const key of Object.keys(result)) {
-          combined[`${prefix}${key}`] = result[key];
-        }
-      }
-    }
-
-    return rel.combine(combined);
-  });
+  return groups;
 }
 
-function emitBranch(
-  branch: PrismaNextSpec,
-  rel: MapperCollection,
-  target: PrismaNextModel,
-  ctx: object,
-) {
-  // `refine` (compiled from the user's declarative refine or `query`
-  // option) runs before the inner descent so the filter applies to
-  // the row set the inner selection columns are read against.
-  return emit(branch.refine ? (branch.refine(rel) ?? rel) : rel, branch, target, ctx);
+/**
+ * Whether the ORM can include `relation` on a level narrowed to `narrowing`. A relation declared on
+ * a variant needs a level narrowed to that variant. A relation of the base model can't be included
+ * beneath a relation that targets a variant model, which only has that variant's relations.
+ */
+function canInclude({ declaredByVariant }: PrismaNextRelation, narrowing: Narrowing | undefined) {
+  return declaredByVariant === undefined
+    ? !narrowing?.throughVariantModel
+    : declaredByVariant === narrowing?.value;
+}
+
+/**
+ * The columns a level narrowed to `narrowing` can read, when it can't read all of the model's. A
+ * multi-table variant model's own accessor reads only its own table and the key it shares.
+ */
+function readableColumns(model: PrismaNextModel, narrowing: Narrowing | undefined) {
+  return narrowing?.throughVariantModel
+    ? model.variantTableColumns.get(narrowing.value)
+    : undefined;
+}
+
+/** The registry of implementation selections a prisma interface carries. `onTypeConfig` adds it. */
+function implementationsOf(type: GraphQLNamedType) {
+  return type.extensions?.[PRISMA_NEXT_IMPLEMENTATIONS] as
+    | Map<string, PrismaNextSelection>
+    | undefined;
 }

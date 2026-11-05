@@ -74,3 +74,8 @@ jobs:
 
       - name: Run build
         run: pnpm run ci
+
+      # Checks the published types against older TypeScript versions. They don't depend on Node.
+      - name: Check TypeScript compatibility
+        if: matrix.node == 24
+        run: pnpm turbo run type:compat

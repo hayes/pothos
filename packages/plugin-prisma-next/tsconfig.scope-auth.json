@@ -3,8 +3,13 @@
   "include": [
     "src/**/*",
     "tests/scope-auth.test.ts",
+    "tests/scope-auth-version.test.ts",
+    "tests/collection-from-info-scope-auth.test.ts",
+    "tests/returned-rows.test.ts",
+    "tests/fixtures/errors.ts",
     "tests/fixtures/runtime.ts",
-    "tests/fixtures/sample-contract.d.ts"
+    "tests/fixtures/sample-contract.d.ts",
+    "tests/inheritance/contract.d.ts"
   ],
   "exclude": []
 }

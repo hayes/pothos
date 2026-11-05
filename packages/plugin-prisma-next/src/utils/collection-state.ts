@@ -1,25 +1,37 @@
+import type { CollectionState } from '@prisma/orm-family-sql/orm-client';
+import { InternalError } from './errors.js';
+
 /**
- * RC9 has no public pagination/order reset. Read its state only to validate
- * supplied Collections; keep this compatibility check together on ORM upgrades.
+ * Throws for a collection a connection resolver returned that is already ordered, limited,
+ * distinct or including a relation. The connection orders, filters past the cursor and limits it,
+ * and the plugin includes what the selection needs, so such a collection would page silently
+ * wrong. orm-client keeps `state` internal and has no public accessor for it.
  */
-export function getCollectionPaginationState(collection: unknown): {
-  ordered: boolean;
-  orderBy: readonly unknown[];
-  paginated: boolean;
-} {
-  const state = (
-    collection as {
-      state?: {
-        orderBy?: readonly unknown[];
-        cursor?: unknown;
-        limit?: number;
-        offset?: number;
-      };
-    }
-  ).state;
-  return {
-    ordered: !!state?.orderBy?.length,
-    orderBy: state?.orderBy ?? [],
-    paginated: state?.cursor != null || state?.limit !== undefined || state?.offset !== undefined,
-  };
+export function assertConnectionCollection(collection: unknown): void {
+  const { state } = collection as { state?: CollectionState };
+  if (!state) {
+    return;
+  }
+  const names = state.includes.map((include) => `'${include.relationName}'`);
+  if (names.length) {
+    throw new InternalError(
+      `A collection returned to @pothos/plugin-prisma-next already includes ${names.join(', ')}. ` +
+        "Return it without include(): the plugin includes what the query selects. Filter a relation with its field's `query` option.",
+    );
+  }
+  if (
+    state.orderBy?.length ||
+    state.cursor != null ||
+    state.limit !== undefined ||
+    state.offset !== undefined
+  ) {
+    throw new InternalError(
+      "Connection resolvers must return an unordered, unpaginated Collection without orderBy(), cursor(), limit(), or offset(). Use the connection's orderBy option to order it.",
+    );
+  }
+  if (state.distinct?.length || state.distinctOn?.length) {
+    throw new InternalError(
+      'Connection resolvers cannot return a Collection with distinct() or distinctOn(): the rows a page keeps would depend on the columns the selection adds.',
+    );
+  }
 }

@@ -1,0 +1,129 @@
+---
+title: Interfaces
+description: GraphQL interfaces backed by contract models
+---
+
+Use `builder.prismaInterface` to define a GraphQL interface backed by a model. It takes the same
+options as `builder.prismaObject`. The objects that implement it must use the same model, or one of
+its [variant models](#native-inheritance).
+
+Here admins and regular users share a `Person` interface. `resolveType` picks the type from the
+email, so the interface lists `email` in its `select`:
+
+```ts
+const Person = builder.prismaInterface('User', {
+  variant: 'Person',
+  select: ['email'],
+  resolveType: (user) => (user.email.endsWith('@admin.example.com') ? 'Admin' : 'User'),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    firstName: t.exposeString('firstName'),
+  }),
+});
+
+builder.prismaObject('User', {
+  interfaces: [Person],
+  fields: (t) => ({
+    posts: t.relation('posts'),
+  }),
+});
+
+builder.prismaObject('User', {
+  variant: 'Admin',
+  interfaces: [Person],
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
+builder.queryFields((t) => ({
+  people: t.prismaField({
+    type: [Person],
+    resolve: (_root, _args, ctx) => ctx.db.orm.User,
+  }),
+}));
+```
+
+`t.prismaField`, `t.prismaConnection`, `t.relation` and `t.relatedConnection` all accept an
+interface ref as `type`. Fields on an implementing type can read the interface's `select`.
+Implementing objects don't accept `isTypeOf`.
+
+`resolveType` sees the columns and to-one relations in the interface's `select`, but not its to-many
+relations, counts or aggregates.
+
+When a type and its interfaces both select data:
+
+- An interface and a type that implements it, or two interfaces of one type, can't select the same
+  relation with different arguments in their type-level `select`. The schema build throws. Load the
+  other version with `t.relation` or a field's `select`.
+- A type and its interfaces can't compute values from a relation under the same name. Requests
+  that load both fail.
+
+To add fields to the interface from another file, use `prismaInterfaceField` or
+`prismaInterfaceFields`:
+
+```ts
+builder.prismaInterfaceField(Person, 'displayName', (t) =>
+  t.string({
+    select: ['firstName', 'lastName'],
+    resolve: (person) => `${person.firstName} ${person.lastName}`,
+  }),
+);
+```
+
+## Returning rows from other fields
+
+To return a row through `Node`, or through an interface from `builder.interfaceRef()`:
+
+- Brand it with the type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
+  `Abstract type ... must resolve`.
+- If you route a row yourself, with a `__typename` or a `resolveType` that returns a type name,
+  TypeScript doesn't check that the row has the type's key and `select`.
+
+## Native inheritance
+
+If your contract uses variant models (a base model with a discriminator column), register the base
+model with `prismaInterface` and each variant with `prismaObject`. Each row resolves to its
+variant's type by the discriminator, so you don't need a `resolveType`. In this example, `Bug` is a
+variant of `Task`:
+
+```ts
+const Task = builder.prismaInterface('Task', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    owner: t.relation('owner'),
+  }),
+});
+
+builder.prismaObject('Bug', {
+  interfaces: [Task],
+  fields: (t) => ({
+    severity: t.exposeString('severity'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    tasks: t.prismaField({
+      type: [Task],
+      resolve: (_root, _args, ctx) => ctx.db.orm.Task,
+    }),
+    bugs: t.prismaField({
+      type: ['Bug'],
+      resolve: (_root, _args, ctx) => ctx.db.orm.Task.variant('bug'),
+    }),
+  }),
+});
+```
+
+- Load a variant's rows with `ctx.db.orm.Task.variant('bug')`, not `ctx.db.orm.Bug`, which Prisma
+  doesn't filter by the discriminator.
+- Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
+- A relation declared on a variant can't be in the variant type's `select`. Use a field's `select`
+  or `t.relation`.
+- A relation to a variant with its own table can filter and sort only on that variant's own fields,
+  not on the fields it inherits. Load its rows with `t.relation` or `t.relatedConnection`, not a
+  `select`.
+- Pass a variant's ref as `type` to `t.relation` or `t.relatedConnection` to return only that
+  variant's rows.
+- A row returned from a plain `t.field` needs the interface's `select` and the discriminator.

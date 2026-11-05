@@ -1,0 +1,204 @@
+---
+title: Setup
+description: Setting up the Prisma Next plugin
+---
+
+## Install
+
+Set up Prisma ORM 8 (`8.0.0-rc.22`) and your contract with the
+[Prisma Next documentation](https://github.com/prisma/orm), then install the plugin:
+
+```package-install
+npm install --save @pothos/core @pothos/plugin-prisma-next graphql
+```
+
+Requires Node.js 22.18+ or 24+. You can't use this plugin alongside `@pothos/plugin-prisma`.
+If you use [`@pothos/plugin-scope-auth`](/docs/plugins/scope-auth), it needs to be 4.3.0 or newer.
+
+## Configure the builder
+
+Pass your Prisma client to the plugin, and your contract's type as `PrismaNextContract`:
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import prismaNextPlugin from '@pothos/plugin-prisma-next';
+import { contract, db } from './prisma/db';
+
+const builder = new SchemaBuilder<{
+  PrismaNextContract: typeof contract;
+  Context: { db: typeof db; userId: string; isAdmin: boolean };
+}>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: db },
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    users: t.prismaField({
+      type: ['User'],
+      resolve: (_root, _args, ctx) => ctx.db.orm.public.User,
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+For nodes and connections, also install and add [`@pothos/plugin-relay`](/docs/plugins/relay).
+
+This example uses PostgreSQL:
+
+- The client groups models by schema (`ctx.db.orm.public.User`).
+- SQLite and MySQL work the same way with their own Prisma packages. Their clients don't group
+  models, and the rest of these docs use that shorter form, `ctx.db.orm.User`.
+
+Pass a context object, such as `contextValue: {}`, when you execute an operation. The plugin keeps
+per-request state on it.
+
+## Transactions
+
+Pothos doesn't create transactions for you. To run a mutation's writes in one, call `transaction`
+in the resolver, then return the result from `ctx.db` once it commits:
+
+```ts
+import { randomUUID } from 'node:crypto';
+
+builder.mutationField('signUp', (t) =>
+  t.prismaField({
+    type: 'User',
+    args: {
+      email: t.arg.string({ required: true }),
+      firstName: t.arg.string({ required: true }),
+      lastName: t.arg.string({ required: true }),
+    },
+    resolve: async (_root, args, ctx) => {
+      const id = await ctx.db.transaction(async (tx) => {
+        const user = await tx.orm.User.create({ ...args, id: randomUUID() });
+        await tx.orm.Post.create({
+          id: randomUUID(),
+          authorId: user.id,
+          title: 'Hello!',
+          content: '',
+          createdAt: new Date(),
+        });
+        return user.id;
+      });
+      return ctx.db.orm.User.where({ id });
+    },
+  }),
+);
+```
+
+To read the result inside the transaction too, build the last write with
+[`collectionFromInfo`](./objects#mutations) and return the row it writes:
+
+```ts
+import { collectionFromInfo } from '@pothos/plugin-prisma-next';
+
+builder.mutationField('renameUser', (t) =>
+  t.field({
+    type: User,
+    nullable: true,
+    args: { id: t.arg.id({ required: true }), firstName: t.arg.string({ required: true }) },
+    resolve: (_root, args, ctx, info) =>
+      ctx.db.transaction(async (tx) => {
+        const users = await collectionFromInfo({
+          collection: tx.orm.User.where({ id: String(args.id) }),
+          context: ctx,
+          info,
+        });
+        return users.update({ firstName: args.firstName });
+      }),
+  }),
+);
+```
+
+Don't return a `tx.orm` Collection from the callback: it runs after the transaction ends, and fails.
+
+When every read and write of an operation must share one transaction, use a
+[client per request](#use-a-different-client-per-request) and call `graphql()` inside the
+transaction:
+
+```ts
+const result = await db.transaction(async (tx) => {
+  const result = await graphql({
+    schema,
+    source,
+    contextValue: { db: tx },
+  });
+  // GraphQL reports errors in the result rather than rejecting, so throw to roll back.
+  if (result.errors?.length) {
+    throw result.errors[0];
+  }
+  return result;
+});
+```
+
+With `@defer` or `@stream`, read every incremental result inside the callback: they load after the
+initial result, and fail once the transaction has ended.
+
+## Use a different client per request
+
+To give each request its own client, such as a transaction, pass a function as `client` along with
+the base client's `context`:
+
+```ts
+import type { PostgresQueryMembers } from '@prisma/orm-postgres/runtime';
+
+const builder = new SchemaBuilder<{
+  PrismaNextContract: typeof contract;
+  Context: { db: PostgresQueryMembers<typeof contract> };
+}>({
+  plugins: [prismaNextPlugin],
+  prismaNext: {
+    client: (ctx) => ctx.db,
+    context: db.context,
+  },
+});
+```
+
+## Models in several namespaces
+
+If your contract has more than one namespace, refer to models by their full name, such as
+`'auth.User'`. GraphQL type names leave the namespace out, so when two namespaces both have a
+`User`, give one of them a `name`:
+
+```ts
+builder.prismaObject('auth.User', {
+  name: 'AuthUser',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+```
+
+## Plugin options
+
+These go under `prismaNext` in the builder options.
+
+- `client`: the Prisma client, or `(ctx) => client` together with `context`. Required.
+- `skipDeferredFragments`: load `@defer` fragments when they execute instead of in the initial
+  query. Defaults to `true`.
+- `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes. Default to 20 and
+  100.
+- `filterConnectionTotalCount`: when `true` (the default), a `relatedConnection`'s `totalCount`
+  only counts rows matching its `query.where`.
+
+## Limitations
+
+- On MySQL, Prisma reads rows but can't write them, count them or run aggregates yet. MongoDB isn't
+  supported.
+- Errors from invalid input, such as a bad cursor, are safe to show. The plugin's other request
+  errors, including database errors from the queries it runs itself, such as reloads and `node`
+  lookups, reach clients as `Unexpected error.`, with the detail in the error's `cause` for your
+  logs. Errors from your own code, and from running the collections your resolvers return, pass
+  through as they are and can name your models and columns, so enable error masking (GraphQL Yoga
+  does by default).
+- Use `"moduleResolution": "nodenext"` or `"bundler"`, since Prisma's packages are ESM-only.

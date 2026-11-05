@@ -1,0 +1,50 @@
+// use prisma-8
+
+// Two hierarchies sharing model names across namespaces, and a variant in another namespace.
+namespace inha {
+  model Task {
+    id    String @id
+    title String
+    type  String
+
+    @@discriminator(type)
+    @@map("task")
+  }
+
+  model Bug {
+    severity String
+
+    @@base(Task, "bug")
+  }
+
+  model Feature {
+    priority Int
+
+    @@base(Task, "feature")
+    @@map("feature")
+  }
+}
+
+namespace inhb {
+  model Task {
+    id    Int    @id
+    label String
+    kind  String
+
+    @@discriminator(kind)
+    @@map("task")
+  }
+
+  model Bug {
+    level Int
+
+    @@base(Task, "b")
+  }
+
+  model Chore {
+    note String
+
+    @@base(inha.Task, "chore")
+    @@map("chore")
+  }
+}

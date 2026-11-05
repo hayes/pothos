@@ -6,7 +6,7 @@ import { captureConsole } from './console-capture';
 import { errorMessage } from './error-message';
 import { getExampleStubModules } from './example-stubs';
 import { compilerLogger } from './logger';
-import { pluginModules } from './plugins-bundle';
+import { lazyPluginModules, pluginModules } from './plugins-bundle';
 import { getCachedSchema, setCachedSchema } from './schema-cache';
 
 let esbuildInitialized = false;
@@ -180,7 +180,7 @@ export async function executeAndBuildSchema(
       [...imports]
         .filter((name) => !Object.hasOwn(moduleMap, name))
         .map(async (name) => {
-          moduleMap[name] = await fetchCdnModule(name);
+          moduleMap[name] = await (lazyPluginModules[name]?.() ?? fetchCdnModule(name));
         }),
     );
     const { result } = captureConsole(() => {

@@ -1,0 +1,69 @@
+---
+title: Variants
+description: Multiple GraphQL types backed by the same contract model
+---
+
+Variants let you expose one model as more than one GraphQL type. For example, a `Viewer` type can
+show signed-in users their own email and drafts, which the public `User` type leaves out. Define a
+variant with `variant` instead of `name`:
+
+```ts
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    drafts: t.relation('posts', { query: { where: { published: 0 } } }),
+  }),
+});
+```
+
+These are unrelated to variant models in the contract, which map to
+[interfaces](./interfaces#native-inheritance).
+
+## Return a variant
+
+Wherever you use the model name, such as `'User'`, you get the main type. To return the variant,
+pass its ref as `type`, for example from a root field:
+
+```ts
+builder.queryFields((t) => ({
+  viewer: t.prismaField({
+    type: Viewer,
+    nullable: true,
+    resolve: (_root, _args, ctx) => ctx.db.orm.User.where((user) => user.id.eq(ctx.userId)),
+  }),
+}));
+```
+
+`t.relation` takes a variant's ref as `type` the same way.
+
+## Switch to another variant
+
+`t.variant` adds a field that returns the same row as another variant, without another query. To
+return `null` for some rows, pass `isNull`. It sees the primary key, the type's `select`, and the
+columns in the field's `select`. Here `User.viewer` returns the `Viewer` type only for the
+signed-in user:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    viewer: t.variant(Viewer, {
+      isNull: (user, _args, ctx) => user.id !== ctx.userId,
+    }),
+  }),
+});
+```
+
+## Adding fields
+
+To add fields to a variant, pass its ref to `prismaObjectField` or `prismaObjectFields`:
+
+```ts
+builder.prismaObjectField(Viewer, 'displayName', (t) =>
+  t.string({
+    select: { firstName: true, lastName: true },
+    resolve: (user) => `${user.firstName} ${user.lastName}`,
+  }),
+);
+```

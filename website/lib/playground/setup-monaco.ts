@@ -1,6 +1,11 @@
 import type { Monaco } from '@monaco-editor/react';
 import { monacoLogger } from './logger';
-import { coreTypeDefinitions, getAllPluginNames, getPluginTypeDefinitions } from './pothos-types';
+import {
+  coreTypeDefinitions,
+  getAllPluginNames,
+  getPluginTypeDefinitions,
+  pluginTypePaths,
+} from './pothos-types';
 
 interface MonacoDisposable {
   dispose(): void;
@@ -119,7 +124,7 @@ export function setupMonacoForPothos(monacoInstance: Monaco): void {
 }
 
 function loadTypeDefinitions(
-  typeDefs: Array<{ moduleName: string; content: string }>,
+  typeDefs: Array<{ moduleName: string; content: string; filePath?: string }>,
 ): MonacoDisposable[] {
   if (!monaco) {
     return [];
@@ -127,6 +132,15 @@ function loadTypeDefinitions(
 
   const disposables: MonacoDisposable[] = [];
   for (const typeDef of typeDefs) {
+    if (typeDef.filePath) {
+      disposables.push(
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(
+          typeDef.content,
+          typeDef.filePath,
+        ),
+      );
+      continue;
+    }
     const moduleParts = typeDef.moduleName.split('/');
     const hasGlobalDeclaration = typeDef.content.includes('declare global');
 
@@ -310,7 +324,28 @@ export function loadPluginTypes(code: string): void {
         monacoLogger.debug(`Loaded ${pluginTypes.length} type definitions for ${pluginName}`);
       }
     }
+    applyPluginTypePaths();
   }, 500); // 500ms debounce
+}
+
+// Some plugins' types import packages through `paths`. Keep only the loaded plugins' entries, so
+// an unloaded plugin's mappings and `baseUrl` don't outlive it in later examples.
+function applyPluginTypePaths(): void {
+  if (!monaco) {
+    return;
+  }
+  const paths = Object.assign(
+    {},
+    ...Array.from(pluginDisposables.keys(), (name) => pluginTypePaths[name] ?? {}),
+  );
+  const defaults = monaco.languages.typescript.typescriptDefaults;
+  const { baseUrl: _baseUrl, paths: currentPaths, ...options } = defaults.getCompilerOptions();
+  if (JSON.stringify(currentPaths ?? {}) === JSON.stringify(paths)) {
+    return;
+  }
+  defaults.setCompilerOptions(
+    Object.keys(paths).length > 0 ? { ...options, baseUrl: 'file:///', paths } : options,
+  );
 }
 
 export function extractPluginImports(code: string): Set<string> {

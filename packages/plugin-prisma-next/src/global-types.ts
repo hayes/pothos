@@ -2,10 +2,11 @@ import type {
   FieldKind,
   FieldMap,
   FieldNullability,
-  FieldRef,
   InputFieldMap,
   InterfaceParam,
-  ObjectRef,
+  MaybePromise,
+  OutputShape,
+  OutputType,
   PluginName,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -13,79 +14,46 @@ import type {
 } from '@pothos/core';
 import type { PothosPrismaNextPlugin } from './index.js';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
-import type {
-  ObjectBaseShape,
-  ParamToModelName,
-  ParamToTypeParam,
-  SelectObjectSpec,
-  ShapeFromObjectSelect,
-} from './internal-types.js';
 import type { PrismaNextNodeRef } from './node-ref.js';
-import type { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
+import type { PrismaNextObjectRef } from './object-ref.js';
+import type { PrismaNextObjectFieldBuilder } from './prisma-next-field-builder.js';
+import type { ResolverCollection } from './types/collections.js';
 import type {
-  AnyContract,
-  CollectionFor,
-  CursorSpec,
-  ModelName,
+  ConnectionOrderBy,
+  ConnectionResultShape,
   PrismaNextConnectionFieldOptions,
+  ShapeFromConnection,
+} from './types/connections.js';
+import type {
+  FieldParam,
+  ModelParam,
+  NameOrVariant,
+  NodeIdFieldOptions,
+  ParamToModelKey,
+  ParamToTypeParam,
+  PrismaNextInterfaceOptions,
   PrismaNextObjectFieldOptions,
   PrismaNextObjectOptions,
-  PrismaNextPluginOptions,
   PrismaNextRootFieldOptions,
   PrismaNextRootFieldWithInputOptions,
+} from './types/fields.js';
+import type {
+  AnyContract,
+  FieldParentShape,
+  IdColumn,
+  IdFieldShape,
+  IdValues,
+  ModelKey,
+  ObjectBaseShape,
+  ParsedIdValues,
   Row,
-} from './types.js';
-
-/**
- * Shape inferred from a `prismaObject`'s `select` option.
- *
- * Carries only what the user has explicitly declared as a dependency,
- * plus the `[prismaModelKey]?: M` brand the field builder uses to
- * recognise prismaObject parents. Defaulting to the full `Row<M>`
- * would lie about what's actually loaded at runtime — the plugin only
- * pulls columns that some `select` or `t.expose*` named.
- *
- *   - undefined select → brand only.
- *   - Array form `['col', ...]` → brand + picked columns.
- *   - Object form `{ col: true, rel: true, … }` → brand + columns +
- *     relations + function-form keys (counts, aggregates).
- *
- * Field-level `select` on individual `t.field` declarations layers
- * additively on top of this via `ShapeFromSelect`.
- */
-type ObjectLevelShape<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  Select,
-> = ShapeFromObjectSelect<Types, M, never, Select>;
-
-type UnknownSelectKeys<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  Select,
-> = Select extends readonly unknown[]
-  ? never
-  : Select extends object
-    ? Exclude<keyof Select, keyof SelectObjectSpec<Types, M>>
-    : never;
-
-type ExactSelectCheck<Types extends SchemaTypes, M extends ModelName<Types>, Select> = [
-  UnknownSelectKeys<Types, M, Select>,
-] extends [never]
-  ? unknown
-  : {
-      [K in UnknownSelectKeys<Types, M, Select> & string as `Unknown key in select: ${K}`]: never;
-    };
-
-type IdFieldShape<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  IDFields,
-> = IDFields extends readonly (infer K extends keyof Row<Types, M>)[]
-  ? Pick<Row<Types, M>, K>
-  : IDFields extends keyof Row<Types, M>
-    ? Pick<Row<Types, M>, IDFields>
-    : unknown;
+} from './types/models.js';
+import type { PrismaNextPluginOptions } from './types/plugin-options.js';
+import type {
+  InterfaceSelectShape,
+  ShapeFromObjectSelect,
+  TypeSelectCheck,
+} from './types/selections.js';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -94,7 +62,7 @@ declare global {
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
-      prismaNext: PrismaNextPluginOptions<Types['PrismaNextContract'], Types['Context']>;
+      prismaNext: PrismaNextPluginOptions<Types>;
     }
 
     export interface UserSchemaTypes {
@@ -102,15 +70,8 @@ declare global {
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      // `Extract<…, AnyContract>` drops the optional `undefined` (so this
-      // satisfies the `SchemaTypes` constraint that `PrismaNextContract` is an
-      // `AnyContract`) while resolving to exactly the user's contract — unlike
-      // `& object`, which produced a distinct `Contract & object` type that,
-      // because orm-client's `Collection` is invariant in its contract param,
-      // degraded the contract-derived method types. Cast-free resolvers that
-      // return `db.orm.<M>` are accepted via the model-scoped `ResolverCollection`
-      // in `./types` (which omits the mutation terminals — the only part of the
-      // surface the constrained contract copy computes differently).
+      // `Extract` drops `undefined` and keeps the user's exact contract type. `Collection` is
+      // invariant in its contract, so even `Contract & object` would not match it.
       PrismaNextContract: undefined extends PartialTypes['PrismaNextContract']
         ? AnyContract
         : Extract<PartialTypes['PrismaNextContract'], AnyContract>;
@@ -120,15 +81,61 @@ declare global {
       PrismaNextObject: 'Object';
     }
 
-    // Empty fallbacks so scope-auth-typed references compile when
-    // plugin-scope-auth isn't loaded. plugin-scope-auth declaration-merges
-    // real fields onto these.
+    // Filled in by plugin-scope-auth when it's loaded.
     export interface ScopeAuthFieldAuthScopes<
       Types extends SchemaTypes,
       Parent,
       Args extends {} = {},
     > {}
     export interface ScopeAuthContextForAuth<Types extends SchemaTypes, Scopes extends {}> {}
+
+    // Filled in by plugin-relay when it's loaded.
+    export interface ConnectionFieldOptions<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends OutputType<Types>,
+      Nullable extends boolean,
+      EdgeNullability extends FieldNullability<[unknown]>,
+      NodeNullability extends boolean,
+      Args extends InputFieldMap,
+      ResolveReturnShape,
+    > {}
+
+    export interface ConnectionObjectOptions<
+      Types extends SchemaTypes,
+      Type extends OutputType<Types>,
+      EdgeNullability extends FieldNullability<[unknown]>,
+      NodeNullability extends boolean,
+      Resolved,
+      Interfaces extends InterfaceParam<Types>[] = [],
+    > {}
+
+    export interface ConnectionEdgeObjectOptions<
+      Types extends SchemaTypes,
+      Type extends OutputType<Types>,
+      NodeNullability extends boolean,
+      Resolved,
+      Interfaces extends InterfaceParam<Types>[] = [],
+    > {}
+
+    // Filled in by plugin-relay when it's loaded.
+    export interface ConnectionShapeHelper<Types extends SchemaTypes, T, Nullable> {}
+
+    export interface DefaultConnectionArguments {
+      first?: number | null | undefined;
+      last?: number | null | undefined;
+      before?: string | null | undefined;
+      after?: string | null | undefined;
+    }
+
+    // Filled in by plugin-with-input when it's loaded.
+    export interface FieldWithInputBaseOptions<
+      Types extends SchemaTypes,
+      Args extends InputFieldMap,
+      Fields extends InputFieldMap,
+      InputName extends string,
+      ArgRequired extends boolean,
+    > {}
 
     export interface FieldOptionsByKind<
       Types extends SchemaTypes,
@@ -151,72 +158,83 @@ declare global {
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
+      // In these options, `Omit` flattens the `NameOrVariant` union, so it is added back.
       prismaObject: <
         const Interfaces extends InterfaceParam<Types>[],
-        M extends ModelName<Types>,
+        M extends ModelKey<Types>,
         const Select = unknown,
-        Shape = ObjectLevelShape<Types, M, Select>,
+        Shape = ShapeFromObjectSelect<Types, M, Select> &
+          InterfaceSelectShape<Types, M, Interfaces>,
       >(
-        modelName: M,
+        modelKey: M,
         options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
           select?: Select;
-        },
+        } & TypeSelectCheck<Types, M, Select> &
+          NameOrVariant,
       ) => PrismaNextObjectRef<Types, M, Shape>;
 
       prismaInterface: <
         const Interfaces extends InterfaceParam<Types>[],
-        M extends ModelName<Types>,
+        M extends ModelKey<Types>,
         const Select = unknown,
-        Shape = ObjectLevelShape<Types, M, Select>,
+        Shape = ShapeFromObjectSelect<Types, M, Select> &
+          InterfaceSelectShape<Types, M, Interfaces>,
       >(
-        modelName: M,
-        options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
+        modelKey: M,
+        options: Omit<PrismaNextInterfaceOptions<Types, M, Shape, Interfaces>, 'select'> & {
           select?: Select;
-        },
+        } & TypeSelectCheck<Types, M, Select> &
+          NameOrVariant,
       ) => PrismaNextInterfaceRef<Types, M, Shape>;
 
-      prismaObjectField: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
+      // The row argument is `NoInfer`: `M` comes from `type`, and inferring from the row would
+      // measure the variance of upstream's row types.
+      prismaObjectField: <M extends ModelKey<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fieldName: string,
         field: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
+          t: PrismaNextObjectFieldBuilder<
             Types,
             M,
-            Shape & { [prismaModelKey]?: M }
+            FieldParentShape<Types, M, Shape>,
+            NoInfer<Row<Types, M>>
           >,
         ) => FieldRef<Types, unknown>,
       ) => void;
 
-      prismaObjectFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
+      prismaObjectFields: <M extends ModelKey<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextObjectRef<Types, M, Shape>,
         fields: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
+          t: PrismaNextObjectFieldBuilder<
             Types,
             M,
-            Shape & { [prismaModelKey]?: M }
+            FieldParentShape<Types, M, Shape>,
+            NoInfer<Row<Types, M>>
           >,
         ) => FieldMap,
       ) => void;
 
-      prismaInterfaceField: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
+      prismaInterfaceField: <M extends ModelKey<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fieldName: string,
         field: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
+          t: PrismaNextObjectFieldBuilder<
             Types,
             M,
-            Shape & { [prismaModelKey]?: M }
+            FieldParentShape<Types, M, Shape>,
+            NoInfer<Row<Types, M>>
           >,
         ) => FieldRef<Types, unknown>,
       ) => void;
 
-      prismaInterfaceFields: <M extends ModelName<Types>, Shape = ObjectBaseShape<Types, M>>(
+      prismaInterfaceFields: <M extends ModelKey<Types>, Shape = ObjectBaseShape<Types, M>>(
         type: M | PrismaNextInterfaceRef<Types, M, Shape>,
         fields: (
-          t: import('./prisma-next-object-field-builder.js').PrismaNextObjectFieldBuilder<
+          t: PrismaNextObjectFieldBuilder<
             Types,
             M,
-            Shape & { [prismaModelKey]?: M }
+            FieldParentShape<Types, M, Shape>,
+            NoInfer<Row<Types, M>>
           >,
         ) => FieldMap,
       ) => void;
@@ -224,43 +242,44 @@ declare global {
       prismaNode: 'relay' extends PluginName
         ? <
             const Interfaces extends InterfaceParam<Types>[],
-            M extends ModelName<Types>,
-            const Select extends
-              | readonly (keyof Row<Types, M> & string)[]
-              | SelectObjectSpec<Types, M>
-              | undefined = undefined,
-            Shape = ObjectLevelShape<Types, M, Select>,
-            IDShape = string,
+            M extends ModelKey<Types>,
+            const Select = unknown,
+            Shape = ShapeFromObjectSelect<Types, M, Select> &
+              InterfaceSelectShape<Types, M, Interfaces>,
             const IDFields extends
-              | (keyof Row<Types, M> & string)
-              | readonly [
-                  keyof Row<Types, M> & string,
-                  ...(keyof Row<Types, M> & string)[],
-                ] = keyof Row<Types, M> & string,
+              | IdColumn<Types, M>
+              | readonly [IdColumn<Types, M>, ...IdColumn<Types, M>[]] = IdColumn<Types, M>,
+            IDShape extends ParsedIdValues<Types, M, IDFields> = IdValues<Types, M, IDFields>,
           >(
-            modelName: M,
+            modelKey: M,
             options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
               select?: Select;
-              id: {
-                /** Column name or non-empty tuple for composite primary keys (encoded as a JSON array). */
+              id: NodeIdFieldOptions<Types, Shape & IdFieldShape<Types, M, IDFields>> & {
+                /** A column, or a tuple of columns for a composite key. */
                 field: IDFields;
-                description?: string;
-                /** Restore nonstandard ORM values such as Temporal and Decimal IDs. */
-                codecs?: {
-                  [Key in keyof Row<Types, M>]?: import('./utils/cursors.js').CursorValueCodec<
-                    Row<Types, M>[Key]
-                  >;
-                };
-                parse?: (id: string, ctx: Types['Context']) => IDShape;
-                resolve?: (
-                  parent: Shape & IdFieldShape<Types, M, IDFields>,
-                  ctx: Types['Context'],
-                ) => string | number;
-              };
-              collection:
-                | CollectionFor<Types, M>
-                | ((ctx: Types['Context']) => CollectionFor<Types, M>);
-            } & { select?: ExactSelectCheck<Types, M, Select> },
+              } & (
+                  | { parse?: undefined; resolve?: undefined }
+                  | {
+                      /**
+                       * Replaces the default decoding. IDs are then encoded as the plain value, or
+                       * as a JSON tuple for a composite key, unless `resolve` encodes them.
+                       */
+                      parse: (id: string, ctx: Types['Context']) => IDShape;
+                      /** Encodes the ID, which `parse` must decode, so it needs `parse`. */
+                      resolve?: (
+                        parent: Shape & IdFieldShape<Types, M, IDFields>,
+                        ctx: Types['Context'],
+                      ) => MaybePromise<OutputShape<Types, 'ID'>>;
+                    }
+                );
+              /**
+               * Returns the collection `node` and `nodes` lookups load from, which is used as given.
+               * It defaults to the client's collection for the model, narrowed to the model's
+               * variant, as with `orm.Base.variant(value)`.
+               */
+              collection?: (ctx: Types['Context']) => ResolverCollection<Types, NoInfer<M>>;
+            } & TypeSelectCheck<Types, M, Select> &
+              NameOrVariant,
           ) => PrismaNextNodeRef<Types, M, Shape, IDShape>
         : '@pothos/plugin-relay is required to use this method';
     }
@@ -272,14 +291,11 @@ declare global {
     > {
       prismaField: <
         Args extends InputFieldMap,
-        Param extends
-          | ModelName<Types>
-          | [ModelName<Types>]
-          | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-          | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>],
-        Nullable extends FieldNullability<Type>,
+        Param extends FieldParam<Types>,
+        ResolveShape,
         ResolveReturnShape,
-        M extends ModelName<Types> = ParamToModelName<Types, Param>,
+        Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
+        M extends ModelKey<Types> = ParamToModelKey<Types, Param>,
         ShapeForType = Row<Types, M>,
         Type extends TypeParam<Types> = ParamToTypeParam<Types, Param, ShapeForType>,
       >(
@@ -290,20 +306,19 @@ declare global {
           Type,
           Nullable,
           Args,
-          ResolveReturnShape
+          ResolveShape,
+          ResolveReturnShape,
+          Kind
         >,
       ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>;
 
       prismaFieldWithInput: 'withInput' extends PluginName
         ? <
             Args extends InputFieldMap,
-            Param extends
-              | ModelName<Types>
-              | [ModelName<Types>]
-              | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>],
-            Nullable extends FieldNullability<Type>,
+            Param extends FieldParam<Types>,
+            ResolveShape,
             ResolveReturnShape,
+            Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
             Fields extends InputFieldMap = {},
             InputName extends string = 'input',
             ArgRequired extends boolean = boolean extends (Types & {
@@ -311,7 +326,7 @@ declare global {
             })['WithInputArgRequired']
               ? true
               : (Types & { WithInputArgRequired: boolean })['WithInputArgRequired'],
-            M extends ModelName<Types> = ParamToModelName<Types, Param>,
+            M extends ModelKey<Types> = ParamToModelKey<Types, Param>,
             ShapeForType = Row<Types, M>,
             Type extends TypeParam<Types> = ParamToTypeParam<Types, Param, ShapeForType>,
           >(
@@ -324,8 +339,10 @@ declare global {
               Args,
               Fields,
               InputName,
+              ResolveShape,
               ResolveReturnShape,
-              ArgRequired
+              ArgRequired,
+              Kind
             >,
           ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>
         : '@pothos/plugin-with-input is required to use this method';
@@ -333,17 +350,14 @@ declare global {
       prismaConnection: 'relay' extends PluginName
         ? <
             Args extends InputFieldMap,
-            Param extends
-              | ModelName<Types>
-              | [ModelName<Types>]
-              | PrismaNextObjectRef<Types, ModelName<Types>, unknown>
-              | [PrismaNextObjectRef<Types, ModelName<Types>, unknown>],
-            Nullable extends boolean,
+            Param extends ModelParam<Types>,
+            ResolveShape,
             ResolveReturnShape,
-            ConnectionInterfaces extends InterfaceParam<Types>[] = [],
-            EdgeInterfaces extends InterfaceParam<Types>[] = [],
-            M extends ModelName<Types> = ParamToModelName<Types, Param>,
-            Cursor extends CursorSpec<Types, M> = CursorSpec<Types, M>,
+            Nullable extends boolean = Types['DefaultFieldNullability'],
+            const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+            const EdgeInterfaces extends InterfaceParam<Types>[] = [],
+            M extends ModelKey<Types> = ParamToModelKey<Types, Param>,
+            OrderBy extends ConnectionOrderBy<Types, M> = ConnectionOrderBy<Types, M>,
           >(
             options: PrismaNextConnectionFieldOptions<
               Types,
@@ -352,8 +366,10 @@ declare global {
               Param,
               Nullable,
               Args,
-              Cursor,
-              ResolveReturnShape
+              OrderBy,
+              ResolveReturnShape,
+              Kind,
+              ResolveShape
             >,
             connectionOptions?:
               | PothosSchemaTypes.ConnectionObjectOptions<
@@ -361,7 +377,7 @@ declare global {
                   PrismaNextObjectRef<Types, M, unknown>,
                   false,
                   false,
-                  unknown,
+                  ConnectionResultShape<ParentShape, Args>,
                   ConnectionInterfaces
                 >
               | ObjectRef<Types, unknown>,
@@ -370,11 +386,16 @@ declare global {
                   Types,
                   PrismaNextObjectRef<Types, M, unknown>,
                   false,
-                  unknown,
+                  ConnectionResultShape<ParentShape, Args>,
                   EdgeInterfaces
                 >
               | ObjectRef<Types, unknown>,
-          ) => FieldRef<Types, unknown>
+          ) => FieldRef<
+            Types,
+            ShapeFromConnection<
+              PothosSchemaTypes.ConnectionShapeHelper<Types, Row<Types, M>, Nullable>
+            >
+          >
         : '@pothos/plugin-relay is required to use this method';
     }
   }

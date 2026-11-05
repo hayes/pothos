@@ -1,171 +1,106 @@
 import SchemaBuilder from '@pothos/core';
-import ErrorsPlugin from '@pothos/plugin-errors';
-import RelayPlugin from '@pothos/plugin-relay';
 import WithInputPlugin from '@pothos/plugin-with-input';
-import { execute, parse } from 'graphql';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import prismaNextPlugin from '../src';
-import {
-  createTestRuntime,
-  type SampleContract,
-  type TestRuntimeContext,
-} from './fixtures/runtime';
+import { createBuilder, run, type SampleContract, useSampleDb } from './fixtures/helpers';
 
-let ctx: TestRuntimeContext;
+const db = useSampleDb();
 
-beforeAll(async () => {
-  ctx = await createTestRuntime();
-});
-
-afterAll(async () => {
-  await ctx?.cleanup();
-});
-
-describe('plugin interop', () => {
-  it('prismaFieldWithInput composes with @pothos/plugin-with-input', async () => {
+describe('plugin-with-input', () => {
+  it('passes the input to prismaFieldWithInput, or undefined when an optional input is omitted', async () => {
+    const seen: unknown[] = [];
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: [WithInputPlugin, prismaNextPlugin],
-      prismaNext: { contract: ctx.contract },
+      prismaNext: { client: db.client },
     });
-
     builder.prismaObject('User', {
-      fields: (t) => ({
-        id: t.exposeID('id'),
-        firstName: t.exposeString('firstName'),
-      }),
+      fields: (t) => ({ id: t.exposeID('id'), firstName: t.exposeString('firstName') }),
     });
-
     builder.queryType({
       fields: (t) => ({
-        userByEmailWithInput: t.prismaFieldWithInput({
+        byEmail: t.prismaFieldWithInput({
           type: 'User',
           nullable: true,
-          input: {
-            email: t.input.string({ required: true }),
-          },
-          resolve: ((_parent: unknown, args: { input: { email: string } }) =>
-            ctx.ormClient.User.where((u) => u.email.eq(args.input.email))) as never,
+          input: { email: t.input.string({ required: true }) },
+          resolve: (_root, args) => db.orm.User.where({ email: args.input.email }),
         }),
-      }),
-    });
-
-    const schema = builder.toSchema();
-    const result = await execute({
-      schema,
-      document: parse(
-        '{ userByEmailWithInput(input: { email: "alice@example.com" }) { id firstName } }',
-      ),
-      contextValue: {},
-    });
-    expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({
-      userByEmailWithInput: { id: 'u-alice', firstName: 'Alice' },
-    });
-  });
-
-  it('prismaFieldWithInput hands the resolver `undefined` when an optional input is omitted', async () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [WithInputPlugin, prismaNextPlugin],
-      prismaNext: { contract: ctx.contract },
-    });
-
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        id: t.exposeID('id'),
-      }),
-    });
-
-    const seen: unknown[] = [];
-
-    builder.queryType({
-      fields: (t) => ({
-        userByOptionalInput: t.prismaFieldWithInput({
+        optional: t.prismaFieldWithInput({
           type: 'User',
           nullable: true,
           argOptions: { required: false },
-          input: {
-            email: t.input.string({ required: true }),
-          },
-          resolve: ((_parent: unknown, args: { input?: { email: string } | null }) => {
+          input: { email: t.input.string({ required: true }) },
+          resolve: (_root, args) => {
             seen.push(args.input);
-            const email = args.input?.email ?? 'alice@example.com';
-            return ctx.ormClient.User.where((u) => u.email.eq(email));
-          }) as never,
+            return db.orm.User.where({ email: args.input?.email ?? 'alice@example.com' });
+          },
         }),
       }),
     });
-
     const schema = builder.toSchema();
-
-    const omitted = await execute({
+    const result = await run(
       schema,
-      document: parse('{ userByOptionalInput { id } }'),
-      contextValue: {},
+      '{ byEmail(input: { email: "bob@example.com" }) { id firstName } omitted: optional { id } explicit: optional(input: null) { id } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      byEmail: { id: 'u-bob', firstName: 'Bob' },
+      omitted: { id: 'u-alice' },
+      explicit: { id: 'u-alice' },
     });
-    expect(omitted.errors).toBeUndefined();
-    expect(omitted.data).toEqual({ userByOptionalInput: { id: 'u-alice' } });
-
-    const explicitNull = await execute({
-      schema,
-      document: parse('{ userByOptionalInput(input: null) { id } }'),
-      contextValue: {},
-    });
-    expect(explicitNull.errors).toBeUndefined();
-    expect(explicitNull.data).toEqual({ userByOptionalInput: { id: 'u-alice' } });
-
     expect(seen).toEqual([undefined, null]);
   });
+});
 
-  it('t.relation forwards errors plugin options through to the field config', () => {
-    // Errors plugin reads `errors:` on a field's options to wrap the
-    // resolver in a try/catch and turn returned errors into a union.
-    // If t.relation drops `errors`, the result type wouldn't have the
-    // expected `__typename` discrimination.
-    const builder = new SchemaBuilder<{
-      PrismaNextContract: SampleContract;
-    }>({
-      plugins: [ErrorsPlugin, RelayPlugin, prismaNextPlugin],
-      prismaNext: { contract: ctx.contract },
-    });
-
+describe('plugin-errors', () => {
+  it('forwards errors options through t.relation', async () => {
+    const builder = createBuilder();
     class CustomError extends Error {}
     builder.objectType(CustomError, {
       name: 'CustomError',
       fields: (t) => ({ message: t.exposeString('message') }),
     });
-
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        id: t.exposeID('id'),
-      }),
-    });
-
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('Post', {
       fields: (t) => ({
         id: t.exposeID('id'),
-        // `errors:` should flow through into the field config —
-        // the resolver gets wrapped, and the schema generates a
-        // union type for the field.
-        author: t.relation('author', {
-          errors: { types: [CustomError] },
-        }),
+        author: t.relation('author', { errors: { types: [CustomError] } }),
       }),
     });
+    builder.queryType({
+      fields: (t) => ({ posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }) }),
+    });
+    const schema = builder.toSchema();
+    expect(schema.getType('PostAuthorResult')).toBeDefined();
+    expect(schema.getType('PostAuthorSuccess')).toBeDefined();
+    const result = await run(
+      schema,
+      '{ posts { id author { __typename ... on PostAuthorSuccess { data { id } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const success = (id: string) => ({ __typename: 'PostAuthorSuccess', data: { id } });
+    expect(result.data).toEqual({
+      posts: [
+        { id: 'p-hello', author: success('u-alice') },
+        { id: 'p-draft1', author: success('u-alice') },
+        { id: 'p-bob1', author: success('u-bob') },
+        { id: 'p-bob-draft', author: success('u-bob') },
+      ],
+    });
+  });
 
+  it('materializes a list inside a root success wrapper as a list', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
       fields: (t) => ({
-        posts: t.prismaField({
-          type: ['Post'],
-          resolve: (() => ctx.ormClient.Post) as never,
-        }),
+        users: t.prismaField({ type: ['User'], errors: { types: [] }, resolve: () => db.orm.User }),
       }),
     });
-
-    const schema = builder.toSchema();
-    // Schema printing — confirm the union type was generated. If
-    // `errors:` was dropped, the schema would have `author: User`
-    // instead of a `…AuthorResult` union.
-    const printed = JSON.stringify(schema.getType('PostAuthorResult'));
-    expect(printed).not.toBe('undefined');
+    const result = await run(
+      builder.toSchema(),
+      '{ users { ... on QueryUsersSuccess { data { id } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ users: { data: [{ id: 'u-alice' }, { id: 'u-bob' }] } });
   });
 });

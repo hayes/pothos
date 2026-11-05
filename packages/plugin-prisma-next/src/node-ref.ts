@@ -1,24 +1,24 @@
 import type { SchemaTypes } from '@pothos/core';
 import { PrismaNextObjectRef } from './object-ref.js';
-import type { ModelName, Row } from './types.js';
+import type { ModelKey, Row } from './types/models.js';
 
-export const relayIDShapeKey = Symbol.for('Pothos.prismaNextRelayIDShapeKey');
+export const relayIDShapeBrand = Symbol.for('Pothos.prismaNextRelayIDShapeBrand');
 
 export class PrismaNextNodeRef<
   Types extends SchemaTypes,
-  M extends ModelName<Types>,
+  M extends ModelKey<Types>,
   Shape = Row<Types, M>,
   IDShape = string,
 > extends PrismaNextObjectRef<Types, M, Shape> {
-  declare readonly [relayIDShapeKey]: IDShape;
+  declare readonly [relayIDShapeBrand]: IDShape;
   readonly parseId?: (id: string, ctx: object) => IDShape;
 
   constructor(
     name: string,
-    modelName: M,
+    modelKey: M,
     options: { parseId?: (id: string, ctx: object) => IDShape } = {},
   ) {
-    super(name, modelName);
+    super(name, modelKey);
     if (options.parseId) {
       this.parseId = options.parseId;
     }

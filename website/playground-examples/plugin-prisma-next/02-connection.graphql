@@ -1,0 +1,16 @@
+query AuthorPages {
+  users {
+    fullName
+    postConnection(first: 1) {
+      totalCount
+      pageInfo {
+        hasNextPage
+      }
+      edges {
+        node {
+          title
+        }
+      }
+    }
+  }
+}
