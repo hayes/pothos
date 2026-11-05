@@ -9,7 +9,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, setFieldMapping } from '@pothos/selection-mapper';
+import { getLoaderMapping, mappingParentTypes, setFieldMapping } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
@@ -93,7 +93,12 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
                   pathInfo: PathInfo,
                 ) => {
                   // A field's select also reads its metadata from the nested selection function.
-                  const nestedQueryWithPath = Object.assign(nestedQuery, pathInfo);
+                  // Forwarded lazily: reading the path ties the walk beneath the field to this
+                  // invocation, so a select that never reads it keeps that walk shared.
+                  const nestedQueryWithPath = Object.defineProperties(nestedQuery, {
+                    path: { get: () => pathInfo.path, enumerable: true },
+                    segments: { get: () => pathInfo.segments, enumerable: true },
+                  });
                   return completeValue(
                     (select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {} | null)(
                       args,
@@ -132,16 +137,7 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       | ((value: unknown, info: GraphQLResolveInfo, context: object) => boolean)
       | undefined;
 
-    const parentTypes = new Set([fieldConfig.parentType]);
-
-    if (parentConfig.kind === 'Interface' || parentConfig.kind === 'Object') {
-      for (const iface of parentConfig.interfaces) {
-        const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
-        if (interfaceConfig.extensions?.pothosDrizzleModel) {
-          parentTypes.add(interfaceConfig.name);
-        }
-      }
-    }
+    const parentTypes = mappingParentTypes(this.buildCache, fieldConfig, 'pothosDrizzleModel');
 
     const modelLoader = parentConfig.extensions?.pothosDrizzleLoader as ReturnType<
       typeof ModelLoader.forModel
