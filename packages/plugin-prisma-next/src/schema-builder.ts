@@ -80,7 +80,7 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelKey<Type
             if (typeName === undefined) {
               throw new InternalError(
                 value === undefined
-                  ? `prismaInterface '${iface.name}' row was loaded without its discriminator '${discriminator.field}'. Return it from a prisma field, or include '${discriminator.field}' in the row. A field with its own select must return the rows it loaded, not copies of them.`
+                  ? `prismaInterface '${iface.name}' row was loaded without its discriminator '${discriminator.field}'. Return it from a prisma field, or include '${discriminator.field}' in the row.`
                   : `prismaInterface '${iface.name}' row has a discriminator '${discriminator.field}' that names no variant of model '${modelKey as string}'.`,
               );
             }

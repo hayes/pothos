@@ -1618,7 +1618,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     return { builder, task };
   }
 
-  it("reports a field's select returning copies of the rows it loaded", async () => {
+  it("resolves copies of the rows a field's select loaded", async () => {
     const { builder, task } = taskBuilder();
     builder.prismaObject('Note', {
       fields: (t) => ({
@@ -1632,8 +1632,46 @@ describe('a relation targeting a variant model with a table of its own', () => {
     });
     builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
     const result = await run(builder.toSchema(), '{ notes { task { title } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.notes).toEqual([{ task: null }, { task: { title: 'feat1' } }]);
+  });
+
+  it("rejects a field's static select that hands their rows to a union", () => {
+    const { builder } = taskBuilder();
+    const union = builder.unionType('AnyTask', { types: ['Bug', 'Feature'] as never });
+    builder.prismaObject('Note', {
+      fields: (t) => ({
+        task: t.field({
+          type: union,
+          nullable: true,
+          select: { feature: true },
+          resolve: (note) => note.feature as never,
+        }),
+      }),
+    });
+    builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
+    expect(() => builder.toSchema()).toThrow(
+      /The select of field 'task' loads the rows of relation 'feature'/,
+    );
+  });
+
+  // Only a static select's rows are completed before the resolver, so a select function's fail.
+  it('rejects the request of a select function that hands their rows to an interface', async () => {
+    const { builder, task } = taskBuilder();
+    builder.prismaObject('Note', {
+      fields: (t) => ({
+        task: t.field({
+          type: task,
+          nullable: true,
+          select: () => ({ feature: true }),
+          resolve: (note) => note.feature,
+        }),
+      }),
+    });
+    builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
+    const result = await run(builder.toSchema(), '{ notes { task { title } } }');
     expect(detailOf(result.errors?.[0])).toMatch(
-      /A field with its own select must return the rows it loaded, not copies of them\.$/,
+      /The select of field 'task' loads the rows of relation 'feature'/,
     );
   });
 
