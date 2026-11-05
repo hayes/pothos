@@ -573,7 +573,11 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
  * detail is its `cause`, which responses leave out.
  */
 function variantConflict(type: WalkedType, variant: WalkedType, conflict: TypeLevelConflict) {
-  return new Error('Unexpected error.', { cause: variantConflictDetail(type, variant, conflict) });
+  // Still a `PothosValidationError`, as before, for code that matches on the class.
+  const error = new PothosValidationError('Unexpected error.');
+  error.cause = variantConflictDetail(type, variant, conflict);
+
+  return error;
 }
 
 function variantConflictDetail(type: WalkedType, variant: WalkedType, conflict: TypeLevelConflict) {
