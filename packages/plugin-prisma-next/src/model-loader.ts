@@ -56,7 +56,11 @@ export class ModelLoader {
     const key = cacheKey(info.parentType.name, info.path);
     let selection = this.selections.get(key);
     if (!selection) {
-      selection = Plan.forParentRow(this.adapter, this.context, info, this.skipDeferredFragments);
+      selection = Plan.forParentRow(this.adapter, {
+        context: this.context,
+        info,
+        skipDeferredFragments: this.skipDeferredFragments,
+      });
       this.selections.set(key, selection);
     }
     const load = (played: Played) =>
