@@ -21,16 +21,12 @@ import type {
 import type {
   DiscriminatorField,
   ModelKey,
+  OwnRow,
   PlannedRow,
   RelationKeys,
   Row,
 } from './types/models.js';
-import type {
-  DefaultRelationNullable,
-  IsToMany,
-  RelatedModel,
-  RelationFieldShape,
-} from './types/relations.js';
+import type { DefaultRelationNullable, IsToMany, RelatedModel } from './types/relations.js';
 import type { ConnectionPageEntry, NodeSelection } from './types/selections.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { assertConnectionCollection } from './utils/collection-state.js';
@@ -112,8 +108,23 @@ type SelectedRelations<
             ? PlannedRow<Types, RelatedModel<Types, M, K>>
             : Row<Types, RelatedModel<Types, M, K>>)
         | (DefaultRelationNullable<Types, M, K> extends true ? null : never)
-    : RelationFieldShape<Types, M, K, DefaultRelationNullable<Types, M, K>>;
+    : WholeRelation<Types, M, K>;
 };
+
+/**
+ * A relation a helper's `select` loads whole. A variant with a table of its own loads only that
+ * table's columns, not its base's.
+ */
+type WholeRelation<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  K extends RelationKeys<Types, M>,
+> =
+  IsToMany<Types, M, K> extends true
+    ? readonly OwnRow<Types, RelatedModel<Types, M, K>>[]
+    :
+        | OwnRow<Types, RelatedModel<Types, M, K>>
+        | (DefaultRelationNullable<Types, M, K> extends true ? null : never);
 
 /**
  * A row of a helper's page planned from a query: its key, the columns and relations its `select`

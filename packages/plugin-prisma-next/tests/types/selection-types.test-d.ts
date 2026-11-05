@@ -1313,3 +1313,17 @@ builder.queryFields((t) => ({
 const userPages = prismaConnectionHelpers(builder, 'User', {});
 // @ts-expect-error `posts` is already included
 userPages.applyPagination(orm.User.include('posts'), {}, {});
+
+// A variant with a table of its own, loaded as a whole relation, has only that table's columns.
+prismaConnectionHelpers(inhBuilder, 'Note', {
+  orderBy: () => ({ id: 'asc' }),
+  select: () => ({ feature: true }),
+  resolveNode: (note) => {
+    expectTypeOf(note.feature).toBeNullable();
+    expectTypeOf(note.feature!.priority).toEqualTypeOf<number>();
+    expectTypeOf(note.feature!.code).toEqualTypeOf<string | null>();
+    // @ts-expect-error `title` is a column of the base, `Task`
+    note.feature?.title;
+    return note;
+  },
+});
