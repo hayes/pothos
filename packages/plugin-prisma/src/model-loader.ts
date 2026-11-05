@@ -373,8 +373,8 @@ type ScopeAuthParentLoader = (
 
 /**
  * The parent scope-auth's checks see for a type: the row when it has every top-level key of the
- * type's selection, otherwise the row reloaded with it. `scalars` are the
- * columns of include mode, which loads every scalar.
+ * type's selection, otherwise the row reloaded with it. `scalars` are the columns of include mode,
+ * which loads every scalar.
  */
 export function typeParentLoader(
   loaders: (context: object) => ModelLoader,

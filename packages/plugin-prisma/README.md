@@ -538,10 +538,10 @@ would need one will throw `Missing findUnique for User` instead of querying.
 
 With `ScopeAuthPlugin` 4.3.0 or later, scope checks that read the parent see what its type loads
 (its `select`, or every scalar and its `include`), even for a row returned from a plain `t.field`,
-unless the type sets `findUnique: null`. A row missing that data is reloaded, so a row that no longer exists fails the
-field with `Unexpected error.`. To return a deleted row, use `t.prismaField` and pass its `query`
-to `delete`. When `ScopeAuthPlugin` comes before `PrismaPlugin`, a field's own `select` is loaded
-after its `authScopes` run.
+unless the type sets `findUnique: null`. A row missing that data is reloaded, so a row that no
+longer exists fails the field with `Unexpected error.`. To return a deleted row, use `t.prismaField`
+and pass its `query` to `delete`. When `ScopeAuthPlugin` comes before `PrismaPlugin`, a field's own
+`select` is loaded after its `authScopes` run.
 
 #### Filters, Sorting, and arguments
 
