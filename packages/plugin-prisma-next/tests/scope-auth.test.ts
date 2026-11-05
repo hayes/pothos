@@ -739,8 +739,8 @@ describe("a type's select before plugins listed first", () => {
     expect(seen).not.toContainEqual(expect.arrayContaining([undefined]));
     expect(seen).toContainEqual(alice('field'));
     expect(seen).toContainEqual(['label', 'alice@example.com']);
-    // The deferred field reloads the hand-built row after the first batch ran.
-    expect(statements).toHaveLength(2);
+    // The deferred field shares the hand-built row's reload with the first batch.
+    expect(statements).toHaveLength(1);
   });
 
   it('fails the field whose reload fails, naming it', async () => {
@@ -1172,9 +1172,8 @@ describe('runScopesOnType on rows without what the type selects', () => {
     expect(result.data).toEqual({ copied: { firstName: 'Alice' } });
     expect(seen).toEqual([['alice@example.com', 2]]);
     expect(parentResults).toEqual(['promise']);
-    // The user, the reload for the type's authScopes, and the field's own reload of the copy,
-    // which also loads the column it exposes.
-    expect(result.statements).toHaveLength(3);
+    // The user, and one reload of the copy, which the type's authScopes and the field share.
+    expect(result.statements).toHaveLength(2);
   });
 
   it("shares the type's reload with a field that reads only what the type selects", async () => {
@@ -1250,9 +1249,9 @@ describe('runScopesOnType on rows without what the type selects', () => {
     expect(result.data.users).toEqual([{ championPage: { edges: [{ node: { priority: 5 } }] } }]);
     expect(seen).toEqual([['t2', 'feat1']]);
     expect(parentResults).toEqual(['promise']);
-    // The users with their features, the reload for the type's authScopes, and the field's own
-    // reload of the page's row.
-    expect(result.statements).toHaveLength(3);
+    // The users with their features, and one reload of the page's row, which the type's
+    // authScopes and the field share.
+    expect(result.statements).toHaveLength(2);
   });
 });
 

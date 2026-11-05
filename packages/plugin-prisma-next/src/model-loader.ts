@@ -108,6 +108,18 @@ export class ModelLoader {
       this.variant === undefined ? undefined : { args: { variant: { value: this.variant } } };
   }
 
+  /** Without a key a reload would match every row, and each parent would read the first one. */
+  private assertIdentity(info: GraphQLResolveInfo) {
+    if (!this.identity.length) {
+      // It names its field, so `reloadFor` passes it on as it is.
+      throw keepError(
+        new InternalError(
+          `Field '${info.parentType.name}.${info.fieldName}' needs its parent reloaded, but model '${this.modelKey}' has no non-null primary or unique key to reload it by. Add one, or load its rows through prisma fields without @defer.`,
+        ),
+      );
+    }
+  }
+
   private plansFor(info: GraphQLResolveInfo): Plans {
     let plans = this.plans.get(info.variableValues);
     if (!plans) {
@@ -117,20 +129,12 @@ export class ModelLoader {
     return plans;
   }
 
-  /**
-   * The parent row reloaded with what `info`'s field needs, and the field's mapping in that load.
-   * `missing` names the columns and relations the parent lacks, for the error a model without an
-   * identity throws.
-   */
+  /** The parent row reloaded with what `info`'s field needs, and the field's mapping in that load. */
   loadSelection(
     info: GraphQLResolveInfo,
     parent: object,
-    missing: readonly string[] = [],
   ): Promise<{ row: Row; mapping: Mapping | undefined }> {
-    // Without a key the reload would match every row, and each parent would read the first one.
-    if (!this.identity.length) {
-      throw noIdentityReloadError(info, this.modelKey, missing);
-    }
+    this.assertIdentity(info);
     const key = cacheKey(info.parentType.name, info.path);
     const plans = this.plansFor(info).parent;
     let selection = plans.get(key);
@@ -167,23 +171,14 @@ export class ModelLoader {
   }
 
   /**
-   * The parent row reloaded with what the `select`s of `type` and its interfaces load, and
-   * `columns`. Unlike `loadSelection`, it plans none of the field, so every field of a row shares
-   * it, and the type's relations are never left out for the field's. A row reloaded with the same
-   * plan again, such as by scope-auth's type check and then a field, shares the first load.
-   * `missing` is as for `loadSelection`.
+   * The parent row reloaded with every column and what the `select`s of `type` and its interfaces
+   * load. Unlike `loadSelection`, it plans none of the field, so every field of a row shares it,
+   * and the type's relations are never left out for the field's. A row reloaded again, such as by
+   * scope-auth's type check and then a field, shares the first load.
    */
-  loadTypeRow(
-    info: GraphQLResolveInfo,
-    parent: object,
-    missing: readonly string[],
-    columns: readonly string[],
-    type: GraphQLObjectType,
-  ): Promise<Row> {
-    if (!this.identity.length) {
-      throw noIdentityReloadError(info, this.modelKey, missing);
-    }
-    const key = [type.name, ...columns].join(' ');
+  loadTypeRow(info: GraphQLResolveInfo, parent: object, type: GraphQLObjectType): Promise<Row> {
+    this.assertIdentity(info);
+    const key = type.name;
     const { type: plans, typeRows } = this.plansFor(info);
     let loads = typeRows.get(parent);
     const loaded = loads?.get(key);
@@ -200,9 +195,7 @@ export class ModelLoader {
         this.initial,
       );
       selection = completeValue(plan.finish(plan.enterParentType, type), (played) => {
-        if (columns.length) {
-          this.config.adapter.mergeQuery(played.root, { columns: [...columns] });
-        }
+        this.config.adapter.mergeQuery(played.root, { columns: null });
         return played;
       });
       plans.set(key, selection);
@@ -431,26 +424,6 @@ export class ModelLoader {
       }
     }
   }
-}
-
-function noIdentityReloadError(
-  info: GraphQLResolveInfo,
-  modelKey: string,
-  missing: readonly string[],
-) {
-  const why = missing.length
-    ? `its parent row is missing ${missing.map((name) => `'${name}'`).join(', ')}`
-    : 'it was left out of the query that loaded its parent (a conflicting selection, a skipped ' +
-      '@defer, or a parent not loaded through a prisma field)';
-  // It names its field, so `reloadFor` passes it on as it is.
-  return keepError(
-    new InternalError(
-      `Field '${info.parentType.name}.${info.fieldName}' needs its parent reloaded because ${why}, ` +
-        `but model '${modelKey}' has no non-null primary or unique key to reload it by. ` +
-        `Add a primary or unique key to '${modelKey}', or load its rows through prisma fields ` +
-        'without @defer fragments or conflicting selections of the same relation.',
-    ),
-  );
 }
 
 /**

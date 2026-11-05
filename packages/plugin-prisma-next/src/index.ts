@@ -481,14 +481,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     info: GraphQLResolveInfo,
     type: GraphQLObjectType,
   ): MaybePromise<object> {
-    const missing = check.missingTypeData(parent);
-    if (!missing) {
+    if (check.hasTypeData(parent)) {
       return check.typeParent(parent);
     }
     return reloadFor(info, () =>
-      this.config
-        .loader(context, check.modelKey)
-        .loadTypeRow(info, rowOf(parent), missing, check.staticColumns ?? [], type),
+      this.config.loader(context, check.modelKey).loadTypeRow(info, rowOf(parent), type),
     ).then(check.typeParent);
   }
 
@@ -509,7 +506,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const { config } = this;
     const {
       modelKey,
-      requiredOnRow,
       computedRelations,
       parentScopes,
       planned,
@@ -542,46 +538,41 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     };
 
     return (row, args, context, info) => {
+      // `wrapArgMappers` passes a parent with everything its type's `select`s load.
       const parent = row as object;
-      // The row as every type-level select of the parent type loaded it.
-      const complete = parentForType(parent, parentScopes) as Record<string, unknown>;
-      const missing = requiredOnRow.filter((name) => complete[name] === undefined);
       // A row a load returned holds every scope of its type's `select`s, which is what a field
       // without a select function is planned for.
       if (
-        !missing.length &&
-        (!planned ||
-          (staticColumns !== undefined &&
-            isLoadedTypeRow(rowOf(parent)) &&
-            computedRelations.every((name) => loadedSlots(parent, name))))
+        !planned ||
+        (staticColumns !== undefined &&
+          isLoadedTypeRow(rowOf(parent)) &&
+          computedRelations.every((name) => loadedSlots(parent, name)))
       ) {
         return handOver(reader.parent(parent, null), undefined, args, context, info);
       }
       const mapping = reader.mapping(parent, context, info);
-      if (!missing.length) {
-        const slots = mapping && fieldSlots(parent, mapping.position);
-        if (
-          mapping &&
-          !leftOut(parent, mapping.position) &&
-          computedRelations.every((name) => loadedSlots(parent, name)) &&
-          (!loaded || (slots && loaded(slots, context, info))) &&
-          // What a field's own `select` loaded is read from the row's slots, which a parent this
-          // plugin didn't return, such as another plugin's copy, lacks.
-          (!declaresOwnSelect || slots)
-        ) {
-          setRowMappings(context, info, mapping.nested);
-          return handOver(reader.parent(parent, mapping), mapping.position, args, context, info);
-        }
+      const slots = mapping && fieldSlots(parent, mapping.position);
+      if (
+        mapping &&
+        !leftOut(parent, mapping.position) &&
+        computedRelations.every((name) => loadedSlots(parent, name)) &&
+        (!loaded || (slots && loaded(slots, context, info))) &&
+        // What a field's own `select` loaded is read from the row's slots, which a parent this
+        // plugin didn't return, such as another plugin's copy, lacks.
+        (!declaresOwnSelect || slots)
+      ) {
+        setRowMappings(context, info, mapping.nested);
+        return handOver(reader.parent(parent, mapping), mapping.position, args, context, info);
       }
       return reloadFor(info, () =>
-        config.loader(context, modelKey).loadSelection(info, rowOf(parent), missing),
+        config.loader(context, modelKey).loadSelection(info, rowOf(parent)),
       ).then(({ row, mapping }) => {
         const position = mapping?.position;
         // The reload gives a filtered to-one relation's include to this field, whose version its
         // helper reads from a slot. Plugins see the row the field had when it holds the declared
         // relation, and otherwise the reloaded one, which holds no version of it.
         const reloaded =
-          refinedToOne === undefined || missing.length
+          refinedToOne === undefined
             ? reader.parent(row, mapping)
             : refineKeptToOne(
                 reader.parent(parent, null),
@@ -735,24 +726,14 @@ function typeDataCheck(
   const parentScopes = selects
     .filter((select) => select.relations.length > 0)
     .map((select) => select.name);
-  const missingTypeData =
-    requiredOnRow.length || computedRelations.length
-      ? (parent: object) => {
-          const complete = parentForType(parent, parentScopes) as Record<string, unknown>;
-          // Checked first so a complete row allocates nothing.
-          if (
-            requiredOnRow.every((name) => complete[name] !== undefined) &&
-            computedRelations.every((name) => loadedSlots(parent, name))
-          ) {
-            return undefined;
-          }
-          return [
-            ...requiredOnRow.filter((name) => complete[name] === undefined),
-            ...computedRelations.filter((name) => !loadedSlots(parent, name)),
-          ];
-        }
-      : () => undefined;
-  return { requiredOnRow, computedRelations, parentScopes, missingTypeData };
+  const hasTypeData = (parent: object) => {
+    const complete = parentForType(parent, parentScopes) as Record<string, unknown>;
+    return (
+      requiredOnRow.every((name) => complete[name] !== undefined) &&
+      computedRelations.every((name) => loadedSlots(parent, name))
+    );
+  };
+  return { computedRelations, parentScopes, hasTypeData };
 }
 
 type TypeRowCheck = ReturnType<PothosPrismaNextPlugin<SchemaTypes>['typeRowCheck']>;

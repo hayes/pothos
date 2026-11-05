@@ -622,12 +622,12 @@ describe('models without a key', () => {
     return defer ? deferSchema(builder) : builder.toSchema();
   }
 
-  const keylessError = (field: string, reason: string) =>
+  const keylessError = (field: string) =>
     expect.objectContaining({
       message: 'Unexpected error.',
       originalError: unexpected(
         new RegExp(
-          `^Field 'PostView\\.${field}' needs its parent reloaded because ${reason}.*model 'PostView' has no non-null primary or unique key.*Add a primary or unique key to 'PostView'`,
+          `^Field 'PostView\\.${field}' needs its parent reloaded, but model 'PostView' has no non-null primary or unique key`,
         ),
       ),
     });
@@ -658,10 +658,7 @@ describe('models without a key', () => {
       keylessSchema(),
       '{ posts { views { viewer published { title } draft { title } } } }',
     );
-    expect(result.errors).toEqual([
-      keylessError('draft', 'it was left out of the query that loaded its parent'),
-      keylessError('draft', 'it was left out of the query that loaded its parent'),
-    ]);
+    expect(result.errors).toEqual([keylessError('draft'), keylessError('draft')]);
     expect(result.data.posts[0].views).toEqual(
       ['Bob', 'Carol'].map((viewer) => ({
         viewer,
@@ -680,10 +677,7 @@ describe('models without a key', () => {
     expect(result.initial.errors).toBeUndefined();
     expect(result.patchErrors).toHaveLength(6);
     expect(result.patchErrors).toEqual(
-      expect.arrayContaining([
-        keylessError('viewedAt', "its parent row is missing 'viewedAt'"),
-        keylessError('published', 'it was left out of the query that loaded its parent'),
-      ]),
+      expect.arrayContaining([keylessError('viewedAt'), keylessError('published')]),
     );
     expect(result.patches).toEqual([0, 1, 2].map(() => ({ viewedAt: null, published: null })));
     expect(result.statements).toHaveLength(1);
@@ -696,10 +690,7 @@ describe('models without a key', () => {
     );
     expect(result.errors).toHaveLength(2);
     expect(result.errors).toEqual(
-      expect.arrayContaining([
-        keylessError('viewedAt', "its parent row is missing 'viewedAt'"),
-        keylessError('published', 'it was left out of the query that loaded its parent'),
-      ]),
+      expect.arrayContaining([keylessError('viewedAt'), keylessError('published')]),
     );
     expect(result.data).toEqual({
       plainViews: [{ viewer: 'Dave', viewedAt: null }],

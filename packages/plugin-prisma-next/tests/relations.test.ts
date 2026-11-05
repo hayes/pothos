@@ -848,7 +848,7 @@ describe('plugins that wrap resolvers', () => {
     expect(result.errors).toHaveLength(3);
     for (const error of result.errors!) {
       expect(detailOf(error)).toMatch(
-        /^Field 'PostView\.replacedPost' needs its parent reloaded because it was left out of the query that loaded its parent.*model 'PostView' has no non-null primary or unique key/,
+        /^Field 'PostView\.replacedPost' needs its parent reloaded, but model 'PostView' has no non-null primary or unique key/,
       );
       // A developer's error, which a server that masks errors hides from the client.
       expect(error.originalError).toBeInstanceOf(Error);
