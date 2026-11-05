@@ -320,6 +320,22 @@ function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | 
 }
 
 /**
+ * A copy of `loaded`, a row `takeSlots` returned, with the keys of `row` it didn't load, keeping
+ * its slots.
+ */
+export function withOtherKeys(loaded: Row, row: object): Row {
+  const entry = rowSlots.get(loaded) ?? PLAIN;
+  const next = copyOf(loaded);
+  for (const key of Object.keys(row)) {
+    if (!Object.hasOwn(next, key) && !entry.slots[key]) {
+      next[key] = (row as Row)[key];
+    }
+  }
+  rowSlots.set(next, entry.row ? { row: next, slots: entry.slots, scopes: entry.scopes } : entry);
+  return next;
+}
+
+/**
  * Writes the rows and computed values that `scopes` loaded onto `target`. Later scopes win. A
  * connection's count stays in its slot, and a page counted without rows has none.
  */

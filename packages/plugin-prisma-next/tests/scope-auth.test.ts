@@ -18,6 +18,7 @@ import {
   type GraphQLSchema,
   parse,
   specifiedDirectives,
+  subscribe,
 } from 'graphql';
 import { afterAll, beforeAll, describe, expect, expectTypeOf, it } from 'vitest';
 import prismaNextPlugin, { type PothosPrismaNextPlugin, prismaConnectionHelpers } from '../src';
@@ -2245,5 +2246,98 @@ describe.each([
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual(data);
     expect(result.statements).toHaveLength(1);
+  });
+});
+
+describe.each(
+  orders.flatMap(([name, plugins]) => [
+    [name, false, plugins],
+    [name, true, plugins],
+  ]),
+)('rows reloaded for checks (%s, runScopesOnType: %s)', (_, runScopesOnType, plugins) => {
+  function reloadSchema(seen: unknown[]) {
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType },
+      prismaNext: { client: ctx.client },
+    });
+    const User = builder.prismaObject('User', {
+      select: ['email'],
+      authScopes: (user) => {
+        seen.push([user.email, user.firstName, (user as { nickname?: string }).nickname]);
+        return true;
+      },
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        firstName: t.string({ resolve: (user) => user.firstName }),
+        nickname: t.string({
+          nullable: true,
+          resolve: (user) => (user as { nickname?: string }).nickname,
+        }),
+      }),
+    });
+    // Mutated between subscription events, each of which also gets it as the root value.
+    const eventRow = { id: 'u-alice' };
+    builder.queryType({
+      fields: (t) => ({
+        overridden: t.field({
+          type: User,
+          resolve: () => ({ id: 'u-alice', firstName: 'Override', nickname: 'Al' }) as never,
+        }),
+      }),
+    });
+    builder.subscriptionType({
+      fields: (t) => ({
+        userEvents: t.field({
+          type: User,
+          subscribe: async function* () {
+            for (const id of ['u-alice', 'u-bob']) {
+              eventRow.id = id;
+              yield await Promise.resolve(eventRow);
+            }
+          },
+          resolve: (row) => row as never,
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it('replaces the values the row has with loaded ones, keeping its other keys', async () => {
+    const seen: unknown[] = [];
+    const result = await runCaptured(reloadSchema(seen), '{ overridden { firstName nickname } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ overridden: { firstName: 'Alice', nickname: 'Al' } });
+    expect(seen).toEqual([['alice@example.com', 'Alice', 'Al']]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('reloads a row again for each subscription event', async () => {
+    const seen: unknown[] = [];
+    const statements: CapturedExecution[] = [];
+    const results = await withCapture(statements, async () => {
+      const events = await subscribe({
+        schema: reloadSchema(seen),
+        document: parse('subscription { userEvents { id firstName } }'),
+        contextValue: {},
+      });
+      const collected: unknown[] = [];
+      for await (const event of events as AsyncIterable<unknown>) {
+        collected.push(event);
+      }
+      return collected;
+    });
+    expect(results).toEqual([
+      { data: { userEvents: { id: 'u-alice', firstName: 'Alice' } } },
+      { data: { userEvents: { id: 'u-bob', firstName: 'Bob' } } },
+    ]);
+    expect(seen).toEqual([
+      ['alice@example.com', 'Alice', undefined],
+      ['bob@example.com', 'Bob', undefined],
+    ]);
+    expect(statements).toHaveLength(2);
   });
 });
