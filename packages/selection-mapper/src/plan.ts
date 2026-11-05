@@ -1,13 +1,3 @@
-/**
- * One root being planned: the two entry points that build one from a resolver's `info`, the
- * merges a traversal collected for it, and the fold that turns those merges into a node.
- *
- * A plan holds no node — playing it builds one — so the same plan can be played more than once,
- * behind a different seed each time. Playing is where a merge is accepted or rejected and the
- * only place a mapping is recorded; the traversal decides nothing, so a field that lost to
- * another occurrence of itself is still on the list and a play whose seed makes it fit takes it.
- */
-import { PothosValidationError } from '@pothos/core';
 import { type GraphQLNamedType, type GraphQLResolveInfo, getNamedType } from 'graphql';
 import type { Adapter, NodeBase } from './adapter.js';
 import { unexpectedError } from './errors.js';
@@ -496,9 +486,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
         default: {
           const unknown: never = merge;
 
-          throw new PothosValidationError(
-            `Unknown root merge ${String((unknown as RootMerge<Query>).kind)}`,
-          );
+          throw unexpectedError(`Unknown root merge ${String((unknown as RootMerge<Query>).kind)}`);
         }
       }
     }

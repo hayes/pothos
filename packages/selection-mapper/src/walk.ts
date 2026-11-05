@@ -4,12 +4,7 @@
  * `Plan` import below is a type import, so nothing here runs at import time and the pair is not a
  * runtime cycle.
  */
-import {
-  getMappedArgumentValues,
-  isThenable,
-  type MaybePromise,
-  PothosValidationError,
-} from '@pothos/core';
+import { getMappedArgumentValues, isThenable, type MaybePromise } from '@pothos/core';
 import {
   type FieldNode,
   type FragmentDefinitionNode,
@@ -581,7 +576,7 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   const field = type.getFields()[name];
 
   if (!field) {
-    throw new PothosValidationError(`Unknown field ${name} on ${type.name}`);
+    throw unexpectedError(`Unknown field ${name} on ${type.name}`);
   }
 
   const selection = adapter.fieldSelection(field, type);
