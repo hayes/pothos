@@ -11,16 +11,9 @@ import {
   mappingsOf,
   queryFromInfo,
   resolveInfo,
+  unexpected,
 } from './fake-adapter';
 import { createTestAdapter, createTestSchema, models, withSelects } from './schema';
-
-/** The error a type-level conflict throws: generic, with `detail` as its cause's message. */
-function unexpected(detail: string) {
-  return expect.objectContaining({
-    message: 'Unexpected error.',
-    cause: expect.objectContaining({ message: expect.stringContaining(detail) }),
-  });
-}
 
 const schema = createTestSchema();
 const adapter = createTestAdapter();
@@ -44,6 +37,17 @@ function watchPositions() {
   }
 
   return { adapter: new WatchingAdapter(models), seen };
+}
+
+/** The chain of a walk, read through `walkParent`. */
+function walkChain(position: Position) {
+  const path: string[] = [];
+
+  for (let at: Position | undefined = position; at; at = at.walkParent) {
+    path.push(`${at.type.name}.${at.node.name.value}`);
+  }
+
+  return path.reverse();
 }
 
 /** What a caller that wants a path builds from a position: `Type.field` from the top down. */
@@ -1624,15 +1628,6 @@ describe('fragments that expand at every level', () => {
   it('shares a walk whose select functions read the chain through walkParent', async () => {
     const seen: string[][] = [];
     const { calls, types } = linkedSchema();
-    const walkChain = (position: Position) => {
-      const path: string[] = [];
-
-      for (let at: Position | undefined = position; at; at = at.walkParent) {
-        path.push(`${at.type.name}.${at.node.name.value}`);
-      }
-
-      return path.reverse();
-    };
 
     selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
       calls.author += 1;
@@ -1692,15 +1687,6 @@ describe('fragments that expand at every level', () => {
   it('shares a walk whose select functions read the chain through walkParent, beneath every variant', async () => {
     const seen: string[][] = [];
     const { calls, types } = linkedSchema();
-    const walkChain = (position: Position) => {
-      const path: string[] = [];
-
-      for (let at: Position | undefined = position; at; at = at.walkParent) {
-        path.push(`${at.type.name}.${at.node.name.value}`);
-      }
-
-      return path.reverse();
-    };
 
     selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
       calls.author += 1;
