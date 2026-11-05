@@ -378,10 +378,8 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
  * Set by plugins whose rows can lack data the checks read, such as prisma-next, to load the parent
  * the checks should see.
  */
-function parentLoader<Types extends SchemaTypes>({
-  extensions,
-}: Pick<PothosObjectTypeConfig, 'extensions'>) {
-  return extensions?.pothosScopeAuthParent as ScopeAuthParentLoader<Types['Context']> | undefined;
+function parentLoader({ extensions }: Pick<PothosObjectTypeConfig, 'extensions'>) {
+  return extensions?.pothosScopeAuthParent as ScopeAuthParentLoader | undefined;
 }
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<

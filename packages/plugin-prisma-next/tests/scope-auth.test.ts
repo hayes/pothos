@@ -1563,7 +1563,7 @@ describe('a key an interface and its implementation both compute', () => {
       expect(new Set(result.errors?.map((error) => detailOf(error)))).toEqual(
         new Set([
           "'Limited' and 'User' both compute 'total' from relation 'posts' in their select. A " +
-            'row holds one value for it, which the fields and auth checks of both types read. ' +
+            'row holds one value for it, which every field and auth check of the type reads. ' +
             'Give one of them a different name.',
         ]),
       );

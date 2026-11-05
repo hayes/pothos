@@ -56,7 +56,8 @@ When a type and its interfaces both select data:
 - An interface and a type that implements it, or two interfaces of one type, can't select the same
   relation with different arguments in their type-level `select`. The schema build throws. Load the
   other version with `t.relation` or a field's `select`.
-- A type and its interfaces can't compute values from a relation under the same name.
+- A type and its interfaces can't compute values from a relation under the same name. Requests
+  that load both fail.
 
 To add fields to the interface from another file, use `prismaInterfaceField` or
 `prismaInterfaceFields`:

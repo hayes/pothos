@@ -399,8 +399,12 @@ function assertOneWriter({ slots }: RowSlots, scopes: readonly string[]) {
           first.relation === relation
             ? `relation '${relation}'`
             : `relations '${first.relation}' and '${relation}'`;
+        const who =
+          first.scope === scope
+            ? `'${scope}' computes '${key}' twice`
+            : `'${first.scope}' and '${scope}' both compute '${key}'`;
         throw new InternalError(
-          `'${first.scope}' and '${scope}' both compute '${key}' from ${from} in their select. A row holds one value for it, which the fields and auth checks of both types read. Give one of them a different name.`,
+          `${who} from ${from} in their select. A row holds one value for it, which every field and auth check of the type reads. Give one of them a different name.`,
         );
       }
     }

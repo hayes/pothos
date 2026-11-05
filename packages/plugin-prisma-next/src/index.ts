@@ -604,9 +604,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * The row scope-auth's checks see, as `typeRow` returns it: for a field of the type, the parent
-   * its resolver gets, and otherwise, such as for `isTypeOf`, the row as the type's `select`s load
-   * it. The loader matches `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin
+   * The row scope-auth's checks see, as `typeRow` returns it: the row as the `select`s of the type
+   * and its interfaces load it, with the column a `t.expose*` field of the type exposes. The loader matches `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin
    * doesn't import.
    */
   private createTypeParentLoader(typeName: string) {

@@ -604,7 +604,7 @@ describe('inherited selections', () => {
     const schema = builder.toSchema();
     const message =
       "'Counted' and 'User' both compute 'total' from relation 'posts' in their select. A row " +
-      'holds one value for it, which the fields and auth checks of both types read. Give one of ' +
+      'holds one value for it, which every field and auth check of the type reads. Give one of ' +
       'them a different name.';
     for (const query of ['{ user { id email } }', '{ counted { id ... on User { email } } }']) {
       const result = await run(schema, query);
