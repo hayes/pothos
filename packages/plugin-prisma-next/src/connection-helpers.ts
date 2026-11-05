@@ -21,10 +21,10 @@ import type {
 import type {
   DiscriminatorField,
   ModelKey,
-  OwnRow,
   PlannedRow,
   RelationKeys,
   Row,
+  WholeRelationRow,
 } from './types/models.js';
 import type { DefaultRelationNullable, IsToMany, RelatedModel } from './types/relations.js';
 import type { ConnectionPageEntry, NodeSelection } from './types/selections.js';
@@ -111,19 +111,16 @@ type SelectedRelations<
     : WholeRelation<Types, M, K>;
 };
 
-/**
- * A relation a helper's `select` loads whole. A variant with a table of its own loads only that
- * table's columns, not its base's.
- */
+/** A relation a helper's `select` loads whole. */
 type WholeRelation<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   K extends RelationKeys<Types, M>,
 > =
   IsToMany<Types, M, K> extends true
-    ? readonly OwnRow<Types, RelatedModel<Types, M, K>>[]
+    ? readonly WholeRelationRow<Types, RelatedModel<Types, M, K>>[]
     :
-        | OwnRow<Types, RelatedModel<Types, M, K>>
+        | WholeRelationRow<Types, RelatedModel<Types, M, K>>
         | (DefaultRelationNullable<Types, M, K> extends true ? null : never);
 
 /**

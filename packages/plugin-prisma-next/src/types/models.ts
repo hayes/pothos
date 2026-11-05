@@ -208,6 +208,29 @@ export type IdentityFields<Types extends SchemaTypes, M extends ModelKey<Types>>
   ? PrimaryKeyFields<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>
   : PrimaryKeyFields<Types['PrismaNextContract'], M>;
 
+/** A model's table, as its namespace and name. */
+type StorageTable<C extends AnyContract, M extends string> =
+  ModelDefOf<C, M> extends {
+    readonly storage: { readonly namespaceId: infer Ns; readonly table: infer Table };
+  }
+    ? [Ns, Table]
+    : never;
+
+/**
+ * A row of a relation loaded whole. A variant with a table of its own loads only that table's
+ * columns and the key it shares with its base. Other models load their whole `Row`.
+ */
+export type WholeRelationRow<Types extends SchemaTypes, M extends ModelKey<Types>> = [
+  BaseModelKey<Types['PrismaNextContract'], M>,
+] extends [never]
+  ? Row<Types, M>
+  : StorageTable<Types['PrismaNextContract'], M> extends StorageTable<
+        Types['PrismaNextContract'],
+        BaseModelKey<Types['PrismaNextContract'], M>
+      >
+    ? Row<Types, M>
+    : OwnRow<Types, M> & Pick<Row<Types, M>, IdentityFields<Types, M>>;
+
 /**
  * A row the loader planned from a query, such as a row connection helpers load with `info`: its key
  * and what the query's selection needs, which includes the `select` of the type it resolves as. A

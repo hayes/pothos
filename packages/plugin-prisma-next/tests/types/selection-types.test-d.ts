@@ -1314,16 +1314,26 @@ const userPages = prismaConnectionHelpers(builder, 'User', {});
 // @ts-expect-error `posts` is already included
 userPages.applyPagination(orm.User.include('posts'), {}, {});
 
-// A variant with a table of its own, loaded as a whole relation, has only that table's columns.
+// A whole relation to a variant with a table of its own has only that table's columns and the
+// key it shares with its base. One to a variant sharing its base's table has every column.
 prismaConnectionHelpers(inhBuilder, 'Note', {
   orderBy: () => ({ id: 'asc' }),
   select: () => ({ feature: true }),
   resolveNode: (note) => {
     expectTypeOf(note.feature).toBeNullable();
+    expectTypeOf(note.feature!.id).toEqualTypeOf<string>();
     expectTypeOf(note.feature!.priority).toEqualTypeOf<number>();
-    expectTypeOf(note.feature!.code).toEqualTypeOf<string | null>();
     // @ts-expect-error `title` is a column of the base, `Task`
     note.feature?.title;
     return note;
+  },
+});
+prismaConnectionHelpers(inhBuilder, 'User', {
+  orderBy: () => ({ id: 'asc' }),
+  select: () => ({ reviews: true }),
+  resolveNode: (user) => {
+    expectTypeOf(user.reviews[0]!.title).toEqualTypeOf<string>();
+    expectTypeOf(user.reviews[0]!.severity).toEqualTypeOf<string>();
+    return user;
   },
 });
