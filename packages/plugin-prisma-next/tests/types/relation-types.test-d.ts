@@ -165,19 +165,9 @@ expectTypeOf<
     : 0
 >().toEqualTypeOf<0>();
 
-// The to-one function form is a branded error type, so its parameter names the problem.
-type AuthorFunctionForm = Extract<
-  NonNullable<SelectObjectSpec<Types, 'Post'>['author']>,
-  (...args: never[]) => unknown
->;
-expectTypeOf<AuthorFunctionForm>().toHaveProperty(
-  'To-one relations take true or { where }, not a function',
-);
-expectTypeOf<AuthorFunctionForm>().parameter(0).toEqualTypeOf<AuthorFunctionForm>();
-
-// The select check's error names the accepted forms for a to-one function only.
+// The select check rejects a to-one function.
 expectTypeOf<SelectCheck<Types, 'Post', { author: () => {} }>>().toEqualTypeOf<{
-  'Invalid value in select: author': 'To-one relations take true or { where }, not a function';
+  'Invalid value in select: author': never;
 }>();
 // A to-one relation loads one row, so `where` is its only option.
 expectTypeOf<keyof SelectCheck<Types, 'Post', { author: { limit: 1 } }>>().toEqualTypeOf<

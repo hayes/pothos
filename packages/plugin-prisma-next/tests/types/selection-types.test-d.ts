@@ -241,6 +241,8 @@ builder.prismaObject('User', {
     arrayFromFunction: t.string({ select: () => ['email'], resolve: () => '' }),
     // @ts-expect-error a select function returns a select object
     arrayFromAsyncFunction: t.string({ select: async () => ['email'], resolve: () => '' }),
+    // @ts-expect-error a select function returns a select object, even with known columns
+    tupleFromFunction: t.string({ select: () => ['email'] as const, resolve: () => '' }),
     objectForm: t.string({
       select: () => ({ email: true, posts: true }),
       resolve: (user) => `${user.email}${user.posts.length}`,

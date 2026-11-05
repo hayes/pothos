@@ -174,17 +174,6 @@ type VariantRelationCheck<Types extends SchemaTypes, M extends ModelKey<Types>, 
           string}`]: never;
       };
 
-type ToOneFunctionMessage = 'To-one relations take true or { where }, not a function';
-
-/**
- * Rejects the function form on a to-one relation, which has no `combine()`. The parameter is typed
- * as this interface, so the error names it instead of an implicit `any`.
- */
-interface NoToOneSelectFunction {
-  (relation: NoToOneSelectFunction): never;
-  readonly 'To-one relations take true or { where }, not a function': true;
-}
-
 export type SelectObjectSpec<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   readonly [K in (keyof Row<Types, M> & string) | RelationKeys<Types, M>]?: K extends RelationKeys<
     Types,
@@ -201,7 +190,7 @@ export type SelectObjectSpec<Types extends SchemaTypes, M extends ModelKey<Types
                   })
                 // A connection helper's page, on a field's `select` only.
                 | ConnectionPageEntry<RelationTypeModel<Types, M, K>, unknown>
-            : NoToOneSelectFunction)
+            : never)
     : K extends keyof Row<Types, M>
       ? true
       : never;
@@ -282,12 +271,7 @@ type ValidateSelectResult<Types extends SchemaTypes, ParentShape, Result> = [unk
     : NotASelect<Result>
   : [Extract<Result, readonly unknown[]>] extends [never]
     ? ValidateSelectValue<Types, ParentShape, Result>
-    : ArraySelectResult<Result>;
-
-/** Names a select function's array result, since a function returns the object form. */
-interface ArraySelectResult<Value> {
-  readonly 'A select function returns a select object, such as { title: true }, not': Value;
-}
+    : never;
 
 /** Names an unknown column in an error, where a plain `never` would only say "not assignable". */
 interface UnknownSelectColumn<Column> {
@@ -454,14 +438,7 @@ type InvalidSelectValueCheck<Types extends SchemaTypes, M extends ModelKey<Types
   ? [Invalid] extends [never]
     ? unknown
     : {
-        // The value shows in the untruncated error, so a to-one function names the accepted forms.
-        [K in Invalid as `Invalid value in select: ${K}`]: Select[K & keyof Select] extends (
-          ...args: never[]
-        ) => unknown
-          ? [Extract<SelectObjectSpec<Types, M>[K], NoToOneSelectFunction>] extends [never]
-            ? never
-            : ToOneFunctionMessage
-          : never;
+        [K in Invalid as `Invalid value in select: ${K}`]: never;
       }
   : unknown;
 
