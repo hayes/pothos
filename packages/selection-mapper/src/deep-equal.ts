@@ -2,6 +2,10 @@
  * Structural equality for query arguments (`where`, `orderBy`, `take`, ...). Keys holding
  * `undefined` are treated as absent, so `{ where: cond ? filter : undefined }` compares equal to
  * `{}` when the condition is false.
+ *
+ * Plain objects and arrays compare by value, and Dates by their time. Any other object (a Temporal
+ * value, a `Decimal`, a `Buffer`, a typed array) equals only an object of the same prototype that
+ * its `equals` method accepts, or itself when it has none.
  */
 export function deepEqual(left: unknown, right: unknown): boolean {
   if (left === right) {
@@ -32,28 +36,14 @@ export function deepEqual(left: unknown, right: unknown): boolean {
     return true;
   }
 
-  if (ArrayBuffer.isView(left) || ArrayBuffer.isView(right)) {
-    return viewsEqual(left, right);
+  const leftPlain = isPlain(left);
+
+  if (leftPlain !== isPlain(right)) {
+    return false;
   }
 
-  const leftOpaque = isOpaque(left);
-  const rightOpaque = isOpaque(right);
-
-  if (leftOpaque || rightOpaque) {
-    return leftOpaque && rightOpaque && opaqueEqual(left, right);
-  }
-
-  const lValue = left.valueOf?.();
-  const rValue = right.valueOf?.();
-
-  // A boxed value (a Date, a boxed primitive) compares by its primitive, whichever side it is
-  // on: a plain object's `valueOf` returns the object itself, and a null-prototype object has
-  // none at all, so neither is mistaken for one.
-  if (
-    (lValue != null && typeof lValue !== 'object') ||
-    (rValue != null && typeof rValue !== 'object')
-  ) {
-    return lValue === rValue;
+  if (!leftPlain) {
+    return instancesEqual(left, right);
   }
 
   const keys = comparedKeys(left as Record<string, unknown>);
@@ -73,66 +63,28 @@ export function deepEqual(left: unknown, right: unknown): boolean {
   return true;
 }
 
-/** Typed arrays and DataViews compare byte for byte, and only with a view of the same type. */
-function viewsEqual(left: object, right: object) {
-  if (
-    !ArrayBuffer.isView(left) ||
-    !ArrayBuffer.isView(right) ||
-    Object.getPrototypeOf(left) !== Object.getPrototypeOf(right) ||
-    left.byteLength !== right.byteLength
-  ) {
-    return false;
-  }
-
-  const lBytes = new Uint8Array(left.buffer, left.byteOffset, left.byteLength);
-  const rBytes = new Uint8Array(right.buffer, right.byteOffset, right.byteLength);
-
-  for (let i = 0; i < lBytes.length; i += 1) {
-    if (lBytes[i] !== rBytes[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/**
- * Whether `value` is an instance with no enumerable state and no primitive value, such as a
- * Temporal value or a `Map`. Such instances would all compare equal structurally, and Temporal's
- * `valueOf` throws.
- */
-function isOpaque(value: object) {
+function isPlain(value: object) {
   const proto = Object.getPrototypeOf(value);
 
-  if (proto === null || proto === Object.prototype || Object.keys(value).length > 0) {
-    return false;
-  }
-
-  try {
-    const primitive = value.valueOf();
-    return primitive == null || typeof primitive === 'object';
-  } catch {
-    return true;
-  }
+  return proto === null || proto === Object.prototype;
 }
 
 /**
- * Two distinct opaque values are equal only when they share a prototype and `left.equals` says so.
- * Without an `equals` they compare by identity. The shared prototype keeps the comparison
- * symmetric, since Temporal's `equals` also accepts property bags and strings.
+ * The shared prototype keeps the comparison symmetric, since Temporal's `equals` also accepts
+ * property bags and strings.
  */
-function opaqueEqual(left: object, right: object) {
+function instancesEqual(left: object, right: object) {
   if (Object.getPrototypeOf(left) !== Object.getPrototypeOf(right)) {
     return false;
   }
 
-  const { equals } = left as { equals?: unknown };
-
-  if (typeof equals !== 'function') {
-    return false;
+  if (left instanceof Date) {
+    return left.getTime() === (right as Date).getTime();
   }
 
-  return equals.call(left, right) === true;
+  const { equals } = left as { equals?: unknown };
+
+  return typeof equals === 'function' && equals.call(left, right) === true;
 }
 
 function comparedKeys(value: Record<string, unknown>) {

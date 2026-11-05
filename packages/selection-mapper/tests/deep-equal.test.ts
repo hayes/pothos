@@ -17,14 +17,17 @@ describe('deepEqual', () => {
     expect(deepEqual({}, { orderBy: undefined, limit: 1 })).toBe(false);
   });
 
-  it('compares boxed and date values by their primitive value', () => {
+  it('compares dates by their time', () => {
     expect(deepEqual(new Date(1), new Date(1))).toBe(true);
+    expect(
+      deepEqual({ where: { createdAt: new Date(1) } }, { where: { createdAt: new Date(1) } }),
+    ).toBe(true);
     expect(deepEqual(new Date(1), new Date(2))).toBe(false);
     expect(deepEqual({}, new Date(1))).toBe(false);
     expect(deepEqual(new Date(1), {})).toBe(false);
   });
 
-  it('compares opaque class instances through equals, or not at all', () => {
+  it('compares opaque class instances through equals, or by identity', () => {
     class Instant {
       #value: number;
       constructor(value: number) {
@@ -55,13 +58,15 @@ describe('deepEqual', () => {
     expect(deepEqual(new Hidden(1), new Hidden(1))).toBe(false);
   });
 
-  it('compares stateful class instances structurally', () => {
+  it('compares class instances without equals by identity', () => {
     class Point {
       constructor(readonly x: number) {}
     }
+    const point = new Point(1);
 
-    expect(deepEqual(new Point(1), new Point(1))).toBe(true);
-    expect(deepEqual(new Point(1), new Point(2))).toBe(false);
+    expect(deepEqual(point, point)).toBe(true);
+    expect(deepEqual(new Point(1), new Point(1))).toBe(false);
+    expect(deepEqual(new Point(1), { x: 1 })).toBe(false);
   });
 
   it('compares opaque instances symmetrically, and only with the same prototype', () => {
@@ -94,12 +99,14 @@ describe('deepEqual', () => {
     expect(deepEqual(new Bag(2020), new Bag(2020))).toBe(true);
   });
 
-  it('compares typed arrays by type and bytes', () => {
-    expect(deepEqual(new Uint8Array([1, 2]), new Uint8Array([1, 2]))).toBe(true);
-    expect(deepEqual(new Uint8Array([1, 2]), new Uint8Array([1, 3]))).toBe(false);
-    expect(deepEqual(new Uint8Array([1, 2]), new Uint8Array([1, 2, 3]))).toBe(false);
-    expect(deepEqual(new Uint8Array([1, 2]), new Int8Array([1, 2]))).toBe(false);
+  it('compares typed arrays by identity, and buffers through equals', () => {
+    const bytes = new Uint8Array([1, 2]);
+
+    expect(deepEqual(bytes, bytes)).toBe(true);
+    expect(deepEqual(new Uint8Array([1, 2]), new Uint8Array([1, 2]))).toBe(false);
     expect(deepEqual(new Uint8Array([1, 2]), { 0: 1, 1: 2 })).toBe(false);
-    expect(deepEqual(new Uint8Array([0, 1, 2]).subarray(1), new Uint8Array([1, 2]))).toBe(true);
+    expect(deepEqual(Buffer.from([1, 2]), Buffer.from([1, 2]))).toBe(true);
+    expect(deepEqual(Buffer.from([1, 2]), Buffer.from([1, 3]))).toBe(false);
+    expect(deepEqual(Buffer.from([1, 2]), new Uint8Array([1, 2]))).toBe(false);
   });
 });

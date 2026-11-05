@@ -4,6 +4,6 @@
 
 - Fields in a fragment on an abstract type without a model (such as `... on Node` beneath a model interface) are now planned for each type the fragment covers, so the parent query loads them. If those types' selections conflict, the fragment is left to the fallback.
 - Repeated selection sets are planned once and shared, so planning time grows linearly with the document's depth. Reading `Position.parent` turns off sharing for that walk. Use `Position.walkParent` to read the shared walk's parents instead. Beneath a fragment on an abstract type without a model, a field the document also selects on the model interface is planned once, on the interface, rather than once per implementation.
-- `deepEqual` no longer throws on Temporal values, and compares `Map`, `Set`, `RegExp` and typed arrays correctly.
+- `deepEqual` no longer throws on Temporal values. It compares plain objects, arrays and Dates by value, and any other object with its `equals` method, or by identity.
 - `Plan.forParentRow` takes an options object: `forParentRow(adapter, { context, info, skipDeferredFragments, initial })`. The `Mapping` and `ParentRowOptions` types are exported.
 - A conflict between the type-level selections of two variants now reaches clients as `Unexpected error.`, still a `PothosValidationError`. The conflict is described in the error's `cause`.
