@@ -71,15 +71,37 @@ export function completeReturnedVariantRows(
   );
 }
 
-async function* completeEach(
+/**
+ * Completes each item of an async iterable as GraphQL pulls it, without waiting for the completion
+ * before the next pull, so the rows of items pulled together complete in one statement. A row that
+ * isn't of the variant becomes null rather than leaving the stream.
+ */
+function completeEach(
   builder: object,
   items: AsyncIterable<unknown>,
   context: object,
   info: GraphQLResolveInfo,
-) {
-  for await (const item of items) {
-    yield* await completeReturnedList(builder, [await item], context, info, false);
-  }
+): AsyncIterable<unknown> {
+  const complete = (item: unknown) =>
+    completeValue(
+      completeReturnedList(builder, [item], context, info, false),
+      (rows) => rows[0] ?? null,
+    );
+  return {
+    [Symbol.asyncIterator]() {
+      const iterator = items[Symbol.asyncIterator]();
+      return {
+        next: () =>
+          iterator
+            .next()
+            .then((result) =>
+              result.done ? result : { done: false, value: complete(result.value) },
+            ),
+        return: (value?: unknown) =>
+          iterator.return ? iterator.return(value) : Promise.resolve({ done: true, value }),
+      };
+    },
+  };
 }
 
 /**

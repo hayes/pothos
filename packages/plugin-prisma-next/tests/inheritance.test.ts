@@ -1746,13 +1746,16 @@ describe('a relation targeting a variant model with a table of its own', () => {
               resolve: async function* rows(user) {
                 yield* user.reviews;
                 yield* user.championed;
+                yield* user.championed;
               },
             }),
           }),
         });
         const result = await run(builder.toSchema(), '{ users { tasks { __typename title } } }');
         expect(result.errors).toBeUndefined();
-        expect(result.data.users).toEqual([{ tasks }]);
+        expect(result.data.users).toEqual([{ tasks: [...tasks, tasks[1]] }]);
+        // The items pulled together complete together.
+        expect(result.statements).toHaveLength(3);
       });
 
       it('keeps a rejected or null item as that item', async () => {
