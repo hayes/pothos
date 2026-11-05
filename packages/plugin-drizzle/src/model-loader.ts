@@ -291,8 +291,8 @@ type ScopeAuthParentLoader = (
 ) => MaybePromise<unknown>;
 
 /**
- * The parent scope-auth's checks see for a type with a `select`: the row when it has every
- * top-level key of that selection, otherwise the row reloaded with it.
+ * The parent scope-auth's checks see for a type: the row when it has every top-level key of the
+ * type's selection, otherwise the row reloaded with it.
  */
 export function typeParentLoader(
   loaders: (context: object) => ModelLoader,

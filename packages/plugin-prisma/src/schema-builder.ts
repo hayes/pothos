@@ -77,7 +77,7 @@ function definePrismaType(
       pothosPrismaLoader: loader,
       // Read by scope-auth for the row its checks see. A type without a `findUnique` is never
       // reloaded.
-      ...(!isInterface && (select || include) && findUnique !== null
+      ...(!isInterface && findUnique !== null
         ? {
             pothosScopeAuthParent: typeParentLoader(
               loader,

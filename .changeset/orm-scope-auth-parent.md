@@ -3,4 +3,4 @@
 '@pothos/plugin-drizzle': patch
 ---
 
-With scope-auth, checks that read the parent now see what the type's `select` (or prisma `include`) loads, even for a row returned from a plain `t.field`. Resolvers still get the original row.
+With scope-auth 4.3.0 or later, checks that read the parent now see what the type loads, even for a row returned from a plain `t.field`. Resolvers still get the original row.

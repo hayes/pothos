@@ -87,10 +87,9 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
     }),
   });
 
-  // Without `columns`, it selects every column.
-  const AllColumnsUser = builder.drizzleObject('users', {
-    variant: 'AllColumnsUser',
-    select: { columns: undefined, with: { profile: true } },
+  // Without a `select`, it loads every column.
+  const PlainUser = builder.drizzleObject('users', {
+    variant: 'PlainUser',
     authScopes: (user) => {
       seen.push(user.username);
       return true;
@@ -159,10 +158,7 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
       }),
       partialIfaceUser: t.field({ type: IfaceUser, resolve: () => ({ id: 1 }) as never }),
       namedUser: t.field({ type: NamedUser, resolve: () => ({ id: 1 }) as never }),
-      allColumnsUser: t.field({
-        type: AllColumnsUser,
-        resolve: () => ({ id: 1, profile: null }) as never,
-      }),
+      plainUser: t.field({ type: PlainUser, resolve: () => ({ id: 1 }) as never }),
       uncheckedUser: t.field({ type: UncheckedUser, resolve: () => ({ id: 1 }) as never }),
       user: t.drizzleField({
         type: User,
@@ -223,10 +219,10 @@ describe.each([
     expect(drizzleLogs).toHaveLength(1);
   });
 
-  it('reloads every column for a select without columns', async () => {
-    const result = await run('{ allColumnsUser { id } }');
+  it('reloads every column for a type without a select', async () => {
+    const result = await run('{ plainUser { id } }');
 
-    expect(result).toEqual({ data: { allColumnsUser: { id: '1' } } });
+    expect(result).toEqual({ data: { plainUser: { id: '1' } } });
     expect(seen).toEqual([user1!.username]);
     expect(drizzleLogs).toHaveLength(1);
   });

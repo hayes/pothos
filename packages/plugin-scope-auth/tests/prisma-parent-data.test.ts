@@ -94,6 +94,18 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
     }),
   });
 
+  // Without a `select` or `include`, it loads every scalar.
+  const PlainPost = builder.prismaObject('Post', {
+    variant: 'PlainPost',
+    authScopes: (post) => {
+      seen.push(post.title);
+      return true;
+    },
+    fields: (t) => ({
+      id: t.exposeID('id'),
+    }),
+  });
+
   const UncheckedUser = builder.prismaObject('User', {
     variant: 'UncheckedUser',
     select: { id: true, firstName: true },
@@ -167,6 +179,7 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
         type: Post,
         resolve: () => ({ id: 1, author: { id: 1 } }) as never,
       }),
+      plainPost: t.field({ type: PlainPost, resolve: () => ({ id: 1 }) as never }),
       completeUser: t.field({
         type: User,
         resolve: () => ({ id: 1, firstName: 'complete' }) as never,
@@ -258,6 +271,14 @@ describe.each([
     expect(result.errors).toBeUndefined();
     expect(seen).toEqual([[titles.get(1), authors.get(1)]]);
     expect(queries).toBe(2);
+  });
+
+  it('reloads the scalars of a type without a select or include', async () => {
+    const result = await run('{ plainPost { id } }');
+
+    expect(result).toEqual({ data: { plainPost: { id: '1' } } });
+    expect(seen).toEqual([titles.get(1)]);
+    expect(queries).toBe(1);
   });
 
   it('replaces a partial relation with the loaded one', async () => {
