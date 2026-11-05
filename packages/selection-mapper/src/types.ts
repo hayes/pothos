@@ -31,9 +31,9 @@ export interface Position {
    * each invocation is walked with its own path, which a document whose fragments branch at every
    * level makes exponential in its depth. A fragment expanding to the implementations of a model
    * interface walks its fields as each implementation, which adds an invocation, and a path, per
-   * implementation, except for a field the implementation inherits from that interface: it is
-   * invoked once, on the interface, and its path names the interface. Read after planning, it is
-   * the first invocation's.
+   * implementation, except for a field the implementation inherits unchanged from that interface
+   * and no fragment narrows to the implementation: it is invoked once, on the interface, and its
+   * path names the interface. Read after planning, it is the first invocation's.
    */
   readonly parent: Position | undefined;
   /**

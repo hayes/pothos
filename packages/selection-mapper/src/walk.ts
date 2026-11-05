@@ -357,7 +357,10 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
 
     const fragment = applicableFragment(plan, selection);
 
-    if (!fragment || visitedBefore(visited, `${type.name}:${fieldsApply}`, fragment)) {
+    if (
+      !fragment ||
+      visitedBefore(visited, `${type.name}:${fieldsApply}:${expandedFrom?.name}`, fragment)
+    ) {
       continue;
     }
 
@@ -380,9 +383,9 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * `expandedFrom`, if a field `fragment` selects would be walked on it without the expansion: the
- * fragment keeps the walk on it, or expands it again. A fragment that narrows to one type names
- * the field on that type.
+ * `expandedFrom` while fields under `fragment` still name it: the fragment is untyped, on
+ * `expandedFrom` or an interface it implements, or expands it again. A fragment narrowing to one
+ * type names its fields on that type.
  */
 function keptBy<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -484,15 +487,12 @@ function selectsFields(selections: readonly SelectionNode[]): boolean {
  * Collects what `fieldNode` (a field of `type`) selects. A select function is invoked once per
  * place in a walk; `invocations` holds the walk's, and without it every call invokes.
  *
- * Beneath an expansion of the model interface `expandedFrom`, a field the document selects on the
- * interface, and an implementation inherits from it (see `definitionOf`), is planned on the
- * interface: every implementation the expansion walks reaches it, and they differ only in the type
- * their positions name. Planned once on the
- * interface, it is invoked once rather than once per implementation, and a select function that
- * reads `Position.parent` sees one path per level, not one per implementation at every level. Its
- * mapping is recorded under the interface's key, which a resolver on an implementation accepts for
- * the same definition of the field. An implementation that redefines the field is planned as
- * itself.
+ * Beneath an expansion of the model interface `expandedFrom`, a field an implementation inherits
+ * unchanged (see `definitionOf`) is planned on the interface: invoked once rather than once per
+ * implementation, so a select function reading `Position.parent` sees one path per level. A
+ * resolver on an implementation accepts the interface's mapping for the same definition. A
+ * redefined field, or one under a fragment narrowing to the implementation, is planned as the
+ * implementation.
  */
 export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -509,14 +509,13 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
     return;
   }
 
-  let type = walkedType;
-  let field = type.getFields()[name];
+  const walkedField = walkedType.getFields()[name];
 
-  if (!field) {
-    throw unexpectedError(`Unknown field ${name} on ${type.name}`);
+  if (!walkedField) {
+    throw unexpectedError(`Unknown field ${name} on ${walkedType.name}`);
   }
 
-  const selection = adapter.fieldSelection(field, type);
+  const selection = adapter.fieldSelection(walkedField, walkedType);
 
   if (!selection) {
     return;
@@ -526,21 +525,19 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   const relative = `${indirectPath.length > 0 ? `${indirectPath.join('.')}.` : ''}${alias}`;
 
   if (typeof selection !== 'function') {
-    collectField(plan, `${type.name}@${relative}`, alias, selection, EMPTY_MAPPING);
+    collectField(plan, `${walkedType.name}@${relative}`, alias, selection, EMPTY_MAPPING);
 
     return;
   }
 
   const inherited = expandedFrom?.getFields()[name];
-
-  if (
+  const [type, field] =
+    expandedFrom &&
     inherited &&
-    definitionOf(inherited, adapter.fieldSelection(inherited, expandedFrom!)) ===
-      definitionOf(field, selection)
-  ) {
-    type = expandedFrom!;
-    field = inherited;
-  }
+    definitionOf(inherited, adapter.fieldSelection(inherited, expandedFrom)) ===
+      definitionOf(walkedField, selection)
+      ? [expandedFrom, inherited]
+      : [walkedType, walkedField];
 
   const key = `${type.name}@${relative}`;
   const place = `${fieldShape(info, fieldNode)}:${key}`;

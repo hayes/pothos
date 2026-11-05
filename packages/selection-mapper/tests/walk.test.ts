@@ -1525,6 +1525,39 @@ describe('fragments that expand at every level', () => {
     expect(seen).toEqual(everyVariantPath);
   });
 
+  it('plans a named fragment on the interface and on a variant the same in either order', async () => {
+    const plannedOn = async (document: string) => {
+      const seen: string[] = [];
+      const { types } = linkedSchema();
+
+      selectOn(
+        types,
+        ['UserI', 'U1', 'U2', 'U3'],
+        'posts',
+        (_args, _ctx, nested, _selected, position) => {
+          seen.push(position.type.name);
+
+          return { select: { posts: nested({}) } };
+        },
+      );
+      queryFromInfo(new FakeAdapter(linkedModels), {
+        context: {},
+        info: await resolveInfo(types, `${document} fragment F on HasPosts { posts { id } }`),
+      });
+
+      return seen.sort();
+    };
+
+    expect(await plannedOn('{ user { ... on HasPosts { ...F } ... on U1 { ...F } } }')).toEqual([
+      'U1',
+      'UserI',
+    ]);
+    expect(await plannedOn('{ user { ... on U1 { ...F } ... on HasPosts { ...F } } }')).toEqual([
+      'U1',
+      'UserI',
+    ]);
+  });
+
   it('hands a select function that reads what is above it after an await the named path', async () => {
     const seen: string[][] = [];
     const { types } = linkedSchema();

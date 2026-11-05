@@ -234,9 +234,10 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * setting. It holds the invocation's relation query and plays over a walk of the selection
    * beneath the field, which `walk` collects the first time this plan needs it.
    *
-   * One field node is invoked once per type it is reached on in a walk (see `walkField`). A named fragment spread at every level
-   * reaches the same selection set beneath several field nodes, which may hang beneath different
-   * plans, so a walk per invocation is exponential in the document's depth.
+   * One field node is invoked once per type it is reached on in a walk (see `walkField`). A named
+   * fragment spread at every level reaches the same selection set beneath several field nodes,
+   * which may hang beneath different plans, so a walk per invocation is exponential in the
+   * document's depth.
    *
    * What a walk collects depends only on `key`, which names the selection set by its shape (see
    * shape.ts) and holds everything else the walk reads, unless a select function reads the
