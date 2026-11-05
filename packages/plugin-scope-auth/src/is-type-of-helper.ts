@@ -2,12 +2,14 @@ import { isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
 import type { GraphQLIsTypeOfFn, GraphQLResolveInfo } from 'graphql';
 import { ForbiddenError } from './errors.js';
 import type {
+  AuthFailure,
   PothosScopeAuthPlugin,
   ResolveStep,
   ScopeAuthParentLoader,
   UnauthorizedForTypeErrorFn,
 } from './index.js';
 import RequestCache from './request-cache.js';
+import { AuthScopeFailureType } from './types.js';
 
 export function isTypeOfHelper<Types extends SchemaTypes>(
   steps: ResolveStep<Types>[],
@@ -75,10 +77,37 @@ export function isTypeOfHelper<Types extends SchemaTypes>(
       return runSteps(source, 0);
     }
 
-    const parent = loadParent(source, context, info);
+    // A parent that fails to load fails the first check, as its own denial, so the client can't
+    // tell the two apart. What the loader threw is the error's `cause`.
+    const deny = (cause: unknown): never => {
+      const { errorMessage } = steps[0];
+      const failure: AuthFailure = { kind: AuthScopeFailureType.Unknown };
+      const error = createError(source as object, context, info, {
+        message:
+          typeof errorMessage === 'function'
+            ? errorMessage(source, {}, context, info)
+            : errorMessage,
+        failure,
+      });
+      const denial = typeof error === 'string' ? new ForbiddenError(error, failure) : error;
+
+      if (denial.cause === undefined) {
+        denial.cause = cause;
+      }
+
+      throw denial;
+    };
+
+    let parent: MaybePromise<unknown>;
+
+    try {
+      parent = loadParent(source, context, info);
+    } catch (error) {
+      return deny(error);
+    }
 
     if (isThenable(parent)) {
-      return Promise.resolve(parent).then((loaded) => runSteps(loaded, 0));
+      return Promise.resolve(parent).then((loaded) => runSteps(loaded, 0), deny);
     }
 
     return runSteps(parent, 0);
