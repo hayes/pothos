@@ -493,6 +493,60 @@ describe('fragments on variants and non-model interfaces', () => {
         expect(queries).toEqual([]);
       }
     });
+
+    it('plans nothing for the implementations when every field is skipped', async () => {
+      const cases: [string, Record<string, unknown>?][] = [
+        [
+          `query {
+            viewer {
+              id
+              ... on Tagged {
+                tag @skip(if: true)
+              }
+            }
+          }`,
+        ],
+        [
+          `query ($x: Boolean!) {
+            viewer {
+              id
+              ... on Tagged {
+                tag @include(if: $x)
+              }
+            }
+          }`,
+          { x: false },
+        ],
+        [
+          `query {
+            viewer {
+              id
+              ...Card
+            }
+          }
+          fragment Card on Viewer {
+            ...Tag
+          }
+          fragment Tag on Tagged {
+            tag @skip(if: true)
+          }`,
+        ],
+      ];
+
+      for (const [source, variableValues] of cases) {
+        queries.length = 0;
+        const result = await execute({
+          schema,
+          document: gql(source),
+          variableValues,
+          contextValue: { user: { id: 1 }, viewerType: 'LatestPostViewer' },
+        });
+
+        expect(result.errors).toBeUndefined();
+        expect(result.data).toEqual({ viewer: { id: expect.any(String) } });
+        expect(queries).toHaveLength(1);
+      }
+    });
   });
 
   describe('entering a variant through a fragment', () => {

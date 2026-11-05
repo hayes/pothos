@@ -10,6 +10,7 @@ import {
   type FragmentDefinitionNode,
   type FragmentSpreadNode,
   type GraphQLNamedType,
+  type GraphQLResolveInfo,
   getNamedType,
   type InlineFragmentNode,
   isAbstractType,
@@ -319,7 +320,7 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
     const enters =
       types.length > 0 &&
       ((fragment.typeCondition && !isExpansion && type === origin) ||
-        selectsFields(fragment.selectionSet.selections));
+        selectsFields(plan.info, fragment.selectionSet.selections));
 
     for (const as of types.length > 0 ? types : [type]) {
       if (enters && as !== origin) {
@@ -476,10 +477,16 @@ function isOfType(type: WalkedType, condition: GraphQLNamedType) {
   );
 }
 
-/** Whether `selections` select a field directly; `__typename` reads nothing from the row. */
-function selectsFields(selections: readonly SelectionNode[]): boolean {
+/**
+ * Whether `selections` select a field directly; `__typename` reads nothing from the row, and a
+ * skipped field never runs.
+ */
+function selectsFields(info: GraphQLResolveInfo, selections: readonly SelectionNode[]): boolean {
   return selections.some(
-    (selection) => selection.kind === Kind.FIELD && !selection.name.value.startsWith('__'),
+    (selection) =>
+      selection.kind === Kind.FIELD &&
+      !selection.name.value.startsWith('__') &&
+      !isSkipped(info, selection),
   );
 }
 
