@@ -576,11 +576,7 @@ function variantConflict(type: WalkedType, variant: WalkedType, conflict: TypeLe
   return new Error('Unexpected error.', { cause: variantConflictDetail(type, variant, conflict) });
 }
 
-function variantConflictDetail(
-  type: WalkedType,
-  variant: WalkedType,
-  conflict: TypeLevelConflict,
-) {
+function variantConflictDetail(type: WalkedType, variant: WalkedType, conflict: TypeLevelConflict) {
   switch (conflict.kind) {
     case 'relation':
       return new PothosValidationError(

@@ -476,7 +476,9 @@ describe('fragments', () => {
       '{ person { id ... on Viewer { email } ... on Admin { id } } }',
     );
 
-    expect(() => queryFromInfo(adapter, { context: {}, info })).toThrow(unexpected('Type-level selections of Person and Admin conflict on relation "posts"'));
+    expect(() => queryFromInfo(adapter, { context: {}, info })).toThrow(
+      unexpected('Type-level selections of Person and Admin conflict on relation "posts"'),
+    );
   });
 
   it('rejects a variant whose type-level extras conflict', async () => {
@@ -504,7 +506,11 @@ describe('fragments', () => {
 
     const other = await resolveInfo(schema, '{ person { id ... on Viewer { email } } }');
 
-    expect(() => queryFromInfo(withExtras, { context: {}, info: other })).toThrow(unexpected('Type-level selections of Person and Viewer conflict on extra "total". Define the extra with the same function on both types, or move it to a field-level select on one of the types.'));
+    expect(() => queryFromInfo(withExtras, { context: {}, info: other })).toThrow(
+      unexpected(
+        'Type-level selections of Person and Viewer conflict on extra "total". Define the extra with the same function on both types, or move it to a field-level select on one of the types.',
+      ),
+    );
   });
 
   it('enters variants before any field is merged, so conflicts are order-independent', async () => {
