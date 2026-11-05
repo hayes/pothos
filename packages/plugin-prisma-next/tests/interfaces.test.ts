@@ -1,9 +1,7 @@
 import SchemaBuilder from '@pothos/core';
-import type { HasRow } from '@prisma/orm-family-sql/orm-client';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin from '../src';
-import { detailOf } from './fixtures/errors';
 import {
   createBuilder,
   deferSchema,
@@ -587,24 +585,6 @@ describe('inherited selections', () => {
     });
   });
 
-  // One function computes the same keys wherever it runs, so this fails at build time.
-  it('rejects selects of one row that share a function for a relation', () => {
-    const builder = createBuilder();
-    const counts = (sub: { count(): HasRow<unknown> }) => ({ total: sub.count() });
-    const Counted = builder.prismaInterface('User', {
-      variant: 'Counted',
-      select: { posts: counts },
-      fields: (t) => ({ id: t.exposeID('id') }),
-    });
-    builder.prismaObject('User', { interfaces: [Counted], select: { posts: counts } });
-    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
-    expect(() => builder.toSchema()).toThrow(
-      "'Counted' and 'User' both select relation 'posts' with the same function. Its values " +
-        'would be computed twice under the same names. Select it in one interface only; ' +
-        'the types that implement it inherit it.',
-    );
-  });
-
   it("lets a type read a relation function's values its interface selects", async () => {
     const builder = createBuilder();
     const Counted = builder.prismaInterface('User', {
@@ -649,20 +629,18 @@ describe('inherited selections', () => {
     expect(() => builder.toSchema()).not.toThrow();
   });
 
-  // A select function's keys are only known once it runs, so the rows it loaded are checked. Equal
-  // values fail too, so the error shows up with any data.
-  it('rejects selects of one row that compute the same key, with any values', async () => {
+  it("gives an implementation's computed key precedence over its interface's", async () => {
     const builder = createBuilder();
     const Counted = builder.prismaInterface('User', {
       variant: 'Counted',
       select: { posts: (sub) => ({ total: sub.count() }) },
       resolveType: () => 'User',
-      fields: (t) => ({ id: t.exposeID('id') }),
+      fields: (t) => ({ counted: t.int({ resolve: (user) => user.total }) }),
     });
     const User = builder.prismaObject('User', {
       interfaces: [Counted],
-      select: { posts: (sub) => ({ total: sub.count() }) },
-      fields: (t) => ({ email: t.exposeString('email') }),
+      select: { posts: (sub) => ({ total: sub.where({ published: 1 }).count() }) },
+      fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
     });
     builder.queryType({
       fields: (t) => ({
@@ -674,13 +652,14 @@ describe('inherited selections', () => {
       }),
     });
     const schema = builder.toSchema();
-    const message =
-      "'Counted' and 'User' both compute 'total' from relation 'posts' in their select. A row " +
-      'holds one value for it, which the fields and auth checks of both types read. Give one of ' +
-      'them a different name.';
-    for (const query of ['{ user { id email } }', '{ counted { id ... on User { email } } }']) {
+    // Alice has two posts, one published.
+    for (const query of [
+      '{ user { counted total } }',
+      '{ user: counted { counted ... on User { total } } }',
+    ]) {
       const result = await run(schema, query);
-      expect(result.errors?.map((error) => detailOf(error))).toContain(message);
+      expect(result.errors).toBeUndefined();
+      expect(result.data.user).toEqual({ counted: 1, total: 1 });
     }
   });
 

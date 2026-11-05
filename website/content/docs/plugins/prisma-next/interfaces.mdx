@@ -53,8 +53,8 @@ relations, counts or aggregates.
 
 An interface and a type that implements it, or two interfaces of one type, can't select the same
 relation with different arguments in their type-level `select`. The schema build throws. Load the
-other version with `t.relation` or a field's `select`. Values computed from a relation in a type and
-its interfaces need different names.
+other version with `t.relation` or a field's `select`. If a type and its interface compute a value
+under the same name, the type's value wins everywhere, including in the interface's auth checks.
 
 To add fields to the interface from another file, use `prismaInterfaceField` or
 `prismaInterfaceFields`:

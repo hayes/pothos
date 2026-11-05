@@ -394,26 +394,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   /**
    * A row holds one version of each relation the `select`s of its type and interfaces load, which
    * every reader of the row sees. So two of those `select`s that load a relation's rows must load
-   * them with the same query. Function entries compute values rather than load rows, and their keys
-   * are only known once they run, so `parentForType` checks them on the rows they loaded.
+   * them with the same query. Function entries compute values rather than load rows. When two of
+   * them compute the same key, the type's own value wins over its interfaces'.
    */
   private assertSelectsAgree(typeConfig: PothosTypeConfig, modelKey: string) {
     const model = getModel(this.config.contract, modelKey);
     const loads = new Map<string, { type: string; query: unknown }>();
-    const computes = new Map<string, Map<unknown, string>>();
     for (const { name: type, raw } of this.typeLevelSelects(typeConfig)) {
       for (const [relation, value] of splitSelect(raw, model, PothosSchemaError).relations) {
         if (typeof value === 'function') {
-          // One function computes the same keys each time, which assertOneWriter rejects per row.
-          const fns = computes.get(relation) ?? new Map<unknown, string>();
-          computes.set(relation, fns);
-          const first = fns.get(value);
-          if (first !== undefined) {
-            throw new PothosSchemaError(
-              `'${first}' and '${type}' both select relation '${relation}' with the same function. Its values would be computed twice under the same names. Select it in one interface only; the types that implement it inherit it.`,
-            );
-          }
-          fns.set(value, type);
           continue;
         }
         const query = value === true ? undefined : definedQuery(value);
@@ -814,8 +803,7 @@ interface FieldReader {
   /**
    * The parent plugins around the field see: the row as the `select`s of the parent type and its
    * interfaces load it. A field an interface declares sees it too: `assertSelectsAgree` keeps those
-   * selects to one version of a relation's rows, and `parentForType` rejects two of them computing
-   * the same key.
+   * selects to one version of a relation's rows.
    */
   typeParent(row: object): object;
   /** The parent the field's resolver and the plugins listed after this one get. */

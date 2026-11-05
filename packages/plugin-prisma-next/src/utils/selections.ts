@@ -474,45 +474,14 @@ function projection(entry: RowSlots, base: object, scopes: readonly string[]) {
 /**
  * The parent the readers of a type see, whose type-level selects are `scopes`, the type last: a
  * copy of the row with the rows and values they loaded, cached so per-row caches such as
- * scope-auth's see one object.
+ * scope-auth's see one object. Two of them computing the same key write one value, the later one's.
  */
 export function parentForType(value: object, scopes: readonly string[]): object {
   const entry = rowSlots.get(value);
   const row = entry?.row ?? value;
-  if (!entry || !scopes.some((scope) => entry.scopes.has(scope))) {
-    return row;
-  }
-  if (!entry.projections?.has(scopes.join(SCOPE_SEPARATOR))) {
-    assertOneWriter(entry, scopes);
-  }
-  return projection(entry, row, scopes);
-}
-
-/**
- * Throws when two `select`s of one type compute the same key, of which the type's parent holds one
- * value that the fields and auth checks of both read. A select function's keys are only known
- * once it runs, so this is checked on the rows it loaded, whatever their values.
- */
-function assertOneWriter({ slots }: RowSlots, scopes: readonly string[]) {
-  const writers = new Map<string, { scope: string; relation: string }>();
-  for (const scope of scopes) {
-    for (const [relation, { values }] of Object.entries(slots)) {
-      for (const key of Object.keys(values.get(scope) ?? {})) {
-        const first = writers.get(key);
-        if (!first) {
-          writers.set(key, { scope, relation });
-          continue;
-        }
-        const from =
-          first.relation === relation
-            ? `relation '${relation}'`
-            : `relations '${first.relation}' and '${relation}'`;
-        throw new InternalError(
-          `'${first.scope}' and '${scope}' both compute '${key}' from ${from} in their select. A row holds one value for it, which the fields and auth checks of both types read. Give one of them a different name.`,
-        );
-      }
-    }
-  }
+  return entry && scopes.some((scope) => entry.scopes.has(scope))
+    ? projection(entry, row, scopes)
+    : row;
 }
 
 /** The position each parent `parentForField` returned a copy for was planned at. */
