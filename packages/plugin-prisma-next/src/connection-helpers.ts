@@ -329,12 +329,7 @@ export function prismaConnectionHelpers<
   const config = getPluginConfig(builder);
   const model = getModel(config.contract, modelKey);
   const owner = `connection helpers for '${modelKey}'`;
-  const settings = connectionSettings(
-    config,
-    modelKey,
-    options,
-    `connection helpers for '${modelKey}'`,
-  );
+  const settings = connectionSettings(config, modelKey, options);
   const { resolveNode } = options;
 
   // What `select` loads with each row beside its key and cursor columns.
@@ -392,7 +387,7 @@ export function prismaConnectionHelpers<
     const planned = settings.plan(args, ctx);
     pages.set(position, { planned, name });
     const nodeType = connectionNodeType(position.field.type);
-    const { needsRows, count } = settings.selection(selected(), position.field.type);
+    const { needsRows, count } = settings.selection(selected());
     // The rows load unless the count alone is selected, whose page then has none: the relation is
     // always an array. A field that isn't a connection, or selects only `__typename`, loads them.
     const loadsRows = needsRows || count !== 'aggregate';

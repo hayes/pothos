@@ -72,7 +72,6 @@ import { getModel, type PrismaNextRelation, sharedVariantRelationError } from '.
 import { getRefFromContractModel, refFor } from './utils/refs.js';
 import {
   applyQuery,
-  assertQueryOptions,
   COUNT_SLOT,
   completeOption,
   computedSelection,
@@ -82,7 +81,6 @@ import {
   fieldSlots,
   type PrismaNextSelectFn,
   type RawSelect,
-  RELATION_QUERY_KEYS,
   relationArgs,
   rowsSelection,
   scopeOf,
@@ -369,10 +367,7 @@ export class PrismaNextObjectFieldBuilder<
     );
     const { type: _type, query, nullable, extensions, ...rest } = opts;
     const relationName = name as string;
-    const owner = `'${this.modelKey as string}.${relationName}'`;
-    if (typeof query !== 'function') {
-      assertQueryOptions(query, RELATION_QUERY_KEYS, owner);
-    }
+    const _owner = `'${this.modelKey as string}.${relationName}'`;
     // A to-one relation loads whole, keyed on the row by its name, so a variant `type` narrows it
     // by the discriminator when the field resolves rather than in the load.
     const discriminator =
@@ -565,18 +560,13 @@ export class PrismaNextObjectFieldBuilder<
       extensions,
       ...rest
     } = options;
-    const settings = connectionSettings(
-      config,
-      relatedModel,
-      {
-        defaultSize,
-        maxSize,
-        totalCount,
-        orderBy,
-        query,
-      },
-      `'${this.modelKey as string}.${name}'`,
-    );
+    const settings = connectionSettings(config, relatedModel, {
+      defaultSize,
+      maxSize,
+      totalCount,
+      orderBy,
+      query,
+    });
     const relatedTypeName = (targetRef as { name?: string }).name ?? relatedModel;
     const include = connectionNodes(relatedTypeName);
     // Per selection of the field. Planning decides these once, however many parent rows there are,
@@ -585,7 +575,7 @@ export class PrismaNextObjectFieldBuilder<
     const select: PrismaNextSelectFn = (args, ctx, nested, selectedFields, position) => {
       const planned = settings.plan(args, ctx);
       plans.set(position, planned);
-      const { needsRows, count } = settings.selection(selectedFields(), position.field.type);
+      const { needsRows, count } = settings.selection(selectedFields());
       return pageSelection(relation, name, scopeOf(position), {
         plan: planned,
         args,

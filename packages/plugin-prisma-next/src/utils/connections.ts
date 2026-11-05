@@ -20,7 +20,6 @@ import {
 } from './cursors.js';
 import type { PrismaNextRelation } from './model.js';
 import {
-  assertQueryOptions,
   COUNT_SLOT,
   computedSelection,
   EMPTY,
@@ -92,31 +91,25 @@ export function connectionSettings(
   config: PrismaNextConfig,
   modelKey: string,
   { defaultSize, maxSize, totalCount, orderBy, query }: ConnectionSettingsOptions,
-  /** Names the connection in a `query` error. */
-  owner = `'${modelKey}'`,
 ) {
-  if (typeof query !== 'function') {
-    assertQueryOptions(query, ['where'], owner);
-  }
   const orderFor = connectionOrder(config.contract, modelKey, orderBy);
   const resolveSize = (option: SizeOption | undefined, args: object, ctx: object) =>
     typeof option === 'function' ? option(args as never, ctx as never) : option;
   /**
-   * What selecting `names` asks of a connection returning `returnType`: whether it needs rows, and
-   * where its count comes from, `'aggregate'` or the callback. With the `totalCount` option, a field
-   * named `totalCount` is the count, whether generated or user-defined, and needs no rows. Without
-   * it, a user's `totalCount` is an ordinary field. Other fields need rows unless flagged as an
-   * aggregate or `__typename`. Without names, any configured count is used.
+   * What selecting `names` asks of a connection: whether it needs rows, and where its count comes
+   * from, `'aggregate'` or the callback. With the `totalCount` option, a field named `totalCount`
+   * is the count, whether generated or user-defined, and needs no rows. Without it, a user's
+   * `totalCount` is an ordinary field. Other fields need rows, except `__typename`. Without names,
+   * any configured count is used.
    */
-  function selection(
-    names?: ReadonlySet<string>,
-    returnType?: GraphQLOutputType,
-  ): { needsRows: boolean; count: 'aggregate' | TotalCountCallback | undefined } {
+  function selection(names?: ReadonlySet<string>): {
+    needsRows: boolean;
+    count: 'aggregate' | TotalCountCallback | undefined;
+  } {
     const source = totalCount === true ? 'aggregate' : totalCount || undefined;
-    if (!(names && returnType)) {
+    if (!names) {
       return { needsRows: true, count: source };
     }
-    const _type = connectionType(returnType);
     return {
       needsRows: [...names].some(
         (name) => name !== '__typename' && !(source !== undefined && name === 'totalCount'),
@@ -128,7 +121,7 @@ export function connectionSettings(
     selection,
     /** `selection` as the document asks it of the field `info` resolves. */
     selectionFor(ctx: object, info: GraphQLResolveInfo | undefined) {
-      return info ? selection(selectedFieldNames(ctx, info), info.returnType) : selection();
+      return selection(info && selectedFieldNames(ctx, info));
     },
     connectionOptions<T extends object>(connectionOptions: T): T {
       return totalCount ? (withTotalCount(connectionOptions) as T) : connectionOptions;

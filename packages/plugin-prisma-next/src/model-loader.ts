@@ -138,7 +138,9 @@ export class ModelLoader {
     const plans = this.plansFor(info).parent;
     let selection = plans.get(key);
     if (!selection) {
-      // The field's select runs here, so what it throws reaches the field as it is.
+      // The selects of the field and those beneath it run here. What planning throws reaches the
+      // field as it is, as it reaches a prisma field planned for the parent query. The planner's
+      // own errors are already generic.
       const planned: MaybePromise<Played> = userCode(() =>
         Plan.forParentRow(this.config.adapter, {
           context: this.context,

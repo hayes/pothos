@@ -4,7 +4,6 @@ import {
   getTypeBrand,
   isThenable,
   type MaybePromise,
-  PothosSchemaError,
 } from '@pothos/core';
 import type {
   NestedSelection,
@@ -255,9 +254,9 @@ export function loadedThrough(row: object) {
 /**
  * Takes the slots off the rows a statement returned, reading them by what `emit` included
  * (`record`). A to-many relation loaded through `combine()` comes back as an object with one slot
- * per consumer scope. A row with one is copied without it, and the copy gets the rows and computed
- * values its type-level selects loaded, unless they disagree. Field helpers read their own slots through
- * `fieldSlots`. The ORM's rows are never changed: a row with no slots, and none beneath it, is
+ * per consumer scope. A row with one is copied without it. Each type's readers see a copy with
+ * what its type-level selects loaded (`parentForType`), and field helpers read their own slots
+ * through `fieldSlots`. The ORM's rows are never changed: a row with no slots, and none beneath it, is
  * returned as it is.
  */
 export function takeSlots<T>(rows: T, model: PrismaNextModel, record?: IncludeRecord): T {
@@ -373,16 +372,9 @@ export function rowOf(value: object): object {
   return rowSlots.get(value)?.row ?? value;
 }
 
-/** The key of a list of scopes, memoized per list. */
-const scopeKeys = new WeakMap<readonly string[], string>();
-
 /** A copy of `base` with what `scopes` loaded written onto it, cached per row and scopes. */
 function projection(entry: RowSlots, base: object, scopes: readonly string[]) {
-  let key = scopeKeys.get(scopes);
-  if (key === undefined) {
-    key = scopes.join(SCOPE_SEPARATOR);
-    scopeKeys.set(scopes, key);
-  }
+  const key = scopes.join(SCOPE_SEPARATOR);
   entry.projections ??= new Map();
   let projected = entry.projections.get(key);
   if (!projected) {
@@ -503,32 +495,6 @@ interface DeclarativeQuery {
   orderBy?: unknown;
   limit?: number;
   offset?: number;
-}
-
-/** The options of a relation's `query`, as `DeclarativeQuery` declares them. */
-export const RELATION_QUERY_KEYS = ['where', 'orderBy', 'limit', 'offset'];
-
-/**
- * Throws, when the schema is built, for a static `query` the types would reject, such as an
- * untyped caller's, instead of dropping the filter beside an unknown option or inside a promise.
- * What a `query` callback returns is left to the types.
- */
-export function assertQueryOptions(value: unknown, allowed: readonly string[], owner: string) {
-  if (isThenable(value)) {
-    throw new PothosSchemaError(`query on ${owner} can't be async. Return it synchronously.`);
-  }
-  // An undefined option drops nothing, so a shared options object with `orderBy: undefined` passes.
-  const unknownKeys =
-    value == null
-      ? []
-      : Object.entries(value)
-          .filter(([key, option]) => option !== undefined && !allowed.includes(key))
-          .map(([key]) => key);
-  if (unknownKeys.length > 0) {
-    throw new PothosSchemaError(
-      `query on ${owner} has unknown options ${unknownKeys.map((key) => `'${key}'`).join(', ')}. Use { ${allowed.map((key) => `${key}?`).join(', ')} }.`,
-    );
-  }
 }
 
 /**
