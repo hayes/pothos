@@ -329,7 +329,7 @@ export function withOtherKeys(loaded: Row, row: object, model: PrismaNextModel):
   for (const key of Object.keys(row)) {
     if (
       !model.columns.has(key) &&
-      !model.relations[key] &&
+      !Object.hasOwn(model.relations, key) &&
       !model.sharedVariantRelations.has(key)
     ) {
       next ??= copyOf(loaded);

@@ -403,14 +403,8 @@ export class ModelLoader {
         this.context,
       ),
     ) as MapperCollection & { all(): Promise<readonly Row[]> };
-    let loaded: readonly Row[];
-    try {
-      loaded = await query.all();
-    } catch (error) {
-      // A node lookup's error reaches the field as it is. A reload's statement is the plugin's, so
-      // clients see its error as `Unexpected error.`.
-      throw batch.load.kind === 'node' ? keepError(error) : error;
-    }
+    // A reload's database error is the plugin's, which `reloadFor` reports as `Unexpected error.`.
+    const loaded = await query.all();
     const rows = takeSlots(loaded, batch.root.model, this.config.adapter.recordOf(query));
     const byKey = new Map(
       rows.map((row) => {
