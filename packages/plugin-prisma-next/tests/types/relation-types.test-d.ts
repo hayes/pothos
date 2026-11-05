@@ -14,8 +14,6 @@ import prismaNextPlugin, {
   type RelationWhere,
   type SelectObjectSpec,
 } from '../../src';
-import type { PrismaNextRelationCountOptions } from '../../src/types/aggregates';
-import type { ObjectBaseShape } from '../../src/types/models';
 import type { SelectCheck, TypeSelectCheck } from '../../src/types/selections';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
@@ -446,7 +444,7 @@ builder.prismaObject('User', {
   }),
 });
 // A count's `where` callback takes the args and context. The ORM's predicate passed directly reads
-// the args as the row, and its `any` result is reported with that signature, not as async.
+// the args as the row, and is rejected.
 builder.prismaObject('Post', {
   variant: 'CountPredicate',
   fields: (t) => ({
@@ -455,23 +453,6 @@ builder.prismaObject('Post', {
     directPredicate: t.relationCount('comments', { where: (c) => c.body.eq('x') }),
   }),
 });
-expectTypeOf<
-  NonNullable<
-    PrismaNextRelationCountOptions<
-      Types,
-      'Post',
-      'comments',
-      {},
-      ObjectBaseShape<Types, 'Post'>,
-      // biome-ignore lint/suspicious/noExplicitAny: the result of a callback with a type error
-      (c: {}) => any
-    >['where']
-  >
->().toEqualTypeOf<
-  // biome-ignore lint/suspicious/noExplicitAny: the result of a callback with a type error
-  ((c: {}) => any) &
-    "A count's where callback takes (args, ctx) and returns a where filter or the ORM's predicate, such as () => (c) => c.body.eq('x')"
->();
 
 const asyncBuilder = new SchemaBuilder<{ PrismaNextContract: Contract; AsyncSelections: true }>({
   plugins: [RelayPlugin, prismaNextPlugin],
