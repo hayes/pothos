@@ -1,5 +1,22 @@
 # @pothos/plugin-drizzle
 
+## 0.20.3
+
+### Patch Changes
+
+- bc9db37: - Fields in fragments on interfaces without a table (such as `... on Node` beneath a drizzle interface) are now loaded by the parent query instead of a separate query. If the type-level selections of the types they cover conflict, the query fails, as it does for fragments that name those types. A field whose selection conflicts with them is loaded by a separate query.
+  - A selection set repeated at many levels of a document is planned once, so planning time grows linearly with the document's depth. A field `select` or relation `query` that reads its path is still planned at each place it appears. Beneath a fragment on an interface without a table, a field the implementations inherit from the drizzle interface is planned once, with a path that names that interface.
+  - Temporal values in query arguments no longer throw. Objects in query arguments other than plain objects, arrays and Dates (a `Buffer`, a typed array) are compared with their `equals` method, or by identity.
+  - A variant whose type-level relation `select` conflicts with an interface field's `select` now returns the right data, sometimes with an extra query.
+  - A field that an implementation redefines (with other relation arguments, say) no longer resolves from what the interface's field loaded when the document selects it on the interface.
+  - When a type implements two drizzle interfaces that both define a field, a document selecting that field through the interface the type does not inherit it from now loads it with an extra query.
+  - A conflict between the type-level selections of two variants now reaches clients as `Unexpected error.`. The conflict is described in the error's `cause`.
+- 9edbcea: `drizzleConnection` now accepts a `drizzleObject` or `drizzleNode` ref as its `type` the same way it accepts a table name. Drizzle object field builders now have `t.withAuth`, as prisma object field builders do.
+- df2d4c0: Reduce type-check time for large schemas: the `client` option no longer compares every table's `findMany` signature, and `relatedConnection` types its connection and edge options with the node shape instead of a list shape.
+- b6d657f: With scope-auth 4.3.0 or later, checks that read the parent now see what the type loads, even for a row returned from a plain `t.field`. Resolvers still get the original row.
+- Updated dependencies [f42670b]
+  - @pothos/selection-mapper@0.2.0
+
 ## 0.20.2
 
 ### Patch Changes
