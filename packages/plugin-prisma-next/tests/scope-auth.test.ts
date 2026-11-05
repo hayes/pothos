@@ -567,7 +567,7 @@ describe.each(
   });
 });
 
-describe.each(orders)('field-level authScopes (%s)', (order, plugins) => {
+describe.each(orders)('field-level authScopes (%s)', (_, plugins) => {
   function fieldAuthSchema(seen: unknown[]) {
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
@@ -607,8 +607,7 @@ describe.each(orders)('field-level authScopes (%s)', (order, plugins) => {
     return builder.toSchema();
   }
 
-  // Listed after this plugin, scope-auth gets the parent the field's resolve gets, but the types
-  // only promise what the type's select loads.
+  // In either order, the checks see what the type's select loads, as the types promise.
   it.each([
     '{ users { publishedCount } }',
     '{ users { publishedCount all { id } } }',
@@ -619,18 +618,17 @@ describe.each(orders)('field-level authScopes (%s)', (order, plugins) => {
     expect(
       result.data.users.map((user: { publishedCount: number }) => user.publishedCount),
     ).toEqual([1, 1]);
-    const posts = order === 'scope-auth first' ? undefined : 1;
     expect(seen).toEqual([
-      ['alice@example.com', posts],
-      ['bob@example.com', posts],
+      ['alice@example.com', undefined],
+      ['bob@example.com', undefined],
     ]);
     expect(result.statements).toHaveLength(1);
   });
 });
 
-// Plugins listed before this one, such as scope-auth, get a parent holding what the type's select
-// and its interfaces' selects load. A row without it is reloaded before they run, in one batch per
-// field, and a row with it costs no statement.
+// Scope-auth listed before this plugin gets, from `pothosScopeAuthParent`, a parent holding what the
+// type's select and its interfaces' selects load. A row without it is reloaded before the checks
+// run, in one batch per field, and a row with it costs no statement.
 describe("a type's select before plugins listed first", () => {
   function typeDataSchema(seen: unknown[], defer = false) {
     const builder = new SchemaBuilder<{
@@ -2106,6 +2104,57 @@ describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
       expect.stringMatching(/'Limited' and 'User' both compute 'total'/),
     ]);
     expect(seen).toEqual([]);
+  });
+});
+
+// A row reloaded for one root field isn't reused under the next, which a mutation can change it in.
+describe.each(orders)('a row two mutations return (%s)', (_, plugins) => {
+  it("checks each mutation's result as it is after that mutation", async () => {
+    const seen: unknown[] = [];
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    const User = builder.prismaObject('User', {
+      select: ['email'],
+      authScopes: (user) => {
+        seen.push(user.email);
+        return true;
+      },
+      fields: (t) => ({ email: t.exposeString('email') }),
+    });
+    const shared = { id: 'u-alice' };
+    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    builder.mutationType({
+      fields: (t) => ({
+        rename: t.field({
+          type: User,
+          args: { email: t.arg.string({ required: true }) },
+          resolve: async (_root, { email }) => {
+            await ctx.orm.User.where({ id: 'u-alice' }).update({ email });
+            return shared as never;
+          },
+        }),
+      }),
+    });
+    try {
+      const result = await runCaptured(
+        builder.toSchema(),
+        'mutation { first: rename(email: "first@example.com") { email } second: rename(email: "second@example.com") { email } }',
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        first: { email: 'first@example.com' },
+        second: { email: 'second@example.com' },
+      });
+      expect(seen).toEqual(['first@example.com', 'second@example.com']);
+    } finally {
+      await ctx.orm.User.where({ id: 'u-alice' }).update({ email: 'alice@example.com' });
+    }
   });
 });
 

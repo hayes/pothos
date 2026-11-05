@@ -164,8 +164,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * Older scope-auth versions ignore `pothosScopeAuthParent`, so their `runScopesOnType` checks
-   * would see rows without what the type selects.
+   * Older scope-auth versions don't pass their checks what `pothosScopeAuthParent` returns, so
+   * they would see rows without what the type selects.
    */
   override beforeBuild() {
     const names: readonly string[] | undefined = this.builder.options.plugins;
@@ -228,8 +228,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         [PRISMA_NEXT_CONFIG]: this.config,
         // Filled in afterBuild by registerImplementations.
         ...(typeConfig.kind === 'Interface' ? { [PRISMA_NEXT_IMPLEMENTATIONS]: new Map() } : {}),
-        // Read by scope-auth, whose `runScopesOnType` checks run from `isTypeOf`, before any
-        // field reloads the row.
+        // Read by scope-auth, whose checks can run before this plugin's `wrapResolve` reloads the
+        // row, such as from `isTypeOf` or when it is listed first.
         ...(typeConfig.kind === 'Object'
           ? { pothosScopeAuthParent: this.createTypeParentLoader(typeConfig.name) }
           : {}),
@@ -452,32 +452,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * Passes every plugin's resolver wrapper the parent as the field's type sees it: what the
-   * `select`s of the type and its interfaces loaded. A field's own `select` is added later, in
-   * this plugin's `wrapResolve`, for its resolver only. A row without everything those `select`s
-   * load, such as one another plugin rebuilt, is reloaded first, so plugins listed before this one,
-   * such as scope-auth, see what the type promises.
-   */
-  override wrapArgMappers(
-    resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
-    fieldConfig: PothosOutputFieldConfig<Types>,
-  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
-    const reader = resolver && this.createFieldReader(fieldConfig);
-    if (!resolver || !reader) {
-      return resolver;
-    }
-    // A prisma type's parent is always a row.
-    return (row, args, context, info) =>
-      completeValue(this.typeRow(reader, row as object, context, info, info.parentType), (parent) =>
-        resolver(parent, args, context, info),
-      );
-  }
-
-  /**
-   * `parent` as the `select`s of its type and interfaces load it. A row without everything they
-   * load, such as a copy another plugin made, is reloaded with them alone, batched with the other
-   * rows of the request, so a field's select neither runs before the plugins listed first nor takes
-   * a relation the type's select loads.
+   * `parent` as the `select`s of its type and interfaces load it, with the columns `check` adds. A
+   * row without them, such as a copy another plugin made, is reloaded with every column and what
+   * those `select`s load, batched with the other rows of the request. A field's resolver and
+   * scope-auth's checks share the reload, and see the same object.
    */
   private typeRow(
     check: TypeRowCheck,
@@ -509,6 +487,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (!reader) {
       return resolver;
     }
+    this.readersOf(fieldConfig.parentType).set(fieldConfig.name, reader);
     const { config } = this;
     const {
       modelKey,
@@ -561,9 +540,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return loads.some(isThenable) ? Promise.all(loads).then(withRows) : withRows(loads);
     };
 
-    return (row, args, context, info) => {
-      // `wrapArgMappers` passes a parent with everything its type's `select`s load.
-      const parent = row as object;
+    const resolveRow = (
+      parent: object,
+      args: object,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => {
       // A row a load returned holds every scope of its type's `select`s, which is what a field
       // without a select function is planned for.
       if (
@@ -593,6 +575,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         handOver(reader.parent(row, mapping), mapping?.position, args, context, info),
       );
     };
+
+    // A prisma type's parent is always a row.
+    return (row, args, context, info) =>
+      completeValue(this.typeRow(reader, row as object, context, info, info.parentType), (parent) =>
+        resolveRow(parent, args, context, info),
+      );
   }
 
   /** The scopes of the `select`s `typeLevelSelects` lists for a prisma type. */
@@ -603,18 +591,34 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       : this.typeLevelSelects(typeConfig.name).map(({ name }) => name);
   }
 
+  /** The readers `wrapResolve` built for the fields of each type, by field name. */
+  private readonly readers = new Map<string, Map<string, TypeRowCheck>>();
+
+  private readersOf(typeName: string) {
+    let readers = this.readers.get(typeName);
+    if (!readers) {
+      readers = new Map();
+      this.readers.set(typeName, readers);
+    }
+    return readers;
+  }
+
   /**
-   * The row a type's type-level checks should see, as `typeRow` returns it. The loader matches
-   * `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin doesn't import.
+   * The row scope-auth's checks see, as `typeRow` returns it: for a field of the type, the parent
+   * its resolver gets, and otherwise, such as for `isTypeOf`, the row as the type's `select`s load
+   * it. The loader matches `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin
+   * doesn't import.
    */
   private createTypeParentLoader(typeName: string) {
     let check: TypeRowCheck | undefined;
     let type: GraphQLObjectType | undefined;
+    const readers = this.readersOf(typeName);
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
       check ??= this.typeRowCheck(typeName, undefined);
       type ??= info.schema.getType(typeName) as GraphQLObjectType;
+      const forField = info.parentType.name === typeName && readers.get(info.fieldName);
       // A prisma type's parent is always a row.
-      return this.typeRow(check, parent as object, context, info, type);
+      return this.typeRow(forField || check, parent as object, context, info, type);
     };
   }
 

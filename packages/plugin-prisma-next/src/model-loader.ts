@@ -56,7 +56,7 @@ interface Plans {
   parent: Map<string, MaybePromise<Played>>;
   node: Map<string, MaybePromise<Played>>;
   type: Map<string, MaybePromise<Played>>;
-  /** The rows `loadTypeRow` loaded, by the row they reload and the plan's key. */
+  /** The rows `loadTypeRow` loaded, by the row they reload, then the type and root field. */
   typeRows: WeakMap<object, Map<string, Promise<Row>>>;
 }
 
@@ -174,15 +174,21 @@ export class ModelLoader {
   /**
    * The parent row reloaded with every column and what the `select`s of `type` and its interfaces
    * load. Unlike `loadSelection`, it plans none of the field, so every field of a row shares it,
-   * and the type's relations are never left out for the field's. A row reloaded again, such as by
-   * scope-auth's type check and then a field, shares the first load.
+   * and the type's relations are never left out for the field's. A row reloaded again under the
+   * same root field, such as by scope-auth's check and then the field, shares the first load. Under
+   * another root field, such as a later mutation, it loads again.
    */
   loadTypeRow(info: GraphQLResolveInfo, parent: object, type: GraphQLObjectType): Promise<Row> {
     this.assertIdentity(info);
     const key = type.name;
     const { type: plans, typeRows } = this.plansFor(info);
+    let root = info.path;
+    while (root.prev) {
+      root = root.prev;
+    }
+    const rowKey = `${key}@${root.key}`;
     let loads = typeRows.get(parent);
-    const loaded = loads?.get(key);
+    const loaded = loads?.get(rowKey);
     if (loaded) {
       return loaded;
     }
@@ -213,7 +219,7 @@ export class ModelLoader {
       loads = new Map();
       typeRows.set(parent, loads);
     }
-    loads.set(key, row);
+    loads.set(rowKey, row);
     return row;
   }
 
