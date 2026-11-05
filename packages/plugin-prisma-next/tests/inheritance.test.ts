@@ -1781,27 +1781,36 @@ describe('a relation targeting a variant model with a table of its own', () => {
       });
     });
 
-    it('completes the rows of two relations returning the interface', async () => {
-      const { builder, task } = taskBuilder();
-      builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+    // A relation's `type` is a ref of its target model or of a variant of it, so only a field's
+    // select returns the rows of relations targeting different variants as one type.
+    it('completes the rows of relations targeting different variants', async () => {
+      const { builder } = taskBuilder();
+      builder.prismaObject('Note', {
+        fields: (t) => ({ feature: t.relation('feature', { nullable: true }) }),
+      });
       builder.prismaObject('User', {
-        // The option's type offers only the target model's refs, though the base's resolves too.
         fields: (t) => ({
-          reviews: t.relation('reviews', { type: task as never }),
-          championed: t.relation('championed', { type: task as never }),
+          reviews: t.relation('reviews'),
+          championed: t.relation('championed'),
         }),
       });
       const result = await run(
         builder.toSchema(),
-        '{ users { reviews { __typename title } championed { __typename title } } }',
+        `{
+          users { reviews { __typename title } championed { __typename title } }
+          notes { feature { __typename title } }
+        }`,
       );
       expect(result.errors).toBeUndefined();
-      expect(result.data.users).toEqual([
-        {
-          reviews: [{ __typename: 'Bug', title: 'bug1' }],
-          championed: [{ __typename: 'Feature', title: 'feat1' }],
-        },
-      ]);
+      expect(result.data).toEqual({
+        users: [
+          {
+            reviews: [{ __typename: 'Bug', title: 'bug1' }],
+            championed: [{ __typename: 'Feature', title: 'feat1' }],
+          },
+        ],
+        notes: [{ feature: null }, { feature: { __typename: 'Feature', title: 'feat1' } }],
+      });
     });
   });
 
