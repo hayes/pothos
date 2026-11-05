@@ -399,8 +399,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   /**
    * A row holds one version of each relation the `select`s of its type and interfaces load, which
    * every reader of the row sees. So two of those `select`s that load a relation's rows must load
-   * them with the same query. Function entries compute values rather than load rows. When two of
-   * them compute the same key, the type's own value wins over its interfaces'.
+   * them with the same query. Function entries compute values rather than load rows, and their keys
+   * are only known once they run, so `parentForType` checks them on the rows they loaded.
    */
   private assertSelectsAgree(typeConfig: PothosTypeConfig, modelKey: string) {
     const model = getModel(this.config.contract, modelKey);

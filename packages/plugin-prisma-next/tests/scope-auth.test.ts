@@ -13,6 +13,8 @@ import {
   experimentalExecuteIncrementally,
   GraphQLDeferDirective,
   type GraphQLFieldResolver,
+  type GraphQLIsTypeOfFn,
+  type GraphQLResolveInfo,
   type GraphQLSchema,
   parse,
   specifiedDirectives,
@@ -1517,14 +1519,14 @@ describe('a relation an interface and its implementation select alike', () => {
   });
 });
 
-// A row holds one value per computed key. When an interface and its implementation compute the same
-// key, the implementation's value wins, for the interface's checks too.
+// A row holds one value per computed key, so an interface and its implementation whose selects
+// compute the same key from different queries would each pass their auth check on the other's.
 describe('a key an interface and its implementation both compute', () => {
   describe.each([
     ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
     ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
   ] as const)('scope auth %s the prisma plugin', (_name, plugins) => {
-    it("shows the interface's authScopes the implementation's value", async () => {
+    it('fails every field of the type, whatever the values', async () => {
       const builder = new SchemaBuilder<{
         PrismaNextContract: SampleContract;
         AuthScopes: { ok: boolean };
@@ -1554,13 +1556,19 @@ describe('a key an interface and its implementation both compute', () => {
           }),
         }),
       });
-      // Alice has two posts and Bob one, but each has one published.
+      // Alice has two posts, one published, and Bob one of each, so both counts differ.
       const result = await runCaptured(builder.toSchema(), '{ users { id email } }');
-      expect(result.errors).toBeUndefined();
       expect(result.data.users).toEqual([
-        { id: 'u-alice', email: 'alice@example.com' },
-        { id: 'u-bob', email: 'bob@example.com' },
+        { id: null, email: null },
+        { id: null, email: null },
       ]);
+      expect(new Set(result.errors?.map((error) => detailOf(error)))).toEqual(
+        new Set([
+          "'Limited' and 'User' both compute 'total' from relation 'posts' in their select. A " +
+            'row holds one value for it, which the fields and auth checks of both types read. ' +
+            'Give one of them a different name.',
+        ]),
+      );
     });
   });
 });
@@ -1984,9 +1992,24 @@ describe('slots beneath shared walks', () => {
   });
 });
 
-// A type check whose row fails to reload fails with the plugin's generic error.
-describe.each(orders)('a type check that cannot load its row (%s)', (_, plugins) => {
-  it('fails with a generic error', async () => {
+// Records the values passed to the `isTypeOf` it adds, to a test's `recordIsTypeOf`.
+let recordIsTypeOf: (parent: unknown) => void = () => {};
+class RecordIsTypeOfPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  override wrapIsTypeOf(isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined) {
+    return (parent: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
+      recordIsTypeOf(parent);
+      return isTypeOf ? isTypeOf(parent, context, info) : true;
+    };
+  }
+}
+SchemaBuilder.registerPlugin(
+  'prismaNextTestRecordIsTypeOf' as never,
+  RecordIsTypeOfPlugin as never,
+);
+
+// A type check that can't see the row it checks fails with the plugin's generic error.
+describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
+  function schema() {
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
@@ -1995,9 +2018,23 @@ describe.each(orders)('a type check that cannot load its row (%s)', (_, plugins)
       scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType: true },
       prismaNext: { client: ctx.client },
     });
+    const Limited = builder.prismaInterface('User', {
+      variant: 'Limited',
+      select: { posts: (sub) => ({ total: sub.count() }) },
+      resolveType: () => 'User',
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
     const User = builder.prismaObject('User', {
+      interfaces: [Limited],
       select: { email: true },
       authScopes: (user) => user.email !== 'bob@example.com',
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    const Clashing = builder.prismaObject('User', {
+      variant: 'Clashing',
+      interfaces: [Limited],
+      select: { posts: (sub) => ({ total: sub.where({ published: 1 }).count() }) },
+      authScopes: () => true,
       fields: (t) => ({ firstName: t.exposeString('firstName') }),
     });
     builder.queryType({
@@ -2009,13 +2046,66 @@ describe.each(orders)('a type check that cannot load its row (%s)', (_, plugins)
           // A row without the email the type selects, which the check reloads.
           resolve: (_root, { id }) => ({ id: String(id) }) as never,
         }),
+        clashing: t.prismaField({
+          type: [Clashing],
+          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        }),
       }),
     });
-    const result = await runCaptured(builder.toSchema(), '{ user(id: "u-nobody") { firstName } }');
+    return builder.toSchema();
+  }
+
+  it('fails a type check whose row fails to reload with a generic error', async () => {
+    const result = await runCaptured(schema(), '{ user(id: "u-nobody") { firstName } }');
     expect(result.data).toEqual({ user: null });
     expect(result.errors?.map(detailOf)).toEqual([
       expect.stringMatching(/could not find the 'User' row/),
     ]);
+  });
+
+  it('fails a type check whose type selects compute the same key with a generic error', async () => {
+    const result = await runCaptured(schema(), '{ clashing { firstName } }');
+    expect(result.data).toEqual({ clashing: null });
+    expect(result.errors?.map(detailOf)).toEqual([
+      expect.stringMatching(/'Limited' and 'Clashing' both compute 'total'/),
+    ]);
+  });
+
+  it("throws instead of handing another plugin's isTypeOf a row it can't project", async () => {
+    const seen: unknown[] = [];
+    recordIsTypeOf = (parent) => seen.push(parent);
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins, 'prismaNextTestRecordIsTypeOf'] as never,
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    const Limited = builder.prismaInterface('User', {
+      variant: 'Limited',
+      select: { posts: (sub) => ({ total: sub.count() }) },
+      resolveType: () => 'User',
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    const User = builder.prismaObject('User', {
+      interfaces: [Limited],
+      select: { posts: (sub) => ({ total: sub.where({ published: 1 }).count() }) },
+      fields: (t) => ({ firstName: t.exposeString('firstName') }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: [User],
+          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const result = await runCaptured(builder.toSchema(), '{ users { firstName } }');
+    expect(result.errors?.map(detailOf)).toEqual([
+      expect.stringMatching(/'Limited' and 'User' both compute 'total'/),
+    ]);
+    expect(seen).toEqual([]);
   });
 });
 

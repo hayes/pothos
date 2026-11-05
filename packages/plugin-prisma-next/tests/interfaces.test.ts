@@ -2,6 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin from '../src';
+import { detailOf } from './fixtures/errors';
 import {
   createBuilder,
   deferSchema,
@@ -576,18 +577,20 @@ describe('inherited selections', () => {
     expect(() => builder.toSchema()).not.toThrow();
   });
 
-  it("gives an implementation's computed key precedence over its interface's", async () => {
+  // A select function's keys are only known once it runs, so the rows it loaded are checked. Equal
+  // values fail too, so the error shows up with any data.
+  it('rejects selects of one row that compute the same key, with any values', async () => {
     const builder = createBuilder();
     const Counted = builder.prismaInterface('User', {
       variant: 'Counted',
       select: { posts: (sub) => ({ total: sub.count() }) },
       resolveType: () => 'User',
-      fields: (t) => ({ counted: t.int({ resolve: (user) => user.total }) }),
+      fields: (t) => ({ id: t.exposeID('id') }),
     });
     const User = builder.prismaObject('User', {
       interfaces: [Counted],
-      select: { posts: (sub) => ({ total: sub.where({ published: 1 }).count() }) },
-      fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
+      select: { posts: (sub) => ({ total: sub.count() }) },
+      fields: (t) => ({ email: t.exposeString('email') }),
     });
     builder.queryType({
       fields: (t) => ({
@@ -599,14 +602,13 @@ describe('inherited selections', () => {
       }),
     });
     const schema = builder.toSchema();
-    // Alice has two posts, one published.
-    for (const query of [
-      '{ user { counted total } }',
-      '{ user: counted { counted ... on User { total } } }',
-    ]) {
+    const message =
+      "'Counted' and 'User' both compute 'total' from relation 'posts' in their select. A row " +
+      'holds one value for it, which the fields and auth checks of both types read. Give one of ' +
+      'them a different name.';
+    for (const query of ['{ user { id email } }', '{ counted { id ... on User { email } } }']) {
       const result = await run(schema, query);
-      expect(result.errors).toBeUndefined();
-      expect(result.data.user).toEqual({ counted: 1, total: 1 });
+      expect(result.errors?.map((error) => detailOf(error))).toContain(message);
     }
   });
 
