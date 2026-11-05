@@ -23,13 +23,37 @@ export type Mappings = Record<string, Mapping>;
 /** The mapping of a static selection: nothing can ever be recorded beneath one. */
 export const EMPTY_MAPPING: Mapping = Object.freeze({ nested: Object.freeze({}) as Mappings });
 
+/** Unions already made. A mapping is not changed once recorded, so one pair has one answer. */
+const unions = new WeakMap<Mapping, WeakMap<Mapping, Mapping>>();
+
 /**
  * Adopts the first mapping recorded for a key; a later one deep-unions into a copy, so a recorded
  * mapping is never changed after the fact (two plays may accept a different subset of the fields).
+ *
+ * Invocations of one field share what is beneath them (see `Plan.nested`), so a mapping is a DAG
+ * whose keys can all lead to one mapping. A pair is unioned once however many keys lead to it, or
+ * the union would take as long as the DAG written out as a tree.
  */
 export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping {
   if (!into || into === EMPTY_MAPPING) {
     return from;
+  }
+
+  if (into === from || from === EMPTY_MAPPING) {
+    return into;
+  }
+
+  let byFrom = unions.get(into);
+
+  if (!byFrom) {
+    byFrom = new WeakMap();
+    unions.set(into, byFrom);
+  }
+
+  const known = byFrom.get(from);
+
+  if (known) {
+    return known;
   }
 
   const nested: Mappings = { ...into.nested };
@@ -38,7 +62,11 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
     nested[key] = unionMappings(nested[key], from.nested[key]);
   }
 
-  return into.position === undefined ? { nested } : { nested, position: into.position };
+  const union = into.position === undefined ? { nested } : { nested, position: into.position };
+
+  byFrom.set(from, union);
+
+  return union;
 }
 
 /**

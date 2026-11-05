@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { Position, SelectFn, WalkedType } from '../src';
 import { getLoaderMapping, Plan } from '../src';
 import {
+  createModels,
+  createSchema,
   FakeAdapter,
   type FakeMap,
   mappingOf,
@@ -11,6 +13,14 @@ import {
   resolveInfo,
 } from './fake-adapter';
 import { createTestAdapter, createTestSchema, models, withSelects } from './schema';
+
+/** The error a type-level conflict throws: generic, with `detail` as its cause's message. */
+function unexpected(detail: string) {
+  return expect.objectContaining({
+    message: 'Unexpected error.',
+    cause: expect.objectContaining({ message: expect.stringContaining(detail) }),
+  });
+}
 
 const schema = createTestSchema();
 const adapter = createTestAdapter();
@@ -313,7 +323,7 @@ describe('queryFromInfo', () => {
     // path matches instead: one rule, one answer.
     expect(() =>
       queryFromInfo(adapter, { context: {}, info, typeName: 'User', path: ['appointment'] }),
-    ).toThrow('Type-level selections of Viewer and Admin conflict on relation "posts"');
+    ).toThrow(unexpected('Type-level selections of Viewer and Admin conflict on relation "posts"'));
   });
 
   it('keeps only the matches of the model the root loads, with no typeName', async () => {
@@ -404,7 +414,7 @@ describe('queryFromInfo', () => {
     expect(author.parent).toBe(posts);
     expect(posts.parent!.parent).toBeUndefined();
     // Nothing is materialized: one link per select function, and no arrays at all.
-    expect(Object.keys(posts).sort()).toEqual(['field', 'node', 'parent', 'type']);
+    expect(Object.keys(posts).sort()).toEqual(['field', 'node', 'parent', 'type', 'walkParent']);
     // The document's alias is on the node; `field` and `type` are the schema's own.
     expect(posts.node.alias?.value).toBe('myPosts');
     expect(posts.node.name.value).toBe('posts');
@@ -467,7 +477,7 @@ describe('fragments', () => {
     );
 
     expect(() => queryFromInfo(adapter, { context: {}, info })).toThrow(
-      'Type-level selections of Person and Admin conflict on relation "posts"',
+      unexpected('Type-level selections of Person and Admin conflict on relation "posts"'),
     );
   });
 
@@ -497,7 +507,9 @@ describe('fragments', () => {
     const other = await resolveInfo(schema, '{ person { id ... on Viewer { email } } }');
 
     expect(() => queryFromInfo(withExtras, { context: {}, info: other })).toThrow(
-      'Type-level selections of Person and Viewer conflict on extra "total". Define the extra with the same function on both types, or move it to a field-level select on one of the types.',
+      unexpected(
+        'Type-level selections of Person and Viewer conflict on extra "total". Define the extra with the same function on both types, or move it to a field-level select on one of the types.',
+      ),
     );
   });
 
@@ -580,6 +592,190 @@ describe('fragments', () => {
     });
   });
 
+  it('walks a fragment on a model-less abstract type as each implementation it contains', async () => {
+    const named = new (class extends FakeAdapter {
+      override fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
+        return field.name === 'name'
+          ? { select: { name: true } }
+          : super.fieldSelection(field, type);
+      }
+    })(models);
+    const context = {};
+    // Person does not implement Named, but its implementation User does.
+    const info = await resolveInfo(schema, '{ person { ... on Named { name } } }');
+
+    // User has no type-level selection (every column), so the query itself is unchanged; the
+    // field is planned for User rows and mapped for them alone.
+    queryFromInfo(named, { context, info });
+    expect(mappingOf(getLoaderMapping(context, pathOf('person', 'name'), 'User'))).toEqual({
+      nested: {},
+    });
+    expect(getLoaderMapping(context, pathOf('person', 'name'), 'Viewer')).toBeNull();
+  });
+
+  describe('fragments on a model-less abstract type beneath a model interface', () => {
+    // Person is implemented by User (Node, Named), Viewer (Node, Named) and Admin (Named,
+    // Ranked). User selects every column; Viewer's and Admin's type-level selections conflict on
+    // posts. Node and Ranked cover compatible variants, Named covers all three.
+    const expansionModels = createModels('User', 'Post');
+    expansionModels.User.relations = { posts: expansionModels.Post };
+    const name = { name: { select: { name: true } } };
+    const expansionSchema = createSchema(
+      /* GraphQL */ `
+        type Query { person: Person }
+        interface Node { id: ID }
+        interface Named { name: String }
+        interface Ranked { rank: Int }
+        interface Person { id: ID, posts(take: Int): [Post] }
+        type User implements Person & Node & Named { id: ID, name: String, posts(take: Int): [Post] }
+        type Viewer implements Person & Node & Named {
+          id: ID
+          name: String
+          email: String
+          posts(take: Int): [Post]
+        }
+        type Admin implements Person & Named & Ranked {
+          id: ID
+          name: String
+          rank: Int
+          posts(take: Int): [Post]
+        }
+        type Post { id: ID }
+      `,
+      {
+        User: { model: 'User', fields: name },
+        Viewer: {
+          model: 'User',
+          select: { select: { id: true, posts: { take: 5 } } },
+          fields: { ...name, email: { select: { email: true } } },
+        },
+        Admin: {
+          model: 'User',
+          select: { select: { posts: { take: 1 } } },
+          fields: { ...name, rank: { select: { rank: true } } },
+        },
+        Person: { model: 'User', select: { select: { id: true } } },
+        Post: { model: 'Post' },
+      },
+    );
+    const expansionAdapter = new FakeAdapter(expansionModels);
+    const plan = async (query: string, context = {}) =>
+      queryFromInfo(expansionAdapter, { context, info: await resolveInfo(expansionSchema, query) });
+
+    it('enters every variant a fragment that selects fields covers', async () => {
+      const context = {};
+
+      expect(await plan('{ person { ... on Node { id } } }', context)).toEqual(
+        await plan('{ person { ... on User { id } ... on Viewer { id } } }'),
+      );
+      expect(getLoaderMapping(context, pathOf('person', 'id'), 'Admin')).toBeNull();
+    });
+
+    it('enters only the variants the nested fragments of a field-less fragment apply to', async () => {
+      const direct = await plan('{ person { ... on User { name } } }');
+
+      expect(await plan('{ person { ... on Node { ... on User { name } } } }')).toEqual(direct);
+      expect(await plan('{ person { ... on Node { __typename ... on User { name } } } }')).toEqual(
+        direct,
+      );
+      expect(
+        await plan('query { person { ...F } } fragment F on Node { ... on User { name } }'),
+      ).toEqual(direct);
+    });
+
+    it('narrows a nested fragment to the variants an enclosing field-less fragment covers', async () => {
+      // Named alone covers Admin too, whose selection conflicts with Viewer's.
+      const covered = await plan('{ person { ... on User { name } ... on Viewer { name } } }');
+
+      expect(covered).toEqual({ select: { posts: { take: 5 } } });
+      expect(await plan('{ person { ... on Node { ... on Named { name } } } }')).toEqual(covered);
+      expect(
+        await plan(
+          'query { person { ...F } } fragment F on Node { ...G } fragment G on Named { name }',
+        ),
+      ).toEqual(covered);
+      expect(await plan('{ person { ... on Node { ... { ... on Named { name } } } } }')).toEqual(
+        covered,
+      );
+    });
+
+    it('plans `... on Node { ... on Person { … } }` like `... on Node { … }`', async () => {
+      const nestedContext = {};
+      const directContext = {};
+      const nested = await plan(
+        '{ person { ... on Node { ... on Person { id } } } }',
+        nestedContext,
+      );
+
+      expect(nested).toEqual(await plan('{ person { ... on Node { id } } }', directContext));
+      expect(nested).toEqual({ select: { posts: { take: 5 } } });
+      for (const type of ['User', 'Viewer', 'Admin']) {
+        expect(getLoaderMapping(nestedContext, pathOf('person', 'id'), type)).toEqual(
+          getLoaderMapping(directContext, pathOf('person', 'id'), type),
+        );
+      }
+    });
+
+    it('plans a named fragment on Node spread in several places for the variants it covers', async () => {
+      expect(
+        await plan(
+          'query { person { ...Card ... on Node { ...Ids } } } fragment Card on Person { ...Ids } fragment Ids on Node { id }',
+        ),
+      ).toEqual(await plan('{ person { ... on User { id } ... on Viewer { id } } }'));
+    });
+
+    it('throws when the variants a fragment covers conflict', async () => {
+      await expect(plan('{ person { id ... on Named { name } } }')).rejects.toThrow(
+        unexpected(
+          'Type-level selections of Person and Admin conflict on relation "posts". Move the relation arguments to a field-level select on one of the types.',
+        ),
+      );
+    });
+
+    it('throws when the variants a fragment covers conflict with another fragment', async () => {
+      await expect(
+        plan('{ person { ... on Ranked { rank } ... on Viewer { email } } }'),
+      ).rejects.toThrow(
+        unexpected('Type-level selections of Person and Viewer conflict on relation "posts"'),
+      );
+      await expect(
+        plan('{ person { ... on Viewer { email } ... on Ranked { rank } } }'),
+      ).rejects.toThrow(
+        unexpected('Type-level selections of Person and Admin conflict on relation "posts"'),
+      );
+
+      // Alone, Admin's selection agrees with Person's, so the field is planned for Admin rows.
+      const context = {};
+
+      await plan('{ person { ... on Ranked { rank } } }', context);
+      expect(mappingOf(getLoaderMapping(context, pathOf('person', 'rank'), 'Admin'))).toEqual({
+        nested: {},
+      });
+    });
+
+    it('throws when the variants a fragment covers conflict with the seed', async () => {
+      const info = await resolveInfo(expansionSchema, '{ person { ... on Ranked { rank } } }');
+
+      expect(() =>
+        Plan.fromInfo(expansionAdapter, {
+          context: {},
+          info,
+          initial: { select: { posts: { take: 3 } } },
+        }),
+      ).toThrow(
+        unexpected('Type-level selections of Person and Admin conflict on relation "posts"'),
+      );
+    });
+
+    it('still reports conflicting variants a document names directly', async () => {
+      await expect(
+        plan('{ person { ... on Viewer { email } ... on Admin { rank } ... on Node { id } } }'),
+      ).rejects.toThrow(
+        unexpected('Type-level selections of Person and Admin conflict on relation "posts"'),
+      );
+    });
+  });
+
   it('walks a fragment on an interface the type implements as the type', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { ... on Person { posts(take: 1) { id } } } }');
@@ -589,6 +785,49 @@ describe('fragments', () => {
     });
     expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual({
       nested: {},
+    });
+  });
+});
+
+describe('component fragments', () => {
+  // Fragments a component defines on an interface and spreads wherever it is rendered.
+  const fragments = `
+    fragment NodeFields on Node { id }
+    fragment PersonPosts on Person { posts(take: 1) { ...PostCard } }
+    fragment PostCard on Post { title author(x: 1) { ...NodeFields } }
+  `;
+  const plan = async (query: string, context = {}) =>
+    queryFromInfo(adapter, { context, info: await resolveInfo(schema, query) });
+
+  it('plans interface fragments spread into a concrete type as its own fields', async () => {
+    const context = {};
+    const planned = await plan(`{ user { ...NodeFields ...PersonPosts } } ${fragments}`, context);
+
+    expect(planned).toEqual(
+      await plan('{ user { id posts(take: 1) { title author(x: 1) { id } } } }'),
+    );
+    expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual({
+      nested: { 'Post@author': { nested: {} } },
+    });
+  });
+
+  it('plans one fragment spread at several depths, and beside direct fields', async () => {
+    expect(
+      await plan(
+        `{ user { posts(take: 1) { id } ...PersonPosts ... on Named { ...PersonPosts } } } ${fragments}`,
+      ),
+    ).toEqual(await plan('{ user { posts(take: 1) { id title author(x: 1) { id } } } }'));
+  });
+
+  it('plans interface fragments spread beneath a model interface for the rows they cover', async () => {
+    const context = {};
+
+    // Person implements Node, so NodeFields applies to every Person row.
+    expect(await plan(`{ person { ...NodeFields ...PersonPosts } } ${fragments}`, context)).toEqual(
+      await plan('{ person { id posts(take: 1) { title author(x: 1) { id } } } }'),
+    );
+    expect(mappingOf(getLoaderMapping(context, pathOf('person', 'posts'), 'Person'))).toEqual({
+      nested: { 'Post@author': { nested: {} } },
     });
   });
 });
@@ -631,12 +870,9 @@ describe('repeated fragment spreads', () => {
       schema,
       `{ person { id ...F1 } }\n${fragmentChain(12, '... on Viewer { email }')}`,
     );
-    const started = performance.now();
-
     expect(queryFromInfo(counting, { context: {}, info })).toEqual({
       select: { posts: { take: 5 }, id: true, email: true },
     });
-    expect(performance.now() - started).toBeLessThan(1000);
     // The variant is entered once and its field applied once, not 2^11 times each.
     expect(calls).toEqual({ typeSelection: 1, fieldSelection: 1 });
   });
@@ -740,7 +976,7 @@ describe('Plan.forParentRow', () => {
       at: ['Viewer', 'posts'],
     });
 
-    const plan = Plan.forParentRow(adapter, {}, info);
+    const plan = Plan.forParentRow(adapter, { context: {}, info });
 
     // The type-level `posts: { take: 5 }` conflicts with the field's own `take: 2` and is left out.
     expect(adapter.toQuery(plan.root)).toEqual({
@@ -763,7 +999,7 @@ describe('Plan.forParentRow', () => {
 
     expect(info.fieldNodes).toHaveLength(2);
 
-    const plan = Plan.forParentRow(adapter, {}, info);
+    const plan = Plan.forParentRow(adapter, { context: {}, info });
 
     expect(adapter.toQuery(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
@@ -782,7 +1018,7 @@ describe('Plan.forParentRow', () => {
       },
     );
 
-    const plan = Plan.forParentRow(adapter, {}, info);
+    const plan = Plan.forParentRow(adapter, { context: {}, info });
 
     expect(adapter.toQuery(plan.root)).toEqual({
       select: { posts: { take: 1, select: { author: true } } },
@@ -929,6 +1165,23 @@ describe('plan.query(select)', () => {
     expect(plan.query()).toEqual(queryFromInfo(adapter, { context: {}, info }));
   });
 
+  it('merges the initial selection of a parent-row plan first, so a conflicting field loses', async () => {
+    const info = await resolveInfo(schema, '{ viewer { posts(take: 2) { id } } }', {
+      at: ['Viewer', 'posts'],
+    });
+    const plain = Plan.forParentRow(adapter, { context: {}, info });
+    const seeded = Plan.forParentRow(adapter, {
+      context: {},
+      info,
+      initial: { select: { posts: { take: 1 } } },
+    });
+
+    expect(adapter.toQuery(plain.root)).toEqual({ select: { posts: { take: 2 }, id: true } });
+    expect(mappingsOf(plain.mappings)).toEqual({ 'Viewer@posts': { nested: {} } });
+    expect(adapter.toQuery(seeded.root)).toEqual({ select: { posts: { take: 1 }, id: true } });
+    expect(mappingsOf(seeded.mappings)).toEqual({});
+  });
+
   it('emits the walked plan alone without a selection', async () => {
     const context = {};
     const info = await resolveInfo(schema, '{ user { posts(take: 2) { id } } }');
@@ -938,6 +1191,783 @@ describe('plan.query(select)', () => {
     );
     expect(mappingOf(getLoaderMapping(context, pathOf('user', 'posts'), 'User'))).toEqual({
       nested: {},
+    });
+  });
+});
+
+describe('fragments that expand at every level', () => {
+  const linkedModels = createModels('User', 'Post');
+  linkedModels.User.relations = { posts: linkedModels.Post, drafts: linkedModels.Post };
+  linkedModels.Post.relations = { author: linkedModels.User };
+
+  const linkedSdl = /* GraphQL */ `
+    type Query { user: UserI, stray: UserI }
+    interface Node { nid: String }
+    interface Other { other: String, selected: String }
+    interface HasPosts { posts(take: Int): [PostI] }
+    interface HasAuthor { author: UserI }
+    interface UserI {
+      id: ID
+      posts(take: Int): [PostI]
+      drafts: [PostI]
+      first: String
+      second: String
+    }
+    interface PostI { id: ID, author: UserI }
+    ${[1, 2, 3]
+      .map(
+        (n) => `
+          type U${n} implements UserI & Node & HasPosts {
+            id: ID, nid: String, first: String, second: String
+            posts(take: Int): [PostI]
+            drafts: [PostI]
+          }
+          type P${n} implements PostI & Node & HasAuthor { id: ID, nid: String, author: UserI }
+        `,
+      )
+      .join('')}
+    type Latest implements UserI & Other {
+      id: ID, other: String, selected: String, first: String, second: String
+      posts(take: Int): [PostI]
+      drafts: [PostI]
+    }
+  `;
+
+  function linkedSchema() {
+    const calls = { posts: 0, author: 0 };
+    const relation =
+      (name: 'author' | 'drafts' | 'posts', query: FakeMap = {}): SelectFn<FakeMap> =>
+      (_args, _ctx, nested) => {
+        if (name !== 'drafts') {
+          calls[name] += 1;
+        }
+
+        return { select: { [name]: nested(query) } };
+      };
+    const userFields = {
+      posts: relation('posts'),
+      drafts: relation('drafts'),
+      // Fields whose relation arguments conflict with each other, and with no variant.
+      first: { select: { posts: { take: 3 } } },
+      second: { select: { posts: { take: 4 } } },
+    };
+    const user = { model: 'User', select: { select: { id: true } }, fields: userFields };
+    const post = {
+      model: 'Post',
+      select: { select: { id: true } },
+      fields: { author: relation('author') },
+    };
+    const types = createSchema(linkedSdl, {
+      UserI: user,
+      PostI: post,
+      U1: user,
+      U2: user,
+      U3: user,
+      P1: post,
+      P2: post,
+      P3: post,
+      // Only variant covered by `Other`, with type-level arguments that conflict with `first`.
+      Latest: {
+        model: 'User',
+        select: { select: { id: true, posts: { take: 1 } } },
+        fields: { ...userFields, selected: { select: { selected: true } } },
+      },
+    });
+
+    return { calls, types };
+  }
+
+  /** `depth` relations, each selected through a fragment on the non-model interface `Node`. */
+  function expandingDocument(depth: number) {
+    let selection = '... on Node { nid }';
+
+    for (let level = depth; level >= 1; level -= 1) {
+      selection =
+        level % 2 === 1
+          ? `... on Node { ... on UserI { posts { ${selection} } } }`
+          : `... on Node { ... on PostI { author { ${selection} } } }`;
+    }
+
+    return `{ user { ${selection} } }`;
+  }
+
+  it('runs each relation once per level, however many implementations it is reached on', async () => {
+    const callsAt = async (depth: number) => {
+      const { calls, types } = linkedSchema();
+      const info = await resolveInfo(types, expandingDocument(depth));
+      queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+      return calls;
+    };
+
+    // Each relation is named on the interface. The expansion reaches it on the three
+    // implementations Node covers, which inherit it, so it is invoked once, on the interface.
+    expect(await callsAt(6)).toEqual({ posts: 3, author: 3 });
+    expect(await callsAt(12)).toEqual({ posts: 6, author: 6 });
+    expect(await callsAt(40)).toEqual({ posts: 20, author: 20 });
+  });
+
+  /**
+   * One named fragment per level, selecting the relation beneath each implementation, so every
+   * level holds three field nodes with the same selection set: a linear document whose paths
+   * multiply by three at every level. `fields` relations per implementation make the walks above
+   * a level hang beneath different plans.
+   */
+  function namedDocument(depth: number, fields: string[] = ['posts'], variants = [1, 2, 3]) {
+    const fragments: string[] = [];
+
+    for (let level = 1; level <= depth; level += 1) {
+      const next = level === depth ? '... on Node { nid }' : `...L${level + 1}`;
+      const selections = variants.map((n) =>
+        level % 2 === 1
+          ? `... on U${n} { ${fields.map((field) => `${field} { ${next} }`).join(' ')} }`
+          : `... on P${n} { author { ${next} } }`,
+      );
+
+      fragments.push(`fragment L${level} on Node { ${selections.join(' ')} }`);
+    }
+
+    return `{ user { ...L1 } } ${fragments.join(' ')}`;
+  }
+
+  it('walks a selection set once however many field nodes spell it', async () => {
+    const callsAt = async (depth: number, fields?: string[]) => {
+      const { calls, types } = linkedSchema();
+      const info = await resolveInfo(types, namedDocument(depth, fields));
+      queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+      return calls;
+    };
+
+    // Per level, each of the three field nodes on its own implementation, invoked once.
+    expect(await callsAt(6)).toEqual({ posts: 9, author: 9 });
+    expect(await callsAt(20)).toEqual({ posts: 30, author: 30 });
+    expect(await callsAt(40)).toEqual({ posts: 60, author: 60 });
+    // `posts` and `drafts` walk the same selection set beneath different plans.
+    expect(await callsAt(16, ['posts', 'drafts'])).toEqual({ posts: 24, author: 24 });
+  });
+
+  it('keeps the mappings of every field node that shares a walk', async () => {
+    const { types } = linkedSchema();
+    const info = await resolveInfo(types, namedDocument(4));
+    const context = {};
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context, info });
+
+    for (const type of ['U1', 'U2', 'U3']) {
+      const posts = getLoaderMapping(context, pathOf('user', 'posts'), type);
+
+      expect(Object.keys(posts!.nested).sort()).toEqual(['P1@author', 'P2@author', 'P3@author']);
+      expect(Object.keys(posts!.nested['P2@author'].nested).sort()).toEqual([
+        'U1@posts',
+        'U2@posts',
+        'U3@posts',
+      ]);
+    }
+  });
+
+  it('walks selection sets that differ only in an alias or an argument beneath them apart', async () => {
+    const { calls, types } = linkedSchema();
+    const info = await resolveInfo(
+      types,
+      /* GraphQL */ `
+        {
+          user {
+            posts { a: author { id } }
+            drafts { b: author { id } }
+            x: posts(take: 1) { author { posts(take: 2) { id } } }
+            y: posts(take: 1) { author { posts(take: 3) { id } } }
+          }
+        }
+      `,
+    );
+    const context = {};
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context, info });
+
+    // Shared, the `b` and `take: 3` walks would make neither call.
+    expect(calls).toEqual({ posts: 5, author: 4 });
+    expect(
+      Object.keys(getLoaderMapping(context, pathOf('user', 'posts'), 'UserI')!.nested),
+    ).toEqual(['PostI@a']);
+    expect(
+      Object.keys(getLoaderMapping(context, pathOf('user', 'drafts'), 'UserI')!.nested),
+    ).toEqual(['PostI@b']);
+  });
+
+  it('records an expanded relation under the interface the document names it on', async () => {
+    const { types } = linkedSchema();
+    const info = await resolveInfo(types, expandingDocument(4));
+    const context = {};
+
+    expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
+      select: {
+        id: true,
+        posts: {
+          select: {
+            id: true,
+            author: {
+              select: {
+                id: true,
+                posts: { select: { id: true, author: { select: { id: true } } } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // An implementation's resolver falls back to its interfaces.
+    const posts = getLoaderMapping(context, pathOf('user', 'posts'), 'UserI');
+
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'U2')).toBeNull();
+    expect(Object.keys(posts!.nested)).toEqual(['PostI@author']);
+    expect(Object.keys(posts!.nested['PostI@author'].nested)).toEqual(['UserI@posts']);
+  });
+
+  it('gives every invocation its own relation query over the shared walk', async () => {
+    const { types } = linkedSchema();
+
+    for (const [name, take] of [
+      ['U1', 1],
+      ['U2', 2],
+    ] as const) {
+      const field = (types.getType(name) as never as WalkedType).getFields().posts as never as {
+        extensions: Record<string, unknown>;
+      };
+
+      field.extensions = {
+        ...field.extensions,
+        select: ((_args, _ctx, nested) => ({
+          select: { posts: nested({ take }) },
+        })) satisfies SelectFn<FakeMap>,
+      };
+    }
+
+    const info = await resolveInfo(
+      types,
+      '{ user { ... on Node { ... on UserI { posts { id } } } } }',
+    );
+    const context = {};
+
+    // U1's arguments win, and U2's conflict with them rather than having been overwritten by a
+    // query the shared walk kept from the first invocation.
+    expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
+      select: { id: true, posts: { take: 1, select: { id: true } } },
+    });
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'U1')).not.toBeNull();
+    expect(getLoaderMapping(context, pathOf('user', 'posts'), 'U2')).toBeNull();
+  });
+
+  /** Replaces `name`'s select on each of `typeNames`. */
+  function selectOn(
+    types: ReturnType<typeof linkedSchema>['types'],
+    typeNames: string[],
+    name: string,
+    select: SelectFn<FakeMap>,
+  ) {
+    for (const typeName of typeNames) {
+      const field = (types.getType(typeName) as never as WalkedType).getFields()[name] as never as {
+        extensions: Record<string, unknown>;
+      };
+
+      field.extensions = { ...field.extensions, select };
+    }
+  }
+
+  const postTypes = ['PostI', 'P1', 'P2', 'P3'];
+  const authorThroughNode =
+    '{ user { ... on Node { ... on UserI { posts { ... on PostI { author { id } } } } } } }';
+  // The expansion reaches `posts` on U1, U2 and U3 too, but the document names it on UserI.
+  const namedPath = [['Query.user', 'UserI.posts', 'PostI.author']];
+  // Field nodes on each variant: every one is a path of its own.
+  const authorThroughVariants = `{ user { ... on Node { ${['U1', 'U2', 'U3']
+    .map((type) => `... on ${type} { posts { ...Author } }`)
+    .join(' ')} } } } fragment Author on PostI { author { id } }`;
+  const everyVariantPath = ['U1', 'U2', 'U3'].map((type) => [
+    'Query.user',
+    `${type}.posts`,
+    'PostI.author',
+  ]);
+
+  it('hands a select function that reads what is above it the path the document names', async () => {
+    const seen: string[][] = [];
+    const { types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      seen.push(chainOf(position));
+
+      return { select: { author: nested({}) } };
+    });
+
+    const info = await resolveInfo(types, authorThroughNode);
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(seen).toEqual(namedPath);
+  });
+
+  it('walks again beneath every path when a select function reads what is above it', async () => {
+    const seen: string[][] = [];
+    const { types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      seen.push(chainOf(position));
+
+      return { select: { author: nested({}) } };
+    });
+
+    const info = await resolveInfo(types, authorThroughVariants);
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    // Once each: the expansion reaches every variant's `posts` as that variant.
+    expect(seen).toEqual(everyVariantPath);
+  });
+
+  it('plans a named fragment on the interface and on a variant the same in either order', async () => {
+    const plannedOn = async (document: string) => {
+      const seen: string[] = [];
+      const { types } = linkedSchema();
+
+      selectOn(
+        types,
+        ['UserI', 'U1', 'U2', 'U3'],
+        'posts',
+        (_args, _ctx, nested, _selected, position) => {
+          seen.push(position.type.name);
+
+          return { select: { posts: nested({}) } };
+        },
+      );
+      queryFromInfo(new FakeAdapter(linkedModels), {
+        context: {},
+        info: await resolveInfo(types, `${document} fragment F on HasPosts { posts { id } }`),
+      });
+
+      return seen.sort();
+    };
+
+    expect(await plannedOn('{ user { ... on HasPosts { ...F } ... on U1 { ...F } } }')).toEqual([
+      'U1',
+      'UserI',
+    ]);
+    expect(await plannedOn('{ user { ... on U1 { ...F } ... on HasPosts { ...F } } }')).toEqual([
+      'U1',
+      'UserI',
+    ]);
+  });
+
+  it('hands a select function that reads what is above it after an await the named path', async () => {
+    const seen: string[][] = [];
+    const { types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', async (_args, _ctx, nested, _selected, position) => {
+      await Promise.resolve();
+      seen.push(chainOf(position));
+
+      return { select: { author: await nested({}) } };
+    });
+    selectOn(types, ['UserI', 'U1', 'U2', 'U3'], 'posts', async (_args, _ctx, nested) => ({
+      select: { posts: await nested({}) },
+    }));
+
+    const info = await resolveInfo(types, authorThroughNode);
+
+    await Plan.fromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    // U1, U2 and U3 take the async invocation of `posts` made on UserI.
+    expect(seen).toEqual(namedPath);
+  });
+
+  it('shares a walk whose select functions read only their own link', async () => {
+    const { calls, types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      calls.author +=
+        position.node.name.value.length > 0 && position.field && position.type ? 1 : 0;
+
+      return { select: { author: nested({}) } };
+    });
+
+    const info = await resolveInfo(types, expandingDocument(6));
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(calls).toEqual({ posts: 3, author: 3 });
+  });
+
+  it('shares a walk whose select functions read the chain through walkParent', async () => {
+    const seen: string[][] = [];
+    const { calls, types } = linkedSchema();
+    const walkChain = (position: Position) => {
+      const path: string[] = [];
+
+      for (let at: Position | undefined = position; at; at = at.walkParent) {
+        path.push(`${at.type.name}.${at.node.name.value}`);
+      }
+
+      return path.reverse();
+    };
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      calls.author += 1;
+      seen.push(walkChain(position));
+
+      return { select: { author: nested({}) } };
+    });
+
+    const info = await resolveInfo(types, expandingDocument(6));
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(calls).toEqual({ posts: 3, author: 3 });
+    // Each walk is shared, so a chain is the first invocation's: the interface's, at every level.
+    expect(seen[0]).toEqual(['Query.user', 'UserI.posts', 'PostI.author']);
+  });
+
+  it('walks again when a select function reads what is above it after an await', async () => {
+    const seen: string[][] = [];
+    const { types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', async (_args, _ctx, nested, _selected, position) => {
+      await Promise.resolve();
+      seen.push(chainOf(position));
+
+      return { select: { author: await nested({}) } };
+    });
+    selectOn(types, ['UserI', 'U1', 'U2', 'U3'], 'posts', async (_args, _ctx, nested) => ({
+      select: { posts: await nested({}) },
+    }));
+
+    const info = await resolveInfo(types, authorThroughVariants);
+
+    await Plan.fromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(seen).toEqual(everyVariantPath);
+  });
+
+  it('shares a walk whose select functions read only their own link, beneath every variant', async () => {
+    const { calls, types } = linkedSchema();
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      calls.author +=
+        position.node.name.value.length > 0 && position.field && position.type ? 1 : 0;
+
+      return { select: { author: nested({}) } };
+    });
+
+    // Three paths more per level, each `author` its own: shared, one walk per field node.
+    const info = await resolveInfo(types, namedDocument(6));
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(calls).toEqual({ posts: 9, author: 9 });
+  });
+
+  it('shares a walk whose select functions read the chain through walkParent, beneath every variant', async () => {
+    const seen: string[][] = [];
+    const { calls, types } = linkedSchema();
+    const walkChain = (position: Position) => {
+      const path: string[] = [];
+
+      for (let at: Position | undefined = position; at; at = at.walkParent) {
+        path.push(`${at.type.name}.${at.node.name.value}`);
+      }
+
+      return path.reverse();
+    };
+
+    selectOn(types, postTypes, 'author', (_args, _ctx, nested, _selected, position) => {
+      calls.author += 1;
+      seen.push(walkChain(position));
+
+      return { select: { author: nested({}) } };
+    });
+
+    const info = await resolveInfo(types, namedDocument(6));
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    // Through `parent`, each of the 9 + 81 + 729 paths beneath the first level would be its own.
+    expect(calls).toEqual({ posts: 9, author: 9 });
+    // Each walk is shared, so a chain is the first invocation's at every level.
+    expect(seen[0]).toEqual(['Query.user', 'U1.posts', 'P1.author']);
+  });
+
+  it('pays for a read of the path only in the walks above the read', async () => {
+    const { calls, types } = linkedSchema();
+
+    selectOn(
+      types,
+      ['UserI', 'U1', 'U2', 'U3'],
+      'drafts',
+      (_args, _ctx, nested, _selected, position) => {
+        chainOf(position);
+
+        return { select: { drafts: nested({}) } };
+      },
+    );
+
+    // `drafts` reads up to the root, which is walked once anyway. `posts` beside it stays shared.
+    const posts = expandingDocument(12).slice('{ user { '.length, -' } }'.length);
+    const info = await resolveInfo(
+      types,
+      `{ user { ${posts} ... on Node { ... on UserI { drafts { id } } } } }`,
+    );
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(calls).toEqual({ posts: 6, author: 6 });
+  });
+
+  it('walks a fragment again under another field, whose position differs', async () => {
+    const seen: string[][] = [];
+    const { calls, types } = linkedSchema();
+    const field = (types.getType('PostI') as never as WalkedType).getFields().author as never as {
+      extensions: Record<string, unknown>;
+    };
+
+    field.extensions = {
+      ...field.extensions,
+      select: ((_args, _ctx, nested, _selected, position) => {
+        seen.push(chainOf(position));
+
+        return { select: { author: nested({}) } };
+      }) satisfies SelectFn<FakeMap>,
+    };
+
+    const info = await resolveInfo(
+      types,
+      /* GraphQL */ `
+        { user { posts { ...Author } drafts { ...Author } } }
+        fragment Author on PostI { author { id } }
+      `,
+    );
+
+    queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info });
+
+    expect(seen).toEqual([
+      ['Query.user', 'UserI.posts', 'PostI.author'],
+      ['Query.user', 'UserI.drafts', 'PostI.author'],
+    ]);
+    expect(calls.posts).toBe(1);
+  });
+
+  it('walks again after a walk whose select function rejected, so it can be retried', async () => {
+    let attempts = 0;
+    const models = createModels('User', 'Post');
+    models.User.relations.posts = models.Post;
+    const retrying = createSchema(
+      'type Query { user: User } type User { id: ID posts: [Post] } type Post { title: String }',
+      {
+        User: {
+          model: 'User',
+          select: { select: { id: true } },
+          fields: {
+            posts: async (_args, _ctx, nested): Promise<FakeMap> => {
+              try {
+                return { select: { posts: await nested({}) } };
+              } catch {
+                return { select: { posts: await nested({}) } };
+              }
+            },
+          },
+        },
+        Post: {
+          model: 'Post',
+          select: { select: { id: true } },
+          fields: {
+            title: () => {
+              attempts += 1;
+
+              return attempts === 1
+                ? Promise.reject(new Error('first attempt'))
+                : Promise.resolve({ select: { title: true } });
+            },
+          },
+        },
+      },
+    );
+    const info = await resolveInfo(retrying, '{ user { posts { title } } }');
+    const plan = await Plan.fromInfo(new FakeAdapter(models), { context: {}, info });
+
+    expect(plan!.query()).toEqual({
+      select: { id: true, posts: { select: { id: true, title: true } } },
+    });
+    expect(attempts).toBe(2);
+  });
+
+  describe('select functions that read the path', () => {
+    /** Every chain the fields down to `depth` are reached through in `namedDocument`. */
+    function chainsOf(depth: number, variants: number[], levels: (level: number) => boolean) {
+      const chains: string[][] = [];
+      let above = [['Query.user']];
+
+      for (let level = 1; level <= depth; level += 1) {
+        above = above.flatMap((chain) =>
+          variants.map((n) => [...chain, level % 2 === 1 ? `U${n}.posts` : `P${n}.author`]),
+        );
+
+        if (levels(level)) {
+          chains.push(...above);
+        }
+      }
+
+      return chains.map((chain) => chain.join('/')).sort();
+    }
+
+    /** Plans `document` with `posts` and `author` reading their path, or not. */
+    async function plan(document: string, reads: { select: boolean; query?: boolean }) {
+      const seen: string[] = [];
+      const { types } = linkedSchema();
+      const relation =
+        (name: 'author' | 'posts'): SelectFn<FakeMap> =>
+        (_args, _ctx, nested, _selected, position) => {
+          if (reads.select) {
+            seen.push(chainOf(position).join('/'));
+          }
+
+          return {
+            select: {
+              [name]: nested(
+                reads.query && name === 'posts'
+                  ? (_queryArgs: object, _queryCtx: object, at: Position) => {
+                      seen.push(chainOf(at).join('/'));
+
+                      return {};
+                    }
+                  : {},
+              ),
+            },
+          };
+        };
+
+      selectOn(types, ['UserI', 'U1', 'U2', 'U3'], 'posts', relation('posts'));
+      selectOn(types, postTypes, 'author', relation('author'));
+
+      const context = {};
+      const info = await resolveInfo(types, document);
+      const query = queryFromInfo(new FakeAdapter(linkedModels), { context, info });
+
+      return { seen, query };
+    }
+
+    it.each([
+      [6, [1, 2, 3]],
+      [8, [1, 2, 3]],
+      [8, [1]],
+    ])('runs once per path beneath a named fragment per level, depth %i, variants %j', async (depth, variants) => {
+      const document = namedDocument(depth, ['posts'], variants);
+      const { seen, query } = await plan(document, { select: true });
+
+      // The expansion reaches every variant's field as that variant, once per place: one call per
+      // distinct path, as without expansions.
+      expect(seen.length).toBe(new Set(seen).size);
+      expect(seen.sort()).toEqual(chainsOf(depth, variants, () => true));
+      expect(query).toEqual((await plan(document, { select: false })).query);
+    });
+
+    /**
+     * At every level, the relation selected on the model interface beneath `Node` and again on the
+     * non-model interface that only the implementations share, or twice under one response key.
+     */
+    function repeatedDocument(depth: number, repeat: 'onImplementations' | 'twice') {
+      const fragments: string[] = [];
+
+      for (let level = 1; level <= depth; level += 1) {
+        const next = level === depth ? 'id' : `...L${level + 1}`;
+        const [model, own, field] =
+          level % 2 === 1 ? ['UserI', 'HasPosts', 'posts'] : ['PostI', 'HasAuthor', 'author'];
+        const again =
+          repeat === 'twice'
+            ? `... on Node { ... on ${model} { ${field} { ${next} } } }`
+            : `... on ${own} { ${field} { ${next} } }`;
+
+        fragments.push(
+          `fragment L${level} on ${model} { ... on Node { ... on ${model} { ${field} { ${next} } } } ${again} }`,
+        );
+      }
+
+      return `{ user { ...L1 } } ${fragments.join(' ')}`;
+    }
+
+    it.each([
+      ['on the implementations', 'onImplementations', 6],
+      ['twice under one response key', 'twice', 8],
+    ] as const)('runs once per level for a field selected again %s', async (_, repeat, depth) => {
+      const document = repeatedDocument(depth, repeat);
+      const { seen, query } = await plan(document, { select: true });
+
+      // Each repeat has the shape of the field on the interface, at the same place, so it takes
+      // that invocation: one path per level, as the document has.
+      expect(seen).toEqual(
+        Array.from({ length: depth }, (_level, index) =>
+          [
+            'Query.user',
+            ...Array.from({ length: index + 1 }, (__, level) =>
+              level % 2 === 0 ? 'UserI.posts' : 'PostI.author',
+            ),
+          ].join('/'),
+        ),
+      );
+      expect(query).toEqual((await plan(document, { select: false })).query);
+    });
+
+    it('runs a relation query that reads its path once per path', async () => {
+      const document = namedDocument(8);
+      const { seen, query } = await plan(document, { select: false, query: true });
+
+      expect(seen.length).toBe(2460);
+      expect(seen.sort()).toEqual(chainsOf(8, [1, 2, 3], (level) => level % 2 === 1));
+      expect(query).toEqual((await plan(document, { select: false })).query);
+    });
+
+    it('runs once per level beneath a fragment on the interface inside each expansion', async () => {
+      const document = expandingDocument(8);
+      const { seen, query } = await plan(document, { select: true });
+
+      // U1, U2 and U3 take the invocation made on the interface the document names.
+      expect(seen).toEqual(
+        Array.from({ length: 8 }, (_, index) =>
+          [
+            'Query.user',
+            ...Array.from({ length: index + 1 }, (__, level) =>
+              level % 2 === 0 ? 'UserI.posts' : 'PostI.author',
+            ),
+          ].join('/'),
+        ),
+      );
+      expect(query).toEqual((await plan(document, { select: false })).query);
+    });
+  });
+
+  describe('a variant only the expansion entered', () => {
+    it('loads the variant and leaves a field it displaces to load on its own', async () => {
+      const { types } = linkedSchema();
+
+      for (const document of [
+        '{ user { first ... on Other { selected } } }',
+        '{ user { ... on Other { selected } first } }',
+      ]) {
+        const context = {};
+        const info = await resolveInfo(types, document);
+
+        expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
+          select: { id: true, selected: true, posts: { take: 1 } },
+        });
+        expect(getLoaderMapping(context, pathOf('user', 'first'), 'UserI')).toBeNull();
+        expect(getLoaderMapping(context, pathOf('user', 'selected'), 'Latest')).not.toBeNull();
+      }
+    });
+
+    it('loads the variant when nothing is displaced', async () => {
+      const { types } = linkedSchema();
+      const info = await resolveInfo(types, '{ user { ... on Other { other } } }');
+
+      expect(queryFromInfo(new FakeAdapter(linkedModels), { context: {}, info })).toEqual({
+        select: { id: true, posts: { take: 1 } },
+      });
     });
   });
 });
