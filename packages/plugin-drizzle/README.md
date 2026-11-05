@@ -597,7 +597,8 @@ an independent database query. See [Query planning](https://pothos-graphql.dev/d
 With `ScopeAuthPlugin` 4.3.0 or later, scope checks that read the parent see what its type loads
 (its `select`, or every column), even for a row returned from a plain `t.field`. A row missing that
 data is reloaded, so a row that no longer exists fails the field with `Unexpected error.`. To return
-a deleted row, load it with a `t.drizzleField` query before deleting it.
+a deleted row, load it with a `t.drizzleField` query before deleting it. Only top-level keys are
+checked, so a row with a partly loaded relation isn't reloaded.
 
 ## Connections
 

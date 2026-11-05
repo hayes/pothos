@@ -159,6 +159,13 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
       partialIfaceUser: t.field({ type: IfaceUser, resolve: () => ({ id: 1 }) as never }),
       namedUser: t.field({ type: NamedUser, resolve: () => ({ id: 1 }) as never }),
       plainUser: t.field({ type: PlainUser, resolve: () => ({ id: 1 }) as never }),
+      completePlainUser: t.field({
+        type: PlainUser,
+        resolve: () => {
+          const { profile: _profile, ...row } = user1!;
+          return row as never;
+        },
+      }),
       uncheckedUser: t.field({ type: UncheckedUser, resolve: () => ({ id: 1 }) as never }),
       user: t.drizzleField({
         type: User,
@@ -225,6 +232,14 @@ describe.each([
     expect(result).toEqual({ data: { plainUser: { id: '1' } } });
     expect(seen).toEqual([user1!.username]);
     expect(drizzleLogs).toHaveLength(1);
+  });
+
+  it('does not reload a complete row for a type without a select', async () => {
+    const result = await run('{ completePlainUser { id } }');
+
+    expect(result).toEqual({ data: { completePlainUser: { id: '1' } } });
+    expect(seen).toEqual([user1!.username]);
+    expect(drizzleLogs).toHaveLength(0);
   });
 
   it("uses the implementing type's select for a field the interface declares", async () => {
