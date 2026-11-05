@@ -105,7 +105,7 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
   // Returned by every mutation, which run one after the other.
   const sharedRow = { id: 1 };
 
-  // Mutated between subscription events, each of which also gets it as the root value.
+  // Every event yields this same object, mutated, so only a per-execution cache tells them apart.
   const eventRow = { id: 1 };
 
   builder.subscriptionType({
@@ -158,16 +158,14 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
       postWithAuthor: t.field({
         type: Post,
         resolve: () =>
-          client.post
-            .findUniqueOrThrow({ where: { id: 1 }, include: { author: true } })
-            .then(({ id, author }) => ({ id, author })) as never,
+          client.post.findUniqueOrThrow({
+            where: { id: 1 },
+            select: { id: true, author: true },
+          }) as never,
       }),
       postWithPartialAuthor: t.field({
         type: Post,
-        resolve: () =>
-          client.post
-            .findUniqueOrThrow({ where: { id: 1 } })
-            .then(({ id, authorId }) => ({ id, author: { id: authorId } })) as never,
+        resolve: () => ({ id: 1, author: { id: 1 } }) as never,
       }),
       completeUser: t.field({
         type: User,
@@ -267,7 +265,7 @@ describe.each([
 
     expect(result.errors).toBeUndefined();
     expect(seen).toEqual([[titles.get(1), authors.get(1)]]);
-    expect(queries).toBe(2);
+    expect(queries).toBe(1);
   });
 
   it('does not reload a row with the type select, or one the plugin loaded', async () => {

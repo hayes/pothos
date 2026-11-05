@@ -43,9 +43,6 @@ export class ModelLoader {
 
   tick = Promise.resolve();
 
-  // `loadTypeRow`'s loads, by root field path then row. A loader serves one type in one request.
-  private typeRows = new WeakMap<GraphQLResolveInfo['path'], WeakMap<object, Promise<object>>>();
-
   constructor(
     context: object,
     builder: PothosSchemaTypes.SchemaBuilder<never>,
@@ -279,56 +276,6 @@ export class ModelLoader {
     });
   }
 
-  /**
-   * Reloads `model` with `root`'s selection. The loaded values of `keys` replace the row's, and its
-   * other values are kept. Cached per root field of each execution, so each mutation and each
-   * subscription event reloads.
-   */
-  loadTypeRow(
-    root: PrismaNode,
-    keys: readonly string[],
-    model: object,
-    info: GraphQLResolveInfo,
-  ): Promise<object> {
-    let path = info.path;
-
-    while (path.prev) {
-      path = path.prev;
-    }
-
-    // graphql makes a new path for each root field of each execution.
-    let loads = this.typeRows.get(path);
-
-    if (!loads) {
-      loads = new WeakMap();
-      this.typeRows.set(path, loads);
-    }
-
-    let load = loads.get(model);
-
-    if (!load) {
-      load = new Promise<Record<string, unknown> | null>((resolve) => {
-        resolve(this.stageQuery({ root }, model));
-      })
-        .then((loaded) => {
-          const row: Record<string, unknown> = { ...model };
-
-          for (const key of keys) {
-            row[key] = loaded![key];
-          }
-
-          return row;
-        })
-        .catch((error: unknown) => {
-          // Clients see only a generic message.
-          throw new Error('Unexpected error.', { cause: error });
-        });
-      loads.set(model, load);
-    }
-
-    return load;
-  }
-
   stageQuery(played: Pick<PrismaPlayedPlan, 'root'>, model: object) {
     for (const entry of this.staged) {
       // Node to node: the batch takes the field's play whole, never through a query.
@@ -426,8 +373,8 @@ type ScopeAuthParentLoader = (
 
 /**
  * The parent scope-auth's checks see for a type with a `select`/`include`: the row when it has
- * every top-level key of that selection, otherwise the row reloaded with it. Include mode loads
- * every scalar, so `scalars` are part of its selection.
+ * every top-level key of that selection, otherwise the row reloaded with it. `scalars` are the
+ * columns of include mode, which loads every scalar.
  */
 export function typeParentLoader(
   loaders: (context: object) => ModelLoader,
@@ -435,21 +382,61 @@ export function typeParentLoader(
   selection: SelectionMap,
   scalars: readonly string[],
 ): ScopeAuthParentLoader {
-  const keys = [
-    ...(selection.select ? [] : scalars),
-    ...[selection.select, selection.include].flatMap((map) =>
-      Object.entries(map ?? {}).flatMap(([key, value]) => (value ? [key] : [])),
-    ),
-  ];
   const root = prismaAdapter.createNode(fieldMap);
   prismaAdapter.mergeQuery(root, selection);
+  const keys = [
+    ...(root.columns ?? scalars),
+    ...root.relations.keys(),
+    ...(root.computed.size > 0 ? ['_count'] : []),
+  ];
+  // By root field path, which graphql makes for each root field of each execution, then row.
+  const loads = new WeakMap<GraphQLResolveInfo['path'], WeakMap<object, Promise<object>>>();
+  const reload = (row: Record<string, unknown>, context: object, info: GraphQLResolveInfo) => {
+    let path = info.path;
+
+    while (path.prev) {
+      path = path.prev;
+    }
+
+    let rows = loads.get(path);
+
+    if (!rows) {
+      rows = new WeakMap();
+      loads.set(path, rows);
+    }
+
+    let load = rows.get(row);
+
+    if (!load) {
+      load = new Promise<Record<string, unknown> | null>((resolve) => {
+        resolve(loaders(context).stageQuery({ root }, row));
+      })
+        .then((loaded) => {
+          // Loaded values win for the selection's keys. The row's other keys are kept.
+          const merged = { ...row };
+
+          for (const key of keys) {
+            merged[key] = loaded![key];
+          }
+
+          return merged;
+        })
+        .catch((error: unknown) => {
+          // Clients see only a generic message.
+          throw new Error('Unexpected error.', { cause: error });
+        });
+      rows.set(row, load);
+    }
+
+    return load;
+  };
 
   return (parent, context, info) => {
     const row = parent as Record<string, unknown>;
 
     for (let i = 0; i < keys.length; i += 1) {
       if (row[keys[i]] === undefined) {
-        return loaders(context).loadTypeRow(root, keys, row, info);
+        return reload(row, context, info);
       }
     }
 

@@ -87,6 +87,19 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
     }),
   });
 
+  // Without `columns`, it selects every column.
+  const AllColumnsUser = builder.drizzleObject('users', {
+    variant: 'AllColumnsUser',
+    select: { columns: undefined, with: { profile: true } },
+    authScopes: (user) => {
+      seen.push(user.username);
+      return true;
+    },
+    fields: (t) => ({
+      id: t.id({ resolve: (user) => user.id }),
+    }),
+  });
+
   const UncheckedUser = builder.drizzleObject('users', {
     variant: 'UncheckedUser',
     select: { columns: { id: true, username: true } },
@@ -98,7 +111,7 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
   // Returned by every mutation, which run one after the other.
   const sharedRow = { id: 1 };
 
-  // Mutated between subscription events, each of which also gets it as the root value.
+  // Every event yields this same object, mutated, so only a per-execution cache tells them apart.
   const eventRow = { id: 1 };
 
   builder.subscriptionType({
@@ -146,6 +159,10 @@ function createSchema(scopeAuthFirst: boolean, runScopesOnType: boolean) {
       }),
       partialIfaceUser: t.field({ type: IfaceUser, resolve: () => ({ id: 1 }) as never }),
       namedUser: t.field({ type: NamedUser, resolve: () => ({ id: 1 }) as never }),
+      allColumnsUser: t.field({
+        type: AllColumnsUser,
+        resolve: () => ({ id: 1, profile: null }) as never,
+      }),
       uncheckedUser: t.field({ type: UncheckedUser, resolve: () => ({ id: 1 }) as never }),
       user: t.drizzleField({
         type: User,
@@ -202,6 +219,14 @@ describe.each([
     const result = await run('{ namedUser { id } }');
 
     expect(result).toEqual({ data: { namedUser: { id: '1' } } });
+    expect(seen).toEqual([user1!.username]);
+    expect(drizzleLogs).toHaveLength(1);
+  });
+
+  it('reloads every column for a select without columns', async () => {
+    const result = await run('{ allColumnsUser { id } }');
+
+    expect(result).toEqual({ data: { allColumnsUser: { id: '1' } } });
     expect(seen).toEqual([user1!.username]);
     expect(drizzleLogs).toHaveLength(1);
   });

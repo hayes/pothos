@@ -83,9 +83,11 @@ function definePrismaType(
               loader,
               fieldMap,
               { select: fullSelect, include },
-              getModel(type, builder)
-                .fields.filter((field) => field.kind === 'scalar' || field.kind === 'enum')
-                .map((field) => field.name),
+              select
+                ? []
+                : getModel(type, builder)
+                    .fields.filter((field) => field.kind === 'scalar' || field.kind === 'enum')
+                    .map((field) => field.name),
             ),
           }
         : {}),
