@@ -653,7 +653,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
     try {
       const returnType = getNamedType(position.field.type);
       const include = Array.isArray(pathOrInclude)
-        ? normalizeInclude(
+        ? includeForPath(
             pathOrInclude,
             resolveType(info.schema, returnType),
             typeName ? info.schema.getType(typeName) : undefined,
@@ -750,6 +750,18 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
       throw error;
     }
   };
+}
+
+/**
+ * `normalizeInclude` for a path an app's select passed while a request is planned. A path that
+ * doesn't fit the field's type is an error in the app, which clients see as `Unexpected error.`.
+ */
+function includeForPath(...args: Parameters<typeof normalizeInclude>) {
+  try {
+    return normalizeInclude(...args);
+  } catch (error) {
+    throw unexpectedError((error as Error).message);
+  }
 }
 
 /**
