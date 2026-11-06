@@ -162,14 +162,16 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       | FallbackPlanRecipe
       | undefined;
 
-    // The fallback with one settled plan per `Type@path` per request beside it, since it plans
+    // The fallback with one settled plan per `Type@path` per operation beside it, since it plans
     // this field again for every row of the list its parent came from. Allocated only for a field
     // that has a fallback, and scoped to the field config, so the plans of a request go with the
-    // request and the builder's own `skipDeferredFragments` is the one that applies.
+    // request and the builder's own `skipDeferredFragments` is the one that applies. Keyed on
+    // `info.variableValues`, which graphql-js creates once per operation, so an operation sharing
+    // the context never plays another's plan.
     const fallback = resolveFallback && {
       resolve: resolveFallback,
       plan: fallbackPlan,
-      plans: createContextCache(() => new Map<string, MaybePromise<PrismaPlan>>()),
+      plans: createContextCache(() => new WeakMap<object, Map<string, MaybePromise<PrismaPlan>>>()),
     };
 
     const parentTypes = mappingParentTypes(this.buildCache, fieldConfig, 'pothosPrismaModel');
@@ -197,8 +199,16 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       }
 
       if (fallback) {
+        const byOperation = fallback.plans(context);
+        let plans = byOperation.get(info.variableValues);
+
+        if (!plans) {
+          plans = new Map();
+          byOperation.set(info.variableValues, plans);
+        }
+
         const query = fallbackQueryFromInfo(
-          fallback.plans(context),
+          plans,
           context,
           info,
           this.builder.options.prisma.skipDeferredFragments,
