@@ -417,17 +417,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const model = getModel(this.config.contract, modelKey);
     const definitions = new Map<string, { type: string; definition: unknown }>();
     for (const { name: type, raw } of this.typeLevelSelects(typeConfig)) {
-      const { relations, computed } = splitSelect(raw, model, PothosSchemaError);
-      for (const [key, definition] of [
-        ...relations.map(([name, value]): [string, unknown] => [
-          name,
-          typeof value === 'object' ? definedQuery(value) : value === true ? undefined : value,
-        ]),
-        ...computed.map(({ key, relation, compute }): [string, unknown] => [
-          key,
-          { [relation]: compute },
-        ]),
-      ]) {
+      const check = (key: string, definition: unknown) => {
         const first = definitions.get(key);
         if (!first) {
           definitions.set(key, { type, definition });
@@ -436,6 +426,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
             `'${first.type}' and '${type}' both select '${key}', with different definitions. A row of '${typeConfig.name}' holds one value for it, which the fields and auth checks of both types read. Define it the same way in both, sharing any function such as a where or a computed value's function, or load the other version in a field's select.`,
           );
         }
+      };
+      const { relations, computed } = splitSelect(raw, model, PothosSchemaError);
+      for (const [name, value] of relations) {
+        check(
+          name,
+          typeof value === 'object' ? definedQuery(value) : value === true ? undefined : value,
+        );
+      }
+      for (const { key, relation, compute } of computed) {
+        check(key, { [relation]: compute });
       }
     }
   }

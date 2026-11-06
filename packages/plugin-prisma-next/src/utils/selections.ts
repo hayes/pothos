@@ -745,9 +745,10 @@ export function splitSelect(
     if (value == null) {
       continue;
     }
-    assertLoadable(key);
     if (model.relations[key]) {
       relations.push([key, value]);
+    } else if (model.sharedVariantRelations.has(key)) {
+      assertLoadable(key);
     } else if (typeof value === 'object') {
       const [relation, compute] = Object.entries(value)[0]! as [string, Compute];
       assertLoadable(relation);
