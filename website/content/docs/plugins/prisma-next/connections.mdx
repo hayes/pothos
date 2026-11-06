@@ -20,9 +20,9 @@ builder.queryFields((t) => ({
 }));
 ```
 
-Return the Collection without `orderBy()` or `include()`, which are type errors: the plugin orders
-it by `query.orderBy` and the cursor, pages it, and adds what the query selects. `limit()`,
-`offset()` and `distinct()` aren't supported. `t.prismaConnection` takes:
+Return the Collection without `orderBy()` or `include()`; the plugin orders it by `query.orderBy`
+and the cursor, pages it, and adds what the query selects. `limit()`, `offset()` and `distinct()`
+aren't supported. `t.prismaConnection` takes:
 
 - `query`: `{ where, orderBy }`, or `(args, ctx) => ({ where, orderBy })`. `where` filters the
   Collection, and `orderBy` orders it, by the primary key when omitted. See
