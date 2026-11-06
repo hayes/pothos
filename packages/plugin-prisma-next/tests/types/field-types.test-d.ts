@@ -10,6 +10,8 @@ import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type CollectionFor,
+  type PrismaNextInterfaceRef,
+  type PrismaNextNodeRef,
   type PrismaNextObjectFieldBuilder,
   type PrismaNextObjectRef,
   prismaConnectionHelpers,
@@ -194,7 +196,7 @@ builder.queryFields((t) => {
 // prismaConnectionHelpers takes a ref (a named type or a variant) as well as a model name.
 {
   const byName = prismaConnectionHelpers(builder, 'User', {});
-  expectTypeOf(byName.ref).toEqualTypeOf<PrismaNextObjectRef<Types, 'User'>>();
+  expectTypeOf(byName.ref).toEqualTypeOf<PrismaNextObjectRef<Types, 'User', Row<Types, 'User'>>>();
   const byRef = prismaConnectionHelpers(builder, Viewer, {
     orderBy: { email: 'asc' },
     resolveNode: (user) => {
@@ -453,3 +455,59 @@ builder.subscriptionField('postPage', (t) =>
     },
   }),
 );
+
+// A ref annotated without a shape accepts the refs prismaObject returns, and its fields' `select`
+// still types the parent.
+{
+  const PostWithTitle = builder.prismaObject('Post', {
+    variant: 'PostWithTitle',
+    select: { title: true },
+    fields: (t) => ({ title: t.exposeString('title') }),
+  });
+  function addTitleLength(ref: PrismaNextObjectRef<Types, 'Post'>) {
+    builder.prismaObjectField(ref, 'titleLength', (t) =>
+      t.int({ select: { title: true }, resolve: (post) => post.title.length }),
+    );
+  }
+  addTitleLength(PostWithTitle);
+  // @ts-expect-error a User ref isn't a Post ref
+  addTitleLength(Viewer);
+
+  const takeInterface = (_ref: PrismaNextInterfaceRef<Types, 'Post'>) => {};
+  takeInterface(
+    builder.prismaInterface('Post', {
+      variant: 'PostWithTitleInterface',
+      select: { title: true },
+      fields: () => ({}),
+    }),
+  );
+  const takeNode = (_ref: PrismaNextNodeRef<Types, 'Post'>) => {};
+  takeNode(
+    builder.prismaNode('Post', {
+      variant: 'PostWithTitleNode',
+      id: { field: 'id' },
+      select: { title: true },
+      fields: () => ({}),
+    }),
+  );
+}
+
+// Without `args`, a root field's args have no keys.
+builder.queryFields((t) => ({
+  noArgsPost: t.prismaField({
+    type: 'Post',
+    resolve: (_root, args) => {
+      // @ts-expect-error no such arg
+      args.typo;
+      return orm.Post;
+    },
+  }),
+  noArgsPosts: t.prismaConnection({
+    type: 'Post',
+    resolve: (_root, args) => {
+      // @ts-expect-error no such arg
+      args.typo;
+      return orm.Post;
+    },
+  }),
+}));

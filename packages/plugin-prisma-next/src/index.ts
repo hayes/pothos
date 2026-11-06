@@ -111,6 +111,7 @@ export type {
   IdentityFields,
   InterfaceReturnShape,
   ModelKey,
+  ObjectBaseShape,
   ObjectReturnShape,
   OwnRow,
   PlannedRow,

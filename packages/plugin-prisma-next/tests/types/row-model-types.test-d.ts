@@ -47,7 +47,7 @@ const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
 const PostView = builder.prismaObject('PostView', {
   fields: (t) => ({ viewer: t.exposeString('viewer') }),
 });
-declare const PostRef: PrismaNextObjectRef<Types, 'Post'>;
+declare const PostRef: PrismaNextObjectRef<Types, 'Post', Row<Types, 'Post'>>;
 declare const postViewRow: Row<Types, 'PostView'>;
 
 builder.queryType({

@@ -5,7 +5,7 @@ import {
   type SchemaTypes,
   typeBrandKey,
 } from '@pothos/core';
-import type { ModelKey, ObjectReturnShape, Row } from './types/models.js';
+import type { ModelKey, ObjectBaseShape, ObjectReturnShape } from './types/models.js';
 
 export const prismaModelBrand = Symbol.for('Pothos.prismaNextModelBrand');
 /** Type-only: the contract a ref's builder was created with. */
@@ -50,7 +50,7 @@ type Branded<V> = V extends readonly unknown[] ? { [K in keyof V]: WithBrand<V[K
 export class PrismaNextObjectRef<
   in out Types extends SchemaTypes,
   out M extends ModelKey<Types>,
-  out Shape = Row<Types, M>,
+  out Shape = ObjectBaseShape<Types, M>,
 > extends ObjectRef<Types, ObjectReturnShape<Types, M, Shape>, Shape> {
   declare readonly [prismaModelBrand]: M;
 

@@ -1,13 +1,13 @@
 import type { SchemaTypes } from '@pothos/core';
 import { PrismaNextObjectRef } from './object-ref.js';
-import type { ModelKey, Row } from './types/models.js';
+import type { ModelKey, ObjectBaseShape } from './types/models.js';
 
 export const relayIDShapeBrand = Symbol.for('Pothos.prismaNextRelayIDShapeBrand');
 
 export class PrismaNextNodeRef<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
-  Shape = Row<Types, M>,
+  Shape = ObjectBaseShape<Types, M>,
   IDShape = string,
 > extends PrismaNextObjectRef<Types, M, Shape> {
   declare readonly [relayIDShapeBrand]: IDShape;

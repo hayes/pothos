@@ -290,10 +290,10 @@ declare global {
       Kind extends FieldKind = FieldKind,
     > {
       prismaField: <
-        Args extends InputFieldMap,
         Param extends FieldParam<Types>,
         ResolveShape,
         ResolveReturnShape,
+        Args extends InputFieldMap = {},
         Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
         M extends ModelKey<Types> = ParamToModelKey<Types, Param>,
         ShapeForType = Row<Types, M>,
@@ -314,10 +314,10 @@ declare global {
 
       prismaFieldWithInput: 'withInput' extends PluginName
         ? <
-            Args extends InputFieldMap,
             Param extends FieldParam<Types>,
             ResolveShape,
             ResolveReturnShape,
+            Args extends InputFieldMap = {},
             Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
             Fields extends InputFieldMap = {},
             InputName extends string = 'input',
@@ -349,10 +349,10 @@ declare global {
 
       prismaConnection: 'relay' extends PluginName
         ? <
-            Args extends InputFieldMap,
             Param extends ModelParam<Types>,
             ResolveShape,
             ResolveReturnShape,
+            Args extends InputFieldMap = {},
             Nullable extends boolean = Types['DefaultFieldNullability'],
             const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
             const EdgeInterfaces extends InterfaceParam<Types>[] = [],

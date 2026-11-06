@@ -264,7 +264,7 @@ export class PrismaNextObjectFieldBuilder<
           Shape,
           Variant extends PrismaNextObjectRef<Types, M, unknown>
             ? Variant
-            : PrismaNextObjectRef<Types, M>,
+            : PrismaNextObjectRef<Types, M, Row<Types, M>>,
           Args,
           Nullable,
           IsNull,
