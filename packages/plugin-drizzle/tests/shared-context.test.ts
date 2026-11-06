@@ -26,6 +26,7 @@ const User = builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
     publishedPosts: t.relation('posts', { query: { where: { published: 1 } } }),
+    allPosts: t.relation('posts'),
   }),
 });
 
@@ -96,6 +97,19 @@ describe('executions sharing a context', () => {
 
     expect(drafts(planned)).toBe(0);
     expect(raw).toEqual(planned);
+  });
+
+  it('reloads a row for a later operation sharing the context with its own selection', async () => {
+    const contextValue = {};
+    const query = (posts: string) =>
+      execute({
+        schema,
+        document: parse(`{ rawUser { posts: ${posts} { published } } }`),
+        contextValue,
+      });
+
+    expect(drafts(await query('allPosts'))).toBeGreaterThan(0);
+    expect(drafts(await query('publishedPosts'))).toBe(0);
   });
 
   it('keeps the relation filter on a row a later subscription event loaded elsewhere', async () => {
