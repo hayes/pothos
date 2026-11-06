@@ -143,6 +143,16 @@ describe('loader map', () => {
     expect(getLoaderMapping(ctx, child(next, 0, 'posts'), 'User', row)).toBe(planned);
   });
 
+  it('keeps the mappings of one execution from another sharing its context', () => {
+    const ctx = {};
+    const first = pathOf('users');
+    const planned: Mapping = { nested: {} };
+    setLoaderMappings(ctx, info(first), { 'User@posts': planned });
+    expect(getLoaderMapping(ctx, child(first, 1, 'posts'), 'User')).toBe(planned);
+    // A later operation, or the next subscription event, resolves under a new root path.
+    expect(getLoaderMapping(ctx, child(pathOf('users'), 1, 'posts'), 'User')).toBe(null);
+  });
+
   it('keeps a disagreeing row mapping off the siblings that agreed with the first plan', () => {
     const ctx = {};
     const root = pathOf('users');

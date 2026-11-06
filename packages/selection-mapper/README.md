@@ -84,7 +84,8 @@ extends `Adapter` directly.
   mutates it changes what a later play builds. Nothing copies it, because a query is opaque to
   this package and could only be copied by round-tripping it through the adapter on every field.
 - Every play records its loader mappings on the request context, which pothos requires to be an
-  object; an adapter whose resolvers read a loaded row another way simply never looks them up.
+  object, per execution: operations and subscription events sharing a context don't see each
+  other's. An adapter whose resolvers read a loaded row another way simply never looks them up.
 - Every select function is handed the `Position` of the field it plans: the field's node, the type
   it was walked on, and a link to the position of the field the plan hangs beneath. The walker
   reads none of it — an adapter that wants a path or a list of segments walks `parent` and
