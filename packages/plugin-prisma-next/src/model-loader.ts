@@ -173,10 +173,7 @@ export class ModelLoader {
     this.assertIdentity(info);
     const key = type.name;
     const plans = this.plansFor(info).type;
-    let root = info.path;
-    while (root.prev) {
-      root = root.prev;
-    }
+    const root = rootPath(info);
     let rows = this.reloads.get(root);
     if (!rows) {
       rows = new WeakMap();
@@ -216,6 +213,11 @@ export class ModelLoader {
     }
     loads.set(key, row);
     return row;
+  }
+
+  /** The load `loadTypeRow` started for `parent` and `type` in this root field, if any. */
+  peekTypeRow(info: GraphQLResolveInfo, parent: object, type: GraphQLObjectType) {
+    return this.reloads.get(rootPath(info))?.get(parent)?.get(type.name);
   }
 
   /** The row of a Relay node, planned for `info`'s selection on `typeName`, or null. */
@@ -423,4 +425,13 @@ function userCode<T>(run: () => T): T {
   } catch (error) {
     throw keepError(error);
   }
+}
+
+/** The path of the root field `info`'s field is beneath. */
+function rootPath(info: GraphQLResolveInfo) {
+  let root = info.path;
+  while (root.prev) {
+    root = root.prev;
+  }
+  return root;
 }

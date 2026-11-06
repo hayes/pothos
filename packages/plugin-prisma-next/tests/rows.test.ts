@@ -159,6 +159,59 @@ describe('rows a resolver returns', () => {
     ]);
     expect(result.statements).toHaveLength(1);
   });
+
+  it("loads the type's select for a field selecting only columns", async () => {
+    const builder = createBuilder();
+    const User = builder.prismaObject('User', {
+      select: { posts: true },
+      fields: (t) => ({
+        summary: t.string({
+          select: ['lastName'],
+          resolve: (user) => `${user.lastName} ${user.posts.length}`,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.field({ type: User, resolve: () => ({ id: 'u-alice', lastName: 'x' }) }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ user { summary } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user).toEqual({ summary: 'Andrews 2' });
+  });
+
+  it("loads a type's filtered relation for a field selecting only columns of a row of another type", async () => {
+    const builder = createBuilder();
+    const Drafts = builder.prismaObject('User', {
+      variant: 'Drafts',
+      select: { posts: { where: { published: 0 } } },
+      fields: (t) => ({
+        summary: t.string({
+          select: ['lastName'],
+          resolve: (user) => `${user.lastName} ${user.posts.length}`,
+        }),
+      }),
+    });
+    const User = builder.prismaObject('User', {
+      select: { posts: true },
+      fields: (t) => ({
+        drafts: t.field({ type: Drafts, resolve: (user) => user }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        // A row no plan loaded, with the whole relation in place of Drafts' filtered one.
+        user: t.field({
+          type: User,
+          resolve: () => ({ id: 'u-alice', lastName: 'Andrews', posts: [] }),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ user { drafts { summary } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user).toEqual({ drafts: { summary: 'Andrews 1' } });
+  });
 });
 
 describe('rows the plugin loaded', () => {
