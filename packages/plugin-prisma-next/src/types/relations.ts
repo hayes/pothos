@@ -301,7 +301,7 @@ export type RelationFieldArgs<
  * still uninferred it is its constraint, which includes `undefined`, and a check then would hide
  * the option's contextual types.
  */
-type ExactQuery<
+export type ExactQuery<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   Query,

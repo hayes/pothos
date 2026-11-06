@@ -37,10 +37,10 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
       }),
       comments: t.relation('comments'),
       postCount: t.relationCount('posts'),
-      publishedCount: t.relationCount('posts', { where: { published: 1 } }),
+      publishedCount: t.relationCount('posts', { query: { where: { published: 1 } } }),
       countByFlag: t.relationCount('posts', {
         args: { flag: t.arg.int({ required: true }) },
-        where: (args) => (p) => p.published.eq(args.flag),
+        query: (args) => ({ where: (p) => p.published.eq(args.flag) }),
       }),
       maxPublished: t.float({
         nullable: true,

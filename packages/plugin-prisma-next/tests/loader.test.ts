@@ -282,12 +282,12 @@ describe('provenance', () => {
     const builder = createBuilder();
     const One = builder.prismaObject('User', {
       variant: 'One',
-      fields: (t) => ({ count: t.relationCount('posts', { where: { published: 1 } }) }),
+      fields: (t) => ({ count: t.relationCount('posts', { query: { where: { published: 1 } } }) }),
     });
     const Zero = builder.prismaObject('User', {
       variant: 'Zero',
       fields: (t) => ({
-        count: t.relationCount('posts', { where: { published: 9 } }),
+        count: t.relationCount('posts', { query: { where: { published: 9 } } }),
         posts: t.relation('posts', { query: { where: { published: 9 } } }),
       }),
     });
@@ -323,8 +323,8 @@ describe('provenance', () => {
     const builder = createBuilder();
     const User = builder.prismaObject('User', {
       fields: (t) => ({
-        published: t.relationCount('posts', { where: { published: 1 } }),
-        missing: t.relationCount('posts', { where: { published: 9 } }),
+        published: t.relationCount('posts', { query: { where: { published: 1 } } }),
+        missing: t.relationCount('posts', { query: { where: { published: 9 } } }),
       }),
     });
     const Post = builder.prismaObject('Post', {
@@ -356,7 +356,7 @@ describe('provenance', () => {
       fields: (t) => ({
         count: t.relationCount('posts', {
           args: { published: t.arg.int({ required: true }) },
-          where: (args) => (post) => post.published.eq(args.published),
+          query: (args) => ({ where: (post) => post.published.eq(args.published) }),
         }),
         page: t.relatedConnection('posts', {
           totalCount: true,
@@ -430,8 +430,8 @@ describe('deferred fragments', () => {
     const builder = createBuilder();
     builder.prismaObject('User', {
       fields: (t) => ({
-        published: t.relationCount('posts', { where: { published: 1 } }),
-        missing: t.relationCount('posts', { where: { published: 9 } }),
+        published: t.relationCount('posts', { query: { where: { published: 1 } } }),
+        missing: t.relationCount('posts', { query: { where: { published: 9 } } }),
       }),
     });
     builder.queryType({
@@ -567,19 +567,23 @@ describe('reload isolation', () => {
           }),
         }),
         ok: t.relationCount('posts', {
-          where: () => (post) => {
-            calls.ok += 1;
-            return post.published.eq(1);
-          },
+          query: () => ({
+            where: (post) => {
+              calls.ok += 1;
+              return post.published.eq(1);
+            },
+          }),
         }),
         guarded: t.relationCount('posts', {
-          where: (_args, ctx) => (post) => {
-            calls.guarded += 1;
-            if (!ctx.allow) {
-              throw new Error('not allowed');
-            }
-            return post.published.eq(1);
-          },
+          query: (_args, ctx) => ({
+            where: (post) => {
+              calls.guarded += 1;
+              if (!ctx.allow) {
+                throw new Error('not allowed');
+              }
+              return post.published.eq(1);
+            },
+          }),
         }),
         guardedPosts: t.relation('posts', {
           nullable: true,
@@ -627,18 +631,22 @@ describe('reload isolation', () => {
       fields: (t) => ({
         name: t.exposeString('name', { nullable: true }),
         rowCount: t.relationCount('rows', {
-          where: () => (row) => {
-            calls.rows += 1;
-            return row.label.eq('r10');
-          },
+          query: () => ({
+            where: (row) => {
+              calls.rows += 1;
+              return row.label.eq('r10');
+            },
+          }),
         }),
         noteCount: t.relationCount('notes', {
-          where: (_args, ctx) => (note) => {
-            if (!ctx.allow) {
-              throw new Error('notes not allowed');
-            }
-            return note.id.eq(20);
-          },
+          query: (_args, ctx) => ({
+            where: (note) => {
+              if (!ctx.allow) {
+                throw new Error('notes not allowed');
+              }
+              return note.id.eq(20);
+            },
+          }),
         }),
       }),
     });

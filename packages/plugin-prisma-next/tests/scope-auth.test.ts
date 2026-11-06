@@ -1695,7 +1695,7 @@ describe('slots beneath shared walks', () => {
         query: { where: { published: 1 } },
         totalCount: true,
       }),
-      nPub: t.relationCount('posts', { where: { published: 1 } }),
+      nPub: t.relationCount('posts', { query: { where: { published: 1 } } }),
     }));
     b.prismaInterfaceFields(PI, (t: any) => ({
       author: t.relation('author', { type: UI }),

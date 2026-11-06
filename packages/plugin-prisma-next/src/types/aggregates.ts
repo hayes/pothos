@@ -7,35 +7,29 @@ import type {
   SchemaTypes,
 } from '@pothos/core';
 import type { ExtractAggregateTypes } from '@prisma/orm-family-sql/contract/types';
-import type { ShorthandWhereFilter } from '@prisma/orm-family-sql/orm-client';
-import type {
-  BareModelName,
-  ModelKey,
-  NamespaceOf,
-  ObjectBaseShape,
-  RelationKeys,
-} from './models.js';
-import type { RelatedModel, RelationWhere } from './relations.js';
+import type { ModelKey, ObjectBaseShape, RelationKeys } from './models.js';
+import type { ExactQuery, RelatedModel, RelationWhere } from './relations.js';
 
-/**
- * A count's `where`: a shorthand filter, or a callback of the args and context returning one or the
- * ORM's predicate callback, like the callback form of a relation's `query`.
- */
-export type RelationCountWhereParam<
+/** The literal `query` of a count: a `where`, as a shorthand filter or the ORM's predicate. */
+export interface RelationCountQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> {
+  where?: RelationWhere<Types, M>;
+}
+
+/** A count's `query`: the literal, or a callback of the args and context returning it. */
+export type RelationCountQuery<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   R extends RelationKeys<Types, M>,
   Args extends InputFieldMap,
 > =
-  | ShorthandWhereFilter<
-      Types['PrismaNextContract'],
-      NamespaceOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>,
-      BareModelName<RelatedModel<Types, M, R>>
-    >
+  | RelationCountQueryLiteral<Types, RelatedModel<Types, M, R>>
   | ((
       args: InputShapeFromFields<Args>,
       context: Types['Context'],
-    ) => MaybeAsyncSelection<Types, RelationWhere<Types, RelatedModel<Types, M, R>> | undefined>);
+    ) => MaybeAsyncSelection<
+      Types,
+      RelationCountQueryLiteral<Types, RelatedModel<Types, M, R>> | undefined
+    >);
 
 export type PrismaNextRelationCountOptions<
   Types extends SchemaTypes,
@@ -43,22 +37,14 @@ export type PrismaNextRelationCountOptions<
   RelName extends RelationKeys<Types, ParentModel>,
   Args extends InputFieldMap,
   ParentShape = ObjectBaseShape<Types, ParentModel>,
-  Where = RelationCountWhereParam<Types, ParentModel, RelName, Args>,
+  Query = RelationCountQuery<Types, ParentModel, RelName, Args>,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, 'Int', false, Args, number>,
   'type' | 'resolve' | 'select' | 'nullable' | InferredFieldOptionKeys
 > & {
-  // A callback whose parameters need their types isn't inferred, so `Where` is the whole union, which
-  // is checked as the `where` it allows.
-  where?: [RelationCountWhereParam<Types, ParentModel, RelName, Args>] extends [Where]
-    ? NoInfer<RelationCountWhereParam<Types, ParentModel, RelName, Args>>
-    : Where &
-        // A callback returning `any`, such as a misplaced predicate, already fails as itself.
-        (Where extends (...args: never[]) => infer Result
-          ? unknown extends Result
-            ? unknown
-            : CheckAsyncSelection<Types, Where>
-          : CheckAsyncSelection<Types, Where>);
+  query?: Query &
+    CheckAsyncSelection<Types, Query> &
+    NoInfer<ExactQuery<Types, RelatedModel<Types, ParentModel, RelName>, Query, 'where'>>;
   /** A count is never null. */
   nullable?: false;
 };

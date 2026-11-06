@@ -22,7 +22,7 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   HasAggregates,
   PrismaNextRelationCountOptions,
-  RelationCountWhereParam,
+  RelationCountQuery,
 } from './types/aggregates.js';
 import type {
   ConnectionQueryLiteral,
@@ -438,27 +438,30 @@ export class PrismaNextObjectFieldBuilder<
   relationCount<
     // Targets without aggregates, such as MySQL, accept no relation.
     RelName extends HasAggregates<Types> extends true ? ToManyRelationKeys<Types, M> : never,
-    Where extends RelationCountWhereParam<Types, M, RelName, Args> | undefined,
+    Query extends RelationCountQuery<Types, M, RelName, Args> | undefined,
     Args extends InputFieldMap = {},
   >(
     name: RelName,
-    options?: PrismaNextRelationCountOptions<Types, M, RelName, Args, Shape, Where>,
+    options?: PrismaNextRelationCountOptions<Types, M, RelName, Args, Shape, Query>,
   ): FieldRef<Types, number, 'PrismaNextObject'> {
     const relationName = name as string;
     // Rejects a relation several variants declare, which the types can't tell apart.
     this.#relation(relationName);
-    const { where, extensions, ...rest } = (options ?? {}) as {
-      where?: unknown;
+    const { query, extensions, ...rest } = (options ?? {}) as {
+      query?: unknown;
       extensions?: Record<string, unknown>;
     } & Record<string, unknown>;
     const countLoaded = (parent: object) =>
       fieldValue(parent, relationName, VALUE_SLOT) !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
-      completeOption(where, args, ctx, (filter) =>
-        computedSelection(relationName, consumerId(position), VALUE_SLOT, { where, args }, (sub) =>
-          countOf(filter === undefined ? sub : sub.where(filter)),
-        ),
-      );
+      completeOption(query, args, ctx, (value) => {
+        const where = definedQuery(value)?.where;
+        // A callback builds a new query on every walk, so its definition and arguments identify it.
+        const identity = typeof query === 'function' ? { source: query, args } : where;
+        return computedSelection(relationName, consumerId(position), VALUE_SLOT, identity, (sub) =>
+          countOf(where === undefined ? sub : sub.where(where)),
+        );
+      });
     return this.field({
       ...rest,
       type: 'Int',

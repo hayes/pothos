@@ -90,19 +90,21 @@ builder.prismaObject('User', {
     count: t.relationCount('posts'),
     // @ts-expect-error a count is never null
     nullableCount: t.relationCount('posts', { nullable: true }),
-    publishedCount: t.relationCount('posts', { where: { published: 1 } }),
+    publishedCount: t.relationCount('posts', { query: { where: { published: 1 } } }),
     countByFlag: t.relationCount('posts', {
       args: { flag: t.arg.int({ required: true }) },
-      where: (args) => (post, tools) => {
-        expectTypeOf(tools.fns).not.toBeAny();
-        return post.published.eq(args.flag);
-      },
+      query: (args) => ({
+        where: (post, tools) => {
+          expectTypeOf(tools.fns).not.toBeAny();
+          return post.published.eq(args.flag);
+        },
+      }),
     }),
     // @ts-expect-error `nope` isn't a relation on User
     badCount: t.relationCount('nope'),
     countMissingColumn: t.relationCount('posts', {
       // @ts-expect-error accessors only expose model fields
-      where: () => (post) => post.missing.neq('x'),
+      query: { where: (post) => post.missing.neq('x') },
     }),
     countUnknownOption: t.relationCount('posts', {
       // @ts-expect-error unknown options are rejected
@@ -227,7 +229,7 @@ builder.prismaObject('User', {
   }),
 });
 
-// Counts are `Int`, and `where` takes a shorthand filter or a callback of the args and context.
+// Counts are `Int`, and `query` takes a `where` or a callback of the args and context returning one.
 builder.prismaObject('User', {
   variant: 'Aggregates',
   fields: (t) => {
@@ -237,18 +239,27 @@ builder.prismaObject('User', {
     t.relationCount('posts', { nullable: true });
     // `nullable: false` states what a count is, as in plugin-prisma.
     t.relationCount('posts', { nullable: false });
-    // @ts-expect-error a `where` callback returns a condition
-    t.relationCount('posts', { where: () => 'oops' });
-    t.relationCount('posts', { where: () => (post) => post.published.eq(1) });
-    t.relationCount('posts', { where: () => ({ published: 1 }) });
+    t.relationCount('posts', { query: { where: { published: 1 } } });
+    t.relationCount('posts', { query: { where: (post) => post.published.eq(1) } });
+    t.relationCount('posts', { query: () => ({ where: (post) => post.published.eq(1) }) });
+    t.relationCount('posts', { query: () => ({ where: { published: 1 } }) });
     t.relationCount('posts', {
       args: { published: t.arg.int() },
-      where: (args) => (args.published == null ? undefined : { published: args.published }),
+      query: (args) =>
+        args.published == null ? undefined : { where: { published: args.published } },
     });
-    // @ts-expect-error the callback takes the args and context, and may return the accessor callback
-    t.relationCount('posts', { where: (post) => post.published.eq(1) });
-    // @ts-expect-error unknown columns in a shorthand result are rejected
-    t.relationCount('posts', { where: () => ({ draft: 1 }) });
+    // @ts-expect-error a `query` callback returns a query
+    t.relationCount('posts', { query: () => 'oops' });
+    // @ts-expect-error a count takes only a `where`
+    t.relationCount('posts', { query: { where: { published: 1 }, limit: 1 } });
+    // @ts-expect-error a count takes only a `where`, from a callback too
+    t.relationCount('posts', { query: () => ({ orderBy: { id: 'asc' } }) });
+    // @ts-expect-error unknown columns in a shorthand where are rejected
+    t.relationCount('posts', { query: { where: { draft: 1 } } });
+    // @ts-expect-error unknown columns in a callback's shorthand where are rejected
+    t.relationCount('posts', { query: () => ({ where: { draft: 1 } }) });
+    // @ts-expect-error `where` goes inside `query`
+    t.relationCount('posts', { where: { published: 1 } });
     // @ts-expect-error a count is of a to-many relation
     t.relationCount('author');
     return { count };
@@ -471,25 +482,27 @@ builder.prismaObject('User', {
   fields: (t) => ({
     // @ts-expect-error an async query needs AsyncSelections
     asyncQuery: t.relation('posts', { query: async () => ({ where: { published: 1 } }) }),
-    // @ts-expect-error an async where needs AsyncSelections
-    asyncCount: t.relationCount('posts', { where: async () => ({ published: 1 }) }),
+    asyncCount: t.relationCount('posts', {
+      // @ts-expect-error an async query needs AsyncSelections
+      query: async () => ({ where: { published: 1 } }),
+    }),
     asyncCountWithArgs: t.relationCount('posts', {
       args: { published: t.arg.int({ required: true }) },
-      // @ts-expect-error an async where needs AsyncSelections, with typed parameters too
-      where: async (args) => ({ published: args.published }),
+      // @ts-expect-error an async query needs AsyncSelections, with typed parameters too
+      query: async (args) => ({ where: { published: args.published } }),
     }),
     // @ts-expect-error an async select needs AsyncSelections
     asyncSelect: t.string({ select: async () => ({ email: true }), resolve: () => '' }),
   }),
 });
-// A count's `where` callback takes the args and context. The ORM's predicate passed directly reads
-// the args as the row, and is rejected.
+// A count's `query` callback takes the args and context. The ORM's predicate passed as the query
+// reads the args as the row, and is rejected.
 builder.prismaObject('Post', {
   variant: 'CountPredicate',
   fields: (t) => ({
-    predicateResult: t.relationCount('comments', { where: () => (c) => c.body.eq('x') }),
-    // @ts-expect-error the predicate goes inside the callback: `where: () => (c) => ...`
-    directPredicate: t.relationCount('comments', { where: (c) => c.body.eq('x') }),
+    predicate: t.relationCount('comments', { query: { where: (c) => c.body.eq('x') } }),
+    // @ts-expect-error the predicate goes in `where`: `query: { where: (c) => ... }`
+    directPredicate: t.relationCount('comments', { query: (c) => c.body.eq('x') }),
   }),
 });
 
@@ -504,7 +517,7 @@ asyncBuilder.prismaObject('User', {
     asyncRefinement: t.relation('posts', {
       query: async () => (posts) => posts.where({ published: 1 }),
     }),
-    asyncCount: t.relationCount('posts', { where: async () => ({ published: 1 }) }),
+    asyncCount: t.relationCount('posts', { query: async () => ({ where: { published: 1 } }) }),
     asyncSelect: t.string({
       select: async () => ({ email: true }),
       resolve: (user) => user.email,

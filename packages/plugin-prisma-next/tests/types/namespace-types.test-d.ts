@@ -84,10 +84,12 @@ builder.prismaObject('nsa.Org', {
       },
     }),
     userCount: t.relationCount('users', {
-      where: () => (user, tools) => {
-        expectTypeOf(tools).toEqualTypeOf<ModelCallbackTools<Contract, 'User', 'nsa'>>();
-        return user.orgId.gt(0);
-      },
+      query: () => ({
+        where: (user, tools) => {
+          expectTypeOf(tools).toEqualTypeOf<ModelCallbackTools<Contract, 'User', 'nsa'>>();
+          return user.orgId.gt(0);
+        },
+      }),
     }),
     badOrder: t.relatedConnection('users', {
       // @ts-expect-error `name` is a column of the other namespace's User

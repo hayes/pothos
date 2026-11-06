@@ -479,7 +479,7 @@ describe('a selection that fails to plan', () => {
     fields: (t) => ({
       firstName: t.exposeString('firstName'),
       relation: t.relation('posts', { nullable: true, query: fail }),
-      count: t.relationCount('posts', { where: fail }),
+      count: t.relationCount('posts', { query: { where: fail } }),
       connection: t.relatedConnection('posts', { query: fail }),
       selected: t.string({
         nullable: true,

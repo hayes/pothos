@@ -106,25 +106,25 @@ For cursor-based pagination, use [`t.relatedConnection`](./connections#paginate-
 
 ## Counts and other aggregates
 
-`t.relationCount` adds an `Int` field that counts a to-many relation. Pass `where` to count only some
-rows:
+`t.relationCount` adds an `Int` field that counts a to-many relation. Pass a `query` with a `where`
+to count only some rows:
 
 ```ts
 builder.prismaObject('User', {
   fields: (t) => ({
     postCount: t.relationCount('posts'),
-    publishedPostCount: t.relationCount('posts', { where: { published: 1 } }),
+    publishedPostCount: t.relationCount('posts', { query: { where: { published: 1 } } }),
     postCountByStatus: t.relationCount('posts', {
       args: { published: t.arg.int({ required: true }) },
-      where: (args) => ({ published: args.published }),
+      query: (args) => ({ where: { published: args.published } }),
     }),
   }),
 });
 ```
 
-`where` takes a filter object, or a function of the arguments and context that returns anything a
-relation's `query.where` takes. A function is always that callback, so return a predicate from it:
-`where: () => (post) => post.published.eq(1)`.
+`query` is an object or a function of the arguments and context, as on `t.relation`, but takes only
+`where`. `where` takes anything a relation's `query.where` takes, including a predicate:
+`query: { where: (post) => post.published.eq(1) }`.
 
 Count fields are always non-null, so if an auth check denies one, GraphQL nulls the parent instead.
 To hide a count from some users, use a nullable field with a `select`, as below.

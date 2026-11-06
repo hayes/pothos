@@ -55,7 +55,7 @@ describe("an implementation's override of an interface field", () => {
         pub: t.relation('posts', { query: { where: { published: 0 } } }),
         narrowed: t.relation('posts', { query: { where: { published: 0 } } }),
         widened: t.relation('posts'),
-        count: t.relationCount('posts', { where: { published: 0 } }),
+        count: t.relationCount('posts', { query: { where: { published: 0 } } }),
         selected: t.stringList({
           select: { posts: { where: { published: 0 } } },
           resolve: (user) => user.posts.map((post) => post.id),

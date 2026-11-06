@@ -808,7 +808,7 @@ describe("field helpers on a reloaded parent's slots", () => {
       resolveType: () => 'User',
       fields: (t) => ({
         published: t.relation('posts', { query: { where: { published: 1 } } }),
-        count: t.relationCount('posts', { where: { published: 0 } }),
+        count: t.relationCount('posts', { query: { where: { published: 0 } } }),
         drafts: t.idList({
           select: { posts: { where: { published: 0 } } },
           resolve: (user) => user.posts.map((post) => post.id),

@@ -351,10 +351,12 @@ describe('relation queries', () => {
           },
         }),
         total: t.relationCount('posts', {
-          where: () => (post, orm) => {
-            tools.aggregate = orm.fns;
-            return post.id.neq('x');
-          },
+          query: () => ({
+            where: (post, orm) => {
+              tools.aggregate = orm.fns;
+              return post.id.neq('x');
+            },
+          }),
         }),
         conn: t.relatedConnection('posts', {
           query: {
@@ -1115,7 +1117,7 @@ describe('aliases of one computed value', () => {
       postCount: t.relationCount('posts'),
       publishedCount: t.relationCount('posts', {
         args: { published: t.arg.int({ required: true }) },
-        where: (args) => ({ published: args.published }),
+        query: (args) => ({ where: { published: args.published } }),
       }),
     }),
   });
@@ -1150,6 +1152,49 @@ describe('aliases of one computed value', () => {
       { a: 1, b: 1, c: 1 },
     ]);
     expect(counts(result.statements[0]!.sql)).toBe(2);
+  });
+});
+
+describe("relationCount's query", () => {
+  const builder = createBuilder();
+  builder.prismaObject('User', {
+    fields: (t) => ({
+      shorthand: t.relationCount('posts', { query: { where: { published: 1 } } }),
+      predicate: t.relationCount('posts', { query: { where: (post) => post.published.eq(0) } }),
+      callback: t.relationCount('posts', {
+        args: { published: t.arg.int() },
+        query: (args) =>
+          args.published == null ? undefined : { where: { published: args.published } },
+      }),
+      predicateCallback: t.relationCount('posts', {
+        args: { title: t.arg.string({ required: true }) },
+        query: (args) => ({ where: (post) => post.title.neq(args.title) }),
+      }),
+    }),
+  });
+  builder.queryType({
+    fields: (t) => ({
+      users: t.prismaField({
+        type: ['User'],
+        resolve: () => db.orm.User.where({ id: 'u-alice' }),
+      }),
+    }),
+  });
+  const schema = builder.toSchema();
+
+  it('counts with a literal where or a callback returning one, in one statement', async () => {
+    const result = await run(
+      schema,
+      `{ users {
+        shorthand predicate all: callback published: callback(published: 1)
+        predicateCallback(title: "Draft #1")
+      } }`,
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { shorthand: 1, predicate: 1, all: 2, published: 1, predicateCallback: 1 },
+    ]);
+    expect(result.statements).toHaveLength(1);
   });
 });
 

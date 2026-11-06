@@ -42,7 +42,7 @@ function define(builder: Builder | PothosSchemaTypes.SchemaBuilder<never>) {
       }),
       postCount: t.relationCount('posts', {
         args: { published: t.arg.int() },
-        where: (args) => (args.published == null ? {} : { published: args.published }),
+        query: (args) => ({ where: args.published == null ? {} : { published: args.published } }),
       }),
     }),
   });
@@ -232,7 +232,7 @@ describe('interface fields', () => {
       interfaces: [I],
       fields: (t) => ({
         drafts: t.relation('posts', { query: { where: { published: 1 } } }),
-        count: t.relationCount('posts', { where: { published: 1 } }),
+        count: t.relationCount('posts', { query: { where: { published: 1 } } }),
       }),
     });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
