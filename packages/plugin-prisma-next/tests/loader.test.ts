@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
-import { execute, parse } from 'graphql';
+import { execute, parse, subscribe } from 'graphql';
 import { describe, expect, it, vi } from 'vitest';
-import prismaNextPlugin from '../src';
+import prismaNextPlugin, { collectionFromInfo } from '../src';
 import { PrismaNextAdapter } from '../src/utils/adapter';
 import { detailOf, unexpected } from './fixtures/errors';
 import {
@@ -613,6 +613,35 @@ describe('reload isolation', () => {
           nullable: true,
           resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
+        // Rows loaded elsewhere, holding every post.
+        rawUsers: t.field({
+          type: [User],
+          resolve: () =>
+            db.orm.User.include('posts')
+              .orderBy((user) => user.id.asc())
+              .all(),
+        }),
+      }),
+    });
+    builder.subscriptionType({
+      fields: (t) => ({
+        userChanged: t.field({
+          type: User,
+          // The first event is planned, the second hands on a row loaded elsewhere.
+          subscribe: async function* () {
+            yield null;
+            yield await db.orm.User.include('posts').where({ id: 'u-alice' }).first();
+          },
+          resolve: async (row, _args, context, info) =>
+            row ??
+            (await (
+              await collectionFromInfo({
+                collection: db.orm.User.where({ id: 'u-alice' }),
+                context,
+                info,
+              })
+            ).first())!,
+        }),
       }),
     });
     return builder.toSchema();
@@ -683,6 +712,45 @@ describe('reload isolation', () => {
     expect(drafts).toEqual({
       data: { plainUsers: [{ posts: [{ id: 'p-draft1' }] }, { posts: [{ id: 'p-bob-draft' }] }] },
     });
+  });
+
+  it('keeps the relation filter on rows a later operation sharing the context loaded elsewhere', async () => {
+    const schema = isolationSchema();
+    const contextValue = {};
+    const published = {
+      data: { users: [{ posts: [{ id: 'p-hello' }] }, { posts: [{ id: 'p-bob1' }] }] },
+    };
+    expect(
+      await execute({
+        schema,
+        document: parse('{ users { posts(published: 1) { id } } }'),
+        contextValue,
+      }),
+    ).toEqual(published);
+    expect(
+      await execute({
+        schema,
+        document: parse('{ users: rawUsers { posts(published: 1) { id } } }'),
+        contextValue,
+      }),
+    ).toEqual(published);
+  });
+
+  it('keeps the relation filter on a row a later subscription event loaded elsewhere', async () => {
+    const events = await subscribe({
+      schema: isolationSchema(),
+      document: parse('subscription { userChanged { posts(published: 1) { id } } }'),
+      contextValue: {},
+    });
+    if (!(Symbol.asyncIterator in events)) {
+      throw new Error(`Expected a subscription, got ${JSON.stringify(events)}`);
+    }
+    const seen: unknown[] = [];
+    for await (const event of events) {
+      seen.push(event);
+    }
+    const published = { data: { userChanged: { posts: [{ id: 'p-hello' }] } } };
+    expect(seen).toEqual([published, published]);
   });
 
   it('fails every field of a batch whose callback throws, like a parent query', async () => {

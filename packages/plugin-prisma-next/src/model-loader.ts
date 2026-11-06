@@ -74,8 +74,7 @@ export class ModelLoader {
   /**
    * Plans depend on the operation and its variables, which include `@skip` and `@include`
    * arguments. They are cached per operation, keyed on `info.variableValues`, which graphql-js
-   * creates once per operation and shares across its subscription events. Loader mappings are stored on the context by response path, so
-   * operations running at the same time should not share a context.
+   * creates once per operation and shares across its subscription events.
    */
   private readonly plans = new WeakMap<object, Plans>();
   private readonly staged = new Set<Batch>();
