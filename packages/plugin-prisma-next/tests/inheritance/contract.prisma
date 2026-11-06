@@ -42,7 +42,7 @@ model Bug {
 
 model Feature {
   priority     Int
-  code         String? @unique
+  code         String  @unique
   championId   String?
   champion     User?   @relation(fields: [championId], references: [id])
   featureNotes Note[]

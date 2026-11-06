@@ -218,7 +218,8 @@ type KeyFields<T, Columns, Fields extends string = never> = Columns extends read
 
 /**
  * The fields of the first key in `Keys` whose columns all map to non-null fields. An index is a key
- * when it is unique and not partial.
+ * when it is unique and not partial. Primary keys and unique constraints have no `unique` property,
+ * so only an index is checked for one, as at runtime.
  */
 type FirstKeyFields<T, Keys> = Keys extends readonly [infer Key, ...infer Rest]
   ? (
@@ -266,11 +267,15 @@ type ModelIdentityFields<C extends AnyContract, M extends string> =
     : never;
 
 /** The key the loader reloads a model's rows by. A variant shares its base's key. */
-export type IdentityFields<Types extends SchemaTypes, M extends ModelKey<Types>> = [
-  ModelIdentityFields<Types['PrismaNextContract'], M>,
-] extends [never]
-  ? ModelIdentityFields<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>
-  : ModelIdentityFields<Types['PrismaNextContract'], M>;
+export type IdentityFields<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+> = ModelIdentityFields<
+  Types['PrismaNextContract'],
+  [BaseModelKey<Types['PrismaNextContract'], M>] extends [never]
+    ? M
+    : BaseModelKey<Types['PrismaNextContract'], M>
+>;
 
 /** A model's table, as its namespace and name. */
 type StorageTable<C extends AnyContract, M extends string> =

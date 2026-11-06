@@ -12,6 +12,7 @@ import prismaNextPlugin, {
 } from '../../src';
 import type { Contract as CollisionContract } from '../fixtures/collision-contract';
 import type { Contract } from '../fixtures/sample-contract';
+import type { Contract as InheritanceContract } from '../inheritance/contract';
 
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
 
@@ -77,6 +78,11 @@ type CollisionTypes = PothosSchemaTypes.ExtendDefaultTypes<{
 expectTypeOf<IdentityFields<CollisionTypes, 'Tag'>>().toEqualTypeOf<'code'>();
 expectTypeOf<IdentityFields<CollisionTypes, 'Note'>>().toEqualTypeOf<'id'>();
 expectTypeOf<IdentityFields<Types, 'PostView'>>().toBeNever();
+// The loader reloads a variant by its base's key, even when its own table has a non-null unique.
+type InheritanceTypes = PothosSchemaTypes.ExtendDefaultTypes<{
+  PrismaNextContract: InheritanceContract;
+}>;
+expectTypeOf<IdentityFields<InheritanceTypes, 'Feature'>>().toEqualTypeOf<'id'>();
 
 const collision = new SchemaBuilder<{ PrismaNextContract: CollisionContract }>({
   plugins: [prismaNextPlugin],

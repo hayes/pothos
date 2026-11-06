@@ -87,7 +87,7 @@
                 }
               },
               "code": {
-                "nullable": true,
+                "nullable": false,
                 "type": {
                   "codecId": "sqlite/text@1",
                   "kind": "scalar"
@@ -416,7 +416,7 @@
                 "code": {
                   "codecId": "sqlite/text@1",
                   "dataType": "sqlite/text",
-                  "nullable": true
+                  "nullable": false
                 },
                 "id": {
                   "codecId": "sqlite/text@1",
@@ -695,7 +695,7 @@
         "id": "__unbound__"
       }
     },
-    "storageHash": "b038077d991a8076a795742c5ac835c1fbdafba60501a1a589301be06c9fc264"
+    "storageHash": "b03a79ed46520d9e8288372c617f86f311b257637e088433b74a8515244e9d31"
   },
   "capabilities": {
     "sql": {

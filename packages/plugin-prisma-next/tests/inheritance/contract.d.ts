@@ -19,7 +19,7 @@ import type {
 } from '@prisma/orm-framework/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'b038077d991a8076a795742c5ac835c1fbdafba60501a1a589301be06c9fc264'>;
+  StorageHashBase<'b03a79ed46520d9e8288372c617f86f311b257637e088433b74a8515244e9d31'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'260b8608d1aacaf1f690779a6cff39a12947c599597c5ba464ca75b9e775df53'>;
@@ -273,7 +273,7 @@ type ContractBase = Omit<
                 readonly code: {
                   readonly dataType: 'sqlite/text';
                   readonly codecId: 'sqlite/text@1';
-                  readonly nullable: true;
+                  readonly nullable: false;
                   readonly many: false;
                 };
                 readonly id: {
@@ -544,7 +544,7 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
               };
               readonly code: {
-                readonly nullable: true;
+                readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
               };
               readonly priority: {
