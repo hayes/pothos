@@ -8,6 +8,10 @@ and the relation's rows load with what the query selects on the field's type, in
 query:
 
 ```ts
+const Post = builder.prismaObject('Post', {
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+
 builder.prismaObject('User', {
   fields: (t) => ({
     publishedPosts: t.field({
@@ -66,7 +70,15 @@ When the field returns an interface or union, `type` names the object type to re
 as. Fragments on other types are left out:
 
 ```ts
-// Activity is a union of Post and Comment
+const Comment = builder.prismaObject('Comment', {
+  fields: (t) => ({ body: t.exposeString('body') }),
+});
+
+const Activity = builder.unionType('Activity', {
+  types: [Post, Comment],
+  resolveType: (row) => ('title' in row ? 'Post' : 'Comment'),
+});
+
 builder.prismaObject('User', {
   fields: (t) => ({
     recentActivity: t.field({

@@ -127,11 +127,28 @@ the connection is beneath that field, such as on a wrapper type the field return
 `getQuery` passes to `nestedSelection`:
 
 ```ts
-select: (args, ctx, nestedSelection) => ({
-  comments: commenters.getQuery(args, ctx, (query, path) =>
-    nestedSelection(query, ['commenters', ...path]),
-  ),
-}),
+const PostActivity = builder
+  .objectRef<{ comments: Parameters<typeof commenters.resolve>[0] }>('PostActivity')
+  .implement({
+    fields: (t) => ({
+      commenters: t.connection({
+        type: User,
+        resolve: (activity, args, ctx) => commenters.resolve(activity.comments, args, ctx),
+      }),
+    }),
+  });
+
+builder.prismaObjectField('Post', 'activity', (t) =>
+  t.field({
+    type: PostActivity,
+    select: (args, ctx, nestedSelection) => ({
+      comments: commenters.getQuery(args, ctx, (query, path) =>
+        nestedSelection(query, ['commenters', ...path]),
+      ),
+    }),
+    resolve: (post) => ({ comments: post.comments }),
+  }),
+);
 ```
 
 `select` and `query` also receive the field's arguments and context. Add the helper's `args` to the
