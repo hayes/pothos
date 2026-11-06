@@ -116,9 +116,11 @@ builder.queryType({
 - A relation declared on a variant can't be in the variant type's `select`. Use a field's `select`
   or `t.relation`.
 - A relation to a variant with its own table loads only that table, so it can filter and sort only
-  on the variant's own fields. Its rows can't be returned as an interface or loaded in a type's
-  `select`, which fails the schema build. Return them as the variant's type with `t.relation` or
-  `t.relatedConnection`, or relate to the base model instead.
+  on the variant's own fields, and its rows can only be returned as the variant's object type.
+  Returning them as an interface, or loading them in a type's `select` or another field's
+  `select`, fails the schema build (a `select` function fails the request).
+- A relation to a variant that shares the base's table can't load the base model's relations, so
+  it can't return an interface of that variant whose `select` loads one.
 - Pass a variant's ref as `type` to `t.relation` or `t.relatedConnection` to return only that
   variant's rows.
 - A row returned from a plain `t.field` needs the interface's `select` and the discriminator.
