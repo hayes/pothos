@@ -118,9 +118,21 @@ builder.prismaObjectField('Post', 'commenters', (t) =>
 );
 ```
 
-`getQuery` loads one page of comments with the post, and its count when `totalCount` is selected.
-`resolve` builds the connection from those rows, so pass them as loaded rather than a filtered or
-mapped copy. Without `resolveNode`, the rows are the nodes.
+`getQuery` loads one page of comments with the post, and its count when the connection selects a
+field named `totalCount`. `resolve` builds the connection from those rows, so pass them as loaded
+rather than a filtered or mapped copy. Without `resolveNode`, the rows are the nodes.
+
+Put `getQuery` at the top level of a field's `select`, not inside another relation's entry. When
+the connection is beneath that field, such as on a wrapper type the field returns, prefix the path
+`getQuery` passes to `nestedSelection`:
+
+```ts
+select: (args, ctx, nestedSelection) => ({
+  comments: commenters.getQuery(args, ctx, (query, path) =>
+    nestedSelection(query, ['commenters', ...path]),
+  ),
+}),
+```
 
 `select` and `query` also receive the field's arguments and context. Add the helper's `args` to the
 field with `args: commenters.getArgs()`.
