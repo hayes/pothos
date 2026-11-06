@@ -6,6 +6,7 @@ import SchemaBuilder, {
   type BuildCache,
   isThenable,
   type MaybePromise,
+  type OutputType,
   type PothosInterfaceTypeConfig,
   type PothosObjectTypeConfig,
   type PothosOutputFieldConfig,
@@ -37,9 +38,11 @@ import {
   PRISMA_NEXT_FIELD_SELECTION,
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_MODEL,
+  PRISMA_NEXT_RELATION_ROWS,
   PRISMA_NEXT_TYPE_SELECT,
   PRISMA_NEXT_TYPE_SELECTS,
 } from './constants.js';
+import { canInclude } from './utils/adapter.js';
 import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
 import { orderableProblem, orderColumns } from './utils/cursors.js';
@@ -48,6 +51,7 @@ import {
   getModel,
   ownTableVariantRowsError,
   type PrismaNextModel,
+  type PrismaNextRelation,
   returnsRelationRowsAs,
 } from './utils/model.js';
 import {
@@ -60,6 +64,7 @@ import {
   type PrismaNextSelectFn,
   type PrismaNextSelection,
   type RawSelect,
+  relationArgs,
   rowOf,
   type SplitSelect,
   splitSelect,
@@ -227,8 +232,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // Only a prisma type, which has a model of its own, has a `select`.
     const split = raw && splitSelect(raw, getModel(contract, model));
     if (split) {
-      assertNoVariantRelations(split, getModel(contract, model), typeConfig.name);
-      assertSelectOrders(this.config, split, getModel(contract, model));
+      // A type's rows can load through the base model's collection, which can't read the columns
+      // a variant model with a table of its own inherits.
+      assertRelationEntries(
+        this.config,
+        split,
+        getModel(contract, model),
+        `The select of type '${typeConfig.name}' loads`,
+        () => false,
+      );
     }
     const selects = new Map<string, TypeSelect>();
     for (const iface of interfaceConfigs) {
@@ -303,9 +315,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         `Field '${declaring.name}.${fieldConfig.name}' exposes '${exposed}', which is not a column on model ${model.key}.`,
       );
     }
-    if (select !== undefined && typeof select !== 'function') {
-      assertSelectOrders(this.config, splitSelect(select, model), model);
-    }
     const selection =
       select !== undefined
         ? compileFieldSelect(this.config.contract, select, model)
@@ -326,46 +335,62 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * Rejects a field's static `select` that hands the field rows of a variant model with a table of
-   * its own, as `compileFieldSelect` does for what a select function returns. A field returning an
-   * object type of the relation's model plans the rows through its own selection set instead; an
-   * interface's `resolveType` would read them as they load, without the base model's columns.
-   * Checked on the field's final config, since a plugin that runs later, such as plugin-errors, can
-   * change its type.
+   * Rejects a field that hands rows of a relation targeting a variant model to a type that can't
+   * read them, and checks the columns the relation entries of its static `select` order by. Checked
+   * on the field's final config, since a plugin that runs later, such as plugin-errors, can change
+   * its type.
+   *
+   * The rows of a variant model with a table of its own lack the base model's columns, such as the
+   * discriminator an interface's `resolveType` reads, so only an object type of the relation's
+   * target can take them: it plans them through its own selection set. Sharing the base's table
+   * they have its columns but not its relations, which an interface's `select`s can't load for its
+   * `resolveType`. An object type's fields and auth checks reload what its `select` can't load.
    */
-  private assertRowsReadable(fieldConfig: PothosOutputFieldConfig<Types>) {
-    const { select } = fieldConfig.pothosOptions as { select?: unknown };
-    if (typeof select !== 'object' || select === null) {
-      return;
-    }
-    const modelKey = this.buildCache.getTypeConfig(
-      fieldConfig.declaringType ?? fieldConfig.parentType,
-    ).extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    if (modelKey === undefined) {
-      return;
-    }
+  private assertFieldRows(
+    fieldConfig: PothosOutputFieldConfig<Types>,
+    model: PrismaNextModel,
+    split: SplitSelect | undefined,
+  ) {
     const { contract } = this.config;
-    const model = getModel(contract, modelKey);
-    for (const [name, value] of splitSelect(select as RawSelect, model, PothosSchemaError)
-      .relations) {
-      const relation = model.relations[name]!;
-      if (!loadsOwnTableVariantRows(relation, value)) {
-        continue;
-      }
+    if (split) {
       const returnConfig = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
       const returnModel = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-      if (
-        !returnsRelationRowsAs(
-          relation,
-          returnConfig.kind,
-          returnModel === undefined ? undefined : getModel(contract, returnModel),
-        )
-      ) {
-        throw ownTableVariantRowsError(
-          `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
-          name,
-          relation,
-        );
+      assertRelationEntries(
+        this.config,
+        split,
+        model,
+        `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
+        (relation) =>
+          returnsRelationRowsAs(
+            relation,
+            returnConfig.kind,
+            returnModel === undefined ? undefined : getModel(contract, returnModel),
+          ),
+      );
+    }
+    const rows = fieldConfig.extensions?.[PRISMA_NEXT_RELATION_ROWS] as
+      | { name: string; type: OutputType<Types> }
+      | undefined;
+    const relation = rows && model.relations[rows.name]!;
+    const narrowing =
+      relation && relationArgs(relation, { loadIdentity: undefined, refine: undefined }).variant;
+    const typeConfig = narrowing && this.buildCache.getTypeConfig(rows!.type);
+    if (!relation || !typeConfig || typeConfig.kind === 'Object') {
+      return;
+    }
+    const subject = `Field '${fieldConfig.parentType}.${fieldConfig.name}' returns interface '${typeConfig.name}'`;
+    if (!returnsRelationRowsAs(relation, typeConfig.kind, relation.target)) {
+      throw ownTableVariantRowsError(`${subject} for`, rows.name, relation);
+    }
+    // The rows are read as the interface's `select`s and those of its interfaces load them,
+    // including a value computed over a relation.
+    for (const { name: type, relations, computed } of typeSelects(typeConfig)) {
+      for (const key of [...relations.map(([key]) => key), ...computed.map((c) => c.relation)]) {
+        if (!canInclude(relation.target.relations[key]!, narrowing)) {
+          throw new PothosSchemaError(
+            `${subject}, ${type === typeConfig.name ? 'whose select' : `whose interface '${type}' has a select that`} loads base relation '${key}', for the rows of relation '${rows.name}', which targets variant model '${relation.targetModel}'. Rows loaded through a variant model can't include the base model's relations. Return them as an object type, or read '${key}' in a field.`,
+          );
+        }
       }
     }
   }
@@ -452,8 +477,19 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    this.assertRowsReadable(fieldConfig);
-    const gated = this.gate(resolver, fieldConfig);
+    const modelKey = this.buildCache.getTypeConfig(fieldConfig.parentType).extensions?.[
+      PRISMA_NEXT_MODEL
+    ] as string | undefined;
+    const model = modelKey === undefined ? undefined : getModel(this.config.contract, modelKey);
+    const { select } = fieldConfig.pothosOptions as { select?: unknown };
+    const split =
+      model && typeof select === 'object' && select !== null
+        ? splitSelect(select as RawSelect, model)
+        : undefined;
+    if (model) {
+      this.assertFieldRows(fieldConfig, model, split);
+    }
+    const gated = this.gate(resolver, fieldConfig, modelKey, split);
     const forType = this.resultCopier(fieldConfig);
     if (!forType) {
       return gated;
@@ -470,15 +506,14 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   private gate(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
+    modelKey: string | undefined,
+    split: SplitSelect | undefined,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const extensions = fieldConfig.extensions ?? {};
     const selection = extensions[PRISMA_NEXT_FIELD_SELECTION] as
       | PrismaNextSelection
       | PrismaNextSelectFn
       | undefined;
-    const modelKey = this.buildCache.getTypeConfig(fieldConfig.parentType).extensions?.[
-      PRISMA_NEXT_MODEL
-    ] as string | undefined;
     if (selection === undefined || modelKey === undefined) {
       return resolver;
     }
@@ -489,15 +524,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // and what its own selection names, which any row of the type can hold. A select function
     // reads what the plan that loaded the parent planned for it.
     const columnsOnly = typeof selection !== 'function';
-    const { select } = fieldConfig.pothosOptions as { select?: unknown };
     const needed = columnsOnly
-      ? [
-          ...typeKeys,
-          ...(selection.columns ?? []),
-          ...(typeof select === 'object' && select !== null
-            ? selectedKeys(splitSelect(select as RawSelect, model))
-            : []),
-        ]
+      ? [...typeKeys, ...(selection.columns ?? []), ...(split ? selectedKeys(split) : [])]
       : [];
     const parentTypes = [...mappingParentTypes(this.buildCache, fieldConfig, PRISMA_NEXT_MODEL)];
     const parentFor = (row: object, mapping: Mapping | null | undefined) =>
@@ -689,41 +717,30 @@ async function* copyEach(items: AsyncIterable<unknown>, copy: (item: unknown) =>
 }
 
 /**
- * A type's rows can load through the base model's collection, which can't include a relation only a
- * variant declares, so a type's `select` can't name one.
+ * Checks the relation entries of a static `select`, which `subject` reads: rows of a variant model
+ * with a table of its own load without the columns it inherits, so only a reader `readsRows` accepts
+ * can take them, and the columns each entry orders by.
  */
-function assertNoVariantRelations(
-  { relations }: SplitSelect,
-  model: PrismaNextModel,
-  typeName: string,
-) {
-  for (const [name, value] of relations) {
-    if (loadsOwnTableVariantRows(model.relations[name]!, value)) {
-      throw ownTableVariantRowsError(
-        `The select of type '${typeName}' loads`,
-        name,
-        model.relations[name]!,
-      );
-    }
-  }
-}
-
-/** Checks the columns each relation entry of a static `select` orders by. */
-function assertSelectOrders(
+function assertRelationEntries(
   config: PrismaNextConfig,
   { relations }: SplitSelect,
   model: PrismaNextModel,
+  subject: string,
+  readsRows: (relation: PrismaNextRelation) => boolean,
 ) {
   for (const [name, value] of relations) {
+    const relation = model.relations[name]!;
+    if (loadsOwnTableVariantRows(relation, value) && !readsRows(relation)) {
+      throw ownTableVariantRowsError(subject, name, relation);
+    }
     const orderBy = typeof value === 'object' ? definedQuery(value)?.orderBy : undefined;
     if (orderBy) {
-      const { targetModel } = model.relations[name]!;
       orderColumns(
         config.contract,
-        targetModel,
+        relation.targetModel,
         orderBy,
         PothosSchemaError,
-        orderableProblem(config.context, targetModel),
+        orderableProblem(config.context, relation.targetModel),
       );
     }
   }

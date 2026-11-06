@@ -11,6 +11,8 @@ export const PRISMA_NEXT_TYPE_SELECT = 'pothosPrismaNextTypeSelect';
 export const PRISMA_NEXT_TYPE_SELECTS = 'pothosPrismaNextTypeSelects';
 /** A field's selection as the planner reads it: a static selection or a select function. */
 export const PRISMA_NEXT_FIELD_SELECTION = 'pothosPrismaNextFieldSelection';
+/** The relation a `t.relation` or `t.relatedConnection` field returns rows of, and their type. */
+export const PRISMA_NEXT_RELATION_ROWS = 'pothosPrismaNextRelationRows';
 /** Marks a hierarchy interface that routes rows with the plugin's discriminator `resolveType`. */
 export const PRISMA_NEXT_DISCRIMINATED = 'pothosPrismaNextDiscriminated';
 /** A prisma interface's registry of its implementations' selections, one per schema build. */

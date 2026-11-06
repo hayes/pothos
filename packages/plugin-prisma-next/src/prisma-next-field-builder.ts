@@ -10,7 +10,6 @@ import {
   type ObjectRef,
   type PluginName,
   PothosSchemaError,
-  type PothosTypeConfig,
   RootFieldBuilder,
   type SchemaTypes,
   type ShapeFromTypeParam,
@@ -21,7 +20,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import {
   PRISMA_NEXT_FIELD_SELECTION,
   PRISMA_NEXT_MODEL,
-  PRISMA_NEXT_TYPE_SELECT,
+  PRISMA_NEXT_RELATION_ROWS,
 } from './constants.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
@@ -50,7 +49,7 @@ import type {
   RelationTypeModel,
   ToManyRelationKeys,
 } from './types/relations.js';
-import { canInclude, type MapperCollection } from './utils/adapter.js';
+import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import {
   type ConnectionPlan,
@@ -63,13 +62,7 @@ import {
 import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
 import { buildConnectionPage, orderableProblem } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
-import {
-  getModel,
-  ownTableVariantRowsError,
-  type PrismaNextRelation,
-  returnsRelationRowsAs,
-  sharedVariantRelationError,
-} from './utils/model.js';
+import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { getRefFromContractModel, refFor } from './utils/refs.js';
 import {
   COUNT_SLOT,
@@ -415,12 +408,13 @@ export class PrismaNextObjectFieldBuilder<
           }),
         );
       });
-    const field = this.field({
+    return this.field({
       ...rest,
       type: relation.isToMany ? [targetRef] : targetRef,
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
+        [PRISMA_NEXT_RELATION_ROWS]: { name: relationName, type: targetRef },
       },
       resolve: (parent: object, args: object, context: object, info: GraphQLResolveInfo) =>
         readOwn(this.builder, parent, context, info, relationLoaded, (own) => {
@@ -434,8 +428,7 @@ export class PrismaNextObjectFieldBuilder<
           }
           return rows;
         }),
-    } as never);
-    return this.#assertObjectRows(field, relation, relationName, targetRef) as never;
+    } as never) as never;
   }
 
   /** Exposes the row count of a to-many relation as an `Int`. */
@@ -598,6 +591,7 @@ export class PrismaNextObjectFieldBuilder<
         ...extensions,
         pothosIndirectInclude: include,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
+        [PRISMA_NEXT_RELATION_ROWS]: { name, type: targetRef },
       },
       resolve: (
         parent: object,
@@ -628,72 +622,12 @@ export class PrismaNextObjectFieldBuilder<
           },
         ),
     };
-    const field = (
+    return (
       this as typeof this & {
         connection: (cfg: object, c?: object, e?: object) => FieldRef<SchemaTypes>;
       }
     ).connection(connectionConfig, settings.connectionOptions(connectionOptions), edgeOptions);
-    return this.#assertObjectRows(field, relation, name, targetRef);
   } as never;
-
-  /**
-   * The rows of a relation targeting a variant model load through that model. With a table of its
-   * own they lack the base model's columns, such as the discriminator an interface's `resolveType`
-   * reads, so a field can only return them as an object type. Sharing the base's table they have
-   * its columns but not its relations, which an interface's `select`s can't load for its
-   * `resolveType`. An object type's fields and auth checks reload what its `select` can't load.
-   */
-  #assertObjectRows<
-    T extends { onFirstUse(cb: (config: { parentType: string; name: string }) => void): void },
-  >(field: T, relation: PrismaNextRelation, name: string, targetRef: object): T {
-    const narrowing = relationArgs(relation, {
-      loadIdentity: undefined,
-      refine: undefined,
-    }).variant;
-    if (!narrowing) {
-      return field;
-    }
-    const { configStore } = this.builder;
-    const contract = this.contract as AnyContract;
-    field.onFirstUse((fieldConfig) =>
-      configStore.onTypeConfig(targetRef as never, (typeConfig) => {
-        if (typeConfig.kind === 'Object') {
-          return;
-        }
-        const subject = `Field '${fieldConfig.parentType}.${fieldConfig.name}' returns interface '${typeConfig.name}'`;
-        const model = getModel(contract, typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string);
-        if (!returnsRelationRowsAs(relation, typeConfig.kind, model)) {
-          throw ownTableVariantRowsError(`${subject} for`, name, relation);
-        }
-        // The rows are read as the interface's `select`s and those of its interfaces load them,
-        // including a value computed over a relation.
-        const visited = new Set<string>();
-        const visit = (config: PothosTypeConfig) => {
-          if (visited.has(config.name)) {
-            return;
-          }
-          visited.add(config.name);
-          const raw = config.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
-          const { relations, computed } = raw
-            ? splitSelect(raw, model, PothosSchemaError)
-            : { relations: [], computed: [] };
-          const keys = [...relations.map(([key]) => key), ...computed.map((c) => c.relation)];
-          for (const key of keys) {
-            if (!canInclude(model.relations[key]!, narrowing)) {
-              throw new PothosSchemaError(
-                `${subject}, ${config.name === typeConfig.name ? 'whose select' : `whose interface '${config.name}' has a select that`} loads base relation '${key}', for the rows of relation '${name}', which targets variant model '${relation.targetModel}'. Rows loaded through a variant model can't include the base model's relations. Return them as an object type, or read '${key}' in a field.`,
-              );
-            }
-          }
-          for (const iface of 'interfaces' in config ? config.interfaces : []) {
-            configStore.onTypeConfig(iface as never, visit);
-          }
-        };
-        visit(typeConfig);
-      }),
-    );
-    return field;
-  }
 
   /**
    * The planner's relation, from the root model, which has every variant's relations. Throws for a

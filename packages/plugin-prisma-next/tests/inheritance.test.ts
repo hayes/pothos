@@ -1703,9 +1703,11 @@ describe('a relation targeting a variant model with a table of its own', () => {
             : t.relatedConnection('championed', {}),
       }),
     });
-    builder.queryField('users', (t) =>
-      t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
-    );
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+      }),
+    });
     expect(() => builder.toSchema()).toThrow(
       "Field 'User.championed' returns interface 'Feature' for the rows of relation 'championed', which targets variant model 'Feature' with a table of its own.",
     );
