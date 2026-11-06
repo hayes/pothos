@@ -45,12 +45,16 @@ export {
 
 /**
  * The execution context a client function is passed with, for a schema that is only built. Its
- * codecs are never read.
+ * codecs are never read, and every codec can be ordered.
  */
 export function buildOnlyContext<C extends AnyContract>(
   contract: C,
 ): PrismaNextExecutionContext<C> {
-  return { contract, contractCodecs: { forColumn: () => undefined } };
+  return {
+    contract,
+    contractCodecs: { forColumn: () => undefined },
+    codecDescriptors: { descriptorFor: () => ({ traits: ['order'] }) },
+  };
 }
 
 const collisionContract = loadContract<CollisionContract>(

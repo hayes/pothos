@@ -13,7 +13,11 @@ async function build() {
         throw new Error('not executed');
       },
       // A build-only context, whose codecs are never read.
-      context: { contract: sampleContract, contractCodecs: { forColumn: () => undefined } },
+      context: {
+        contract: sampleContract,
+        contractCodecs: { forColumn: () => undefined },
+        codecDescriptors: { descriptorFor: () => undefined },
+      },
     },
   });
   builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });

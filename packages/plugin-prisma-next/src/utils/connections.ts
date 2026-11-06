@@ -92,7 +92,7 @@ export function connectionSettings(
   modelKey: string,
   { defaultSize, maxSize, totalCount, orderBy, query }: ConnectionSettingsOptions,
 ) {
-  const orderFor = connectionOrder(config.contract, modelKey, orderBy);
+  const orderFor = connectionOrder(config.context, modelKey, orderBy);
   const resolveSize = (option: SizeOption | undefined, args: object, ctx: object) =>
     typeof option === 'function' ? option(args as never, ctx as never) : option;
   /**

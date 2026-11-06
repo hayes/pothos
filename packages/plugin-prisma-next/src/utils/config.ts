@@ -16,6 +16,7 @@ type ExecutionContext = PrismaNextExecutionContext<AnyContract>;
 
 export interface PrismaNextConfig {
   readonly contract: AnyContract;
+  readonly context: ExecutionContext;
   readonly adapter: PrismaNextAdapter;
   readonly defaultConnectionSize: number | undefined;
   readonly maxConnectionSize: number | undefined;
@@ -69,6 +70,7 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
   const loaders = createContextCache((_ctx: object) => new Map<string, ModelLoader>());
   const config: PrismaNextConfig = {
     contract,
+    context,
     adapter: new PrismaNextAdapter(contract, options.skipDeferredFragments ?? true),
     defaultConnectionSize: options.defaultConnectionSize,
     maxConnectionSize: options.maxConnectionSize,

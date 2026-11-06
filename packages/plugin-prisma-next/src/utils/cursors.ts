@@ -11,6 +11,7 @@ import {
 import { and, or } from '@prisma/orm-family-sql/orm-client';
 import type { AnyExpression, OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import type { AnyContract } from '../types/models.js';
+import type { PrismaNextExecutionContext } from '../types/plugin-options.js';
 import type { MapperCollection } from './adapter.js';
 import type { FieldCodecs } from './codecs.js';
 import { resolveContractModel } from './contract.js';
@@ -54,8 +55,6 @@ interface CursorOrder {
 export const cursorColumns = (order: CursorOrder): string[] =>
   order.columns.map(({ field }) => field);
 
-const BYTES_CODEC = /\/(bytea|bytes|blob)@/;
-
 /**
  * Resolves a connection's `orderBy` to the order it pages by. The model's first non-null key of
  * orderable columns is appended in the last column's direction, unless the order covers a key
@@ -63,19 +62,21 @@ const BYTES_CODEC = /\/(bytea|bytes|blob)@/;
  * callback's result for each request, as a computed key escapes the types.
  */
 export function connectionOrder(
-  contract: AnyContract,
+  context: PrismaNextExecutionContext<AnyContract>,
   modelKey: string,
   orderBy: OrderByDecl | ((args: never, ctx: never) => OrderByDecl | undefined) | undefined,
 ): (args: object, ctx: object) => CursorOrder {
+  const { contract } = context;
   const model = resolveContractModel(contract, modelKey)!;
   const problem = (field: string) => {
     const type = model.fields[field]?.type as { codecId?: string } | undefined;
     if (!type) {
       return `'${modelKey}.${field}' is not a field of the model`;
     }
-    return type.codecId && BYTES_CODEC.test(type.codecId)
-      ? `'${modelKey}.${field}' is a bytes column, which the ORM can't order`
-      : truncatedDateProblem(contract, modelKey, field);
+    return type.codecId &&
+      context.codecDescriptors.descriptorFor(type.codecId)?.traits.includes('order')
+      ? truncatedDateProblem(contract, modelKey, field)
+      : `'${modelKey}.${field}', whose codec the ORM can't order`;
   };
   const keys = getModelIdentities(contract, modelKey) ?? [];
   const key = keys.find((columns) => columns.every((field) => !problem(field)));

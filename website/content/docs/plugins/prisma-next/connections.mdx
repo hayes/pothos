@@ -70,7 +70,7 @@ To let clients choose the order, pass a function of the arguments:
 Cursors contain the values of the order columns, readable by clients, so don't order by columns
 clients shouldn't see.
 
-- Bytes columns can't be ordered.
+- Columns the ORM can't order, such as bytes, can't be in the order.
 - On PostgreSQL, a timestamp read as a JavaScript `Date` keeps only milliseconds, so you can't
   order by one with a precision above 3. Bare `DateTime` is fine; use `TimestamptzTemporal` for
   finer timestamps.

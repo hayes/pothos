@@ -31,6 +31,9 @@ export interface PrismaNextExecutionContext<TContract extends AnyContract> {
   readonly contractCodecs: {
     forColumn(namespaceId: string, table: string, column: string): unknown;
   };
+  readonly codecDescriptors: {
+    descriptorFor(codecId: string): { readonly traits: readonly string[] } | undefined;
+  };
 }
 
 /** The parts of a Prisma ORM client the plugin reads. */

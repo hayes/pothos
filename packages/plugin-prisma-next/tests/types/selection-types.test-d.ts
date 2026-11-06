@@ -8,6 +8,7 @@ import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type CollectionFor,
   type ModelKey,
+  type PrismaNextExecutionContext,
   prismaConnectionHelpers,
   type Row,
 } from '../../src';
@@ -767,8 +768,7 @@ withInput.queryType({
 // client: the client itself, or a function of the request context that returns one (such as a
 // transaction) beside the execution context of the client it comes from.
 type Context = { db: typeof db; tenantId: string };
-declare const db: { orm: typeof orm; context: { contract: Contract; contractCodecs: Codecs } };
-type Codecs = { forColumn(namespaceId: string, table: string, column: string): unknown };
+declare const db: { orm: typeof orm; context: PrismaNextExecutionContext<Contract> };
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [prismaNextPlugin],
   prismaNext: { client: db },

@@ -1,17 +1,20 @@
-import { readFileSync } from 'node:fs';
 import SchemaBuilder, { PothosSchemaError } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
+import postgres from '@prisma/orm-postgres/runtime';
 import { type GraphQLObjectType, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin, { type AnyContract, prismaConnectionHelpers } from '../src';
 import {
   buildOnlyContext,
   createBuilder,
+  loadPostgresContract,
+  postgresUrl,
   run,
   sampleContract,
   useSampleDb,
 } from './fixtures/helpers';
 import { junctionContract } from './fixtures/junction';
+import type { Contract as PostgresContract } from './postgres/contract';
 
 const db = useSampleDb();
 const ok = (builder: ReturnType<typeof createBuilder>) =>
@@ -382,17 +385,26 @@ describe('options validated when the schema is built', () => {
     }
   });
 
-  it('rejects a bytes cursor column', () => {
-    const contract = JSON.parse(
-      readFileSync(new URL('./postgres/contract.json', import.meta.url), 'utf8'),
-    ) as AnyContract;
-    const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
+  it('rejects a cursor column whose codec the ORM cannot order', () => {
+    // The client connects on its first query, so building needs no database.
+    const { context } = postgres({
+      contract: loadPostgresContract<PostgresContract>(
+        new URL('./postgres/contract.json', import.meta.url),
+      ),
+      url: postgresUrl,
+    });
+    const builder = new SchemaBuilder<{ PrismaNextContract: PostgresContract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
       relay: {},
-      prismaNext: { client: noClient, context: buildOnlyContext(contract) },
+      prismaNext: { client: noClient, context },
     });
     expect(() =>
-      prismaConnectionHelpers(builder, 'Entry' as never, { orderBy: { payload: 'asc' } as never }),
-    ).toThrow(/'Entry\.payload'.*bytes/);
+      prismaConnectionHelpers(builder, 'Entry', { orderBy: { payload: 'asc' } as never }),
+    ).toThrow(
+      "Connection orderBy can't order by 'Entry.payload', whose codec the ORM can't order.",
+    );
+    expect(() =>
+      prismaConnectionHelpers(builder, 'Entry', { orderBy: { id: 'asc' } }),
+    ).not.toThrow();
   });
 });
