@@ -187,26 +187,90 @@ type ModelTable<C extends AnyContract, M extends string> =
       : never
     : never;
 
-/** The fields mapped to a model's primary key columns, or `never` when its table has none. */
-type PrimaryKeyFields<C extends AnyContract, M extends string> =
-  ModelTable<C, M> extends {
-    readonly table: {
-      readonly primaryKey: { readonly columns: infer Columns extends readonly string[] };
-    };
-    readonly storageFields: infer Storage;
-  }
-    ? {
-        [F in keyof Storage]: Storage[F] extends { readonly column: Columns[number] } ? F : never;
-      }[keyof Storage] &
-        string
+/** The non-null field mapped to a storage column, or `never` when there is none. */
+type NonNullFieldOf<T, Column> = T extends {
+  readonly fields: infer Fields;
+  readonly storageFields: infer Storage;
+}
+  ? {
+      [F in keyof Storage]: Storage[F] extends { readonly column: Column }
+        ? F extends keyof Fields
+          ? Fields[F] extends { readonly nullable: false }
+            ? F
+            : never
+          : never
+        : never;
+    }[keyof Storage] &
+      string
+  : never;
+
+/** A key's fields, or `never` when it has none or a column has no non-null field. */
+type KeyFields<T, Columns, Fields extends string = never> = Columns extends readonly [
+  infer Column,
+  ...infer Rest,
+]
+  ? NonNullFieldOf<T, Column> extends infer Field extends string
+    ? [Field] extends [never]
+      ? never
+      : KeyFields<T, Rest, Fields | Field>
+    : never
+  : Fields;
+
+/**
+ * The fields of the first key in `Keys` whose columns all map to non-null fields. An index is a key
+ * when it is unique and not partial.
+ */
+type FirstKeyFields<T, Keys> = Keys extends readonly [infer Key, ...infer Rest]
+  ? (
+      Key extends { readonly unique: boolean }
+        ? Key extends { readonly unique: true; readonly columns: infer Columns }
+          ? Key extends { readonly where: {} }
+            ? never
+            : KeyFields<T, Columns>
+          : never
+        : Key extends { readonly columns: infer Columns }
+          ? KeyFields<T, Columns>
+          : never
+    ) extends infer F
+    ? [F] extends [never]
+      ? FirstKeyFields<T, Rest>
+      : F
+    : never
+  : never;
+
+/**
+ * A model's identity, as `getModelIdentities` picks it: the fields of its first key whose columns
+ * all map to non-null fields, trying the primary key, then unique constraints, then unique indexes.
+ * `never` when it has none.
+ */
+type ModelIdentityFields<C extends AnyContract, M extends string> =
+  ModelTable<C, M> extends infer T extends { readonly table: unknown }
+    ? FirstKeyFields<
+        T,
+        T['table'] extends { readonly primaryKey: infer Key } ? [Key] : []
+      > extends infer Primary
+      ? [Primary] extends [never]
+        ? FirstKeyFields<
+            T,
+            T['table'] extends { readonly uniques: infer Uniques } ? Uniques : []
+          > extends infer Unique
+          ? [Unique] extends [never]
+            ? FirstKeyFields<
+                T,
+                T['table'] extends { readonly indexes: infer Indexes } ? Indexes : []
+              >
+            : Unique
+          : never
+        : Primary
+      : never
     : never;
 
 /** The key the loader reloads a model's rows by. A variant shares its base's key. */
 export type IdentityFields<Types extends SchemaTypes, M extends ModelKey<Types>> = [
-  PrimaryKeyFields<Types['PrismaNextContract'], M>,
+  ModelIdentityFields<Types['PrismaNextContract'], M>,
 ] extends [never]
-  ? PrimaryKeyFields<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>
-  : PrimaryKeyFields<Types['PrismaNextContract'], M>;
+  ? ModelIdentityFields<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>
+  : ModelIdentityFields<Types['PrismaNextContract'], M>;
 
 /** A model's table, as its namespace and name. */
 type StorageTable<C extends AnyContract, M extends string> =

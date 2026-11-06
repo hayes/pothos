@@ -19,7 +19,7 @@ import type {
 } from '@prisma/orm-framework/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'6668d474b87dc151d4ec9ccbea13f5c44764dfe99dabbc0f88f4fccee5c8fc9e'>;
+  StorageHashBase<'f95ca03fbda41c7b0240f65f72b83be0adc3d804b56860c908309819facde383'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'260b8608d1aacaf1f690779a6cff39a12947c599597c5ba464ca75b9e775df53'>;
@@ -203,6 +203,12 @@ export namespace Models {
     rows: Row[];
     readonly [RelationKeys]?: 'notes' | 'rows';
   };
+  export type Tag = {
+    code: FieldOutputTypes['__unbound__']['Tag']['code'];
+    label: FieldOutputTypes['__unbound__']['Tag']['label'];
+    name: FieldOutputTypes['__unbound__']['Tag']['name'];
+    readonly [RelationKeys]?: never;
+  };
 }
 
 export declare const models: {
@@ -211,6 +217,7 @@ export declare const models: {
   Profile: Models.Profile;
   Row: Models.Row;
   Sheet: Models.Sheet;
+  Tag: Models.Tag;
 };
 
 export type TypeMaps = TypeMapsType<
@@ -414,6 +421,34 @@ type ContractBase = Omit<
               indexes: readonly [];
               foreignKeys: readonly [];
             };
+            readonly tag: {
+              columns: {
+                readonly code: {
+                  readonly dataType: 'sqlite/text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly label: {
+                  readonly dataType: 'sqlite/text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
+                readonly name: {
+                  readonly dataType: 'sqlite/text';
+                  readonly codecId: 'sqlite/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              uniques: readonly [
+                { readonly columns: readonly ['label'] },
+                { readonly columns: readonly ['code'] },
+              ];
+              indexes: readonly [];
+              foreignKeys: readonly [];
+            };
           };
         };
       };
@@ -433,6 +468,7 @@ type ContractBase = Omit<
     };
     readonly row: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'Row' };
     readonly sheet: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'Sheet' };
+    readonly tag: { readonly namespace: '__unbound__' & NamespaceId; readonly model: 'Tag' };
   };
   readonly domain: {
     readonly namespaces: {
@@ -638,6 +674,32 @@ type ContractBase = Omit<
                 readonly meta: { readonly column: 'meta' };
                 readonly name: { readonly column: 'name' };
                 readonly role: { readonly column: 'role' };
+              };
+            };
+          };
+          readonly Tag: {
+            readonly fields: {
+              readonly code: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+              readonly label: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+              readonly name: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'sqlite/text@1' };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'tag';
+              readonly namespaceId: '__unbound__';
+              readonly fields: {
+                readonly code: { readonly column: 'code' };
+                readonly label: { readonly column: 'label' };
+                readonly name: { readonly column: 'name' };
               };
             };
           };

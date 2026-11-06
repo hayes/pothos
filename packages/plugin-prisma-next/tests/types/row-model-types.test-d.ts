@@ -2,12 +2,15 @@
 // instantiations of a type alias by their arguments when it can, so a row alias whose model it
 // measures as unused would accept any model's row.
 import SchemaBuilder from '@pothos/core';
+import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type CollectionFor,
+  type IdentityFields,
   type OwnRow,
   type PrismaNextObjectRef,
   type Row,
 } from '../../src';
+import type { Contract as CollisionContract } from '../fixtures/collision-contract';
 import type { Contract } from '../fixtures/sample-contract';
 
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
@@ -65,3 +68,29 @@ PostView.addBrand(postViewRow);
 // @ts-expect-error a User row lacks a Post's columns
 export const inferred: typeof PostRef.$inferType = user;
 export const inferredPost: typeof PostRef.$inferType = post;
+
+// A table without a primary key is identified by its first non-null unique key. Tag's `label` is
+// unique but nullable, so `code` is its key.
+type CollisionTypes = PothosSchemaTypes.ExtendDefaultTypes<{
+  PrismaNextContract: CollisionContract;
+}>;
+expectTypeOf<IdentityFields<CollisionTypes, 'Tag'>>().toEqualTypeOf<'code'>();
+expectTypeOf<IdentityFields<CollisionTypes, 'Note'>>().toEqualTypeOf<'id'>();
+expectTypeOf<IdentityFields<Types, 'PostView'>>().toBeNever();
+
+const collision = new SchemaBuilder<{ PrismaNextContract: CollisionContract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: null as never },
+});
+const TagRef = collision.prismaObject('Tag', {
+  select: ['name'],
+  fields: (t) => ({ name: t.exposeString('name') }),
+});
+collision.queryType({
+  fields: (t) => ({
+    // A row needs its key and the type's select, not the whole row.
+    tag: t.field({ type: TagRef, resolve: () => ({ code: 'c', name: 'n' }) }),
+    // @ts-expect-error a row without its key can't be reloaded
+    keyless: t.field({ type: TagRef, resolve: () => ({ label: 'l', name: 'n' }) }),
+  }),
+});

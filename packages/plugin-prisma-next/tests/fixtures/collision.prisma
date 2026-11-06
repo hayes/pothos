@@ -39,3 +39,10 @@ model Profile {
   owner Owner @relation(fields: [ownerId], references: [id])
   @@map("profile")
 }
+
+model Tag {
+  label String? @unique
+  code String @unique
+  name String
+  @@map("tag")
+}

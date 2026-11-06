@@ -23,6 +23,10 @@
     "sheet": {
       "model": "Sheet",
       "namespace": "__unbound__"
+    },
+    "tag": {
+      "model": "Tag",
+      "namespace": "__unbound__"
     }
   },
   "domain": {
@@ -332,6 +336,47 @@
               "namespaceId": "__unbound__",
               "table": "sheet"
             }
+          },
+          "Tag": {
+            "fields": {
+              "code": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "label": {
+                "nullable": true,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "name": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sqlite/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "code": {
+                  "column": "code"
+                },
+                "label": {
+                  "column": "label"
+                },
+                "name": {
+                  "column": "name"
+                }
+              },
+              "namespaceId": "__unbound__",
+              "table": "tag"
+            }
           }
         }
       }
@@ -568,13 +613,46 @@
                 ]
               },
               "uniques": []
+            },
+            "tag": {
+              "columns": {
+                "code": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": false
+                },
+                "label": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": true
+                },
+                "name": {
+                  "codecId": "sqlite/text@1",
+                  "dataType": "sqlite/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "uniques": [
+                {
+                  "columns": [
+                    "label"
+                  ]
+                },
+                {
+                  "columns": [
+                    "code"
+                  ]
+                }
+              ]
             }
           }
         },
         "id": "__unbound__"
       }
     },
-    "storageHash": "6668d474b87dc151d4ec9ccbea13f5c44764dfe99dabbc0f88f4fccee5c8fc9e"
+    "storageHash": "f95ca03fbda41c7b0240f65f72b83be0adc3d804b56860c908309819facde383"
   },
   "capabilities": {
     "sql": {
