@@ -127,8 +127,16 @@ export function getModelIdentities(
   return identities;
 }
 
-/** Postgres timestamps read as a JavaScript `Date`, which holds milliseconds. */
-const DATE_TIMESTAMP_CODECS = new Set(['pg/timestamptz-date@1', 'pg/timestamp-date@1']);
+/**
+ * Timestamp codecs that read as a JavaScript `Date`, which holds milliseconds, with the precision
+ * a column has when the contract leaves it out. Codecs don't expose the type they read as, so
+ * these are listed by id. A bare MySQL `datetime` has whole seconds.
+ */
+const DATE_CODEC_DEFAULT_PRECISION = new Map([
+  ['pg/timestamptz-date@1', 6],
+  ['pg/timestamp-date@1', 6],
+  ['mysql/datetime@1', 0],
+]);
 
 /**
  * Why a field's values can't place a row in a cursor or node ID, if they can't: a timestamp finer
@@ -142,10 +150,9 @@ export function truncatedDateProblem(
   const type = resolveContractModel(contract, modelKey)?.fields[field]?.type as
     | { codecId?: string; typeParams?: { precision?: number } }
     | undefined;
-  return type?.codecId &&
-    DATE_TIMESTAMP_CODECS.has(type.codecId) &&
-    !((type.typeParams?.precision ?? 6) <= 3)
-    ? `'${modelKey}.${field}' is a timestamp finer than milliseconds read as a JavaScript Date, which drops the rest. Declare it as TimestamptzTemporal, or with a precision of 3 or less`
+  const defaultPrecision = DATE_CODEC_DEFAULT_PRECISION.get(type?.codecId ?? '');
+  return defaultPrecision !== undefined && (type?.typeParams?.precision ?? defaultPrecision) > 3
+    ? `'${modelKey}.${field}' is a timestamp finer than milliseconds read as a JavaScript Date, which drops the rest. Declare it with a precision of 3 or less, or with a codec that reads a Temporal value, such as TimestamptzTemporal`
     : undefined;
 }
 

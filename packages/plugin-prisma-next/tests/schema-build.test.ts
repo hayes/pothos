@@ -344,16 +344,20 @@ describe('options validated when the schema is built', () => {
     );
   });
 
-  // Postgres `DateTime` is `timestamptz(3)`, which a JavaScript Date holds exactly.
+  // Postgres `DateTime` is `timestamptz(3)`, which a JavaScript Date holds exactly. A bare MySQL
+  // `datetime` has whole seconds.
   it.each([
-    [undefined, true],
-    [6, true],
-    [3, false],
-  ])('pages and identifies by a Date timestamp of precision %s only when it holds the value: %s', (precision, rejected) => {
+    ['pg/timestamptz-date@1', undefined, true],
+    ['pg/timestamptz-date@1', 6, true],
+    ['pg/timestamptz-date@1', 3, false],
+    ['mysql/datetime@1', undefined, false],
+    ['mysql/datetime@1', 3, false],
+    ['mysql/datetime@1', 6, true],
+  ])('pages and identifies by %s of precision %s only when a Date holds it: rejected %s', (codecId, precision, rejected) => {
     const contract = structuredClone(sampleContract);
     Object.assign(contract.domain.namespaces.__unbound__.models.Post.fields.createdAt, {
       type: {
-        codecId: 'pg/timestamptz-date@1',
+        codecId,
         kind: 'scalar',
         ...(precision === undefined ? {} : { typeParams: { precision } }),
       },
