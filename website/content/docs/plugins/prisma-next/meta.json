@@ -5,6 +5,7 @@
     "setup",
     "objects",
     "relations",
+    "indirect-relations",
     "connections",
     "interfaces",
     "relay",

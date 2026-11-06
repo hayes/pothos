@@ -1,0 +1,88 @@
+---
+title: Indirect relations
+description: Loading relations for fields that aren't t.relation
+---
+
+A field's `select` function gets a third argument, `nestedSelection`. Use it as a relation's entry,
+and the relation's rows load with what the query selects on the field's type, in the parent's
+query:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    publishedPosts: t.field({
+      type: [Post],
+      select: (args, ctx, nestedSelection) => ({
+        posts: nestedSelection({ where: { published: 1 } }),
+      }),
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
+Without it, `{ posts: true }` loads each post's columns but nothing the query selects beneath the
+field, such as `author`, which then loads separately.
+
+`nestedSelection` takes three optional arguments:
+
+- `query`: what a relation's [`query`](./relations#filtering-and-sorting) takes. A to-one relation
+  takes none.
+- `path`: a field nested under the field's type to read the selection from.
+- `type`: the type to read the selection as, when the field returns an interface or union.
+
+The rows hold the primary key and what the selection loads, not every column.
+
+## Selecting fields from a nested GraphQL field
+
+When the field returns a type without a model, pass the `path` of a field beneath it that returns
+the model's type:
+
+```ts
+const PostPreview = builder.objectRef<typeof Post.$inferType>('PostPreview').implement({
+  fields: (t) => ({
+    post: t.field({ type: Post, resolve: (post) => post }),
+  }),
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    postPreviews: t.field({
+      type: [PostPreview],
+      select: (args, ctx, nestedSelection) => ({
+        // What the query selects under `postPreviews.post`, for the 2 newest posts
+        posts: nestedSelection({ orderBy: { createdAt: 'desc' }, limit: 2 }, ['post']),
+      }),
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
+## Selecting as a specific type
+
+When the field returns an interface or union, `type` names the object type to read the selection
+as. Fragments on other types are left out:
+
+```ts
+// Activity is a union of Post and Comment
+builder.prismaObject('User', {
+  fields: (t) => ({
+    recentActivity: t.field({
+      type: [Activity],
+      select: (args, ctx, nestedSelection) => ({
+        posts: nestedSelection({ limit: 5 }, [], 'Post'),
+        comments: nestedSelection({ limit: 5 }, [], 'Comment'),
+      }),
+      resolve: (user) => [...user.posts, ...user.comments],
+    }),
+  }),
+});
+```
+
+## Join models
+
+A relation defined with `rel.manyToMany` loads through its junction table, so `nestedSelection` and
+`t.relation` work on it like any to-many relation. A `select` can't load a relation of a join
+model's rows, so to go through a join model, expose the join model as a type with a `t.relation`
+to its target.

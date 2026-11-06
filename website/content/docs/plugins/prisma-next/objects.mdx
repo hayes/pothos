@@ -98,6 +98,9 @@ email: t.string({
 
 With `AsyncSelections: true` in the builder's types, the function can be async.
 
+Its third argument, `nestedSelection`, loads a relation's rows for a field that returns them. See
+[Indirect relations](./indirect-relations).
+
 `select`, `query` and `where` callbacks run once when the plugin builds the query, not once per
 row, so keep them free of side effects.
 
