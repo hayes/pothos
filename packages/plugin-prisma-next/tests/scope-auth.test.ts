@@ -1618,7 +1618,7 @@ describe('a key an interface and its implementation both compute', () => {
     ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
     ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
   ] as const)('scope auth %s the prisma plugin', (_name, plugins) => {
-    it('fails every field of the type, whatever the values', async () => {
+    it('fails the field loading the type, whatever the values', async () => {
       const builder = new SchemaBuilder<{
         PrismaNextContract: SampleContract;
         AuthScopes: { ok: boolean };
@@ -1650,10 +1650,8 @@ describe('a key an interface and its implementation both compute', () => {
       });
       // Alice has two posts, one published, and Bob one of each, so both counts differ.
       const result = await runCaptured(builder.toSchema(), '{ users { id email } }');
-      expect(result.data.users).toEqual([
-        { id: null, email: null },
-        { id: null, email: null },
-      ]);
+      // Checked as the statement is built, before any row loads.
+      expect(result.data).toEqual({ users: null });
       expect(new Set(result.errors?.map((error) => detailOf(error)))).toEqual(
         new Set([
           "'Limited' and 'User' both compute 'total' from relation 'posts' in their select. A " +

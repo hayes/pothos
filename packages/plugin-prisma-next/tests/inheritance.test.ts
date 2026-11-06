@@ -1423,8 +1423,9 @@ describe('a relation targeting a variant model with a table of its own', () => {
       expect(result.data.noteFeatures.edges).toEqual([
         { node: { __typename: 'Feature', ...feature } },
       ]);
-      // The nodes, which read only the feature table, then the reloads of the fields reading Task.
-      expect(result.statements).toHaveLength(3);
+      // The nodes, which read only the feature table, then one batch reloading them for the fields
+      // reading Task.
+      expect(result.statements).toHaveLength(2);
     });
 
     it("loads the base columns of a variant's nodes paged without info", async () => {
@@ -1443,8 +1444,9 @@ describe('a relation targeting a variant model with a table of its own', () => {
       );
       expect(result.errors).toBeUndefined();
       expect(result.data.features).toEqual([{ noteFeatures: { edges: [{ node: feature }] } }]);
-      // The nodes, which read only the feature table, then the reloads of the fields reading Task.
-      expect(result.statements).toHaveLength(3);
+      // The nodes, which read only the feature table, then one batch reloading them for the fields
+      // reading Task.
+      expect(result.statements).toHaveLength(2);
     });
   });
 

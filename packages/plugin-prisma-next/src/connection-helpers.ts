@@ -54,13 +54,13 @@ import {
   CONNECTION_PAGE,
   COUNT_SLOT,
   EMPTY,
+  fieldBranch,
+  fieldValue,
   NODE_SELECTION,
   type PlanPage,
   type PrismaNextSelection,
   relationArgs,
-  slotsOfFieldParent,
   splitSelect,
-  takeSlots,
 } from './utils/selections.js';
 
 type ConnectionArgs<Args extends InputFieldMap> = InputShapeFromFields<Args> &
@@ -383,7 +383,7 @@ export function prismaConnectionHelpers<
   // Each selection of a field that loads `page`, as planned once for every parent row: the plan,
   // and the relation the page is of, whose slot holds its count.
   const pages = new WeakMap<Position, { planned: ConnectionPlan; name: string }>();
-  const planPage: PlanPage = (relation, name, { scope, args, ctx, nested, selected, position }) => {
+  const planPage: PlanPage = (relation, name, { id, args, ctx, nested, selected, position }) => {
     const planned = settings.plan(args, ctx);
     pages.set(position, { planned, name });
     const nodeType = connectionNodeType(position.field.type);
@@ -391,7 +391,7 @@ export function prismaConnectionHelpers<
     // The rows load unless the count alone is selected, whose page then has none: the relation is
     // always an array. A field that isn't a connection, or selects only `__typename`, loads them.
     const loadsRows = needsRows || count !== 'aggregate';
-    return pageSelection(relation, name, scope, {
+    return pageSelection(relation, name, id, {
       plan: planned,
       args,
       identity: { source: planPage, args, order: planned.order },
@@ -469,13 +469,7 @@ export function prismaConnectionHelpers<
         return totalCountPromise;
       },
       wrap: (loaded: readonly Record<string, unknown>[], totalCount?: number) =>
-        toPage(
-          takeSlots(loaded, model, config.adapter.recordOf(paginated)),
-          planned,
-          args,
-          totalCount,
-          undefined,
-        ),
+        toPage(loaded, planned, args, totalCount, undefined),
     });
     return completeValue(rows, withCollection);
   };
@@ -496,12 +490,12 @@ export function prismaConnectionHelpers<
       ctx: object,
       parent: object,
     ) {
-      // The parent the field's resolver got holds the page's slots. Any other plans again, and has
+      // The parent the field's resolver got holds the page's branch. Any other plans again, and has
       // no count.
-      const slots = slotsOfFieldParent(parent);
-      const page = slots?.position && pages.get(slots.position);
+      const branch = fieldBranch(parent);
+      const page = branch && pages.get(branch.position);
       const planned = page ? page.planned : settings.plan(args, ctx);
-      const totalCount = page && (slots.value(page.name, COUNT_SLOT) as number | undefined);
+      const totalCount = page && (fieldValue(parent, page.name, COUNT_SLOT) as number | undefined);
       return toPage(rows, planned, args, totalCount, parent);
     },
     applyPagination: (

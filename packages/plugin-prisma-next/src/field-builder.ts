@@ -21,7 +21,6 @@ import { applyCursorPagination, buildConnectionPage, cursorColumns } from './uti
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
 import { type AnyRef, refFor } from './utils/refs.js';
-import { takeSlots } from './utils/selections.js';
 
 interface PrismaFieldOptions {
   type: string | AnyRef | [string | AnyRef];
@@ -61,11 +60,7 @@ function prismaFieldConfig(
         config,
         context,
       )) as Executable;
-      const rows = takeSlots(
-        await (isList ? applied : (applied.limit(1) as Executable)).all(),
-        model,
-        config.adapter.recordOf(applied),
-      );
+      const rows = await (isList ? applied : (applied.limit(1) as Executable)).all();
       return isList ? rows : (rows[0] ?? null);
     },
   };
@@ -167,12 +162,8 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
                 paths: CONNECTION_NODE_PATHS,
                 seed: { columns: cursorColumns(planned.order) },
               }),
-            ).then(async (applied) =>
-              takeSlots(
-                await (applied as unknown as { all(): Promise<Record<string, unknown>[]> }).all(),
-                model,
-                config.adapter.recordOf(applied),
-              ),
+            ).then((applied) =>
+              (applied as unknown as { all(): Promise<Record<string, unknown>[]> }).all(),
             )
           : Promise.resolve([]);
 

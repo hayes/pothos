@@ -346,7 +346,8 @@ describe('provenance', () => {
       one: [{ author: { count: 1 } }, { author: { count: 1 } }],
       zero: [{ author: { count: 0 } }, { author: { count: 0 } }],
     });
-    expect(result.statements).toHaveLength(2);
+    // Each definition is a consumer of its own, so one batch reloads both.
+    expect(result.statements).toHaveLength(1);
   });
 
   it('batches function selections with different args per connection path', async () => {

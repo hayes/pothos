@@ -1,13 +1,13 @@
-import { completeValue, isThenable, type MaybePromise } from '@pothos/core';
+import { completeValue, type MaybePromise } from '@pothos/core';
 import { type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import { PRISMA_NEXT_CONFIG } from '../constants.js';
 import type { PlannedCollection } from '../types/collections.js';
-import type { MapperCollection, PrismaNextAdapter, PrismaNextPlan } from './adapter.js';
+import type { MapperCollection, PrismaNextPlan } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
 import { assertGraphQLJsInfo } from './errors.js';
 import type { PrismaNextModel } from './model.js';
-import { EMPTY, type IncludeRecord, type PrismaNextSelection, takeSlots } from './selections.js';
+import { EMPTY, type PrismaNextSelection, registerPlanRoots } from './selections.js';
 
 interface PlanTarget {
   /** Paths to the selection from the field's return type (`[['edges', 'node'], ['nodes']]`). */
@@ -36,6 +36,7 @@ export function planSelection(
   initial: PrismaNextSelection,
 ): MaybePromise<{ selection: PrismaNextSelection; model: PrismaNextModel } | undefined> {
   assertGraphQLJsInfo(info);
+  registerPlanRoots(info);
   const plan = Plan.fromInfo(config.adapter, { context, info, ...target, initial });
   return (
     plan &&
@@ -109,11 +110,14 @@ export async function collectionFromInfo<C extends object>({
     target,
     initialSelection(mapper, EMPTY),
   );
+  // The rows it returns are handed on as they are: the field returning them copies each for its
+  // type.
   return planned
-    ? (takingSlots(
-        config.adapter.emit(mapper, planned.selection, planned.model, context),
+    ? (config.adapter.emit(
+        mapper,
+        planned.selection,
         planned.model,
-        config.adapter,
+        context,
       ) as unknown as PlannedCollection<C>)
     : (collection as PlannedCollection<C>);
 }
@@ -130,69 +134,4 @@ function configFor(schema: GraphQLSchema): PrismaNextConfig {
     schemaConfigs.set(schema, config!);
   }
   return config!;
-}
-
-/**
- * A planned collection whose reads and writes return rows with their `combine()` slots taken off,
- * as the plugin's own fields return them. A method returning another collection returns it planned
- * too. Methods run on the collection itself, so they can read its private fields.
- */
-function takingSlots<T extends object>(
-  collection: T,
-  model: PrismaNextModel,
-  adapter: PrismaNextAdapter,
-  record = adapter.recordOf(collection),
-): T {
-  const planned =
-    (method: (...args: unknown[]) => unknown) =>
-    (...args: unknown[]) =>
-      withSlotsTaken(method.apply(collection, args), model, adapter, record);
-  return new Proxy(collection, {
-    get(target, key) {
-      const value: unknown = Reflect.get(target, key, target);
-      if (key === 'using') {
-        // orm-client's contributed collection methods, which return the collection they're read from.
-        return Object.fromEntries(
-          Object.entries(value as Record<string, (...args: unknown[]) => unknown>).map(
-            ([name, method]) => [name, planned(method)],
-          ),
-        );
-      }
-      return typeof value === 'function'
-        ? planned(value as (...args: unknown[]) => unknown)
-        : value;
-    },
-  });
-}
-
-/** What a planned collection's method returns, with the slots taken off the rows it loads. */
-function withSlotsTaken(
-  result: unknown,
-  model: PrismaNextModel,
-  adapter: PrismaNextAdapter,
-  record: IncludeRecord | undefined,
-): unknown {
-  if (result === null || typeof result !== 'object') {
-    return result;
-  }
-  if (Symbol.asyncIterator in result) {
-    // orm-client's `AsyncIterableResult`, rebuilt from the rows with their slots taken off, so it
-    // can still be iterated as well as awaited.
-    const Result = result.constructor as new (rows: AsyncGenerator<unknown>) => unknown;
-    return new Result(takeSlotsEach(result as AsyncIterable<unknown>, model, record));
-  }
-  if (isThenable(result)) {
-    return Promise.resolve(result).then((rows) => takeSlots(rows, model, record));
-  }
-  return 'include' in result ? takingSlots(result, model, adapter, record) : result;
-}
-
-async function* takeSlotsEach(
-  rows: AsyncIterable<unknown>,
-  model: PrismaNextModel,
-  record: IncludeRecord | undefined,
-) {
-  for await (const row of rows) {
-    yield takeSlots(row, model, record);
-  }
 }

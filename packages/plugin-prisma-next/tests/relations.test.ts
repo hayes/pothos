@@ -994,19 +994,18 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
     return builder.toSchema();
   }
 
-  // A copy is a parent the plugin didn't load, so the fields that read its slots reload it. The
-  // counts are those of 6aeb30660, before copies were recognized.
+  // A copy keeps the row's combined values under their symbol, so nothing reloads.
   it.each([
-    ['{ users { posts { id } } }', 2, 2],
-    ['{ users { posts { author { id } } } }', 3, 3],
-    ['{ users { posts { author { posts { author { posts { id } } } } } } }', 6, 6],
-    ['{ users { posts { comments { id } author { id } } } }', 3, 3],
+    ['{ users { posts { id } } }', 1, 1],
+    ['{ users { posts { author { id } } } }', 1, 1],
+    ['{ users { posts { author { posts { author { posts { id } } } } } } }', 1, 1],
+    ['{ users { posts { comments { id } author { id } } } }', 1, 1],
     [
       '{ users { comments { id } published { id comments { id } author { id } } postCount titles } }',
-      3,
-      3,
+      1,
+      1,
     ],
-    ['{ users { published { id } postCount titles } }', 2, 2],
+    ['{ users { published { id } postCount titles } }', 1, 1],
   ] as const)('resolves a copied parent as the row: %s', async (query, before, after) => {
     const expected = await run(schema('none'), query);
     expect(expected.errors).toBeUndefined();

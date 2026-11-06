@@ -246,6 +246,6 @@ describe('collectionFromInfo', () => {
     // The ORM's update reads the key, writes, and reads the row back with the selection. Nothing is
     // loaded again for the payload's fields.
     expect(result.statements).toHaveLength(3);
-    expect(result.statements[2]!.sql).toContain('Mutation.renameUser/User.drafts');
+    expect(result.statements[2]!.sql).toContain('__combine__');
   });
 });

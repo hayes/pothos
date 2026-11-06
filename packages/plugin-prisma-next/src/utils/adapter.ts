@@ -12,6 +12,7 @@ import {
   type GraphQLNamedType,
   type GraphQLSchema,
   isInterfaceType,
+  isObjectType,
 } from 'graphql';
 import {
   PRISMA_NEXT_FIELD_SELECTION,
@@ -20,6 +21,7 @@ import {
   PRISMA_NEXT_TYPE_SELECT,
 } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
+import { InternalError } from './errors.js';
 import {
   getIdentityFields,
   getModel,
@@ -31,8 +33,7 @@ import {
   type ComputedSelection,
   compileTypeSelect,
   EMPTY,
-  type IncludedRelation,
-  type IncludeRecord,
+  ID_SEPARATOR,
   KEY_SEPARATOR,
   loadsWholeRelation,
   type Narrowing,
@@ -42,7 +43,6 @@ import {
   REFINE,
   type RelationArgs,
   relationName,
-  SCOPE_SEPARATOR,
 } from './selections.js';
 
 /**
@@ -73,7 +73,7 @@ function relationOf(model: PrismaNextModel, name: string): PrismaNextRelation {
 
 type Visitor = QueryVisitor<PrismaNextModel, PrismaNextSelection>;
 
-/** The consumers of one relation on a level: their rows and computed values, by scope. */
+/** The consumers of one relation on a level: their rows and computed values, by consumer id. */
 interface RelationConsumers {
   rows: [string, PrismaNextSelection][];
   computed: [string, ComputedSelection][];
@@ -82,7 +82,7 @@ interface RelationConsumers {
 /**
  * Reads Prisma Next selections into the selection-mapper's node tree and turns planned nodes into
  * collection calls. `NodeAdapter` decides how nodes merge and conflict. Consumers of a to-many
- * relation never conflict, because each scope has its own slot.
+ * relation never conflict, because each consumer has its own branch.
  */
 export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSelection> {
   override readonly skipDeferredFragments: boolean;
@@ -93,7 +93,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     Map<PrismaNextRelation, PrismaNextSelection | null>
   >();
   private readonly withoutIdentity = new WeakMap<PrismaNextModel, boolean>();
-  private readonly records = new WeakMap<object, IncludeRecord>();
+  /**
+   * The type-level selects whose computed values one parent shows together, for each object type:
+   * its own and its interfaces'. Filled by `registerImplementations`.
+   */
+  private readonly liftGroups: string[][] = [];
 
   constructor(
     readonly contract: AnyContract,
@@ -115,6 +119,14 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    */
   registerImplementations(schema: GraphQLSchema) {
     for (const type of Object.values(schema.getTypeMap())) {
+      if (isObjectType(type) && this.modelFor(type)) {
+        const group = [...type.getInterfaces(), type]
+          .filter((member) => member.extensions?.[PRISMA_NEXT_TYPE_SELECT])
+          .map((member) => member.name);
+        if (group.length) {
+          this.liftGroups.push(group);
+        }
+      }
       const model = isInterfaceType(type) ? this.modelFor(type) : undefined;
       if (model) {
         const selections = implementationsOf(type)!;
@@ -132,7 +144,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    * implementations' selections: a row loaded as the interface is resolved as one of them, whose
    * `isTypeOf`, auth checks and fields read it even when the query has no fragment on that type.
    *
-   * They all fit one node. To-many relations and computed values use each type's own slots, and a
+   * They all fit one node. To-many relations and computed values use each type's own branches, and a
    * to-one relation is always `true` in a type's `select`. A type's `select` can't name a relation
    * only a variant declares, but a base model's relation can't be included beneath a relation that
    * targets a variant model, nor a base column read beneath one that targets a variant with a table
@@ -212,7 +224,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
 
   fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
     // An interface field counts as planned even without a select of its own. The implementation
-    // it resolves on then reads the slots the interface planned for it.
+    // it resolves on then reads the branches the interface planned for it.
     const own = field.extensions?.[PRISMA_NEXT_FIELD_SELECTION] as
       | PrismaNextSelection
       | PrismaNextSelectFn
@@ -328,24 +340,14 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     return selection;
   }
 
-  /**
-   * Applies `selection` to `collection`: selects its columns and includes each relation once. What
-   * it included is recorded for `recordOf`, which `takeSlots` reads the loaded rows by.
-   */
+  /** Applies `selection` to `collection`: selects its columns and includes each relation once. */
   emit(
     collection: MapperCollection,
     selection: PrismaNextSelection,
     model: PrismaNextModel,
     ctx: object,
   ): MapperCollection {
-    const [result, record] = this.emitLevel(collection, selection, model, ctx, { next: 0 });
-    this.records.set(result, record);
-    return result;
-  }
-
-  /** What `emit` included in `collection`, for `takeSlots` to read its rows by. */
-  recordOf(collection: object): IncludeRecord | undefined {
-    return this.records.get(collection);
+    return this.emitLevel(collection, selection, model, ctx, { next: 0 });
   }
 
   private emitLevel(
@@ -354,9 +356,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     model: PrismaNextModel,
     ctx: object,
     branches: BranchNames,
-  ): [MapperCollection, IncludeRecord] {
+  ): MapperCollection {
     let result = selection.columns?.length ? collection.select(...selection.columns) : collection;
-    const record: Record<string, IncludedRelation> = {};
     // The ORM includes a relation once, so all of its consumers share one include.
     const consumers = new Map<string, RelationConsumers>();
     const consumersOf = (key: string) => {
@@ -366,26 +367,62 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
         entry = { rows: [], computed: [] };
         consumers.set(name, entry);
       }
-      return { scope: key.slice(name.length + 1), entry };
+      return { id: key.slice(name.length + 1), entry };
     };
     for (const [key, child] of Object.entries(selection.relations ?? {})) {
-      const { scope, entry } = consumersOf(key);
-      entry.rows.push([scope, child]);
+      const { id, entry } = consumersOf(key);
+      entry.rows.push([id, child]);
     }
     for (const [key, value] of Object.entries(selection.computed ?? {})) {
-      const { scope, entry } = consumersOf(key);
-      entry.computed.push([scope, value]);
+      const { id, entry } = consumersOf(key);
+      entry.computed.push([id, value]);
     }
+    // The keys type-level selects compute on this level, by type and then key, with the relation.
+    const typeKeys = new Map<string, Map<string, string>>();
     for (const [name, entry] of consumers) {
       const relation = relationOf(model, name);
-      // The ORM builds the include while `include` runs, so the record is complete when it returns.
-      result = result.include(name, (rel) => {
-        const [included, recorded] = this.emitRelation(rel, relation, entry, ctx, branches);
-        record[name] = recorded;
-        return included;
-      });
+      result = result.include(name, (rel) =>
+        this.emitRelation(rel, relation, entry, ctx, branches, (id, key) => {
+          // A type-level consumer is named after its type, and a type name never starts with a digit.
+          if (id.charCodeAt(0) <= 57) {
+            return;
+          }
+          let keys = typeKeys.get(id);
+          if (!keys) {
+            keys = new Map();
+            typeKeys.set(id, keys);
+          }
+          if (keys.has(key)) {
+            throw oneWriterError(id, id, key, keys.get(key)!, name);
+          }
+          keys.set(key, name);
+        }),
+      );
     }
-    return [result, record];
+    if (typeKeys.size > 0) {
+      this.assertOneWriter(typeKeys);
+    }
+    return result;
+  }
+
+  /**
+   * Throws when two `select`s that one parent shows compute the same key: the parent holds one
+   * value for it, which the fields and auth checks of both read. A select function's keys are
+   * only known once it runs, so this is checked as the statement is built.
+   */
+  private assertOneWriter(typeKeys: Map<string, Map<string, string>>) {
+    for (const group of this.liftGroups) {
+      const writers = new Map<string, [string, string]>();
+      for (const type of group) {
+        for (const [key, relation] of typeKeys.get(type) ?? []) {
+          const first = writers.get(key);
+          if (first) {
+            throw oneWriterError(first[0], type, key, first[1], relation);
+          }
+          writers.set(key, [type, relation]);
+        }
+      }
+    }
   }
 
   private emitRelation(
@@ -394,7 +431,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     { rows, computed }: RelationConsumers,
     ctx: object,
     branches: BranchNames,
-  ): [MapperCollection, IncludedRelation] {
+    computes: (id: string, key: string) => void,
+  ): MapperCollection {
     const target = relation.targetVariantModel;
     // The ORM reads a single-table variant's rows through the base table without filtering them.
     const base = target?.sharesTable
@@ -411,74 +449,90 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     };
     if (!relation.isToMany) {
       // A to-one relation is keyed by its name, so it has one consumer.
-      const [included, nested] = load(rows[0]![1]);
-      return [included, { nested }];
+      return load(rows[0]![1]);
     }
-    const shared = computed.length === 0 ? this.shareRows(relation.target, rows) : undefined;
-    if (shared) {
+    const groups = this.shareRows(relation.target, rows);
+    if (groups.length === 1 && computed.length === 0) {
       // Rows that are all of the relation can be read as `row[relation]` by anyone. Any others go
-      // in a slot of their consumers, so readers at other scopes can't mistake them for that.
-      const [included, nested] = load(shared);
+      // in a branch of their consumers, so readers of other consumers can't mistake them for that.
+      const [ids, shared] = groups[0]!;
+      const included = load(shared);
       if (loadsWholeRelation(shared)) {
-        return [included, { nested }];
+        return included;
       }
-      const key = rows.map(([scope]) => scope).join(SCOPE_SEPARATOR);
-      return this.combine(base, { [key]: included }, { [key]: nested }, branches);
+      return this.combine(base, { [ids.join(ID_SEPARATOR)]: included }, branches);
     }
     const slots: Record<string, unknown> = {};
-    const nested: Record<string, IncludeRecord> = {};
-    for (const [scope, selection] of rows) {
-      [slots[scope], nested[scope]] = load(selection);
+    for (const [ids, selection] of groups) {
+      slots[ids.join(ID_SEPARATOR)] = load(selection);
     }
-    for (const [scopes, value] of shareComputed(computed)) {
+    for (const [ids, value] of shareComputed(computed)) {
       const values = value[COMPUTE](base, ctx);
       for (const key of Object.keys(values)) {
-        slots[`${scopes.join(SCOPE_SEPARATOR)}${KEY_SEPARATOR}${key}`] = values[key];
+        for (const id of ids) {
+          computes(id, key);
+        }
+        slots[`${ids.join(ID_SEPARATOR)}${KEY_SEPARATOR}${key}`] = values[key];
       }
     }
-    return this.combine(base, slots, nested, branches);
+    return this.combine(base, slots, branches);
   }
 
   /**
    * Loads `slots` through `combine()`, each named by a number unique in the statement and then its
    * key. The ORM aliases a branch by its name cut to 63 bytes, and renames the ones that then
-   * collide one at a time. Slot keys spell out the fields above them, so beneath a deep document
-   * they would share their first 63 bytes, and naming them would cost time quadratic in their
-   * number. The alias starts with the relation's name, so a relation name past about 45 bytes cuts
-   * into the number and brings the renaming back, which is slower but still correct.
+   * collide one at a time. A walk shared by several places loads the same consumers at each, so
+   * without the number their names would repeat, and naming them would cost time quadratic in
+   * their number.
    */
   private combine(
     base: MapperCollection,
     slots: Record<string, unknown>,
-    nested: Record<string, IncludeRecord>,
     branches: BranchNames,
-  ): [MapperCollection, IncludedRelation] {
+  ): MapperCollection {
     const named: Record<string, unknown> = {};
-    const names: Record<string, string> = {};
     for (const key of Object.keys(slots)) {
-      const name = `${branches.next}/${key}`;
+      named[`${branches.next}/${key}`] = slots[key];
       branches.next += 1;
-      named[name] = slots[key];
-      names[name] = key;
     }
-    return [base.combine(named), { slots: nested, names }];
+    return base.combine(named);
   }
 
-  /** Merges the consumers of a relation into one selection when their selections agree. */
+  /**
+   * Groups the consumers of a relation whose selections agree, each group merged into one
+   * selection, so aliases with equal arguments load one branch whatever the others load.
+   */
   private shareRows(model: PrismaNextModel, rows: [string, PrismaNextSelection][]) {
     if (rows.length === 1) {
-      return rows[0][1];
+      return [[[rows[0]![0]], rows[0]![1]] as [string[], PrismaNextSelection]];
     }
-    const node = this.createNode(model);
-    this.mergeQuery(node, rows[0][1]);
-    for (const [, selection] of rows.slice(1)) {
-      if (!this.canMergeQuery(node, selection)) {
-        return undefined;
+    const groups: { ids: string[]; node: PrismaNextNode }[] = [];
+    for (const [id, selection] of rows) {
+      const group = groups.find(({ node }) => this.canMergeQuery(node, selection));
+      if (group) {
+        this.mergeQuery(group.node, selection);
+        group.ids.push(id);
+      } else {
+        const node = this.createNode(model);
+        this.mergeQuery(node, selection);
+        groups.push({ ids: [id], node });
       }
-      this.mergeQuery(node, selection);
     }
-    return this.toQuery(node);
+    return groups.map(
+      ({ ids, node }) => [ids, this.toQuery(node)] as [string[], PrismaNextSelection],
+    );
   }
+}
+
+function oneWriterError(first: string, second: string, key: string, from: string, to: string) {
+  const relations = from === to ? `relation '${from}'` : `relations '${from}' and '${to}'`;
+  const who =
+    first === second
+      ? `'${first}' computes '${key}' twice`
+      : `'${first}' and '${second}' both compute '${key}'`;
+  return new InternalError(
+    `${who} from ${relations} in their select. A row holds one value for it, which every field and auth check of the type reads. Give one of them a different name.`,
+  );
 }
 
 /** Numbers the `combine()` branches of one statement. */
@@ -512,12 +566,12 @@ function loads(selection: PrismaNextSelection, held?: PrismaNextSelection): numb
  */
 function shareComputed(computed: [string, ComputedSelection][]) {
   const groups: [string[], ComputedSelection][] = [];
-  for (const [scope, value] of computed) {
+  for (const [id, value] of computed) {
     const group = groups.find(([, other]) => deepEqual(other.loadIdentity, value.loadIdentity));
     if (group) {
-      group[0].push(scope);
+      group[0].push(id);
     } else {
-      groups.push([[scope], value]);
+      groups.push([[id], value]);
     }
   }
   return groups;

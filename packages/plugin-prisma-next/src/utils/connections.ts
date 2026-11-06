@@ -190,14 +190,14 @@ function withTotalCount(connectionOptions: object): object {
 export type ConnectionPlan = CursorPlan & { where: unknown };
 
 /**
- * The selection of one page of to-many relation `name` for the consumer at `scope`: the page's
+ * The selection of one page of to-many relation `name` for consumer `id`: the page's
  * rows, planned by `rows` from a seed that pages them, and the relation's count in the consumer's
  * `COUNT_SLOT`. `identity` identifies the load, so consumers with equal ones share it.
  */
 export function pageSelection(
   relation: PrismaNextRelation,
   name: string,
-  scope: string,
+  id: string,
   {
     plan,
     args,
@@ -218,7 +218,7 @@ export function pageSelection(
     plan.where === undefined ? rel : rel.where(plan.where);
   const narrow = (rel: MapperCollection) => (variant === undefined ? rel : rel.variant(variant));
   const counted = count
-    ? computedSelection(name, scope, identity, (sub) => ({
+    ? computedSelection(name, id, identity, (sub) => ({
         [COUNT_SLOT]: countOf(count.filtered ? filter(narrow(sub)) : narrow(sub)),
       }))
     : EMPTY;
@@ -231,7 +231,7 @@ export function pageSelection(
     columns: cursorColumns(plan.order),
     args: relationArgs(relation, { loadIdentity: identity, refine: page, variant }),
   };
-  return completeValue(rowsSelection(relation, name, scope, rows(seed)), (loaded) => ({
+  return completeValue(rowsSelection(relation, name, id, rows(seed)), (loaded) => ({
     ...loaded,
     ...counted,
   }));

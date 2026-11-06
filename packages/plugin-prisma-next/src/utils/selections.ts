@@ -11,7 +11,7 @@ import type {
   SelectedFieldNode,
   SelectFn,
 } from '@pothos/selection-mapper';
-import { type GraphQLResolveInfo, getNamedType, isAbstractType } from 'graphql';
+import { type FieldNode, type GraphQLResolveInfo, getNamedType, isAbstractType } from 'graphql';
 import { PRISMA_NEXT_MODEL } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
@@ -27,18 +27,21 @@ import {
 } from './model.js';
 
 /*
- * Scopes and slot keys
+ * Consumers and branches
  *
- * A scope names one consumer of a to-many relation. A field's scope is `Type.alias`, joined with
- * `/` beneath the scopes of the fields above it (`Query.users/User.posts`), where `Type` is the
- * first type the selection was planned on with that definition of the field (see `slotOwner`). A
- * type-level `select` uses the type's name as its scope. Type names have no dot, so the two kinds
- * never collide.
+ * A consumer is one reader of a to-many relation's rows or computed values. A field's consumer id
+ * is a short number (`consumerId`). A type-level `select` uses its type's name, which never starts
+ * with a digit, so the two kinds never collide.
  *
- * In a selection, a to-many relation and its computed values are keyed `relation:scope`, so each
- * consumer gets its own `combine()` slot. In the combined value the ORM returns, a consumer's rows
- * are keyed `scope` and its computed values `scope:key`. Consumers that load the same rows share a
- * slot, keyed by their scopes joined with a space.
+ * In a selection, a to-many relation and its computed values are keyed `relation:id`, so each
+ * consumer gets its own `combine()` branch. A branch is named `n/ids` for rows and `n/ids:key` for
+ * a computed value, where `n` is unique in the statement (see `combine` in adapter.ts) and `ids`
+ * are the ids of the consumers sharing it, joined with a space.
+ *
+ * Rows stay as the ORM returned them. A field returning rows hands each one on as a copy for its
+ * type (`typeCopy`): the `combine()` values come off the relation keys and go under `SLOTS`, and
+ * what the type's selects loaded is written back on. A field with a select of its own reads a copy
+ * of that with its own branches written on (`fieldCopy`).
  */
 
 export const REFINE = Symbol('prismaNextRefine');
@@ -77,8 +80,8 @@ export interface ComputedSelection {
 
 /**
  * A selection on one model. Planned node trees are written back in the same shape. A to-many
- * relation and its computed values are keyed `relation:scope`. Consumers with different arguments
- * then get separate `combine()` slots and still load in one statement. A to-one relation is always
+ * relation and its computed values are keyed `relation:id`. Consumers with different arguments
+ * then get separate `combine()` branches and still load in one statement. A to-one relation is always
  * loaded whole and keyed by its name, so every reader of the row sees it there.
  */
 export interface PrismaNextSelection {
@@ -101,7 +104,8 @@ export const NODE_SELECTION = Symbol('prismaNextNodeSelection');
 
 /** The field a `select` function was invoked for, which a page entry plans beneath. */
 interface FieldPlanning {
-  scope: string;
+  /** The consumer id of the field's position (see `consumerId`). */
+  id: string;
   args: object;
   ctx: object;
   nested: NestedSelection<PrismaNextSelection>;
@@ -120,61 +124,105 @@ function isPageEntry(value: unknown): value is { [CONNECTION_PAGE]: PlanPage } {
   return typeof value === 'object' && value !== null && CONNECTION_PAGE in value;
 }
 
-/** Separates a relation from a scope in a selection key, and a scope from a slot's computed key. */
+/** Separates a relation from a consumer id in a selection key, and ids from a computed key. */
 export const KEY_SEPARATOR = ':';
-/** Joins the scopes of consumers that share a slot. */
-export const SCOPE_SEPARATOR = ' ';
+/** Joins the ids of consumers that share a branch. */
+export const ID_SEPARATOR = ' ';
 
 /**
- * The key a connection's count is computed under. Its leading `KEY_SEPARATOR` keeps it off the
- * parent row: it stays in the consumer's slot, which the connection reads.
+ * The key a connection's count is computed under. A computed key that starts with
+ * `KEY_SEPARATOR` stays in the consumer's branch, which the field reads, rather than going onto
+ * the parent.
  */
 export const COUNT_SLOT = `${KEY_SEPARATOR}count`;
 
-const scopes = new WeakMap<Position, string>();
-/** The type each definition of a field is named after, per selection of the field. */
-const slotOwners = new WeakMap<object, Map<unknown, string>>();
+/** The key `relationCount` computes its count under, which stays in its branch. */
+export const VALUE_SLOT = `${KEY_SEPARATOR}value`;
 
-/**
- * The scope of the field selected at `position`. A resolver reaches the same position through its
- * loader mapping, so it reads the slots its selection was planned into. Only that agreement
- * matters, so it reads `walkParent`: a walk shared between the types a field is reached on writes
- * and reads one scope, and naming its slots does not make it unshareable.
- */
-export function scopeOf(position: Position): string {
-  let scope = scopes.get(position);
-  if (scope === undefined) {
-    const own = `${slotOwner(position)}.${position.node.alias?.value ?? position.node.name.value}`;
-    scope = position.walkParent ? `${scopeOf(position.walkParent)}/${own}` : own;
-    scopes.set(position, scope);
-  }
-  return scope;
+/** The interned consumer ids of one operation. */
+interface ConsumerIds {
+  readonly ids: Map<string, string>;
+  next: number;
 }
 
 /**
- * The type a field's slots are named after. An implementation that inherits a field loads what the
- * interface does, so one selection of the field shares one slot whichever type it is planned on.
- * A slot per type would copy everything beneath the field once per type, at every level of the
- * query. An override is another definition of the field, so it gets a slot of its own.
+ * Per operation, not per request: an operation's response keys are its document's, so its table is
+ * bounded by the document, while a context can be shared by any number of documents.
  */
-function slotOwner({ node, field, type }: Position) {
-  let owners = slotOwners.get(node);
-  if (!owners) {
-    owners = new Map();
-    slotOwners.set(node, owners);
+const operationIds = new WeakMap<object, ConsumerIds>();
+/** The operation of each field node a plan starts from, recorded by `registerPlanRoots`. */
+const rootOperations = new WeakMap<FieldNode, object>();
+const positionIds = new WeakMap<Position, { id: string; table: ConsumerIds }>();
+/** A number per field definition: Pothos builds an inherited field from the interface's options. */
+const definitionIds = new WeakMap<object, number>();
+let nextDefinitionId = 0;
+
+/**
+ * Records the operation of the fields a plan for `info` starts from, which the consumers beneath
+ * them are numbered in. Called by every entry point before it plans.
+ */
+export function registerPlanRoots(info: GraphQLResolveInfo) {
+  for (const node of info.fieldNodes) {
+    rootOperations.set(node, info.operation);
   }
-  const definition = field.extensions?.pothosOptions ?? field;
-  let owner = owners.get(definition);
-  if (owner === undefined) {
-    owner = type.name;
-    owners.set(definition, owner);
-  }
-  return owner;
 }
 
-/** The selection key a consumer at `scope` uses for a to-many relation or its computed values. */
-function slotKey(relation: string, scope: string) {
-  return `${relation}${KEY_SEPARATOR}${scope}`;
+/**
+ * The id of the consumer selected at `position`: its parent consumer's id, the field's definition
+ * and its response key, interned to a short number per operation. So:
+ *
+ * - The field nodes of one response key (fragments that each select it) share one consumer, as
+ *   their resolver finds one mapping.
+ * - An implementation that inherits a field unchanged shares the interface's consumer, and an
+ *   override has its own.
+ * - Reloads of one field at several paths number their consumers alike, so a batch merges them
+ *   rather than loading one copy of everything beneath per path.
+ *
+ * Reads `walkParent`, never `parent`, so numbering a consumer never keeps a walk from being shared.
+ * Beneath a shared walk, every place reads the first place's positions, and so do its resolvers.
+ */
+export function consumerId(position: Position): string {
+  return consumerOf(position).id;
+}
+
+function consumerOf(position: Position): { id: string; table: ConsumerIds } {
+  let consumer = positionIds.get(position);
+  if (consumer) {
+    return consumer;
+  }
+  const { field, node, walkParent } = position;
+  const above = walkParent && consumerOf(walkParent);
+  let table = above?.table;
+  if (!table) {
+    const operation = rootOperations.get(node)!;
+    table = operationIds.get(operation);
+    if (!table) {
+      table = { ids: new Map(), next: 0 };
+      operationIds.set(operation, table);
+    }
+  }
+  const definition: object = field.extensions?.pothosOptions ?? field;
+  let definitionId = definitionIds.get(definition);
+  if (definitionId === undefined) {
+    definitionId = nextDefinitionId;
+    nextDefinitionId += 1;
+    definitionIds.set(definition, definitionId);
+  }
+  const key = `${above?.id ?? ''}|${definitionId}.${node.alias?.value ?? node.name.value}`;
+  let id = table.ids.get(key);
+  if (id === undefined) {
+    id = String(table.next);
+    table.next += 1;
+    table.ids.set(key, id);
+  }
+  consumer = { id, table };
+  positionIds.set(position, consumer);
+  return consumer;
+}
+
+/** The selection key a consumer uses for a to-many relation or its computed values. */
+function slotKey(relation: string, id: string) {
+  return `${relation}${KEY_SEPARATOR}${id}`;
 }
 
 /** Whether a relation load has every row of the relation, rather than a filtered or paged part. */
@@ -190,140 +238,229 @@ export function relationName(key: string) {
 
 type Row = Record<string, unknown>;
 
-/** What `emit` included for each relation of a level, which `takeSlots` reads its rows by. */
-export type IncludeRecord = Readonly<Record<string, IncludedRelation>>;
-
-export interface IncludedRelation {
-  /** What is included beneath the relation's rows, when the row holds them. */
-  readonly nested?: IncludeRecord;
-  /** What is included beneath the rows of each `combine()` slot, by slot key. */
-  readonly slots?: Readonly<Record<string, IncludeRecord>>;
-  /** The slot key of each `combine()` branch, by the branch's name in the statement. */
-  readonly names?: Readonly<Record<string, string>>;
-}
-
-/** What the consumers of one to-many relation loaded through `combine()`, by consumer scope. */
+/** What the consumers of one to-many relation loaded through `combine()`, by consumer id. */
 interface RelationSlots {
-  readonly rows: ReadonlyMap<string, unknown>;
-  readonly values: ReadonlyMap<string, Row>;
+  readonly rows: Record<string, unknown>;
+  readonly values: Record<string, Row>;
 }
 
-/** What `takeSlots` took off a row, shared by the row and every projection of it. */
-interface RowSlots {
-  /** The row `takeSlots` returned. Undefined for a row with no slots. */
-  readonly row: Row | undefined;
-  /** The slots of each to-many relation loaded through `combine()`, by relation name. */
-  readonly slots: Readonly<Record<string, RelationSlots>>;
-  /** Every scope that has a slot on the row. */
-  readonly scopes: ReadonlySet<string>;
-  /** Projections of the row, keyed by the scopes they write onto it. */
-  projections?: Map<string, object>;
+/** The `combine()` values of an ORM row, by relation, and every consumer id with a branch. */
+interface Slots {
+  readonly relations: Readonly<Record<string, RelationSlots>>;
+  readonly consumers: ReadonlySet<string>;
 }
 
-/** A row `takeSlots` returned with nothing taken off it. */
-const PLAIN: RowSlots = Object.freeze({
-  row: undefined,
-  slots: Object.freeze({}),
-  scopes: new Set<string>(),
+/** What a copy holds under `SLOTS`. */
+interface Held {
+  /** The ORM row the copy was made from. */
+  readonly row: object;
+  readonly slots: Slots;
+  /** The consumers whose branches were written onto the copy. */
+  readonly lifted: ReadonlySet<string>;
+  /** For a field's copy, the consumer it was made for and the position it was planned at. */
+  readonly field?: { readonly id: string; readonly position: Position };
+}
+
+/**
+ * Where a copy keeps its row's `combine()` values. An enumerable property, so `{ ...parent }` and
+ * `Object.assign` copies other plugins make keep them, and are recognized by it. JSON and
+ * structuredClone copies drop it.
+ */
+const SLOTS = Symbol('prismaNextSlots');
+
+type Holder = { [SLOTS]?: Held };
+
+const NO_SLOTS: Slots = Object.freeze({
+  relations: Object.freeze({}),
+  consumers: new Set<string>(),
 });
 
-/** The slots of each row `takeSlots` returned, and of each projection of one. */
-const rowSlots = new WeakMap<object, RowSlots>();
+/** What `slotsOf` read off each ORM row. */
+const parsed = new WeakMap<object, Slots>();
+/** The copies this plugin made, as opposed to copies of them other plugins made. */
+const owned = new WeakSet<object>();
+/** The copies of each row or type copy, by the consumers they lift. */
+const copies = new WeakMap<object, Map<string, object>>();
 
 /**
- * Takes the slots off the rows a statement returned, reading them by what `emit` included
- * (`record`). A to-many relation loaded through `combine()` comes back as an object with one slot
- * per consumer scope. A row with one is copied without it. Each type's readers see a copy with
- * what its type-level selects loaded (`parentForType`), and field helpers read their own slots
- * through `fieldSlots`. The ORM's rows are never changed: a row with no slots, and none beneath it, is
- * returned as it is.
+ * The `combine()` values on `row`, an ORM row of `model`: what its to-many relation keys hold
+ * unless they hold an array. Read once per row. Nothing beneath the row is read: a row beneath is
+ * read when the field returning it resolves.
  */
-export function takeSlots<T>(rows: T, model: PrismaNextModel, record?: IncludeRecord): T {
-  if (Array.isArray(rows)) {
-    let copy: unknown[] | undefined;
-    for (let i = 0; i < rows.length; i += 1) {
-      const row: unknown = rows[i];
-      const next = takeSlots(row, model, record);
-      if (next !== row) {
-        copy ??= [...rows];
-        copy[i] = next;
-      }
-    }
-    return (copy ?? rows) as T;
+function slotsOf(row: object, model: PrismaNextModel): Slots {
+  let slots = parsed.get(row);
+  if (slots) {
+    return slots;
   }
-  return rows && typeof rows === 'object' ? (takeRowSlots(rows as Row, model, record) as T) : rows;
-}
-
-// Takes fresh ORM rows only. A row whose slots were already taken off would lose them.
-function takeRowSlots(row: Row, model: PrismaNextModel, record: IncludeRecord | undefined): Row {
-  let nested: Row | undefined;
-  // Allocated only for a row with slots, which most rows lack.
-  let slots: Record<string, RelationSlots> | undefined;
-  let scopes: Set<string> | undefined;
+  let relations: Record<string, RelationSlots> | undefined;
+  let consumers: Set<string> | undefined;
   for (const name in model.relations) {
-    const relation = model.relations[name]!;
-    const included = record?.[name];
-    const value = row[name];
-    if (!value || typeof value !== 'object') {
+    const value = (row as Row)[name];
+    if (
+      !model.relations[name]!.isToMany ||
+      !value ||
+      typeof value !== 'object' ||
+      Array.isArray(value)
+    ) {
       continue;
     }
-    if (!relation.isToMany || Array.isArray(value)) {
-      const next = takeSlots(value, relation.target, included?.nested);
-      if (next !== value) {
-        nested ??= {};
-        nested[name] = next;
-      }
-      continue;
-    }
-    const rows = new Map<string, unknown>();
-    const values = new Map<string, Row>();
-    slots ??= {};
-    slots[name] = { rows, values };
-    scopes ??= new Set();
-    for (const [branch, slot] of Object.entries(value)) {
-      // Rows are keyed by scope and computed values by `scope:key`. Consumers that share either are
-      // keyed by their scopes joined with a space.
-      const key = included?.names?.[branch] ?? branch;
-      const scope = relationName(key);
-      if (scope === key) {
-        const loaded = takeSlots(slot, relation.target, included?.slots?.[key]);
-        for (const consumer of key.split(SCOPE_SEPARATOR)) {
-          rows.set(consumer, loaded);
-          scopes.add(consumer);
-        }
-      } else {
-        for (const consumer of scope.split(SCOPE_SEPARATOR)) {
-          const own = values.get(consumer) ?? {};
-          own[key.slice(scope.length + KEY_SEPARATOR.length)] = slot;
-          values.set(consumer, own);
-          scopes.add(consumer);
+    const rows: Record<string, unknown> = {};
+    const values: Record<string, Row> = {};
+    relations ??= {};
+    relations[name] = { rows, values };
+    consumers ??= new Set();
+    for (const [branch, loaded] of Object.entries(value)) {
+      // `n/ids` or `n/ids:key`. The number only keeps the ORM's aliases apart.
+      const named = branch.slice(branch.indexOf('/') + 1);
+      const separator = named.indexOf(KEY_SEPARATOR);
+      const ids = separator < 0 ? named : named.slice(0, separator);
+      for (const id of ids.split(ID_SEPARATOR)) {
+        consumers.add(id);
+        if (separator < 0) {
+          rows[id] = loaded;
+        } else {
+          values[id] ??= {};
+          values[id][named.slice(separator + 1)] = loaded;
         }
       }
     }
   }
-  if (!(slots && scopes)) {
-    const next = nested ? Object.assign(copyOf(row), nested) : row;
-    rowSlots.set(next, PLAIN);
-    return next;
-  }
-  const next = copyOf(row);
-  // The relations loaded into slots come off the row.
-  for (const name of Object.keys(slots)) {
-    delete next[name];
-  }
-  Object.assign(next, nested);
-  rowSlots.set(next, {
-    row: next,
-    slots,
-    scopes,
-  });
-  return next;
+  slots = relations ? { relations, consumers: consumers! } : NO_SLOTS;
+  parsed.set(row, slots);
+  return slots;
 }
 
 /**
- * `loaded`, a row `takeSlots` returned, with the keys of `row` that aren't columns or relations of
- * `model`. It is copied, keeping its slots, only when there are such keys, so a row reached through
- * several parents stays one object.
+ * Writes what consumer `id` loaded onto `target`: its rows on the relation's key, and its computed
+ * values but those whose key starts with `KEY_SEPARATOR`. A page counted without rows has none.
+ */
+function lift(target: Row, { relations }: Slots, id: string) {
+  for (const name of Object.keys(relations)) {
+    const { rows, values } = relations[name]!;
+    const computed = values[id];
+    if (Object.hasOwn(rows, id)) {
+      target[name] = rows[id];
+    } else if (computed?.[COUNT_SLOT] !== undefined) {
+      target[name] = [];
+    }
+    for (const key of Object.keys(computed ?? {})) {
+      if (!key.startsWith(KEY_SEPARATOR)) {
+        target[key] = computed![key];
+      }
+    }
+  }
+}
+
+/** The ORM row `value` is a copy of, or `value`. */
+export function rowOf(value: object): object {
+  return owned.has(value) ? (value as Holder)[SLOTS]!.row : value;
+}
+
+/**
+ * A copy of `base` with what `ids` loaded written onto it, cached per base and ids so per-row
+ * caches such as scope-auth's see one object.
+ */
+function copyWith(
+  base: object,
+  row: object,
+  slots: Slots,
+  lifted: ReadonlySet<string>,
+  ids: readonly string[],
+  field?: Held['field'],
+): object {
+  const key = ids.join(ID_SEPARATOR);
+  let byIds = copies.get(base);
+  if (!byIds) {
+    byIds = new Map();
+    copies.set(base, byIds);
+  }
+  let copy = byIds.get(key) as Row | undefined;
+  if (!copy) {
+    copy = copyOf(base);
+    const all = new Set(lifted);
+    if (!(SLOTS in base)) {
+      // The combined values come off the relation keys, which hold only what a select lifts back.
+      for (const name of Object.keys(slots.relations)) {
+        delete copy[name];
+      }
+    }
+    for (const id of ids) {
+      if (!all.has(id) && slots.consumers.has(id)) {
+        lift(copy, slots, id);
+        all.add(id);
+      }
+    }
+    (copy as Holder)[SLOTS] = { row, slots, lifted: all, ...(field ? { field } : {}) };
+    owned.add(copy);
+    byIds.set(key, copy);
+  }
+  return copy;
+}
+
+/**
+ * The parent the readers of a type see, whose type-level selects are `ids`, the type last. For an
+ * ORM row with `combine()` values, a copy without them, holding them under `SLOTS`, with what those
+ * selects loaded written on. A copy this plugin made is made again from its row. A copy another
+ * plugin made of one is kept, with only what it lacks written onto a copy of it. Two selects
+ * computing one key fail when the statement is built (see `assertOneWriter` in adapter.ts).
+ */
+export function typeCopy(value: object, model: PrismaNextModel, ids: readonly string[]): object {
+  const held = (value as Holder)[SLOTS];
+  if (held && !owned.has(value)) {
+    return ids.every((id) => held.lifted.has(id) || !held.slots.consumers.has(id))
+      ? value
+      : copyWith(value, held.row, held.slots, held.lifted, ids);
+  }
+  const row = held ? held.row : value;
+  const slots = held ? held.slots : slotsOf(row, model);
+  if (slots === NO_SLOTS) {
+    return row;
+  }
+  return copyWith(row, row, slots, new Set(), ids);
+}
+
+/**
+ * The parent of a field planned at `position`: the type's, with what the field's consumer loaded
+ * written onto a copy of it, which only the field's resolver and the plugins after this one see.
+ */
+export function fieldCopy(
+  value: object,
+  model: PrismaNextModel,
+  ids: readonly string[],
+  position: Position,
+): object {
+  const base = typeCopy(value, model, ids);
+  const held = (base as Holder)[SLOTS];
+  const id = consumerId(position);
+  if (!held?.slots.consumers.has(id)) {
+    return base;
+  }
+  return copyWith(base, held.row, held.slots, held.lifted, [id], { id, position });
+}
+
+/** The consumer `parent`, a field's copy, was made for, and the position it was planned at. */
+export function fieldBranch(parent: object): Held['field'] {
+  return (parent as Holder)[SLOTS]?.field;
+}
+
+/** The value `key` the consumer of `parent`, a field's copy, computed from relation `name`. */
+export function fieldValue(parent: object, name: string, key: string): unknown {
+  const held = (parent as Holder)[SLOTS];
+  return held?.field && held.slots.relations[name]?.values[held.field.id]?.[key];
+}
+
+/**
+ * Whether the statement that loaded `parent`, a copy for a type, loaded consumer `id`'s values from
+ * relation `name`.
+ */
+export function loadedValues(parent: object, name: string, id: string) {
+  const held = (parent as Holder)[SLOTS];
+  return !!held?.slots.relations[name]?.values[id];
+}
+
+/**
+ * `loaded`, a row a reload returned, with the keys of `row` that aren't columns or relations of
+ * `model`. It is copied only when there are such keys.
  */
 export function withOtherKeys(loaded: Row, row: object, model: PrismaNextModel): Row {
   let next: Row | undefined;
@@ -337,190 +474,7 @@ export function withOtherKeys(loaded: Row, row: object, model: PrismaNextModel):
       next[key] = (row as Row)[key];
     }
   }
-  if (!next) {
-    return loaded;
-  }
-  const { row: own, slots, scopes } = rowSlots.get(loaded)!;
-  rowSlots.set(next, own ? { row: next, slots, scopes } : PLAIN);
-  return next;
-}
-
-/**
- * Writes the rows and computed values that `scopes` loaded onto `target`. Later scopes win. A
- * connection's count stays in its slot, and a page counted without rows has none.
- */
-function lift(target: Row, { slots }: RowSlots, scopes: readonly string[]) {
-  for (const scope of scopes) {
-    for (const name of Object.keys(slots)) {
-      const { rows, values } = slots[name]!;
-      const { [COUNT_SLOT]: count, ...computed } = values.get(scope) ?? {};
-      if (rows.has(scope)) {
-        target[name] = rows.get(scope);
-      } else if (count !== undefined) {
-        target[name] = [];
-      }
-      Object.assign(target, computed);
-    }
-  }
-}
-
-/**
- * Whether the statement that returned `row` loaded to-many relation `name` into slots for `scope`.
- */
-export function loadedSlots(row: object, name: string, scope: string) {
-  const slot = rowSlots.get(row)?.slots[name];
-  return !!slot && (slot.rows.has(scope) || slot.values.has(scope));
-}
-
-/** The row `takeSlots` returned that `value` is, or is a projection of. */
-export function rowOf(value: object): object {
-  return rowSlots.get(value)?.row ?? value;
-}
-
-/**
- * A copy of `base` with what `scopes` loaded written onto it, cached per row and scopes. `check`
- * runs before a copy is made.
- */
-function projection(
-  entry: RowSlots,
-  base: object,
-  scopes: readonly string[],
-  check?: (entry: RowSlots, scopes: readonly string[]) => void,
-) {
-  const key = scopes.join(SCOPE_SEPARATOR);
-  entry.projections ??= new Map();
-  let projected = entry.projections.get(key);
-  if (!projected) {
-    check?.(entry, scopes);
-    const copy = copyOf(base);
-    lift(copy, entry, scopes);
-    rowSlots.set(copy, entry);
-    entry.projections.set(key, copy);
-    projected = copy;
-  }
-  return projected;
-}
-
-/**
- * The parent the readers of a type see, whose type-level selects are `scopes`, the type last: a
- * copy of the row with the rows and values they loaded, cached so per-row caches such as
- * scope-auth's see one object.
- */
-export function parentForType(value: object, scopes: readonly string[]): object {
-  const entry = rowSlots.get(value);
-  const row = entry?.row ?? value;
-  if (!entry || !scopes.some((scope) => entry.scopes.has(scope))) {
-    return row;
-  }
-  return projection(entry, row, scopes, assertOneWriter);
-}
-
-/**
- * Throws when two `select`s of one type compute the same key, of which the type's parent holds one
- * value that the fields and auth checks of both read. A select function's keys are only known
- * once it runs, so this is checked on the rows it loaded, whatever their values.
- */
-function assertOneWriter({ slots }: RowSlots, scopes: readonly string[]) {
-  const writers = new Map<string, { scope: string; relation: string }>();
-  for (const scope of scopes) {
-    for (const [relation, { values }] of Object.entries(slots)) {
-      for (const key of Object.keys(values.get(scope) ?? {})) {
-        const first = writers.get(key);
-        if (!first) {
-          writers.set(key, { scope, relation });
-          continue;
-        }
-        const from =
-          first.relation === relation
-            ? `relation '${relation}'`
-            : `relations '${first.relation}' and '${relation}'`;
-        const who =
-          first.scope === scope
-            ? `'${scope}' computes '${key}' twice`
-            : `'${first.scope}' and '${scope}' both compute '${key}'`;
-        throw new InternalError(
-          `${who} from ${from} in their select. A row holds one value for it, which every field and auth check of the type reads. Give one of them a different name.`,
-        );
-      }
-    }
-  }
-}
-
-/** The position each parent `parentForField` returned a copy for was planned at. */
-const fieldParents = new WeakMap<object, Position>();
-
-/**
- * The parent a field with its own `select` sees: the type's, with what the field's select loaded
- * at `position` written onto a copy of it. Nothing else sees the copy.
- */
-export function parentForField(
-  value: object,
-  scopes: readonly string[],
-  position: Position | undefined,
-) {
-  const base = parentForType(value, scopes);
-  const entry = rowSlots.get(value);
-  const scope = position && scopeOf(position);
-  if (!entry || scope === undefined || !entry.scopes.has(scope)) {
-    return base;
-  }
-  const parent = projection(entry, base, [...scopes, scope]);
-  fieldParents.set(parent, position!);
-  return parent;
-}
-
-/** The slots of the field whose parent `parentForField` returned, which its helpers read. */
-export function slotsOfFieldParent(parent: object): FieldSlots | undefined {
-  const position = fieldParents.get(parent);
-  return position && fieldSlots(parent, position);
-}
-
-/** What a field helper's selection loaded on its parent. */
-export interface FieldSlots {
-  /** The position that planned the helper, which its connection plan is keyed by. */
-  position: Position | undefined;
-  /** The rows of relation `name` the helper loaded. Undefined when they weren't. */
-  rows(name: string): unknown;
-  /** The value the helper computed as `key` from relation `name`. */
-  value(name: string, key: string): unknown;
-}
-
-/**
- * The slots a field helper planned at `position` reads on `parent`. Undefined when `parent` is not
- * a row `takeSlots` returned or a projection of one: another plugin replaced it, and the helper
- * reloads it.
- */
-export function fieldSlots(parent: object, position: Position | undefined): FieldSlots | undefined {
-  const entry = rowSlots.get(parent);
-  if (!entry) {
-    return undefined;
-  }
-  const scope = position && scopeOf(position);
-  const values = (name: string) =>
-    scope === undefined ? undefined : entry.slots[name]?.values.get(scope);
-  return {
-    position,
-    rows: (name) => {
-      const own = entry.slots[name];
-      if (own) {
-        return scope === undefined ? undefined : own.rows.get(scope);
-      }
-      return (parent as Row)[name];
-    },
-    value: (name, key) => values(name)?.[key],
-  };
-}
-
-/** The position `wrapResolve` resolved each field helper's slots at. */
-const fieldPositions = new WeakMap<GraphQLResolveInfo, Position | undefined>();
-
-export function recordFieldPosition(info: GraphQLResolveInfo, position: Position | undefined) {
-  fieldPositions.set(info, position);
-}
-
-/** The position that loaded the slots of the field helper `info` resolves. */
-export function fieldPositionFor(info: GraphQLResolveInfo) {
-  return fieldPositions.get(info);
+  return next ?? loaded;
 }
 
 /** Copies a row into a writable object with the same prototype and type brand. */
@@ -624,26 +578,26 @@ export function relationArgs(
   };
 }
 
-/** The rows of `relation` a consumer at `scope` loads, with what is planned beneath them. */
+/** The rows of `relation` consumer `id` loads, with what is planned beneath them. */
 export function rowsSelection(
   relation: PrismaNextRelation,
   name: string,
-  scope: string,
+  id: string,
   child: MaybePromise<PrismaNextSelection>,
 ): MaybePromise<PrismaNextSelection> {
   return completeValue(child, (resolved) => ({
-    relations: { [relation.isToMany ? slotKey(name, scope) : name]: resolved },
+    relations: { [relation.isToMany ? slotKey(name, id) : name]: resolved },
   }));
 }
 
-/** The values a consumer at `scope` computes from relation `name`, identified by `loadIdentity`. */
+/** The values consumer `id` computes from relation `name`, identified by `loadIdentity`. */
 export function computedSelection(
   name: string,
-  scope: string,
+  id: string,
   loadIdentity: unknown,
   compute: Compute,
 ): PrismaNextSelection {
-  return { computed: { [slotKey(name, scope)]: { loadIdentity, [COMPUTE]: compute } } };
+  return { computed: { [slotKey(name, id)]: { loadIdentity, [COMPUTE]: compute } } };
 }
 
 /**
@@ -690,7 +644,7 @@ export function loadsOwnTableVariantRows(relation: PrismaNextRelation, value: un
 
 interface SelectCompilation {
   contract: AnyContract;
-  scope: string;
+  id: string;
   args: object;
   /** Identifies the select's function entries, together with `args`. */
   source: unknown;
@@ -707,11 +661,11 @@ interface SelectCompilation {
   field?: FieldPlanning;
 }
 
-/** Compiles a `select` object or column list. Each relation entry is one consumer at `scope`. */
+/** Compiles a `select` object or column list. Each relation entry is one consumer, `id`. */
 function compileSelect(
   raw: RawSelect,
   model: PrismaNextModel,
-  { contract, scope, args, source, rows, field }: SelectCompilation,
+  { contract, id, args, source, rows, field }: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
   // Compiled for a request, which may be the first to see what a select function returns.
   const { columns, relations } = splitSelect(raw, model, InternalError);
@@ -722,7 +676,7 @@ function compileSelect(
     }
     if (typeof value === 'function') {
       // The types keep computed keys apart from each other and from the parent's fields.
-      return computedSelection(name, scope, { source, args }, (sub, ctx) =>
+      return computedSelection(name, id, { source, args }, (sub, ctx) =>
         (value as (sub: MapperCollection, args: object, ctx: object) => Record<string, unknown>)(
           sub,
           args,
@@ -734,7 +688,7 @@ function compileSelect(
     return rowsSelection(
       relation,
       name,
-      scope,
+      id,
       rows(relation, name, {
         columns: null,
         args: relationArgs(relation, {
@@ -761,7 +715,7 @@ export function compileTypeSelect(
 ) {
   return compileSelect(raw, model, {
     contract,
-    scope: typeName,
+    id: typeName,
     args: {},
     source: typeName,
     rows: (_relation, _name, seed) => seed,
@@ -805,13 +759,13 @@ export function compileFieldSelect(
       | undefined;
     const returnModel =
       returnModelKey === undefined ? undefined : getModel(contract, returnModelKey);
-    const scope = scopeOf(position);
+    const id = consumerId(position);
     const select: SelectCompilation = {
       contract,
-      scope,
+      id,
       args,
       source: raw,
-      field: { scope, args, ctx, nested, selected, position },
+      field: { id, args, ctx, nested, selected, position },
       rows: (relation, name, seed) => {
         // Rows the field's selection set doesn't plan are read as they load, which for a variant
         // model with a table of its own is without the columns it inherits. An interface or union

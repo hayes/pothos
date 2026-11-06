@@ -213,7 +213,7 @@ describe('rows the plugin loaded', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it('adds nothing to a row it takes slots off', async () => {
+  it('keeps combined relations off the keys of the parent it hands a resolver', async () => {
     const captured: object[] = [];
     const builder = createBuilder();
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
@@ -240,8 +240,9 @@ describe('rows the plugin loaded', () => {
     const result = await run(builder.toSchema(), '{ posts { published { id } seen } }');
     expect(result.errors).toBeUndefined();
     expect(captured).toHaveLength(1);
-    expect(captured[0]).toEqual({ id: 'p-hello' });
-    expect(Object.getOwnPropertySymbols(captured[0])).toEqual([]);
+    // The combined values travel under one symbol, so a copy of the parent keeps them.
+    expect(Object.keys(captured[0])).toEqual(['id']);
+    expect(Object.getOwnPropertySymbols(captured[0])).toHaveLength(1);
   });
 
   it('never mutates shared rows while handing each consumer its own values', async () => {

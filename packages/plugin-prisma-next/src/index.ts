@@ -4,7 +4,6 @@ import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   type BuildCache,
-  completeValue,
   isThenable,
   type MaybePromise,
   type PothosInterfaceTypeConfig,
@@ -20,6 +19,7 @@ import {
   deepEqual,
   getLoaderMapping,
   type Mapping,
+  mappingParentTypes,
   type Position,
   setRowMappings,
 } from '@pothos/selection-mapper';
@@ -42,7 +42,6 @@ import {
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_TYPE_SELECT,
 } from './constants.js';
-import { isLoadedTypeRow } from './model-loader.js';
 import type { AnyContract } from './types/models.js';
 import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
@@ -56,20 +55,18 @@ import {
 } from './utils/model.js';
 import {
   compileFieldSelect,
+  consumerId,
   definedQuery,
   EMPTY,
-  type FieldSlots,
-  fieldSlots,
-  loadedSlots,
+  fieldCopy,
+  loadedValues,
   loadsOwnTableVariantRows,
   type PrismaNextSelectFn,
   type PrismaNextSelection,
-  parentForField,
-  parentForType,
   type RawSelect,
-  recordFieldPosition,
   rowOf,
   splitSelect,
+  typeCopy,
 } from './utils/selections.js';
 import { completeVariantRows } from './utils/variant-rows.js';
 import { variantTypeNames } from './utils/variant-types.js';
@@ -152,8 +149,6 @@ export { type CollectionFromInfoOptions, collectionFromInfo } from './utils/map-
 const pluginName = 'prismaNext';
 
 export default pluginName;
-
-type Loaded = (slots: FieldSlots, context: object, info: GraphQLResolveInfo) => boolean;
 
 export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   constructor(buildCache: BuildCache<Types>, name: keyof PothosSchemaTypes.Plugins<Types>) {
@@ -413,7 +408,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    * A row holds one version of each relation the `select`s of its type and interfaces load, which
    * every reader of the row sees. So two of those `select`s that load a relation's rows must load
    * them with the same query. Function entries compute values rather than load rows, and their keys
-   * are only known once they run, so `parentForType` checks them on the rows they loaded.
+   * are only known once they run, so the statement loading them checks them (see `assertOneWriter`).
    */
   private assertSelectsAgree(typeConfig: PothosTypeConfig, modelKey: string) {
     const model = getModel(this.config.contract, modelKey);
@@ -444,11 +439,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined,
     typeConfig: PothosObjectTypeConfig,
   ): GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined {
-    const scopes = isTypeOf && this.typeLevelScopes(typeConfig);
-    if (!isTypeOf || !scopes) {
+    const forType = isTypeOf && this.typeCopier(typeConfig);
+    if (!isTypeOf || !forType) {
       return isTypeOf;
     }
-    return (parent, context, info) => isTypeOf(typeParent(parent, scopes), context, info);
+    return (parent, context, info) => isTypeOf(forType(parent), context, info);
   }
 
   /** Passes `resolveType` the row as the interface's `select`s loaded it. */
@@ -456,79 +451,47 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
     typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
   ): GraphQLTypeResolver<unknown, Types['Context']> {
-    const scopes = this.typeLevelScopes(typeConfig);
-    if (!scopes) {
+    const forType = this.typeCopier(typeConfig);
+    if (!forType) {
       return resolveType;
     }
-    return (parent, context, info, type) =>
-      resolveType(typeParent(parent, scopes), context, info, type);
+    return (parent, context, info, type) => resolveType(forType(parent), context, info, type);
   }
 
   /**
-   * `parent` as the `select`s of its type and interfaces load it, with the columns `check` adds. A
-   * row without them, such as a copy another plugin made, is reloaded with every column and what
-   * those `select`s load, batched with the other rows of the request. A field's resolver and
-   * scope-auth's checks share the reload, and see the same object.
-   */
-  private typeRow(
-    check: TypeRowCheck,
-    parent: object,
-    context: object,
-    info: GraphQLResolveInfo,
-    type: GraphQLObjectType,
-  ): MaybePromise<object> {
-    if (check.hasTypeData(parent)) {
-      return check.typeParent(parent);
-    }
-    return reloadFor(info, () =>
-      this.config.loader(context, check.modelKey).loadTypeRow(info, rowOf(parent), type),
-    ).then(check.typeParent);
-  }
-
-  /**
-   * Resolves a field with its parent when the parent has the columns and relations the field reads
-   * and, for a planned field, the plan that loaded the parent included the field. Otherwise the
-   * loader reloads the parent with what the field needs.
+   * Resolves a planned field with its parent when the plan that loaded the parent included the
+   * field and the parent holds what the field's select reads. Otherwise the loader reloads the
+   * parent with what the field needs. A field returning rows of a prisma type hands each on as
+   * the copy its type's readers see.
    */
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     this.assertRowsReadable(fieldConfig);
+    const gated = this.gate(this.withVariantRows(resolver, fieldConfig), fieldConfig);
+    const forType = this.resultCopier(fieldConfig);
+    if (!forType) {
+      return gated;
+    }
+    return (parent, args, context, info) => copyResult(gated(parent, args, context, info), forType);
+  }
+
+  /**
+   * Loads the rows of a variant model with a table of its own that a field's static `select`
+   * hands it, which lack the base model's columns, such as the discriminator the returned type's
+   * resolveType reads. They load before the resolver runs, through the base model, as
+   * `t.relation` loads them.
+   */
+  private withVariantRows(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const completions = this.variantRowCompletions(fieldConfig);
-    const reader = this.createFieldReader(fieldConfig);
-    if (!reader) {
+    if (!completions.length) {
       return resolver;
     }
-    this.readersOf(fieldConfig.parentType).set(fieldConfig.name, reader);
-    const { config } = this;
-    const {
-      modelKey,
-      computedLoaded,
-      planned,
-      loaded,
-      readsSlots,
-      declaresOwnSelect,
-      staticColumns,
-    } = reader;
-    // A field helper reads its slots at the position its mapping names. A reloaded row has a
-    // mapping of its own, so the position is recorded for each execution rather than looked up.
-    const handOver = (
-      parent: object,
-      position: Position | undefined,
-      args: object,
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) => {
-      if (readsSlots) {
-        recordFieldPosition(info, position);
-      }
-      if (!completions.length) {
-        return resolver(parent, args, context, info);
-      }
-      // Rows of a variant model with a table of its own lack the base model's columns, such as the
-      // discriminator the returned type's resolveType reads. They load before the resolver runs,
-      // through the base model, as `t.relation` loads them.
+    return (parent, args, context, info) => {
       const type = getNamedType(info.returnType);
       const loads = completions.map(([name, relation]) =>
         completeVariantRows(
@@ -543,7 +506,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       const withRows = (rows: unknown[]) =>
         resolver(
           {
-            ...parent,
+            ...(parent as object),
             ...Object.fromEntries(completions.map(([name], i) => [name, rows[i]])),
           },
           args,
@@ -552,242 +515,291 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         );
       return loads.some(isThenable) ? Promise.all(loads).then(withRows) : withRows(loads);
     };
-
-    const resolveRow = (
-      parent: object,
-      args: object,
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) => {
-      // A row a load returned holds every scope of its type's `select`s, which is what a field
-      // without a select function is planned for.
-      if (
-        !planned ||
-        (staticColumns !== undefined && isLoadedTypeRow(rowOf(parent)) && computedLoaded(parent))
-      ) {
-        return handOver(reader.parent(parent, null), undefined, args, context, info);
-      }
-      const mapping = reader.mapping(parent, context, info);
-      const slots = mapping && fieldSlots(parent, mapping.position);
-      if (
-        mapping &&
-        computedLoaded(parent) &&
-        (!loaded || (slots && loaded(slots, context, info))) &&
-        // What a field's own `select` loaded is read from the row's slots, which a parent this
-        // plugin didn't return, such as another plugin's copy, lacks.
-        (!declaresOwnSelect || slots)
-      ) {
-        setRowMappings(context, info, mapping.nested);
-        return handOver(reader.parent(parent, mapping), mapping.position, args, context, info);
-      }
-      return reloadFor(info, () =>
-        config.loader(context, modelKey).loadSelection(info, rowOf(parent)),
-      ).then(({ row, mapping }) =>
-        handOver(reader.parent(row, mapping), mapping?.position, args, context, info),
-      );
-    };
-
-    // A prisma type's parent is always a row.
-    return (row, args, context, info) =>
-      completeValue(this.typeRow(reader, row as object, context, info, info.parentType), (parent) =>
-        resolveRow(parent, args, context, info),
-      );
-  }
-
-  /** The scopes of the `select`s `typeLevelSelects` lists for a prisma type. */
-  private typeLevelScopes(typeConfig: PothosTypeConfig) {
-    const modelKey = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    return modelKey === undefined
-      ? undefined
-      : this.typeLevelSelects(typeConfig.name).map(({ name }) => name);
-  }
-
-  /** The readers `wrapResolve` built for the fields of each type, by field name. */
-  private readonly readers = new Map<string, Map<string, TypeRowCheck>>();
-
-  private readersOf(typeName: string) {
-    let readers = this.readers.get(typeName);
-    if (!readers) {
-      readers = new Map();
-      this.readers.set(typeName, readers);
-    }
-    return readers;
   }
 
   /**
-   * The row scope-auth's checks see, as `typeRow` returns it: the row as the `select`s of the type
-   * and its interfaces load it, with the column a `t.expose*` field of the type exposes. The loader matches `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin
-   * doesn't import.
+   * Hands a field of a prisma type the parent it reads. A planned field needs the mapping of the
+   * plan that loaded its parent; a field with only columns to read doesn't. Either reloads the
+   * parent when a key its select reads is undefined.
    */
-  private createTypeParentLoader(typeName: string) {
-    let check: TypeRowCheck | undefined;
-    let type: GraphQLObjectType | undefined;
-    const readers = this.readersOf(typeName);
-    return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
-      check ??= this.typeRowCheck(typeName, undefined);
-      type ??= info.schema.getType(typeName) as GraphQLObjectType;
-      const forField = info.parentType.name === typeName && readers.get(info.fieldName);
-      // A prisma type's parent is always a row.
-      return this.typeRow(forField || check, parent as object, context, info, type);
-    };
-  }
-
-  /**
-   * What a row of `typeName` must hold for the `select`s of the type and its interfaces, and
-   * `staticColumns`, the columns a field without a select function reads.
-   */
-  private typeRowCheck(typeName: string, staticColumns: readonly string[] | undefined) {
-    const typeConfig = this.buildCache.getTypeConfig(typeName);
-    const modelKey = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string;
-    const model = getModel(this.config.contract, modelKey);
-    const selects = this.typeLevelSelects(typeName).map(({ name, raw }) => ({
-      name,
-      ...splitSelect(raw, model),
-    }));
-    const check = typeDataCheck(selects, staticColumns ?? []);
-    return {
-      ...check,
-      modelKey,
-      staticColumns,
-      typeParent: (row: object) => parentForType(row, check.parentScopes),
-    };
-  }
-
-  /** How a planned field finds and reads its parent. Undefined for fields the plugin skips. */
-  private createFieldReader(fieldConfig: PothosOutputFieldConfig<Types>): FieldReader | undefined {
+  private gate(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const extensions = fieldConfig.extensions ?? {};
     const selection = extensions[PRISMA_NEXT_FIELD_SELECTION] as
       | PrismaNextSelection
       | PrismaNextSelectFn
       | undefined;
-    const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
-    const modelKey = parentConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+    const modelKey = this.buildCache.getTypeConfig(fieldConfig.parentType).extensions?.[
+      PRISMA_NEXT_MODEL
+    ] as string | undefined;
     if (selection === undefined || modelKey === undefined) {
+      return resolver;
+    }
+    const { config } = this;
+    const model = getModel(config.contract, modelKey);
+    const { ids, hasTypeData } = this.typeData(fieldConfig.parentType);
+    const staticColumns = typeof selection === 'function' ? undefined : (selection.columns ?? []);
+    if (staticColumns) {
+      this.staticColumnsOf(fieldConfig.parentType).set(fieldConfig.name, staticColumns);
+    }
+    const loaded = this.loadedCheck(fieldConfig, model, staticColumns ?? [], hasTypeData);
+    const parentTypes = [...mappingParentTypes(this.buildCache, fieldConfig, PRISMA_NEXT_MODEL)];
+    const parentFor = (row: object, mapping: Mapping | null | undefined) =>
+      mapping?.position ? fieldCopy(row, model, ids, mapping.position) : typeCopy(row, model, ids);
+    // A field with only columns to read reads them from the row with every column and what the
+    // type's `select`s load, which scope-auth's checks share. Any other loads the row again with
+    // what it selects.
+    const reload = (row: object, context: object, info: GraphQLResolveInfo): Promise<object> => {
+      const loader = config.loader(context, modelKey);
+      return staticColumns
+        ? reloadFor(info, () => loader.loadTypeRow(info, rowOf(row), info.parentType)).then(
+            (reloaded) => typeCopy(reloaded, model, ids),
+          )
+        : reloadFor(info, () => loader.loadSelection(info, rowOf(row))).then((reloaded) =>
+            parentFor(reloaded.row, reloaded.mapping),
+          );
+    };
+
+    if (staticColumns && !ids.length) {
+      // Only columns to read, which any row of the type can hold. A prisma type's parent is always
+      // a row.
+      return (parent, args, context, info) =>
+        loaded(parent as object, undefined, context, info)
+          ? resolver(parent, args, context, info)
+          : reload(parent as object, context, info).then((row) =>
+              resolver(row, args, context, info),
+            );
+    }
+    return (value, args, context, info) => {
+      const row = value as object;
+      const raw = rowOf(row);
+      let mapping: Mapping | null = null;
+      for (const type of parentTypes) {
+        mapping ??= getLoaderMapping(context, info.path, type, raw);
+      }
+      const parent = parentFor(row, mapping);
+      if (mapping && loaded(parent, mapping.position, context, info)) {
+        setRowMappings(context, info, mapping.nested);
+        return resolver(parent, args, context, info);
+      }
+      return reload(row, context, info).then((reloaded) => resolver(reloaded, args, context, info));
+    };
+  }
+
+  /**
+   * Whether a field's parent holds what the field reads: what its type's `select`s load, the
+   * columns of its static selection, each relation its static `select` names, the values each
+   * function entry computed, and what a helper checks. One check, so a parent reloads at most once.
+   */
+  private loadedCheck(
+    fieldConfig: PothosOutputFieldConfig<Types>,
+    model: PrismaNextModel,
+    columns: readonly string[],
+    hasTypeData: (parent: Record<string, unknown>) => boolean,
+  ): Loaded {
+    const helper = fieldConfig.extensions?.[PRISMA_NEXT_LOADED_CHECK] as LoadedCheck | undefined;
+    const { select } = fieldConfig.pothosOptions as { select?: unknown };
+    const split =
+      typeof select === 'object' && select !== null
+        ? splitSelect(select as RawSelect, model)
+        : undefined;
+    const keys = [
+      ...columns,
+      ...(split?.columns ?? []),
+      ...(split?.relations.filter(([, value]) => typeof value !== 'function') ?? []).map(
+        ([name]) => name,
+      ),
+    ];
+    const computed = (split?.relations ?? [])
+      .filter(([, value]) => typeof value === 'function')
+      .map(([name]) => name);
+    return (parent, position, context, info) =>
+      hasTypeData(parent as Record<string, unknown>) &&
+      keys.every((key) => (parent as Record<string, unknown>)[key] !== undefined) &&
+      (!computed.length ||
+        (!!position &&
+          computed.every((name) => loadedValues(parent, name, consumerId(position))))) &&
+      (!helper || helper(parent, context, info));
+  }
+
+  /**
+   * What a field returning rows of a prisma type does to each: copies it for the type, through
+   * lists, a connection's edges and promises. Undefined for a field returning anything else.
+   */
+  private resultCopier(fieldConfig: PothosOutputFieldConfig<Types>) {
+    const returned = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
+    const forType = this.typeCopier(returned);
+    if (forType || returned.kind !== 'Object') {
+      return forType;
+    }
+    // A connection's nodes are its edges' `node`.
+    const { configStore } = this.builder;
+    const edges = configStore.getFields(returned.name, 'Object').get('edges');
+    const edge = edges && this.buildCache.getTypeConfig(unwrapOutputFieldType(edges.type));
+    const node =
+      edge?.kind === 'Object' ? configStore.getFields(edge.name, 'Object').get('node') : undefined;
+    const forNode =
+      node && this.typeCopier(this.buildCache.getTypeConfig(unwrapOutputFieldType(node.type)));
+    if (!forNode) {
       return undefined;
     }
-    const { contract } = this.config;
-    const staticColumns = typeof selection === 'function' ? undefined : (selection.columns ?? []);
-    const check = this.typeRowCheck(fieldConfig.parentType, staticColumns);
-    const { parentScopes } = check;
-    // A field planned on an interface has its mapping recorded under the interface, but it
-    // resolves on the object type.
-    const parentTypes = [
-      fieldConfig.parentType,
-      ...('interfaces' in parentConfig ? parentConfig.interfaces : [])
-        .map((iface) => this.buildCache.getTypeConfig(iface, 'Interface'))
-        .filter((iface) => {
-          const ifaceModel = iface.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-          return (
-            ifaceModel !== undefined &&
-            rootModelKey(contract, ifaceModel) === rootModelKey(contract, modelKey)
-          );
-        })
-        .map((iface) => iface.name),
-    ];
-    // A field's own `select` is part of the parent its resolver sees. A field helper's slots are
-    // not. A static selection is only columns, so it has no slots either way.
-    const declaresOwnSelect =
-      typeof selection === 'function' &&
-      (fieldConfig.pothosOptions as { select?: unknown }).select !== undefined;
-    return {
-      ...check,
-      planned: typeof selection === 'function' || parentScopes.length > 0,
-      loaded: extensions[PRISMA_NEXT_LOADED_CHECK] as Loaded | undefined,
-      declaresOwnSelect,
-      readsSlots: typeof selection === 'function' && !declaresOwnSelect,
-      mapping: (parent, context, info) => {
-        const row = rowOf(parent);
-        let mapping: Mapping | null = null;
-        for (const type of parentTypes) {
-          mapping ??= inheritedMapping(
-            getLoaderMapping(context, info.path, type, row),
-            type === fieldConfig.parentType,
-            fieldConfig.pothosOptions,
-          );
+    // Edges are made per page, and may compute their cursor from the node they were made with, so
+    // each is given the copy in place.
+    return (page: unknown) => {
+      for (const edge of ((page as { edges?: unknown }).edges ?? []) as unknown[]) {
+        if (edge && typeof edge === 'object') {
+          (edge as { node: unknown }).node = copyResult((edge as { node: unknown }).node, forNode);
         }
-        return mapping;
-      },
-      parent: (row, mapping) =>
-        declaresOwnSelect
-          ? parentForField(row, parentScopes, mapping?.position)
-          : parentForType(row, parentScopes),
+      }
+      return page;
+    };
+  }
+
+  /** Copies a row of a prisma type for the readers of the type. Undefined for any other type. */
+  private typeCopier(typeConfig: PothosTypeConfig) {
+    const modelKey = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+    if (modelKey === undefined) {
+      return undefined;
+    }
+    const model = getModel(this.config.contract, modelKey);
+    const { ids } = this.typeData(typeConfig.name);
+    return (row: unknown) =>
+      row !== null && typeof row === 'object' ? typeCopy(row, model, ids) : row;
+  }
+
+  /** What `typeData` found for each prisma type. */
+  private readonly typeDataCache = new Map<string, ReturnType<typeof typeDataOf>>();
+
+  /**
+   * The consumer ids of a prisma type's `select`s, as `typeLevelSelects` lists them, and what a row
+   * must hold for them.
+   */
+  private typeData(typeName: string) {
+    let data = this.typeDataCache.get(typeName);
+    if (!data) {
+      const typeConfig = this.buildCache.getTypeConfig(typeName);
+      const modelKey = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string;
+      const model = getModel(this.config.contract, modelKey);
+      data = typeDataOf(
+        modelKey,
+        model,
+        this.typeLevelSelects(typeName).map(({ name, raw }) => ({
+          name,
+          ...splitSelect(raw, model),
+        })),
+      );
+      this.typeDataCache.set(typeName, data);
+    }
+    return data;
+  }
+
+  /** The columns each field with a static selection reads, by type and then field name. */
+  private readonly staticColumns = new Map<string, Map<string, readonly string[]>>();
+
+  private staticColumnsOf(typeName: string) {
+    let columns = this.staticColumns.get(typeName);
+    if (!columns) {
+      columns = new Map();
+      this.staticColumns.set(typeName, columns);
+    }
+    return columns;
+  }
+
+  /**
+   * The row scope-auth's checks see: the row as the `select`s of the type and its interfaces load
+   * it, with the columns the field being checked reads. A row without them is reloaded with every
+   * column and what those `select`s load, once per row per root field. The loader matches
+   * `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin doesn't import.
+   */
+  private createTypeParentLoader(typeName: string) {
+    let type: GraphQLObjectType | undefined;
+    const fieldColumns = this.staticColumnsOf(typeName);
+    return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
+      const { ids, modelKey, model, hasTypeData } = this.typeData(typeName);
+      type ??= info.schema.getType(typeName) as GraphQLObjectType;
+      const columns = (info.parentType.name === typeName && fieldColumns.get(info.fieldName)) || [];
+      // A prisma type's parent is always a row.
+      const typed = typeCopy(parent as object, model, ids) as Record<string, unknown>;
+      if (hasTypeData(typed) && columns.every((column) => typed[column] !== undefined)) {
+        return typed;
+      }
+      return reloadFor(info, () =>
+        this.config.loader(context, modelKey).loadTypeRow(info, rowOf(parent as object), type!),
+      ).then((row) => typeCopy(row, model, ids));
     };
   }
 }
 
 /**
- * What a row must hold for the type-level `selects` of a type, listed with the deepest interface
- * first and the type itself last, and `columns`, and the check for it.
+ * The consumer ids of a type's type-level `selects`, listed with the deepest interface first and
+ * the type itself last, and whether a row copied for them holds what they load: each column and
+ * relation, and each function entry's values.
  */
-function typeDataCheck(
+function typeDataOf(
+  modelKey: string,
+  model: PrismaNextModel,
   selects: readonly (ReturnType<typeof splitSelect> & { name: string })[],
-  columns: readonly string[],
 ) {
-  // The parent is reloaded unless it has every column and relation its type and interfaces
-  // select. Relations selected with a function aren't checked: they write computed values whose
-  // keys only the function knows.
-  const requiredOnRow = [
-    ...new Set([
-      ...selects.flatMap((select) => [
+  const required = [
+    ...new Set(
+      selects.flatMap((select) => [
         ...select.columns,
         ...select.relations
           .filter(([, value]) => typeof value !== 'function')
           .map(([name]) => name),
       ]),
-      ...columns,
-    ]),
+    ),
   ];
-  // A function's keys aren't checked, so a relation a level can't include is checked by whether
-  // its slots came back for each select computing from it. Another type's slot for the relation
-  // doesn't count.
   const computed = selects.flatMap((select) =>
     select.relations
       .filter(([, value]) => typeof value === 'function')
       .map(([name]) => [select.name, name] as const),
   );
-  const computedLoaded = (parent: object) =>
-    computed.every(([scope, name]) => loadedSlots(parent, name, scope));
-  // The scopes whose rows and values the parent shows. Every scope of the type must have loaded,
-  // or the parent reloads.
-  const parentScopes = selects
-    .filter((select) => select.relations.length > 0)
-    .map((select) => select.name);
-  const hasTypeData = (parent: object) => {
-    const complete = parentForType(parent, parentScopes) as Record<string, unknown>;
-    return requiredOnRow.every((name) => complete[name] !== undefined) && computedLoaded(parent);
+  return {
+    modelKey,
+    model,
+    ids: selects.filter((select) => select.relations.length > 0).map((select) => select.name),
+    hasTypeData: (row: Record<string, unknown>) =>
+      required.every((name) => row[name] !== undefined) &&
+      computed.every(([id, name]) => loadedValues(row, name, id)),
   };
-  return { computedLoaded, parentScopes, hasTypeData };
 }
 
-type TypeRowCheck = ReturnType<PothosPrismaNextPlugin<SchemaTypes>['typeRowCheck']>;
-
-interface FieldReader extends TypeRowCheck {
-  planned: boolean;
-  loaded: Loaded | undefined;
-  /** Whether `parent` includes the field's own `select`. */
-  declaresOwnSelect: boolean;
-  /**
-   * Whether the field's resolver, or for `t.variant` the fields beneath it, reads the slots of a
-   * helper's selection through `fieldSlots`.
-   */
-  readsSlots: boolean;
-  /** The field's loader mapping. */
-  mapping(parent: object, context: object, info: GraphQLResolveInfo): Mapping | null;
-  /** The parent the field's resolver and the plugins listed after this one get. */
-  parent(row: object, mapping: Mapping | null | undefined): object;
+/** `value`, a field's result, with `copy` applied to each item, through promises and lists. */
+function copyResult(value: unknown, copy: (item: unknown) => unknown): unknown {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (isThenable(value)) {
+    return Promise.resolve(value).then((settled) => copyResult(settled, copy));
+  }
+  if (Array.isArray(value)) {
+    return value.map((item: unknown) => copyResult(item, copy));
+  }
+  if (Symbol.asyncIterator in value) {
+    return copyEach(value as AsyncIterable<unknown>, copy);
+  }
+  return copy(value);
 }
 
-/**
- * A mapping recorded under an interface answers for an implementation only if the implementation
- * inherits the field. An override selects something else, and the interface's rows are not its own.
- */
-function inheritedMapping(mapping: Mapping | null, own: boolean, definition: unknown) {
-  return own ||
-    !mapping?.position ||
-    mapping.position.field.extensions?.pothosOptions === definition
-    ? mapping
-    : null;
+async function* copyEach(items: AsyncIterable<unknown>, copy: (item: unknown) => unknown) {
+  for await (const item of items) {
+    yield copyResult(item, copy);
+  }
 }
+
+/** A field's loaded check, given its parent and the position it was planned at. */
+type Loaded = (
+  parent: object,
+  position: Position | undefined,
+  context: object,
+  info: GraphQLResolveInfo,
+) => boolean;
+
+/** What a field helper checks its parent holds. */
+type LoadedCheck = (parent: object, context: object, info: GraphQLResolveInfo) => boolean;
 
 /**
  * A type's rows can load through the base model's collection, which can't include a relation only a
@@ -822,10 +834,6 @@ function assertSelectOrders(config: PrismaNextConfig, raw: RawSelect, model: Pri
       );
     }
   }
-}
-
-function typeParent(parent: unknown, scopes: readonly string[]) {
-  return parent !== null && typeof parent === 'object' ? parentForType(parent, scopes) : parent;
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosPrismaNextPlugin);

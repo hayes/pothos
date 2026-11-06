@@ -22,7 +22,7 @@ import type { PrismaNextConfig } from './utils/config.js';
 import { variantOf } from './utils/contract.js';
 import { assertGraphQLJsInfo, InternalError, keepError } from './utils/errors.js';
 import { getIdentityFields, getModel, type PrismaNextModel } from './utils/model.js';
-import { type PrismaNextSelection, takeSlots, withOtherKeys } from './utils/selections.js';
+import { type PrismaNextSelection, registerPlanRoots, withOtherKeys } from './utils/selections.js';
 
 type Row = Record<string, unknown>;
 type Played = PlayedPlan<PrismaNextModel, PrismaNextSelection>;
@@ -56,17 +56,6 @@ interface Plans {
   parent: Map<string, MaybePromise<Played>>;
   node: Map<string, MaybePromise<Played>>;
   type: Map<string, MaybePromise<Played>>;
-}
-
-/**
- * Rows a parent or node load returned, whose plans include the `select`s of their type and its
- * interfaces.
- */
-const typeRows = new WeakSet<object>();
-
-/** Whether a parent or node load returned `row`. */
-export function isLoadedTypeRow(row: object): boolean {
-  return typeRows.has(row);
 }
 
 interface IdentityColumn {
@@ -139,6 +128,7 @@ export class ModelLoader {
     const plans = this.plansFor(info).parent;
     let selection = plans.get(key);
     if (!selection) {
+      registerPlanRoots(info);
       // The selects of the field and those beneath it run here. What planning throws reaches the
       // field as it is, as it reaches a prisma field planned for the parent query. The planner's
       // own errors are already generic.
@@ -219,11 +209,7 @@ export class ModelLoader {
         this.identity,
         this.identity.map((field) => (parent as Row)[field]),
         { kind: 'parent' },
-      ).then((reloaded) => {
-        const row = withOtherKeys(reloaded!, parent, played.root.model);
-        typeRows.add(row);
-        return row;
-      });
+      ).then((reloaded) => withOtherKeys(reloaded!, parent, played.root.model));
     const row = completeValue(selection, load) as Promise<Row>;
     if (!loads) {
       loads = new Map();
@@ -246,6 +232,7 @@ export class ModelLoader {
     const plans = this.plansFor(info).node;
     let selection = plans.get(key);
     if (!selection) {
+      registerPlanRoots(info);
       // As in `loadSelection`, what planning throws reaches the field as it is.
       const planned: MaybePromise<Played> = userCode(() =>
         completeValue(
@@ -416,16 +403,8 @@ export class ModelLoader {
       ),
     ) as MapperCollection & { all(): Promise<readonly Row[]> };
     // A reload's database error is the plugin's, which `reloadFor` reports as `Unexpected error.`.
-    const loaded = await query.all();
-    const rows = takeSlots(loaded, batch.root.model, this.config.adapter.recordOf(query));
-    const byKey = new Map(
-      rows.map((row) => {
-        if (batch.load.kind !== 'complete') {
-          typeRows.add(row);
-        }
-        return [key(fields.map((field) => row[field])), row];
-      }),
-    );
+    const rows = await query.all();
+    const byKey = new Map(rows.map((row) => [key(fields.map((field) => row[field])), row]));
     for (const { request, key } of keyed) {
       const row = byKey.get(key);
       if (row || batch.load.kind !== 'parent') {

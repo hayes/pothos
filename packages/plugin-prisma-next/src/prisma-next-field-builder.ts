@@ -68,17 +68,19 @@ import {
   COUNT_SLOT,
   completeOption,
   computedSelection,
+  consumerId,
   definedQuery,
-  type FieldSlots,
-  fieldPositionFor,
-  fieldSlots,
+  fieldBranch,
+  fieldCopy,
+  fieldValue,
   type PrismaNextSelectFn,
   queryRefinement,
   type RawSelect,
   relationArgs,
+  rowOf,
   rowsSelection,
-  scopeOf,
   splitSelect,
+  VALUE_SLOT,
 } from './utils/selections.js';
 import { completeVariantRows } from './utils/variant-rows.js';
 
@@ -377,6 +379,8 @@ export class PrismaNextObjectFieldBuilder<
         PothosSchemaError,
         orderableProblem(getPluginConfig(this.builder).context, relation.targetModel),
       );
+    const relationLoaded = (parent: object) =>
+      (parent as Record<string, unknown>)[relationName] !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) =>
       completeOption(query as unknown, args, ctx, (value) => {
         const spec =
@@ -393,7 +397,7 @@ export class PrismaNextObjectFieldBuilder<
         return rowsSelection(
           relation,
           relationName,
-          scopeOf(position),
+          consumerId(position),
           nested({
             columns: discriminator === undefined ? null : [discriminator],
             args: relationArgs(relation, {
@@ -410,11 +414,14 @@ export class PrismaNextObjectFieldBuilder<
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
-        [PRISMA_NEXT_LOADED_CHECK]: (slots: FieldSlots) => slots.rows(relationName) !== undefined,
+        [PRISMA_NEXT_LOADED_CHECK]: relationLoaded,
       },
       resolve: (parent: object, args: object, context: object, info: GraphQLResolveInfo) =>
-        readSlots(this.builder, parent, context, info, (slots) => {
-          const rows = slots.rows(relationName) as Record<string, unknown> | null;
+        readOwn(this.builder, parent, context, info, relationLoaded, (own) => {
+          const rows = (own as Record<string, unknown>)[relationName] as Record<
+            string,
+            unknown
+          > | null;
           // A variant type filters out a to-one relation's row of another variant.
           if (rows == null || (discriminator !== undefined && rows[discriminator] !== variant)) {
             return typeof onNull === 'function' ? onNull(parent, args, context, info) : null;
@@ -448,10 +455,12 @@ export class PrismaNextObjectFieldBuilder<
       where?: unknown;
       extensions?: Record<string, unknown>;
     } & Record<string, unknown>;
+    const countLoaded = (parent: object) =>
+      fieldValue(parent, relationName, VALUE_SLOT) !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
       completeOption(where, args, ctx, (filter) =>
-        computedSelection(relationName, scopeOf(position), { where, args }, (sub) => ({
-          value: countOf(filter === undefined ? sub : sub.where(filter)),
+        computedSelection(relationName, consumerId(position), { where, args }, (sub) => ({
+          [VALUE_SLOT]: countOf(filter === undefined ? sub : sub.where(filter)),
         })),
       );
     return this.field({
@@ -461,12 +470,11 @@ export class PrismaNextObjectFieldBuilder<
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
-        [PRISMA_NEXT_LOADED_CHECK]: (slots: FieldSlots) =>
-          slots.value(relationName, 'value') !== undefined,
+        [PRISMA_NEXT_LOADED_CHECK]: countLoaded,
       },
       resolve: (parent: object, _args: object, context: object, info: GraphQLResolveInfo) =>
-        readSlots(this.builder, parent, context, info, (slots) =>
-          slots.value(relationName, 'value'),
+        readOwn(this.builder, parent, context, info, countLoaded, (own) =>
+          fieldValue(own, relationName, VALUE_SLOT),
         ),
     } as never) as never;
   }
@@ -559,11 +567,18 @@ export class PrismaNextObjectFieldBuilder<
     // Per selection of the field. Planning decides these once, however many parent rows there are,
     // and the resolver reaches the same position through its loader mapping.
     const plans = new WeakMap<Position, ConnectionPlan>();
+    const pageLoaded = (parent: object, ctx: object, info: GraphQLResolveInfo) => {
+      const { needsRows, count } = settings.selectionFor(ctx, info);
+      return (
+        (!needsRows || (parent as Record<string, unknown>)[name] !== undefined) &&
+        (count !== 'aggregate' || fieldValue(parent, name, COUNT_SLOT) !== undefined)
+      );
+    };
     const select: PrismaNextSelectFn = (args, ctx, nested, selectedFields, position) => {
       const planned = settings.plan(args, ctx);
       plans.set(position, planned);
       const { needsRows, count } = settings.selection(selectedFields());
-      return pageSelection(relation, name, scopeOf(position), {
+      return pageSelection(relation, name, consumerId(position), {
         plan: planned,
         args,
         // The order is part of the identity, so aliases that share a slot share their order.
@@ -581,13 +596,7 @@ export class PrismaNextObjectFieldBuilder<
         ...extensions,
         pothosIndirectInclude: include,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
-        [PRISMA_NEXT_LOADED_CHECK]: (slots: FieldSlots, ctx: object, info: GraphQLResolveInfo) => {
-          const { needsRows, count } = settings.selectionFor(ctx, info);
-          return (
-            (!needsRows || slots.rows(name) !== undefined) &&
-            (count !== 'aggregate' || slots.value(name, COUNT_SLOT) !== undefined)
-          );
-        },
+        [PRISMA_NEXT_LOADED_CHECK]: pageLoaded,
       },
       resolve: (
         parent: object,
@@ -595,28 +604,37 @@ export class PrismaNextObjectFieldBuilder<
         context: object,
         info: GraphQLResolveInfo,
       ) =>
-        readSlots(this.builder, parent, context, info, async (slots) => {
-          const planned = plans.get(slots.position!)!;
-          const { needsRows, count } = settings.selectionFor(context, info);
-          const rows = needsRows
-            ? await completeVariantRows(
-                this.builder,
-                relation,
-                info.schema.getType(relatedTypeName),
-                context,
-                info,
-                slots.rows(name),
-              )
-            : [];
-          const totalCount =
-            count === 'aggregate'
-              ? (slots.value(name, COUNT_SLOT) as number | undefined)
-              : await count?.(parent, args, context, info);
-          return buildConnectionPage(rows as Record<string, unknown>[], planned, args, {
-            totalCount,
-            parent,
-          });
-        }),
+        readOwn(
+          this.builder,
+          parent,
+          context,
+          info,
+          (own) => pageLoaded(own, context, info),
+          async (own) => {
+            // A field that loads nothing, selecting only a count callback, has no branch.
+            const branch = fieldBranch(own);
+            const planned = (branch && plans.get(branch.position)) ?? settings.plan(args, context);
+            const { needsRows, count } = settings.selectionFor(context, info);
+            const rows = needsRows
+              ? await completeVariantRows(
+                  this.builder,
+                  relation,
+                  info.schema.getType(relatedTypeName),
+                  context,
+                  info,
+                  (own as Record<string, unknown>)[name],
+                )
+              : [];
+            const totalCount =
+              count === 'aggregate'
+                ? (fieldValue(own, name, COUNT_SLOT) as number | undefined)
+                : await count?.(parent, args, context, info);
+            return buildConnectionPage(rows as Record<string, unknown>[], planned, args, {
+              totalCount,
+              parent,
+            });
+          },
+        ),
     };
     return (
       this as typeof this & { connection: (cfg: object, c?: object, e?: object) => unknown }
@@ -637,27 +655,28 @@ export class PrismaNextObjectFieldBuilder<
 }
 
 /**
- * Reads a field helper's slots on its parent. A parent this plugin didn't return, such as one
- * another plugin replaced, has none, so it is reloaded with what the helper selects.
+ * Reads what a field helper loaded on its parent, which `wrapResolve` handed the resolver. A plugin
+ * listed after this one can replace that parent with one that lacks it, which is reloaded with
+ * what the helper selects.
  */
-function readSlots<T>(
+function readOwn<T>(
   builder: object,
   parent: object,
   context: object,
   info: GraphQLResolveInfo,
-  read: (slots: FieldSlots) => T,
+  loaded: (parent: object) => boolean,
+  read: (parent: object) => T,
 ): MaybePromise<T> {
-  const slots = fieldSlots(parent, fieldPositionFor(info));
-  if (slots) {
-    return read(slots);
+  if (loaded(parent)) {
+    return read(parent);
   }
+  const config = getPluginConfig(builder);
   const modelKey = info.parentType.extensions?.[PRISMA_NEXT_MODEL] as string;
+  const model = getModel(config.contract, modelKey);
   return (
-    reloadFor(info, () =>
-      getPluginConfig(builder).loader(context, modelKey).loadSelection(info, parent),
-    )
-      // A loaded row always has slots. A reload plans its field first, onto a level that loads
-      // nothing yet, so the field always fits and has a mapping.
-      .then(({ row, mapping }) => read(fieldSlots(row, mapping?.position)!))
+    reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, rowOf(parent)))
+      // A reload plans its field first, onto a level that loads nothing yet, so the field always
+      // fits and has a mapping.
+      .then(({ row, mapping }) => read(fieldCopy(row, model, [], mapping!.position!)))
   );
 }
