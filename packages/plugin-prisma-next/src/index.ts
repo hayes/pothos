@@ -62,15 +62,16 @@ import {
   fieldCopy,
   isPageEntry,
   loadsOwnTableVariantRows,
+  type Narrowing,
   type PrismaNextSelectFn,
   type PrismaNextSelection,
   type RawSelect,
-  relationArgs,
   rowOf,
   type SplitSelect,
   splitSelect,
   type TypeSelect,
   typeCopy,
+  typeSelects,
 } from './utils/selections.js';
 import { variantTypeNames } from './utils/variant-types.js';
 
@@ -336,10 +337,47 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * Rejects a field that hands rows of a relation targeting a variant model to a type that can't
-   * read them, and checks the columns the relation entries of its static `select` order by. Checked
-   * on the field's final config, since a plugin that runs later, such as plugin-errors, can change
-   * its type.
+   * Checks a field's static `select`: rejects a relation entry whose rows its type can't read, as
+   * `assertRelationRows` explains, checks the columns its relation entries order by, and the
+   * variant its type narrows their rows to. Checked on the field's final config, since a plugin
+   * that runs later, such as plugin-errors, can change its type.
+   */
+  private assertFieldSelect(
+    fieldConfig: PothosOutputFieldConfig<Types>,
+    model: PrismaNextModel,
+    split: SplitSelect,
+  ) {
+    const { contract } = this.config;
+    const returnConfig = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
+    const returnModelKey = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+    const returnModel =
+      returnModelKey === undefined ? undefined : getModel(contract, returnModelKey);
+    assertRelationEntries(
+      this.config,
+      split,
+      model,
+      `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
+      (relation) => returnsRelationRowsAs(relation, returnConfig.kind, returnModel),
+    );
+    // The rows of a relation entry the field's selection set plans are narrowed to its type's
+    // variant, as `compileFieldSelect` plans them.
+    for (const [name, value] of split.relations) {
+      const relation = model.relations[name]!;
+      if (returnModel === relation.target && !isPageEntry(value)) {
+        variantForRelationType(
+          contract,
+          `Field '${fieldConfig.parentType}.${fieldConfig.name}'`,
+          relation.targetModel,
+          returnModelKey,
+        );
+      }
+    }
+  }
+
+  /**
+   * Rejects a `t.relation` or `t.relatedConnection` that hands rows of a relation targeting a
+   * variant model to an interface that can't read them. Checked on the field's final config, since
+   * a plugin that runs later, such as plugin-errors, can change its type.
    *
    * The rows of a variant model with a table of its own lack the base model's columns, such as the
    * discriminator an interface's `resolveType` reads, so only an object type of the relation's
@@ -347,44 +385,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    * they have its columns but not its relations, which an interface's `select`s can't load for its
    * `resolveType`. An object type's fields and auth checks reload what its `select` can't load.
    */
-  private assertFieldRows(
-    fieldConfig: PothosOutputFieldConfig<Types>,
-    model: PrismaNextModel,
-    split: SplitSelect | undefined,
-  ) {
-    const { contract } = this.config;
-    if (split) {
-      const returnConfig = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
-      const returnModelKey = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-      const returnModel =
-        returnModelKey === undefined ? undefined : getModel(contract, returnModelKey);
-      assertRelationEntries(
-        this.config,
-        split,
-        model,
-        `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
-        (relation) => returnsRelationRowsAs(relation, returnConfig.kind, returnModel),
-      );
-      // The rows of a relation entry the field's selection set plans are narrowed to its type's
-      // variant, as `compileFieldSelect` plans them.
-      for (const [name, value] of split.relations) {
-        const relation = model.relations[name]!;
-        if (returnModel === relation.target && !isPageEntry(value)) {
-          variantForRelationType(
-            contract,
-            `Field '${fieldConfig.name}'`,
-            relation.targetModel,
-            returnModelKey,
-          );
-        }
-      }
-    }
+  private assertRelationRows(fieldConfig: PothosOutputFieldConfig<Types>, model: PrismaNextModel) {
     const rows = fieldConfig.extensions?.[PRISMA_NEXT_RELATION_ROWS] as
       | { name: string; type: OutputType<Types> }
       | undefined;
     const relation = rows && model.relations[rows.name]!;
-    const narrowing =
-      relation && relationArgs(relation, { loadIdentity: undefined, refine: undefined }).variant;
+    const target = relation?.targetVariantModel;
+    const narrowing: Narrowing | undefined = target && {
+      value: target.value,
+      throughVariantModel: true,
+    };
     const typeConfig = narrowing && this.buildCache.getTypeConfig(rows!.type);
     if (!relation || !typeConfig || typeConfig.kind === 'Object') {
       return;
@@ -498,7 +508,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         ? splitSelect(select as RawSelect, model)
         : undefined;
     if (model) {
-      this.assertFieldRows(fieldConfig, model, split);
+      if (split) {
+        this.assertFieldSelect(fieldConfig, model, split);
+      }
+      this.assertRelationRows(fieldConfig, model);
     }
     const gated = this.gate(resolver, fieldConfig, modelKey, split);
     const forType = this.resultCopier(fieldConfig);
@@ -652,14 +665,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       ).then((row) => typeCopy(row, model, ids));
     };
   }
-}
-
-/**
- * The `select`s of a type and of its interfaces, which `onTypeConfig` keeps to one model hierarchy.
- * The deepest interface comes first and the type itself last. None for a type without a model.
- */
-function typeSelects(typeConfig: PothosTypeConfig): readonly TypeSelect[] {
-  return (typeConfig.extensions?.[PRISMA_NEXT_TYPE_SELECTS] as TypeSelect[] | undefined) ?? [];
 }
 
 /** Whether none of `keys` is undefined on `row`. */

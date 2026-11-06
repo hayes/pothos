@@ -17,7 +17,6 @@ import {
   PRISMA_NEXT_FIELD_SELECTION,
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_MODEL,
-  PRISMA_NEXT_TYPE_SELECTS,
 } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import {
@@ -40,7 +39,7 @@ import {
   REFINE,
   type RelationArgs,
   relationName,
-  type TypeSelect,
+  typeSelects,
 } from './selections.js';
 
 /**
@@ -137,7 +136,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       return cached;
     }
     const node = this.createNode(model);
-    for (const select of type.extensions[PRISMA_NEXT_TYPE_SELECTS] as TypeSelect[]) {
+    for (const select of typeSelects(type)) {
       super.mergeQuery(node, compileTypeSelect(this.contract, select, model, select.name));
     }
     for (const selection of implementationsOf(type)?.values() ?? []) {

@@ -29,9 +29,9 @@ Pick the error class by who has to act on it:
   detail, which leaves out row values, is in its `cause`.
 
 `PothosSchemaError` and `PothosValidationError` extend `GraphQLError`, which servers that mask
-errors, such as GraphQL Yoga, pass through to the client. Code shared by the build and a request,
-such as `variantForRelationType` and `sharedVariantRelationError`, takes the error to throw, so the
-build path keeps `PothosSchemaError`.
+errors, such as GraphQL Yoga, pass through to the client. Checks shared by the build and a request
+throw `PothosSchemaError`. Request-time callers apply them through `checkReturned`
+(`utils/errors.ts`), which rethrows them as `InternalError`.
 
 ## Running the tests
 

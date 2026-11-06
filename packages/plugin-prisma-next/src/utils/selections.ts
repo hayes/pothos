@@ -12,7 +12,7 @@ import type {
   SelectFn,
 } from '@pothos/selection-mapper';
 import { type FieldNode, type GraphQLResolveInfo, getNamedType, isObjectType } from 'graphql';
-import { PRISMA_NEXT_MODEL } from '../constants.js';
+import { PRISMA_NEXT_MODEL, PRISMA_NEXT_TYPE_SELECTS } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import { variantForRelationType } from './contract.js';
@@ -754,6 +754,16 @@ export type SplitSelect = ReturnType<typeof splitSelect>;
 export type TypeSelect = SplitSelect & { name: string };
 
 /**
+ * The `select`s of a type and of its interfaces, which `onTypeConfig` keeps to one model hierarchy.
+ * The deepest interface comes first and the type itself last. None for a type without a model.
+ */
+export function typeSelects(type: {
+  readonly extensions?: Readonly<Record<string, unknown>> | null;
+}): readonly TypeSelect[] {
+  return (type.extensions?.[PRISMA_NEXT_TYPE_SELECTS] as TypeSelect[] | undefined) ?? [];
+}
+
+/**
  * Whether a `select` entry loads the rows of `relation` through a variant model with a table of its
  * own, which can't read the columns it inherits. A page entry doesn't hand over rows loaded that
  * way.
@@ -865,11 +875,10 @@ export function compileFieldSelect(
   raw: RawSelect | ((args: object, ctx: object) => MaybePromise<RawSelect | null | undefined>),
   model: PrismaNextModel,
 ): PrismaNextSelection | PrismaNextSelectFn {
-  if (typeof raw !== 'function') {
-    const { columns, relations, computed } = splitSelect(raw, model);
-    if (relations.length === 0 && computed.length === 0) {
-      return { columns };
-    }
+  // A static select is checked when the schema is built, so it is split once, here.
+  const split = typeof raw === 'function' ? undefined : splitSelect(raw, model);
+  if (split && split.relations.length === 0 && split.computed.length === 0) {
+    return { columns: split.columns };
   }
   return (args, ctx, nested, selected, position) => {
     const returnModelKey = getNamedType(position.field.type).extensions?.[PRISMA_NEXT_MODEL] as
@@ -922,6 +931,9 @@ export function compileFieldSelect(
         );
       },
     };
+    if (split) {
+      return compileSelect(split, model, select);
+    }
     // Compiled for a request, which may be the first to see what a select function returns.
     return completeOption(raw, args, ctx, (value) =>
       checkReturned(value ?? {}, (returned) =>

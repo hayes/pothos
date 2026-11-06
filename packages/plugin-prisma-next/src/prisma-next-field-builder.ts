@@ -367,7 +367,8 @@ export class PrismaNextObjectFieldBuilder<
       variant === undefined || relation.isToMany
         ? undefined
         : modelDiscriminator(this.contract as AnyContract, relation.targetModel)!.field;
-    // A literal query is checked here, and a callback's result when a request is planned.
+    // A literal query is checked here, and a callback's result through `checkReturned` when a
+    // request is planned.
     const literal = typeof query === 'function' ? undefined : definedQuery(query);
     const literalRefine =
       literal &&
