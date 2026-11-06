@@ -20,7 +20,7 @@ import type { GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/adapter.js';
 import type { PrismaNextConfig } from './utils/config.js';
 import { variantOf } from './utils/contract.js';
-import { assertGraphQLJsInfo, InternalError, keepError } from './utils/errors.js';
+import { InternalError, keepError } from './utils/errors.js';
 import { getIdentityFields, getModel, type PrismaNextModel } from './utils/model.js';
 import { type PrismaNextSelection, registerPlanRoots, withOtherKeys } from './utils/selections.js';
 
@@ -109,7 +109,7 @@ export class ModelLoader {
   }
 
   private plansFor(info: GraphQLResolveInfo): Plans {
-    assertGraphQLJsInfo(info);
+    registerPlanRoots(info);
     let plans = this.plans.get(info.variableValues);
     if (!plans) {
       plans = { parent: new Map(), node: new Map(), type: new Map() };
@@ -128,7 +128,6 @@ export class ModelLoader {
     const plans = this.plansFor(info).parent;
     let selection = plans.get(key);
     if (!selection) {
-      registerPlanRoots(info);
       // The selects of the field and those beneath it run here. What planning throws reaches the
       // field as it is, as it reaches a prisma field planned for the parent query. The planner's
       // own errors are already generic.
@@ -232,7 +231,6 @@ export class ModelLoader {
     const plans = this.plansFor(info).node;
     let selection = plans.get(key);
     if (!selection) {
-      registerPlanRoots(info);
       // As in `loadSelection`, what planning throws reaches the field as it is.
       const planned: MaybePromise<Played> = userCode(() =>
         completeValue(

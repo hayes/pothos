@@ -17,7 +17,7 @@ import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import { variantForRelationType } from './contract.js';
 import { type OrderByDecl, orderCollection, orderColumns } from './cursors.js';
-import { InternalError } from './errors.js';
+import { assertGraphQLJsInfo, InternalError } from './errors.js';
 import {
   getModel,
   ownTableVariantRowsError,
@@ -158,10 +158,14 @@ const definitionIds = new WeakMap<object, number>();
 let nextDefinitionId = 0;
 
 /**
- * Records the operation of the fields a plan for `info` starts from, which the consumers beneath
- * them are numbered in. Called by every entry point before it plans.
+ * Checks `info` is graphql-js's and records the operation of the fields a plan for it starts from,
+ * which the consumers beneath them are numbered in. Every entry point calls it before it plans.
+ * A field node in a fragment two operations of one document share is recorded for whichever
+ * planned last. That is harmless: ids are fixed per position once numbered, and any table numbers
+ * distinct consumers apart.
  */
 export function registerPlanRoots(info: GraphQLResolveInfo) {
+  assertGraphQLJsInfo(info);
   for (const node of info.fieldNodes) {
     rootOperations.set(node, info.operation);
   }
@@ -356,6 +360,16 @@ export function rowOf(value: object): object {
   return owned.has(value) ? (value as Holder)[SLOTS]!.row : value;
 }
 
+/** Consumer ids to write onto a copy, and the key its copies are cached by. */
+export interface CopyIds {
+  readonly ids: readonly string[];
+  readonly key: string;
+}
+
+export function copyIds(ids: readonly string[]): CopyIds {
+  return { ids, key: ids.join(ID_SEPARATOR) };
+}
+
 /**
  * A copy of `base` with what `ids` loaded written onto it, cached per base and ids so per-row
  * caches such as scope-auth's see one object.
@@ -365,10 +379,9 @@ function copyWith(
   row: object,
   slots: Slots,
   lifted: ReadonlySet<string>,
-  ids: readonly string[],
+  { ids, key }: CopyIds,
   field?: Held['field'],
 ): object {
-  const key = ids.join(ID_SEPARATOR);
   let byIds = copies.get(base);
   if (!byIds) {
     byIds = new Map();
@@ -400,14 +413,15 @@ function copyWith(
 /**
  * The parent the readers of a type see, whose type-level selects are `ids`, the type last. For an
  * ORM row with `combine()` values, a copy without them, holding them under `SLOTS`, with what those
- * selects loaded written on. A copy this plugin made is made again from its row. A copy another
- * plugin made of one is kept, with only what it lacks written onto a copy of it. Two selects
- * computing one key fail when the statement is built (see `assertOneWriter` in adapter.ts).
+ * selects loaded written on. A copy this plugin made, or another plugin's copy of a field's copy, is
+ * made again from its row. Another plugin's copy of a type's copy is kept, with only what it lacks
+ * written onto a copy of it. Two selects computing one key fail when the statement is built (see
+ * `assertOneWriter` in adapter.ts).
  */
-export function typeCopy(value: object, model: PrismaNextModel, ids: readonly string[]): object {
+export function typeCopy(value: object, model: PrismaNextModel, ids: CopyIds): object {
   const held = (value as Holder)[SLOTS];
-  if (held && !owned.has(value)) {
-    return ids.every((id) => held.lifted.has(id) || !held.slots.consumers.has(id))
+  if (held && !held.field && !owned.has(value)) {
+    return ids.ids.every((id) => held.lifted.has(id) || !held.slots.consumers.has(id))
       ? value
       : copyWith(value, held.row, held.slots, held.lifted, ids);
   }
@@ -426,7 +440,7 @@ export function typeCopy(value: object, model: PrismaNextModel, ids: readonly st
 export function fieldCopy(
   value: object,
   model: PrismaNextModel,
-  ids: readonly string[],
+  ids: CopyIds,
   position: Position,
 ): object {
   const base = typeCopy(value, model, ids);
@@ -435,7 +449,14 @@ export function fieldCopy(
   if (!held?.slots.consumers.has(id)) {
     return base;
   }
-  return copyWith(base, held.row, held.slots, held.lifted, [id], { id, position });
+  return copyWith(
+    base,
+    held.row,
+    held.slots,
+    held.lifted,
+    { ids: [id], key: id },
+    { id, position },
+  );
 }
 
 /** The consumer `parent`, a field's copy, was made for, and the position it was planned at. */

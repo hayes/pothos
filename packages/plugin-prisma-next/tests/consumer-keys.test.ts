@@ -481,6 +481,26 @@ describe('rows other fields return', () => {
     n: 1,
   };
 
+  it('resolves column fields of a row a plain field returns without reloading it', async () => {
+    const builder = createBuilder();
+    const { User } = define(builder);
+    builder.prismaObjectFields(User, (t) => ({
+      me: t.field({ type: User, resolve: (user) => user }),
+    }));
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: [User],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { me { id publishedIds } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0]).toEqual({ me: { id: 'u-alice', publishedIds: ['p-hello'] } });
+    expect(result.statements).toHaveLength(1);
+  });
+
   it("reads consumers beneath a plain field's row", async () => {
     const result = await run(
       otherSchema(),

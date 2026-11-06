@@ -17,11 +17,7 @@ import {
 } from '@pothos/core';
 import type { Position } from '@pothos/selection-mapper';
 import { type GraphQLResolveInfo, getNamedType } from 'graphql';
-import {
-  PRISMA_NEXT_FIELD_SELECTION,
-  PRISMA_NEXT_LOADED_CHECK,
-  PRISMA_NEXT_MODEL,
-} from './constants.js';
+import { PRISMA_NEXT_FIELD_SELECTION, PRISMA_NEXT_MODEL } from './constants.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   HasAggregates,
@@ -69,6 +65,7 @@ import {
   completeOption,
   computedSelection,
   consumerId,
+  copyIds,
   definedQuery,
   fieldBranch,
   fieldCopy,
@@ -414,7 +411,6 @@ export class PrismaNextObjectFieldBuilder<
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
-        [PRISMA_NEXT_LOADED_CHECK]: relationLoaded,
       },
       resolve: (parent: object, args: object, context: object, info: GraphQLResolveInfo) =>
         readOwn(this.builder, parent, context, info, relationLoaded, (own) => {
@@ -470,7 +466,6 @@ export class PrismaNextObjectFieldBuilder<
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
-        [PRISMA_NEXT_LOADED_CHECK]: countLoaded,
       },
       resolve: (parent: object, _args: object, context: object, info: GraphQLResolveInfo) =>
         readOwn(this.builder, parent, context, info, countLoaded, (own) =>
@@ -596,7 +591,6 @@ export class PrismaNextObjectFieldBuilder<
         ...extensions,
         pothosIndirectInclude: include,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
-        [PRISMA_NEXT_LOADED_CHECK]: pageLoaded,
       },
       resolve: (
         parent: object,
@@ -659,6 +653,8 @@ export class PrismaNextObjectFieldBuilder<
  * listed after this one can replace that parent with one that lacks it, which is reloaded with
  * what the helper selects.
  */
+const NO_TYPE_IDS = copyIds([]);
+
 function readOwn<T>(
   builder: object,
   parent: object,
@@ -677,6 +673,6 @@ function readOwn<T>(
     reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, rowOf(parent)))
       // A reload plans its field first, onto a level that loads nothing yet, so the field always
       // fits and has a mapping.
-      .then(({ row, mapping }) => read(fieldCopy(row, model, [], mapping!.position!)))
+      .then(({ row, mapping }) => read(fieldCopy(row, model, NO_TYPE_IDS, mapping!.position!)))
   );
 }

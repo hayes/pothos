@@ -6,8 +6,6 @@ export const PRISMA_NEXT_MODEL = 'pothosPrismaNextModel';
 export const PRISMA_NEXT_TYPE_SELECT = 'pothosPrismaNextTypeSelect';
 /** A field's selection as the planner reads it: a static selection or a select function. */
 export const PRISMA_NEXT_FIELD_SELECTION = 'pothosPrismaNextFieldSelection';
-/** A planned field's check that the data it reads is on the parent it resolves with. */
-export const PRISMA_NEXT_LOADED_CHECK = 'pothosPrismaNextLoadedCheck';
 /** Marks a hierarchy interface that routes rows with the plugin's discriminator `resolveType`. */
 export const PRISMA_NEXT_DISCRIMINATED = 'pothosPrismaNextDiscriminated';
 /** A prisma interface's registry of its implementations' selections, one per schema build. */
