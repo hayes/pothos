@@ -651,13 +651,13 @@ export class PrismaNextObjectFieldBuilder<
   }
 }
 
+const NO_TYPE_IDS = copyIds([]);
+
 /**
  * Reads what a field helper loaded on its parent, which `wrapResolve` handed the resolver. A plugin
  * listed after this one can replace that parent with one that lacks it, which is reloaded with
  * what the helper selects.
  */
-const NO_TYPE_IDS = copyIds([]);
-
 function readOwn<T>(
   builder: object,
   parent: object,

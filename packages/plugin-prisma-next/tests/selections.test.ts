@@ -517,7 +517,7 @@ describe('a selection that fails to plan', () => {
     ['a relatedConnection query callback', 'connection { edges { cursor } }'],
     ['a field select function', 'selected'],
     ['an async field select function', 'asyncSelected'],
-    ['a relationCount where callback', 'count'],
+    ['a relationCount query: { where } callback', 'count'],
     ['a relation query callback beneath a relation', 'nested { title comments { id } }'],
   ])('fails the root field for %s that throws', async (_name, field) => {
     const result = await run(schema, `{ users { firstName ${field} } }`);

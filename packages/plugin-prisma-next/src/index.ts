@@ -575,7 +575,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       const raw = rowOf(row);
       let mapping: Mapping | null = null;
       for (const type of parentTypes) {
-        mapping ??= getLoaderMapping(context, info.path, type, raw);
+        mapping = getLoaderMapping(context, info.path, type, raw);
+        if (mapping) {
+          break;
+        }
       }
       const parent = parentFor(row, mapping);
       if (mapping && loaded(parent)) {

@@ -477,7 +477,7 @@ builder.prismaObject('Post', {
   }),
 });
 
-// Async `select`, `query` and count `where` callbacks need `AsyncSelections: true`.
+// Async `select`, `query` and count `query` callbacks need `AsyncSelections: true`.
 builder.prismaObject('User', {
   variant: 'SyncSelections',
   fields: (t) => ({

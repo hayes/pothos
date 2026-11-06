@@ -262,8 +262,6 @@ interface Held {
   /** The ORM row the copy was made from. */
   readonly row: object;
   readonly slots: Slots;
-  /** The consumers whose branches were written onto the copy. */
-  readonly lifted: ReadonlySet<string>;
   /** The consumers the copy was made for, whether or not the statement loaded a branch of theirs. */
   readonly types: ReadonlySet<string>;
   /** For a field's copy, the consumer it was made for and the position it was planned at. */
@@ -386,8 +384,6 @@ export function copyIds(
   return { ids, key: ids.join(ID_SEPARATOR), own };
 }
 
-const NOTHING_HELD: Pick<Held, 'lifted' | 'types'> = { lifted: new Set(), types: new Set() };
-
 /**
  * A copy of `base` with what `ids` loaded written onto it, cached per base and ids so per-row
  * caches such as scope-auth's see one object. The own keys of the ids it adds are cleared first,
@@ -397,7 +393,7 @@ function copyWith(
   base: object,
   row: object,
   slots: Slots,
-  from: Pick<Held, 'lifted' | 'types'>,
+  from: Held | undefined,
   { ids, key, own }: CopyIds,
   field?: Held['field'],
 ): object {
@@ -409,8 +405,7 @@ function copyWith(
   let copy = byIds.get(key) as Row | undefined;
   if (!copy) {
     copy = copyOf(base);
-    const lifted = new Set(from.lifted);
-    const types = new Set(from.types);
+    const types = new Set(from?.types);
     if (!(SLOTS in base)) {
       // The combined values come off the relation keys, which hold only what a select lifts back.
       for (const name of Object.keys(slots.relations)) {
@@ -429,12 +424,11 @@ function copyWith(
     }
     for (const id of added) {
       types.add(id);
-      if (!lifted.has(id) && slots.consumers.has(id)) {
+      if (slots.consumers.has(id)) {
         lift(copy, slots, id);
-        lifted.add(id);
       }
     }
-    (copy as Holder)[SLOTS] = { row, slots, lifted, types, ...(field ? { field } : {}) };
+    (copy as Holder)[SLOTS] = { row, slots, types, ...(field ? { field } : {}) };
     owned.add(copy);
     byIds.set(key, copy);
   }
@@ -459,19 +453,13 @@ function withAddedKeys(
 ): object {
   const written = new Set<string>();
   for (const { values } of Object.values(held.slots.relations)) {
-    for (const id of held.lifted) {
+    for (const id of held.types) {
       for (const name of Object.keys(values[id] ?? {})) {
         written.add(name);
       }
     }
   }
-  const added = Object.keys(value).filter(
-    (name) =>
-      !model.columns.has(name) &&
-      !Object.hasOwn(model.relations, name) &&
-      !model.sharedVariantRelations.has(name) &&
-      !written.has(name),
-  );
+  const added = Object.keys(value).filter((name) => !isModelKey(model, name) && !written.has(name));
   if (!added.length) {
     return copy;
   }
@@ -529,7 +517,7 @@ export function typeCopy(value: object, model: PrismaNextModel, ids: CopyIds): o
   if (!held && slots === NO_SLOTS && !holdsOwnKey(row, ids)) {
     return row;
   }
-  const copy = copyWith(row, row, slots, NOTHING_HELD, ids);
+  const copy = copyWith(row, row, slots, undefined, ids);
   return foreign ? withAddedKeys(value, copy, held, model, ids.key) : copy;
 }
 
@@ -570,16 +558,21 @@ export function fieldValue(parent: object, name: string, key: string): unknown {
 export function withOtherKeys(loaded: Row, row: object, model: PrismaNextModel): Row {
   let next: Row | undefined;
   for (const key of Object.keys(row)) {
-    if (
-      !model.columns.has(key) &&
-      !Object.hasOwn(model.relations, key) &&
-      !model.sharedVariantRelations.has(key)
-    ) {
+    if (!isModelKey(model, key)) {
       next ??= copyOf(loaded);
       next[key] = (row as Row)[key];
     }
   }
   return next ?? loaded;
+}
+
+/** Whether `key` is a column or relation of `model`. */
+function isModelKey(model: PrismaNextModel, key: string): boolean {
+  return (
+    model.columns.has(key) ||
+    Object.hasOwn(model.relations, key) ||
+    model.sharedVariantRelations.has(key)
+  );
 }
 
 /** Copies a row into a writable object with the same prototype and type brand. */
@@ -599,7 +592,7 @@ function copyOf(row: object): Row {
 export type RawSelect = readonly string[] | Record<string, unknown>;
 
 /** A computed value of a `select`: `key: { relation: compute }`. */
-export interface ComputedEntry {
+interface ComputedEntry {
   key: string;
   relation: string;
   compute: Compute;
