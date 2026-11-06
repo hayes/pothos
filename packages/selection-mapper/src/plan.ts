@@ -415,7 +415,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   /**
    * The plan played behind `seed`, its mappings recorded for the resolvers beneath it, and its
    * node serialized. A cached plan accepts the current resolver info to scope each execution.
-   * Every play records its mappings on the request context; an adapter whose
+   * Every play records its mappings for the execution on the request context; an adapter whose
    * resolvers read a loaded row another way simply never looks them up.
    */
   query(seed?: Query, info = this.info): Query {

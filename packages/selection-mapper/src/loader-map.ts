@@ -70,7 +70,7 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
 }
 
 /**
- * Per request context: the mappings recorded so far, and the keys they were recorded under, by
+ * Per execution: the mappings recorded so far, and the keys they were recorded under, by
  * the path prefix that rehomed them. `responsePath` drops list indices, so every row of a list
  * rebuilds the same key strings; a prefix builds them once.
  *
@@ -82,15 +82,52 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
  * false while nothing has been recorded there, so a request whose rows were all loaded the same
  * way pays nothing for the row tier.
  */
-const cache = createContextCache(() => ({
-  mappings: new Map<string, Mapping>(),
-  rehomed: new Map<string, Map<string, string>>(),
-  rows: new WeakMap<object, WeakMap<object, Map<string, Mapping>>>(),
-  rowScoped: false,
-  scopes: new WeakMap<object, Mappings>(),
-}));
+function createCache() {
+  return {
+    mappings: new Map<string, Mapping>(),
+    rehomed: new Map<string, Map<string, string>>(),
+    rows: new WeakMap<object, WeakMap<object, Map<string, Mapping>>>(),
+    rowScoped: false,
+    scopes: new WeakMap<object, Mappings>(),
+  };
+}
 
-type Cache = ReturnType<typeof cache>;
+type Cache = ReturnType<typeof createCache>;
+
+/**
+ * Caches by the path link of their root field. graphql-js makes a new one for each root field of
+ * each execution, subscription events included, so a context shared by several executions never
+ * hands one of them the mappings of another, whose rows it never loaded.
+ */
+const contextCaches = createContextCache(() => new WeakMap<object, Cache>());
+
+/**
+ * The root field's path link. Walked rather than memoised: most links are new leaves seen once,
+ * and a path is a few links deep, so a lookup table costs more than the walk.
+ */
+function rootOf(path: GraphQLResolveInfo['path']): GraphQLResolveInfo['path'] {
+  let root = path;
+
+  while (root.prev) {
+    root = root.prev;
+  }
+
+  return root;
+}
+
+/** The cache of the execution `path` is in. */
+function cache(ctx: object, path: GraphQLResolveInfo['path']): Cache {
+  const byRoot = contextCaches(ctx);
+  const root = rootOf(path);
+  let cached = byRoot.get(root);
+
+  if (!cached) {
+    cached = createCache();
+    byRoot.set(root, cached);
+  }
+
+  return cached;
+}
 
 /**
  * Memoised per path link, which is created once per field per row and never mutated. graphql-js
@@ -214,7 +251,7 @@ function claimForRow(
  * types share the list's path), so later contributions replace matching keys and retain others.
  */
 export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
-  const cached = cache(ctx);
+  const cached = cache(ctx, info.path);
   const prefix = responsePath(info.path);
   const keys = rehomedKeys(cached, prefix);
   const previous = cached.scopes.get(info.path);
@@ -231,7 +268,7 @@ export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mapping
  * a relation, connection wrapper, or list. The execution path retains indices to isolate siblings.
  */
 export function setRowMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
-  cache(ctx).scopes.set(info.path, mappings);
+  cache(ctx, info.path).scopes.set(info.path, mappings);
 }
 
 /**
@@ -246,7 +283,7 @@ export function setFieldMapping(
   mapping: Mapping,
   row: unknown,
 ) {
-  const cached = cache(ctx);
+  const cached = cache(ctx, info.path);
   const owner = ownerOf(row);
 
   claim(cached, cacheKey(info.parentType.name, info.path), mapping, owner, info.path);
@@ -267,7 +304,7 @@ export function setRowFieldMapping(
   mapping: Mapping,
   row: unknown,
 ) {
-  const cached = cache(ctx);
+  const cached = cache(ctx, info.path);
   const owner = ownerOf(row);
 
   if (owner) {
@@ -287,7 +324,7 @@ export function getLoaderMapping(
   type: string,
   row?: unknown,
 ): Mapping | null {
-  const cached = cache(ctx);
+  const cached = cache(ctx, path);
   const key = cacheKey(type, path);
 
   if (cached.rowScoped) {
