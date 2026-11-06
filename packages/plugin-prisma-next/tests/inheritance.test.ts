@@ -1469,7 +1469,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     return { builder, feature };
   }
   const rowsError =
-    "the rows of relation 'feature', which targets variant model 'Feature' with a table of its own. The ORM loads those rows from that table alone and can't include the base model's columns through the relation, so the base's columns, such as the discriminator an interface's resolveType reads, are missing. Load them with t.relation('feature') or t.relatedConnection('feature') returning an object type of 'Feature', or through a relation to the base model.";
+    "the rows of relation 'feature', which targets variant model 'Feature' with a table of its own. Those rows load from that table alone, without the base model's columns. Return them as an object type of 'Feature' (t.relation, t.relatedConnection or a field select), or relate to the base model.";
 
   it("rejects a type's select that loads its rows when the schema is built", () => {
     const { builder } = selectBuilder();

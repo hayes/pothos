@@ -11,7 +11,7 @@ import type {
   SelectedFieldNode,
   SelectFn,
 } from '@pothos/selection-mapper';
-import { type FieldNode, type GraphQLResolveInfo, getNamedType, isAbstractType } from 'graphql';
+import { type FieldNode, type GraphQLResolveInfo, getNamedType, isObjectType } from 'graphql';
 import { PRISMA_NEXT_MODEL } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
@@ -23,6 +23,7 @@ import {
   ownTableVariantRowsError,
   type PrismaNextModel,
   type PrismaNextRelation,
+  returnsRelationRowsAs,
   sharedVariantRelationError,
 } from './model.js';
 
@@ -893,8 +894,11 @@ export function compileFieldSelect(
         // schema is built, so this catches what a select function returns.
         if (
           typeof raw === 'function' &&
-          relation.targetVariantModel?.sharesTable === false &&
-          (returnModel !== relation.target || isAbstractType(getNamedType(position.field.type)))
+          !returnsRelationRowsAs(
+            relation,
+            isObjectType(getNamedType(position.field.type)) ? 'Object' : 'Other',
+            returnModel,
+          )
         ) {
           throw ownTableVariantRowsError(
             `The select of field '${position.type.name}.${position.field.name}' loads`,

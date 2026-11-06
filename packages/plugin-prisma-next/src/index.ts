@@ -44,7 +44,12 @@ import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
 import { orderableProblem, orderColumns } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
-import { getModel, ownTableVariantRowsError, type PrismaNextModel } from './utils/model.js';
+import {
+  getModel,
+  ownTableVariantRowsError,
+  type PrismaNextModel,
+  returnsRelationRowsAs,
+} from './utils/model.js';
 import {
   compileFieldSelect,
   copyIds,
@@ -333,9 +338,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       const returnConfig = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
       const returnModel = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
       if (
-        returnConfig.kind !== 'Object' ||
-        returnModel === undefined ||
-        getModel(contract, returnModel) !== relation.target
+        !returnsRelationRowsAs(
+          relation,
+          returnConfig.kind,
+          returnModel === undefined ? undefined : getModel(contract, returnModel),
+        )
       ) {
         throw ownTableVariantRowsError(
           `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,

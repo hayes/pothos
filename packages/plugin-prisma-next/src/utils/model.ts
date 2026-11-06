@@ -73,7 +73,23 @@ export function ownTableVariantRowsError(
   ErrorClass: new (message: string) => Error = PothosSchemaError,
 ) {
   return new ErrorClass(
-    `${subject} the rows of relation '${name}', which targets variant model '${targetModel}' with a table of its own. The ORM loads those rows from that table alone and can't include the base model's columns through the relation, so the base's columns, such as the discriminator an interface's resolveType reads, are missing. Load them with t.relation('${name}') or t.relatedConnection('${name}') returning an object type of '${targetModel}', or through a relation to the base model.`,
+    `${subject} the rows of relation '${name}', which targets variant model '${targetModel}' with a table of its own. Those rows load from that table alone, without the base model's columns. Return them as an object type of '${targetModel}' (t.relation, t.relatedConnection or a field select), or relate to the base model.`,
+  );
+}
+
+/**
+ * Whether a field can return the rows of `relation` as a type of `kind` and `model`. The rows of a
+ * variant with a table of its own lack the base model's columns, such as the discriminator an
+ * interface's `resolveType` reads, so only an object type of the relation's target can take them.
+ */
+export function returnsRelationRowsAs(
+  relation: PrismaNextRelation,
+  kind: string,
+  model: PrismaNextModel | undefined,
+) {
+  return (
+    relation.targetVariantModel?.sharesTable !== false ||
+    (kind === 'Object' && model === relation.target)
   );
 }
 

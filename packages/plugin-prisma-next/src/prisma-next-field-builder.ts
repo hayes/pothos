@@ -62,6 +62,7 @@ import {
   getModel,
   ownTableVariantRowsError,
   type PrismaNextRelation,
+  returnsRelationRowsAs,
   sharedVariantRelationError,
 } from './utils/model.js';
 import { getRefFromContractModel, refFor } from './utils/refs.js';
@@ -641,7 +642,11 @@ export class PrismaNextObjectFieldBuilder<
     if (relation.targetVariantModel?.sharesTable === false) {
       field.onFirstUse((fieldConfig) =>
         this.builder.configStore.onTypeConfig(targetRef as never, (typeConfig) => {
-          if (typeConfig.kind !== 'Object') {
+          const model = getModel(
+            this.contract as AnyContract,
+            typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string,
+          );
+          if (!returnsRelationRowsAs(relation, typeConfig.kind, model)) {
             throw ownTableVariantRowsError(
               `Field '${fieldConfig.parentType}.${fieldConfig.name}' returns interface '${typeConfig.name}' for`,
               name,
