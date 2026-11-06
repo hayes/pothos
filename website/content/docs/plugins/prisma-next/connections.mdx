@@ -71,9 +71,9 @@ Cursors contain the values of the order columns, readable by clients, so don't o
 clients shouldn't see.
 
 - Columns the ORM can't order, such as bytes, can't be in the order.
-- On PostgreSQL, a timestamp read as a JavaScript `Date` keeps only milliseconds, so you can't
-  order by one with a precision above 3. Bare `DateTime` is fine; use `TimestamptzTemporal` for
-  finer timestamps.
+- A timestamp read as a JavaScript `Date` keeps only milliseconds, so you can't order by one with a
+  precision above 3. Bare `DateTime` is fine; on PostgreSQL, use `TimestamptzTemporal` for finer
+  timestamps.
 
 An `orderBy` object that breaks these rules fails the schema build. An `orderBy` function fails
 each request that returns such an order.

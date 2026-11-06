@@ -195,11 +195,10 @@ These go under `prismaNext` in the builder options.
 
 - On MySQL, Prisma reads rows but can't write them, count them or run aggregates yet. MongoDB isn't
   supported.
-- Errors from invalid input, such as a bad cursor, are safe to show. The plugin's other request
-  errors, including database errors from the queries it runs itself, such as reloads and `node`
-  lookups, reach clients as `Unexpected error.`, with the detail in the error's `cause` for your
-  logs. Errors from your own code, and from running the collections your resolvers return, pass
-  through as they are and can name your models and columns, so enable error masking (GraphQL Yoga
-  does by default).
+- A bad ID or cursor fails with `Invalid ID.` or `Invalid cursor.`, which are safe to show. The
+  plugin's other request errors, including database errors from queries it runs itself, reach
+  clients as `Unexpected error.`, with the detail in the error's `cause`. Errors from your code, and
+  from the collections your resolvers return, pass through unchanged and can name your models and
+  columns, so enable error masking (GraphQL Yoga does by default).
 - Use `"moduleResolution": "nodenext"` or `"bundler"`, since Prisma's packages are ESM-only.
 - graphql-jit isn't supported. Fields that load rows fail with `Unexpected error.` under it.

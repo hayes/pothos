@@ -71,14 +71,8 @@ builder.prismaInterfaceField(Person, 'displayName', (t) =>
 );
 ```
 
-## Returning rows from other fields
-
-To return a row through `Node`, or through an interface from `builder.interfaceRef()`:
-
-- Brand it with the type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
-  `Abstract type ... must resolve`.
-- If you route a row yourself, with a `__typename` or a `resolveType` that returns a type name,
-  TypeScript doesn't check that the row has the type's key and `select`.
+To return rows through `Node` or another interface from a plain field, see
+[Returning rows from other fields](./relations#returning-rows-from-other-fields).
 
 ## Native inheritance
 

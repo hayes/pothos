@@ -8,6 +8,7 @@
     "connections",
     "interfaces",
     "relay",
-    "variants"
+    "variants",
+    "..."
   ]
 }
