@@ -4,6 +4,7 @@ import type {
   CollectionRowOf,
   CollectionTypeState,
   DefaultCollectionTypeState,
+  HasOrderBy,
   HasRow,
   HasTypeState,
   IncludeScalar,
@@ -97,9 +98,34 @@ export type ResolverCollection<Types extends SchemaTypes, M extends ModelKey<Typ
  */
 type IncludeFreeRow<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   readonly [K in keyof Row<Types, M> | RelationKeys<Types, M>]?: K extends RelationKeys<Types, M>
-    ? never
+    ? IncludedRelation<K>
     : unknown;
 };
+
+/** Names an included relation, where `never` would only say "not assignable to undefined". */
+interface IncludedRelation<Relation> {
+  readonly 'The plugin includes what the query selects, so the collection must not include': Relation;
+}
+
+/**
+ * The collection a connection pages: one `ResolverCollection` accepts that isn't ordered, as the
+ * connection orders it by its `query`'s `orderBy` and the cursor. `Returned` is the collection
+ * given.
+ */
+export type ConnectionCollection<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  Returned,
+> = ResolverCollection<Types, M> & UnorderedCollection<Returned>;
+
+/** Rejects an ordered collection, naming why. */
+export type UnorderedCollection<Returned> = [Extract<Returned, HasOrderBy>] extends [never]
+  ? unknown
+  : OrderedConnectionCollection;
+
+interface OrderedConnectionCollection {
+  readonly "A connection orders its collection by its query's orderBy, so the collection must not use orderBy()": true;
+}
 
 /**
  * The key of the model a collection's rows belong to: the model it reads, or the variant model

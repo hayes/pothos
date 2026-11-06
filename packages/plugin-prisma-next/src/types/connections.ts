@@ -12,7 +12,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from '../interface-ref.js';
 import type { PrismaNextObjectRef } from '../object-ref.js';
 import type { TotalCountFlag } from './aggregates.js';
-import type { ResolverCollection } from './collections.js';
+import type { ConnectionCollection } from './collections.js';
 import type { RootResolveParent } from './fields.js';
 import type { ModelKey, ObjectBaseShape, RelationKeys, Row } from './models.js';
 import type { OrderByColumnsCheck, RelationOrderBy } from './order-by.js';
@@ -102,6 +102,7 @@ export type PrismaNextConnectionFieldOptions<
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind,
   ResolveShape = ParentShape,
+  Returned = unknown,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -137,14 +138,18 @@ export type PrismaNextConnectionFieldOptions<
     type: Param;
     /** Filters and orders the collection `resolve` returns. */
     query?: ConnectionQueryOption<Types, M, Args, QueryLiteral>;
-    /** Returns an unordered collection: the connection orders it by its `query`'s `orderBy`. */
+    /**
+     * Returns a collection without `include()` or `orderBy()`: the connection orders it by its
+     * `query`'s `orderBy`.
+     */
     resolve: (
       parent: RootResolveParent<Types, ParentShape, ResolveShape, Kind>,
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => MaybePromise<
-      ResolverCollection<Types, NoInfer<M>> | (Nullable extends true ? null : never)
+      | (Returned & NoInfer<ConnectionCollection<Types, M, Returned>>)
+      | (Nullable extends true ? null : never)
     >;
   };
 

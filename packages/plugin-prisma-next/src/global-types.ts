@@ -361,6 +361,7 @@ declare global {
               Types,
               M
             >,
+            Returned = unknown,
           >(
             options: PrismaNextConnectionFieldOptions<
               Types,
@@ -372,7 +373,8 @@ declare global {
               QueryLiteral,
               ResolveReturnShape,
               Kind,
-              ResolveShape
+              ResolveShape,
+              Returned
             >,
             connectionOptions?:
               | PothosSchemaTypes.ConnectionObjectOptions<

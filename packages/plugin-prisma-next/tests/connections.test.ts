@@ -1,7 +1,6 @@
-import { OrderByItem, ParamRef } from '@prisma/orm-family-sql/relational-core/ast';
 import { describe, expect, it } from 'vitest';
 import { prismaConnectionHelpers } from '../src';
-import { detailOf, unexpected } from './fixtures/errors';
+import { detailOf } from './fixtures/errors';
 import {
   type CapturedExecution,
   createBuilder,
@@ -84,11 +83,6 @@ function schema(options: SampleOptions = {}) {
         args: { sort: t.arg.string({ required: true }) },
         query: (args) => ({ orderBy: { [args.sort]: 'desc' } }),
         resolve: () => db.orm.Post,
-      }),
-      preordered: t.prismaConnection({
-        type: 'Post',
-        totalCount: true,
-        resolve: () => db.orm.Post.orderBy((post) => post.id.desc()),
       }),
       newestFirst: t.prismaConnection({
         type: 'Post',
@@ -1275,8 +1269,6 @@ describe('a user-defined totalCount with the totalCount option', () => {
 });
 
 describe('base collections', () => {
-  const helper = () => prismaConnectionHelpers(createBuilder(), 'Post', {});
-
   type PageArgs = { first?: number; last?: number; after?: string; before?: string };
   interface Page {
     edges: { cursor: string; node: { id: string } }[];
@@ -1294,55 +1286,6 @@ describe('base collections', () => {
     };
     return applied.wrap(await applied.collection.all());
   }
-
-  it.each([
-    ['limit', () => db.orm.Post.limit(1), /unpaginated Collection/],
-    ['offset', () => db.orm.Post.offset(1), /unpaginated Collection/],
-    [
-      'cursor',
-      () => db.orm.Post.orderBy((p) => p.id.asc()).cursor({ id: 'p-hello' }),
-      /unpaginated Collection/,
-    ],
-    ['distinct', () => db.orm.Post.distinct('title'), /distinct/],
-    ['include', () => db.orm.Post.include('author'), /already includes 'author'/],
-  ])('rejects a base with %s before SQL', async (_name, base, message) => {
-    const statements: CapturedExecution[] = [];
-    await withCapture(statements, () =>
-      expect(helper().applyPagination(base() as never, { first: 1 }, {})).rejects.toThrow(
-        unexpected(message),
-      ),
-    );
-    expect(statements).toHaveLength(0);
-  });
-
-  it.each([
-    ['limit', () => db.orm.Post.limit(1), /unpaginated Collection/],
-    ['distinct', () => db.orm.Post.distinct('title'), /distinct/],
-  ])('rejects a prismaConnection base with %s before SQL', async (_name, base, message) => {
-    const builder = createBuilder();
-    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.queryType({
-      fields: (t) => ({
-        posts: t.prismaConnection({ type: 'Post', resolve: base as never }),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ posts(first: 1) { edges { node { id } } } }');
-    expect(detailOf(result.errors?.[0])).toMatch(message);
-    expect(result.statements).toHaveLength(0);
-  });
-
-  it.each([
-    ['an expression', () => db.orm.Post.orderBy(() => OrderByItem.asc(new ParamRef(BigInt(1))))],
-    ['the order the connection uses', () => db.orm.Post.orderBy((p) => p.id.asc())],
-  ])('rejects a base ordered by %s instead of paging it wrongly', async (_name, base) => {
-    const statements: CapturedExecution[] = [];
-    await withCapture(statements, () =>
-      expect(helper().applyPagination(base() as never, { first: 2 }, {})).rejects.toThrow(
-        unexpected(/unordered, unpaginated Collection/),
-      ),
-    );
-    expect(statements).toHaveLength(0);
-  });
 
   it('pages a descending order in both directions', async () => {
     const all = await query('{ newestFirst(first: 10) { edges { node { id } } } }');
@@ -1364,12 +1307,6 @@ describe('base collections', () => {
     );
     expect(before.errors).toBeUndefined();
     expect(ids(before.data.newestFirst)).toEqual(order.slice(0, 2));
-  });
-
-  it('validates the base even when only totalCount is selected', async () => {
-    const result = await query('{ preordered(first: 1) { totalCount } }');
-    expect(detailOf(result.errors?.[0])).toMatch(/unordered, unpaginated Collection/);
-    expect(result.statements).toHaveLength(0);
   });
 
   it.each([

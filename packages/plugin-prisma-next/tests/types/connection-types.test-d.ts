@@ -636,3 +636,39 @@ builder.queryField('countedUsers', (t) =>
     }),
   ),
 );
+
+// A connection orders and pages its collection itself, so `resolve` can't return one that includes
+// a relation or is ordered. A filtered one is fine.
+builder.queryFields((t) => ({
+  filteredPage: t.prismaConnection({
+    type: 'Post',
+    resolve: () => orm.Post.where({ published: 1 }),
+  }),
+  asyncFilteredPage: t.prismaConnection({
+    type: 'Post',
+    resolve: async () => orm.Post.where({ published: 1 }),
+  }),
+  includedPage: t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error `author` is already included
+    resolve: () => orm.Post.include('author'),
+  }),
+  orderedPage: t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error the connection orders the collection
+    resolve: () => orm.Post.orderBy((post) => post.title.asc()),
+  }),
+  asyncOrderedPage: t.prismaConnection({
+    type: 'Post',
+    nullable: true,
+    // @ts-expect-error the connection orders the collection
+    resolve: async () => orm.Post.where({ published: 1 }).orderBy((post) => post.title.asc()),
+  }),
+}));
+const postPages = prismaConnectionHelpers(builder, 'Post', {});
+postPages.applyPagination(orm.Post.where({ published: 1 }), {}, {});
+// @ts-expect-error `author` is already included
+postPages.applyPagination(orm.Post.include('author'), {}, {});
+const orderedPosts = orm.Post.orderBy((post) => post.title.asc());
+// @ts-expect-error the connection orders the collection
+postPages.applyPagination(orderedPosts, {}, {});

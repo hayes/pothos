@@ -9,7 +9,6 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type { PrismaNextConnectionFieldOptions } from './types/connections.js';
 import type { ModelKey } from './types/models.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { assertConnectionCollection } from './utils/collection-state.js';
 import { getPluginConfig } from './utils/config.js';
 import {
   aggregateCount,
@@ -148,7 +147,6 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         if (userCollection == null) {
           return null;
         }
-        assertConnectionCollection(userCollection);
         const planned = settings.plan(args, context);
         const { needsRows, count: countSource } = settings.selectionFor(context, info);
         const filtered =

@@ -11,7 +11,11 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type { TotalCountFlag } from './types/aggregates.js';
-import type { CollectionFor, ResolverCollection } from './types/collections.js';
+import type {
+  CollectionFor,
+  ResolverCollection,
+  UnorderedCollection,
+} from './types/collections.js';
 import type {
   ConnectionPagingOptions,
   ConnectionQueryLiteral,
@@ -28,7 +32,6 @@ import type {
 import type { DefaultRelationNullable, IsToMany, RelatedModel } from './types/relations.js';
 import type { ConnectionPageEntry, NodeSelection } from './types/selections.js';
 import type { MapperCollection } from './utils/adapter.js';
-import { assertConnectionCollection } from './utils/collection-state.js';
 import { getPluginConfig } from './utils/config.js';
 import {
   aggregateCount,
@@ -229,8 +232,8 @@ export interface PrismaConnectionHelpers<
    * Pages a collection the resolver loads itself. With `info`, it selects what the nodes need.
    * Returns a promise when a `select` callback beneath the connection is async.
    */
-  applyPagination(
-    collection: ResolverCollection<Types, M>,
+  applyPagination<C extends ResolverCollection<Types, M>>(
+    collection: C & UnorderedCollection<C>,
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
   ): MaybePromise<
@@ -241,8 +244,8 @@ export interface PrismaConnectionHelpers<
       PageNode<Node, LoadedHelperRow<Types, M, Select>, MaybeRow>
     >
   >;
-  applyPagination(
-    collection: ResolverCollection<Types, M>,
+  applyPagination<C extends ResolverCollection<Types, M>>(
+    collection: C & UnorderedCollection<C>,
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
     info: GraphQLResolveInfo,
@@ -426,7 +429,6 @@ export function prismaConnectionHelpers<
     ctx: object,
     info: GraphQLResolveInfo | undefined,
   ) => {
-    assertConnectionCollection(collection);
     const planned = settings.plan(args, ctx);
     const filtered = planned.where === undefined ? collection : collection.where(planned.where);
     const paged = applyCursorPagination(filtered, planned, args);

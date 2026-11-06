@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { buildExampleSchema } from './example/schema';
-import { detailOf } from './fixtures/errors';
 import {
   columnsOf,
   createBuilder,
@@ -525,26 +524,6 @@ describe('a selection that fails to plan', () => {
       ['not allowed', ['users']],
     ]);
     expect(result.data).toEqual({ users: null });
-    expect(result.statements).toHaveLength(0);
-  });
-});
-
-describe('a connection collection that already includes a relation', () => {
-  it('fails the prismaConnection that returns it', async () => {
-    const included = () =>
-      // The types reject it too, so it is cast to reach the runtime check.
-      db.orm.User.include('posts', (posts) => posts.where({ published: 1 })) as never;
-    const builder = createBuilder();
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.queryType({
-      fields: (t) => ({
-        userPage: t.prismaConnection({ type: 'User', nullable: true, resolve: included }),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ userPage { edges { node { id } } } }');
-    expect(result.errors?.map((error) => detailOf(error))).toEqual([
-      "A collection returned to @pothos/plugin-prisma-next already includes 'posts'. Return it without include(): the plugin includes what the query selects. Filter a relation with its field's `query` option.",
-    ]);
     expect(result.statements).toHaveLength(0);
   });
 });
