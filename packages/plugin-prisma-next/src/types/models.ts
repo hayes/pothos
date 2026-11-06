@@ -164,13 +164,8 @@ export type NamespaceOf<
  * Upstream's `RelationNames` omits the relations a variant inherits from its base. Read through
  * `infer`, so hovers show the relation names rather than this alias.
  */
-export type RelationKeys<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-> = keyof RelationsOfModel<Types['PrismaNextContract'], M> & string extends infer K extends
-  keyof RelationsOfModel<Types['PrismaNextContract'], M> & string
-  ? K
-  : never;
+export type RelationKeys<Types extends SchemaTypes, M extends ModelKey<Types>> =
+  RelationsOfModel<Types['PrismaNextContract'], M> extends infer R ? keyof R & string : never;
 
 /** A model's fields, its table entry, and the storage column each field maps to. */
 type ModelTable<C extends AnyContract, M extends string> =
