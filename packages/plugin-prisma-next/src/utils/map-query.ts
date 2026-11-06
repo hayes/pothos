@@ -5,6 +5,7 @@ import { PRISMA_NEXT_CONFIG } from '../constants.js';
 import type { PlannedCollection } from '../types/collections.js';
 import type { MapperCollection, PrismaNextAdapter, PrismaNextPlan } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
+import { assertGraphQLJsInfo } from './errors.js';
 import type { PrismaNextModel } from './model.js';
 import { EMPTY, type IncludeRecord, type PrismaNextSelection, takeSlots } from './selections.js';
 
@@ -34,6 +35,7 @@ export function planSelection(
   target: PlanTarget,
   initial: PrismaNextSelection,
 ): MaybePromise<{ selection: PrismaNextSelection; model: PrismaNextModel } | undefined> {
+  assertGraphQLJsInfo(info);
   const plan = Plan.fromInfo(config.adapter, { context, info, ...target, initial });
   return (
     plan &&

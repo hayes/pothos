@@ -202,3 +202,4 @@ These go under `prismaNext` in the builder options.
   through as they are and can name your models and columns, so enable error masking (GraphQL Yoga
   does by default).
 - Use `"moduleResolution": "nodenext"` or `"bundler"`, since Prisma's packages are ESM-only.
+- graphql-jit isn't supported. Fields that load rows fail with `Unexpected error.` under it.

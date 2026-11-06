@@ -20,7 +20,7 @@ import type { GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/adapter.js';
 import type { PrismaNextConfig } from './utils/config.js';
 import { variantOf } from './utils/contract.js';
-import { InternalError, keepError } from './utils/errors.js';
+import { assertGraphQLJsInfo, InternalError, keepError } from './utils/errors.js';
 import { getIdentityFields, getModel, type PrismaNextModel } from './utils/model.js';
 import { type PrismaNextSelection, takeSlots, withOtherKeys } from './utils/selections.js';
 
@@ -120,6 +120,7 @@ export class ModelLoader {
   }
 
   private plansFor(info: GraphQLResolveInfo): Plans {
+    assertGraphQLJsInfo(info);
     let plans = this.plans.get(info.variableValues);
     if (!plans) {
       plans = { parent: new Map(), node: new Map(), type: new Map() };

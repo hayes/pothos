@@ -65,3 +65,15 @@ export function reloadFor<T>(info: GraphQLResolveInfo, load: () => Promise<T>): 
     return Promise.reject(fieldError(info, error));
   }
 }
+
+/**
+ * Plans are cached on the `info.path` objects graphql-js passes, which graphql-jit rebuilds for each
+ * call, without a `typename`. Under it the plugin fails closed, as scope-auth's `isTypeOf` does.
+ */
+export function assertGraphQLJsInfo(info: GraphQLResolveInfo) {
+  if (!info?.path || !('typename' in info.path)) {
+    throw new InternalError(
+      '@pothos/plugin-prisma-next needs the resolve info graphql-js passes, so it does not support graphql-jit.',
+    );
+  }
+}
