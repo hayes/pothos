@@ -375,7 +375,10 @@ export function prismaConnectionHelpers<
       rows: readonly Record<string, unknown>[],
       args: PothosSchemaTypes.DefaultConnectionArguments,
     ) {
-      const { plan, count } = pageOf(rows);
+      const { plan, count } = pageOf(
+        rows,
+        `${owner}: resolve was given rows getQuery didn't load. Pass the parent's relation unchanged; transform nodes with resolveNode.`,
+      );
       const page = buildConnectionPage(rows, plan, args, { totalCount: count });
       // After building the page, so cursors are encoded from the rows.
       if (resolveNode) {

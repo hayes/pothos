@@ -1503,8 +1503,11 @@ describe('prismaConnectionHelpers', () => {
       '{ posts { commenters { totalCount } } }',
     );
     expect(result.errors?.map((error) => [error.message, detailOf(error)])).toEqual([
-      ['Unexpected error.', expect.stringMatching(/rows don't hold its plan/)],
-      ['Unexpected error.', expect.stringMatching(/rows don't hold its plan/)],
+      [
+        'Unexpected error.',
+        "connection helpers for 'Comment': resolve was given rows getQuery didn't load. Pass the parent's relation unchanged; transform nodes with resolveNode.",
+      ],
+      ['Unexpected error.', expect.stringMatching(/rows getQuery didn't load/)],
     ]);
   });
 

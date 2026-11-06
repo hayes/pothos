@@ -231,14 +231,15 @@ export function pageLoaded(name: string) {
 
 /**
  * What `planPage` recorded on a page's rows. Rows without it weren't loaded by a page, so the
- * field's resolver was handed something else.
+ * field's resolver was handed something else, which `detail` describes.
  */
-export function pageOf(rows: readonly unknown[]): { plan: ConnectionPlan; count?: number } {
+export function pageOf(
+  rows: readonly unknown[],
+  detail = "A connection page's rows don't hold its plan: pass the rows its select loaded, as they are.",
+): { plan: ConnectionPlan; count?: number } {
   const page = (rows as { [PAGE]?: PageData })[PAGE];
   if (!page) {
-    throw new InternalError(
-      "A connection page's rows don't hold its plan: pass the rows its select loaded, as they are.",
-    );
+    throw new InternalError(detail);
   }
   return page as { plan: ConnectionPlan; count?: number };
 }
