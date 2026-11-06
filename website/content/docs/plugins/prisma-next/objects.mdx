@@ -59,7 +59,7 @@ A `select` accepts:
 
 - Columns: `{ email: true }` or `['email']`.
 - Relations: `{ posts: true }`.
-- Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: (post) => post.createdAt.desc(), limit: 5 } }`.
+- Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`.
   A to-one relation takes only `true`.
 - Counts and aggregates of a to-many relation:
   `{ posts: (posts) => ({ postCount: posts.count() }) }`. Each key (`postCount`) is added to the
@@ -97,8 +97,8 @@ email: t.string({
 
 With `AsyncSelections: true` in the builder's types, the function can be async.
 
-`select`, `query`, `where` and `orderBy` callbacks run once when the plugin builds the query, not
-once per row, so keep them free of side effects.
+`select`, `query` and `where` callbacks run once when the plugin builds the query, not once per
+row, so keep them free of side effects.
 
 ### Auth checks
 

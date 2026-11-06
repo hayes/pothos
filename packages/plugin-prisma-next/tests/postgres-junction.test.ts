@@ -45,7 +45,7 @@ function schema() {
     fields: (t: T) => ({
       title: t.exposeString('title'),
       tags: t.relation('tags', {
-        query: { orderBy: (row: { name: { asc(): unknown } }) => row.name.asc() },
+        query: { orderBy: { name: 'asc' } },
       }),
       graphqlTags: t.relation('tags', {
         query: { where: (row: { name: { eq(v: string): unknown } }) => row.name.eq('graphql') },

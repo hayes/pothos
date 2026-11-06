@@ -9,6 +9,7 @@ import {
   type NormalizeArgs,
   type ObjectRef,
   type PluginName,
+  PothosSchemaError,
   RootFieldBuilder,
   type SchemaTypes,
   type ShapeFromTypeParam,
@@ -28,7 +29,6 @@ import type {
   RelationCountWhereParam,
 } from './types/aggregates.js';
 import type {
-  ConnectionOrderBy,
   ConnectionQueryLiteral,
   ConnectionResultShape,
   PrismaNextRelatedConnectionOptions,
@@ -60,12 +60,11 @@ import {
   pageSelection,
 } from './utils/connections.js';
 import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
-import { buildConnectionPage } from './utils/cursors.js';
+import { buildConnectionPage, orderableProblem } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { getRefFromContractModel, refFor } from './utils/refs.js';
 import {
-  applyQuery,
   COUNT_SLOT,
   completeOption,
   computedSelection,
@@ -74,6 +73,7 @@ import {
   fieldPositionFor,
   fieldSlots,
   type PrismaNextSelectFn,
+  queryRefinement,
   type RawSelect,
   relationArgs,
   rowsSelection,
@@ -366,13 +366,27 @@ export class PrismaNextObjectFieldBuilder<
       variant === undefined || relation.isToMany
         ? undefined
         : modelDiscriminator(this.contract as AnyContract, relation.targetModel)!.field;
+    // A literal query is checked here, and a callback's result when a request is planned.
+    const literal = typeof query === 'function' ? undefined : definedQuery(query);
+    const literalRefine =
+      literal &&
+      queryRefinement(
+        this.contract as AnyContract,
+        relation.targetModel,
+        literal,
+        PothosSchemaError,
+        orderableProblem(getPluginConfig(this.builder).context, relation.targetModel),
+      );
     const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) =>
       completeOption(query as unknown, args, ctx, (value) => {
-        const spec = typeof value === 'function' ? undefined : definedQuery(value);
+        const spec =
+          typeof value === 'function' ? undefined : value === query ? literal : definedQuery(value);
         const refine =
           typeof value === 'function'
             ? (value as (rel: MapperCollection) => MapperCollection)
-            : spec && ((rel: MapperCollection) => applyQuery(rel, spec));
+            : value === query
+              ? literalRefine
+              : spec && queryRefinement(this.contract as AnyContract, relation.targetModel, spec);
         // A callback builds a new query on every walk, so its definition and arguments identify
         // it.
         const identity = refine && (typeof query === 'function' ? { source: query, args } : spec);
@@ -463,10 +477,6 @@ export class PrismaNextObjectFieldBuilder<
         // The relay plugin applies the builder's default, as for any connection field.
         Nullable extends boolean = Types['DefaultFieldNullability'],
         Args extends InputFieldMap = {},
-        OrderBy extends ConnectionOrderBy<
-          Types,
-          RelatedModel<Types, M, RelName>
-        > = ConnectionOrderBy<Types, RelatedModel<Types, M, RelName>>,
         RelatedShape = unknown,
         ConnectionInterfaces extends InterfaceParam<Types>[] = [],
         EdgeInterfaces extends InterfaceParam<Types>[] = [],
@@ -482,7 +492,6 @@ export class PrismaNextObjectFieldBuilder<
           RelName,
           Nullable,
           Args,
-          OrderBy,
           RelatedShape,
           Shape,
           QueryLiteral
@@ -538,21 +547,11 @@ export class PrismaNextObjectFieldBuilder<
       relatedModel,
       (targetRef as { modelKey?: string }).modelKey,
     );
-    const {
-      orderBy,
-      type: _type,
-      defaultSize,
-      maxSize,
-      query,
-      totalCount,
-      extensions,
-      ...rest
-    } = options;
+    const { type: _type, defaultSize, maxSize, query, totalCount, extensions, ...rest } = options;
     const settings = connectionSettings(config, relatedModel, {
       defaultSize,
       maxSize,
       totalCount,
-      orderBy,
       query,
     });
     const relatedTypeName = (targetRef as { name?: string }).name ?? relatedModel;

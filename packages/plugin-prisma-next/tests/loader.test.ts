@@ -453,7 +453,7 @@ describe('models without a key', () => {
       fields: (t) => ({
         title: t.exposeString('title'),
         viewCount: t.relationCount('views'),
-        views: t.relation('views', { query: { orderBy: (view) => view.viewer.asc() } }),
+        views: t.relation('views', { query: { orderBy: { viewer: 'asc' } } }),
       }),
     });
     const View = builder.prismaObject('PostView', {

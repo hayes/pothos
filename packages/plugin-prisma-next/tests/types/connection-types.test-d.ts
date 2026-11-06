@@ -6,11 +6,11 @@ import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type CollectionFor,
   type ConnectionHelperRow,
-  type ConnectionOrderBy,
   type ConnectionQueryLiteral,
   type NodeSelection,
   type PlannedRow,
   prismaConnectionHelpers,
+  type RelationOrderBy,
 } from '../../src';
 import type { TotalCountFlag } from '../../src/types/aggregates';
 import type { Contract } from '../fixtures/sample-contract';
@@ -37,16 +37,18 @@ builder.prismaObject('User', {
     posts: t.relatedConnection('posts', {
       type: SummaryRef,
       args: { newest: t.arg.boolean() },
-      orderBy: (args, _ctx) => {
+      query: (args, _ctx) => {
         expectTypeOf(args.newest).toEqualTypeOf<boolean | null | undefined>();
-        return { title: args.newest ? 'desc' : 'asc' };
+        return {
+          where: (post) => post.authorId.eq(args.newest ? 'me' : 'you'),
+          orderBy: { title: args.newest ? 'desc' : 'asc' },
+        };
       },
-      query: (args) => ({ where: (post) => post.authorId.eq(args.newest ? 'me' : 'you') }),
       totalCount: (user) => user.email.length,
     }),
     published: t.relatedConnection('posts', { query: { where: { published: 1 } } }),
     defaultOrder: t.relatedConnection('posts', {}),
-    pair: t.relatedConnection('posts', { orderBy: { title: 'desc', id: 'desc' } }),
+    pair: t.relatedConnection('posts', { query: { orderBy: { title: 'desc', id: 'desc' } } }),
     notACondition: t.relatedConnection('posts', {
       // @ts-expect-error a where callback returns a condition
       query: { where: () => 42 },
@@ -55,9 +57,13 @@ builder.prismaObject('User', {
       // @ts-expect-error the connection args own the page size
       query: { where: { published: 1 }, limit: 5 },
     }),
-    orderInQuery: t.relatedConnection('posts', {
-      // @ts-expect-error the order is the connection's `orderBy`
-      query: { orderBy: (post) => post.title.desc() },
+    topLevelOrderBy: t.relatedConnection('posts', {
+      // @ts-expect-error the order goes in `query`
+      orderBy: { title: 'desc' },
+    }),
+    unknownOrderColumn: t.relatedConnection('posts', {
+      // @ts-expect-error `titel` isn't a column of Post
+      query: { where: { published: 1 }, orderBy: { title: 'asc', titel: 'asc' } },
     }),
     unknownCallbackKey: t.relatedConnection('posts', {
       // @ts-expect-error unknown query options are rejected in a callback's result too
@@ -135,15 +141,15 @@ builder.queryType({
     ordered: t.prismaConnection({
       type: 'Post',
       args: { newest: t.arg.boolean() },
-      orderBy: (args, context) => {
+      query: (args, context) => {
         expectTypeOf(context).not.toBeAny();
-        return args.newest ? { title: 'desc', id: 'asc' } : { title: 'asc' };
+        return { orderBy: args.newest ? { title: 'desc', id: 'asc' } : { title: 'asc' } };
       },
       resolve: () => orm.Post,
     }),
     nullsFirst: t.prismaConnection({
       type: 'Post',
-      orderBy: { score: { nulls: 'first' } },
+      query: { orderBy: { score: { nulls: 'first' } } },
       resolve: () => orm.Post,
     }),
     nullable: t.prismaConnection({
@@ -162,8 +168,13 @@ builder.queryType({
     list: t.prismaConnection({ type: ['Post'], resolve: () => orm.Post }),
     query: t.prismaConnection({
       type: 'User',
-      // @ts-expect-error `query` (plugin-prisma's shape) isn't supported
-      query: () => ({ where: {} }),
+      query: () => ({ where: { email: 'a@example.com' } }),
+      resolve: () => orm.User,
+    }),
+    unknownQueryKey: t.prismaConnection({
+      type: 'User',
+      // @ts-expect-error the connection args own the page size
+      query: { limit: 5 },
       resolve: () => orm.User,
     }),
     edgesNullable: t.prismaConnection({
@@ -200,101 +211,103 @@ postgres.queryType({
   fields: (t) => ({
     temporal: t.prismaConnection({
       type: 'Entry',
-      orderBy: { createdAt: 'desc', id: 'asc' },
+      query: { orderBy: { createdAt: 'desc', id: 'asc' } },
       resolve: () => client.orm.public.Entry,
     }),
     bytes: t.prismaConnection({
       type: 'Entry',
       // @ts-expect-error a bytes column can't order a connection
-      orderBy: { payload: 'asc' },
+      query: { orderBy: { payload: 'asc' } },
       resolve: () => client.orm.public.Entry,
     }),
   }),
 });
 
-// `orderBy` is a declaration: a direction per column, or `{ direction, nulls }`.
+// A query's `orderBy` is a declaration: a direction per column, or `{ direction, nulls }`.
 builder.queryFields((t) => ({
   unknownColumn: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error `nope` isn't a column of Post
-    orderBy: { nope: 'asc' },
+    query: { orderBy: { nope: 'asc' } },
     resolve: () => orm.Post,
   }),
   unknownBesideKnown: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error `titel` isn't a column of Post
-    orderBy: { title: 'asc', titel: 'asc' },
+    query: { orderBy: { title: 'asc', titel: 'asc' } },
     resolve: () => orm.Post,
   }),
   unknownFromCallback: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error a callback's result is checked as well
-    orderBy: () => ({ title: 'asc', titel: 'asc' }),
+    query: () => ({ orderBy: { title: 'asc', titel: 'asc' } }),
     resolve: () => orm.Post,
   }),
   unknownInBranch: t.prismaConnection({
     type: 'Post',
     args: { newest: t.arg.boolean() },
     // @ts-expect-error every branch is checked
-    orderBy: (args) => (args.newest ? { titel: 'desc' } : { title: 'asc' }),
+    query: (args) => ({ orderBy: args.newest ? { titel: 'desc' } : { title: 'asc' } }),
     resolve: () => orm.Post,
   }),
   unknownBesideKeyInBranch: t.prismaConnection({
     type: 'Post',
     args: { newest: t.arg.boolean() },
     // @ts-expect-error every branch is checked, even one that also names a real column
-    orderBy: (args) => (args.newest ? { titel: 'desc', id: 'asc' } : { title: 'asc' }),
+    query: (args) => ({
+      orderBy: args.newest ? { titel: 'desc', id: 'asc' } : { title: 'asc' },
+    }),
     resolve: () => orm.Post,
   }),
   badDirection: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error a direction is `asc` or `desc`
-    orderBy: { title: 'sideways' },
+    query: { orderBy: { title: 'sideways' } },
     resolve: () => orm.Post,
   }),
   badEntryKey: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error an entry takes `direction` and `nulls`
-    orderBy: { title: { dir: 'asc' } },
+    query: { orderBy: { title: { dir: 'asc' } } },
     resolve: () => orm.Post,
   }),
   nullsOnRequired: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error a non-null column has no nulls to place
-    orderBy: { title: { direction: 'desc', nulls: 'first' } },
+    query: { orderBy: { title: { direction: 'desc', nulls: 'first' } } },
     resolve: () => orm.Post,
   }),
   nullsOnRequiredFromCallback: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error a callback's result is checked as well
-    orderBy: () => ({ id: { nulls: 'last' } }),
+    query: () => ({ orderBy: { id: { nulls: 'last' } } }),
     resolve: () => orm.Post,
   }),
   // A computed key widens to `string`, which is checked when the request runs.
   computed: t.prismaConnection({
     type: 'Post',
     args: { sort: t.arg.string({ required: true }) },
-    orderBy: (args) => ({ [args.sort]: 'desc' }),
+    query: (args) => ({ orderBy: { [args.sort]: 'desc' } }),
     resolve: () => orm.Post,
   }),
   accessor: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error `orderBy` takes a declaration, not the ORM's accessor callback
-    orderBy: () => (post: { id: { asc(): unknown } }) => post.id.asc(),
+    query: { orderBy: (post: { id: { asc(): unknown } }) => post.id.asc() },
     resolve: () => orm.Post,
   }),
 }));
 
 expectTypeOf<ConnectionQueryLiteral<Types, 'Post'>>().toHaveProperty('where');
-expectTypeOf<ConnectionOrderBy<Types, 'Post'>>().toHaveProperty('title');
+expectTypeOf<RelationOrderBy<Types, 'Post'>>().toHaveProperty('title');
 // `nulls` on a non-null column names the problem instead of failing against `undefined`.
 expectTypeOf<
-  Extract<NonNullable<ConnectionOrderBy<Types, 'Post'>['title']>, object>['nulls']
+  Extract<NonNullable<RelationOrderBy<Types, 'Post'>['title']>, object>['nulls']
 >().toEqualTypeOf<
   (('first' | 'last') & { readonly 'A non-null column has no nulls to place': 'title' }) | undefined
 >();
 expectTypeOf<
-  Extract<NonNullable<ConnectionOrderBy<Types, 'Post'>['score']>, object>['nulls']
+  Extract<NonNullable<RelationOrderBy<Types, 'Post'>['score']>, object>['nulls']
 >().toEqualTypeOf<'first' | 'last' | undefined>();
 // `totalCount: true` on a target without aggregates, such as MySQL, names the problem.
 type MysqlTypes = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: MysqlContract }>;
@@ -307,7 +320,7 @@ expectTypeOf<Extract<TotalCountFlag<MysqlTypes>, true>>().toHaveProperty(
 // Bytes columns aren't orderable, so they aren't keys of the declaration.
 type EntryTypes = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: PostgresContract }>;
 expectTypeOf<
-  'payload' extends keyof ConnectionOrderBy<EntryTypes, 'Entry'> ? 1 : 0
+  'payload' extends keyof RelationOrderBy<EntryTypes, 'Entry'> ? 1 : 0
 >().toEqualTypeOf<0>();
 
 // prismaConnectionHelpers options: refs, `query`, and callbacks that see the field's args.
@@ -321,7 +334,6 @@ const byObject = prismaConnectionHelpers(builder, SummaryRef, {});
 expectTypeOf(byObject.ref).toEqualTypeOf(SummaryRef);
 prismaConnectionHelpers(builder, 'User', {
   args: (t) => ({ q: t.string(), size: t.int() }),
-  orderBy: (args) => (args.q ? { firstName: 'desc', id: 'asc' } : undefined),
   defaultSize: (args) => args.size ?? 10,
   maxSize: (args, _ctx) => (args.q ? 5 : 50),
   totalCount: true,
@@ -330,6 +342,7 @@ prismaConnectionHelpers(builder, 'User', {
       expectTypeOf(tools).not.toBeAny();
       return args.q ? user.firstName.eq(args.q) : user.id.neq('');
     },
+    orderBy: args.q ? { firstName: 'desc', id: 'asc' } : undefined,
   }),
 });
 prismaConnectionHelpers(builder, 'User', {

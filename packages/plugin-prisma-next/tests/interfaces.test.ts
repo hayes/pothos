@@ -30,7 +30,7 @@ describe('prismaInterface', () => {
       interfaces: [User],
       fields: (t) => ({
         lastName: t.exposeString('lastName'),
-        posts: t.relation('posts', { query: { orderBy: (post) => post.id.asc() } }),
+        posts: t.relation('posts', { query: { orderBy: { id: 'asc' } } }),
       }),
     });
     builder.prismaObject('User', {
@@ -432,7 +432,7 @@ describe('inherited selections', () => {
         "'Named' and 'User' both select relation 'posts', with different arguments. A row of " +
           "'User' holds one version of the relation, which the fields and auth checks of both " +
           'types read. Select it with the same arguments in both, sharing any function such as ' +
-          "an orderBy, or load the other version in a field, with t.relation('posts', { query }) " +
+          "a where, or load the other version in a field, with t.relation('posts', { query }) " +
           "or a field's select.",
       );
     });
@@ -515,16 +515,16 @@ describe('inherited selections', () => {
       );
     });
 
-    it('with orderBy functions that are not the same function', () => {
+    it('with where functions that are not the same function', () => {
       const builder = createBuilder();
       const Named = builder.prismaInterface('User', {
         variant: 'Named',
-        select: { posts: { orderBy: (post) => post.id.asc() } },
+        select: { posts: { where: (post) => post.published.eq(1) } },
         fields: () => ({}),
       });
       builder.prismaObject('User', {
         interfaces: [Named],
-        select: { posts: { orderBy: (post) => post.id.asc() } },
+        select: { posts: { where: (post) => post.published.eq(1) } },
       });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(
@@ -667,7 +667,7 @@ describe('inherited selections', () => {
       // An undefined option, and an empty where or orderBy, load the same rows.
       select: {
         posts: { where: { published: 1 }, limit: undefined },
-        comments: { where: {}, orderBy: [] },
+        comments: { where: {}, orderBy: {} },
       },
       fields: (t) => ({
         ownIds: t.idList({ resolve: (user) => user.posts.map((post) => post.id) }),

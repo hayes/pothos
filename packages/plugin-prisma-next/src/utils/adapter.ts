@@ -153,7 +153,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       visited.add(current);
       const raw = current.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
       if (raw) {
-        super.mergeQuery(node, compileTypeSelect(raw, model, current.name));
+        super.mergeQuery(node, compileTypeSelect(this.contract, raw, model, current.name));
       }
       for (const iface of 'getInterfaces' in current ? current.getInterfaces() : []) {
         visit(iface);

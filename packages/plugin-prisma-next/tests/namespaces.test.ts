@@ -31,7 +31,7 @@ function createSchema() {
     fields: (t) => ({
       id: t.exposeInt('id'),
       orgId: t.exposeInt('orgId'),
-      posts: t.relation('posts', { query: { orderBy: (post) => post.id.asc() } }),
+      posts: t.relation('posts', { query: { orderBy: { id: 'asc' } } }),
       postsPage: t.relatedConnection('posts', { totalCount: true }),
     }),
   });

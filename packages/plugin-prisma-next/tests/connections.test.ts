@@ -44,7 +44,7 @@ function schema(options: SampleOptions = {}) {
       sized: t.relatedConnection('posts', { defaultSize: 1, maxSize: 1 }),
       ordered: t.relatedConnection('posts', {
         args: { newest: t.arg.boolean() },
-        orderBy: (args) => ({ title: args.newest ? 'desc' : 'asc' }),
+        query: (args) => ({ orderBy: { title: args.newest ? 'desc' : 'asc' } }),
       }),
     }),
   });
@@ -64,7 +64,7 @@ function schema(options: SampleOptions = {}) {
       }),
       postsByDate: t.prismaConnection({
         type: 'Post',
-        orderBy: { createdAt: 'asc' },
+        query: { orderBy: { createdAt: 'asc' } },
         resolve: () => db.orm.Post,
       }),
       sizedPosts: t.prismaConnection({
@@ -76,13 +76,13 @@ function schema(options: SampleOptions = {}) {
       orderedPosts: t.prismaConnection({
         type: 'Post',
         args: { newest: t.arg.boolean() },
-        orderBy: (args) => ({ title: args.newest ? 'desc' : 'asc' }),
+        query: (args) => ({ orderBy: { title: args.newest ? 'desc' : 'asc' } }),
         resolve: () => db.orm.Post,
       }),
       sortedPosts: t.prismaConnection({
         type: 'Post',
         args: { sort: t.arg.string({ required: true }) },
-        orderBy: (args) => ({ [args.sort]: 'desc' }),
+        query: (args) => ({ orderBy: { [args.sort]: 'desc' } }),
         resolve: () => db.orm.Post,
       }),
       preordered: t.prismaConnection({
@@ -92,7 +92,7 @@ function schema(options: SampleOptions = {}) {
       }),
       newestFirst: t.prismaConnection({
         type: 'Post',
-        orderBy: { createdAt: 'desc', id: 'asc' },
+        query: { orderBy: { createdAt: 'desc', id: 'asc' } },
         resolve: () => db.orm.Post,
       }),
       callableCount: t.prismaConnection({
@@ -420,7 +420,7 @@ describe('orderBy', () => {
     );
     expect(result.data).toEqual({ a: { nodes: [{ id: 'p-hello' }] }, b: null });
     expect(result.errors?.map((error) => [error.path, detailOf(error)])).toEqual([
-      [['b'], "Connection orderBy can't order by 'Post.nope' is not a field of the model."],
+      [['b'], "orderBy can't order by 'Post.nope' is not a field of the model."],
     ]);
   });
 
@@ -486,12 +486,12 @@ describe('related connection errors', () => {
         ordered: t.relatedConnection('posts', {
           nullable: true,
           args: { sort: t.arg.string() },
-          orderBy: (args) => ({ [args.sort ?? 'title']: 'asc' }),
+          query: (args) => ({ orderBy: { [args.sort ?? 'title']: 'asc' } }),
         }),
         sometimesOrdered: t.relatedConnection('posts', {
           nullable: true,
           args: { newest: t.arg.boolean() },
-          orderBy: (args) => (args.newest ? { title: 'desc' } : undefined),
+          query: (args) => ({ orderBy: args.newest ? { title: 'desc' } : undefined }),
         }),
         sized: t.relatedConnection('posts', {
           nullable: true,
@@ -595,9 +595,9 @@ describe('related connection arguments', () => {
         posts: t.relatedConnection('posts', {
           nullable: true,
           args: { order: t.arg.stringList(), big: t.arg({ type: Big }) },
-          orderBy: (args) => {
+          query: (args) => {
             calls.order += 1;
-            return { title: args.order?.[0] === 'desc' ? 'desc' : 'asc' };
+            return { orderBy: { title: args.order?.[0] === 'desc' ? 'desc' : 'asc' } };
           },
         }),
       }),
@@ -676,10 +676,12 @@ describe('related connection state', () => {
             calls.sizes += 1;
             return 1;
           },
-          orderBy: (args) =>
-            args.order === 'date'
-              ? { createdAt: 'desc' }
-              : { title: args.order === 'asc' ? 'asc' : 'desc' },
+          query: (args) => ({
+            orderBy:
+              args.order === 'date'
+                ? { createdAt: 'desc' }
+                : { title: args.order === 'asc' ? 'asc' : 'desc' },
+          }),
         }),
       }),
     });
@@ -725,9 +727,9 @@ describe('related connection state', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         posts: t.relatedConnection('posts', {
-          orderBy: () => {
+          query: () => {
             calls += 1;
-            return { title: calls % 2 ? 'asc' : 'desc' };
+            return { orderBy: { title: calls % 2 ? 'asc' : 'desc' } };
           },
         }),
       }),
@@ -883,7 +885,7 @@ describe('related connection state', () => {
             calls.sizes += 1;
             return 1;
           },
-          orderBy: () => ({ title: 'desc' }),
+          query: () => ({ orderBy: { title: 'desc' } }),
         }),
       }),
     });
@@ -1375,7 +1377,7 @@ describe('base collections', () => {
     ['mixed', { published: 'desc', id: 'asc' }, ['p-bob1', 'p-hello', 'p-bob-draft', 'p-draft1']],
   ] as const)('traverses every row and bounded range with %s ordering', async (_name, orderBy, expected) => {
     const pages = prismaConnectionHelpers(createBuilder(), 'Post', {
-      orderBy: orderBy as Record<string, 'asc' | 'desc'>,
+      query: { orderBy: orderBy as Record<string, 'asc' | 'desc'> },
     });
     const read = (args: { first?: number; last?: number; after?: string; before?: string }) =>
       page(pages, db.orm.Post, args);
@@ -1590,7 +1592,7 @@ describe('prismaConnectionHelpers', () => {
 
   // Post.comments → Comment.author: the page follows the comments, while each node is a user.
   function commentersSchema({
-    calls = { orderBy: 0, query: 0 },
+    calls = { query: 0 },
     resolveRows = (rows: readonly object[], _post: object) => rows,
   } = {}) {
     const builder = createBuilder();
@@ -1602,13 +1604,9 @@ describe('prismaConnectionHelpers', () => {
       }),
     });
     const commenters = prismaConnectionHelpers(builder, 'Comment', {
-      orderBy: () => {
-        calls.orderBy += 1;
-        return { createdAt: 'desc' };
-      },
       query: () => {
         calls.query += 1;
-        return {};
+        return { orderBy: { createdAt: 'desc' } };
       },
       totalCount: true,
       select: (nodeSelection) => ({ body: true, author: nodeSelection() }),
@@ -1749,14 +1747,14 @@ describe('prismaConnectionHelpers', () => {
   });
 
   it("runs a page's options once per selection, not per parent row", async () => {
-    const calls = { orderBy: 0, query: 0 };
+    const calls = { query: 0 };
     const result = await run(
       commentersSchema({ calls }),
       '{ posts { commenters(first: 1) { edges { node { firstName } } } } }',
     );
     expect(result.errors).toBeUndefined();
     expect(result.data.posts).toHaveLength(2);
-    expect(calls).toEqual({ orderBy: 1, query: 1 });
+    expect(calls).toEqual({ query: 1 });
   });
 
   it('fails the root field when a page is given an invalid cursor', async () => {
@@ -1854,8 +1852,8 @@ describe('prismaConnectionHelpers', () => {
   });
 });
 
-describe('prismaConnection orderBy', () => {
-  function schema(orderBy: unknown) {
+describe('prismaConnection query', () => {
+  function schema(query: unknown) {
     const builder = createBuilder();
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
@@ -1863,7 +1861,8 @@ describe('prismaConnection orderBy', () => {
         posts: t.prismaConnection({
           type: 'Post',
           args: { newest: t.arg.boolean() },
-          orderBy: orderBy as never,
+          totalCount: true,
+          query: query as never,
           resolve: () => db.orm.Post.where({ authorId: 'u-alice' }),
         }),
       }),
@@ -1873,29 +1872,44 @@ describe('prismaConnection orderBy', () => {
   const desc = ['p-hello', 'p-draft1'];
 
   it.each<[string, unknown]>([
-    ['a literal', { title: 'desc' }],
-    ['a literal with null placement', { title: { direction: 'desc', nulls: 'first' } }],
+    ['a literal', { orderBy: { title: 'desc' } }],
+    [
+      'a literal with null placement',
+      { orderBy: { title: { direction: 'desc', nulls: 'first' } } },
+    ],
     [
       'a callback of the args',
-      (args: { newest: boolean }) => ({ title: args.newest ? 'desc' : 'asc' }),
+      (args: { newest: boolean }) => ({ orderBy: { title: args.newest ? 'desc' : 'asc' } }),
     ],
-  ])('orders by %s', async (_name, orderBy) => {
-    const result = await run(schema(orderBy), '{ posts(newest: true) { nodes { id } } }');
+  ])('orders by %s', async (_name, query) => {
+    const result = await run(schema(query), '{ posts(newest: true) { nodes { id } } }');
     expect(result.errors).toBeUndefined();
     expect(result.data.posts.nodes.map((node: { id: string }) => node.id)).toEqual(desc);
   });
 
   it.each<[string, unknown]>([
     ['omitted', undefined],
-    ['empty', {}],
+    ['empty', { orderBy: {} }],
     ['a callback returning nothing', () => undefined],
-  ])('orders by the primary key when %s', async (_name, orderBy) => {
-    const result = await run(schema(orderBy), '{ posts { nodes { id } } }');
+  ])('orders by the primary key when %s', async (_name, query) => {
+    const result = await run(schema(query), '{ posts { nodes { id } } }');
     expect(result.data.posts.nodes).toEqual([{ id: 'p-draft1' }, { id: 'p-hello' }]);
   });
 
   it('appends the key in the direction of the last column', async () => {
-    const result = await run(schema({ published: 'desc' }), '{ posts { nodes { id } } }');
+    const result = await run(
+      schema({ orderBy: { published: 'desc' } }),
+      '{ posts { nodes { id } } }',
+    );
     expect(result.statements[0].sql).toMatch(/ORDER BY .*published.* DESC, .*id.* DESC/);
+  });
+
+  it("filters the resolver's collection with where, and counts what it keeps", async () => {
+    const result = await run(
+      schema({ where: { published: 1 } }),
+      '{ posts { totalCount nodes { id } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.posts).toEqual({ totalCount: 1, nodes: [{ id: 'p-hello' }] });
   });
 });

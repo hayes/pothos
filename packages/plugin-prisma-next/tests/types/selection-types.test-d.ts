@@ -1317,7 +1317,7 @@ userPages.applyPagination(orm.User.include('posts'), {}, {});
 // A whole relation to a variant with a table of its own has only that table's columns and the
 // key it shares with its base. One to a variant sharing its base's table has every column.
 prismaConnectionHelpers(inhBuilder, 'Note', {
-  orderBy: () => ({ id: 'asc' }),
+  query: () => ({ orderBy: { id: 'asc' } }),
   select: () => ({ feature: true }),
   resolveNode: (note) => {
     expectTypeOf(note.feature).toBeNullable();
@@ -1329,7 +1329,7 @@ prismaConnectionHelpers(inhBuilder, 'Note', {
   },
 });
 prismaConnectionHelpers(inhBuilder, 'User', {
-  orderBy: () => ({ id: 'asc' }),
+  query: () => ({ orderBy: { id: 'asc' } }),
   select: () => ({ reviews: true }),
   resolveNode: (user) => {
     expectTypeOf(user.reviews[0]!.title).toEqualTypeOf<string>();

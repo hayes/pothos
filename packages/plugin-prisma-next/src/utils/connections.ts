@@ -1,4 +1,10 @@
-import { completeValue, type MaybePromise, ObjectRef, type SchemaTypes } from '@pothos/core';
+import {
+  completeValue,
+  type MaybePromise,
+  ObjectRef,
+  PothosSchemaError,
+  type SchemaTypes,
+} from '@pothos/core';
 import { type IndirectInclude, selectedFieldNames } from '@pothos/selection-mapper';
 import {
   type GraphQLNamedType,
@@ -18,6 +24,7 @@ import {
   type OrderByDecl,
   withCursorValues,
 } from './cursors.js';
+import { InternalError } from './errors.js';
 import type { PrismaNextRelation } from './model.js';
 import {
   COUNT_SLOT,
@@ -43,8 +50,13 @@ export interface ConnectionSettingsOptions {
   defaultSize?: SizeOption;
   maxSize?: SizeOption;
   totalCount?: boolean | TotalCountCallback;
-  orderBy?: OrderByDecl | ((args: never, ctx: never) => OrderByDecl | undefined);
-  query?: unknown;
+  query?: ConnectionQuery | ((args: never, ctx: never) => ConnectionQuery | undefined);
+}
+
+/** What a connection's `query` returns. */
+interface ConnectionQuery {
+  where?: unknown;
+  orderBy?: OrderByDecl;
 }
 
 /** Where a connection's nodes sit in its selection. */
@@ -85,14 +97,20 @@ function connectionType(returnType: GraphQLOutputType): GraphQLNamedType {
 /**
  * The options every kind of connection handles the same way. Page sizes fall back to the plugin's
  * defaults and, as in core, aren't validated. `totalCount` is `true`, which uses the ORM's count
- * aggregate, or a callback. `orderBy` is checked here, and its callback when a request is planned.
+ * aggregate, or a callback. A literal `query` is checked here, and a callback's result when a request
+ * is planned.
  */
 export function connectionSettings(
   config: PrismaNextConfig,
   modelKey: string,
-  { defaultSize, maxSize, totalCount, orderBy, query }: ConnectionSettingsOptions,
+  { defaultSize, maxSize, totalCount, query }: ConnectionSettingsOptions,
 ) {
-  const orderFor = connectionOrder(config.context, modelKey, orderBy);
+  const orderFor = connectionOrder(config.context, modelKey);
+  const resolveQuery = (value: ConnectionQuery | undefined, ErrorClass: typeof InternalError) => ({
+    where: value?.where,
+    order: orderFor(value?.orderBy, ErrorClass),
+  });
+  const literal = typeof query === 'function' ? undefined : resolveQuery(query, PothosSchemaError);
   const resolveSize = (option: SizeOption | undefined, args: object, ctx: object) =>
     typeof option === 'function' ? option(args as never, ctx as never) : option;
   /**
@@ -128,17 +146,22 @@ export function connectionSettings(
     },
     /** Resolves the connection's sizes, order, cursors and `where` for one request. */
     plan(args: object, ctx: object): ConnectionPlan {
+      const { where, order } =
+        literal ??
+        resolveQuery(
+          (query as (args: object, ctx: object) => ConnectionQuery | undefined)(args, ctx),
+          InternalError,
+        );
       const plan = withCursorValues(
         {
-          order: orderFor(args, ctx),
+          order,
           codecs: config.codecs(modelKey),
           defaultSize: resolveSize(defaultSize, args, ctx) ?? config.defaultConnectionSize,
           maxSize: resolveSize(maxSize, args, ctx) ?? config.maxConnectionSize,
         },
         args,
       );
-      const value = typeof query === 'function' ? query(args, ctx) : query;
-      return { ...plan, where: (value as { where?: unknown } | undefined)?.where };
+      return { ...plan, where };
     },
   };
 }

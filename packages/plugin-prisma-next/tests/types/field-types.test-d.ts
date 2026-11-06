@@ -131,27 +131,42 @@ builder.prismaObject('User', {
   },
 });
 
-// Relation `orderBy` returns the ORM's ordering, like a connection's.
+// A relation's `orderBy` is a declaration, like a connection's. Ordering by an expression goes
+// through a refinement.
 builder.prismaObject('Post', {
   variant: 'PostOrdering',
   fields: (t) => ({
     comments: t.relation('comments', {
-      query: { orderBy: (comment) => comment.id.desc() },
+      query: { orderBy: { id: 'desc' } },
     }),
     severalOrders: t.relation('comments', {
-      query: { orderBy: [(comment) => comment.id.desc(), (comment) => comment.postId.asc()] },
+      query: { orderBy: { id: 'desc', postId: 'asc' } },
     }),
-    // @ts-expect-error an ordering is an OrderByItem, not a number
-    numeric: t.relation('comments', { query: { orderBy: () => 5 } }),
-    // @ts-expect-error an ordering is an OrderByItem, not an accessor
-    accessor: t.relation('comments', { query: { orderBy: (comment) => comment.id } }),
+    refined: t.relation('comments', {
+      query: () => (comments) => comments.orderBy((comment) => comment.id.desc()),
+    }),
+    // @ts-expect-error `orderBy` takes a declaration, not the ORM's accessor callback
+    accessor: t.relation('comments', { query: { orderBy: (comment) => comment.id.asc() } }),
+    // @ts-expect-error `nope` isn't a column of Comment
+    unknownColumn: t.relation('comments', { query: { orderBy: { id: 'asc', nope: 'asc' } } }),
+    unknownFromCallback: t.relation('comments', {
+      // @ts-expect-error a callback's result is checked as well
+      query: () => ({ orderBy: { id: 'asc', nope: 'asc' } }),
+    }),
+    // @ts-expect-error a non-null column has no nulls to place
+    nullsOnRequired: t.relation('comments', { query: { orderBy: { id: { nulls: 'first' } } } }),
     selected: t.string({
-      select: { comments: { orderBy: (comment) => comment.id.asc(), limit: 1 } },
+      select: { comments: { orderBy: { id: 'asc' }, limit: 1 } },
       resolve: (post) => post.comments[0]?.id ?? '',
     }),
     badSelected: t.string({
-      // @ts-expect-error a select's relation ordering is an OrderByItem too
-      select: { comments: { orderBy: () => 'id' } },
+      // @ts-expect-error a select's relation ordering is a declaration too
+      select: { comments: { orderBy: (comment: { id: { asc(): unknown } }) => comment.id.asc() } },
+      resolve: () => '',
+    }),
+    unknownSelected: t.string({
+      // @ts-expect-error `nope` isn't a column of Comment
+      select: { comments: { orderBy: { id: 'asc', nope: 'asc' } } },
       resolve: () => '',
     }),
   }),
@@ -199,7 +214,7 @@ builder.queryFields((t) => {
   const byName = prismaConnectionHelpers(builder, 'User', {});
   expectTypeOf(byName.ref).toEqualTypeOf<PrismaNextObjectRef<Types, 'User', Row<Types, 'User'>>>();
   const byRef = prismaConnectionHelpers(builder, Viewer, {
-    orderBy: { email: 'asc' },
+    query: { orderBy: { email: 'asc' } },
     resolveNode: (user) => {
       // Without a relation given `nodeSelection()`, nothing is planned into the rows: they are whole.
       expectTypeOf(user).toEqualTypeOf<UserRow>();
@@ -208,7 +223,7 @@ builder.queryFields((t) => {
   });
   expectTypeOf(byRef.ref).toEqualTypeOf(Viewer);
   // @ts-expect-error the order names a column of the ref's model
-  prismaConnectionHelpers(builder, Viewer, { orderBy: { title: 'asc' } });
+  prismaConnectionHelpers(builder, Viewer, { query: { orderBy: { title: 'asc' } } });
   // @ts-expect-error a ref's model takes that model's collection
   byRef.applyPagination(orm.Post, {}, {});
 
@@ -218,7 +233,9 @@ builder.queryFields((t) => {
     prismaNext: { client: null as never },
   });
   const Bug = inheritance.prismaObject('Bug', { fields: (t) => ({ id: t.exposeID('id') }) });
-  const bugs = prismaConnectionHelpers(inheritance, Bug, { orderBy: { severity: 'asc' } });
+  const bugs = prismaConnectionHelpers(inheritance, Bug, {
+    query: { orderBy: { severity: 'asc' } },
+  });
   expectTypeOf(bugs.ref).toEqualTypeOf(Bug);
 }
 

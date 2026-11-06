@@ -235,7 +235,7 @@ inheritance.queryType({
     bugsAsTasks: t.prismaField({ type: ['Task'], resolve: () => orm.Task.variant('bug') }),
     bugPage: t.prismaConnection({
       type: 'Bug',
-      orderBy: { title: 'asc' },
+      query: { orderBy: { title: 'asc' } },
       resolve: () => orm.Task.variant('bug'),
     }),
     bugPageFromOwn: t.prismaConnection({

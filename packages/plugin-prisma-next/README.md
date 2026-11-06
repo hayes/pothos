@@ -48,7 +48,7 @@ builder.prismaObject('User', {
     }),
     // Loaded with its parent as part of one ORM query.
     posts: t.relation('posts', {
-      query: { where: { published: 1 }, orderBy: (post) => post.id.asc() },
+      query: { where: { published: 1 }, orderBy: { id: 'asc' } },
     }),
   }),
 });
@@ -84,7 +84,7 @@ posts: t.prismaConnection({
   totalCount: true,
   args: { newestFirst: t.arg.boolean() },
   // Chooses the direction per request; the plugin reverses it for backward pages.
-  orderBy: (args) => ({ id: args.newestFirst ? 'desc' : 'asc' }),
+  query: (args) => ({ orderBy: { id: args.newestFirst ? 'desc' : 'asc' } }),
   resolve: () => db.orm.Post.where({ published: 1 }),
 }),
 ```

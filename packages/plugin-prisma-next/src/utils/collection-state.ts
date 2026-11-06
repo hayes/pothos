@@ -26,7 +26,7 @@ export function assertConnectionCollection(collection: unknown): void {
     state.offset !== undefined
   ) {
     throw new InternalError(
-      "Connection resolvers must return an unordered, unpaginated Collection without orderBy(), cursor(), limit(), or offset(). Use the connection's orderBy option to order it.",
+      "Connection resolvers must return an unordered, unpaginated Collection without orderBy(), cursor(), limit(), or offset(). Order it with the connection's query: { orderBy }.",
     );
   }
   if (state.distinct?.length || state.distinctOn?.length) {

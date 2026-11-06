@@ -47,7 +47,7 @@ function createSchema(db: { orm: typeof client.orm } = client) {
     collection: () => orm.public.Account,
     fields: (t) => ({
       name: t.exposeString('name'),
-      entries: t.relation('entries', { query: { orderBy: (entry) => entry.id.asc() } }),
+      entries: t.relation('entries', { query: { orderBy: { id: 'asc' } } }),
       count: t.relationCount('entries'),
       losslessCount: t.string({
         select: { entries: (entries) => ({ count: entries.countBigInt() }) },
@@ -89,7 +89,7 @@ function createSchema(db: { orm: typeof client.orm } = client) {
       }),
       timeline: t.prismaConnection({
         type: 'Entry',
-        orderBy: { createdAt: 'desc', id: 'asc' },
+        query: { orderBy: { createdAt: 'desc', id: 'asc' } },
         resolve: () => orm.public.Entry,
       }),
       entries: t.prismaConnection({
@@ -99,12 +99,12 @@ function createSchema(db: { orm: typeof client.orm } = client) {
       }),
       byWide: t.prismaConnection({
         type: 'Entry',
-        orderBy: { wide: 'desc', id: 'asc' },
+        query: { orderBy: { wide: 'desc', id: 'asc' } },
         resolve: () => orm.public.Entry,
       }),
       byExact: t.prismaConnection({
         type: 'Entry',
-        orderBy: { exact: 'asc' },
+        query: { orderBy: { exact: 'asc' } },
         resolve: () => orm.public.Entry,
       }),
     }),
@@ -123,14 +123,14 @@ function nullableConnectionSchema(nulls: 'first' | 'last', direction: 'asc' | 'd
   builder.prismaObject('Account', {
     fields: (t) => ({
       id: t.exposeID('id'),
-      entries: t.relatedConnection('entries', { orderBy, totalCount: true }),
+      entries: t.relatedConnection('entries', { query: { orderBy }, totalCount: true }),
     }),
   });
   builder.queryType({
     fields: (t) => ({
       entries: t.prismaConnection({
         type: 'Entry',
-        orderBy,
+        query: { orderBy },
         totalCount: true,
         resolve: () => client.orm.public.Entry,
       }),
@@ -164,7 +164,7 @@ function createMutationSchema() {
     fields: (t) => ({
       id: t.exposeID('id'),
       name: t.exposeString('name'),
-      entries: t.relation('entries', { query: { orderBy: (entry) => entry.id.asc() } }),
+      entries: t.relation('entries', { query: { orderBy: { id: 'asc' } } }),
       completedName: t.string({
         select: ['name'],
         resolve: async (account) => {
@@ -742,8 +742,10 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         entries: t.prismaConnection({
           type: 'Entry',
           args: { nullsFirst: t.arg.boolean() },
-          orderBy: (args) => ({
-            sortLabel: { direction: 'asc', nulls: args.nullsFirst ? 'first' : 'last' },
+          query: (args) => ({
+            orderBy: {
+              sortLabel: { direction: 'asc', nulls: args.nullsFirst ? 'first' : 'last' },
+            },
           }),
           resolve: () => client.orm.public.Entry,
         }),

@@ -165,7 +165,7 @@ function createVariantSchema(seen: unknown[], ownerSelectedOn: 'Bug' | 'Task') {
     fields: (t) => ({
       email: t.exposeString('email'),
       reviews: t.relation('reviews'),
-      reviewPage: t.relatedConnection('reviews', { orderBy: () => ({ id: 'asc' }) }),
+      reviewPage: t.relatedConnection('reviews', { query: () => ({ orderBy: { id: 'asc' } }) }),
     }),
   });
   builder.queryType({

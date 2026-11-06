@@ -16,6 +16,7 @@ import { PRISMA_NEXT_MODEL } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import { variantForRelationType } from './contract.js';
+import { type OrderByDecl, orderCollection, orderColumns } from './cursors.js';
 import { InternalError } from './errors.js';
 import {
   getModel,
@@ -537,7 +538,7 @@ export type RawSelect = readonly string[] | Record<string, unknown>;
 
 interface DeclarativeQuery {
   where?: unknown;
-  orderBy?: unknown;
+  orderBy?: OrderByDecl;
   limit?: number;
   offset?: number;
 }
@@ -563,21 +564,35 @@ export function definedQuery(value: unknown): DeclarativeQuery | undefined {
   return (kept.length === options.length ? value : Object.fromEntries(kept)) as DeclarativeQuery;
 }
 
-export function applyQuery(collection: MapperCollection, query: DeclarativeQuery) {
-  let result = collection;
-  if (query.where !== undefined) {
-    result = result.where(query.where);
-  }
-  if (query.orderBy !== undefined) {
-    result = result.orderBy(query.orderBy);
-  }
-  if (query.limit !== undefined) {
-    result = result.limit(query.limit);
-  }
-  if (query.offset !== undefined) {
-    result = result.offset(query.offset);
-  }
-  return result;
+/**
+ * Applies `query` to the collection of `modelKey`'s rows. Its order is resolved once, as
+ * `orderColumns` resolves it: a literal's is checked when the schema is built, so by default only a
+ * computed column fails here.
+ */
+export function queryRefinement(
+  contract: AnyContract,
+  modelKey: string,
+  { where, orderBy, limit, offset }: DeclarativeQuery,
+  ErrorClass: new (message: string) => Error = InternalError,
+  problem?: Parameters<typeof orderColumns>[4],
+) {
+  const order = orderBy && orderColumns(contract, modelKey, orderBy, ErrorClass, problem);
+  return (collection: MapperCollection) => {
+    let result = collection;
+    if (where !== undefined) {
+      result = result.where(where);
+    }
+    if (order?.length) {
+      result = orderCollection(result, order);
+    }
+    if (limit !== undefined) {
+      result = result.limit(limit);
+    }
+    if (offset !== undefined) {
+      result = result.offset(offset);
+    }
+    return result;
+  };
 }
 
 /**
@@ -674,6 +689,7 @@ export function loadsOwnTableVariantRows(relation: PrismaNextRelation, value: un
 }
 
 interface SelectCompilation {
+  contract: AnyContract;
   scope: string;
   args: object;
   /** Identifies the select's function entries, together with `args`. */
@@ -695,7 +711,7 @@ interface SelectCompilation {
 function compileSelect(
   raw: RawSelect,
   model: PrismaNextModel,
-  { scope, args, source, rows, field }: SelectCompilation,
+  { contract, scope, args, source, rows, field }: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
   // Compiled for a request, which may be the first to see what a select function returns.
   const { columns, relations } = splitSelect(raw, model, InternalError);
@@ -723,7 +739,7 @@ function compileSelect(
         columns: null,
         args: relationArgs(relation, {
           loadIdentity: query,
-          refine: query && ((rel) => applyQuery(rel, query)),
+          refine: query && queryRefinement(contract, relation.targetModel, query),
         }),
       }),
     );
@@ -737,8 +753,14 @@ function compileSelect(
 }
 
 /** Compiles a type-level `select`. Its relations load every column, in the type's own slots. */
-export function compileTypeSelect(raw: RawSelect, model: PrismaNextModel, typeName: string) {
+export function compileTypeSelect(
+  contract: AnyContract,
+  raw: RawSelect,
+  model: PrismaNextModel,
+  typeName: string,
+) {
   return compileSelect(raw, model, {
+    contract,
     scope: typeName,
     args: {},
     source: typeName,
@@ -785,6 +807,7 @@ export function compileFieldSelect(
       returnModelKey === undefined ? undefined : getModel(contract, returnModelKey);
     const scope = scopeOf(position);
     const select: SelectCompilation = {
+      contract,
       scope,
       args,
       source: raw,

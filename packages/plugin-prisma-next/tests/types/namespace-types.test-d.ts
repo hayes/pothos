@@ -48,7 +48,7 @@ builder.prismaObject('nsb.User', {
 builder.prismaObject('nsa.User', {
   fields: (t) => ({
     posts: t.relation('posts', {
-      query: { where: (post) => post.title.eq('x'), orderBy: (post) => post.id.asc() },
+      query: { where: (post) => post.title.eq('x'), orderBy: { id: 'asc' } },
     }),
     // @ts-expect-error `name` is a column of the other namespace's User
     name: t.exposeString('name'),
@@ -73,8 +73,8 @@ builder.prismaObject('nsa.Post', {
 builder.prismaObject('nsa.Org', {
   fields: (t) => ({
     users: t.relatedConnection('users', {
-      orderBy: { orgId: 'asc' },
       query: {
+        orderBy: { orgId: 'asc' },
         where: (user, tools) => {
           expectTypeOf(tools).toEqualTypeOf<ModelCallbackTools<Contract, 'User', 'nsa'>>();
           // @ts-expect-error `name` is a column of the other namespace's User
@@ -91,7 +91,7 @@ builder.prismaObject('nsa.Org', {
     }),
     badOrder: t.relatedConnection('users', {
       // @ts-expect-error `name` is a column of the other namespace's User
-      query: { orderBy: (user) => user.name.asc() },
+      query: { orderBy: { name: 'asc' } },
     }),
   }),
 });

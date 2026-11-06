@@ -321,10 +321,10 @@ describe('options validated when the schema is built', () => {
   it('rejects an orderBy column that is not a field, and a model without a key', () => {
     const builder = createBuilder();
     expect(() =>
-      prismaConnectionHelpers(builder, 'User', { orderBy: { nope: 'asc' } as never }),
-    ).toThrow("Connection orderBy can't order by 'User.nope' is not a field of the model.");
+      prismaConnectionHelpers(builder, 'User', { query: { orderBy: { nope: 'asc' } as never } }),
+    ).toThrow("orderBy can't order by 'User.nope' is not a field of the model.");
     expect(() =>
-      prismaConnectionHelpers(builder, 'User', { orderBy: { firstName: 'asc' } }),
+      prismaConnectionHelpers(builder, 'User', { query: { orderBy: { firstName: 'asc' } } }),
     ).not.toThrow();
     expect(() => prismaConnectionHelpers(builder, 'PostView', {})).toThrow(
       /'PostView' page by a non-null primary or unique key/,
@@ -342,9 +342,9 @@ describe('options validated when the schema is built', () => {
       relay: {},
       prismaNext: { client: noClient, context: buildOnlyContext(contract) },
     });
-    expect(() => prismaConnectionHelpers(builder, 'Post', { orderBy: { score: 'asc' } })).toThrow(
-      /non-null primary or unique key/,
-    );
+    expect(() =>
+      prismaConnectionHelpers(builder, 'Post', { query: { orderBy: { score: 'asc' } } }),
+    ).toThrow(/non-null primary or unique key/);
   });
 
   // Postgres `DateTime` is `timestamptz(3)`, which a JavaScript Date holds exactly. A bare MySQL
@@ -370,7 +370,8 @@ describe('options validated when the schema is built', () => {
       relay: {},
       prismaNext: { client: noClient, context: buildOnlyContext(contract) },
     });
-    const page = () => prismaConnectionHelpers(builder, 'Post', { orderBy: { createdAt: 'asc' } });
+    const page = () =>
+      prismaConnectionHelpers(builder, 'Post', { query: { orderBy: { createdAt: 'asc' } } });
     const node = () =>
       builder.prismaNode('Post', {
         id: { field: ['createdAt', 'id'] },
@@ -399,12 +400,12 @@ describe('options validated when the schema is built', () => {
       prismaNext: { client: noClient, context },
     });
     expect(() =>
-      prismaConnectionHelpers(builder, 'Entry', { orderBy: { payload: 'asc' } as never }),
-    ).toThrow(
-      "Connection orderBy can't order by 'Entry.payload', whose codec the ORM can't order.",
-    );
+      prismaConnectionHelpers(builder, 'Entry', {
+        query: { orderBy: { payload: 'asc' } as never },
+      }),
+    ).toThrow("orderBy can't order by 'Entry.payload', whose codec the ORM can't order.");
     expect(() =>
-      prismaConnectionHelpers(builder, 'Entry', { orderBy: { id: 'asc' } }),
+      prismaConnectionHelpers(builder, 'Entry', { query: { orderBy: { id: 'asc' } } }),
     ).not.toThrow();
   });
 });

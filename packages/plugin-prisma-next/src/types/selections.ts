@@ -20,9 +20,11 @@ import type {
   Row,
   VariantModelKeys,
 } from './models.js';
+import type { UnknownOrderByColumns } from './order-by.js';
 import type {
   DefaultRelationNullable,
   IsToMany,
+  RelatedModel,
   RelationFieldShape,
   RelationQueryValue,
   RelationRefinementCollection,
@@ -337,7 +339,9 @@ type UnknownSelectKeys<
             | true
             | ((...args: never[]) => unknown)
             ? never
-            : `${K}.${Exclude<keyof Select[K], keyof RelationQueryValue<Types, M, K>> & (string | number)}`;
+            :
+                | `${K}.${Exclude<keyof Select[K], keyof RelationQueryValue<Types, M, K>> & (string | number)}`
+                | `${K}.orderBy.${UnknownOrderByColumns<Types, RelatedModel<Types, M, K>, Select[K]> & string}`;
         }[keyof Select & RelationKeys<Types, M> & string]
   : never;
 

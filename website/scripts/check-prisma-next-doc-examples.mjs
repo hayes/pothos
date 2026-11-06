@@ -44,7 +44,7 @@ function wrapFragment(block) {
   }
   const before = lines.slice(0, start).join('\n');
   const fragment = lines.slice(start).join('\n');
-  const wrapped = fragment.startsWith('orderBy:')
+  const wrapped = fragment.startsWith('query:')
     ? `builder.queryField('fragment', (t) =>
   t.prismaConnection({
     type: 'Post',

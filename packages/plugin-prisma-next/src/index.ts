@@ -44,10 +44,16 @@ import {
 } from './constants.js';
 import { isLoadedTypeRow } from './model-loader.js';
 import type { AnyContract } from './types/models.js';
-import { getPluginConfig } from './utils/config.js';
+import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
+import { orderableProblem, orderColumns } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
-import { getModel, ownTableVariantRowsError, type PrismaNextRelation } from './utils/model.js';
+import {
+  getModel,
+  ownTableVariantRowsError,
+  type PrismaNextModel,
+  type PrismaNextRelation,
+} from './utils/model.js';
 import {
   compileFieldSelect,
   definedQuery,
@@ -91,7 +97,6 @@ export { PrismaNextObjectFieldBuilder } from './prisma-next-field-builder.js';
 export type { PrismaNextRelationCountOptions } from './types/aggregates.js';
 export type { CollectionFor, PlannedCollection, ResolverCollection } from './types/collections.js';
 export type {
-  ConnectionOrderBy,
   ConnectionQueryLiteral,
   PrismaNextConnectionFieldOptions,
   PrismaNextRelatedConnectionOptions,
@@ -118,6 +123,7 @@ export type {
   RelationKeys,
   Row,
 } from './types/models.js';
+export type { RelationOrderBy } from './types/order-by.js';
 export type {
   PrismaNextClient,
   PrismaNextExecutionContext,
@@ -129,9 +135,8 @@ export type {
   PrismaNextRelationOptions,
   RelatedModel,
   RelationOnNull,
-  RelationOrderBy,
-  RelationOrderSelector,
   RelationQuery,
+  RelationQueryLiteral,
   RelationWhere,
   RequiresNullable,
 } from './types/relations.js';
@@ -222,6 +227,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const raw = typeConfig.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
     if (raw && ownModel) {
       assertNoVariantRelations(raw, ownModel, typeConfig.name, contract);
+      assertSelectOrders(this.config, raw, getModel(contract, ownModel));
     }
     this.assertSelectsAgree(typeConfig, model);
     return {
@@ -284,6 +290,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       throw new PothosSchemaError(
         `Field '${declaring.name}.${fieldConfig.name}' exposes '${exposed}', which is not a column on model ${model.key}.`,
       );
+    }
+    if (select !== undefined && typeof select !== 'function') {
+      assertSelectOrders(this.config, select, model);
     }
     const selection =
       select !== undefined
@@ -420,7 +429,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           loads.set(relation, { type, query });
         } else if (!deepEqual(first.query, query)) {
           throw new PothosSchemaError(
-            `'${first.type}' and '${type}' both select relation '${relation}', with different arguments. A row of '${typeConfig.name}' holds one version of the relation, which the fields and auth checks of both types read. Select it with the same arguments in both, sharing any function such as an orderBy, or load the other version in a field, with t.relation('${relation}', { query }) or a field's select.`,
+            `'${first.type}' and '${type}' both select relation '${relation}', with different arguments. A row of '${typeConfig.name}' holds one version of the relation, which the fields and auth checks of both types read. Select it with the same arguments in both, sharing any function such as a where, or load the other version in a field, with t.relation('${relation}', { query }) or a field's select.`,
           );
         }
       }
@@ -794,6 +803,23 @@ function assertNoVariantRelations(
   for (const [name, value] of splitSelect(raw, model, PothosSchemaError).relations) {
     if (loadsOwnTableVariantRows(model.relations[name]!, value)) {
       throw ownTableVariantRowsError(`type '${typeName}'`, name, model.relations[name]!);
+    }
+  }
+}
+
+/** Checks the columns each relation entry of a static `select` orders by. */
+function assertSelectOrders(config: PrismaNextConfig, raw: RawSelect, model: PrismaNextModel) {
+  for (const [name, value] of splitSelect(raw, model, PothosSchemaError).relations) {
+    const orderBy = typeof value === 'object' ? definedQuery(value)?.orderBy : undefined;
+    if (orderBy) {
+      const { targetModel } = model.relations[name]!;
+      orderColumns(
+        config.contract,
+        targetModel,
+        orderBy,
+        PothosSchemaError,
+        orderableProblem(config.context, targetModel),
+      );
     }
   }
 }

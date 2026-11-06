@@ -389,9 +389,9 @@ describe('rows the plugin loaded', () => {
       select: { posts: true },
       fields: (t) => ({
         total: t.int({ resolve: (user) => user.posts.length }),
-        latest: t.relation('posts', { query: { orderBy: (p) => p.createdAt.desc(), limit: 1 } }),
+        latest: t.relation('posts', { query: { orderBy: { createdAt: 'desc' }, limit: 1 } }),
         posts: t.relation('posts', {
-          query: { where: { published: 1 }, orderBy: (p) => p.id.desc(), limit: 1 },
+          query: { where: { published: 1 }, orderBy: { id: 'desc' }, limit: 1 },
         }),
       }),
     });

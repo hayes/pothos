@@ -48,7 +48,7 @@ function schema() {
         resolve: (user) => `${user.firstName} ${user.lastName}`,
       }),
       postCount: t.relationCount('posts'),
-      posts: t.relation('posts', { query: { orderBy: (post) => post.id.asc() } }),
+      posts: t.relation('posts', { query: { orderBy: { id: 'asc' } } }),
     }),
   });
   builder.prismaObject('Post', {

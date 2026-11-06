@@ -121,7 +121,7 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
       }),
       postsByDate: t.prismaConnection({
         type: 'Post',
-        orderBy: { createdAt: 'asc' },
+        query: { orderBy: { createdAt: 'asc' } },
         resolve: () => db.orm.Post,
       }),
     }),

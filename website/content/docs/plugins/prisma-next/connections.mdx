@@ -13,7 +13,7 @@ paginate a relation.
 builder.queryFields((t) => ({
   posts: t.prismaConnection({
     type: 'Post',
-    orderBy: { createdAt: 'desc' },
+    query: { orderBy: { createdAt: 'desc' } },
     totalCount: true,
     resolve: (_root, _args, ctx) => ctx.db.orm.Post.where({ published: 1 }),
   }),
@@ -23,12 +23,13 @@ builder.queryFields((t) => ({
 Return the Collection without ordering, paging or `include()`. The plugin orders it, pages it, and
 adds what the query selects. `t.prismaConnection` takes:
 
-- `orderBy`: the columns to order by, or `(args, ctx) => orderBy`. Defaults to the primary key. See
+- `query`: `{ where, orderBy }`, or `(args, ctx) => ({ where, orderBy })`. `where` filters the
+  Collection, and `orderBy` orders it, by the primary key when omitted. See
   [Ordering and cursors](#ordering-and-cursors).
 - `defaultSize` / `maxSize`: page sizes, or `(args, ctx) => number`. Default to the plugin's
   [connection size options](./setup#plugin-options).
-- `totalCount`: `true` counts the Collection, or pass `(parent, args, ctx, info) => number`. The
-  count only runs when `totalCount` is selected.
+- `totalCount`: `true` counts the Collection, filtered by `query.where`, or pass
+  `(parent, args, ctx, info) => number`. The count only runs when `totalCount` is selected.
 - `args`: extra arguments for filtering or sorting.
 
 Connection and edge types can be customized as with the [Relay plugin](../relay).
@@ -39,20 +40,19 @@ To paginate a relation, such as a user's posts, use `t.relatedConnection`:
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ users { fullName postConnection(first: 1) { totalCount edges { node { title } } pageInfo { endCursor hasNextPage } } } }"'>playground-examples/plugin-prisma-next/types/user.ts#user-post-connection</include>
 
-It takes the same options as `t.prismaConnection`, and filters with `query`: `{ where }` or
-`(args, ctx) => ({ where })`. `totalCount` counts the rows matching `query.where`, unless
-[`filterConnectionTotalCount`](./setup#plugin-options) is `false`.
+It takes the same options as `t.prismaConnection`. `totalCount` counts the rows matching
+`query.where`, unless [`filterConnectionTotalCount`](./setup#plugin-options) is `false`.
 
 Index the foreign key together with the order columns.
 
 ## Ordering and cursors
 
-`orderBy` on either kind of connection takes columns of the model, each with a direction. You can't
-order by relation columns, aggregates or expressions. Nullable columns sort nulls last unless you set
-`nulls`:
+A connection's `query.orderBy` takes columns of the model, each with a direction, as a
+[relation's](./relations#filtering-and-sorting) does. You can't order a connection by relation
+columns, aggregates or expressions. Nullable columns sort nulls last unless you set `nulls`:
 
 ```ts
-orderBy: { score: { direction: 'desc', nulls: 'first' } },
+query: { orderBy: { score: { direction: 'desc', nulls: 'first' } } },
 ```
 
 If the order doesn't include a unique key:
@@ -75,15 +75,15 @@ clients shouldn't see.
   precision above 3. Bare `DateTime` is fine; on PostgreSQL, use `TimestamptzTemporal` for finer
   timestamps.
 
-An `orderBy` object that breaks these rules fails the schema build. An `orderBy` function fails
-each request that returns such an order.
+A `query` object whose `orderBy` breaks these rules fails the schema build. A `query` function
+fails each request that returns such an order.
 
 ## Custom connections
 
 When the nodes aren't a relation of the parent, such as the users who commented on a post, define
 the connection yourself with `t.connection` and page it with `prismaConnectionHelpers`. The helper
-takes a model name or a prisma type ref, and `orderBy`, `defaultSize`, `maxSize`, `args` and
-`query` as `t.relatedConnection` does. Its `totalCount` takes `true`, but not a function. For a
+takes a model name or a prisma type ref, and `query`, `defaultSize`, `maxSize` and `args` as
+`t.relatedConnection` does. Its `totalCount` takes `true`, but not a function. For a
 custom count, see below.
 
 ### Paginate through a join model
@@ -96,7 +96,7 @@ comment loads, and `nodeSelection()` marks `author` as the relation that holds t
 import { prismaConnectionHelpers } from '@pothos/plugin-prisma-next';
 
 const commenters = prismaConnectionHelpers(builder, 'Comment', {
-  orderBy: { createdAt: 'desc' },
+  query: { orderBy: { createdAt: 'desc' } },
   totalCount: true,
   select: (nodeSelection) => ({ author: nodeSelection() }),
   resolveNode: (comment) => comment.author,

@@ -34,7 +34,7 @@ describe.skipIf(!url)('MySQL', () => {
             ...(args.minPages == null
               ? {}
               : { where: (book) => book.pages.gte(args.minPages as number) }),
-            orderBy: (book) => book.id.asc(),
+            orderBy: { id: 'asc' },
           }),
         }),
         // @ts-expect-error MySQL contracts have no aggregates.

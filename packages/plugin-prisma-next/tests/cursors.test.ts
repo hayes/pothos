@@ -45,7 +45,9 @@ beforeAll(async () => {
 type Args = { first?: number; last?: number; after?: string; before?: string };
 
 function pages(orderBy: unknown) {
-  const helper = prismaConnectionHelpers(createBuilder(), 'Post', { orderBy: orderBy as {} });
+  const helper = prismaConnectionHelpers(createBuilder(), 'Post', {
+    query: { orderBy: orderBy as {} },
+  });
   return {
     async read(base: unknown, args: Args) {
       const page = await helper.applyPagination(base as typeof db.orm.Post, args, {});
@@ -182,7 +184,9 @@ describe('cursor values', () => {
   });
 
   it('builds a page without encoding cursors until one is read', async () => {
-    const helper = prismaConnectionHelpers(createBuilder(), 'Post', { orderBy: { title: 'asc' } });
+    const helper = prismaConnectionHelpers(createBuilder(), 'Post', {
+      query: { orderBy: { title: 'asc' } },
+    });
     const page = await helper.applyPagination(db.orm.Post, { first: 2 }, {});
     // A narrowed select without the cursor columns still pages nodes.
     const wrapped = page.wrap([{ id: 'p-1' }, { id: 'p-2' }] as never);
@@ -194,7 +198,9 @@ describe('cursor values', () => {
   it('fails only the cursor fields of a row whose cursor cannot be encoded', async () => {
     const builder = createBuilder();
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    const pages = prismaConnectionHelpers(builder, 'Post', { orderBy: { title: 'asc' } });
+    const pages = prismaConnectionHelpers(builder, 'Post', {
+      query: { orderBy: { title: 'asc' } },
+    });
     builder.queryType({
       fields: (t) => ({
         posts: t.connection({
@@ -254,7 +260,7 @@ describe('rejected cursors', () => {
         posts: t.prismaConnection({ type: 'Post', resolve: () => db.orm.Post }),
         dated: t.prismaConnection({
           type: 'Post',
-          orderBy: { createdAt: 'asc' },
+          query: { orderBy: { createdAt: 'asc' } },
           resolve: () => db.orm.Post,
         }),
       }),
@@ -337,12 +343,12 @@ describe('rejected cursors', () => {
         fields: (t) => ({
           byText: t.prismaConnection({
             type: 'Note',
-            orderBy: { text: 'asc' },
+            query: { orderBy: { text: 'asc' } },
             resolve: () => collision.orm.Note,
           }),
           bySheet: t.prismaConnection({
             type: 'Note',
-            orderBy: { sheetId: 'asc' },
+            query: { orderBy: { sheetId: 'asc' } },
             resolve: () => collision.orm.Note,
           }),
         }),
@@ -423,8 +429,10 @@ describe('nullable cursor columns', () => {
         fields: (t) => ({
           id: t.exposeID('id'),
           posts: t.relatedConnection('posts', {
-            orderBy: { score: { direction, nulls }, id: 'asc' },
-            query: { where: { title: 'nullable-sort' } },
+            query: {
+              where: { title: 'nullable-sort' },
+              orderBy: { score: { direction, nulls }, id: 'asc' },
+            },
             totalCount: true,
           }),
         }),
@@ -459,7 +467,7 @@ describe('nullable cursor columns', () => {
       fields: (t) => ({
         posts: t.prismaConnection({
           type: 'Post',
-          orderBy: { score: 'asc', id: 'asc' },
+          query: { orderBy: { score: 'asc', id: 'asc' } },
           resolve: () => db.orm.Post.where({ title: 'nullable-sort' }),
         }),
       }),

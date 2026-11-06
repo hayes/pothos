@@ -9,12 +9,9 @@ import type {
 } from '@pothos/core';
 import type {
   DefaultCollectionTypeState,
-  ModelAccessor,
-  ModelCallbackTools,
   RelationPredicate,
   ShorthandWhereFilter,
 } from '@prisma/orm-family-sql/orm-client';
-import type { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from '../interface-ref.js';
 import type { PrismaNextObjectRef } from '../object-ref.js';
@@ -30,6 +27,7 @@ import type {
   Row,
   VariantModelKeys,
 } from './models.js';
+import type { OrderByColumnsCheck, RelationOrderBy } from './order-by.js';
 
 export type RelatedModel<
   Types extends SchemaTypes,
@@ -97,26 +95,8 @@ export type RelationWhere<Types extends SchemaTypes, M extends ModelKey<Types>> 
       BareModelName<M>
     >;
 
-/** One ordering of a relation's rows, as the ORM's `orderBy` takes it. */
-export type RelationOrderSelector<Types extends SchemaTypes, M extends ModelKey<Types>> = (
-  accessor: ModelAccessor<
-    Types['PrismaNextContract'],
-    BareModelName<M>,
-    NamespaceOf<Types['PrismaNextContract'], M>
-  >,
-  tools: ModelCallbackTools<
-    Types['PrismaNextContract'],
-    BareModelName<M>,
-    NamespaceOf<Types['PrismaNextContract'], M>
-  >,
-) => OrderByItem;
-
-/** A relation's `orderBy`, as one selector or several applied in order. */
-export type RelationOrderBy<Types extends SchemaTypes, M extends ModelKey<Types>> =
-  | RelationOrderSelector<Types, M>
-  | readonly RelationOrderSelector<Types, M>[];
-
-interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> {
+/** A to-many relation's literal `query`. */
+export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> {
   where?: RelationWhere<Types, M>;
   orderBy?: RelationOrderBy<Types, M>;
   limit?: number;
@@ -217,7 +197,14 @@ export type PrismaNextRelationOptions<
     | PrismaNextInterfaceRef<Types, TypeModel, RelatedShape>;
   query?: Query &
     CheckAsyncSelection<Types, Query> &
-    NoInfer<ExactQuery<Query, keyof RelationQueryValue<Types, ParentModel, RelName>>>;
+    NoInfer<
+      ExactQuery<
+        Types,
+        RelatedModel<Types, ParentModel, RelName>,
+        Query,
+        keyof RelationQueryValue<Types, ParentModel, RelName>
+      >
+    >;
   /**
    * What a non-null field does when its relation resolves to null: `'error'` leaves the null for
    * GraphQL's non-null error, and a function returns a replacement or an error.
@@ -310,15 +297,26 @@ export type RelationFieldArgs<
 
 /**
  * `Query` is inferred from the literal rather than checked, and a callback's result gets no excess
- * property check, so unknown keys need rejecting in both. While `Query` is still uninferred it is
- * its constraint, which includes `undefined`, and a check then would hide the option's contextual
- * types.
+ * property check, so unknown keys and `orderBy` columns need rejecting in both. While `Query` is
+ * still uninferred it is its constraint, which includes `undefined`, and a check then would hide
+ * the option's contextual types.
  */
-type ExactQuery<Query, Known extends PropertyKey> = undefined extends Query
+type ExactQuery<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  Query,
+  Known extends PropertyKey,
+> = undefined extends Query
   ? unknown
   : Query extends (...args: infer Args) => infer Result
-    ? (...args: Args) => MaybePromise<ExactQueryLiteral<Awaited<Result>, Known> | undefined>
-    : ExactQueryLiteral<Query, Known>;
+    ? (
+        ...args: Args
+      ) => MaybePromise<
+        | (ExactQueryLiteral<Awaited<Result>, Known> &
+            OrderByColumnsCheck<Types, M, Awaited<Result>>)
+        | undefined
+      >
+    : ExactQueryLiteral<Query, Known> & OrderByColumnsCheck<Types, M, Query>;
 
 type UnknownQueryKeys<Literal, Known extends PropertyKey> = Exclude<
   Literal extends unknown ? keyof Literal : never,

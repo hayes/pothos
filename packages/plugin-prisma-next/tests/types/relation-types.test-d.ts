@@ -40,7 +40,7 @@ expectTypeOf<SelectObjectSpec<Types, 'User'>>().toHaveProperty('nope');
 builder.prismaObject('User', {
   fields: (t) => ({
     posts: t.relation('posts', {
-      query: { where: (post) => post.published.eq(1), orderBy: (post) => post.id.asc(), limit: 2 },
+      query: { where: (post) => post.published.eq(1), orderBy: { id: 'asc' }, limit: 2 },
     }),
     filtered: t.relation('posts', {
       args: { published: t.arg.int({ required: true }) },
@@ -76,7 +76,7 @@ builder.prismaObject('User', {
         expectTypeOf(args.first).toEqualTypeOf<boolean | null | undefined>();
         return args.first
           ? { limit: 1 }
-          : { where: (post) => post.published.eq(1), orderBy: (post) => post.id.asc() };
+          : { where: (post) => post.published.eq(1), orderBy: { id: 'asc' } };
       },
     }),
     take: t.relation('posts', {

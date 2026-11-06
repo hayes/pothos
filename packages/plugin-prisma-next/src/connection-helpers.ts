@@ -13,7 +13,6 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type { TotalCountFlag } from './types/aggregates.js';
 import type { CollectionFor, ResolverCollection } from './types/collections.js';
 import type {
-  ConnectionOrderBy,
   ConnectionPagingOptions,
   ConnectionQueryLiteral,
   ConnectionQueryOption,
@@ -260,19 +259,15 @@ export interface PrismaConnectionHelpers<
 export interface PrismaConnectionHelperOptions<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
-  OrderBy extends ConnectionOrderBy<Types, M>,
   Args extends InputFieldMap,
   QueryLiteral = ConnectionQueryLiteral<Types, M>,
   Select = {},
-> extends Pick<
-    ConnectionPagingOptions<Types, unknown, M, Args, OrderBy>,
-    'orderBy' | 'defaultSize' | 'maxSize'
-  > {
+> extends Pick<ConnectionPagingOptions<Types, unknown, Args>, 'defaultSize' | 'maxSize'> {
   args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
   /** Counts the rows `query` keeps. Pass any other count to `wrap`. */
   totalCount?: TotalCountFlag<Types>;
-  /** Filters the collection, like `t.relatedConnection`'s `query`. */
-  query?: ConnectionQueryOption<Types, Args, QueryLiteral>;
+  /** Filters and orders the collection, like `t.relatedConnection`'s `query`. */
+  query?: ConnectionQueryOption<Types, M, Args, QueryLiteral>;
   /**
    * What each row loads beside its key and cursor columns. A to-one relation given
    * `nodeSelection()` holds the nodes: the selection beneath them is planned into it.
@@ -285,7 +280,6 @@ export interface PrismaConnectionHelperOptions<
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
-  OrderBy extends ConnectionOrderBy<Types, M> = ConnectionOrderBy<Types, M>,
   Args extends InputFieldMap = {},
   Select = {},
   Node = never,
@@ -294,7 +288,7 @@ export function prismaConnectionHelpers<
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & HelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, OrderBy, Args, QueryLiteral, Select> & {
+  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
     resolveNode: (row: NodeSourceRow<Types, M, Select>) => Node;
   },
 ): PrismaConnectionHelpers<Types, M, Args, Select, Node, false, Ref>;
@@ -302,7 +296,6 @@ export function prismaConnectionHelpers<
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
-  OrderBy extends ConnectionOrderBy<Types, M> = ConnectionOrderBy<Types, M>,
   Args extends InputFieldMap = {},
   Select = {},
   Node = never,
@@ -311,7 +304,7 @@ export function prismaConnectionHelpers<
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & HelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, OrderBy, Args, QueryLiteral, Select> & {
+  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
     resolveNode?: ((row: NodeSourceRow<Types, M, Select>) => Node) | undefined;
   },
 ): PrismaConnectionHelpers<Types, M, Args, Select, Node, true, Ref>;
@@ -319,7 +312,6 @@ export function prismaConnectionHelpers<
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
-  OrderBy extends ConnectionOrderBy<Types, M>,
   Args extends InputFieldMap,
   Select,
   Node,
@@ -328,7 +320,7 @@ export function prismaConnectionHelpers<
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & HelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, OrderBy, Args, QueryLiteral, Select> & {
+  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
     resolveNode?: ((row: NodeSourceRow<Types, M, Select>) => Node) | undefined;
   },
 ): object {

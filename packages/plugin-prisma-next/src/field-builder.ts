@@ -6,7 +6,7 @@ import {
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
-import type { ConnectionOrderBy, PrismaNextConnectionFieldOptions } from './types/connections.js';
+import type { PrismaNextConnectionFieldOptions } from './types/connections.js';
 import type { ModelKey } from './types/models.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { assertConnectionCollection } from './utils/collection-state.js';
@@ -97,7 +97,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   Param extends M | PrismaNextObjectRef<Types, M, unknown>,
   Nullable extends boolean,
   Args extends InputFieldMap,
-  OrderBy extends ConnectionOrderBy<Types, M>,
+  QueryLiteral,
   ResolveReturnShape,
 >(
   this: typeof rootFieldBuilderProto & {
@@ -111,13 +111,13 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
     Param,
     Nullable,
     Args,
-    OrderBy,
+    QueryLiteral,
     ResolveReturnShape
   >,
   connectionOptions: object = {},
   edgeOptions: object = {},
 ) {
-  const { type, defaultSize, maxSize, resolve, totalCount, orderBy, ...rest } =
+  const { type, defaultSize, maxSize, resolve, totalCount, query, ...rest } =
     options as ConnectionSettingsOptions & {
       type: unknown;
       resolve: (
@@ -135,8 +135,8 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   const settings = connectionSettings(config, modelKey, {
     defaultSize,
     maxSize,
-    orderBy,
     totalCount,
+    query,
   });
 
   return this.connection(
@@ -156,9 +156,11 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         assertConnectionCollection(userCollection);
         const planned = settings.plan(args, context);
         const { needsRows, count: countSource } = settings.selectionFor(context, info);
+        const filtered =
+          planned.where === undefined ? userCollection : userCollection.where(planned.where);
         // Runs for a count-only selection too, so the collection is still checked. No rows are
         // fetched here.
-        const paged = applyCursorPagination(userCollection, planned, args);
+        const paged = applyCursorPagination(filtered, planned, args);
         const rowsPromise = needsRows
           ? Promise.resolve(
               applySelectionToCollection(paged, model, info, config, context, {
@@ -174,10 +176,10 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
             )
           : Promise.resolve([]);
 
-        // Counts the collection the resolver returned, before pagination.
+        // Counts the collection the resolver returned, filtered by `query`, before pagination.
         const countPromise =
           countSource === 'aggregate'
-            ? aggregateCount(userCollection)
+            ? aggregateCount(filtered)
             : Promise.resolve().then(() => countSource?.(parent, args, context, info));
 
         // Promise.all handles both rejections, so a later one isn't left unhandled.

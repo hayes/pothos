@@ -48,7 +48,7 @@ function createSchema() {
   builder.prismaObject('User', {
     fields: (t) => ({
       email: t.exposeString('email'),
-      tasks: t.relation('tasks', { query: { orderBy: (row) => row.id.asc() } }),
+      tasks: t.relation('tasks', { query: { orderBy: { id: 'asc' } } }),
     }),
   });
   builder.queryType({
@@ -101,7 +101,7 @@ function createVariantSchema() {
   builder.prismaObject('User', {
     fields: (t) => ({
       email: t.exposeString('email'),
-      tasks: t.relation('tasks', { query: { orderBy: (row) => row.id.asc() } }),
+      tasks: t.relation('tasks', { query: { orderBy: { id: 'asc' } } }),
       bugs: t.relation('tasks', { type: bug }),
       bugPage: t.relatedConnection('tasks', {
         type: bug,
@@ -109,7 +109,7 @@ function createVariantSchema() {
       }),
       newestBugs: t.relatedConnection('tasks', {
         type: bug,
-        orderBy: () => ({ id: 'desc' }),
+        query: () => ({ orderBy: { id: 'desc' } }),
       }),
       reviews: t.relation('reviews'),
     }),
@@ -425,7 +425,7 @@ describe('native model inheritance', () => {
       builder.prismaObject('User', {
         fields: (t) => ({
           email: t.exposeString('email'),
-          tasks: t.relation('tasks', { query: { orderBy: (row) => row.id.asc() } }),
+          tasks: t.relation('tasks', { query: { orderBy: { id: 'asc' } } }),
           bugs: t.relation('tasks', { type: bug }),
         }),
       });
@@ -920,7 +920,9 @@ describe('native model inheritance', () => {
       relay: {},
       prismaNext: { client: db.client },
     });
-    const pages = prismaConnectionHelpers(builder, 'Feature', { orderBy: { priority: 'asc' } });
+    const pages = prismaConnectionHelpers(builder, 'Feature', {
+      query: { orderBy: { priority: 'asc' } },
+    });
     const page = await pages.applyPagination(db.orm.Task.variant('feature'), {}, {});
     // The integer codec refuses a value it doesn't hold; without it the value encodes as is.
     const opaque = page.wrap([{ id: 't2', priority: { value: 'opaque' } } as never]);
@@ -1269,7 +1271,9 @@ describe('a relation targeting a variant model with a table of its own', () => {
       fields: (t) => ({
         email: t.exposeString('email'),
         championed: t.relation('championed'),
-        championPage: t.relatedConnection('championed', { orderBy: () => ({ id: 'asc' }) }),
+        championPage: t.relatedConnection('championed', {
+          query: () => ({ orderBy: { id: 'asc' } }),
+        }),
       }),
     });
     builder.queryType({
@@ -1348,7 +1352,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
       builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
       builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
       const features = prismaConnectionHelpers(builder, 'Note', {
-        orderBy: () => ({ id: 'asc' }),
+        query: () => ({ orderBy: { id: 'asc' } }),
         select: (nodeSelection) => ({ feature: nodeSelection() }),
         resolveNode: (note) => note.feature,
       });

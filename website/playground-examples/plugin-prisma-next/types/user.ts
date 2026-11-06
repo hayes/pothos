@@ -12,7 +12,7 @@ builder.prismaObject('User', {
     }),
     // Loaded with its parent as part of one ORM query.
     posts: t.relation('posts', {
-      query: { where: { published: 1 }, orderBy: (post) => post.id.asc() },
+      query: { where: { published: 1 }, orderBy: { id: 'asc' } },
     }),
   }),
 });

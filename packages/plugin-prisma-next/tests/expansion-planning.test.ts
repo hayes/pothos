@@ -165,7 +165,7 @@ describe('aliases with different arguments nested at every level', () => {
         firstName: t.exposeString('firstName'),
         posts: t.relation('posts', {
           args: { limit: t.arg.int({ required: true }) },
-          query: (args) => ({ limit: args.limit, orderBy: (post) => post.id.asc() }),
+          query: (args) => ({ limit: args.limit, orderBy: { id: 'asc' } }),
         }),
       }),
     });
@@ -238,7 +238,7 @@ describe('aliases nested beneath rows without a key', () => {
         id: t.exposeID('id'),
         views: t.relation('views', {
           args: { limit: t.arg.int({ required: true }) },
-          query: (args) => ({ limit: args.limit, orderBy: (view) => view.viewer.asc() }),
+          query: (args) => ({ limit: args.limit, orderBy: { viewer: 'asc' } }),
         }),
       }),
     });

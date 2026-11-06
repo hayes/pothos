@@ -19,7 +19,7 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type { PrismaNextObjectFieldBuilder } from './prisma-next-field-builder.js';
 import type { ResolverCollection } from './types/collections.js';
 import type {
-  ConnectionOrderBy,
+  ConnectionQueryLiteral,
   ConnectionResultShape,
   PrismaNextConnectionFieldOptions,
   ShapeFromConnection,
@@ -357,7 +357,10 @@ declare global {
             const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
             const EdgeInterfaces extends InterfaceParam<Types>[] = [],
             M extends ModelKey<Types> = ParamToModelKey<Types, Param>,
-            OrderBy extends ConnectionOrderBy<Types, M> = ConnectionOrderBy<Types, M>,
+            QueryLiteral extends ConnectionQueryLiteral<Types, M> = ConnectionQueryLiteral<
+              Types,
+              M
+            >,
           >(
             options: PrismaNextConnectionFieldOptions<
               Types,
@@ -366,7 +369,7 @@ declare global {
               Param,
               Nullable,
               Args,
-              OrderBy,
+              QueryLiteral,
               ResolveReturnShape,
               Kind,
               ResolveShape

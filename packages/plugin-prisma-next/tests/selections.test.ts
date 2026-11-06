@@ -124,13 +124,13 @@ describe('field select forms', () => {
         latestTitle: t.string({
           nullable: true,
           select: {
-            posts: { where: { published: 1 }, orderBy: (post) => post.createdAt.desc(), limit: 1 },
+            posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 1 },
           },
           resolve: (user) => user.posts[0]?.title ?? null,
         }),
         secondTitle: t.string({
           nullable: true,
-          select: { posts: { orderBy: (post) => post.id.asc(), offset: 1, limit: 1 } },
+          select: { posts: { orderBy: { id: 'asc' }, offset: 1, limit: 1 } },
           resolve: (user) => user.posts[0]?.title ?? null,
         }),
         published: t.string({

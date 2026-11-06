@@ -31,13 +31,13 @@ interface ComparableColumn {
 
 type Direction = 'asc' | 'desc';
 
-/** A connection's `orderBy` as written: a direction per column, or `{ direction, nulls }`. */
+/** An `orderBy` as written: a direction per column, or `{ direction, nulls }`. */
 export type OrderByDecl = Readonly<
   Record<string, Direction | { direction?: Direction; nulls?: 'first' | 'last' } | undefined>
 >;
 
-/** One column of a connection's order. Nullable columns always have a null placement. */
-interface OrderColumn {
+/** One column of an order. Nullable columns always have a null placement. */
+export interface OrderColumn {
   readonly field: string;
   readonly direction: Direction;
   readonly nulls?: 'first' | 'last';
@@ -55,29 +55,88 @@ interface CursorOrder {
 export const cursorColumns = (order: CursorOrder): string[] =>
   order.columns.map(({ field }) => field);
 
-/**
- * Resolves a connection's `orderBy` to the order it pages by. The model's first non-null key of
- * orderable columns is appended in the last column's direction, unless the order covers a key
- * already, so every row has its own position. A literal is checked when the schema is built, and a
- * callback's result for each request, as a computed key escapes the types.
- */
-export function connectionOrder(
+type OrderProblem = (field: string) => string | undefined;
+
+/** Why the ORM can't order `modelKey`'s rows by `field`: it isn't a field, or its codec can't be. */
+export function orderableProblem(
   context: PrismaNextExecutionContext<AnyContract>,
   modelKey: string,
-  orderBy: OrderByDecl | ((args: never, ctx: never) => OrderByDecl | undefined) | undefined,
-): (args: object, ctx: object) => CursorOrder {
-  const { contract } = context;
-  const model = resolveContractModel(contract, modelKey)!;
-  const problem = (field: string) => {
+): OrderProblem {
+  const model = resolveContractModel(context.contract, modelKey)!;
+  return (field) => {
     const type = model.fields[field]?.type as { codecId?: string } | undefined;
     if (!type) {
       return `'${modelKey}.${field}' is not a field of the model`;
     }
     return type.codecId &&
       context.codecDescriptors.descriptorFor(type.codecId)?.traits.includes('order')
-      ? truncatedDateProblem(contract, modelKey, field)
+      ? undefined
       : `'${modelKey}.${field}', whose codec the ORM can't order`;
   };
+}
+
+/**
+ * Resolves an `orderBy` to its columns, each with its direction and null placement: nullable
+ * columns put nulls last unless `nulls` says otherwise. Throws `ErrorClass` for a column `problem`
+ * rejects. Without `problem`, only columns the model doesn't have are rejected: the types reject the
+ * rest, and only a computed key can reach the runtime.
+ */
+export function orderColumns(
+  contract: AnyContract,
+  modelKey: string,
+  decl: OrderByDecl | undefined,
+  ErrorClass: new (message: string) => Error,
+  problem?: OrderProblem,
+): OrderColumn[] {
+  const model = resolveContractModel(contract, modelKey)!;
+  const order: OrderColumn[] = [];
+  for (const [field, entry] of Object.entries(decl ?? {})) {
+    if (entry === undefined) {
+      continue;
+    }
+    const reason = problem
+      ? problem(field)
+      : model.fields[field]
+        ? undefined
+        : `'${modelKey}.${field}' is not a field of the model`;
+    if (reason) {
+      throw new ErrorClass(`orderBy can't order by ${reason}.`);
+    }
+    const { direction = 'asc', nulls } = typeof entry === 'string' ? { direction: entry } : entry;
+    const placement = nulls ?? (model.fields[field]!.nullable ? 'last' : undefined);
+    order.push(placement ? { field, direction, nulls: placement } : { field, direction });
+  }
+  return order;
+}
+
+/** Orders `collection` by `columns`, reversed when `inverted`. */
+export function orderCollection<C extends MapperCollection>(
+  collection: C,
+  columns: readonly OrderColumn[],
+  inverted = false,
+): C {
+  return collection.orderBy(
+    columns.map(({ field, direction, nulls }) => (c: Record<string, ComparableColumn>) => {
+      const forward = c[field]![direction](nulls ? { nulls } : undefined);
+      return inverted ? forward.reverse() : forward;
+    }),
+  ) as C;
+}
+
+/**
+ * Resolves a connection's `orderBy` to the order it pages by, as `orderColumns` does. Its columns
+ * also need values a cursor can hold. The model's first non-null key of orderable columns is
+ * appended in the last column's direction, unless the order covers a key already, so every row has
+ * its own position. Throws when the schema is built for a model without such a key.
+ */
+export function connectionOrder(
+  context: PrismaNextExecutionContext<AnyContract>,
+  modelKey: string,
+): (decl: OrderByDecl | undefined, ErrorClass: new (message: string) => Error) => CursorOrder {
+  const { contract } = context;
+  const orderable = orderableProblem(context, modelKey);
+  const problem = (field: string) =>
+    orderable(field) ?? truncatedDateProblem(contract, modelKey, field);
   const keys = getModelIdentities(contract, modelKey) ?? [];
   const key = keys.find((columns) => columns.every((field) => !problem(field)));
   if (!key) {
@@ -86,20 +145,8 @@ export function connectionOrder(
       `Connections of '${modelKey}' page by a non-null primary or unique key of orderable columns, which it doesn't have${reason ? `: ${reason}` : ''}.`,
     );
   }
-  const resolve = (decl: OrderByDecl | undefined, ErrorClass: new (message: string) => Error) => {
-    const order: OrderColumn[] = [];
-    for (const [field, entry] of Object.entries(decl ?? {})) {
-      if (entry === undefined) {
-        continue;
-      }
-      const reason = problem(field);
-      if (reason) {
-        throw new ErrorClass(`Connection orderBy can't order by ${reason}.`);
-      }
-      const { direction = 'asc', nulls } = typeof entry === 'string' ? { direction: entry } : entry;
-      const placement = nulls ?? (model.fields[field]!.nullable ? 'last' : undefined);
-      order.push(placement ? { field, direction, nulls: placement } : { field, direction });
-    }
+  return (decl, ErrorClass) => {
+    const order = orderColumns(contract, modelKey, decl, ErrorClass, problem);
     const named = new Set(order.map(({ field }) => field));
     if (!keys.some((columns) => columns.every((field) => named.has(field)))) {
       const direction = order[order.length - 1]?.direction ?? 'asc';
@@ -109,11 +156,6 @@ export function connectionOrder(
     }
     return { model: modelKey, columns: order };
   };
-  if (typeof orderBy === 'function') {
-    return (args, ctx) => resolve(orderBy(args as never, ctx as never), InternalError);
-  }
-  const order = resolve(orderBy, PothosSchemaError);
-  return () => order;
 }
 
 // Values are encoded in their column codec's stored form. Nulls skip the codec.
@@ -292,12 +334,7 @@ function applyToCollection<C extends MapperCollection>(
   baseCollection: C,
   { order, afterValues, beforeValues, limit, inverted }: CursorPaginationParams,
 ): C {
-  let collection = baseCollection.orderBy(
-    order.columns.map(({ field, direction, nulls }) => (c: Record<string, ComparableColumn>) => {
-      const forward = c[field]![direction](nulls ? { nulls } : undefined);
-      return inverted ? forward.reverse() : forward;
-    }),
-  );
+  let collection: MapperCollection = orderCollection(baseCollection, order.columns, inverted);
   // The ORM's `cursor()` takes one boundary in the order's direction and can't place nulls, so
   // the boundaries are applied as filters.
   if (afterValues) {

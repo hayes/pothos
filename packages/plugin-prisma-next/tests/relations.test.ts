@@ -57,7 +57,7 @@ describe('includes', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         posts: t.relation('posts', {
-          query: { orderBy: [(post) => post.authorId.asc(), (post) => post.title.desc()] },
+          query: { orderBy: { authorId: 'asc', title: 'desc' } },
         }),
       }),
     });
@@ -75,6 +75,86 @@ describe('includes', () => {
       { posts: [{ id: 'p-hello' }, { id: 'p-draft1' }] },
       { posts: [{ id: 'p-bob1' }, { id: 'p-bob-draft' }] },
     ]);
+  });
+
+  it('places nulls last by default, unless the orderBy says otherwise', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        byScore: t.relation('posts', { query: { orderBy: { score: 'desc' } } }),
+        nullsFirst: t.relation('posts', {
+          query: { orderBy: { score: { direction: 'asc', nulls: 'first' } } },
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { byScore { id } nullsFirst { id } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0]).toEqual({
+      byScore: [{ id: 'p-draft1' }, { id: 'p-hello' }],
+      nullsFirst: [{ id: 'p-hello' }, { id: 'p-draft1' }],
+    });
+    expect(result.statements[0].sql).toMatch(/DESC NULLS LAST/);
+    expect(result.statements[0].sql).toMatch(/ASC NULLS FIRST/);
+  });
+
+  it('rejects an orderBy column that is not a field when the schema is built', () => {
+    const relation = createBuilder();
+    relation.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    relation.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relation('posts', { query: { orderBy: { nope: 'asc' } as never } }),
+      }),
+    });
+    expect(() => relation.toSchema()).toThrow(
+      "orderBy can't order by 'Post.nope' is not a field of the model.",
+    );
+
+    const select = createBuilder();
+    select.prismaObject('User', {
+      fields: (t) => ({
+        first: t.string({
+          nullable: true,
+          select: { posts: { orderBy: { nope: 'asc' } as never, limit: 1 } },
+          resolve: () => null,
+        }),
+      }),
+    });
+    select.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    expect(() => select.toSchema()).toThrow(
+      "orderBy can't order by 'Post.nope' is not a field of the model.",
+    );
+  });
+
+  it("fails the field for a callback's orderBy column that is not a field", async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relation('posts', {
+          args: { sort: t.arg.string({ required: true }) },
+          query: (args) => ({ orderBy: { [args.sort]: 'asc' } }),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { posts(sort: "nope") { id } } }');
+    expect(result.errors?.[0].message).toBe('Unexpected error.');
+    expect(detailOf(result.errors?.[0])).toBe(
+      "orderBy can't order by 'Post.nope' is not a field of the model.",
+    );
   });
 
   describe('the non-FK side of a 1:1', () => {
@@ -256,7 +336,7 @@ describe('relation queries', () => {
             seen.push({ args, context });
             return {
               where: args.published == null ? undefined : { published: args.published },
-              orderBy: (post) => post.id.desc(),
+              orderBy: { id: 'desc' },
               limit: args.limit ?? undefined,
               offset: 0,
             };
@@ -382,7 +462,7 @@ describe('aliases of one to-many relation', () => {
         id: t.exposeID('id'),
         title: t.exposeString('title'),
         author: t.relation('author'),
-        comments: t.relation('comments', { query: { orderBy: (c) => c.id.asc() } }),
+        comments: t.relation('comments', { query: { orderBy: { id: 'asc' } } }),
         commentTotal: t.relationCount('comments'),
         commentPage: t.relatedConnection('comments', { totalCount: true }),
       }),
@@ -391,12 +471,12 @@ describe('aliases of one to-many relation', () => {
       fields: (t) => ({
         id: t.exposeID('id'),
         email: t.exposeString('email'),
-        posts: t.relation('posts', { query: () => ({ orderBy: (p) => p.id.asc() }) }),
+        posts: t.relation('posts', { query: () => ({ orderBy: { id: 'asc' } }) }),
         filtered: t.relation('posts', {
           args: { published: t.arg.int() },
           query: (args) => ({
             where: { published: args.published ?? 0 },
-            orderBy: (p) => p.id.asc(),
+            orderBy: { id: 'asc' },
           }),
         }),
         page: t.relatedConnection('posts', {}),
@@ -877,7 +957,7 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
         id: t.exposeID('id'),
         comments: t.relation('comments'),
         posts: t.relation('posts'),
-        ordered: t.relation('posts', { query: { orderBy: (post) => post.id.asc() } }),
+        ordered: t.relation('posts', { query: { orderBy: { id: 'asc' } } }),
         published: t.relation('posts', { query: { where: { published: 1 } } }),
         postCount: t.relationCount('posts'),
         titles: t.stringList({
