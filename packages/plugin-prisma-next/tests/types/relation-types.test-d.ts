@@ -14,6 +14,7 @@ import prismaNextPlugin, {
   type RelationWhere,
   type SelectObjectSpec,
 } from '../../src';
+import type { QueryAsyncCheck } from '../../src/types/relations';
 import type { SelectCheck, TypeSelectCheck } from '../../src/types/selections';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
@@ -493,6 +494,23 @@ builder.prismaObject('User', {
     }),
     // @ts-expect-error an async select needs AsyncSelections
     asyncSelect: t.string({ select: async () => ({ email: true }), resolve: () => '' }),
+  }),
+});
+// A callback returning `any`, such as the ORM's predicate passed as the query, fails as itself
+// (its parameter is the args) rather than as an async query. A real async callback still does.
+expectTypeOf<
+  QueryAsyncCheck<Types, (args: {}) => ReturnType<typeof JSON.parse>>
+>().toEqualTypeOf<unknown>();
+expectTypeOf<
+  QueryAsyncCheck<Types, () => Promise<{ where: {} }>>
+>().toEqualTypeOf<'An async selection requires `AsyncSelections: true` in the schema types'>();
+builder.prismaObject('Post', {
+  variant: 'PredicateAsQuery',
+  fields: (t) => ({
+    // @ts-expect-error the args have no `body`: the predicate goes in `where`
+    count: t.relationCount('comments', { query: (c) => c.body.eq('x') }),
+    // @ts-expect-error the args have no `body`: the predicate goes in `where`
+    rows: t.relation('comments', { query: (c) => c.body.eq('x') }),
   }),
 });
 // A count's `query` callback takes the args and context. The ORM's predicate passed as the query

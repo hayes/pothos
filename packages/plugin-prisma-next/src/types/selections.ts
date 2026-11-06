@@ -178,21 +178,27 @@ type ComputedSelectKeys<Types extends SchemaTypes, M extends ModelKey<Types>, Se
   KnownSelectKeys<Types, M>
 >;
 
-/** The entries a `select` takes for the model's columns and relations. */
-type KnownSelectSpec<Types extends SchemaTypes, M extends ModelKey<Types>> = {
-  readonly [K in KnownSelectKeys<Types, M>]?: K extends RelationKeys<Types, M>
-    ?
-        | true
-        | RelationQueryValue<Types, M, K>
-        | (IsToMany<Types, M, K> extends true
-            ?
-                | RelationRefinement<Types, M, K>
-                // A connection helper's page, on a field's `select` only.
-                | ConnectionPageEntry<RelationTypeModel<Types, M, K>, unknown>
-            : never)
-    : K extends keyof Row<Types, M>
-      ? true
-      : never;
+/**
+ * The entries a `select` takes for the model's columns and relations. `Misplaced` is also accepted
+ * for each, so a computed value under a column's or relation's key gets its types from the spec
+ * and is then named by `InvalidSelectValueCheck`, which checks against the spec without it.
+ */
+type KnownSelectSpec<Types extends SchemaTypes, M extends ModelKey<Types>, Misplaced = never> = {
+  readonly [K in KnownSelectKeys<Types, M>]?:
+    | Misplaced
+    | (K extends RelationKeys<Types, M>
+        ?
+            | true
+            | RelationQueryValue<Types, M, K>
+            | (IsToMany<Types, M, K> extends true
+                ?
+                    | RelationRefinement<Types, M, K>
+                    // A connection helper's page, on a field's `select` only.
+                    | ConnectionPageEntry<RelationTypeModel<Types, M, K>, unknown>
+                : never)
+        : K extends keyof Row<Types, M>
+          ? true
+          : never);
 };
 
 /**
@@ -214,8 +220,8 @@ export type ComputedSelectEntry<Types extends SchemaTypes, M extends ModelKey<Ty
  * keys.
  */
 export type SelectObjectSpec<Types extends SchemaTypes, M extends ModelKey<Types>> =
-  | KnownSelectSpec<Types, M>
-  | (KnownSelectSpec<Types, M> & {
+  | KnownSelectSpec<Types, M, ComputedSelectEntry<Types, M>>
+  | (KnownSelectSpec<Types, M, ComputedSelectEntry<Types, M>> & {
       readonly [key: string]: ComputedSelectEntry<Types, M> | {} | undefined;
     });
 

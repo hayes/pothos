@@ -1,5 +1,4 @@
 import type {
-  CheckAsyncSelection,
   InferredFieldOptionKeys,
   InputFieldMap,
   InputShapeFromFields,
@@ -8,7 +7,7 @@ import type {
 } from '@pothos/core';
 import type { ExtractAggregateTypes } from '@prisma/orm-family-sql/contract/types';
 import type { ModelKey, ObjectBaseShape, RelationKeys } from './models.js';
-import type { ExactQuery, RelatedModel, RelationWhere } from './relations.js';
+import type { ExactQuery, QueryAsyncCheck, RelatedModel, RelationWhere } from './relations.js';
 
 /** The literal `query` of a count: a `where`, as a shorthand filter or the ORM's predicate. */
 export interface RelationCountQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> {
@@ -43,7 +42,7 @@ export type PrismaNextRelationCountOptions<
   'type' | 'resolve' | 'select' | 'nullable' | InferredFieldOptionKeys
 > & {
   query?: Query &
-    CheckAsyncSelection<Types, Query> &
+    QueryAsyncCheck<Types, Query> &
     NoInfer<ExactQuery<Types, RelatedModel<Types, ParentModel, RelName>, Query, 'where'>>;
   /** A count is never null. */
   nullable?: false;

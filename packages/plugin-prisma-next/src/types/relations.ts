@@ -196,7 +196,7 @@ export type PrismaNextRelationOptions<
     | PrismaNextObjectRef<Types, TypeModel, RelatedShape>
     | PrismaNextInterfaceRef<Types, TypeModel, RelatedShape>;
   query?: Query &
-    CheckAsyncSelection<Types, Query> &
+    QueryAsyncCheck<Types, Query> &
     NoInfer<
       ExactQuery<
         Types,
@@ -211,6 +211,18 @@ export type PrismaNextRelationOptions<
    */
   onNull?: RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>>;
 };
+
+/**
+ * `CheckAsyncSelection` for a `query`. A callback returning `any`, such as the ORM's predicate
+ * passed as the query, already fails as itself, so it isn't reported as async first.
+ */
+export type QueryAsyncCheck<Types extends SchemaTypes, Query> = [Query] extends [
+  (...args: never[]) => infer Result,
+]
+  ? 0 extends 1 & Result
+    ? unknown
+    : CheckAsyncSelection<Types, Query>
+  : CheckAsyncSelection<Types, Query>;
 
 export type RelationOnNull<
   Types extends SchemaTypes,

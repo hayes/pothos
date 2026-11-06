@@ -217,6 +217,21 @@ builder.prismaObject('User', {
   select: { comments: { posts: (sub) => sub.count() } },
   fields: () => ({}),
 });
+// The misplaced entry still gets the relation's collection, so the only error is the collision,
+// reported on `select`, and `sub` is typed on the lines below it.
+builder.prismaObject('User', {
+  variant: 'ComputedKeyNamesColumnTyped',
+  // @ts-expect-error a computed key can't be a column
+  select: {
+    email: {
+      posts: (sub) => {
+        expectTypeOf(sub.where({ published: 1 }).count).toBeFunction();
+        return sub.count();
+      },
+    },
+  },
+  fields: () => ({}),
+});
 builder.prismaObject('User', {
   variant: 'ComputedTwoRelations',
   // @ts-expect-error a computed value reads exactly one relation
