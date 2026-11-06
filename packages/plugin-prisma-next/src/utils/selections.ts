@@ -756,6 +756,9 @@ export function splitSelect(
 
 export type SplitSelect = ReturnType<typeof splitSelect>;
 
+/** A type-level `select`, split, with the name of the type that declares it. */
+export type TypeSelect = SplitSelect & { name: string };
+
 /**
  * Whether a `select` entry loads the rows of `relation` through a variant model with a table of its
  * own, which can't read the columns it inherits. A page entry doesn't hand over rows loaded that

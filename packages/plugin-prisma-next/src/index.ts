@@ -38,7 +38,7 @@ import {
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_TYPE_SELECT,
-  PRISMA_NEXT_TYPE_SPLIT,
+  PRISMA_NEXT_TYPE_SELECTS,
 } from './constants.js';
 import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
@@ -63,6 +63,7 @@ import {
   rowOf,
   type SplitSelect,
   splitSelect,
+  type TypeSelect,
   typeCopy,
 } from './utils/selections.js';
 import { variantTypeNames } from './utils/variant-types.js';
@@ -195,8 +196,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { contract } = this.config;
     const ownModel = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    const interfaces = typeConfig.interfaces
-      .map((iface) => this.buildCache.getTypeConfig(iface, 'Interface'))
+    const interfaceConfigs = typeConfig.interfaces.map((iface) =>
+      this.buildCache.getTypeConfig(iface, 'Interface'),
+    );
+    const interfaces = interfaceConfigs
       .map((iface) => ({
         name: iface.name,
         model: iface.extensions?.[PRISMA_NEXT_MODEL] as string | undefined,
@@ -227,11 +230,20 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       assertNoVariantRelations(split, getModel(contract, model), typeConfig.name);
       assertSelectOrders(this.config, split, getModel(contract, model));
     }
+    const selects = new Map<string, TypeSelect>();
+    for (const iface of interfaceConfigs) {
+      for (const select of typeSelects(iface)) {
+        selects.set(select.name, select);
+      }
+    }
+    if (split) {
+      selects.set(typeConfig.name, { name: typeConfig.name, ...split });
+    }
     const config = {
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
-        ...(split ? { [PRISMA_NEXT_TYPE_SPLIT]: split } : {}),
+        [PRISMA_NEXT_TYPE_SELECTS]: [...selects.values()],
         [PRISMA_NEXT_MODEL]: model,
         [PRISMA_NEXT_CONFIG]: this.config,
         // Filled in afterBuild by registerImplementations.
@@ -299,7 +311,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         ? compileFieldSelect(this.config.contract, select, model)
         : exposesColumn
           ? { columns: [exposed] }
-          : this.typeLevelSelects(fieldConfig.parentType).length
+          : typeSelects(this.buildCache.getTypeConfig(fieldConfig.parentType)).length
             ? EMPTY
             : undefined;
     return selection
@@ -371,30 +383,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * The `select`s of a type and of its interfaces, which `onTypeConfig` keeps to one model
-   * hierarchy. The deepest interface comes first and the type itself last.
-   */
-  private typeLevelSelects(type: string | PothosTypeConfig) {
-    const selects: (SplitSelect & { name: string })[] = [];
-    const visited = new Set<string>();
-    const visit = (config: PothosTypeConfig) => {
-      if (visited.has(config.name)) {
-        return;
-      }
-      visited.add(config.name);
-      for (const iface of 'interfaces' in config ? config.interfaces : []) {
-        visit(this.buildCache.getTypeConfig(iface, 'Interface'));
-      }
-      const split = config.extensions?.[PRISMA_NEXT_TYPE_SPLIT] as SplitSelect | undefined;
-      if (split) {
-        selects.push({ name: config.name, ...split });
-      }
-    };
-    visit(typeof type === 'string' ? this.buildCache.getTypeConfig(type) : type);
-    return selects;
-  }
-
-  /**
    * A row of a type is copied once for the `select`s of the type and its interfaces, and holds one
    * value for each relation or computed key they write, which the fields and auth checks of all of
    * them read. So two of those `select`s that write one key must define it equally: compared with
@@ -403,7 +391,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    */
   private assertSelectsAgree(typeConfig: PothosTypeConfig) {
     const definitions = new Map<string, { type: string; definition: unknown }>();
-    for (const { name: type, relations, computed } of this.typeLevelSelects(typeConfig)) {
+    for (const { name: type, relations, computed } of typeSelects(typeConfig)) {
       const check = (key: string, definition: unknown) => {
         const first = definitions.get(key);
         if (!first) {
@@ -582,7 +570,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   private readonly typeDataCache = new Map<string, ReturnType<typeof typeDataOf>>();
 
   /**
-   * The consumer ids of a prisma type's `select`s, as `typeLevelSelects` lists them, and what a row
+   * The consumer ids of a prisma type's `select`s, as `typeSelects` lists them, and what a row
    * must hold for them.
    */
   private typeData(typeName: string) {
@@ -591,7 +579,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       const typeConfig = this.buildCache.getTypeConfig(typeName);
       const modelKey = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string;
       const model = getModel(this.config.contract, modelKey);
-      data = typeDataOf(modelKey, model, this.typeLevelSelects(typeName));
+      data = typeDataOf(modelKey, model, typeSelects(typeConfig));
       this.typeDataCache.set(typeName, data);
     }
     return data;
@@ -627,6 +615,14 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 }
 
+/**
+ * The `select`s of a type and of its interfaces, which `onTypeConfig` keeps to one model hierarchy.
+ * The deepest interface comes first and the type itself last. None for a type without a model.
+ */
+function typeSelects(typeConfig: PothosTypeConfig): readonly TypeSelect[] {
+  return (typeConfig.extensions?.[PRISMA_NEXT_TYPE_SELECTS] as TypeSelect[] | undefined) ?? [];
+}
+
 /** Whether none of `keys` is undefined on `row`. */
 function holds(row: object, keys: readonly string[]) {
   return keys.every((key) => (row as Record<string, unknown>)[key] !== undefined);
@@ -654,11 +650,7 @@ function ownKeys({ relations, computed }: SplitSelect) {
  * The consumer ids of a type's type-level `selects`, listed with the deepest interface first and
  * the type itself last, and the keys a row copied for them holds.
  */
-function typeDataOf(
-  modelKey: string,
-  model: PrismaNextModel,
-  selects: readonly (SplitSelect & { name: string })[],
-) {
+function typeDataOf(modelKey: string, model: PrismaNextModel, selects: readonly TypeSelect[]) {
   const branched = selects.filter(
     (select) => select.relations.length > 0 || select.computed.length > 0,
   );

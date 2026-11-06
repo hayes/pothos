@@ -17,7 +17,7 @@ import {
   PRISMA_NEXT_FIELD_SELECTION,
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_MODEL,
-  PRISMA_NEXT_TYPE_SPLIT,
+  PRISMA_NEXT_TYPE_SELECTS,
 } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import {
@@ -40,7 +40,7 @@ import {
   REFINE,
   type RelationArgs,
   relationName,
-  type SplitSelect,
+  type TypeSelect,
 } from './selections.js';
 
 /**
@@ -137,21 +137,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       return cached;
     }
     const node = this.createNode(model);
-    const visited = new Set<GraphQLNamedType>();
-    const visit = (current: GraphQLNamedType) => {
-      if (visited.has(current)) {
-        return;
-      }
-      visited.add(current);
-      const split = current.extensions?.[PRISMA_NEXT_TYPE_SPLIT] as SplitSelect | undefined;
-      if (split) {
-        super.mergeQuery(node, compileTypeSelect(this.contract, split, model, current.name));
-      }
-      for (const iface of 'getInterfaces' in current ? current.getInterfaces() : []) {
-        visit(iface);
-      }
-    };
-    visit(type);
+    for (const select of type.extensions[PRISMA_NEXT_TYPE_SELECTS] as TypeSelect[]) {
+      super.mergeQuery(node, compileTypeSelect(this.contract, select, model, select.name));
+    }
     for (const selection of implementationsOf(type)?.values() ?? []) {
       super.mergeQuery(node, selection);
     }
