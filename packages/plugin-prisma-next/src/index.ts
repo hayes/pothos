@@ -29,7 +29,6 @@ import {
   type GraphQLResolveInfo,
   type GraphQLSchema,
   type GraphQLTypeResolver,
-  getNamedType,
   isInterfaceType,
 } from 'graphql';
 import {
@@ -45,12 +44,7 @@ import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
 import { orderableProblem, orderColumns } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
-import {
-  getModel,
-  ownTableVariantRowsError,
-  type PrismaNextModel,
-  type PrismaNextRelation,
-} from './utils/model.js';
+import { getModel, ownTableVariantRowsError, type PrismaNextModel } from './utils/model.js';
 import {
   compileFieldSelect,
   copyIds,
@@ -65,7 +59,6 @@ import {
   splitSelect,
   typeCopy,
 } from './utils/selections.js';
-import { completeVariantRows } from './utils/variant-rows.js';
 import { variantTypeNames } from './utils/variant-types.js';
 
 export type {
@@ -312,9 +305,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
   /**
    * Rejects a field's static `select` that hands the field rows of a variant model with a table of
-   * its own, as `compileFieldSelect` does for what a select function returns. A field returning the
-   * relation's model plans the rows through its own selection set instead. Checked on the field's
-   * final config, since a plugin that runs later, such as plugin-errors, can change its type.
+   * its own, as `compileFieldSelect` does for what a select function returns. A field returning an
+   * object type of the relation's model plans the rows through its own selection set instead; an
+   * interface's `resolveType` would read them as they load, without the base model's columns.
+   * Checked on the field's final config, since a plugin that runs later, such as plugin-errors, can
+   * change its type.
    */
   private assertRowsReadable(fieldConfig: PothosOutputFieldConfig<Types>) {
     const { select } = fieldConfig.pothosOptions as { select?: unknown };
@@ -335,39 +330,20 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       if (!loadsOwnTableVariantRows(relation, value)) {
         continue;
       }
-      const returnModel = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type))
-        .extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-      if (returnModel === undefined || getModel(contract, returnModel) !== relation.target) {
-        throw ownTableVariantRowsError(`field '${fieldConfig.name}'`, name, relation);
+      const returnConfig = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
+      const returnModel = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+      if (
+        returnConfig.kind !== 'Object' ||
+        returnModel === undefined ||
+        getModel(contract, returnModel) !== relation.target
+      ) {
+        throw ownTableVariantRowsError(
+          `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
+          name,
+          relation,
+        );
       }
     }
-  }
-
-  /**
-   * The relations of a field's static `select` whose rows load through a variant model with a table
-   * of its own, for a field returning an interface, whose `resolveType` reads the base model's
-   * columns. A union has no model, so `assertRowsReadable` rejects one. A field returning the variant's own type reads them through the usual reload.
-   */
-  private variantRowCompletions(
-    fieldConfig: PothosOutputFieldConfig<Types>,
-  ): [string, PrismaNextRelation][] {
-    const { select } = fieldConfig.pothosOptions as { select?: unknown };
-    const returnKind = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type)).kind;
-    const modelKey = this.buildCache.getTypeConfig(
-      fieldConfig.declaringType ?? fieldConfig.parentType,
-    ).extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    if (
-      typeof select !== 'object' ||
-      select === null ||
-      modelKey === undefined ||
-      returnKind !== 'Interface'
-    ) {
-      return [];
-    }
-    const model = getModel(this.config.contract, modelKey);
-    return splitSelect(select as RawSelect, model)
-      .relations.filter(([name, value]) => loadsOwnTableVariantRows(model.relations[name]!, value))
-      .map(([name]) => [name, model.relations[name]!]);
   }
 
   override afterBuild(schema: GraphQLSchema): GraphQLSchema {
@@ -479,52 +455,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     this.assertRowsReadable(fieldConfig);
-    const gated = this.gate(this.withVariantRows(resolver, fieldConfig), fieldConfig);
+    const gated = this.gate(resolver, fieldConfig);
     const forType = this.resultCopier(fieldConfig);
     if (!forType) {
       return gated;
     }
     return (parent, args, context, info) => copyResult(gated(parent, args, context, info), forType);
-  }
-
-  /**
-   * Loads the rows of a variant model with a table of its own that a field's static `select`
-   * hands it, which lack the base model's columns, such as the discriminator the returned type's
-   * resolveType reads. They load before the resolver runs, through the base model, as
-   * `t.relation` loads them.
-   */
-  private withVariantRows(
-    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: PothosOutputFieldConfig<Types>,
-  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    const completions = this.variantRowCompletions(fieldConfig);
-    if (!completions.length) {
-      return resolver;
-    }
-    return (parent, args, context, info) => {
-      const type = getNamedType(info.returnType);
-      const loads = completions.map(([name, relation]) =>
-        completeVariantRows(
-          this.builder,
-          relation,
-          type,
-          context,
-          info,
-          (parent as Record<string, unknown>)[name],
-        ),
-      );
-      const withRows = (rows: unknown[]) =>
-        resolver(
-          {
-            ...(parent as object),
-            ...Object.fromEntries(completions.map(([name], i) => [name, rows[i]])),
-          },
-          args,
-          context,
-          info,
-        );
-      return loads.some(isThenable) ? Promise.all(loads).then(withRows) : withRows(loads);
-    };
   }
 
   /**
@@ -770,7 +706,11 @@ function assertNoVariantRelations(
   const model = getModel(contract, modelKey);
   for (const [name, value] of splitSelect(raw, model, PothosSchemaError).relations) {
     if (loadsOwnTableVariantRows(model.relations[name]!, value)) {
-      throw ownTableVariantRowsError(`type '${typeName}'`, name, model.relations[name]!);
+      throw ownTableVariantRowsError(
+        `The select of type '${typeName}' loads`,
+        name,
+        model.relations[name]!,
+      );
     }
   }
 }

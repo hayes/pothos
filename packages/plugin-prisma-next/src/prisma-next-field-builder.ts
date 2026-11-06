@@ -16,7 +16,7 @@ import {
   type TypeParam,
 } from '@pothos/core';
 import type { Position } from '@pothos/selection-mapper';
-import { type GraphQLResolveInfo, getNamedType } from 'graphql';
+import type { GraphQLResolveInfo } from 'graphql';
 import { PRISMA_NEXT_FIELD_SELECTION, PRISMA_NEXT_MODEL } from './constants.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
@@ -58,7 +58,12 @@ import {
 import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
 import { buildConnectionPage, orderableProblem } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
-import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
+import {
+  getModel,
+  ownTableVariantRowsError,
+  type PrismaNextRelation,
+  sharedVariantRelationError,
+} from './utils/model.js';
 import { getRefFromContractModel, refFor } from './utils/refs.js';
 import {
   COUNT_SLOT,
@@ -79,7 +84,6 @@ import {
   splitSelect,
   VALUE_SLOT,
 } from './utils/selections.js';
-import { completeVariantRows } from './utils/variant-rows.js';
 
 type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
   PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
@@ -405,7 +409,7 @@ export class PrismaNextObjectFieldBuilder<
           }),
         );
       });
-    return this.field({
+    const field = this.field({
       ...rest,
       type: relation.isToMany ? [targetRef] : targetRef,
       extensions: {
@@ -422,16 +426,10 @@ export class PrismaNextObjectFieldBuilder<
           if (rows == null || (discriminator !== undefined && rows[discriminator] !== variant)) {
             return typeof onNull === 'function' ? onNull(parent, args, context, info) : null;
           }
-          return completeVariantRows(
-            this.builder,
-            relation,
-            getNamedType(info.returnType),
-            context,
-            info,
-            rows,
-          );
+          return rows;
         }),
-    } as never) as never;
+    } as never);
+    return this.#assertObjectRows(field, relation, relationName, targetRef) as never;
   }
 
   /** Exposes the row count of a to-many relation as an `Int`. */
@@ -612,16 +610,7 @@ export class PrismaNextObjectFieldBuilder<
             const branch = fieldBranch(own);
             const planned = (branch && plans.get(branch.position)) ?? settings.plan(args, context);
             const { needsRows, count } = settings.selectionFor(context, info);
-            const rows = needsRows
-              ? await completeVariantRows(
-                  this.builder,
-                  relation,
-                  info.schema.getType(relatedTypeName),
-                  context,
-                  info,
-                  (own as Record<string, unknown>)[name],
-                )
-              : [];
+            const rows = needsRows ? (own as Record<string, unknown>)[name] : [];
             const totalCount =
               count === 'aggregate'
                 ? (fieldValue(own, name, COUNT_SLOT) as number | undefined)
@@ -633,10 +622,37 @@ export class PrismaNextObjectFieldBuilder<
           },
         ),
     };
-    return (
-      this as typeof this & { connection: (cfg: object, c?: object, e?: object) => unknown }
+    const field = (
+      this as typeof this & {
+        connection: (cfg: object, c?: object, e?: object) => FieldRef<SchemaTypes>;
+      }
     ).connection(connectionConfig, settings.connectionOptions(connectionOptions), edgeOptions);
+    return this.#assertObjectRows(field, relation, name, targetRef);
   } as never;
+
+  /**
+   * A variant model with a table of its own loads its rows without the base model's columns, such
+   * as the discriminator an interface's `resolveType` reads, so a field can only return them as an
+   * object type.
+   */
+  #assertObjectRows<
+    T extends { onFirstUse(cb: (config: { parentType: string; name: string }) => void): void },
+  >(field: T, relation: PrismaNextRelation, name: string, targetRef: object): T {
+    if (relation.targetVariantModel?.sharesTable === false) {
+      field.onFirstUse((fieldConfig) =>
+        this.builder.configStore.onTypeConfig(targetRef as never, (typeConfig) => {
+          if (typeConfig.kind !== 'Object') {
+            throw ownTableVariantRowsError(
+              `Field '${fieldConfig.parentType}.${fieldConfig.name}' returns interface '${typeConfig.name}' for`,
+              name,
+              relation,
+            );
+          }
+        }),
+      );
+    }
+    return field;
+  }
 
   /**
    * The planner's relation, from the root model, which has every variant's relations. Throws for a

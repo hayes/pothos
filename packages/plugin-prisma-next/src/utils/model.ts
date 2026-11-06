@@ -40,7 +40,7 @@ export interface PrismaNextModel {
   readonly columns: ReadonlySet<string>;
   /**
    * The columns each multi-table variant's own accessor reads, by discriminator value. A relation
-   * targeting such a variant model loads through it, so the base's other columns load separately.
+   * targeting such a variant model loads through it, so its rows lack the base's other columns.
    */
   readonly variantTableColumns: ReadonlyMap<string, ReadonlySet<string>>;
 }
@@ -61,18 +61,19 @@ export function sharedVariantRelationError(
 }
 
 /**
- * The error for a `select` whose rows of `name` the caller reads: the relation targets a variant
- * model with a table of its own, whose rows load without the base's columns. A `PothosSchemaError`
- * when the schema is built, and an `InternalError` for a `select` planned for a request.
+ * The error for rows of relation `name` that need the base model's columns: the relation targets a
+ * variant model with a table of its own, whose rows the ORM loads without them. `subject` says what
+ * reads the rows. A `PothosSchemaError` when the schema is built, and an `InternalError` for a
+ * `select` planned for a request.
  */
 export function ownTableVariantRowsError(
-  owner: string,
+  subject: string,
   name: string,
-  relation: PrismaNextRelation,
+  { targetModel }: PrismaNextRelation,
   ErrorClass: new (message: string) => Error = PothosSchemaError,
 ) {
   return new ErrorClass(
-    `The select of ${owner} loads the rows of relation '${name}', which targets variant model '${relation.targetModel}' with a table of its own. Its rows load through '${relation.targetModel}', which can't read the columns it inherits. Load them with t.relation('${name}') or t.relatedConnection('${name}') instead.`,
+    `${subject} the rows of relation '${name}', which targets variant model '${targetModel}' with a table of its own. The ORM loads those rows from that table alone and can't include the base model's columns through the relation, so the base's columns, such as the discriminator an interface's resolveType reads, are missing. Load them with t.relation('${name}') or t.relatedConnection('${name}') returning an object type of '${targetModel}', or through a relation to the base model.`,
   );
 }
 

@@ -889,16 +889,15 @@ export function compileFieldSelect(
       rows: (relation, name, seed) => {
         // Rows the field's selection set doesn't plan are read as they load, which for a variant
         // model with a table of its own is without the columns it inherits. An interface or union
-        // reads them before any field reloads them, and only a static select completes them first.
-        // The plugin checks a static select when the schema is built, so this catches what a select
-        // function returns.
+        // reads them before any field reloads them. The plugin checks a static select when the
+        // schema is built, so this catches what a select function returns.
         if (
           typeof raw === 'function' &&
           relation.targetVariantModel?.sharesTable === false &&
           (returnModel !== relation.target || isAbstractType(getNamedType(position.field.type)))
         ) {
           throw ownTableVariantRowsError(
-            `field '${position.field.name}'`,
+            `The select of field '${position.type.name}.${position.field.name}' loads`,
             name,
             relation,
             InternalError,

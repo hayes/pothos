@@ -1242,7 +1242,7 @@ describe('a relation name two variants declare', () => {
 
 describe('a relation targeting a variant model with a table of its own', () => {
   // The ORM loads Feature's rows through `orm.Feature`, which reads only the feature table, so
-  // Task's columns and relations load separately.
+  // the fields reading Task's columns and relations reload them.
   function createFeatureSchema(database = db) {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
@@ -1300,8 +1300,8 @@ describe('a relation targeting a variant model with a table of its own', () => {
       { id: 'n1', feature: null },
       { id: 'n2', feature },
     ]);
-    // The notes with their features, the discriminator Task's select loads, and the fields' reload.
-    expect(result.statements).toHaveLength(3);
+    // The notes with their features, and the fields' reload.
+    expect(result.statements).toHaveLength(2);
   });
 
   it('loads the base columns and relations of a to-many relation and connection', async () => {
@@ -1319,9 +1319,8 @@ describe('a relation targeting a variant model with a table of its own', () => {
         championPage: { edges: [{ node: { title: 'feat1', priority: 5 } }] },
       },
     ]);
-    // The users with their rows, one batch loading the discriminator Task's select loads for both
-    // fields, and one reloading the fields.
-    expect(result.statements).toHaveLength(3);
+    // The users with their rows, and one batch reloading the fields of both.
+    expect(result.statements).toHaveLength(2);
   });
 
   it("includes the variant's own relations and nests beneath them", async () => {
@@ -1333,9 +1332,8 @@ describe('a relation targeting a variant model with a table of its own', () => {
     expect(result.data.notes[1]).toEqual({
       feature: { champion: { email }, featureNotes: [{ id: 'n2', feature: { title: 'feat1' } }] },
     });
-    // The notes with what nests beneath, the discriminator for each level of features, and the
-    // nested title's reload.
-    expect(result.statements).toHaveLength(4);
+    // The notes with what nests beneath, and the nested title's reload.
+    expect(result.statements).toHaveLength(2);
   });
 
   describe("connection helpers whose nodes are a relation's rows", () => {
@@ -1471,7 +1469,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     return { builder, feature };
   }
   const rowsError =
-    "loads the rows of relation 'feature', which targets variant model 'Feature' with a table of its own. Its rows load through 'Feature', which can't read the columns it inherits. Load them with t.relation('feature') or t.relatedConnection('feature') instead.";
+    "the rows of relation 'feature', which targets variant model 'Feature' with a table of its own. The ORM loads those rows from that table alone and can't include the base model's columns through the relation, so the base's columns, such as the discriminator an interface's resolveType reads, are missing. Load them with t.relation('feature') or t.relatedConnection('feature') returning an object type of 'Feature', or through a relation to the base model.";
 
   it("rejects a type's select that loads its rows when the schema is built", () => {
     const { builder } = selectBuilder();
@@ -1479,7 +1477,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
       select: { feature: true },
       fields: (t) => ({ id: t.exposeID('id') }),
     });
-    expect(() => builder.toSchema()).toThrow(`The select of type 'Note' ${rowsError}`);
+    expect(() => builder.toSchema()).toThrow(`The select of type 'Note' loads ${rowsError}`);
   });
 
   it("rejects a field's static select that reads its rows when the schema is built", () => {
@@ -1493,7 +1491,9 @@ describe('a relation targeting a variant model with a table of its own', () => {
         }),
       }),
     });
-    expect(() => builder.toSchema()).toThrow(`The select of field 'featureTitle' ${rowsError}`);
+    expect(() => builder.toSchema()).toThrow(
+      `The select of field 'Note.featureTitle' loads ${rowsError}`,
+    );
   });
 
   it("rejects the request of a field's select function that reads its rows", async () => {
@@ -1508,7 +1508,9 @@ describe('a relation targeting a variant model with a table of its own', () => {
       }),
     });
     const result = await run(builder.toSchema(), '{ notes { featureTitle } }');
-    expect(detailOf(result.errors?.[0])).toBe(`The select of field 'featureTitle' ${rowsError}`);
+    expect(detailOf(result.errors?.[0])).toBe(
+      `The select of field 'Note.featureTitle' loads ${rowsError}`,
+    );
   });
 
   it("plans the rows of a field's select for a field returning them", async () => {
@@ -1548,60 +1550,6 @@ describe('a relation targeting a variant model with a table of its own', () => {
     expect(result.data.users).toEqual([{ selected: [{ title: 'feat1' }] }]);
   });
 
-  // The rows load through `orm.Feature`, without Task's discriminator, which the interface's
-  // resolveType reads before any field reloads them.
-  it("completes the rows of a field's select for a field returning their interface", async () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [prismaNextPlugin],
-      prismaNext: { client: db.client },
-    });
-    const task = builder.prismaInterface('Task', {
-      fields: (t) => ({ title: t.exposeString('title') }),
-    });
-    builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
-    builder.prismaObject('Feature', {
-      interfaces: [task],
-      fields: (t) => ({ priority: t.exposeInt('priority') }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        notes: t.prismaField({
-          type: ['Note'],
-          resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
-        }),
-        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
-      }),
-    });
-    builder.prismaObject('Note', {
-      fields: (t) => ({
-        task: t.field({
-          type: task,
-          nullable: true,
-          select: { feature: true },
-          resolve: (note) => note.feature,
-        }),
-      }),
-    });
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        tasks: t.field({
-          type: [task],
-          select: { championed: true },
-          resolve: (user) => user.championed,
-        }),
-      }),
-    });
-    const result = await run(
-      builder.toSchema(),
-      '{ notes { task { __typename title ... on Feature { priority } } } users { tasks { __typename title } } }',
-    );
-    expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({
-      notes: [{ task: null }, { task: { __typename: 'Feature', title: 'feat1', priority: 5 } }],
-      users: [{ tasks: [{ __typename: 'Feature', title: 'feat1' }] }],
-    });
-  });
-
   function taskBuilder() {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [prismaNextPlugin],
@@ -1624,7 +1572,9 @@ describe('a relation targeting a variant model with a table of its own', () => {
     return { builder, task };
   }
 
-  it("resolves copies of the rows a field's select loaded", async () => {
+  // The rows load through `orm.Feature`, without Task's discriminator, which the interface's
+  // resolveType reads before any field reloads them.
+  it("rejects a field's static select that hands their rows to an interface", () => {
     const { builder, task } = taskBuilder();
     builder.prismaObject('Note', {
       fields: (t) => ({
@@ -1632,14 +1582,29 @@ describe('a relation targeting a variant model with a table of its own', () => {
           type: task,
           nullable: true,
           select: { feature: true },
-          resolve: (note) => note.feature && { ...note.feature },
+          resolve: (note) => note.feature,
         }),
       }),
     });
     builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
-    const result = await run(builder.toSchema(), '{ notes { task { title } } }');
-    expect(result.errors).toBeUndefined();
-    expect(result.data.notes).toEqual([{ task: null }, { task: { title: 'feat1' } }]);
+    expect(() => builder.toSchema()).toThrow(`The select of field 'Note.task' loads ${rowsError}`);
+  });
+
+  it("rejects a field's static select that hands their rows to an interface list with others", () => {
+    const { builder, task } = taskBuilder();
+    builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        tasks: t.field({
+          type: [task],
+          select: { reviews: true, championed: true },
+          resolve: (user) => [...user.reviews, ...user.championed],
+        }),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow(
+      "The select of field 'User.tasks' loads the rows of relation 'championed'",
+    );
   });
 
   it("rejects a field's static select that hands their rows to a union", () => {
@@ -1657,11 +1622,11 @@ describe('a relation targeting a variant model with a table of its own', () => {
     });
     builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
     expect(() => builder.toSchema()).toThrow(
-      /The select of field 'task' loads the rows of relation 'feature'/,
+      /The select of field 'Note.task' loads the rows of relation 'feature'/,
     );
   });
 
-  // Only a static select's rows are completed before the resolver, so a select function's fail.
+  // A select function's entries are only known when a request is planned.
   it('rejects the request of a select function that hands their rows to an interface', async () => {
     const { builder, task } = taskBuilder();
     builder.prismaObject('Note', {
@@ -1677,193 +1642,73 @@ describe('a relation targeting a variant model with a table of its own', () => {
     builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
     const result = await run(builder.toSchema(), '{ notes { task { title } } }');
     expect(detailOf(result.errors?.[0])).toMatch(
-      /The select of field 'task' loads the rows of relation 'feature'/,
+      /The select of field 'Note.task' loads the rows of relation 'feature'/,
     );
   });
 
-  // What a relation's rows lose depends on the variant it targets, not only on the returned type.
-  describe('rows of relations targeting different variants returned as one interface', () => {
-    it("completes each field's select rows after another variant's", async () => {
-      const { builder, task } = taskBuilder();
-      builder.prismaObject('Note', {
-        fields: (t) => ({
-          task: t.field({
-            type: task,
-            nullable: true,
-            select: { feature: true },
-            resolve: (note) => note.feature,
-          }),
-        }),
-      });
-      builder.prismaObject('User', {
-        fields: (t) => ({
-          reviews: t.field({
-            type: [task],
-            select: { reviews: true },
-            resolve: (user) => user.reviews,
-          }),
-        }),
-      });
-      const schema = builder.toSchema();
-      const first = await run(schema, '{ users { reviews { __typename } } }');
-      expect(first.errors).toBeUndefined();
-      expect(first.data.users).toEqual([{ reviews: [{ __typename: 'Bug' }] }]);
-      const second = await run(schema, '{ notes { task { __typename title } } }');
-      expect(second.errors).toBeUndefined();
-      expect(second.data.notes).toEqual([
-        { task: null },
-        { task: { __typename: 'Feature', title: 'feat1' } },
-      ]);
+  // A relation's `type` is a ref of its target model or of a variant of it, so only a field's
+  // select returns the rows of relations targeting different variants as one type.
+  it('resolves the rows of relations targeting different variants as their object types', async () => {
+    const { builder } = taskBuilder();
+    builder.prismaObject('Note', {
+      fields: (t) => ({ feature: t.relation('feature', { nullable: true }) }),
     });
-
-    it("completes a field's select rows of two relations returned together", async () => {
-      const { builder, task } = taskBuilder();
-      builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
-      builder.prismaObject('User', {
-        fields: (t) => ({
-          tasks: t.field({
-            type: [task],
-            select: { reviews: true, championed: true },
-            resolve: (user) => [...user.reviews, ...user.championed],
-          }),
-        }),
-      });
-      const result = await run(builder.toSchema(), '{ users { tasks { __typename title } } }');
-      expect(result.errors).toBeUndefined();
-      expect(result.data.users).toEqual([
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        reviews: t.relation('reviews'),
+        championed: t.relation('championed'),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      `{
+        users { reviews { __typename title } championed { __typename title } }
+        notes { feature { __typename title } }
+      }`,
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      users: [
         {
-          tasks: [
-            { __typename: 'Bug', title: 'bug1' },
-            { __typename: 'Feature', title: 'feat1' },
-          ],
+          reviews: [{ __typename: 'Bug', title: 'bug1' }],
+          championed: [{ __typename: 'Feature', title: 'feat1' }],
         },
-      ]);
+      ],
+      notes: [{ feature: null }, { feature: { __typename: 'Feature', title: 'feat1' } }],
     });
+  });
 
-    describe("a field's select rows returned as another list value", () => {
-      const tasks = [
-        { __typename: 'Bug', title: 'bug1' },
-        { __typename: 'Feature', title: 'feat1' },
-      ];
-      it('completes promised rows', async () => {
-        const { builder, task } = taskBuilder();
-        builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
-        builder.prismaObject('User', {
-          fields: (t) => ({
-            tasks: t.field({
-              type: [task],
-              select: { reviews: true, championed: true },
-              resolve: (user) =>
-                [...user.reviews, ...user.championed].map((row) => Promise.resolve(row)),
-            }),
-          }),
-        });
-        const result = await run(builder.toSchema(), '{ users { tasks { __typename title } } }');
-        expect(result.errors).toBeUndefined();
-        expect(result.data.users).toEqual([{ tasks }]);
-        // As for an array of the rows: the users with their rows, the discriminator Feature's rows
-        // lack, and the title's reload.
-        expect(result.statements).toHaveLength(3);
-      });
-
-      it('completes rows returned as a Set', async () => {
-        const { builder, task } = taskBuilder();
-        builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
-        builder.prismaObject('User', {
-          fields: (t) => ({
-            tasks: t.field({
-              type: [task],
-              select: { reviews: true, championed: true },
-              resolve: (user) => new Set([...user.reviews, ...user.championed]),
-            }),
-          }),
-        });
-        const result = await run(builder.toSchema(), '{ users { tasks { __typename title } } }');
-        expect(result.errors).toBeUndefined();
-        expect(result.data.users).toEqual([{ tasks }]);
-        expect(result.statements).toHaveLength(3);
-      });
-
-      it('completes rows returned as an async iterable', async () => {
-        const { builder, task } = taskBuilder();
-        builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
-        builder.prismaObject('User', {
-          fields: (t) => ({
-            tasks: t.field({
-              type: [task],
-              select: { reviews: true, championed: true },
-              resolve: async function* rows(user) {
-                yield* user.reviews;
-                yield* user.championed;
-                yield* user.championed;
-              },
-            }),
-          }),
-        });
-        const result = await run(builder.toSchema(), '{ users { tasks { __typename title } } }');
-        expect(result.errors).toBeUndefined();
-        expect(result.data.users).toEqual([{ tasks: [...tasks, tasks[1]] }]);
-        // The items pulled together complete together.
-        expect(result.statements).toHaveLength(3);
-      });
-
-      it('keeps a rejected or null item as that item', async () => {
-        const { builder, task } = taskBuilder();
-        builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
-        builder.prismaObject('User', {
-          fields: (t) => ({
-            tasks: t.field({
-              type: [task],
-              nullable: { list: false, items: true },
-              select: { reviews: true, championed: true },
-              resolve: (user) => [
-                Promise.reject(new Error('Not loaded')),
-                null,
-                ...user.reviews.map((row) => Promise.resolve(row)),
-                ...user.championed,
-              ],
-            }),
-          }),
-        });
-        const result = await run(builder.toSchema(), '{ users { tasks { __typename title } } }');
-        expect(result.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
-          { message: 'Not loaded', path: ['users', 0, 'tasks', 0] },
-        ]);
-        expect(result.data.users).toEqual([{ tasks: [null, null, ...tasks] }]);
-      });
+  it.each([
+    't.relation',
+    't.relatedConnection',
+  ] as const)('rejects %s returning an interface of their model', (helper) => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: db.client },
     });
-
-    // A relation's `type` is a ref of its target model or of a variant of it, so only a field's
-    // select returns the rows of relations targeting different variants as one type.
-    it('completes the rows of relations targeting different variants', async () => {
-      const { builder } = taskBuilder();
-      builder.prismaObject('Note', {
-        fields: (t) => ({ feature: t.relation('feature', { nullable: true }) }),
-      });
-      builder.prismaObject('User', {
-        fields: (t) => ({
-          reviews: t.relation('reviews'),
-          championed: t.relation('championed'),
-        }),
-      });
-      const result = await run(
-        builder.toSchema(),
-        `{
-          users { reviews { __typename title } championed { __typename title } }
-          notes { feature { __typename title } }
-        }`,
-      );
-      expect(result.errors).toBeUndefined();
-      expect(result.data).toEqual({
-        users: [
-          {
-            reviews: [{ __typename: 'Bug', title: 'bug1' }],
-            championed: [{ __typename: 'Feature', title: 'feat1' }],
-          },
-        ],
-        notes: [{ feature: null }, { feature: { __typename: 'Feature', title: 'feat1' } }],
-      });
+    const featureLike = builder.prismaInterface('Feature', {
+      fields: (t) => ({ priority: t.exposeInt('priority') }),
     });
+    builder.prismaObject('Feature', {
+      variant: 'Spec',
+      interfaces: [featureLike],
+      fields: () => ({}),
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        championed:
+          helper === 't.relation'
+            ? t.relation('championed')
+            : t.relatedConnection('championed', {}),
+      }),
+    });
+    builder.queryField('users', (t) =>
+      t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+    );
+    expect(() => builder.toSchema()).toThrow(
+      "Field 'User.championed' returns interface 'Feature' for the rows of relation 'championed', which targets variant model 'Feature' with a table of its own.",
+    );
   });
 
   it("rejects a field's select returning them through another plugin's type", () => {
@@ -1880,7 +1725,9 @@ describe('a relation targeting a variant model with a table of its own', () => {
         }),
       }),
     });
-    expect(() => builder.toSchema()).toThrow(`The select of field 'selected' ${rowsError}`);
+    expect(() => builder.toSchema()).toThrow(
+      `The select of field 'Note.selected' loads ${rowsError}`,
+    );
   });
 
   it("builds a field's static select that computes values from them", async () => {
@@ -1900,28 +1747,5 @@ describe('a relation targeting a variant model with a table of its own', () => {
     const result = await run(builder.toSchema(), '{ users { championCount } }');
     expect(result.errors).toBeUndefined();
     expect(result.data.users).toEqual([{ championCount: 1 }]);
-  });
-
-  // A feature row for the bug t1, which `orm.Feature` reads but Task narrowed to Feature doesn't.
-  const strayDb = useDatabase(
-    contract,
-    `${sql}
-      INSERT INTO feature VALUES ('t1', 7, 'stray', 'u1');
-      UPDATE note SET featureCode = 'stray' WHERE id = 'n1';`,
-  );
-
-  it("leaves out a row of the variant's table whose base row is another variant", async () => {
-    const result = await run(
-      createFeatureSchema(strayDb),
-      '{ notes { id feature { title } } users { championed { title } } }',
-    );
-    expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({
-      notes: [
-        { id: 'n1', feature: null },
-        { id: 'n2', feature: { title: 'feat1' } },
-      ],
-      users: [{ championed: [{ title: 'feat1' }] }],
-    });
   });
 });

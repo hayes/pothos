@@ -128,15 +128,13 @@ const inheritanceDb = createSqliteRuntime(
     ('t2', 'bug2', 'bug', 'u2', 'low', 'u1'),
     ('t3', 'feat1', 'feature', 'u1', NULL, 'u1');
   INSERT INTO feature VALUES ('t3', 5, 'f3', NULL);
-  -- A feature row whose task row is a bug, so loading it through Task narrowed to Feature finds none.
-  INSERT INTO feature VALUES ('t1', 7, 'stray', NULL);
-  INSERT INTO note VALUES ('n1', 't3', 'f3'), ('n2', 't1', 'stray'), ('n3', 't2', NULL);
+  INSERT INTO note VALUES ('n1', 't3', 'f3'), ('n2', 't1', NULL);
 `,
 );
 afterAll(() => inheritanceDb.cleanup());
 
 // `User.reviews` targets the variant model Bug, whose rows load through `orm.Bug`. It can't include
-// Task's relations, such as `owner`, so the relation field loads them before returning the rows.
+// Task's relations, such as `owner`, so scope-auth's checks reload the rows with them.
 function createVariantSchema(seen: unknown[], ownerSelectedOn: 'Bug' | 'Task') {
   const builder = new SchemaBuilder<{
     PrismaNextContract: InheritanceContract;
@@ -276,7 +274,6 @@ describe('a to-one relation to a variant model with a table of its own', () => {
       notes: [
         { id: 'n1', feature: { priority: 5, ownerEmail: 'a@example.com' } },
         { id: 'n2', feature: null },
-        { id: 'n3', feature: null },
       ],
     });
     expect(seen).toEqual([['t3', 'feat1', 'a@example.com']]);

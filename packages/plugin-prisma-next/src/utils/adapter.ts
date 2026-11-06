@@ -85,11 +85,6 @@ interface RelationConsumers {
 export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSelection> {
   override readonly skipDeferredFragments: boolean;
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSelection>();
-  /** What `droppedBeneathVariantModel` found, by type and then by relation. */
-  private readonly beneathVariantModel = new WeakMap<
-    GraphQLNamedType,
-    Map<PrismaNextRelation, PrismaNextSelection | null>
-  >();
   private readonly withoutIdentity = new WeakMap<PrismaNextModel, boolean>();
 
   constructor(
@@ -166,47 +161,6 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     return selection;
   }
 
-  /**
-   * The columns and to-one relations of `type`'s selection that `mergeQuery` leaves out of a level
-   * loading through a variant model's own accessor: the base model's relations and, for a variant
-   * with a table of its own, the base's columns. A relation field returning such rows loads them
-   * before it returns the rows, so plugins listed before this one see what the type's `select`
-   * promises. Undefined when the level loses none.
-   */
-  droppedBeneathVariantModel(
-    type: GraphQLNamedType,
-    relation: PrismaNextRelation,
-  ): PrismaNextSelection | undefined {
-    let byRelation = this.beneathVariantModel.get(type);
-    if (!byRelation) {
-      byRelation = new Map();
-      this.beneathVariantModel.set(type, byRelation);
-    }
-    let dropped = byRelation.get(relation);
-    if (dropped === undefined) {
-      const { targetVariantModel, target } = relation;
-      const narrowing: Narrowing = { value: targetVariantModel!.value, throughVariantModel: true };
-      const selection = this.typeSelection(type);
-      const readable = readableColumns(target, narrowing);
-      const columns = (selection?.columns ?? []).filter((column) => !readable?.has(column));
-      const relations = Object.entries(selection?.relations ?? {}).filter(
-        ([key]) =>
-          key === relationName(key) &&
-          !relationOf(target, key).isToMany &&
-          !canInclude(relationOf(target, key), narrowing),
-      );
-      dropped =
-        (readable && columns.length) || relations.length
-          ? {
-              ...(readable && columns.length ? { columns } : {}),
-              ...(relations.length ? { relations: Object.fromEntries(relations) } : {}),
-            }
-          : null;
-      byRelation.set(relation, dropped);
-    }
-    return dropped ?? undefined;
-  }
-
   fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
     // An interface field counts as planned even without a select of its own. The implementation
     // it resolves on then reads the branches the interface planned for it.
@@ -274,9 +228,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   /**
    * A type's selection merges whatever level it lands on, so what that level can't load, a base
    * relation beneath a relation targeting a variant model or a base column beneath one targeting a
-   * variant with a table of its own, is left out. The relation field loads the columns and to-one
-   * relations left out of the type's selection before returning the rows (see
-   * `droppedBeneathVariantModel`), and the type's fields reload the rest.
+   * variant with a table of its own, is left out. The type's fields, and scope-auth's checks,
+   * reload it.
    */
   override mergeQuery(
     node: PrismaNextNode,
