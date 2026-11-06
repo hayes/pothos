@@ -98,14 +98,9 @@ export type ResolverCollection<Types extends SchemaTypes, M extends ModelKey<Typ
  */
 type IncludeFreeRow<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   readonly [K in keyof Row<Types, M> | RelationKeys<Types, M>]?: K extends RelationKeys<Types, M>
-    ? IncludedRelation<K>
+    ? `Return the collection without include('${K}'): the plugin includes what the query selects`
     : unknown;
 };
-
-/** Names an included relation, where `never` would only say "not assignable to undefined". */
-interface IncludedRelation<Relation> {
-  readonly 'The plugin includes what the query selects, so the collection must not include': Relation;
-}
 
 /**
  * Rejects an ordered collection, naming why: a connection orders its collection by its `query`'s
