@@ -20,8 +20,9 @@ builder.queryFields((t) => ({
 }));
 ```
 
-Return the Collection without ordering, paging or `include()`. The plugin orders it, pages it, and
-adds what the query selects. `t.prismaConnection` takes:
+Return the Collection without `orderBy()` or `include()`, which are type errors: the plugin orders
+it by `query.orderBy` and the cursor, pages it, and adds what the query selects. `limit()`,
+`offset()` and `distinct()` aren't supported. `t.prismaConnection` takes:
 
 - `query`: `{ where, orderBy }`, or `(args, ctx) => ({ where, orderBy })`. `where` filters the
   Collection, and `orderBy` orders it, by the primary key when omitted. See
@@ -142,7 +143,8 @@ builder.queryFields((t) => ({
 }));
 ```
 
-With `info`, each row loads what the query selects. Without it, rows load every column.
+The Collection passed to `applyPagination` follows the same rules as one `t.prismaConnection`
+returns. With `info`, each row loads what the query selects. Without it, rows load every column.
 `totalCountPromise` is `undefined` when `totalCount` isn't selected.
 
 `connectionOptions` adds the `totalCount` field. For a custom count, leave `totalCount` unset, add
