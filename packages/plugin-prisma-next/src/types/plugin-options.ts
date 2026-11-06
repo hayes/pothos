@@ -47,14 +47,14 @@ export interface PrismaNextRequestClient<TContract extends AnyContract> {
   readonly orm: PrismaNextCollections<TContract>;
 }
 
-/**
- * Not a unit type like `never`, so `context` doesn't discriminate the options: a client object
- * passed with `context` is then reported on `context` rather than on `client`.
- */
+/** Names the problem when `context` is passed beside a client object. */
 interface ContextOnlyForClientFunction {
   readonly 'prismaNext.context is only for a client function; a client object carries its own': never;
 }
 
+// TypeScript reports options matching neither client form against the last form with as many of
+// their keys, so the function form goes last: a client function without `context` is told
+// `context` is missing.
 export type PrismaNextPluginOptions<Types extends SchemaTypes> = {
   /** Whether to leave deferred fragments out of the initial load. Defaults to true. */
   readonly skipDeferredFragments?: boolean;
@@ -67,6 +67,11 @@ export type PrismaNextPluginOptions<Types extends SchemaTypes> = {
   readonly filterConnectionTotalCount?: boolean;
 } & (
   | {
+      readonly client: PrismaNextClient<Types['PrismaNextContract']>;
+      /** A client object carries its own `context`, so this is only for a client function. */
+      readonly context?: ContextOnlyForClientFunction;
+    }
+  | {
       readonly client: (
         ctx: Types['Context'],
       ) => PrismaNextRequestClient<Types['PrismaNextContract']>;
@@ -75,10 +80,5 @@ export type PrismaNextPluginOptions<Types extends SchemaTypes> = {
        * contract is read when the schema is built, before any request provides a client.
        */
       readonly context: PrismaNextExecutionContext<Types['PrismaNextContract']>;
-    }
-  | {
-      readonly client: PrismaNextClient<Types['PrismaNextContract']>;
-      /** A client object carries its own `context`, so this is only for a client function. */
-      readonly context?: ContextOnlyForClientFunction;
     }
 );

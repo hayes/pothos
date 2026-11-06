@@ -869,7 +869,8 @@ new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
 });
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
   plugins: [prismaNextPlugin],
-  // @ts-expect-error a client function needs the execution context for building the schema
+  // A client function needs the execution context for building the schema.
+  // @ts-expect-error Property 'context' is missing
   prismaNext: { client: (ctx) => ctx.db },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
@@ -879,7 +880,7 @@ new SchemaBuilder<{ PrismaNextContract: Contract }>({
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [prismaNextPlugin],
-  // @ts-expect-error reported on `context`: a client object carries its own, so it's only for a function
+  // @ts-expect-error a client object carries its own context, so `context` is only for a function
   prismaNext: { client: db, context: db.context },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
