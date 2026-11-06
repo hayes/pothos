@@ -18,7 +18,7 @@ import prismaNextPlugin, {
   type Row,
 } from '../../src';
 import type { ExposableColumn } from '../../src/types/fields';
-import type { ObjectBaseShape } from '../../src/types/models';
+import type { ObjectBaseShape, PlannedRow } from '../../src/types/models';
 import type {
   PrismaNextFieldSelect,
   SelectColumnCheck,
@@ -529,3 +529,71 @@ builder.queryFields((t) => ({
     },
   }),
 }));
+
+// `nestedSelection` plans a relation entry as the field's type, whose rows the parent then holds.
+{
+  const NestedPost = builder.prismaObject('Post', {
+    variant: 'NestedPost',
+    fields: (t) => ({ title: t.exposeString('title') }),
+  });
+  const NestedUser = builder.prismaObject('User', {
+    variant: 'NestedUser',
+    fields: (t) => ({
+      posts: t.field({
+        type: [NestedPost],
+        args: { published: t.arg.int({ required: true }) },
+        select: (args, _ctx, nestedSelection) => ({
+          posts: nestedSelection({ where: { published: args.published }, orderBy: { id: 'asc' } }),
+        }),
+        resolve: (user) => {
+          expectTypeOf(user.posts).toEqualTypeOf<readonly PlannedRow<Types, 'Post'>[]>();
+          return user.posts;
+        },
+      }),
+      refined: t.field({
+        type: [NestedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          posts: nestedSelection(() => (posts) => posts.orderBy((post) => post.id.asc())),
+        }),
+        resolve: (user) => user.posts,
+      }),
+      predicate: t.field({
+        type: [NestedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          posts: nestedSelection({ where: (post) => post.published.eq(1) }),
+        }),
+        resolve: (user) => user.posts,
+      }),
+      unknownOption: t.field({
+        type: [NestedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          // @ts-expect-error the query takes a relation's query options
+          posts: nestedSelection({ take: 1 }),
+        }),
+        resolve: (user) => user.posts,
+      }),
+      otherModel: t.field({
+        type: [NestedPost],
+        // @ts-expect-error the rows are planned as the field's type, of another model
+        select: (_args, _ctx, nestedSelection) => ({ comments: nestedSelection() }),
+        resolve: () => [],
+      }),
+    }),
+  });
+  builder.prismaObjectFields(NestedPost, (t) => ({
+    writer: t.field({
+      type: NestedUser,
+      select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection() }),
+      resolve: (post) => {
+        expectTypeOf(post.author).toEqualTypeOf<PlannedRow<Types, 'User'>>();
+        return post.author;
+      },
+    }),
+    queriedWriter: t.field({
+      type: NestedUser,
+      // @ts-expect-error a to-one relation takes no query
+      select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection({ limit: 1 }) }),
+      resolve: (post) => post.author,
+    }),
+  }));
+}

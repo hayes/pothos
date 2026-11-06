@@ -108,7 +108,7 @@ describe('rows a resolver returns', () => {
         // Planned beneath the author include, but resolved with a row the resolver builds.
         rebuilt: t.field({
           type: User,
-          select: { author: true },
+          select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection() }),
           resolve: (post) => ({ id: post.author.id }),
         }),
       }),

@@ -35,6 +35,7 @@ import type {
   PrismaNextFieldSelectForm,
   SelectObjectSpec,
   ShapeFromSelect,
+  TypeParamModel,
   ValidateFieldSelect,
 } from './selections.js';
 
@@ -281,7 +282,13 @@ export type PrismaNextObjectFieldOptions<
   > & {
     select?: Select &
       CheckAsyncSelection<Types, Select> &
-      PrismaNextFieldSelectForm<Types, ParentShape, InputShapeFromFields<Args>, Select> &
+      PrismaNextFieldSelectForm<
+        Types,
+        ParentShape,
+        InputShapeFromFields<Args>,
+        TypeParamModel<Types, Type>,
+        Select
+      > &
       // `Select` isn't inferred from the check, because inferring into it walks every branch.
       NoInfer<ValidateFieldSelect<Types, ParentShape, Select>>;
   };

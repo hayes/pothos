@@ -423,7 +423,9 @@ describe('rows other fields return', () => {
       firstPublished: t.field({
         type: Post,
         nullable: true,
-        select: { posts: { where: { published: 1 }, orderBy: { id: 'asc' } } },
+        select: (_args, _ctx, nestedSelection) => ({
+          posts: nestedSelection({ where: { published: 1 }, orderBy: { id: 'asc' } }),
+        }),
         resolve: (user) => user.posts[0] ?? null,
       }),
     }));

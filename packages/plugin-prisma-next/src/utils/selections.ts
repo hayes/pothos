@@ -7,6 +7,7 @@ import {
 } from '@pothos/core';
 import type {
   NestedSelection,
+  PathSegment,
   Position,
   SelectedFieldNode,
   SelectFn,
@@ -15,7 +16,6 @@ import { type FieldNode, type GraphQLResolveInfo, getNamedType, isObjectType } f
 import { PRISMA_NEXT_MODEL, PRISMA_NEXT_TYPE_SELECTS } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
-import { variantForRelationType } from './contract.js';
 import { type OrderByDecl, orderCollection, orderColumns } from './cursors.js';
 import { assertGraphQLJsInfo, checkReturned } from './errors.js';
 import {
@@ -126,6 +126,25 @@ export type PlanPage = (
 
 export function isPageEntry(value: unknown): value is { [CONNECTION_PAGE]: PlanPage } {
   return typeof value === 'object' && value !== null && CONNECTION_PAGE in value;
+}
+
+/** Marks a field `select` entry from `nestedSelection`. */
+export const NESTED_SELECTION = Symbol('prismaNextNestedSelection');
+
+/** What a `nestedSelection` entry plans: the relation's rows, as `type` at `path` beneath the field. */
+interface NestedEntry {
+  query?: unknown;
+  path?: PathSegment[];
+  type?: string;
+}
+
+/** The `nestedSelection` a field's select function is passed. */
+export function nestedSelectionEntry(query?: unknown, path?: PathSegment[], type?: string) {
+  return { [NESTED_SELECTION]: { query, path, type } as NestedEntry };
+}
+
+function isNestedEntry(value: unknown): value is { [NESTED_SELECTION]: NestedEntry } {
+  return typeof value === 'object' && value !== null && NESTED_SELECTION in value;
 }
 
 /** Separates a relation from a consumer id in a selection key, and ids from a computed key. */
@@ -781,16 +800,9 @@ interface SelectCompilation {
    * it identifies their loads together with `args`. A static select's entries identify themselves.
    */
   source?: unknown;
-  /**
-   * Plans the rows a relation entry loads, starting from `seed`. A field plans them beneath its
-   * own selection. A type-level select includes them as they are.
-   */
-  rows(
-    relation: PrismaNextRelation,
-    name: string,
-    seed: PrismaNextSelection,
-  ): MaybePromise<PrismaNextSelection>;
-  /** The field a field's `select` plans for. The types allow page entries only there. */
+  /** Checks the rows a relation entry loads, before they are planned. */
+  checkRows?(relation: PrismaNextRelation, name: string): void;
+  /** The field a field's `select` plans for. The types allow page and nested entries only there. */
   field?: FieldPlanning;
 }
 
@@ -798,30 +810,44 @@ interface SelectCompilation {
 function compileSelect(
   { columns, relations, computed }: SplitSelect,
   model: PrismaNextModel,
-  { contract, id, args, source, rows, field }: SelectCompilation,
+  { contract, id, args, source, checkRows, field }: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
   const identity = (entry: unknown) => (source === undefined ? entry : { source, args });
-  const parts = relations.map(([name, value]) => {
-    const relation = model.relations[name]!;
-    if (isPageEntry(value)) {
-      return value[CONNECTION_PAGE](relation, name, field!);
-    }
+  // `true`, a declarative query, or a function refining the rows.
+  const load = (relation: PrismaNextRelation, value: unknown) => {
     const query = value === true || typeof value === 'function' ? undefined : definedQuery(value);
     const refine =
       typeof value === 'function'
         ? (value as Refine)
         : query && queryRefinement(contract, relation.targetModel, query);
-    return rowsSelection(
-      relation,
-      name,
-      id,
-      rows(relation, name, {
-        columns: null,
-        args: relationArgs(relation, {
-          loadIdentity: typeof value === 'function' ? identity(value) : query,
-          refine: refine as ((rel: MapperCollection) => MapperCollection) | undefined,
-        }),
-      }),
+    return relationArgs(relation, {
+      loadIdentity: typeof value === 'function' ? identity(value) : query,
+      refine: refine as ((rel: MapperCollection) => MapperCollection) | undefined,
+    });
+  };
+  const parts = relations.map(([name, value]) => {
+    const relation = model.relations[name]!;
+    if (isPageEntry(value)) {
+      return value[CONNECTION_PAGE](relation, name, field!);
+    }
+    checkRows?.(relation, name);
+    if (!isNestedEntry(value)) {
+      return rowsSelection(relation, name, id, { columns: null, args: load(relation, value) });
+    }
+    // The rows are planned as the field's type, or as `type` at `path` beneath it.
+    const { query, path, type } = value[NESTED_SELECTION];
+    const { nested, ctx } = field!;
+    return completeOption(query ?? true, args, ctx, (resolved) =>
+      rowsSelection(
+        relation,
+        name,
+        id,
+        nested(
+          { columns: null, args: checkReturned(resolved, (q) => load(relation, q ?? true)) },
+          path,
+          type,
+        ),
+      ),
     );
   });
   for (const { key, relation, compute } of computed) {
@@ -842,12 +868,7 @@ export function compileTypeSelect(
   model: PrismaNextModel,
   typeName: string,
 ) {
-  return compileSelect(split, model, {
-    contract,
-    id: typeName,
-    args: {},
-    rows: (_relation, _name, seed) => seed,
-  }) as PrismaNextSelection;
+  return compileSelect(split, model, { contract, id: typeName, args: {} }) as PrismaNextSelection;
 }
 
 /** `option`, or what it returns for `args` and `ctx` when it's a function, passed to `next`. */
@@ -868,42 +889,52 @@ export function completeOption<T, R>(
 /**
  * Compiles a field's `select` for the planner. A select of columns alone becomes a static
  * selection. Anything else becomes a select function that plans each relation entry as a consumer
- * at the field's position.
+ * at the field's position. A select function is passed `nestedSelection`, whose entries plan the
+ * relation's rows as the field's type.
  */
 export function compileFieldSelect(
   contract: AnyContract,
-  raw: RawSelect | ((args: object, ctx: object) => MaybePromise<RawSelect | null | undefined>),
+  raw:
+    | RawSelect
+    | ((
+        args: object,
+        ctx: object,
+        nestedSelection: typeof nestedSelectionEntry,
+      ) => MaybePromise<RawSelect | null | undefined>),
   model: PrismaNextModel,
 ): PrismaNextSelection | PrismaNextSelectFn {
-  // A static select is checked when the schema is built, so it is split once, here.
-  const split = typeof raw === 'function' ? undefined : splitSelect(raw, model);
-  if (split && split.relations.length === 0 && split.computed.length === 0) {
-    return { columns: split.columns };
+  if (typeof raw !== 'function') {
+    // A static select is checked when the schema is built, so it is split once, here.
+    const split = splitSelect(raw, model);
+    if (split.relations.length === 0 && split.computed.length === 0) {
+      return { columns: split.columns };
+    }
+    return (args, ctx, nested, selected, position) => {
+      const id = consumerId(position);
+      const field = { id, args, ctx, nested, selected, position };
+      return compileSelect(split, model, { contract, id, args, field });
+    };
   }
   return (args, ctx, nested, selected, position) => {
-    const returnModelKey = getNamedType(position.field.type).extensions?.[PRISMA_NEXT_MODEL] as
-      | string
-      | undefined;
-    const returnModel =
-      returnModelKey === undefined ? undefined : getModel(contract, returnModelKey);
     const id = consumerId(position);
+    const field: FieldPlanning = { id, args, ctx, nested, selected, position };
+    const returnType = getNamedType(position.field.type);
+    const returnModelKey = returnType.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
     const select: SelectCompilation = {
       contract,
       id,
       args,
-      ...(typeof raw === 'function' ? { source: raw } : {}),
-      field: { id, args, ctx, nested, selected, position },
-      rows: (relation, name, seed) => {
-        // Rows the field's selection set doesn't plan are read as they load, which for a variant
-        // model with a table of its own is without the columns it inherits. An interface or union
-        // reads them before any field reloads them. The plugin checks a static select when the
-        // schema is built, so this catches what a select function returns.
+      source: raw,
+      field,
+      // Rows of a variant model with a table of its own load without the columns it inherits, which
+      // an interface or union reads before any field reloads them. The plugin checks a static select
+      // when the schema is built, so this catches what a select function returns.
+      checkRows: (relation, name) => {
         if (
-          typeof raw === 'function' &&
           !returnsRelationRowsAs(
             relation,
-            isObjectType(getNamedType(position.field.type)) ? 'Object' : 'Other',
-            returnModel,
+            isObjectType(returnType) ? 'Object' : 'Other',
+            returnModelKey === undefined ? undefined : getModel(contract, returnModelKey),
           )
         ) {
           throw ownTableVariantRowsError(
@@ -912,30 +943,10 @@ export function compileFieldSelect(
             relation,
           );
         }
-        // A field that returns another model has a selection set that can't load from these rows.
-        if (returnModel && returnModel !== relation.target) {
-          return seed;
-        }
-        // A to-many relation to a hierarchy's base, typed as one of its variants, loads that
-        // variant. A to-one relation is keyed on the row by its name, so it loads whole.
-        const variant = variantForRelationType(
-          contract,
-          `Field '${position.field.name}'`,
-          relation.targetModel,
-          returnModelKey,
-        );
-        return nested(
-          variant === undefined || !relation.isToMany
-            ? seed
-            : { ...seed, args: { ...seed.args, variant: { value: variant } } },
-        );
       },
     };
-    if (split) {
-      return compileSelect(split, model, select);
-    }
     // Compiled for a request, which may be the first to see what a select function returns.
-    return completeOption(raw, args, ctx, (value) =>
+    return completeValue(raw(args, ctx, nestedSelectionEntry), (value) =>
       checkReturned(value ?? {}, (returned) =>
         compileSelect(splitSelect(returned, model), model, select),
       ),

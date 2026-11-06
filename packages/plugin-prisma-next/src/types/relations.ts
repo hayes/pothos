@@ -156,14 +156,17 @@ export type RelationRefinementCollection<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   R extends RelationKeys<Types, M>,
+> = ModelRefinementCollection<Types, RelatedModel<Types, M, R>>;
+
+/** The collection a refinement of a to-many relation to `M` takes and returns. */
+export type ModelRefinementCollection<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
 > = IncludeRefinementCollection<
   Types['PrismaNextContract'],
-  BareModelName<RelatedModel<Types, M, R>>,
-  Row<Types, RelatedModel<Types, M, R>>,
-  WithNsId<
-    DefaultCollectionTypeState,
-    NamespaceOf<Types['PrismaNextContract'], RelatedModel<Types, M, R>>
-  >
+  BareModelName<M>,
+  Row<Types, M>,
+  WithNsId<DefaultCollectionTypeState, NamespaceOf<Types['PrismaNextContract'], M>>
 >;
 
 export type PrismaNextRelationOptions<

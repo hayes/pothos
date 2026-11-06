@@ -1520,7 +1520,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
         selected: t.field({
           type: feature,
           nullable: true,
-          select: { feature: true },
+          select: (_args, _ctx, nestedSelection) => ({ feature: nestedSelection() }),
           resolve: (note) => note.feature,
         }),
       }),
@@ -1537,7 +1537,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
       fields: (t) => ({
         selected: t.field({
           type: [feature],
-          select: { championed: true },
+          select: (_args, _ctx, nestedSelection) => ({ championed: nestedSelection() }),
           resolve: (user) => user.championed,
         }),
       }),

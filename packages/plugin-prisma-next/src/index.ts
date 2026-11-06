@@ -44,7 +44,7 @@ import {
 } from './constants.js';
 import { canInclude } from './utils/adapter.js';
 import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
-import { rootModelKey, variantForRelationType } from './utils/contract.js';
+import { rootModelKey } from './utils/contract.js';
 import { orderableProblem, orderColumns } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
 import {
@@ -60,7 +60,6 @@ import {
   definedQuery,
   EMPTY,
   fieldCopy,
-  isPageEntry,
   loadsOwnTableVariantRows,
   type Narrowing,
   type PrismaNextSelectFn,
@@ -338,9 +337,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
   /**
    * Checks a field's static `select`: rejects a relation entry whose rows its type can't read, as
-   * `assertRelationRows` explains, checks the columns its relation entries order by, and the
-   * variant its type narrows their rows to. Checked on the field's final config, since a plugin
-   * that runs later, such as plugin-errors, can change its type.
+   * `assertRelationRows` explains, and checks the columns its relation entries order by. Checked on
+   * the field's final config, since a plugin that runs later, such as plugin-errors, can change its
+   * type.
    */
   private assertFieldSelect(
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -359,19 +358,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
       (relation) => returnsRelationRowsAs(relation, returnConfig.kind, returnModel),
     );
-    // The rows of a relation entry the field's selection set plans are narrowed to its type's
-    // variant, as `compileFieldSelect` plans them.
-    for (const [name, value] of split.relations) {
-      const relation = model.relations[name]!;
-      if (returnModel === relation.target && !isPageEntry(value)) {
-        variantForRelationType(
-          contract,
-          `Field '${fieldConfig.parentType}.${fieldConfig.name}'`,
-          relation.targetModel,
-          returnModelKey,
-        );
-      }
-    }
   }
 
   /**
