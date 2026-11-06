@@ -111,8 +111,6 @@ export const NODE_SELECTION = Symbol('prismaNextNodeSelection');
 interface FieldPlanning {
   /** The consumer id of the field's position (see `consumerId`). */
   id: string;
-  args: object;
-  ctx: object;
   nested: NestedSelection<PrismaNextSelection>;
   selected: SelectedFieldNode;
   position: Position;
@@ -833,6 +831,8 @@ interface SelectCompilation {
   contract: AnyContract;
   id: string;
   args: object;
+  /** The request's context, which a nested entry's query function is called with. */
+  ctx?: object;
   /**
    * The select function the entries came from. A function builds new entries on every call, so
    * it identifies their loads together with `args`. A static select's entries identify themselves.
@@ -874,7 +874,7 @@ export function staticEntryVariant(
 function compileSelect(
   { columns, relations, computed }: SplitSelect,
   model: PrismaNextModel,
-  { contract, id, args, source, field, returnModelKey, typeModel }: SelectCompilation,
+  { contract, id, args, ctx, source, field, returnModelKey, typeModel }: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
   const identity = (entry: unknown) => (source === undefined ? entry : { source, args });
   const owner = field && `Field '${field.position.type.name}.${field.position.field.name}'`;
@@ -910,7 +910,7 @@ function compileSelect(
     // to-many relation planned as a variant of its target, rather than at a path beneath, load
     // that variant.
     const { query, path, type } = value[NESTED_SELECTION];
-    const { nested, ctx } = field!;
+    const { nested } = field!;
     const variant =
       relation.isToMany && !path?.length
         ? variantForRelationType(
@@ -920,7 +920,7 @@ function compileSelect(
             type === undefined ? returnModelKey : typeModel!(type),
           )
         : undefined;
-    return completeOption(query ?? true, args, ctx, (resolved) =>
+    return completeOption(query ?? true, args, ctx!, (resolved) =>
       rowsSelection(
         relation,
         name,
@@ -998,22 +998,23 @@ export function compileFieldSelect(
     }
     return (args, ctx, nested, selected, position) => {
       const id = consumerId(position);
-      const field: FieldPlanning = { id, args, ctx, nested, selected, position };
+      const field: FieldPlanning = { id, nested, selected, position };
       const returnModelKey = getNamedType(position.field.type).extensions?.[PRISMA_NEXT_MODEL] as
         | string
         | undefined;
-      return compileSelect(split, model, { contract, id, args, field, returnModelKey });
+      return compileSelect(split, model, { contract, id, args, ctx, field, returnModelKey });
     };
   }
   return (args, ctx, nested, selected, position) => {
     const id = consumerId(position);
-    const field: FieldPlanning = { id, args, ctx, nested, selected, position };
+    const field: FieldPlanning = { id, nested, selected, position };
     const returnType = getNamedType(position.field.type);
     const returnModelKey = returnType.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
     const select: SelectCompilation = {
       contract,
       id,
       args,
+      ctx,
       source: raw,
       field,
       returnModelKey,
