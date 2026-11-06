@@ -755,8 +755,8 @@ interface FieldReader extends TypeRowCheck {
   /** Whether `parent` includes the field's own `select`. */
   declaresOwnSelect: boolean;
   /**
-   * Whether the field's resolver reads the slots of a helper's selection through `fieldSlots`.
-   * `t.variant` is the one such helper whose resolver doesn't.
+   * Whether the field's resolver, or for `t.variant` the fields beneath it, reads the slots of a
+   * helper's selection through `fieldSlots`.
    */
   readsSlots: boolean;
   /** The field's loader mapping. */

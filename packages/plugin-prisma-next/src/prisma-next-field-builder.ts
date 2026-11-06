@@ -367,7 +367,6 @@ export class PrismaNextObjectFieldBuilder<
     );
     const { type: _type, query, nullable, extensions, ...rest } = opts;
     const relationName = name as string;
-    const _owner = `'${this.modelKey as string}.${relationName}'`;
     // A to-one relation loads whole, keyed on the row by its name, so a variant `type` narrows it
     // by the discriminator when the field resolves rather than in the load.
     const discriminator =
