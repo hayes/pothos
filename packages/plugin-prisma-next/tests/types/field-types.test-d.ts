@@ -92,8 +92,9 @@ builder.prismaObject('User', {
     const asyncNull = t.variant(Viewer, { isNull: async () => false });
     const explicit = t.variant(Viewer, { nullable: true, isNull: () => false });
 
-    expectTypeOf(plain).toEqualTypeOf<FieldRef<Types, UserRow, 'PrismaNextObject'>>();
-    expectTypeOf(byName).toEqualTypeOf<FieldRef<Types, UserRow, 'PrismaNextObject'>>();
+    // Variant fields follow the builder's default field nullability, nullable here.
+    expectTypeOf(plain).toEqualTypeOf<FieldRef<Types, UserRow | null, 'PrismaNextObject'>>();
+    expectTypeOf(byName).toEqualTypeOf<FieldRef<Types, UserRow | null, 'PrismaNextObject'>>();
     expectTypeOf(nullable).toEqualTypeOf<FieldRef<Types, UserRow | null, 'PrismaNextObject'>>();
     expectTypeOf(conditional).toEqualTypeOf<FieldRef<Types, UserRow | null, 'PrismaNextObject'>>();
     expectTypeOf(asyncNull).toEqualTypeOf<FieldRef<Types, UserRow | null, 'PrismaNextObject'>>();
@@ -160,8 +161,8 @@ builder.prismaObject('Post', {
 builder.prismaObject('Post', {
   variant: 'PostRefs',
   fields: (t) => {
-    const author = t.relation('author');
-    const comments = t.relation('comments');
+    const author = t.relation('author', { nullable: false });
+    const comments = t.relation('comments', { nullable: false });
     // Connections take the builder's default field nullability, nullable here.
     const page = t.relatedConnection('comments', { nullable: false });
     const nullablePage = t.relatedConnection('comments', {});

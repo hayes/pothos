@@ -178,7 +178,7 @@ const bug = inheritance.prismaObject('Bug', {
     severity: t.exposeString('severity'),
     owner: t.relation('owner'),
     reviewer: t.relation('reviewer', { nullable: true }),
-    // @ts-expect-error the contract makes `reviewer` nullable, like a nullable column
+    // @ts-expect-error the contract makes `reviewer` nullable, so a non-null field needs `onNull`
     requiredReviewer: t.relation('reviewer', { nullable: false }),
     requiredOwner: t.relation('owner', { nullable: false }),
     // @ts-expect-error a sibling variant's column

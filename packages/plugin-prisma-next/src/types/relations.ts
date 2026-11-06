@@ -15,6 +15,7 @@ import type {
   ShorthandWhereFilter,
 } from '@prisma/orm-family-sql/orm-client';
 import type { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from '../interface-ref.js';
 import type { PrismaNextObjectRef } from '../object-ref.js';
 import type { IncludeRefinementCollection, WithNsId } from './collections.js';
@@ -209,7 +210,7 @@ export type PrismaNextRelationOptions<
     Args,
     RelatedShape
   >,
-  'type' | 'resolve' | 'nullable' | InferredFieldOptionKeys
+  'type' | 'resolve' | InferredFieldOptionKeys
 > & {
   type?:
     | PrismaNextObjectRef<Types, TypeModel, RelatedShape>
@@ -217,27 +218,95 @@ export type PrismaNextRelationOptions<
   query?: Query &
     CheckAsyncSelection<Types, Query> &
     NoInfer<ExactQuery<Query, keyof RelationQueryValue<Types, ParentModel, RelName>>>;
-  nullable?: Nullable & NoInfer<RelationNullableOption<Types, ParentModel, RelName>>;
+  /**
+   * What a non-null field does when its relation resolves to null: `'error'` leaves the null for
+   * GraphQL's non-null error, and a function returns a replacement or an error.
+   */
+  onNull?: RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>>;
 };
+
+export type RelationOnNull<
+  Types extends SchemaTypes,
+  ParentShape,
+  Args extends InputFieldMap,
+  RelatedShape,
+> =
+  | 'error'
+  | ((
+      parent: ParentShape,
+      args: InputShapeFromFields<Args>,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => MaybePromise<Error | RelatedShape>);
 
 /** Names why `nullable: false` isn't allowed in its error, as the type argument the error shows. */
 export interface RequiresNullable<Reason extends string> {
   readonly 'nullable: false is not allowed': Reason;
 }
 
+/** Names why a non-null relation field needs `onNull`, as the type argument the error shows. */
+export interface OnNullRequired<Reason extends string> {
+  readonly 'onNull is required': Reason;
+}
+
 /**
- * A to-one relation the contract makes nullable can resolve to null, like a nullable column, so it
- * can't be made non-null. A variant `type` that filters the row out is left to the developer, who
- * may know it always matches.
+ * Why a to-one relation can resolve to null: the contract makes it nullable, or a variant `type`
+ * filters out the rows of other variants. `never` when it can't.
  */
-type RelationNullableOption<
+type RelationNullReason<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   R extends RelationKeys<Types, M>,
+  TypeModel,
 > =
-  DefaultRelationNullable<Types, M, R> extends true
-    ? true | RequiresNullable<'The contract makes this relation nullable'>
-    : boolean;
+  IsToMany<Types, M, R> extends true
+    ? never
+    : [TypeModel] extends [RelatedModel<Types, M, R>]
+      ? DefaultRelationNullable<Types, M, R> extends true
+        ? `${M & string}.${R & string} can be null`
+        : never
+      : `${TypeModel & string} filters out other variants of ${M & string}.${R & string}`;
+
+/**
+ * The arguments of `t.relation`: `options` is required, with `onNull`, when the field is non-null
+ * and the relation can resolve to null.
+ */
+export type RelationFieldArgs<
+  Types extends SchemaTypes,
+  ParentModel extends ModelKey<Types>,
+  RelName extends RelationKeys<Types, ParentModel>,
+  Nullable extends boolean,
+  Args extends InputFieldMap,
+  RelatedShape,
+  ParentShape,
+  Query,
+  TypeModel extends RelationTypeModel<Types, ParentModel, RelName>,
+  Options = PrismaNextRelationOptions<
+    Types,
+    ParentModel,
+    RelName,
+    Nullable,
+    Args,
+    RelatedShape,
+    ParentShape,
+    Query,
+    TypeModel
+  >,
+> = [Nullable] extends [false]
+  ? [RelationNullReason<Types, ParentModel, RelName, TypeModel>] extends [
+      infer Reason extends string,
+    ]
+    ? [Reason] extends [never]
+      ? [options?: Options]
+      : [
+          options: Options & {
+            onNull:
+              | RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>>
+              | OnNullRequired<Reason>;
+          },
+        ]
+    : [options?: Options]
+  : [options?: Options];
 
 /**
  * `Query` is inferred from the literal rather than checked, and a callback's result gets no excess
@@ -268,22 +337,6 @@ export type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
       > as `Unknown query option: ${K & string}`]: never;
     };
 
-/**
- * A variant `type` filters out a to-one relation's rows of other variants, so it makes the field
- * nullable by default.
- */
-export type RelationNullable<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  R extends RelationKeys<Types, M>,
-  TypeModel,
-> =
-  IsToMany<Types, M, R> extends true
-    ? false
-    : [TypeModel] extends [RelatedModel<Types, M, R>]
-      ? DefaultRelationNullable<Types, M, R>
-      : true;
-
 /** The rows a relation loads, as a list for a to-many relation and nullable as the field is. */
 export type RelationFieldShape<
   Types extends SchemaTypes,
@@ -291,9 +344,10 @@ export type RelationFieldShape<
   R extends RelationKeys<Types, M>,
   Nullable extends boolean,
 > =
-  IsToMany<Types, M, R> extends true
-    ? readonly Row<Types, RelatedModel<Types, M, R>>[]
-    : Row<Types, RelatedModel<Types, M, R>> | (Nullable extends true ? null : never);
+  | (IsToMany<Types, M, R> extends true
+      ? readonly Row<Types, RelatedModel<Types, M, R>>[]
+      : Row<Types, RelatedModel<Types, M, R>>)
+  | (Nullable extends true ? null : never);
 
 type RelationRef<
   Types extends SchemaTypes,

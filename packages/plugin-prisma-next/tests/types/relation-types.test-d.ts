@@ -284,19 +284,91 @@ inheritance.prismaObject('Bug', {
   }),
 });
 
-// A to-one relation typed as a variant of its target filters out rows of other variants, so it
-// is nullable unless `nullable` says otherwise.
+// Relation fields follow the builder's default field nullability, never the contract's. A non-null
+// field over a relation that can be null needs `onNull`.
+const strict = new SchemaBuilder<{
+  PrismaNextContract: InheritanceContract;
+  DefaultFieldNullability: false;
+}>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: null as never },
+  defaultFieldNullability: false,
+});
+const strictBug = strict.prismaObject('Bug', { variant: 'StrictBug', fields: () => ({}) });
+const strictTask = strict.prismaObject('Task', { variant: 'StrictTask', fields: () => ({}) });
+strict.prismaObject('User', { variant: 'StrictUser', fields: () => ({}) });
+strict.prismaObject('Bug', {
+  variant: 'StrictBugRelations',
+  fields: (t) => {
+    const owner = t.relation('owner');
+    expectTypeOf(owner.$inferType).not.toBeNullable();
+    const errorOnNull = t.relation('reviewer', { onNull: 'error' });
+    expectTypeOf(errorOnNull.$inferType).not.toBeNullable();
+    const fallback = t.relation('reviewer', {
+      onNull: (bug, _args, _ctx, info) => {
+        expectTypeOf(bug.id).toEqualTypeOf<string>();
+        expectTypeOf(info.fieldName).toEqualTypeOf<string>();
+        return new Error('no reviewer');
+      },
+    });
+    const nullable = t.relation('reviewer', { nullable: true });
+    expectTypeOf(nullable.$inferType).toBeNullable();
+    // Variant fields follow the default too, and `isNull` needs the field nullable.
+    const variant = t.variant(strictBug);
+    expectTypeOf(variant.$inferType).not.toBeNullable();
+    const maybeVariant = t.variant(strictBug, { nullable: true, isNull: () => false });
+    expectTypeOf(maybeVariant.$inferType).toBeNullable();
+    return {
+      owner,
+      variant,
+      maybeVariant,
+      // @ts-expect-error RequiresNullable<'isNull can resolve the field to null'>
+      strictVariant: t.variant(strictBug, { isNull: () => false }),
+      errorOnNull,
+      fallback,
+      nullable,
+      // @ts-expect-error OnNullRequired<'Bug.reviewer can be null'>
+      reviewer: t.relation('reviewer'),
+      // @ts-expect-error OnNullRequired<'Bug.reviewer can be null'>
+      explicit: t.relation('reviewer', { nullable: false }),
+      // @ts-expect-error `onNull` returns a related row or an error
+      badFallback: t.relation('reviewer', { onNull: () => 'nope' }),
+    };
+  },
+});
+strict.prismaObject('User', {
+  variant: 'StrictUserLists',
+  fields: (t) => {
+    const tasks = t.relation('tasks');
+    expectTypeOf(tasks.$inferType).not.toBeNullable();
+    return { tasks };
+  },
+});
+strict.prismaObject('Note', {
+  fields: (t) => {
+    // A variant `type` filters out rows of other variants, so the relation can be null.
+    const task = t.relation('task', { type: strictTask, onNull: 'error' });
+    expectTypeOf(task.$inferType).not.toBeNullable();
+    const bug = t.relation('task', { type: strictBug, nullable: true });
+    expectTypeOf(bug.$inferType).toBeNullable();
+    return {
+      task,
+      bug,
+      // @ts-expect-error OnNullRequired<'Bug filters out other variants of Note.task'>
+      requiredBug: t.relation('task', { type: strictBug }),
+    };
+  },
+});
+
+// With the default nullable fields, relations are nullable whatever the contract says.
 const bugRef = inheritance.prismaObject('Bug', { variant: 'NoteBug', fields: () => ({}) });
-const taskRef = inheritance.prismaObject('Task', { variant: 'NoteTask', fields: () => ({}) });
 inheritance.prismaObject('Note', {
   fields: (t) => {
-    const task = t.relation('task', { type: taskRef });
-    expectTypeOf(task.$inferType).not.toBeNullable();
     const bug = t.relation('task', { type: bugRef });
     expectTypeOf(bug.$inferType).toBeNullable();
-    const requiredBug = t.relation('task', { type: bugRef, nullable: false });
+    const requiredBug = t.relation('task', { type: bugRef, nullable: false, onNull: 'error' });
     expectTypeOf(requiredBug.$inferType).not.toBeNullable();
-    return { task, bug, requiredBug };
+    return { bug, requiredBug };
   },
 });
 
@@ -304,13 +376,13 @@ inheritance.prismaObject('Note', {
 builder.prismaObject('Post', {
   variant: 'RelationShapes',
   fields: (t) => {
-    const author = t.relation('author');
+    const author = t.relation('author', { nullable: false });
     expectTypeOf(author.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'>>();
-    const nullable = t.relation('author', { nullable: true });
+    const nullable = t.relation('author');
     expectTypeOf(nullable.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'> | null>();
     const comments = t.relation('comments', { query: { limit: 2 } });
     expectTypeOf(comments.$inferType).toEqualTypeOf<
-      readonly DefaultModelRow<Contract, 'Comment'>[]
+      readonly DefaultModelRow<Contract, 'Comment'>[] | null
     >();
     const commentPage = t.relatedConnection('comments', {});
     // Nullable as the relay plugin makes it: by the builder's default field nullability.

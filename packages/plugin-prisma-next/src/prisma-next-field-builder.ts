@@ -15,7 +15,6 @@ import {
   type TypeParam,
 } from '@pothos/core';
 import type { Position } from '@pothos/selection-mapper';
-import type { ContractRelation } from '@prisma/orm-framework/contract/types';
 import { type GraphQLResolveInfo, getNamedType } from 'graphql';
 import {
   PRISMA_NEXT_FIELD_SELECTION,
@@ -43,10 +42,9 @@ import type {
 } from './types/fields.js';
 import type { AnyContract, ModelKey, RelationKeys, Row } from './types/models.js';
 import type {
-  PrismaNextRelationOptions,
   RelatedModel,
+  RelationFieldArgs,
   RelationFieldShape,
-  RelationNullable,
   RelationQuery,
   RelationTypeModel,
   ToManyRelationKeys,
@@ -61,11 +59,7 @@ import {
   countOf,
   pageSelection,
 } from './utils/connections.js';
-import {
-  modelDiscriminator,
-  resolveContractModel,
-  variantForRelationType,
-} from './utils/contract.js';
+import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
 import { buildConnectionPage } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
@@ -251,7 +245,7 @@ export class PrismaNextObjectFieldBuilder<
   variant<
     Variant extends PrismaNextObjectRef<Types, M, unknown> | M,
     Args extends InputFieldMap = {},
-    Nullable extends boolean = false,
+    Nullable extends boolean = Types['DefaultFieldNullability'],
     IsNull extends MaybePromise<boolean> = never,
     Selected extends keyof Row<Types, M> & string = never,
   >(
@@ -272,13 +266,12 @@ export class PrismaNextObjectFieldBuilder<
         >,
       ]
     >
-  ): FieldRef<Types, VariantFieldShape<Types, M, Nullable, IsNull>, 'PrismaNextObject'> {
+  ): FieldRef<Types, VariantFieldShape<Types, M, Nullable>, 'PrismaNextObject'> {
     const [options = {}] = allArgs as [Record<string, unknown>?];
     const ref = refFor(this.builder, variant);
     const variantTypeName = (ref as { name: string }).name;
     const {
       isNull,
-      nullable,
       select: variantSelect,
       extensions: userExtensions,
       ...rest
@@ -289,7 +282,6 @@ export class PrismaNextObjectFieldBuilder<
         ctx: Types['Context'],
         info: GraphQLResolveInfo,
       ) => boolean | Promise<boolean>;
-      nullable?: boolean;
       select?: RawSelect;
       extensions?: Record<string, unknown>;
     };
@@ -305,7 +297,6 @@ export class PrismaNextObjectFieldBuilder<
     const fieldOpts: Record<string, unknown> = {
       ...rest,
       type: ref,
-      nullable: (nullable ?? !!isNull) as never,
       extensions: {
         ...userExtensions,
         pothosIndirectInclude: { getType: () => variantTypeName },
@@ -331,12 +322,12 @@ export class PrismaNextObjectFieldBuilder<
     Query extends RelationQuery<Types, M, RelName, Args> | undefined,
     // The model of `type`. A variant of the target narrows the rows.
     TypeModel extends RelationTypeModel<Types, M, RelName> = RelatedModel<Types, M, RelName>,
-    Nullable extends boolean = RelationNullable<Types, M, RelName, TypeModel>,
+    Nullable extends boolean = Types['DefaultFieldNullability'],
     Args extends InputFieldMap = {},
     RelatedShape = Row<Types, RelatedModel<Types, M, RelName>>,
   >(
     name: RelName,
-    options?: PrismaNextRelationOptions<
+    ...allArgs: RelationFieldArgs<
       Types,
       M,
       RelName,
@@ -346,16 +337,18 @@ export class PrismaNextObjectFieldBuilder<
       Shape,
       Query,
       TypeModel
-    >,
+    >
   ): FieldRef<Types, RelationFieldShape<Types, M, RelName, Nullable>, 'PrismaNextObject'> {
-    const opts = (options ?? {}) as PrismaNextRelationOptions<
-      Types,
-      M,
-      RelName,
-      Nullable,
-      Args,
-      RelatedShape
-    > & { query?: unknown; extensions?: Record<string, unknown> };
+    const [opts = {}] = allArgs as [
+      {
+        type?: object;
+        query?: unknown;
+        onNull?:
+          | 'error'
+          | ((parent: object, args: object, ctx: object, info: GraphQLResolveInfo) => unknown);
+        extensions?: Record<string, unknown>;
+      }?,
+    ];
     const relation = this.#relation(name as string);
     const targetRef = opts.type ?? getRefFromContractModel(relation.targetModel, this.builder);
     // Throws at build time for a type the relation can't return.
@@ -365,7 +358,7 @@ export class PrismaNextObjectFieldBuilder<
       relation.targetModel,
       (targetRef as { modelKey?: string }).modelKey,
     );
-    const { type: _type, query, nullable, extensions, ...rest } = opts;
+    const { type: _type, query, onNull, extensions, ...rest } = opts;
     const relationName = name as string;
     // A to-one relation loads whole, keyed on the row by its name, so a variant `type` narrows it
     // by the discriminator when the field resolves rather than in the load.
@@ -400,30 +393,26 @@ export class PrismaNextObjectFieldBuilder<
     return this.field({
       ...rest,
       type: relation.isToMany ? [targetRef] : targetRef,
-      // A variant type can filter a to-one relation's row out.
-      nullable:
-        nullable ??
-        (relation.isToMany
-          ? false
-          : variant !== undefined || isNullableToOne(this.#getRelationMeta(relationName))),
       extensions: {
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
         [PRISMA_NEXT_LOADED_CHECK]: (slots: FieldSlots) => slots.rows(relationName) !== undefined,
       },
-      resolve: (parent: object, _args: object, context: object, info: GraphQLResolveInfo) =>
+      resolve: (parent: object, args: object, context: object, info: GraphQLResolveInfo) =>
         readSlots(this.builder, parent, context, info, (slots) => {
           const rows = slots.rows(relationName) as Record<string, unknown> | null;
-          return discriminator !== undefined && rows?.[discriminator] !== variant
-            ? null
-            : completeVariantRows(
-                this.builder,
-                relation,
-                getNamedType(info.returnType),
-                context,
-                info,
-                rows,
-              );
+          // A variant type filters out a to-one relation's row of another variant.
+          if (rows == null || (discriminator !== undefined && rows[discriminator] !== variant)) {
+            return typeof onNull === 'function' ? onNull(parent, args, context, info) : null;
+          }
+          return completeVariantRows(
+            this.builder,
+            relation,
+            getNamedType(info.returnType),
+            context,
+            info,
+            rows,
+          );
         }),
     } as never) as never;
   }
@@ -646,12 +635,6 @@ export class PrismaNextObjectFieldBuilder<
     }
     return model.relations[name]!;
   }
-
-  #getRelationMeta(relationName: string): ContractRelation {
-    return resolveContractModel(this.contract as AnyContract, this.modelKey as string)!.relations[
-      relationName
-    ]!;
-  }
 }
 
 /**
@@ -679,6 +662,3 @@ function readSlots<T>(
       .then(({ row, mapping }) => read(fieldSlots(row, mapping?.position)!))
   );
 }
-
-// An embed records no nullability, so its row may be absent.
-const isNullableToOne = (meta: ContractRelation) => ('nullable' in meta ? meta.nullable : true);

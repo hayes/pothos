@@ -125,12 +125,15 @@ export type {
   PrismaNextRequestClient,
 } from './types/plugin-options.js';
 export type {
+  OnNullRequired,
   PrismaNextRelationOptions,
   RelatedModel,
+  RelationOnNull,
   RelationOrderBy,
   RelationOrderSelector,
   RelationQuery,
   RelationWhere,
+  RequiresNullable,
 } from './types/relations.js';
 export type {
   ConnectionPageEntry,

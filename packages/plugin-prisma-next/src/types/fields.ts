@@ -38,10 +38,12 @@ import type {
   ValidateFieldSelect,
 } from './selections.js';
 
-/** `isNull` can resolve the field to null, so `nullable: false` can't accompany it. */
-type VariantNullableOption<IsNull> = [IsNull] extends [never]
-  ? boolean
-  : true | RequiresNullable<'isNull can resolve the field to null'>;
+/** `isNull` can resolve the field to null, so it needs the field to be nullable. */
+type VariantIsNullRequirement<Nullable extends boolean, IsNull> = [IsNull] extends [never]
+  ? {}
+  : [Nullable] extends [true]
+    ? {}
+    : { nullable: true | RequiresNullable<'isNull can resolve the field to null'> };
 
 /** Field options for `t.variant`, which are object field options without those it sets itself. */
 export type PrismaNextVariantFieldOptions<
@@ -57,27 +59,26 @@ export type PrismaNextVariantFieldOptions<
   Selected extends keyof Row<Types, M> & string,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, VariantRef, Nullable, Args, unknown>,
-  'type' | 'nullable' | 'select' | InferredFieldOptionKeys
-> & {
-  nullable?: Nullable & NoInfer<VariantNullableOption<IsNull>>;
-  /** Columns to load for `isNull`, whatever the query selects, as an array or a `select` object. */
-  select?: readonly Selected[] | { readonly [K in Selected]?: true };
-  /** Resolves the field to null when this returns true, which makes the field nullable. */
-  isNull?: (
-    parent: ParentShape & Pick<Row<Types, M>, Selected>,
-    args: InputShapeFromFields<Args>,
-    context: Types['Context'],
-    info: GraphQLResolveInfo,
-  ) => IsNull;
-};
+  'type' | 'select' | InferredFieldOptionKeys
+> &
+  VariantIsNullRequirement<Nullable, IsNull> & {
+    /** Columns to load for `isNull`, whatever the query selects, as an array or a `select` object. */
+    select?: readonly Selected[] | { readonly [K in Selected]?: true };
+    /** Resolves the field to null when this returns true. The field must be nullable. */
+    isNull?: (
+      parent: ParentShape & Pick<Row<Types, M>, Selected>,
+      args: InputShapeFromFields<Args>,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => IsNull;
+  };
 
 /** The row a variant field resolves to, which is its parent's, or null when it's nullable. */
 export type VariantFieldShape<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   Nullable extends boolean,
-  IsNull,
-> = Row<Types, M> | (Nullable extends true ? null : [IsNull] extends [never] ? never : null);
+> = Row<Types, M> | (Nullable extends true ? null : never);
 
 export type PrismaNextObjectOptions<
   Types extends SchemaTypes,

@@ -89,7 +89,7 @@ describe('prismaInterface', () => {
       /interface User \{\n {2}email: String\n {2}firstName: String\n {2}id: ID\n\}/,
     );
     expect(sdl).toMatch(/type Admin implements User/);
-    expect(sdl).toMatch(/author: User!/);
+    expect(sdl).toMatch(/author: User\n/);
   });
 
   it('routes rows through resolveType, loading the columns it reads', async () => {

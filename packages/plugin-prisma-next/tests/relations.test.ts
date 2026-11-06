@@ -26,18 +26,29 @@ import { junctionContract, junctionDdl } from './fixtures/junction';
 const db = useSampleDb();
 
 describe('includes', () => {
-  it('derives relation nullability from the contract, unless overridden', () => {
+  it("follows the builder's default field nullability, never the contract's", () => {
     const sdl = printSchema(buildExampleSchema(db));
-    expect(sdl).toMatch(/type User implements Node \{[^}]*\n {2}posts: \[Post!\]!\n/);
-    expect(sdl).toMatch(/type Post \{[^}]*\n {2}author: User!\n/);
+    expect(sdl).toMatch(/type User implements Node \{[^}]*\n {2}posts: \[Post!\]\n/);
+    expect(sdl).toMatch(/type Post \{[^}]*\n {2}author: User\n/);
 
-    const builder = createBuilder();
-    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      DefaultFieldNullability: false;
+    }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: db.client },
+      defaultFieldNullability: false,
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({ id: t.exposeID('id'), posts: t.relation('posts') }),
+    });
     builder.prismaObject('Post', {
       fields: (t) => ({ author: t.relation('author', { nullable: true }) }),
     });
     builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
-    expect(printSchema(builder.toSchema())).toMatch(/type Post \{\n {2}author: User\n/);
+    const strict = printSchema(builder.toSchema());
+    expect(strict).toMatch(/type Post \{\n {2}author: User\n/);
+    expect(strict).toMatch(/type User \{[^}]*\n {2}posts: \[Post!\]!\n/);
   });
 
   it('applies an orderBy array in order, the later selectors breaking ties', async () => {
@@ -91,16 +102,74 @@ describe('includes', () => {
       return builder.toSchema();
     }
 
-    it('is nullable and resolves to null when the row is absent', async () => {
+    it('resolves to null when the row is absent', async () => {
       const sdl = printSchema(schema());
       expect(sdl).toMatch(/type Owner \{[^}]*profile: Profile\n/);
-      expect(sdl).toMatch(/type Profile \{[^}]*owner: Owner!\n/);
+      expect(sdl).toMatch(/type Profile \{[^}]*owner: Owner\n/);
       const result = await run(schema(), '{ owners { id profile { id owner { id } } } }');
       expect(result.errors).toBeUndefined();
       expect(result.data.owners).toEqual([
         { id: '1', profile: { id: '5', owner: { id: '1' } } },
         { id: '2', profile: null },
       ]);
+    });
+
+    function strictSchema(onNull: 'error' | (() => unknown)) {
+      const builder = new SchemaBuilder<{
+        PrismaNextContract: typeof collision.contract;
+        DefaultFieldNullability: false;
+      }>({
+        plugins: [prismaNextPlugin],
+        prismaNext: { client: collision.client },
+        defaultFieldNullability: false,
+      });
+      builder.prismaObject('Profile', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.prismaObject('Owner', {
+        fields: (t) => ({
+          id: t.exposeID('id'),
+          profile: t.relation('profile', { onNull: onNull as 'error' }),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          owners: t.prismaField({
+            type: ['Owner'],
+            nullable: { list: false, items: true },
+            resolve: () => collision.orm.Owner.orderBy((o) => o.id.asc()),
+          }),
+        }),
+      });
+      return builder.toSchema();
+    }
+
+    it("leaves a missing row to GraphQL's non-null error with onNull: 'error'", async () => {
+      const schema = strictSchema('error');
+      expect(printSchema(schema)).toMatch(/type Owner \{[^}]*profile: Profile!\n/);
+      const result = await run(schema, '{ owners { id profile { id } } }');
+      expect(result.data.owners).toEqual([{ id: '1', profile: { id: '5' } }, null]);
+      expect(result.errors?.[0].message).toBe(
+        'Cannot return null for non-nullable field Owner.profile.',
+      );
+      expect(result.errors?.[0].path).toEqual(['owners', 1, 'profile']);
+    });
+
+    it('resolves a missing row with an onNull function', async () => {
+      const fallback = await run(
+        strictSchema(() => ({ id: 0 })),
+        '{ owners { id profile { id } } }',
+      );
+      expect(fallback.errors).toBeUndefined();
+      expect(fallback.data.owners).toEqual([
+        { id: '1', profile: { id: '5' } },
+        { id: '2', profile: { id: '0' } },
+      ]);
+
+      const failed = await run(
+        strictSchema(() => new Error('No profile')),
+        '{ owners { id profile { id } } }',
+      );
+      expect(failed.data.owners).toEqual([{ id: '1', profile: { id: '5' } }, null]);
+      expect(failed.errors?.[0].message).toBe('No profile');
     });
   });
 

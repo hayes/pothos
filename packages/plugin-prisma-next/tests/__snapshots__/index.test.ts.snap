@@ -2,9 +2,9 @@
 
 exports[`example schema > generates the expected schema 1`] = `
 "type Comment {
-  author: User!
+  author: User
   body: String
-  post: Post!
+  post: Post
   ref: String
   shout: String
   whisper: String
@@ -22,9 +22,9 @@ type PageInfo {
 }
 
 type Post {
-  author: User!
+  author: User
   commentCount: Int!
-  comments: [Comment!]!
+  comments: [Comment!]
   id: ID
   isPublished: Int
   score: Float
@@ -65,11 +65,11 @@ type QueryUsersConnectionEdge {
 }
 
 type User implements Node {
-  basic: UserBasic!
-  comments: [Comment!]!
+  basic: UserBasic
+  comments: [Comment!]
   constant: String
   countByFlag(flag: Int!): Int!
-  drafts: [Post!]!
+  drafts: [Post!]
   email: String
   firstName: String
   fullName: String
@@ -81,17 +81,17 @@ type User implements Node {
   postCount: Int!
   postStats: String
   postTitles: String
-  posts: [Post!]!
-  postsByPublished(published: Int!): [Post!]!
+  posts: [Post!]
+  postsByPublished(published: Int!): [Post!]
   postsConnection(after: String, before: String, first: Int, last: Int): UserPostsConnection
   publishedConnection(after: String, before: String, first: Int, last: Int): UserPublishedConnection
   publishedCount: Int!
-  publishedPosts: [Post!]!
+  publishedPosts: [Post!]
 }
 
 type UserBasic {
   firstName: String
-  posts: [Post!]!
+  posts: [Post!]
 }
 
 type UserPostsConnection {

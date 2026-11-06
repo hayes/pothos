@@ -24,9 +24,31 @@ builder.prismaObject('Post', {
 });
 ```
 
-To-many relations are non-null lists. A to-one relation, like `author`, is non-null when its foreign
-key is non-null, unless it has a variant `type`, which can filter the row out. Pass `nullable` to
-override.
+Relation fields follow the builder's
+[default field nullability](../../guide/changing-default-nullability), whatever the contract says, so
+a database change never changes the schema. Pass `nullable` to override.
+
+### Nullable relations and `onNull`
+
+A to-one relation can resolve to `null` when the contract makes it optional, or when a variant
+`type` filters the row out. To expose one as non-null, `t.relation` requires `onNull`. Setting it
+to `'error'` lets GraphQL raise the non-null error for the field. A function can return a
+replacement row instead, or an `Error` to raise:
+
+```ts
+builder.prismaObject('Bug', {
+  fields: (t) => ({
+    reviewer: t.relation('reviewer', { nullable: true }),
+    // An error when the bug has no reviewer
+    requiredReviewer: t.relation('reviewer', { nullable: false, onNull: 'error' }),
+    // A different error
+    assignedReviewer: t.relation('reviewer', {
+      nullable: false,
+      onNull: () => new Error('Bug has no reviewer'),
+    }),
+  }),
+});
+```
 
 ## Filtering and sorting
 
