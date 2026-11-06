@@ -45,7 +45,7 @@ type ConnectionArgs<Args extends InputFieldMap> = InputShapeFromFields<Args> &
   PothosSchemaTypes.DefaultConnectionArguments;
 
 /** A `prismaObject` or `prismaInterface` ref whose type the connection's nodes use. */
-export type HelperRef<Types extends SchemaTypes, M extends ModelKey<Types>> =
+export type ConnectionHelperRef<Types extends SchemaTypes, M extends ModelKey<Types>> =
   | PrismaNextObjectRef<Types, M, unknown>
   | PrismaNextInterfaceRef<Types, M, unknown>;
 
@@ -181,11 +181,13 @@ export interface PrismaConnectionHelpers<
   Select = {},
   Node = never,
   MaybeRow extends boolean = false,
-  Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
+  Ref extends ConnectionHelperRef<Types, M> = ConnectionHelperRef<Types, M>,
   Counted = false,
 > {
   /** The ref passed in. For a model name, `Ref` isn't inferred, so this is its default ref. */
-  ref: HelperRef<Types, M> extends Ref ? PrismaNextObjectRef<Types, M, Row<Types, M>> : Ref;
+  ref: ConnectionHelperRef<Types, M> extends Ref
+    ? PrismaNextObjectRef<Types, M, Row<Types, M>>
+    : Ref;
   getArgs(): Args;
   /**
    * The entry of a to-many relation of this model in a connection field's select function. It
@@ -235,12 +237,12 @@ export function prismaConnectionHelpers<
   Args extends InputFieldMap = {},
   Select = {},
   Node = never,
-  Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
+  Ref extends ConnectionHelperRef<Types, M> = ConnectionHelperRef<Types, M>,
   QueryLiteral extends ConnectionQueryLiteral<Types, M> = ConnectionQueryLiteral<Types, M>,
   Counted extends boolean = false,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  refOrModel: M | (Ref & HelperRef<Types, M>),
+  refOrModel: M | (Ref & ConnectionHelperRef<Types, M>),
   options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select, Counted> & {
     resolveNode: (row: NodeSourceRow<Types, M, Select>) => Node;
   },
@@ -252,12 +254,12 @@ export function prismaConnectionHelpers<
   Args extends InputFieldMap = {},
   Select = {},
   Node = never,
-  Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
+  Ref extends ConnectionHelperRef<Types, M> = ConnectionHelperRef<Types, M>,
   QueryLiteral extends ConnectionQueryLiteral<Types, M> = ConnectionQueryLiteral<Types, M>,
   Counted extends boolean = false,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  refOrModel: M | (Ref & HelperRef<Types, M>),
+  refOrModel: M | (Ref & ConnectionHelperRef<Types, M>),
   options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select, Counted> & {
     resolveNode?: ((row: NodeSourceRow<Types, M, Select>) => Node) | undefined;
   },
@@ -269,12 +271,12 @@ export function prismaConnectionHelpers<
   Args extends InputFieldMap,
   Select,
   Node,
-  Ref extends HelperRef<Types, M>,
+  Ref extends ConnectionHelperRef<Types, M>,
   QueryLiteral extends ConnectionQueryLiteral<Types, M>,
   Counted extends boolean,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  refOrModel: M | (Ref & HelperRef<Types, M>),
+  refOrModel: M | (Ref & ConnectionHelperRef<Types, M>),
   options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select, Counted> & {
     resolveNode?: ((row: NodeSourceRow<Types, M, Select>) => Node) | undefined;
   },

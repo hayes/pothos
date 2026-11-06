@@ -76,8 +76,8 @@ import {
 import { variantTypeNames } from './utils/variant-types.js';
 
 export type {
+  ConnectionHelperRef,
   ConnectionHelperRow,
-  HelperRef,
   PrismaConnectionHelperOptions,
   PrismaConnectionHelpers,
 } from './connection-helpers.js';
