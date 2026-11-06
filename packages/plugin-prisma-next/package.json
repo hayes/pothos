@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "generate:contracts": "node tests/generate-contracts.mts",
+    "generate": "node tests/generate-contracts.mts",
     "type": "tsc --project tsconfig.type.json && tsc --project tsconfig.scope-auth.json && tsc --project tsconfig.missing-plugins.json && node tests/declarations/emit.mts tsc",
     "type:compat": "for v in 5.9.3 6.0.2; do for p in type scope-auth missing-plugins; do echo \"typescript@$v tsconfig.$p.json\" && pnpm dlx --package=typescript@$v tsc --project tsconfig.$p.json --noEmit --composite false --incremental false || exit 1; done; echo \"typescript@$v declarations\" && node tests/declarations/emit.mts pnpm dlx --package=typescript@$v tsc || exit 1; done",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
