@@ -2352,3 +2352,126 @@ describe.each(
     expect(statements).toHaveLength(2);
   });
 });
+
+// A row handed from one type to another of its model, as it is or as another plugin's spread copy
+// of it, reads only what the second type's selects loaded: never the first type's computed values,
+// filtered rows, or a whole relation standing in for a filtered one.
+describe.each(orders)('a row handed to another type of its model (%s)', (_, plugins) => {
+  function schema(
+    selects: { a: Record<string, unknown>; b: Record<string, unknown> },
+    read: (user: Record<string, unknown>) => unknown,
+    spread: boolean,
+  ) {
+    const seen: unknown[] = [];
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    const B = builder.prismaObject('User', {
+      variant: 'B',
+      select: selects.b as never,
+      authScopes: (user) => {
+        seen.push(read(user as never));
+        return true;
+      },
+      fields: (t) => ({
+        value: t.field({ type: 'JSON' as never, resolve: (user) => read(user as never) as never }),
+        nickname: t.string({
+          nullable: true,
+          resolve: (user) => (user as { nickname?: string }).nickname ?? null,
+        }),
+      }),
+    });
+    const A = builder.prismaObject('User', {
+      variant: 'A',
+      select: selects.a as never,
+      fields: (t) => ({
+        value: t.field({ type: 'JSON' as never, resolve: (user) => read(user as never) as never }),
+        asB: t.field({
+          type: B,
+          resolve: (user) => (spread ? { ...(user as object), nickname: 'Al' } : user) as never,
+        }),
+      }),
+    });
+    builder.scalarType('JSON' as never, { serialize: (value: unknown) => value } as never);
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({ type: A, resolve: () => ctx.orm.User.where({ id: 'u-alice' }) }),
+      }),
+    });
+    return { schema: builder.toSchema(), seen };
+  }
+  const published = (user: Record<string, unknown>) =>
+    (user.posts as { published: number }[]).map((post) => post.published);
+
+  // Alice has two posts, one of them published.
+  describe.each([false, true])('spread: %s', (spread) => {
+    it("reads its own computed value, not the other type's", async () => {
+      const { schema: built, seen } = schema(
+        {
+          a: { total: { posts: (sub: { count(): unknown }) => sub.count() } },
+          b: {
+            total: {
+              posts: (sub: { where(f: object): { count(): unknown } }) =>
+                sub.where({ published: 1 }).count(),
+            },
+          },
+        },
+        (user) => user.total,
+        spread,
+      );
+      const result = await runCaptured(built, '{ user { value asB { value } } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.user).toEqual({ value: 2, asB: { value: 1 } });
+      expect(seen).toEqual([1]);
+      expect(result.statements).toHaveLength(2);
+    });
+
+    // B selects no computed value, so the row needs no reload, and the spread's own key stays.
+    it("drops the other type's computed value and keeps the keys a spread added", async () => {
+      const { schema: built, seen } = schema(
+        { a: { total: { posts: (sub: { count(): unknown }) => sub.count() } }, b: {} },
+        (user) => user.total ?? null,
+        spread,
+      );
+      const result = await runCaptured(built, '{ user { value asB { value nickname } } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.user).toEqual({
+        value: 2,
+        asB: { value: null, nickname: spread ? 'Al' : null },
+      });
+      expect(seen).toEqual([null]);
+      expect(result.statements).toHaveLength(1);
+    });
+
+    it("reads its own filtered rows, not the other type's", async () => {
+      const { schema: built, seen } = schema(
+        { a: { posts: { where: { published: 0 } } }, b: { posts: { where: { published: 1 } } } },
+        published,
+        spread,
+      );
+      const result = await runCaptured(built, '{ user { value asB { value } } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.user).toEqual({ value: [0], asB: { value: [1] } });
+      expect(seen).toEqual([[1]]);
+      expect(result.statements).toHaveLength(2);
+    });
+
+    it("doesn't read another type's whole relation as its filtered one", async () => {
+      const { schema: built, seen } = schema(
+        { a: { posts: true }, b: { posts: { where: { published: 1 } } } },
+        published,
+        spread,
+      );
+      const result = await runCaptured(built, '{ user { value asB { value } } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.user).toEqual({ value: [1, 0], asB: { value: [1] } });
+      expect(seen).toEqual([[1]]);
+      expect(result.statements).toHaveLength(2);
+    });
+  });
+});

@@ -264,6 +264,8 @@ interface Held {
   readonly slots: Slots;
   /** The consumers whose branches were written onto the copy. */
   readonly lifted: ReadonlySet<string>;
+  /** The consumers the copy was made for, whether or not the statement loaded a branch of theirs. */
+  readonly types: ReadonlySet<string>;
   /** For a field's copy, the consumer it was made for and the position it was planned at. */
   readonly field?: { readonly id: string; readonly position: Position };
 }
@@ -363,26 +365,40 @@ export function rowOf(value: object): object {
   return owned.has(value) ? (value as Holder)[SLOTS]!.row : value;
 }
 
-/** Consumer ids to write onto a copy, and the key its copies are cached by. */
+/**
+ * Consumer ids to write onto a copy, and the key its copies are cached by. `own` lists, by id, the
+ * keys a type's select fills only from its own branch: its filtered or refined relations and its
+ * computed values. Another reader's whole relation, or a branch of another type, never stands in
+ * for them.
+ */
 export interface CopyIds {
   readonly ids: readonly string[];
   readonly key: string;
+  readonly own: ReadonlyMap<string, readonly string[]>;
 }
 
-export function copyIds(ids: readonly string[]): CopyIds {
-  return { ids, key: ids.join(ID_SEPARATOR) };
+const NO_OWN_KEYS: ReadonlyMap<string, readonly string[]> = new Map();
+
+export function copyIds(
+  ids: readonly string[],
+  own: ReadonlyMap<string, readonly string[]> = NO_OWN_KEYS,
+): CopyIds {
+  return { ids, key: ids.join(ID_SEPARATOR), own };
 }
+
+const NOTHING_HELD: Pick<Held, 'lifted' | 'types'> = { lifted: new Set(), types: new Set() };
 
 /**
  * A copy of `base` with what `ids` loaded written onto it, cached per base and ids so per-row
- * caches such as scope-auth's see one object.
+ * caches such as scope-auth's see one object. The own keys of the ids it adds are cleared first,
+ * so one the statement loaded no branch of theirs for reads as not loaded.
  */
 function copyWith(
   base: object,
   row: object,
   slots: Slots,
-  lifted: ReadonlySet<string>,
-  { ids, key }: CopyIds,
+  from: Pick<Held, 'lifted' | 'types'>,
+  { ids, key, own }: CopyIds,
   field?: Held['field'],
 ): object {
   let byIds = copies.get(base);
@@ -393,47 +409,128 @@ function copyWith(
   let copy = byIds.get(key) as Row | undefined;
   if (!copy) {
     copy = copyOf(base);
-    const all = new Set(lifted);
+    const lifted = new Set(from.lifted);
+    const types = new Set(from.types);
     if (!(SLOTS in base)) {
       // The combined values come off the relation keys, which hold only what a select lifts back.
       for (const name of Object.keys(slots.relations)) {
         delete copy[name];
       }
     }
-    for (const id of ids) {
-      if (!all.has(id) && slots.consumers.has(id)) {
-        lift(copy, slots, id);
-        all.add(id);
+    // A key an id the copy already has defines holds that id's value, which agrees with this one.
+    const kept = new Set([...types].flatMap((id) => own.get(id) ?? []));
+    const added = ids.filter((id) => !types.has(id));
+    for (const id of added) {
+      for (const name of own.get(id) ?? []) {
+        if (!kept.has(name)) {
+          delete copy[name];
+        }
       }
     }
-    (copy as Holder)[SLOTS] = { row, slots, lifted: all, ...(field ? { field } : {}) };
+    for (const id of added) {
+      types.add(id);
+      if (!lifted.has(id) && slots.consumers.has(id)) {
+        lift(copy, slots, id);
+        lifted.add(id);
+      }
+    }
+    (copy as Holder)[SLOTS] = { row, slots, lifted, types, ...(field ? { field } : {}) };
     owned.add(copy);
     byIds.set(key, copy);
   }
   return copy;
 }
 
+/** Whether `value` holds a key one of `ids` fills only from its own branch. */
+function holdsOwnKey(value: object, { ids, own }: CopyIds) {
+  return ids.some((id) => own.get(id)?.some((name) => (value as Row)[name] !== undefined));
+}
+
+/**
+ * `copy`, rebuilt from another plugin's copy `value`, with the keys `value` added that aren't the
+ * model's or a value this plugin wrote, cached per `value`.
+ */
+function withAddedKeys(
+  value: object,
+  copy: object,
+  held: Held,
+  model: PrismaNextModel,
+  key: string,
+): object {
+  const written = new Set<string>();
+  for (const { values } of Object.values(held.slots.relations)) {
+    for (const id of held.lifted) {
+      for (const name of Object.keys(values[id] ?? {})) {
+        written.add(name);
+      }
+    }
+  }
+  const added = Object.keys(value).filter(
+    (name) =>
+      !model.columns.has(name) &&
+      !Object.hasOwn(model.relations, name) &&
+      !model.sharedVariantRelations.has(name) &&
+      !written.has(name),
+  );
+  if (!added.length) {
+    return copy;
+  }
+  let byIds = copies.get(value);
+  if (!byIds) {
+    byIds = new Map();
+    copies.set(value, byIds);
+  }
+  let next = byIds.get(key) as Row | undefined;
+  if (!next) {
+    next = copyOf(copy);
+    for (const name of added) {
+      next[name] = (value as Row)[name];
+    }
+    (next as Holder)[SLOTS] = (copy as Holder)[SLOTS];
+    owned.add(next);
+    byIds.set(key, next);
+  }
+  return next;
+}
+
 /**
  * The parent the readers of a type see, whose type-level selects are `ids`, the type last. For an
  * ORM row with `combine()` values, a copy without them, holding them under `SLOTS`, with what those
- * selects loaded written on. A copy this plugin made, or another plugin's copy of a field's copy, is
- * made again from its row. Another plugin's copy of a type's copy is kept, with only what it lacks
- * written onto a copy of it. The selects of a type and its interfaces that write one key agree,
- * which the schema build checks (see `assertSelectsAgree` in index.ts).
+ * selects loaded written on. A copy this plugin made for other ids is made again from its row. Another plugin's
+ * copy of a type's copy is kept when it was made for some of `ids` alone, with only what it lacks
+ * written onto a copy of it. Any other copy, such as one of another type's copy or of a field's,
+ * is made again from its row, keeping the keys the other plugin added. The selects of a type and
+ * its interfaces that write one key agree, which the schema build checks (see `assertSelectsAgree`
+ * in index.ts).
  */
 export function typeCopy(value: object, model: PrismaNextModel, ids: CopyIds): object {
   const held = (value as Holder)[SLOTS];
-  if (held && !held.field && !owned.has(value)) {
-    return ids.ids.every((id) => held.lifted.has(id) || !held.slots.consumers.has(id))
+  const foreign = !!held && !owned.has(value);
+  // This plugin's copy for these ids, which is what remaking it would return, or one keeping the
+  // keys another plugin's copy added.
+  if (
+    !foreign &&
+    held &&
+    !held.field &&
+    held.types.size === ids.ids.length &&
+    ids.ids.every((id) => held.types.has(id))
+  ) {
+    return value;
+  }
+  if (foreign && !held.field && [...held.types].every((id) => ids.ids.includes(id))) {
+    return ids.ids.every(
+      (id) => held.types.has(id) || (!held.slots.consumers.has(id) && !ids.own.get(id)?.length),
+    )
       ? value
-      : copyWith(value, held.row, held.slots, held.lifted, ids);
+      : copyWith(value, held.row, held.slots, held, ids);
   }
   const row = held ? held.row : value;
   const slots = held ? held.slots : slotsOf(row, model);
-  if (slots === NO_SLOTS) {
+  if (!held && slots === NO_SLOTS && !holdsOwnKey(row, ids)) {
     return row;
   }
-  return copyWith(row, row, slots, new Set(), ids);
+  const copy = copyWith(row, row, slots, NOTHING_HELD, ids);
+  return foreign ? withAddedKeys(value, copy, held, model, ids.key) : copy;
 }
 
 /**
@@ -452,14 +549,7 @@ export function fieldCopy(
   if (!held?.slots.consumers.has(id)) {
     return base;
   }
-  return copyWith(
-    base,
-    held.row,
-    held.slots,
-    held.lifted,
-    { ids: [id], key: id },
-    { id, position },
-  );
+  return copyWith(base, held.row, held.slots, held, copyIds([id]), { id, position });
 }
 
 /** The consumer `parent`, a field's copy, was made for, and the position it was planned at. */

@@ -705,6 +705,19 @@ function selectedKeys({ columns, relations, computed }: ReturnType<typeof splitS
 }
 
 /**
+ * The keys a type-level `select` fills only from its own branch: relations it filters or refines,
+ * and computed values. A whole relation reads the same whoever loaded it.
+ */
+function ownKeys({ relations, computed }: ReturnType<typeof splitSelect>) {
+  return [
+    ...relations
+      .filter(([, value]) => typeof value === 'function' || definedQuery(value) !== undefined)
+      .map(([name]) => name),
+    ...computed.map(({ key }) => key),
+  ];
+}
+
+/**
  * The consumer ids of a type's type-level `selects`, listed with the deepest interface first and
  * the type itself last, and whether a row copied for them holds what they load.
  */
@@ -714,13 +727,15 @@ function typeDataOf(
   selects: readonly (ReturnType<typeof splitSelect> & { name: string })[],
 ) {
   const required = [...new Set(selects.flatMap(selectedKeys))];
+  const branched = selects.filter(
+    (select) => select.relations.length > 0 || select.computed.length > 0,
+  );
   return {
     modelKey,
     model,
     ids: copyIds(
-      selects
-        .filter((select) => select.relations.length > 0 || select.computed.length > 0)
-        .map((select) => select.name),
+      branched.map((select) => select.name),
+      new Map(branched.map((select) => [select.name, ownKeys(select)])),
     ),
     hasTypeData: (row: Record<string, unknown>) =>
       required.every((name) => row[name] !== undefined),
