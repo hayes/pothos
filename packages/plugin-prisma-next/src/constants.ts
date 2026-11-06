@@ -4,6 +4,8 @@
 export const PRISMA_NEXT_MODEL = 'pothosPrismaNextModel';
 /** A type's `select` as written. */
 export const PRISMA_NEXT_TYPE_SELECT = 'pothosPrismaNextTypeSelect';
+/** A type's `select` split into its columns, relations and computed values, set by the plugin. */
+export const PRISMA_NEXT_TYPE_SPLIT = 'pothosPrismaNextTypeSplit';
 /** A field's selection as the planner reads it: a static selection or a select function. */
 export const PRISMA_NEXT_FIELD_SELECTION = 'pothosPrismaNextFieldSelection';
 /** Marks a hierarchy interface that routes rows with the plugin's discriminator `resolveType`. */

@@ -17,7 +17,7 @@ import {
   PRISMA_NEXT_FIELD_SELECTION,
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_MODEL,
-  PRISMA_NEXT_TYPE_SELECT,
+  PRISMA_NEXT_TYPE_SPLIT,
 } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import {
@@ -37,10 +37,10 @@ import {
   type Narrowing,
   type PrismaNextSelectFn,
   type PrismaNextSelection,
-  type RawSelect,
   REFINE,
   type RelationArgs,
   relationName,
+  type SplitSelect,
 } from './selections.js';
 
 /**
@@ -143,9 +143,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
         return;
       }
       visited.add(current);
-      const raw = current.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
-      if (raw) {
-        super.mergeQuery(node, compileTypeSelect(this.contract, raw, model, current.name));
+      const split = current.extensions?.[PRISMA_NEXT_TYPE_SPLIT] as SplitSelect | undefined;
+      if (split) {
+        super.mergeQuery(node, compileTypeSelect(this.contract, split, model, current.name));
       }
       for (const iface of 'getInterfaces' in current ? current.getInterfaces() : []) {
         visit(iface);

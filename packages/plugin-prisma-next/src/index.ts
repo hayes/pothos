@@ -38,8 +38,8 @@ import {
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_TYPE_SELECT,
+  PRISMA_NEXT_TYPE_SPLIT,
 } from './constants.js';
-import type { AnyContract } from './types/models.js';
 import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
 import { rootModelKey } from './utils/contract.js';
 import { orderableProblem, orderColumns } from './utils/cursors.js';
@@ -61,6 +61,7 @@ import {
   type PrismaNextSelection,
   type RawSelect,
   rowOf,
+  type SplitSelect,
   splitSelect,
   typeCopy,
 } from './utils/selections.js';
@@ -220,15 +221,17 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return typeConfig;
     }
     const raw = typeConfig.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
-    if (raw && ownModel) {
-      assertNoVariantRelations(raw, ownModel, typeConfig.name, contract);
-      assertSelectOrders(this.config, raw, getModel(contract, ownModel));
+    // Only a prisma type, which has a model of its own, has a `select`.
+    const split = raw && splitSelect(raw, getModel(contract, model));
+    if (split) {
+      assertNoVariantRelations(split, getModel(contract, model), typeConfig.name);
+      assertSelectOrders(this.config, split, getModel(contract, model));
     }
-    this.assertSelectsAgree(typeConfig, model);
-    return {
+    const config = {
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
+        ...(split ? { [PRISMA_NEXT_TYPE_SPLIT]: split } : {}),
         [PRISMA_NEXT_MODEL]: model,
         [PRISMA_NEXT_CONFIG]: this.config,
         // Filled in afterBuild by registerImplementations.
@@ -240,6 +243,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           : {}),
       },
     };
+    this.assertSelectsAgree(config);
+    return config;
   }
 
   /**
@@ -287,7 +292,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       );
     }
     if (select !== undefined && typeof select !== 'function') {
-      assertSelectOrders(this.config, select, model);
+      assertSelectOrders(this.config, splitSelect(select, model), model);
     }
     const selection =
       select !== undefined
@@ -370,7 +375,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    * hierarchy. The deepest interface comes first and the type itself last.
    */
   private typeLevelSelects(type: string | PothosTypeConfig) {
-    const selects: { name: string; raw: RawSelect }[] = [];
+    const selects: (SplitSelect & { name: string })[] = [];
     const visited = new Set<string>();
     const visit = (config: PothosTypeConfig) => {
       if (visited.has(config.name)) {
@@ -380,9 +385,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       for (const iface of 'interfaces' in config ? config.interfaces : []) {
         visit(this.buildCache.getTypeConfig(iface, 'Interface'));
       }
-      const raw = config.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
-      if (raw) {
-        selects.push({ name: config.name, raw });
+      const split = config.extensions?.[PRISMA_NEXT_TYPE_SPLIT] as SplitSelect | undefined;
+      if (split) {
+        selects.push({ name: config.name, ...split });
       }
     };
     visit(typeof type === 'string' ? this.buildCache.getTypeConfig(type) : type);
@@ -396,10 +401,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    * `deepEqual`, so a literal compares by value and a function, anywhere in it, by identity. Two
    * selects sharing a function share it by reference rather than writing it out twice.
    */
-  private assertSelectsAgree(typeConfig: PothosTypeConfig, modelKey: string) {
-    const model = getModel(this.config.contract, modelKey);
+  private assertSelectsAgree(typeConfig: PothosTypeConfig) {
     const definitions = new Map<string, { type: string; definition: unknown }>();
-    for (const { name: type, raw } of this.typeLevelSelects(typeConfig)) {
+    for (const { name: type, relations, computed } of this.typeLevelSelects(typeConfig)) {
       const check = (key: string, definition: unknown) => {
         const first = definitions.get(key);
         if (!first) {
@@ -410,7 +414,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           );
         }
       };
-      const { relations, computed } = splitSelect(raw, model, PothosSchemaError);
       for (const [name, value] of relations) {
         check(
           name,
@@ -588,14 +591,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       const typeConfig = this.buildCache.getTypeConfig(typeName);
       const modelKey = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string;
       const model = getModel(this.config.contract, modelKey);
-      data = typeDataOf(
-        modelKey,
-        model,
-        this.typeLevelSelects(typeName).map(({ name, raw }) => ({
-          name,
-          ...splitSelect(raw, model),
-        })),
-      );
+      data = typeDataOf(modelKey, model, this.typeLevelSelects(typeName));
       this.typeDataCache.set(typeName, data);
     }
     return data;
@@ -637,7 +633,7 @@ function holds(row: object, keys: readonly string[]) {
 }
 
 /** The keys a split `select` writes on the parent: its columns, relations and computed values. */
-function selectedKeys({ columns, relations, computed }: ReturnType<typeof splitSelect>) {
+function selectedKeys({ columns, relations, computed }: SplitSelect) {
   return [...columns, ...relations.map(([name]) => name), ...computed.map(({ key }) => key)];
 }
 
@@ -645,7 +641,7 @@ function selectedKeys({ columns, relations, computed }: ReturnType<typeof splitS
  * The keys a type-level `select` fills only from its own branch: relations it filters or refines,
  * and computed values. A whole relation reads the same whoever loaded it.
  */
-function ownKeys({ relations, computed }: ReturnType<typeof splitSelect>) {
+function ownKeys({ relations, computed }: SplitSelect) {
   return [
     ...relations
       .filter(([, value]) => typeof value === 'function' || definedQuery(value) !== undefined)
@@ -661,7 +657,7 @@ function ownKeys({ relations, computed }: ReturnType<typeof splitSelect>) {
 function typeDataOf(
   modelKey: string,
   model: PrismaNextModel,
-  selects: readonly (ReturnType<typeof splitSelect> & { name: string })[],
+  selects: readonly (SplitSelect & { name: string })[],
 ) {
   const branched = selects.filter(
     (select) => select.relations.length > 0 || select.computed.length > 0,
@@ -705,13 +701,11 @@ async function* copyEach(items: AsyncIterable<unknown>, copy: (item: unknown) =>
  * variant declares, so a type's `select` can't name one.
  */
 function assertNoVariantRelations(
-  raw: RawSelect,
-  modelKey: string,
+  { relations }: SplitSelect,
+  model: PrismaNextModel,
   typeName: string,
-  contract: AnyContract,
 ) {
-  const model = getModel(contract, modelKey);
-  for (const [name, value] of splitSelect(raw, model, PothosSchemaError).relations) {
+  for (const [name, value] of relations) {
     if (loadsOwnTableVariantRows(model.relations[name]!, value)) {
       throw ownTableVariantRowsError(
         `The select of type '${typeName}' loads`,
@@ -723,8 +717,12 @@ function assertNoVariantRelations(
 }
 
 /** Checks the columns each relation entry of a static `select` orders by. */
-function assertSelectOrders(config: PrismaNextConfig, raw: RawSelect, model: PrismaNextModel) {
-  for (const [name, value] of splitSelect(raw, model, PothosSchemaError).relations) {
+function assertSelectOrders(
+  config: PrismaNextConfig,
+  { relations }: SplitSelect,
+  model: PrismaNextModel,
+) {
+  for (const [name, value] of relations) {
     const orderBy = typeof value === 'object' ? definedQuery(value)?.orderBy : undefined;
     if (orderBy) {
       const { targetModel } = model.relations[name]!;

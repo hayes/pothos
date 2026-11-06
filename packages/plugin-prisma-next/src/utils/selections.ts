@@ -754,6 +754,8 @@ export function splitSelect(
   return { columns, relations, computed };
 }
 
+export type SplitSelect = ReturnType<typeof splitSelect>;
+
 /**
  * Whether a `select` entry loads the rows of `relation` through a variant model with a table of its
  * own, which can't read the columns it inherits. A page entry doesn't hand over rows loaded that
@@ -785,14 +787,12 @@ interface SelectCompilation {
   field?: FieldPlanning;
 }
 
-/** Compiles a `select` object or column list. Each relation entry is one consumer, `id`. */
+/** Compiles a split `select`. Each relation entry is one consumer, `id`. */
 function compileSelect(
-  raw: RawSelect,
+  { columns, relations, computed }: SplitSelect,
   model: PrismaNextModel,
   { contract, id, args, source, rows, field }: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
-  // Compiled for a request, which may be the first to see what a select function returns.
-  const { columns, relations, computed } = splitSelect(raw, model, InternalError);
   const identity = (entry: unknown) => (source === undefined ? entry : { source, args });
   const parts = relations.map(([name, value]) => {
     const relation = model.relations[name]!;
@@ -831,11 +831,11 @@ function compileSelect(
 /** Compiles a type-level `select`. Its relations load every column, in the type's own slots. */
 export function compileTypeSelect(
   contract: AnyContract,
-  raw: RawSelect,
+  split: SplitSelect,
   model: PrismaNextModel,
   typeName: string,
 ) {
-  return compileSelect(raw, model, {
+  return compileSelect(split, model, {
     contract,
     id: typeName,
     args: {},
@@ -927,6 +927,9 @@ export function compileFieldSelect(
         );
       },
     };
-    return completeOption(raw, args, ctx, (value) => compileSelect(value ?? {}, model, select));
+    // Compiled for a request, which may be the first to see what a select function returns.
+    return completeOption(raw, args, ctx, (value) =>
+      compileSelect(splitSelect(value ?? {}, model, InternalError), model, select),
+    );
   };
 }
