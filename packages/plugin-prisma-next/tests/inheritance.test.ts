@@ -1059,7 +1059,7 @@ describe("a variant's relations in a field's select", () => {
       interfaces: [task],
       fields: (t) => ({
         noteTotal: t.int({
-          select: { notes: (sub) => ({ noteTotal: sub.count() }) },
+          select: { noteTotal: { notes: (sub) => sub.count() } },
           resolve: (bug) => bug.noteTotal,
         }),
       }),
@@ -1096,7 +1096,7 @@ describe("a variant's relations in a field's select", () => {
     });
     builder.prismaObject('Bug', {
       interfaces: [task],
-      select: { notes: (sub) => ({ noteTotal: sub.count() }) },
+      select: { noteTotal: { notes: (sub) => sub.count() } },
       fields: (t) => ({ noteTotal: t.int({ resolve: (bug) => bug.noteTotal }) }),
     });
     builder.prismaObject('Feature', { interfaces: [task] });
@@ -1127,12 +1127,12 @@ describe("a variant's relations in a field's select", () => {
     });
     builder.prismaObject('Bug', {
       interfaces: [task],
-      select: { notes: (sub) => ({ baseTotal: sub.count() }) },
+      select: { baseTotal: { notes: (sub) => sub.count() } },
       fields: (t) => ({
         noteTotal: t.int({
           // The contract's type doesn't have `bugNotes`.
           select: {
-            bugNotes: (sub: { count(): unknown }) => ({ noteTotal: sub.count() }),
+            noteTotal: { bugNotes: (sub: { count(): unknown }) => sub.count() },
           } as never,
           resolve: (bug) => (bug as unknown as { noteTotal: number }).noteTotal,
         }),
@@ -1889,7 +1889,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         championCount: t.int({
-          select: { championed: (sub) => ({ total: sub.count() }) },
+          select: { total: { championed: (sub) => sub.count() } },
           resolve: (user) => user.total,
         }),
       }),

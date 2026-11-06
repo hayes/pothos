@@ -53,11 +53,11 @@ relations, counts or aggregates.
 
 When a type and its interfaces both select data:
 
-- An interface and a type that implements it, or two interfaces of one type, can't select the same
-  relation with different arguments in their type-level `select`. The schema build throws. Load the
-  other version with `t.relation` or a field's `select`.
-- A type and its interfaces can't compute values from a relation under the same name. Requests
-  that load both fail.
+- An interface and a type that implements it, or two interfaces of one type, can't define the same
+  relation or computed key differently in their type-level `select`. The schema build throws.
+  Definitions are the same when their objects are equal and any functions in them are the same
+  function, so share a function rather than writing it twice. Load the other version with
+  `t.relation` or a field's `select`.
 
 To add fields to the interface from another file, use `prismaInterfaceField` or
 `prismaInterfaceFields`:

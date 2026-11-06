@@ -48,8 +48,8 @@ export const REFINE = Symbol('prismaNextRefine');
 export const COMPUTE = Symbol('prismaNextCompute');
 
 type Refine = (rel: MapperCollection) => MapperCollection | null | undefined;
-/** Computes values from a to-many relation's collection. They are written onto the parent row. */
-type Compute = (rel: MapperCollection, ctx: object) => Record<string, unknown>;
+/** Computes a value from a to-many relation's collection: a reducer, or a collection of rows. */
+type Compute = (rel: MapperCollection) => unknown;
 
 /**
  * The variant a level of the query is narrowed to. By default the base collection is narrowed with
@@ -73,16 +73,19 @@ export interface RelationArgs {
 }
 
 export interface ComputedSelection {
-  /** Identifies the computed values, like `RelationArgs.loadIdentity`. */
+  /** The key the value is written to on the parent. */
+  key: string;
+  /** Identifies the computed value, like `RelationArgs.loadIdentity`. */
   loadIdentity: unknown;
   [COMPUTE]: Compute;
 }
 
 /**
  * A selection on one model. Planned node trees are written back in the same shape. A to-many
- * relation and its computed values are keyed `relation:id`. Consumers with different arguments
- * then get separate `combine()` branches and still load in one statement. A to-one relation is always
- * loaded whole and keyed by its name, so every reader of the row sees it there.
+ * relation is keyed `relation:id`, and a value computed from it `relation:id:key`. Consumers with
+ * different arguments then get separate `combine()` branches and still load in one statement. A
+ * to-one relation is always loaded whole and keyed by its name, so every reader of the row sees it
+ * there.
  */
 export interface PrismaNextSelection {
   /** `null` selects every column. */
@@ -415,8 +418,8 @@ function copyWith(
  * ORM row with `combine()` values, a copy without them, holding them under `SLOTS`, with what those
  * selects loaded written on. A copy this plugin made, or another plugin's copy of a field's copy, is
  * made again from its row. Another plugin's copy of a type's copy is kept, with only what it lacks
- * written onto a copy of it. Two selects computing one key fail when the statement is built (see
- * `assertOneWriter` in adapter.ts).
+ * written onto a copy of it. The selects of a type and its interfaces that write one key agree,
+ * which the schema build checks (see `assertSelectsAgree` in index.ts).
  */
 export function typeCopy(value: object, model: PrismaNextModel, ids: CopyIds): object {
   const held = (value as Holder)[SLOTS];
@@ -471,15 +474,6 @@ export function fieldValue(parent: object, name: string, key: string): unknown {
 }
 
 /**
- * Whether the statement that loaded `parent`, a copy for a type, loaded consumer `id`'s values from
- * relation `name`.
- */
-export function loadedValues(parent: object, name: string, id: string) {
-  const held = (parent as Holder)[SLOTS];
-  return !!held?.slots.relations[name]?.values[id];
-}
-
-/**
  * `loaded`, a row a reload returned, with the keys of `row` that aren't columns or relations of
  * `model`. It is copied only when there are such keys.
  */
@@ -508,8 +502,18 @@ function copyOf(row: object): Row {
   return copy;
 }
 
-/** Column names, or an object of columns (`true`) and relations (`true`, a query, or a function). */
+/**
+ * Column names, or an object of columns (`true`), relations (`true`, a query, or a function that
+ * refines the rows) and computed values (`{ relation: (collection) => value }`).
+ */
 export type RawSelect = readonly string[] | Record<string, unknown>;
+
+/** A computed value of a `select`: `key: { relation: compute }`. */
+export interface ComputedEntry {
+  key: string;
+  relation: string;
+  compute: Compute;
+}
 
 interface DeclarativeQuery {
   where?: unknown;
@@ -611,18 +615,24 @@ export function rowsSelection(
   }));
 }
 
-/** The values consumer `id` computes from relation `name`, identified by `loadIdentity`. */
+/** The value consumer `id` computes from relation `name` under `key`, identified by `loadIdentity`. */
 export function computedSelection(
   name: string,
   id: string,
+  key: string,
   loadIdentity: unknown,
   compute: Compute,
 ): PrismaNextSelection {
-  return { computed: { [slotKey(name, id)]: { loadIdentity, [COMPUTE]: compute } } };
+  return {
+    computed: {
+      [`${slotKey(name, id)}${KEY_SEPARATOR}${key}`]: { key, loadIdentity, [COMPUTE]: compute },
+    },
+  };
 }
 
 /**
- * The columns and relations of a `select`. The types check its entries. `ErrorClass` is
+ * The columns, relations and computed values of a `select`. The types check its entries: a key
+ * that isn't a column or relation holds a computed value, which reads one relation. `ErrorClass` is
  * `PothosSchemaError` for a `select` checked when the schema is built.
  */
 export function splitSelect(
@@ -632,6 +642,12 @@ export function splitSelect(
 ) {
   const columns: string[] = [];
   const relations: [string, unknown][] = [];
+  const computed: ComputedEntry[] = [];
+  const assertLoadable = (name: string) => {
+    if (model.sharedVariantRelations.has(name)) {
+      throw sharedVariantRelationError(`a select of model '${model.key}'`, name, model, ErrorClass);
+    }
+  };
   for (const [key, value] of Array.isArray(raw)
     ? raw.map((column) => [column, true] as const)
     : Object.entries(raw)) {
@@ -639,36 +655,38 @@ export function splitSelect(
     if (value == null) {
       continue;
     }
+    assertLoadable(key);
     if (model.relations[key]) {
       relations.push([key, value]);
-    } else if (model.sharedVariantRelations.has(key)) {
-      throw sharedVariantRelationError(`a select of model '${model.key}'`, key, model, ErrorClass);
+    } else if (typeof value === 'object') {
+      const [relation, compute] = Object.entries(value)[0]! as [string, Compute];
+      assertLoadable(relation);
+      computed.push({ key, relation, compute });
     } else {
       columns.push(key);
     }
   }
-  return { columns, relations };
+  return { columns, relations, computed };
 }
 
 /**
  * Whether a `select` entry loads the rows of `relation` through a variant model with a table of its
- * own, which can't read the columns it inherits. Function and page entries don't hand over rows
- * loaded that way.
+ * own, which can't read the columns it inherits. A page entry doesn't hand over rows loaded that
+ * way.
  */
 export function loadsOwnTableVariantRows(relation: PrismaNextRelation, value: unknown) {
-  return (
-    typeof value !== 'function' &&
-    !isPageEntry(value) &&
-    relation.targetVariantModel?.sharesTable === false
-  );
+  return !isPageEntry(value) && relation.targetVariantModel?.sharesTable === false;
 }
 
 interface SelectCompilation {
   contract: AnyContract;
   id: string;
   args: object;
-  /** Identifies the select's function entries, together with `args`. */
-  source: unknown;
+  /**
+   * The select function the entries came from. A function builds new entries on every call, so
+   * it identifies their loads together with `args`. A static select's entries identify themselves.
+   */
+  source?: unknown;
   /**
    * Plans the rows a relation entry loads, starting from `seed`. A field plans them beneath its
    * own selection. A type-level select includes them as they are.
@@ -689,23 +707,18 @@ function compileSelect(
   { contract, id, args, source, rows, field }: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
   // Compiled for a request, which may be the first to see what a select function returns.
-  const { columns, relations } = splitSelect(raw, model, InternalError);
+  const { columns, relations, computed } = splitSelect(raw, model, InternalError);
+  const identity = (entry: unknown) => (source === undefined ? entry : { source, args });
   const parts = relations.map(([name, value]) => {
     const relation = model.relations[name]!;
     if (isPageEntry(value)) {
       return value[CONNECTION_PAGE](relation, name, field!);
     }
-    if (typeof value === 'function') {
-      // The types keep computed keys apart from each other and from the parent's fields.
-      return computedSelection(name, id, { source, args }, (sub, ctx) =>
-        (value as (sub: MapperCollection, args: object, ctx: object) => Record<string, unknown>)(
-          sub,
-          args,
-          ctx,
-        ),
-      );
-    }
-    const query = value === true ? undefined : definedQuery(value);
+    const query = value === true || typeof value === 'function' ? undefined : definedQuery(value);
+    const refine =
+      typeof value === 'function'
+        ? (value as Refine)
+        : query && queryRefinement(contract, relation.targetModel, query);
     return rowsSelection(
       relation,
       name,
@@ -713,12 +726,15 @@ function compileSelect(
       rows(relation, name, {
         columns: null,
         args: relationArgs(relation, {
-          loadIdentity: query,
-          refine: query && queryRefinement(contract, relation.targetModel, query),
+          loadIdentity: typeof value === 'function' ? identity(value) : query,
+          refine: refine as ((rel: MapperCollection) => MapperCollection) | undefined,
         }),
       }),
     );
   });
+  for (const { key, relation, compute } of computed) {
+    parts.push(computedSelection(relation, id, key, identity(compute), compute));
+  }
   const settled = parts.some(isThenable) ? Promise.all(parts) : (parts as PrismaNextSelection[]);
   return completeValue(settled, (resolved) => ({
     columns,
@@ -738,7 +754,6 @@ export function compileTypeSelect(
     contract,
     id: typeName,
     args: {},
-    source: typeName,
     rows: (_relation, _name, seed) => seed,
   }) as PrismaNextSelection;
 }
@@ -769,8 +784,8 @@ export function compileFieldSelect(
   model: PrismaNextModel,
 ): PrismaNextSelection | PrismaNextSelectFn {
   if (typeof raw !== 'function') {
-    const { columns, relations } = splitSelect(raw, model);
-    if (relations.length === 0) {
+    const { columns, relations, computed } = splitSelect(raw, model);
+    if (relations.length === 0 && computed.length === 0) {
       return { columns };
     }
   }
@@ -785,7 +800,7 @@ export function compileFieldSelect(
       contract,
       id,
       args,
-      source: raw,
+      ...(typeof raw === 'function' ? { source: raw } : {}),
       field: { id, args, ctx, nested, selected, position },
       rows: (relation, name, seed) => {
         // Rows the field's selection set doesn't plan are read as they load, which for a variant

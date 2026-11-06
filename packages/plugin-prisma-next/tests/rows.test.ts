@@ -416,7 +416,7 @@ describe('rows the plugin loaded', () => {
     builder.prismaNode('User', {
       id: { field: 'id' },
       collection: () => db.orm.User,
-      select: { posts: (sub) => ({ total: sub.count() }) },
+      select: { total: { posts: (sub) => sub.count() } },
       fields: (t) => ({
         total: t.int({ resolve: (user) => user.total }),
         postsPage: t.relatedConnection('posts', {
@@ -426,7 +426,7 @@ describe('rows the plugin loaded', () => {
       }),
     });
     builder.prismaObject('Post', {
-      select: { comments: (sub) => ({ commentsTotal: sub.count() }) },
+      select: { commentsTotal: { comments: (sub) => sub.count() } },
       fields: (t) => ({
         author: t.relation('author'),
         commentsTotal: t.int({ resolve: (post) => post.commentsTotal }),

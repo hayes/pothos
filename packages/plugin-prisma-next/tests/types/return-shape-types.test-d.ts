@@ -87,7 +87,7 @@ builder.prismaInterface('Post', {
     title: true,
     author: true,
     comments: true,
-    views: (sub) => ({ viewCount: sub.count() }),
+    viewCount: { views: (sub) => sub.count() },
   },
   resolveType: (post) => {
     expectTypeOf(post.id).toEqualTypeOf<string>();

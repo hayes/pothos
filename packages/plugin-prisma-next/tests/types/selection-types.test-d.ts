@@ -148,10 +148,10 @@ builder.prismaNode('User', {
 declare const eitherSelect: readonly ['id'] | { readonly id: true };
 builder.prismaObject('User', { variant: 'SelectUnion', select: eitherSelect, fields: () => ({}) });
 
-// Function-form selects type `sub` as the relation's collection and put their keys on the row.
+// A computed key types `sub` as its relation's collection and puts its value on the row.
 builder.prismaObject('User', {
   variant: 'FunctionSelects',
-  select: { posts: (sub) => ({ postCount: sub.count() }) },
+  select: { postCount: { posts: (sub) => sub.count() } },
   fields: (t) => ({
     postCount: t.int({
       resolve: (user) => {
@@ -163,13 +163,11 @@ builder.prismaObject('User', {
       type: 'Float',
       nullable: true,
       select: {
-        posts: (sub) => ({
-          total: sub.count(),
-          published: sub.where((p) => p.published.eq(1)).count(),
-          avg: sub.avg('published'),
-          max: sub.max('score'),
-          rows: sub.where({ published: 1 }),
-        }),
+        total: { posts: (sub) => sub.count() },
+        published: { posts: (sub) => sub.where((p) => p.published.eq(1)).count() },
+        avg: { posts: (sub) => sub.avg('published') },
+        max: { posts: (sub) => sub.max('score') },
+        rows: { posts: (sub) => sub.where({ published: 1 }) },
       },
       resolve: (user) => {
         expectTypeOf(user.total).toEqualTypeOf<number>();
@@ -185,31 +183,80 @@ builder.prismaObject('User', {
 builder.prismaObject('User', {
   variant: 'FunctionSelectBadMethod',
   // @ts-expect-error `sub` is typed, so an unknown method is rejected
-  select: { posts: (sub) => ({ n: sub.nope() }) },
+  select: { n: { posts: (sub) => sub.nope() } },
   fields: () => ({}),
 });
+// A function under a relation refines the rows it loads.
 builder.prismaObject('User', {
-  variant: 'FunctionSelectCollection',
-  // @ts-expect-error the function returns an object of values to load, not the collection
-  select: { posts: (sub) => sub },
-  fields: () => ({}),
+  variant: 'FunctionSelectRefine',
+  select: { posts: (sub) => sub.where({ published: 1 }) },
+  fields: (t) => ({
+    titles: t.stringList({
+      resolve: (user) => {
+        expectTypeOf(user.posts).toEqualTypeOf<readonly PostRow[]>();
+        return user.posts.map((post) => post.title);
+      },
+    }),
+  }),
 });
 builder.prismaObject('User', {
   variant: 'FunctionSelectReducer',
-  // @ts-expect-error a reducer needs a key on the returned object
+  // @ts-expect-error a reducer goes under a computed key, not the relation's
   select: { posts: (sub) => sub.count() },
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'ComputedKeyNamesColumn',
+  // @ts-expect-error a computed key can't be a column
+  select: { email: { posts: (sub) => sub.count() } },
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'ComputedKeyNamesRelation',
+  // @ts-expect-error a computed key can't be a relation
+  select: { comments: { posts: (sub) => sub.count() } },
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'ComputedTwoRelations',
+  // @ts-expect-error a computed value reads exactly one relation
+  select: { n: { posts: (sub) => sub.count(), comments: (sub) => sub.count() } },
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'ComputedNoRelation',
+  // @ts-expect-error a computed value reads a relation
+  select: { n: {} },
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'ComputedUnknownRelation',
+  // @ts-expect-error a computed value reads a to-many relation of the model
+  select: { n: { psots: (sub: unknown) => sub } },
+  fields: () => ({}),
+});
+builder.prismaObject('Post', {
+  variant: 'ComputedToOne',
+  // @ts-expect-error a computed value reads a to-many relation
+  select: { n: { author: (sub: never) => sub } },
+  fields: () => ({}),
+});
+builder.prismaObject('User', {
+  variant: 'ComputedNotAValue',
+  // @ts-expect-error the function returns a collection or reducer
+  select: { n: { posts: () => 1 } },
   fields: () => ({}),
 });
 builder.prismaInterface('User', {
   name: 'InterfaceFunctionSelect',
-  select: { posts: (sub) => ({ postCount: sub.count() }) },
+  select: { postCount: { posts: (sub) => sub.count() } },
   fields: (t) => ({ postCount: t.int({ resolve: (user) => user.postCount }) }),
 });
 builder.prismaNode('User', {
   variant: 'NodeFunctionSelect',
   id: { field: 'id' },
   collection,
-  select: { posts: (sub) => ({ postCount: sub.count() }) },
+  select: { postCount: { posts: (sub) => sub.count() } },
   fields: (t) => ({ postCount: t.int({ resolve: (user) => user.postCount }) }),
 });
 
@@ -255,14 +302,18 @@ builder.prismaObject('User', {
     computed: t.int({
       args: { published: t.arg.int({ required: true }) },
       select: (args) => ({
-        posts: (sub) => ({ postCount: sub.where({ published: args.published }).count() }),
+        postCount: { posts: (sub) => sub.where({ published: args.published }).count() },
       }),
       resolve: (user) => user.postCount,
     }),
-    collection: t.string({
-      // @ts-expect-error the function returns an object of values to load, not the collection
-      select: { posts: (sub) => sub },
-      resolve: () => '',
+    refined: t.int({
+      select: { posts: (sub) => sub.where({ published: 1 }) },
+      resolve: (user) => user.posts.length,
+    }),
+    collision: t.int({
+      // @ts-expect-error a computed key can't be a column
+      select: () => ({ email: { posts: (sub) => sub.count() } }),
+      resolve: () => 0,
     }),
     // Columns only some branches select may be missing.
     branches: t.string({
@@ -496,7 +547,7 @@ builder.prismaNode('Post', {
 builder.prismaObject('Post', {
   variant: 'ToOneFunctionTypeSelect',
   // @ts-expect-error a to-one relation has no function form on a type either
-  select: { author: (author) => ({ name: author }) },
+  select: { author: (author: never) => author },
 });
 // However the query options reach a type's select.
 const limitedAuthor = { author: { limit: 1 } };
@@ -547,7 +598,7 @@ builder.prismaObject('User', {
   variant: 'ToManyTypeSelects',
   select: {
     posts: { where: { published: 1 }, limit: 1 },
-    comments: (sub) => ({ commentTotal: sub.count() }),
+    commentTotal: { comments: (sub) => sub.count() },
   },
 });
 
@@ -1239,65 +1290,31 @@ builder.prismaObject('User', {
   }),
 });
 
-const keyed = <K extends string, V>(key: K, value: V): { [P in K]: V } =>
-  ({ [key]: value }) as { [P in K]: V };
-
-// Computed values are written onto the parent, so each key has one source and no column's name.
+// Computed values are written onto the parent, so a computed key can't name a column or relation.
 builder.prismaObject('Post', {
   variant: 'ComputedKeys',
   fields: (t) => ({
-    duplicate: t.int({
-      // @ts-expect-error `comments` and `views` both compute `n`
-      select: { comments: (sub) => ({ n: sub.count() }), views: (sub) => ({ n: sub.count() }) },
-      resolve: () => 0,
-    }),
     // @ts-expect-error `title` is a column of Post
-    column: t.int({ select: { comments: (sub) => ({ title: sub.count() }) }, resolve: () => 0 }),
+    column: t.int({ select: { title: { comments: (sub) => sub.count() } }, resolve: () => 0 }),
     // @ts-expect-error `views` is a relation of Post
-    relation: t.int({ select: { comments: (sub) => ({ views: sub.count() }) }, resolve: () => 0 }),
+    relation: t.int({ select: { views: { comments: (sub) => sub.count() } }, resolve: () => 0 }),
     branch: t.int({
       // @ts-expect-error every branch is checked
       select: () =>
         flag
-          ? { comments: (sub) => ({ n: sub.count() }) }
-          : { comments: (sub) => ({ id: sub.count() }) },
+          ? { n: { comments: (sub) => sub.count() } }
+          : { id: { comments: (sub: never) => sub } },
       resolve: () => 0,
-    }),
-    nonLiteral: t.int({
-      args: { key: t.arg.string({ required: true }) },
-      // @ts-expect-error a key built from the args can't be checked against the others
-      select: (args) => ({ comments: (sub) => ({ [args.key]: sub.count() }) }),
-      resolve: () => 0,
-    }),
-    mixed: t.int({
-      args: { key: t.arg.string({ required: true }) },
-      // @ts-expect-error a non-literal key beside literal ones is rejected too
-      select: (args) => ({ comments: (sub) => ({ [args.key]: sub.count(), n: sub.count() }) }),
-      resolve: () => 0,
-    }),
-    // TypeScript widens a key typed by a type parameter to `string`, so a generic helper declares
-    // its result as a mapped type.
-    generic: t.int({
-      select: { comments: (sub) => keyed('commentTotal', sub.count()) },
-      resolve: (post) => {
-        expectTypeOf(post.commentTotal).toEqualTypeOf<number>();
-        return post.commentTotal;
-      },
     }),
     several: t.int({
       select: {
-        comments: (sub) => ({ commentCount: sub.count(), firstComment: sub.limit(1) }),
-        views: (sub) => ({ viewCount: sub.count() }),
+        commentCount: { comments: (sub) => sub.count() },
+        firstComment: { comments: (sub) => sub.limit(1) },
+        viewCount: { views: (sub) => sub.count() },
       },
       resolve: (post) => post.commentCount + post.viewCount + post.firstComment.length,
     }),
   }),
-});
-builder.prismaObject('User', {
-  variant: 'DuplicateTypeLevelComputedKeys',
-  // @ts-expect-error a type's select is checked too
-  select: { posts: (sub) => ({ n: sub.count() }), comments: (sub) => ({ n: sub.count() }) },
-  fields: () => ({}),
 });
 
 // The plugin includes what the query selects, so a resolver's collection can't include relations.

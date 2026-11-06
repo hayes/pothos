@@ -21,7 +21,7 @@ export const UserWithPosts = builder.prismaInterface('User', {
 
 export const UserWithPostTitles = builder.prismaInterface('User', {
   variant: 'UserWithPostTitles',
-  select: { email: true, posts: (sub) => ({ postRows: sub.select('title') }) },
+  select: { email: true, postRows: { posts: (sub) => sub.select('title') } },
   fields: (t) => ({ postCount: t.int({ resolve: (user) => user.postRows.length }) }),
 });
 
@@ -75,7 +75,7 @@ export const CompoundPostNode = builder.prismaNode('Post', {
 
 export const PostCounts = builder.prismaObject('Post', {
   variant: 'PostCounts',
-  select: { title: true, comments: (sub) => ({ commentCount: sub.count() }), views: true },
+  select: { title: true, commentCount: { comments: (sub) => sub.count() }, views: true },
   fields: (t) => ({ commentCount: t.int({ resolve: (post) => post.commentCount }) }),
 });
 
@@ -89,11 +89,9 @@ export const searchPages = prismaConnectionHelpers(builder, 'User', {
 export const UserStats = builder.prismaObject('User', {
   variant: 'UserStats',
   select: {
-    posts: (sub) => ({
-      total: sub.count(),
-      average: sub.avg('published'),
-      publishedRows: sub.where({ published: 1 }),
-    }),
+    total: { posts: (sub) => sub.count() },
+    average: { posts: (sub) => sub.avg('published') },
+    publishedRows: { posts: (sub) => sub.where({ published: 1 }) },
   },
   fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
 });

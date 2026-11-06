@@ -13,8 +13,6 @@ import {
   experimentalExecuteIncrementally,
   GraphQLDeferDirective,
   type GraphQLFieldResolver,
-  type GraphQLIsTypeOfFn,
-  type GraphQLResolveInfo,
   type GraphQLSchema,
   parse,
   specifiedDirectives,
@@ -1612,13 +1610,13 @@ describe('a relation an interface and its implementation select alike', () => {
 });
 
 // A row holds one value per computed key, so an interface and its implementation whose selects
-// compute the same key from different queries would each pass their auth check on the other's.
+// compute the same key differently would each pass their auth check on the other's.
 describe('a key an interface and its implementation both compute', () => {
   describe.each([
     ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
     ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
   ] as const)('scope auth %s the prisma plugin', (_name, plugins) => {
-    it('fails the field loading the type, whatever the values', async () => {
+    it('fails the schema build', () => {
       const builder = new SchemaBuilder<{
         PrismaNextContract: SampleContract;
         AuthScopes: { ok: boolean };
@@ -1630,34 +1628,19 @@ describe('a key an interface and its implementation both compute', () => {
       });
       const Limited = builder.prismaInterface('User', {
         variant: 'Limited',
-        select: { posts: (sub) => ({ total: sub.count() }) },
+        select: { total: { posts: (sub) => sub.count() } },
         authScopes: (user) => user.total <= 1,
         resolveType: () => 'User',
         fields: (t) => ({ id: t.exposeID('id') }),
       });
-      const User = builder.prismaObject('User', {
+      builder.prismaObject('User', {
         interfaces: [Limited],
-        select: { posts: (sub) => ({ total: sub.where({ published: 1 }).count() }) },
+        select: { total: { posts: (sub) => sub.where({ published: 1 }).count() } },
         fields: (t) => ({ email: t.exposeString('email') }),
       });
-      builder.queryType({
-        fields: (t) => ({
-          users: t.prismaField({
-            type: [User],
-            resolve: () => ctx.orm.User.orderBy((user) => user.id.asc()),
-          }),
-        }),
-      });
-      // Alice has two posts, one published, and Bob one of each, so both counts differ.
-      const result = await runCaptured(builder.toSchema(), '{ users { id email } }');
-      // Checked as the statement is built, before any row loads.
-      expect(result.data).toEqual({ users: null });
-      expect(new Set(result.errors?.map((error) => detailOf(error)))).toEqual(
-        new Set([
-          "'Limited' and 'User' both compute 'total' from relation 'posts' in their select. A " +
-            'row holds one value for it, which every field and auth check of the type reads. ' +
-            'Give one of them a different name.',
-        ]),
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'Limited' and 'User' both select 'total', with different definitions.",
       );
     });
   });
@@ -1734,7 +1717,7 @@ describe('slots beneath shared walks', () => {
     b.prismaObject('User', {
       variant: 'U2',
       interfaces: [UI, L],
-      select: { firstName: true, posts: (sub: any) => ({ total: sub.count() }) },
+      select: { firstName: true, total: { posts: (sub: any) => sub.count() } },
       fields: (t: any) => ({ own: dra(t), total: t.int({ resolve: (u: any) => u.total }) }),
     });
     const Guarded = b.prismaObject('Post', {
@@ -2082,21 +2065,6 @@ describe('slots beneath shared walks', () => {
   });
 });
 
-// Records the values passed to the `isTypeOf` it adds, to a test's `recordIsTypeOf`.
-let recordIsTypeOf: (parent: unknown) => void = () => {};
-class RecordIsTypeOfPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  override wrapIsTypeOf(isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined) {
-    return (parent: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
-      recordIsTypeOf(parent);
-      return isTypeOf ? isTypeOf(parent, context, info) : true;
-    };
-  }
-}
-SchemaBuilder.registerPlugin(
-  'prismaNextTestRecordIsTypeOf' as never,
-  RecordIsTypeOfPlugin as never,
-);
-
 // A type check that can't see the row it checks fails with the plugin's generic error.
 describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
   function schema() {
@@ -2110,7 +2078,7 @@ describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
     });
     const Limited = builder.prismaInterface('User', {
       variant: 'Limited',
-      select: { posts: (sub) => ({ total: sub.count() }) },
+      select: { total: { posts: (sub) => sub.count() } },
       resolveType: () => 'User',
       fields: (t) => ({ id: t.exposeID('id') }),
     });
@@ -2118,13 +2086,6 @@ describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
       interfaces: [Limited],
       select: { email: true },
       authScopes: (user) => user.email !== 'bob@example.com',
-      fields: (t) => ({ firstName: t.exposeString('firstName') }),
-    });
-    const Clashing = builder.prismaObject('User', {
-      variant: 'Clashing',
-      interfaces: [Limited],
-      select: { posts: (sub) => ({ total: sub.where({ published: 1 }).count() }) },
-      authScopes: () => true,
       fields: (t) => ({ firstName: t.exposeString('firstName') }),
     });
     builder.queryType({
@@ -2135,10 +2096,6 @@ describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
           args: { id: t.arg.id({ required: true }) },
           // A row without the email the type selects, which the check reloads.
           resolve: (_root, { id }) => ({ id: String(id) }) as never,
-        }),
-        clashing: t.prismaField({
-          type: [Clashing],
-          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -2151,51 +2108,6 @@ describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
     expect(result.errors?.map(detailOf)).toEqual([
       expect.stringMatching(/could not find the 'User' row/),
     ]);
-  });
-
-  it('fails a type check whose type selects compute the same key with a generic error', async () => {
-    const result = await runCaptured(schema(), '{ clashing { firstName } }');
-    expect(result.data).toEqual({ clashing: null });
-    expect(result.errors?.map(detailOf)).toEqual([
-      expect.stringMatching(/'Limited' and 'Clashing' both compute 'total'/),
-    ]);
-  });
-
-  it("throws instead of handing another plugin's isTypeOf a row it can't project", async () => {
-    const seen: unknown[] = [];
-    recordIsTypeOf = (parent) => seen.push(parent);
-    const builder = new SchemaBuilder<{
-      PrismaNextContract: SampleContract;
-      AuthScopes: { ok: boolean };
-    }>({
-      plugins: [...plugins, 'prismaNextTestRecordIsTypeOf'] as never,
-      scopeAuth: { authScopes: () => ({ ok: true }) },
-      prismaNext: { client: ctx.client },
-    });
-    const Limited = builder.prismaInterface('User', {
-      variant: 'Limited',
-      select: { posts: (sub) => ({ total: sub.count() }) },
-      resolveType: () => 'User',
-      fields: (t) => ({ id: t.exposeID('id') }),
-    });
-    const User = builder.prismaObject('User', {
-      interfaces: [Limited],
-      select: { posts: (sub) => ({ total: sub.where({ published: 1 }).count() }) },
-      fields: (t) => ({ firstName: t.exposeString('firstName') }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        users: t.prismaField({
-          type: [User],
-          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
-        }),
-      }),
-    });
-    const result = await runCaptured(builder.toSchema(), '{ users { firstName } }');
-    expect(result.errors?.map(detailOf)).toEqual([
-      expect.stringMatching(/'Limited' and 'User' both compute 'total'/),
-    ]);
-    expect(seen).toEqual([]);
   });
 });
 
@@ -2212,7 +2124,7 @@ describe.each(orders)("a row of another variant's select (%s)", (_, plugins) => 
     });
     const Drafts = builder.prismaObject('User', {
       variant: 'Drafts',
-      select: { posts: (sub) => ({ drafts: sub.where({ published: 0 }).count() }) },
+      select: { drafts: { posts: (sub) => sub.where({ published: 0 }).count() } },
       // Passes on a row without `drafts`.
       authScopes: (user) => !(user.drafts > 0),
       fields: (t) => ({ drafts: t.int({ resolve: (user) => user.drafts }) }),

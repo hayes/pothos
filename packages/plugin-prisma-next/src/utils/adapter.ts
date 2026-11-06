@@ -12,7 +12,6 @@ import {
   type GraphQLNamedType,
   type GraphQLSchema,
   isInterfaceType,
-  isObjectType,
 } from 'graphql';
 import {
   PRISMA_NEXT_FIELD_SELECTION,
@@ -21,7 +20,6 @@ import {
   PRISMA_NEXT_TYPE_SELECT,
 } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
-import { InternalError } from './errors.js';
 import {
   getIdentityFields,
   getModel,
@@ -93,11 +91,6 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     Map<PrismaNextRelation, PrismaNextSelection | null>
   >();
   private readonly withoutIdentity = new WeakMap<PrismaNextModel, boolean>();
-  /**
-   * The type-level selects whose computed values one parent shows together, for each object type:
-   * its own and its interfaces'. Filled by `registerImplementations`.
-   */
-  private readonly liftGroups: string[][] = [];
 
   constructor(
     readonly contract: AnyContract,
@@ -119,14 +112,6 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    */
   registerImplementations(schema: GraphQLSchema) {
     for (const type of Object.values(schema.getTypeMap())) {
-      if (isObjectType(type) && this.modelFor(type)) {
-        const group = [...type.getInterfaces(), type]
-          .filter((member) => member.extensions?.[PRISMA_NEXT_TYPE_SELECT])
-          .map((member) => member.name);
-        if (group.length) {
-          this.liftGroups.push(group);
-        }
-      }
       const model = isInterfaceType(type) ? this.modelFor(type) : undefined;
       if (model) {
         const selections = implementationsOf(type)!;
@@ -345,93 +330,49 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     collection: MapperCollection,
     selection: PrismaNextSelection,
     model: PrismaNextModel,
-    ctx: object,
   ): MapperCollection {
-    return this.emitLevel(collection, selection, model, ctx, { next: 0 });
+    return this.emitLevel(collection, selection, model, { next: 0 });
   }
 
   private emitLevel(
     collection: MapperCollection,
     selection: PrismaNextSelection,
     model: PrismaNextModel,
-    ctx: object,
     branches: BranchNames,
   ): MapperCollection {
     let result = selection.columns?.length ? collection.select(...selection.columns) : collection;
     // The ORM includes a relation once, so all of its consumers share one include.
     const consumers = new Map<string, RelationConsumers>();
-    const consumersOf = (key: string) => {
-      const name = relationName(key);
+    const consumersOf = (name: string) => {
       let entry = consumers.get(name);
       if (!entry) {
         entry = { rows: [], computed: [] };
         consumers.set(name, entry);
       }
-      return { id: key.slice(name.length + 1), entry };
+      return entry;
     };
     for (const [key, child] of Object.entries(selection.relations ?? {})) {
-      const { id, entry } = consumersOf(key);
-      entry.rows.push([id, child]);
+      const name = relationName(key);
+      consumersOf(name).rows.push([key.slice(name.length + 1), child]);
     }
+    // `relation:id:key`, whose key may itself start with the separator.
     for (const [key, value] of Object.entries(selection.computed ?? {})) {
-      const { id, entry } = consumersOf(key);
-      entry.computed.push([id, value]);
+      const name = relationName(key);
+      const rest = key.slice(name.length + 1);
+      consumersOf(name).computed.push([rest.slice(0, rest.indexOf(KEY_SEPARATOR)), value]);
     }
-    // The keys type-level selects compute on this level, by type and then key, with the relation.
-    const typeKeys = new Map<string, Map<string, string>>();
     for (const [name, entry] of consumers) {
       const relation = relationOf(model, name);
-      result = result.include(name, (rel) =>
-        this.emitRelation(rel, relation, entry, ctx, branches, (id, key) => {
-          // A type-level consumer is named after its type, and a type name never starts with a digit.
-          if (id.charCodeAt(0) <= 57) {
-            return;
-          }
-          let keys = typeKeys.get(id);
-          if (!keys) {
-            keys = new Map();
-            typeKeys.set(id, keys);
-          }
-          if (keys.has(key)) {
-            throw oneWriterError(id, id, key, keys.get(key)!, name);
-          }
-          keys.set(key, name);
-        }),
-      );
-    }
-    if (typeKeys.size > 0) {
-      this.assertOneWriter(typeKeys);
+      result = result.include(name, (rel) => this.emitRelation(rel, relation, entry, branches));
     }
     return result;
-  }
-
-  /**
-   * Throws when two `select`s that one parent shows compute the same key: the parent holds one
-   * value for it, which the fields and auth checks of both read. A select function's keys are
-   * only known once it runs, so this is checked as the statement is built.
-   */
-  private assertOneWriter(typeKeys: Map<string, Map<string, string>>) {
-    for (const group of this.liftGroups) {
-      const writers = new Map<string, [string, string]>();
-      for (const type of group) {
-        for (const [key, relation] of typeKeys.get(type) ?? []) {
-          const first = writers.get(key);
-          if (first) {
-            throw oneWriterError(first[0], type, key, first[1], relation);
-          }
-          writers.set(key, [type, relation]);
-        }
-      }
-    }
   }
 
   private emitRelation(
     rel: MapperCollection,
     relation: PrismaNextRelation,
     { rows, computed }: RelationConsumers,
-    ctx: object,
     branches: BranchNames,
-    computes: (id: string, key: string) => void,
   ): MapperCollection {
     const target = relation.targetVariantModel;
     // The ORM reads a single-table variant's rows through the base table without filtering them.
@@ -445,7 +386,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       const narrowed =
         narrowing && !narrowing.throughVariantModel ? base.variant(narrowing.value) : base;
       const refined = selection.args?.[REFINE]?.(narrowed) ?? narrowed;
-      return this.emitLevel(refined, selection, relation.target, ctx, branches);
+      return this.emitLevel(refined, selection, relation.target, branches);
     };
     if (!relation.isToMany) {
       // A to-one relation is keyed by its name, so it has one consumer.
@@ -467,13 +408,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       slots[ids.join(ID_SEPARATOR)] = load(selection);
     }
     for (const [ids, value] of shareComputed(computed)) {
-      const values = value[COMPUTE](base, ctx);
-      for (const key of Object.keys(values)) {
-        for (const id of ids) {
-          computes(id, key);
-        }
-        slots[`${ids.join(ID_SEPARATOR)}${KEY_SEPARATOR}${key}`] = values[key];
-      }
+      slots[`${ids.join(ID_SEPARATOR)}${KEY_SEPARATOR}${value.key}`] = value[COMPUTE](base);
     }
     return this.combine(base, slots, branches);
   }
@@ -524,17 +459,6 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   }
 }
 
-function oneWriterError(first: string, second: string, key: string, from: string, to: string) {
-  const relations = from === to ? `relation '${from}'` : `relations '${from}' and '${to}'`;
-  const who =
-    first === second
-      ? `'${first}' computes '${key}' twice`
-      : `'${first}' and '${second}' both compute '${key}'`;
-  return new InternalError(
-    `${who} from ${relations} in their select. A row holds one value for it, which every field and auth check of the type reads. Give one of them a different name.`,
-  );
-}
-
 /** Numbers the `combine()` branches of one statement. */
 interface BranchNames {
   next: number;
@@ -561,13 +485,15 @@ function loads(selection: PrismaNextSelection, held?: PrismaNextSelection): numb
 }
 
 /**
- * Groups the consumers of a relation that compute the same values, so each value is computed
- * once, however many aliases select it.
+ * Groups the consumers of a relation that compute the same value under the same key, so each value
+ * is computed once, however many aliases or agreeing type-level selects select it.
  */
 function shareComputed(computed: [string, ComputedSelection][]) {
   const groups: [string[], ComputedSelection][] = [];
   for (const [id, value] of computed) {
-    const group = groups.find(([, other]) => deepEqual(other.loadIdentity, value.loadIdentity));
+    const group = groups.find(
+      ([, other]) => other.key === value.key && deepEqual(other.loadIdentity, value.loadIdentity),
+    );
     if (group) {
       group[0].push(id);
     } else {

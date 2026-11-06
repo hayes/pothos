@@ -44,7 +44,7 @@ builder.prismaObject('User', {
     }),
     publishedPostCount: t.int({
       select: {
-        posts: (posts) => ({ publishedCount: posts.where({ published: 1 }).count() }),
+        publishedCount: { posts: (posts) => posts.where({ published: 1 }).count() },
       },
       resolve: (user) => user.publishedCount,
     }),
@@ -59,13 +59,14 @@ A `select` accepts:
 
 - Columns: `{ email: true }` or `['email']`.
 - Relations: `{ posts: true }`.
-- Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`.
+- Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`,
+  or a function that refines the relation's Collection: `{ posts: (posts) => posts.with(published) }`.
   A to-one relation takes only `true`.
-- Counts and aggregates of a to-many relation:
-  `{ posts: (posts) => ({ postCount: posts.count() }) }`. Each key (`postCount`) is added to the
-  row, so it can't reuse a column or relation name.
+- Computed values: any other key, holding one to-many relation and a function of its Collection,
+  such as `{ postCount: { posts: (posts) => posts.count() } }`. The key (`postCount`) is added to
+  the row, so it can't be a column or relation name.
 
-Read these computed keys in a resolver; `t.expose*` only works on columns.
+Read computed values in a resolver; `t.expose*` only works on columns.
 
 To filter a to-one relation, select it and return `null` from the resolver. Here a comment shows its
 post's title only when the post is published:

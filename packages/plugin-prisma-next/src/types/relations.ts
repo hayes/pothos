@@ -120,7 +120,7 @@ export type RelationQueryValue<
  * Refines a to-many relation's collection, as an `include()` refinement does, so it can apply
  * fragments (`posts.with(published)`) and the methods of custom collections.
  */
-type RelationRefinement<
+export type RelationRefinement<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   R extends RelationKeys<Types, M>,

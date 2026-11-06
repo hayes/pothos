@@ -1,8 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
-import { detailOf } from './fixtures/errors';
+import prismaNextPlugin, { type ComputedSelectEntry } from '../src';
 import {
   createBuilder,
   deferSchema,
@@ -11,6 +10,9 @@ import {
   useCollisionDb,
   useSampleDb,
 } from './fixtures/helpers';
+import type { Contract } from './fixtures/sample-contract';
+
+type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
 
 const db = useSampleDb();
 const collision = useCollisionDb();
@@ -215,14 +217,14 @@ describe('inherited selections', () => {
     const builder = createBuilder();
     const Totals = builder.prismaInterface('User', {
       variant: 'UserTotals',
-      select: { posts: (sub) => ({ total: sub.count() }) },
+      select: { total: { posts: (sub) => sub.count() } },
       fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
     });
     const Published = builder.prismaInterface('User', {
       variant: 'UserPublishedTotals',
       interfaces: [Totals],
       resolveType: () => 'User',
-      select: { posts: (sub) => ({ published: sub.where({ published: 1 }).count() }) },
+      select: { published: { posts: (sub) => sub.where({ published: 1 }).count() } },
       fields: (t) => ({ published: t.int({ resolve: (user) => user.published }) }),
     });
     const User = builder.prismaObject('User', {
@@ -418,7 +420,7 @@ describe('inherited selections', () => {
 
   // A row holds one version of a relation, which the fields and auth checks of its type and of its
   // interfaces all read, so their selects can't load it differently.
-  describe('rejects selects of one row that load a relation differently', () => {
+  describe('rejects selects of one row that define a key differently', () => {
     it('on an interface and its implementation', () => {
       const builder = createBuilder();
       const Named = builder.prismaInterface('User', {
@@ -429,11 +431,10 @@ describe('inherited selections', () => {
       builder.prismaObject('User', { interfaces: [Named], select: { posts: true } });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(
-        "'Named' and 'User' both select relation 'posts', with different arguments. A row of " +
-          "'User' holds one version of the relation, which the fields and auth checks of both " +
-          'types read. Select it with the same arguments in both, sharing any function such as ' +
-          "a where, or load the other version in a field, with t.relation('posts', { query }) " +
-          "or a field's select.",
+        "'Named' and 'User' both select 'posts', with different definitions. A row of 'User' " +
+          'holds one value for it, which the fields and auth checks of both types read. Define ' +
+          "it the same way in both, sharing any function such as a where or a computed value's " +
+          "function, or load the other version in a field's select.",
       );
     });
 
@@ -455,7 +456,7 @@ describe('inherited selections', () => {
       });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(
-        "'Base' and 'Post' both select relation 'comments', with different arguments.",
+        "'Base' and 'Post' both select 'comments', with different definitions.",
       );
     });
 
@@ -474,7 +475,7 @@ describe('inherited selections', () => {
       });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(
-        "'Base' and 'Derived' both select relation 'comments', with different arguments.",
+        "'Base' and 'Derived' both select 'comments', with different definitions.",
       );
     });
 
@@ -493,7 +494,7 @@ describe('inherited selections', () => {
       builder.prismaObject('User', { interfaces: [Published, Drafting] });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(
-        "'Published' and 'Drafting' both select relation 'posts', with different arguments.",
+        "'Published' and 'Drafting' both select 'posts', with different definitions.",
       );
     });
 
@@ -511,7 +512,61 @@ describe('inherited selections', () => {
       });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(
-        "'Named' and 'User' both select relation 'posts', with different arguments.",
+        "'Named' and 'User' both select 'posts', with different definitions.",
+      );
+    });
+
+    it('with refining functions that are not the same function', () => {
+      const builder = createBuilder();
+      const Named = builder.prismaInterface('User', {
+        variant: 'Named',
+        select: { posts: (posts) => posts.where({ published: 1 }) },
+        fields: () => ({}),
+      });
+      builder.prismaObject('User', {
+        interfaces: [Named],
+        select: { posts: (posts) => posts.where({ published: 1 }) },
+      });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'Named' and 'User' both select 'posts', with different definitions.",
+      );
+    });
+
+    it('with computed values whose functions are not the same function', () => {
+      const builder = createBuilder();
+      const Counted = builder.prismaInterface('User', {
+        variant: 'Counted',
+        select: { total: { posts: (sub) => sub.count() } },
+        fields: () => ({}),
+      });
+      builder.prismaObject('User', {
+        interfaces: [Counted],
+        select: { total: { posts: (sub) => sub.count() } },
+      });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'Counted' and 'User' both select 'total', with different definitions.",
+      );
+    });
+
+    it('with computed values of different relations', () => {
+      const builder = createBuilder();
+      const count = (sub: { count(): unknown }) => sub.count();
+      const Counted = builder.prismaInterface('User', {
+        variant: 'Counted',
+        select: { total: { posts: count as never } },
+        fields: () => ({}),
+      });
+      builder.prismaInterface('User', {
+        variant: 'Commented',
+        interfaces: [Counted],
+        select: { total: { comments: count as never } },
+        fields: () => ({}),
+      });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'Counted' and 'Commented' both select 'total', with different definitions.",
       );
     });
 
@@ -528,7 +583,7 @@ describe('inherited selections', () => {
       });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(
-        "'Named' and 'User' both select relation 'posts', with different arguments.",
+        "'Named' and 'User' both select 'posts', with different definitions.",
       );
     });
   });
@@ -537,7 +592,7 @@ describe('inherited selections', () => {
     const builder = createBuilder();
     const Counted = builder.prismaInterface('User', {
       variant: 'Counted',
-      select: { posts: (sub) => ({ total: sub.count() }) },
+      select: { total: { posts: (sub) => sub.count() } },
       fields: (t) => ({ id: t.exposeID('id') }),
     });
     const User = builder.prismaObject('User', {
@@ -555,12 +610,12 @@ describe('inherited selections', () => {
   });
 
   // Implementations of one interface are different types, so each row is one of them and reads
-  // its own type's version. Function entries compute values rather than load rows.
-  it('lets sibling implementations, and function entries, select a relation differently', () => {
+  // its own type's version. Computed keys are keys of their own.
+  it('lets sibling implementations, and computed keys, select a relation differently', () => {
     const builder = createBuilder();
     const Named = builder.prismaInterface('User', {
       variant: 'Named',
-      select: { posts: (sub) => ({ total: sub.count() }) },
+      select: { total: { posts: (sub) => sub.count() } },
       fields: () => ({}),
     });
     builder.prismaObject('User', {
@@ -571,26 +626,33 @@ describe('inherited selections', () => {
     builder.prismaObject('User', {
       variant: 'B',
       interfaces: [Named],
-      select: { posts: (sub) => ({ published: sub.where({ published: 1 }).count() }) },
+      select: { published: { posts: (sub) => sub.where({ published: 1 }).count() } },
     });
     builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
     expect(() => builder.toSchema()).not.toThrow();
   });
 
-  // A select function's keys are only known once it runs, so the rows it loaded are checked. Equal
-  // values fail too, so the error shows up with any data.
-  it('rejects selects of one row that compute the same key, with any values', async () => {
+  // Equal definitions share one value: a function shared by reference runs once.
+  it('reads what the selects of a type and its interface define alike', async () => {
     const builder = createBuilder();
+    const total = { posts: (sub) => sub.count() } satisfies ComputedSelectEntry<Types, 'User'>;
+    const { posts: drafts } = {
+      posts: (posts) => posts.where({ published: 0 }),
+    } satisfies ComputedSelectEntry<Types, 'User'>;
     const Counted = builder.prismaInterface('User', {
       variant: 'Counted',
-      select: { posts: (sub) => ({ total: sub.count() }) },
+      select: { total, posts: drafts },
       resolveType: () => 'User',
-      fields: (t) => ({ id: t.exposeID('id') }),
+      fields: (t) => ({ id: t.exposeID('id'), total: t.int({ resolve: (user) => user.total }) }),
     });
     const User = builder.prismaObject('User', {
       interfaces: [Counted],
-      select: { posts: (sub) => ({ total: sub.count() }) },
-      fields: (t) => ({ email: t.exposeString('email') }),
+      select: { total, posts: drafts, firstName: true },
+      fields: (t) => ({
+        own: t.int({ resolve: (user) => user.total }),
+        drafts: t.int({ resolve: (user) => user.posts.length }),
+        firstName: t.exposeString('firstName'),
+      }),
     });
     builder.queryType({
       fields: (t) => ({
@@ -602,13 +664,21 @@ describe('inherited selections', () => {
       }),
     });
     const schema = builder.toSchema();
-    const message =
-      "'Counted' and 'User' both compute 'total' from relation 'posts' in their select. A row " +
-      'holds one value for it, which every field and auth check of the type reads. Give one of ' +
-      'them a different name.';
-    for (const query of ['{ user { id email } }', '{ counted { id ... on User { email } } }']) {
+    for (const [query, data] of [
+      [
+        '{ user { total own drafts firstName } }',
+        { user: { total: 2, own: 2, drafts: 1, firstName: 'Alice' } },
+      ],
+      [
+        '{ counted { total ... on User { own drafts } } }',
+        { counted: { total: 2, own: 2, drafts: 1 } },
+      ],
+    ] as const) {
       const result = await run(schema, query);
-      expect(result.errors?.map((error) => detailOf(error))).toContain(message);
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual(data);
+      expect(result.statements).toHaveLength(1);
+      expect(result.statements[0].sql.match(/count\(/gi)).toHaveLength(1);
     }
   });
 
@@ -626,7 +696,7 @@ describe('inherited selections', () => {
       builder.prismaObject('User', {
         variant,
         interfaces: [Person],
-        select: { posts: (sub) => ({ count: sub.where(where).count() }) },
+        select: { count: { posts: (sub) => sub.where(where).count() } },
         fields: (t) => ({ count: t.int({ resolve: (user) => user.count }) }),
       });
     }

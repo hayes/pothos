@@ -197,7 +197,7 @@ tenant.prismaObject('User', {
     }),
     score: t.float({
       nullable: true,
-      select: { posts: (posts) => ({ score: posts.sum('score') }) },
+      select: { score: { posts: (posts) => posts.sum('score') } },
       resolve: (user) => {
         expectTypeOf(user.score).toEqualTypeOf<number | null>();
         return user.score;
@@ -269,13 +269,13 @@ builder.prismaObject('nsa.Org', {
   variant: 'OrgSelectFunctions',
   fields: (t) => ({
     members: t.int({
-      select: { users: (sub) => ({ members: sub.where({ orgId: 1 }).count() }) },
+      select: { members: { users: (sub) => sub.where({ orgId: 1 }).count() } },
       resolve: (org) => org.members,
     }),
     nsbColumn: t.int({
       select: {
         // @ts-expect-error `name` is a column of `nsb.User`, not of `nsa.User`
-        users: (sub) => ({ named: sub.where({ name: 'x' }).count() }),
+        named: { users: (sub) => sub.where({ name: 'x' }).count() },
       },
       resolve: () => 0,
     }),

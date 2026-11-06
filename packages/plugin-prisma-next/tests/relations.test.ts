@@ -425,18 +425,16 @@ describe('counts and aggregates', () => {
       fields: (t) => ({
         stats: t.string({
           select: {
-            posts: (sub) => ({
-              total: sub.sum('score'),
-              average: sub.avg('score'),
-              minimumTitle: sub.min('title'),
-              missing: sub.where({ id: 'absent' }).sum('score'),
-            }),
+            total: { posts: (sub) => sub.sum('score') },
+            average: { posts: (sub) => sub.avg('score') },
+            minimumTitle: { posts: (sub) => sub.min('title') },
+            missing: { posts: (sub) => sub.where({ id: 'absent' }).sum('score') },
           },
           resolve: (user) => `${user.total}/${user.average}/${user.minimumTitle}/${user.missing}`,
         }),
         countBigInt: t.field({
           type: 'BigInt',
-          select: { posts: (sub) => ({ countBigInt: sub.countBigInt() }) },
+          select: { countBigInt: { posts: (sub) => sub.countBigInt() } },
           resolve: (user) => user.countBigInt,
         }),
       }),
@@ -617,7 +615,7 @@ describe('to-one consumers', () => {
         postCount: t.int({
           args: { published: t.arg.int({ required: true }) },
           select: (args) => ({
-            posts: (sub) => ({ postCount: sub.where({ published: args.published }).count() }),
+            postCount: { posts: (sub) => sub.where({ published: args.published }).count() },
           }),
           resolve: (user) => user.postCount,
         }),

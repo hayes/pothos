@@ -206,7 +206,7 @@ inheritance.prismaObject('User', {
   fields: (t) => ({
     // A select function's rows of a variant carry its base's columns.
     reviewTitles: t.stringList({
-      select: { reviews: (sub) => ({ reviewRows: sub }) },
+      select: { reviewRows: { reviews: (sub) => sub } },
       resolve: (u) => u.reviewRows.map((review) => review.title),
     }),
     bugs: t.relation('tasks', { type: bug }),

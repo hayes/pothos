@@ -100,7 +100,7 @@ describe("object fields reading an interface's select", () => {
     const builder = createBuilder();
     const Totals = builder.prismaInterface('User', {
       variant: 'UserTotals',
-      select: { posts: (sub) => ({ total: sub.count() }) },
+      select: { total: { posts: (sub) => sub.count() } },
       fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
     });
     const User = builder.prismaObject('User', {

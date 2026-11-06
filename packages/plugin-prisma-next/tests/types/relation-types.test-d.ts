@@ -120,12 +120,12 @@ builder.prismaObject('Post', {
     // have.
     authorName: t.string({
       // @ts-expect-error function form on a to-one relation
-      select: { author: (author) => ({ rows: author.select('firstName') }) },
+      select: { author: (author: never) => author },
       resolve: () => '',
     }),
     authorNameCallback: t.string({
-      // @ts-expect-error function form on a to-one relation
-      select: () => ({ author: (author) => ({ rows: author.select('firstName') }) }),
+      // @ts-expect-error a computed value reads a to-many relation
+      select: () => ({ rows: { author: (author: never) => author } }),
       resolve: () => '',
     }),
   }),
@@ -134,7 +134,7 @@ builder.prismaObject('Post', {
 builder.prismaObject('Post', {
   variant: 'AuthorRefinement',
   // @ts-expect-error function form on a to-one relation
-  select: { author: (author) => ({ rows: author.select('firstName') }) },
+  select: { author: (author: never) => author },
   fields: () => ({}),
 });
 
@@ -167,29 +167,28 @@ expectTypeOf<
 expectTypeOf<SelectCheck<Types, 'User', { posts: (sub: never) => never }>>().toEqualTypeOf<{
   'Invalid value in select: posts': never;
 }>();
-// A computed key's error is on the entry's result, so the default output names the key and reason.
-expectTypeOf<SelectCheck<Types, 'Post', { comments: () => { title: never } }>>().toEqualTypeOf<{
-  readonly comments: (sub: never) => { readonly title: 'Computed key names a column or relation' };
-}>();
+// A computed value under a column's or relation's key is named as the collision.
 expectTypeOf<
-  SelectCheck<Types, 'Post', { comments: () => Record<string, never> }>
->().toEqualTypeOf<{
-  readonly comments: (
-    sub: never,
-  ) => 'Computed keys must be literal: a union-typed or generic key widens to string';
-}>();
-// A `string` key is reported on its own entry, without blaming another entry's literal keys.
+  SelectCheck<Types, 'Post', { title: { comments: (sub: never) => never } }>
+>().toEqualTypeOf<{ "A computed key can't be a column or relation: title": never }>();
 expectTypeOf<
-  SelectCheck<
+  SelectCheck<Types, 'User', { posts: { comments: (sub: never) => never } }>
+>().toEqualTypeOf<{ "A computed key can't be a column or relation: posts": never }>();
+// A computed value reads exactly one to-many relation.
+expectTypeOf<
+  keyof SelectCheck<
     Types,
     'User',
-    { posts: () => Record<string, never>; comments: () => { total: never } }
+    { n: { posts: (sub: never) => never; comments: (sub: never) => never } }
   >
->().toEqualTypeOf<{
-  readonly posts: (
-    sub: never,
-  ) => 'Computed keys must be literal: a union-typed or generic key widens to string';
-}>();
+>().toEqualTypeOf<'A computed value reads one to-many relation, as { relation: (collection) => value }: n'>();
+expectTypeOf<
+  keyof SelectCheck<Types, 'Post', { n: { author: (sub: never) => never } }>
+>().toEqualTypeOf<'A computed value reads one to-many relation, as { relation: (collection) => value }: n'>();
+// A key that is neither the model's nor a computed value is unknown.
+expectTypeOf<
+  keyof SelectCheck<Types, 'User', { emial: true }>
+>().toEqualTypeOf<'Unknown key in select: emial'>();
 
 builder.prismaObject('User', {
   variant: 'PostsRefinement',
@@ -220,10 +219,10 @@ builder.prismaObject('User', {
           expectTypeOf<Exclude<Upstream, Plugin>>().toEqualTypeOf<never>();
           expectTypeOf<Upstream>().not.toEqualTypeOf<never>();
           expectTypeOf<Exclude<ToManyOnly, Plugin>>().toEqualTypeOf<never>();
-          return { rows: posts.select('title') };
+          return posts.where({ published: 1 });
         },
       },
-      resolve: (user) => user.rows.map((post) => post.title),
+      resolve: (user) => user.posts.map((post) => post.title),
     }),
   }),
 });

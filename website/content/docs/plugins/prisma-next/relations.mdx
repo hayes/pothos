@@ -129,15 +129,15 @@ relation's `query.where` takes. A function is always that callback, so return a 
 Count fields are always non-null, so if an auth check denies one, GraphQL nulls the parent instead.
 To hide a count from some users, use a nullable field with a `select`, as below.
 
-For sums and other aggregates, give a field a `select` function on the relation. It receives the
-relation's Collection. Each key it returns is added to the parent row, and must be a literal string:
+For sums and other aggregates, compute a value in a field's `select`: a key that isn't a column or
+relation holds one relation and a function of its Collection. The key is added to the parent row:
 
 ```ts
 builder.prismaObject('User', {
   fields: (t) => ({
     totalPostScore: t.float({
       nullable: true,
-      select: { posts: (posts) => ({ totalPostScore: posts.sum('score') }) },
+      select: { totalPostScore: { posts: (posts) => posts.sum('score') } },
       resolve: (user) => user.totalPostScore,
     }),
   }),

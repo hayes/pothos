@@ -431,8 +431,7 @@ export function prismaConnectionHelpers<
     const filtered = planned.where === undefined ? collection : collection.where(planned.where);
     const paged = applyCursorPagination(filtered, planned, args);
 
-    const emit = (selection: PrismaNextSelection) =>
-      config.adapter.emit(paged, selection, model, ctx);
+    const emit = (selection: PrismaNextSelection) => config.adapter.emit(paged, selection, model);
     let rows: MaybePromise<MapperCollection>;
     if (!info) {
       rows = emit(nodeRelation ? withNodes(EMPTY, EMPTY) : { relations: whole });

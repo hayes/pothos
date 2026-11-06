@@ -135,13 +135,15 @@ describe('field select forms', () => {
         }),
         published: t.string({
           select: {
-            posts: (sub) => ({
-              publishedRows: sub.where({ published: 1 }),
-              publishedCount: sub.where({ published: 1 }).count(),
-            }),
+            publishedRows: { posts: (sub) => sub.where({ published: 1 }) },
+            publishedCount: { posts: (sub) => sub.where({ published: 1 }).count() },
           },
           resolve: (user) =>
             `${user.publishedCount}: ${user.publishedRows.map((post) => post.title).join(', ')}`,
+        }),
+        refined: t.string({
+          select: { posts: (posts) => posts.where({ published: 0 }) },
+          resolve: (user) => user.posts.map((post) => post.title).join(', '),
         }),
         commentCount: t.int({ resolve: (user) => user.comments.length }),
         greeting: t.string({
@@ -169,8 +171,8 @@ describe('field select forms', () => {
     const result = await run(
       schema(),
       `{ users {
-        fromArray fromObject firstPostTitle latestTitle secondTitle published commentCount
-        posts { title } informal: greeting(formal: false) formal: greeting(formal: true)
+        fromArray fromObject firstPostTitle latestTitle secondTitle published refined
+        commentCount posts { title } informal: greeting(formal: false) formal: greeting(formal: true)
       } }`,
     );
     expect(result.errors).toBeUndefined();
@@ -182,6 +184,7 @@ describe('field select forms', () => {
         latestTitle: 'Hello, Pothos',
         secondTitle: 'Hello, Pothos',
         published: '1: Hello, Pothos',
+        refined: 'Draft #1',
         commentCount: 1,
         posts: [{ title: 'Hello, Pothos' }, { title: 'Draft #1' }],
         informal: 'Hi Alice',
@@ -194,7 +197,7 @@ describe('field select forms', () => {
   it('rejects exposing a computed value when the schema is built', () => {
     const builder = createBuilder();
     const User = builder.prismaObject('User', {
-      select: { posts: (sub) => ({ postCount: sub.count() }) },
+      select: { postCount: { posts: (sub) => sub.count() } },
       fields: () => ({}),
     });
     builder.objectField(User, 'postCount', (t) => t.exposeInt('postCount'));
@@ -266,7 +269,7 @@ describe('async selects', () => {
     const later = <T>(value: T) => Promise.resolve().then(() => value);
     const Admin = builder.prismaObject('User', {
       variant: 'Admin',
-      select: { posts: (sub) => ({ total: sub.count() }) },
+      select: { total: { posts: (sub) => sub.count() } },
       fields: (t) => ({
         total: t.int({ resolve: (user) => user.total }),
         asyncLastName: t.string({
@@ -293,9 +296,9 @@ describe('async selects', () => {
         pageCount: t.int({
           select: (() =>
             later({
-              posts: (sub: { limit(n: number): { count(): unknown } }) => ({
-                pageCount: sub.limit(1).count(),
-              }),
+              pageCount: {
+                posts: (sub: { limit(n: number): { count(): unknown } }) => sub.limit(1).count(),
+              },
             })) as never,
           resolve: (user) => (user as { pageCount?: number }).pageCount ?? -1,
         }),

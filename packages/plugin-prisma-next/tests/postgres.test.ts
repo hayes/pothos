@@ -50,17 +50,17 @@ function createSchema(db: { orm: typeof client.orm } = client) {
       entries: t.relation('entries', { query: { orderBy: { id: 'asc' } } }),
       count: t.relationCount('entries'),
       losslessCount: t.string({
-        select: { entries: (entries) => ({ count: entries.countBigInt() }) },
+        select: { count: { entries: (entries) => entries.countBigInt() } },
         resolve: (row) => String(row.count),
       }),
       average: t.string({
         nullable: true,
-        select: { entries: (entries) => ({ average: entries.avgDecimal('wide') }) },
+        select: { average: { entries: (entries) => entries.avgDecimal('wide') } },
         resolve: (row) => (row.average === null ? null : String(row.average)),
       }),
       amount: t.float({
         nullable: true,
-        select: { entries: (entries) => ({ amount: entries.sum('amount') }) },
+        select: { amount: { entries: (entries) => entries.sum('amount') } },
         resolve: (row) => row.amount,
       }),
     }),

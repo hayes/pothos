@@ -20,7 +20,6 @@ import {
   getLoaderMapping,
   type Mapping,
   mappingParentTypes,
-  type Position,
   setRowMappings,
 } from '@pothos/selection-mapper';
 import {
@@ -54,12 +53,10 @@ import {
 } from './utils/model.js';
 import {
   compileFieldSelect,
-  consumerId,
   copyIds,
   definedQuery,
   EMPTY,
   fieldCopy,
-  loadedValues,
   loadsOwnTableVariantRows,
   type PrismaNextSelectFn,
   type PrismaNextSelection,
@@ -138,6 +135,7 @@ export type {
   RequiresNullable,
 } from './types/relations.js';
 export type {
+  ComputedSelectEntry,
   ConnectionPageEntry,
   NodeSelection,
   PrismaNextSelectSpec,
@@ -405,26 +403,33 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * A row holds one version of each relation the `select`s of its type and interfaces load, which
-   * every reader of the row sees. So two of those `select`s that load a relation's rows must load
-   * them with the same query. Function entries compute values rather than load rows, and their keys
-   * are only known once they run, so the statement loading them checks them (see `assertOneWriter`).
+   * A row of a type is copied once for the `select`s of the type and its interfaces, and holds one
+   * value for each relation or computed key they write, which the fields and auth checks of all of
+   * them read. So two of those `select`s that write one key must define it equally: compared with
+   * `deepEqual`, so a literal compares by value and a function, anywhere in it, by identity. Two
+   * selects sharing a function share it by reference rather than writing it out twice.
    */
   private assertSelectsAgree(typeConfig: PothosTypeConfig, modelKey: string) {
     const model = getModel(this.config.contract, modelKey);
-    const loads = new Map<string, { type: string; query: unknown }>();
+    const definitions = new Map<string, { type: string; definition: unknown }>();
     for (const { name: type, raw } of this.typeLevelSelects(typeConfig)) {
-      for (const [relation, value] of splitSelect(raw, model, PothosSchemaError).relations) {
-        if (typeof value === 'function') {
-          continue;
-        }
-        const query = value === true ? undefined : definedQuery(value);
-        const first = loads.get(relation);
+      const { relations, computed } = splitSelect(raw, model, PothosSchemaError);
+      for (const [key, definition] of [
+        ...relations.map(([name, value]): [string, unknown] => [
+          name,
+          typeof value === 'object' ? definedQuery(value) : value === true ? undefined : value,
+        ]),
+        ...computed.map(({ key, relation, compute }): [string, unknown] => [
+          key,
+          { [relation]: compute },
+        ]),
+      ]) {
+        const first = definitions.get(key);
         if (!first) {
-          loads.set(relation, { type, query });
-        } else if (!deepEqual(first.query, query)) {
+          definitions.set(key, { type, definition });
+        } else if (!deepEqual(first.definition, definition)) {
           throw new PothosSchemaError(
-            `'${first.type}' and '${type}' both select relation '${relation}', with different arguments. A row of '${typeConfig.name}' holds one version of the relation, which the fields and auth checks of both types read. Select it with the same arguments in both, sharing any function such as a where, or load the other version in a field, with t.relation('${relation}', { query }) or a field's select.`,
+            `'${first.type}' and '${type}' both select '${key}', with different definitions. A row of '${typeConfig.name}' holds one value for it, which the fields and auth checks of both types read. Define it the same way in both, sharing any function such as a where or a computed value's function, or load the other version in a field's select.`,
           );
         }
       }
@@ -550,7 +555,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       // scope-auth's checks share. A prisma type's parent is always a row.
       return (value, args, context, info) => {
         const parent = typeCopy(value as object, model, ids);
-        if (loaded(parent, undefined)) {
+        if (loaded(parent)) {
           return resolver(parent, args, context, info);
         }
         return reloadFor(info, () =>
@@ -569,7 +574,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         mapping ??= getLoaderMapping(context, info.path, type, raw);
       }
       const parent = parentFor(row, mapping);
-      if (mapping && loaded(parent, mapping.position)) {
+      if (mapping && loaded(parent)) {
         setRowMappings(context, info, mapping.nested);
         return resolver(parent, args, context, info);
       }
@@ -580,16 +585,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * Whether a field's parent holds what the field reads: what its type's `select`s load, the
-   * columns and relations its static selection or `select` names, and the values each function
-   * entry computed. One check, so a parent reloads at most once. A helper checks its own branch
-   * when it reads it.
+   * Whether a field's parent holds what the field reads: what its type's `select`s load, and the
+   * columns, relations and computed values its static selection or `select` names. One check, so a
+   * parent reloads at most once. A helper checks its own branch when it reads it.
    */
   private loadedCheck(
     fieldConfig: PothosOutputFieldConfig<Types>,
     model: PrismaNextModel,
     hasTypeData: (parent: Record<string, unknown>) => boolean,
-  ): Loaded {
+  ) {
     const selection = fieldConfig.extensions?.[PRISMA_NEXT_FIELD_SELECTION] as
       | PrismaNextSelection
       | PrismaNextSelectFn;
@@ -600,19 +604,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         : undefined;
     const keys = [
       ...((typeof selection === 'function' ? undefined : selection.columns) ?? []),
-      ...(split?.columns ?? []),
-      ...(split?.relations.filter(([, value]) => typeof value !== 'function') ?? []).map(
-        ([name]) => name,
-      ),
+      ...(split ? selectedKeys(split) : []),
     ];
-    const computed = (split?.relations ?? [])
-      .filter(([, value]) => typeof value === 'function')
-      .map(([name]) => name);
-    return (parent, position) =>
+    return (parent: object) =>
       hasTypeData(parent as Record<string, unknown>) &&
-      keys.every((key) => (parent as Record<string, unknown>)[key] !== undefined) &&
-      (!computed.length ||
-        (!!position && computed.every((name) => loadedValues(parent, name, consumerId(position)))));
+      keys.every((key) => (parent as Record<string, unknown>)[key] !== undefined);
   }
 
   /**
@@ -699,40 +695,31 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 }
 
+/** The keys a split `select` writes on the parent: its columns, relations and computed values. */
+function selectedKeys({ columns, relations, computed }: ReturnType<typeof splitSelect>) {
+  return [...columns, ...relations.map(([name]) => name), ...computed.map(({ key }) => key)];
+}
+
 /**
  * The consumer ids of a type's type-level `selects`, listed with the deepest interface first and
- * the type itself last, and whether a row copied for them holds what they load: each column and
- * relation, and each function entry's values.
+ * the type itself last, and whether a row copied for them holds what they load.
  */
 function typeDataOf(
   modelKey: string,
   model: PrismaNextModel,
   selects: readonly (ReturnType<typeof splitSelect> & { name: string })[],
 ) {
-  const required = [
-    ...new Set(
-      selects.flatMap((select) => [
-        ...select.columns,
-        ...select.relations
-          .filter(([, value]) => typeof value !== 'function')
-          .map(([name]) => name),
-      ]),
-    ),
-  ];
-  const computed = selects.flatMap((select) =>
-    select.relations
-      .filter(([, value]) => typeof value === 'function')
-      .map(([name]) => [select.name, name] as const),
-  );
+  const required = [...new Set(selects.flatMap(selectedKeys))];
   return {
     modelKey,
     model,
     ids: copyIds(
-      selects.filter((select) => select.relations.length > 0).map((select) => select.name),
+      selects
+        .filter((select) => select.relations.length > 0 || select.computed.length > 0)
+        .map((select) => select.name),
     ),
     hasTypeData: (row: Record<string, unknown>) =>
-      required.every((name) => row[name] !== undefined) &&
-      computed.every(([id, name]) => loadedValues(row, name, id)),
+      required.every((name) => row[name] !== undefined),
   };
 }
 
@@ -758,9 +745,6 @@ async function* copyEach(items: AsyncIterable<unknown>, copy: (item: unknown) =>
     yield copyResult(item, copy);
   }
 }
-
-/** A field's loaded check, given its parent and the position it was planned at. */
-type Loaded = (parent: object, position: Position | undefined) => boolean;
 
 /**
  * A type's rows can load through the base model's collection, which can't include a relation only a

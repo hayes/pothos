@@ -68,12 +68,7 @@ export function applySelectionToCollection(
 ): MaybePromise<MapperCollection> {
   const initial = initialSelection(collection, seed);
   return completeValue(planSelection(info, config, context, target, initial), (planned) =>
-    config.adapter.emit(
-      collection,
-      planned?.selection ?? initial,
-      planned?.model ?? model,
-      context,
-    ),
+    config.adapter.emit(collection, planned?.selection ?? initial, planned?.model ?? model),
   );
 }
 
@@ -115,7 +110,6 @@ export async function collectionFromInfo<C extends object>({
         mapper,
         planned.selection,
         planned.model,
-        context,
       ) as unknown as PlannedCollection<C>)
     : (collection as PlannedCollection<C>);
 }

@@ -218,9 +218,9 @@ export function pageSelection(
     plan.where === undefined ? rel : rel.where(plan.where);
   const narrow = (rel: MapperCollection) => (variant === undefined ? rel : rel.variant(variant));
   const counted = count
-    ? computedSelection(name, id, identity, (sub) => ({
-        [COUNT_SLOT]: countOf(count.filtered ? filter(narrow(sub)) : narrow(sub)),
-      }))
+    ? computedSelection(name, id, COUNT_SLOT, identity, (sub) =>
+        countOf(count.filtered ? filter(narrow(sub)) : narrow(sub)),
+      )
     : EMPTY;
   if (!rows) {
     return counted;

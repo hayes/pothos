@@ -455,9 +455,9 @@ export class PrismaNextObjectFieldBuilder<
       fieldValue(parent, relationName, VALUE_SLOT) !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
       completeOption(where, args, ctx, (filter) =>
-        computedSelection(relationName, consumerId(position), { where, args }, (sub) => ({
-          [VALUE_SLOT]: countOf(filter === undefined ? sub : sub.where(filter)),
-        })),
+        computedSelection(relationName, consumerId(position), VALUE_SLOT, { where, args }, (sub) =>
+          countOf(filter === undefined ? sub : sub.where(filter)),
+        ),
       );
     return this.field({
       ...rest,

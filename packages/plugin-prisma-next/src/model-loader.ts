@@ -393,12 +393,7 @@ export class ModelLoader {
     );
     // A query callback the statement runs fails every field of the batch, as in a parent query.
     const query = userCode(() =>
-      this.config.adapter.emit(
-        filtered,
-        this.config.adapter.toQuery(batch.root),
-        batch.root.model,
-        this.context,
-      ),
+      this.config.adapter.emit(filtered, this.config.adapter.toQuery(batch.root), batch.root.model),
     ) as MapperCollection & { all(): Promise<readonly Row[]> };
     // A reload's database error is the plugin's, which `reloadFor` reports as `Unexpected error.`.
     const rows = await query.all();
