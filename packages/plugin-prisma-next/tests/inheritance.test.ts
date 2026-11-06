@@ -1711,6 +1711,114 @@ describe('a relation targeting a variant model with a table of its own', () => {
     );
   });
 
+  // `User.reviews` targets Bug, which shares Task's table. Its rows load through `orm.Bug`, which
+  // can't include Task's relations, before the interface's resolveType reads them.
+  function bugInterfaceBuilder(helper: 't.relation' | 't.relatedConnection', ownSelect: boolean) {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, prismaNextPlugin],
+      relay: {},
+      prismaNext: { client: db.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      ...(ownSelect ? {} : { select: { owner: true } }),
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    const bugLike = builder.prismaInterface('Bug', {
+      interfaces: [task],
+      ...(ownSelect ? { select: { owner: true } } : {}),
+      resolveType: () => 'PlainBug',
+      fields: () => ({}),
+    });
+    builder.prismaObject('Bug', {
+      variant: 'PlainBug',
+      interfaces: [task, bugLike],
+      fields: () => ({}),
+    });
+    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        reviews:
+          helper === 't.relation' ? t.relation('reviews') : t.relatedConnection('reviews', {}),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+    });
+    return builder;
+  }
+
+  it.each([
+    't.relation',
+    't.relatedConnection',
+  ] as const)("rejects %s returning a single-table variant's interface whose select loads a base relation", (helper) => {
+    expect(() => bugInterfaceBuilder(helper, true).toSchema()).toThrow(
+      "Field 'User.reviews' returns interface 'Bug', whose select loads base relation 'owner', for the rows of relation 'reviews', which targets variant model 'Bug'. Rows loaded through a variant model can't include the base model's relations. Return them as an object type, or read 'owner' in a field.",
+    );
+  });
+
+  it("rejects returning a single-table variant's interface whose interface's select loads a base relation", () => {
+    expect(() => bugInterfaceBuilder('t.relation', false).toSchema()).toThrow(
+      "Field 'User.reviews' returns interface 'Bug', whose interface 'Task' has a select that loads base relation 'owner'",
+    );
+  });
+
+  it("rejects returning a single-table variant's interface whose select computes over a base relation", () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    const bugLike = builder.prismaInterface('Bug', {
+      interfaces: [task],
+      select: { noteCount: { notes: (sub) => sub.count() } },
+      resolveType: () => 'PlainBug',
+      fields: () => ({}),
+    });
+    builder.prismaObject('Bug', {
+      variant: 'PlainBug',
+      interfaces: [task, bugLike],
+      fields: () => ({}),
+    });
+    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', { fields: (t) => ({ reviews: t.relation('reviews') }) });
+    builder.queryType({
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+    });
+    expect(() => builder.toSchema()).toThrow(
+      "Field 'User.reviews' returns interface 'Bug', whose select loads base relation 'notes'",
+    );
+  });
+
+  // An object type's fields reload what its select can't load through the variant model.
+  it("loads a single-table variant object type's select of a base relation through a relation", async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [prismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const task = builder.prismaInterface('Task', {
+      select: { owner: true },
+      fields: (t) => ({ title: t.exposeString('title') }),
+    });
+    builder.prismaObject('Bug', {
+      interfaces: [task],
+      select: { owner: true },
+      fields: (t) => ({ ownerEmail: t.string({ resolve: (bug) => bug.owner.email }) }),
+    });
+    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', { fields: (t) => ({ reviews: t.relation('reviews') }) });
+    builder.queryType({
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+    });
+    const result = await run(builder.toSchema(), '{ users { reviews { title ownerEmail } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([{ reviews: [{ title: 'bug1', ownerEmail: email }] }]);
+  });
+
   it("rejects a field's select returning them through another plugin's type", () => {
     // plugin-errors changes the field's type after this plugin's onOutputFieldConfig runs.
     const { builder, feature } = selectBuilder([ErrorsPlugin, prismaNextPlugin]);

@@ -461,7 +461,10 @@ function shareComputed(computed: [string, ComputedSelection][]) {
  * a variant needs a level narrowed to that variant. A relation of the base model can't be included
  * beneath a relation that targets a variant model, which only has that variant's relations.
  */
-function canInclude({ declaredByVariant }: PrismaNextRelation, narrowing: Narrowing | undefined) {
+export function canInclude(
+  { declaredByVariant }: PrismaNextRelation,
+  narrowing: Narrowing | undefined,
+) {
   return declaredByVariant === undefined
     ? !narrowing?.throughVariantModel
     : declaredByVariant === narrowing?.value;
