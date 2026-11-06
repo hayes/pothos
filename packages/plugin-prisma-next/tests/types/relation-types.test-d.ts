@@ -18,6 +18,7 @@ import type { QueryAsyncCheck } from '../../src/types/relations';
 import type { SelectCheck, TypeSelectCheck } from '../../src/types/selections';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
+import type { Contract as MysqlContract } from '../mysql/contract';
 
 const builder = new SchemaBuilder<{
   PrismaNextContract: Contract;
@@ -265,6 +266,20 @@ builder.prismaObject('User', {
     t.relationCount('author');
     return { count };
   },
+});
+
+// A target without aggregates, such as MySQL, can't count, and the error says so.
+const mysql = new SchemaBuilder<{ PrismaNextContract: MysqlContract }>({
+  plugins: [prismaNextPlugin],
+  prismaNext: { client: null as never },
+});
+mysql.prismaObject('Author', {
+  fields: (t) => ({
+    // '"books"' is not assignable to 'relationCount runs a count aggregate, which this target
+    // (MySQL) lacks'
+    // @ts-expect-error a count needs aggregates
+    bookCount: t.relationCount('books'),
+  }),
 });
 
 // A to-one relation is nullable when its contract relation is, as Bug.reviewer is. A variant's own

@@ -22,7 +22,7 @@ import {
 } from './constants.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
-  HasAggregates,
+  CountedRelationName,
   PrismaNextRelationCountOptions,
   RelationCountQuery,
 } from './types/aggregates.js';
@@ -431,12 +431,11 @@ export class PrismaNextObjectFieldBuilder<
 
   /** Exposes the row count of a to-many relation as an `Int`. */
   relationCount<
-    // Targets without aggregates, such as MySQL, accept no relation.
-    RelName extends HasAggregates<Types> extends true ? ToManyRelationKeys<Types, M> : never,
+    RelName extends ToManyRelationKeys<Types, M>,
     Query extends RelationCountQuery<Types, M, RelName, Args> | undefined,
     Args extends InputFieldMap = {},
   >(
-    name: RelName,
+    name: CountedRelationName<Types, RelName>,
     options?: PrismaNextRelationCountOptions<Types, M, RelName, Args, Shape, Query>,
   ): FieldRef<Types, number, 'PrismaNextObject'> {
     const relationName = name as string;

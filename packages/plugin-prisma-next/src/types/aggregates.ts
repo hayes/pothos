@@ -55,6 +55,15 @@ export type HasAggregates<Types extends SchemaTypes> = string extends keyof Extr
   ? false
   : true;
 
+/**
+ * The name `relationCount` takes: a to-many relation, on a target that has aggregates. Otherwise
+ * a message, which the name is reported against.
+ */
+export type CountedRelationName<Types extends SchemaTypes, RelName> =
+  HasAggregates<Types> extends true
+    ? RelName
+    : 'relationCount runs a count aggregate, which this target (MySQL) lacks';
+
 /** `totalCount: true` runs a count aggregate, so it needs a target that has them. */
 export type TotalCountFlag<Types extends SchemaTypes> =
   HasAggregates<Types> extends true ? boolean : false | (true & TotalCountNeedsAggregates);
