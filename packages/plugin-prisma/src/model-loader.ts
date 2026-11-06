@@ -30,9 +30,11 @@ export class ModelLoader {
 
   modelName: string;
 
-  // One parent-row plan per `Type@path`, played where it is made since it is never played behind
-  // another selection; a promise while a select beneath the field is async.
-  queryCache = new Map<string, MaybePromise<PrismaPlayedPlan>>();
+  // One parent-row plan per `Type@path` per operation, played where it is made since it is never
+  // played behind another selection; a promise while a select beneath the field is async. Keyed
+  // on `info.variableValues`, which graphql-js creates once per operation, so an operation
+  // sharing the context never reloads with another's plan.
+  queryCache = new WeakMap<object, Map<string, MaybePromise<PrismaPlayedPlan>>>();
 
   // Each batch owns the node it accumulates into, so nothing a cached play holds is changed by a
   // row joining the batch.
@@ -231,18 +233,22 @@ export class ModelLoader {
 
   getSelection(info: GraphQLResolveInfo) {
     const key = cacheKey(info.parentType.name, info.path);
-    if (!this.queryCache.has(key)) {
-      this.queryCache.set(
-        key,
-        Plan.forParentRow(prismaAdapter, {
-          context: this.context,
-          info,
-          skipDeferredFragments: this.builder.options.prisma.skipDeferredFragments ?? true,
-        }),
-      );
+    let plans = this.queryCache.get(info.variableValues);
+    if (!plans) {
+      plans = new Map();
+      this.queryCache.set(info.variableValues, plans);
+    }
+    let plan = plans.get(key);
+    if (!plan) {
+      plan = Plan.forParentRow(prismaAdapter, {
+        context: this.context,
+        info,
+        skipDeferredFragments: this.builder.options.prisma.skipDeferredFragments ?? true,
+      });
+      plans.set(key, plan);
     }
 
-    return this.queryCache.get(key)!;
+    return plan;
   }
 
   /**

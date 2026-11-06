@@ -1,4 +1,5 @@
 import SchemaBuilder from '@pothos/core';
+import RelayPlugin from '@pothos/plugin-relay';
 import { execute, parse, subscribe } from 'graphql';
 import PrismaPlugin, { type PrismaTypesFromClient, queryFromInfo } from '../src';
 import { prisma } from './example/builder';
@@ -10,7 +11,7 @@ const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypesFromClient<typeof prisma>;
   Context: object;
 }>({
-  plugins: [PrismaPlugin],
+  plugins: [PrismaPlugin, RelayPlugin],
   prisma: {
     client: () => prisma,
     dmmf: getDatamodel(),
@@ -20,12 +21,24 @@ const builder = new SchemaBuilder<{
 const User = builder.prismaObject('User', {
   fields: (t) => ({
     publishedPosts: t.relation('posts', { query: { where: { published: true } } }),
+    allPosts: t.relation('posts'),
+    // A custom resolve plans what is beneath it when its parent wasn't loaded by a plan.
+    postsConnection: t.relatedConnection('posts', {
+      cursor: 'id',
+      resolve: (query, user) =>
+        prisma.post.findMany({
+          ...query,
+          where: { authorId: user.id },
+          orderBy: { id: 'asc' },
+        } as never),
+    }),
   }),
 });
 
 builder.prismaObject('Post', {
   fields: (t) => ({
     published: t.exposeBoolean('published'),
+    author: t.relation('author'),
   }),
 });
 
@@ -88,6 +101,34 @@ describe('executions sharing a context', () => {
 
     expect(drafts(planned)).toBe(0);
     expect(raw).toEqual(planned);
+  });
+
+  it('reloads a row for a later operation sharing the context with its own selection', async () => {
+    const contextValue = {};
+    const query = (posts: string) =>
+      execute({
+        schema,
+        document: parse(`{ rawUser { posts: ${posts} { published } } }`),
+        contextValue,
+      });
+
+    expect(drafts(await query('allPosts'))).toBeGreaterThan(0);
+    expect(drafts(await query('publishedPosts'))).toBe(0);
+  });
+
+  it('plans beneath a connection again for a later operation sharing the context', async () => {
+    const contextValue = {};
+    const query = (posts: string) =>
+      execute({
+        schema,
+        document: parse(
+          `{ rawUser { postsConnection(first: 1) { edges { node { author { posts: ${posts} { published } } } } } } }`,
+        ),
+        contextValue,
+      });
+
+    expect(drafts(await query('allPosts'))).toBeGreaterThan(0);
+    expect(drafts(await query('publishedPosts'))).toBe(0);
   });
 
   it('keeps the relation filter on a row a later subscription event loaded elsewhere', async () => {
