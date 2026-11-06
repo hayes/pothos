@@ -68,6 +68,7 @@ import {
   rowOf,
   type SplitSelect,
   splitSelect,
+  staticEntryVariant,
   type TypeSelect,
   typeCopy,
   typeSelects,
@@ -318,7 +319,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const selection =
       select !== undefined
-        ? compileFieldSelect(this.config.contract, select, model)
+        ? compileFieldSelect(
+            this.config.contract,
+            select,
+            model,
+            (typeName) =>
+              this.buildCache.getTypeConfig(typeName).extensions?.[PRISMA_NEXT_MODEL] as
+                | string
+                | undefined,
+          )
         : exposesColumn
           ? { columns: [exposed] }
           : typeSelects(this.buildCache.getTypeConfig(fieldConfig.parentType)).length
@@ -337,9 +346,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
   /**
    * Checks a field's static `select`: rejects a relation entry whose rows its type can't read, as
-   * `assertRelationRows` explains, and checks the columns its relation entries order by. Checked on
-   * the field's final config, since a plugin that runs later, such as plugin-errors, can change its
-   * type.
+   * `assertRelationRows` explains, checks the columns its relation entries order by, and the
+   * variant its type narrows their rows to. Checked on the field's final config, since a plugin
+   * that runs later, such as plugin-errors, can change its type.
    */
   private assertFieldSelect(
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -358,6 +367,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
       (relation) => returnsRelationRowsAs(relation, returnConfig.kind, returnModel),
     );
+    // Throws for a type of another branch of the hierarchy of a relation entry's target.
+    for (const [name, value] of split.relations) {
+      staticEntryVariant(
+        contract,
+        `Field '${fieldConfig.parentType}.${fieldConfig.name}'`,
+        model.relations[name]!,
+        value,
+        returnModelKey,
+      );
+    }
   }
 
   /**

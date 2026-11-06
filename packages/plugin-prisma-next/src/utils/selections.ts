@@ -16,6 +16,7 @@ import { type FieldNode, type GraphQLResolveInfo, getNamedType, isObjectType } f
 import { PRISMA_NEXT_MODEL, PRISMA_NEXT_TYPE_SELECTS } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
+import { variantForRelationType } from './contract.js';
 import { type OrderByDecl, orderCollection, orderColumns } from './cursors.js';
 import { assertGraphQLJsInfo, checkReturned } from './errors.js';
 import {
@@ -124,7 +125,7 @@ export type PlanPage = (
   field: FieldPlanning,
 ) => MaybePromise<PrismaNextSelection>;
 
-export function isPageEntry(value: unknown): value is { [CONNECTION_PAGE]: PlanPage } {
+function isPageEntry(value: unknown): value is { [CONNECTION_PAGE]: PlanPage } {
   return typeof value === 'object' && value !== null && CONNECTION_PAGE in value;
 }
 
@@ -800,21 +801,48 @@ interface SelectCompilation {
    * it identifies their loads together with `args`. A static select's entries identify themselves.
    */
   source?: unknown;
-  /** Checks the rows a relation entry loads, before they are planned. */
-  checkRows?(relation: PrismaNextRelation, name: string): void;
   /** The field a field's `select` plans for. The types allow page and nested entries only there. */
   field?: FieldPlanning;
+  /** The model of the field's type, which a static select's to-many relation entries narrow to. */
+  returnModelKey?: string;
+  /** The model of the type a nested entry names. */
+  typeModel?: (typeName: string) => string | undefined;
+}
+
+/**
+ * The variant a static field select's relation entry loads: a to-many relation to a hierarchy's
+ * base, on a field typed as one of its variants, loads that variant. A to-one relation is keyed on
+ * the row by its name, so it loads whole. Throws for a type of another branch of the hierarchy,
+ * which the plugin checks when the schema is built.
+ */
+export function staticEntryVariant(
+  contract: AnyContract,
+  owner: string,
+  relation: PrismaNextRelation,
+  value: unknown,
+  returnModelKey: string | undefined,
+) {
+  if (
+    isPageEntry(value) ||
+    returnModelKey === undefined ||
+    getModel(contract, returnModelKey) !== relation.target
+  ) {
+    return undefined;
+  }
+  const variant = variantForRelationType(contract, owner, relation.targetModel, returnModelKey);
+  return relation.isToMany ? variant : undefined;
 }
 
 /** Compiles a split `select`. Each relation entry is one consumer, `id`. */
 function compileSelect(
   { columns, relations, computed }: SplitSelect,
   model: PrismaNextModel,
-  { contract, id, args, source, checkRows, field }: SelectCompilation,
+  { contract, id, args, source, field, returnModelKey, typeModel }: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
   const identity = (entry: unknown) => (source === undefined ? entry : { source, args });
-  // `true`, a declarative query, or a function refining the rows.
-  const load = (relation: PrismaNextRelation, value: unknown) => {
+  const owner = field && `Field '${field.position.type.name}.${field.position.field.name}'`;
+  // `true`, a declarative query, or a function refining the rows, narrowed to `variant`.
+  const load = (relation: PrismaNextRelation, value: unknown, variant?: string) => {
     const query = value === true || typeof value === 'function' ? undefined : definedQuery(value);
     const refine =
       typeof value === 'function'
@@ -823,6 +851,7 @@ function compileSelect(
     return relationArgs(relation, {
       loadIdentity: typeof value === 'function' ? identity(value) : query,
       refine: refine as ((rel: MapperCollection) => MapperCollection) | undefined,
+      variant,
     });
   };
   const parts = relations.map(([name, value]) => {
@@ -830,20 +859,40 @@ function compileSelect(
     if (isPageEntry(value)) {
       return value[CONNECTION_PAGE](relation, name, field!);
     }
-    checkRows?.(relation, name);
     if (!isNestedEntry(value)) {
-      return rowsSelection(relation, name, id, { columns: null, args: load(relation, value) });
+      const variant =
+        field && source === undefined
+          ? staticEntryVariant(contract, owner!, relation, value, returnModelKey)
+          : undefined;
+      return rowsSelection(relation, name, id, {
+        columns: null,
+        args: load(relation, value, variant),
+      });
     }
-    // The rows are planned as the field's type, or as `type` at `path` beneath it.
+    // The rows are planned as the field's type, or as `type` at `path` beneath it. Rows of a
+    // to-many relation planned as a variant of its target, rather than at a path beneath, load
+    // that variant.
     const { query, path, type } = value[NESTED_SELECTION];
     const { nested, ctx } = field!;
+    const variant =
+      relation.isToMany && !path?.length
+        ? variantForRelationType(
+            contract,
+            owner!,
+            relation.targetModel,
+            type === undefined ? returnModelKey : typeModel!(type),
+          )
+        : undefined;
     return completeOption(query ?? true, args, ctx, (resolved) =>
       rowsSelection(
         relation,
         name,
         id,
         nested(
-          { columns: null, args: checkReturned(resolved, (q) => load(relation, q ?? true)) },
+          {
+            columns: null,
+            args: checkReturned(resolved, (q) => load(relation, q ?? true, variant)),
+          },
           path,
           type,
         ),
@@ -902,6 +951,7 @@ export function compileFieldSelect(
         nestedSelection: typeof nestedSelectionEntry,
       ) => MaybePromise<RawSelect | null | undefined>),
   model: PrismaNextModel,
+  typeModel: (typeName: string) => string | undefined,
 ): PrismaNextSelection | PrismaNextSelectFn {
   if (typeof raw !== 'function') {
     // A static select is checked when the schema is built, so it is split once, here.
@@ -911,8 +961,11 @@ export function compileFieldSelect(
     }
     return (args, ctx, nested, selected, position) => {
       const id = consumerId(position);
-      const field = { id, args, ctx, nested, selected, position };
-      return compileSelect(split, model, { contract, id, args, field });
+      const field: FieldPlanning = { id, args, ctx, nested, selected, position };
+      const returnModelKey = getNamedType(position.field.type).extensions?.[PRISMA_NEXT_MODEL] as
+        | string
+        | undefined;
+      return compileSelect(split, model, { contract, id, args, field, returnModelKey });
     };
   }
   return (args, ctx, nested, selected, position) => {
@@ -926,30 +979,35 @@ export function compileFieldSelect(
       args,
       source: raw,
       field,
-      // Rows of a variant model with a table of its own load without the columns it inherits, which
-      // an interface or union reads before any field reloads them. The plugin checks a static select
-      // when the schema is built, so this catches what a select function returns.
-      checkRows: (relation, name) => {
-        if (
-          !returnsRelationRowsAs(
-            relation,
-            isObjectType(returnType) ? 'Object' : 'Other',
-            returnModelKey === undefined ? undefined : getModel(contract, returnModelKey),
-          )
-        ) {
-          throw ownTableVariantRowsError(
-            `The select of field '${position.type.name}.${position.field.name}' loads`,
-            name,
-            relation,
-          );
-        }
-      },
+      returnModelKey,
+      typeModel,
     };
     // Compiled for a request, which may be the first to see what a select function returns.
     return completeValue(raw(args, ctx, nestedSelectionEntry), (value) =>
-      checkReturned(value ?? {}, (returned) =>
-        compileSelect(splitSelect(returned, model), model, select),
-      ),
+      checkReturned(value ?? {}, (returned) => {
+        const split = splitSelect(returned, model);
+        // Rows of a variant model with a table of its own load without the columns it inherits,
+        // which an interface or union reads before any field reloads them. The plugin checks a
+        // static select when the schema is built, so this catches what a select function returns.
+        for (const [name, entry] of split.relations) {
+          const relation = model.relations[name]!;
+          if (
+            loadsOwnTableVariantRows(relation, entry) &&
+            !returnsRelationRowsAs(
+              relation,
+              isObjectType(returnType) ? 'Object' : 'Other',
+              returnModelKey === undefined ? undefined : getModel(contract, returnModelKey),
+            )
+          ) {
+            throw ownTableVariantRowsError(
+              `The select of field '${position.type.name}.${position.field.name}' loads`,
+              name,
+              relation,
+            );
+          }
+        }
+        return compileSelect(split, model, select);
+      }),
     );
   };
 }

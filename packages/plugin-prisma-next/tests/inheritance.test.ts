@@ -112,6 +112,17 @@ function createVariantSchema() {
         query: () => ({ orderBy: { id: 'desc' } }),
       }),
       reviews: t.relation('reviews'),
+      // The selection beneath plans the rows as Bug, so they load narrowed to it.
+      nestedBugs: t.field({
+        type: [bug],
+        select: (_args, _ctx, nestedSelection) => ({ tasks: nestedSelection() }),
+        resolve: (user) => user.tasks,
+      }),
+      staticBugs: t.field({
+        type: [bug],
+        select: { tasks: true },
+        resolve: (user) => user.tasks,
+      }),
     }),
   });
   builder.prismaObject('Note', {
@@ -234,6 +245,20 @@ describe('native model inheritance', () => {
         bugs: [{ __typename: 'Bug', title: 'bug1', reviewer: { email } }],
         bugPage: { totalCount: 1, edges: [{ node: { title: 'bug1' } }] },
       },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it.each([
+    // The selection beneath is planned with the rows.
+    ['nestedBugs', 'title severity reviewer { email }', { reviewer: { email } }],
+    // The rows load with every column, but nothing beneath them.
+    ['staticBugs', 'title severity', {}],
+  ])("narrows a field select's to-many relation to the variant the field's type is (%s)", async (field, selection, more) => {
+    const result = await run(createVariantSchema(), `{ users { ${field} { ${selection} } } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { [field]: [{ title: 'bug1', severity: 'high', ...more }] },
     ]);
     expect(result.statements).toHaveLength(1);
   });
@@ -753,6 +778,55 @@ describe('native model inheritance', () => {
     expect(() => builder.toSchema()).toThrow(
       /t\.relation\('reviews'\) on 'User' targets model 'Bug' but its type is backed by model 'Feature'/,
     );
+  });
+
+  describe("a field select's relation typed as a variant of another branch", () => {
+    function variantBuilder(select: unknown) {
+      const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+        plugins: [prismaNextPlugin],
+        prismaNext: { client: db.client },
+      });
+      const task = builder.prismaInterface('Task', {
+        fields: (t) => ({ title: t.exposeString('title') }),
+      });
+      builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
+      const feature = builder.prismaObject('Feature', {
+        interfaces: [task],
+        fields: (t) => ({ title: t.exposeString('title') }),
+      });
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          reviewed: t.field({
+            type: [feature],
+            select: select as never,
+            resolve: (user) => (user as never as { reviews: never[] }).reviews,
+          }),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+      });
+      return builder;
+    }
+
+    it('rejects a static select when the schema is built', () => {
+      expect(() => variantBuilder({ reviews: true }).toSchema()).toThrow(
+        /Field 'User\.reviewed' targets model 'Bug' but its type is backed by model 'Feature'/,
+      );
+    });
+
+    it("rejects the request of nestedSelection's entry", async () => {
+      const schema = variantBuilder(
+        (_args: unknown, _ctx: unknown, nestedSelection: () => unknown) => ({
+          reviews: nestedSelection(),
+        }),
+      ).toSchema();
+      const result = await run(schema, '{ users { reviewed { title } } }');
+      expect(result.errors?.[0].message).toBe('Unexpected error.');
+      expect(detailOf(result.errors?.[0])).toMatch(
+        /Field 'User\.reviewed' targets model 'Bug' but its type is backed by model 'Feature'/,
+      );
+    });
   });
 
   it('rejects a relation typed as a model outside its hierarchy', () => {
