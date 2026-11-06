@@ -153,15 +153,22 @@ export type NestedSelectionQuery<Types extends SchemaTypes, M extends ModelKey<T
 /**
  * Plans the selection beneath a field into a relation entry of its `select`: the relation's rows
  * are loaded with `query`, and planned as `type` (by default the field's type) at `path` beneath
- * the field.
+ * the field. With a `path` or `type`, the rows aren't typed by the field's model, but as the
+ * relation's target.
  */
 export interface NestedSelectionFn<Types extends SchemaTypes, M extends ModelKey<Types>, Args> {
-  (query?: true, path?: PathSegment[], type?: string): NestedSelectionEntry<M, false>;
+  (query?: true): NestedSelectionEntry<M, false>;
+  (query: NestedSelectionQuery<Types, M, Args>): NestedSelectionEntry<M, true>;
   (
-    query: NestedSelectionQuery<Types, M, Args>,
-    path?: PathSegment[],
+    query: true | undefined,
+    path: PathSegment[] | undefined,
     type?: string,
-  ): NestedSelectionEntry<M, true>;
+  ): NestedSelectionEntry<never, false>;
+  (
+    query: NestedSelectionQuery<Types, never, Args>,
+    path: PathSegment[] | undefined,
+    type?: string,
+  ): NestedSelectionEntry<never, true>;
 }
 
 /**
@@ -264,7 +271,8 @@ type KnownSelectSpec<Types extends SchemaTypes, M extends ModelKey<Types>, Mispl
                     // A connection helper's page, on a field's `select` only.
                     | ConnectionPageEntry<RelationTypeModel<Types, M, K>, unknown>
                     | NestedSelectionEntry<RelationTypeModel<Types, M, K>, boolean>
-                : NestedSelectionEntry<RelationTypeModel<Types, M, K>, false>)
+                : // A to-one relation's rows load whole, so they're planned as its target.
+                  NestedSelectionEntry<RelatedModel<Types, M, K>, false>)
         : K extends keyof Row<Types, M>
           ? true
           : never);
@@ -579,7 +587,11 @@ type InvalidSelectValueCheck<Types extends SchemaTypes, M extends ModelKey<Types
     : {
         [K in Invalid as LooksComputed<Types, M, NonNullable<Select[K & keyof Select]>> extends true
           ? `A computed key can't be a column or relation: ${K}`
-          : `Invalid value in select: ${K}`]: never;
+          : K extends ToManyRelationKeys<Types, M>
+            ? `Invalid value in select: ${K}`
+            : NonNullable<Select[K & keyof Select]> extends NestedSelectionEntry<unknown, true>
+              ? `A to-one relation takes no query: ${K}`
+              : `Invalid value in select: ${K}`]: never;
       }
   : unknown;
 

@@ -591,9 +591,57 @@ builder.queryFields((t) => ({
     }),
     queriedWriter: t.field({
       type: NestedUser,
-      // @ts-expect-error a to-one relation takes no query
+      // @ts-expect-error A to-one relation takes no query: author
       select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection({ limit: 1 }) }),
       resolve: (post) => post.author,
     }),
+    // Planned as the selection beneath the field's `writer`, so typed as the relation's target.
+    viaPath: t.field({
+      type: NestedPost,
+      select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection(true, ['writer']) }),
+      resolve: (post) => {
+        expectTypeOf(post.author).toEqualTypeOf<PlannedRow<Types, 'User'>>();
+        return post;
+      },
+    }),
+    viaType: t.field({
+      type: NestedPost,
+      select: (_args, _ctx, nestedSelection) => ({
+        author: nestedSelection(undefined, undefined, 'NestedUser'),
+      }),
+      resolve: (post) => {
+        expectTypeOf(post.author).toEqualTypeOf<PlannedRow<Types, 'User'>>();
+        return post;
+      },
+    }),
   }));
+}
+
+// A to-many relation to a hierarchy's base can be planned as a variant, which its rows are narrowed
+// to. A to-one relation's rows load whole, so it can't.
+{
+  const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
+    plugins: [prismaNextPlugin],
+    prismaNext: { client: null as never },
+  });
+  const Bug = inheritance.prismaObject('Bug', { fields: (t) => ({ id: t.exposeID('id') }) });
+  inheritance.prismaObject('User', {
+    fields: (t) => ({
+      bugs: t.field({
+        type: [Bug],
+        select: (_args, _ctx, nestedSelection) => ({ tasks: nestedSelection() }),
+        resolve: (user) => user.tasks,
+      }),
+    }),
+  });
+  inheritance.prismaObject('Note', {
+    fields: (t) => ({
+      bug: t.field({
+        type: Bug,
+        // @ts-expect-error Invalid value in select: task
+        select: (_args, _ctx, nestedSelection) => ({ task: nestedSelection() }),
+        resolve: (note) => note.task,
+      }),
+    }),
+  });
 }
