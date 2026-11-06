@@ -131,6 +131,34 @@ describe('rows a resolver returns', () => {
       posts: [{ title: 'Hello, Pothos' }, { title: 'Draft #1' }],
     });
   });
+
+  it("reloads a row a resolver returns once for the fields reading the type's select", async () => {
+    const builder = createBuilder();
+    const User = builder.prismaObject('User', {
+      select: { posts: true },
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        postTotal: t.int({ resolve: (user) => user.posts.length }),
+        label: t.string({
+          select: { email: true, posts: true },
+          resolve: (user) => `${user.email} ${user.posts.length}`,
+        }),
+        drafts: t.relationCount('posts', { query: { where: { published: 0 } } }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.field({ type: [User], resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }] }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { id postTotal label drafts } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { id: 'u-alice', postTotal: 2, label: 'alice@example.com 2', drafts: 1 },
+      { id: 'u-bob', postTotal: 2, label: 'bob@example.com 2', drafts: 1 },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
 });
 
 describe('rows the plugin loaded', () => {
