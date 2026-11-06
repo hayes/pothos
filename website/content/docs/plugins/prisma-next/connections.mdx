@@ -83,11 +83,8 @@ fails each request that returns such an order.
 
 When the nodes aren't a relation of the parent, such as the users who commented on a post, define
 the connection yourself with `t.connection` and page it with `prismaConnectionHelpers`. The helper
-takes a model name or a prisma type ref, and `query`, `defaultSize`, `maxSize` and `args` as
-`t.relatedConnection` does. Its `totalCount` takes `true`, but not a function. For a
-custom count, see below.
-
-### Paginate through a join model
+takes a model name or a prisma type ref, and `query`, `defaultSize`, `maxSize`, `totalCount` and
+`args` as `t.relatedConnection` does. `totalCount` takes `true`, but not a function.
 
 Here each row is a `Comment`, and each node is that comment's author. `select` lists what each
 comment loads, and `nodeSelection()` marks `author` as the relation that holds the node.
@@ -107,45 +104,23 @@ builder.prismaObjectField('Post', 'commenters', (t) =>
   t.connection(
     {
       type: User,
-      select: { comments: commenters.page },
-      resolve: (post, args, ctx) => commenters.resolve(post.comments, args, ctx, post),
+      select: (args, ctx, nestedSelection) => ({
+        comments: commenters.getQuery(args, ctx, nestedSelection),
+      }),
+      resolve: (post, args, ctx) => commenters.resolve(post.comments, args, ctx),
     },
-    commenters.connectionOptions({}),
+    {
+      fields: (connection) => ({
+        totalCount: connection.int({ resolve: (page) => page.totalCount }),
+      }),
+    },
   ),
 );
 ```
 
-`commenters.page` loads one page of comments with the post, and `commenters.resolve` builds the
-connection from them.
+`getQuery` loads one page of comments with the post, and its count when `totalCount` is selected.
+`resolve` builds the connection from those rows, so pass them as loaded rather than a filtered or
+mapped copy. Without `resolveNode`, the rows are the nodes.
 
-### Paginate a Collection you load yourself
-
-To run the query in your own resolver, use `applyPagination`. Here a root field pages through the
-authors of all comments:
-
-```ts
-builder.queryFields((t) => ({
-  recentCommenters: t.connection(
-    {
-      type: User,
-      resolve: async (_root, args, ctx, info) => {
-        const { collection, totalCountPromise, wrap } = await commenters.applyPagination(
-          ctx.db.orm.Comment,
-          args,
-          ctx,
-          info,
-        );
-        return wrap(await collection.all(), await totalCountPromise);
-      },
-    },
-    commenters.connectionOptions({}),
-  ),
-}));
-```
-
-The Collection passed to `applyPagination` follows the same rules as one `t.prismaConnection`
-returns. With `info`, each row loads what the query selects. Without it, rows load every column.
-`totalCountPromise` is `undefined` when `totalCount` isn't selected.
-
-`connectionOptions` adds the `totalCount` field. For a custom count, leave `totalCount` unset, add
-the field yourself, and pass the count to `wrap(rows, count)`.
+`select` and `query` also receive the field's arguments and context. Add the helper's `args` to the
+field with `args: commenters.getArgs()`.
