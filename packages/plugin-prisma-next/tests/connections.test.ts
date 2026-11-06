@@ -1605,6 +1605,83 @@ describe('prismaConnectionHelpers', () => {
     expect(second.data.users[0].wrapped.edges).toEqual([{ node: { title: 'Hello, Pothos' } }]);
   });
 
+  // User.stats → Stats.posts: the connection sits beneath a wrapper the field returns.
+  function wrapperSchema(prefixed: boolean) {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
+    const posts = prismaConnectionHelpers(builder, 'Post', {
+      query: { orderBy: { title: 'asc' } },
+      totalCount: true,
+    });
+    type PostRows = Parameters<typeof posts.resolve>[0];
+    const Stats = builder.objectRef<{ rows: PostRows }>('Stats').implement({
+      fields: (t) => ({
+        posts: t.connection(
+          {
+            type: posts.ref,
+            resolve: (stats, args, ctx) => posts.resolve(stats.rows, args, ctx),
+          },
+          { fields: (c) => ({ totalCount: c.int({ resolve: (page) => page.totalCount }) }) },
+        ),
+      }),
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        stats: t.field({
+          type: Stats,
+          select: (args, ctx, nestedSelection) => ({
+            posts: posts.getQuery(args, ctx, (query, path) =>
+              prefixed ? nestedSelection(query, ['posts', ...path]) : nestedSelection(query, path),
+            ),
+          }),
+          resolve: (user) => ({ rows: user.posts }),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  it('pages a connection beneath a wrapper type through a prefixed path', async () => {
+    const result = await run(
+      wrapperSchema(true),
+      '{ users { stats { posts { totalCount edges { node { title } } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users.map((user: { stats: unknown }) => user.stats)).toEqual([
+      {
+        posts: {
+          totalCount: 2,
+          edges: [{ node: { title: 'Draft #1' } }, { node: { title: 'Hello, Pothos' } }],
+        },
+      },
+      {
+        posts: {
+          totalCount: 2,
+          edges: [{ node: { title: 'Bob draft' } }, { node: { title: 'Bob writes' } }],
+        },
+      },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('fails the root field with an unexpected error for a path the wrapper does not have', async () => {
+    const result = await run(
+      wrapperSchema(false),
+      '{ users { stats { posts { edges { node { title } } } } } }',
+    );
+    expect(result.data.users).toBeNull();
+    expect(result.errors?.map(detailOf)).toEqual(['Expected Stats to have a field edges']);
+    expect(result.statements).toHaveLength(0);
+  });
+
   it('takes a named type as its ref, and pages nodes of a named type', async () => {
     const builder = createBuilder();
     const Card = builder.prismaObject('User', {

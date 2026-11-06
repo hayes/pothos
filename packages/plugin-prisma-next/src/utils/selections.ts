@@ -133,7 +133,7 @@ function isPageEntry(value: unknown): value is { [CONNECTION_PAGE]: PlanPage } {
 export const NESTED_SELECTION = Symbol('prismaNextNestedSelection');
 
 /** What a `nestedSelection` entry plans: the relation's rows, as `type` at `path` beneath the field. */
-interface NestedEntry {
+export interface NestedEntry {
   query?: unknown;
   path?: PathSegment[];
   type?: string;
