@@ -166,7 +166,7 @@ describe('Relay nodes', () => {
   });
 
   it.each([
-    ['malformed', 'PNI:MARKER-not-a-chunk'],
+    ['malformed', 'MARKER-not-json'],
     ['short', JSON.stringify(['MARKER'])],
   ])('rejects a %s compound ID without echoing it', async (_name, payload) => {
     const result = await query('query ($id: ID!) { node(id: $id) { id } }', {
@@ -309,6 +309,8 @@ describe('node declarations', () => {
     });
     const schema = builder.toSchema();
     const note = await run(schema, '{ note { id } }');
+    // The format plugin-prisma uses: an Int is its digits.
+    expect(note.data.note.id).toBe(globalId('Note', '20'));
     const result = await run(schema, 'query ($id: ID!) { echo(id: $id) node(id: $id) { id } }', {
       variables: { id: note.data.note.id },
     });
@@ -582,10 +584,12 @@ describe('ID values', () => {
     expect(parsed).toEqual(['p', first, 'p', second]);
   });
 
-  it('escapes a string ID shaped like a typed payload', async () => {
-    expect(await roundTrip('User', [{ id: 'PNI:N:42', label: 'A' }], { field: 'id' })).toEqual([
-      'PNI:N:42',
-    ]);
+  it('keeps a string ID that reads as JSON a string', async () => {
+    const rows = [
+      { id: '42', label: 'A' },
+      { id: '["a"]', label: 'B' },
+    ];
+    expect(await roundTrip('User', rows, { field: 'id' })).toEqual(['42', '["a"]']);
   });
 
   it('keeps the raw value for a custom parser or id resolver', async () => {
@@ -656,7 +660,7 @@ describe('ID values', () => {
     });
     builder.queryType({});
     const result = await run(builder.toSchema(), 'query ($id: ID!) { node(id: $id) { id } }', {
-      variables: { id: globalId('Post', 'PNI:T:["S:p","S:MARKER"]') },
+      variables: { id: globalId('Post', JSON.stringify(['p', 'MARKER'])) },
     });
     expect(result.errors?.[0].message).toBe('Invalid ID.');
     expect(result.statements).toHaveLength(0);

@@ -1,29 +1,39 @@
-import { encodeCursorChunk, PothosValidationError } from '@pothos/core';
+import { PothosValidationError } from '@pothos/core';
 import type { FieldCodecs } from './codecs.js';
-import { decodeValues, encodeValues } from './cursors.js';
 import { InternalError } from './errors.js';
 
-/** Tags node IDs that aren't plain strings, so they decode back to their own type. */
-const ID_PREFIX = 'PNI:';
-
+/**
+ * Node IDs use plugin-prisma's format: a value's stored form, as it is when it's a string and as
+ * JSON otherwise, and a JSON array of those for several fields.
+ */
 export function encodeNodeId(
   modelKey: string,
   fields: readonly string[],
   row: Record<string, unknown>,
   codecs: FieldCodecs,
 ): string {
-  const values = fields.map((field) => {
+  const parts = fields.map((field) => {
     // A missing value would encode as null, an ID no row has.
     if (row[field] == null) {
       throw new InternalError(`prismaNode '${modelKey}' row is missing id field '${field}'.`);
     }
-    return row[field];
+    const stored = codecs(field).encode(row[field]);
+    return typeof stored === 'string' ? stored : JSON.stringify(stored);
   });
-  const payload = encodeValues(fields, values, codecs);
-  // A string stays readable unless it could be mistaken for a tagged payload.
-  return payload.startsWith('S:') && !payload.startsWith(`S:${ID_PREFIX}`)
-    ? payload.slice(2)
-    : `${ID_PREFIX}${payload}`;
+  return parts.length === 1 ? parts[0]! : JSON.stringify(parts);
+}
+
+/**
+ * A value's stored form is read as the string first, so a string column keeps IDs that look like
+ * JSON, and a codec refuses a stored form of the wrong type.
+ */
+function decodePart(codecs: FieldCodecs, field: string, part: string): unknown {
+  const codec = codecs(field);
+  try {
+    return codec.decode(part);
+  } catch {
+    return codec.decode(JSON.parse(part));
+  }
 }
 
 /** Decodes a node ID. Returns a tuple of the values of `fields` when `tuple` is set. */
@@ -33,13 +43,18 @@ export function parseNodeId(
   codecs: FieldCodecs,
   { tuple }: { tuple: boolean },
 ): unknown {
-  const values = decodeValues(
-    fields,
-    id.startsWith(ID_PREFIX) ? id.slice(ID_PREFIX.length) : encodeCursorChunk(id),
-    codecs,
-  );
-  if (!values) {
-    throw new PothosValidationError('Invalid ID.');
+  try {
+    const parts: unknown = fields.length === 1 ? [id] : JSON.parse(id);
+    if (
+      Array.isArray(parts) &&
+      parts.length === fields.length &&
+      parts.every((part) => typeof part === 'string')
+    ) {
+      const values = fields.map((field, i) => decodePart(codecs, field, parts[i]));
+      return tuple ? values : values[0];
+    }
+  } catch {
+    // A codec's or JSON's error names the value, which the client sees only as an invalid ID.
   }
-  return tuple ? fields.map((field) => values[field]) : values[fields[0]!];
+  throw new PothosValidationError('Invalid ID.');
 }

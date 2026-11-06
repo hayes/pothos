@@ -30,7 +30,9 @@ builder.prismaNode('Post', {
   isn't access control.
 </Callout>
 
-To control the format of the global ID, pass `resolve` and `parse`:
+The ID holds the column's value, as text, or a JSON array of the values when `id.field` lists
+several columns, as the [Prisma plugin's](/docs/plugins/prisma/relay) IDs do. To control the format
+of the global ID, pass `resolve` and `parse`:
 
 ```ts
 builder.prismaNode('Comment', {
