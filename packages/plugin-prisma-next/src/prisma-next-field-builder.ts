@@ -9,7 +9,6 @@ import {
   type NormalizeArgs,
   type ObjectRef,
   type PluginName,
-  PothosSchemaError,
   RootFieldBuilder,
   type SchemaTypes,
   type ShapeFromTypeParam,
@@ -61,7 +60,7 @@ import {
 } from './utils/connections.js';
 import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
 import { buildConnectionPage, orderableProblem } from './utils/cursors.js';
-import { reloadFor } from './utils/errors.js';
+import { checkReturned, reloadFor } from './utils/errors.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { getRefFromContractModel, refFor } from './utils/refs.js';
 import {
@@ -376,7 +375,6 @@ export class PrismaNextObjectFieldBuilder<
         this.contract as AnyContract,
         relation.targetModel,
         literal,
-        PothosSchemaError,
         orderableProblem(getPluginConfig(this.builder).context, relation.targetModel),
       );
     const relationLoaded = (parent: object) =>
@@ -390,7 +388,10 @@ export class PrismaNextObjectFieldBuilder<
             ? (value as (rel: MapperCollection) => MapperCollection)
             : value === query
               ? literalRefine
-              : spec && queryRefinement(this.contract as AnyContract, relation.targetModel, spec);
+              : spec &&
+                checkReturned(spec, (returned) =>
+                  queryRefinement(this.contract as AnyContract, relation.targetModel, returned),
+                );
         // A callback builds a new query on every walk, so its definition and arguments identify
         // it.
         const identity = refine && (typeof query === 'function' ? { source: query, args } : spec);

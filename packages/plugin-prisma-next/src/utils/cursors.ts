@@ -77,7 +77,7 @@ export function orderableProblem(
 
 /**
  * Resolves an `orderBy` to its columns, each with its direction and null placement: nullable
- * columns put nulls last unless `nulls` says otherwise. Throws `ErrorClass` for a column `problem`
+ * columns put nulls last unless `nulls` says otherwise. Throws for a column `problem`
  * rejects. Without `problem`, only columns the model doesn't have are rejected: the types reject the
  * rest, and only a computed key can reach the runtime.
  */
@@ -85,7 +85,6 @@ export function orderColumns(
   contract: AnyContract,
   modelKey: string,
   decl: OrderByDecl | undefined,
-  ErrorClass: new (message: string) => Error,
   problem?: OrderProblem,
 ): OrderColumn[] {
   const model = resolveContractModel(contract, modelKey)!;
@@ -100,7 +99,7 @@ export function orderColumns(
         ? undefined
         : `'${modelKey}.${field}' is not a field of the model`;
     if (reason) {
-      throw new ErrorClass(`orderBy can't order by ${reason}.`);
+      throw new PothosSchemaError(`orderBy can't order by ${reason}.`);
     }
     const { direction = 'asc', nulls } = typeof entry === 'string' ? { direction: entry } : entry;
     const placement = nulls ?? (model.fields[field]!.nullable ? 'last' : undefined);
@@ -132,7 +131,7 @@ export function orderCollection<C extends MapperCollection>(
 export function connectionOrder(
   context: PrismaNextExecutionContext<AnyContract>,
   modelKey: string,
-): (decl: OrderByDecl | undefined, ErrorClass: new (message: string) => Error) => CursorOrder {
+): (decl: OrderByDecl | undefined) => CursorOrder {
   const { contract } = context;
   const orderable = orderableProblem(context, modelKey);
   const problem = (field: string) =>
@@ -145,8 +144,8 @@ export function connectionOrder(
       `Connections of '${modelKey}' page by a non-null primary or unique key of orderable columns, which it doesn't have${reason ? `: ${reason}` : ''}.`,
     );
   }
-  return (decl, ErrorClass) => {
-    const order = orderColumns(contract, modelKey, decl, ErrorClass, problem);
+  return (decl) => {
+    const order = orderColumns(contract, modelKey, decl, problem);
     const named = new Set(order.map(({ field }) => field));
     if (!keys.some((columns) => columns.every((field) => named.has(field)))) {
       const direction = order[order.length - 1]?.direction ?? 'asc';

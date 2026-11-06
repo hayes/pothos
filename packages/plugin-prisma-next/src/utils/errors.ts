@@ -1,3 +1,4 @@
+import { PothosSchemaError } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 
 /** What a client sees of an error this plugin raises while a request runs. */
@@ -11,6 +12,20 @@ export const UNEXPECTED_ERROR = 'Unexpected error.';
 export class InternalError extends Error {
   constructor(detail: string, options?: { cause?: unknown }) {
     super(UNEXPECTED_ERROR, { cause: new Error(detail, options) });
+  }
+}
+
+/**
+ * Applies `check`, which runs the schema build's checks, to `value`, what an app's function
+ * returned for a request. The client sees a `PothosSchemaError` it throws as `Unexpected error.`.
+ */
+export function checkReturned<V, T>(value: V, check: (value: V) => T): T {
+  try {
+    return check(value);
+  } catch (error) {
+    throw error instanceof PothosSchemaError
+      ? new InternalError(error.message, { cause: error })
+      : error;
   }
 }
 

@@ -44,7 +44,7 @@ import {
 } from './constants.js';
 import { canInclude } from './utils/adapter.js';
 import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
-import { rootModelKey } from './utils/contract.js';
+import { rootModelKey, variantForRelationType } from './utils/contract.js';
 import { orderableProblem, orderColumns } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
 import {
@@ -60,6 +60,7 @@ import {
   definedQuery,
   EMPTY,
   fieldCopy,
+  isPageEntry,
   loadsOwnTableVariantRows,
   type PrismaNextSelectFn,
   type PrismaNextSelection,
@@ -354,19 +355,29 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const { contract } = this.config;
     if (split) {
       const returnConfig = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
-      const returnModel = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+      const returnModelKey = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+      const returnModel =
+        returnModelKey === undefined ? undefined : getModel(contract, returnModelKey);
       assertRelationEntries(
         this.config,
         split,
         model,
         `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
-        (relation) =>
-          returnsRelationRowsAs(
-            relation,
-            returnConfig.kind,
-            returnModel === undefined ? undefined : getModel(contract, returnModel),
-          ),
+        (relation) => returnsRelationRowsAs(relation, returnConfig.kind, returnModel),
       );
+      // The rows of a relation entry the field's selection set plans are narrowed to its type's
+      // variant, as `compileFieldSelect` plans them.
+      for (const [name, value] of split.relations) {
+        const relation = model.relations[name]!;
+        if (returnModel === relation.target && !isPageEntry(value)) {
+          variantForRelationType(
+            contract,
+            `Field '${fieldConfig.name}'`,
+            relation.targetModel,
+            returnModelKey,
+          );
+        }
+      }
     }
     const rows = fieldConfig.extensions?.[PRISMA_NEXT_RELATION_ROWS] as
       | { name: string; type: OutputType<Types> }
@@ -739,7 +750,6 @@ function assertRelationEntries(
         config.contract,
         relation.targetModel,
         orderBy,
-        PothosSchemaError,
         orderableProblem(config.context, relation.targetModel),
       );
     }

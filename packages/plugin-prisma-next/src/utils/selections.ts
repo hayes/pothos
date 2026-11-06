@@ -17,7 +17,7 @@ import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import { variantForRelationType } from './contract.js';
 import { type OrderByDecl, orderCollection, orderColumns } from './cursors.js';
-import { assertGraphQLJsInfo, InternalError } from './errors.js';
+import { assertGraphQLJsInfo, checkReturned } from './errors.js';
 import {
   getModel,
   ownTableVariantRowsError,
@@ -124,7 +124,7 @@ export type PlanPage = (
   field: FieldPlanning,
 ) => MaybePromise<PrismaNextSelection>;
 
-function isPageEntry(value: unknown): value is { [CONNECTION_PAGE]: PlanPage } {
+export function isPageEntry(value: unknown): value is { [CONNECTION_PAGE]: PlanPage } {
   return typeof value === 'object' && value !== null && CONNECTION_PAGE in value;
 }
 
@@ -636,10 +636,9 @@ export function queryRefinement(
   contract: AnyContract,
   modelKey: string,
   { where, orderBy, limit, offset }: DeclarativeQuery,
-  ErrorClass: new (message: string) => Error = InternalError,
-  problem?: Parameters<typeof orderColumns>[4],
+  problem?: Parameters<typeof orderColumns>[3],
 ) {
-  const order = orderBy && orderColumns(contract, modelKey, orderBy, ErrorClass, problem);
+  const order = orderBy && orderColumns(contract, modelKey, orderBy, problem);
   return (collection: MapperCollection) => {
     let result = collection;
     if (where !== undefined) {
@@ -716,20 +715,15 @@ export function computedSelection(
 
 /**
  * The columns, relations and computed values of a `select`. The types check its entries: a key
- * that isn't a column or relation holds a computed value, which reads one relation. `ErrorClass` is
- * `PothosSchemaError` for a `select` checked when the schema is built.
+ * that isn't a column or relation holds a computed value, which reads one relation.
  */
-export function splitSelect(
-  raw: RawSelect,
-  model: PrismaNextModel,
-  ErrorClass?: new (message: string) => Error,
-) {
+export function splitSelect(raw: RawSelect, model: PrismaNextModel) {
   const columns: string[] = [];
   const relations: [string, unknown][] = [];
   const computed: ComputedEntry[] = [];
   const assertLoadable = (name: string) => {
     if (model.sharedVariantRelations.has(name)) {
-      throw sharedVariantRelationError(`a select of model '${model.key}'`, name, model, ErrorClass);
+      throw sharedVariantRelationError(`a select of model '${model.key}'`, name, model);
     }
   };
   for (const [key, value] of Array.isArray(raw)
@@ -907,7 +901,6 @@ export function compileFieldSelect(
             `The select of field '${position.type.name}.${position.field.name}' loads`,
             name,
             relation,
-            InternalError,
           );
         }
         // A field that returns another model has a selection set that can't load from these rows.
@@ -921,7 +914,6 @@ export function compileFieldSelect(
           `Field '${position.field.name}'`,
           relation.targetModel,
           returnModelKey,
-          InternalError,
         );
         return nested(
           variant === undefined || !relation.isToMany
@@ -932,7 +924,9 @@ export function compileFieldSelect(
     };
     // Compiled for a request, which may be the first to see what a select function returns.
     return completeOption(raw, args, ctx, (value) =>
-      compileSelect(splitSelect(value ?? {}, model, InternalError), model, select),
+      checkReturned(value ?? {}, (returned) =>
+        compileSelect(splitSelect(returned, model), model, select),
+      ),
     );
   };
 }

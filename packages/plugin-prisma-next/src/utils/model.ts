@@ -45,17 +45,9 @@ export interface PrismaNextModel {
   readonly variantTableColumns: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
-/**
- * The error for loading a relation name several variants of `model` declare: a `PothosSchemaError`
- * when the schema is built, and an `InternalError` for a `select` a function returned for a request.
- */
-export function sharedVariantRelationError(
-  owner: string,
-  name: string,
-  model: PrismaNextModel,
-  ErrorClass: new (message: string) => Error = PothosSchemaError,
-) {
-  return new ErrorClass(
+/** The error for loading a relation name several variants of `model` declare. */
+export function sharedVariantRelationError(owner: string, name: string, model: PrismaNextModel) {
+  return new PothosSchemaError(
     `Relation '${name}' on ${owner} is declared under the same name by several variants of model '${model.key}', so it can't be loaded. Give it a name no other variant uses.`,
   );
 }
@@ -63,16 +55,14 @@ export function sharedVariantRelationError(
 /**
  * The error for rows of relation `name` that need the base model's columns: the relation targets a
  * variant model with a table of its own, whose rows the ORM loads without them. `subject` says what
- * reads the rows. A `PothosSchemaError` when the schema is built, and an `InternalError` for a
- * `select` planned for a request.
+ * reads the rows.
  */
 export function ownTableVariantRowsError(
   subject: string,
   name: string,
   { targetModel }: PrismaNextRelation,
-  ErrorClass: new (message: string) => Error = PothosSchemaError,
 ) {
-  return new ErrorClass(
+  return new PothosSchemaError(
     `${subject} the rows of relation '${name}', which targets variant model '${targetModel}' with a table of its own. Those rows load from that table alone, without the base model's columns. Return them as an object type of '${targetModel}' (t.relation, t.relatedConnection or a field select), or relate to the base model.`,
   );
 }

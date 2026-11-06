@@ -187,21 +187,19 @@ export function variantTableFields(contract: AnyContract, modelKey: string): str
 
 /**
  * The variant a relation is narrowed to when its GraphQL type is backed by a variant of its
- * target. Throws an `ErrorClass` error for a type from the hierarchy the relation can't return: a
- * `PothosSchemaError` when the schema is built, and an `InternalError` when a request is planned.
+ * target. Throws for a type from the hierarchy the relation can't return.
  */
 export function variantForRelationType(
   contract: AnyContract,
   owner: string,
   targetModel: string,
   typeModel: string | undefined,
-  ErrorClass: new (message: string) => Error = PothosSchemaError,
 ): string | undefined {
   if (typeModel === undefined || typeModel === targetModel) {
     return undefined;
   }
   if (rootModelKey(contract, typeModel) !== rootModelKey(contract, targetModel)) {
-    throw new ErrorClass(
+    throw new PothosSchemaError(
       `${owner} targets model '${targetModel}' but its type is backed by unrelated model '${typeModel}'.`,
     );
   }
@@ -212,7 +210,7 @@ export function variantForRelationType(
   if (variant.root === targetModel) {
     return variant.value;
   }
-  throw new ErrorClass(
+  throw new PothosSchemaError(
     `${owner} targets model '${targetModel}' but its type is backed by model '${typeModel}'. ` +
       `A relation can be typed as a variant of its target only when it targets the base model '${variant.root}'.`,
   );

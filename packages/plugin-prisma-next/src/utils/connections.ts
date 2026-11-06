@@ -1,10 +1,4 @@
-import {
-  completeValue,
-  type MaybePromise,
-  ObjectRef,
-  PothosSchemaError,
-  type SchemaTypes,
-} from '@pothos/core';
+import { completeValue, type MaybePromise, ObjectRef, type SchemaTypes } from '@pothos/core';
 import { type IndirectInclude, selectedFieldNames } from '@pothos/selection-mapper';
 import {
   type GraphQLNamedType,
@@ -24,7 +18,7 @@ import {
   type OrderByDecl,
   withCursorValues,
 } from './cursors.js';
-import { InternalError } from './errors.js';
+import { checkReturned } from './errors.js';
 import type { PrismaNextRelation } from './model.js';
 import {
   COUNT_SLOT,
@@ -106,11 +100,11 @@ export function connectionSettings(
   { defaultSize, maxSize, totalCount, query }: ConnectionSettingsOptions,
 ) {
   const orderFor = connectionOrder(config.context, modelKey);
-  const resolveQuery = (value: ConnectionQuery | undefined, ErrorClass: typeof InternalError) => ({
+  const resolveQuery = (value: ConnectionQuery | undefined) => ({
     where: value?.where,
-    order: orderFor(value?.orderBy, ErrorClass),
+    order: orderFor(value?.orderBy),
   });
-  const literal = typeof query === 'function' ? undefined : resolveQuery(query, PothosSchemaError);
+  const literal = typeof query === 'function' ? undefined : resolveQuery(query);
   const resolveSize = (option: SizeOption | undefined, args: object, ctx: object) =>
     typeof option === 'function' ? option(args as never, ctx as never) : option;
   /**
@@ -148,9 +142,9 @@ export function connectionSettings(
     plan(args: object, ctx: object): ConnectionPlan {
       const { where, order } =
         literal ??
-        resolveQuery(
+        checkReturned(
           (query as (args: object, ctx: object) => ConnectionQuery | undefined)(args, ctx),
-          InternalError,
+          resolveQuery,
         );
       const plan = withCursorValues(
         {

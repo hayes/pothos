@@ -49,7 +49,6 @@ import {
   type ConnectionPage,
   cursorColumns,
 } from './utils/cursors.js';
-import { InternalError } from './utils/errors.js';
 import { applySelectionToCollection, planSelection } from './utils/map-query.js';
 import { getIdentityFields, getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
@@ -398,13 +397,7 @@ export function prismaConnectionHelpers<
       plan: planned,
       args,
       identity: { source: planPage, args, order: planned.order },
-      variant: variantForRelationType(
-        config.contract,
-        owner,
-        relation.targetModel,
-        modelKey,
-        InternalError,
-      ),
+      variant: variantForRelationType(config.contract, owner, relation.targetModel, modelKey),
       count: count === 'aggregate' ? { filtered: true } : undefined,
       // The nodes are planned into `nodeRelation`, or into the rows unless `resolveNode` makes them
       // something else. Rows whose nodes aren't planned load every column.
