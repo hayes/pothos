@@ -163,11 +163,11 @@ export class ModelLoader {
   }
 
   /**
-   * The parent row reloaded with every column and what the `select`s of `type` and its interfaces
-   * load. Unlike `loadSelection`, it plans none of the field, so every field of a row shares it,
-   * and the type's relations are never left out for the field's. The row's keys that aren't the
-   * model's columns or relations are kept. Cached per root field of each execution, which graphql
-   * makes a new path for, so scope-auth's checks and the fields share one load.
+   * The parent row scope-auth's checks read, reloaded with every column and what the `select`s of
+   * `type` and its interfaces load. Unlike `loadSelection`, it plans none of the field, so every
+   * check of a row shares it. The row's keys that aren't the model's columns or relations are
+   * kept. Cached per root field of each execution, which graphql makes a new path for, so a row
+   * is reloaded again for a later mutation or subscription event.
    */
   loadTypeRow(info: GraphQLResolveInfo, parent: object, type: GraphQLObjectType): Promise<Row> {
     this.assertIdentity(info);

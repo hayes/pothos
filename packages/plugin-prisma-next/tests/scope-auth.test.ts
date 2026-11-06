@@ -628,7 +628,8 @@ describe.each(orders)('field-level authScopes (%s)', (_, plugins) => {
 
 // Scope-auth listed before this plugin gets, from `pothosScopeAuthParent`, a parent holding what the
 // type's select and its interfaces' selects load. A row without it is reloaded before the checks
-// run, in one batch per field, and a row with it costs no statement.
+// run, in one batch per field, and a row with it costs no statement. A field the row doesn't hold
+// what it reads for reloads the row again, with what the field plans.
 describe("a type's select before plugins listed first", () => {
   function typeDataSchema(seen: unknown[], defer = false) {
     const builder = new SchemaBuilder<{
@@ -708,7 +709,8 @@ describe("a type's select before plugins listed first", () => {
     expect(seen).toContainEqual(alice('type'));
     expect(seen).toContainEqual(alice('field'));
     expect(seen).toContainEqual(['field', 'bob@example.com', 2]);
-    expect(result.statements).toHaveLength(1);
+    // The checks' reload, then the field's.
+    expect(result.statements).toHaveLength(2);
   });
 
   it('reloads a hand-built row once for a field that loads its own select', async () => {
@@ -717,7 +719,8 @@ describe("a type's select before plugins listed first", () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ handBuilt: { label: 'alice@example.com Andrews' } });
     expect(seen).toEqual([alice('type'), ['label', 'alice@example.com']]);
-    expect(result.statements).toHaveLength(1);
+    // The checks' reload, then the field's.
+    expect(result.statements).toHaveLength(2);
   });
 
   it('shows deferred fields what the type selects', async () => {
@@ -739,8 +742,8 @@ describe("a type's select before plugins listed first", () => {
     expect(seen).not.toContainEqual(expect.arrayContaining([undefined]));
     expect(seen).toContainEqual(alice('field'));
     expect(seen).toContainEqual(['label', 'alice@example.com']);
-    // The deferred field shares the hand-built row's reload with the first batch.
-    expect(statements).toHaveLength(1);
+    // The checks' reload, which the deferred field's checks share, and each field's own.
+    expect(statements).toHaveLength(3);
   });
 
   it('fails the field whose reload fails, naming it', async () => {
@@ -803,7 +806,8 @@ describe("a type's select before plugins listed first", () => {
     const result = await runCaptured(builder.toSchema(), '{ handBuilt { firstName } }');
     expect(result.data).toEqual({ handBuilt: { firstName: 'Alice' } });
     expect(seen).toEqual(['Alice']);
-    expect(result.statements).toHaveLength(1);
+    // The checks' reload, then the field's.
+    expect(result.statements).toHaveLength(2);
   });
 
   it('fails a reload the database rejects with a generic error', async () => {
@@ -954,7 +958,9 @@ describe('rows another plugin rebuilt without what the type selects', () => {
   }
   SchemaBuilder.registerPlugin('prismaNextTestForgePosts' as never, ForgePostsPlugin as never);
 
-  it("loads a relation the reload didn't, rather than keeping the rebuilt row's", async () => {
+  // The field reads the relation the plugin wrote: only a key the field's own selection reads that
+  // is undefined reloads the row.
+  it('keeps a relation the rebuilt row holds', async () => {
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
@@ -979,9 +985,7 @@ describe('rows another plugin rebuilt without what the type selects', () => {
     });
     const result = await runCaptured(builder.toSchema(), '{ users { posts { title } } }');
     expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({
-      users: [{ posts: [{ title: 'Hello, Pothos' }, { title: 'Draft #1' }] }],
-    });
+    expect(result.data).toEqual({ users: [{ posts: [{ title: 'Forged' }] }] });
   });
 });
 
@@ -1205,7 +1209,6 @@ describe('runScopesOnType on rows without what the type selects', () => {
       },
       fields: (t) => ({
         firstName: t.exposeString('firstName'),
-        // Reads only what the type selects, so it shares the reload of the type's authScopes.
         greeting: t.string({ resolve: (user) => `Hi ${user.email}` }),
       }),
     });
@@ -1268,7 +1271,7 @@ describe('runScopesOnType on rows without what the type selects', () => {
     expect(result.statements).toHaveLength(2);
   });
 
-  it("shares the type's reload with a field that reads only what the type selects", async () => {
+  it('reloads a copied row for a field that reads only what the type selects', async () => {
     const seen: unknown[] = [];
     parentResults.length = 0;
     const result = await runCaptured(userSchema(seen), '{ copied { greeting } }');
@@ -1276,8 +1279,8 @@ describe('runScopesOnType on rows without what the type selects', () => {
     expect(result.data).toEqual({ copied: { greeting: 'Hi alice@example.com' } });
     expect(seen).toEqual([['alice@example.com', 2]]);
     expect(parentResults).toEqual(['promise']);
-    // The user, and one reload for both the type's authScopes and the field.
-    expect(result.statements).toHaveLength(2);
+    // The user, the reload for the type's authScopes, and the field's own.
+    expect(result.statements).toHaveLength(3);
   });
 
   it('reloads a copied Relay node row before type-level authScopes run', async () => {
@@ -1288,7 +1291,8 @@ describe('runScopesOnType on rows without what the type selects', () => {
     expect(result.data).toEqual({ copiedPost: { heading: 'Hello, Pothos' } });
     expect(seen).toEqual([['p-hello', 'Hello, Pothos']]);
     expect(parentResults).toEqual(['promise']);
-    expect(result.statements).toHaveLength(2);
+    // The post, the reload for the type's authScopes, and the field's own.
+    expect(result.statements).toHaveLength(3);
   });
 
   // `User.championed` targets Feature, which has a table of its own, so a helper's page of them
@@ -2258,6 +2262,9 @@ describe.each(
     [name, true, plugins],
   ]),
 )('rows reloaded for checks (%s, runScopesOnType: %s)', (_, runScopesOnType, plugins) => {
+  // The checks reload the row before the field does when they run first, and the field, which
+  // doesn't share that reload, then reloads it again.
+  const checksReload = plugins[0] === ScopeAuthPlugin || runScopesOnType;
   function reloadSchema(seen: unknown[]) {
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
@@ -2322,8 +2329,10 @@ describe.each(
     const result = await runCaptured(reloadSchema(seen), '{ overridden { firstName nickname } }');
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ overridden: { firstName: 'Alice', nickname: 'Al' } });
-    expect(seen).toEqual([['alice@example.com', 'Alice', 'Al']]);
-    expect(result.statements).toHaveLength(1);
+    // Otherwise each field reloads its own copy of the row, which the checks run on.
+    const checked = ['alice@example.com', 'Alice', 'Al'];
+    expect(seen).toEqual(checksReload ? [checked] : [checked, checked]);
+    expect(result.statements).toHaveLength(checksReload ? 2 : 1);
   });
 
   it('reloads a row again for each subscription event', async () => {
@@ -2349,7 +2358,7 @@ describe.each(
       ['alice@example.com', 'Alice', undefined],
       ['bob@example.com', 'Bob', undefined],
     ]);
-    expect(statements).toHaveLength(2);
+    expect(statements).toHaveLength(checksReload ? 4 : 2);
   });
 });
 
@@ -2357,6 +2366,8 @@ describe.each(
 // of it, reads only what the second type's selects loaded: never the first type's computed values,
 // filtered rows, or a whole relation standing in for a filtered one.
 describe.each(orders)('a row handed to another type of its model (%s)', (_, plugins) => {
+  // Listed first, scope-auth's checks reload the row for B before B's field reloads it again.
+  const reloads = plugins[0] === ScopeAuthPlugin ? 3 : 2;
   function schema(
     selects: { a: Record<string, unknown>; b: Record<string, unknown> },
     read: (user: Record<string, unknown>) => unknown,
@@ -2428,7 +2439,7 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
       expect(result.errors).toBeUndefined();
       expect(result.data.user).toEqual({ value: 2, asB: { value: 1 } });
       expect(seen).toEqual([1]);
-      expect(result.statements).toHaveLength(2);
+      expect(result.statements).toHaveLength(reloads);
     });
 
     // B selects no computed value, so the row needs no reload, and the spread's own key stays.
@@ -2458,7 +2469,7 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
       expect(result.errors).toBeUndefined();
       expect(result.data.user).toEqual({ value: [0], asB: { value: [1] } });
       expect(seen).toEqual([[1]]);
-      expect(result.statements).toHaveLength(2);
+      expect(result.statements).toHaveLength(reloads);
     });
 
     it("doesn't read another type's whole relation as its filtered one", async () => {
@@ -2471,7 +2482,7 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
       expect(result.errors).toBeUndefined();
       expect(result.data.user).toEqual({ value: [1, 0], asB: { value: [1] } });
       expect(seen).toEqual([[1]]);
-      expect(result.statements).toHaveLength(2);
+      expect(result.statements).toHaveLength(reloads);
     });
   });
 });
