@@ -12,7 +12,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from '../interface-ref.js';
 import type { PrismaNextObjectRef } from '../object-ref.js';
 import type { TotalCountFlag } from './aggregates.js';
-import type { ConnectionCollection } from './collections.js';
+import type { ResolverCollection, UnorderedCollection } from './collections.js';
 import type { RootResolveParent } from './fields.js';
 import type { ModelKey, ObjectBaseShape, RelationKeys, Row } from './models.js';
 import type { OrderByColumnsCheck, RelationOrderBy } from './order-by.js';
@@ -102,7 +102,7 @@ export type PrismaNextConnectionFieldOptions<
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind,
   ResolveShape = ParentShape,
-  Returned = unknown,
+  Returned extends ResolverCollection<Types, M> = ResolverCollection<Types, M>,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -148,8 +148,7 @@ export type PrismaNextConnectionFieldOptions<
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => MaybePromise<
-      | (Returned & NoInfer<ConnectionCollection<Types, M, Returned>>)
-      | (Nullable extends true ? null : never)
+      (Returned & NoInfer<UnorderedCollection<Returned>>) | (Nullable extends true ? null : never)
     >;
   };
 

@@ -361,7 +361,7 @@ declare global {
               Types,
               M
             >,
-            Returned = unknown,
+            Returned extends ResolverCollection<Types, M> = ResolverCollection<Types, M>,
           >(
             options: PrismaNextConnectionFieldOptions<
               Types,

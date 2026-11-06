@@ -108,17 +108,9 @@ interface IncludedRelation<Relation> {
 }
 
 /**
- * The collection a connection pages: one `ResolverCollection` accepts that isn't ordered, as the
- * connection orders it by its `query`'s `orderBy` and the cursor. `Returned` is the collection
- * given.
+ * Rejects an ordered collection, naming why: a connection orders its collection by its `query`'s
+ * `orderBy` and the cursor.
  */
-export type ConnectionCollection<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  Returned,
-> = ResolverCollection<Types, M> & UnorderedCollection<Returned>;
-
-/** Rejects an ordered collection, naming why. */
 export type UnorderedCollection<Returned> = [Extract<Returned, HasOrderBy>] extends [never]
   ? unknown
   : OrderedConnectionCollection;

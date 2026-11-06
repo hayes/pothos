@@ -672,3 +672,12 @@ postPages.applyPagination(orm.Post.include('author'), {}, {});
 const orderedPosts = orm.Post.orderBy((post) => post.title.asc());
 // @ts-expect-error the connection orders the collection
 postPages.applyPagination(orderedPosts, {}, {});
+// A collection of another model is checked against the Post collection, so the error lists the
+// Post columns its rows lack rather than an unassignable `never`.
+builder.queryField('wrongModelPage', (t) =>
+  t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error a User row is missing Post's columns
+    resolve: () => orm.User.where({}),
+  }),
+);
