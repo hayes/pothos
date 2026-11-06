@@ -173,7 +173,7 @@ export interface NestedSelectionFn<Types extends SchemaTypes, M extends ModelKey
 
 /**
  * A field `select` entry that loads one page of a to-many relation whose rows are `Row`s of model
- * `M`, from `prismaConnectionHelpers(...).page`.
+ * `M`, from `prismaConnectionHelpers(...).getQuery`.
  */
 export interface ConnectionPageEntry<M, Row> {
   /** Type-only: what the page loads. */

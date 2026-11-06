@@ -339,10 +339,12 @@ describe('connections', () => {
       authored: t.connection(
         {
           type: authored.ref,
-          select: { posts: authored.page },
-          resolve: (user, args, ctx) => authored.resolve(user.posts, args, ctx, user),
+          select: (args, ctx, nestedSelection) => ({
+            posts: authored.getQuery(args, ctx, nestedSelection),
+          }),
+          resolve: (user, args, ctx) => authored.resolve(user.posts, args, ctx),
         },
-        authored.connectionOptions({}),
+        { fields: (c) => ({ totalCount: c.int({ resolve: (page) => page.totalCount }) }) },
       ),
     }));
     builder.queryType({

@@ -78,7 +78,6 @@ import { variantTypeNames } from './utils/variant-types.js';
 export type {
   ConnectionHelperRow,
   HelperRef,
-  PaginatedCollection,
   PrismaConnectionHelperOptions,
   PrismaConnectionHelpers,
 } from './connection-helpers.js';

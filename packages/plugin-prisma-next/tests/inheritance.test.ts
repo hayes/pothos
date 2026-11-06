@@ -6,6 +6,8 @@ import { contractFromJson } from '@prisma/orm-sqlite/static';
 import { GraphQLError, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
+import { getPluginConfig } from '../src/utils/config';
+import { buildConnectionPage, connectionOrder } from '../src/utils/cursors';
 import { detailOf } from './fixtures/errors';
 import { loadContract, run, useDatabase } from './fixtures/helpers';
 import type { Contract } from './inheritance/contract';
@@ -884,23 +886,28 @@ describe('native model inheritance', () => {
     const task = builderTask(builder);
     builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
     builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
-    builder.queryType({
+    builder.prismaObject('User', {
       fields: (t) => ({
         tasks: t.connection({
           type: pages.ref,
-          resolve: async (_root, args, context) => {
-            const { collection, wrap } = await pages.applyPagination(db.orm.Task, args, context);
-            return wrap(await collection.all());
-          },
+          select: (args, ctx, nestedSelection) => ({
+            tasks: pages.getQuery(args, ctx, nestedSelection),
+          }),
+          resolve: (user, args, ctx) => pages.resolve(user.tasks, args, ctx),
         }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
       }),
     });
     const result = await run(
       builder.toSchema(),
-      '{ tasks { edges { node { __typename title } } } }',
+      '{ users { tasks { edges { node { __typename title } } } } }',
     );
     expect(result.errors).toBeUndefined();
-    expect(result.data.tasks.edges).toEqual([
+    expect(result.data.users[0].tasks.edges).toEqual([
       { node: { __typename: 'Bug', title: 'bug1' } },
       { node: { __typename: 'Feature', title: 'feat1' } },
     ]);
@@ -924,10 +931,12 @@ describe('native model inheritance', () => {
       fields: (t) => ({
         taskPage: t.connection({
           type: task,
-          select: { tasks: tasks.page },
+          select: (args, ctx, nestedSelection) => ({
+            tasks: tasks.getQuery(args, ctx, nestedSelection),
+          }),
           resolve: (user, args, ctx) => {
             loaded.push(...user.tasks);
-            return tasks.resolve(user.tasks, args, ctx, user);
+            return tasks.resolve(user.tasks, args, ctx);
           },
         }),
       }),
@@ -935,31 +944,19 @@ describe('native model inheritance', () => {
     builder.queryType({
       fields: (t) => ({
         users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
-        taskPage: t.connection({
-          type: task,
-          resolve: async (_root, args, ctx, info) => {
-            const page = await tasks.applyPagination(db.orm.Task, args, ctx, info);
-            const rows = await page.collection.all();
-            loaded.push(...rows);
-            return page.wrap(rows);
-          },
-        }),
       }),
     });
     const result = await run(
       builder.toSchema(),
-      `{
-        users { taskPage(first: 5) { edges { node { __typename } } } }
-        taskPage(first: 5) { edges { node { __typename } } }
-      }`,
+      '{ users { taskPage(first: 5) { edges { node { __typename } } } } }',
     );
     expect(result.errors).toBeUndefined();
     const typenames = {
       edges: [{ node: { __typename: 'Bug' } }, { node: { __typename: 'Feature' } }],
     };
-    expect(result.data).toEqual({ users: [{ taskPage: typenames }], taskPage: typenames });
+    expect(result.data).toEqual({ users: [{ taskPage: typenames }] });
     // The interface's selection includes the discriminator even when only `__typename` is asked.
-    expect(loaded.map((row) => row.type)).toEqual(['bug', 'feature', 'bug', 'feature']);
+    expect(loaded.map((row) => row.type)).toEqual(['bug', 'feature']);
   });
 
   it.each([
@@ -988,22 +985,22 @@ describe('native model inheritance', () => {
     expect(() => use(then)).toThrow(`Model 'Task' was used with ${message}`);
   });
 
-  it("encodes a column a variant keeps in its own table through that column's codec", async () => {
+  it("encodes a column a variant keeps in its own table through that column's codec", () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [RelayPlugin, prismaNextPlugin],
       relay: {},
       prismaNext: { client: db.client },
     });
-    const pages = prismaConnectionHelpers(builder, 'Feature', {
-      query: { orderBy: { priority: 'asc' } },
-    });
-    const page = await pages.applyPagination(db.orm.Task.variant('feature'), {}, {});
+    const config = getPluginConfig(builder);
+    const plan = {
+      order: connectionOrder(config.context, 'Feature')({ priority: 'asc' }),
+      codecs: config.codecs('Feature'),
+    };
+    const wrap = (row: object) => buildConnectionPage([row as Record<string, unknown>], plan, {});
     // The integer codec refuses a value it doesn't hold; without it the value encodes as is.
-    const opaque = page.wrap([{ id: 't2', priority: { value: 'opaque' } } as never]);
+    const opaque = wrap({ id: 't2', priority: { value: 'opaque' } });
     expect(() => opaque.pageInfo.endCursor).toThrow();
-    expect(page.wrap([{ id: 't2', priority: 5 } as never]).pageInfo.endCursor).toEqual(
-      expect.any(String),
-    );
+    expect(wrap({ id: 't2', priority: 5 }).pageInfo.endCursor).toEqual(expect.any(String));
   });
 });
 
@@ -1433,50 +1430,17 @@ describe('a relation targeting a variant model with a table of its own', () => {
         fields: (t) => ({ priority: t.exposeInt('priority') }),
       });
       builder.prismaObjectField(Feature, 'noteFeatures', (t) =>
-        t.connection(
-          {
-            type: Feature,
-            nodeNullable: true,
-            select: { featureNotes: features.page },
-            resolve: (feature, args, ctx) =>
-              features.resolve(feature.featureNotes, args, ctx, feature),
-          },
-          features.connectionOptions({}),
-        ),
+        t.connection({
+          type: Feature,
+          nodeNullable: true,
+          select: (args, ctx, nestedSelection) => ({
+            featureNotes: features.getQuery(args, ctx, nestedSelection),
+          }),
+          resolve: (feature, args, ctx) => features.resolve(feature.featureNotes, args, ctx),
+        }),
       );
       builder.queryType({
         fields: (t) => ({
-          noteFeatures: t.connection(
-            {
-              type: Feature,
-              nodeNullable: true,
-              resolve: async (_root, args, ctx, info) => {
-                const page = await features.applyPagination(
-                  db.orm.Note.where((note) => note.id.eq('n2')),
-                  args,
-                  ctx,
-                  info,
-                );
-                return page.wrap(await page.collection.all());
-              },
-            },
-            features.connectionOptions({}),
-          ),
-          unplannedNoteFeatures: t.connection(
-            {
-              type: Feature,
-              nodeNullable: true,
-              resolve: async (_root, args, ctx) => {
-                const page = await features.applyPagination(
-                  db.orm.Note.where((note) => note.id.eq('n2')),
-                  args,
-                  ctx,
-                );
-                return page.wrap(await page.collection.all());
-              },
-            },
-            features.connectionOptions({}),
-          ),
           features: t.prismaField({
             type: ['Feature'],
             resolve: () => db.orm.Task.variant('feature'),
@@ -1485,29 +1449,6 @@ describe('a relation targeting a variant model with a table of its own', () => {
       });
       return builder.toSchema();
     }
-
-    it("loads the base columns of a variant's nodes", async () => {
-      const result = await run(
-        helperSchema(),
-        '{ noteFeatures { edges { node { __typename title priority owner { email } } } } }',
-      );
-      expect(result.errors).toBeUndefined();
-      expect(result.data.noteFeatures.edges).toEqual([
-        { node: { __typename: 'Feature', ...feature } },
-      ]);
-      // The nodes, which read only the feature table, then one batch reloading them for the fields
-      // reading Task.
-      expect(result.statements).toHaveLength(2);
-    });
-
-    it("loads the base columns of a variant's nodes paged without info", async () => {
-      const result = await run(
-        helperSchema(),
-        '{ unplannedNoteFeatures { edges { node { title priority owner { email } } } } }',
-      );
-      expect(result.errors).toBeUndefined();
-      expect(result.data.unplannedNoteFeatures.edges).toEqual([{ node: feature }]);
-    });
 
     it("loads the base columns of a variant's nodes in a relation's page", async () => {
       const result = await run(

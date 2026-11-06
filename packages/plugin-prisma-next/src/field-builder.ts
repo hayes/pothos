@@ -4,6 +4,7 @@ import {
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
+import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type { PrismaNextConnectionFieldOptions } from './types/connections.js';
@@ -14,7 +15,7 @@ import {
   aggregateCount,
   CONNECTION_NODE_PATHS,
   type ConnectionSettingsOptions,
-  connectionSettings,
+  connectionPaging,
 } from './utils/connections.js';
 import { applyCursorPagination, buildConnectionPage, cursorColumns } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
@@ -126,12 +127,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   const config = getPluginConfig(this.builder);
   const modelKey = ref.modelKey as string;
   const model = getModel(config.contract, modelKey);
-  const settings = connectionSettings(config, modelKey, {
-    defaultSize,
-    maxSize,
-    totalCount,
-    query,
-  });
+  const paging = connectionPaging(config, modelKey, { defaultSize, maxSize, totalCount, query });
 
   return this.connection(
     {
@@ -147,8 +143,8 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         if (userCollection == null) {
           return null;
         }
-        const planned = settings.plan(args, context);
-        const { needsRows, count: countSource } = settings.selectionFor(context, info);
+        const planned = paging.plan(args, context);
+        const { needsRows, count } = paging.selection(selectedFieldNames(context, info));
         const filtered =
           planned.where === undefined ? userCollection : userCollection.where(planned.where);
         // Runs for a count-only selection too, so the collection is still checked. No rows are
@@ -167,16 +163,16 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
 
         // Counts the collection the resolver returned, filtered by `query`, before pagination.
         const countPromise =
-          countSource === 'aggregate'
+          count === 'aggregate'
             ? aggregateCount(filtered)
-            : Promise.resolve().then(() => countSource?.(parent, args, context, info));
+            : Promise.resolve().then(() => count?.(parent, args, context, info));
 
         // Promise.all handles both rejections, so a later one isn't left unhandled.
-        const [rows, count] = await Promise.all([rowsPromise, countPromise]);
-        return buildConnectionPage(rows, planned, args, { totalCount: count, parent });
+        const [rows, totalCount] = await Promise.all([rowsPromise, countPromise]);
+        return buildConnectionPage(rows, planned, args, { totalCount, parent });
       }) as never,
     } as never,
-    settings.connectionOptions(connectionOptions),
+    paging.connectionOptions(connectionOptions),
     edgeOptions,
   );
 } as never;

@@ -1,7 +1,14 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { beforeAll, describe, expect, it } from 'vitest';
-import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
+import prismaNextPlugin from '../src';
+import { getPluginConfig } from '../src/utils/config';
+import {
+  applyCursorPagination,
+  buildConnectionPage,
+  connectionOrder,
+  withCursorValues,
+} from '../src/utils/cursors';
 import { detailOf, unexpected } from './fixtures/errors';
 import { createBuilder, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
 
@@ -42,21 +49,31 @@ beforeAll(async () => {
   }
 });
 
-type Args = { first?: number; last?: number; after?: string; before?: string };
+type Args = PothosSchemaTypes.DefaultConnectionArguments;
 
-function pages(orderBy: unknown) {
-  const helper = prismaConnectionHelpers(createBuilder(), 'Post', {
-    query: { orderBy: orderBy as {} },
-  });
+/** Pages `Post` rows by `orderBy`, as a connection's paging does. */
+function pages(orderBy: unknown, modelKey = 'Post') {
+  const config = getPluginConfig(createBuilder());
+  const order = connectionOrder(config.context, modelKey)(orderBy as {});
+  const planFor = (args: Args) =>
+    withCursorValues({ order, codecs: config.codecs(modelKey) }, args);
+  const wrap = (rows: readonly object[], args: Args) =>
+    buildConnectionPage(rows as { id: string }[], planFor(args), args);
+  const load = (base: unknown, args: Args) =>
+    (
+      applyCursorPagination(base as never, planFor(args), args) as unknown as {
+        all(): Promise<{ id: string }[]>;
+      }
+    ).all();
   return {
+    wrap,
+    load,
     async read(base: unknown, args: Args) {
-      const page = await helper.applyPagination(base as typeof db.orm.Post, args, {});
-      return page.wrap(await page.collection.all());
+      return wrap(await load(base, args), args);
     },
-    async cursorOf(row: object) {
-      const page = await helper.applyPagination(db.orm.Post, { first: 1 }, {});
-      return page.wrap([row as never]).edges[0].cursor;
-    },
+    // Async, so a row whose cursor can't be encoded rejects.
+    cursorOf: (row: object) =>
+      Promise.resolve().then(() => wrap([row], { first: 1 }).edges[0]!.cursor),
   };
 }
 
@@ -150,15 +167,14 @@ describe('cursor values', () => {
 
   it("rejects a cursor from another model's connection over the same columns", async () => {
     const posts = pages({});
-    const users = prismaConnectionHelpers(createBuilder(), 'User', {});
+    const users = pages({}, 'User');
     const cursor = await posts.cursorOf({ id: 'u-alice' });
-    await expect(
-      users.applyPagination(db.orm.User, { first: 1, after: cursor }, {}),
-    ).rejects.toThrow(/^Invalid cursor\.$/);
-    const page = await users.applyPagination(db.orm.User, { first: 1 }, {});
-    const own = page.wrap([{ id: 'u-alice' } as never]).edges[0].cursor;
-    const next = await users.applyPagination(db.orm.User, { first: 1, after: own }, {});
-    expect((await next.collection.all()).map((row: { id: string }) => row.id)).toEqual(['u-bob']);
+    await expect(users.read(db.orm.User, { first: 1, after: cursor })).rejects.toThrow(
+      /^Invalid cursor\.$/,
+    );
+    const own = await users.cursorOf({ id: 'u-alice' });
+    const next = await users.read(db.orm.User, { first: 1, after: own });
+    expect(idsOf(next)).toEqual(['u-bob']);
   });
 
   it('keeps column names out of a cursor', async () => {
@@ -183,13 +199,9 @@ describe('cursor values', () => {
     await expect(cursorOf({ id: 'p', createdAt: new Instant() })).rejects.toThrow();
   });
 
-  it('builds a page without encoding cursors until one is read', async () => {
-    const helper = prismaConnectionHelpers(createBuilder(), 'Post', {
-      query: { orderBy: { title: 'asc' } },
-    });
-    const page = await helper.applyPagination(db.orm.Post, { first: 2 }, {});
+  it('builds a page without encoding cursors until one is read', () => {
     // A narrowed select without the cursor columns still pages nodes.
-    const wrapped = page.wrap([{ id: 'p-1' }, { id: 'p-2' }] as never);
+    const wrapped = pages({ title: 'asc' }).wrap([{ id: 'p-1' }, { id: 'p-2' }], { first: 2 });
     expect(wrapped.edges.map((edge) => edge.node)).toEqual([{ id: 'p-1' }, { id: 'p-2' }]);
     expect(wrapped.pageInfo.hasNextPage).toBe(false);
     expect(() => wrapped.pageInfo.startCursor).toThrow(unexpected(/missing cursor column 'title'/));
@@ -197,26 +209,19 @@ describe('cursor values', () => {
 
   it('fails only the cursor fields of a row whose cursor cannot be encoded', async () => {
     const builder = createBuilder();
-    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    const pages = prismaConnectionHelpers(builder, 'Post', {
-      query: { orderBy: { title: 'asc' } },
-    });
+    const Post = builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const byTitle = pages({ title: 'asc' });
     builder.queryType({
       fields: (t) => ({
         posts: t.connection({
-          type: pages.ref,
-          resolve: async (_root, args, context, info) => {
-            const page = await pages.applyPagination(
-              db.orm.Post.where({ content: 'cursor-values' }),
-              args,
-              context,
-              info,
-            );
-            const rows = await page.collection.all();
+          type: Post,
+          resolve: async (_root, args) => {
+            const rows = await byTitle.load(db.orm.Post.where({ content: 'cursor-values' }), args);
             // A hand-shaped row, such as one served from a cache, without the title column.
-            return page.wrap(
-              rows.map((row) => (row.id === 'v-2' ? ({ id: row.id } as typeof row) : row)),
-            );
+            return byTitle.wrap(
+              rows.map((row) => (row.id === 'v-2' ? { id: row.id } : row)),
+              args,
+            ) as never;
           },
         }),
       }),

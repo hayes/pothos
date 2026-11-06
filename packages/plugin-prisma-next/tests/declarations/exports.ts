@@ -96,18 +96,13 @@ export const UserStats = builder.prismaObject('User', {
   fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
 });
 
-export const resolveUserPage = (
-  rows: Parameters<typeof userPages.resolve>[0],
-  ctx: object,
-  parent: object,
-) => userPages.resolve(rows, {}, ctx, parent);
+export const resolveUserPage = (rows: Parameters<typeof userPages.resolve>[0], ctx: object) =>
+  userPages.resolve(rows, {}, ctx);
 
-export const paginateUsers = (collection: Parameters<typeof userPages.applyPagination>[0]) =>
-  userPages.applyPagination(collection, {}, {});
+export const userPageEntry = (args: object, ctx: object) =>
+  userPages.getQuery(args, ctx, () => null);
 
-export const userPageEntry = userPages.page;
-
-// Helpers made from refs: `ref`, `page` and `resolve` carry the ref's type and its selection.
+// Helpers made from refs: `ref`, `getQuery` and `resolve` carry the ref's type and its selection.
 export const postWithAuthorPages = prismaConnectionHelpers(builder, PostWithAuthor, {
   select: () => ({ author: true }),
   resolveNode: (post) => ({ post, author: post.author }),

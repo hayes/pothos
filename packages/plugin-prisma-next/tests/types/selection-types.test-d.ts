@@ -1342,9 +1342,6 @@ builder.queryFields((t) => ({
     resolve: () => orm.User.include('posts'),
   }),
 }));
-const userPages = prismaConnectionHelpers(builder, 'User', {});
-// @ts-expect-error `posts` is already included
-userPages.applyPagination(orm.User.include('posts'), {}, {});
 
 // A whole relation to a variant with a table of its own has only that table's columns and the
 // key it shares with its base. One to a variant sharing its base's table has every column.

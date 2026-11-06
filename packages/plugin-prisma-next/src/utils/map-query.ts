@@ -27,7 +27,7 @@ interface ApplySelectionOptions extends PlanTarget {
  * mappings its resolvers read recorded. Undefined when nothing is selected under `paths`. Returns a
  * promise only when a `select` callback beneath the field is async.
  */
-export function planSelection(
+function planSelection(
   info: GraphQLResolveInfo,
   config: PrismaNextConfig,
   context: object,

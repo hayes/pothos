@@ -194,8 +194,10 @@ const tasks = prismaConnectionHelpers(inheritance, Task, {});
 inheritance.prismaObjectField('User', 'taskPage', (t) =>
   t.connection({
     type: Task,
-    select: { tasks: tasks.page },
-    resolve: (user, args, ctx) => tasks.resolve(user.tasks, args, ctx, user),
+    select: (args, ctx, nestedSelection) => ({
+      tasks: tasks.getQuery(args, ctx, nestedSelection),
+    }),
+    resolve: (user, args, ctx) => tasks.resolve(user.tasks, args, ctx),
   }),
 );
 

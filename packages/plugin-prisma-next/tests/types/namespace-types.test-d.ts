@@ -140,10 +140,6 @@ prismaConnectionHelpers(builder, 'nsb.User', {
   // @ts-expect-error `orgId` belongs to the other namespace's User
   query: { where: (user) => user.orgId.eq(1) },
 });
-const nsbUsers = prismaConnectionHelpers(builder, 'nsb.User', {});
-nsbUsers.applyPagination(orm.nsb.User, {}, {});
-// @ts-expect-error the helper is for the other namespace's User
-nsbUsers.applyPagination(orm.nsa.User, {}, {});
 
 builder.prismaObject('nsa.Post', {
   variant: 'LimitedNamespacedSelect',

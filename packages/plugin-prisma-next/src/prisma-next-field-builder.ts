@@ -14,7 +14,6 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import type { Position } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import {
   PRISMA_NEXT_FIELD_SELECTION,
@@ -51,26 +50,23 @@ import type {
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import {
-  type ConnectionPlan,
   type ConnectionSettingsOptions,
   connectionNodes,
-  connectionSettings,
+  connectionPaging,
   countOf,
-  pageSelection,
+  pageLoaded,
 } from './utils/connections.js';
 import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
-import { buildConnectionPage, orderableProblem } from './utils/cursors.js';
+import { orderableProblem } from './utils/cursors.js';
 import { checkReturned, reloadFor } from './utils/errors.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { getRefFromContractModel, refFor } from './utils/refs.js';
 import {
-  COUNT_SLOT,
   completeOption,
   computedSelection,
   consumerId,
   copyIds,
   definedQuery,
-  fieldBranch,
   fieldCopy,
   fieldValue,
   type PrismaNextSelectFn,
@@ -553,38 +549,21 @@ export class PrismaNextObjectFieldBuilder<
       (targetRef as { modelKey?: string }).modelKey,
     );
     const { type: _type, defaultSize, maxSize, query, totalCount, extensions, ...rest } = options;
-    const settings = connectionSettings(config, relatedModel, {
+    const paging = connectionPaging(config, relatedModel, {
       defaultSize,
       maxSize,
       totalCount,
       query,
     });
-    const relatedTypeName = (targetRef as { name?: string }).name ?? relatedModel;
-    const include = connectionNodes(relatedTypeName);
-    // Per selection of the field. Planning decides these once, however many parent rows there are,
-    // and the resolver reaches the same position through its loader mapping.
-    const plans = new WeakMap<Position, ConnectionPlan>();
-    const pageLoaded = (parent: object, ctx: object, info: GraphQLResolveInfo) => {
-      const { needsRows, count } = settings.selectionFor(ctx, info);
-      return (
-        (!needsRows || (parent as Record<string, unknown>)[name] !== undefined) &&
-        (count !== 'aggregate' || fieldValue(parent, name, COUNT_SLOT) !== undefined)
-      );
-    };
-    const select: PrismaNextSelectFn = (args, ctx, nested, selectedFields, position) => {
-      const planned = settings.plan(args, ctx);
-      plans.set(position, planned);
-      const { needsRows, count } = settings.selection(selectedFields());
-      return pageSelection(relation, name, consumerId(position), {
-        plan: planned,
-        args,
-        // The order is part of the identity, so aliases that share a slot share their order.
-        identity: { source: select, args, order: planned.order },
+    const include = connectionNodes((targetRef as { name?: string }).name ?? relatedModel);
+    const filtered = config.filterConnectionTotalCount;
+    const select: PrismaNextSelectFn = (args, ctx, nested, selected, position) =>
+      paging.planPage(relation, name, { id: consumerId(position), selected, position }, args, ctx, {
+        identity: { source: select, args },
         variant,
-        count: count === 'aggregate' ? { filtered: config.filterConnectionTotalCount } : undefined,
-        rows: needsRows ? (seed) => nested(seed, include) : undefined,
+        filtered,
+        rows: (seed) => nested(seed, include),
       });
-    };
 
     const connectionConfig = {
       ...rest,
@@ -601,34 +580,21 @@ export class PrismaNextObjectFieldBuilder<
         context: object,
         info: GraphQLResolveInfo,
       ) =>
-        readOwn(
-          this.builder,
-          parent,
-          context,
-          info,
-          (own) => pageLoaded(own, context, info),
-          async (own) => {
-            // A field that loads nothing, selecting only a count callback, has no branch.
-            const branch = fieldBranch(own);
-            const planned = (branch && plans.get(branch.position)) ?? settings.plan(args, context);
-            const { needsRows, count } = settings.selectionFor(context, info);
-            const rows = needsRows ? (own as Record<string, unknown>)[name] : [];
-            const totalCount =
-              count === 'aggregate'
-                ? (fieldValue(own, name, COUNT_SLOT) as number | undefined)
-                : await count?.(parent, args, context, info);
-            return buildConnectionPage(rows as Record<string, unknown>[], planned, args, {
-              totalCount,
-              parent,
-            });
-          },
+        readOwn(this.builder, parent, context, info, pageLoaded(name), (own) =>
+          paging.relationPage(
+            (own as Record<string, Record<string, unknown>[]>)[name]!,
+            parent,
+            args,
+            context,
+            info,
+          ),
         ),
     };
     return (
       this as typeof this & {
         connection: (cfg: object, c?: object, e?: object) => FieldRef<SchemaTypes>;
       }
-    ).connection(connectionConfig, settings.connectionOptions(connectionOptions), edgeOptions);
+    ).connection(connectionConfig, paging.connectionOptions(connectionOptions), edgeOptions);
   } as never;
 
   /**

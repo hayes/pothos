@@ -224,8 +224,6 @@ builder.queryFields((t) => {
   expectTypeOf(byRef.ref).toEqualTypeOf(Viewer);
   // @ts-expect-error the order names a column of the ref's model
   prismaConnectionHelpers(builder, Viewer, { query: { orderBy: { title: 'asc' } } });
-  // @ts-expect-error a ref's model takes that model's collection
-  byRef.applyPagination(orm.Post, {}, {});
 
   const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
     plugins: [RelayPlugin, prismaNextPlugin],

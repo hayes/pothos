@@ -1,30 +1,32 @@
 import { completeValue, type MaybePromise, ObjectRef, type SchemaTypes } from '@pothos/core';
-import { type IndirectInclude, selectedFieldNames } from '@pothos/selection-mapper';
 import {
-  type GraphQLNamedType,
-  type GraphQLOutputType,
-  type GraphQLResolveInfo,
-  getNamedType,
-  isObjectType,
-  isUnionType,
-} from 'graphql';
+  type IndirectInclude,
+  type Position,
+  type SelectedFieldNode,
+  selectedFieldNames,
+} from '@pothos/selection-mapper';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
 import {
   applyCursorPagination,
+  buildConnectionPage,
   type CursorPlan,
   connectionOrder,
   cursorColumns,
   type OrderByDecl,
   withCursorValues,
 } from './cursors.js';
-import { checkReturned } from './errors.js';
+import { checkReturned, InternalError } from './errors.js';
 import type { PrismaNextRelation } from './model.js';
 import {
   COUNT_SLOT,
   computedSelection,
   EMPTY,
+  PAGE,
+  type PageData,
   type PrismaNextSelection,
+  registerPage,
   relationArgs,
   rowsSelection,
 } from './selections.js';
@@ -39,7 +41,7 @@ type TotalCountCallback = (
   info: GraphQLResolveInfo,
 ) => MaybePromise<number>;
 
-/** The options `connectionSettings` reads, as each kind of connection takes them. */
+/** The options `connectionPaging` reads, as each kind of connection takes them. */
 export interface ConnectionSettingsOptions {
   defaultSize?: SizeOption;
   maxSize?: SizeOption;
@@ -64,37 +66,36 @@ export function connectionNodes(typeName: string): IndirectInclude {
   };
 }
 
-/** The node type of the connection a field returns. */
-export function connectionNodeType(returnType: GraphQLOutputType): string | undefined {
-  const type = connectionType(returnType);
-  const edge = isObjectType(type) ? type.getFields().edges : undefined;
-  const edgeType = edge && getNamedType(edge.type);
-  const node = edgeType && isObjectType(edgeType) ? edgeType.getFields().node : undefined;
-  return node && getNamedType(node.type).name;
+/** A connection's paging for one request. */
+export type ConnectionPlan = CursorPlan & { where: unknown };
+
+/** The field a page is planned for. */
+export interface PageField {
+  /** The consumer id of the field's position (see `consumerId`). */
+  id: string;
+  selected: SelectedFieldNode;
+  position: Position;
 }
 
-/** The connection type beneath the errors plugin's union on a connection field's return type. */
-function connectionType(returnType: GraphQLOutputType): GraphQLNamedType {
-  const type = getNamedType(returnType);
-  const include = type.extensions?.pothosIndirectInclude as IndirectInclude | undefined;
-  if (!(include && isUnionType(type))) {
-    return type;
-  }
-  const [segment] = include.path ?? [];
-  const name = segment ? segment.type : include.getType();
-  const member = type.getTypes().find((candidate) => candidate.name === name);
-  return member && segment
-    ? getNamedType(member.getFields()[segment.name]!.type)
-    : (member ?? type);
+/** How a page of a to-many relation loads, beside its plan and count. */
+export interface PageLoad {
+  /** Identifies the load with the page's order, so consumers with equal ones share it. */
+  identity: unknown;
+  variant: string | undefined;
+  /** Whether the count applies the connection's `where`. */
+  filtered: boolean;
+  /** Plans the page's rows from a seed that pages them. */
+  rows: (seed: PrismaNextSelection) => MaybePromise<PrismaNextSelection>;
 }
 
 /**
- * The options every kind of connection handles the same way. Page sizes fall back to the plugin's
- * defaults and, as in core, aren't validated. `totalCount` is `true`, which uses the ORM's count
- * aggregate, or a callback. A literal `query` is checked here, and a callback's result when a request
- * is planned.
+ * The paging every kind of connection shares: `t.prismaConnection` pages a collection its resolver
+ * returns, and `t.relatedConnection` and the connection helpers page a to-many relation in the
+ * parent's statement. Page sizes fall back to the plugin's defaults and, as in core, aren't
+ * validated. `totalCount` is `true`, which uses the ORM's count aggregate, or a callback. A literal
+ * `query` is checked here, and a callback's result when a request is planned.
  */
-export function connectionSettings(
+export function connectionPaging(
   config: PrismaNextConfig,
   modelKey: string,
   { defaultSize, maxSize, totalCount, query }: ConnectionSettingsOptions,
@@ -107,61 +108,142 @@ export function connectionSettings(
   const literal = typeof query === 'function' ? undefined : resolveQuery(query);
   const resolveSize = (option: SizeOption | undefined, args: object, ctx: object) =>
     typeof option === 'function' ? option(args as never, ctx as never) : option;
+  const countSource = totalCount === true ? 'aggregate' : totalCount || undefined;
+
   /**
    * What selecting `names` asks of a connection: whether it needs rows, and where its count comes
    * from, `'aggregate'` or the callback. With the `totalCount` option, a field named `totalCount`
    * is the count, whether generated or user-defined, and needs no rows. Without it, a user's
-   * `totalCount` is an ordinary field. Other fields need rows, except `__typename`. Without names,
-   * any configured count is used.
+   * `totalCount` is an ordinary field. Other fields need rows, except `__typename`.
    */
-  function selection(names?: ReadonlySet<string>): {
+  function selection(names: ReadonlySet<string>): {
     needsRows: boolean;
     count: 'aggregate' | TotalCountCallback | undefined;
   } {
-    const source = totalCount === true ? 'aggregate' : totalCount || undefined;
-    if (!names) {
-      return { needsRows: true, count: source };
-    }
     return {
       needsRows: [...names].some(
-        (name) => name !== '__typename' && !(source !== undefined && name === 'totalCount'),
+        (name) => name !== '__typename' && !(countSource !== undefined && name === 'totalCount'),
       ),
-      count: names.has('totalCount') ? source : undefined,
+      count: names.has('totalCount') ? countSource : undefined,
     };
   }
+
+  /** Resolves the connection's sizes, order, cursors and `where` for one request. */
+  function plan(args: object, ctx: object): ConnectionPlan {
+    const { where, order } =
+      literal ??
+      checkReturned(
+        (query as (args: object, ctx: object) => ConnectionQuery | undefined)(args, ctx),
+        resolveQuery,
+      );
+    const cursorPlan = withCursorValues(
+      {
+        order,
+        codecs: config.codecs(modelKey),
+        defaultSize: resolveSize(defaultSize, args, ctx) ?? config.defaultConnectionSize,
+        maxSize: resolveSize(maxSize, args, ctx) ?? config.maxConnectionSize,
+      },
+      args,
+    );
+    return { ...cursorPlan, where };
+  }
+
   return {
     selection,
-    /** `selection` as the document asks it of the field `info` resolves. */
-    selectionFor(ctx: object, info: GraphQLResolveInfo | undefined) {
-      return selection(info && selectedFieldNames(ctx, info));
-    },
+    plan,
+    /** Adds the generated `totalCount` field to a connection's options. */
     connectionOptions<T extends object>(connectionOptions: T): T {
       return totalCount ? (withTotalCount(connectionOptions) as T) : connectionOptions;
     },
-    /** Resolves the connection's sizes, order, cursors and `where` for one request. */
-    plan(args: object, ctx: object): ConnectionPlan {
-      const { where, order } =
-        literal ??
-        checkReturned(
-          (query as (args: object, ctx: object) => ConnectionQuery | undefined)(args, ctx),
-          resolveQuery,
+
+    /**
+     * Plans one page of to-many relation `name` for `field`: its rows unless the count alone is
+     * selected, and the count when it is selected and comes from the aggregate. The plan is kept
+     * for the field's copy of the parent, which writes it onto the page's rows (see `fieldCopy`).
+     */
+    planPage(
+      relation: PrismaNextRelation,
+      name: string,
+      { id, selected, position }: PageField,
+      args: object,
+      ctx: object,
+      { identity, variant, filtered, rows }: PageLoad,
+    ): MaybePromise<PrismaNextSelection> {
+      const planned = plan(args, ctx);
+      registerPage(position, name, planned);
+      // The order is part of the identity, so aliases that share a load share their order.
+      const loadIdentity = { identity, order: planned.order };
+      const { needsRows, count } = selection(selected());
+      const filter = (rel: MapperCollection) =>
+        planned.where === undefined ? rel : rel.where(planned.where);
+      const narrow = (rel: MapperCollection) =>
+        variant === undefined ? rel : rel.variant(variant);
+      const counted =
+        count === 'aggregate'
+          ? computedSelection(name, id, COUNT_SLOT, loadIdentity, (sub) =>
+              countOf(filtered ? filter(narrow(sub)) : narrow(sub)),
+            )
+          : EMPTY;
+      if (!needsRows) {
+        return counted;
+      }
+      const page = (rel: MapperCollection) =>
+        applyCursorPagination(
+          filter(rel),
+          planned,
+          args as PothosSchemaTypes.DefaultConnectionArguments,
         );
-      const plan = withCursorValues(
-        {
-          order,
-          codecs: config.codecs(modelKey),
-          defaultSize: resolveSize(defaultSize, args, ctx) ?? config.defaultConnectionSize,
-          maxSize: resolveSize(maxSize, args, ctx) ?? config.maxConnectionSize,
-        },
-        args,
-      );
-      return { ...plan, where };
+      const seed: PrismaNextSelection = {
+        columns: cursorColumns(planned.order),
+        args: relationArgs(relation, { loadIdentity, refine: page, variant }),
+      };
+      return completeValue(rowsSelection(relation, name, id, rows(seed)), (loaded) => ({
+        ...loaded,
+        ...counted,
+      }));
+    },
+
+    /**
+     * The page of `rows`, a page `planPage` planned, as the field's copy of the parent holds it.
+     * The count comes from them, or from the `totalCount` callback when it is selected.
+     */
+    async relationPage(
+      rows: readonly Record<string, unknown>[],
+      parent: unknown,
+      args: PothosSchemaTypes.DefaultConnectionArguments,
+      ctx: object,
+      info: GraphQLResolveInfo,
+    ) {
+      const { count } = selection(selectedFieldNames(ctx, info));
+      const page = pageOf(rows);
+      const totalCount =
+        count === 'aggregate' ? page.count : await count?.(parent, args, ctx, info);
+      return buildConnectionPage(rows, page.plan, args, { totalCount, parent });
     },
   };
 }
 
-// A prebuilt connection ref can't be given new fields, so its own definition must add the field,
-// by passing its options through the connection helpers' `connectionOptions`.
+/** Whether `parent`, a field's copy, holds the page of relation `name` its field planned. */
+export function pageLoaded(name: string) {
+  return (parent: object) =>
+    (parent as Record<string, { [PAGE]?: PageData } | undefined>)[name]?.[PAGE] !== undefined;
+}
+
+/**
+ * What `planPage` recorded on a page's rows. Rows without it weren't loaded by a page, so the
+ * field's resolver was handed something else.
+ */
+export function pageOf(rows: readonly unknown[]): { plan: ConnectionPlan; count?: number } {
+  const page = (rows as { [PAGE]?: PageData })[PAGE];
+  if (!page) {
+    throw new InternalError(
+      "A connection page's rows don't hold its plan: pass the rows its select loaded, as they are.",
+    );
+  }
+  return page as { plan: ConnectionPlan; count?: number };
+}
+
+// A prebuilt connection ref can't be given new fields, so its own definition must add the field.
 function withTotalCount(connectionOptions: object): object {
   if (connectionOptions instanceof ObjectRef) {
     return connectionOptions;
@@ -173,62 +255,10 @@ function withTotalCount(connectionOptions: object): object {
     fields: (
       t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>,
     ): Record<string, unknown> => ({
-      // The connection helpers' `wrap` without a count leaves it out, which fails the field.
       totalCount: t.int({ nullable: false, resolve: (parent) => parent.totalCount! }),
       ...(userFields ? userFields(t) : {}),
     }),
   };
-}
-
-/** A connection's paging for one request. */
-export type ConnectionPlan = CursorPlan & { where: unknown };
-
-/**
- * The selection of one page of to-many relation `name` for consumer `id`: the page's
- * rows, planned by `rows` from a seed that pages them, and the relation's count in the consumer's
- * `COUNT_SLOT`. `identity` identifies the load, so consumers with equal ones share it.
- */
-export function pageSelection(
-  relation: PrismaNextRelation,
-  name: string,
-  id: string,
-  {
-    plan,
-    args,
-    identity,
-    variant,
-    count,
-    rows,
-  }: {
-    plan: ConnectionPlan;
-    args: object;
-    identity: unknown;
-    variant: string | undefined;
-    count?: { filtered: boolean };
-    rows?: (seed: PrismaNextSelection) => MaybePromise<PrismaNextSelection>;
-  },
-): MaybePromise<PrismaNextSelection> {
-  const filter = (rel: MapperCollection) =>
-    plan.where === undefined ? rel : rel.where(plan.where);
-  const narrow = (rel: MapperCollection) => (variant === undefined ? rel : rel.variant(variant));
-  const counted = count
-    ? computedSelection(name, id, COUNT_SLOT, identity, (sub) =>
-        countOf(count.filtered ? filter(narrow(sub)) : narrow(sub)),
-      )
-    : EMPTY;
-  if (!rows) {
-    return counted;
-  }
-  const page = (rel: MapperCollection) =>
-    applyCursorPagination(filter(rel), plan, args as PothosSchemaTypes.DefaultConnectionArguments);
-  const seed: PrismaNextSelection = {
-    columns: cursorColumns(plan.order),
-    args: relationArgs(relation, { loadIdentity: identity, refine: page, variant }),
-  };
-  return completeValue(rowsSelection(relation, name, id, rows(seed)), (loaded) => ({
-    ...loaded,
-    ...counted,
-  }));
 }
 
 /** `collection`'s count. The types reject counts on a target without aggregates, such as MySQL. */

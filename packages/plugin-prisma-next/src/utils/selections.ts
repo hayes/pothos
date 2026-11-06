@@ -360,7 +360,7 @@ function slotsOf(row: object, model: PrismaNextModel): Slots {
 
 /**
  * Writes what consumer `id` loaded onto `target`: its rows on the relation's key, and its computed
- * values but those whose key starts with `KEY_SEPARATOR`. A page counted without rows has none.
+ * values but those whose key starts with `KEY_SEPARATOR`.
  */
 function lift(target: Row, { relations }: Slots, id: string) {
   for (const name of Object.keys(relations)) {
@@ -368,8 +368,6 @@ function lift(target: Row, { relations }: Slots, id: string) {
     const computed = values[id];
     if (Object.hasOwn(rows, id)) {
       target[name] = rows[id];
-    } else if (computed?.[COUNT_SLOT] !== undefined) {
-      target[name] = [];
     }
     for (const key of Object.keys(computed ?? {})) {
       if (!key.startsWith(KEY_SEPARATOR)) {
@@ -448,6 +446,9 @@ function copyWith(
       if (slots.consumers.has(id)) {
         lift(copy, slots, id);
       }
+    }
+    if (field) {
+      writePages(copy, slots, field);
     }
     (copy as Holder)[SLOTS] = { row, slots, types, ...(field ? { field } : {}) };
     owned.add(copy);
@@ -555,15 +556,51 @@ export function fieldCopy(
   const base = typeCopy(value, model, ids);
   const held = (base as Holder)[SLOTS];
   const id = consumerId(position);
-  if (!held?.slots.consumers.has(id)) {
+  if (!held?.slots.consumers.has(id) && !plannedPages.has(position)) {
     return base;
   }
-  return copyWith(base, held.row, held.slots, held, copyIds([id]), { id, position });
+  return copyWith(base, held?.row ?? base, held?.slots ?? NO_SLOTS, held, copyIds([id]), {
+    id,
+    position,
+  });
 }
 
-/** The consumer `parent`, a field's copy, was made for, and the position it was planned at. */
-export function fieldBranch(parent: object): Held['field'] {
-  return (parent as Holder)[SLOTS]?.field;
+/**
+ * Where a page's rows hold how it was planned (see `connectionPaging` in connections.ts), so the
+ * page is built from the rows alone.
+ */
+export const PAGE = Symbol('prismaNextPage');
+
+/** What a page's rows hold under `PAGE`: its plan, and its count when one was loaded. */
+export interface PageData {
+  readonly plan: unknown;
+  readonly count: number | undefined;
+}
+
+/** The plans of the pages each field planned, by relation. */
+const plannedPages = new WeakMap<Position, Map<string, unknown>>();
+
+/** Records the plan of the page of relation `name` that the field at `position` loads. */
+export function registerPage(position: Position, name: string, plan: unknown) {
+  let pages = plannedPages.get(position);
+  if (!pages) {
+    pages = new Map();
+    plannedPages.set(position, pages);
+  }
+  pages.set(name, plan);
+}
+
+/**
+ * Writes the pages the field planned onto its copy: each relation's rows, or none when only its
+ * count loaded, as an array holding the plan and count under `PAGE`.
+ */
+function writePages(copy: Row, { relations }: Slots, { id, position }: NonNullable<Held['field']>) {
+  for (const [name, plan] of plannedPages.get(position) ?? []) {
+    const loaded = relations[name];
+    const rows = loaded && Object.hasOwn(loaded.rows, id) ? (loaded.rows[id] as unknown[]) : [];
+    const count = loaded?.values[id]?.[COUNT_SLOT] as number | undefined;
+    copy[name] = Object.assign([...rows], { [PAGE]: { plan, count } satisfies PageData });
+  }
 }
 
 /** The value `key` the consumer of `parent`, a field's copy, computed from relation `name`. */

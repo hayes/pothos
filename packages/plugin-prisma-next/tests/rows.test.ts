@@ -2,7 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { execute, parse } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
+import prismaNextPlugin, { collectionFromInfo } from '../src';
 import { createBuilder, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
@@ -221,17 +221,15 @@ describe('rows the plugin loaded', () => {
   ) {
     const builder = createBuilder();
     configure(builder);
-    const helper = prismaConnectionHelpers(builder, 'User', {});
     builder.queryType({
       fields: (t) => ({
-        users: t.connection({
-          type: helper.ref,
-          args: helper.getArgs(),
-          resolve: async (_root, args, context, info) => {
-            const page = await helper.applyPagination(db.orm.User, args, context, info);
-            const rows = await page.collection.all();
+        users: t.field({
+          type: ['User'] as never,
+          resolve: async (_root, _args, context, info) => {
+            const users = await collectionFromInfo({ collection: db.orm.User, context, info });
+            const rows = await users.orderBy((user) => user.id.asc()).all();
             onRows(rows);
-            return page.wrap(rows);
+            return rows as never;
           },
         }),
       }),
@@ -253,11 +251,8 @@ describe('rows the plugin loaded', () => {
         }
       },
     );
-    const result = await run(schema, '{ users { nodes { label } } }');
-    expect(result.data.users.nodes).toEqual([
-      { label: 'cached u-alice' },
-      { label: 'cached u-bob' },
-    ]);
+    const result = await run(schema, '{ users { label } }');
+    expect(result.data.users).toEqual([{ label: 'cached u-alice' }, { label: 'cached u-bob' }]);
     expect(result.statements).toHaveLength(1);
   });
 
@@ -285,9 +280,9 @@ describe('rows the plugin loaded', () => {
         }
       },
     );
-    const result = await run(schema, '{ users { nodes { same posts { same } } } }');
+    const result = await run(schema, '{ users { same posts { same } } }');
     expect(result.errors).toBeUndefined();
-    expect(result.data.users.nodes).toEqual([
+    expect(result.data.users).toEqual([
       { same: true, posts: [{ same: true }, { same: true }] },
       { same: true, posts: [{ same: true }, { same: true }] },
     ]);
@@ -351,12 +346,9 @@ describe('rows the plugin loaded', () => {
         snapshot = JSON.stringify(rows);
       },
     );
-    const result = await run(
-      schema,
-      '{ users { nodes { total chosen { id } variant { total } } } }',
-    );
+    const result = await run(schema, '{ users { total chosen { id } variant { total } } }');
     expect(result.errors).toBeUndefined();
-    expect(result.data.users.nodes).toEqual([
+    expect(result.data.users).toEqual([
       { total: 2, chosen: [{ id: 'p-draft1' }], variant: { total: 1 } },
       { total: 2, chosen: [{ id: 'p-bob-draft' }], variant: { total: 1 } },
     ]);

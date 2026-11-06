@@ -1,7 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { PostgresClient } from '@prisma/orm-postgres/runtime';
-import type { GraphQLResolveInfo } from 'graphql';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type CollectionFor,
@@ -375,23 +374,20 @@ prismaConnectionHelpers(builder, 'User', {
   where: { id: 'u' },
 });
 prismaConnectionHelpers(builder, 'User', {
-  // @ts-expect-error a custom count is passed to `wrap` or `resolve`
+  // @ts-expect-error a custom count is a field of the connection
   totalCount: () => 1,
 });
 
 // prismaConnectionHelpers: `resolveNode` decides the node shape; cursors still read the rows.
-// Without `info` the rows are whole. With it, and from `page`, they hold their key and what the
-// selection needs, typed as `PlannedRow`, unless `resolveNode` gets them without a relation
-// given `nodeSelection()`: nothing is planned into them then, and they are whole.
-declare const info: GraphQLResolveInfo;
-export async function helperShapes() {
+// The rows hold their key and what the selection needs, typed as `PlannedRow`, unless
+// `resolveNode` gets them without a relation given `nodeSelection()`: nothing is planned into them
+// then, and they are whole.
+type RowsOf<H> = H extends { resolve(rows: infer R, ...args: never[]): unknown } ? R : never;
+export function helperShapes() {
   const wrapper = prismaConnectionHelpers(builder, 'User', {
     resolveNode: (user) => ({ user }),
   });
-  const page = await wrapper.applyPagination(orm.User, { first: 1 }, {});
-  // @ts-expect-error a collection with its own select would leave out the ordered columns
-  wrapper.applyPagination(orm.User.select('id'), { first: 1 }, {});
-  const result = page.wrap(await page.collection.all());
+  const result = wrapper.resolve([] as RowsOf<typeof wrapper>, { first: 1 }, {});
   expectTypeOf(result.edges[0]!.node.user.id).toEqualTypeOf<string>();
   expectTypeOf(result.edges[0]!.node.user.email).toEqualTypeOf<string>();
   expectTypeOf(result.edges[0]!.cursor).toEqualTypeOf<string>();
@@ -402,33 +398,27 @@ export async function helperShapes() {
     resolveNode: (user): { kind: 'user'; user: typeof user } | { kind: 'empty' } =>
       user.firstName ? { kind: 'user', user } : { kind: 'empty' },
   });
-  const unionPage = await union.applyPagination(orm.User, { first: 1 }, {});
-  expectTypeOf(unionPage.wrap(await unionPage.collection.all()).edges[0]!.node.kind).toEqualTypeOf<
+  expectTypeOf(union.resolve([] as RowsOf<typeof union>, {}, {}).edges[0]!.node.kind).toEqualTypeOf<
     'user' | 'empty'
   >();
 
   const plain = prismaConnectionHelpers(builder, 'User', {
     query: { where: (user) => user.firstName.eq('Alice') },
   });
-  const loaded = await plain.applyPagination(orm.User, { first: 1 }, {});
-  expectTypeOf(
-    loaded.wrap(await loaded.collection.all()).edges[0]!.node.email,
-  ).toEqualTypeOf<string>();
-  // @ts-expect-error without `info` the collection loads whole rows, so `wrap` takes them
-  loaded.wrap([{ id: 'a', firstName: 'Alice' }]);
-  const planned = await plain.applyPagination(orm.User, { first: 1 }, {}, info);
-  const plannedRows = await planned.collection.all();
+  const plannedRows = [] as RowsOf<typeof plain>;
   expectTypeOf(plannedRows[0]!.id).toEqualTypeOf<string>();
   expectTypeOf(plannedRows[0]!.email).toEqualTypeOf<string | undefined>();
-  expectTypeOf(planned.wrap(plannedRows).edges[0]!.node).toEqualTypeOf<PlannedRow<Types, 'User'>>();
+  const planned = plain.resolve(plannedRows, { first: 1 }, {});
+  expectTypeOf(planned.edges[0]!.node).toEqualTypeOf<PlannedRow<Types, 'User'>>();
+  // Without the `totalCount` option, the page has no count.
+  expectTypeOf(planned.totalCount).toEqualTypeOf<number | undefined>();
   // @ts-expect-error a hand-built row isn't one the loader planned
-  planned.wrap([{ id: 'a', firstName: 'Alice' }]);
+  plain.resolve([{ id: 'a', firstName: 'Alice' }], {}, {});
 
   const spreading = prismaConnectionHelpers(builder, 'User', {
     resolveNode: (user) => ({ ...user, extra: 1 }),
   });
-  const spreadPage = await spreading.applyPagination(orm.User, { first: 1 }, {}, info);
-  const full = spreadPage.wrap(await spreadPage.collection.all());
+  const full = spreading.resolve([] as RowsOf<typeof spreading>, { first: 1 }, {});
   expectTypeOf(full.edges[0]!.node.extra).toEqualTypeOf<number>();
   expectTypeOf(full.edges[0]!.node.email).toEqualTypeOf<string>();
 
@@ -436,8 +426,7 @@ export async function helperShapes() {
   const conditional = prismaConnectionHelpers(builder, 'User', {
     resolveNode: enabled ? (user) => ({ user }) : undefined,
   });
-  const conditionalPage = await conditional.applyPagination(orm.User, {}, {});
-  const node = conditionalPage.wrap(await conditionalPage.collection.all()).edges[0]!.node;
+  const node = conditional.resolve([] as RowsOf<typeof conditional>, {}, {}).edges[0]!.node;
   // @ts-expect-error the transform may not have run
   node.user;
   if ('user' in node) {
@@ -449,27 +438,28 @@ export async function helperShapes() {
   const primitive = prismaConnectionHelpers(builder, 'User', {
     resolveNode: (user) => user.id,
   });
-  const primitivePage = await primitive.applyPagination(orm.User, {}, {});
   expectTypeOf(
-    primitivePage.wrap(await primitivePage.collection.all()).edges[0]!.node,
+    primitive.resolve([] as RowsOf<typeof primitive>, {}, {}).edges[0]!.node,
   ).toEqualTypeOf<string>();
 
-  const promised = prismaConnectionHelpers(builder, 'User', {
-    resolveNode: (user) => Promise.resolve({ user }),
-  });
-  const promisedPage = await promised.applyPagination(orm.User, {}, {});
-  const promisedNode = promisedPage.wrap(await promisedPage.collection.all()).edges[0]!.node;
-  expectTypeOf((await promisedNode).user.id).toEqualTypeOf<string>();
+  const counted = prismaConnectionHelpers(builder, 'User', { totalCount: true });
+  expectTypeOf(
+    counted.resolve([] as RowsOf<typeof counted>, {}, {}).totalCount,
+  ).toEqualTypeOf<number>();
 }
 
 // prismaConnectionHelpers through a join model: `select` names the relation holding the nodes,
-// and `page` loads the connection in a field's `select`.
+// and `getQuery` loads the connection in a field's select function.
 const Commenter = builder.prismaObject('User', {
   variant: 'Commenter',
   fields: (t) => ({ id: t.exposeID('id') }),
 });
 const commenters = prismaConnectionHelpers(builder, 'Comment', {
-  select: (nodeSelection) => ({ body: true, author: nodeSelection() }),
+  args: (t) => ({ withBody: t.boolean() }),
+  select: (nodeSelection, args) => {
+    expectTypeOf(args.withBody).toEqualTypeOf<boolean | null | undefined>();
+    return { body: true, author: nodeSelection() };
+  },
   resolveNode: (comment) => {
     expectTypeOf(comment.body).toEqualTypeOf<string>();
     expectTypeOf(comment.author).toEqualTypeOf<PlannedRow<Types, 'User'>>();
@@ -479,12 +469,14 @@ const commenters = prismaConnectionHelpers(builder, 'Comment', {
 builder.prismaObjectField('Post', 'commenters', (t) =>
   t.connection({
     type: Commenter,
-    select: { comments: commenters.page },
+    select: (args, ctx, nestedSelection) => ({
+      comments: commenters.getQuery(args, ctx, nestedSelection),
+    }),
     resolve: (post, args, ctx) => {
       expectTypeOf(post.comments).toEqualTypeOf<
         readonly ConnectionHelperRow<Types, 'Comment', { body: true; author: NodeSelection }>[]
       >();
-      return commenters.resolve(post.comments, args, ctx, post);
+      return commenters.resolve(post.comments, args, ctx);
     },
   }),
 );
@@ -492,14 +484,16 @@ builder.prismaObjectField('Post', 'commentersById', (t) =>
   t.connection({
     type: Commenter,
     // @ts-expect-error the page is of Comment rows, not of a relation to another model
-    select: { views: commenters.page },
+    select: (args, ctx, nestedSelection) => ({
+      views: commenters.getQuery(args, ctx, nestedSelection),
+    }),
     resolve: () => null as never,
   }),
 );
 builder.prismaObject('Post', {
   variant: 'PostWithPagedComments',
   // @ts-expect-error a page loads for a field's connection, not with every row of a type
-  select: { comments: commenters.page },
+  select: { comments: commenters.getQuery({}, {}, () => null) },
   fields: () => ({}),
 });
 prismaConnectionHelpers(builder, 'Post', {
@@ -608,32 +602,27 @@ builder.subscriptionField('totalCountOnSubscription', (t) =>
   }),
 );
 
-// The helpers' `connectionOptions` types a `fields` callback, so it needs no annotation.
-const counted = prismaConnectionHelpers(builder, 'User', { totalCount: true });
-builder.queryField('countedUsers', (t) =>
+// The count a helper's `resolve` adds is typed for a `totalCount` field on the connection.
+const counted = prismaConnectionHelpers(builder, 'Post', { totalCount: true });
+builder.prismaObjectField('User', 'countedPosts', (t) =>
   t.connection(
     {
       type: counted.ref,
-      resolve: async (_root, args, ctx) => {
-        const { collection, totalCountPromise, wrap } = await counted.applyPagination(
-          orm.User,
-          args,
-          ctx,
-        );
-        return wrap(await collection.all(), await totalCountPromise);
-      },
+      select: (args, ctx, nestedSelection) => ({
+        posts: counted.getQuery(args, ctx, nestedSelection),
+      }),
+      resolve: (user, args, ctx) => counted.resolve(user.posts, args, ctx),
     },
-    counted.connectionOptions({
+    {
       fields: (c) => ({
-        doubled: c.int({
-          nullable: true,
+        totalCount: c.int({
           resolve: (page) => {
-            expectTypeOf(page.totalCount).toEqualTypeOf<number | undefined>();
-            return page.totalCount === undefined ? null : page.totalCount * 2;
+            expectTypeOf(page.totalCount).toEqualTypeOf<number>();
+            return page.totalCount;
           },
         }),
       }),
-    }),
+    },
   ),
 );
 
@@ -665,13 +654,6 @@ builder.queryFields((t) => ({
     resolve: async () => orm.Post.where({ published: 1 }).orderBy((post) => post.title.asc()),
   }),
 }));
-const postPages = prismaConnectionHelpers(builder, 'Post', {});
-postPages.applyPagination(orm.Post.where({ published: 1 }), {}, {});
-// @ts-expect-error `author` is already included
-postPages.applyPagination(orm.Post.include('author'), {}, {});
-const orderedPosts = orm.Post.orderBy((post) => post.title.asc());
-// @ts-expect-error the connection orders the collection
-postPages.applyPagination(orderedPosts, {}, {});
 // A collection of another model is checked against the Post collection, so the error lists the
 // Post columns its rows lack rather than an unassignable `never`.
 builder.queryField('wrongModelPage', (t) =>

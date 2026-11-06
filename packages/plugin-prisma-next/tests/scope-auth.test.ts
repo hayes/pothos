@@ -255,13 +255,15 @@ function _fieldSelectWidensResolveOnly() {
     }),
     connection: t.connection({
       type: Comment,
-      select: { comments: helper.page },
+      select: (args, ctx, nestedSelection) => ({
+        comments: helper.getQuery(args, ctx, nestedSelection),
+      }),
       authScopes: (post) => {
         // @ts-expect-error the field's select loads after authScopes run
         post.comments;
         return post.author.id !== '';
       },
-      resolve: (post, args, context) => helper.resolve(post.comments, args, context, post),
+      resolve: (post, args, context) => helper.resolve(post.comments, args, context),
     }),
     prismaField: t.prismaField({
       type: 'User',
@@ -985,7 +987,7 @@ describe('rows another plugin rebuilt without what the type selects', () => {
   });
 });
 
-describe('rows a connection helper wraps', () => {
+describe('rows a root connection pages', () => {
   function helperSchema(seen: unknown[]) {
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
@@ -1008,16 +1010,9 @@ describe('rows a connection helper wraps', () => {
       }),
     });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    const helper = prismaConnectionHelpers(builder, User, {});
     builder.queryType({
       fields: (t) => ({
-        users: t.connection({
-          type: User,
-          resolve: async (_root, args, context, info) => {
-            const page = await helper.applyPagination(ctx.orm.User, args, context, info);
-            return page.wrap(await page.collection.all()) as never;
-          },
-        }),
+        users: t.prismaConnection({ type: User, resolve: () => ctx.orm.User }),
       }),
     });
     return builder.toSchema();
@@ -1070,8 +1065,10 @@ describe("a connection helper's page of a variant with a table of its own", () =
       fields: (t) => ({
         championPage: t.connection({
           type: Feature,
-          select: { championed: helper.page },
-          resolve: (user, args, context) => helper.resolve(user.championed, args, context, user),
+          select: (args, ctx, nestedSelection) => ({
+            championed: helper.getQuery(args, ctx, nestedSelection),
+          }),
+          resolve: (user, args, context) => helper.resolve(user.championed, args, context),
         }),
       }),
     });
@@ -1124,8 +1121,10 @@ describe("a connection helper's page of a variant with a table of its own", () =
       fields: (t) => ({
         championPage: t.connection({
           type: Feature,
-          select: { championed: helper.page },
-          resolve: (user, args, context) => helper.resolve(user.championed, args, context, user),
+          select: (args, ctx, nestedSelection) => ({
+            championed: helper.getQuery(args, ctx, nestedSelection),
+          }),
+          resolve: (user, args, context) => helper.resolve(user.championed, args, context),
         }),
       }),
     });
@@ -1323,8 +1322,10 @@ describe('runScopesOnType on rows without what the type selects', () => {
       fields: (t) => ({
         championPage: t.connection({
           type: Feature,
-          select: { championed: helper.page },
-          resolve: (user, args, context) => helper.resolve(user.championed, args, context, user),
+          select: (args, ctx, nestedSelection) => ({
+            championed: helper.getQuery(args, ctx, nestedSelection),
+          }),
+          resolve: (user, args, context) => helper.resolve(user.championed, args, context),
         }),
       }),
     });

@@ -2,7 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, { type ModelKey, prismaConnectionHelpers } from '../../src';
+import prismaNextPlugin, { type ModelKey } from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -263,7 +263,7 @@ inheritance.queryType({
   }),
 });
 
-// `collection` and `applyPagination` take the same collections as `resolve`.
+// `collection` takes the same collections as `resolve`.
 inheritance.prismaNode('Bug', {
   variant: 'NarrowedBugNode',
   id: { field: 'id' },
@@ -291,14 +291,6 @@ inheritance.prismaNode('Bug', {
   collection: () => orm.Task.variant('feature'),
   fields: () => ({}),
 });
-const bugHelpers = prismaConnectionHelpers(inheritance, bug, {});
-bugHelpers.applyPagination(orm.Task.variant('bug'), {}, {});
-// @ts-expect-error a variant's own collection isn't narrowed to its rows
-bugHelpers.applyPagination(orm.Bug, {}, {});
-// @ts-expect-error the base collection would load every variant
-bugHelpers.applyPagination(orm.Task, {}, {});
-// @ts-expect-error another variant's rows
-bugHelpers.applyPagination(orm.Task.variant('feature'), {}, {});
 
 // `collection` receives the builder's context type.
 const withContext = new SchemaBuilder<{

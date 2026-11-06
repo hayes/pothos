@@ -1,21 +1,13 @@
 import {
   completeValue,
-  type FieldMap,
   type InputFieldMap,
   type InputShapeFromFields,
-  type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
-import type { Position } from '@pothos/selection-mapper';
-import type { GraphQLResolveInfo } from 'graphql';
+import type { NestedSelection } from '@pothos/selection-mapper';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type { TotalCountFlag } from './types/aggregates.js';
-import type {
-  CollectionFor,
-  ResolverCollection,
-  UnorderedCollection,
-} from './types/collections.js';
 import type {
   ConnectionPagingOptions,
   ConnectionQueryLiteral,
@@ -31,33 +23,15 @@ import type {
 } from './types/models.js';
 import type { DefaultRelationNullable, IsToMany, RelatedModel } from './types/relations.js';
 import type { ConnectionPageEntry, NodeSelection } from './types/selections.js';
-import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
-import {
-  aggregateCount,
-  CONNECTION_NODE_PATHS,
-  type ConnectionPlan,
-  connectionNodes,
-  connectionNodeType,
-  connectionSettings,
-  pageSelection,
-} from './utils/connections.js';
+import { connectionPaging, pageOf } from './utils/connections.js';
 import { variantForRelationType } from './utils/contract.js';
-import {
-  applyCursorPagination,
-  buildConnectionPage,
-  type ConnectionPage,
-  cursorColumns,
-} from './utils/cursors.js';
-import { applySelectionToCollection, planSelection } from './utils/map-query.js';
+import { buildConnectionPage, type ConnectionPage } from './utils/cursors.js';
 import { getIdentityFields, getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import {
   CONNECTION_PAGE,
-  COUNT_SLOT,
   EMPTY,
-  fieldBranch,
-  fieldValue,
   NODE_SELECTION,
   type PlanPage,
   type PrismaNextSelection,
@@ -125,9 +99,8 @@ type WholeRelation<
         | (DefaultRelationNullable<Types, M, K> extends true ? null : never);
 
 /**
- * A row of a helper's page planned from a query: its key, the columns and relations its `select`
- * loads, and whatever the selection beneath the nodes needs. The rows `page` loads, and those
- * `applyPagination` loads when given `info`.
+ * A row of a helper's page: its key, the columns and relations its `select` loads, and whatever the
+ * selection beneath the nodes needs.
  */
 export type ConnectionHelperRow<
   Types extends SchemaTypes,
@@ -139,7 +112,7 @@ export type ConnectionHelperRow<
       Pick<Row<Types, M>, keyof Select & keyof Row<Types, M>> &
       SelectedRelations<Types, M, Select, true>;
 
-/** A row `applyPagination` loads without `info`: every column, and what `select` loads. */
+/** A row whose nodes aren't planned into it: every column, and what `select` loads. */
 type LoadedHelperRow<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = [
   keyof Select,
 ] extends [never]
@@ -175,18 +148,15 @@ type PageNode<Node, PageRow, MaybeRow extends boolean> = [Node] extends [never]
     ? Node | PageRow
     : Node;
 
-/** What `applyPagination` returns: the paged collection, its count, and `wrap` for its rows. */
-export interface PaginatedCollection<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  PageRow,
-  Node,
-> {
-  collection: CollectionFor<Types, M, PageRow>;
-  /** The count, run on first read. Undefined when `info` is given and doesn't select it. */
-  totalCountPromise: Promise<number> | undefined;
-  wrap(rows: readonly PageRow[], totalCount?: number): ConnectionPage<Node>;
-}
+/**
+ * Where the nodes sit beneath the connection field. The selection mapper finds the node type there,
+ * through any wrapper such as plugin-errors' result union.
+ */
+const NODE_PATH = ['edges', 'node'];
+
+/** The page `resolve` returns, with its count when the helpers count. */
+type HelperPage<Node, Counted> = ConnectionPage<Node> &
+  (Counted extends true ? { totalCount: number } : unknown);
 
 export interface PrismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -196,66 +166,27 @@ export interface PrismaConnectionHelpers<
   Node = never,
   MaybeRow extends boolean = false,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
+  Counted = false,
 > {
   /** The ref passed in. For a model name, `Ref` isn't inferred, so this is its default ref. */
   ref: HelperRef<Types, M> extends Ref ? PrismaNextObjectRef<Types, M, Row<Types, M>> : Ref;
   getArgs(): Args;
-  /** Adds the `totalCount` field to the options of a connection these helpers page. */
-  connectionOptions<T extends object>(
-    connectionOptions: T & {
-      fields?: (
-        t: PothosSchemaTypes.ObjectFieldBuilder<
-          Types,
-          { pageInfo: unknown; edges: unknown; totalCount?: number }
-        >,
-      ) => FieldMap;
-    },
-  ): T;
   /**
-   * A field `select` entry for a to-many relation of this model. It loads one page of the relation
-   * in the parent's query, with the selection beneath the connection's nodes, and its count when
-   * `totalCount` is selected. Pass the rows to `resolve`.
+   * The entry of a to-many relation of this model in a connection field's select function. It
+   * loads one page of the relation in the parent's query, with the selection beneath the
+   * connection's nodes, and its count when `totalCount` is selected. Pass the rows to `resolve`.
    */
-  page: ConnectionPageEntry<M, HelperRow<Types, M, Select, Ref>>;
-  /**
-   * The connection for the rows `page` loaded. `parent` is the parent the field's resolver was
-   * given, not a copy of it: it holds the page's count and plan.
-   */
+  getQuery(
+    args: ConnectionArgs<Args>,
+    ctx: Types['Context'],
+    nestedSelection: (...args: never[]) => unknown,
+  ): ConnectionPageEntry<M, HelperRow<Types, M, Select, Ref>>;
+  /** The connection for the rows `getQuery` loaded. */
   resolve(
     rows: readonly HelperRow<Types, M, Select, Ref>[],
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
-    parent: object,
-  ): ConnectionPage<PageNode<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>>;
-  /**
-   * Pages a collection the resolver loads itself. With `info`, it selects what the nodes need.
-   * Returns a promise when a `select` callback beneath the connection is async.
-   */
-  applyPagination<C extends ResolverCollection<Types, M>>(
-    collection: C & UnorderedCollection<C>,
-    args: ConnectionArgs<Args>,
-    ctx: Types['Context'],
-  ): MaybePromise<
-    PaginatedCollection<
-      Types,
-      M,
-      LoadedHelperRow<Types, M, Select>,
-      PageNode<Node, LoadedHelperRow<Types, M, Select>, MaybeRow>
-    >
-  >;
-  applyPagination<C extends ResolverCollection<Types, M>>(
-    collection: C & UnorderedCollection<C>,
-    args: ConnectionArgs<Args>,
-    ctx: Types['Context'],
-    info: GraphQLResolveInfo,
-  ): MaybePromise<
-    PaginatedCollection<
-      Types,
-      M,
-      HelperRow<Types, M, Select, Ref>,
-      PageNode<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>
-    >
-  >;
+  ): HelperPage<PageNode<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>, Counted>;
 }
 
 export interface PrismaConnectionHelperOptions<
@@ -264,11 +195,12 @@ export interface PrismaConnectionHelperOptions<
   Args extends InputFieldMap,
   QueryLiteral = ConnectionQueryLiteral<Types, M>,
   Select = {},
+  Counted = boolean,
 > extends Pick<ConnectionPagingOptions<Types, unknown, Args>, 'defaultSize' | 'maxSize'> {
   args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
-  /** Counts the rows `query` keeps. Pass any other count to `wrap`. */
-  totalCount?: TotalCountFlag<Types>;
-  /** Filters and orders the collection, like `t.relatedConnection`'s `query`. */
+  /** Counts the rows `query` keeps, when the connection selects `totalCount`. */
+  totalCount?: Counted & TotalCountFlag<Types>;
+  /** Filters and orders the relation, like `t.relatedConnection`'s `query`. */
   query?: ConnectionQueryOption<Types, M, Args, QueryLiteral>;
   /**
    * What each row loads beside its key and cursor columns. A to-one relation given
@@ -276,6 +208,8 @@ export interface PrismaConnectionHelperOptions<
    */
   select?: (
     nodeSelection: () => NodeSelection,
+    args: ConnectionArgs<Args>,
+    ctx: Types['Context'],
   ) => Select & NoInfer<HelperSelectCheck<Types, M, Select>>;
 }
 
@@ -287,13 +221,14 @@ export function prismaConnectionHelpers<
   Node = never,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
   QueryLiteral extends ConnectionQueryLiteral<Types, M> = ConnectionQueryLiteral<Types, M>,
+  Counted extends boolean = false,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & HelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
+  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select, Counted> & {
     resolveNode: (row: NodeSourceRow<Types, M, Select>) => Node;
   },
-): PrismaConnectionHelpers<Types, M, Args, Select, Node, false, Ref>;
+): PrismaConnectionHelpers<Types, M, Args, Select, Node, false, Ref, Counted>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -303,13 +238,14 @@ export function prismaConnectionHelpers<
   Node = never,
   Ref extends HelperRef<Types, M> = HelperRef<Types, M>,
   QueryLiteral extends ConnectionQueryLiteral<Types, M> = ConnectionQueryLiteral<Types, M>,
+  Counted extends boolean = false,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & HelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
+  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select, Counted> & {
     resolveNode?: ((row: NodeSourceRow<Types, M, Select>) => Node) | undefined;
   },
-): PrismaConnectionHelpers<Types, M, Args, Select, Node, true, Ref>;
+): PrismaConnectionHelpers<Types, M, Args, Select, Node, true, Ref, Counted>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -319,10 +255,11 @@ export function prismaConnectionHelpers<
   Node,
   Ref extends HelperRef<Types, M>,
   QueryLiteral extends ConnectionQueryLiteral<Types, M>,
+  Counted extends boolean,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & HelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
+  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select, Counted> & {
     resolveNode?: ((row: NodeSourceRow<Types, M, Select>) => Node) | undefined;
   },
 ): object {
@@ -331,142 +268,63 @@ export function prismaConnectionHelpers<
   const config = getPluginConfig(builder);
   const model = getModel(config.contract, modelKey);
   const owner = `connection helpers for '${modelKey}'`;
-  const settings = connectionSettings(config, modelKey, options);
+  const paging = connectionPaging(config, modelKey, options);
   const { resolveNode } = options;
-
-  // What `select` loads with each row beside its key and cursor columns.
+  const identityFields = getIdentityFields(config.contract, modelKey);
   const nodeMarker: NodeSelection = { [NODE_SELECTION]: true };
-  const selected = splitSelect(options.select?.(() => nodeMarker) ?? {}, model);
-  const nodeRelation = selected.relations.find(([, value]) => value === nodeMarker)?.[0];
-  // The nodes' planning starts from the relation's narrowing, so beneath a relation targeting a
-  // variant model it leaves out what the variant model's own accessor can't load.
-  const nodeSeed: PrismaNextSelection = nodeRelation
-    ? {
+
+  /** The selection of each row of a page: what `select` loads, and the nodes. */
+  const pageRows = (
+    seed: PrismaNextSelection,
+    nested: NestedSelection<PrismaNextSelection>,
+    args: object,
+    ctx: object,
+  ) => {
+    const selected = splitSelect(
+      options.select?.(() => nodeMarker, args as never, ctx) ?? {},
+      model,
+    );
+    const relations: Record<string, PrismaNextSelection> = {};
+    let nodeRelation: string | undefined;
+    for (const [name, value] of selected.relations) {
+      if (value === nodeMarker) {
+        nodeRelation = name;
+      } else {
+        relations[name] = EMPTY;
+      }
+    }
+    const own: PrismaNextSelection = {
+      ...seed,
+      columns: [...(seed.columns ?? []), ...selected.columns, ...identityFields],
+      relations,
+    };
+    if (nodeRelation) {
+      // The nodes' planning starts from the relation's narrowing, so beneath a relation targeting
+      // a variant model it leaves out what the variant model's own accessor can't load.
+      const nodeSeed: PrismaNextSelection = {
         args: relationArgs(model.relations[nodeRelation]!, {
           loadIdentity: undefined,
           refine: undefined,
         }),
-      }
-    : EMPTY;
-  const whole: Record<string, PrismaNextSelection> = {};
-  for (const [name, value] of selected.relations) {
-    if (value !== nodeMarker) {
-      whole[name] = EMPTY;
+      };
+      return completeValue(nested(nodeSeed, NODE_PATH), (nodes) => ({
+        ...own,
+        relations: { ...relations, [nodeRelation]: nodes },
+      }));
     }
-  }
-  const ownColumns = [...selected.columns, ...getIdentityFields(config.contract, modelKey)];
-  const withOwn = (seed: PrismaNextSelection): PrismaNextSelection => ({
-    ...seed,
-    columns: [...(seed.columns ?? []), ...ownColumns],
-    relations: whole,
-  });
-  const withNodes = (own: PrismaNextSelection, nodes: PrismaNextSelection | undefined) => ({
-    ...own,
-    relations: { ...whole, [nodeRelation!]: nodes ?? EMPTY },
-  });
-
-  const toPage = (
-    rows: readonly Record<string, unknown>[],
-    planned: ConnectionPlan,
-    args: PothosSchemaTypes.DefaultConnectionArguments,
-    totalCount: number | undefined,
-    parent: unknown,
-  ) => {
-    const page = buildConnectionPage(rows, planned, args, { totalCount, parent });
-    // After building the page, so cursors are encoded from the rows.
-    if (resolveNode) {
-      for (const edge of page.edges) {
-        (edge as { node: unknown }).node = resolveNode(edge.node as never);
-      }
-    }
-    return page;
+    // Rows that `resolveNode` makes into something else aren't the nodes, so they load whole.
+    return resolveNode ? { ...own, columns: null } : nested(own, NODE_PATH);
   };
 
-  // Each selection of a field that loads `page`, as planned once for every parent row: the plan,
-  // and the relation the page is of, whose slot holds its count.
-  const pages = new WeakMap<Position, { planned: ConnectionPlan; name: string }>();
-  const planPage: PlanPage = (relation, name, { id, args, ctx, nested, selected, position }) => {
-    const planned = settings.plan(args, ctx);
-    pages.set(position, { planned, name });
-    const nodeType = connectionNodeType(position.field.type);
-    const { needsRows, count } = settings.selection(selected());
-    // The rows load unless the count alone is selected, whose page then has none: the relation is
-    // always an array. A field that isn't a connection, or selects only `__typename`, loads them.
-    const loadsRows = needsRows || count !== 'aggregate';
-    return pageSelection(relation, name, id, {
-      plan: planned,
-      args,
-      identity: { source: planPage, args, order: planned.order },
-      variant: variantForRelationType(config.contract, owner, relation.targetModel, modelKey),
-      count: count === 'aggregate' ? { filtered: true } : undefined,
-      // The nodes are planned into `nodeRelation`, or into the rows unless `resolveNode` makes them
-      // something else. Rows whose nodes aren't planned load every column.
-      rows: loadsRows
-        ? (seed) => {
-            const own = withOwn(seed);
-            const include = nodeType === undefined ? undefined : connectionNodes(nodeType);
-            if (nodeRelation) {
-              return completeValue(include ? nested(nodeSeed, include) : nodeSeed, (nodes) =>
-                withNodes(own, nodes),
-              );
-            }
-            return resolveNode || !include ? { ...own, columns: null } : nested(own, include);
-          }
-        : undefined,
-    });
-  };
-
-  const applyPagination = (
-    collection: MapperCollection,
-    args: PothosSchemaTypes.DefaultConnectionArguments,
-    ctx: object,
-    info: GraphQLResolveInfo | undefined,
-  ) => {
-    const planned = settings.plan(args, ctx);
-    const filtered = planned.where === undefined ? collection : collection.where(planned.where);
-    const paged = applyCursorPagination(filtered, planned, args);
-
-    const emit = (selection: PrismaNextSelection) => config.adapter.emit(paged, selection, model);
-    let rows: MaybePromise<MapperCollection>;
-    if (!info) {
-      rows = emit(nodeRelation ? withNodes(EMPTY, EMPTY) : { relations: whole });
-    } else {
-      const own = withOwn({ columns: cursorColumns(planned.order) });
-      if (nodeRelation) {
-        rows = completeValue(
-          planSelection(info, config, ctx, { paths: CONNECTION_NODE_PATHS }, nodeSeed),
-          (nodes) => emit(withNodes(own, nodes?.selection)),
-        );
-      } else if (resolveNode) {
-        rows = emit({ ...own, columns: null });
-      } else {
-        rows = applySelectionToCollection(paged, model, info, config, ctx, {
-          paths: CONNECTION_NODE_PATHS,
-          seed: own,
-        });
-      }
-    }
-
-    // Counted before pagination but after `where`, so it matches the paged rows.
-    let totalCountPromise: Promise<number> | undefined;
-    const withCollection = (paginated: MapperCollection) => ({
-      collection: paginated,
-      get totalCountPromise() {
-        if (settings.selectionFor(ctx, info).count === undefined) {
-          return undefined;
-        }
-        if (!totalCountPromise) {
-          totalCountPromise = aggregateCount(filtered);
-          // Marks the rejection as handled. The consumer still receives it from the promise.
-          totalCountPromise.catch(() => undefined);
-        }
-        return totalCountPromise;
-      },
-      wrap: (loaded: readonly Record<string, unknown>[], totalCount?: number) =>
-        toPage(loaded, planned, args, totalCount, undefined),
-    });
-    return completeValue(rows, withCollection);
-  };
+  const planPage =
+    (args: object, ctx: object): PlanPage =>
+    (relation, name, field) =>
+      paging.planPage(relation, name, field, args, ctx, {
+        identity: { source: planPage, args },
+        variant: variantForRelationType(config.contract, owner, relation.targetModel, modelKey),
+        filtered: true,
+        rows: (seed) => pageRows(seed, field.nested, args, ctx),
+      });
 
   let args: Args | undefined;
   return {
@@ -476,34 +334,20 @@ export function prismaConnectionHelpers<
         typeof options.args === 'function'
           ? builder.args(options.args)
           : (options.args ?? ({} as Args))),
-    connectionOptions: settings.connectionOptions,
-    page: { [CONNECTION_PAGE]: planPage },
+    getQuery: (args: object, ctx: object) => ({ [CONNECTION_PAGE]: planPage(args, ctx) }),
     resolve(
       rows: readonly Record<string, unknown>[],
       args: PothosSchemaTypes.DefaultConnectionArguments,
-      ctx: object,
-      parent: object,
     ) {
-      // The parent the field's resolver got holds the page's branch. Any other plans again, and has
-      // no count.
-      const branch = fieldBranch(parent);
-      const page = branch && pages.get(branch.position);
-      const planned = page ? page.planned : settings.plan(args, ctx);
-      const totalCount = page && (fieldValue(parent, page.name, COUNT_SLOT) as number | undefined);
-      return toPage(rows, planned, args, totalCount, parent);
-    },
-    applyPagination: (
-      collection: MapperCollection,
-      args: PothosSchemaTypes.DefaultConnectionArguments,
-      ctx: object,
-      info?: GraphQLResolveInfo,
-    ) => {
-      // An invalid collection is reported as a rejected promise, like an invalid cursor.
-      try {
-        return applyPagination(collection, args, ctx, info);
-      } catch (error) {
-        return Promise.reject(error);
+      const { plan, count } = pageOf(rows);
+      const page = buildConnectionPage(rows, plan, args, { totalCount: count });
+      // After building the page, so cursors are encoded from the rows.
+      if (resolveNode) {
+        for (const edge of page.edges) {
+          (edge as { node: unknown }).node = resolveNode(edge.node as never);
+        }
       }
+      return page;
     },
   };
 }
