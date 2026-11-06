@@ -646,7 +646,7 @@ describe('ID values', () => {
       }),
     });
     const result = await run(builder.toSchema(), '{ person { id } }');
-    expect(result.errors?.[0].message).toBe('sqlite/text JSON value must be a string');
+    expect(result.errors?.[0].message).toBe('Unexpected error.');
   });
 
   it('rejects an ID its column codec cannot decode before running the collection', async () => {

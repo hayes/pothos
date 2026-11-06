@@ -17,7 +17,15 @@ export function encodeNodeId(
     if (row[field] == null) {
       throw new InternalError(`prismaNode '${modelKey}' row is missing id field '${field}'.`);
     }
-    const stored = codecs(field).encode(row[field]);
+    let stored: unknown;
+    try {
+      stored = codecs(field).encode(row[field]);
+    } catch (error) {
+      throw new InternalError(
+        `prismaNode '${modelKey}' id field '${field}' holds a value its column can't store.`,
+        { cause: error },
+      );
+    }
     return typeof stored === 'string' ? stored : JSON.stringify(stored);
   });
   return parts.length === 1 ? parts[0]! : JSON.stringify(parts);
