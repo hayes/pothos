@@ -555,9 +555,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // and what its own selection names, which any row of the type can hold. A select function
     // reads what the plan that loaded the parent planned for it.
     const columnsOnly = typeof selection !== 'function';
-    if (columnsOnly) {
-      this.staticColumnsOf(fieldConfig.parentType).set(fieldConfig.name, selection.columns ?? []);
-    }
     const { select } = fieldConfig.pothosOptions as { select?: unknown };
     const needed = columnsOnly
       ? [
@@ -661,18 +658,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     return data;
   }
 
-  /** The columns each field with a static selection reads, by type and then field name. */
-  private readonly staticColumns = new Map<string, Map<string, readonly string[]>>();
-
-  private staticColumnsOf(typeName: string) {
-    let columns = this.staticColumns.get(typeName);
-    if (!columns) {
-      columns = new Map();
-      this.staticColumns.set(typeName, columns);
-    }
-    return columns;
-  }
-
   /**
    * The row scope-auth's checks see: the row as the `select`s of the type and its interfaces load
    * it, with the columns the field being checked reads. A row without them is reloaded with every
@@ -681,11 +666,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    */
   private createTypeParentLoader(typeName: string) {
     let type: GraphQLObjectType | undefined;
-    const fieldColumns = this.staticColumnsOf(typeName);
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
       const { ids, modelKey, model, keys } = this.typeData(typeName);
       type ??= info.schema.getType(typeName) as GraphQLObjectType;
-      const columns = (info.parentType.name === typeName && fieldColumns.get(info.fieldName)) || [];
+      const selection =
+        info.parentType.name === typeName
+          ? (info.parentType.getFields()[info.fieldName]?.extensions?.[
+              PRISMA_NEXT_FIELD_SELECTION
+            ] as PrismaNextSelection | PrismaNextSelectFn | undefined)
+          : undefined;
+      const columns = (typeof selection === 'function' ? undefined : selection?.columns) ?? [];
       // A prisma type's parent is always a row.
       const typed = typeCopy(parent as object, model, ids);
       if (holds(typed, keys) && holds(typed, columns)) {
