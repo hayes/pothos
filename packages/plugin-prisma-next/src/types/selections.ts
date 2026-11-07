@@ -125,13 +125,15 @@ export type TypeParamModel<Types extends SchemaTypes, Type> = Type extends reado
  * A relation entry from `nestedSelection`: the relation's rows, with the selection planned beneath
  * them as a type of model `M`. `HasQuery` is whether it was given a query, which a to-one relation
  * takes none of. `Shape` is the type's shape, or `never` for rows typed as planned rows of `M`.
+ * `Query` is a query given without a model, which the `select` checks as its relation's.
  */
-export interface NestedSelectionEntry<M, HasQuery extends boolean, Shape = never> {
+export interface NestedSelectionEntry<M, HasQuery extends boolean, Shape = never, Query = unknown> {
   /** Type-only: what the entry plans. */
   readonly [NESTED_SELECTION]: {
     readonly model: M;
     readonly query: HasQuery;
     readonly shape: Shape;
+    readonly untypedQuery: Query;
   };
 }
 
@@ -145,7 +147,7 @@ type NestedTypeShape<Types extends SchemaTypes, Type> = Type extends string
 
 /**
  * A query for rows of `M`. Without a model, such as for a wrapper type or a type named by a name
- * that isn't a model's, it isn't typed by one.
+ * that isn't a model's, it isn't typed by one, and the `select` checks its keys.
  */
 type NestedQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> = [M] extends [never]
   ? { where?: object; orderBy?: object; limit?: number; offset?: number }
@@ -173,26 +175,30 @@ export type NestedSelectionQuery<Types extends SchemaTypes, M extends ModelKey<T
  * are loaded with `query`, and planned as `type` (by default the field's type) at `path` beneath
  * the field. `type` takes what a field's `type` does, or a model's name for its default type. The
  * query and rows are typed by its model and shape. With a `path` and no `type`, or a type name that
- * isn't a model's, the rows are typed as the relation's target.
+ * isn't a model's, the rows are typed as the relation's target, and the `select` checks the query's
+ * keys as the relation's.
  */
 export interface NestedSelectionFn<Types extends SchemaTypes, M extends ModelKey<Types>, Args> {
   (query?: true): NestedSelectionEntry<M, false>;
   (query: NestedSelectionQuery<Types, M, Args>): NestedSelectionEntry<M, true>;
   (query: true | undefined, path: PathSegment[] | undefined): NestedSelectionEntry<never, false>;
-  (
-    query: NestedSelectionQuery<Types, never, Args>,
+  <Query extends NestedSelectionQuery<Types, never, Args>>(
+    query: Query,
     path: PathSegment[] | undefined,
-  ): NestedSelectionEntry<never, true>;
+  ): NestedSelectionEntry<never, true, never, Query>;
   <const Type extends NestedSelectionType<Types>>(
     query: true | undefined,
     path: PathSegment[] | undefined,
     type: Type,
   ): NestedSelectionEntry<ParamToModelKey<Types, Type>, false, NestedTypeShape<Types, Type>>;
-  <const Type extends NestedSelectionType<Types>>(
-    query: NestedSelectionQuery<Types, ParamToModelKey<Types, NoInfer<Type>>, Args>,
+  <
+    const Type extends NestedSelectionType<Types>,
+    Query extends NestedSelectionQuery<Types, ParamToModelKey<Types, NoInfer<Type>>, Args>,
+  >(
+    query: Query,
     path: PathSegment[] | undefined,
     type: Type,
-  ): NestedSelectionEntry<ParamToModelKey<Types, Type>, true, NestedTypeShape<Types, Type>>;
+  ): NestedSelectionEntry<ParamToModelKey<Types, Type>, true, NestedTypeShape<Types, Type>, Query>;
 }
 
 /**
@@ -594,19 +600,46 @@ type UnknownSelectKeys<
             ? never
             : Select[K] extends HasNestedSelect
               ? NestedEntryUnknownKeys<Types, M, K, Select[K]>
-              :
-                  | (Exclude<
-                      keyof Select[K],
-                      keyof RelationQueryValue<Types, M, K>
-                    > extends infer Unknown
-                      ? [Unknown] extends [never]
-                        ? never
-                        : LooksComputed<Types, M, Select[K]> extends true
+              : Select[K] extends NestedSelectionEntry<never, true, unknown, infer Query>
+                ? UntypedQueryUnknownKeys<Types, RelatedModel<Types, M, K>, K, Query>
+                :
+                    | (Exclude<
+                        keyof Select[K],
+                        keyof RelationQueryValue<Types, M, K>
+                      > extends infer Unknown
+                        ? [Unknown] extends [never]
                           ? never
-                          : `${K}.${Unknown & (string | number)}`
-                      : never)
-                  | `${K}.orderBy.${UnknownOrderByColumns<Types, RelatedModel<Types, M, K>, Select[K]> & string}`;
+                          : LooksComputed<Types, M, Select[K]> extends true
+                            ? never
+                            : `${K}.${Unknown & (string | number)}`
+                        : never)
+                    | `${K}.orderBy.${UnknownOrderByColumns<Types, RelatedModel<Types, M, K>, Select[K]> & string}`;
         }[keyof Select & RelationKeys<Types, M> & string]
+  : never;
+
+/**
+ * The unknown keys of a query `nestedSelection` was given without a model, as relation `K` to `M`
+ * takes it: its options, and the columns its `where` and `orderBy` name. Only keys are checked, as
+ * a callback's result isn't inferred with literal values.
+ */
+type UntypedQueryUnknownKeys<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  K extends string,
+  Query,
+> = (
+  Query extends (...args: never[]) => infer Result
+    ? Exclude<Awaited<Result>, undefined>
+    : Query
+) extends infer Literal
+  ?
+      | `${K}.query.${Exclude<keyof Literal, keyof RelationQueryLiteral<Types, M>> & (string | number)}`
+      | `${K}.query.orderBy.${UnknownOrderByColumns<Types, M, Literal> & string}`
+      | (Literal extends { readonly where?: infer Where }
+          ? NonNullable<Where> extends (...args: never[]) => unknown
+            ? never
+            : `${K}.query.where.${Exclude<keyof NonNullable<Where>, keyof Row<Types, M>> & string}`
+          : never)
   : never;
 
 /** The unknown keys of a relation entry with a nested `select`, which is checked on its own. */

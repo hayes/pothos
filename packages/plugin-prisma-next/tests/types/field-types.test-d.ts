@@ -534,6 +534,7 @@ builder.queryFields((t) => ({
     variant: 'NestedPost',
     fields: (t) => ({ title: t.exposeString('title') }),
   });
+  const Wrapper = builder.objectRef<{}>('NestedWrapper');
   const NestedUser = builder.prismaObject('User', {
     variant: 'NestedUser',
     fields: (t) => ({
@@ -575,6 +576,46 @@ builder.queryFields((t) => ({
         // @ts-expect-error the rows are planned as the field's type, of another model
         select: (_args, _ctx, nestedSelection) => ({ comments: nestedSelection() }),
         resolve: () => [],
+      }),
+      // Without a model for the query, as with a path and no type, or a type name that isn't a
+      // model's, the select checks the query's keys as the relation's.
+      viaPathQuery: t.field({
+        type: [NestedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          posts: nestedSelection({ where: { published: 1 }, orderBy: { id: 'asc' }, limit: 1 }, []),
+        }),
+        resolve: (user) => user.posts,
+      }),
+      viaTypeQuery: t.field({
+        type: [NestedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          posts: nestedSelection(() => ({ where: { published: 1 }, limit: 1 }), [], Wrapper),
+        }),
+        resolve: () => [],
+      }),
+      unknownWhereColumn: t.field({
+        type: [NestedPost],
+        // @ts-expect-error Unknown key in select: posts.query.where.nope
+        select: (_args, _ctx, nestedSelection) => ({
+          posts: nestedSelection({ where: { nope: 1 } }, []),
+        }),
+        resolve: (user) => user.posts,
+      }),
+      unknownOrderByColumn: t.field({
+        type: [NestedPost],
+        // @ts-expect-error Unknown key in select: posts.query.orderBy.nope
+        select: (_args, _ctx, nestedSelection) => ({
+          posts: nestedSelection(() => ({ orderBy: { id: 'asc', nope: 'asc' } }), [], Wrapper),
+        }),
+        resolve: () => [],
+      }),
+      unknownPathOption: t.field({
+        type: [NestedPost],
+        // @ts-expect-error Unknown key in select: posts.query.take
+        select: (_args, _ctx, nestedSelection) => ({
+          posts: nestedSelection(() => ({ limit: 1, take: 1 }), []),
+        }),
+        resolve: (user) => user.posts,
       }),
     }),
   });
