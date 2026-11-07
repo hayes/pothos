@@ -186,31 +186,31 @@ export interface NestedSelectionFn<Types extends SchemaTypes, M extends ModelKey
     readonly type?: undefined;
   }): NestedSelectionEntry<M, false>;
   (options: {
-    readonly query: NestedSelectionQuery<Types, M, Args>;
+    readonly query: NestedSelectionQuery<Types, M, Args> | undefined;
     readonly path?: undefined;
     readonly type?: undefined;
   }): NestedSelectionEntry<M, true>;
   (options: {
     readonly query?: true;
-    readonly path: PathSegment[];
+    readonly path: readonly PathSegment[];
     readonly type?: undefined;
   }): NestedSelectionEntry<never, false>;
   <Query extends NestedSelectionQuery<Types, never, Args>>(options: {
-    readonly query: Query;
-    readonly path: PathSegment[];
+    readonly query: Query | undefined;
+    readonly path: readonly PathSegment[];
     readonly type?: undefined;
   }): NestedSelectionEntry<never, true, never, Query>;
   <const Type extends NestedSelectionType<Types>>(options: {
     readonly query?: true;
-    readonly path?: PathSegment[];
+    readonly path?: readonly PathSegment[];
     readonly type: Type;
   }): NestedSelectionEntry<ParamToModelKey<Types, Type>, false, NestedTypeShape<Types, Type>>;
   <
     const Type extends NestedSelectionType<Types>,
     Query extends NestedSelectionQuery<Types, ParamToModelKey<Types, NoInfer<Type>>, Args>,
   >(options: {
-    readonly query: Query;
-    readonly path?: PathSegment[];
+    readonly query: Query | undefined;
+    readonly path?: readonly PathSegment[];
     readonly type: Type;
   }): NestedSelectionEntry<ParamToModelKey<Types, Type>, true, NestedTypeShape<Types, Type>, Query>;
 }
@@ -493,7 +493,7 @@ type SimpleRelationShape<Types extends SchemaTypes, M extends ModelKey<Types>, S
 /** A relation entry with a type or a nested `select`, or a bare ref. A query has neither key. */
 type ObjectRelationEntry =
   | { readonly select: object }
-  | { readonly type: object }
+  | { readonly type: unknown }
   | ModelTypeRef<unknown>;
 
 /** The model of a relation entry's type, or the relation's target for an entry without one. */
@@ -677,9 +677,10 @@ type UnknownSelectKeys<
             | true
             | ((...args: never[]) => unknown)
             ? never
-            : Select[K] extends ModelTypeRef<unknown>
+            : // A ref or a list names no keys of its own; `InvalidSelectValueCheck` names the entry.
+              Select[K] extends ModelTypeRef<unknown> | OutputTypeRef | readonly unknown[]
               ? never
-              : Select[K] extends { readonly select: object } | { readonly type: object }
+              : Select[K] extends { readonly select: object } | { readonly type: unknown }
                 ? NestedEntryUnknownKeys<Types, M, K, Select[K]>
                 : Select[K] extends NestedSelectionEntry<never, true, unknown, infer Query>
                   ? UntypedQueryUnknownKeys<Types, RelatedModel<Types, M, K>, K, Query>
@@ -839,7 +840,7 @@ type InvalidSelectValueCheck<Types extends SchemaTypes, M extends ModelKey<Types
   [K in keyof Select & KnownSelectKeys<Types, M>]: (
     [NonNullable<Select[K]>] extends [never]
       ? true
-      : NonNullable<Select[K]> extends { readonly select: object } | { readonly type: object }
+      : NonNullable<Select[K]> extends { readonly select: object } | { readonly type: unknown }
         ? // Its nested `select` is checked on its own.
           K extends RelationKeys<Types, M>
           ? Omit<NonNullable<Select[K]>, 'select'> extends {
@@ -878,8 +879,15 @@ type EntryTypeError<
       : IsToMany<Types, M, K> extends true
         ? `A relation entry's type is of its target model or one of its variants: ${K}`
         : `A to-one relation entry's type is of its target model: ${K}`
-    : never
+    : Entry extends { readonly type: unknown }
+      ? `A relation entry's type is a ref of a prisma type: ${K}`
+      : never
   : never;
+
+/** A Pothos type ref, which a relation entry takes only when it is a prisma type's. */
+interface OutputTypeRef {
+  readonly $inferType: unknown;
+}
 
 /** Names what's wrong with an invalid entry, `Entry`, under key `K`. */
 type InvalidValueMessage<

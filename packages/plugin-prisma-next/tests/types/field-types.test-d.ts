@@ -553,6 +553,21 @@ builder.queryFields((t) => ({
           return user.posts;
         },
       }),
+      maybeQuery: t.field({
+        type: [NestedPost],
+        args: { first: t.arg.int() },
+        select: (args, _ctx, nestedSelection) => ({
+          posts: nestedSelection({ query: args.first ? { limit: args.first } : undefined }),
+        }),
+        resolve: (user) => user.posts,
+      }),
+      readonlyPath: t.field({
+        type: [NestedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          posts: nestedSelection({ path: [] as const, type: NestedPost }),
+        }),
+        resolve: (user) => user.posts,
+      }),
       refined: t.field({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({

@@ -73,8 +73,12 @@ export interface NestedEntry {
 }
 
 /** The `nestedSelection` a field's select function is passed. */
-export function nestedSelectionEntry({ query, path, type }: NestedEntry = {}) {
-  return { [NESTED_SELECTION]: { query, path, type } as NestedEntry };
+export function nestedSelectionEntry({
+  query,
+  path,
+  type,
+}: Omit<NestedEntry, 'path'> & { path?: readonly PathSegment[] } = {}) {
+  return { [NESTED_SELECTION]: { query, path: path && [...path], type } as NestedEntry };
 }
 
 function isNestedEntry(value: unknown): value is { [NESTED_SELECTION]: NestedEntry } {

@@ -1041,6 +1041,18 @@ inhBuilder.prismaObject('User', {
       select: { tasks: { select: { reviewer: true } } },
       resolve: () => [],
     }),
+    typeName: t.field({
+      type: [refBug],
+      // @ts-expect-error a relation entry's type is a ref, not a type name
+      select: { tasks: { type: 'Bug' } },
+      resolve: () => [],
+    }),
+    refList: t.field({
+      type: [refBug],
+      // @ts-expect-error a relation entry is one ref, not a list as a field's type is
+      select: { tasks: [refBug] },
+      resolve: () => [],
+    }),
   }),
 });
 inhBuilder.prismaObject('Note', {
