@@ -33,13 +33,14 @@ import type {
 } from '../object-ref.js';
 import type { PrismaNextObjectFieldBuilder } from '../prisma-next-field-builder.js';
 import type { ResolverCollection } from './collections.js';
-import type { FieldParentShape, ModelKey, ResolveTypeParent, Row } from './models.js';
+import type { FieldParentShape, IdFieldShape, ModelKey, ResolveTypeParent, Row } from './models.js';
 import type { RequiresNullable } from './relations.js';
 import type {
   PrismaNextFieldSelectForm,
   SelectObjectSpec,
   ShapeFromSelect,
   TypeParamModel,
+  TypeSelectCheck,
   ValidateFieldSelect,
 } from './selections.js';
 
@@ -132,6 +133,44 @@ export type NodeIdFieldOptions<Types extends SchemaTypes, Shape> = Omit<
   >,
   'args' | 'nullable' | 'type' | 'resolve' | InferredFieldOptionKeys
 >;
+
+/** The options `builder.prismaNode` takes. */
+export type PrismaNextNodeOptions<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  Interfaces extends InterfaceParam<Types>[],
+  Select,
+  Shape,
+  IDFields,
+  IDShape,
+> = Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
+  select?: Select;
+  id: NodeIdFieldOptions<Types, Shape & IdFieldShape<Types, M, IDFields>> & {
+    /** A column, or a tuple of columns for a composite key. */
+    field: IDFields;
+  } & (
+      | { parse?: undefined; resolve?: undefined }
+      | {
+          /**
+           * Replaces the default decoding. IDs are then encoded as the plain value, or
+           * as a JSON tuple for a composite key, unless `resolve` encodes them.
+           */
+          parse: (id: string, ctx: Types['Context']) => IDShape;
+          /** Encodes the ID, which `parse` must decode, so it needs `parse`. */
+          resolve?: (
+            parent: Shape & IdFieldShape<Types, M, IDFields>,
+            ctx: Types['Context'],
+          ) => MaybePromise<OutputShape<Types, 'ID'>>;
+        }
+    );
+  /**
+   * Returns the collection `node` and `nodes` lookups load from, which is used as given.
+   * It defaults to the client's collection for the model, narrowed to the model's
+   * variant, as with `orm.Base.variant(value)`.
+   */
+  collection?: (ctx: Types['Context']) => ResolverCollection<Types, NoInfer<M>>;
+} & TypeSelectCheck<Types, M, Select> &
+  NameOrVariant;
 
 /** `variant` names a type that shares its model with other types. Set at most one of them. */
 export type NameOrVariant = { name?: never; variant?: string } | { name?: string; variant?: never };

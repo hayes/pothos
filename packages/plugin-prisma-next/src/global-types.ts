@@ -4,8 +4,6 @@ import type {
   FieldNullability,
   InputFieldMap,
   InterfaceParam,
-  MaybePromise,
-  OutputShape,
   OutputType,
   PluginName,
   SchemaTypes,
@@ -28,10 +26,10 @@ import type {
   FieldParam,
   ModelParam,
   NameOrVariant,
-  NodeIdFieldOptions,
   ParamToModelKey,
   ParamToTypeParam,
   PrismaNextInterfaceOptions,
+  PrismaNextNodeOptions,
   PrismaNextObjectFieldOptions,
   PrismaNextObjectOptions,
   PrismaNextRootFieldOptions,
@@ -41,7 +39,6 @@ import type {
   AnyContract,
   FieldParentShape,
   IdColumn,
-  IdFieldShape,
   IdValues,
   ModelKey,
   ObjectBaseShape,
@@ -252,34 +249,7 @@ declare global {
             IDShape extends ParsedIdValues<Types, M, IDFields> = IdValues<Types, M, IDFields>,
           >(
             modelKey: M,
-            options: Omit<PrismaNextObjectOptions<Types, M, Shape, Interfaces>, 'select'> & {
-              select?: Select;
-              id: NodeIdFieldOptions<Types, Shape & IdFieldShape<Types, M, IDFields>> & {
-                /** A column, or a tuple of columns for a composite key. */
-                field: IDFields;
-              } & (
-                  | { parse?: undefined; resolve?: undefined }
-                  | {
-                      /**
-                       * Replaces the default decoding. IDs are then encoded as the plain value, or
-                       * as a JSON tuple for a composite key, unless `resolve` encodes them.
-                       */
-                      parse: (id: string, ctx: Types['Context']) => IDShape;
-                      /** Encodes the ID, which `parse` must decode, so it needs `parse`. */
-                      resolve?: (
-                        parent: Shape & IdFieldShape<Types, M, IDFields>,
-                        ctx: Types['Context'],
-                      ) => MaybePromise<OutputShape<Types, 'ID'>>;
-                    }
-                );
-              /**
-               * Returns the collection `node` and `nodes` lookups load from, which is used as given.
-               * It defaults to the client's collection for the model, narrowed to the model's
-               * variant, as with `orm.Base.variant(value)`.
-               */
-              collection?: (ctx: Types['Context']) => ResolverCollection<Types, NoInfer<M>>;
-            } & TypeSelectCheck<Types, M, Select> &
-              NameOrVariant,
+            options: PrismaNextNodeOptions<Types, M, Interfaces, Select, Shape, IDFields, IDShape>,
           ) => PrismaNextNodeRef<Types, M, Shape, IDShape>
         : '@pothos/plugin-relay is required to use this method';
     }

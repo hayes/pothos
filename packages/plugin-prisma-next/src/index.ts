@@ -119,6 +119,7 @@ export type {
 export type {
   NameOrVariant,
   PrismaNextInterfaceOptions,
+  PrismaNextNodeOptions,
   PrismaNextObjectFieldOptions,
   PrismaNextObjectOptions,
   PrismaNextRootFieldOptions,
