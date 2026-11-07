@@ -68,6 +68,13 @@ A `select` accepts:
 
 Read computed values in a resolver; `t.expose*` only works on columns.
 
+Every type of a model reads the same value for each relation or computed key a type-level `select`
+writes, so the type-level `select`s of one model, including its [variants](./variants) and
+[interfaces](./interfaces), can't define the same key differently; the schema build throws.
+Definitions are the same when their objects are equal and any functions in them are the same
+function, so share a function rather than writing it twice. Load another version with `t.relation`
+or a field's `select`.
+
 To filter a to-one relation, select it and return `null` from the resolver. Here a comment shows its
 post's title only when the post is published:
 

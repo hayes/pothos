@@ -1436,10 +1436,10 @@ describe.each(orders)('runScopesOnType through an interface (%s)', (_order, plug
     expect(relationSeen).toEqual([memberSeen]);
   });
 
-  it('loads the relation each implementation selects with different arguments', async () => {
-    const { rootSeen, relationSeen } = await run({ where: { published: 1 } });
-    expect(rootSeen).toEqual([['Admin', 'alice@example.com', ['p-hello']], memberSeen]);
-    expect(relationSeen).toEqual([memberSeen]);
+  it('rejects implementations that select the relation with different arguments', () => {
+    expect(() => runScopesSchema([], { where: { published: 1 } })).toThrow(
+      "'Member' and 'Admin' both select 'posts', with different definitions.",
+    );
   });
 });
 
@@ -2410,32 +2410,8 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
     });
     return { schema: builder.toSchema(), seen };
   }
-  const published = (user: Record<string, unknown>) =>
-    (user.posts as { published: number }[]).map((post) => post.published);
-
   // Alice has two posts, one of them published.
   describe.each([false, true])('spread: %s', (spread) => {
-    it("reads its own computed value, not the other type's", async () => {
-      const { schema: built, seen } = schema(
-        {
-          a: { total: { posts: (sub: { count(): unknown }) => sub.count() } },
-          b: {
-            total: {
-              posts: (sub: { where(f: object): { count(): unknown } }) =>
-                sub.where({ published: 1 }).count(),
-            },
-          },
-        },
-        (user) => user.total,
-        spread,
-      );
-      const result = await runCaptured(built, '{ user { value asB { value } } }');
-      expect(result.errors).toBeUndefined();
-      expect(result.data.user).toEqual({ value: 2, asB: { value: 1 } });
-      expect(seen).toEqual([1]);
-      expect(result.statements).toHaveLength(2);
-    });
-
     // B selects no computed value, so the row needs no reload, and the spread's own key stays.
     it("drops the other type's computed value and keeps the keys a spread added", async () => {
       const { schema: built, seen } = schema(
@@ -2452,31 +2428,19 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
       expect(seen).toEqual([null]);
       expect(result.statements).toHaveLength(1);
     });
+  });
 
-    it("reads its own filtered rows, not the other type's", async () => {
-      const { schema: built, seen } = schema(
-        { a: { posts: { where: { published: 0 } } }, b: { posts: { where: { published: 1 } } } },
-        published,
-        spread,
-      );
-      const result = await runCaptured(built, '{ user { value asB { value } } }');
-      expect(result.errors).toBeUndefined();
-      expect(result.data.user).toEqual({ value: [0], asB: { value: [1] } });
-      expect(seen).toEqual([[1]]);
-      expect(result.statements).toHaveLength(2);
-    });
-
-    it("doesn't read another type's whole relation as its filtered one", async () => {
-      const { schema: built, seen } = schema(
-        { a: { posts: true }, b: { posts: { where: { published: 1 } } } },
-        published,
-        spread,
-      );
-      const result = await runCaptured(built, '{ user { value asB { value } } }');
-      expect(result.errors).toBeUndefined();
-      expect(result.data.user).toEqual({ value: [1, 0], asB: { value: [1] } });
-      expect(seen).toEqual([[1]]);
-      expect(result.statements).toHaveLength(2);
-    });
+  it.each([
+    [
+      { total: { posts: (sub: { count(): unknown }) => sub.count() } },
+      { total: { posts: (sub: { count(): unknown }) => sub.count() } },
+      'total',
+    ],
+    [{ posts: { where: { published: 0 } } }, { posts: { where: { published: 1 } } }, 'posts'],
+    [{ posts: true }, { posts: { where: { published: 1 } } }, 'posts'],
+  ])('rejects types that select a key differently: %j', (a, b, key) => {
+    expect(() => schema({ a, b }, () => null, false)).toThrow(
+      `'B' and 'A' both select '${key}', with different definitions.`,
+    );
   });
 });

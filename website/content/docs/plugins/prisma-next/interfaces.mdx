@@ -51,13 +51,8 @@ Implementing objects don't accept `isTypeOf`.
 `resolveType` sees the columns and to-one relations in the interface's `select`, but not its to-many
 relations, counts or aggregates.
 
-When a type and its interfaces both select data:
-
-- An interface and a type that implements it, or two interfaces of one type, can't define the same
-  relation or computed key differently in their type-level `select`. The schema build throws.
-  Definitions are the same when their objects are equal and any functions in them are the same
-  function, so share a function rather than writing it twice. Load the other version with
-  `t.relation` or a field's `select`.
+Like any types of one model, an interface and its implementations can't define the same relation
+or computed key differently in their type-level `select`s (see [Selections](./objects#selections)).
 
 To add fields to the interface from another file, use `prismaInterfaceField` or
 `prismaInterfaceFields`:

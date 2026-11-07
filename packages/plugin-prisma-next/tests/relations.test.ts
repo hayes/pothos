@@ -630,9 +630,11 @@ describe('to-one consumers', () => {
     const titles = (published: number) =>
       builder.prismaObject('User', {
         variant: published ? 'PublishedAuthor' : 'DraftAuthor',
-        select: { posts: { where: { published } } },
         fields: (t) => ({
-          titles: t.string({ resolve: (user) => user.posts.map((post) => post.title).join(',') }),
+          titles: t.string({
+            select: { posts: { where: { published } } },
+            resolve: (user) => user.posts.map((post) => post.title).join(','),
+          }),
         }),
       });
     builder.prismaObject('Post', {

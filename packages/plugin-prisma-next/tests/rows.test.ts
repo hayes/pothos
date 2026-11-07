@@ -181,7 +181,7 @@ describe('rows a resolver returns', () => {
     expect(result.data.user).toEqual({ summary: 'Andrews 2' });
   });
 
-  it("loads a type's filtered relation for a field selecting only columns of a row of another type", async () => {
+  it("loads a type's filtered relation for a field selecting only columns of a row another type handed it", async () => {
     const builder = createBuilder();
     const Drafts = builder.prismaObject('User', {
       variant: 'Drafts',
@@ -194,17 +194,16 @@ describe('rows a resolver returns', () => {
       }),
     });
     const User = builder.prismaObject('User', {
-      select: { posts: true },
       fields: (t) => ({
         drafts: t.field({ type: Drafts, resolve: (user) => user }),
       }),
     });
     builder.queryType({
       fields: (t) => ({
-        // A row no plan loaded, with the whole relation in place of Drafts' filtered one.
+        // A row no plan loaded.
         user: t.field({
           type: User,
-          resolve: () => ({ id: 'u-alice', lastName: 'Andrews', posts: [] }),
+          resolve: () => ({ id: 'u-alice', lastName: 'Andrews' }),
         }),
       }),
     });
@@ -328,8 +327,12 @@ describe('rows the plugin loaded', () => {
       (builder) => {
         const Variant = builder.prismaObject('User', {
           variant: 'UserVariant',
-          select: { posts: { where: { published: 1 } } },
-          fields: (t) => ({ total: t.int({ resolve: (user) => user.posts.length }) }),
+          fields: (t) => ({
+            total: t.int({
+              select: { posts: { where: { published: 1 } } },
+              resolve: (user) => user.posts.length,
+            }),
+          }),
         });
         builder.prismaObject('User', {
           select: { posts: true },

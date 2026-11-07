@@ -251,6 +251,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     if (split) {
       selects.set(typeConfig.name, { name: typeConfig.name, ...split });
+      this.assertSelectsAgree(typeConfig.name, root!, split);
     }
     const config = {
       ...typeConfig,
@@ -268,7 +269,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           : {}),
       },
     };
-    this.assertSelectsAgree(config);
     return config;
   }
 
@@ -432,35 +432,43 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     return schema;
   }
 
+  /** The first definition of each key a type-level `select` writes, by root model. */
+  private readonly selectDefinitions = new Map<
+    string,
+    Map<string, { type: string; definition: unknown }>
+  >();
+
   /**
-   * A row of a type is copied once for the `select`s of the type and its interfaces, and holds one
-   * value for each relation or computed key they write, which the fields and auth checks of all of
-   * them read. So two of those `select`s that write one key must define it equally: compared with
+   * Every row of a model, across its variant models, holds one value for each relation or computed
+   * key the type-level `select`s write, which the fields and auth checks of every type of the model
+   * read. So two of those `select`s that write one key must define it equally: compared with
    * `deepEqual`, so a literal compares by value and a function, anywhere in it, by identity. Two
    * selects sharing a function share it by reference rather than writing it out twice.
    */
-  private assertSelectsAgree(typeConfig: PothosTypeConfig) {
-    const definitions = new Map<string, { type: string; definition: unknown }>();
-    for (const { name: type, relations, computed } of typeSelects(typeConfig)) {
-      const check = (key: string, definition: unknown) => {
-        const first = definitions.get(key);
-        if (!first) {
-          definitions.set(key, { type, definition });
-        } else if (!deepEqual(first.definition, definition)) {
-          throw new PothosSchemaError(
-            `'${first.type}' and '${type}' both select '${key}', with different definitions. A row of '${typeConfig.name}' holds one value for it, which the fields and auth checks of both types read. Define it the same way in both, sharing any function such as a where or a computed value's function, or load the other version in a field's select.`,
-          );
-        }
-      };
-      for (const [name, value] of relations) {
-        check(
-          name,
-          typeof value === 'object' ? definedQuery(value) : value === true ? undefined : value,
+  private assertSelectsAgree(type: string, root: string, { relations, computed }: SplitSelect) {
+    let definitions = this.selectDefinitions.get(root);
+    if (!definitions) {
+      definitions = new Map();
+      this.selectDefinitions.set(root, definitions);
+    }
+    const check = (key: string, definition: unknown) => {
+      const first = definitions.get(key);
+      if (!first || first.type === type) {
+        definitions.set(key, { type, definition });
+      } else if (!deepEqual(first.definition, definition)) {
+        throw new PothosSchemaError(
+          `'${first.type}' and '${type}' both select '${key}', with different definitions. Every row of model '${root}' holds one value for it, which the fields and auth checks of every type of the model read. Define it the same way in both, sharing any function such as a where or a computed value's function, or load the other version in a field's select.`,
         );
       }
-      for (const { key, relation, compute } of computed) {
-        check(key, { [relation]: compute });
-      }
+    };
+    for (const [name, value] of relations) {
+      check(
+        name,
+        typeof value === 'object' ? definedQuery(value) : value === true ? undefined : value,
+      );
+    }
+    for (const { key, relation, compute } of computed) {
+      check(key, { [relation]: compute });
     }
   }
 

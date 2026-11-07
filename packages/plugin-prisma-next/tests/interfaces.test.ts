@@ -334,49 +334,6 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  // Each implementation's fields read the rows its own select loads, all through the one statement
-  // of the interface root.
-  it("hands each implementation's fields the rows its own select loads", async () => {
-    const builder = createBuilder();
-    const Person = builder.prismaInterface('User', {
-      variant: 'Person',
-      resolveType: (user) => (user.id === 'u-alice' ? 'Prolific' : 'Quiet'),
-      fields: (t) => ({ id: t.exposeID('id') }),
-    });
-    builder.prismaObject('User', {
-      variant: 'Prolific',
-      interfaces: [Person],
-      select: { posts: true },
-      fields: (t) => ({ total: t.int({ resolve: (user) => user.posts.length }) }),
-    });
-    builder.prismaObject('User', {
-      variant: 'Quiet',
-      interfaces: [Person],
-      select: { posts: { where: { published: 0 } } },
-      fields: (t) => ({
-        drafts: t.idList({ resolve: (user) => user.posts.map((post) => post.id) }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        people: t.prismaField({
-          type: [Person],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
-        }),
-      }),
-    });
-    const result = await run(
-      builder.toSchema(),
-      '{ people { __typename id ... on Prolific { total } ... on Quiet { drafts } } }',
-    );
-    expect(result.errors).toBeUndefined();
-    expect(result.data.people).toEqual([
-      { __typename: 'Prolific', id: 'u-alice', total: 2 },
-      { __typename: 'Quiet', id: 'u-bob', drafts: ['p-bob-draft'] },
-    ]);
-    expect(result.statements).toHaveLength(1);
-  });
-
   it("loads a to-one select for resolveType and an implementation's fields through the interface", async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
       plugins: [prismaNextPlugin],
@@ -418,9 +375,9 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  // A row holds one version of a relation, which the fields and auth checks of its type and of its
-  // interfaces all read, so their selects can't load it differently.
-  describe('rejects selects of one row that define a key differently', () => {
+  // A row holds one version of a relation, which the fields and auth checks of every type of its
+  // model read, so their selects can't load it differently.
+  describe('rejects selects of one model that define a key differently', () => {
     it('on an interface and its implementation', () => {
       const builder = createBuilder();
       const Named = builder.prismaInterface('User', {
@@ -431,10 +388,50 @@ describe('inherited selections', () => {
       builder.prismaObject('User', { interfaces: [Named], select: { posts: true } });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(
-        "'Named' and 'User' both select 'posts', with different definitions. A row of 'User' " +
-          'holds one value for it, which the fields and auth checks of both types read. Define ' +
-          "it the same way in both, sharing any function such as a where or a computed value's " +
-          "function, or load the other version in a field's select.",
+        "'Named' and 'User' both select 'posts', with different definitions. Every row of " +
+          "model 'User' holds one value for it, which the fields and auth checks of every type " +
+          'of the model read. Define it the same way in both, sharing any function such as a ' +
+          "where or a computed value's function, or load the other version in a field's select.",
+      );
+    });
+
+    it('on two implementations of one interface', () => {
+      const builder = createBuilder();
+      const Person = builder.prismaInterface('User', {
+        variant: 'Person',
+        resolveType: () => 'Prolific',
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+      builder.prismaObject('User', {
+        variant: 'Prolific',
+        interfaces: [Person],
+        select: { posts: true },
+      });
+      builder.prismaObject('User', {
+        variant: 'Quiet',
+        interfaces: [Person],
+        select: { posts: { where: { published: 0 } } },
+      });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'Prolific' and 'Quiet' both select 'posts', with different definitions.",
+      );
+    });
+
+    it('on unrelated types of one model', () => {
+      const builder = createBuilder();
+      builder.prismaObject('User', {
+        select: { total: { posts: (sub) => sub.count() } },
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+      builder.prismaObject('User', {
+        variant: 'Viewer',
+        select: { total: { comments: (sub) => sub.count() } },
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'User' and 'Viewer' both select 'total', with different definitions.",
       );
     });
 
@@ -682,21 +679,21 @@ describe('inherited selections', () => {
     }
   });
 
-  it('lets sibling implementations compute the same key', async () => {
+  it('lets sibling implementations compute the same key alike', async () => {
     const builder = createBuilder();
     const Person = builder.prismaInterface('User', {
       variant: 'Person',
       resolveType: (user) => (user.id === 'u-alice' ? 'All' : 'Published'),
       fields: (t) => ({ id: t.exposeID('id') }),
     });
-    for (const [variant, where] of [
-      ['All', {}],
-      ['Published', { published: 1 }],
-    ] as const) {
+    const count = {
+      posts: (sub) => sub.where({ published: 1 }).count(),
+    } satisfies ComputedSelectEntry<Types, 'User'>;
+    for (const variant of ['All', 'Published'] as const) {
       builder.prismaObject('User', {
         variant,
         interfaces: [Person],
-        select: { count: { posts: (sub) => sub.where(where).count() } },
+        select: { count },
         fields: (t) => ({ count: t.int({ resolve: (user) => user.count }) }),
       });
     }
@@ -714,7 +711,7 @@ describe('inherited selections', () => {
     );
     expect(result.errors).toBeUndefined();
     expect(result.data.people).toEqual([
-      { __typename: 'All', count: 2 },
+      { __typename: 'All', count: 1 },
       { __typename: 'Published', count: 1 },
     ]);
     expect(result.statements).toHaveLength(1);
