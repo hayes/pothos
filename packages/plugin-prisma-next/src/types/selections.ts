@@ -775,6 +775,10 @@ type InvalidSelectValueCheck<Types extends SchemaTypes, M extends ModelKey<Types
             : NonNullable<Select[K & keyof Select]> extends
                   | NestedSelectionEntry<unknown, true, unknown>
                   | { readonly query: unknown }
+                  | { readonly where: unknown }
+                  | { readonly orderBy: unknown }
+                  | { readonly limit: unknown }
+                  | { readonly offset: unknown }
               ? `A to-one relation takes no query: ${K}`
               : `Invalid value in select: ${K}`]: never;
       }

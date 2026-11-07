@@ -130,7 +130,8 @@ export type RelationRefinement<
 
 /**
  * A to-many relation's `query`: the literal, or a callback of the args and context returning it or
- * a refinement of the relation's collection. A to-one relation takes none.
+ * a refinement of the relation's collection. A to-one relation is loaded whole and takes none, which
+ * its error names.
  */
 export type RelationQuery<
   Types extends SchemaTypes,
@@ -150,7 +151,7 @@ export type RelationQuery<
             | RelationRefinement<Types, ParentModel, RelName>
             | undefined
           >)
-    : never;
+    : { readonly [K in `A to-one relation takes no query: ${RelName}`]: never };
 
 export type RelationRefinementCollection<
   Types extends SchemaTypes,

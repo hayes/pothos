@@ -151,9 +151,9 @@ builder.prismaObject('Post', {
 });
 expectTypeOf<
   NonNullable<TypeSelectCheck<Types, 'Post', { author: { where: { id: 'x' } } }>['select']>
->().toHaveProperty('Invalid value in select: author');
+>().toHaveProperty('A to-one relation takes no query: author');
 expectTypeOf<
-  'Invalid value in select: author' extends keyof NonNullable<
+  'A to-one relation takes no query: author' extends keyof NonNullable<
     TypeSelectCheck<Types, 'Post', { author: true }>['select']
   >
     ? 1
@@ -167,6 +167,13 @@ expectTypeOf<SelectCheck<Types, 'Post', { author: () => {} }>>().toEqualTypeOf<{
 // A to-one relation is loaded whole, so it takes no options.
 expectTypeOf<
   keyof SelectCheck<Types, 'Post', { author: { where: { id: 'x' } } }>
+>().toEqualTypeOf<'A to-one relation takes no query: author'>();
+expectTypeOf<
+  keyof SelectCheck<Types, 'Post', { author: { limit: 1 } }>
+>().toEqualTypeOf<'A to-one relation takes no query: author'>();
+// Other objects are named as invalid values.
+expectTypeOf<
+  keyof SelectCheck<Types, 'Post', { author: { nope: 1 } }>
 >().toEqualTypeOf<'Invalid value in select: author'>();
 // A to-one relation's nested `select` takes no query.
 expectTypeOf<
@@ -488,16 +495,19 @@ builder.prismaObject('User', {
 builder.prismaObject('Post', {
   variant: 'ToOneQueries',
   fields: (t) => ({
-    // @ts-expect-error a to-one relation takes no query
+    // @ts-expect-error A to-one relation takes no query: author
     where: t.relation('author', { query: { where: { firstName: 'Alice' } } }),
-    // @ts-expect-error a to-one relation takes no query
+    // @ts-expect-error A to-one relation takes no query: author
     whereCallback: t.relation('author', { query: () => ({ where: { firstName: 'Alice' } }) }),
-    // @ts-expect-error a to-one relation takes no query
+    // @ts-expect-error A to-one relation takes no query: author
     limited: t.relation('author', { query: { limit: 1 } }),
     // @ts-expect-error a to-one relation takes no refinement
     refined: t.relation('author', { query: () => (author: unknown) => author }),
   }),
 });
+expectTypeOf<RelationQuery<Types, 'Post', 'author', {}>>().toEqualTypeOf<{
+  readonly 'A to-one relation takes no query: author': never;
+}>();
 
 // Async `select`, `query` and count `query` callbacks need `AsyncSelections: true`.
 builder.prismaObject('User', {
