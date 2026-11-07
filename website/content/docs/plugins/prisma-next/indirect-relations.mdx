@@ -78,12 +78,14 @@ as. Fragments on other types are left out:
 
 ```ts
 const Comment = builder.prismaObject('Comment', {
+  // Loaded whenever a Comment is queried, so resolveType can read it
+  select: ['postId'],
   fields: (t) => ({ body: t.exposeString('body') }),
 });
 
 const Activity = builder.unionType('Activity', {
   types: [Post, Comment],
-  resolveType: (row) => ('title' in row ? 'Post' : 'Comment'),
+  resolveType: (row) => ('postId' in row ? 'Comment' : 'Post'),
 });
 
 builder.prismaObject('User', {
