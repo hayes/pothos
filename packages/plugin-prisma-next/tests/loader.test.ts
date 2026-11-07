@@ -62,7 +62,9 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
       plain: t.field({
         type: [Post],
         resolve: () => [
+          // @ts-expect-error a row built by hand isn't planned; it reloads
           { authorId: 'u-alice', id: 'p-hello' },
+          // @ts-expect-error a row built by hand isn't planned; it reloads
           { authorId: 'u-alice', id: 'p-draft1' },
         ],
       }),
@@ -117,7 +119,9 @@ describe('reloading through collections', () => {
         posts: t.field({
           type: [Post],
           resolve: () => [
+            // @ts-expect-error a row built by hand isn't planned; it reloads
             { authorId: 'u-alice', id: 'p-hello' },
+            // @ts-expect-error a row built by hand isn't planned; it reloads
             { authorId: 'u-alice', id: 'p-draft1' },
           ],
         }),
@@ -171,6 +175,7 @@ describe('reloading through collections', () => {
       fields: (t) => ({
         posts: t.field({
           type: [Post],
+          // @ts-expect-error a row built by hand isn't planned; it reloads
           resolve: () => Array.from({ length: 200 }, (_, i) => ({ id: allPostIds[i % 4] })),
         }),
       }),
@@ -205,6 +210,7 @@ describe('reloading through collections', () => {
       fields: (t) => ({
         posts: t.field({
           type: [Post],
+          // @ts-expect-error a row built by hand isn't planned; it reloads
           resolve: () => [{ id: 'p-hello' }, { id: 'p-draft1' }],
         }),
       }),
@@ -265,7 +271,9 @@ describe('provenance', () => {
         users: t.field({
           type: [User],
           resolve: () => [
+            // @ts-expect-error a row built by hand isn't planned; it reloads
             { id: 'u-alice' },
+            // @ts-expect-error a row built by hand isn't planned; it reloads
             new Promise<{ id: string }>((resolve) =>
               setTimeout(() => resolve({ id: 'u-bob' }), 20),
             ),
@@ -295,7 +303,9 @@ describe('provenance', () => {
     const parents = () => [{ id: 'u-alice' }, { id: 'u-bob' }];
     builder.queryType({
       fields: (t) => ({
+        // @ts-expect-error a row built by hand isn't planned; it reloads
         one: t.field({ type: [One], resolve: parents }),
+        // @ts-expect-error a row built by hand isn't planned; it reloads
         zero: t.field({ type: [Zero], resolve: parents }),
       }),
     });
@@ -334,6 +344,7 @@ describe('provenance', () => {
       fields: (t) => ({
         posts: t.field({
           type: [Post],
+          // @ts-expect-error a row built by hand isn't planned; it reloads
           resolve: () => [{ id: 'p-hello' }, { id: 'p-draft1' }],
         }),
       }),
@@ -369,6 +380,7 @@ describe('provenance', () => {
     builder.queryType({
       fields: (t) => ({
         users: t.prismaConnection({ type: 'User', resolve: () => db.orm.User }),
+        // @ts-expect-error a row built by hand isn't planned; it reloads
         user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) }),
       }),
     });
@@ -606,6 +618,7 @@ describe('reload isolation', () => {
           type: [User],
           // A count is never null, so a failed one nulls its user.
           nullable: { list: false, items: true },
+          // @ts-expect-error a row built by hand isn't planned; it reloads
           resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }],
         }),
         users: t.prismaField({
@@ -617,6 +630,7 @@ describe('reload isolation', () => {
         rawUsers: t.field({
           type: [User],
           resolve: () =>
+            // @ts-expect-error a row an ORM query loaded isn't planned; it reloads
             db.orm.User.include('posts')
               .orderBy((user) => user.id.asc())
               .all(),
@@ -633,6 +647,7 @@ describe('reload isolation', () => {
             yield await db.orm.User.include('posts').where({ id: 'u-alice' }).first();
           },
           resolve: async (row, _args, context, info) =>
+            // @ts-expect-error a row an ORM query loaded isn't planned; it reloads
             row ??
             (await (
               await collectionFromInfo({

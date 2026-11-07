@@ -18,7 +18,7 @@ import PrismaNextPlugin, {
   type Row,
 } from '../../src';
 import type { ExposableColumn } from '../../src/types/fields';
-import type { ObjectBaseShape, PlannedRow } from '../../src/types/models';
+import type { LoadedRow, ObjectBaseShape, PlannedRow } from '../../src/types/models';
 import type {
   PrismaNextFieldSelect,
   SelectColumnCheck,
@@ -181,9 +181,11 @@ builder.prismaObject('Post', {
     // Connections take the builder's default field nullability, nullable here.
     const page = t.relatedConnection('comments', { nullable: false });
     const nullablePage = t.relatedConnection('comments', {});
-    expectTypeOf(author).toEqualTypeOf<FieldRef<Types, UserRow, 'PrismaNextObject'>>();
+    expectTypeOf(author).toEqualTypeOf<
+      FieldRef<Types, LoadedRow<Types, 'User'>, 'PrismaNextObject'>
+    >();
     expectTypeOf(comments).toEqualTypeOf<
-      FieldRef<Types, readonly Row<Types, 'Comment'>[], 'PrismaNextObject'>
+      FieldRef<Types, readonly LoadedRow<Types, 'Comment'>[], 'PrismaNextObject'>
     >();
     expectTypeOf(page).toEqualTypeOf<
       FieldRef<Types, ConnectionShape<Types, Row<Types, 'Comment'>, false>, 'PrismaNextObject'>
@@ -217,7 +219,7 @@ builder.queryFields((t) => {
     query: { orderBy: { email: 'asc' } },
     resolveNode: (user) => {
       // Without a relation given `nodeSelection()`, nothing is planned into the rows: they are whole.
-      expectTypeOf(user).toEqualTypeOf<UserRow>();
+      expectTypeOf(user).toEqualTypeOf<LoadedRow<Types, 'User'>>();
       return user;
     },
   });
@@ -695,7 +697,7 @@ builder.queryFields((t) => ({
     fields: (t) => ({
       typeLevel: t.string({
         resolve: (user) => {
-          expectTypeOf(user.comments[0]!.post).toEqualTypeOf<Row<Types, 'Post'>>();
+          expectTypeOf(user.comments[0]!.post).toEqualTypeOf<LoadedRow<Types, 'Post'>>();
           return user.comments[0]!.body;
         },
       }),

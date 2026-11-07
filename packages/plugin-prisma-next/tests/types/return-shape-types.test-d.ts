@@ -1,6 +1,6 @@
-// A field returning a prisma type resolves to a row holding the type's key and the columns and
-// to-one relations its select loads, since plugins listed before this one read the row before any
-// reload.
+// A field returning a prisma type resolves to rows the loader planned: rows of a collection
+// `collectionFromInfo` returns, the parent, and the relation rows the parent's plan loaded. A row
+// built by hand or loaded by an ORM query doesn't fit.
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
@@ -43,41 +43,75 @@ const Authored = builder.prismaNode('Post', {
   variant: 'Authored',
   id: { field: 'id' },
   select: { title: true, author: true, comments: true },
-  fields: (t) => ({ author: t.string({ resolve: (post) => post.author.firstName }) }),
+  fields: (t) => ({
+    author: t.string({ resolve: (post) => post.author.firstName }),
+    // The parent and the relation rows its plan loaded are planned rows.
+    self: t.field({ type: Titled, resolve: (post) => post }),
+    authorRow: t.field({ type: AuthorRef, resolve: (post) => post.author }),
+    firstComment: t.field({
+      type: CommentRef,
+      nullable: true,
+      resolve: (post) => post.comments[0],
+    }),
+    // @ts-expect-error a planned row of another model
+    wrongModel: t.field({ type: Titled, resolve: (post) => post.author }),
+  }),
 });
+const AuthorRef = builder.prismaObject('User', { variant: 'Author', fields: () => ({}) });
+const CommentRef = builder.prismaObject('Comment', { variant: 'PostComment', fields: () => ({}) });
 const Plain = builder.prismaObject('Post', { variant: 'PlainPost', fields: () => ({}) });
+
+declare const plannedPostRow: PlannedRow<
+  PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>,
+  'Post'
+>;
 
 builder.queryType({
   fields: (t) => ({
-    // @ts-expect-error the type selects `title`, which the row lacks
-    keyOnly: t.field({ type: Titled, resolve: () => ({ id: 'p' }) }),
+    // @ts-expect-error a row built by hand
+    keyOnly: t.field({ type: Plain, resolve: () => ({ id: 'p' }) }),
+    // @ts-expect-error a row built by hand, even holding what the type selects
     withColumn: t.field({ type: Titled, resolve: () => ({ id: 'p', title: 'Hello' }) }),
-    // A whole ORM row holds every column.
+    // @ts-expect-error a row an ORM query loaded
     ormRow: t.field({ type: Titled, nullable: true, resolve: () => client.orm.Post.first() }),
+    // @ts-expect-error rows an ORM query loaded
     ormRows: t.field({ type: [Titled], resolve: () => client.orm.Post.all() }),
-    rowList: t.field({ type: [Titled], resolve: async () => [postRow] }),
-    // A type without a select needs only the key.
-    plainKey: t.field({ type: Plain, resolve: () => ({ id: 'p' }) }),
-    // @ts-expect-error the type selects the `author` relation, which a plain row lacks
-    noAuthor: t.field({ type: Authored, resolve: () => postRow }),
-    // To-many relations reload, so a row needn't hold `comments`.
+    // @ts-expect-error a row an ORM query loaded, with what the type selects
     withAuthor: t.field({ type: Authored, resolve: () => postWithAuthor }),
-    included: t.field({
-      type: Authored,
-      nullable: true,
-      resolve: () => client.orm.Post.include('author').first(),
+    // @ts-expect-error a list mixing planned rows and a row an ORM query loaded
+    mixed: t.field({ type: [Titled], resolve: () => [plannedPostRow, postRow] }),
+    planned: t.field({ type: Titled, resolve: () => plannedPostRow }),
+    plannedList: t.field({ type: [Titled], nullable: true, resolve: async () => [plannedPostRow] }),
+    planningField: t.field({
+      type: [Authored],
+      resolve: async (_root, _args, context, info) =>
+        (await collectionFromInfo({ collection: client.orm.Post, context, info })).all(),
     }),
     // A non-prisma interface takes a branded row.
-    node: t.field({ type: Node, resolve: () => Authored.addBrand(postWithAuthor) }),
-    nodes: t.field({ type: [Node], resolve: () => Authored.addBrand([postWithAuthor]) }),
+    node: t.field({ type: Node, resolve: () => Authored.addBrand(plannedPostRow) }),
+    nodes: t.field({ type: [Node], resolve: () => Authored.addBrand([plannedPostRow]) }),
   }),
 });
 
-// @ts-expect-error a branded row must hold what the type's select loads
+builder.subscriptionType({
+  fields: (t) => ({
+    planned: t.field({
+      type: Titled,
+      subscribe: async function* subscribe() {
+        yield await Promise.resolve(plannedPostRow);
+      },
+      resolve: (post) => post,
+    }),
+    // @ts-expect-error rows an ORM query loaded
+    unplanned: t.field({ type: Titled, subscribe: () => client.orm.Post.all() }),
+  }),
+});
+
+// @ts-expect-error a branded row must be planned
 Authored.addBrand(postRow);
-// @ts-expect-error a branded row must hold the type's key
-Titled.addBrand({ title: 'Hello' });
+// @ts-expect-error a branded row must be planned
 Titled.addBrand({ id: 'p', title: 'Hello' });
+Titled.addBrand(plannedPostRow);
 
 // resolveType reads what every row a field returning the interface holds, before any reload: the
 // columns and to-one relations of the interface's select, but not its to-many relations or
@@ -93,7 +127,7 @@ builder.prismaInterface('Post', {
   resolveType: (post) => {
     expectTypeOf(post.id).toEqualTypeOf<string>();
     expectTypeOf(post.title).toEqualTypeOf<string>();
-    expectTypeOf(post.author).toEqualTypeOf<UserRow>();
+    expectTypeOf(post.author).toEqualTypeOf<UserRow & PlannedRowBrand<'User'>>();
     // @ts-expect-error a returned row needn't hold a to-many relation
     post.comments;
     // @ts-expect-error a returned row needn't hold a computed value
@@ -139,19 +173,15 @@ const Bug = inheritance.prismaObject('Bug', {
 inheritance.prismaObject('Feature', { interfaces: [Task], fields: () => ({}) });
 inheritance.queryType({
   fields: (t) => ({
+    // @ts-expect-error a row an ORM query loaded
     task: t.field({ type: Task, resolve: () => taskRow }),
-    // @ts-expect-error the interface routes rows by the discriminator `type`
-    noDiscriminator: t.field({ type: Task, resolve: () => ({ id: 't', title: 'x' }) }),
     withDiscriminator: t.field({
       type: Task,
+      // @ts-expect-error a row built by hand, even holding the discriminator
       resolve: () => ({ id: 't', title: 'x', type: 'bug' as const }),
     }),
-    // A variant's type needs its own select and its interfaces'.
+    // @ts-expect-error a row built by hand
     bug: t.field({ type: Bug, resolve: () => ({ id: 't', title: 'x', severity: 'high' }) }),
-    // @ts-expect-error the variant type selects `severity`
-    bugWithoutSeverity: t.field({ type: Bug, resolve: () => ({ id: 't', title: 'x' }) }),
-    // @ts-expect-error the interface it implements selects `title`
-    bugWithoutTitle: t.field({ type: Bug, resolve: () => ({ id: 't', severity: 'high' }) }),
   }),
 });
 

@@ -49,6 +49,7 @@ describe('rows a resolver returns', () => {
       fields: (t) => ({ label: t.string({ resolve: (user) => labels.get(user) }) }),
     });
     builder.queryType({
+      // @ts-expect-error a row built by hand isn't planned; it reloads
       fields: (t) => ({ user: t.field({ type: User, resolve: () => parent }) }),
     });
     const result = execute({
@@ -70,9 +71,11 @@ describe('rows a resolver returns', () => {
     });
     builder.queryType({
       fields: (t) => ({
+        // @ts-expect-error a row built by hand isn't planned; it reloads
         stale: t.field({ type: Post, resolve: () => ({ id: 'p-hello', title: 'kept' }) }),
         deleted: t.field({
           type: Post,
+          // @ts-expect-error a row built by hand isn't planned; it reloads
           resolve: () => ({ id: 'gone', title: 'deleted' }),
         }),
       }),
@@ -109,6 +112,7 @@ describe('rows a resolver returns', () => {
         rebuilt: t.field({
           type: User,
           select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection() }),
+          // @ts-expect-error a row built by hand isn't planned; it reloads
           resolve: (post) => ({ id: post.author.id }),
         }),
       }),
@@ -148,6 +152,7 @@ describe('rows a resolver returns', () => {
     });
     builder.queryType({
       fields: (t) => ({
+        // @ts-expect-error a row built by hand isn't planned; it reloads
         users: t.field({ type: [User], resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }] }),
       }),
     });
@@ -173,6 +178,7 @@ describe('rows a resolver returns', () => {
     });
     builder.queryType({
       fields: (t) => ({
+        // @ts-expect-error a row built by hand isn't planned; it reloads
         user: t.field({ type: User, resolve: () => ({ id: 'u-alice', lastName: 'x' }) }),
       }),
     });
@@ -540,6 +546,7 @@ describe('model members named like plugin slots', () => {
         sheet: t.prismaField({ type: 'Sheet', resolve: () => collision.orm.Sheet }),
         handBuilt: t.field({
           type: Sheet,
+          // @ts-expect-error a row built by hand isn't planned; it reloads
           resolve: () => ({ id: 1, name: 's1', count: 99, notes: [] }),
         }),
       }),

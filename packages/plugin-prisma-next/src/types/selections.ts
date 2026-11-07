@@ -18,6 +18,7 @@ import type {
   BaseModelKey,
   ExtractModel,
   IsUnion,
+  LoadedRow,
   ModelKey,
   ObjectBaseShape,
   OwnRelationsOfModel,
@@ -437,7 +438,10 @@ interface HasNestedSelect {
 }
 
 /** A row of `M` loaded whole, with the relations and computed values its nested `select` adds. */
-type NestedSelectRow<Types extends SchemaTypes, M extends ModelKey<Types>, S> = Row<Types, M> &
+type NestedSelectRow<Types extends SchemaTypes, M extends ModelKey<Types>, S> = LoadedRow<
+  Types,
+  M
+> &
   SimpleRelationShape<Types, M, S> &
   ComputedShape<Types, M, S>;
 

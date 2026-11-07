@@ -799,6 +799,7 @@ describe("a type's select before plugins listed first", () => {
     });
     builder.queryType({
       fields: (t) => ({
+        // @ts-expect-error a row built by hand isn't planned; it reloads
         handBuilt: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) }),
       }),
     });

@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import PrismaNextPlugin, { type ComputedSelectEntry } from '../src';
+import PrismaNextPlugin, { type ComputedSelectEntry, type PlannedRowBrand } from '../src';
 import {
   createBuilder,
   deferSchema,
@@ -169,7 +169,7 @@ describe('prismaInterface', () => {
       fields: (t) => ({ firstName: t.exposeString('firstName'), posts: t.relation('posts') }),
     });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.objectType(builder.objectRef<{ id: string }>('PlainUser'), {
+    builder.objectType(builder.objectRef<{ id: string } & PlannedRowBrand<'User'>>('PlainUser'), {
       interfaces: [Base],
       isTypeOf: () => true,
       fields: () => ({}),
@@ -241,6 +241,7 @@ describe('inherited selections', () => {
         viaInterface: t.prismaField({ type: [Published], resolve: () => db.orm.User }),
         unplanned: t.field({
           type: [User],
+          // @ts-expect-error a row built by hand isn't planned; it reloads
           resolve: () => [{ id: 'u-alice' }, { id: 'u-bob' }],
         }),
       }),

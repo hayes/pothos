@@ -33,7 +33,7 @@ a database change never changes the schema. Pass `nullable` to override.
 A to-one relation can resolve to `null` when the contract makes it optional, or when a variant
 `type` filters the row out. To expose one as non-null, `t.relation` requires `onNull`. Setting it
 to `'error'` lets GraphQL raise the non-null error for the field. A function can return a
-replacement row instead, or an `Error` to raise. Other relation fields don't take `onNull`:
+replacement row from `collectionFromInfo` instead, or an `Error` to raise. Other relation fields don't take `onNull`:
 
 ```ts
 builder.prismaObject('Bug', {
@@ -168,13 +168,22 @@ columns from the junction table, define the junction as its own model and use tw
 ## Returning rows from other fields
 
 If a plain `t.field` returns a model's type, instead of `t.prismaField` or `t.relation`, it must
-return the primary key and the columns and to-one relations in the type's `select`.
-`typeof User.$inferType` is that row type. For a model without a primary key, return the whole row.
+return rows the plugin planned: the parent, the relation rows the parent's `select` loads, or rows
+from a query built with `collectionFromInfo`. A row built by hand or loaded with a plain ORM query is
+a type error naming `ReturnRowsFromCollectionFromInfoOrTheParentsPlan`.
 
-The simplest way to return that row is to build its query with `collectionFromInfo`. It loads
-everything the query selects beneath the field, relations and counts included, so the field loads in
-one query, like a `t.prismaField`. See [Mutations](./objects#mutations) for its `path` and `typeName`
-options:
+```ts
+builder.prismaObject('Post', {
+  select: { author: true },
+  fields: (t) => ({
+    writer: t.field({ type: User, resolve: (post) => post.author }),
+  }),
+});
+```
+
+`collectionFromInfo` loads everything the query selects beneath the field, relations and counts
+included, so the field loads in one query, like a `t.prismaField`. See
+[Mutations](./objects#mutations) for its `path` and `typeName` options:
 
 ```ts
 import { collectionFromInfo } from '@pothos/plugin-prisma-next';
@@ -200,4 +209,4 @@ To return a row through `Node`, or through an interface from `builder.interfaceR
 - Brand it with the type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
   `Abstract type ... must resolve`.
 - If you route a row yourself, with a `__typename` or a `resolveType` that returns a type name,
-  TypeScript doesn't check that the row has the type's key and `select`.
+  TypeScript doesn't check that the row is planned.

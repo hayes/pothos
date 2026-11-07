@@ -190,6 +190,7 @@ function createMutationSchema() {
       reloaded: t.field({
         type: Account,
         select: ['accountId'],
+        // @ts-expect-error a row built by hand isn't planned; it reloads
         resolve: (entry) => ({ id: entry.accountId }),
       }),
       current: t.relation('account'),
@@ -619,6 +620,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
           // The database reads these back as 0.50 and 1.50.
           written: t.field({
             type: [Token],
+            // @ts-expect-error a row built by hand isn't planned; it reloads
             resolve: () => [{ id: '0.5' }, { id: '1.5' }],
           }),
         }),
@@ -963,6 +965,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         account: t.field({
           type: Account,
           select: ['accountId'],
+          // @ts-expect-error a row built by hand isn't planned; it reloads
           resolve: (entry) => ({ id: entry.accountId }),
         }),
       }),

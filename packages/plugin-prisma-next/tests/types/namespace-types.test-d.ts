@@ -6,6 +6,7 @@ import { expectTypeOf } from 'vitest';
 import PrismaNextPlugin, {
   type CollectionFor,
   type ModelKey,
+  type PlannedRowBrand,
   prismaConnectionHelpers,
   type Row,
 } from '../../src';
@@ -64,7 +65,9 @@ builder.prismaObject('nsa.Post', {
     }),
     orgId: t.int({
       resolve: (post) => {
-        expectTypeOf(post.user).toEqualTypeOf<Row<Types, 'nsa.User'>>();
+        expectTypeOf(post.user).toEqualTypeOf<
+          Row<Types, 'nsa.User'> & PlannedRowBrand<'nsa.User'>
+        >();
         return post.user.orgId;
       },
     }),

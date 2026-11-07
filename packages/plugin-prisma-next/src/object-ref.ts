@@ -5,7 +5,7 @@ import {
   type SchemaTypes,
   typeBrandKey,
 } from '@pothos/core';
-import type { ModelKey, ObjectBaseShape, ObjectReturnShape } from './types/models.js';
+import type { ModelKey, ObjectBaseShape, VariantModelKeys } from './types/models.js';
 
 export const prismaNextModelBrand = Symbol.for('Pothos.prismaNextModelBrand');
 /** Type-only: the contract a ref's builder was created with. */
@@ -26,6 +26,12 @@ export interface PlannedRowBrand<M> {
   readonly [plannedRowBrand]: M;
 }
 
+/**
+ * What a field returning a type of model `M` resolves to, named for the error a row without the
+ * brand gets. It is an interface so that the error names it rather than the brand.
+ */
+export interface ReturnRowsFromCollectionFromInfoOrTheParentsPlan<M> extends PlannedRowBrand<M> {}
+
 /** Marks a row shape with its model. It is an interface so that declaration emit can name it. */
 export interface ModelBrand<M> {
   readonly [prismaNextModelBrand]?: M;
@@ -37,12 +43,6 @@ export interface TypeBrand {
 }
 
 type WithBrand<T> = T & TypeBrand;
-// The index signature stops a shape of only optional keys, such as a type without `select`, from
-// being a weak type. A row that shares none of those keys would otherwise fail to match it. A
-// planned row is never weak, and leaving it without the index signature keeps tsc from blaming
-// its brand when a row lacks what the type's `select` needs.
-type Brandable<Shape> =
-  Shape extends PlannedRowBrand<unknown> ? Shape : Shape & Record<string, unknown>;
 type Branded<V> = V extends readonly unknown[] ? { [K in keyof V]: WithBrand<V[K]> } : WithBrand<V>;
 
 // The variance annotations are the measured variances. Measuring them walks the row and return
@@ -51,12 +51,23 @@ export class PrismaNextObjectRef<
   in out Types extends SchemaTypes,
   out M extends ModelKey<Types>,
   out Shape = ObjectBaseShape<Types, M>,
-> extends ObjectRef<Types, ObjectReturnShape<Types, M, Shape>, Shape> {
+> extends ObjectRef<
+  Types,
+  // Not `ObjectReturnShape`, so that errors name the interface rather than the alias.
+  ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
+    M | VariantModelKeys<Types['PrismaNextContract'], M>
+  >,
+  Shape
+> {
   declare readonly [prismaNextModelBrand]: M;
 
   declare readonly [prismaNextContractBrand]: Types['PrismaNextContract'];
 
-  declare readonly [abstractReturnShapeKey]: WithBrand<ObjectReturnShape<Types, M, Shape>>;
+  declare readonly [abstractReturnShapeKey]: WithBrand<
+    ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
+      M | VariantModelKeys<Types['PrismaNextContract'], M>
+    >
+  >;
 
   readonly modelKey: M;
 
@@ -67,13 +78,17 @@ export class PrismaNextObjectRef<
 
   /**
    * Brands rows (or a list of them) as this type, for abstract positions such as unions or a
-   * non-prisma interface like relay's `Node`. A row must hold what a field returning this type
-   * needs.
+   * non-prisma interface like relay's `Node`. A row must be one a field returning this type
+   * accepts.
    */
   addBrand<
     V extends
-      | Brandable<ObjectReturnShape<Types, M, Shape>>
-      | readonly Brandable<ObjectReturnShape<Types, M, Shape>>[],
+      | ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
+          M | VariantModelKeys<Types['PrismaNextContract'], M>
+        >
+      | readonly ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
+          M | VariantModelKeys<Types['PrismaNextContract'], M>
+        >[],
   >(value: V): Branded<V> {
     for (const row of Array.isArray(value) ? value : [value]) {
       brandWithType(row as object, this.name as never);

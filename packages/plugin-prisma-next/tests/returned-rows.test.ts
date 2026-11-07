@@ -73,12 +73,14 @@ function createSchema(seen: unknown[]) {
         type: Post,
         resolve: () => ctx.orm.Post.where({ id: 'p-hello' }),
       }),
+      // @ts-expect-error a row an ORM query loaded isn't planned; it reloads
       plainPost: t.field({ type: Post, nullable: true, resolve: fullRow }),
       branded: t.field({
         type: Node,
         nullable: true,
         resolve: async () => {
           const row = await fullRow();
+          // @ts-expect-error a row an ORM query loaded isn't planned; it reloads
           return row && Post.addBrand(row);
         },
       }),

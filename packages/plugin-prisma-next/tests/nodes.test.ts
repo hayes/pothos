@@ -361,6 +361,7 @@ describe('the collection option', () => {
           type: 'User',
           resolve: () => db.orm.User.where({ id: 'u-alice' }),
         }),
+        // @ts-expect-error a row built by hand isn't planned; it reloads
         plain: t.field({ type: Post, resolve: () => ({ id: 'p-draft1' }) }),
       }),
     });

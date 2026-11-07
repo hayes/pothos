@@ -123,6 +123,7 @@ function createVariantSchema() {
       staticBugs: t.field({
         type: [bug],
         select: { tasks: true },
+        // @ts-expect-error the types don't narrow a static select's rows to the field's variant
         resolve: (user) => user.tasks,
       }),
     }),
@@ -367,6 +368,7 @@ describe('native model inheritance', () => {
     });
     builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
     builder.queryType({
+      // @ts-expect-error a row built by hand isn't planned; it reloads
       fields: (t) => ({ bug: t.field({ type: bug, resolve: () => ({ id: 't1' }) }) }),
     });
     const result = await run(builder.toSchema(), '{ bug { owner { email } } }');

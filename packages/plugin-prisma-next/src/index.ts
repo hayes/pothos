@@ -102,6 +102,7 @@ export {
   plannedRowBrand,
   prismaNextContractBrand,
   prismaNextModelBrand,
+  type ReturnRowsFromCollectionFromInfoOrTheParentsPlan,
   type TypeBrand,
 } from './object-ref.js';
 export { PrismaNextObjectFieldBuilder } from './prisma-next-field-builder.js';
@@ -131,6 +132,7 @@ export type {
   AnyContract,
   IdentityFields,
   InterfaceReturnShape,
+  LoadedRow,
   ModelKey,
   ObjectBaseShape,
   ObjectReturnShape,

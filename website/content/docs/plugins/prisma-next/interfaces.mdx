@@ -115,4 +115,5 @@ builder.queryType({
   loads a base model relation.
 - Pass a variant's ref as `type` to `t.relation` or `t.relatedConnection` to return only that
   variant's rows.
-- A row returned from a plain `t.field` needs the interface's `select` and the discriminator.
+- A row returned from a plain `t.field` must be
+  [planned](./relations#returning-rows-from-other-fields) and hold the discriminator.

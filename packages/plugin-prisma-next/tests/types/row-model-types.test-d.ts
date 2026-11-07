@@ -7,6 +7,7 @@ import PrismaNextPlugin, {
   type CollectionFor,
   type IdentityFields,
   type OwnRow,
+  type PlannedRow,
   type PrismaNextObjectRef,
   type Row,
 } from '../../src';
@@ -47,28 +48,31 @@ const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
   prismaNext: { client: null as never },
 });
 
-// A model without an identity can't be reloaded, so a field returning it needs its whole row.
+// A model without an identity can't be reloaded, so its planned rows are whole.
 const PostView = builder.prismaObject('PostView', {
   fields: (t) => ({ viewer: t.exposeString('viewer') }),
 });
 declare const PostRef: PrismaNextObjectRef<Types, 'Post', Row<Types, 'Post'>>;
-declare const postViewRow: Row<Types, 'PostView'>;
+declare const postViewRow: PlannedRow<Types, 'PostView'>;
+declare const plannedUser: PlannedRow<Types, 'User'>;
+declare const plannedPost: PlannedRow<Types, 'Post'>;
+expectTypeOf(postViewRow).toExtend<Row<Types, 'PostView'>>();
 
 builder.queryType({
   fields: (t) => ({
     // @ts-expect-error a User row isn't a PostView row
-    view: t.field({ type: PostView, resolve: () => user }),
+    view: t.field({ type: PostView, resolve: () => plannedUser }),
     ownView: t.field({ type: PostView, resolve: () => postViewRow }),
   }),
 });
 
 // @ts-expect-error a User row isn't a PostView row
-PostView.addBrand(user);
+PostView.addBrand(plannedUser);
 PostView.addBrand(postViewRow);
 
-// @ts-expect-error a User row lacks a Post's columns
-export const inferred: typeof PostRef.$inferType = user;
-export const inferredPost: typeof PostRef.$inferType = post;
+// @ts-expect-error a User row isn't a Post row
+export const inferred: typeof PostRef.$inferType = plannedUser;
+export const inferredPost: typeof PostRef.$inferType = plannedPost;
 
 // A table without a primary key is identified by its first non-null unique key. Tag's `label` is
 // unique but nullable, so `code` is its key.
@@ -83,20 +87,3 @@ type InheritanceTypes = PothosSchemaTypes.ExtendDefaultTypes<{
   PrismaNextContract: InheritanceContract;
 }>;
 expectTypeOf<IdentityFields<InheritanceTypes, 'Feature'>>().toEqualTypeOf<'id'>();
-
-const collision = new SchemaBuilder<{ PrismaNextContract: CollisionContract }>({
-  plugins: [PrismaNextPlugin],
-  prismaNext: { client: null as never },
-});
-const TagRef = collision.prismaObject('Tag', {
-  select: ['name'],
-  fields: (t) => ({ name: t.exposeString('name') }),
-});
-collision.queryType({
-  fields: (t) => ({
-    // A row needs its key and the type's select, not the whole row.
-    tag: t.field({ type: TagRef, resolve: () => ({ code: 'c', name: 'n' }) }),
-    // @ts-expect-error a row without its key can't be reloaded
-    keyless: t.field({ type: TagRef, resolve: () => ({ label: 'l', name: 'n' }) }),
-  }),
-});

@@ -82,6 +82,8 @@ return a [`prismaInterface`](./interfaces) with a `resolveType`, or brand each r
 `addBrand`:
 
 ```ts
+import { collectionFromInfo } from '@pothos/plugin-prisma-next';
+
 const DraftPost = builder.prismaNode('Post', {
   variant: 'DraftPost',
   id: { field: 'id' },
@@ -92,10 +94,16 @@ builder.queryField('latestDraft', (t) =>
   t.field({
     type: builder.nodeInterfaceRef(),
     nullable: true,
-    resolve: async (_root, _args, ctx) => {
-      const post = await ctx.db.orm.Post.where({ authorId: ctx.userId, published: 0 })
-        .orderBy((post) => post.createdAt.desc())
-        .first();
+    resolve: async (_root, _args, ctx, info) => {
+      const drafts = await collectionFromInfo({
+        collection: ctx.db.orm.Post.where({ authorId: ctx.userId, published: 0 }).orderBy(
+          (post) => post.createdAt.desc(),
+        ),
+        context: ctx,
+        info,
+        typeName: 'DraftPost',
+      });
+      const post = await drafts.first();
       return post && DraftPost.addBrand(post);
     },
   }),

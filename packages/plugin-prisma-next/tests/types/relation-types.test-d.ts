@@ -9,6 +9,7 @@ import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
 import PrismaNextPlugin, {
   type OnNullRequired,
+  type PlannedRowBrand,
   type RelatedModel,
   type RelationKeys,
   type RelationQuery,
@@ -314,11 +315,12 @@ inheritance.prismaObject('Bug', {
     names: t.string({
       select: { reviewer: true },
       resolve: (bug) => {
-        expectTypeOf(bug.reviewer).toEqualTypeOf<DefaultModelRow<
-          InheritanceContract,
-          'User'
-        > | null>();
-        expectTypeOf(bug.owner).toEqualTypeOf<DefaultModelRow<InheritanceContract, 'User'>>();
+        expectTypeOf(bug.reviewer).toEqualTypeOf<
+          (DefaultModelRow<InheritanceContract, 'User'> & PlannedRowBrand<'User'>) | null
+        >();
+        expectTypeOf(bug.owner).toEqualTypeOf<
+          DefaultModelRow<InheritanceContract, 'User'> & PlannedRowBrand<'User'>
+        >();
         return '';
       },
     }),
@@ -445,12 +447,16 @@ builder.prismaObject('Post', {
   variant: 'RelationShapes',
   fields: (t) => {
     const author = t.relation('author', { nullable: false });
-    expectTypeOf(author.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'>>();
+    expectTypeOf(author.$inferType).toEqualTypeOf<
+      DefaultModelRow<Contract, 'User'> & PlannedRowBrand<'User'>
+    >();
     const nullable = t.relation('author');
-    expectTypeOf(nullable.$inferType).toEqualTypeOf<DefaultModelRow<Contract, 'User'> | null>();
+    expectTypeOf(nullable.$inferType).toEqualTypeOf<
+      (DefaultModelRow<Contract, 'User'> & PlannedRowBrand<'User'>) | null
+    >();
     const comments = t.relation('comments', { query: { limit: 2 } });
     expectTypeOf(comments.$inferType).toEqualTypeOf<
-      readonly DefaultModelRow<Contract, 'Comment'>[] | null
+      readonly (DefaultModelRow<Contract, 'Comment'> & PlannedRowBrand<'Comment'>)[] | null
     >();
     const commentPage = t.relatedConnection('comments', {});
     // Nullable as the relay plugin makes it: by the builder's default field nullability.

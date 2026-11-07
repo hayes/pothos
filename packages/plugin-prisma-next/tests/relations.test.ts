@@ -261,6 +261,7 @@ describe('includes', () => {
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
       fields: (t) => ({
+        // @ts-expect-error a row built by hand isn't planned; it reloads
         rawUser: t.field({ type: User, resolve: () => ({ id: 'u-1' }) }),
       }),
     });

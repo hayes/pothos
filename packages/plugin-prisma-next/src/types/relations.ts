@@ -14,11 +14,15 @@ import type {
 } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from '../interface-ref.js';
-import type { PrismaNextObjectRef } from '../object-ref.js';
+import type {
+  PrismaNextObjectRef,
+  ReturnRowsFromCollectionFromInfoOrTheParentsPlan,
+} from '../object-ref.js';
 import type { IncludeRefinementCollection, WithNsId } from './collections.js';
 import type {
   BareModelName,
   IsUnion,
+  LoadedRow,
   ModelKey,
   NamespacedModelKey,
   NamespaceOf,
@@ -186,7 +190,7 @@ export type PrismaNextRelationOptions<
     ParentModel,
     RelName
   >,
-  OnNull = RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>>,
+  OnNull = RelationOnNull<Types, ParentShape, Args, TypeModel>,
 > = RelationBaseOptions<
   Types,
   ParentModel,
@@ -254,11 +258,12 @@ export type QueryAsyncCheck<Types extends SchemaTypes, Query> = [Query] extends 
     : CheckAsyncSelection<Types, Query>
   : CheckAsyncSelection<Types, Query>;
 
+/** What a non-null `t.relation` does with a null relation. A replacement row must be planned. */
 export type RelationOnNull<
   Types extends SchemaTypes,
   ParentShape,
   Args extends InputFieldMap,
-  RelatedShape,
+  TypeModel extends ModelKey<Types>,
 > =
   | 'error'
   | ((
@@ -266,7 +271,12 @@ export type RelationOnNull<
       args: InputShapeFromFields<Args>,
       context: Types['Context'],
       info: GraphQLResolveInfo,
-    ) => MaybePromise<Error | RelatedShape>);
+    ) => MaybePromise<
+      | Error
+      | ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
+          TypeModel | VariantModelKeys<Types['PrismaNextContract'], TypeModel>
+        >
+    >);
 
 /** Names why `nullable: false` isn't allowed in its error, as the type argument the error shows. */
 export interface RequiresNullable<Reason extends string> {
@@ -364,11 +374,9 @@ export type RelationFieldArgs<
             ParentShape,
             Query,
             TypeModel,
-            RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>> | OnNullRequired<Reason>
+            RelationOnNull<Types, ParentShape, Args, TypeModel> | OnNullRequired<Reason>
           > & {
-            onNull:
-              | RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>>
-              | OnNullRequired<Reason>;
+            onNull: RelationOnNull<Types, ParentShape, Args, TypeModel> | OnNullRequired<Reason>;
           },
         ]
     : [
@@ -382,7 +390,7 @@ export type RelationFieldArgs<
           ParentShape,
           Query,
           TypeModel,
-          RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>>
+          RelationOnNull<Types, ParentShape, Args, TypeModel>
         >,
       ]
   : [
@@ -440,7 +448,7 @@ export type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
       > as `Unknown query option: ${K & string}`]: never;
     };
 
-/** The rows a relation loads, as a list for a to-many relation and nullable as the field is. */
+/** Planned rows of a relation, as a list for a to-many relation and nullable as the field is. */
 export type RelationFieldShape<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
@@ -448,8 +456,8 @@ export type RelationFieldShape<
   Nullable extends boolean,
 > =
   | (IsToMany<Types, M, R> extends true
-      ? readonly Row<Types, RelatedModel<Types, M, R>>[]
-      : Row<Types, RelatedModel<Types, M, R>>)
+      ? readonly LoadedRow<Types, RelatedModel<Types, M, R>>[]
+      : LoadedRow<Types, RelatedModel<Types, M, R>>)
   | (Nullable extends true ? null : never);
 
 type RelationRef<

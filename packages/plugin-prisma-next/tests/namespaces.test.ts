@@ -56,8 +56,10 @@ function createSchema() {
       posts: t.prismaConnection({ type: 'nsa.Post', resolve: () => nsa.Post }),
       plain: t.field({
         type: post,
+        // @ts-expect-error a row built by hand isn't planned; it reloads
         resolve: () => ({ id: 1, title: 'first', userId: 1 }),
       }),
+      // @ts-expect-error a row built by hand isn't planned; it reloads
       plainB: t.field({ type: nsbUser, resolve: () => ({ id: 'x' }) }),
     }),
   });

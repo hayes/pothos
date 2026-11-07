@@ -7,7 +7,7 @@ import {
 import type { PathSegment, SelectedFieldNode } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
-import type { PrismaNextObjectRef } from './object-ref.js';
+import type { PlannedRowBrand, PrismaNextObjectRef } from './object-ref.js';
 import type { TotalCountFlag } from './types/aggregates.js';
 import type { ResolverCollection, UnorderedCollection } from './types/collections.js';
 import type {
@@ -17,6 +17,7 @@ import type {
 } from './types/connections.js';
 import type {
   DiscriminatorField,
+  LoadedRow,
   ModelKey,
   PlannedRow,
   RelationKeys,
@@ -87,7 +88,7 @@ type SelectedRelations<
     ?
         | (Planned extends true
             ? PlannedRow<Types, RelatedModel<Types, M, K>>
-            : Row<Types, RelatedModel<Types, M, K>>)
+            : LoadedRow<Types, RelatedModel<Types, M, K>>)
         | (DefaultRelationNullable<Types, M, K> extends true ? null : never)
     : WholeRelation<Types, M, K>;
 };
@@ -99,9 +100,11 @@ type WholeRelation<
   K extends RelationKeys<Types, M>,
 > =
   IsToMany<Types, M, K> extends true
-    ? readonly WholeRelationRow<Types, RelatedModel<Types, M, K>>[]
+    ? readonly (WholeRelationRow<Types, RelatedModel<Types, M, K>> &
+        PlannedRowBrand<RelatedModel<Types, M, K>>)[]
     :
-        | WholeRelationRow<Types, RelatedModel<Types, M, K>>
+        | (WholeRelationRow<Types, RelatedModel<Types, M, K>> &
+            PlannedRowBrand<RelatedModel<Types, M, K>>)
         | (DefaultRelationNullable<Types, M, K> extends true ? null : never);
 
 /**
@@ -122,8 +125,8 @@ export type ConnectionHelperRow<
 type LoadedHelperRow<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = [
   keyof Select,
 ] extends [never]
-  ? Row<Types, M>
-  : Row<Types, M> & SelectedRelations<Types, M, Select, false>;
+  ? LoadedRow<Types, M>
+  : LoadedRow<Types, M> & SelectedRelations<Types, M, Select, false>;
 
 /**
  * The row `resolveNode` gets. With a relation given `nodeSelection()`, it is planned. Otherwise the

@@ -5,8 +5,8 @@ import type { Contract } from '@prisma/orm-framework/contract/types';
 import type {
   ModelBrand,
   PlannedRowBrand,
-  plannedRowBrand,
   prismaNextModelBrand,
+  ReturnRowsFromCollectionFromInfoOrTheParentsPlan,
 } from '../object-ref.js';
 import type { IsToMany } from './relations.js';
 
@@ -319,6 +319,10 @@ export type PlannedRow<Types extends SchemaTypes, M extends ModelKey<Types>> = (
   : Pick<Row<Types, M>, IdentityFields<Types, M> & keyof Row<Types, M>> & Partial<Row<Types, M>>) &
   PlannedRowBrand<M>;
 
+/** A row of `M` a plan loaded whole, such as a relation's row the parent's `select` loads. */
+export type LoadedRow<Types extends SchemaTypes, M extends ModelKey<Types>> = Row<Types, M> &
+  PlannedRowBrand<M>;
+
 /** A model's to-one relations. */
 export type ToOneRelationKeys<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   [R in RelationKeys<Types, M>]: IsToMany<Types, M, R> extends true ? never : R;
@@ -331,11 +335,11 @@ type ReturnedKeys<Types extends SchemaTypes, M extends ModelKey<Types>> =
   | ToOneRelationKeys<Types, M>;
 
 /**
- * A row built outside the loader that a type of model `M` accepts: its key and what its `Shape`
- * holds other than to-many relations and computed values. A model without an identity needs its
- * whole row.
+ * What any planned row a type of model `M` accepts holds of the type's `Shape`: its key, and what
+ * `Shape` holds other than to-many relations and computed values. A model without an identity is
+ * planned whole.
  */
-type BuiltReturnShape<
+type ReturnedShape<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   Shape,
@@ -346,28 +350,18 @@ type BuiltReturnShape<
   : never;
 
 /**
- * A row the loader planned that a type of model `M` accepts: one of `M` or of a variant of `M`,
- * whose rows hold `M`'s fields. It is matched by its brand alone, so that tsc names the keys a row
- * lacks rather than the brand when a row fits neither this nor `BuiltReturnShape`.
+ * What a field returning a type of model `M` resolves to: a row the loader planned for `M` or one
+ * of its variants, such as a row of a collection `collectionFromInfo` returns, the parent, or a row
+ * of a relation the parent's plan loaded. The loader trusts what it planned for a row. A row built
+ * outside it, or one an ORM query loaded, would skip the selection's relations and filters, so it
+ * doesn't fit. A row planned for another model doesn't either.
  */
-type PlannedReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>> = PlannedRowBrand<
+export type ObjectReturnShape<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+> = ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
   M | VariantModelKeys<Types['PrismaNextContract'], M>
-> &
-  ModelBrand<M>;
-
-/**
- * What a field returning a type of model `M` may resolve to, given the type's `Shape`: its key and
- * everything its `select` and its interfaces' `select`s load, other than to-many relations and
- * computed values, which the loader reloads. A model without an identity can't be reloaded, so it
- * needs its whole row. A row the loader planned for `M` or one of its variants, a `PlannedRow`,
- * also fits. A row planned for another model doesn't, even when it holds the keys a built row
- * needs.
- */
-export type ObjectReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> =
-  | (BuiltReturnShape<Types, M, Shape> & {
-      readonly [plannedRowBrand]?: M | VariantModelKeys<Types['PrismaNextContract'], M>;
-    })
-  | PlannedReturnShape<Types, M>;
+>;
 
 /** The field naming a base model's variant, or `never` for other models. */
 export type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Types>> =
@@ -378,22 +372,28 @@ export type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Typ
     : never;
 
 /**
- * What a field returning a model's `prismaInterface` may resolve to: `ObjectReturnShape`, and for a
- * discriminated model also the discriminator, because the interface routes rows to variants before
- * fields run. A row planned for another type of the model, such as one of its variants' types,
- * needn't hold it, so a planned row needs it too.
+ * What a field returning a model's `prismaInterface` may resolve to: an `ObjectReturnShape`, and
+ * for a discriminated model also the discriminator, because the interface routes rows to variants
+ * before fields run. A row planned for another type of the model, such as one of its variants'
+ * types, needn't hold it.
  */
-export type InterfaceReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> = [
+export type InterfaceReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>> = [
   DiscriminatorField<Types, M>,
 ] extends [never]
-  ? ObjectReturnShape<Types, M, Shape>
-  : ObjectReturnShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
+  ? ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
+      M | VariantModelKeys<Types['PrismaNextContract'], M>
+    >
+  : ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
+      M | VariantModelKeys<Types['PrismaNextContract'], M>
+    > &
+      Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
 
 /**
  * The parent a `prismaInterface`'s `resolveType` reads: what every row `InterfaceReturnShape`
- * accepts holds. A row a resolver built needn't hold the to-many relations and computed values of
- * the interface's `select`, and `resolveType` runs before anything reloads it. Flattened so hovers
- * and errors list its keys rather than a `Pick` of the whole shape.
+ * accepts holds. A row planned for another selection, such as a relation row the parent's plan
+ * loaded, needn't hold the to-many relations and computed values of the interface's `select`, and
+ * `resolveType` runs before anything reloads it. Flattened so hovers and errors list its keys
+ * rather than a `Pick` of the whole shape.
  */
 export type ResolveTypeParent<
   Types extends SchemaTypes,
@@ -401,8 +401,8 @@ export type ResolveTypeParent<
   Shape,
 > = Simplify<
   [DiscriminatorField<Types, M>] extends [never]
-    ? BuiltReturnShape<Types, M, Shape>
-    : BuiltReturnShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>
+    ? ReturnedShape<Types, M, Shape>
+    : ReturnedShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>
 >;
 
 export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {
@@ -414,8 +414,9 @@ export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape e
   : never;
 
 /**
- * The model brand and the primary key, which every type's selection loads. Other columns are
- * present only when a `select` declares them. The brand also admits the model's variants. The
+ * The model and planned-row brands and the primary key, which every type's selection loads. Other
+ * columns are present only when a `select` declares them. The brands also admit the model's
+ * variants. The parent is a planned row, so a field can return it as a type of its model. The
  * `M extends string` wrapper makes TypeScript compare two of these shapes by their members, not by
  * `M` alone.
  */
@@ -425,18 +426,19 @@ export type ObjectBaseShape<
   Columns = unknown,
 > = M extends string
   ? ModelBrand<M | VariantModelKeys<Types['PrismaNextContract'], M>> &
+      PlannedRowBrand<M | VariantModelKeys<Types['PrismaNextContract'], M>> &
       Merge<Pick<Row<Types, M>, IdentityFields<Types, M> & keyof Row<Types, M>> & Columns>
   : never;
 
 /**
- * A type's shape as the parent of its fields. A base model's brand admits its variants, so it is
+ * A type's shape as the parent of its fields. A base model's brands admit its variants, so they are
  * narrowed to the model here. Other shapes name only their own model.
  */
 export type FieldParentShape<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> = [
   VariantModelKeys<Types['PrismaNextContract'], M>,
 ] extends [never]
   ? Shape
-  : Shape & ModelBrand<M>;
+  : Shape & ModelBrand<M> & PlannedRowBrand<M>;
 
 /** Node IDs must load back as the same row, so they can't use a nullable column. */
 export type IdColumn<Types extends SchemaTypes, M extends ModelKey<Types>> = {

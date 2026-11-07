@@ -7,7 +7,10 @@ import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
 import PrismaNextPlugin, {
   type CollectionFor,
+  collectionFromInfo,
   type ModelKey,
+  type PlannedRow,
+  type PlannedRowBrand,
   type PrismaNextExecutionContext,
   prismaConnectionHelpers,
   type Row,
@@ -19,6 +22,9 @@ import type { Contract as PostgresContract } from '../postgres/contract';
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
 type UserRow = DefaultModelRow<Contract, 'User'>;
 type PostRow = DefaultModelRow<Contract, 'Post'>;
+/** The relation rows a plan loads, which a field can return as a type of their model. */
+type PlannedUserRow = UserRow & PlannedRowBrand<'User'>;
+type PlannedPostRow = PostRow & PlannedRowBrand<'Post'>;
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract; AsyncSelections: true }>({
   plugins: [RelayPlugin, PrismaNextPlugin],
@@ -73,14 +79,14 @@ builder.prismaObject('User', {
     relation: t.string({
       select: { email: true, posts: true },
       resolve: (user) => {
-        expectTypeOf(user.posts).toEqualTypeOf<readonly PostRow[]>();
+        expectTypeOf(user.posts).toEqualTypeOf<readonly PlannedPostRow[]>();
         return user.email;
       },
     }),
     paged: t.string({
       select: { posts: { limit: 2, offset: 1 } },
       resolve: (user) => {
-        expectTypeOf(user.posts).toEqualTypeOf<readonly PostRow[]>();
+        expectTypeOf(user.posts).toEqualTypeOf<readonly PlannedPostRow[]>();
         return '';
       },
     }),
@@ -193,7 +199,7 @@ builder.prismaObject('User', {
   fields: (t) => ({
     titles: t.stringList({
       resolve: (user) => {
-        expectTypeOf(user.posts).toEqualTypeOf<readonly PostRow[]>();
+        expectTypeOf(user.posts).toEqualTypeOf<readonly PlannedPostRow[]>();
         return user.posts.map((post) => post.title);
       },
     }),
@@ -479,8 +485,7 @@ builder.prismaObject('Post', {
   fields: () => ({}),
 });
 
-// A field returning a type resolves to a row of its model carrying the key the loader reloads it
-// by, whatever the type selects.
+// A field returning a type resolves to a row the loader planned for its model.
 const PlainUser = builder.prismaObject('User', {
   variant: 'PlainUser',
   fields: (t) => ({ id: t.exposeID('id') }),
@@ -490,6 +495,7 @@ const EmailUser = builder.prismaObject('User', {
   select: ['email'],
   fields: (t) => ({ email: t.exposeString('email') }),
 });
+declare const plannedUser: PlannedRow<Types, 'User'>;
 builder.prismaObject('Post', {
   variant: 'ReturnsRows',
   fields: (t) => ({
@@ -498,20 +504,22 @@ builder.prismaObject('Post', {
       select: { author: true },
       resolve: (post) => post.author,
     }),
-    // @ts-expect-error a returned row holds what the type's select loads
-    keyOnly: t.field({ type: EmailUser, resolve: () => ({ id: 'u-1' }) }),
+    planned: t.field({ type: EmailUser, resolve: () => plannedUser }),
+    // @ts-expect-error a row built by hand, even holding what the type selects
     withSelected: t.field({ type: EmailUser, resolve: () => ({ id: 'u-1', email: 'a@b.c' }) }),
+    // @ts-expect-error rows an ORM query loaded
     rows: t.field({ type: [PlainUser], resolve: () => orm.User.all() }),
-    // @ts-expect-error an empty object has no key to reload it by
-    empty: t.field({ type: PlainUser, resolve: () => ({}) }),
-    // @ts-expect-error a row without its key can't be reloaded
-    keyless: t.field({ type: EmailUser, resolve: () => ({ email: 'a@b.c' }) }),
     // @ts-expect-error an unexecuted collection is for prismaField
     collection: t.field({ type: PlainUser, resolve: () => orm.User }),
   }),
 });
 builder.queryField('firstUser', (t) =>
-  t.field({ type: PlainUser, nullable: true, resolve: () => orm.User.first() }),
+  t.field({
+    type: PlainUser,
+    nullable: true,
+    resolve: async (_root, _args, context, info) =>
+      (await collectionFromInfo({ collection: orm.User, context, info })).first(),
+  }),
 );
 
 // A required to-one relation is non-null when selected. It takes only `true`.
@@ -521,7 +529,7 @@ builder.prismaObject('Post', {
   fields: (t) => ({
     typeLevel: t.string({
       resolve: (post) => {
-        expectTypeOf(post.author).toEqualTypeOf<UserRow>();
+        expectTypeOf(post.author).toEqualTypeOf<PlannedUserRow>();
         return post.author.firstName;
       },
     }),
@@ -603,7 +611,7 @@ builder.prismaObject('Post', {
   fields: (t) => ({
     name: t.string({
       resolve: (post) => {
-        expectTypeOf(post.author).toEqualTypeOf<UserRow>();
+        expectTypeOf(post.author).toEqualTypeOf<PlannedUserRow>();
         return post.author.firstName;
       },
     }),
@@ -628,7 +636,7 @@ builder.prismaObjectFields('User', (t) => ({
   declared: t.string({
     select: { email: true, posts: true },
     resolve: (user) => {
-      expectTypeOf(user.posts).toEqualTypeOf<readonly PostRow[]>();
+      expectTypeOf(user.posts).toEqualTypeOf<readonly PlannedPostRow[]>();
       return user.email;
     },
   }),
@@ -724,10 +732,13 @@ const SearchResult = builder.unionType('SearchResult', { types: [BrandedUser, Br
 builder.queryField('search', (t) =>
   t.field({
     type: [SearchResult],
-    resolve: async () => {
-      const users = BrandedUser.addBrand(await orm.User.all());
+    resolve: async (_root, _args, context, info) => {
+      const users = BrandedUser.addBrand(
+        await (await collectionFromInfo({ collection: orm.User, context, info })).all(),
+      );
       expectTypeOf(users[0]).toExtend<UserRow>();
-      return [...users, ...BrandedPost.addBrand(await orm.Post.all())];
+      const posts = await collectionFromInfo({ collection: orm.Post, context, info });
+      return [...users, ...BrandedPost.addBrand(await posts.all())];
     },
   }),
 );
@@ -735,14 +746,19 @@ builder.queryField('searchOne', (t) =>
   t.field({
     type: SearchResult,
     nullable: true,
-    resolve: async () => {
-      const user = await orm.User.first();
+    resolve: async (_root, _args, context, info) => {
+      const user = await (
+        await collectionFromInfo({ collection: orm.User, context, info })
+      ).first();
       return user && BrandedUser.addBrand(user);
     },
   }),
 );
-// @ts-expect-error a row needs the columns the type selects
-BrandedUser.addBrand({ id: 'u-1' });
+// @ts-expect-error a row built by hand
+BrandedUser.addBrand({ id: 'u-1', email: 'a@b.c' });
+declare const ormUsers: UserRow[];
+// @ts-expect-error rows an ORM query loaded
+BrandedUser.addBrand(ormUsers);
 
 // Root resolvers return an unexecuted Collection of the field's model.
 const PostInterface = builder.prismaInterface('Post', {
