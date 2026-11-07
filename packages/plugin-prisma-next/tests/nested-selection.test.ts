@@ -190,3 +190,199 @@ describe('nestedSelection', () => {
     expect(result.statements).toHaveLength(1);
   });
 });
+
+function nestedSelectSchema() {
+  const builder = createBuilder();
+  const User = builder.prismaObject('User', {
+    // The views each comment's post has, counted beneath the comments.
+    select: {
+      comments: { select: { post: { select: { viewCount: { views: (sub) => sub.count() } } } } },
+    },
+    fields: (t) => ({
+      email: t.exposeString('email'),
+      viewsOfCommented: t.intList({
+        resolve: (user) => user.comments.map((comment) => comment.post.viewCount),
+      }),
+    }),
+  });
+  const Post = builder.prismaObject('Post', {
+    fields: (t) => ({
+      title: t.exposeString('title'),
+      writer: t.relation('author'),
+    }),
+  });
+  const Comment = builder.prismaObject('Comment', {
+    fields: (t) => ({
+      body: t.exposeString('body'),
+      writer: t.relation('author'),
+    }),
+  });
+  builder.prismaObjectFields(User, (t) => ({
+    // Through the comments, a join model of users and posts, to the posts they're on.
+    commentedPosts: t.field({
+      type: [Post],
+      select: (_args, _ctx, nestedSelection) => ({
+        comments: { query: { orderBy: { id: 'asc' } }, select: { post: nestedSelection() } },
+      }),
+      resolve: (user) => user.comments.map((comment) => comment.post),
+    }),
+    // The posts as the type a ref names, beneath the comments.
+    commentedAsPost: t.field({
+      type: [Post],
+      select: (_args, _ctx, nestedSelection) => ({
+        comments: { select: { post: nestedSelection(true, [], Post) } },
+      }),
+      resolve: (user) => user.comments.map((comment) => comment.post),
+    }),
+    // A to-many relation beneath a to-one relation of the comments.
+    discussion: t.field({
+      type: [Comment],
+      select: (_args, _ctx, nestedSelection) => ({
+        comments: {
+          select: { post: { select: { comments: nestedSelection({ orderBy: { id: 'asc' } }) } } },
+        },
+      }),
+      resolve: (user) => user.comments.flatMap((comment) => comment.post.comments),
+    }),
+    // Filtered rows and a computed value beneath a static `select`.
+    firstViewers: t.stringList({
+      select: {
+        comments: {
+          query: { where: { body: 'Looks great!' } },
+          select: {
+            post: {
+              select: {
+                views: { orderBy: { viewer: 'asc' }, limit: 1 },
+                commentCount: { comments: (sub) => sub.count() },
+              },
+            },
+          },
+        },
+      },
+      resolve: (user) =>
+        user.comments.map(
+          (comment) =>
+            `${comment.body}: ${comment.post.views.map((view) => view.viewer)} of ${comment.post.commentCount}`,
+        ),
+    }),
+  }));
+  builder.queryType({
+    fields: (t) => ({
+      users: t.prismaField({
+        type: [User],
+        resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+      }),
+    }),
+  });
+  return builder;
+}
+
+describe('nested select', () => {
+  it('plans the rows of a relation through a join model in one statement', async () => {
+    const result = await run(
+      nestedSelectSchema().toSchema(),
+      '{ users { email commentedPosts { title writer { email } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      {
+        email: 'alice@example.com',
+        commentedPosts: [{ title: 'Hello, Pothos', writer: { email: 'alice@example.com' } }],
+      },
+      {
+        email: 'bob@example.com',
+        commentedPosts: [{ title: 'Hello, Pothos', writer: { email: 'alice@example.com' } }],
+      },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('plans a to-many relation beneath a to-one relation of the rows', async () => {
+    const result = await run(
+      nestedSelectSchema().toSchema(),
+      '{ users { discussion { body writer { email } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const discussion = [
+      { body: 'Looks great!', writer: { email: 'bob@example.com' } },
+      { body: 'Glad to see this working.', writer: { email: 'alice@example.com' } },
+    ];
+    expect(result.data.users).toEqual([{ discussion }, { discussion }]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('loads what nested selects of a type and a field name, each for its own reader', async () => {
+    const result = await run(
+      nestedSelectSchema().toSchema(),
+      '{ users { email viewsOfCommented firstViewers } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { email: 'alice@example.com', viewsOfCommented: [2], firstViewers: [] },
+      {
+        email: 'bob@example.com',
+        viewsOfCommented: [2],
+        firstViewers: ['Looks great!: Bob of 2'],
+      },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('plans the rows beneath a nested select as the type a ref names', async () => {
+    const result = await run(
+      nestedSelectSchema().toSchema(),
+      '{ users { commentedAsPost { title writer { email } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    const commentedAsPost = [{ title: 'Hello, Pothos', writer: { email: 'alice@example.com' } }];
+    expect(result.data.users).toEqual([{ commentedAsPost }, { commentedAsPost }]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  // Rows a nested select loads beneath are in a branch of their own, since a reader of the whole
+  // relation may find rows loaded without what it names. So a whole include of the same relation
+  // loads in a second branch of the same statement.
+  it('loads a nested select beside a whole include of the relation, in one statement', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        bodies: t.stringList({
+          select: { comments: true },
+          resolve: (user) => user.comments.map((comment) => comment.body),
+        }),
+        titles: t.stringList({
+          select: { comments: { select: { post: true } } },
+          resolve: (user) => user.comments.map((comment) => comment.post.title),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { bodies titles } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { bodies: ['Glad to see this working.'], titles: ['Hello, Pothos'] },
+      { bodies: ['Looks great!'], titles: ['Hello, Pothos'] },
+    ]);
+    expect(result.statements).toHaveLength(1);
+    expect(result.statements[0]!.sql.match(/FROM "comment"/g)).toHaveLength(2);
+  });
+
+  it("requires the nested selects of a model's types to agree", () => {
+    const builder = nestedSelectSchema();
+    builder.prismaObject('User', {
+      variant: 'OtherUser',
+      select: { comments: { select: { post: true } } },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    expect(() => builder.toSchema()).toThrow(
+      "'User' and 'OtherUser' both select 'comments', with different definitions.",
+    );
+  });
+});

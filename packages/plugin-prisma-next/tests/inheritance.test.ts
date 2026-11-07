@@ -1528,6 +1528,39 @@ describe('a relation targeting a variant model with a table of its own', () => {
     );
   });
 
+  it('rejects a nested select that loads its rows when the schema is built', () => {
+    const { builder } = selectBuilder();
+    builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        featureTitles: t.stringList({
+          select: { tasks: { select: { notes: { select: { feature: true } } } } },
+          resolve: () => [],
+        }),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow(
+      `The select of field 'User.featureTitles' loads the rows of relation 'tasks', whose nested select loads the rows of relation 'notes', whose nested select loads ${rowsError}`,
+    );
+  });
+
+  it("rejects the request of a select function's nested select that loads its rows", async () => {
+    const { builder } = selectBuilder();
+    builder.prismaObject('Note', {
+      fields: (t) => ({
+        featureTitle: t.string({
+          nullable: true,
+          select: () => ({ task: { select: { notes: { select: { feature: true } } } } }),
+          resolve: () => null,
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ notes { featureTitle } }');
+    expect(detailOf(result.errors?.[0])).toBe(
+      `The select of field 'Note.featureTitle' loads the rows of relation 'task', whose nested select loads the rows of relation 'notes', whose nested select loads ${rowsError}`,
+    );
+  });
+
   it("plans the rows of a field's select for a field returning them", async () => {
     const { builder, feature } = selectBuilder();
     builder.prismaObject('Note', {

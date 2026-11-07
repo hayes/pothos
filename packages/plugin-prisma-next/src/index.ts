@@ -36,10 +36,10 @@ import {
   PRISMA_NEXT_CONFIG,
   PRISMA_NEXT_DISCRIMINATED,
   PRISMA_NEXT_FIELD_SELECTION,
-  PRISMA_NEXT_FILTERED_KEYS,
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_RELATION_ROWS,
+  PRISMA_NEXT_TYPE_READS,
   PRISMA_NEXT_TYPE_SELECT,
   PRISMA_NEXT_TYPE_SELECTS,
 } from './constants.js';
@@ -61,9 +61,12 @@ import {
   definedQuery,
   EMPTY,
   fieldCopy,
-  filteredKeys,
+  isNestedSelect,
   loadsOwnTableVariantRows,
   type Narrowing,
+  type NestedPlan,
+  nestedPlan,
+  nestedSubject,
   type PrismaNextSelectFn,
   type PrismaNextSelection,
   type RawSelect,
@@ -71,8 +74,10 @@ import {
   type SplitSelect,
   splitSelect,
   staticEntryVariant,
+  type TypeReads,
   type TypeSelect,
   typeCopy,
+  typeReads,
   typeSelects,
 } from './utils/selections.js';
 import { variantTypeNames } from './utils/variant-types.js';
@@ -253,14 +258,14 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     if (split) {
       selects.set(typeConfig.name, { name: typeConfig.name, ...split });
-      this.assertSelectsAgree(typeConfig.name, root!, split);
+      this.assertSelectsAgree(typeConfig.name, root!, getModel(contract, model), split);
     }
     const config = {
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
         [PRISMA_NEXT_TYPE_SELECTS]: [...selects.values()],
-        [PRISMA_NEXT_FILTERED_KEYS]: this.filteredKeysOf(root),
+        [PRISMA_NEXT_TYPE_READS]: this.typeReadsOf(root),
         [PRISMA_NEXT_MODEL]: model,
         [PRISMA_NEXT_CONFIG]: this.config,
         // Filled in afterBuild by registerImplementations.
@@ -444,26 +449,36 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     Map<string, { type: string; definition: unknown }>
   >();
 
-  /** The keys type-level `select`s write from their own branch, by root model. */
-  private readonly filteredKeys = new Map<string, Set<string>>();
+  /** What type-level `select`s read from their own branch, by root model. */
+  private readonly typeReads = new Map<
+    string,
+    { filtered: Set<string>; nested: Map<string, NestedPlan> }
+  >();
 
-  private filteredKeysOf(root: string) {
-    let keys = this.filteredKeys.get(root);
-    if (!keys) {
-      keys = new Set();
-      this.filteredKeys.set(root, keys);
+  private typeReadsOf(root: string) {
+    let reads = this.typeReads.get(root);
+    if (!reads) {
+      reads = { filtered: new Set(), nested: new Map() };
+      this.typeReads.set(root, reads);
     }
-    return keys;
+    return reads;
   }
 
   /**
    * Every row of a model, across its variant models, holds one value for each relation or computed
    * key the type-level `select`s write, which the fields and auth checks of every type of the model
    * read. So two of those `select`s that write one key must define it equally: compared with
-   * `deepEqual`, so a literal compares by value and a function, anywhere in it, by identity. Two
-   * selects sharing a function share it by reference rather than writing it out twice.
+   * `deepEqual`, so a literal, including a nested `select`, compares by value and a function,
+   * anywhere in it, by identity. Two selects sharing a function share it by reference rather than
+   * writing it out twice.
    */
-  private assertSelectsAgree(type: string, root: string, { relations, computed }: SplitSelect) {
+  private assertSelectsAgree(
+    type: string,
+    root: string,
+    model: PrismaNextModel,
+    split: SplitSelect,
+  ) {
+    const { relations, computed } = split;
     let definitions = this.selectDefinitions.get(root);
     if (!definitions) {
       definitions = new Map();
@@ -475,7 +490,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         definitions.set(key, { type, definition });
         // A whole relation reads the same whoever loaded it.
         if (definition !== undefined) {
-          this.filteredKeysOf(root).add(key);
+          this.typeReadsOf(root).filtered.add(key);
         }
       } else if (!deepEqual(first.definition, definition)) {
         throw new PothosSchemaError(
@@ -491,6 +506,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     for (const { key, relation, compute } of computed) {
       check(key, { [relation]: compute });
+    }
+    for (const [name, nested] of nestedPlan(split, model) ?? []) {
+      this.typeReadsOf(root).nested.set(name, nested);
     }
   }
 
@@ -577,7 +595,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { config } = this;
     const model = getModel(config.contract, modelKey);
-    const { keys: typeKeys, filtered } = this.typeData(fieldConfig.parentType);
+    const { keys: typeKeys, reads } = this.typeData(fieldConfig.parentType);
     // A field with a static selection needs no mapping: it reads what its type's `select`s load
     // and what its own selection names, which any row of the type can hold. A select function
     // reads what the plan that loaded the parent planned for it.
@@ -588,8 +606,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const parentTypes = [...mappingParentTypes(this.buildCache, fieldConfig, PRISMA_NEXT_MODEL)];
     const parentFor = (row: object, mapping: Mapping | null | undefined) =>
       mapping?.position
-        ? fieldCopy(row, model, filtered, mapping.position)
-        : typeCopy(row, model, filtered);
+        ? fieldCopy(row, model, reads, mapping.position)
+        : typeCopy(row, model, reads);
     const reload = (
       row: object,
       args: object,
@@ -625,7 +643,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         return reload(row, args, context, info);
       }
       return checked.then((checkedRow) => {
-        const typed = typeCopy(checkedRow, model, filtered);
+        const typed = typeCopy(checkedRow, model, reads);
         return holds(typed, needed)
           ? resolver(typed, args, context, info)
           : reload(row, args, context, info);
@@ -649,15 +667,15 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return undefined;
     }
     const model = getModel(this.config.contract, modelKey);
-    const filtered = filteredKeys(typeConfig);
+    const reads = typeReads(typeConfig);
     return (row: unknown) =>
-      row !== null && typeof row === 'object' ? typeCopy(row, model, filtered) : row;
+      row !== null && typeof row === 'object' ? typeCopy(row, model, reads) : row;
   }
 
   /** What `typeData` found for each prisma type. */
   private readonly typeDataCache = new Map<
     string,
-    { modelKey: string; model: PrismaNextModel; keys: string[]; filtered: ReadonlySet<string> }
+    { modelKey: string; model: PrismaNextModel; keys: string[]; reads: TypeReads }
   >();
 
   /**
@@ -674,7 +692,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         modelKey,
         model,
         keys: [...new Set(typeSelects(typeConfig).flatMap(selectedKeys))],
-        filtered: filteredKeys(typeConfig),
+        reads: typeReads(typeConfig),
       };
       this.typeDataCache.set(typeName, data);
     }
@@ -690,7 +708,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   private createTypeParentLoader(typeName: string) {
     let type: GraphQLObjectType | undefined;
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
-      const { modelKey, model, keys, filtered } = this.typeData(typeName);
+      const { modelKey, model, keys, reads } = this.typeData(typeName);
       type ??= info.schema.getType(typeName) as GraphQLObjectType;
       const selection =
         info.parentType.name === typeName
@@ -700,13 +718,13 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           : undefined;
       const columns = (typeof selection === 'function' ? undefined : selection?.columns) ?? [];
       // A prisma type's parent is always a row.
-      const typed = typeCopy(parent as object, model, filtered);
+      const typed = typeCopy(parent as object, model, reads);
       if (holds(typed, keys) && holds(typed, columns)) {
         return typed;
       }
       return reloadFor(info, () =>
         this.config.loader(context, modelKey).loadTypeRow(info, parent as object, type!),
-      ).then((row) => typeCopy(row, model, filtered));
+      ).then((row) => typeCopy(row, model, reads));
     };
   }
 }
@@ -761,7 +779,18 @@ function assertRelationEntries(
     if (loadsOwnTableVariantRows(relation, value) && !readsRows(relation)) {
       throw ownTableVariantRowsError(subject, name, relation);
     }
-    const orderBy = typeof value === 'object' ? definedQuery(value)?.orderBy : undefined;
+    const query = isNestedSelect(value) ? value.query : value;
+    const orderBy = typeof query === 'object' ? definedQuery(query)?.orderBy : undefined;
+    if (isNestedSelect(value)) {
+      // The rows of a nested `select` are read only through its parent's.
+      assertRelationEntries(
+        config,
+        splitSelect(value.select, relation.target),
+        relation.target,
+        nestedSubject(subject, name),
+        () => false,
+      );
+    }
     if (orderBy) {
       orderColumns(
         config.contract,

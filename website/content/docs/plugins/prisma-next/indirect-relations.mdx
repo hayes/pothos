@@ -98,6 +98,27 @@ builder.prismaObject('User', {
 ## Join models
 
 A relation defined with `rel.manyToMany` loads through its junction table, so `nestedSelection` and
-`t.relation` work on it like any to-many relation. A `select` can't load a relation of a join
-model's rows, so to go through a join model, expose the join model as a type with a `t.relation`
-to its target.
+`t.relation` work on it like any to-many relation.
+
+For a join model of its own, give the relation entry a `select` of the join model's rows and put
+`nestedSelection` beneath it. Here comments join users to the posts they commented on:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    commentedPosts: t.field({
+      type: [Post],
+      select: (args, ctx, nestedSelection) => ({
+        comments: {
+          query: { orderBy: { createdAt: 'desc' } },
+          select: { post: nestedSelection() },
+        },
+      }),
+      resolve: (user) => user.comments.map((comment) => comment.post),
+    }),
+  }),
+});
+```
+
+The `select` takes the same entries as any other, one level down, and everything loads in the
+parent's query.

@@ -62,6 +62,9 @@ A `select` accepts:
 - Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`,
   or a function that refines the relation's Collection: `{ posts: (posts) => posts.with(published) }`.
   A to-one relation takes only `true`.
+- Relations with a `select` of their own, in the same form, and a `query` taking the options
+  above: `{ comments: { query: { limit: 5 }, select: { post: true } } }`. A to-one relation takes
+  no `query`.
 - Computed values: any other key, holding one to-many relation and a function of its Collection,
   such as `{ postCount: { posts: (posts) => posts.count() } }`. The key (`postCount`) is added to
   the row, so it can't be a column or relation name.

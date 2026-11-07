@@ -68,13 +68,13 @@ import {
   definedQuery,
   fieldCopy,
   fieldValue,
-  filteredKeys,
   type PrismaNextSelectFn,
   queryRefinement,
   type RawSelect,
   relationArgs,
   rowsSelection,
   splitSelect,
+  typeReads,
   VALUE_SLOT,
 } from './utils/selections.js';
 
@@ -632,7 +632,7 @@ function readOwn<T>(
       // A reload plans its field first, onto a level that loads nothing yet, so the field always
       // fits and has a mapping.
       .then(({ row, mapping }) =>
-        read(fieldCopy(row, model, filteredKeys(info.parentType), mapping!.position!)),
+        read(fieldCopy(row, model, typeReads(info.parentType), mapping!.position!)),
       )
   );
 }

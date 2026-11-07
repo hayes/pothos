@@ -641,6 +641,80 @@ builder.queryFields((t) => ({
   }));
 }
 
+// A relation entry's nested `select` takes the same form for the relation's target, so
+// `nestedSelection` can plan the rows of a relation beneath it, such as through a join model.
+{
+  const JoinedPost = builder.prismaObject('Post', {
+    variant: 'JoinedPost',
+    fields: (t) => ({ title: t.exposeString('title') }),
+  });
+  builder.prismaObject('User', {
+    variant: 'JoinedUser',
+    select: { comments: { select: { post: true } } },
+    fields: (t) => ({
+      typeLevel: t.string({
+        resolve: (user) => {
+          expectTypeOf(user.comments[0]!.post).toEqualTypeOf<Row<Types, 'Post'>>();
+          return user.comments[0]!.body;
+        },
+      }),
+      commented: t.field({
+        type: [JoinedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          comments: { query: { limit: 2 }, select: { post: nestedSelection() } },
+        }),
+        resolve: (user) => {
+          expectTypeOf(user.comments[0]!.post).toEqualTypeOf<PlannedRow<Types, 'Post'>>();
+          expectTypeOf(user.comments[0]!.body).toEqualTypeOf<string>();
+          return user.comments.map((comment) => comment.post);
+        },
+      }),
+      counted: t.string({
+        select: {
+          comments: {
+            query: { where: { body: 'x' } },
+            select: {
+              post: {
+                select: {
+                  comments: { query: { limit: 1 }, select: {} },
+                  commentCount: { comments: (comments) => comments.count() },
+                },
+              },
+            },
+          },
+        },
+        resolve: (user) => {
+          expectTypeOf(user.comments[0]!.post.commentCount).toEqualTypeOf<number>();
+          return user.comments[0]!.post.comments[0]!.body;
+        },
+      }),
+      unknownKey: t.string({
+        // @ts-expect-error Unknown key in select: nope
+        select: { comments: { select: { nope: true } } },
+        resolve: () => '',
+      }),
+      unknownQueryOption: t.string({
+        // @ts-expect-error Unknown key in select: comments.query.take
+        select: { comments: { query: { take: 1 }, select: { post: true } } },
+        resolve: () => '',
+      }),
+      toOneQuery: t.string({
+        // @ts-expect-error A to-one relation takes no query: post
+        select: { comments: { select: { post: { query: { limit: 1 }, select: {} } } } },
+        resolve: () => '',
+      }),
+      otherModel: t.field({
+        type: [JoinedPost],
+        // @ts-expect-error the rows are planned as the field's type, of another model
+        select: (_args, _ctx, nestedSelection) => ({
+          posts: { select: { comments: nestedSelection() } },
+        }),
+        resolve: () => [],
+      }),
+    }),
+  });
+}
+
 // A to-many relation to a hierarchy's base can be planned as a variant, which its rows are narrowed
 // to. A to-one relation's rows load whole, so it can't.
 {

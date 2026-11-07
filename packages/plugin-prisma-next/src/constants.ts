@@ -10,11 +10,10 @@ export const PRISMA_NEXT_TYPE_SELECT = 'pothosPrismaNextTypeSelect';
  */
 export const PRISMA_NEXT_TYPE_SELECTS = 'pothosPrismaNextTypeSelects';
 /**
- * The keys the type-level `select`s of a type's model write from their own branch: filtered or
- * refined relations and computed values. One set per root model, shared by its types, which a
- * row holding them without the slots of a load can't be trusted for.
+ * What the type-level `select`s of a type's model read from their own branch (see `TypeReads` in
+ * utils/selections.ts). One per root model, shared by its types.
  */
-export const PRISMA_NEXT_FILTERED_KEYS = 'pothosPrismaNextFilteredKeys';
+export const PRISMA_NEXT_TYPE_READS = 'pothosPrismaNextTypeReads';
 /** A field's selection as the planner reads it: a static selection or a select function. */
 export const PRISMA_NEXT_FIELD_SELECTION = 'pothosPrismaNextFieldSelection';
 /** The relation a `t.relation` or `t.relatedConnection` field returns rows of, and their type. */

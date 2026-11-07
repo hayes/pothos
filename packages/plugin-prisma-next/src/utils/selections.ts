@@ -14,8 +14,8 @@ import type {
 } from '@pothos/selection-mapper';
 import { type FieldNode, type GraphQLResolveInfo, getNamedType, isObjectType } from 'graphql';
 import {
-  PRISMA_NEXT_FILTERED_KEYS,
   PRISMA_NEXT_MODEL,
+  PRISMA_NEXT_TYPE_READS,
   PRISMA_NEXT_TYPE_SELECTS,
 } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
@@ -47,6 +47,9 @@ import {
  * (`typeCopy`): the `combine()` values come off the relation keys and go under `SLOTS`, and what
  * the type-level selects loaded is written back on. A field with a select of its own reads a copy
  * of that with its own branches written on (`fieldCopy`).
+ *
+ * A relation entry with a nested `select` loads the relation's rows with what that `select` names,
+ * as consumer `nestedId(id)` of their level, and a copy of each row has its branches written on.
  */
 
 export const REFINE = Symbol('prismaNextRefine');
@@ -74,6 +77,11 @@ export interface RelationArgs {
   /** A declarative query object, or the field that defines the load together with its arguments. */
   loadIdentity?: unknown;
   variant?: Narrowing;
+  /**
+   * Set for rows with a nested `select`, which load in a branch: rows of the relation loaded
+   * without it lack what it names.
+   */
+  nestedSelect?: true;
   [REFINE]?: Refine;
 }
 
@@ -147,6 +155,50 @@ export function nestedSelectionEntry(query?: unknown, path?: PathSegment[], type
 
 function isNestedEntry(value: unknown): value is { [NESTED_SELECTION]: NestedEntry } {
   return typeof value === 'object' && value !== null && NESTED_SELECTION in value;
+}
+
+/** A relation entry with a `select` of the relation's target, and the query of its rows. */
+export interface NestedSelectEntry {
+  query?: unknown;
+  select: RawSelect;
+}
+
+/** Whether a relation entry has a nested `select`. A query never has a `select` key. */
+export function isNestedSelect(value: unknown): value is NestedSelectEntry {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'select' in value &&
+    !isPageEntry(value) &&
+    !isNestedEntry(value)
+  );
+}
+
+/**
+ * The relation entries of a split `select` whose nested `select` writes branches on the relation's
+ * rows: a to-many relation, which may load in a branch, or a computed value. Undefined for none.
+ */
+export function nestedPlan(
+  { relations }: SplitSelect,
+  model: PrismaNextModel,
+): NestedPlan | undefined {
+  let plan: Map<string, NestedPlan> | undefined;
+  for (const [name, value] of relations) {
+    if (isNestedSelect(value)) {
+      const target = model.relations[name]!.target;
+      const split = splitSelect(value.select, target);
+      const inner = nestedPlan(split, target);
+      if (
+        inner ||
+        split.computed.length ||
+        split.relations.some(([key]) => target.relations[key]!.isToMany)
+      ) {
+        plan ??= new Map();
+        plan.set(name, inner ?? NO_NESTED);
+      }
+    }
+  }
+  return plan;
 }
 
 /** Separates a relation from a consumer id in a selection key, and ids from a computed key. */
@@ -255,6 +307,22 @@ function consumerOf(position: Position): { id: string; table: ConsumerIds } {
   return consumer;
 }
 
+/**
+ * The consumer id of the entries of a nested `select` beneath consumer `id`'s relation entry. It
+ * differs from every other consumer's id, so no other reader of those rows reads its branches.
+ */
+function nestedId(id: string) {
+  return `${id}.`;
+}
+
+/**
+ * The relation entries of a consumer's `select` whose nested `select` writes branches on their
+ * rows, each with those of its own nested `select`.
+ */
+export type NestedPlan = ReadonlyMap<string, NestedPlan>;
+
+const NO_NESTED: NestedPlan = new Map();
+
 /** The selection key a consumer uses for a to-many relation or its computed values. */
 function slotKey(relation: string, id: string) {
   return `${relation}${KEY_SEPARATOR}${id}`;
@@ -262,7 +330,11 @@ function slotKey(relation: string, id: string) {
 
 /** Whether a relation load has every row of the relation, rather than a filtered or paged part. */
 export function loadsWholeRelation({ args }: PrismaNextSelection) {
-  return args?.loadIdentity === undefined && (!args?.variant || args.variant.throughVariantModel);
+  return (
+    args?.loadIdentity === undefined &&
+    !args?.nestedSelect &&
+    (!args?.variant || args.variant.throughVariantModel)
+  );
 }
 
 /** The relation a selection key refers to. */
@@ -391,6 +463,19 @@ interface CopyField {
   readonly position: Position;
 }
 
+/** How `copyWith` copies a row of `model`. */
+interface CopyOptions {
+  readonly model: PrismaNextModel;
+  /** Keys a copy of the ORM row leaves out. */
+  readonly filtered: ReadonlySet<string>;
+  /** The relations whose rows a nested `select` of the consumer wrote branches on. */
+  readonly nested: NestedPlan;
+  /** For a field's copy, the field. */
+  readonly field?: CopyField;
+  /** For a copy of a row beneath a nested `select`, the id of that `select`. */
+  readonly nestedIn?: string;
+}
+
 /**
  * A copy of `base` with what consumer `id` loaded written onto it, cached per base and id so
  * per-row caches such as scope-auth's see one object. A copy of the ORM row itself leaves out the
@@ -402,8 +487,7 @@ function copyWith(
   row: object,
   slots: Slots,
   id: string,
-  filtered: ReadonlySet<string>,
-  field?: CopyField,
+  { model, filtered, nested, field, nestedIn }: CopyOptions,
 ) {
   let byId = copies.get(base);
   if (!byId) {
@@ -420,10 +504,42 @@ function copyWith(
     if (field) {
       writePages(copy, slots, field);
     }
-    (copy as Holder)[SLOTS] = { row, slots, ...(field ? { field: field.id } : {}) };
+    liftNested(copy, model, id, nested);
+    const owner = field?.id ?? nestedIn;
+    (copy as Holder)[SLOTS] = { row, slots, ...(owner === undefined ? {} : { field: owner }) };
     byId.set(id, copy);
   }
   return copy;
+}
+
+/**
+ * Replaces the rows of each relation in `plan` on `copy`, a copy for consumer `id`, with copies
+ * holding what its nested `select` loaded. Like a field's copy, such a copy is made again from its
+ * row for any other reader.
+ */
+function liftNested(copy: Row, model: PrismaNextModel, id: string, plan: NestedPlan) {
+  const inner = nestedId(id);
+  for (const [name, nested] of plan) {
+    const target = model.relations[name]!.target;
+    const copyRow = (value: unknown): unknown => {
+      if (Array.isArray(value)) {
+        return value.map(copyRow);
+      }
+      if (value === null || typeof value !== 'object') {
+        return value;
+      }
+      const row = rowOf(value);
+      return copyWith(row, row, slotsOf(row, target), inner, {
+        model: target,
+        filtered: NONE,
+        nested,
+        nestedIn: inner,
+      });
+    };
+    if (copy[name] !== undefined) {
+      copy[name] = copyRow(copy[name]);
+    }
+  }
 }
 
 /** Whether `row` holds any of `keys`. */
@@ -445,16 +561,16 @@ function holdsAny(row: object, keys: ReadonlySet<string>) {
  * from its row. A row without `combine()` values that holds one of the `filtered` keys, such as a
  * whole relation a resolver included, is copied without them, so the field reading them reloads.
  */
-export function typeCopy(value: object, model: PrismaNextModel, filtered: ReadonlySet<string>) {
+export function typeCopy(value: object, model: PrismaNextModel, reads: TypeReads) {
   const held = (value as Holder)[SLOTS];
   if (held && !held.field) {
     return value;
   }
   const row = held ? held.row : value;
   const slots = held ? held.slots : slotsOf(row, model);
-  return slots === NO_SLOTS && !holdsAny(row, filtered)
+  return slots === NO_SLOTS && !reads.nested.size && !holdsAny(row, reads.filtered)
     ? row
-    : copyWith(row, row, slots, TYPE_CONSUMER, filtered);
+    : copyWith(row, row, slots, TYPE_CONSUMER, { model, ...reads });
 }
 
 /**
@@ -464,20 +580,26 @@ export function typeCopy(value: object, model: PrismaNextModel, filtered: Readon
 export function fieldCopy(
   value: object,
   model: PrismaNextModel,
-  filtered: ReadonlySet<string>,
+  reads: TypeReads,
   position: Position,
 ): object {
-  const base = typeCopy(value, model, filtered);
+  const base = typeCopy(value, model, reads);
   const held = (base as Holder)[SLOTS];
   const id = consumerId(position);
-  if (!held?.slots.consumers.has(id) && !plannedPages.has(position)) {
+  const nested = plannedNested.get(position);
+  if (!held?.slots.consumers.has(id) && !plannedPages.has(position) && !nested) {
     return base;
   }
-  return copyWith(base, held?.row ?? base, held?.slots ?? NO_SLOTS, id, filtered, {
-    id,
-    position,
+  return copyWith(base, held?.row ?? base, held?.slots ?? NO_SLOTS, id, {
+    model,
+    filtered: reads.filtered,
+    nested: nested ?? NO_NESTED,
+    field: { id, position },
   });
 }
+
+/** The relations whose rows the nested `select`s of each field's `select` wrote branches on. */
+const plannedNested = new WeakMap<Position, NestedPlan>();
 
 /**
  * Where a page's rows hold how it was planned (see `connectionPaging` in connections.ts), so the
@@ -742,14 +864,27 @@ export type SplitSelect = ReturnType<typeof splitSelect>;
 /** A type-level `select`, split, with the name of the type that declares it. */
 export type TypeSelect = SplitSelect & { name: string };
 
-/** The keys of the type's model that its type-level `select`s write from their own branch. */
-export function filteredKeys(type: {
-  readonly extensions?: Readonly<Record<string, unknown>> | null;
-}): ReadonlySet<string> {
-  return (type.extensions?.[PRISMA_NEXT_FILTERED_KEYS] as ReadonlySet<string> | undefined) ?? NONE;
+/** What the type-level `select`s of a model read from their own branch. */
+export interface TypeReads {
+  /**
+   * The keys they write: filtered or refined relations, relations with a nested `select`, and
+   * computed values. A row holding them without the slots of a load can't be trusted for them.
+   */
+  readonly filtered: ReadonlySet<string>;
+  /** Their relation entries whose nested `select` writes branches on the relation's rows. */
+  readonly nested: NestedPlan;
 }
 
-const NONE: ReadonlySet<string> = new Set();
+const NO_READS: TypeReads = { filtered: new Set(), nested: NO_NESTED };
+
+/** What the type-level `select`s of the type's model read from their own branch. */
+export function typeReads(type: {
+  readonly extensions?: Readonly<Record<string, unknown>> | null;
+}): TypeReads {
+  return (type.extensions?.[PRISMA_NEXT_TYPE_READS] as TypeReads | undefined) ?? NO_READS;
+}
+
+const NONE: ReadonlySet<string> = NO_READS.filtered;
 
 /**
  * The `select`s of a type and of its interfaces, which `onTypeConfig` keeps to one model hierarchy.
@@ -787,6 +922,11 @@ interface SelectCompilation {
   returnModelKey?: string;
   /** The name and model of the type a nested entry names. */
   typeOf?: (type: unknown) => { name: string; model: string | undefined };
+  /**
+   * For the entries of a nested `select`, beneath a relation entry, what loads them, which begins
+   * an error about them.
+   */
+  nested?: string;
 }
 
 /**
@@ -804,6 +944,7 @@ export function staticEntryVariant(
 ) {
   if (
     isPageEntry(value) ||
+    isNestedSelect(value) ||
     returnModelKey === undefined ||
     getModel(contract, returnModelKey) !== relation.target
   ) {
@@ -817,8 +958,9 @@ export function staticEntryVariant(
 function compileSelect(
   { columns, relations, computed }: SplitSelect,
   model: PrismaNextModel,
-  { contract, id, args, ctx, source, field, returnModelKey, typeOf }: SelectCompilation,
+  compilation: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
+  const { contract, id, args, ctx, source, field, returnModelKey, typeOf, nested } = compilation;
   const identity = (entry: unknown) => (source === undefined ? entry : { source, args });
   const owner = field && `Field '${field.position.type.name}.${field.position.field.name}'`;
   // `true`, a declarative query, or a function refining the rows, narrowed to `variant`.
@@ -836,12 +978,42 @@ function compileSelect(
   };
   const parts = relations.map(([name, value]) => {
     const relation = model.relations[name]!;
+    // Checked when the schema is built for a static `select`, and here for what a select function
+    // returns, as for the entries of the field's own `select`.
+    if (nested && loadsOwnTableVariantRows(relation, value)) {
+      throw ownTableVariantRowsError(nested, name, relation);
+    }
     if (isPageEntry(value)) {
       return value[CONNECTION_PAGE](relation, name, field!);
     }
+    if (isNestedSelect(value)) {
+      // The rows load whole, with what the nested `select` names as consumer `nestedId(id)`.
+      const target = relation.target;
+      const inner = compileSelect(splitSelect(value.select, target), target, {
+        ...compilation,
+        id: nestedId(id),
+        nested: nestedSubject(
+          nested ??
+            (field
+              ? `The select of field '${field.position.type.name}.${field.position.field.name}' loads`
+              : "A type's select loads"),
+          name,
+        ),
+      });
+      return rowsSelection(
+        relation,
+        name,
+        id,
+        completeValue(inner, (selection) => ({
+          ...selection,
+          columns: null,
+          args: { ...load(relation, value.query ?? true), nestedSelect: true },
+        })),
+      );
+    }
     if (!isNestedEntry(value)) {
       const variant =
-        field && source === undefined
+        field && source === undefined && !nested
           ? staticEntryVariant(contract, owner!, relation, value, returnModelKey)
           : undefined;
       return rowsSelection(relation, name, id, {
@@ -853,7 +1025,6 @@ function compileSelect(
     // to-many relation planned as a variant of its target, rather than at a path beneath, load
     // that variant.
     const { query, path, type } = value[NESTED_SELECTION];
-    const { nested } = field!;
     const named = type === undefined ? undefined : typeOf!(type);
     const variant =
       relation.isToMany && !path?.length
@@ -869,7 +1040,7 @@ function compileSelect(
         relation,
         name,
         id,
-        nested(
+        field!.nested(
           {
             columns: null,
             args: checkReturned(resolved, (q) => load(relation, q ?? true, variant)),
@@ -889,6 +1060,21 @@ function compileSelect(
     relations: Object.assign({}, ...resolved.map((part) => part.relations)),
     computed: Object.assign({}, ...resolved.map((part) => part.computed)),
   }));
+}
+
+/** Records the relations whose rows the nested `select`s of the field at `position` write on. */
+function registerNested(position: Position, plan: NestedPlan | undefined) {
+  if (plan) {
+    plannedNested.set(position, plan);
+  }
+}
+
+/**
+ * Begins an error about an entry of the nested `select` of relation `name`, beneath the `select`
+ * whose error `subject` begins.
+ */
+export function nestedSubject(subject: string, name: string) {
+  return `${subject} the rows of relation '${name}', whose nested select loads`;
 }
 
 /** Compiles a type-level `select`. Its relations load every column, in the model's type branches. */
@@ -943,12 +1129,14 @@ export function compileFieldSelect(
     if (split.relations.length === 0 && split.computed.length === 0) {
       return { columns: split.columns };
     }
+    const plan = nestedPlan(split, model);
     return (args, ctx, nested, selected, position) => {
       const id = consumerId(position);
       const field: FieldPlanning = { id, nested, selected, position };
       const returnModelKey = getNamedType(position.field.type).extensions?.[PRISMA_NEXT_MODEL] as
         | string
         | undefined;
+      registerNested(position, plan);
       return compileSelect(split, model, { contract, id, args, ctx, field, returnModelKey });
     };
   }
@@ -991,6 +1179,7 @@ export function compileFieldSelect(
             );
           }
         }
+        registerNested(position, nestedPlan(split, model));
         return compileSelect(split, model, select);
       }),
     );

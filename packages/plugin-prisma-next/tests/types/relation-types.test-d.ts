@@ -168,6 +168,13 @@ expectTypeOf<SelectCheck<Types, 'Post', { author: () => {} }>>().toEqualTypeOf<{
 expectTypeOf<
   keyof SelectCheck<Types, 'Post', { author: { where: { id: 'x' } } }>
 >().toEqualTypeOf<'Invalid value in select: author'>();
+// A to-one relation's nested `select` takes no query.
+expectTypeOf<
+  keyof SelectCheck<Types, 'Post', { author: { query: { limit: 1 }; select: { email: true } } }>
+>().toEqualTypeOf<'A to-one relation takes no query: author'>();
+expectTypeOf<
+  SelectCheck<Types, 'Post', { author: { select: { email: true } } }>
+>().toEqualTypeOf<unknown>();
 expectTypeOf<SelectCheck<Types, 'User', { posts: (sub: never) => never }>>().toEqualTypeOf<{
   'Invalid value in select: posts': never;
 }>();
