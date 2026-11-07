@@ -401,16 +401,24 @@ strict.prismaObject('User', {
 });
 strict.prismaObject('Note', {
   fields: (t) => {
-    // A variant `type` filters out rows of other variants, so the relation can be null.
-    const task = t.relation('task', { type: strictTask, onNull: 'error' });
+    const task = t.relation('task', { type: strictTask });
     expectTypeOf(task.$inferType).not.toBeNullable();
+    // A variant `type` filters out rows of other variants, so the relation can be null.
+    const errorBug = t.relation('task', { type: strictBug, onNull: 'error' });
+    expectTypeOf(errorBug.$inferType).not.toBeNullable();
     const bug = t.relation('task', { type: strictBug, nullable: true });
     expectTypeOf(bug.$inferType).toBeNullable();
     return {
       task,
+      errorBug,
       bug,
       // @ts-expect-error OnNullRequired<'Bug filters out other variants of Note.task'>
       requiredBug: t.relation('task', { type: strictBug }),
+      // `onNull` is rejected where it's never used.
+      // @ts-expect-error OnNullUnused<"Note.task can't be null">
+      neverNull: t.relation('task', { type: strictTask, onNull: 'error' }),
+      // @ts-expect-error OnNullUnused<'the field is nullable'>
+      nullableBug: t.relation('task', { type: strictBug, nullable: true, onNull: 'error' }),
     };
   },
 });
@@ -423,7 +431,12 @@ inheritance.prismaObject('Note', {
     expectTypeOf(bug.$inferType).toBeNullable();
     const requiredBug = t.relation('task', { type: bugRef, nullable: false, onNull: 'error' });
     expectTypeOf(requiredBug.$inferType).not.toBeNullable();
-    return { bug, requiredBug };
+    return {
+      bug,
+      requiredBug,
+      // @ts-expect-error OnNullUnused<'the field is nullable'>
+      nullable: t.relation('task', { type: bugRef, onNull: 'error' }),
+    };
   },
 });
 

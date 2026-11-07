@@ -33,7 +33,7 @@ a database change never changes the schema. Pass `nullable` to override.
 A to-one relation can resolve to `null` when the contract makes it optional, or when a variant
 `type` filters the row out. To expose one as non-null, `t.relation` requires `onNull`. Setting it
 to `'error'` lets GraphQL raise the non-null error for the field. A function can return a
-replacement row instead, or an `Error` to raise:
+replacement row instead, or an `Error` to raise. Other relation fields don't take `onNull`:
 
 ```ts
 builder.prismaObject('Bug', {

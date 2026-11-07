@@ -186,6 +186,36 @@ export type PrismaNextRelationOptions<
     ParentModel,
     RelName
   >,
+  OnNull = RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>>,
+> = RelationBaseOptions<
+  Types,
+  ParentModel,
+  RelName,
+  Nullable,
+  Args,
+  RelatedShape,
+  ParentShape,
+  Query,
+  TypeModel
+> & {
+  /**
+   * What a non-null field does when its relation resolves to null: `'error'` leaves the null for
+   * GraphQL's non-null error, and a function returns a replacement or an error.
+   */
+  onNull?: OnNull;
+};
+
+/** The options of `t.relation` other than `onNull`. */
+type RelationBaseOptions<
+  Types extends SchemaTypes,
+  ParentModel extends ModelKey<Types>,
+  RelName extends RelationKeys<Types, ParentModel>,
+  Nullable extends boolean,
+  Args extends InputFieldMap,
+  RelatedShape,
+  ParentShape,
+  Query,
+  TypeModel extends RelationTypeModel<Types, ParentModel, RelName>,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -210,11 +240,6 @@ export type PrismaNextRelationOptions<
         keyof RelationQueryValue<Types, ParentModel, RelName>
       >
     >;
-  /**
-   * What a non-null field does when its relation resolves to null: `'error'` leaves the null for
-   * GraphQL's non-null error, and a function returns a replacement or an error.
-   */
-  onNull?: RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>>;
 };
 
 /**
@@ -246,6 +271,11 @@ export type RelationOnNull<
 /** Names why `nullable: false` isn't allowed in its error, as the type argument the error shows. */
 export interface RequiresNullable<Reason extends string> {
   readonly 'nullable: false is not allowed': Reason;
+}
+
+/** Names why a relation field can't take `onNull`, as the type argument the error shows. */
+export interface OnNullUnused<Reason extends string> {
+  readonly 'onNull is never used': Reason;
 }
 
 /** Names why a non-null relation field needs `onNull`, as the type argument the error shows. */
@@ -292,7 +322,7 @@ export type RelationWithoutOptionsCheck<
 
 /**
  * The arguments of `t.relation`: `options` is required, with `onNull`, when the field is non-null
- * and the relation can resolve to null.
+ * and the relation can resolve to null. Otherwise `onNull` is never used, so it is rejected.
  */
 export type RelationFieldArgs<
   Types extends SchemaTypes,
@@ -304,32 +334,71 @@ export type RelationFieldArgs<
   ParentShape,
   Query,
   TypeModel extends RelationTypeModel<Types, ParentModel, RelName>,
-  Options = PrismaNextRelationOptions<
-    Types,
-    ParentModel,
-    RelName,
-    Nullable,
-    Args,
-    RelatedShape,
-    ParentShape,
-    Query,
-    TypeModel
-  >,
 > = [Nullable] extends [false]
   ? [RelationNullReason<Types, ParentModel, RelName, TypeModel>] extends [
       infer Reason extends string,
     ]
     ? [Reason] extends [never]
-      ? [options?: Options]
+      ? [
+          options?: PrismaNextRelationOptions<
+            Types,
+            ParentModel,
+            RelName,
+            Nullable,
+            Args,
+            RelatedShape,
+            ParentShape,
+            Query,
+            TypeModel,
+            OnNullUnused<`${ParentModel & string}.${RelName & string} can't be null`>
+          >,
+        ]
       : [
-          options: Options & {
+          options: PrismaNextRelationOptions<
+            Types,
+            ParentModel,
+            RelName,
+            Nullable,
+            Args,
+            RelatedShape,
+            ParentShape,
+            Query,
+            TypeModel,
+            RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>> | OnNullRequired<Reason>
+          > & {
             onNull:
               | RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>>
               | OnNullRequired<Reason>;
           },
         ]
-    : [options?: Options]
-  : [options?: Options];
+    : [
+        options?: PrismaNextRelationOptions<
+          Types,
+          ParentModel,
+          RelName,
+          Nullable,
+          Args,
+          RelatedShape,
+          ParentShape,
+          Query,
+          TypeModel,
+          RelationOnNull<Types, ParentShape, Args, NoInfer<RelatedShape>>
+        >,
+      ]
+  : [
+      options?: PrismaNextRelationOptions<
+        Types,
+        ParentModel,
+        RelName,
+        Nullable,
+        Args,
+        RelatedShape,
+        ParentShape,
+        Query,
+        TypeModel,
+        OnNullUnused<'the field is nullable'>
+      >,
+    ];
 
 /**
  * `Query` is inferred from the literal rather than checked, and a callback's result gets no excess
