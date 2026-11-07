@@ -1180,6 +1180,10 @@ describe('rows a resolver shares between aliases', () => {
         query: (args) => ({ where: { authorId: args.author } }),
       }),
       page: t.relatedConnection('comments', { query: { orderBy: { id: 'asc' } } }),
+      authorName: t.string({
+        select: { author: true },
+        resolve: (post) => post.author.firstName,
+      }),
     }),
   });
   builder.prismaObject('Comment', { fields: (t) => ({ id: t.exposeID('id') }) });
@@ -1213,6 +1217,11 @@ describe('rows a resolver shares between aliases', () => {
       'a computed value',
       '{ a: posts { countByAuthor(author: "u-bob") } b: posts { countByAuthor(author: "nobody") } }',
       { a: [{ countByAuthor: 1 }], b: [{ countByAuthor: 0 }] },
+    ],
+    [
+      'a to-one relation',
+      '{ a: posts { id } b: posts { authorName } }',
+      { a: [{ id: 'p-hello' }], b: [{ authorName: 'Alice' }] },
     ],
     [
       'a page',

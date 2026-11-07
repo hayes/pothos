@@ -73,6 +73,6 @@ export function loadsWholeRelation({ args }: PrismaNextSelection) {
   return (
     args?.loadIdentity === undefined &&
     !args?.nestedSelect &&
-    (!args?.variant || args.variant.throughVariantModel)
+    (!args?.variant || args.variant.throughVariantModel === true)
   );
 }

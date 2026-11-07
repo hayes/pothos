@@ -248,11 +248,11 @@ export function fieldCopy(
   const id = consumerId(position);
   const nested = plannedNested.get(position);
   if (!held?.slots.consumers.has(id)) {
-    const loads = ownLoads.get(position);
-    // Rows of every row of a relation load unbranched, which any reader of the whole relation reads.
+    // A load of a whole relation, and a to-one relation's row, sit on the row unbranched, where
+    // any field loading them reads them.
     const row = (held?.row ?? base) as Row;
-    for (const [name, whole] of loads ?? []) {
-      if (!whole || held?.slots.relations[name] || !Array.isArray(row[name])) {
+    for (const [name, whole] of ownLoads.get(position) ?? []) {
+      if (!whole || held?.slots.relations[name] || row[name] === undefined) {
         return undefined;
       }
     }
@@ -268,8 +268,8 @@ export function fieldCopy(
 }
 
 /**
- * The relations each field loads rows of a to-many relation or computed values from, and whether
- * it loads only every row of the relation.
+ * The relations each field loads rows or computed values of: `true` when it loads only the
+ * relation's whole rows, or a to-one relation's row.
  */
 const ownLoads = new WeakMap<Position, ReadonlyMap<string, boolean>>();
 
@@ -277,17 +277,17 @@ const ownLoads = new WeakMap<Position, ReadonlyMap<string, boolean>>();
 export function registerOwnLoads(position: Position, selection: PrismaNextSelection) {
   const id = consumerId(position);
   let loads: Map<string, boolean> | undefined;
-  // A to-one relation is keyed by its name, and read by every field. A field planning fields
-  // beneath it on its parent's row, as `t.variant` does, also returns what they load.
+  // A to-one relation is keyed by its name. A field planning fields beneath it on its parent's
+  // row, as `t.variant` does, also returns their branches, which aren't its own.
   const add = (key: string, whole: boolean) => {
     const name = relationName(key);
-    if (name !== key && consumerOfKey(key) === id) {
+    if (name === key || consumerOfKey(key) === id) {
       loads ??= new Map();
-      loads.set(name, (loads.get(name) ?? true) && whole);
+      loads.set(name, (loads.get(name) ?? true) && (name === key || whole));
     }
   };
   for (const [key, child] of Object.entries(selection.relations ?? {})) {
-    add(key, loadsWholeRelation(child) === true);
+    add(key, loadsWholeRelation(child));
   }
   for (const key of Object.keys(selection.computed ?? {})) {
     add(key, false);
