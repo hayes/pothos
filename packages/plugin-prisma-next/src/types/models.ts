@@ -2,7 +2,12 @@ import type { Merge, SchemaTypes, Simplify } from '@pothos/core';
 import type { SqlStorage } from '@prisma/orm-family-sql/contract/types';
 import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
 import type { Contract } from '@prisma/orm-framework/contract/types';
-import type { ModelBrand, PlannedRowBrand, prismaModelBrand } from '../object-ref.js';
+import type {
+  ModelBrand,
+  PlannedRowBrand,
+  plannedRowBrand,
+  prismaModelBrand,
+} from '../object-ref.js';
 import type { IsToMany } from './relations.js';
 
 export type AnyContract = Contract<SqlStorage>;
@@ -355,10 +360,13 @@ type PlannedReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>> = 
  * everything its `select` and its interfaces' `select`s load, other than to-many relations and
  * computed values, which the loader reloads. A model without an identity can't be reloaded, so it
  * needs its whole row. A row the loader planned for `M` or one of its variants, a `PlannedRow`,
- * also fits.
+ * also fits. A row planned for another model doesn't, even when it holds the keys a built row
+ * needs.
  */
 export type ObjectReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>, Shape> =
-  | BuiltReturnShape<Types, M, Shape>
+  | (BuiltReturnShape<Types, M, Shape> & {
+      readonly [plannedRowBrand]?: M | VariantModelKeys<Types['PrismaNextContract'], M>;
+    })
   | PlannedReturnShape<Types, M>;
 
 /** The field naming a base model's variant, or `never` for other models. */

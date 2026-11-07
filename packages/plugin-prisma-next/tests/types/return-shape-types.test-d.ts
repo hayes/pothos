@@ -10,6 +10,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import { expectTypeOf } from 'vitest';
 import prismaNextPlugin, {
   type CollectionFor,
+  type ConnectionHelperRow,
   collectionFromInfo,
   type PlannedRow,
   type PlannedRowBrand,
@@ -162,6 +163,8 @@ type InheritanceTypes = PothosSchemaTypes.ExtendDefaultTypes<{
 }>;
 declare const plannedPost: PlannedRow<Types, 'Post'>;
 declare const plannedComment: PlannedRow<Types, 'Comment'>;
+declare const commentPage: ConnectionHelperRow<Types, 'Comment'>[];
+declare const postPage: ConnectionHelperRow<Types, 'Post'>[];
 declare const plannedTask: PlannedRow<InheritanceTypes, 'Task'>;
 declare const plannedBug: PlannedRow<InheritanceTypes, 'Bug'>;
 declare const plannedFeature: PlannedRow<InheritanceTypes, 'Feature'>;
@@ -174,6 +177,12 @@ builder.queryFields((t) => ({
   plannedComment: t.field({ type: Authored, resolve: () => plannedComment }),
   // @ts-expect-error a planned row of another model, beneath a non-null list
   plannedComments: t.field({ type: [Titled], resolve: () => [plannedComment] }),
+  // A planned row of another model doesn't fit even when it holds every key the type needs.
+  // @ts-expect-error a planned row of another model
+  plannedCommentAsPlain: t.field({ type: Plain, resolve: () => plannedComment }),
+  // @ts-expect-error a helper's page of another model
+  commentPageAsPlain: t.field({ type: [Plain], resolve: () => commentPage }),
+  postPageAsPlain: t.field({ type: [Plain], resolve: () => postPage }),
 }));
 
 declare const plannedTaskWithType: PlannedRow<InheritanceTypes, 'Task'> & { type: string };
