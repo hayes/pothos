@@ -387,11 +387,11 @@ export function prismaConnectionHelpers<
       );
     };
 
-  let args: Args | undefined;
+  let builtArgs: Args | undefined;
   return {
     ref,
     getArgs: () =>
-      (args ??=
+      (builtArgs ??=
         typeof options.args === 'function'
           ? builder.args(options.args)
           : (options.args ?? ({} as Args))),
