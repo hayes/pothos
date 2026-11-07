@@ -51,9 +51,6 @@ Implementing objects don't accept `isTypeOf`.
 `resolveType` sees the columns and to-one relations in the interface's `select`, but not its to-many
 relations, counts or aggregates.
 
-Like any types of one model, an interface and its implementations can't define the same relation
-or computed key differently in their type-level `select`s (see [Selections](./objects#selections)).
-
 To add fields to the interface from another file, use `prismaInterfaceField` or
 `prismaInterfaceFields`:
 
@@ -110,12 +107,12 @@ builder.queryType({
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
 - A relation declared on a variant can't be in the variant type's `select`. Use a field's `select`
   or `t.relation`.
-- A relation to a variant with its own table loads only that table, so it can filter and sort only
-  on the variant's own fields, and its rows can only be returned as the variant's object type.
-  Returning them as an interface, or loading them in a type's `select` or another field's
-  `select`, fails the schema build (a `select` function fails the request).
-- A relation to a variant that shares the base's table can't load the base model's relations, so
-  it can't return an interface of that variant whose `select` loads one.
+- A relation to a variant with its own table can only filter and sort on the variant's own fields,
+  and only a field of the variant's object type can return its rows. Loading them in a type's
+  `select` or another field's `select` fails the schema build (a `select` function fails the
+  request).
+- A relation to a variant that shares the base's table can't return an interface whose `select`
+  loads a base model relation.
 - Pass a variant's ref as `type` to `t.relation` or `t.relatedConnection` to return only that
   variant's rows.
 - A row returned from a plain `t.field` needs the interface's `select` and the discriminator.
