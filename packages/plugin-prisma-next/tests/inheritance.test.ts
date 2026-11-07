@@ -125,6 +125,12 @@ function createVariantSchema() {
         select: { tasks: bug },
         resolve: (user) => user.tasks,
       }),
+      // Planned as the interface, whose selection holds the discriminator.
+      nestedTasks: t.field({
+        type: [task],
+        select: (_args, _ctx, nestedSelection) => ({ tasks: nestedSelection() }),
+        resolve: (user) => user.tasks,
+      }),
       // Loads every task, as written.
       staticTasks: t.field({
         type: [task],
@@ -283,6 +289,23 @@ describe('native model inheritance', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data.users).toEqual([
       { [field]: [{ title: 'bug1', severity: 'high', ...more }] },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('routes the rows nestedSelection plans as a discriminated interface', async () => {
+    const result = await run(
+      createVariantSchema(),
+      '{ users { nestedTasks { __typename title ... on Bug { severity } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      {
+        nestedTasks: [
+          { __typename: 'Bug', title: 'bug1', severity: 'high' },
+          { __typename: 'Feature', title: 'feat1' },
+        ],
+      },
     ]);
     expect(result.statements).toHaveLength(1);
   });

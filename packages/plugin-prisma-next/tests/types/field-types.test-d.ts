@@ -795,13 +795,26 @@ builder.queryFields((t) => ({
     plugins: [PrismaNextPlugin],
     prismaNext: { client: null as never },
   });
-  const Bug = inheritance.prismaObject('Bug', { fields: (t) => ({ id: t.exposeID('id') }) });
+  const Task = inheritance.prismaInterface('Task', { fields: (t) => ({ id: t.exposeID('id') }) });
+  const Bug = inheritance.prismaObject('Bug', {
+    interfaces: [Task],
+    fields: (t) => ({ id: t.exposeID('id') }),
+  });
   inheritance.prismaObject('User', {
     fields: (t) => ({
       bugs: t.field({
         type: [Bug],
         select: (_args, _ctx, nestedSelection) => ({ tasks: nestedSelection() }),
         resolve: (user) => user.tasks,
+      }),
+      // The rows are planned as the interface, whose selection holds the discriminator.
+      tasks: t.field({
+        type: [Task],
+        select: (_args, _ctx, nestedSelection) => ({ tasks: nestedSelection() }),
+        resolve: (user) => {
+          expectTypeOf(user.tasks[0]!.type).toEqualTypeOf<'bug' | 'feature'>();
+          return user.tasks;
+        },
       }),
     }),
   });

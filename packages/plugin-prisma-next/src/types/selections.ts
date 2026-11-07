@@ -16,6 +16,8 @@ import type { CONNECTION_PAGE, NESTED_SELECTION, NODE_SELECTION } from '../utils
 import type { ParamToModelKey } from './fields.js';
 import type {
   BaseModelKey,
+  DiscriminatorField,
+  DiscriminatorRow,
   ExtractModel,
   IsUnion,
   LoadedRow,
@@ -91,13 +93,14 @@ export type PrismaNextFieldSelect<
   ParentShape,
   Args,
   TypeModel extends ModelKey<Types> = never,
+  TypeShape = never,
 > =
   | FieldSelectArray<Types, ParentShape>
   | PrismaNextSelectSpec<Types, ParentShape>
   | ((
       args: Args,
       ctx: Types['Context'],
-      nestedSelection: NestedSelectionFn<Types, TypeModel, Args>,
+      nestedSelection: NestedSelectionFn<Types, TypeModel, Args, TypeShape>,
     ) => MaybeAsyncSelection<Types, PrismaNextSelectSpec<Types, ParentShape>>);
 
 /** `PrismaNextFieldSelect` narrowed to the form `Select` is written in, so a failing object isn't reported against `undefined`. */
@@ -106,11 +109,12 @@ export type PrismaNextFieldSelectForm<
   ParentShape,
   Args,
   TypeModel extends ModelKey<Types>,
+  TypeShape,
   Select,
 > = unknown extends Select
-  ? PrismaNextFieldSelect<Types, ParentShape, Args, TypeModel>
+  ? PrismaNextFieldSelect<Types, ParentShape, Args, TypeModel, TypeShape>
   : [Select] extends [readonly unknown[] | ((...args: never[]) => unknown)]
-    ? PrismaNextFieldSelect<Types, ParentShape, Args, TypeModel>
+    ? PrismaNextFieldSelect<Types, ParentShape, Args, TypeModel, TypeShape>
     : PrismaNextSelectSpec<Types, ParentShape>;
 
 /** The model of a field's type: of a `prismaObject` or `prismaInterface` ref, or a list of one. */
@@ -121,6 +125,19 @@ export type TypeParamModel<Types extends SchemaTypes, Type> = Type extends reado
     : Type extends { readonly [prismaNextInterfaceBrand]: infer M extends ModelKey<Types> }
       ? M
       : never;
+
+/**
+ * The rows `nestedSelection` plans as a field's type, when that type is a discriminated model's
+ * `prismaInterface`: planned rows that hold the discriminator, which the interface's selection
+ * includes. `never`, for planned rows of the field type's model, otherwise.
+ */
+export type InterfaceNestedRow<Types extends SchemaTypes, Type> = Type extends readonly [infer Item]
+  ? InterfaceNestedRow<Types, Item>
+  : Type extends { readonly [prismaNextInterfaceBrand]: infer M extends ModelKey<Types> }
+    ? [DiscriminatorField<Types, M>] extends [never]
+      ? never
+      : PlannedRow<Types, M> & DiscriminatorRow<Types, M>
+    : never;
 
 /**
  * A relation entry from `nestedSelection`: the relation's rows, with the selection planned beneath
@@ -179,17 +196,22 @@ export type NestedSelectionQuery<Types extends SchemaTypes, M extends ModelKey<T
  * isn't a model's, the rows are typed as the relation's target, and the `select` checks the query's
  * keys as the relation's.
  */
-export interface NestedSelectionFn<Types extends SchemaTypes, M extends ModelKey<Types>, Args> {
+export interface NestedSelectionFn<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  Args,
+  Shape = never,
+> {
   (options?: {
     readonly query?: true;
     readonly path?: undefined;
     readonly type?: undefined;
-  }): NestedSelectionEntry<M, false>;
+  }): NestedSelectionEntry<M, false, Shape>;
   (options: {
     readonly query: NestedSelectionQuery<Types, M, Args> | undefined;
     readonly path?: undefined;
     readonly type?: undefined;
-  }): NestedSelectionEntry<M, true>;
+  }): NestedSelectionEntry<M, true, Shape>;
   (options: {
     readonly query?: true;
     readonly path: readonly PathSegment[];

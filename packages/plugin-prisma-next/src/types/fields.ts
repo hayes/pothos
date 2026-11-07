@@ -37,6 +37,7 @@ import type { PlannedCollection, ResolverCollection, TypeCollection } from './co
 import type { FieldParentShape, IdFieldShape, ModelKey, ResolveTypeParent, Row } from './models.js';
 import type { RequiresNullable } from './relations.js';
 import type {
+  InterfaceNestedRow,
   PrismaNextFieldSelectForm,
   SelectObjectSpec,
   ShapeFromSelect,
@@ -370,6 +371,7 @@ export type PrismaNextObjectFieldOptions<
         ParentShape,
         InputShapeFromFields<Args>,
         TypeParamModel<Types, Type>,
+        InterfaceNestedRow<Types, Type>,
         Select
       > &
       // `Select` isn't inferred from the check, because inferring into it walks every branch.
