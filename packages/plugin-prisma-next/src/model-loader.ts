@@ -120,33 +120,42 @@ export class ModelLoader {
     return plans;
   }
 
+  /** The plan of `kind` cached under `key` for `info`'s operation, made by `plan` on first use. */
+  private cachedPlan(
+    info: GraphQLResolveInfo,
+    kind: keyof Plans,
+    key: string,
+    plan: () => MaybePromise<Played>,
+  ): MaybePromise<Played> {
+    const plans = this.plansFor(info)[kind];
+    let selection = plans.get(key);
+    if (!selection) {
+      selection = plan();
+      plans.set(key, selection);
+    }
+    return selection;
+  }
+
   /** The parent row reloaded with what `info`'s field needs, and the field's mapping in that load. */
   loadSelection(
     info: GraphQLResolveInfo,
     parent: object,
   ): Promise<{ row: Row; mapping: Mapping | undefined }> {
     this.assertIdentity(info);
-    const key = cacheKey(info.parentType.name, info.path);
-    const plans = this.plansFor(info).parent;
-    let selection = plans.get(key);
-    if (!selection) {
-      // The selects of the field and those beneath it run here. What planning throws reaches the
-      // field as it is, as it reaches a prisma field planned for the parent query. The planner's
-      // own errors are already generic.
-      const planned: MaybePromise<Played> = userCode(() =>
-        Plan.forParentRow(this.config.adapter, {
-          context: this.context,
-          info,
-          initial: this.initial,
-        }),
-      );
-      selection = isThenable(planned)
-        ? (Promise.resolve(planned) as Promise<Played>).catch((error: unknown) => {
-            throw keepError(error);
-          })
-        : planned;
-      plans.set(key, selection);
-    }
+    // The selects of the field and those beneath it run here.
+    const selection = this.cachedPlan(
+      info,
+      'parent',
+      cacheKey(info.parentType.name, info.path),
+      () =>
+        appPlan(() =>
+          Plan.forParentRow(this.config.adapter, {
+            context: this.context,
+            info,
+            initial: this.initial,
+          }),
+        ),
+    );
     const load = (played: Played) => {
       const values = this.identity.map((field) => (parent as Row)[field]);
       const staged = this.stage(played.root, this.identity, values, { kind: 'parent' });
@@ -174,7 +183,6 @@ export class ModelLoader {
   loadTypeRow(info: GraphQLResolveInfo, parent: object, type: GraphQLObjectType): Promise<Row> {
     this.assertIdentity(info);
     const key = type.name;
-    const plans = this.plansFor(info).type;
     const root = rootPath(info);
     let rows = this.reloads.get(root);
     if (!rows) {
@@ -187,8 +195,7 @@ export class ModelLoader {
     if (loaded) {
       return loaded;
     }
-    let selection = plans.get(key);
-    if (!selection) {
+    const selection = this.cachedPlan(info, 'type', key, () => {
       const plan = new Plan(
         this.config.adapter,
         { context: this.context, info },
@@ -196,12 +203,11 @@ export class ModelLoader {
         undefined,
         this.initial,
       );
-      selection = completeValue(plan.finish(plan.enterParentType, type), (played) => {
+      return completeValue(plan.finish(plan.enterParentType, type), (played) => {
         this.config.adapter.mergeQuery(played.root, { columns: null });
         return played;
       });
-      plans.set(key, selection);
-    }
+    });
     const load = (played: Played) =>
       this.stage(
         played.root,
@@ -232,12 +238,8 @@ export class ModelLoader {
     collection: ((ctx: object) => MapperCollection) | undefined,
   ): Promise<Row | null> {
     // Keyed on the type rather than the model, because variants of a model select differently.
-    const key = cacheKey(typeName, info.path);
-    const plans = this.plansFor(info).node;
-    let selection = plans.get(key);
-    if (!selection) {
-      // As in `loadSelection`, what planning throws reaches the field as it is.
-      const planned: MaybePromise<Played> = userCode(() =>
+    const selection = this.cachedPlan(info, 'node', cacheKey(typeName, info.path), () =>
+      appPlan(() =>
         completeValue(
           Plan.fromInfo(this.config.adapter, {
             context: this.context,
@@ -247,14 +249,8 @@ export class ModelLoader {
           }) as MaybePromise<PrismaNextPlan>,
           (settled) => settled.play(),
         ),
-      );
-      selection = isThenable(planned)
-        ? (Promise.resolve(planned) as Promise<Played>).catch((error: unknown) => {
-            throw keepError(error);
-          })
-        : planned;
-      plans.set(key, selection);
-    }
+      ),
+    );
     const load = (played: Played) => {
       setLoaderMappings(this.context, info, played.mappings);
       const load: Load = { kind: 'node', typeName, collection };
@@ -428,6 +424,20 @@ function userCode<T>(run: () => T): T {
   } catch (error) {
     throw keepError(error);
   }
+}
+
+/**
+ * Runs `plan`, which runs the app's selects. What it throws or rejects with reaches the field as it
+ * is, as it reaches a prisma field planned for the parent query. The planner's own errors are
+ * already generic.
+ */
+function appPlan(plan: () => MaybePromise<Played>): MaybePromise<Played> {
+  const planned = userCode(plan);
+  return isThenable(planned)
+    ? (Promise.resolve(planned) as Promise<Played>).catch((error: unknown) => {
+        throw keepError(error);
+      })
+    : planned;
 }
 
 /** The path of the root field `info`'s field is beneath. */
