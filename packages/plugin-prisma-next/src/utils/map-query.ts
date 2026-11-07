@@ -144,10 +144,10 @@ const schemaConfigs = new WeakMap<GraphQLSchema, PrismaNextConfig>();
 function configFor(schema: GraphQLSchema): PrismaNextConfig {
   let config = schemaConfigs.get(schema);
   if (!config) {
-    for (const type of Object.values(schema.getTypeMap())) {
-      config ??= type.extensions?.[PRISMA_NEXT_CONFIG] as PrismaNextConfig | undefined;
-    }
-    schemaConfigs.set(schema, config!);
+    config = Object.values(schema.getTypeMap()).find(
+      (type) => type.extensions?.[PRISMA_NEXT_CONFIG],
+    )?.extensions?.[PRISMA_NEXT_CONFIG] as PrismaNextConfig;
+    schemaConfigs.set(schema, config);
   }
-  return config!;
+  return config;
 }
