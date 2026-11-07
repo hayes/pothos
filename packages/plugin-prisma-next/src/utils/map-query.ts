@@ -46,12 +46,36 @@ function planSelection(
 }
 
 /** The selection a collection starts from: relations declared on a variant need it narrowed. */
-function initialSelection(
+export function initialSelection(
   collection: MapperCollection,
   seed: PrismaNextSelection,
 ): PrismaNextSelection {
   const variant = collection.state?.variantValue;
   return { ...seed, args: typeof variant === 'string' ? { variant: { value: variant } } : {} };
+}
+
+/** Plans the selection beneath a field at `path`, read as `type`, from `seed`. */
+export type PlanNested = (
+  seed: PrismaNextSelection,
+  path?: PathSegment[],
+  type?: string,
+) => MaybePromise<PrismaNextSelection>;
+
+/**
+ * Plans the selection at `paths` beneath the field `info` resolves, as a field's `nestedSelection`
+ * plans it beneath a relation. The seed alone when nothing is selected there.
+ */
+export function nestedFromInfo(
+  info: GraphQLResolveInfo,
+  config: PrismaNextConfig,
+  context: object,
+  paths: PathSegment[][],
+): PlanNested {
+  return (seed, _path, typeName) =>
+    completeValue(
+      planSelection(info, config, context, { paths, typeName }, seed),
+      (planned) => planned?.selection ?? seed,
+    );
 }
 
 /**

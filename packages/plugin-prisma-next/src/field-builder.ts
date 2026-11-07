@@ -4,7 +4,6 @@ import {
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
-import { selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type { PrismaNextConnectionFieldOptions } from './types/connections.js';
@@ -12,12 +11,11 @@ import type { ModelKey } from './types/models.js';
 import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import {
-  aggregateCount,
   CONNECTION_NODE_PATHS,
   type ConnectionSettingsOptions,
   connectionPaging,
 } from './utils/connections.js';
-import { applyCursorPagination, buildConnectionPage, cursorColumns } from './utils/cursors.js';
+import { buildConnectionPage } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
 import { type AnyRef, refFor } from './utils/refs.js';
@@ -143,33 +141,19 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         if (userCollection == null) {
           return null;
         }
-        const planned = paging.plan(args, context);
-        const { needsRows, count } = paging.selection(selectedFieldNames(context, info));
-        const filtered =
-          planned.where === undefined ? userCollection : userCollection.where(planned.where);
-        // Runs for a count-only selection too, so the collection is still checked. No rows are
-        // fetched here.
-        const paged = applyCursorPagination(filtered, planned, args);
-        const rowsPromise = needsRows
-          ? Promise.resolve(
-              applySelectionToCollection(paged, model, info, config, context, {
-                paths: CONNECTION_NODE_PATHS,
-                seed: { columns: cursorColumns(planned.order) },
-              }),
-            ).then((applied) =>
-              (applied as unknown as { all(): Promise<Record<string, unknown>[]> }).all(),
-            )
-          : Promise.resolve([]);
-
-        // Counts the collection the resolver returned, filtered by `query`, before pagination.
-        const countPromise =
-          count === 'aggregate'
-            ? aggregateCount(filtered)
-            : Promise.resolve().then(() => count?.(parent, args, context, info));
-
-        // Promise.all handles both rejections, so a later one isn't left unhandled.
-        const [rows, totalCount] = await Promise.all([rowsPromise, countPromise]);
-        return buildConnectionPage(rows, planned, args, { totalCount, parent });
+        const { rows, plan, totalCount } = await paging.loadPage(
+          userCollection,
+          parent,
+          args,
+          context,
+          info,
+          (paged, seed) =>
+            applySelectionToCollection(paged, model, info, config, context, {
+              paths: CONNECTION_NODE_PATHS,
+              seed,
+            }),
+        );
+        return buildConnectionPage(rows, plan, args, { totalCount, parent });
       }) as never,
     } as never,
     paging.connectionOptions(connectionOptions),

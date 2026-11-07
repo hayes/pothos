@@ -17,7 +17,11 @@ import type { Contract as MysqlContract } from '../mysql/contract';
 import type { Contract as PostgresContract } from '../postgres/contract';
 
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: Contract }>;
-declare const orm: { User: CollectionFor<Types, 'User'>; Post: CollectionFor<Types, 'Post'> };
+declare const orm: {
+  User: CollectionFor<Types, 'User'>;
+  Post: CollectionFor<Types, 'Post'>;
+  Comment: CollectionFor<Types, 'Comment'>;
+};
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [RelayPlugin, prismaNextPlugin],
@@ -505,6 +509,40 @@ prismaConnectionHelpers(builder, 'Comment', {
   // @ts-expect-error not a column or relation of Comment
   select: () => ({ bodyy: true }),
 });
+
+// At the root, `load` pages a collection of the helper's model, and each edge holds its row.
+builder.queryField('commenters', (t) =>
+  t.connection(
+    {
+      type: Commenter,
+      resolve: async (_root, args, ctx, info) => {
+        const rows = await commenters.load(orm.Comment.where({ postId: 'p' }), args, ctx, info);
+        expectTypeOf(rows).toEqualTypeOf<
+          ConnectionHelperRow<Types, 'Comment', { body: true; author: NodeSelection }>[]
+        >();
+        // @ts-expect-error the plugin includes what the query selects
+        await commenters.load(orm.Comment.include('author'), args, ctx, info);
+        const ordered = orm.Comment.orderBy((c) => c.id.asc());
+        // @ts-expect-error the connection orders the collection by its query
+        await commenters.load(ordered, args, ctx, info);
+        // @ts-expect-error a collection of another model
+        await commenters.load(orm.Post, args, ctx, info);
+        return commenters.resolve(rows, args, ctx);
+      },
+    },
+    {},
+    {
+      fields: (edge) => ({
+        body: edge.string({
+          resolve: (row) => {
+            expectTypeOf(row.node).toEqualTypeOf<PlannedRow<Types, 'User'>>();
+            return row.body;
+          },
+        }),
+      }),
+    },
+  ),
+);
 
 // Without `nullable`, root fields and connections follow the builder's default field nullability.
 const nonNullBuilder = new SchemaBuilder<{

@@ -206,6 +206,44 @@ export function connectionPaging(
     },
 
     /**
+     * Loads one page of `collection`, a root connection's, filtered by `query`: its rows, with the
+     * selection `applySelection` applies from a seed holding the cursor columns, unless the count
+     * alone is selected, and its count when it is selected.
+     */
+    async loadPage(
+      collection: MapperCollection,
+      parent: unknown,
+      args: PothosSchemaTypes.DefaultConnectionArguments,
+      ctx: object,
+      info: GraphQLResolveInfo,
+      applySelection: (
+        paged: MapperCollection,
+        seed: PrismaNextSelection,
+      ) => MaybePromise<MapperCollection>,
+    ) {
+      const planned = plan(args, ctx);
+      const { needsRows, count } = selection(selectedFieldNames(ctx, info));
+      const filtered = planned.where === undefined ? collection : collection.where(planned.where);
+      // Runs for a count-only selection too, so the collection is still checked. No rows are
+      // fetched here.
+      const paged = applyCursorPagination(filtered, planned, args);
+      const rowsPromise = needsRows
+        ? Promise.resolve(applySelection(paged, { columns: cursorColumns(planned.order) })).then(
+            (applied) =>
+              (applied as unknown as { all(): Promise<Record<string, unknown>[]> }).all(),
+          )
+        : Promise.resolve([]);
+      // Counts the collection, filtered by `query`, before pagination.
+      const countPromise =
+        count === 'aggregate'
+          ? aggregateCount(filtered)
+          : Promise.resolve().then(() => count?.(parent, args, ctx, info));
+      // Promise.all handles both rejections, so a later one isn't left unhandled.
+      const [rows, totalCount] = await Promise.all([rowsPromise, countPromise]);
+      return { rows, plan: planned, totalCount };
+    },
+
+    /**
      * The page of `rows`, a page `planPage` planned, as the field's copy of the parent holds it.
      * The count comes from them, or from the `totalCount` callback when it is selected.
      */

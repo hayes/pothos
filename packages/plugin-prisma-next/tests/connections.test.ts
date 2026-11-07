@@ -1870,3 +1870,138 @@ describe('prismaConnection query', () => {
     expect(result.data.posts).toEqual({ totalCount: 1, nodes: [{ id: 'p-hello' }] });
   });
 });
+
+describe('prismaConnectionHelpers at the root', () => {
+  // Query.commenters → Comment rows of a post, each node the comment's author.
+  function rootSchema() {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        firstName: t.exposeString('firstName'),
+        posts: t.relation('posts'),
+      }),
+    });
+    const commenters = prismaConnectionHelpers(builder, 'Comment', {
+      query: { orderBy: { createdAt: 'desc' } },
+      totalCount: true,
+      select: (nodeSelection) => ({ createdAt: true, author: nodeSelection() }),
+      resolveNode: (comment) => comment.author,
+    });
+    builder.queryType({
+      fields: (t) => ({
+        commenters: t.connection(
+          {
+            type: User,
+            args: { ...commenters.getArgs(), postId: t.arg.id({ required: true }) },
+            resolve: async (_root, args, ctx, info) => {
+              const rows = await commenters.load(
+                db.orm.Comment.where({ postId: String(args.postId) }),
+                args,
+                ctx,
+                info,
+              );
+              return commenters.resolve(rows, args, ctx);
+            },
+          },
+          {
+            fields: (c) => ({
+              totalCount: c.int({ resolve: (page) => page.totalCount }),
+            }),
+          },
+          {
+            fields: (edge) => ({
+              commentedAt: edge.string({ resolve: (e) => e.createdAt.toISOString() }),
+            }),
+          },
+        ),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  const query = `query ($first: Int, $last: Int, $after: String, $before: String) {
+    commenters(postId: "p-hello", first: $first, last: $last, after: $after, before: $before) {
+      totalCount
+      pageInfo { startCursor endCursor hasNextPage hasPreviousPage }
+      edges { commentedAt node { firstName posts { id } } }
+    }
+  }`;
+  const alice = {
+    commentedAt: '2026-04-01T12:00:00.000Z',
+    node: { firstName: 'Alice', posts: [{ id: 'p-hello' }, { id: 'p-draft1' }] },
+  };
+  const bob = {
+    commentedAt: '2026-04-01T11:00:00.000Z',
+    node: { firstName: 'Bob', posts: [{ id: 'p-bob1' }, { id: 'p-bob-draft' }] },
+  };
+
+  it('loads a page of join rows with their nodes in one statement, and counts them', async () => {
+    const schema = rootSchema();
+    const first = await run(schema, query, { variables: { first: 1 } });
+    expect(first.errors).toBeUndefined();
+    expect(first.data.commenters).toMatchObject({
+      totalCount: 2,
+      pageInfo: { hasNextPage: true, hasPreviousPage: false },
+      edges: [alice],
+    });
+    // The page with its nodes and their posts, and the count.
+    expect(first.statements).toHaveLength(2);
+    expect(first.statements.filter(({ sql }) => /count\(/i.test(sql))).toHaveLength(1);
+
+    const next = await run(schema, query, {
+      variables: { first: 1, after: first.data.commenters.pageInfo.endCursor },
+    });
+    expect(next.errors).toBeUndefined();
+    expect(next.data.commenters).toMatchObject({
+      totalCount: 2,
+      pageInfo: { hasNextPage: false },
+      edges: [bob],
+    });
+    expect(next.statements).toHaveLength(2);
+  });
+
+  it('pages backward', async () => {
+    const schema = rootSchema();
+    const last = await run(schema, query, { variables: { last: 1 } });
+    expect(last.errors).toBeUndefined();
+    expect(last.data.commenters).toMatchObject({
+      pageInfo: { hasPreviousPage: true, hasNextPage: false },
+      edges: [bob],
+    });
+    const before = await run(schema, query, {
+      variables: { last: 1, before: last.data.commenters.pageInfo.startCursor },
+    });
+    expect(before.errors).toBeUndefined();
+    expect(before.data.commenters).toMatchObject({
+      pageInfo: { hasPreviousPage: false },
+      edges: [alice],
+    });
+  });
+
+  it('plans the nodes selected through `nodes` into the page', async () => {
+    const result = await run(
+      rootSchema(),
+      '{ commenters(postId: "p-hello") { nodes { firstName posts { id } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.commenters.nodes).toEqual([alice.node, bob.node]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('loads no rows when only totalCount is selected, and no count when it is not', async () => {
+    const counted = await run(rootSchema(), '{ commenters(postId: "p-hello") { totalCount } }');
+    expect(counted.data.commenters).toEqual({ totalCount: 2 });
+    expect(counted.statements).toHaveLength(1);
+    expect(counted.statements[0].sql).toMatch(/count\(/i);
+
+    const paged = await run(
+      rootSchema(),
+      '{ commenters(postId: "p-hello") { edges { node { firstName } } } }',
+    );
+    expect(paged.errors).toBeUndefined();
+    expect(paged.statements).toHaveLength(1);
+    expect(paged.statements[0].sql).not.toMatch(/count\(/i);
+  });
+});

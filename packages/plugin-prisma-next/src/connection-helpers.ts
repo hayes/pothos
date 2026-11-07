@@ -4,10 +4,12 @@ import {
   type InputShapeFromFields,
   type SchemaTypes,
 } from '@pothos/core';
-import type { NestedSelection, PathSegment, SelectedFieldNode } from '@pothos/selection-mapper';
+import type { PathSegment, SelectedFieldNode } from '@pothos/selection-mapper';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type { TotalCountFlag } from './types/aggregates.js';
+import type { ResolverCollection, UnorderedCollection } from './types/collections.js';
 import type {
   ConnectionPagingOptions,
   ConnectionQueryLiteral,
@@ -23,10 +25,12 @@ import type {
 } from './types/models.js';
 import type { DefaultRelationNullable, IsToMany, RelatedModel } from './types/relations.js';
 import type { ConnectionPageEntry, NodeSelection } from './types/selections.js';
+import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
-import { connectionPaging } from './utils/connections.js';
+import { CONNECTION_NODE_PATHS, connectionPaging } from './utils/connections.js';
 import { variantForRelationType } from './utils/contract.js';
 import { buildConnectionPage, type ConnectionPage } from './utils/cursors.js';
+import { initialSelection, nestedFromInfo, type PlanNested } from './utils/map-query.js';
 import { getIdentityFields, getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import {
@@ -145,12 +149,17 @@ type HelperRow<Types extends SchemaTypes, M extends ModelKey<Types>, Select, Ref
   ? ConnectionHelperRow<Types, M, Select> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>
   : ConnectionHelperRow<Types, M, Select>;
 
-/** A page's node: what `resolveNode` returns, or the row when it isn't given. */
-type PageNode<Node, PageRow, MaybeRow extends boolean> = [Node] extends [never]
-  ? PageRow
+/**
+ * The connection `resolve` returns. Its nodes are what `resolveNode` returns, or the rows when it
+ * isn't given. With `resolveNode`, each edge also holds its row's keys, for edge fields to read.
+ */
+type HelperPage<Node, PageRow, MaybeRow extends boolean> = [Node] extends [never]
+  ? ConnectionPage<PageRow>
   : MaybeRow extends true
-    ? Node | PageRow
-    : Node;
+    ? ConnectionPage<Node | PageRow>
+    : Omit<ConnectionPage<Node>, 'edges'> & {
+        edges: (Omit<PageRow, 'node' | 'cursor'> & { node: Node; cursor: string })[];
+      };
 
 /**
  * Where the nodes sit beneath the connection field. The selection mapper finds the node type there,
@@ -199,15 +208,27 @@ export interface PrismaConnectionHelpers<
     nestedSelection: (query: undefined, path: PathSegment[]) => unknown,
   ): ConnectionPageEntry<M, HelperRow<Types, M, Select, Ref>>;
   /**
+   * Loads one page of `collection`, a collection of this model, for the root connection field
+   * `info` resolves: filtered and paged as `getQuery` pages a relation, with the selection beneath
+   * the connection's nodes, and its count when `totalCount` is selected. Pass the rows to `resolve`.
+   */
+  load<C extends ResolverCollection<Types, M>>(
+    collection: C & NoInfer<UnorderedCollection<C>>,
+    args: ConnectionArgs<Args>,
+    ctx: Types['Context'],
+    info: GraphQLResolveInfo,
+  ): Promise<HelperRow<Types, M, Select, Ref>[]>;
+  /**
    * The connection of `rows`, paged by `args` as `getQuery` pages them. `totalCount` is only set
-   * when the rows are the list `getQuery` loaded. `parent` is passed on to the connection.
+   * when the rows are the list `getQuery` or `load` loaded. `parent` is passed on to the
+   * connection.
    */
   resolve(
     rows: readonly HelperRow<Types, M, Select, Ref>[],
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
     parent?: unknown,
-  ): ConnectionPage<PageNode<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>>;
+  ): HelperPage<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>;
 }
 
 export interface PrismaConnectionHelperOptions<
@@ -293,7 +314,7 @@ export function prismaConnectionHelpers<
   /** The selection of each row of a page: what `select` loads, and the nodes. */
   const pageRows = (
     seed: PrismaNextSelection,
-    nested: NestedSelection<PrismaNextSelection>,
+    nested: PlanNested,
     { path, type }: NestedEntry,
     args: object,
     ctx: object,
@@ -382,6 +403,35 @@ export function prismaConnectionHelpers<
       const entry = nestedSelection(undefined, NODE_PATH) as { [NESTED_SELECTION]: NestedEntry };
       return { [CONNECTION_PAGE]: planPage(args, ctx, entry[NESTED_SELECTION]) };
     },
+    async load(
+      collection: MapperCollection,
+      args: PothosSchemaTypes.DefaultConnectionArguments,
+      ctx: object,
+      info: GraphQLResolveInfo,
+    ) {
+      const { rows, totalCount } = await paging.loadPage(
+        collection,
+        undefined,
+        args,
+        ctx,
+        info,
+        (paged, seed) =>
+          completeValue(
+            pageRows(
+              initialSelection(paged, seed),
+              nestedFromInfo(info, config, ctx, CONNECTION_NODE_PATHS),
+              {},
+              args,
+              ctx,
+            ),
+            (selection) => config.adapter.emit(paged, selection, model),
+          ),
+      );
+      // `resolve` pages the rows from (args, ctx), so they only carry the count.
+      return Object.assign(rows, {
+        [PAGE]: { count: totalCount } satisfies Pick<PageData, 'count'>,
+      });
+    },
     resolve(
       rows: readonly Record<string, unknown>[],
       args: PothosSchemaTypes.DefaultConnectionArguments,
@@ -389,18 +439,23 @@ export function prismaConnectionHelpers<
       parent?: unknown,
     ) {
       // Only the list `getQuery` loaded carries its count.
-      const totalCount = (rows as { [PAGE]?: PageData })[PAGE]?.count;
+      const totalCount = (rows as { [PAGE]?: Pick<PageData, 'count'> })[PAGE]?.count;
       const page = buildConnectionPage(rows, paging.pagingPlan(args, ctx), args, {
         totalCount,
         parent,
       });
-      // After building the page, so cursors are encoded from the rows.
-      if (resolveNode) {
-        for (const edge of page.edges) {
-          (edge as { node: unknown }).node = resolveNode(edge.node as never);
-        }
+      if (!resolveNode) {
+        return page;
       }
-      return page;
+      // Each edge keeps its cursor, which is encoded from the row.
+      const edges = page.edges.map((edge) =>
+        Object.defineProperty(
+          { ...edge.node, node: resolveNode(edge.node as never) },
+          'cursor',
+          Object.getOwnPropertyDescriptor(edge, 'cursor')!,
+        ),
+      );
+      return { ...page, edges };
     },
   };
 }
