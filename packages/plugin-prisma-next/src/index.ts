@@ -618,10 +618,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           }
         }
       }
-      // A plan that loaded the parent planned the field into it.
-      if (mapping) {
-        setRowMappings(context, info, mapping.nested);
-        return resolver(parentFor(row, mapping), args, context, info);
+      // A plan that loaded the parent planned the field into it, unless the parent holds another
+      // field's rows.
+      const parent = mapping && parentFor(row, mapping);
+      if (parent) {
+        setRowMappings(context, info, mapping!.nested);
+        return resolver(parent, args, context, info);
       }
       // A static selection reads the row its type's checks read, reloaded only when it lacks a key
       // the field or the type's `select`s name.
@@ -632,7 +634,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         );
       }
       return reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, row)).then(
-        (reloaded) => resolver(parentFor(reloaded.row, reloaded.mapping), args, context, info),
+        // A reload plans the field, so the reloaded row holds what it planned.
+        (reloaded) => resolver(parentFor(reloaded.row, reloaded.mapping)!, args, context, info),
       );
     };
   }

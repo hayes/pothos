@@ -637,9 +637,9 @@ function readOwn<T>(
   return (
     reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, parent))
       // A reload plans its field first, onto a level that loads nothing yet, so the field always
-      // fits and has a mapping.
+      // fits, has a mapping and holds what it planned.
       .then(({ row, mapping }) =>
-        read(fieldCopy(row, model, typeNested(info.parentType), mapping!.position!)),
+        read(fieldCopy(row, model, typeNested(info.parentType), mapping!.position!)!),
       )
   );
 }

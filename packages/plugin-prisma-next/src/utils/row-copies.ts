@@ -1,10 +1,10 @@
 import { brandWithType, getTypeBrand } from '@pothos/core';
 import type { Position } from '@pothos/selection-mapper';
 import { PRISMA_NEXT_TYPE_NESTED } from '../constants.js';
-import { isFieldOnlyKey, parseBranch } from './branch-keys.js';
+import { consumerOfKey, isFieldOnlyKey, parseBranch, relationName } from './branch-keys.js';
 import { consumerId, nestedId, TYPE_CONSUMER } from './consumers.js';
 import type { PrismaNextModel } from './model.js';
-import { COUNT_SLOT } from './selections.js';
+import { COUNT_SLOT, loadsWholeRelation, type PrismaNextSelection } from './selections.js';
 
 /*
  * Rows stay as the ORM returned them. A field returning rows hands each one on as a copy
@@ -234,25 +234,67 @@ export function typeCopy(value: object, model: PrismaNextModel, nested: NestedPl
 /**
  * The parent of a field planned at `position`: the type's, with what the field's consumer loaded
  * written onto a copy of it, which only the field's resolver and the plugins after this one see.
+ * Undefined when the field planned rows or values of its own that the parent doesn't hold, as when
+ * a resolver returned rows another field planned, so the parent is reloaded.
  */
 export function fieldCopy(
   value: object,
   model: PrismaNextModel,
   typeNested: NestedPlan,
   position: Position,
-): object {
+): object | undefined {
   const base = typeCopy(value, model, typeNested);
   const held = (base as Holder)[SLOTS];
   const id = consumerId(position);
   const nested = plannedNested.get(position);
-  if (!held?.slots.consumers.has(id) && !plannedPages.has(position) && !nested) {
-    return base;
+  if (!held?.slots.consumers.has(id)) {
+    const loads = ownLoads.get(position);
+    // Rows of every row of a relation load unbranched, which any reader of the whole relation reads.
+    const row = (held?.row ?? base) as Row;
+    for (const [name, whole] of loads ?? []) {
+      if (!whole || held?.slots.relations[name] || !Array.isArray(row[name])) {
+        return undefined;
+      }
+    }
+    if (!plannedPages.has(position) && !nested) {
+      return base;
+    }
   }
   return copyWith(base, held?.row ?? base, held?.slots ?? NO_SLOTS, id, {
     model,
     nested: nested ?? NO_NESTED,
     field: { id, position },
   });
+}
+
+/**
+ * The relations each field loads rows of a to-many relation or computed values from, and whether
+ * it loads only every row of the relation.
+ */
+const ownLoads = new WeakMap<Position, ReadonlyMap<string, boolean>>();
+
+/** Records what `selection`, the selection of the field at `position`, loads of its own. */
+export function registerOwnLoads(position: Position, selection: PrismaNextSelection) {
+  const id = consumerId(position);
+  let loads: Map<string, boolean> | undefined;
+  // A to-one relation is keyed by its name, and read by every field. A field planning fields
+  // beneath it on its parent's row, as `t.variant` does, also returns what they load.
+  const add = (key: string, whole: boolean) => {
+    const name = relationName(key);
+    if (name !== key && consumerOfKey(key) === id) {
+      loads ??= new Map();
+      loads.set(name, (loads.get(name) ?? true) && whole);
+    }
+  };
+  for (const [key, child] of Object.entries(selection.relations ?? {})) {
+    add(key, loadsWholeRelation(child) === true);
+  }
+  for (const key of Object.keys(selection.computed ?? {})) {
+    add(key, false);
+  }
+  if (loads) {
+    ownLoads.set(position, loads);
+  }
 }
 
 /** The relations whose rows the nested `select`s of each field's `select` wrote branches on. */

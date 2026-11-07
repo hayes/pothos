@@ -1161,6 +1161,84 @@ describe('aliases of one computed value', () => {
   });
 });
 
+// A resolver can return rows another alias's plan loaded, such as from an app-level cache. A field
+// whose own rows or values those rows lack reloads its parent rather than read another field's.
+describe('rows a resolver shares between aliases', () => {
+  const builder = createBuilder<{ cache: Map<string, unknown> }>();
+  builder.prismaObject('Post', {
+    select: { comments: true },
+    fields: (t) => ({
+      id: t.exposeID('id'),
+      commentCount: t.int({ resolve: (post) => post.comments.length }),
+      all: t.relation('comments'),
+      byAuthor: t.relation('comments', {
+        args: { author: t.arg.string({ required: true }) },
+        query: (args) => ({ where: { authorId: args.author }, orderBy: { id: 'asc' } }),
+      }),
+      countByAuthor: t.relationCount('comments', {
+        args: { author: t.arg.string({ required: true }) },
+        query: (args) => ({ where: { authorId: args.author } }),
+      }),
+      page: t.relatedConnection('comments', { query: { orderBy: { id: 'asc' } } }),
+    }),
+  });
+  builder.prismaObject('Comment', { fields: (t) => ({ id: t.exposeID('id') }) });
+  builder.queryType({
+    fields: (t) => ({
+      posts: t.prismaField({
+        type: ['Post'],
+        resolve: (posts, _root, _args, { cache }) => {
+          if (!cache.has('posts')) {
+            cache.set('posts', posts.where({ id: 'p-hello' }).all().toArray());
+          }
+          return cache.get('posts') as ReturnType<ReturnType<typeof posts.all>['toArray']>;
+        },
+      }),
+    }),
+  });
+  const schema = builder.toSchema();
+
+  it.each([
+    [
+      'a filtered relation',
+      '{ a: posts { byAuthor(author: "u-bob") { id } } b: posts { byAuthor(author: "u-alice") { id } } }',
+      { a: [{ byAuthor: [{ id: 'c-1' }] }], b: [{ byAuthor: [{ id: 'c-2' }] }] },
+    ],
+    [
+      'a filtered relation beside a whole one',
+      '{ a: posts { commentCount } b: posts { byAuthor(author: "u-alice") { id } } }',
+      { a: [{ commentCount: 2 }], b: [{ byAuthor: [{ id: 'c-2' }] }] },
+    ],
+    [
+      'a computed value',
+      '{ a: posts { countByAuthor(author: "u-bob") } b: posts { countByAuthor(author: "nobody") } }',
+      { a: [{ countByAuthor: 1 }], b: [{ countByAuthor: 0 }] },
+    ],
+    [
+      'a page',
+      '{ a: posts { page(first: 1) { nodes { id } } } b: posts { page(last: 1) { nodes { id } } } }',
+      { a: [{ page: { nodes: [{ id: 'c-1' }] } }], b: [{ page: { nodes: [{ id: 'c-2' }] } }] },
+    ],
+  ])('reloads the parent of %s the shared rows lack', async (_, source, data) => {
+    const result = await run(schema, source, { context: { cache: new Map() } });
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual(data);
+    expect(result.statements).toHaveLength(2);
+  });
+
+  it('reads the whole relation the shared rows hold', async () => {
+    const result = await run(schema, '{ a: posts { id } b: posts { all { id } } }', {
+      context: { cache: new Map() },
+    });
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      a: [{ id: 'p-hello' }],
+      b: [{ all: [{ id: 'c-1' }, { id: 'c-2' }] }],
+    });
+    expect(result.statements).toHaveLength(1);
+  });
+});
+
 describe("relationCount's query", () => {
   const builder = createBuilder();
   builder.prismaObject('User', {
