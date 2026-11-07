@@ -39,7 +39,7 @@ import {
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_RELATION_ROWS,
-  PRISMA_NEXT_TYPE_READS,
+  PRISMA_NEXT_TYPE_NESTED,
   PRISMA_NEXT_TYPE_SELECT,
   PRISMA_NEXT_TYPE_SELECTS,
 } from './constants.js';
@@ -70,14 +70,7 @@ import {
   returnsRelationRowsAs,
 } from './utils/model.js';
 import { refFor } from './utils/refs.js';
-import {
-  fieldCopy,
-  type NestedPlan,
-  rowOf,
-  type TypeReads,
-  typeCopy,
-  typeReads,
-} from './utils/row-copies.js';
+import { fieldCopy, type NestedPlan, rowOf, typeCopy, typeNested } from './utils/row-copies.js';
 import {
   EMPTY,
   type Narrowing,
@@ -272,7 +265,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       extensions: {
         ...typeConfig.extensions,
         [PRISMA_NEXT_TYPE_SELECTS]: [...selects.values()],
-        [PRISMA_NEXT_TYPE_READS]: this.typeReadsOf(root),
+        [PRISMA_NEXT_TYPE_NESTED]: this.typeNestedOf(root),
         [PRISMA_NEXT_MODEL]: model,
         [PRISMA_NEXT_CONFIG]: this.config,
         // Filled in afterBuild by registerImplementations.
@@ -459,16 +452,19 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     Map<string, { type: string; definition: unknown }>
   >();
 
-  /** What type-level `select`s read from their own branch, by root model. */
-  private readonly typeReads = new Map<string, { nested: Map<string, NestedPlan> }>();
+  /**
+   * The relation entries of type-level `select`s whose nested `select` writes branches on the
+   * relation's rows, by root model.
+   */
+  private readonly typeNested = new Map<string, Map<string, NestedPlan>>();
 
-  private typeReadsOf(root: string) {
-    let reads = this.typeReads.get(root);
-    if (!reads) {
-      reads = { nested: new Map() };
-      this.typeReads.set(root, reads);
+  private typeNestedOf(root: string) {
+    let nested = this.typeNested.get(root);
+    if (!nested) {
+      nested = new Map();
+      this.typeNested.set(root, nested);
     }
-    return reads;
+    return nested;
   }
 
   /**
@@ -511,7 +507,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       check(key, { [relation]: compute });
     }
     for (const [name, nested] of nestedPlan(split, model) ?? []) {
-      this.typeReadsOf(root).nested.set(name, nested);
+      this.typeNestedOf(root).set(name, nested);
     }
   }
 
@@ -596,7 +592,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { config } = this;
     const model = getModel(config.contract, modelKey);
-    const { keys: typeKeys, reads } = this.typeData(fieldConfig.parentType);
+    const { keys: typeKeys, nested } = this.typeData(fieldConfig.parentType);
     // A static selection, which names only columns, reads what its type's `select`s load and its
     // columns, which a row no plan loaded can hold. A select function reads what the plan that
     // loaded the parent planned for it.
@@ -609,8 +605,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const needsMapping = !columnsOnly || (returnKind !== 'Scalar' && returnKind !== 'Enum');
     const parentFor = (row: object, mapping: Mapping | null | undefined) =>
       mapping?.position
-        ? fieldCopy(row, model, reads, mapping.position)
-        : typeCopy(row, model, reads);
+        ? fieldCopy(row, model, nested, mapping.position)
+        : typeCopy(row, model, nested);
     const reload = (
       row: object,
       args: object,
@@ -638,7 +634,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         return resolver(parentFor(row, mapping), args, context, info);
       }
       if (columnsOnly) {
-        const parent = typeCopy(row, model, reads);
+        const parent = typeCopy(row, model, nested);
         if (holds(parent, needed)) {
           return resolver(parent, args, context, info);
         }
@@ -663,20 +659,20 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return undefined;
     }
     const model = getModel(this.config.contract, modelKey);
-    const reads = typeReads(typeConfig);
+    const nested = typeNested(typeConfig);
     return (row: unknown) =>
-      row !== null && typeof row === 'object' ? typeCopy(row, model, reads) : row;
+      row !== null && typeof row === 'object' ? typeCopy(row, model, nested) : row;
   }
 
   /** What `typeData` found for each prisma type. */
   private readonly typeDataCache = new Map<
     string,
-    { modelKey: string; model: PrismaNextModel; keys: string[]; reads: TypeReads }
+    { modelKey: string; model: PrismaNextModel; keys: string[]; nested: NestedPlan }
   >();
 
   /**
    * The model of a prisma type, what a row must hold for the `select`s of the type and its
-   * interfaces, and the keys of its model's type-level `select`s that only a load fills.
+   * interfaces, and what those `select`s write on their relations' rows.
    */
   private typeData(typeName: string) {
     let data = this.typeDataCache.get(typeName);
@@ -688,7 +684,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         modelKey,
         model,
         keys: [...new Set(typeSelects(typeConfig).flatMap(selectedKeys))],
-        reads: typeReads(typeConfig),
+        nested: typeNested(typeConfig),
       };
       this.typeDataCache.set(typeName, data);
     }
@@ -704,7 +700,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   private createTypeParentLoader(typeName: string) {
     let type: GraphQLObjectType | undefined;
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
-      const { modelKey, model, keys, reads } = this.typeData(typeName);
+      const { modelKey, model, keys, nested } = this.typeData(typeName);
       type ??= info.schema.getType(typeName) as GraphQLObjectType;
       const selection =
         info.parentType.name === typeName
@@ -714,13 +710,13 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           : undefined;
       const columns = (typeof selection === 'function' ? undefined : selection?.columns) ?? [];
       // A prisma type's parent is always a row.
-      const typed = typeCopy(parent as object, model, reads);
+      const typed = typeCopy(parent as object, model, nested);
       if (holds(typed, keys) && holds(typed, columns)) {
         return typed;
       }
       return reloadFor(info, () =>
         this.config.loader(context, modelKey).loadTypeRow(info, parent as object, type!),
-      ).then((row) => typeCopy(row, model, reads));
+      ).then((row) => typeCopy(row, model, nested));
     };
   }
 }

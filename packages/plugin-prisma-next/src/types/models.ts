@@ -309,8 +309,8 @@ export type WholeRelationRow<Types extends SchemaTypes, M extends ModelKey<Types
 /**
  * A row the loader planned from a query, such as a row connection helpers load with `info`: its key
  * and what the query's selection needs, which includes the `select` of the type it resolves as. A
- * model without an identity loads its whole row. The type-only brand keeps a hand-built row, which
- * may lack what a type's `select` needs, from passing as one.
+ * model without an identity loads its whole row. The type-only brand marks it as planned, which a
+ * field returning a type of `M` requires.
  */
 export type PlannedRow<Types extends SchemaTypes, M extends ModelKey<Types>> = ([
   IdentityFields<Types, M>,
@@ -324,7 +324,7 @@ export type LoadedRow<Types extends SchemaTypes, M extends ModelKey<Types>> = Ro
   PlannedRowBrand<M>;
 
 /** A model's to-one relations. */
-export type ToOneRelationKeys<Types extends SchemaTypes, M extends ModelKey<Types>> = {
+type ToOneRelationKeys<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   [R in RelationKeys<Types, M>]: IsToMany<Types, M, R> extends true ? never : R;
 }[RelationKeys<Types, M>];
 
@@ -339,7 +339,7 @@ type ReturnedKeys<Types extends SchemaTypes, M extends ModelKey<Types>> =
  * `Shape` holds other than to-many relations and computed values. A model without an identity is
  * planned whole.
  */
-type ReturnedShape<
+type ResolveTypeShape<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   Shape,
@@ -377,16 +377,20 @@ export type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Typ
  * before fields run. A row planned for another type of the model, such as one of its variants'
  * types, needn't hold it.
  */
-export type InterfaceReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>> = [
+export type InterfaceReturnShape<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+> = ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
+  M | VariantModelKeys<Types['PrismaNextContract'], M>
+> &
+  DiscriminatorRow<Types, M>;
+
+/** A row's discriminator, for a discriminated model. */
+export type DiscriminatorRow<Types extends SchemaTypes, M extends ModelKey<Types>> = [
   DiscriminatorField<Types, M>,
 ] extends [never]
-  ? ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
-      M | VariantModelKeys<Types['PrismaNextContract'], M>
-    >
-  : ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
-      M | VariantModelKeys<Types['PrismaNextContract'], M>
-    > &
-      Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
+  ? unknown
+  : Pick<Row<Types, M>, DiscriminatorField<Types, M>>;
 
 /**
  * The parent a `prismaInterface`'s `resolveType` reads: what every row `InterfaceReturnShape`
@@ -401,8 +405,8 @@ export type ResolveTypeParent<
   Shape,
 > = Simplify<
   [DiscriminatorField<Types, M>] extends [never]
-    ? ReturnedShape<Types, M, Shape>
-    : ReturnedShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>
+    ? ResolveTypeShape<Types, M, Shape>
+    : ResolveTypeShape<Types, M, Shape> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>
 >;
 
 export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {

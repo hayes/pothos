@@ -69,7 +69,7 @@ import { orderableProblem } from './utils/cursors.js';
 import { checkReturned, reloadFor } from './utils/errors.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { getRefFromContractModel, refFor } from './utils/refs.js';
-import { fieldCopy, fieldValue, typeReads } from './utils/row-copies.js';
+import { fieldCopy, fieldValue, typeNested } from './utils/row-copies.js';
 import { type PrismaNextSelectFn, VALUE_SLOT } from './utils/selections.js';
 
 type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
@@ -639,7 +639,7 @@ function readOwn<T>(
       // A reload plans its field first, onto a level that loads nothing yet, so the field always
       // fits and has a mapping.
       .then(({ row, mapping }) =>
-        read(fieldCopy(row, model, typeReads(info.parentType), mapping!.position!)),
+        read(fieldCopy(row, model, typeNested(info.parentType), mapping!.position!)),
       )
   );
 }

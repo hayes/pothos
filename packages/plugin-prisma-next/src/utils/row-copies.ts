@@ -1,6 +1,6 @@
 import { brandWithType, getTypeBrand } from '@pothos/core';
 import type { Position } from '@pothos/selection-mapper';
-import { PRISMA_NEXT_TYPE_READS } from '../constants.js';
+import { PRISMA_NEXT_TYPE_NESTED } from '../constants.js';
 import { isFieldOnlyKey, parseBranch } from './branch-keys.js';
 import { consumerId, nestedId, TYPE_CONSUMER } from './consumers.js';
 import type { PrismaNextModel } from './model.js';
@@ -219,16 +219,16 @@ function liftNested(copy: Row, model: PrismaNextModel, id: string, plan: NestedP
  * plugin's or another plugin's copy of it, is the parent as it is, but a field's copy is made again
  * from its row.
  */
-export function typeCopy(value: object, model: PrismaNextModel, reads: TypeReads) {
+export function typeCopy(value: object, model: PrismaNextModel, nested: NestedPlan) {
   const held = (value as Holder)[SLOTS];
   if (held && !held.field) {
     return value;
   }
   const row = held ? held.row : value;
   const slots = held ? held.slots : slotsOf(row, model);
-  return slots === NO_SLOTS && !reads.nested.size
+  return slots === NO_SLOTS && !nested.size
     ? row
-    : copyWith(row, row, slots, TYPE_CONSUMER, { model, nested: reads.nested });
+    : copyWith(row, row, slots, TYPE_CONSUMER, { model, nested });
 }
 
 /**
@@ -238,10 +238,10 @@ export function typeCopy(value: object, model: PrismaNextModel, reads: TypeReads
 export function fieldCopy(
   value: object,
   model: PrismaNextModel,
-  reads: TypeReads,
+  typeNested: NestedPlan,
   position: Position,
 ): object {
-  const base = typeCopy(value, model, reads);
+  const base = typeCopy(value, model, typeNested);
   const held = (base as Holder)[SLOTS];
   const id = consumerId(position);
   const nested = plannedNested.get(position);
@@ -357,19 +357,14 @@ function copyOf(row: object, skip?: (key: string) => boolean): Row {
   return copy;
 }
 
-/** What the type-level `select`s of a model read from their own branch. */
-export interface TypeReads {
-  /** Their relation entries whose nested `select` writes branches on the relation's rows. */
-  readonly nested: NestedPlan;
-}
-
-const NO_READS: TypeReads = { nested: NO_NESTED };
-
-/** What the type-level `select`s of the type's model read from their own branch. */
-export function typeReads(type: {
+/**
+ * The relation entries of the type-level `select`s of the type's model whose nested `select`
+ * writes branches on the relation's rows.
+ */
+export function typeNested(type: {
   readonly extensions?: Readonly<Record<string, unknown>> | null;
-}): TypeReads {
-  return (type.extensions?.[PRISMA_NEXT_TYPE_READS] as TypeReads | undefined) ?? NO_READS;
+}): NestedPlan {
+  return (type.extensions?.[PRISMA_NEXT_TYPE_NESTED] as NestedPlan | undefined) ?? NO_NESTED;
 }
 
 /** Records the relations whose rows the nested `select`s of the field at `position` write on. */
