@@ -17,9 +17,9 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type { PrismaNextObjectFieldBuilder } from './prisma-next-field-builder.js';
 import type { ResolverCollection } from './types/collections.js';
 import type {
-  ConnectionQueryLiteral,
   ConnectionResultShape,
   PrismaNextConnectionFieldOptions,
+  RootConnectionQueryLiteral,
   ShapeFromConnection,
 } from './types/connections.js';
 import type {
@@ -337,7 +337,7 @@ declare global {
             const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
             const EdgeInterfaces extends InterfaceParam<Types>[] = [],
             M extends ModelKey<Types> = ParamToModelKey<Types, Param>,
-            QueryLiteral extends ConnectionQueryLiteral<Types, M> = ConnectionQueryLiteral<
+            QueryLiteral extends RootConnectionQueryLiteral<Types, M> = RootConnectionQueryLiteral<
               Types,
               M
             >,

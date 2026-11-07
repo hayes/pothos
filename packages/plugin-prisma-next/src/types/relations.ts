@@ -18,6 +18,7 @@ import type { Planned, PrismaNextObjectRef } from '../object-ref.js';
 import type { IncludeRefinementCollection, WithNsId } from './collections.js';
 import type {
   BareModelName,
+  BaseModelKey,
   IsUnion,
   LoadedRow,
   ModelKey,
@@ -96,6 +97,30 @@ export type RelationWhere<Types extends SchemaTypes, M extends ModelKey<Types>> 
       NamespaceOf<Types['PrismaNextContract'], M>,
       BareModelName<M>
     >;
+
+/**
+ * The `where` of a root field or `prismaConnection`. A variant type's rows load through its base's
+ * collection, `orm.Task.variant('bug')`, whose shorthand filter knows only the base's columns, so
+ * only the predicate can name the variant's own. A relation loads a variant through its own.
+ */
+export type RootWhere<Types extends SchemaTypes, M extends ModelKey<Types>> =
+  | ShorthandWhereFilter<
+      Types['PrismaNextContract'],
+      NamespaceOf<Types['PrismaNextContract'], ShorthandModel<Types, M>>,
+      BareModelName<ShorthandModel<Types, M>>
+    >
+  | RelationPredicate<
+      Types['PrismaNextContract'],
+      NamespaceOf<Types['PrismaNextContract'], M>,
+      BareModelName<M>
+    >;
+
+/** The model a root shorthand `where` of `M`'s rows is checked against: its base, for a variant. */
+type ShorthandModel<Types extends SchemaTypes, M extends ModelKey<Types>> = [
+  BaseModelKey<Types['PrismaNextContract'], M>,
+] extends [never]
+  ? M
+  : BaseModelKey<Types['PrismaNextContract'], M>;
 
 /** A to-many relation's literal `query`. */
 export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> {
@@ -451,7 +476,7 @@ export type QueryOption<
  * interface for the reason `ConnectionQueryLiteral` is one.
  */
 export type FieldQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> = {
-  where?: RelationWhere<Types, M>;
+  where?: RootWhere<Types, M>;
   orderBy?: RelationOrderBy<Types, M>;
   limit?: number;
   offset?: number;

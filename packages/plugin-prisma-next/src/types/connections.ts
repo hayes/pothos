@@ -16,7 +16,13 @@ import type { ResolverCollection, UnorderedCollection } from './collections.js';
 import type { RootResolveParent } from './fields.js';
 import type { ModelKey, ObjectBaseShape, RelationKeys, Row } from './models.js';
 import type { RelationOrderBy } from './order-by.js';
-import type { QueryOption, RelatedModel, RelationTypeModel, RelationWhere } from './relations.js';
+import type {
+  QueryOption,
+  RelatedModel,
+  RelationTypeModel,
+  RelationWhere,
+  RootWhere,
+} from './relations.js';
 
 /**
  * What a connection applies before paging: its filter, and its order, which the model's key breaks
@@ -29,6 +35,12 @@ import type { QueryOption, RelatedModel, RelationTypeModel, RelationWhere } from
  */
 export type ConnectionQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   where?: RelationWhere<Types, M>;
+  orderBy?: RelationOrderBy<Types, M>;
+};
+
+/** A `prismaConnection`'s `query`, whose `where` is a {@link RootWhere}. */
+export type RootConnectionQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> = {
+  where?: RootWhere<Types, M>;
   orderBy?: RelationOrderBy<Types, M>;
 };
 

@@ -108,6 +108,7 @@ export type {
   ConnectionQueryLiteral,
   PrismaNextConnectionFieldOptions,
   PrismaNextRelatedConnectionOptions,
+  RootConnectionQueryLiteral,
 } from './types/connections.js';
 export type {
   NameOrVariant,

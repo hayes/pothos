@@ -99,6 +99,9 @@ builder.queryType({
 
 - A `collection` for a variant's rows is `ctx.db.orm.Task.variant('bug')`, not `ctx.db.orm.Bug`,
   which Prisma doesn't filter by the discriminator.
+- The shorthand `where` of a root field or `prismaConnection` returning a variant takes only the
+  base's columns. Use the predicate form, `where: (bug) => bug.severity.eq('high')`, for the
+  variant's own.
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
 - A relation declared on a variant can't be in the variant type's `select`. Use a field's `select`
   or `t.relation`.

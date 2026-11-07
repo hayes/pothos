@@ -219,6 +219,14 @@ inheritance.prismaObject('Feature', {
   interfaces: [task],
   fields: (t) => ({ id: t.exposeID('id') }),
 });
+// A relation loads a variant through its own collection, so its shorthand takes the variant's columns.
+inheritance.prismaObject('User', {
+  fields: (t) => ({
+    highReviews: t.relation('reviews', { query: { where: { severity: 'high' } } }),
+    highReviewCount: t.relationCount('reviews', { query: { where: { severity: 'high' } } }),
+    highReviewPage: t.relatedConnection('reviews', { query: { where: { severity: 'high' } } }),
+  }),
+});
 inheritance.queryType({
   fields: (t) => ({
     bugs: t.prismaField({
@@ -233,6 +241,23 @@ inheritance.queryType({
     }),
     tasks: t.prismaField({ type: ['Task'], resolve: (tasks) => tasks.all() }),
     allBugs: t.prismaField({ type: ['Bug'] }),
+    // A variant's rows load through its base, whose shorthand filter has only the base's columns.
+    highBugs: t.prismaField({
+      type: ['Bug'],
+      query: { where: (bug) => bug.severity.eq('high') },
+    }),
+    titledBugs: t.prismaField({ type: ['Bug'], query: { where: { title: 'x' } } }),
+    // @ts-expect-error `severity` is a column of the variant, not of the base
+    shorthandBugs: t.prismaField({ type: ['Bug'], query: { where: { severity: 'high' } } }),
+    bugPage: t.prismaConnection({
+      type: 'Bug',
+      // @ts-expect-error `severity` is a column of the variant, not of the base
+      query: { where: { severity: 'high' } },
+    }),
+    highBugPage: t.prismaConnection({
+      type: 'Bug',
+      query: { where: (bug) => bug.severity.eq('high') },
+    }),
     // @ts-expect-error rows of another variant
     features: t.prismaField({ type: ['Feature'], resolve: (_bugs) => bugRows }),
   }),
