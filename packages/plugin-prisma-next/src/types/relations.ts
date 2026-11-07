@@ -132,19 +132,30 @@ export interface RelationQueryLiteral<Types extends SchemaTypes, M extends Model
 
 /**
  * The literal `query` a to-many relation takes, and its entry in a `select`. A to-one relation is
- * loaded whole, so it takes none. Rows narrowed to a variant, `TypeModel`, take its columns as a
- * root field of the variant does.
+ * loaded whole, so it takes none.
  */
 export type RelationQueryValue<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   R extends RelationKeys<Types, M>,
-  TypeModel extends ModelKey<Types> = RelatedModel<Types, M, R>,
 > =
   IsToMany<Types, M, R> extends true
-    ? [TypeModel] extends [RelatedModel<Types, M, R>]
-      ? RelationQueryLiteral<Types, TypeModel>
-      : FieldQueryLiteral<Types, TypeModel>
+    ? RelationQueryLiteral<Types, RelatedModel<Types, M, R>>
+    : never;
+
+/**
+ * {@link RelationQueryValue} of rows of `TypeModel`. Rows narrowed to a variant of the target take
+ * its columns as a root field of the variant does.
+ */
+type TypedRelationQueryValue<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  R extends RelationKeys<Types, M>,
+  TypeModel extends ModelKey<Types>,
+> = [TypeModel] extends [RelatedModel<Types, M, R>]
+  ? RelationQueryValue<Types, M, R>
+  : IsToMany<Types, M, R> extends true
+    ? FieldQueryLiteral<Types, TypeModel>
     : never;
 
 /**
@@ -173,13 +184,13 @@ export type RelationQuery<
 > =
   IsToMany<Types, ParentModel, RelName> extends true
     ?
-        | RelationQueryValue<Types, ParentModel, RelName, TypeModel>
+        | TypedRelationQueryValue<Types, ParentModel, RelName, TypeModel>
         | ((
             args: InputShapeFromFields<Args>,
             context: Types['Context'],
           ) => MaybeAsyncSelection<
             Types,
-            | RelationQueryValue<Types, ParentModel, RelName, TypeModel>
+            | TypedRelationQueryValue<Types, ParentModel, RelName, TypeModel>
             | RelationRefinement<Types, ParentModel, RelName>
             | undefined
           >)

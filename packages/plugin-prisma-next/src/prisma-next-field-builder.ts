@@ -482,11 +482,13 @@ export class PrismaNextObjectFieldBuilder<
         EdgeInterfaces extends InterfaceParam<Types>[] = [],
         // The model of `type`. A variant of the target narrows the rows.
         TypeModel extends RelationTypeModel<Types, M, RelName> = RelatedModel<Types, M, RelName>,
+        // The relation's target, as a parameter, which is cheaper to check than computing it.
+        Target extends ModelKey<Types> = RelatedModel<Types, M, RelName>,
         QueryLiteral extends RelatedConnectionQueryLiteral<
           Types,
-          RelatedModel<Types, M, RelName>,
+          Target,
           TypeModel
-        > = RelatedConnectionQueryLiteral<Types, RelatedModel<Types, M, RelName>, TypeModel>,
+        > = RelatedConnectionQueryLiteral<Types, Target, TypeModel>,
       >(
         name: RelName,
         ...args: NormalizeArgs<

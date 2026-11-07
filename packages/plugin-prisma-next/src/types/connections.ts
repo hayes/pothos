@@ -154,9 +154,12 @@ export type RelatedConnectionQueryLiteral<
   Types extends SchemaTypes,
   RelatedModel extends ModelKey<Types>,
   TypeModel extends ModelKey<Types>,
-> = [TypeModel] extends [RelatedModel]
-  ? ConnectionQueryLiteral<Types, TypeModel>
-  : RootConnectionQueryLiteral<Types, TypeModel>;
+> = {
+  where?: [TypeModel] extends [RelatedModel]
+    ? RelationWhere<Types, TypeModel>
+    : RootWhere<Types, TypeModel>;
+  orderBy?: RelationOrderBy<Types, TypeModel>;
+};
 
 export type PrismaNextRelatedConnectionOptions<
   Types extends SchemaTypes,
