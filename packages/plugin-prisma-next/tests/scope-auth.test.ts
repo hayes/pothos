@@ -852,6 +852,55 @@ describe("a type's select before plugins listed first", () => {
     }
   });
 
+  it("fails a field reading the row a field check's reload failed with a generic error", async () => {
+    const db = createSqliteRuntime(
+      ctx.contract,
+      sampleDdl
+        .replace('email TEXT NOT NULL UNIQUE', 'nickname TEXT')
+        .replace(
+          /INSERT INTO user \(id, firstName, lastName, email\)/,
+          'INSERT INTO user (id, firstName, lastName, nickname)',
+        ),
+    );
+    try {
+      const builder = new SchemaBuilder<{
+        PrismaNextContract: SampleContract;
+        AuthScopes: { ok: boolean };
+      }>({
+        plugins: [ScopeAuthPlugin, PrismaNextPlugin],
+        scopeAuth: { authScopes: () => ({ ok: true }) },
+        prismaNext: { client: db.client },
+      });
+      const User = builder.prismaObject('User', {
+        select: ['firstName'],
+        fields: (t) => ({
+          guarded: t.string({
+            authScopes: (user) => ({ ok: typeof user.firstName === 'string' }),
+            resolve: () => 'guarded',
+          }),
+          firstName: t.exposeString('firstName'),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          handBuilt: t.field({
+            type: User,
+            nullable: true,
+            resolve: () => ({ id: 'u-alice' }) as never,
+          }),
+        }),
+      });
+      const result = await runCaptured(builder.toSchema(), '{ handBuilt { guarded firstName } }');
+      expect(result.errors?.map((error) => detailOf(error))).toEqual([
+        expect.stringMatching(/^User\.guarded: .*email/),
+        expect.stringMatching(/^User\.firstName: .*email/),
+      ]);
+      expect(result.statements).toHaveLength(1);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
   it("passes the app's own errors from a reload through as they are", async () => {
     class TenantError extends Error {}
     const builder = new SchemaBuilder<{
@@ -2260,8 +2309,6 @@ describe.each(
     [name, true, plugins],
   ]),
 )('rows reloaded for checks (%s, runScopesOnType: %s)', (_, runScopesOnType, plugins) => {
-  // Listed first or run on the type, the checks reload the row before its fields do.
-  const checksReload = plugins[0] === ScopeAuthPlugin || runScopesOnType;
   function reloadSchema(seen: unknown[]) {
     const builder = new SchemaBuilder<{
       PrismaNextContract: SampleContract;
@@ -2326,9 +2373,8 @@ describe.each(
     const result = await runCaptured(reloadSchema(seen), '{ overridden { firstName nickname } }');
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ overridden: { firstName: 'Alice', nickname: 'Al' } });
-    // Otherwise each field reloads its own copy of the row, which the checks run on, in one batch.
-    const checked = ['alice@example.com', 'Alice', 'Al'];
-    expect(seen).toEqual(checksReload ? [checked] : [checked, checked]);
+    // The fields and the checks share one reload of the row.
+    expect(seen).toEqual([['alice@example.com', 'Alice', 'Al']]);
     expect(result.statements).toHaveLength(1);
   });
 

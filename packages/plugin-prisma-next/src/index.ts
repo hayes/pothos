@@ -4,6 +4,7 @@ import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
   type BuildCache,
+  completeValue,
   isThenable,
   type MaybePromise,
   type OutputType,
@@ -274,7 +275,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         // Read by scope-auth, whose checks can run before this plugin's `wrapResolve` reloads the
         // row, such as from `isTypeOf` or when it is listed first.
         ...(typeConfig.kind === 'Object'
-          ? { pothosScopeAuthParent: this.createTypeParentLoader(typeConfig.name) }
+          ? { pothosScopeAuthParent: this.typeParentLoader(typeConfig.name) }
           : {}),
       },
     };
@@ -572,9 +573,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
   /**
    * Hands a field of a prisma type the parent it reads. A parent the plan that loaded it planned
-   * the field for is read as it is. Without a plan, a static selection of columns reads a parent
-   * holding the keys it and the type's `select`s name, or the row scope-auth's checks reloaded.
-   * Otherwise the loader reloads the parent with what the field needs.
+   * the field for is read as it is. Without a plan, a static selection of columns reads the row the
+   * type's parent loader gives scope-auth's checks. Otherwise the loader reloads the parent with
+   * what the field needs.
    */
   private gate(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
@@ -591,12 +592,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { config } = this;
     const model = getModel(config.contract, modelKey);
-    const { keys: typeKeys, nested } = this.typeData(fieldConfig.parentType);
+    const { nested } = this.typeData(fieldConfig.parentType);
     // A static selection, which names only columns, reads what its type's `select`s load and its
     // columns, which a row no plan loaded can hold. A select function reads what the plan that
     // loaded the parent planned for it.
     const columnsOnly = typeof selection !== 'function';
-    const needed = columnsOnly ? [...typeKeys, ...(selection.columns ?? [])] : [];
     const parentTypes = [...mappingParentTypes(this.buildCache, fieldConfig, PRISMA_NEXT_MODEL)];
     // A static selection's mapping has no position, and a field returning a scalar or enum has
     // no fields beneath it to record nested mappings for, so such a field looks up no mapping.
@@ -606,15 +606,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       mapping?.position
         ? fieldCopy(row, model, nested, mapping.position)
         : typeCopy(row, model, nested);
-    const reload = (
-      row: object,
-      args: object,
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) =>
-      reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, row)).then(
-        (reloaded) => resolver(parentFor(reloaded.row, reloaded.mapping), args, context, info),
-      );
     return (value, args, context, info) => {
       const row = value as object;
       let mapping: Mapping | null = null;
@@ -632,23 +623,17 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         setRowMappings(context, info, mapping.nested);
         return resolver(parentFor(row, mapping), args, context, info);
       }
+      // A static selection reads the row its type's checks read, reloaded only when it lacks a key
+      // the field or the type's `select`s name.
       if (columnsOnly) {
-        const parent = typeCopy(row, model, nested);
-        if (holds(parent, needed)) {
-          return resolver(parent, args, context, info);
-        }
-        // The row scope-auth's checks reloaded, when they ran first, holds what the field reads.
-        const checked = config.loader(context, modelKey).peekTypeRow(info, row, info.parentType);
-        if (checked) {
-          return checked.then((checkedRow) => {
-            const typed = typeCopy(checkedRow, model, nested);
-            return holds(typed, needed)
-              ? resolver(typed, args, context, info)
-              : reload(row, args, context, info);
-          });
-        }
+        return completeValue(
+          this.typeParentLoader(info.parentType.name)(row, context, info),
+          (parent) => resolver(parent as object, args, context, info),
+        );
       }
-      return reload(row, args, context, info);
+      return reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, row)).then(
+        (reloaded) => resolver(parentFor(reloaded.row, reloaded.mapping), args, context, info),
+      );
     };
   }
 
@@ -706,6 +691,20 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    * column and what those `select`s load, once per row per root field. The loader matches
    * `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin doesn't import.
    */
+  private typeParentLoader(typeName: string) {
+    let loader = this.typeParentLoaders.get(typeName);
+    if (!loader) {
+      loader = this.createTypeParentLoader(typeName);
+      this.typeParentLoaders.set(typeName, loader);
+    }
+    return loader;
+  }
+
+  private readonly typeParentLoaders = new Map<
+    string,
+    (parent: unknown, context: object, info: GraphQLResolveInfo) => MaybePromise<unknown>
+  >();
+
   private createTypeParentLoader(typeName: string) {
     let type: GraphQLObjectType | undefined;
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
