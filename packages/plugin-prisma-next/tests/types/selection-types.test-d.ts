@@ -15,6 +15,7 @@ import PrismaNextPlugin, {
   prismaConnectionHelpers,
   type Row,
 } from '../../src';
+import type { LoadedRow } from '../../src/types/models';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 import type { Contract as PostgresContract } from '../postgres/contract';
@@ -1479,4 +1480,35 @@ prismaConnectionHelpers(inhBuilder, 'User', {
     expectTypeOf(user.reviews[0]!.severity).toEqualTypeOf<string>();
     return user;
   },
+});
+
+// `{ query }` is a relation entry, the same as the bare query.
+builder.prismaObject('User', {
+  variant: 'QueryEntryUser',
+  select: { posts: { query: { limit: 5 } } },
+  fields: (t) => ({
+    titles: t.string({
+      resolve: (user) => {
+        expectTypeOf(user.posts).toEqualTypeOf<readonly LoadedRow<Types, 'Post'>[]>();
+        return user.posts.map((post) => post.title).join();
+      },
+    }),
+    comments: t.string({
+      select: { comments: { query: { where: { authorId: 'u' }, orderBy: { id: 'asc' } } } },
+      resolve: (user) => {
+        expectTypeOf(user.comments).toEqualTypeOf<readonly LoadedRow<Types, 'Comment'>[]>();
+        return user.comments.map((comment) => comment.body).join();
+      },
+    }),
+    unknownOption: t.string({
+      // @ts-expect-error Unknown key in select: comments.query.take
+      select: { comments: { query: { take: 1 } } },
+      resolve: () => '',
+    }),
+  }),
+});
+builder.prismaObject('Post', {
+  variant: 'ToOneQueryEntryPost',
+  // @ts-expect-error A to-one relation takes no query: author
+  select: { author: { query: { limit: 1 } } },
 });

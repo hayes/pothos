@@ -91,7 +91,10 @@ export interface RelationEntry {
   page?: PlanPage;
 }
 
-/** `value`, a relation entry of a `select`, as a `RelationEntry`. A query has no `type` or `select`. */
+/**
+ * `value`, a relation entry of a `select`, as a `RelationEntry`. A query has no `type`, `query` or
+ * `select` key.
+ */
 function relationEntry(value: unknown): RelationEntry {
   if (value instanceof PrismaNextObjectRef || value instanceof PrismaNextInterfaceRef) {
     return { type: value };
@@ -105,7 +108,9 @@ function relationEntry(value: unknown): RelationEntry {
   if (NESTED_SELECTION in value) {
     return { nested: value[NESTED_SELECTION] as NestedEntry };
   }
-  return 'select' in value || 'type' in value ? (value as RelationEntry) : { query: value };
+  return 'select' in value || 'type' in value || 'query' in value
+    ? (value as RelationEntry)
+    : { query: value };
 }
 
 /**

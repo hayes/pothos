@@ -61,7 +61,8 @@ A `select` accepts:
 - Relations: `{ posts: true }`.
 - Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`,
   or a function that refines the relation's Collection: `{ posts: (posts) => posts.with(published) }`.
-  A to-one relation takes only `true`.
+  `{ posts: { query: { limit: 5 } } }` is the same as `{ posts: { limit: 5 } }`. A to-one relation
+  takes only `true`.
 - Relations with a `select` of their own, in the same form, and a `query` taking the options
   above: `{ comments: { query: { limit: 5 }, select: { post: true } } }`. A to-one relation takes
   no `query`.

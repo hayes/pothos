@@ -381,8 +381,8 @@ type EntryTypeModel<
 
 /**
  * A relation entry as an object: the `type` its rows load as, a `select` of their own in the same
- * form one level down, and for a to-many relation a `query`. It has a type or a `select`, and a
- * bare ref is `{ type: ref }`.
+ * form one level down, and for a to-many relation a `query`. `{ query }` alone loads as the query
+ * does, and a bare ref is `{ type: ref }`.
  */
 export type RelationEntrySpec<
   Types extends SchemaTypes,
@@ -390,6 +390,7 @@ export type RelationEntrySpec<
   K extends RelationKeys<Types, M>,
 > =
   | NestedSelectSpec<Types, M, K>
+  | { readonly query: NestedSelectQuery<Types, M, K> }
   | (EntryTypeModel<Types, M, K> extends infer TM extends ModelKey<Types>
       ? // One member per model, so a nested `select` is completed and inferred as that model's.
         TM extends unknown
@@ -513,11 +514,14 @@ type SimpleRelationShape<Types extends SchemaTypes, M extends ModelKey<Types>, S
   >;
 };
 
-/** A relation entry with a type or a nested `select`, or a bare ref. A query has neither key. */
-type ObjectRelationEntry =
+/** A relation entry as an object, with a type, query or nested `select`. A query has none of them. */
+type RelationEntryObject =
   | { readonly select: object }
   | { readonly type: unknown }
-  | ModelTypeRef<unknown>;
+  | { readonly query: unknown };
+
+/** A relation entry as an object, or a bare ref. */
+type ObjectRelationEntry = RelationEntryObject | ModelTypeRef<unknown>;
 
 /** The model of a relation entry's type, or the relation's target for an entry without one. */
 type EntryModel<
@@ -703,7 +707,7 @@ type UnknownSelectKeys<
             : // A ref or a list names no keys of its own; `InvalidSelectValueCheck` names the entry.
               Select[K] extends ModelTypeRef<unknown> | OutputTypeRef | readonly unknown[]
               ? never
-              : Select[K] extends { readonly select: object } | { readonly type: unknown }
+              : Select[K] extends RelationEntryObject
                 ? NestedEntryUnknownKeys<Types, M, K, Select[K]>
                 : Select[K] extends NestedSelectionEntry<never, true, unknown, infer Query>
                   ? UntypedQueryUnknownKeys<Types, RelatedModel<Types, M, K>, K, Query>
@@ -863,7 +867,7 @@ type InvalidSelectValueCheck<Types extends SchemaTypes, M extends ModelKey<Types
   [K in keyof Select & KnownSelectKeys<Types, M>]: (
     [NonNullable<Select[K]>] extends [never]
       ? true
-      : NonNullable<Select[K]> extends { readonly select: object } | { readonly type: unknown }
+      : NonNullable<Select[K]> extends RelationEntryObject
         ? // Its nested `select` is checked on its own.
           K extends RelationKeys<Types, M>
           ? Omit<NonNullable<Select[K]>, 'select'> extends {

@@ -1239,6 +1239,31 @@ describe('rows a resolver shares between aliases', () => {
   });
 });
 
+describe('a relation entry of { query }', () => {
+  it('loads as the bare query, in a type and a field select', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      select: { posts: { query: { orderBy: { id: 'desc' }, limit: 1 } } },
+      fields: (t) => ({
+        lastPost: t.string({ resolve: (user) => user.posts[0]!.id }),
+        firstPost: t.string({
+          select: { posts: { query: { orderBy: { id: 'asc' }, limit: 1 } } },
+          resolve: (user) => user.posts[0]!.id,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({ type: 'User', query: { where: { id: 'u-alice' } } }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ user { lastPost firstPost } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user).toEqual({ lastPost: 'p-hello', firstPost: 'p-draft1' });
+    expect(result.statements).toHaveLength(1);
+  });
+});
+
 describe("relationCount's query", () => {
   const builder = createBuilder();
   builder.prismaObject('User', {
