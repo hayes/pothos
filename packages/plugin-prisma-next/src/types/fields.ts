@@ -24,6 +24,7 @@ import type {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
+import type { AsyncIterableResult } from '@prisma/orm-framework/components/runtime';
 import type { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
 import type { prismaNextInterfaceBrand } from '../interface-ref.js';
 import type {
@@ -273,9 +274,17 @@ export type PrismaNextRootFieldResolver<
         args: ArgsShape,
         context: Types['Context'],
         info: GraphQLResolveInfo,
-      ) => MaybePromise<NoInfer<Shape>> | PromiseLike<NoInfer<Shape>>;
+      ) =>
+        | MaybePromise<NoInfer<Shape>>
+        | NoInfer<PlannedListResult<Shape>>
+        | PromiseLike<NoInfer<Shape>>;
       query?: never;
     };
+
+/** A list field's `all()` result, compared by its rows so a wrong row is reported directly. */
+type PlannedListResult<Shape> = Shape extends readonly (infer Item)[]
+  ? AsyncIterableResult<Item>
+  : never;
 
 export type PrismaNextRootFieldWithInputOptions<
   Types extends SchemaTypes,
