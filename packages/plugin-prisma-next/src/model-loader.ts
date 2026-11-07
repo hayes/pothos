@@ -221,6 +221,11 @@ export class ModelLoader {
     return reloaded;
   }
 
+  /** The load `loadTypeRow` started for `parent` and `type` in this root field, if any. */
+  peekTypeRow(info: GraphQLResolveInfo, parent: object, type: GraphQLObjectType) {
+    return this.reloads.get(rootPath(info))?.get(rowOf(parent))?.get(type.name);
+  }
+
   /** The row of a Relay node, planned for `info`'s selection on `typeName`, or null. */
   loadNode(
     info: GraphQLResolveInfo,

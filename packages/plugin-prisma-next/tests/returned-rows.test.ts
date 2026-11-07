@@ -194,9 +194,8 @@ describe('rows of a relation to a variant model with ScopeAuthPlugin listed firs
       ['t2', 'b@example.com'],
       ['t1', 'a@example.com'],
     ]);
-    // The users with their reviews, one batch loading every review's owner for the checks, and one
-    // for the fields.
-    expect(statements).toHaveLength(3);
+    // The users with their reviews, and one batch loading every review's owner.
+    expect(statements).toHaveLength(2);
   });
 
   it('still resolves the relation as a field of the rows', async () => {
@@ -280,8 +279,7 @@ describe('a to-one relation to a variant model with a table of its own', () => {
       ],
     });
     expect(seen).toEqual([['t3', 'feat1', 'a@example.com']]);
-    // The notes with their features, one batch loading Task's columns and relations for the checks,
-    // and one for the fields.
-    expect(statements).toHaveLength(3);
+    // The notes with their features, and one batch loading Task's columns and relations.
+    expect(statements).toHaveLength(2);
   });
 });

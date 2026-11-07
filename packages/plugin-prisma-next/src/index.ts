@@ -574,8 +574,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   /**
    * Hands a field of a prisma type the parent it reads. A parent the plan that loaded it planned
    * the field for is read as it is. Without a plan, a static selection of columns reads a parent
-   * holding the keys it and the type's `select`s name. Otherwise the loader reloads the parent
-   * with what the field needs.
+   * holding the keys it and the type's `select`s name, or the row scope-auth's checks reloaded.
+   * Otherwise the loader reloads the parent with what the field needs.
    */
   private gate(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
@@ -637,6 +637,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         const parent = typeCopy(row, model, nested);
         if (holds(parent, needed)) {
           return resolver(parent, args, context, info);
+        }
+        // The row scope-auth's checks reloaded, when they ran first, holds what the field reads.
+        const checked = config.loader(context, modelKey).peekTypeRow(info, row, info.parentType);
+        if (checked) {
+          return checked.then((checkedRow) => {
+            const typed = typeCopy(checkedRow, model, nested);
+            return holds(typed, needed)
+              ? resolver(typed, args, context, info)
+              : reload(row, args, context, info);
+          });
         }
       }
       return reload(row, args, context, info);
