@@ -1,10 +1,5 @@
 import { completeValue, type MaybePromise, ObjectRef, type SchemaTypes } from '@pothos/core';
-import {
-  type IndirectInclude,
-  type Position,
-  type SelectedFieldNode,
-  selectedFieldNames,
-} from '@pothos/selection-mapper';
+import { type IndirectInclude, type Position, selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
@@ -73,7 +68,8 @@ export type ConnectionPlan = CursorPlan & { where: unknown };
 export interface PageField {
   /** The consumer id of the field's position (see `consumerId`). */
   id: string;
-  selected: SelectedFieldNode;
+  /** The names of the fields selected on the connection. */
+  selected: () => ReadonlySet<string>;
   position: Position;
 }
 

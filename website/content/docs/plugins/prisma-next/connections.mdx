@@ -133,6 +133,7 @@ const PostActivity = builder
     fields: (t) => ({
       commenters: t.connection({
         type: User,
+        args: commenters.getArgs(),
         resolve: (activity, args, ctx) => commenters.resolve(activity.comments, args, ctx),
       }),
     }),
@@ -151,5 +152,7 @@ builder.prismaObjectField('Post', 'activity', (t) =>
 );
 ```
 
-`select` and `query` also receive the field's arguments and context. Add the helper's `args` to the
-field with `args: commenters.getArgs()`.
+The page follows the arguments of the connection field, `commenters`, not those of `activity`.
+
+`select` and `query` also receive the connection's arguments and context. Add the helper's `args`
+to the connection field with `args: commenters.getArgs()`.

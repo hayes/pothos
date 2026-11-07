@@ -1611,7 +1611,9 @@ describe('prismaConnectionHelpers', () => {
   // User.stats → Stats.posts: the connection sits beneath a wrapper the field returns.
   function wrapperSchema(prefixed: boolean) {
     const builder = createBuilder();
-    builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
+    builder.prismaObject('Post', {
+      fields: (t) => ({ id: t.exposeID('id'), title: t.exposeString('title') }),
+    });
     const posts = prismaConnectionHelpers(builder, 'Post', {
       query: { orderBy: { title: 'asc' } },
       totalCount: true,
@@ -1632,6 +1634,7 @@ describe('prismaConnectionHelpers', () => {
       fields: (t) => ({
         stats: t.field({
           type: Stats,
+          args: { first: t.arg.int(), last: t.arg.int() },
           select: (args, ctx, nestedSelection) => ({
             posts: posts.getQuery(args, ctx, (query, path) =>
               prefixed ? nestedSelection(query, ['posts', ...path]) : nestedSelection(query, path),
@@ -1673,6 +1676,66 @@ describe('prismaConnectionHelpers', () => {
       },
     ]);
     expect(result.statements).toHaveLength(1);
+  });
+
+  it.each([
+    ['forward', 'first', 'after', 'endCursor', 'hasNextPage'],
+    ['backward', 'last', 'before', 'startCursor', 'hasPreviousPage'],
+  ] as const)('pages %s to the end beneath a wrapper by the connection arguments', async (_, size, cursor, cursorField, more) => {
+    const schema = wrapperSchema(true);
+    const pages: { ids: string[]; hasNextPage: boolean; hasPreviousPage: boolean }[] = [];
+    let at: string | null = null;
+    do {
+      const result = await run(
+        schema,
+        `query ($cursor: String) { users { stats(first: 10, last: 10) {
+          posts(${size}: 1, ${cursor}: $cursor) {
+            edges { node { id } }
+            pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
+          }
+        } } }`,
+        { variables: { cursor: at } },
+      );
+      expect(result.errors).toBeUndefined();
+      const { edges, pageInfo } = result.data.users[0].stats.posts;
+      pages.push({
+        ids: ids({ edges }),
+        hasNextPage: pageInfo.hasNextPage,
+        hasPreviousPage: pageInfo.hasPreviousPage,
+      });
+      at = pageInfo[more] ? pageInfo[cursorField] : null;
+    } while (at !== null && pages.length < 5);
+    expect(pages).toEqual(
+      size === 'first'
+        ? [
+            { ids: ['p-draft1'], hasNextPage: true, hasPreviousPage: false },
+            { ids: ['p-hello'], hasNextPage: false, hasPreviousPage: true },
+          ]
+        : [
+            { ids: ['p-hello'], hasNextPage: false, hasPreviousPage: true },
+            { ids: ['p-draft1'], hasNextPage: true, hasPreviousPage: false },
+          ],
+    );
+  });
+
+  it('fails the root field when aliases of the connection beneath a wrapper differ in arguments', async () => {
+    const schema = wrapperSchema(true);
+    const same = await run(
+      schema,
+      '{ users { stats { a: posts(first: 1) { edges { node { id } } } b: posts(first: 1) { edges { node { id } } } } } }',
+    );
+    expect(same.errors).toBeUndefined();
+    expect(ids(same.data.users[0].stats.b)).toEqual(['p-draft1']);
+    const differing = await run(
+      schema,
+      '{ users { stats { a: posts(first: 1) { edges { node { id } } } b: posts(first: 2) { edges { node { id } } } } } }',
+    );
+    expect(differing.data.users).toBeNull();
+    expect(differing.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
+    expect(differing.errors?.map(detailOf)).toEqual([
+      'The fields selected at posts beneath User.stats have different arguments.',
+    ]);
+    expect(differing.statements).toHaveLength(0);
   });
 
   it('fails the root field with an unexpected error for a path the wrapper does not have', async () => {

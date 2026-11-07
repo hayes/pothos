@@ -158,16 +158,15 @@ type PageNode<Node, PageRow, MaybeRow extends boolean> = [Node] extends [never]
 const NODE_PATH = ['edges', 'node'];
 
 /**
- * The selection beneath a connection at `prefix` beneath its field. Only `totalCount` is looked up
+ * The names selected on a connection at `prefix` beneath its field. Only `totalCount` is looked up
  * there, so the page always loads rows.
  */
-function selectedBeneath(selected: SelectedFieldNode, prefix: string[]): SelectedFieldNode {
+function selectedBeneath(selected: SelectedFieldNode, prefix: string[]) {
   const names = new Set(['edges']);
   if (selected([...prefix, 'totalCount'])) {
     names.add('totalCount');
   }
-  return ((path?: string[]) =>
-    path === undefined ? names : selected([...prefix, ...path])) as SelectedFieldNode;
+  return () => names;
 }
 
 /** The page `resolve` returns, with its count when the helpers count. */
@@ -193,6 +192,9 @@ export interface PrismaConnectionHelpers<
    * The entry of a to-many relation of this model in a connection field's select function. It
    * loads one page of the relation in the parent's query, with the selection beneath the
    * connection's nodes, and its count when `totalCount` is selected. Pass the rows to `resolve`.
+   * `args` are the field's. For a connection beneath the field, at a prefixed path, they're
+   * ignored: it pages by the connection field's own arguments, and fails the request when aliases
+   * of that connection select different ones.
    */
   getQuery(
     args: ConnectionArgs<Args>,
@@ -336,24 +338,34 @@ export function prismaConnectionHelpers<
   };
 
   const planPage =
-    (args: object, ctx: object, entry: NestedEntry): PlanPage =>
+    (fieldArgs: object, ctx: object, entry: NestedEntry): PlanPage =>
     (relation, name, field) => {
-      // The names of the path before `edges`, where the connection sits beneath the field.
+      // The names of the path before `edges`, where the connection sits beneath the field. The
+      // connection pages by its own arguments, not those of the field it sits beneath.
       const prefix = (entry.path ?? [])
         .slice(0, -NODE_PATH.length)
         .map((segment) => (typeof segment === 'string' ? segment : segment.name));
-      return paging.planPage(
-        relation,
-        name,
-        prefix.length ? { ...field, selected: selectedBeneath(field.selected, prefix) } : field,
-        args,
-        ctx,
-        {
-          identity: { source: planPage, args },
-          variant: variantForRelationType(config.contract, owner, relation.targetModel, modelKey),
-          filtered: true,
-          rows: (seed) => pageRows(seed, field.nested, entry, args, ctx),
-        },
+      const connectionArgs = prefix.length ? field.selected.args(prefix) : fieldArgs;
+      if (!connectionArgs) {
+        return EMPTY;
+      }
+      return completeValue(connectionArgs, (args) =>
+        paging.planPage(
+          relation,
+          name,
+          {
+            ...field,
+            selected: prefix.length ? selectedBeneath(field.selected, prefix) : field.selected,
+          },
+          args,
+          ctx,
+          {
+            identity: { source: planPage, args },
+            variant: variantForRelationType(config.contract, owner, relation.targetModel, modelKey),
+            filtered: true,
+            rows: (seed) => pageRows(seed, field.nested, entry, args, ctx),
+          },
+        ),
       );
     };
 
