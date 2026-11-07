@@ -1659,8 +1659,8 @@ describe('prismaConnectionHelpers', () => {
           type: Stats,
           args: { first: t.arg.int(), last: t.arg.int() },
           select: (args, ctx, nestedSelection) => ({
-            posts: posts.getQuery(args, ctx, (query, path) =>
-              prefixed ? nestedSelection(query, ['posts', ...path]) : nestedSelection(query, path),
+            posts: posts.getQuery(args, ctx, ({ path }) =>
+              nestedSelection({ path: prefixed ? ['posts', ...path] : path }),
             ),
           }),
           resolve: (user) => ({ rows: user.posts }),

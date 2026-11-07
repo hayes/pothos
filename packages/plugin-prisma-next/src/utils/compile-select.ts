@@ -73,7 +73,7 @@ export interface NestedEntry {
 }
 
 /** The `nestedSelection` a field's select function is passed. */
-export function nestedSelectionEntry(query?: unknown, path?: PathSegment[], type?: unknown) {
+export function nestedSelectionEntry({ query, path, type }: NestedEntry = {}) {
   return { [NESTED_SELECTION]: { query, path, type } as NestedEntry };
 }
 
@@ -457,7 +457,8 @@ function compileSelect(
             columns: null,
             args: checkReturned(resolved, (q) => load(relation, q ?? true, variant)),
           },
-          path,
+          // The selection mapper reads a type only at a path, which is the field itself when empty.
+          named ? (path ?? []) : path,
           named?.name,
         ),
       ),

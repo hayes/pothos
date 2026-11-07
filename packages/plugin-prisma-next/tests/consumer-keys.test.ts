@@ -426,7 +426,7 @@ describe('rows other fields return', () => {
         type: Post,
         nullable: true,
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({ where: { published: 1 }, orderBy: { id: 'asc' } }),
+          posts: nestedSelection({ query: { where: { published: 1 }, orderBy: { id: 'asc' } } }),
         }),
         resolve: (user) => user.posts[0] ?? null,
       }),

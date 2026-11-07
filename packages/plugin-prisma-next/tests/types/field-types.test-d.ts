@@ -544,7 +544,9 @@ builder.queryFields((t) => ({
         type: [NestedPost],
         args: { published: t.arg.int({ required: true }) },
         select: (args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({ where: { published: args.published }, orderBy: { id: 'asc' } }),
+          posts: nestedSelection({
+            query: { where: { published: args.published }, orderBy: { id: 'asc' } },
+          }),
         }),
         resolve: (user) => {
           expectTypeOf(user.posts).toEqualTypeOf<readonly PlannedRow<Types, 'Post'>[]>();
@@ -554,14 +556,16 @@ builder.queryFields((t) => ({
       refined: t.field({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection(() => (posts) => posts.orderBy((post) => post.id.asc())),
+          posts: nestedSelection({
+            query: () => (posts) => posts.orderBy((post) => post.id.asc()),
+          }),
         }),
         resolve: (user) => user.posts,
       }),
       predicate: t.field({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({ where: (post) => post.published.eq(1) }),
+          posts: nestedSelection({ query: { where: (post) => post.published.eq(1) } }),
         }),
         resolve: (user) => user.posts,
       }),
@@ -569,7 +573,7 @@ builder.queryFields((t) => ({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
           // @ts-expect-error the query takes a relation's query options
-          posts: nestedSelection({ take: 1 }),
+          posts: nestedSelection({ query: { take: 1 } }),
         }),
         resolve: (user) => user.posts,
       }),
@@ -584,14 +588,20 @@ builder.queryFields((t) => ({
       viaPathQuery: t.field({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({ where: { published: 1 }, orderBy: { id: 'asc' }, limit: 1 }, []),
+          posts: nestedSelection({
+            query: { where: { published: 1 }, orderBy: { id: 'asc' }, limit: 1 },
+            path: [],
+          }),
         }),
         resolve: (user) => user.posts,
       }),
       viaTypeQuery: t.field({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection(() => ({ where: { published: 1 }, limit: 1 }), [], Wrapper),
+          posts: nestedSelection({
+            query: () => ({ where: { published: 1 }, limit: 1 }),
+            type: Wrapper,
+          }),
         }),
         resolve: () => [],
       }),
@@ -599,7 +609,7 @@ builder.queryFields((t) => ({
         type: [NestedPost],
         // @ts-expect-error Unknown key in select: posts.query.where.nope
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({ where: { nope: 1 } }, []),
+          posts: nestedSelection({ query: { where: { nope: 1 } }, path: [] }),
         }),
         resolve: (user) => user.posts,
       }),
@@ -607,7 +617,10 @@ builder.queryFields((t) => ({
         type: [NestedPost],
         // @ts-expect-error Unknown key in select: posts.query.orderBy.nope
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection(() => ({ orderBy: { id: 'asc', nope: 'asc' } }), [], Wrapper),
+          posts: nestedSelection({
+            query: () => ({ orderBy: { id: 'asc', nope: 'asc' } }),
+            type: Wrapper,
+          }),
         }),
         resolve: () => [],
       }),
@@ -615,7 +628,7 @@ builder.queryFields((t) => ({
         type: [NestedPost],
         // @ts-expect-error Unknown key in select: posts.query.take
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection(() => ({ limit: 1, take: 1 }), []),
+          posts: nestedSelection({ query: () => ({ limit: 1, take: 1 }), path: [] }),
         }),
         resolve: (user) => user.posts,
       }),
@@ -633,13 +646,15 @@ builder.queryFields((t) => ({
     queriedWriter: t.field({
       type: NestedUser,
       // @ts-expect-error A to-one relation takes no query: author
-      select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection({ limit: 1 }) }),
+      select: (_args, _ctx, nestedSelection) => ({
+        author: nestedSelection({ query: { limit: 1 } }),
+      }),
       resolve: (post) => post.author,
     }),
     // Planned as the selection beneath the field's `writer`, so typed as the relation's target.
     viaPath: t.field({
       type: NestedPost,
-      select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection(true, ['writer']) }),
+      select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection({ path: ['writer'] }) }),
       resolve: (post) => {
         expectTypeOf(post.author).toEqualTypeOf<PlannedRow<Types, 'User'>>();
         return post;
@@ -649,7 +664,7 @@ builder.queryFields((t) => ({
     viaType: t.field({
       type: NestedPost,
       select: (_args, _ctx, nestedSelection) => ({
-        author: nestedSelection(undefined, undefined, NestedUser),
+        author: nestedSelection({ type: NestedUser }),
       }),
       resolve: (post) => {
         expectTypeOf(post.author).toEqualTypeOf<typeof NestedUser.$inferType>();
@@ -659,7 +674,7 @@ builder.queryFields((t) => ({
     viaModelName: t.field({
       type: NestedPost,
       select: (_args, _ctx, nestedSelection) => ({
-        author: nestedSelection(undefined, undefined, 'User'),
+        author: nestedSelection({ type: 'User' }),
       }),
       resolve: (post) => {
         expectTypeOf(post.author).toEqualTypeOf<PlannedRow<Types, 'User'>>();
@@ -669,7 +684,7 @@ builder.queryFields((t) => ({
     viaOtherModel: t.field({
       type: NestedPost,
       // @ts-expect-error Invalid value in select: author
-      select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection(true, [], 'Post') }),
+      select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection({ type: 'Post' }) }),
       resolve: (post) => post,
     }),
     unknownType: t.field({
@@ -677,7 +692,7 @@ builder.queryFields((t) => ({
       // @ts-expect-error a type name the builder doesn't know
       select: (_args, _ctx, nestedSelection) => ({
         // @ts-expect-error no overload takes it
-        author: nestedSelection(undefined, undefined, 'NoSuchType'),
+        author: nestedSelection({ type: 'NoSuchType' }),
       }),
       resolve: (post) => post,
     }),

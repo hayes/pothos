@@ -41,14 +41,18 @@ function schema() {
       type: [Post],
       args: { published: t.arg.int({ required: true }) },
       select: (args, _ctx, nestedSelection) => ({
-        posts: nestedSelection({ where: { published: args.published }, orderBy: { id: 'asc' } }),
+        posts: nestedSelection({
+          query: { where: { published: args.published }, orderBy: { id: 'asc' } },
+        }),
       }),
       resolve: (user) => user.posts,
     }),
     latest: t.field({
       type: [Post],
       select: (_args, _ctx, nestedSelection) => ({
-        posts: nestedSelection(() => (posts) => posts.orderBy((post) => post.id.desc()).limit(1)),
+        posts: nestedSelection({
+          query: () => (posts) => posts.orderBy((post) => post.id.desc()).limit(1),
+        }),
       }),
       resolve: (user) => user.posts,
     }),
@@ -56,7 +60,7 @@ function schema() {
     previews: t.field({
       type: [PostPreview],
       select: (_args, _ctx, nestedSelection) => ({
-        posts: nestedSelection({ orderBy: { id: 'asc' }, limit: 1 }, ['post']),
+        posts: nestedSelection({ query: { orderBy: { id: 'asc' }, limit: 1 }, path: ['post'] }),
       }),
       resolve: (user) => user.posts,
     }),
@@ -64,8 +68,8 @@ function schema() {
       type: [Activity],
       select: (_args, _ctx, nestedSelection) => ({
         // A ref, or a model's name for its default type.
-        posts: nestedSelection({ orderBy: { id: 'asc' }, limit: 1 }, [], Post),
-        comments: nestedSelection(true, [], 'Comment'),
+        posts: nestedSelection({ query: { orderBy: { id: 'asc' }, limit: 1 }, type: Post }),
+        comments: nestedSelection({ type: 'Comment' }),
       }),
       resolve: (user) => [...user.posts, ...user.comments],
     }),
@@ -230,7 +234,7 @@ function nestedSelectSchema() {
     commentedAsPost: t.field({
       type: [Post],
       select: (_args, _ctx, nestedSelection) => ({
-        comments: { select: { post: nestedSelection(true, [], Post) } },
+        comments: { select: { post: nestedSelection({ type: Post }) } },
       }),
       resolve: (user) => user.comments.map((comment) => comment.post),
     }),
@@ -239,7 +243,9 @@ function nestedSelectSchema() {
       type: [Comment],
       select: (_args, _ctx, nestedSelection) => ({
         comments: {
-          select: { post: { select: { comments: nestedSelection({ orderBy: { id: 'asc' } }) } } },
+          select: {
+            post: { select: { comments: nestedSelection({ query: { orderBy: { id: 'asc' } } }) } },
+          },
         },
       }),
       resolve: (user) => user.comments.flatMap((comment) => comment.post.comments),

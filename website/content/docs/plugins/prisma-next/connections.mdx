@@ -144,8 +144,8 @@ builder.prismaObjectField('Post', 'activity', (t) =>
   t.field({
     type: PostActivity,
     select: (args, ctx, nestedSelection) => ({
-      comments: commenters.getQuery(args, ctx, (query, path) =>
-        nestedSelection(query, ['commenters', ...path]),
+      comments: commenters.getQuery(args, ctx, ({ path }) =>
+        nestedSelection({ path: ['commenters', ...path] }),
       ),
     }),
     resolve: (post) => ({ comments: post.comments }),

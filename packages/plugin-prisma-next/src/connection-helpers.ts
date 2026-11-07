@@ -206,7 +206,7 @@ export interface PrismaNextConnectionHelpers<
   getQuery(
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
-    nestedSelection: (query: undefined, path: PathSegment[]) => unknown,
+    nestedSelection: (options: { path: PathSegment[] }) => unknown,
   ): ConnectionPageEntry<M, HelperRow<Types, M, Select, Ref>>;
   /**
    * Loads one page of `collection`, a collection of this model, for the root connection field
@@ -399,9 +399,9 @@ export function prismaConnectionHelpers<
     getQuery: (
       args: object,
       ctx: object,
-      nestedSelection: (query: undefined, path: PathSegment[]) => unknown,
+      nestedSelection: (options: { path: PathSegment[] }) => unknown,
     ) => {
-      const entry = nestedSelection(undefined, NODE_PATH) as { [NESTED_SELECTION]: NestedEntry };
+      const entry = nestedSelection({ path: NODE_PATH }) as { [NESTED_SELECTION]: NestedEntry };
       return { [CONNECTION_PAGE]: planPage(args, ctx, entry[NESTED_SELECTION]) };
     },
     async load(

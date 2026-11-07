@@ -180,26 +180,39 @@ export type NestedSelectionQuery<Types extends SchemaTypes, M extends ModelKey<T
  * keys as the relation's.
  */
 export interface NestedSelectionFn<Types extends SchemaTypes, M extends ModelKey<Types>, Args> {
-  (query?: true): NestedSelectionEntry<M, false>;
-  (query: NestedSelectionQuery<Types, M, Args>): NestedSelectionEntry<M, true>;
-  (query: true | undefined, path: PathSegment[] | undefined): NestedSelectionEntry<never, false>;
-  <Query extends NestedSelectionQuery<Types, never, Args>>(
-    query: Query,
-    path: PathSegment[] | undefined,
-  ): NestedSelectionEntry<never, true, never, Query>;
-  <const Type extends NestedSelectionType<Types>>(
-    query: true | undefined,
-    path: PathSegment[] | undefined,
-    type: Type,
-  ): NestedSelectionEntry<ParamToModelKey<Types, Type>, false, NestedTypeShape<Types, Type>>;
+  (options?: {
+    readonly query?: true;
+    readonly path?: undefined;
+    readonly type?: undefined;
+  }): NestedSelectionEntry<M, false>;
+  (options: {
+    readonly query: NestedSelectionQuery<Types, M, Args>;
+    readonly path?: undefined;
+    readonly type?: undefined;
+  }): NestedSelectionEntry<M, true>;
+  (options: {
+    readonly query?: true;
+    readonly path: PathSegment[];
+    readonly type?: undefined;
+  }): NestedSelectionEntry<never, false>;
+  <Query extends NestedSelectionQuery<Types, never, Args>>(options: {
+    readonly query: Query;
+    readonly path: PathSegment[];
+    readonly type?: undefined;
+  }): NestedSelectionEntry<never, true, never, Query>;
+  <const Type extends NestedSelectionType<Types>>(options: {
+    readonly query?: true;
+    readonly path?: PathSegment[];
+    readonly type: Type;
+  }): NestedSelectionEntry<ParamToModelKey<Types, Type>, false, NestedTypeShape<Types, Type>>;
   <
     const Type extends NestedSelectionType<Types>,
     Query extends NestedSelectionQuery<Types, ParamToModelKey<Types, NoInfer<Type>>, Args>,
-  >(
-    query: Query,
-    path: PathSegment[] | undefined,
-    type: Type,
-  ): NestedSelectionEntry<ParamToModelKey<Types, Type>, true, NestedTypeShape<Types, Type>, Query>;
+  >(options: {
+    readonly query: Query;
+    readonly path?: PathSegment[];
+    readonly type: Type;
+  }): NestedSelectionEntry<ParamToModelKey<Types, Type>, true, NestedTypeShape<Types, Type>, Query>;
 }
 
 /**
