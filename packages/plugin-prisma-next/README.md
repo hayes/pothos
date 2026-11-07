@@ -1,4 +1,4 @@
-# Prisma Next Plugin
+# Prisma Next Plugin for Pothos
 
 A Pothos plugin for [Prisma ORM 8](https://github.com/prisma/orm). It defines GraphQL types from
 the models in a Prisma contract. Your resolvers return Collections, and the plugin adds what each
