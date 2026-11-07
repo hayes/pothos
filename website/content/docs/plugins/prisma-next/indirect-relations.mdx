@@ -26,7 +26,8 @@ builder.prismaObject('User', {
 ```
 
 Without it, `{ posts: true }` loads each post's columns but nothing the query selects beneath the
-field, such as `author`, which then loads separately.
+field, such as `author`, which then loads in an extra batched statement. Use `nestedSelection`
+whenever the field's type has relations or selects of its own, so they load in the parent's query.
 
 `nestedSelection` takes three optional arguments:
 
