@@ -208,11 +208,6 @@ export interface NestedSelectionFn<
     readonly type?: undefined;
   }): NestedSelectionEntry<M, false, Shape>;
   (options: {
-    readonly query: NestedSelectionQuery<Types, M, Args> | undefined;
-    readonly path?: undefined;
-    readonly type?: undefined;
-  }): NestedSelectionEntry<M, true, Shape>;
-  (options: {
     readonly query?: true;
     readonly path: readonly PathSegment[];
     readonly type?: undefined;
@@ -235,6 +230,12 @@ export interface NestedSelectionFn<
     readonly path?: readonly PathSegment[];
     readonly type: Type;
   }): NestedSelectionEntry<ParamToModelKey<Types, Type>, true, NestedTypeShape<Types, Type>, Query>;
+  // Last, so an argument no form takes is reported against this one.
+  (options: {
+    readonly query: NestedSelectionQuery<Types, M, Args> | undefined;
+    readonly path?: undefined;
+    readonly type?: undefined;
+  }): NestedSelectionEntry<M, true, Shape>;
 }
 
 /**
@@ -920,9 +921,39 @@ type InvalidValueMessage<
 > =
   K extends RelationKeys<Types, M>
     ? [EntryTypeError<Types, M, K, Entry>] extends [never]
-      ? InvalidRelationValueMessage<Types, M, K, Entry>
+      ? [PlannedModelError<Types, M, K, Entry>] extends [never]
+        ? InvalidRelationValueMessage<Types, M, K, Entry>
+        : PlannedModelError<Types, M, K, Entry>
       : EntryTypeError<Types, M, K, Entry>
     : `Invalid value in select: ${K}`;
+
+/**
+ * Names a `nestedSelection` or connection helper entry planning rows of a model that relation `K`
+ * doesn't load.
+ */
+type PlannedModelError<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  K extends RelationKeys<Types, M>,
+  Entry,
+> =
+  Entry extends NestedSelectionEntry<infer Planned, boolean, unknown>
+    ? ModelMismatch<Types, M, K, 'nestedSelection', Planned>
+    : Entry extends ConnectionPageEntry<infer Planned, unknown>
+      ? ModelMismatch<Types, M, K, 'getQuery', Planned>
+      : never;
+
+type ModelMismatch<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  K extends RelationKeys<Types, M>,
+  Source extends string,
+  Planned,
+> = [Planned] extends [never]
+  ? never
+  : [Planned] extends [EntryTypeModel<Types, M, K>]
+    ? never
+    : `${Source} plans ${Planned & string}, but ${K} loads ${RelatedModel<Types, M, K> & string}`;
 
 type InvalidRelationValueMessage<
   Types extends SchemaTypes,

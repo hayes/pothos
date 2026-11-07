@@ -489,7 +489,7 @@ builder.prismaObjectField('Post', 'commenters', (t) =>
 builder.prismaObjectField('Post', 'commentersById', (t) =>
   t.connection({
     type: Commenter,
-    // @ts-expect-error the page is of Comment rows, not of a relation to another model
+    // @ts-expect-error getQuery plans Comment, but views loads PostView
     select: (args, ctx, nestedSelection) => ({
       views: commenters.getQuery(args, ctx, nestedSelection),
     }),

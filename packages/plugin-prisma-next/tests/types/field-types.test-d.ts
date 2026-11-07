@@ -592,9 +592,17 @@ builder.queryFields((t) => ({
         }),
         resolve: (user) => user.posts,
       }),
+      notOptions: t.field({
+        type: [NestedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          // @ts-expect-error reported against the `{ query }` form: nestedSelection takes an object
+          posts: nestedSelection(true),
+        }),
+        resolve: (user) => user.posts,
+      }),
       otherModel: t.field({
         type: [NestedPost],
-        // @ts-expect-error the rows are planned as the field's type, of another model
+        // @ts-expect-error nestedSelection plans Post, but comments loads Comment
         select: (_args, _ctx, nestedSelection) => ({ comments: nestedSelection() }),
         resolve: () => [],
       }),
@@ -698,7 +706,7 @@ builder.queryFields((t) => ({
     }),
     viaOtherModel: t.field({
       type: NestedPost,
-      // @ts-expect-error Invalid value in select: author
+      // @ts-expect-error nestedSelection plans Post, but author loads User
       select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection({ type: 'Post' }) }),
       resolve: (post) => post,
     }),
