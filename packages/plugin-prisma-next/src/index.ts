@@ -146,6 +146,7 @@ export type {
   OnNullRequired,
   PrismaNextRelationOptions,
   RelatedModel,
+  RelationFieldShape,
   RelationOnNull,
   RelationQuery,
   RelationQueryLiteral,
@@ -155,6 +156,8 @@ export type {
 export type {
   ComputedSelectEntry,
   ConnectionPageEntry,
+  NestedSelectionEntry,
+  NestedSelectionFn,
   NodeSelection,
   PrismaNextSelectSpec,
   SelectObjectSpec,

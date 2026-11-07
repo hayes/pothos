@@ -2,6 +2,7 @@
 import SchemaBuilder, { type FieldMap, type FieldRef } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import PrismaNextPlugin, {
+  type NestedSelectionFn,
   type PrismaNextObjectRef,
   prismaConnectionHelpers,
 } from 'plugin-under-test';
@@ -158,3 +159,22 @@ export const UserOrPost = builder.unionType('UserOrPost', { types: [User, PostWi
 
 // Names the planned-row type a field returning a User resolves to.
 export const brandUserRows = (rows: Parameters<typeof User.addBrand>[0]) => User.addBrand(rows);
+
+// A field factory shared between types of a model: its declaration names the field builder and
+// the relation's planned rows.
+type UserFieldBuilder = Parameters<ObjectFieldParams<typeof User>[2]>[0];
+
+export const postsField = (t: UserFieldBuilder) => t.relation('posts');
+
+builder.prismaObjectField(User, 'posts', postsField);
+
+// A select function shared between fields: its declaration names `nestedSelection` and its entry.
+export const nestedPostsSelect = (
+  _args: object,
+  _ctx: object,
+  nestedSelection: NestedSelectionFn<Types, 'Post', object>,
+) => ({ posts: nestedSelection() });
+
+builder.prismaObjectField(User, 'nestedPosts', (t) =>
+  t.field({ type: [PostWithAuthor], select: nestedPostsSelect, resolve: (user) => user.posts }),
+);
