@@ -45,6 +45,28 @@ paginated connection:
 `t.prismaConnection` does the same for query fields. See
 [Connections](/docs/plugins/prisma-next/connections).
 
+## Coming from plugin-prisma
+
+- Rows hold the primary key and what the query selects, not every column. `t.expose*` loads its
+  own column, but a resolver that reads a column must list it in a
+  [`select`](/docs/plugins/prisma-next/objects#selections).
+- `t.relationCount` filters with `query: { where }` instead of `where`.
+- `t.prismaField` takes `collection`, `query` or `resolve`. `resolve` gets the model's Collection
+  with the selection already planned, and runs it
+  (see [Mutations](/docs/plugins/prisma-next/objects#mutations)).
+- Connections take no `cursor`. They order by `query.orderBy` and add a unique key
+  (see [Ordering and cursors](/docs/plugins/prisma-next/connections#ordering-and-cursors)).
+- `t.prismaConnection` has no `resolve`. For custom logic, use `t.connection` with the connection
+  helpers' `load` and `resolve`
+  (see [Before or after loading](/docs/plugins/prisma-next/connections#before-or-after-loading)).
+- `t.relation` has no `resolve`. Use `t.field` with a `select`, and
+  [`nestedSelection`](/docs/plugins/prisma-next/indirect-relations) to load the relation's own
+  selections.
+- `nestedSelection` takes an object, `{ query, path, type }`, instead of positional arguments.
+- A field returning a model's type must return rows the plugin planned, typed `Planned<'User'>`.
+  Rows from a plain ORM query are a type error
+  (see [Returning rows from other fields](/docs/plugins/prisma-next/relations#returning-rows-from-other-fields)).
+
 ## Next steps
 
 To get started, follow [Setup](/docs/plugins/prisma-next/setup), then read
