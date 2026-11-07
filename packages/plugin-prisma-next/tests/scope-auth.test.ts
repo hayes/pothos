@@ -710,7 +710,7 @@ describe("a type's select before plugins listed first", () => {
     expect(seen).toContainEqual(alice('type'));
     expect(seen).toContainEqual(alice('field'));
     expect(seen).toContainEqual(['field', 'bob@example.com', 2]);
-    expect(result.statements).toHaveLength(1);
+    expect(result.statements).toHaveLength(2);
   });
 
   it('reloads a hand-built row once for a field that loads its own select', async () => {
@@ -719,7 +719,7 @@ describe("a type's select before plugins listed first", () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ handBuilt: { label: 'alice@example.com Andrews' } });
     expect(seen).toEqual([alice('type'), ['label', 'alice@example.com']]);
-    expect(result.statements).toHaveLength(1);
+    expect(result.statements).toHaveLength(2);
   });
 
   it('shows deferred fields what the type selects', async () => {
@@ -741,8 +741,8 @@ describe("a type's select before plugins listed first", () => {
     expect(seen).not.toContainEqual(expect.arrayContaining([undefined]));
     expect(seen).toContainEqual(alice('field'));
     expect(seen).toContainEqual(['label', 'alice@example.com']);
-    // The deferred field shares the hand-built row's reload with the first batch.
-    expect(statements).toHaveLength(1);
+    // The checks' reload, the field's, and the deferred field's.
+    expect(statements).toHaveLength(3);
   });
 
   it('fails the field whose reload fails, naming it', async () => {
@@ -805,7 +805,7 @@ describe("a type's select before plugins listed first", () => {
     const result = await runCaptured(builder.toSchema(), '{ handBuilt { firstName } }');
     expect(result.data).toEqual({ handBuilt: { firstName: 'Alice' } });
     expect(seen).toEqual(['Alice']);
-    expect(result.statements).toHaveLength(1);
+    expect(result.statements).toHaveLength(2);
   });
 
   it('fails a reload the database rejects with a generic error', async () => {
@@ -933,8 +933,8 @@ describe('rows another plugin rebuilt without what the type selects', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ users: [{ firstName: 'Alice' }, { firstName: 'Bob' }] });
     expect(seen).toEqual(['alice@example.com', 'bob@example.com']);
-    // The users, and one reload of both rows.
-    expect(result.statements).toHaveLength(2);
+    // The users, one reload of both rows for the checks, and one for the field.
+    expect(result.statements).toHaveLength(3);
   });
 
   class ForgePostsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
@@ -1084,8 +1084,9 @@ describe("a connection helper's page of a variant with a table of its own", () =
     expect(result.errors).toBeUndefined();
     expect(result.data.users).toEqual([{ championPage: { edges: [{ node: { priority: 5 } }] } }]);
     expect(seen).toEqual([['t2', 'feat1']]);
-    // The users with their features, and one reload of Task's columns.
-    expect(result.statements).toHaveLength(2);
+    // The users with their features, a reload of Task's columns for the checks, and one for the
+    // field.
+    expect(result.statements).toHaveLength(3);
   });
 
   // A field Feature inherits from an interface without a model reads the row as Feature's select
@@ -1263,11 +1264,11 @@ describe('runScopesOnType on rows without what the type selects', () => {
     expect(result.data).toEqual({ copied: { firstName: 'Alice' } });
     expect(seen).toEqual([['alice@example.com', 2]]);
     expect(parentResults).toEqual(['promise']);
-    // The user, and one reload of the copy, which the type's authScopes and the field share.
-    expect(result.statements).toHaveLength(2);
+    // The user, a reload of the copy for the type's authScopes, and one for the field.
+    expect(result.statements).toHaveLength(3);
   });
 
-  it("shares the type's reload with a field that reads only what the type selects", async () => {
+  it("reloads for a field that reads only what the type selects after the type's reload", async () => {
     const seen: unknown[] = [];
     parentResults.length = 0;
     const result = await runCaptured(userSchema(seen), '{ copied { greeting } }');
@@ -1275,8 +1276,8 @@ describe('runScopesOnType on rows without what the type selects', () => {
     expect(result.data).toEqual({ copied: { greeting: 'Hi alice@example.com' } });
     expect(seen).toEqual([['alice@example.com', 2]]);
     expect(parentResults).toEqual(['promise']);
-    // The user, and one reload for both the type's authScopes and the field.
-    expect(result.statements).toHaveLength(2);
+    // The user, a reload for the type's authScopes, and one for the field.
+    expect(result.statements).toHaveLength(3);
   });
 
   it('reloads a copied Relay node row before type-level authScopes run', async () => {
@@ -1287,7 +1288,7 @@ describe('runScopesOnType on rows without what the type selects', () => {
     expect(result.data).toEqual({ copiedPost: { heading: 'Hello, Pothos' } });
     expect(seen).toEqual([['p-hello', 'Hello, Pothos']]);
     expect(parentResults).toEqual(['promise']);
-    expect(result.statements).toHaveLength(2);
+    expect(result.statements).toHaveLength(3);
   });
 
   // `User.championed` targets Feature, which has a table of its own, so a helper's page of them
@@ -1342,9 +1343,9 @@ describe('runScopesOnType on rows without what the type selects', () => {
     expect(result.data.users).toEqual([{ championPage: { edges: [{ node: { priority: 5 } }] } }]);
     expect(seen).toEqual([['t2', 'feat1']]);
     expect(parentResults).toEqual(['promise']);
-    // The users with their features, and one reload of the page's row, which the type's
-    // authScopes and the field share.
-    expect(result.statements).toHaveLength(2);
+    // The users with their features, a reload of the page's row for the type's authScopes, and
+    // one for the field.
+    expect(result.statements).toHaveLength(3);
   });
 });
 
@@ -2328,7 +2329,8 @@ describe.each(
     // Otherwise each field reloads its own copy of the row, which the checks run on, in one batch.
     const checked = ['alice@example.com', 'Alice', 'Al'];
     expect(seen).toEqual(checksReload ? [checked] : [checked, checked]);
-    expect(result.statements).toHaveLength(1);
+    // The fields' reload, after the checks' own when they reload first.
+    expect(result.statements).toHaveLength(checksReload ? 2 : 1);
   });
 
   it('reloads a row again for each subscription event', async () => {
@@ -2354,7 +2356,8 @@ describe.each(
       ['alice@example.com', 'Alice', undefined],
       ['bob@example.com', 'Bob', undefined],
     ]);
-    expect(statements).toHaveLength(2);
+    // Per event, the fields' reload, after the checks' own when they reload first.
+    expect(statements).toHaveLength(checksReload ? 4 : 2);
   });
 });
 

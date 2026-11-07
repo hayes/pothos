@@ -142,8 +142,6 @@ interface CopyField {
 /** How `copyWith` copies a row of `model`. */
 interface CopyOptions {
   readonly model: PrismaNextModel;
-  /** Keys a copy of the ORM row leaves out. */
-  readonly filtered: ReadonlySet<string>;
   /** The relations whose rows a nested `select` of the consumer wrote branches on. */
   readonly nested: NestedPlan;
   /** For a field's copy, the field. */
@@ -155,15 +153,14 @@ interface CopyOptions {
 /**
  * A copy of `base` with what consumer `id` loaded written onto it, cached per base and id so
  * per-row caches such as scope-auth's see one object. A copy of the ORM row itself leaves out the
- * `combine()` values its relation keys hold, and the `filtered` keys, which only a load's branch
- * fills.
+ * `combine()` values its relation keys hold.
  */
 function copyWith(
   base: object,
   row: object,
   slots: Slots,
   id: string,
-  { model, filtered, nested, field, nestedIn }: CopyOptions,
+  { model, nested, field, nestedIn }: CopyOptions,
 ) {
   let byId = copies.get(base);
   if (!byId) {
@@ -172,10 +169,7 @@ function copyWith(
   }
   let copy = byId.get(id) as Row | undefined;
   if (!copy) {
-    copy = copyOf(
-      base,
-      base === row ? (key) => Object.hasOwn(slots.relations, key) || filtered.has(key) : undefined,
-    );
+    copy = copyOf(base, base === row ? (key) => Object.hasOwn(slots.relations, key) : undefined);
     lift(copy, slots, id);
     if (field) {
       writePages(copy, slots, field);
@@ -207,7 +201,6 @@ function liftNested(copy: Row, model: PrismaNextModel, id: string, plan: NestedP
       const row = rowOf(value);
       return copyWith(row, row, slotsOf(row, target), inner, {
         model: target,
-        filtered: NONE,
         nested,
         nestedIn: inner,
       });
@@ -218,24 +211,13 @@ function liftNested(copy: Row, model: PrismaNextModel, id: string, plan: NestedP
   }
 }
 
-/** Whether `row` holds any of `keys`. */
-function holdsAny(row: object, keys: ReadonlySet<string>) {
-  for (const key of keys) {
-    if ((row as Row)[key] !== undefined) {
-      return true;
-    }
-  }
-  return false;
-}
-
 /**
  * The parent every reader of a row of `model` sees: for an ORM row with `combine()` values, a copy
  * without them, holding them under `SLOTS`, with what the type-level selects loaded written on.
  * The type-level selects of a model agree, which the schema build checks (see
  * `assertSelectsAgree` in index.ts), so one copy serves every type. A copy holding `SLOTS`, this
  * plugin's or another plugin's copy of it, is the parent as it is, but a field's copy is made again
- * from its row. A row without `combine()` values that holds one of the `filtered` keys, such as a
- * whole relation a resolver included, is copied without them, so the field reading them reloads.
+ * from its row.
  */
 export function typeCopy(value: object, model: PrismaNextModel, reads: TypeReads) {
   const held = (value as Holder)[SLOTS];
@@ -244,9 +226,9 @@ export function typeCopy(value: object, model: PrismaNextModel, reads: TypeReads
   }
   const row = held ? held.row : value;
   const slots = held ? held.slots : slotsOf(row, model);
-  return slots === NO_SLOTS && !reads.nested.size && !holdsAny(row, reads.filtered)
+  return slots === NO_SLOTS && !reads.nested.size
     ? row
-    : copyWith(row, row, slots, TYPE_CONSUMER, { model, ...reads });
+    : copyWith(row, row, slots, TYPE_CONSUMER, { model, nested: reads.nested });
 }
 
 /**
@@ -268,7 +250,6 @@ export function fieldCopy(
   }
   return copyWith(base, held?.row ?? base, held?.slots ?? NO_SLOTS, id, {
     model,
-    filtered: reads.filtered,
     nested: nested ?? NO_NESTED,
     field: { id, position },
   });
@@ -378,16 +359,11 @@ function copyOf(row: object, skip?: (key: string) => boolean): Row {
 
 /** What the type-level `select`s of a model read from their own branch. */
 export interface TypeReads {
-  /**
-   * The keys they write: filtered or refined relations, relations with a nested `select`, and
-   * computed values. A row holding them without the slots of a load can't be trusted for them.
-   */
-  readonly filtered: ReadonlySet<string>;
   /** Their relation entries whose nested `select` writes branches on the relation's rows. */
   readonly nested: NestedPlan;
 }
 
-const NO_READS: TypeReads = { filtered: new Set(), nested: NO_NESTED };
+const NO_READS: TypeReads = { nested: NO_NESTED };
 
 /** What the type-level `select`s of the type's model read from their own branch. */
 export function typeReads(type: {
@@ -395,8 +371,6 @@ export function typeReads(type: {
 }): TypeReads {
   return (type.extensions?.[PRISMA_NEXT_TYPE_READS] as TypeReads | undefined) ?? NO_READS;
 }
-
-const NONE: ReadonlySet<string> = NO_READS.filtered;
 
 /** Records the relations whose rows the nested `select`s of the field at `position` write on. */
 export function registerNested(position: Position, plan: NestedPlan | undefined) {
