@@ -68,11 +68,9 @@ import {
   fieldCopy,
   fieldValue,
   type PrismaNextSelectFn,
-  type RawSelect,
   relationArgs,
   relationLoad,
   rowsSelection,
-  splitSelect,
   typeReads,
   VALUE_SLOT,
 } from './utils/selections.js';
@@ -277,13 +275,14 @@ export class PrismaNextObjectFieldBuilder<
         ctx: Types['Context'],
         info: GraphQLResolveInfo,
       ) => boolean | Promise<boolean>;
-      select?: RawSelect;
+      select?: readonly string[] | Record<string, true | undefined>;
       extensions?: Record<string, unknown>;
     };
-    const forced = variantSelect
-      ? splitSelect(variantSelect, getModel(this.contract as AnyContract, this.modelKey as string))
-          .columns
-      : [];
+    const forced = Array.isArray(variantSelect)
+      ? variantSelect
+      : Object.entries(variantSelect ?? {})
+          .filter(([, value]) => value != null)
+          .map(([column]) => column);
     const select: PrismaNextSelectFn = (_args, _ctx, nested) =>
       completeValue(nested(true), (query) => ({
         ...query,
