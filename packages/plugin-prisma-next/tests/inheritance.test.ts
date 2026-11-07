@@ -2128,6 +2128,10 @@ describe("a relation's query by the columns of the variant it is narrowed to", (
           orderBy: { priority: 'asc' },
         }),
       }),
+      highBugs: t.relation('tasks', {
+        type: 'Bug',
+        query: () => (bugs) => bugs.where((bug) => bug.severity.eq('high')),
+      }),
       bugPage: t.relatedConnection('tasks', {
         type: 'Bug',
         query: { orderBy: { severity: 'asc' } },
@@ -2142,10 +2146,17 @@ describe("a relation's query by the columns of the variant it is narrowed to", (
   const schema = builder.toSchema();
 
   it('filters and orders a relation', async () => {
-    const result = await run(schema, '{ users { bugs { id } features(min: 0) { id } } }');
+    const result = await run(
+      schema,
+      '{ users { bugs { id } features(min: 0) { id } highBugs { id } } }',
+    );
     expect(result.errors).toBeUndefined();
     expect(result.data.users).toEqual([
-      { bugs: [{ id: 't4' }, { id: 't1' }], features: [{ id: 't5' }, { id: 't2' }] },
+      {
+        bugs: [{ id: 't4' }, { id: 't1' }],
+        features: [{ id: 't5' }, { id: 't2' }],
+        highBugs: [{ id: 't1' }],
+      },
     ]);
     expect(result.statements).toHaveLength(1);
   });

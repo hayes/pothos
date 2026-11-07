@@ -106,6 +106,27 @@ export type TypeCollection<Types extends SchemaTypes, M extends ModelKey<Types>>
     >;
 
 /**
+ * The collection a refinement of a relation's rows narrowed to `M`, a variant, takes and returns:
+ * the base's include collection narrowed by `.variant()`, as {@link TypeCollection} is.
+ */
+export type VariantRefinementCollection<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+> = Omit<
+  TypeCollection<Types, M>,
+  Exclude<
+    keyof Collection<
+      Types['PrismaNextContract'],
+      BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>
+    >,
+    keyof CombineRefinement<
+      Types['PrismaNextContract'],
+      BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>
+    >
+  >
+>;
+
+/**
  * The receiver type upstream's collection helpers take. It leaves out mutation input types, which
  * can differ between a collection typed from `Types['PrismaNextContract']` and `db.orm`'s own. The
  * plugin includes what the query selects, so a collection that already includes a relation is

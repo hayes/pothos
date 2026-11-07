@@ -15,7 +15,11 @@ import type {
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from '../interface-ref.js';
 import type { Planned, PrismaNextObjectRef } from '../object-ref.js';
-import type { IncludeRefinementCollection, WithNsId } from './collections.js';
+import type {
+  IncludeRefinementCollection,
+  VariantRefinementCollection,
+  WithNsId,
+} from './collections.js';
 import type {
   BareModelName,
   BaseModelKey,
@@ -191,7 +195,11 @@ export type RelationQuery<
           ) => MaybeAsyncSelection<
             Types,
             | TypedRelationQueryValue<Types, ParentModel, RelName, TypeModel>
-            | RelationRefinement<Types, ParentModel, RelName>
+            | ([TypeModel] extends [RelatedModel<Types, ParentModel, RelName>]
+                ? RelationRefinement<Types, ParentModel, RelName>
+                : (
+                    collection: VariantRefinementCollection<Types, TypeModel>,
+                  ) => VariantRefinementCollection<Types, TypeModel>)
             | undefined
           >)
     : { readonly [K in `A to-one relation takes no query: ${RelName}`]: never };

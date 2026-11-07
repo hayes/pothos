@@ -240,6 +240,10 @@ inheritance.prismaObjectFields('User', (t) => ({
     args: { severity: t.arg.string({ required: true }) },
     query: (args) => ({ where: (bug) => bug.severity.eq(args.severity) }),
   }),
+  refinedBugs: t.relation('tasks', {
+    type: 'Bug',
+    query: () => (bugs) => bugs.where((bug) => bug.severity.eq('high')),
+  }),
   // @ts-expect-error `severity` is a column of the variant, not of the base
   shorthandBugs: t.relation('tasks', { type: 'Bug', query: { where: { severity: 'high' } } }),
   // @ts-expect-error `priority` is a column of another variant
