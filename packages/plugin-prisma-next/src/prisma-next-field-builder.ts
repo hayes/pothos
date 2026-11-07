@@ -48,7 +48,6 @@ import type {
   RelationWithoutOptionsCheck,
   ToManyRelationKeys,
 } from './types/relations.js';
-import type { MapperCollection } from './utils/adapter.js';
 import { getPluginConfig } from './utils/config.js';
 import {
   type ConnectionSettingsOptions,
@@ -66,13 +65,12 @@ import {
   completeOption,
   computedSelection,
   consumerId,
-  definedQuery,
   fieldCopy,
   fieldValue,
   type PrismaNextSelectFn,
-  queryRefinement,
   type RawSelect,
   relationArgs,
+  relationLoad,
   rowsSelection,
   splitSelect,
   typeReads,
@@ -376,33 +374,24 @@ export class PrismaNextObjectFieldBuilder<
         : modelDiscriminator(this.contract as AnyContract, relation.targetModel)!.field;
     // A literal query is checked here, and a callback's result through `checkReturned` when a
     // request is planned.
-    const literal = typeof query === 'function' ? undefined : definedQuery(query);
-    const literalRefine =
-      literal &&
-      queryRefinement(
-        this.contract as AnyContract,
-        relation.targetModel,
-        literal,
-        orderableProblem(getPluginConfig(this.builder).context, relation.targetModel),
-      );
+    const load = (value: unknown, problem?: Parameters<typeof relationLoad>[3]) =>
+      relationLoad(this.contract as AnyContract, relation.targetModel, value, problem);
+    const literal =
+      typeof query === 'function'
+        ? undefined
+        : load(
+            query,
+            orderableProblem(getPluginConfig(this.builder).context, relation.targetModel),
+          );
     const relationLoaded = (parent: object) =>
       (parent as Record<string, unknown>)[relationName] !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) =>
       completeOption(query as unknown, args, ctx, (value) => {
-        const spec =
-          typeof value === 'function' ? undefined : value === query ? literal : definedQuery(value);
-        const refine =
-          typeof value === 'function'
-            ? (value as (rel: MapperCollection) => MapperCollection)
-            : value === query
-              ? literalRefine
-              : spec &&
-                checkReturned(spec, (returned) =>
-                  queryRefinement(this.contract as AnyContract, relation.targetModel, returned),
-                );
+        const { loadIdentity, refine } =
+          literal ?? checkReturned(value, (returned) => load(returned));
         // A callback builds a new query on every walk, so its definition and arguments identify
         // it.
-        const identity = refine && (typeof query === 'function' ? { source: query, args } : spec);
+        const identity = literal ? loadIdentity : refine && { source: query, args };
         return rowsSelection(
           relation,
           relationName,
@@ -451,7 +440,7 @@ export class PrismaNextObjectFieldBuilder<
   ): FieldRef<Types, number, 'PrismaNextObject'> {
     const relationName = name as string;
     // Rejects a relation several variants declare, which the types can't tell apart.
-    this.#relation(relationName);
+    const relation = this.#relation(relationName);
     const { query, extensions, ...rest } = (options ?? {}) as {
       query?: unknown;
       extensions?: Record<string, unknown>;
@@ -460,11 +449,16 @@ export class PrismaNextObjectFieldBuilder<
       fieldValue(parent, relationName, VALUE_SLOT) !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
       completeOption(query, args, ctx, (value) => {
-        const where = definedQuery(value)?.where;
+        // The types allow only `where`, which can't fail to refine.
+        const { loadIdentity, refine } = relationLoad(
+          this.contract as AnyContract,
+          relation.targetModel,
+          value,
+        );
         // A callback builds a new query on every walk, so its definition and arguments identify it.
-        const identity = typeof query === 'function' ? { source: query, args } : where;
+        const identity = typeof query === 'function' ? { source: query, args } : loadIdentity;
         return computedSelection(relationName, consumerId(position), VALUE_SLOT, identity, (sub) =>
-          countOf(where === undefined ? sub : sub.where(where)),
+          countOf(refine ? refine(sub) : sub),
         );
       });
     return this.field({

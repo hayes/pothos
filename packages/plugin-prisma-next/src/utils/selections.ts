@@ -769,6 +769,30 @@ export function queryRefinement(
 }
 
 /**
+ * How `value`, a relation entry or the `query` of a relation's rows, loads the rows of `modelKey`:
+ * a function refines them and is identified by `identify`, a declarative query refines them and
+ * identifies itself, and anything else, such as `true`, loads them whole. Without `identify`, a
+ * function's load has no identity.
+ */
+export function relationLoad(
+  contract: AnyContract,
+  modelKey: string,
+  value: unknown,
+  problem?: Parameters<typeof orderColumns>[3],
+  identify?: (refine: Refine) => unknown,
+) {
+  if (typeof value === 'function') {
+    const refine = value as (rel: MapperCollection) => MapperCollection;
+    return { loadIdentity: identify?.(refine), refine };
+  }
+  const query = definedQuery(value);
+  return {
+    loadIdentity: query as unknown,
+    refine: query && queryRefinement(contract, modelKey, query, problem),
+  };
+}
+
+/**
  * The args of a relation load. `loadIdentity` identifies the load and `refine` applies it to the
  * relation's collection. `variant` narrows a relation typed as a variant of its target.
  */
@@ -964,18 +988,11 @@ function compileSelect(
   const identity = (entry: unknown) => (source === undefined ? entry : { source, args });
   const owner = field && `Field '${field.position.type.name}.${field.position.field.name}'`;
   // `true`, a declarative query, or a function refining the rows, narrowed to `variant`.
-  const load = (relation: PrismaNextRelation, value: unknown, variant?: string) => {
-    const query = value === true || typeof value === 'function' ? undefined : definedQuery(value);
-    const refine =
-      typeof value === 'function'
-        ? (value as Refine)
-        : query && queryRefinement(contract, relation.targetModel, query);
-    return relationArgs(relation, {
-      loadIdentity: typeof value === 'function' ? identity(value) : query,
-      refine: refine as ((rel: MapperCollection) => MapperCollection) | undefined,
+  const load = (relation: PrismaNextRelation, value: unknown, variant?: string) =>
+    relationArgs(relation, {
+      ...relationLoad(contract, relation.targetModel, value, undefined, identity),
       variant,
     });
-  };
   const parts = relations.map(([name, value]) => {
     const relation = model.relations[name]!;
     // Checked when the schema is built for a static `select`, and here for what a select function
