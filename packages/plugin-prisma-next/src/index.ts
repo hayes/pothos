@@ -36,6 +36,7 @@ import {
   PRISMA_NEXT_CONFIG,
   PRISMA_NEXT_DISCRIMINATED,
   PRISMA_NEXT_FIELD_SELECTION,
+  PRISMA_NEXT_FILTERED_KEYS,
   PRISMA_NEXT_IMPLEMENTATIONS,
   PRISMA_NEXT_MODEL,
   PRISMA_NEXT_RELATION_ROWS,
@@ -56,10 +57,10 @@ import {
 } from './utils/model.js';
 import {
   compileFieldSelect,
-  copyIds,
   definedQuery,
   EMPTY,
   fieldCopy,
+  filteredKeys,
   loadsOwnTableVariantRows,
   type Narrowing,
   type PrismaNextSelectFn,
@@ -258,6 +259,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       extensions: {
         ...typeConfig.extensions,
         [PRISMA_NEXT_TYPE_SELECTS]: [...selects.values()],
+        [PRISMA_NEXT_FILTERED_KEYS]: this.filteredKeysOf(root),
         [PRISMA_NEXT_MODEL]: model,
         [PRISMA_NEXT_CONFIG]: this.config,
         // Filled in afterBuild by registerImplementations.
@@ -438,6 +440,18 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     Map<string, { type: string; definition: unknown }>
   >();
 
+  /** The keys type-level `select`s write from their own branch, by root model. */
+  private readonly filteredKeys = new Map<string, Set<string>>();
+
+  private filteredKeysOf(root: string) {
+    let keys = this.filteredKeys.get(root);
+    if (!keys) {
+      keys = new Set();
+      this.filteredKeys.set(root, keys);
+    }
+    return keys;
+  }
+
   /**
    * Every row of a model, across its variant models, holds one value for each relation or computed
    * key the type-level `select`s write, which the fields and auth checks of every type of the model
@@ -455,6 +469,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       const first = definitions.get(key);
       if (!first || first.type === type) {
         definitions.set(key, { type, definition });
+        // A whole relation reads the same whoever loaded it.
+        if (definition !== undefined) {
+          this.filteredKeysOf(root).add(key);
+        }
       } else if (!deepEqual(first.definition, definition)) {
         throw new PothosSchemaError(
           `'${first.type}' and '${type}' both select '${key}', with different definitions. Every row of model '${root}' holds one value for it, which the fields and auth checks of every type of the model read. Define it the same way in both, sharing any function such as a where or a computed value's function, or load the other version in a field's select.`,
@@ -555,7 +573,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { config } = this;
     const model = getModel(config.contract, modelKey);
-    const { ids, keys: typeKeys } = this.typeData(fieldConfig.parentType);
+    const { keys: typeKeys, filtered } = this.typeData(fieldConfig.parentType);
     // A field with a static selection needs no mapping: it reads what its type's `select`s load
     // and what its own selection names, which any row of the type can hold. A select function
     // reads what the plan that loaded the parent planned for it.
@@ -565,14 +583,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       : [];
     const parentTypes = [...mappingParentTypes(this.buildCache, fieldConfig, PRISMA_NEXT_MODEL)];
     const parentFor = (row: object, mapping: Mapping | null | undefined) =>
-      mapping?.position ? fieldCopy(row, model, ids, mapping.position) : typeCopy(row, model, ids);
+      mapping?.position
+        ? fieldCopy(row, model, filtered, mapping.position)
+        : typeCopy(row, model, filtered);
     const reload = (
-      raw: object,
+      row: object,
       args: object,
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) =>
-      reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, raw)).then(
+      reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, row)).then(
         (reloaded) => resolver(parentFor(reloaded.row, reloaded.mapping), args, context, info),
       );
     return (value, args, context, info) => {
@@ -593,18 +613,18 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         return resolver(parent, args, context, info);
       }
       if (!columnsOnly) {
-        return reload(raw, args, context, info);
+        return reload(row, args, context, info);
       }
       // The row scope-auth's checks reloaded, when they ran first, holds what the field reads.
-      const checked = config.loader(context, modelKey).peekTypeRow(info, raw, info.parentType);
+      const checked = config.loader(context, modelKey).peekTypeRow(info, row, info.parentType);
       if (!checked) {
-        return reload(raw, args, context, info);
+        return reload(row, args, context, info);
       }
       return checked.then((checkedRow) => {
-        const typed = typeCopy(checkedRow, model, ids);
+        const typed = typeCopy(checkedRow, model, filtered);
         return holds(typed, needed)
           ? resolver(typed, args, context, info)
-          : reload(raw, args, context, info);
+          : reload(row, args, context, info);
       });
     };
   }
@@ -625,17 +645,20 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       return undefined;
     }
     const model = getModel(this.config.contract, modelKey);
-    const { ids } = this.typeData(typeConfig.name);
+    const filtered = filteredKeys(typeConfig);
     return (row: unknown) =>
-      row !== null && typeof row === 'object' ? typeCopy(row, model, ids) : row;
+      row !== null && typeof row === 'object' ? typeCopy(row, model, filtered) : row;
   }
 
   /** What `typeData` found for each prisma type. */
-  private readonly typeDataCache = new Map<string, ReturnType<typeof typeDataOf>>();
+  private readonly typeDataCache = new Map<
+    string,
+    { modelKey: string; model: PrismaNextModel; keys: string[]; filtered: ReadonlySet<string> }
+  >();
 
   /**
-   * The consumer ids of a prisma type's `select`s, as `typeSelects` lists them, and what a row
-   * must hold for them.
+   * The model of a prisma type, what a row must hold for the `select`s of the type and its
+   * interfaces, and the keys of its model's type-level `select`s that only a load fills.
    */
   private typeData(typeName: string) {
     let data = this.typeDataCache.get(typeName);
@@ -643,7 +666,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       const typeConfig = this.buildCache.getTypeConfig(typeName);
       const modelKey = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string;
       const model = getModel(this.config.contract, modelKey);
-      data = typeDataOf(modelKey, model, typeSelects(typeConfig));
+      data = {
+        modelKey,
+        model,
+        keys: [...new Set(typeSelects(typeConfig).flatMap(selectedKeys))],
+        filtered: filteredKeys(typeConfig),
+      };
       this.typeDataCache.set(typeName, data);
     }
     return data;
@@ -658,7 +686,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   private createTypeParentLoader(typeName: string) {
     let type: GraphQLObjectType | undefined;
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
-      const { ids, modelKey, model, keys } = this.typeData(typeName);
+      const { modelKey, model, keys, filtered } = this.typeData(typeName);
       type ??= info.schema.getType(typeName) as GraphQLObjectType;
       const selection =
         info.parentType.name === typeName
@@ -668,13 +696,13 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           : undefined;
       const columns = (typeof selection === 'function' ? undefined : selection?.columns) ?? [];
       // A prisma type's parent is always a row.
-      const typed = typeCopy(parent as object, model, ids);
+      const typed = typeCopy(parent as object, model, filtered);
       if (holds(typed, keys) && holds(typed, columns)) {
         return typed;
       }
       return reloadFor(info, () =>
-        this.config.loader(context, modelKey).loadTypeRow(info, rowOf(parent as object), type!),
-      ).then((row) => typeCopy(row, model, ids));
+        this.config.loader(context, modelKey).loadTypeRow(info, parent as object, type!),
+      ).then((row) => typeCopy(row, model, filtered));
     };
   }
 }
@@ -687,38 +715,6 @@ function holds(row: object, keys: readonly string[]) {
 /** The keys a split `select` writes on the parent: its columns, relations and computed values. */
 function selectedKeys({ columns, relations, computed }: SplitSelect) {
   return [...columns, ...relations.map(([name]) => name), ...computed.map(({ key }) => key)];
-}
-
-/**
- * The keys a type-level `select` fills only from its own branch: relations it filters or refines,
- * and computed values. A whole relation reads the same whoever loaded it.
- */
-function ownKeys({ relations, computed }: SplitSelect) {
-  return [
-    ...relations
-      .filter(([, value]) => typeof value === 'function' || definedQuery(value) !== undefined)
-      .map(([name]) => name),
-    ...computed.map(({ key }) => key),
-  ];
-}
-
-/**
- * The consumer ids of a type's type-level `selects`, listed with the deepest interface first and
- * the type itself last, and the keys a row copied for them holds.
- */
-function typeDataOf(modelKey: string, model: PrismaNextModel, selects: readonly TypeSelect[]) {
-  const branched = selects.filter(
-    (select) => select.relations.length > 0 || select.computed.length > 0,
-  );
-  return {
-    modelKey,
-    model,
-    ids: copyIds(
-      branched.map((select) => select.name),
-      new Map(branched.map((select) => [select.name, ownKeys(select)])),
-    ),
-    keys: [...new Set(selects.flatMap(selectedKeys))],
-  };
 }
 
 /** `value`, a field's result, with `copy` applied to each item, through promises and lists. */

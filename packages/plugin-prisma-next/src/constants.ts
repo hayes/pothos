@@ -9,6 +9,12 @@ export const PRISMA_NEXT_TYPE_SELECT = 'pothosPrismaNextTypeSelect';
  * computed values, set by the plugin. The deepest interface comes first and the type itself last.
  */
 export const PRISMA_NEXT_TYPE_SELECTS = 'pothosPrismaNextTypeSelects';
+/**
+ * The keys the type-level `select`s of a type's model write from their own branch: filtered or
+ * refined relations and computed values. One set per root model, shared by its types, which a
+ * row holding them without the slots of a load can't be trusted for.
+ */
+export const PRISMA_NEXT_FILTERED_KEYS = 'pothosPrismaNextFilteredKeys';
 /** A field's selection as the planner reads it: a static selection or a select function. */
 export const PRISMA_NEXT_FIELD_SELECTION = 'pothosPrismaNextFieldSelection';
 /** The relation a `t.relation` or `t.relatedConnection` field returns rows of, and their type. */

@@ -2359,8 +2359,7 @@ describe.each(
 });
 
 // A row handed from one type to another of its model, as it is or as another plugin's spread copy
-// of it, reads only what the second type's selects loaded: never the first type's computed values,
-// filtered rows, or a whole relation standing in for a filtered one.
+// of it, holds what the type-level selects of the model loaded, which agree.
 describe.each(orders)('a row handed to another type of its model (%s)', (_, plugins) => {
   function schema(
     selects: { a: Record<string, unknown>; b: Record<string, unknown> },
@@ -2389,6 +2388,14 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
           nullable: true,
           resolve: (user) => (user as { nickname?: string }).nickname ?? null,
         }),
+        // Reads a column A's plan didn't load, so the row is reloaded.
+        label: t.string({
+          select: ['email'] as never,
+          resolve: (user) => {
+            const { email, nickname } = user as { email: string; nickname?: string };
+            return `${email} ${nickname}`;
+          },
+        }),
       }),
     });
     const A = builder.prismaObject('User', {
@@ -2410,12 +2417,30 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
     });
     return { schema: builder.toSchema(), seen };
   }
+  const published = (user: Record<string, unknown>) =>
+    (user.posts as { published: number }[]).map((post) => post.published);
+
   // Alice has two posts, one of them published.
   describe.each([false, true])('spread: %s', (spread) => {
-    // B selects no computed value, so the row needs no reload, and the spread's own key stays.
-    it("drops the other type's computed value and keeps the keys a spread added", async () => {
+    const count = (sub: { count(): unknown }) => sub.count();
+
+    it('reads the computed value both types select', async () => {
       const { schema: built, seen } = schema(
-        { a: { total: { posts: (sub: { count(): unknown }) => sub.count() } }, b: {} },
+        { a: { total: { posts: count } }, b: { total: { posts: count } } },
+        (user) => user.total,
+        spread,
+      );
+      const result = await runCaptured(built, '{ user { value asB { value } } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.user).toEqual({ value: 2, asB: { value: 2 } });
+      expect(seen).toEqual([2]);
+      expect(result.statements).toHaveLength(1);
+    });
+
+    // B selects no computed value, but the row holds A's, and the spread's own key stays.
+    it("reads the other type's computed value and keeps the keys a spread added", async () => {
+      const { schema: built, seen } = schema(
+        { a: { total: { posts: count } }, b: {} },
         (user) => user.total ?? null,
         spread,
       );
@@ -2423,9 +2448,37 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
       expect(result.errors).toBeUndefined();
       expect(result.data.user).toEqual({
         value: 2,
-        asB: { value: null, nickname: spread ? 'Al' : null },
+        asB: { value: 2, nickname: spread ? 'Al' : null },
       });
-      expect(seen).toEqual([null]);
+      expect(seen).toEqual([2]);
+      expect(result.statements).toHaveLength(1);
+    });
+
+    it('keeps the keys a spread added when the row is reloaded', async () => {
+      const { schema: built } = schema(
+        { a: { total: { posts: count } }, b: { total: { posts: count } } },
+        (user) => user.total,
+        spread,
+      );
+      const result = await runCaptured(built, '{ user { asB { value label } } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.user.asB).toEqual({
+        value: 2,
+        label: `alice@example.com ${spread ? 'Al' : 'undefined'}`,
+      });
+    });
+
+    it('reads the filtered rows both types select', async () => {
+      const query = { where: { published: 1 } };
+      const { schema: built, seen } = schema(
+        { a: { posts: query }, b: { posts: query } },
+        published,
+        spread,
+      );
+      const result = await runCaptured(built, '{ user { value asB { value } } }');
+      expect(result.errors).toBeUndefined();
+      expect(result.data.user).toEqual({ value: [1], asB: { value: [1] } });
+      expect(seen).toEqual([[1]]);
       expect(result.statements).toHaveLength(1);
     });
   });

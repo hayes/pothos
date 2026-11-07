@@ -181,7 +181,7 @@ describe('rows a resolver returns', () => {
     expect(result.data.user).toEqual({ summary: 'Andrews 2' });
   });
 
-  it("loads a type's filtered relation for a field selecting only columns of a row another type handed it", async () => {
+  it("loads a type's filtered relation for a field selecting only columns of a row of another type", async () => {
     const builder = createBuilder();
     const Drafts = builder.prismaObject('User', {
       variant: 'Drafts',
@@ -200,16 +200,40 @@ describe('rows a resolver returns', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        // A row no plan loaded.
+        // A row no plan loaded, with the whole relation in place of Drafts' filtered one.
         user: t.field({
           type: User,
-          resolve: () => ({ id: 'u-alice', lastName: 'Andrews' }),
+          resolve: () => ({ id: 'u-alice', lastName: 'Andrews', posts: [] }),
         }),
       }),
     });
     const result = await run(builder.toSchema(), '{ user { drafts { summary } } }');
     expect(result.errors).toBeUndefined();
     expect(result.data.user).toEqual({ drafts: { summary: 'Andrews 1' } });
+  });
+
+  it("reloads a computed value of the type's select that a row no plan loaded holds", async () => {
+    const builder = createBuilder();
+    const User = builder.prismaObject('User', {
+      select: { total: { posts: (posts) => posts.count() } },
+      fields: (t) => ({
+        summary: t.string({
+          select: ['lastName'],
+          resolve: (user) => `${user.lastName} ${user.total}`,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.field({
+          type: User,
+          resolve: () => ({ id: 'u-alice', lastName: 'Andrews', total: 99 }) as never,
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ user { summary } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user).toEqual({ summary: 'Andrews 2' });
   });
 });
 

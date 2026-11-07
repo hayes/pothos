@@ -22,7 +22,12 @@ import type { PrismaNextConfig } from './utils/config.js';
 import { variantOf } from './utils/contract.js';
 import { InternalError, keepError } from './utils/errors.js';
 import { getIdentityFields, type PrismaNextModel } from './utils/model.js';
-import { type PrismaNextSelection, registerPlanRoots, withOtherKeys } from './utils/selections.js';
+import {
+  type PrismaNextSelection,
+  registerPlanRoots,
+  rowOf,
+  withOtherKeys,
+} from './utils/selections.js';
 
 type Row = Record<string, unknown>;
 type Played = PlayedPlan<PrismaNextModel, PrismaNextSelection>;
@@ -161,8 +166,8 @@ export class ModelLoader {
   /**
    * The parent row scope-auth's checks read, reloaded with every column and what the `select`s of
    * `type` and its interfaces load. Unlike `loadSelection`, it plans none of the field, so every
-   * check of a row shares it. The row's keys that aren't the model's columns or relations are
-   * kept. Cached per root field of each execution, which graphql makes a new path for, so a row
+   * check of a row shares it, and every copy of the row. The row's keys that aren't the model's
+   * columns or relations are kept. Cached per root field of each execution, which graphql makes a new path for, so a row
    * is reloaded again for a later mutation or subscription event.
    */
   loadTypeRow(info: GraphQLResolveInfo, parent: object, type: GraphQLObjectType): Promise<Row> {
@@ -175,7 +180,8 @@ export class ModelLoader {
       rows = new WeakMap();
       this.reloads.set(root, rows);
     }
-    let loads = rows.get(parent);
+    const row = rowOf(parent);
+    let loads = rows.get(row);
     const loaded = loads?.get(key);
     if (loaded) {
       return loaded;
@@ -202,18 +208,18 @@ export class ModelLoader {
         this.identity.map((field) => (parent as Row)[field]),
         { kind: 'parent' },
       ).then((reloaded) => withOtherKeys(reloaded!, parent, played.root.model));
-    const row = completeValue(selection, load) as Promise<Row>;
+    const reloaded = completeValue(selection, load) as Promise<Row>;
     if (!loads) {
       loads = new Map();
-      rows.set(parent, loads);
+      rows.set(row, loads);
     }
-    loads.set(key, row);
-    return row;
+    loads.set(key, reloaded);
+    return reloaded;
   }
 
   /** The load `loadTypeRow` started for `parent` and `type` in this root field, if any. */
   peekTypeRow(info: GraphQLResolveInfo, parent: object, type: GraphQLObjectType) {
-    return this.reloads.get(rootPath(info))?.get(parent)?.get(type.name);
+    return this.reloads.get(rootPath(info))?.get(rowOf(parent))?.get(type.name);
   }
 
   /** The row of a Relay node, planned for `info`'s selection on `typeName`, or null. */

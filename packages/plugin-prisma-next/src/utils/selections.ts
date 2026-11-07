@@ -13,7 +13,11 @@ import type {
   SelectFn,
 } from '@pothos/selection-mapper';
 import { type FieldNode, type GraphQLResolveInfo, getNamedType, isObjectType } from 'graphql';
-import { PRISMA_NEXT_MODEL, PRISMA_NEXT_TYPE_SELECTS } from '../constants.js';
+import {
+  PRISMA_NEXT_FILTERED_KEYS,
+  PRISMA_NEXT_MODEL,
+  PRISMA_NEXT_TYPE_SELECTS,
+} from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import { variantForRelationType } from './contract.js';
@@ -32,17 +36,16 @@ import {
  * Consumers and branches
  *
  * A consumer is one reader of a to-many relation's rows or computed values. A field's consumer id
- * is a short number (`consumerId`). A type-level `select` uses its type's name, which never starts
- * with a digit, so the two kinds never collide.
+ * is a short number (`consumerId`). Every type-level `select` uses `TYPE_CONSUMER`.
  *
  * In a selection, a to-many relation and its computed values are keyed `relation:id`, so each
  * consumer gets its own `combine()` branch. A branch is named `n/ids` for rows and `n/ids:key` for
  * a computed value, where `n` is unique in the statement (see `combine` in adapter.ts) and `ids`
  * are the ids of the consumers sharing it, joined with a space.
  *
- * Rows stay as the ORM returned them. A field returning rows hands each one on as a copy for its
- * type (`typeCopy`): the `combine()` values come off the relation keys and go under `SLOTS`, and
- * what the type's selects loaded is written back on. A field with a select of its own reads a copy
+ * Rows stay as the ORM returned them. A field returning rows hands each one on as a copy
+ * (`typeCopy`): the `combine()` values come off the relation keys and go under `SLOTS`, and what
+ * the type-level selects loaded is written back on. A field with a select of its own reads a copy
  * of that with its own branches written on (`fieldCopy`).
  */
 
@@ -160,6 +163,12 @@ export const COUNT_SLOT = `${KEY_SEPARATOR}count`;
 
 /** The key `relationCount` computes its count under, which stays in its branch. */
 export const VALUE_SLOT = `${KEY_SEPARATOR}value`;
+
+/**
+ * The consumer id of every type-level `select`. The selects of a model agree, so they share their
+ * branches. It isn't a number, so it never collides with a field's id.
+ */
+export const TYPE_CONSUMER = 'type';
 
 /** The interned consumer ids of one operation. */
 interface ConsumerIds {
@@ -281,16 +290,14 @@ interface Held {
   /** The ORM row the copy was made from. */
   readonly row: object;
   readonly slots: Slots;
-  /** The consumers the copy was made for, whether or not the statement loaded a branch of theirs. */
-  readonly types: ReadonlySet<string>;
-  /** For a field's copy, the consumer it was made for and the position it was planned at. */
-  readonly field?: { readonly id: string; readonly position: Position };
+  /** For a field's copy, the consumer it was made for. */
+  readonly field?: string;
 }
 
 /**
  * Where a copy keeps its row's `combine()` values. An enumerable property, so `{ ...parent }` and
- * `Object.assign` copies other plugins make keep them, and are recognized by it. JSON and
- * structuredClone copies drop it.
+ * `Object.assign` copies other plugins make keep them, and read from them as this plugin's copy
+ * does. JSON and structuredClone copies drop it.
  */
 const SLOTS = Symbol('prismaNextSlots');
 
@@ -303,9 +310,7 @@ const NO_SLOTS: Slots = Object.freeze({
 
 /** What `slotsOf` read off each ORM row. */
 const parsed = new WeakMap<object, Slots>();
-/** The copies this plugin made, as opposed to copies of them other plugins made. */
-const owned = new WeakSet<object>();
-/** The copies of each row or type copy, by the consumers they lift. */
+/** The copies of each row or type copy, by the consumer they lift. */
 const copies = new WeakMap<object, Map<string, object>>();
 
 /**
@@ -377,168 +382,79 @@ function lift(target: Row, { relations }: Slots, id: string) {
 
 /** The ORM row `value` is a copy of, or `value`. */
 export function rowOf(value: object): object {
-  return owned.has(value) ? (value as Holder)[SLOTS]!.row : value;
+  return (value as Holder)[SLOTS]?.row ?? value;
+}
+
+/** The field a copy is made for: its consumer id and the position it was planned at. */
+interface CopyField {
+  readonly id: string;
+  readonly position: Position;
 }
 
 /**
- * Consumer ids to write onto a copy, and the key its copies are cached by. `own` lists, by id, the
- * keys a type's select fills only from its own branch: its filtered or refined relations and its
- * computed values. Another reader's whole relation, or a branch of another type, never stands in
- * for them.
- */
-export interface CopyIds {
-  readonly ids: readonly string[];
-  readonly key: string;
-  readonly own: ReadonlyMap<string, readonly string[]>;
-}
-
-const NO_OWN_KEYS: ReadonlyMap<string, readonly string[]> = new Map();
-
-export function copyIds(
-  ids: readonly string[],
-  own: ReadonlyMap<string, readonly string[]> = NO_OWN_KEYS,
-): CopyIds {
-  return { ids, key: ids.join(ID_SEPARATOR), own };
-}
-
-/**
- * A copy of `base` with what `ids` loaded written onto it, cached per base and ids so per-row
- * caches such as scope-auth's see one object. The own keys of the ids it adds are cleared first,
- * so one the statement loaded no branch of theirs for reads as not loaded.
+ * A copy of `base` with what consumer `id` loaded written onto it, cached per base and id so
+ * per-row caches such as scope-auth's see one object. A copy of the ORM row itself leaves out the
+ * `combine()` values its relation keys hold, and the `filtered` keys, which only a load's branch
+ * fills.
  */
 function copyWith(
   base: object,
   row: object,
   slots: Slots,
-  from: Held | undefined,
-  { ids, key, own }: CopyIds,
-  field?: Held['field'],
-): object {
-  let byIds = copies.get(base);
-  if (!byIds) {
-    byIds = new Map();
-    copies.set(base, byIds);
+  id: string,
+  filtered: ReadonlySet<string>,
+  field?: CopyField,
+) {
+  let byId = copies.get(base);
+  if (!byId) {
+    byId = new Map();
+    copies.set(base, byId);
   }
-  let copy = byIds.get(key) as Row | undefined;
+  let copy = byId.get(id) as Row | undefined;
   if (!copy) {
-    copy = copyOf(base);
-    const types = new Set(from?.types);
-    if (!(SLOTS in base)) {
-      // The combined values come off the relation keys, which hold only what a select lifts back.
-      for (const name of Object.keys(slots.relations)) {
-        delete copy[name];
-      }
-    }
-    // A key an id the copy already has defines holds that id's value, which agrees with this one.
-    const kept = new Set([...types].flatMap((id) => own.get(id) ?? []));
-    const added = ids.filter((id) => !types.has(id));
-    for (const id of added) {
-      for (const name of own.get(id) ?? []) {
-        if (!kept.has(name)) {
-          delete copy[name];
-        }
-      }
-    }
-    for (const id of added) {
-      types.add(id);
-      if (slots.consumers.has(id)) {
-        lift(copy, slots, id);
-      }
-    }
+    copy = copyOf(
+      base,
+      base === row ? (key) => Object.hasOwn(slots.relations, key) || filtered.has(key) : undefined,
+    );
+    lift(copy, slots, id);
     if (field) {
       writePages(copy, slots, field);
     }
-    (copy as Holder)[SLOTS] = { row, slots, types, ...(field ? { field } : {}) };
-    owned.add(copy);
-    byIds.set(key, copy);
+    (copy as Holder)[SLOTS] = { row, slots, ...(field ? { field: field.id } : {}) };
+    byId.set(id, copy);
   }
   return copy;
 }
 
-/** Whether `value` holds a key one of `ids` fills only from its own branch. */
-function holdsOwnKey(value: object, { ids, own }: CopyIds) {
-  return ids.some((id) => own.get(id)?.some((name) => (value as Row)[name] !== undefined));
+/** Whether `row` holds any of `keys`. */
+function holdsAny(row: object, keys: ReadonlySet<string>) {
+  for (const key of keys) {
+    if ((row as Row)[key] !== undefined) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
- * `copy`, rebuilt from another plugin's copy `value`, with the keys `value` added that aren't the
- * model's or a value this plugin wrote, cached per `value`.
+ * The parent every reader of a row of `model` sees: for an ORM row with `combine()` values, a copy
+ * without them, holding them under `SLOTS`, with what the type-level selects loaded written on.
+ * The type-level selects of a model agree, which the schema build checks (see
+ * `assertSelectsAgree` in index.ts), so one copy serves every type. A copy holding `SLOTS`, this
+ * plugin's or another plugin's copy of it, is the parent as it is, but a field's copy is made again
+ * from its row. A row without `combine()` values that holds one of the `filtered` keys, such as a
+ * whole relation a resolver included, is copied without them, so the field reading them reloads.
  */
-function withAddedKeys(
-  value: object,
-  copy: object,
-  held: Held,
-  model: PrismaNextModel,
-  key: string,
-): object {
-  const written = new Set<string>();
-  for (const { values } of Object.values(held.slots.relations)) {
-    for (const id of held.types) {
-      for (const name of Object.keys(values[id] ?? {})) {
-        written.add(name);
-      }
-    }
-  }
-  const added = Object.keys(value).filter((name) => !isModelKey(model, name) && !written.has(name));
-  if (!added.length) {
-    return copy;
-  }
-  let byIds = copies.get(value);
-  if (!byIds) {
-    byIds = new Map();
-    copies.set(value, byIds);
-  }
-  let next = byIds.get(key) as Row | undefined;
-  if (!next) {
-    next = copyOf(copy);
-    for (const name of added) {
-      next[name] = (value as Row)[name];
-    }
-    (next as Holder)[SLOTS] = (copy as Holder)[SLOTS];
-    owned.add(next);
-    byIds.set(key, next);
-  }
-  return next;
-}
-
-/**
- * The parent the readers of a type see, whose type-level selects are `ids`, the type last. For an
- * ORM row with `combine()` values, a copy without them, holding them under `SLOTS`, with what those
- * selects loaded written on. A copy this plugin made for other ids is made again from its row. Another plugin's
- * copy of a type's copy is kept when it was made for some of `ids` alone, with only what it lacks
- * written onto a copy of it. Any other copy, such as one of another type's copy or of a field's,
- * is made again from its row, keeping the keys the other plugin added. The selects of a type and
- * its interfaces that write one key agree, which the schema build checks (see `assertSelectsAgree`
- * in index.ts).
- */
-export function typeCopy(value: object, model: PrismaNextModel, ids: CopyIds): object {
+export function typeCopy(value: object, model: PrismaNextModel, filtered: ReadonlySet<string>) {
   const held = (value as Holder)[SLOTS];
-  const foreign = !!held && !owned.has(value);
-  // This plugin's copy for these ids, which is what remaking it would return, or one keeping the
-  // keys another plugin's copy added.
-  if (
-    !foreign &&
-    held &&
-    !held.field &&
-    held.types.size === ids.ids.length &&
-    ids.ids.every((id) => held.types.has(id))
-  ) {
+  if (held && !held.field) {
     return value;
-  }
-  if (foreign && !held.field && [...held.types].every((id) => ids.ids.includes(id))) {
-    return ids.ids.every(
-      (id) => held.types.has(id) || (!held.slots.consumers.has(id) && !ids.own.get(id)?.length),
-    )
-      ? value
-      : copyWith(value, held.row, held.slots, held, ids);
   }
   const row = held ? held.row : value;
   const slots = held ? held.slots : slotsOf(row, model);
-  if (!held && slots === NO_SLOTS && !holdsOwnKey(row, ids)) {
-    return row;
-  }
-  const copy = copyWith(row, row, slots, undefined, ids);
-  return foreign ? withAddedKeys(value, copy, held, model, ids.key) : copy;
+  return slots === NO_SLOTS && !holdsAny(row, filtered)
+    ? row
+    : copyWith(row, row, slots, TYPE_CONSUMER, filtered);
 }
 
 /**
@@ -548,16 +464,16 @@ export function typeCopy(value: object, model: PrismaNextModel, ids: CopyIds): o
 export function fieldCopy(
   value: object,
   model: PrismaNextModel,
-  ids: CopyIds,
+  filtered: ReadonlySet<string>,
   position: Position,
 ): object {
-  const base = typeCopy(value, model, ids);
+  const base = typeCopy(value, model, filtered);
   const held = (base as Holder)[SLOTS];
   const id = consumerId(position);
   if (!held?.slots.consumers.has(id) && !plannedPages.has(position)) {
     return base;
   }
-  return copyWith(base, held?.row ?? base, held?.slots ?? NO_SLOTS, held, copyIds([id]), {
+  return copyWith(base, held?.row ?? base, held?.slots ?? NO_SLOTS, id, filtered, {
     id,
     position,
   });
@@ -592,7 +508,7 @@ export function registerPage(position: Position, name: string, plan: unknown) {
  * Writes the pages the field planned onto its copy: each relation's rows, or none when only its
  * count loaded, as an array holding the plan and count under `PAGE`.
  */
-function writePages(copy: Row, { relations }: Slots, { id, position }: NonNullable<Held['field']>) {
+function writePages(copy: Row, { relations }: Slots, { id, position }: CopyField) {
   for (const [name, plan] of plannedPages.get(position) ?? []) {
     const loaded = relations[name];
     const rows = loaded && Object.hasOwn(loaded.rows, id) ? (loaded.rows[id] as unknown[]) : [];
@@ -604,17 +520,23 @@ function writePages(copy: Row, { relations }: Slots, { id, position }: NonNullab
 /** The value `key` the consumer of `parent`, a field's copy, computed from relation `name`. */
 export function fieldValue(parent: object, name: string, key: string): unknown {
   const held = (parent as Holder)[SLOTS];
-  return held?.field && held.slots.relations[name]?.values[held.field.id]?.[key];
+  return held?.field && held.slots.relations[name]?.values[held.field]?.[key];
 }
 
 /**
- * `loaded`, a row a reload returned, with the keys of `row` that aren't columns or relations of
- * `model`. It is copied only when there are such keys.
+ * `loaded`, a row a reload returned, with the keys of `row`, the parent it reloads, that aren't
+ * columns or relations of `model` or values this plugin wrote, such as keys another plugin's copy
+ * added. It is copied only when there are such keys.
  */
 export function withOtherKeys(loaded: Row, row: object, model: PrismaNextModel): Row {
+  const relations = Object.values((row as Holder)[SLOTS]?.slots.relations ?? {});
+  const written = (key: string) =>
+    relations.some(({ values }) =>
+      Object.values(values).some((computed) => Object.hasOwn(computed, key)),
+    );
   let next: Row | undefined;
   for (const key of Object.keys(row)) {
-    if (!isModelKey(model, key)) {
+    if (!isModelKey(model, key) && !written(key)) {
       next ??= copyOf(loaded);
       next[key] = (row as Row)[key];
     }
@@ -631,9 +553,21 @@ function isModelKey(model: PrismaNextModel, key: string): boolean {
   );
 }
 
-/** Copies a row into a writable object with the same prototype and type brand. */
-function copyOf(row: object): Row {
-  const copy = Object.assign(Object.create(Object.getPrototypeOf(row)) as object, row) as Row;
+/**
+ * Copies a row into a writable object with the same prototype and type brand, without the keys
+ * `skip` names.
+ */
+function copyOf(row: object, skip?: (key: string) => boolean): Row {
+  const copy = Object.create(Object.getPrototypeOf(row)) as Row;
+  if (skip) {
+    for (const key of Object.keys(row)) {
+      if (!skip(key)) {
+        copy[key] = (row as Row)[key];
+      }
+    }
+  } else {
+    Object.assign(copy, row);
+  }
   const brand = getTypeBrand(row);
   if (brand) {
     brandWithType(copy, brand);
@@ -808,6 +742,15 @@ export type SplitSelect = ReturnType<typeof splitSelect>;
 /** A type-level `select`, split, with the name of the type that declares it. */
 export type TypeSelect = SplitSelect & { name: string };
 
+/** The keys of the type's model that its type-level `select`s write from their own branch. */
+export function filteredKeys(type: {
+  readonly extensions?: Readonly<Record<string, unknown>> | null;
+}): ReadonlySet<string> {
+  return (type.extensions?.[PRISMA_NEXT_FILTERED_KEYS] as ReadonlySet<string> | undefined) ?? NONE;
+}
+
+const NONE: ReadonlySet<string> = new Set();
+
 /**
  * The `select`s of a type and of its interfaces, which `onTypeConfig` keeps to one model hierarchy.
  * The deepest interface comes first and the type itself last. None for a type without a model.
@@ -947,14 +890,17 @@ function compileSelect(
   }));
 }
 
-/** Compiles a type-level `select`. Its relations load every column, in the type's own slots. */
+/** Compiles a type-level `select`. Its relations load every column, in the model's type branches. */
 export function compileTypeSelect(
   contract: AnyContract,
   split: SplitSelect,
   model: PrismaNextModel,
-  typeName: string,
 ) {
-  return compileSelect(split, model, { contract, id: typeName, args: {} }) as PrismaNextSelection;
+  return compileSelect(split, model, {
+    contract,
+    id: TYPE_CONSUMER,
+    args: {},
+  }) as PrismaNextSelection;
 }
 
 /** `option`, or what it returns for `args` and `ctx` when it's a function, passed to `next`. */

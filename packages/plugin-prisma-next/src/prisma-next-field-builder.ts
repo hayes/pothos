@@ -65,15 +65,14 @@ import {
   completeOption,
   computedSelection,
   consumerId,
-  copyIds,
   definedQuery,
   fieldCopy,
   fieldValue,
+  filteredKeys,
   type PrismaNextSelectFn,
   queryRefinement,
   type RawSelect,
   relationArgs,
-  rowOf,
   rowsSelection,
   splitSelect,
   VALUE_SLOT,
@@ -609,8 +608,6 @@ export class PrismaNextObjectFieldBuilder<
   }
 }
 
-const NO_TYPE_IDS = copyIds([]);
-
 /**
  * Reads what a field helper loaded on its parent, which `wrapResolve` handed the resolver. A plugin
  * listed after this one can replace that parent with one that lacks it, which is reloaded with
@@ -631,9 +628,11 @@ function readOwn<T>(
   const modelKey = info.parentType.extensions?.[PRISMA_NEXT_MODEL] as string;
   const model = getModel(config.contract, modelKey);
   return (
-    reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, rowOf(parent)))
+    reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, parent))
       // A reload plans its field first, onto a level that loads nothing yet, so the field always
       // fits and has a mapping.
-      .then(({ row, mapping }) => read(fieldCopy(row, model, NO_TYPE_IDS, mapping!.position!)))
+      .then(({ row, mapping }) =>
+        read(fieldCopy(row, model, filteredKeys(info.parentType), mapping!.position!)),
+      )
   );
 }

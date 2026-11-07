@@ -123,8 +123,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    * implementations' selections: a row loaded as the interface is resolved as one of them, whose
    * `isTypeOf`, auth checks and fields read it even when the query has no fragment on that type.
    *
-   * They all fit one node. To-many relations and computed values use each type's own branches, and a
-   * to-one relation is always `true` in a type's `select`. A type's `select` can't name a relation
+   * They all fit one node. The type-level selects of a model agree and share their branches, and
+   * a to-one relation is always `true` in a type's `select`. A type's `select` can't name a relation
    * only a variant declares, but a base model's relation can't be included beneath a relation that
    * targets a variant model, nor a base column read beneath one that targets a variant with a table
    * of its own. `mergeQuery` leaves those out of such a level.
@@ -137,7 +137,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     }
     const node = this.createNode(model);
     for (const select of typeSelects(type)) {
-      super.mergeQuery(node, compileTypeSelect(this.contract, select, model, select.name));
+      super.mergeQuery(node, compileTypeSelect(this.contract, select, model));
     }
     for (const selection of implementationsOf(type)?.values() ?? []) {
       super.mergeQuery(node, selection);
