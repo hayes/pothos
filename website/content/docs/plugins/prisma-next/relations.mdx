@@ -104,6 +104,22 @@ posts: t.relation('posts', {
 
 For cursor-based pagination, use [`t.relatedConnection`](./connections#paginate-a-relation).
 
+### Aliases
+
+A query can select one relation field several times under aliases with different arguments:
+
+```graphql
+{
+  users {
+    newest: posts(oldestFirst: false) { title }
+    oldest: posts(oldestFirst: true) { title }
+  }
+}
+```
+
+Each alias loads its own rows in the parent's query. Aliases with the same arguments share one
+load.
+
 ## Counts and other aggregates
 
 `t.relationCount` adds an `Int` field that counts a to-many relation. Pass a `query` with a `where`

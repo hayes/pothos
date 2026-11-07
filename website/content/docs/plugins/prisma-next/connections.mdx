@@ -154,6 +154,7 @@ builder.prismaObjectField('Post', 'activity', (t) =>
 ```
 
 The page follows the arguments of the connection field, `commenters`, not those of `activity`.
+Aliases of `commenters` beneath one `activity` must pass the same arguments, or the root field fails.
 
 `select` and `query` also receive the connection's arguments and context. Add the helper's `args`
 to the connection field with `args: commenters.getArgs()`.
