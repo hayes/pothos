@@ -20,6 +20,7 @@ import {
 } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import { branchName, consumerOfKey, relationName } from './branch-keys.js';
+import { compileTypeSelect, typeSelects } from './compile-select.js';
 import { appliesCursors, markCursors } from './cursors.js';
 import {
   getIdentityFields,
@@ -30,7 +31,6 @@ import {
 import {
   COMPUTE,
   type ComputedSelection,
-  compileTypeSelect,
   EMPTY,
   loadsWholeRelation,
   type Narrowing,
@@ -38,7 +38,6 @@ import {
   type PrismaNextSelection,
   REFINE,
   type RelationArgs,
-  typeSelects,
 } from './selections.js';
 
 /**

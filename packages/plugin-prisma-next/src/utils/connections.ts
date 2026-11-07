@@ -2,6 +2,7 @@ import { completeValue, type MaybePromise, ObjectRef, type SchemaTypes } from '@
 import { type IndirectInclude, type Position, selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection } from './adapter.js';
+import { computedSelection, relationArgs, rowsSelection } from './compile-select.js';
 import type { PrismaNextConfig } from './config.js';
 import {
   appliesCursors,
@@ -18,17 +19,8 @@ import {
 } from './cursors.js';
 import { checkReturned, InternalError } from './errors.js';
 import type { PrismaNextRelation } from './model.js';
-import {
-  COUNT_SLOT,
-  computedSelection,
-  EMPTY,
-  PAGE,
-  type PageData,
-  type PrismaNextSelection,
-  registerPage,
-  relationArgs,
-  rowsSelection,
-} from './selections.js';
+import { PAGE, type PageData, registerPage } from './row-copies.js';
+import { COUNT_SLOT, EMPTY, type PrismaNextSelection } from './selections.js';
 
 type SizeOption = number | ((args: never, ctx: never) => number);
 

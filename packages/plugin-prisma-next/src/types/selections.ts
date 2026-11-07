@@ -12,7 +12,7 @@ import type { PathSegment } from '@pothos/selection-mapper';
 import type { HasRow } from '@prisma/orm-family-sql/orm-client';
 import type { prismaInterfaceBrand } from '../interface-ref.js';
 import type { prismaModelBrand } from '../object-ref.js';
-import type { CONNECTION_PAGE, NESTED_SELECTION, NODE_SELECTION } from '../utils/selections.js';
+import type { CONNECTION_PAGE, NESTED_SELECTION, NODE_SELECTION } from '../utils/compile-select.js';
 import type { ParamToModelKey } from './fields.js';
 import type {
   BaseModelKey,

@@ -19,16 +19,13 @@ import { and, or } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/adapter.js';
 import type { PrismaNextConfig } from './utils/config.js';
+import { registerPlanRoots } from './utils/consumers.js';
 import { variantOf } from './utils/contract.js';
 import { appliesCursors, readPage } from './utils/cursors.js';
 import { InternalError, isRefusedValue, keepError, refusedError } from './utils/errors.js';
 import { getIdentityFields, type PrismaNextModel } from './utils/model.js';
-import {
-  type PrismaNextSelection,
-  registerPlanRoots,
-  rowOf,
-  withOtherKeys,
-} from './utils/selections.js';
+import { rowOf, withOtherKeys } from './utils/row-copies.js';
+import type { PrismaNextSelection } from './utils/selections.js';
 
 type Row = Record<string, unknown>;
 type Played = PlayedPlan<PrismaNextModel, PrismaNextSelection>;

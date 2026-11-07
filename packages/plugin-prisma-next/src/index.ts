@@ -44,6 +44,20 @@ import {
   PRISMA_NEXT_TYPE_SELECTS,
 } from './constants.js';
 import { canInclude } from './utils/adapter.js';
+import {
+  compileFieldSelect,
+  definedQuery,
+  isNestedSelect,
+  loadsOwnTableVariantRows,
+  nestedPlan,
+  nestedSubject,
+  type RawSelect,
+  type SplitSelect,
+  splitSelect,
+  staticEntryVariant,
+  type TypeSelect,
+  typeSelects,
+} from './utils/compile-select.js';
 import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
 import { resolveContractModel, rootModelKey } from './utils/contract.js';
 import { orderableProblem, orderColumns } from './utils/cursors.js';
@@ -57,28 +71,18 @@ import {
 } from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import {
-  compileFieldSelect,
-  definedQuery,
-  EMPTY,
   fieldCopy,
-  isNestedSelect,
-  loadsOwnTableVariantRows,
-  type Narrowing,
   type NestedPlan,
-  nestedPlan,
-  nestedSubject,
-  type PrismaNextSelectFn,
-  type PrismaNextSelection,
-  type RawSelect,
   rowOf,
-  type SplitSelect,
-  splitSelect,
-  staticEntryVariant,
   type TypeReads,
-  type TypeSelect,
   typeCopy,
   typeReads,
-  typeSelects,
+} from './utils/row-copies.js';
+import {
+  EMPTY,
+  type Narrowing,
+  type PrismaNextSelectFn,
+  type PrismaNextSelection,
 } from './utils/selections.js';
 import { variantTypeNames } from './utils/variant-types.js';
 

@@ -26,6 +26,15 @@ import type {
 import type { DefaultRelationNullable, IsToMany, RelatedModel } from './types/relations.js';
 import type { ConnectionPageEntry, NodeSelection } from './types/selections.js';
 import type { MapperCollection } from './utils/adapter.js';
+import {
+  CONNECTION_PAGE,
+  NESTED_SELECTION,
+  type NestedEntry,
+  NODE_SELECTION,
+  type PlanPage,
+  relationArgs,
+  splitSelect,
+} from './utils/compile-select.js';
 import { getPluginConfig } from './utils/config.js';
 import { CONNECTION_NODE_PATHS, connectionPaging } from './utils/connections.js';
 import { variantForRelationType } from './utils/contract.js';
@@ -33,19 +42,8 @@ import { buildConnectionPage, type ConnectionPage } from './utils/cursors.js';
 import { initialSelection, nestedFromInfo, type PlanNested } from './utils/map-query.js';
 import { getIdentityFields, getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
-import {
-  CONNECTION_PAGE,
-  EMPTY,
-  NESTED_SELECTION,
-  type NestedEntry,
-  NODE_SELECTION,
-  PAGE,
-  type PageData,
-  type PlanPage,
-  type PrismaNextSelection,
-  relationArgs,
-  splitSelect,
-} from './utils/selections.js';
+import { PAGE, type PageData } from './utils/row-copies.js';
+import { EMPTY, type PrismaNextSelection } from './utils/selections.js';
 
 type ConnectionArgs<Args extends InputFieldMap> = InputShapeFromFields<Args> &
   PothosSchemaTypes.DefaultConnectionArguments;

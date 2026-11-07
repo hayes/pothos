@@ -5,8 +5,9 @@ import { PRISMA_NEXT_CONFIG } from '../constants.js';
 import type { PlannedCollection } from '../types/collections.js';
 import type { MapperCollection, PrismaNextPlan } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
+import { registerPlanRoots } from './consumers.js';
 import type { PrismaNextModel } from './model.js';
-import { EMPTY, type PrismaNextSelection, registerPlanRoots } from './selections.js';
+import { EMPTY, type PrismaNextSelection } from './selections.js';
 
 interface PlanTarget {
   /** Paths to the selection from the field's return type (`[['edges', 'node'], ['nodes']]`). */

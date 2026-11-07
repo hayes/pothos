@@ -48,6 +48,13 @@ import type {
   RelationWithoutOptionsCheck,
   ToManyRelationKeys,
 } from './types/relations.js';
+import {
+  completeOption,
+  computedSelection,
+  relationArgs,
+  relationLoad,
+  rowsSelection,
+} from './utils/compile-select.js';
 import { getPluginConfig } from './utils/config.js';
 import {
   type ConnectionSettingsOptions,
@@ -56,24 +63,14 @@ import {
   countOf,
   pageLoaded,
 } from './utils/connections.js';
+import { consumerId } from './utils/consumers.js';
 import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
 import { orderableProblem } from './utils/cursors.js';
 import { checkReturned, reloadFor } from './utils/errors.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { getRefFromContractModel, refFor } from './utils/refs.js';
-import {
-  completeOption,
-  computedSelection,
-  consumerId,
-  fieldCopy,
-  fieldValue,
-  type PrismaNextSelectFn,
-  relationArgs,
-  relationLoad,
-  rowsSelection,
-  typeReads,
-  VALUE_SLOT,
-} from './utils/selections.js';
+import { fieldCopy, fieldValue, typeReads } from './utils/row-copies.js';
+import { type PrismaNextSelectFn, VALUE_SLOT } from './utils/selections.js';
 
 type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
   PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
