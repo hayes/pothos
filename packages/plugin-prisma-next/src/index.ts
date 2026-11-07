@@ -404,16 +404,19 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const rows = fieldConfig.extensions?.[PRISMA_NEXT_RELATION_ROWS] as
       | { name: string; type: OutputType<Types> }
       | undefined;
-    const relation = rows && model.relations[rows.name]!;
-    const target = relation?.targetVariantModel;
-    const narrowing: Narrowing | undefined = target && {
-      value: target.value,
-      throughVariantModel: true,
-    };
-    const typeConfig = narrowing && this.buildCache.getTypeConfig(rows!.type);
-    if (!relation || !typeConfig || typeConfig.kind === 'Object') {
+    if (!rows) {
       return;
     }
+    const relation = model.relations[rows.name]!;
+    const target = relation.targetVariantModel;
+    if (!target) {
+      return;
+    }
+    const typeConfig = this.buildCache.getTypeConfig(rows.type);
+    if (typeConfig.kind === 'Object') {
+      return;
+    }
+    const narrowing: Narrowing = { value: target.value, throughVariantModel: true };
     const subject = `Field '${fieldConfig.parentType}.${fieldConfig.name}' returns interface '${typeConfig.name}'`;
     if (!returnsRelationRowsAs(relation, typeConfig.kind, relation.target)) {
       throw ownTableVariantRowsError(`${subject} for`, rows.name, relation);
