@@ -604,6 +604,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       ? [...typeKeys, ...(selection.columns ?? []), ...(split ? selectedKeys(split) : [])]
       : [];
     const parentTypes = [...mappingParentTypes(this.buildCache, fieldConfig, PRISMA_NEXT_MODEL)];
+    // A static selection's mapping has no position, and a field returning a scalar or enum has
+    // no fields beneath it to record nested mappings for, so such a field looks up no mapping.
+    const returnKind = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type)).kind;
+    const needsMapping = !columnsOnly || (returnKind !== 'Scalar' && returnKind !== 'Enum');
     const parentFor = (row: object, mapping: Mapping | null | undefined) =>
       mapping?.position
         ? fieldCopy(row, model, reads, mapping.position)
@@ -619,12 +623,14 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       );
     return (value, args, context, info) => {
       const row = value as object;
-      const raw = rowOf(row);
       let mapping: Mapping | null = null;
-      for (const type of parentTypes) {
-        mapping = getLoaderMapping(context, info.path, type, raw);
-        if (mapping) {
-          break;
+      if (needsMapping) {
+        const raw = rowOf(row);
+        for (const type of parentTypes) {
+          mapping = getLoaderMapping(context, info.path, type, raw);
+          if (mapping) {
+            break;
+          }
         }
       }
       const parent = parentFor(row, mapping);
