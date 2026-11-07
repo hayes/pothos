@@ -602,15 +602,41 @@ builder.queryFields((t) => ({
         return post;
       },
     }),
+    // Planned as the type `type` names: typed as the ref's shape, or a model name's planned rows.
     viaType: t.field({
       type: NestedPost,
       select: (_args, _ctx, nestedSelection) => ({
-        author: nestedSelection(undefined, undefined, 'NestedUser'),
+        author: nestedSelection(undefined, undefined, NestedUser),
+      }),
+      resolve: (post) => {
+        expectTypeOf(post.author).toEqualTypeOf<typeof NestedUser.$inferType>();
+        return post;
+      },
+    }),
+    viaModelName: t.field({
+      type: NestedPost,
+      select: (_args, _ctx, nestedSelection) => ({
+        author: nestedSelection(undefined, undefined, 'User'),
       }),
       resolve: (post) => {
         expectTypeOf(post.author).toEqualTypeOf<PlannedRow<Types, 'User'>>();
         return post;
       },
+    }),
+    viaOtherModel: t.field({
+      type: NestedPost,
+      // @ts-expect-error Invalid value in select: author
+      select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection(true, [], 'Post') }),
+      resolve: (post) => post,
+    }),
+    unknownType: t.field({
+      type: NestedPost,
+      // @ts-expect-error a type name the builder doesn't know
+      select: (_args, _ctx, nestedSelection) => ({
+        // @ts-expect-error no overload takes it
+        author: nestedSelection(undefined, undefined, 'NoSuchType'),
+      }),
+      resolve: (post) => post,
     }),
   }));
 }

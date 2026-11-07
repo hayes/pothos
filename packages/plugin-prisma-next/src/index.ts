@@ -45,7 +45,7 @@ import {
 } from './constants.js';
 import { canInclude } from './utils/adapter.js';
 import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
-import { rootModelKey } from './utils/contract.js';
+import { resolveContractModel, rootModelKey } from './utils/contract.js';
 import { orderableProblem, orderColumns } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
 import {
@@ -55,6 +55,7 @@ import {
   type PrismaNextRelation,
   returnsRelationRowsAs,
 } from './utils/model.js';
+import { refFor } from './utils/refs.js';
 import {
   compileFieldSelect,
   definedQuery,
@@ -320,15 +321,18 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const selection =
       select !== undefined
-        ? compileFieldSelect(
-            this.config.contract,
-            select,
-            model,
-            (typeName) =>
-              this.buildCache.getTypeConfig(typeName).extensions?.[PRISMA_NEXT_MODEL] as
-                | string
-                | undefined,
-          )
+        ? compileFieldSelect(this.config.contract, select, model, (type) => {
+            // A model's name is its default ref, as for `t.prismaField`.
+            const config = this.buildCache.getTypeConfig(
+              typeof type === 'string' && resolveContractModel(this.config.contract, type)
+                ? refFor(this.builder, type)
+                : (type as OutputType<Types>),
+            );
+            return {
+              name: config.name,
+              model: config.extensions?.[PRISMA_NEXT_MODEL] as string | undefined,
+            };
+          })
         : exposesColumn
           ? { columns: [exposed] }
           : typeSelects(this.buildCache.getTypeConfig(fieldConfig.parentType)).length

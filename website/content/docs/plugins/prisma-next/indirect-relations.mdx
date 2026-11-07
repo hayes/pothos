@@ -34,7 +34,9 @@ field, such as `author`, which then loads separately.
   takes none.
 - `path`: a field nested under the field's type to read the selection from. A segment can be
   written as `{ name, type }` to only read the field under a fragment on that type.
-- `type`: the type to read the selection as, when the field returns an interface or union.
+- `type`: the type to read the selection as, when the field returns an interface or union. It
+  takes what a field's `type` takes, or a model's name for its default type. The query and rows are
+  typed by that type's model, which must be the relation's target.
 
 The rows hold the primary key and what the selection loads, not every column.
 
@@ -84,8 +86,8 @@ builder.prismaObject('User', {
     recentActivity: t.field({
       type: [Activity],
       select: (args, ctx, nestedSelection) => ({
-        posts: nestedSelection({ limit: 5 }, [], 'Post'),
-        comments: nestedSelection({ limit: 5 }, [], 'Comment'),
+        posts: nestedSelection({ limit: 5 }, [], Post),
+        comments: nestedSelection({ limit: 5 }, [], Comment),
       }),
       resolve: (user) => [...user.posts, ...user.comments],
     }),

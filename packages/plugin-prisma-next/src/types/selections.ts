@@ -2,6 +2,8 @@ import type {
   MaybeAsyncSelection,
   MaybePromise,
   Merge,
+  OutputShape,
+  OutputType,
   parentShapeKey,
   SchemaTypes,
   UnionToIntersection,
@@ -11,6 +13,7 @@ import type { HasRow } from '@prisma/orm-family-sql/orm-client';
 import type { prismaInterfaceBrand } from '../interface-ref.js';
 import type { prismaModelBrand } from '../object-ref.js';
 import type { CONNECTION_PAGE, NESTED_SELECTION, NODE_SELECTION } from '../utils/selections.js';
+import type { ParamToModelKey } from './fields.js';
 import type {
   BaseModelKey,
   ExtractModel,
@@ -121,14 +124,29 @@ export type TypeParamModel<Types extends SchemaTypes, Type> = Type extends reado
 /**
  * A relation entry from `nestedSelection`: the relation's rows, with the selection planned beneath
  * them as a type of model `M`. `HasQuery` is whether it was given a query, which a to-one relation
- * takes none of.
+ * takes none of. `Shape` is the type's shape, or `never` for rows typed as planned rows of `M`.
  */
-export interface NestedSelectionEntry<M, HasQuery extends boolean> {
+export interface NestedSelectionEntry<M, HasQuery extends boolean, Shape = never> {
   /** Type-only: what the entry plans. */
-  readonly [NESTED_SELECTION]: { readonly model: M; readonly query: HasQuery };
+  readonly [NESTED_SELECTION]: {
+    readonly model: M;
+    readonly query: HasQuery;
+    readonly shape: Shape;
+  };
 }
 
-/** A query for rows of `M`. Without a model, such as for a wrapper type, it isn't typed by one. */
+/** What `nestedSelection`'s `type` takes: what a field's `type` takes, or a model's name. */
+export type NestedSelectionType<Types extends SchemaTypes> = OutputType<Types> | ModelKey<Types>;
+
+/** The shape of a `nestedSelection` type: a ref's, or `never` for a name. */
+type NestedTypeShape<Types extends SchemaTypes, Type> = Type extends string
+  ? never
+  : OutputShape<Types, Type>;
+
+/**
+ * A query for rows of `M`. Without a model, such as for a wrapper type or a type named by a name
+ * that isn't a model's, it isn't typed by one.
+ */
 type NestedQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> = [M] extends [never]
   ? { where?: object; orderBy?: object; limit?: number; offset?: number }
   : RelationQueryLiteral<Types, M>;
@@ -153,22 +171,28 @@ export type NestedSelectionQuery<Types extends SchemaTypes, M extends ModelKey<T
 /**
  * Plans the selection beneath a field into a relation entry of its `select`: the relation's rows
  * are loaded with `query`, and planned as `type` (by default the field's type) at `path` beneath
- * the field. With a `path` or `type`, the rows aren't typed by the field's model, but as the
- * relation's target.
+ * the field. `type` takes what a field's `type` does, or a model's name for its default type. The
+ * query and rows are typed by its model and shape. With a `path` and no `type`, or a type name that
+ * isn't a model's, the rows are typed as the relation's target.
  */
 export interface NestedSelectionFn<Types extends SchemaTypes, M extends ModelKey<Types>, Args> {
   (query?: true): NestedSelectionEntry<M, false>;
   (query: NestedSelectionQuery<Types, M, Args>): NestedSelectionEntry<M, true>;
-  (
-    query: true | undefined,
-    path: PathSegment[] | undefined,
-    type?: string,
-  ): NestedSelectionEntry<never, false>;
+  (query: true | undefined, path: PathSegment[] | undefined): NestedSelectionEntry<never, false>;
   (
     query: NestedSelectionQuery<Types, never, Args>,
     path: PathSegment[] | undefined,
-    type?: string,
   ): NestedSelectionEntry<never, true>;
+  <const Type extends NestedSelectionType<Types>>(
+    query: true | undefined,
+    path: PathSegment[] | undefined,
+    type: Type,
+  ): NestedSelectionEntry<ParamToModelKey<Types, Type>, false, NestedTypeShape<Types, Type>>;
+  <const Type extends NestedSelectionType<Types>>(
+    query: NestedSelectionQuery<Types, ParamToModelKey<Types, NoInfer<Type>>, Args>,
+    path: PathSegment[] | undefined,
+    type: Type,
+  ): NestedSelectionEntry<ParamToModelKey<Types, Type>, true, NestedTypeShape<Types, Type>>;
 }
 
 /**
@@ -270,9 +294,9 @@ type KnownSelectSpec<Types extends SchemaTypes, M extends ModelKey<Types>, Mispl
                     | RelationRefinement<Types, M, K>
                     // A connection helper's page, on a field's `select` only.
                     | ConnectionPageEntry<RelationTypeModel<Types, M, K>, unknown>
-                    | NestedSelectionEntry<RelationTypeModel<Types, M, K>, boolean>
+                    | NestedSelectionEntry<RelationTypeModel<Types, M, K>, boolean, unknown>
                 : // A to-one relation's rows load whole, so they're planned as its target.
-                  NestedSelectionEntry<RelatedModel<Types, M, K>, false>)
+                  NestedSelectionEntry<RelatedModel<Types, M, K>, false, unknown>)
         : K extends keyof Row<Types, M>
           ? true
           : never);
@@ -320,7 +344,7 @@ type ComputedShape<Types extends SchemaTypes, M extends ModelKey<Types>, S> = [
 type SimpleRelationShape<Types extends SchemaTypes, M extends ModelKey<Types>, S> = {
   [K in keyof S & RelationKeys<Types, M> as S[K] extends
     | ConnectionPageEntry<unknown, unknown>
-    | NestedSelectionEntry<unknown, boolean>
+    | NestedSelectionEntry<unknown, boolean, unknown>
     ? never
     : S[K] extends true | RelationQueryValue<Types, M, K> | ((sub: never) => unknown)
       ? K
@@ -333,19 +357,25 @@ type SimpleRelationShape<Types extends SchemaTypes, M extends ModelKey<Types>, S
 } & {
   // Rows `nestedSelection` planned as its type, or as the relation's target beneath a type
   // without a model.
-  [K in keyof S & RelationKeys<Types, M> as S[K] extends NestedSelectionEntry<unknown, boolean>
+  [K in keyof S & RelationKeys<Types, M> as S[K] extends NestedSelectionEntry<
+    unknown,
+    boolean,
+    unknown
+  >
     ? K
-    : never]: S[K] extends NestedSelectionEntry<infer TypeModel, boolean>
+    : never]: S[K] extends NestedSelectionEntry<infer TypeModel, boolean, infer Shape>
     ? NestedRows<
         Types,
         M,
         K,
-        PlannedRow<
-          Types,
-          [TypeModel] extends [never]
-            ? RelatedModel<Types, M, K>
-            : TypeModel & RelationTypeModel<Types, M, K>
-        >
+        [Shape] extends [never]
+          ? PlannedRow<
+              Types,
+              [TypeModel] extends [never]
+                ? RelatedModel<Types, M, K>
+                : TypeModel & RelationTypeModel<Types, M, K>
+            >
+          : Shape
       >
     : never;
 };
@@ -589,7 +619,11 @@ type InvalidSelectValueCheck<Types extends SchemaTypes, M extends ModelKey<Types
           ? `A computed key can't be a column or relation: ${K}`
           : K extends ToManyRelationKeys<Types, M>
             ? `Invalid value in select: ${K}`
-            : NonNullable<Select[K & keyof Select]> extends NestedSelectionEntry<unknown, true>
+            : NonNullable<Select[K & keyof Select]> extends NestedSelectionEntry<
+                  unknown,
+                  true,
+                  unknown
+                >
               ? `A to-one relation takes no query: ${K}`
               : `Invalid value in select: ${K}`]: never;
       }

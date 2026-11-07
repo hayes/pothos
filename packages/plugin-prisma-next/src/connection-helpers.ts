@@ -315,7 +315,7 @@ export function prismaConnectionHelpers<
   const pageRows = (
     seed: PrismaNextSelection,
     nested: PlanNested,
-    { path, type }: NestedEntry,
+    { path }: NestedEntry,
     args: object,
     ctx: object,
   ) => {
@@ -346,13 +346,13 @@ export function prismaConnectionHelpers<
           refine: undefined,
         }),
       };
-      return completeValue(nested(nodeSeed, path, type), (nodes) => ({
+      return completeValue(nested(nodeSeed, path), (nodes) => ({
         ...own,
         relations: { ...relations, [nodeRelation]: nodes },
       }));
     }
     // Rows that `resolveNode` makes into something else aren't the nodes, so they load whole.
-    return resolveNode ? { ...own, columns: null } : nested(own, path, type);
+    return resolveNode ? { ...own, columns: null } : nested(own, path);
   };
 
   const planPage =

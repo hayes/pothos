@@ -63,7 +63,8 @@ function schema() {
     activity: t.field({
       type: [Activity],
       select: (_args, _ctx, nestedSelection) => ({
-        posts: nestedSelection({ orderBy: { id: 'asc' }, limit: 1 }, [], 'Post'),
+        // A ref, or a model's name for its default type.
+        posts: nestedSelection({ orderBy: { id: 'asc' }, limit: 1 }, [], Post),
         comments: nestedSelection(true, [], 'Comment'),
       }),
       resolve: (user) => [...user.posts, ...user.comments],

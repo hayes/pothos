@@ -137,11 +137,11 @@ export const NESTED_SELECTION = Symbol('prismaNextNestedSelection');
 export interface NestedEntry {
   query?: unknown;
   path?: PathSegment[];
-  type?: string;
+  type?: unknown;
 }
 
 /** The `nestedSelection` a field's select function is passed. */
-export function nestedSelectionEntry(query?: unknown, path?: PathSegment[], type?: string) {
+export function nestedSelectionEntry(query?: unknown, path?: PathSegment[], type?: unknown) {
   return { [NESTED_SELECTION]: { query, path, type } as NestedEntry };
 }
 
@@ -785,8 +785,8 @@ interface SelectCompilation {
   field?: FieldPlanning;
   /** The model of the field's type, which a static select's to-many relation entries narrow to. */
   returnModelKey?: string;
-  /** The model of the type a nested entry names. */
-  typeModel?: (typeName: string) => string | undefined;
+  /** The name and model of the type a nested entry names. */
+  typeOf?: (type: unknown) => { name: string; model: string | undefined };
 }
 
 /**
@@ -817,7 +817,7 @@ export function staticEntryVariant(
 function compileSelect(
   { columns, relations, computed }: SplitSelect,
   model: PrismaNextModel,
-  { contract, id, args, ctx, source, field, returnModelKey, typeModel }: SelectCompilation,
+  { contract, id, args, ctx, source, field, returnModelKey, typeOf }: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
   const identity = (entry: unknown) => (source === undefined ? entry : { source, args });
   const owner = field && `Field '${field.position.type.name}.${field.position.field.name}'`;
@@ -854,13 +854,14 @@ function compileSelect(
     // that variant.
     const { query, path, type } = value[NESTED_SELECTION];
     const { nested } = field!;
+    const named = type === undefined ? undefined : typeOf!(type);
     const variant =
       relation.isToMany && !path?.length
         ? variantForRelationType(
             contract,
             owner!,
             relation.targetModel,
-            type === undefined ? returnModelKey : typeModel!(type),
+            named ? named.model : returnModelKey,
           )
         : undefined;
     return completeOption(query ?? true, args, ctx!, (resolved) =>
@@ -874,7 +875,7 @@ function compileSelect(
             args: checkReturned(resolved, (q) => load(relation, q ?? true, variant)),
           },
           path,
-          type,
+          named?.name,
         ),
       ),
     );
@@ -934,7 +935,7 @@ export function compileFieldSelect(
         nestedSelection: typeof nestedSelectionEntry,
       ) => MaybePromise<RawSelect | null | undefined>),
   model: PrismaNextModel,
-  typeModel: (typeName: string) => string | undefined,
+  typeOf: (type: unknown) => { name: string; model: string | undefined },
 ): PrismaNextSelection | PrismaNextSelectFn {
   if (typeof raw !== 'function') {
     // A static select is checked when the schema is built, so it is split once, here.
@@ -964,7 +965,7 @@ export function compileFieldSelect(
       source: raw,
       field,
       returnModelKey,
-      typeModel,
+      typeOf,
     };
     // Compiled for a request, which may be the first to see what a select function returns.
     return completeValue(raw(args, ctx, nestedSelectionEntry), (value) =>
