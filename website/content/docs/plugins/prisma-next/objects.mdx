@@ -227,6 +227,30 @@ builder.mutationField('renameUser', (t) =>
 
 See [Transactions](./setup#transactions) to run the write and the reads in one transaction.
 
+### `prismaFieldWithInput`
+
+With the [with-input plugin](/docs/plugins/with-input), `t.prismaFieldWithInput` combines
+`t.prismaField` with `t.fieldWithInput`. The `input` fields become an input object argument:
+
+```ts
+builder.mutationField('updateFirstName', (t) =>
+  t.prismaFieldWithInput({
+    type: 'User',
+    nullable: true,
+    input: {
+      id: t.input.id({ required: true }),
+      firstName: t.input.string({ required: true }),
+    },
+    resolve: async (_root, args, ctx) => {
+      const user = await ctx.db.orm.User.where({ id: String(args.input.id) }).update({
+        firstName: args.input.firstName,
+      });
+      return user && ctx.db.orm.User.where({ id: user.id });
+    },
+  }),
+);
+```
+
 ## Adding fields
 
 To add fields to a type from another file, use `prismaObjectField` or `prismaObjectFields`.
