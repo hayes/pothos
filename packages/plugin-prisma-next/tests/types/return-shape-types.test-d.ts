@@ -171,6 +171,11 @@ const Bug = inheritance.prismaObject('Bug', {
   fields: (t) => ({ severity: t.exposeString('severity') }),
 });
 inheritance.prismaObject('Feature', { interfaces: [Task], fields: () => ({}) });
+// The interface's select loads the discriminator, so a parent fits the interface.
+inheritance.prismaInterfaceField(Task, 'self', (t) =>
+  t.field({ type: Task, resolve: (task) => task }),
+);
+inheritance.prismaObjectField(Bug, 'asTask', (t) => t.field({ type: Task, resolve: (bug) => bug }));
 inheritance.queryType({
   fields: (t) => ({
     // @ts-expect-error a row an ORM query loaded

@@ -37,6 +37,7 @@ import type {
 } from './types/fields.js';
 import type {
   AnyContract,
+  DiscriminatorField,
   FieldParentShape,
   IdColumn,
   IdValues,
@@ -174,8 +175,10 @@ declare global {
         const Interfaces extends InterfaceParam<Types>[],
         M extends ModelKey<Types>,
         const Select = unknown,
+        // The plugin adds a discriminated model's discriminator to the interface's select.
         Shape = ShapeFromObjectSelect<Types, M, Select> &
-          InterfaceSelectShape<Types, M, Interfaces>,
+          InterfaceSelectShape<Types, M, Interfaces> &
+          Pick<Row<Types, M>, DiscriminatorField<Types, M>>,
       >(
         modelKey: M,
         options: Omit<PrismaNextInterfaceOptions<Types, M, Shape, Interfaces>, 'select'> & {

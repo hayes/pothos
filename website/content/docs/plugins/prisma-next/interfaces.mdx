@@ -66,6 +66,9 @@ builder.prismaInterfaceField(Person, 'displayName', (t) =>
 To return rows through `Node` or another interface from a plain field, see
 [Returning rows from other fields](./relations#returning-rows-from-other-fields).
 
+An object type from `builder.objectRef` can implement a `prismaInterface` if its shape includes
+`PlannedRowBrand` for the model, such as `builder.objectRef<{ id: string } & PlannedRowBrand<'User'>>`.
+
 ## Native inheritance
 
 If your contract uses variant models (a base model with a discriminator column), register the base
