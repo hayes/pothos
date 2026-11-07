@@ -10,8 +10,8 @@ import type {
 } from '@pothos/core';
 import type { PathSegment } from '@pothos/selection-mapper';
 import type { HasRow } from '@prisma/orm-family-sql/orm-client';
-import type { prismaInterfaceBrand } from '../interface-ref.js';
-import type { prismaModelBrand } from '../object-ref.js';
+import type { prismaNextInterfaceBrand } from '../interface-ref.js';
+import type { prismaNextModelBrand } from '../object-ref.js';
 import type { CONNECTION_PAGE, NESTED_SELECTION, NODE_SELECTION } from '../utils/compile-select.js';
 import type { ParamToModelKey } from './fields.js';
 import type {
@@ -115,9 +115,9 @@ export type PrismaNextFieldSelectForm<
 /** The model of a field's type: of a `prismaObject` or `prismaInterface` ref, or a list of one. */
 export type TypeParamModel<Types extends SchemaTypes, Type> = Type extends readonly [infer Item]
   ? TypeParamModel<Types, Item>
-  : Type extends { readonly [prismaModelBrand]: infer M extends ModelKey<Types> }
+  : Type extends { readonly [prismaNextModelBrand]: infer M extends ModelKey<Types> }
     ? M
-    : Type extends { readonly [prismaInterfaceBrand]: infer M extends ModelKey<Types> }
+    : Type extends { readonly [prismaNextInterfaceBrand]: infer M extends ModelKey<Types> }
       ? M
       : never;
 
@@ -236,7 +236,7 @@ export type InterfaceSelectShape<
       Interfaces[number] extends infer I
         ? // Inferring against the ref class would compare its whole structure, so read its keys.
           I extends {
-            readonly [prismaInterfaceBrand]: infer IM extends string;
+            readonly [prismaNextInterfaceBrand]: infer IM extends string;
             readonly [parentShapeKey]: infer Shape;
           }
           ? M extends IM | VariantModelKeys<Types['PrismaNextContract'], IM>

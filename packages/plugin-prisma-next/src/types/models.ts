@@ -6,7 +6,7 @@ import type {
   ModelBrand,
   PlannedRowBrand,
   plannedRowBrand,
-  prismaModelBrand,
+  prismaNextModelBrand,
 } from '../object-ref.js';
 import type { IsToMany } from './relations.js';
 
@@ -326,7 +326,7 @@ export type ToOneRelationKeys<Types extends SchemaTypes, M extends ModelKey<Type
 
 /** What a returned row keeps of a type's shape: the brand, the columns and the to-one relations. */
 type ReturnedKeys<Types extends SchemaTypes, M extends ModelKey<Types>> =
-  | typeof prismaModelBrand
+  | typeof prismaNextModelBrand
   | (keyof Row<Types, M> & string)
   | ToOneRelationKeys<Types, M>;
 
@@ -406,7 +406,7 @@ export type ResolveTypeParent<
 >;
 
 export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {
-  [prismaModelBrand]?: infer M;
+  [prismaNextModelBrand]?: infer M;
 }
   ? M extends ModelKey<Types>
     ? M

@@ -25,8 +25,12 @@ import type {
   TypeParam,
 } from '@pothos/core';
 import type { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
-import type { prismaInterfaceBrand } from '../interface-ref.js';
-import type { PrismaNextObjectRef, prismaContractBrand, prismaModelBrand } from '../object-ref.js';
+import type { prismaNextInterfaceBrand } from '../interface-ref.js';
+import type {
+  PrismaNextObjectRef,
+  prismaNextContractBrand,
+  prismaNextModelBrand,
+} from '../object-ref.js';
 import type { PrismaNextObjectFieldBuilder } from '../prisma-next-field-builder.js';
 import type { ResolverCollection } from './collections.js';
 import type { FieldParentShape, ModelKey, ResolveTypeParent, Row } from './models.js';
@@ -300,15 +304,15 @@ export type PrismaNextObjectFieldOptions<
  * contract.
  */
 interface ModelObjectRefBrand<M, C = unknown> extends OutputRefShape<unknown> {
-  readonly [prismaModelBrand]: M;
-  readonly [prismaContractBrand]: C;
+  readonly [prismaNextModelBrand]: M;
+  readonly [prismaNextContractBrand]: C;
   readonly modelKey: M;
 }
 
 /** The interface counterpart of {@link ModelObjectRefBrand}. */
 interface ModelInterfaceRefBrand<M, C = unknown> extends OutputRefShape<unknown> {
-  readonly [prismaInterfaceBrand]: M;
-  readonly [prismaContractBrand]: C;
+  readonly [prismaNextInterfaceBrand]: M;
+  readonly [prismaNextContractBrand]: C;
   readonly modelKey: M;
 }
 

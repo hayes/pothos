@@ -7,9 +7,9 @@ import {
 } from '@pothos/core';
 import type { ModelKey, ObjectBaseShape, ObjectReturnShape } from './types/models.js';
 
-export const prismaModelBrand = Symbol.for('Pothos.prismaNextModelBrand');
+export const prismaNextModelBrand = Symbol.for('Pothos.prismaNextModelBrand');
 /** Type-only: the contract a ref's builder was created with. */
-export const prismaContractBrand = Symbol.for('Pothos.prismaNextContractBrand');
+export const prismaNextContractBrand = Symbol.for('Pothos.prismaNextContractBrand');
 
 /**
  * Type-only: marks the rows the loader planned, see `PlannedRow`. No row holds it at runtime. It is
@@ -28,7 +28,7 @@ export interface PlannedRowBrand<M> {
 
 /** Marks a row shape with its model. It is an interface so that declaration emit can name it. */
 export interface ModelBrand<M> {
-  readonly [prismaModelBrand]?: M;
+  readonly [prismaNextModelBrand]?: M;
 }
 
 /** A row branded with its GraphQL type. It is an interface so that declaration emit can name it. */
@@ -52,9 +52,9 @@ export class PrismaNextObjectRef<
   out M extends ModelKey<Types>,
   out Shape = ObjectBaseShape<Types, M>,
 > extends ObjectRef<Types, ObjectReturnShape<Types, M, Shape>, Shape> {
-  declare readonly [prismaModelBrand]: M;
+  declare readonly [prismaNextModelBrand]: M;
 
-  declare readonly [prismaContractBrand]: Types['PrismaNextContract'];
+  declare readonly [prismaNextContractBrand]: Types['PrismaNextContract'];
 
   declare readonly [abstractReturnShapeKey]: WithBrand<ObjectReturnShape<Types, M, Shape>>;
 

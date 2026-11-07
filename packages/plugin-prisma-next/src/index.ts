@@ -89,19 +89,19 @@ import { variantTypeNames } from './utils/variant-types.js';
 export type {
   ConnectionHelperRef,
   ConnectionHelperRow,
-  PrismaConnectionHelperOptions,
-  PrismaConnectionHelpers,
+  PrismaNextConnectionHelperOptions,
+  PrismaNextConnectionHelpers,
 } from './connection-helpers.js';
 export { prismaConnectionHelpers } from './connection-helpers.js';
-export { PrismaNextInterfaceRef, prismaInterfaceBrand } from './interface-ref.js';
+export { PrismaNextInterfaceRef, prismaNextInterfaceBrand } from './interface-ref.js';
 export { PrismaNextNodeRef, relayIDShapeBrand } from './node-ref.js';
 export {
   type ModelBrand,
   type PlannedRowBrand,
   PrismaNextObjectRef,
   plannedRowBrand,
-  prismaContractBrand,
-  prismaModelBrand,
+  prismaNextContractBrand,
+  prismaNextModelBrand,
   type TypeBrand,
 } from './object-ref.js';
 export { PrismaNextObjectFieldBuilder } from './prisma-next-field-builder.js';

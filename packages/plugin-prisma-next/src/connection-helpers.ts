@@ -178,7 +178,7 @@ function selectedBeneath(selected: SelectedFieldNode, prefix: string[]) {
   return () => names;
 }
 
-export interface PrismaConnectionHelpers<
+export interface PrismaNextConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   Args extends InputFieldMap = {},
@@ -229,7 +229,7 @@ export interface PrismaConnectionHelpers<
   ): HelperPage<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>;
 }
 
-export interface PrismaConnectionHelperOptions<
+export interface PrismaNextConnectionHelperOptions<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   Args extends InputFieldMap,
@@ -263,10 +263,10 @@ export function prismaConnectionHelpers<
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & ConnectionHelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
+  options: PrismaNextConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
     resolveNode: (row: NodeSourceRow<Types, M, Select>) => Node;
   },
-): PrismaConnectionHelpers<Types, M, Args, Select, Node, false, Ref>;
+): PrismaNextConnectionHelpers<Types, M, Args, Select, Node, false, Ref>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -279,10 +279,10 @@ export function prismaConnectionHelpers<
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & ConnectionHelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
+  options: PrismaNextConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
     resolveNode?: ((row: NodeSourceRow<Types, M, Select>) => Node) | undefined;
   },
-): PrismaConnectionHelpers<Types, M, Args, Select, Node, true, Ref>;
+): PrismaNextConnectionHelpers<Types, M, Args, Select, Node, true, Ref>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -295,7 +295,7 @@ export function prismaConnectionHelpers<
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & ConnectionHelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
+  options: PrismaNextConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
     resolveNode?: ((row: NodeSourceRow<Types, M, Select>) => Node) | undefined;
   },
 ): object {
