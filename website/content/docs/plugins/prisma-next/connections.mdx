@@ -33,7 +33,8 @@ the query selects. `t.prismaConnection` takes:
   `(parent, args, ctx, info) => number`. The count only runs when `totalCount` is selected.
 - `args`: extra arguments for filtering or sorting.
 
-Connection and edge types can be customized as with the [Relay plugin](../relay).
+Connection and edge types can be customized as with the [Relay plugin](../relay), including
+`edgesNullable` and `nodeNullable`.
 
 ### Before or after loading
 

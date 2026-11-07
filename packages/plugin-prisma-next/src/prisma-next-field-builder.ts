@@ -1,6 +1,7 @@
 import {
   completeValue,
   type FieldKind,
+  type FieldNullability,
   type FieldRef,
   type InferredFieldOptionKeys,
   type InputFieldMap,
@@ -28,6 +29,8 @@ import type {
 } from './types/aggregates.js';
 import type {
   ConnectionResultShape,
+  DefaultEdgesNullability,
+  DefaultNodeNullability,
   PrismaNextRelatedConnectionOptions,
   RelatedConnectionQueryLiteral,
   ShapeFromConnection,
@@ -489,6 +492,8 @@ export class PrismaNextObjectFieldBuilder<
           Target,
           TypeModel
         > = RelatedConnectionQueryLiteral<Types, Target, TypeModel>,
+        EdgeNullability extends FieldNullability<[unknown]> = DefaultEdgesNullability<Types>,
+        NodeNullability extends boolean = DefaultNodeNullability<Types>,
       >(
         name: RelName,
         ...args: NormalizeArgs<
@@ -502,14 +507,16 @@ export class PrismaNextObjectFieldBuilder<
               RelatedShape,
               Shape,
               TypeModel,
-              QueryLiteral
+              QueryLiteral,
+              EdgeNullability,
+              NodeNullability
             >,
             connectionOptions?:
               | PothosSchemaTypes.ConnectionObjectOptions<
                   Types,
                   PrismaNextObjectRef<Types, RelatedModel<Types, M, RelName>, RelatedShape>,
-                  false,
-                  false,
+                  EdgeNullability,
+                  NodeNullability,
                   ConnectionResultShape<Shape, Args>,
                   ConnectionInterfaces
                 >
@@ -518,7 +525,7 @@ export class PrismaNextObjectFieldBuilder<
               | PothosSchemaTypes.ConnectionEdgeObjectOptions<
                   Types,
                   PrismaNextObjectRef<Types, RelatedModel<Types, M, RelName>, RelatedShape>,
-                  false,
+                  NodeNullability,
                   ConnectionResultShape<Shape, Args>,
                   EdgeInterfaces
                 >

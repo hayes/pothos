@@ -1,5 +1,6 @@
 import type {
   FieldKind,
+  FieldNullability,
   FieldOptionsFromKind,
   InferredFieldOptionKeys,
   InputFieldMap,
@@ -96,6 +97,8 @@ export type PrismaNextConnectionFieldOptions<
   Kind extends FieldKind = FieldKind,
   ResolveShape = ParentShape,
   Returned extends ResolverCollection<Types, M> = ResolverCollection<Types, M>,
+  EdgeNullability extends FieldNullability<[unknown]> = DefaultEdgesNullability<Types>,
+  NodeNullability extends boolean = DefaultNodeNullability<Types>,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -116,8 +119,8 @@ export type PrismaNextConnectionFieldOptions<
       ParentShape,
       PrismaNextObjectRef<Types, M, Row<Types, M>>,
       Nullable,
-      false,
-      false,
+      EdgeNullability,
+      NodeNullability,
       Args,
       ResolveReturnShape
     >,
@@ -179,6 +182,8 @@ export type PrismaNextRelatedConnectionOptions<
     RelatedModel<Types, ParentModel, RelName>,
     TypeModel
   >,
+  EdgeNullability extends FieldNullability<[unknown]> = DefaultEdgesNullability<Types>,
+  NodeNullability extends boolean = DefaultNodeNullability<Types>,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -197,8 +202,8 @@ export type PrismaNextRelatedConnectionOptions<
       ParentShape,
       PrismaNextObjectRef<Types, RelatedModel<Types, ParentModel, RelName>, RelatedShape>,
       Nullable,
-      false,
-      false,
+      EdgeNullability,
+      NodeNullability,
       Args,
       unknown
     >,
@@ -211,6 +216,20 @@ export type PrismaNextRelatedConnectionOptions<
       | PrismaNextInterfaceRef<Types, TypeModel, RelatedShape>;
     query?: ConnectionQueryOption<Types, TypeModel, Args, QueryLiteral>;
   };
+
+/** The relay plugin's default edge nullability, which `SchemaTypes` has once it's installed. */
+export type DefaultEdgesNullability<Types> = Types extends {
+  DefaultEdgesNullability: infer Nullability extends FieldNullability<[unknown]>;
+}
+  ? Nullability
+  : false;
+
+/** The relay plugin's default node nullability, which `SchemaTypes` has once it's installed. */
+export type DefaultNodeNullability<Types> = Types extends {
+  DefaultNodeNullability: infer Nullability extends boolean;
+}
+  ? Nullability
+  : false;
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
 

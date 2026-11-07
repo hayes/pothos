@@ -1,3 +1,4 @@
+import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import { prismaConnectionHelpers } from '../src';
 import { detailOf } from './fixtures/errors';
@@ -956,6 +957,53 @@ describe('connection objects', () => {
       posts: { owner: 'root', asked: 1 },
       users: [{ posts: { owner: 'u-alice', asked: 2 } }, { posts: { owner: 'u-bob', asked: 2 } }],
     });
+  });
+});
+
+describe('edge and node nullability', () => {
+  it('takes edgesNullable and nodeNullable on prismaConnection and relatedConnection', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relatedConnection('posts', {
+          query: { orderBy: { id: 'asc' } },
+          edgesNullable: { list: false, items: true },
+          nodeNullable: true,
+        }),
+        strictPosts: t.relatedConnection('posts', { edgesNullable: false, nodeNullable: false }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaConnection({
+          type: 'User',
+          query: { orderBy: { id: 'asc' } },
+          edgesNullable: { list: true, items: true },
+          nodeNullable: true,
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const sdl = printSchema(schema);
+    expect(sdl).toMatch(/type QueryUsersConnection \{\n {2}edges: \[QueryUsersConnectionEdge\]\n/);
+    expect(sdl).toMatch(/type QueryUsersConnectionEdge \{\n {2}cursor: String!\n {2}node: User\n/);
+    expect(sdl).toMatch(/type UserPostsConnection \{\n {2}edges: \[UserPostsConnectionEdge\]!\n/);
+    expect(sdl).toMatch(/type UserPostsConnectionEdge \{\n {2}cursor: String!\n {2}node: Post\n/);
+    expect(sdl).toMatch(
+      /type UserStrictPostsConnection \{\n {2}edges: \[UserStrictPostsConnectionEdge!\]!\n/,
+    );
+    expect(sdl).toMatch(
+      /type UserStrictPostsConnectionEdge \{\n {2}cursor: String!\n {2}node: Post!\n/,
+    );
+    const result = await run(
+      schema,
+      '{ users(first: 1) { edges { node { posts(first: 1) { edges { node { id } } } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users.edges).toEqual([
+      { node: { posts: { edges: [{ node: { id: 'p-draft1' } }] } } },
+    ]);
   });
 });
 

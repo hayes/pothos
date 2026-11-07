@@ -18,6 +18,8 @@ import type { PrismaNextObjectFieldBuilder } from './prisma-next-field-builder.j
 import type { ResolverCollection } from './types/collections.js';
 import type {
   ConnectionResultShape,
+  DefaultEdgesNullability,
+  DefaultNodeNullability,
   PrismaNextConnectionFieldOptions,
   RootConnectionQueryLiteral,
   ShapeFromConnection,
@@ -342,6 +344,8 @@ declare global {
               M
             >,
             Returned extends ResolverCollection<Types, M> = ResolverCollection<Types, M>,
+            EdgeNullability extends FieldNullability<[unknown]> = DefaultEdgesNullability<Types>,
+            NodeNullability extends boolean = DefaultNodeNullability<Types>,
           >(
             options: PrismaNextConnectionFieldOptions<
               Types,
@@ -354,14 +358,16 @@ declare global {
               ResolveReturnShape,
               Kind,
               ResolveShape,
-              Returned
+              Returned,
+              EdgeNullability,
+              NodeNullability
             >,
             connectionOptions?:
               | PothosSchemaTypes.ConnectionObjectOptions<
                   Types,
                   PrismaNextObjectRef<Types, M, unknown>,
-                  false,
-                  false,
+                  EdgeNullability,
+                  NodeNullability,
                   ConnectionResultShape<ParentShape, Args>,
                   ConnectionInterfaces
                 >
@@ -370,7 +376,7 @@ declare global {
               | PothosSchemaTypes.ConnectionEdgeObjectOptions<
                   Types,
                   PrismaNextObjectRef<Types, M, unknown>,
-                  false,
+                  NodeNullability,
                   ConnectionResultShape<ParentShape, Args>,
                   EdgeInterfaces
                 >

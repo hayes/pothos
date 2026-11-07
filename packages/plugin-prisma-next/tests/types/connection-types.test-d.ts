@@ -183,8 +183,8 @@ builder.queryType({
     }),
     edgesNullable: t.prismaConnection({
       type: 'User',
-      // @ts-expect-error edges are always non-null
       edgesNullable: true,
+      nodeNullable: true,
       collection: () => orm.User,
     }),
     unknownType: t.prismaConnection({
