@@ -47,7 +47,7 @@ function schema(options: SampleOptions = {}) {
   });
   builder.queryType({
     fields: (t) => ({
-      users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+      users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
       userPage: t.prismaConnection({
         type: 'User',
         totalCount: true,
@@ -511,7 +511,7 @@ describe('related connection errors', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -598,7 +598,7 @@ describe('related connection arguments', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -681,7 +681,7 @@ describe('related connection state', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -730,7 +730,7 @@ describe('related connection state', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -838,7 +838,7 @@ describe('related connection state', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
         posts: t.prismaConnection({
           type: 'Post',
@@ -890,11 +890,11 @@ describe('related connection state', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: [User],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
         withPosts: t.prismaField({
           type: [WithPosts],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -939,7 +939,7 @@ describe('connection objects', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
         posts: t.prismaConnection(
           { type: 'Post', resolve: () => db.orm.Post },
@@ -984,7 +984,7 @@ describe('connection aggregates', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
         own: t.prismaConnection(posts, { fields: pageLength }),
         prebuilt: t.prismaConnection(posts, Prebuilt as never),
@@ -1106,7 +1106,7 @@ describe('a user-defined totalCount with the totalCount option', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
         prebuilt: t.prismaConnection(posts, Prebuilt as never),
         override: t.prismaConnection(posts, {
@@ -1181,7 +1181,7 @@ describe('a user-defined totalCount with the totalCount option', () => {
         fields: (t) => ({
           users: t.prismaField({
             type: ['User'],
-            resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+            query: () => db.orm.User.orderBy((user) => user.id.asc()),
           }),
           counted: t.prismaConnection({ ...posts, totalCount: true }),
           prebuilt: t.prismaConnection({ ...posts, totalCount: true }, Prebuilt as never),
@@ -1334,7 +1334,7 @@ describe('prismaConnectionHelpers', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -1452,7 +1452,7 @@ describe('prismaConnectionHelpers', () => {
       fields: (t) => ({
         posts: t.prismaField({
           type: ['Post'],
-          resolve: () => db.orm.Post.where({ published: 1 }).orderBy((post) => post.id.asc()),
+          query: () => db.orm.Post.where({ published: 1 }).orderBy((post) => post.id.asc()),
         }),
       }),
     });
@@ -1609,7 +1609,7 @@ describe('prismaConnectionHelpers', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -1671,7 +1671,7 @@ describe('prismaConnectionHelpers', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -1795,7 +1795,7 @@ describe('prismaConnectionHelpers', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        post: t.prismaField({ type: 'Post', resolve: () => db.orm.Post.where({ id: 'p-hello' }) }),
+        post: t.prismaField({ type: 'Post', query: () => db.orm.Post.where({ id: 'p-hello' }) }),
       }),
     });
     const result = await run(

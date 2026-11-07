@@ -62,12 +62,12 @@ function createSchema(seen: unknown[]) {
       post: t.prismaField({
         type: Post,
         nullable: true,
-        resolve: () => ctx.orm.Post.where({ id: 'p-hello' }),
+        query: () => ctx.orm.Post.where({ id: 'p-hello' }),
       }),
       user: t.prismaField({
         type: 'User',
         nullable: true,
-        resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        query: () => ctx.orm.User.where({ id: 'u-alice' }),
       }),
       postPage: t.prismaConnection({
         type: Post,
@@ -172,7 +172,7 @@ function createVariantSchema(seen: unknown[], ownerSelectedOn: 'Bug' | 'Task') {
     fields: (t) => ({
       users: t.prismaField({
         type: ['User'],
-        resolve: () => inheritanceDb.orm.User.orderBy((row) => row.id.asc()),
+        query: () => inheritanceDb.orm.User.orderBy((row) => row.id.asc()),
       }),
     }),
   });
@@ -257,7 +257,7 @@ function createToOneVariantSchema(seen: unknown[]) {
     fields: (t) => ({
       notes: t.prismaField({
         type: ['Note'],
-        resolve: () => inheritanceDb.orm.Note.orderBy((row) => row.id.asc()),
+        query: () => inheritanceDb.orm.Note.orderBy((row) => row.id.asc()),
       }),
     }),
   });

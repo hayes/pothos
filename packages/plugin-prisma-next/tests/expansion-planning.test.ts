@@ -49,7 +49,7 @@ describe('planning fragments that expand at every level', () => {
         user: t.prismaField({
           type: User,
           nullable: true,
-          resolve: () => db.orm.User.where({ id: 'u-bob' }),
+          query: () => db.orm.User.where({ id: 'u-bob' }),
         }),
       }),
     });
@@ -176,7 +176,7 @@ describe('aliases with different arguments nested at every level', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -249,7 +249,7 @@ describe('aliases nested beneath rows without a key', () => {
       fields: (t) => ({
         views: t.prismaField({
           type: ['PostView'],
-          resolve: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
+          query: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
         }),
       }),
     });
@@ -303,7 +303,7 @@ describe('aliases that repeat a to-one relation', () => {
       fields: (t) => ({
         post: t.prismaField({
           type: 'Post',
-          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+          query: () => db.orm.Post.where({ id: 'p-hello' }),
         }),
       }),
     });
@@ -339,7 +339,7 @@ describe('a field past the limit beside a type-level relation', () => {
       fields: (t) => ({
         post: t.prismaField({
           type: 'Post',
-          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+          query: () => db.orm.Post.where({ id: 'p-hello' }),
         }),
       }),
     });

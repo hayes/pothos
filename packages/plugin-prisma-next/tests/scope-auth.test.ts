@@ -94,12 +94,12 @@ function schema() {
     fields: (t) => ({
       user: t.prismaField({
         type: 'User',
-        resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        query: () => ctx.orm.User.where({ id: 'u-alice' }),
       }),
       privateUser: t.withAuth({ admin: true }).prismaField({
         type: 'User',
         nullable: true,
-        resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        query: () => ctx.orm.User.where({ id: 'u-alice' }),
       }),
     }),
   });
@@ -273,8 +273,7 @@ function _fieldSelectWidensResolveOnly() {
         post.content;
         return true;
       },
-      resolve: (post) =>
-        (post.content ? ctx.orm.User.where({ id: post.author.id }) : null) as never,
+      query: (post) => (post.content ? ctx.orm.User.where({ id: post.author.id }) : null) as never,
     }),
     relation: t.relation('comments', { authScopes: (post) => post.title !== '' }),
     relationCount: t.relationCount('comments', { authScopes: (post) => post.title !== '' }),
@@ -321,7 +320,7 @@ it('loads declared columns and the exposed column for authScopes', async () => {
     fields: (t) => ({
       users: t.prismaField({
         type: ['User'],
-        resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+        query: () => ctx.orm.User.where({ id: 'u-alice' }),
       }),
     }),
   });
@@ -395,9 +394,9 @@ describe.each(orders)("an implementation's select under an interface (%s)", (_, 
       fields: (t) => ({
         tasks: t.prismaField({
           type: [Task],
-          resolve: () => inheritanceDb.orm.Task.orderBy((row) => row.id.asc()),
+          query: () => inheritanceDb.orm.Task.orderBy((row) => row.id.asc()),
         }),
-        users: t.prismaField({ type: ['User'], resolve: () => inheritanceDb.orm.User }),
+        users: t.prismaField({ type: ['User'], query: () => inheritanceDb.orm.User }),
       }),
     });
     return builder.toSchema();
@@ -456,7 +455,7 @@ describe.each(orders)("an implementation's select under an interface (%s)", (_, 
       fields: (t) => ({
         named: t.prismaField({
           type: [Named],
-          resolve: () => ctx.orm.User.orderBy((user) => user.id.asc()),
+          query: () => ctx.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -552,7 +551,7 @@ describe.each(
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+          query: () => ctx.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -602,7 +601,7 @@ describe.each(orders)('field-level authScopes (%s)', (_, plugins) => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => ctx.orm.User.orderBy((user) => user.id.asc()),
+          query: () => ctx.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -673,7 +672,7 @@ describe("a type's select before plugins listed first", () => {
         }),
         user: t.prismaField({
           type: 'User',
-          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+          query: () => ctx.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -926,7 +925,7 @@ describe('rows another plugin rebuilt without what the type selects', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => ctx.orm.User.orderBy((user) => user.id.asc()),
+          query: () => ctx.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -978,7 +977,7 @@ describe('rows another plugin rebuilt without what the type selects', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+          query: () => ctx.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -1075,7 +1074,7 @@ describe("a connection helper's page of a variant with a table of its own", () =
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], resolve: () => inheritanceDb.orm.User }),
+        users: t.prismaField({ type: ['User'], query: () => inheritanceDb.orm.User }),
       }),
     });
     const result = await runCaptured(
@@ -1131,7 +1130,7 @@ describe("a connection helper's page of a variant with a table of its own", () =
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], resolve: () => inheritanceDb.orm.User }),
+        users: t.prismaField({ type: ['User'], query: () => inheritanceDb.orm.User }),
       }),
     });
     const result = await runCaptured(
@@ -1222,7 +1221,7 @@ describe('runScopesOnType on rows without what the type selects', () => {
       fields: (t) => ({
         user: t.prismaField({
           type: 'User',
-          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+          query: () => ctx.orm.User.where({ id: 'u-alice' }),
         }),
         copied: t.field({
           type: User,
@@ -1332,7 +1331,7 @@ describe('runScopesOnType on rows without what the type selects', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], resolve: () => inheritanceDb.orm.User }),
+        users: t.prismaField({ type: ['User'], query: () => inheritanceDb.orm.User }),
       }),
     });
     const result = await runCaptured(
@@ -1394,11 +1393,11 @@ describe.each(orders)('runScopesOnType through an interface (%s)', (_order, plug
       fields: (t) => ({
         people: t.prismaField({
           type: [Person],
-          resolve: () => ctx.orm.User.orderBy((user) => user.id.asc()),
+          query: () => ctx.orm.User.orderBy((user) => user.id.asc()),
         }),
         posts: t.prismaField({
           type: ['Post'],
-          resolve: () => ctx.orm.Post.where({ id: 'p-bob1' }),
+          query: () => ctx.orm.Post.where({ id: 'p-bob1' }),
         }),
       }),
     });
@@ -1494,7 +1493,7 @@ describe('rows another field filtered', () => {
         fields: (t) => ({
           users: t.prismaField({
             type: ['User'],
-            resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+            query: () => ctx.orm.User.where({ id: 'u-alice' }),
           }),
         }),
       });
@@ -1536,7 +1535,7 @@ describe('rows another field filtered', () => {
         fields: (t) => ({
           users: t.prismaField({
             type: ['User'],
-            resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+            query: () => ctx.orm.User.where({ id: 'u-alice' }),
           }),
         }),
       });
@@ -1594,7 +1593,7 @@ describe('a relation an interface and its implementation select alike', () => {
         fields: (t) => ({
           author: t.prismaField({
             type: Author,
-            resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+            query: () => ctx.orm.User.where({ id: 'u-alice' }),
           }),
         }),
       });
@@ -1749,7 +1748,7 @@ describe('slots beneath shared walks', () => {
       fields: (t: any) => ({
         users: t.prismaField({
           type: [UI],
-          resolve: () => ctx.orm.User.orderBy((u: any) => u.id.asc()),
+          query: () => ctx.orm.User.orderBy((u: any) => u.id.asc()),
         }),
       }),
     });
@@ -2140,7 +2139,7 @@ describe.each(orders)("a row of another variant's select (%s)", (_, plugins) => 
       fields: (t) => ({
         user: t.prismaField({
           type: Published,
-          resolve: () => ctx.orm.User.where({ id: 'u-alice' }),
+          query: () => ctx.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -2413,7 +2412,7 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
     builder.scalarType('JSON' as never, { serialize: (value: unknown) => value } as never);
     builder.queryType({
       fields: (t) => ({
-        user: t.prismaField({ type: A, resolve: () => ctx.orm.User.where({ id: 'u-alice' }) }),
+        user: t.prismaField({ type: A, query: () => ctx.orm.User.where({ id: 'u-alice' }) }),
       }),
     });
     return { schema: builder.toSchema(), seen };

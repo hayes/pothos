@@ -309,15 +309,12 @@ export class ModelLoader {
     });
   }
 
-  /** The client's root collection, narrowed to a variant. A provided collection is used as given. */
-  private defaultCollection(): MapperCollection {
-    const root = this.config.collection(this.context, this.modelKey);
-    return this.variant === undefined ? root : root.variant(this.variant);
-  }
-
   private async flush(batch: Batch): Promise<void> {
     const { collection } = batch.load;
-    const base = collection ? userCode(() => collection(this.context)) : this.defaultCollection();
+    // A provided collection is used as given.
+    const base = collection
+      ? userCode(() => collection(this.context))
+      : this.config.typeCollection(this.context, this.modelKey);
     const { fields } = batch;
     const codecs = this.config.codecs(this.modelKey);
     const key = (values: readonly unknown[]) =>

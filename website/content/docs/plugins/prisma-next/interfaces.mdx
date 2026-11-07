@@ -39,7 +39,7 @@ builder.prismaObject('User', {
 builder.queryFields((t) => ({
   people: t.prismaField({
     type: [Person],
-    resolve: (_root, _args, ctx) => ctx.db.orm.User,
+    query: (_root, _args, ctx) => ctx.db.orm.User,
   }),
 }));
 ```
@@ -95,11 +95,11 @@ builder.queryType({
   fields: (t) => ({
     tasks: t.prismaField({
       type: [Task],
-      resolve: (_root, _args, ctx) => ctx.db.orm.Task,
+      query: (_root, _args, ctx) => ctx.db.orm.Task,
     }),
     bugs: t.prismaField({
       type: ['Bug'],
-      resolve: (_root, _args, ctx) => ctx.db.orm.Task.variant('bug'),
+      query: (_root, _args, ctx) => ctx.db.orm.Task.variant('bug'),
     }),
   }),
 });

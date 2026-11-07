@@ -14,6 +14,7 @@ import type {
   AnyContract,
   BareModelName,
   BaseModelKey,
+  DiscriminatorField,
   ModelKey,
   ModelKeys,
   NamespacedModelKey,
@@ -73,6 +74,36 @@ export type CollectionFor<
   R,
   WithNsId<DefaultCollectionTypeState, NamespaceOf<Types['PrismaNextContract'], M>>
 >;
+
+/**
+ * The collection a type's rows load from: `orm.<Model>`, or for a variant model its base narrowed
+ * with `variant(value)`, as `orm.Task.variant('bug')` is.
+ */
+export type TypeCollection<Types extends SchemaTypes, M extends ModelKey<Types>> = [
+  BaseModelKey<Types['PrismaNextContract'], M>,
+] extends [never]
+  ? CollectionFor<Types, M>
+  : Collection<
+      Types['PrismaNextContract'],
+      BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>,
+      Row<Types, M> &
+        Record<
+          DiscriminatorField<
+            Types,
+            Extract<BaseModelKey<Types['PrismaNextContract'], M>, ModelKey<Types>>
+          >,
+          VariantValue<Types['PrismaNextContract'], M>
+        >,
+      {
+        readonly hasOrderBy: boolean;
+        readonly hasWhere: true;
+        readonly variantValue: VariantValue<Types['PrismaNextContract'], M>;
+        readonly nsId: NamespaceOf<
+          Types['PrismaNextContract'],
+          BaseModelKey<Types['PrismaNextContract'], M>
+        >;
+      }
+    >;
 
 /**
  * The receiver type upstream's collection helpers take. It leaves out mutation input types, which

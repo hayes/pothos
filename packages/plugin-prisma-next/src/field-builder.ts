@@ -1,6 +1,7 @@
 import {
   type FieldKind,
   type InputFieldMap,
+  type MaybePromise,
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
@@ -20,50 +21,64 @@ import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
 import { type AnyRef, refFor } from './utils/refs.js';
 
-interface PrismaFieldOptions {
-  type: string | AnyRef | [string | AnyRef];
-  resolve: (...args: unknown[]) => unknown;
-}
+type FieldResolver = (...args: unknown[]) => unknown;
+
+type PrismaFieldOptions = { type: string | AnyRef | [string | AnyRef] } & (
+  | { query: FieldResolver; resolve?: undefined }
+  | { resolve: FieldResolver; query?: undefined }
+);
 
 type Executable = MapperCollection & { all(): Promise<readonly unknown[]> };
 
 /**
- * Builds the config of a `prismaField`. A model name in `type` resolves to its ref. The resolver
- * applies the field's whole selection to the returned Collection and executes it, reading one row
- * for a singular field.
+ * Builds the config of a `prismaField`. A model name in `type` resolves to its ref. With `query`,
+ * the resolver applies the field's whole selection to the returned Collection and executes it,
+ * reading one row for a singular field. With `resolve`, it applies the selection to the type's
+ * collection and returns what `resolve` returns for it.
  */
 function prismaFieldConfig(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  { type, resolve, ...options }: PrismaFieldOptions,
+  { type, query, resolve, ...options }: PrismaFieldOptions,
 ) {
   const isList = Array.isArray(type);
   const inner = isList ? type[0] : type;
   const ref = refFor(builder, inner);
   const modelKey = ref.modelKey as string;
   const config = getPluginConfig(builder);
+  const model = getModel(config.contract, modelKey);
+  const plan = (collection: MapperCollection, info: GraphQLResolveInfo, context: object) =>
+    applySelectionToCollection(
+      collection,
+      model,
+      info,
+      config,
+      context,
+    ) as MaybePromise<Executable>;
 
   return {
     ...options,
     type: isList ? [ref] : ref,
-    resolve: async (parent: unknown, args: unknown, context: object, info: GraphQLResolveInfo) => {
-      const collection = (await resolve(parent, args, context, info)) as Executable | null;
-      if (collection == null) {
-        return collection;
-      }
-      const model = getModel(config.contract, modelKey);
-      const applied = (await applySelectionToCollection(
-        collection,
-        model,
-        info,
-        config,
-        context,
-      )) as Executable;
-      const rows = await readPage(
-        (isList ? applied : (applied.limit(1) as Executable)).all(),
-        appliesCursors(applied),
-      );
-      return isList ? rows : (rows[0] ?? null);
-    },
+    resolve: resolve
+      ? async (parent: unknown, args: unknown, context: object, info: GraphQLResolveInfo) =>
+          resolve(
+            await plan(config.typeCollection(context, modelKey), info, context),
+            parent,
+            args,
+            context,
+            info,
+          )
+      : async (parent: unknown, args: unknown, context: object, info: GraphQLResolveInfo) => {
+          const collection = (await query(parent, args, context, info)) as Executable | null;
+          if (collection == null) {
+            return collection;
+          }
+          const applied = await plan(collection, info, context);
+          const rows = await readPage(
+            (isList ? applied : (applied.limit(1) as Executable)).all(),
+            appliesCursors(applied),
+          );
+          return isList ? rows : (rows[0] ?? null);
+        },
   };
 }
 

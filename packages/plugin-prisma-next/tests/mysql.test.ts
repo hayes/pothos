@@ -55,7 +55,7 @@ describe.skipIf(!url)('MySQL', () => {
       fields: (t) => ({
         authors: t.prismaField({
           type: ['Author'],
-          resolve: () => client.orm.Author.orderBy((author) => author.id.asc()),
+          query: () => client.orm.Author.orderBy((author) => author.id.asc()),
         }),
         authorPage: t.prismaConnection({
           type: 'Author',

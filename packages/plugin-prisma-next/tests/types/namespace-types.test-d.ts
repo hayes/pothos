@@ -102,13 +102,13 @@ builder.prismaObject('nsa.Org', {
 });
 builder.queryType({
   fields: (t) => ({
-    a: t.prismaField({ type: ['nsa.User'], resolve: () => orm.nsa.User }),
-    // @ts-expect-error `resolve` is required
+    a: t.prismaField({ type: ['nsa.User'], query: () => orm.nsa.User }),
+    // @ts-expect-error `query` or `resolve` is required
     noResolve: t.prismaField({ type: ['nsa.User'] }),
     // @ts-expect-error excess options are rejected
-    extra: t.prismaField({ type: ['nsa.User'], resolve: () => orm.nsa.User, nope: 1 }),
+    extra: t.prismaField({ type: ['nsa.User'], query: () => orm.nsa.User, nope: 1 }),
     // @ts-expect-error the other namespace's collection returns a different model
-    b: t.prismaField({ type: ['nsb.User'], resolve: () => orm.nsa.User }),
+    b: t.prismaField({ type: ['nsb.User'], query: () => orm.nsa.User }),
     bPage: t.prismaConnection({
       type: 'nsb.User',
       // @ts-expect-error the other namespace's collection returns a different model
@@ -254,13 +254,13 @@ sameValue.prismaNode('inha.Bug', {
 });
 sameValue.queryType({
   fields: (t) => ({
-    bugs: t.prismaField({ type: ['inha.Bug'], resolve: () => inhaBug }),
+    bugs: t.prismaField({ type: ['inha.Bug'], query: () => inhaBug }),
     // @ts-expect-error the same model name and variant value in another namespace
-    crossed: t.prismaField({ type: ['inha.Bug'], resolve: () => inhbBug }),
+    crossed: t.prismaField({ type: ['inha.Bug'], query: () => inhbBug }),
     // A variant loads through its base, whose namespace can differ from its own.
     chores: t.prismaField({
       type: ['inhb.Chore'],
-      resolve: () => sameValueOrm.inha.Task.variant('chore'),
+      query: () => sameValueOrm.inha.Task.variant('chore'),
     }),
   }),
 });

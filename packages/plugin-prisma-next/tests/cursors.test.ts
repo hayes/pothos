@@ -261,7 +261,7 @@ describe('rejected cursors', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+        users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
         posts: t.prismaConnection({ type: 'Post', resolve: () => db.orm.Post }),
         dated: t.prismaConnection({
           type: 'Post',
@@ -443,7 +443,7 @@ describe('nullable cursor columns', () => {
         }),
       });
       builder.queryType({
-        fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+        fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
       });
       for (const backward of [false, true]) {
         const result = await run(

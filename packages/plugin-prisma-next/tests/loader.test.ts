@@ -48,16 +48,16 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
     fields: (t) => ({
       posts: t.prismaField({
         type: ['Post'],
-        resolve: () => db.orm.Post.orderBy((p) => p.id.asc()),
+        query: () => db.orm.Post.orderBy((p) => p.id.asc()),
       }),
       users: t.prismaField({
         type: ['User'],
-        resolve: () => db.orm.User.orderBy((u) => u.id.asc()),
+        query: () => db.orm.User.orderBy((u) => u.id.asc()),
       }),
       wrapped: t.prismaField({
         type: ['Post'],
         errors: { types: [] },
-        resolve: () => db.orm.Post.where({ authorId: 'u-alice' }),
+        query: () => db.orm.Post.where({ authorId: 'u-alice' }),
       }),
       plain: t.field({
         type: [Post],
@@ -448,7 +448,7 @@ describe('deferred fragments', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        user: t.prismaField({ type: 'User', resolve: () => db.orm.User.where({ id: 'u-alice' }) }),
+        user: t.prismaField({ type: 'User', query: () => db.orm.User.where({ id: 'u-alice' }) }),
       }),
     });
     const result = await runIncremental(
@@ -485,11 +485,11 @@ describe('models without a key', () => {
       fields: (t) => ({
         posts: t.prismaField({
           type: ['Post'],
-          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+          query: () => db.orm.Post.where({ id: 'p-hello' }),
         }),
         views: t.prismaField({
           type: ['PostView'],
-          resolve: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
+          query: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
         }),
         plainViews: t.field({
           type: [View],
@@ -624,7 +624,7 @@ describe('reload isolation', () => {
         users: t.prismaField({
           type: [User],
           nullable: true,
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
         // Rows loaded elsewhere, holding every post.
         rawUsers: t.field({

@@ -78,7 +78,7 @@ function schema() {
     fields: (t) => ({
       users: t.prismaField({
         type: [User],
-        resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        query: () => db.orm.User.orderBy((user) => user.id.asc()),
       }),
     }),
   });
@@ -276,7 +276,7 @@ function nestedSelectSchema() {
     fields: (t) => ({
       users: t.prismaField({
         type: [User],
-        resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+        query: () => db.orm.User.orderBy((user) => user.id.asc()),
       }),
     }),
   });
@@ -366,7 +366,7 @@ describe('nested select', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });

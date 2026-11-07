@@ -149,7 +149,7 @@ describe('root fields', () => {
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
       fields: (t) => ({
-        none: t.prismaField({ type: 'User', nullable: true, resolve: () => null }),
+        none: t.prismaField({ type: 'User', nullable: true, query: () => null }),
       }),
     });
     const result = await run(builder.toSchema(), '{ none { id } }');
@@ -179,7 +179,7 @@ describe('subscriptions', () => {
             yield await Promise.resolve('u-alice');
             yield 'u-bob';
           },
-          resolve: (id) => db.orm.User.where({ id }),
+          query: (id) => db.orm.User.where({ id }),
         }),
       }),
     });

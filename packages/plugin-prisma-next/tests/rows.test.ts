@@ -121,7 +121,7 @@ describe('rows a resolver returns', () => {
       fields: (t) => ({
         post: t.prismaField({
           type: 'Post',
-          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+          query: () => db.orm.Post.where({ id: 'p-hello' }),
         }),
       }),
     });
@@ -283,7 +283,7 @@ describe('rows the plugin loaded', () => {
       fields: (t) => ({
         posts: t.prismaField({
           type: ['Post'],
-          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+          query: () => db.orm.Post.where({ id: 'p-hello' }),
         }),
       }),
     });
@@ -364,7 +364,7 @@ describe('rows the plugin loaded', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -393,7 +393,7 @@ describe('rows the plugin loaded', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+          query: () => db.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -425,7 +425,7 @@ describe('rows the plugin loaded', () => {
       fields: (t) => ({ id: t.exposeID('id'), variant: t.variant(Variant) }),
     });
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
     });
     const result = await run(builder.toSchema(), '{ users { variant { spread } } }');
     expect(result.errors).toBeUndefined();
@@ -449,7 +449,7 @@ describe('rows the plugin loaded', () => {
     });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
     });
     const result = await run(
       builder.toSchema(),
@@ -485,8 +485,8 @@ describe('rows the plugin loaded', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
-        posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }),
+        users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
+        posts: t.prismaField({ type: ['Post'], query: () => db.orm.Post }),
         page: t.prismaConnection({
           type: 'User',
           totalCount: true,
@@ -543,7 +543,7 @@ describe('model members named like plugin slots', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        sheet: t.prismaField({ type: 'Sheet', resolve: () => collision.orm.Sheet }),
+        sheet: t.prismaField({ type: 'Sheet', query: () => collision.orm.Sheet }),
         handBuilt: t.field({
           type: Sheet,
           // @ts-expect-error a row built by hand isn't planned; it reloads

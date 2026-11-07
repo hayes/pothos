@@ -60,15 +60,15 @@ function schema() {
   });
   builder.queryType({
     fields: (t) => ({
-      user: t.prismaField({ type: 'User', resolve: () => db.orm.User.where({ id: 'u-alice' }) }),
+      user: t.prismaField({ type: 'User', query: () => db.orm.User.where({ id: 'u-alice' }) }),
       users: t.prismaConnection({ type: 'User', resolve: () => db.orm.User }),
       comment: t.prismaField({
         type: 'Comment',
-        resolve: () => db.orm.Comment.where({ id: 'c-1' }),
+        query: () => db.orm.Comment.where({ id: 'c-1' }),
       }),
       post: t.prismaField({
         type: PostByAuthor,
-        resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+        query: () => db.orm.Post.where({ id: 'p-hello' }),
       }),
     }),
   });
@@ -141,7 +141,7 @@ describe('Relay nodes', () => {
     const seen: unknown[] = [];
     builder.queryType({
       fields: (t) => ({
-        person: t.prismaField({ type: Person, resolve: () => db.orm.User.where({ id: 'u-bob' }) }),
+        person: t.prismaField({ type: Person, query: () => db.orm.User.where({ id: 'u-bob' }) }),
         echo: t.string({
           args: { id: t.arg.globalID({ for: Person, required: true }) },
           resolve: (_root, args) => {
@@ -296,7 +296,7 @@ describe('node declarations', () => {
     const seen: unknown[] = [];
     builder.queryType({
       fields: (t) => ({
-        note: t.prismaField({ type: Note, resolve: () => collision.orm.Note.where({ id: 20 }) }),
+        note: t.prismaField({ type: Note, query: () => collision.orm.Note.where({ id: 20 }) }),
         echo: t.string({
           args: { id: t.arg.globalID({ for: Note, required: true }) },
           resolve: (_root, args) => {
@@ -355,11 +355,11 @@ describe('the collection option', () => {
       fields: (t) => ({
         post: t.prismaField({
           type: Post,
-          resolve: () => db.orm.Post.where({ id: 'p-draft1' }),
+          query: () => db.orm.Post.where({ id: 'p-draft1' }),
         }),
         alice: t.prismaField({
           type: 'User',
-          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+          query: () => db.orm.User.where({ id: 'u-alice' }),
         }),
         // @ts-expect-error a row built by hand isn't planned; it reloads
         plain: t.field({ type: Post, resolve: () => ({ id: 'p-draft1' }) }),
@@ -459,7 +459,7 @@ describe('the collection option', () => {
       builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
       builder.queryType({
         fields: (t) => ({
-          users: t.prismaField({ type: ['User'], resolve: () => client.orm.User.named('Bob') }),
+          users: t.prismaField({ type: ['User'], query: () => client.orm.User.named('Bob') }),
           userPage: t.prismaConnection({
             type: 'User',
             resolve: () => client.orm.User.named('Bob'),

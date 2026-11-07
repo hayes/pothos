@@ -44,7 +44,7 @@ builder.queryFields((t) => {
     created: t.prismaFieldWithInput({
       type: 'User',
       input: {},
-      resolve: () => null as never,
+      query: () => null as never,
     }),
   };
 });

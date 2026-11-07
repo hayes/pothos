@@ -8,7 +8,7 @@ import type {
 } from '../types/plugin-options.js';
 import { type MapperCollection, PrismaNextAdapter } from './adapter.js';
 import { type FieldCodecs, getColumnCodec } from './codecs.js';
-import { collectionForModel, rootModelKey } from './contract.js';
+import { collectionForModel, rootModelKey, variantOf } from './contract.js';
 import { InternalError, keepError } from './errors.js';
 
 type RequestClient = PrismaNextRequestClient<AnyContract>;
@@ -25,6 +25,8 @@ export interface PrismaNextConfig {
   client(ctx: object): RequestClient;
   /** The root collection a model's rows load from (`orm.Bug` loads through `orm.Task`). */
   collection(ctx: object, modelKey: string): MapperCollection;
+  /** The collection a type of the model loads from: `collection`'s, narrowed to a variant. */
+  typeCollection(ctx: object, modelKey: string): MapperCollection;
   codecs(modelKey: string): FieldCodecs;
   loader(ctx: object, modelKey: string): ModelLoader;
 }
@@ -67,6 +69,15 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
     }
     return found;
   };
+  const variants = new Map<string, string | undefined>();
+  const typeCollection = (ctx: object, modelKey: string) => {
+    if (!variants.has(modelKey)) {
+      variants.set(modelKey, variantOf(contract, modelKey)?.value);
+    }
+    const variant = variants.get(modelKey);
+    const root = collection(ctx, modelKey);
+    return variant === undefined ? root : root.variant(variant);
+  };
   const loaders = createContextCache((_ctx: object) => new Map<string, ModelLoader>());
   const config: PrismaNextConfig = {
     contract,
@@ -77,6 +88,7 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
     filterConnectionTotalCount: options.filterConnectionTotalCount ?? true,
     client,
     collection,
+    typeCollection,
     codecs: (modelKey) => (field) => getColumnCodec(contract, context, modelKey, field),
     loader: (ctx, modelKey) => {
       const byModel = loaders(ctx);

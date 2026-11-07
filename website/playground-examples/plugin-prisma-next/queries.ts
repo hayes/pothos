@@ -6,7 +6,7 @@ builder.queryType({
     // #region users-query
     users: t.prismaField({
       type: ['User'],
-      resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+      query: () => db.orm.User.orderBy((user) => user.id.asc()),
     }),
     // #endregion users-query
     // #region posts-query

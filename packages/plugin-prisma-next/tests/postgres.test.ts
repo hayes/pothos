@@ -87,7 +87,7 @@ function createSchema(db: { orm: typeof client.orm } = client) {
     fields: (t) => ({
       accounts: t.prismaField({
         type: ['Account'],
-        resolve: () => orm.public.Account.orderBy((account) => account.id.asc()),
+        query: () => orm.public.Account.orderBy((account) => account.id.asc()),
       }),
       timeline: t.prismaConnection({
         type: 'Entry',
@@ -138,7 +138,7 @@ function nullableConnectionSchema(nulls: 'first' | 'last', direction: 'asc' | 'd
       }),
       accounts: t.prismaField({
         type: ['Account'],
-        resolve: () => client.orm.public.Account.orderBy((account) => account.id.asc()),
+        query: () => client.orm.public.Account.orderBy((account) => account.id.asc()),
       }),
     }),
   });
@@ -203,7 +203,7 @@ function createMutationSchema() {
         type: 'Account',
         nullable: false,
         args: { id: t.arg.string({ required: true }), name: t.arg.string({ required: true }) },
-        resolve: async (_root, args, context) => {
+        query: async (_root, args, context) => {
           await context.orm.public.Account.create(args);
           return context.orm.public.Account.where({ id: args.id });
         },
@@ -212,7 +212,7 @@ function createMutationSchema() {
         type: 'Account',
         nullable: false,
         input: { name: t.input.string({ required: true }) },
-        resolve: async (_root, args, context) => {
+        query: async (_root, args, context) => {
           events.push(`write:${args.input.name}`);
           await context.orm.public.Account.where({ id: 'a' }).update({ name: args.input.name });
           return context.orm.public.Account.where({ id: 'a' });
@@ -221,12 +221,12 @@ function createMutationSchema() {
       closedTransaction: t.prismaField({
         type: 'Account',
         nullable: true,
-        resolve: () => client.transaction(async (tx) => tx.orm.public.Account.where({ id: 'a' })),
+        query: () => client.transaction(async (tx) => tx.orm.public.Account.where({ id: 'a' })),
       }),
       missing: t.prismaField({
         type: 'Account',
         nullable: true,
-        resolve: (_root, _args, context) => context.orm.public.Account.where({ id: 'absent' }),
+        query: (_root, _args, context) => context.orm.public.Account.where({ id: 'absent' }),
       }),
     }),
   });
@@ -614,9 +614,9 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       const tokens = () => client.orm.public.Token.orderBy((token) => token.label.asc());
       builder.queryType({
         fields: (t) => ({
-          tokens: t.prismaField({ type: [Token], resolve: tokens }),
-          byWide: t.prismaField({ type: [ByWide], resolve: tokens }),
-          byBin: t.prismaField({ type: [ByBin], resolve: tokens }),
+          tokens: t.prismaField({ type: [Token], query: tokens }),
+          byWide: t.prismaField({ type: [ByWide], query: tokens }),
+          byBin: t.prismaField({ type: [ByBin], query: tokens }),
           // The database reads these back as 0.50 and 1.50.
           written: t.field({
             type: [Token],
@@ -683,7 +683,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         fields: (t) => ({
           tokens: t.prismaField({
             type: [Token],
-            resolve: () => client.orm.public.Token.orderBy((token) => token.label.asc()),
+            query: () => client.orm.public.Token.orderBy((token) => token.label.asc()),
           }),
         }),
       });
@@ -757,7 +757,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
           }),
           list: t.prismaField({
             type: ['Account'],
-            resolve: () => client.orm.public.Account.orderBy((account) => account.id.asc()),
+            query: () => client.orm.public.Account.orderBy((account) => account.id.asc()),
           }),
         }),
       });
@@ -974,7 +974,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       fields: (t) => ({
         entries: t.prismaField({
           type: ['Entry'],
-          resolve: (_parent, _args, context) => context.tx.orm.public.Entry,
+          query: (_parent, _args, context) => context.tx.orm.public.Entry,
         }),
       }),
     });

@@ -104,14 +104,14 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
 
   builder.queryType({
     fields: (t) => ({
-      users: t.prismaField({ type: [User], resolve: () => db.orm.User }),
+      users: t.prismaField({ type: [User], query: () => db.orm.User }),
       user: t.prismaField({
         type: User,
         nullable: true,
         args: { email: t.arg.string({ required: true }) },
-        resolve: (_root, args) => db.orm.User.where({ email: args.email }),
+        query: (_root, args) => db.orm.User.where({ email: args.email }),
       }),
-      posts: t.prismaField({ type: ['Post'], resolve: () => db.orm.Post }),
+      posts: t.prismaField({ type: ['Post'], query: () => db.orm.Post }),
       usersConnection: t.prismaConnection({
         type: User,
         totalCount: true,

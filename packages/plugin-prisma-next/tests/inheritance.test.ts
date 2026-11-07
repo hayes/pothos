@@ -57,14 +57,14 @@ function createSchema() {
     fields: (t) => ({
       tasks: t.prismaField({
         type: ['Task'],
-        resolve: () => db.orm.Task.orderBy((row) => row.id.asc()),
+        query: () => db.orm.Task.orderBy((row) => row.id.asc()),
       }),
-      bugs: t.prismaField({ type: ['Bug'], resolve: () => db.orm.Task.variant('bug') }),
+      bugs: t.prismaField({ type: ['Bug'], query: () => db.orm.Task.variant('bug') }),
       featurePage: t.prismaConnection({
         type: 'Feature',
         resolve: () => db.orm.Task.variant('feature'),
       }),
-      users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+      users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
     }),
   });
   return builder.toSchema();
@@ -158,13 +158,13 @@ function createVariantSchema() {
     fields: (t) => ({
       tasks: t.prismaField({
         type: ['Task'],
-        resolve: () => db.orm.Task.orderBy((row) => row.id.asc()),
+        query: () => db.orm.Task.orderBy((row) => row.id.asc()),
       }),
-      bugs: t.prismaField({ type: ['Bug'], resolve: () => db.orm.Task.variant('bug') }),
-      users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+      bugs: t.prismaField({ type: ['Bug'], query: () => db.orm.Task.variant('bug') }),
+      users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
       notes: t.prismaField({
         type: ['Note'],
-        resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
+        query: () => db.orm.Note.orderBy((row) => row.id.asc()),
       }),
     }),
   });
@@ -360,7 +360,7 @@ describe('native model inheritance', () => {
       fields: (t) => ({
         notes: t.prismaField({
           type: ['Note'],
-          resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
+          query: () => db.orm.Note.orderBy((row) => row.id.asc()),
         }),
       }),
     });
@@ -518,10 +518,10 @@ describe('native model inheritance', () => {
         fields: (t) => ({
           tasks: t.prismaField({
             type: ['Task'],
-            resolve: () => db.orm.Task.orderBy((row) => row.id.asc()),
+            query: () => db.orm.Task.orderBy((row) => row.id.asc()),
           }),
-          bugs: t.prismaField({ type: ['Bug'], resolve: () => db.orm.Task.variant('bug') }),
-          users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+          bugs: t.prismaField({ type: ['Bug'], query: () => db.orm.Task.variant('bug') }),
+          users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
         }),
       });
       return builder.toSchema();
@@ -647,7 +647,7 @@ describe('native model inheritance', () => {
         fields: (t) => ({
           tasks: t.prismaField({
             type: [task],
-            resolve: () => db.orm.Task.orderBy((row) => row.id.asc()),
+            query: () => db.orm.Task.orderBy((row) => row.id.asc()),
           }),
         }),
       });
@@ -794,7 +794,7 @@ describe('native model inheritance', () => {
         fields: (t) => ({
           tasks: t.prismaField({
             type: [task],
-            resolve: () => db.orm.Task.orderBy((row) => row.id.asc()),
+            query: () => db.orm.Task.orderBy((row) => row.id.asc()),
           }),
         }),
       });
@@ -833,7 +833,7 @@ describe('native model inheritance', () => {
       fields: (t) => ({ reviews: t.relation('reviews', { type: feature as never }) }),
     });
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
     });
     expect(() => builder.toSchema()).toThrow(
       /t\.relation\('reviews'\) on 'User' targets model 'Bug' but its type is backed by model 'Feature'/,
@@ -864,7 +864,7 @@ describe('native model inheritance', () => {
         }),
       });
       builder.queryType({
-        fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+        fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
       });
       return builder;
     }
@@ -893,7 +893,7 @@ describe('native model inheritance', () => {
     });
     builder.prismaObjectField('User', 'tasks', (t) => t.relation('tasks', { type: user as never }));
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
     });
     expect(() => builder.toSchema()).toThrow(
       /t\.relation\('tasks'\) on 'User' targets model 'Task' but its type is backed by unrelated model 'User'/,
@@ -951,7 +951,7 @@ describe('native model inheritance', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+        users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
       }),
     });
     const result = await run(
@@ -995,7 +995,7 @@ describe('native model inheritance', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+        users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
       }),
     });
     const result = await run(
@@ -1085,7 +1085,7 @@ describe("a type's select entry typed as a variant", () => {
     }
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: [user], resolve: () => db.orm.User }),
+        users: t.prismaField({ type: [user], query: () => db.orm.User }),
       }),
     });
     return builder;
@@ -1136,9 +1136,9 @@ describe("a variant's relations in a field's select", () => {
       fields: (t) => ({
         tasks: t.prismaField({
           type: ['Task'],
-          resolve: () => db.orm.Task.orderBy((row) => row.id.asc()),
+          query: () => db.orm.Task.orderBy((row) => row.id.asc()),
         }),
-        bugs: t.prismaField({ type: ['Bug'], resolve: () => db.orm.Task.variant('bug') }),
+        bugs: t.prismaField({ type: ['Bug'], query: () => db.orm.Task.variant('bug') }),
       }),
     });
     return { builder, task };
@@ -1253,9 +1253,9 @@ describe("a variant's relations in a field's select", () => {
       fields: (t) => ({
         tasks: t.prismaField({
           type: ['Task'],
-          resolve: () => movedDb.orm.Task.orderBy((row) => row.id.asc()),
+          query: () => movedDb.orm.Task.orderBy((row) => row.id.asc()),
         }),
-        bugs: t.prismaField({ type: ['Bug'], resolve: () => movedDb.orm.Task.variant('bug') }),
+        bugs: t.prismaField({ type: ['Bug'], query: () => movedDb.orm.Task.variant('bug') }),
       }),
     });
     const schema = builder.toSchema();
@@ -1286,7 +1286,7 @@ describe("a variant's relations in a field's select", () => {
     builder.prismaObject('Feature', { interfaces: [task] });
     builder.prismaObject('User', { fields: (t) => ({ reviews: t.relation('reviews') }) });
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
     });
     const result = await run(builder.toSchema(), '{ users { reviews { noteTotal } } }');
     expect(result.errors).toBeUndefined();
@@ -1328,7 +1328,7 @@ describe("a variant's relations in a field's select", () => {
       fields: (t) => ({
         tasks: t.prismaField({
           type: ['Task'],
-          resolve: () => movedDb.orm.Task.orderBy((row) => row.id.asc()),
+          query: () => movedDb.orm.Task.orderBy((row) => row.id.asc()),
         }),
       }),
     });
@@ -1379,7 +1379,7 @@ describe('a relation name two variants declare', () => {
       fields: (t) => ({
         tasks: t.prismaField({
           type: ['Task'],
-          resolve: () => sharedDb.orm.Task.orderBy((row) => row.id.asc()),
+          query: () => sharedDb.orm.Task.orderBy((row) => row.id.asc()),
         }),
       }),
     });
@@ -1464,9 +1464,9 @@ describe('a relation targeting a variant model with a table of its own', () => {
       fields: (t) => ({
         notes: t.prismaField({
           type: ['Note'],
-          resolve: () => database.orm.Note.orderBy((row) => row.id.asc()),
+          query: () => database.orm.Note.orderBy((row) => row.id.asc()),
         }),
-        users: t.prismaField({ type: ['User'], resolve: () => database.orm.User }),
+        users: t.prismaField({ type: ['User'], query: () => database.orm.User }),
       }),
     });
     return builder.toSchema();
@@ -1556,7 +1556,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
         fields: (t) => ({
           features: t.prismaField({
             type: ['Feature'],
-            resolve: () => db.orm.Task.variant('feature'),
+            query: () => db.orm.Task.variant('feature'),
           }),
         }),
       });
@@ -1590,7 +1590,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
       fields: (t) => ({
         notes: t.prismaField({
           type: ['Note'],
-          resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
+          query: () => db.orm.Note.orderBy((row) => row.id.asc()),
         }),
       }),
     });
@@ -1703,9 +1703,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
         }),
       }),
     });
-    builder.queryField('users', (t) =>
-      t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
-    );
+    builder.queryField('users', (t) => t.prismaField({ type: ['User'], query: () => db.orm.User }));
     const result = await run(builder.toSchema(), '{ users { selected { title } } }');
     expect(result.errors).toBeUndefined();
     expect(result.data.users).toEqual([{ selected: [{ title: 'feat1' }] }]);
@@ -1725,9 +1723,9 @@ describe('a relation targeting a variant model with a table of its own', () => {
       fields: (t) => ({
         notes: t.prismaField({
           type: ['Note'],
-          resolve: () => db.orm.Note.orderBy((row) => row.id.asc()),
+          query: () => db.orm.Note.orderBy((row) => row.id.asc()),
         }),
-        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+        users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
       }),
     });
     return { builder, task, feature };
@@ -1883,7 +1881,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
+        users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
       }),
     });
     expect(() => builder.toSchema()).toThrow(
@@ -1923,7 +1921,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
       }),
     });
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
     });
     return builder;
   }
@@ -1966,7 +1964,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('User', { fields: (t) => ({ reviews: t.relation('reviews') }) });
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
     });
     expect(() => builder.toSchema()).toThrow(
       "Field 'User.reviews' returns interface 'Bug', whose select loads base relation 'notes'",
@@ -1992,7 +1990,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('User', { fields: (t) => ({ reviews: t.relation('reviews') }) });
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
     });
     const result = await run(builder.toSchema(), '{ users { reviews { title ownerEmail } } }');
     expect(result.errors).toBeUndefined();
@@ -2029,9 +2027,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
         }),
       }),
     });
-    builder.queryField('users', (t) =>
-      t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
-    );
+    builder.queryField('users', (t) => t.prismaField({ type: ['User'], query: () => db.orm.User }));
     const result = await run(builder.toSchema(), '{ users { championCount } }');
     expect(result.errors).toBeUndefined();
     expect(result.data.users).toEqual([{ championCount: 1 }]);

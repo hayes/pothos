@@ -32,7 +32,7 @@ import type {
   prismaNextModelBrand,
 } from '../object-ref.js';
 import type { PrismaNextObjectFieldBuilder } from '../prisma-next-field-builder.js';
-import type { ResolverCollection } from './collections.js';
+import type { PlannedCollection, ResolverCollection, TypeCollection } from './collections.js';
 import type { FieldParentShape, IdFieldShape, ModelKey, ResolveTypeParent, Row } from './models.js';
 import type { RequiresNullable } from './relations.js';
 import type {
@@ -232,16 +232,50 @@ export type PrismaNextRootFieldOptions<
   'type' | 'resolve' | InferredFieldOptionKeys
 > & {
   type: Param;
-  resolve: (
-    parent: RootResolveParent<Types, ParentShape, ResolveShape, Kind>,
-    args: InputShapeFromFields<Args>,
-    context: Types['Context'],
-    info: GraphQLResolveInfo,
-  ) => MaybePromise<
-    | ResolverCollection<Types, NoInfer<M>>
-    | Extract<ShapeFromTypeParam<Types, Type, Nullable>, null | undefined>
+} & PrismaNextRootFieldResolver<
+    Types,
+    RootResolveParent<Types, ParentShape, ResolveShape, Kind>,
+    InputShapeFromFields<Args>,
+    NoInfer<M>,
+    ShapeFromTypeParam<Types, Type, Nullable>
   >;
-};
+
+/**
+ * A `prismaField` takes `query` or `resolve`. `query` returns a collection, which the plugin loads
+ * the field's selection from. `resolve` gets the type's collection with the selection planned, and
+ * returns the rows a terminal such as `first()` or `create()` returns.
+ */
+export type PrismaNextRootFieldResolver<
+  Types extends SchemaTypes,
+  Parent,
+  ArgsShape,
+  M extends ModelKey<Types>,
+  Shape,
+> =
+  | {
+      /** Returns a collection without `include()`: the plugin loads what the query selects. */
+      query: (
+        parent: Parent,
+        args: ArgsShape,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => MaybePromise<ResolverCollection<Types, M> | Extract<Shape, null | undefined>>;
+      resolve?: never;
+    }
+  | {
+      /**
+       * Gets `orm.<Model>`, or `orm.<Base>.variant(value)` for a variant, with the field's
+       * selection planned, and returns the rows its reads or writes return.
+       */
+      resolve: (
+        collection: PlannedCollection<TypeCollection<Types, M>>,
+        parent: Parent,
+        args: ArgsShape,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => MaybePromise<NoInfer<Shape>> | PromiseLike<NoInfer<Shape>>;
+      query?: never;
+    };
 
 export type PrismaNextRootFieldWithInputOptions<
   Types extends SchemaTypes,
@@ -277,20 +311,17 @@ export type PrismaNextRootFieldWithInputOptions<
 > &
   PothosSchemaTypes.FieldWithInputBaseOptions<Types, Args, Fields, InputName, ArgRequired> & {
     type: Param;
-    resolve: (
-      parent: RootResolveParent<Types, ParentShape, ResolveShape, Kind>,
-      args: InputShapeFromFields<Args> & {
-        [K in InputName]:
-          | InputShapeFromFields<Fields>
-          | (true extends ArgRequired ? never : null | undefined);
-      },
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) => MaybePromise<
-      | ResolverCollection<Types, NoInfer<M>>
-      | Extract<ShapeFromTypeParam<Types, Type, Nullable>, null | undefined>
-    >;
-  };
+  } & PrismaNextRootFieldResolver<
+    Types,
+    RootResolveParent<Types, ParentShape, ResolveShape, Kind>,
+    InputShapeFromFields<Args> & {
+      [K in InputName]:
+        | InputShapeFromFields<Fields>
+        | (true extends ArgRequired ? never : null | undefined);
+    },
+    NoInfer<M>,
+    ShapeFromTypeParam<Types, Type, Nullable>
+  >;
 
 /**
  * A field's `select` adds to the parent only its `resolve` sees. Other options, such as scope-auth's

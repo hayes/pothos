@@ -129,8 +129,8 @@ a row of a variant model with its own table, the plugin reloads it by its key be
 ## Return a type from Query and Mutation fields
 
 Use `t.prismaField` for fields on `Query`, `Mutation`, or any other type that return your model
-types. Its resolver returns a Collection without running it. The plugin adds what the query
-selects, then runs it.
+types. Its `query` returns a Collection without running it. The plugin adds what the query selects,
+then runs it.
 
 ```ts
 builder.queryType({
@@ -138,7 +138,7 @@ builder.queryType({
     me: t.prismaField({
       type: 'User',
       nullable: true,
-      resolve: (_root, _args, ctx) => ctx.db.orm.User.where((user) => user.id.eq(ctx.userId)),
+      query: (_root, _args, ctx) => ctx.db.orm.User.where((user) => user.id.eq(ctx.userId)),
     }),
   }),
 });
@@ -157,7 +157,7 @@ builder.queryFields((t) => ({
   posts: t.prismaField({
     type: ['Post'],
     args: { limit: t.arg.int(), offset: t.arg.int() },
-    resolve: (_root, args, ctx) =>
+    query: (_root, args, ctx) =>
       ctx.db.orm.Post.orderBy((post) => post.createdAt.desc())
         .limit(args.limit ?? 10)
         .offset(args.offset ?? 0),
@@ -170,7 +170,11 @@ For cursor-based pagination with page info and total counts, use `t.prismaConnec
 
 ### Mutations
 
-A mutation can run the write, then return a Collection that finds the updated row by its ID:
+To run the Collection yourself, such as for a write, pass `resolve` instead of `query`. It gets the
+model's Collection from the plugin's `client`, with what the query selects already added, and
+returns what the Collection's methods return. Writes that return the row, such as `create`,
+`update`, `upsert` and `delete`, then return everything the response needs without reading it
+again:
 
 ```ts
 builder.mutationType({
@@ -182,22 +186,19 @@ builder.mutationType({
         id: t.arg.id({ required: true }),
         firstName: t.arg.string({ required: true }),
       },
-      resolve: async (_root, args, ctx) => {
-        const user = await ctx.db.orm.User.where({ id: String(args.id) }).update({
-          firstName: args.firstName,
-        });
-        return user && ctx.db.orm.User.where({ id: user.id });
-      },
+      resolve: (users, _root, args) =>
+        users.where({ id: String(args.id) }).update({ firstName: args.firstName }),
     }),
   }),
 });
 ```
 
-That reads the row again after the write. To skip the second read, build the write's Collection with
-`collectionFromInfo`, which adds what the query selects. Writes that return the row, such as
-`update`, then return everything the response needs. When the resolver returns a payload, pass the
-path to the row's field, such as `path: ['user']`. For an interface or union, pass `typeName` to
-pick the type:
+For a [variant](./variants) model, the Collection is its base's narrowed to it, such as
+`orm.Task.variant('bug')`. Rows loaded from another Collection are a type error.
+
+When the mutation returns a payload, build the write's Collection with `collectionFromInfo`, which
+adds what the query selects, and pass the path to the row's field, such as `path: ['user']`. For an
+interface or union, pass `typeName` to pick the type:
 
 ```ts
 import { collectionFromInfo } from '@pothos/plugin-prisma-next';
@@ -230,7 +231,8 @@ See [Transactions](./setup#transactions) to run the write and the reads in one t
 ### `prismaFieldWithInput`
 
 With the [with-input plugin](/docs/plugins/with-input), `t.prismaFieldWithInput` combines
-`t.prismaField` with `t.fieldWithInput`. The `input` fields become an input object argument:
+`t.prismaField` with `t.fieldWithInput`, and takes `query` or `resolve` the same way. The `input`
+fields become an input object argument:
 
 ```ts
 builder.mutationField('updateFirstName', (t) =>
@@ -241,12 +243,8 @@ builder.mutationField('updateFirstName', (t) =>
       id: t.input.id({ required: true }),
       firstName: t.input.string({ required: true }),
     },
-    resolve: async (_root, args, ctx) => {
-      const user = await ctx.db.orm.User.where({ id: String(args.input.id) }).update({
-        firstName: args.input.firstName,
-      });
-      return user && ctx.db.orm.User.where({ id: user.id });
-    },
+    resolve: (users, _root, args) =>
+      users.where({ id: String(args.input.id) }).update({ firstName: args.input.firstName }),
   }),
 );
 ```

@@ -45,16 +45,16 @@ describe('prismaInterface', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: [User], resolve: () => db.orm.User }),
+        users: t.prismaField({ type: [User], query: () => db.orm.User }),
         user: t.prismaField({
           type: User,
           nullable: true,
-          resolve: () => db.orm.User.where({ id: 'u-bob' }),
+          query: () => db.orm.User.where({ id: 'u-bob' }),
         }),
         userPage: t.prismaConnection({ type: User, resolve: () => db.orm.User }),
         post: t.prismaField({
           type: 'Post',
-          resolve: () => db.orm.Post.where({ id: 'p-hello' }),
+          query: () => db.orm.Post.where({ id: 'p-hello' }),
         }),
       }),
     });
@@ -139,7 +139,7 @@ describe('prismaInterface', () => {
       });
     }
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: [Named], resolve: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: [Named], query: () => db.orm.User }) }),
     });
     const result = await run(builder.toSchema(), '{ users { __typename id } }');
     expect(result.data.users).toEqual([
@@ -176,7 +176,7 @@ describe('prismaInterface', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: [Base], resolve: () => db.orm.User.where({ id: 'u-bob' }) }),
+        users: t.prismaField({ type: [Base], query: () => db.orm.User.where({ id: 'u-bob' }) }),
       }),
     });
     const result = await run(
@@ -237,8 +237,8 @@ describe('inherited selections', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: [User], resolve: () => db.orm.User }),
-        viaInterface: t.prismaField({ type: [Published], resolve: () => db.orm.User }),
+        users: t.prismaField({ type: [User], query: () => db.orm.User }),
+        viaInterface: t.prismaField({ type: [Published], query: () => db.orm.User }),
         unplanned: t.field({
           type: [User],
           // @ts-expect-error a row built by hand isn't planned; it reloads
@@ -313,7 +313,7 @@ describe('inherited selections', () => {
       fields: (t) => ({
         named: t.prismaField({
           type: [Named],
-          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+          query: () => db.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -360,7 +360,7 @@ describe('inherited selections', () => {
       fields: (t) => ({
         accounts: t.prismaField({
           type: [Account],
-          resolve: () => collision.orm.Owner.orderBy((owner) => owner.id.asc()),
+          query: () => collision.orm.Owner.orderBy((owner) => owner.id.asc()),
         }),
       }),
     });
@@ -599,7 +599,7 @@ describe('inherited selections', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        user: t.prismaField({ type: User, resolve: () => db.orm.User.where({ id: 'u-alice' }) }),
+        user: t.prismaField({ type: User, query: () => db.orm.User.where({ id: 'u-alice' }) }),
       }),
     });
     const result = await run(builder.toSchema(), '{ user { total } }');
@@ -654,10 +654,10 @@ describe('inherited selections', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        user: t.prismaField({ type: User, resolve: () => db.orm.User.where({ id: 'u-alice' }) }),
+        user: t.prismaField({ type: User, query: () => db.orm.User.where({ id: 'u-alice' }) }),
         counted: t.prismaField({
           type: Counted,
-          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+          query: () => db.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -702,7 +702,7 @@ describe('inherited selections', () => {
       fields: (t) => ({
         people: t.prismaField({
           type: [Person],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -745,11 +745,11 @@ describe('inherited selections', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: [User],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
         named: t.prismaField({
           type: [Named],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -785,7 +785,7 @@ describe('inherited selections', () => {
       fields: (t) => ({
         named: t.prismaField({
           type: [Named],
-          resolve: () => db.orm.User.orderBy((user) => user.id.asc()),
+          query: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -828,7 +828,7 @@ describe("field helpers on a reloaded parent's slots", () => {
         user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) as never }),
         users: t.prismaField({
           type: [Named],
-          resolve: () => db.orm.User.where({ id: 'u-alice' }),
+          query: () => db.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -898,8 +898,8 @@ describe('relations typed as an interface', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        post: t.prismaField({ type: 'Post', resolve: () => db.orm.Post.where({ id: 'p-bob1' }) }),
-        user: t.prismaField({ type: 'User', resolve: () => db.orm.User.where({ id: 'u-bob' }) }),
+        post: t.prismaField({ type: 'Post', query: () => db.orm.Post.where({ id: 'p-bob1' }) }),
+        user: t.prismaField({ type: 'User', query: () => db.orm.User.where({ id: 'u-bob' }) }),
       }),
     });
     return builder.toSchema();

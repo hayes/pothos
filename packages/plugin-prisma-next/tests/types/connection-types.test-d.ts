@@ -557,7 +557,7 @@ const nonNullBuilder = new SchemaBuilder<{
 });
 nonNullBuilder.queryType({
   fields: (t) => {
-    const user = t.prismaField({ type: 'User', resolve: () => orm.User });
+    const user = t.prismaField({ type: 'User', query: () => orm.User });
     expectTypeOf<null extends typeof user.$inferType ? true : false>().toEqualTypeOf<false>();
     const posts = t.prismaConnection({ type: 'Post', resolve: () => orm.Post });
     expectTypeOf(posts.$inferType.edges).not.toBeUnknown();
@@ -566,8 +566,8 @@ nonNullBuilder.queryType({
       user,
       posts,
       // @ts-expect-error the field is non-null by default
-      nullUser: t.prismaField({ type: 'User', resolve: () => null }),
-      nullableUser: t.prismaField({ type: 'User', nullable: true, resolve: () => null }),
+      nullUser: t.prismaField({ type: 'User', query: () => null }),
+      nullableUser: t.prismaField({ type: 'User', nullable: true, query: () => null }),
       // @ts-expect-error the connection is non-null by default
       nullPosts: t.prismaConnection({ type: 'Post', resolve: () => null }),
       nullablePosts: t.prismaConnection({
@@ -580,7 +580,7 @@ nonNullBuilder.queryType({
 });
 builder.queryFields((t) => {
   // Fields are nullable by default.
-  const user = t.prismaField({ type: 'User', resolve: () => null });
+  const user = t.prismaField({ type: 'User', query: () => null });
   expectTypeOf<null extends typeof user.$inferType ? true : false>().toEqualTypeOf<true>();
   return { nullableByDefault: user };
 });

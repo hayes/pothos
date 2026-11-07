@@ -44,7 +44,7 @@ builder.queryType({
   fields: (t) => ({
     users: t.prismaField({
       type: ['User'],
-      resolve: (_root, _args, ctx) => ctx.db.orm.public.User,
+      query: (_root, _args, ctx) => ctx.db.orm.public.User,
     }),
   }),
 });
@@ -79,7 +79,7 @@ builder.mutationField('signUp', (t) =>
       firstName: t.arg.string({ required: true }),
       lastName: t.arg.string({ required: true }),
     },
-    resolve: async (_root, args, ctx) => {
+    query: async (_root, args, ctx) => {
       const id = await ctx.db.transaction(async (tx) => {
         const user = await tx.orm.User.create({ ...args, id: randomUUID() });
         await tx.orm.Post.create({
