@@ -15,7 +15,7 @@ import type { PrismaNextExecutionContext } from '../types/plugin-options.js';
 import type { MapperCollection } from './adapter.js';
 import type { FieldCodecs } from './codecs.js';
 import { resolveContractModel } from './contract.js';
-import { InternalError } from './errors.js';
+import { InternalError, isRefusedValue, refusedError } from './errors.js';
 import { getModelIdentities, truncatedDateProblem } from './model.js';
 
 // The subset of orm-client's `ModelAccessor` used here, without its contract generics.
@@ -356,6 +356,38 @@ export function withCursorValues<Plan extends CursorPlan>(
     afterValues: after ? decodeCursor(order, after, codecs) : undefined,
     beforeValues: before ? decodeCursor(order, before, codecs) : undefined,
   };
+}
+
+/** Whether `plan` holds the values of a cursor. */
+export function hasCursorValues(plan: CursorPlan): boolean {
+  return plan.afterValues !== undefined || plan.beforeValues !== undefined;
+}
+
+/** The refines of relation pages, and the statements, that apply cursor values. */
+const cursorPages = new WeakSet<object>();
+
+/** Records that `value`, a relation page's refine or a statement, applies cursor values. */
+export function markCursors<T extends object>(value: T): T {
+  cursorPages.add(value);
+  return value;
+}
+
+/** Whether `value`, a relation page's refine or a statement, applies cursor values. */
+export function appliesCursors(value: object): boolean {
+  return cursorPages.has(value);
+}
+
+/**
+ * `rows`, read by a statement that applies cursor values when `cursors` is true. Its column codecs
+ * accept values the database may still refuse, such as text holding a NUL, so a refused value then
+ * fails as the client's `Invalid cursor.`.
+ */
+export function readPage<T>(rows: PromiseLike<T>, cursors: boolean): PromiseLike<T> {
+  return cursors
+    ? Promise.resolve(rows).catch((error: unknown) => {
+        throw isRefusedValue(error) ? refusedError('Invalid cursor.', error) : error;
+      })
+    : rows;
 }
 
 /** Orders `baseCollection`, filters it past the cursors and limits it to the page. */

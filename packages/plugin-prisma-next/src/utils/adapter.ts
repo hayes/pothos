@@ -19,6 +19,7 @@ import {
   PRISMA_NEXT_MODEL,
 } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
+import { appliesCursors, markCursors } from './cursors.js';
 import {
   getIdentityFields,
   getModel,
@@ -85,6 +86,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   override readonly skipDeferredFragments: boolean;
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSelection>();
   private readonly withoutIdentity = new WeakMap<PrismaNextModel, boolean>();
+  /**
+   * Whether the statement `emit` is building applies cursor values. The ORM runs include callbacks
+   * synchronously, so `emit` reads it once they have run.
+   */
+  private emitsCursors = false;
 
   constructor(
     readonly contract: AnyContract,
@@ -271,7 +277,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     selection: PrismaNextSelection,
     model: PrismaNextModel,
   ): MapperCollection {
-    return this.emitLevel(collection, selection, model, { next: 0 });
+    this.emitsCursors = false;
+    const emitted = this.emitLevel(collection, selection, model, { next: 0 });
+    return this.emitsCursors ? markCursors(emitted) : emitted;
   }
 
   private emitLevel(
@@ -325,7 +333,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       const narrowing = selection.args?.variant;
       const narrowed =
         narrowing && !narrowing.throughVariantModel ? base.variant(narrowing.value) : base;
-      const refined = selection.args?.[REFINE]?.(narrowed) ?? narrowed;
+      const refine = selection.args?.[REFINE];
+      this.emitsCursors ||= refine !== undefined && appliesCursors(refine);
+      const refined = refine?.(narrowed) ?? narrowed;
       return this.emitLevel(refined, selection, relation.target, branches);
     };
     if (!relation.isToMany) {

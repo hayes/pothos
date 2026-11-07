@@ -20,7 +20,8 @@ import type { GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/adapter.js';
 import type { PrismaNextConfig } from './utils/config.js';
 import { variantOf } from './utils/contract.js';
-import { InternalError, keepError } from './utils/errors.js';
+import { appliesCursors, readPage } from './utils/cursors.js';
+import { InternalError, isRefusedValue, keepError, refusedError } from './utils/errors.js';
 import { getIdentityFields, type PrismaNextModel } from './utils/model.js';
 import {
   type PrismaNextSelection,
@@ -294,7 +295,7 @@ export class ModelLoader {
       }
       this.staged.add(created);
       // Flushed in a macrotask so that requests from async select callbacks can join the batch.
-      // An error building or running the statement fails every request in the batch.
+      // An error building or running the statement fails every request it loads.
       setTimeout(() => {
         this.staged.delete(created);
         this.flush(created).catch((error: unknown) => {
@@ -340,25 +341,67 @@ export class ModelLoader {
         );
       }
     }
-    if (!keyed.length) {
-      return;
+    if (keyed.length) {
+      await this.load(batch, base, keyed, key);
     }
-    const distinct = [...new Map(keyed.map(({ request, key }) => [key, request.values])).values()];
-    const filtered = base.where((model: Record<string, IdentityColumn>) =>
-      fields.length === 1
-        ? model[fields[0]!]!.in(distinct.map((values) => values[0]))
-        : or(
-            ...distinct.map((values) =>
-              and(...fields.map((field, i) => model[field]!.eq(values[i]))),
+  }
+
+  /**
+   * Loads the rows of `keyed`, requests of `batch`, from `base`, and settles each request. `key`
+   * keys a row's identity values.
+   */
+  private async load(
+    batch: Batch,
+    base: MapperCollection,
+    keyed: readonly { request: Request; key: string }[],
+    key: (values: readonly unknown[]) => string,
+  ): Promise<void> {
+    const { fields } = batch;
+    const distinct = new Map(keyed.map(({ request, key }) => [key, request.values]));
+    let rows: readonly Row[];
+    try {
+      const filtered = base.where((model: Record<string, IdentityColumn>) =>
+        fields.length === 1
+          ? model[fields[0]!]!.in([...distinct.values()].map((values) => values[0]))
+          : or(
+              ...[...distinct.values()].map((values) =>
+                and(...fields.map((field, i) => model[field]!.eq(values[i]))),
+              ),
+            ),
+      );
+      // A query callback the statement runs fails every field of the batch, as in a parent query.
+      const query = userCode(() =>
+        this.config.adapter.emit(
+          filtered,
+          this.config.adapter.toQuery(batch.root),
+          batch.root.model,
+        ),
+      ) as MapperCollection & { all(): Promise<readonly Row[]> };
+      // A reload's database error is the plugin's, which `reloadFor` reports as `Unexpected error.`.
+      // A refused cursor fails every request of the batch, including other fields' nodes.
+      rows = await readPage(query.all(), appliesCursors(query));
+    } catch (error) {
+      // Column codecs accept values the database may refuse, such as text holding a NUL. A node's
+      // values come from the client's ID, so each ID of the batch loads alone and fails alone.
+      const refused = batch.load.kind === 'node' && isRefusedValue(error) ? error : undefined;
+      if (refused && distinct.size > 1) {
+        await Promise.all(
+          [...distinct.keys()].map((id) =>
+            this.load(
+              batch,
+              base,
+              keyed.filter((entry) => entry.key === id),
+              key,
             ),
           ),
-    );
-    // A query callback the statement runs fails every field of the batch, as in a parent query.
-    const query = userCode(() =>
-      this.config.adapter.emit(filtered, this.config.adapter.toQuery(batch.root), batch.root.model),
-    ) as MapperCollection & { all(): Promise<readonly Row[]> };
-    // A reload's database error is the plugin's, which `reloadFor` reports as `Unexpected error.`.
-    const rows = await query.all();
+        );
+        return;
+      }
+      for (const { request } of keyed) {
+        request.reject(refused ? refusedError('Invalid ID.', refused) : error);
+      }
+      return;
+    }
     const byKey = new Map(rows.map((row) => [key(fields.map((field) => row[field])), row]));
     for (const { request, key } of keyed) {
       const row = byKey.get(key);

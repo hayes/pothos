@@ -15,7 +15,7 @@ import {
   type ConnectionSettingsOptions,
   connectionPaging,
 } from './utils/connections.js';
-import { buildConnectionPage } from './utils/cursors.js';
+import { appliesCursors, buildConnectionPage, readPage } from './utils/cursors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
 import { type AnyRef, refFor } from './utils/refs.js';
@@ -58,7 +58,10 @@ function prismaFieldConfig(
         config,
         context,
       )) as Executable;
-      const rows = await (isList ? applied : (applied.limit(1) as Executable)).all();
+      const rows = await readPage(
+        (isList ? applied : (applied.limit(1) as Executable)).all(),
+        appliesCursors(applied),
+      );
       return isList ? rows : (rows[0] ?? null);
     },
   };

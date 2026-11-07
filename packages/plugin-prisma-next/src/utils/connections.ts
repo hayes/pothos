@@ -4,12 +4,16 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
 import {
+  appliesCursors,
   applyCursorPagination,
   buildConnectionPage,
   type CursorPlan,
   connectionOrder,
   cursorColumns,
+  hasCursorValues,
+  markCursors,
   type OrderByDecl,
+  readPage,
   withCursorValues,
 } from './cursors.js';
 import { checkReturned, InternalError } from './errors.js';
@@ -195,6 +199,9 @@ export function connectionPaging(
           planned,
           args as PothosSchemaTypes.DefaultConnectionArguments,
         );
+      if (hasCursorValues(planned)) {
+        markCursors(page);
+      }
       const seed: PrismaNextSelection = {
         columns: cursorColumns(planned.order),
         args: relationArgs(relation, { loadIdentity, refine: page, variant }),
@@ -230,7 +237,10 @@ export function connectionPaging(
       const rowsPromise = needsRows
         ? Promise.resolve(applySelection(paged, { columns: cursorColumns(planned.order) })).then(
             (applied) =>
-              (applied as unknown as { all(): Promise<Record<string, unknown>[]> }).all(),
+              readPage(
+                (applied as unknown as { all(): Promise<Record<string, unknown>[]> }).all(),
+                hasCursorValues(planned) || appliesCursors(applied),
+              ),
           )
         : Promise.resolve([]);
       // Counts the collection, filtered by `query`, before pagination.

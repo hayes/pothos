@@ -1,4 +1,5 @@
-import { PothosSchemaError } from '@pothos/core';
+import { PothosSchemaError, PothosValidationError } from '@pothos/core';
+import { SqlQueryError } from '@prisma/orm-family-sql/errors';
 import type { GraphQLResolveInfo } from 'graphql';
 
 /** What a client sees of an error this plugin raises while a request runs. */
@@ -27,6 +28,24 @@ export function checkReturned<V, T>(value: V, check: (value: V) => T): T {
       ? new InternalError(error.message, { cause: error })
       : error;
   }
+}
+
+/**
+ * SQLSTATEs of a value its column codec accepts but the database can't represent, such as text
+ * holding a NUL (22021). Other data exceptions, such as division by zero, aren't the value's.
+ */
+const REFUSED_VALUE_STATES = new Set(['22021', '22P02', '22P05', '22007', '22008']);
+
+/** Whether `error` is the database refusing a value of a statement. */
+export function isRefusedValue(error: unknown): error is SqlQueryError {
+  return SqlQueryError.is(error) && REFUSED_VALUE_STATES.has(error.sqlState ?? '');
+}
+
+/** `message`, a client-safe error such as `Invalid ID.`, for `cause`, which `reloadFor` keeps. */
+export function refusedError(message: string, cause: Error): PothosValidationError {
+  return keepError(
+    Object.assign(new PothosValidationError(message, { originalError: cause }), { cause }),
+  );
 }
 
 /**

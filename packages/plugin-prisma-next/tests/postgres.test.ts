@@ -2,12 +2,14 @@ import { Temporal } from '@js-temporal/polyfill';
 import SchemaBuilder, { PothosValidationError } from '@pothos/core';
 import RelayPlugin, { encodeGlobalID } from '@pothos/plugin-relay';
 import WithInputPlugin from '@pothos/plugin-with-input';
+import { SqlQueryError } from '@prisma/orm-family-sql/errors';
 import postgres from '@prisma/orm-postgres/runtime';
 import postgresServerless from '@prisma/orm-postgres/serverless';
 import { graphql } from 'graphql';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import prismaNextPlugin from '../src';
+import { isRefusedValue } from '../src/utils/errors';
 import { loadPostgresContract, postgresUrl as url } from './fixtures/helpers';
 import type { Contract } from './postgres/contract';
 
@@ -727,6 +729,123 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         { message: 'Invalid ID.', path: ['b'] },
       ]);
       expect(result.errors?.[0]?.originalError).toBeInstanceOf(PothosValidationError);
+    });
+  });
+
+  describe('values the column codec accepts and the database refuses', () => {
+    function textSchema() {
+      const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+        plugins: [RelayPlugin, prismaNextPlugin],
+        relay: {},
+        prismaNext: { client },
+      });
+      builder.prismaObject('Entry', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.prismaNode('Account', {
+        id: { field: 'id' },
+        fields: (t) => ({
+          name: t.exposeString('name'),
+          entries: t.relatedConnection('entries', { query: { orderBy: { id: 'asc' } } }),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          accounts: t.prismaConnection({
+            type: 'Account',
+            resolve: () => client.orm.public.Account,
+          }),
+          list: t.prismaField({
+            type: ['Account'],
+            resolve: () => client.orm.public.Account.orderBy((account) => account.id.asc()),
+          }),
+        }),
+      });
+      return builder.toSchema();
+    }
+
+    // Postgres text can't hold a NUL, which the text codec accepts.
+    const refused = 'x\u0000y';
+
+    /** `cursor` with its value replaced by `refused`. */
+    function refusedCursor(cursor: string) {
+      const payload = Buffer.from(cursor, 'base64').toString();
+      const prefix = payload.slice(0, payload.indexOf(':', 'PNC:'.length) + 1);
+      return Buffer.from(`${prefix}S:${refused}`).toString('base64');
+    }
+
+    it('fails only the node whose ID the database refuses', async () => {
+      const result = await graphql({
+        schema: textSchema(),
+        source: `query ($a: ID!, $b: ID!) {
+          a: node(id: $a) { ... on Account { name } }
+          b: node(id: $b) { ... on Account { name } }
+        }`,
+        variableValues: {
+          a: encodeGlobalID('Account', 'a'),
+          b: encodeGlobalID('Account', refused),
+        },
+        contextValue: {},
+      });
+      expect(result.data).toEqual({ a: { name: 'Alice' }, b: null });
+      expect(result.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
+        { message: 'Invalid ID.', path: ['b'] },
+      ]);
+      expect(result.errors?.[0]?.originalError).toBeInstanceOf(PothosValidationError);
+      expect((result.errors?.[0]?.originalError as Error).cause).toBeInstanceOf(SqlQueryError);
+    });
+
+    it('treats only values the database cannot represent as refused', () => {
+      const state = (sqlState: string) => new SqlQueryError('', { sqlState });
+      expect(['22021', '22P02', '22P05', '22007', '22008'].map(state).every(isRefusedValue)).toBe(
+        true,
+      );
+      // Division by zero, numeric overflow and a bad regular expression aren't the value's.
+      expect(['22012', '22003', '2201B', '23505'].map(state).some(isRefusedValue)).toBe(false);
+    });
+
+    it('refuses a root connection cursor the database refuses', async () => {
+      const schema = textSchema();
+      const first = await graphql({
+        schema,
+        source: '{ accounts(first: 1) { pageInfo { endCursor } } }',
+        contextValue: {},
+      });
+      const { endCursor } = (first.data?.accounts as { pageInfo: { endCursor: string } }).pageInfo;
+      const result = await graphql({
+        schema,
+        source:
+          'query ($after: String) { accounts(first: 1, after: $after) { edges { node { name } } } }',
+        variableValues: { after: refusedCursor(endCursor) },
+        contextValue: {},
+      });
+      expect(result.data).toEqual({ accounts: null });
+      expect(result.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
+        { message: 'Invalid cursor.', path: ['accounts'] },
+      ]);
+    });
+
+    it.each([
+      ['a prismaField', '{ list { entries(first: 1, after: $after) { edges { node { id } } } } }'],
+      [
+        'a node',
+        `{ node(id: "${encodeGlobalID('Account', 'a')}") {
+          ... on Account { entries(first: 1, after: $after) { edges { node { id } } } }
+        } }`,
+      ],
+    ])('refuses a nested connection cursor the database refuses beneath %s', async (_, selection) => {
+      const schema = textSchema();
+      const first = await graphql({
+        schema,
+        source: '{ list { entries(first: 1) { pageInfo { endCursor } } } }',
+        contextValue: {},
+      });
+      const [{ entries }] = first.data?.list as { entries: { pageInfo: { endCursor: string } } }[];
+      const result = await graphql({
+        schema,
+        source: `query ($after: String) ${selection}`,
+        variableValues: { after: refusedCursor(entries.pageInfo.endCursor) },
+        contextValue: {},
+      });
+      expect(result.errors?.map(({ message }) => message)).toEqual(['Invalid cursor.']);
     });
   });
 
