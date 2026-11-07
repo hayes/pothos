@@ -223,7 +223,9 @@ builder.mutationType({
 For a [variant](./variants) model, the Collection is its base's narrowed to it, such as
 `orm.Task.variant('bug')`, both for `resolve` and when `collection` is left out. `resolve` must
 return rows of that Collection; rows loaded from another Collection are a type error naming
-[`Planned`](./relations#returning-rows-from-other-fields).
+[`Planned`](./relations#returning-rows-from-other-fields). Since that Collection is already filtered
+by the variant, `update()` and `delete()` type-check without a `where`, and then change the
+variant's first row, so add a `where` for single-row writes.
 
 When the mutation returns a payload, build the write's Collection with `collectionFromInfo`, which
 adds what the query selects, and pass the path to the row's field, such as `path: ['user']`. For an
