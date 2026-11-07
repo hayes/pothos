@@ -51,7 +51,7 @@ Then, from this package's directory, run the suite without and with MySQL:
 
 ```sh
 pnpm vitest --run
-POTHOS_PRISMA_NEXT_MYSQL_URL=mysql://root:prisma@localhost:5478/prisma_next pnpm vitest --run
+POTHOS_PRISMA_NEXT_MYSQL_URL='mysql://root:prisma@localhost:5478/prisma_next?allowPublicKeyRetrieval=true' pnpm vitest --run
 ```
 
 The MySQL server takes a few seconds to accept connections after it starts.
