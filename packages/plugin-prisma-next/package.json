@@ -50,15 +50,9 @@
   },
   "peerDependencies": {
     "@pothos/core": "*",
-    "@pothos/plugin-scope-auth": "*",
     "@prisma/orm-family-sql": "8.0.0-rc.22",
     "@prisma/orm-framework": "8.0.0-rc.22",
     "graphql": "^16.10.0 || ^17.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@pothos/plugin-scope-auth": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@js-temporal/polyfill": "^0.5.1",
