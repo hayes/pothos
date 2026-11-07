@@ -158,11 +158,7 @@ export function connectionOrder(
 }
 
 // Values are encoded in their column codec's stored form. Nulls skip the codec.
-export function encodeValues(
-  fields: readonly string[],
-  values: readonly unknown[],
-  codecs: FieldCodecs,
-) {
+function encodeValues(fields: readonly string[], values: readonly unknown[], codecs: FieldCodecs) {
   const encoded = values.map((value, i) =>
     value == null ? value : codecs(fields[i]!).encode(value),
   );
@@ -170,7 +166,7 @@ export function encodeValues(
 }
 
 /** The values of `fields` in `payload`, or undefined when it doesn't hold them. */
-export function decodeValues(
+function decodeValues(
   fields: readonly string[],
   payload: string,
   codecs: FieldCodecs,
