@@ -24,7 +24,7 @@ import type {
 import type { DefaultRelationNullable, IsToMany, RelatedModel } from './types/relations.js';
 import type { ConnectionPageEntry, NodeSelection } from './types/selections.js';
 import { getPluginConfig } from './utils/config.js';
-import { connectionPaging, pageOf } from './utils/connections.js';
+import { connectionPaging } from './utils/connections.js';
 import { variantForRelationType } from './utils/contract.js';
 import { buildConnectionPage, type ConnectionPage } from './utils/cursors.js';
 import { getIdentityFields, getModel } from './utils/model.js';
@@ -35,6 +35,8 @@ import {
   NESTED_SELECTION,
   type NestedEntry,
   NODE_SELECTION,
+  PAGE,
+  type PageData,
   type PlanPage,
   type PrismaNextSelection,
   relationArgs,
@@ -169,10 +171,6 @@ function selectedBeneath(selected: SelectedFieldNode, prefix: string[]) {
   return () => names;
 }
 
-/** The page `resolve` returns, with its count when the helpers count. */
-type HelperPage<Node, Counted> = ConnectionPage<Node> &
-  (Counted extends true ? { totalCount: number } : unknown);
-
 export interface PrismaConnectionHelpers<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
@@ -181,7 +179,6 @@ export interface PrismaConnectionHelpers<
   Node = never,
   MaybeRow extends boolean = false,
   Ref extends ConnectionHelperRef<Types, M> = ConnectionHelperRef<Types, M>,
-  Counted = false,
 > {
   /** The ref passed in. For a model name, `Ref` isn't inferred, so this is its default ref. */
   ref: ConnectionHelperRef<Types, M> extends Ref
@@ -201,12 +198,16 @@ export interface PrismaConnectionHelpers<
     ctx: Types['Context'],
     nestedSelection: (query: undefined, path: PathSegment[]) => unknown,
   ): ConnectionPageEntry<M, HelperRow<Types, M, Select, Ref>>;
-  /** The connection for the rows `getQuery` loaded. */
+  /**
+   * The connection of `rows`, paged by `args` as `getQuery` pages them. `totalCount` is only set
+   * when the rows are the list `getQuery` loaded. `parent` is passed on to the connection.
+   */
   resolve(
     rows: readonly HelperRow<Types, M, Select, Ref>[],
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
-  ): HelperPage<PageNode<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>, Counted>;
+    parent?: unknown,
+  ): ConnectionPage<PageNode<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>>;
 }
 
 export interface PrismaConnectionHelperOptions<
@@ -215,11 +216,10 @@ export interface PrismaConnectionHelperOptions<
   Args extends InputFieldMap,
   QueryLiteral = ConnectionQueryLiteral<Types, M>,
   Select = {},
-  Counted = boolean,
 > extends Pick<ConnectionPagingOptions<Types, unknown, Args>, 'defaultSize' | 'maxSize'> {
   args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
   /** Counts the rows `query` keeps, when the connection selects `totalCount`. */
-  totalCount?: Counted & TotalCountFlag<Types>;
+  totalCount?: TotalCountFlag<Types>;
   /** Filters and orders the relation, like `t.relatedConnection`'s `query`. */
   query?: ConnectionQueryOption<Types, M, Args, QueryLiteral>;
   /**
@@ -241,14 +241,13 @@ export function prismaConnectionHelpers<
   Node = never,
   Ref extends ConnectionHelperRef<Types, M> = ConnectionHelperRef<Types, M>,
   QueryLiteral extends ConnectionQueryLiteral<Types, M> = ConnectionQueryLiteral<Types, M>,
-  Counted extends boolean = false,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & ConnectionHelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select, Counted> & {
+  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
     resolveNode: (row: NodeSourceRow<Types, M, Select>) => Node;
   },
-): PrismaConnectionHelpers<Types, M, Args, Select, Node, false, Ref, Counted>;
+): PrismaConnectionHelpers<Types, M, Args, Select, Node, false, Ref>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -258,14 +257,13 @@ export function prismaConnectionHelpers<
   Node = never,
   Ref extends ConnectionHelperRef<Types, M> = ConnectionHelperRef<Types, M>,
   QueryLiteral extends ConnectionQueryLiteral<Types, M> = ConnectionQueryLiteral<Types, M>,
-  Counted extends boolean = false,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & ConnectionHelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select, Counted> & {
+  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
     resolveNode?: ((row: NodeSourceRow<Types, M, Select>) => Node) | undefined;
   },
-): PrismaConnectionHelpers<Types, M, Args, Select, Node, true, Ref, Counted>;
+): PrismaConnectionHelpers<Types, M, Args, Select, Node, true, Ref>;
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
@@ -275,11 +273,10 @@ export function prismaConnectionHelpers<
   Node,
   Ref extends ConnectionHelperRef<Types, M>,
   QueryLiteral extends ConnectionQueryLiteral<Types, M>,
-  Counted extends boolean,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrModel: M | (Ref & ConnectionHelperRef<Types, M>),
-  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select, Counted> & {
+  options: PrismaConnectionHelperOptions<Types, M, Args, QueryLiteral, Select> & {
     resolveNode?: ((row: NodeSourceRow<Types, M, Select>) => Node) | undefined;
   },
 ): object {
@@ -388,12 +385,15 @@ export function prismaConnectionHelpers<
     resolve(
       rows: readonly Record<string, unknown>[],
       args: PothosSchemaTypes.DefaultConnectionArguments,
+      ctx: object,
+      parent?: unknown,
     ) {
-      const { plan, count } = pageOf(
-        rows,
-        `${owner}: resolve was given rows getQuery didn't load. Pass the parent's relation unchanged; transform nodes with resolveNode.`,
-      );
-      const page = buildConnectionPage(rows, plan, args, { totalCount: count });
+      // Only the list `getQuery` loaded carries its count.
+      const totalCount = (rows as { [PAGE]?: PageData })[PAGE]?.count;
+      const page = buildConnectionPage(rows, paging.pagingPlan(args, ctx), args, {
+        totalCount,
+        parent,
+      });
       // After building the page, so cursors are encoded from the rows.
       if (resolveNode) {
         for (const edge of page.edges) {

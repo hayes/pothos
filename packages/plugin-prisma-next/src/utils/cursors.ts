@@ -346,10 +346,10 @@ function applyToCollection<C extends MapperCollection>(
 }
 
 /** `plan` with the values of the cursors in `args`. Throws for an invalid cursor or page size. */
-export function withCursorValues(
-  plan: CursorPlan,
+export function withCursorValues<Plan extends CursorPlan>(
+  plan: Plan,
   args: PothosSchemaTypes.DefaultConnectionArguments,
-): CursorPlan {
+): Plan {
   const { before, after, order, codecs } = buildPaginationParams(plan, args);
   return {
     ...plan,

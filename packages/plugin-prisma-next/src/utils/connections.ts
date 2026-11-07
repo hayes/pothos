@@ -124,29 +124,35 @@ export function connectionPaging(
     };
   }
 
-  /** Resolves the connection's sizes, order, cursors and `where` for one request. */
-  function plan(args: object, ctx: object): ConnectionPlan {
+  /**
+   * Resolves the connection's sizes, order and `where` for one request, which page a list of rows.
+   * The cursors' values are left out: only loading the page reads them.
+   */
+  function pagingPlan(args: object, ctx: object): ConnectionPlan {
     const { where, order } =
       literal ??
       checkReturned(
         (query as (args: object, ctx: object) => ConnectionQuery | undefined)(args, ctx),
         resolveQuery,
       );
-    const cursorPlan = withCursorValues(
-      {
-        order,
-        codecs: config.codecs(modelKey),
-        defaultSize: resolveSize(defaultSize, args, ctx) ?? config.defaultConnectionSize,
-        maxSize: resolveSize(maxSize, args, ctx) ?? config.maxConnectionSize,
-      },
-      args,
-    );
-    return { ...cursorPlan, where };
+    return {
+      order,
+      codecs: config.codecs(modelKey),
+      defaultSize: resolveSize(defaultSize, args, ctx) ?? config.defaultConnectionSize,
+      maxSize: resolveSize(maxSize, args, ctx) ?? config.maxConnectionSize,
+      where,
+    };
+  }
+
+  /** Resolves the connection's sizes, order, cursors and `where` for one request. */
+  function plan(args: object, ctx: object): ConnectionPlan {
+    return withCursorValues(pagingPlan(args, ctx), args);
   }
 
   return {
     selection,
     plan,
+    pagingPlan,
     /** Adds the generated `totalCount` field to a connection's options. */
     connectionOptions<T extends object>(connectionOptions: T): T {
       return totalCount ? (withTotalCount(connectionOptions) as T) : connectionOptions;
@@ -225,17 +231,11 @@ export function pageLoaded(name: string) {
     (parent as Record<string, { [PAGE]?: PageData } | undefined>)[name]?.[PAGE] !== undefined;
 }
 
-/**
- * What `planPage` recorded on a page's rows. Rows without it weren't loaded by a page, so the
- * field's resolver was handed something else, which `detail` describes.
- */
-export function pageOf(
-  rows: readonly unknown[],
-  detail = "A connection page's rows don't hold its plan: pass the rows its select loaded, as they are.",
-): { plan: ConnectionPlan; count?: number } {
+/** What `planPage` recorded on a page's rows. */
+function pageOf(rows: readonly unknown[]): { plan: ConnectionPlan; count?: number } {
   const page = (rows as { [PAGE]?: PageData })[PAGE];
   if (!page) {
-    throw new InternalError(detail);
+    throw new InternalError("A connection page's rows don't hold its plan.");
   }
   return page as { plan: ConnectionPlan; count?: number };
 }

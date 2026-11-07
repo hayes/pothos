@@ -442,10 +442,11 @@ export function helperShapes() {
     primitive.resolve([] as RowsOf<typeof primitive>, {}, {}).edges[0]!.node,
   ).toEqualTypeOf<string>();
 
+  // Only rows `getQuery` loaded hold a count.
   const counted = prismaConnectionHelpers(builder, 'User', { totalCount: true });
-  expectTypeOf(
-    counted.resolve([] as RowsOf<typeof counted>, {}, {}).totalCount,
-  ).toEqualTypeOf<number>();
+  expectTypeOf(counted.resolve([] as RowsOf<typeof counted>, {}, {}).totalCount).toEqualTypeOf<
+    number | undefined
+  >();
 }
 
 // prismaConnectionHelpers through a join model: `select` names the relation holding the nodes,
@@ -602,7 +603,7 @@ builder.subscriptionField('totalCountOnSubscription', (t) =>
   }),
 );
 
-// The count a helper's `resolve` adds is typed for a `totalCount` field on the connection.
+// The count a helper's `resolve` adds can be returned from a `totalCount` field on the connection.
 const counted = prismaConnectionHelpers(builder, 'Post', { totalCount: true });
 builder.prismaObjectField('User', 'countedPosts', (t) =>
   t.connection(
@@ -617,7 +618,7 @@ builder.prismaObjectField('User', 'countedPosts', (t) =>
       fields: (c) => ({
         totalCount: c.int({
           resolve: (page) => {
-            expectTypeOf(page.totalCount).toEqualTypeOf<number>();
+            expectTypeOf(page.totalCount).toEqualTypeOf<number | undefined>();
             return page.totalCount;
           },
         }),

@@ -1427,9 +1427,19 @@ describe('prismaConnectionHelpers', () => {
               comments: commenters.getQuery(args, ctx, nestedSelection),
             }),
             resolve: (post, args, ctx) =>
-              commenters.resolve(resolveRows(post.comments) as typeof post.comments, args, ctx),
+              commenters.resolve(
+                resolveRows(post.comments) as typeof post.comments,
+                args,
+                ctx,
+                post,
+              ),
           },
-          { fields: (c) => ({ totalCount: c.int({ resolve: (page) => page.totalCount }) }) },
+          {
+            fields: (c) => ({
+              totalCount: c.int({ resolve: (page) => page.totalCount }),
+              postId: c.id({ resolve: (page) => (page.parent as { id: string }).id }),
+            }),
+          },
           {
             fields: (edge) => ({
               body: edge.string({ resolve: (_edge) => 'body' }),
@@ -1452,15 +1462,16 @@ describe('prismaConnectionHelpers', () => {
   it('pages through a join model to another node type in the parent statement', async () => {
     const first = await run(
       commentersSchema(),
-      '{ posts { id commenters(first: 1) { totalCount pageInfo { endCursor hasNextPage } edges { node { firstName posts { id } } } } } }',
+      '{ posts { id commenters(first: 1) { postId totalCount pageInfo { endCursor hasNextPage } edges { node { firstName posts { id } } } } } }',
     );
     expect(first.errors).toBeUndefined();
     expect(first.statements).toHaveLength(1);
     expect(first.data.posts).toMatchObject([
-      { id: 'p-bob1', commenters: { totalCount: 0, edges: [] } },
+      { id: 'p-bob1', commenters: { postId: 'p-bob1', totalCount: 0, edges: [] } },
       {
         id: 'p-hello',
         commenters: {
+          postId: 'p-hello',
           totalCount: 2,
           pageInfo: { hasNextPage: true },
           edges: [{ node: { firstName: 'Alice', posts: [{ id: 'p-hello' }, { id: 'p-draft1' }] } }],
@@ -1497,18 +1508,29 @@ describe('prismaConnectionHelpers', () => {
     expect(keys.flat().filter((key) => key.includes(':'))).toEqual([]);
   });
 
-  it('fails a field whose resolve is given other rows than its page', async () => {
-    const result = await run(
-      commentersSchema({ resolveRows: (rows) => rows.filter(() => true) }),
-      '{ posts { commenters { totalCount } } }',
-    );
-    expect(result.errors?.map((error) => [error.message, detailOf(error)])).toEqual([
-      [
-        'Unexpected error.',
-        "connection helpers for 'Comment': resolve was given rows getQuery didn't load. Pass the parent's relation unchanged; transform nodes with resolveNode.",
-      ],
-      ['Unexpected error.', expect.stringMatching(/rows getQuery didn't load/)],
-    ]);
+  it('pages any rows resolve is given by its arguments, with totalCount only from a page', async () => {
+    // Fresh rows in a fresh list, so nothing getQuery recorded on its rows is left.
+    const copied = commentersSchema({
+      resolveRows: (rows) => rows.map((row) => ({ ...row })),
+    });
+    const query =
+      'query ($first: Int, $last: Int, $after: String) { posts { commenters(first: $first, last: $last, after: $after) { totalCount pageInfo { startCursor endCursor hasNextPage hasPreviousPage } edges { cursor node { firstName } } } } }';
+    const without = ({ posts }: { posts: { commenters: object }[] }) =>
+      posts.map(({ commenters }) => ({ ...commenters, totalCount: null }));
+    for (const variables of [{ first: 1 }, { last: 1 }]) {
+      const page = await run(commentersSchema(), query, { variables });
+      const other = await run(copied, query, { variables });
+      expect(other.errors).toBeUndefined();
+      expect(other.data.posts.map((post: { commenters: object }) => post.commenters)).toEqual(
+        without(page.data),
+      );
+      const after = page.data.posts[1].commenters.pageInfo.endCursor;
+      const next = await run(commentersSchema(), query, { variables: { ...variables, after } });
+      const otherNext = await run(copied, query, { variables: { ...variables, after } });
+      expect(otherNext.data.posts.map((post: { commenters: object }) => post.commenters)).toEqual(
+        without(next.data),
+      );
+    }
   });
 
   it('loads no rows of a page when only totalCount is selected', async () => {
@@ -1537,7 +1559,7 @@ describe('prismaConnectionHelpers', () => {
     expect(result.statements[0].sql).not.toMatch(/limit/i);
   });
 
-  it("runs a page's options once per selection, not per parent row", async () => {
+  it("plans a page's options once per selection, and resolve pages each parent's rows", async () => {
     const calls = { query: 0, select: 0 };
     const result = await run(
       commentersSchema({ calls }),
@@ -1545,7 +1567,8 @@ describe('prismaConnectionHelpers', () => {
     );
     expect(result.errors).toBeUndefined();
     expect(result.data.posts).toHaveLength(2);
-    expect(calls).toEqual({ query: 1, select: 1 });
+    // `resolve` recomputes the page plan from `query` for each of the two posts.
+    expect(calls).toEqual({ query: 3, select: 1 });
   });
 
   it('fails the root field when a page is given an invalid cursor', async () => {

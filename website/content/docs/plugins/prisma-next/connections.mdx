@@ -119,8 +119,9 @@ builder.prismaObjectField('Post', 'commenters', (t) =>
 ```
 
 `getQuery` loads one page of comments with the post, and its count when the connection selects a
-field named `totalCount`. `resolve` builds the connection from those rows, so pass them as loaded
-rather than a filtered or mapped copy. Without `resolveNode`, the rows are the nodes.
+field named `totalCount`. `resolve` pages any list of rows by the field's arguments, as `getQuery`
+does. `totalCount` is only set when the rows are the list `getQuery` loaded. Without `resolveNode`,
+the rows are the nodes.
 
 Put `getQuery` at the top level of a field's `select`, not inside another relation's entry. When
 the connection is beneath that field, such as on a wrapper type the field returns, prefix the path
