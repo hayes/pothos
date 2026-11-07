@@ -37,10 +37,7 @@ builder.prismaObject('User', {
 });
 
 builder.queryFields((t) => ({
-  people: t.prismaField({
-    type: [Person],
-    query: (_root, _args, ctx) => ctx.db.orm.User,
-  }),
+  people: t.prismaField({ type: [Person] }),
 }));
 ```
 
@@ -93,20 +90,15 @@ builder.prismaObject('Bug', {
 
 builder.queryType({
   fields: (t) => ({
-    tasks: t.prismaField({
-      type: [Task],
-      query: (_root, _args, ctx) => ctx.db.orm.Task,
-    }),
-    bugs: t.prismaField({
-      type: ['Bug'],
-      query: (_root, _args, ctx) => ctx.db.orm.Task.variant('bug'),
-    }),
+    tasks: t.prismaField({ type: [Task] }),
+    // Loads from ctx.db.orm.Task.variant('bug')
+    bugs: t.prismaField({ type: ['Bug'] }),
   }),
 });
 ```
 
-- Load a variant's rows with `ctx.db.orm.Task.variant('bug')`, not `ctx.db.orm.Bug`, which Prisma
-  doesn't filter by the discriminator.
+- A `collection` for a variant's rows is `ctx.db.orm.Task.variant('bug')`, not `ctx.db.orm.Bug`,
+  which Prisma doesn't filter by the discriminator.
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
 - A relation declared on a variant can't be in the variant type's `select`. Use a field's `select`
   or `t.relation`.

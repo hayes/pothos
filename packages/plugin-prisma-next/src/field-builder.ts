@@ -10,35 +10,45 @@ import type { PrismaNextObjectRef } from './object-ref.js';
 import type { PrismaNextConnectionFieldOptions } from './types/connections.js';
 import type { ModelKey } from './types/models.js';
 import type { MapperCollection } from './utils/adapter.js';
+import { relationLoad } from './utils/compile-select.js';
 import { getPluginConfig } from './utils/config.js';
 import {
   CONNECTION_NODE_PATHS,
   type ConnectionSettingsOptions,
   connectionPaging,
 } from './utils/connections.js';
-import { appliesCursors, buildConnectionPage, readPage } from './utils/cursors.js';
+import {
+  appliesCursors,
+  buildConnectionPage,
+  orderableProblem,
+  readPage,
+} from './utils/cursors.js';
+import { checkReturned } from './utils/errors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
 import { type AnyRef, refFor } from './utils/refs.js';
 
 type FieldResolver = (...args: unknown[]) => unknown;
 
-type PrismaFieldOptions = { type: string | AnyRef | [string | AnyRef] } & (
-  | { query: FieldResolver; resolve?: undefined }
-  | { resolve: FieldResolver; query?: undefined }
-);
+type PrismaFieldOptions = {
+  type: string | AnyRef | [string | AnyRef];
+  collection?: FieldResolver;
+  query?: unknown;
+  resolve?: FieldResolver;
+};
 
 type Executable = MapperCollection & { all(): Promise<readonly unknown[]> };
 
 /**
- * Builds the config of a `prismaField`. A model name in `type` resolves to its ref. With `query`,
- * the resolver applies the field's whole selection to the returned Collection and executes it,
- * reading one row for a singular field. With `resolve`, it applies the selection to the type's
- * collection and returns what `resolve` returns for it.
+ * Builds the config of a `prismaField`. A model name in `type` resolves to its ref. With `resolve`,
+ * the resolver applies the field's selection to the type's collection and returns what `resolve`
+ * returns for it. Otherwise it applies `query` and the selection to `collection`'s result, or to the
+ * type's collection, and executes it, reading one row for a singular field. A literal `query` is
+ * checked here, and a callback's result when a request runs.
  */
 function prismaFieldConfig(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
-  { type, query, resolve, ...options }: PrismaFieldOptions,
+  { type, collection, query, resolve, ...options }: PrismaFieldOptions,
 ) {
   const isList = Array.isArray(type);
   const inner = isList ? type[0] : type;
@@ -46,14 +56,19 @@ function prismaFieldConfig(
   const modelKey = ref.modelKey as string;
   const config = getPluginConfig(builder);
   const model = getModel(config.contract, modelKey);
-  const plan = (collection: MapperCollection, info: GraphQLResolveInfo, context: object) =>
-    applySelectionToCollection(
-      collection,
-      model,
-      info,
-      config,
-      context,
-    ) as MaybePromise<Executable>;
+  const plan = (source: MapperCollection, info: GraphQLResolveInfo, context: object) =>
+    applySelectionToCollection(source, model, info, config, context) as MaybePromise<Executable>;
+  const refinement = (value: unknown, problem?: Parameters<typeof relationLoad>[3]) =>
+    relationLoad(config.contract, modelKey, value, problem).refine;
+  const literal =
+    typeof query === 'function'
+      ? undefined
+      : refinement(query, orderableProblem(config.context, modelKey));
+  const refine =
+    typeof query === 'function'
+      ? (args: unknown, context: object) =>
+          checkReturned(query(args, context), (value) => refinement(value))
+      : () => literal;
 
   return {
     ...options,
@@ -68,11 +83,16 @@ function prismaFieldConfig(
             info,
           )
       : async (parent: unknown, args: unknown, context: object, info: GraphQLResolveInfo) => {
-          const collection = (await query(parent, args, context, info)) as Executable | null;
-          if (collection == null) {
-            return collection;
+          const source = (
+            collection
+              ? await collection(parent, args, context, info)
+              : config.typeCollection(context, modelKey)
+          ) as MapperCollection | null;
+          if (source == null) {
+            return source;
           }
-          const applied = await plan(collection, info, context);
+          const shape = refine(args, context);
+          const applied = await plan(shape ? shape(source) : source, info, context);
           const rows = await readPage(
             (isList ? applied : (applied.limit(1) as Executable)).all(),
             appliesCursors(applied),
@@ -128,10 +148,10 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   connectionOptions: object = {},
   edgeOptions: object = {},
 ) {
-  const { type, defaultSize, maxSize, resolve, totalCount, query, ...rest } =
+  const { type, defaultSize, maxSize, collection, totalCount, query, ...rest } =
     options as ConnectionSettingsOptions & {
       type: unknown;
-      resolve: (
+      collection?: (
         parent: unknown,
         args: unknown,
         ctx: unknown,
@@ -155,7 +175,9 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
         context: object,
         info: GraphQLResolveInfo,
       ) => {
-        const userCollection = await resolve(parent, args, context, info);
+        const userCollection = collection
+          ? await collection(parent, args, context, info)
+          : config.typeCollection(context, modelKey);
         if (userCollection == null) {
           return null;
         }

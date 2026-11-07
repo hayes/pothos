@@ -39,12 +39,12 @@ builder.queryFields((t) => {
   expectTypeOf(t.prismaFieldWithInput).toEqualTypeOf<typeof withInputRequired>();
   return {
     // @ts-expect-error prismaConnection needs plugin-relay
-    page: t.prismaConnection({ type: 'User', resolve: () => null as never }),
+    page: t.prismaConnection({ type: 'User', collection: () => null as never }),
     // @ts-expect-error prismaFieldWithInput needs plugin-with-input
     created: t.prismaFieldWithInput({
       type: 'User',
       input: {},
-      query: () => null as never,
+      collection: () => null as never,
     }),
   };
 });

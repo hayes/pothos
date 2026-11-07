@@ -201,9 +201,9 @@ builder.queryFields((t) => {
   const posts = t.prismaConnection({
     type: 'Post',
     nullable: false,
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   });
-  const nullablePosts = t.prismaConnection({ type: 'Post', resolve: () => orm.Post });
+  const nullablePosts = t.prismaConnection({ type: 'Post', collection: () => orm.Post });
   expectTypeOf(posts).toEqualTypeOf<FieldRef<Types, ConnectionShape<Types, PostRow, false>>>();
   expectTypeOf(nullablePosts).toEqualTypeOf<
     FieldRef<Types, ConnectionShape<Types, PostRow, true>>
@@ -358,20 +358,20 @@ export const typesDiffer: UserFieldBuilder<Narrow, Narrow> = otherTypes;
     fields: (t) => ({ email: t.exposeString('email') }),
   });
   builder.queryFields((t) => ({
-    ownUser: t.prismaField({ type: OwnUser, nullable: true, query: () => null }),
-    ownUsers: t.prismaField({ type: [OwnUser], query: () => orm.User }),
-    ownPosts: t.prismaField({ type: [OwnPost], query: () => orm.Post }),
-    ownNodes: t.prismaField({ type: [OwnNode], query: () => orm.User }),
+    ownUser: t.prismaField({ type: OwnUser, nullable: true, collection: () => null }),
+    ownUsers: t.prismaField({ type: [OwnUser], collection: () => orm.User }),
+    ownPosts: t.prismaField({ type: [OwnPost], collection: () => orm.Post }),
+    ownNodes: t.prismaField({ type: [OwnNode], collection: () => orm.User }),
     ownPostConnection: t.prismaConnection({
       type: OwnPost,
-      resolve: () => orm.Post,
+      collection: () => orm.Post,
     }),
     // @ts-expect-error a ref of another builder's contract
-    otherUser: t.prismaField({ type: OtherUser, nullable: true, query: () => null }),
+    otherUser: t.prismaField({ type: OtherUser, nullable: true, collection: () => null }),
     // @ts-expect-error a list of another builder's refs
-    otherUsers: t.prismaField({ type: [OtherUser], query: () => orm.User }),
+    otherUsers: t.prismaField({ type: [OtherUser], collection: () => orm.User }),
     // @ts-expect-error an interface ref of another builder's contract
-    otherConn: t.prismaConnection({ type: OtherIface, resolve: () => orm.User }),
+    otherConn: t.prismaConnection({ type: OtherIface, collection: () => orm.User }),
   }));
 }
 
@@ -382,7 +382,7 @@ builder.subscriptionField('newUser', (t) =>
     type: 'User',
     nullable: true,
     subscribe: () => newUserIds,
-    query: (id) => {
+    collection: (id) => {
       expectTypeOf(id).toEqualTypeOf<string>();
       return orm.User.where({ id });
     },
@@ -390,34 +390,34 @@ builder.subscriptionField('newUser', (t) =>
 );
 builder.subscriptionField('noSubscribe', (t) =>
   // @ts-expect-error a subscription field needs `subscribe`
-  t.prismaField({ type: 'User', query: () => orm.User }),
+  t.prismaField({ type: 'User', collection: () => orm.User }),
 );
 builder.queryField('queryOption', (t) =>
-  t.prismaField({ type: 'User', testQueryOption: true, query: () => orm.User }),
+  t.prismaField({ type: 'User', testQueryOption: true, collection: () => orm.User }),
 );
 builder.queryField('queryConnectionOption', (t) =>
   t.prismaConnection({
     type: 'User',
     testQueryOption: true,
-    resolve: () => orm.User,
+    collection: () => orm.User,
   }),
 );
 builder.mutationField('mutationOption', (t) =>
   // @ts-expect-error only query fields have this option
-  t.prismaField({ type: 'User', testQueryOption: true, query: () => orm.User }),
+  t.prismaField({ type: 'User', testQueryOption: true, collection: () => orm.User }),
 );
 builder.mutationField('mutationConnectionOption', (t) =>
   t.prismaConnection({
     type: 'User',
     // @ts-expect-error only query fields have this option
     testQueryOption: true,
-    resolve: () => orm.User,
+    collection: () => orm.User,
   }),
 );
 builder.queryField('rootParent', (t) =>
   t.prismaField({
     type: 'User',
-    query: (parent) => {
+    collection: (parent) => {
       expectTypeOf(parent).toEqualTypeOf<{}>();
       return orm.User;
     },
@@ -431,7 +431,7 @@ builder.prismaObject('User', {
     related: t.prismaField({
       type: 'Post',
       select: ['firstName'],
-      query: (user) => {
+      collection: (user) => {
         expectTypeOf(user.firstName).toEqualTypeOf<string>();
         // @ts-expect-error not in the select
         return orm.Post.where({ title: user.lastName });
@@ -440,19 +440,19 @@ builder.prismaObject('User', {
     relatedList: t.prismaField({
       type: ['Post'],
       select: { email: true },
-      query: (user) => orm.Post.where({ title: user.email }),
+      collection: (user) => orm.Post.where({ title: user.email }),
     }),
     page: t.prismaConnection({
       type: 'Post',
       select: ['firstName'],
-      resolve: (user) => {
+      collection: (user) => {
         expectTypeOf(user.firstName).toEqualTypeOf<string>();
         return orm.Post.where({ title: user.firstName });
       },
     }),
     noSelect: t.prismaField({
       type: 'Post',
-      query: (user) => {
+      collection: (user) => {
         expectTypeOf(user.id).toEqualTypeOf<string>();
         // @ts-expect-error only the key without a select
         return orm.Post.where({ title: user.firstName });
@@ -461,13 +461,13 @@ builder.prismaObject('User', {
   }),
 });
 
-// A subscription connection's `resolve` reads what `subscribe` yields.
+// A subscription connection's `collection` reads what `subscribe` yields.
 declare const pageRequests: AsyncIterable<{ authorId: string }>;
 builder.subscriptionField('postPage', (t) =>
   t.prismaConnection({
     type: 'Post',
     subscribe: () => pageRequests,
-    resolve: (request) => {
+    collection: (request) => {
       expectTypeOf(request).toEqualTypeOf<{ authorId: string }>();
       return orm.Post.where({ authorId: request.authorId });
     },
@@ -514,7 +514,7 @@ builder.subscriptionField('postPage', (t) =>
 builder.queryFields((t) => ({
   noArgsPost: t.prismaField({
     type: 'Post',
-    query: (_root, args) => {
+    collection: (_root, args) => {
       // @ts-expect-error no such arg
       args.typo;
       return orm.Post;
@@ -522,7 +522,7 @@ builder.queryFields((t) => ({
   }),
   noArgsPosts: t.prismaConnection({
     type: 'Post',
-    resolve: (_root, args) => {
+    collection: (_root, args) => {
       // @ts-expect-error no such arg
       args.typo;
       return orm.Post;

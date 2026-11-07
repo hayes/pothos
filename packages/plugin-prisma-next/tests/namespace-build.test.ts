@@ -83,7 +83,7 @@ describe('default type names', () => {
       fields: (t) => ({ id: t.exposeString('id') }),
     });
     builder.queryType({
-      fields: (t) => ({ b: t.prismaField({ type: ['nsb.User'], query: () => nsb.User }) }),
+      fields: (t) => ({ b: t.prismaField({ type: ['nsb.User'], collection: () => nsb.User }) }),
     });
     const schema = builder.toSchema();
     expect(getNamedType(schema.getQueryType()!.getFields().b!.type).name).toBe('NsbUser');

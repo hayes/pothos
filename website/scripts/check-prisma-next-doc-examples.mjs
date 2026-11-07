@@ -50,7 +50,6 @@ function wrapFragment(block) {
   t.prismaConnection({
     type: 'Post',
     ${fragment}
-    resolve: (_root, _args, ctx) => ctx.db.orm.Post,
   }),
 );`
     : `builder.prismaObject('User', {

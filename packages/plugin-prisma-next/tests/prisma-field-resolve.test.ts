@@ -243,11 +243,11 @@ describe('prismaFieldWithInput', () => {
   });
   builder.queryType({
     fields: (t) => ({
-      byQuery: t.prismaFieldWithInput({
+      byCollection: t.prismaFieldWithInput({
         type: 'User',
         nullable: true,
         input: { id: t.input.id({ required: true }) },
-        query: (_root, args) => db.orm.User.where({ id: String(args.input.id) }),
+        collection: (_root, args) => db.orm.User.where({ id: String(args.input.id) }),
       }),
       byResolve: t.prismaFieldWithInput({
         type: 'User',
@@ -259,13 +259,13 @@ describe('prismaFieldWithInput', () => {
   });
   const built = builder.toSchema();
 
-  it('takes query or resolve', async () => {
+  it('takes collection or resolve', async () => {
     const result = await run(
       built,
-      '{ byQuery(input: { id: "u-bob" }) { firstName postCount } byResolve(input: { id: "u-bob" }) { firstName postCount } }',
+      '{ byCollection(input: { id: "u-bob" }) { firstName postCount } byResolve(input: { id: "u-bob" }) { firstName postCount } }',
     );
     expect(result.errors).toBeUndefined();
-    expect(result.data.byQuery).toEqual(result.data.byResolve);
+    expect(result.data.byCollection).toEqual(result.data.byResolve);
     expect(result.data.byResolve.firstName).toBe('Bob');
     expect(result.statements).toHaveLength(2);
   });
@@ -303,6 +303,13 @@ describe('prismaField resolve on a variant type', () => {
   builder.queryType({
     fields: (t) => ({
       bugs: t.prismaField({ type: ['Bug'], resolve: (bugs) => bugs.all() }),
+      allBugs: t.prismaField({ type: ['Bug'] }),
+      highBug: t.prismaField({
+        type: 'Bug',
+        nullable: true,
+        query: { where: (bug) => bug.severity.eq('high') },
+      }),
+      bugPage: t.prismaConnection({ type: 'Bug' }),
     }),
   });
   builder.mutationType({
@@ -329,6 +336,23 @@ describe('prismaField resolve on a variant type', () => {
       { title: 'bug1', severity: 'high', owner: { email: 'a@example.com' } },
     ]);
     expect(result.statements).toHaveLength(1);
+  });
+
+  it("loads only the variant's rows without collection", async () => {
+    const result = await run(
+      built,
+      '{ allBugs { title } highBug { title } bugPage(first: 5) { edges { node { title } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      allBugs: [{ title: 'bug1' }],
+      highBug: { title: 'bug1' },
+      bugPage: { edges: [{ node: { title: 'bug1' } }] },
+    });
+    expect(result.statements).toHaveLength(3);
+    for (const { sql } of result.statements) {
+      expect(sql).toContain('"type"');
+    }
   });
 
   it('writes a row of the variant', async () => {

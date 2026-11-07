@@ -33,10 +33,13 @@ describe('object registration', () => {
     builder.prismaObjectField('User', 'extra', (t) => t.exposeString('lastName'));
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], query: () => db.orm.User.where({ id: 'u-bob' }) }),
+        users: t.prismaField({
+          type: ['User'],
+          collection: () => db.orm.User.where({ id: 'u-bob' }),
+        }),
         posts: t.prismaField({
           type: ['Post'],
-          query: () => db.orm.Post.where({ id: 'p-hello' }),
+          collection: () => db.orm.Post.where({ id: 'p-hello' }),
         }),
       }),
     });
@@ -117,7 +120,7 @@ describe('object registration', () => {
       'a string-form prismaField',
       (builder: ReturnType<typeof createBuilder>) =>
         builder.queryField('users', (t) =>
-          t.prismaField({ type: ['User'], query: () => db.orm.User }),
+          t.prismaField({ type: ['User'], collection: () => db.orm.User }),
         ),
       /ObjectRef<User>/,
     ],
@@ -208,7 +211,10 @@ describe('object registration', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        post: t.prismaField({ type: 'Post', query: () => db.orm.Post.where({ id: 'p-hello' }) }),
+        post: t.prismaField({
+          type: 'Post',
+          collection: () => db.orm.Post.where({ id: 'p-hello' }),
+        }),
       }),
     });
     const result = await run(builder.toSchema(), '{ post { asId asString asInt asFloat } }');

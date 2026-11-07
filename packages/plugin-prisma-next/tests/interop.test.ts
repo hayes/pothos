@@ -22,14 +22,14 @@ describe('plugin-with-input', () => {
           type: 'User',
           nullable: true,
           input: { email: t.input.string({ required: true }) },
-          query: (_root, args) => db.orm.User.where({ email: args.input.email }),
+          collection: (_root, args) => db.orm.User.where({ email: args.input.email }),
         }),
         optional: t.prismaFieldWithInput({
           type: 'User',
           nullable: true,
           argOptions: { required: false },
           input: { email: t.input.string({ required: true }) },
-          query: (_root, args) => {
+          collection: (_root, args) => {
             seen.push(args.input);
             return db.orm.User.where({ email: args.input?.email ?? 'alice@example.com' });
           },
@@ -67,7 +67,7 @@ describe('plugin-errors', () => {
       }),
     });
     builder.queryType({
-      fields: (t) => ({ posts: t.prismaField({ type: ['Post'], query: () => db.orm.Post }) }),
+      fields: (t) => ({ posts: t.prismaField({ type: ['Post'], collection: () => db.orm.Post }) }),
     });
     const schema = builder.toSchema();
     expect(schema.getType('PostAuthorResult')).toBeDefined();
@@ -93,7 +93,11 @@ describe('plugin-errors', () => {
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], errors: { types: [] }, query: () => db.orm.User }),
+        users: t.prismaField({
+          type: ['User'],
+          errors: { types: [] },
+          collection: () => db.orm.User,
+        }),
       }),
     });
     const result = await run(

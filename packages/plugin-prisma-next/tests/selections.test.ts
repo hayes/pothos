@@ -94,7 +94,7 @@ function createExampleBuilder(options: SampleOptions = {}) {
   });
   builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
   builder.queryType({
-    fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
+    fields: (t) => ({ users: t.prismaField({ type: ['User'], collection: () => db.orm.User }) }),
   });
   return builder;
 }
@@ -159,7 +159,7 @@ describe('field select forms', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.where({ id: 'u-alice' }),
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -201,7 +201,7 @@ describe('field select forms', () => {
     });
     builder.objectField(User, 'postCount', (t) => t.exposeInt('postCount'));
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], collection: () => db.orm.User }) }),
     });
     expect(() => builder.toSchema()).toThrow(
       /'User\.postCount' exposes 'postCount', which is not a column on model User/,
@@ -227,11 +227,11 @@ describe('field select forms', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
         withPosts: t.prismaField({
           type: [UserWithPosts],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -253,7 +253,7 @@ describe('field select forms', () => {
       }),
     });
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], collection: () => db.orm.User }) }),
     });
     const result = await run(builder.toSchema(), '{ users { name(withEmail: false) } }');
     expect(result.errors).toBeUndefined();
@@ -307,7 +307,7 @@ describe('async selects', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.where({ id: 'u-alice' }),
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -357,7 +357,7 @@ describe('parents the plugin loads', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.where({ id: 'u-alice' }),
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -385,7 +385,7 @@ describe('parents the plugin loads', () => {
       }),
     });
     builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
+      fields: (t) => ({ users: t.prismaField({ type: ['User'], collection: () => db.orm.User }) }),
     });
     const result = await run(builder.toSchema(), '{ users { id admin { lastName } } }');
     expect(result.data.users).toEqual([
@@ -417,7 +417,7 @@ describe('function-form select with object branches', () => {
       fields: (t) => ({
         user: t.prismaField({
           type: 'User',
-          query: () => db.orm.User.where({ id: 'u-alice' }),
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -443,20 +443,20 @@ describe('root-style fields on a prisma type', () => {
         latest: t.prismaField({
           type: 'Post',
           select: ['firstName'],
-          query: (user) => db.orm.Post.where({ title: `${user.firstName}'s` }),
+          collection: (user) => db.orm.Post.where({ title: `${user.firstName}'s` }),
           nullable: true,
         }),
         page: t.prismaConnection({
           type: 'Post',
           select: ['email'],
-          resolve: (user) =>
+          collection: (user) =>
             db.orm.Post.where({ authorId: user.email === 'bob@example.com' ? 'u-bob' : '' }),
         }),
       }),
     });
     builder.queryType({
       fields: (t) => ({
-        user: t.prismaField({ type: 'User', query: () => db.orm.User.where({ id: 'u-bob' }) }),
+        user: t.prismaField({ type: 'User', collection: () => db.orm.User.where({ id: 'u-bob' }) }),
       }),
     });
     const result = await run(
@@ -504,7 +504,7 @@ describe('a selection that fails to plan', () => {
     fields: (t) => ({
       users: t.prismaField({
         type: ['User'],
-        query: () => db.orm.User.where({ id: 'u-bob' }),
+        collection: () => db.orm.User.where({ id: 'u-bob' }),
       }),
     }),
   });

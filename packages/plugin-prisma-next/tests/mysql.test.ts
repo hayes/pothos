@@ -55,17 +55,17 @@ describe.skipIf(!url)('MySQL', () => {
       fields: (t) => ({
         authors: t.prismaField({
           type: ['Author'],
-          query: () => client.orm.Author.orderBy((author) => author.id.asc()),
+          collection: () => client.orm.Author.orderBy((author) => author.id.asc()),
         }),
         authorPage: t.prismaConnection({
           type: 'Author',
-          resolve: () => client.orm.Author,
+          collection: () => client.orm.Author,
         }),
         authorTotals: t.prismaConnection({
           type: 'Author',
           // @ts-expect-error MySQL contracts have no aggregates.
           totalCount: true,
-          resolve: () => client.orm.Author,
+          collection: () => client.orm.Author,
         }),
       }),
     });

@@ -51,9 +51,9 @@ function createSchema() {
   });
   builder.queryType({
     fields: (t) => ({
-      a: t.prismaField({ type: ['nsa.User'], query: () => nsa.User }),
-      b: t.prismaField({ type: [nsbUser], query: () => nsb.User }),
-      posts: t.prismaConnection({ type: 'nsa.Post', resolve: () => nsa.Post }),
+      a: t.prismaField({ type: ['nsa.User'], collection: () => nsa.User }),
+      b: t.prismaField({ type: [nsbUser], collection: () => nsb.User }),
+      posts: t.prismaConnection({ type: 'nsa.Post', collection: () => nsa.Post }),
       plain: t.field({
         type: post,
         // @ts-expect-error a row built by hand isn't planned; it reloads
@@ -186,9 +186,9 @@ function createInheritanceSchema(bugName?: string) {
     fields: (t) => ({
       aTasks: t.prismaField({
         type: [aTask],
-        query: () => inha.Task.orderBy((row) => row.id.asc()),
+        collection: () => inha.Task.orderBy((row) => row.id.asc()),
       }),
-      bTasks: t.prismaField({ type: [bTask], query: () => inhb.Task }),
+      bTasks: t.prismaField({ type: [bTask], collection: () => inhb.Task }),
     }),
   });
   return builder.toSchema();

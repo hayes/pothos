@@ -1,5 +1,6 @@
-// `t.prismaField` takes `query`, which returns a collection the plugin loads, or `resolve`, which
-// gets the type's collection with the selection planned and returns the rows it reads or writes.
+// `t.prismaField` loads from `collection`, which defaults to the type's, shaped by `query`, or takes
+// `resolve`, which gets the type's collection with the selection planned and returns the rows it
+// reads or writes.
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import WithInputPlugin from '@pothos/plugin-with-input';
@@ -33,11 +34,11 @@ const Post = builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id
 
 builder.queryType({
   fields: (t) => ({
-    // `query` returns a collection.
+    // `collection` returns the collection to load from.
     me: t.prismaField({
       type: 'User',
       args: { id: t.arg.id({ required: true }) },
-      query: (root, args, ctx, info) => {
+      collection: (root, args, ctx, info) => {
         expectTypeOf(root).toEqualTypeOf<{}>();
         expectTypeOf(args.id).toEqualTypeOf<string>();
         expectTypeOf(ctx).toEqualTypeOf<Context>();
@@ -74,6 +75,53 @@ builder.queryType({
       type: ['User'],
       // @ts-expect-error rows of another model
       resolve: (_users, _r, _a, ctx) => ctx.db.orm.Post.all(),
+    }),
+    // A list loads every row of the type's collection without options.
+    allUsers: t.prismaField({ type: ['User'] }),
+    // `query` shapes the type's collection, as a to-many relation's does.
+    byId: t.prismaField({
+      type: 'User',
+      nullable: true,
+      args: { id: t.arg.id({ required: true }) },
+      query: (args, ctx) => {
+        expectTypeOf(args.id).toEqualTypeOf<string>();
+        expectTypeOf(ctx).toEqualTypeOf<Context>();
+        return { where: { id: String(args.id) } };
+      },
+    }),
+    latestPosts: t.prismaField({
+      type: [Post],
+      query: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 10, offset: 5 },
+    }),
+    predicate: t.prismaField({
+      type: ['Post'],
+      query: () => ({ where: (post) => post.published.eq(1) }),
+    }),
+    // `query` shapes the rows of `collection` too.
+    myPosts: t.prismaField({
+      type: ['Post'],
+      collection: (_root, _args, ctx) => ctx.db.orm.Post.where({ authorId: ctx.userId }),
+      query: { orderBy: { createdAt: 'desc' }, limit: 5 },
+    }),
+    badWhere: t.prismaField({
+      type: ['User'],
+      // @ts-expect-error not a column of User
+      query: { where: { nope: 1 } },
+    }),
+    badWhereCallback: t.prismaField({
+      type: ['User'],
+      // @ts-expect-error not a column of User
+      query: () => ({ where: { nope: 1 } }),
+    }),
+    badOrderBy: t.prismaField({
+      type: ['User'],
+      // @ts-expect-error not a column of User
+      query: () => ({ orderBy: { email: 'asc', nope: 'asc' } }),
+    }),
+    unknownOption: t.prismaField({
+      type: ['User'],
+      // @ts-expect-error `take` isn't a query option
+      query: () => ({ limit: 1, take: 1 }),
     }),
   }),
 });
@@ -115,19 +163,27 @@ builder.mutationType({
       resolve: (_users, _root, _args, ctx) =>
         ctx.db.orm.User.create({ id: 'u', firstName: 'A', lastName: 'B', email: 'e' }),
     }),
-    // @ts-expect-error `query` and `resolve` can't both be set
+    // @ts-expect-error `collection` and `resolve` can't both be set
     both: t.prismaField({
       type: 'User',
-      query: (_root, _args, ctx) => ctx.db.orm.User,
+      collection: (_root, _args, ctx) => ctx.db.orm.User,
       resolve: (users) => users.firstOrThrow(),
     }),
-    // @ts-expect-error `query` or `resolve` is required
+    // @ts-expect-error a single-row field needs `collection`, `query` or `resolve`
     neither: t.prismaField({ type: 'User' }),
+    // @ts-expect-error an undefined option sets nothing
+    undefinedQuery: t.prismaField({ type: 'User', query: undefined }),
+    // @ts-expect-error `query` and `resolve` can't both be set
+    queryAndResolve: t.prismaField({
+      type: 'User',
+      query: { where: { id: 'u' } },
+      resolve: (users) => users.firstOrThrow(),
+    }),
     withInputQuery: t.prismaFieldWithInput({
       type: 'User',
       nullable: true,
       input: { id: t.input.id({ required: true }) },
-      query: (_root, args, ctx) => {
+      collection: (_root, args, ctx) => {
         expectTypeOf(args.input.id).toEqualTypeOf<string>();
         return ctx.db.orm.User.where({ id: String(args.input.id) });
       },
@@ -141,11 +197,11 @@ builder.mutationType({
         return users.where({ id: ctx.userId }).update({ firstName: args.input.firstName });
       },
     }),
-    // @ts-expect-error `query` and `resolve` can't both be set
+    // @ts-expect-error `collection` and `resolve` can't both be set
     withInputBoth: t.prismaFieldWithInput({
       type: 'User',
       input: { id: t.input.id({ required: true }) },
-      query: (_root, _args, ctx) => ctx.db.orm.User,
+      collection: (_root, _args, ctx) => ctx.db.orm.User,
       resolve: (users) => users.firstOrThrow(),
     }),
   }),
@@ -176,6 +232,7 @@ inheritance.queryType({
       },
     }),
     tasks: t.prismaField({ type: ['Task'], resolve: (tasks) => tasks.all() }),
+    allBugs: t.prismaField({ type: ['Bug'] }),
     // @ts-expect-error rows of another variant
     features: t.prismaField({ type: ['Feature'], resolve: (_bugs) => bugRows }),
   }),

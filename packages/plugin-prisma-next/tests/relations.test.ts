@@ -65,7 +65,7 @@ describe('includes', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -92,7 +92,7 @@ describe('includes', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -147,7 +147,7 @@ describe('includes', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
+        users: t.prismaField({ type: ['User'], collection: () => db.orm.User }),
       }),
     });
     const result = await run(builder.toSchema(), '{ users { posts(sort: "nope") { id } } }');
@@ -175,7 +175,7 @@ describe('includes', () => {
         fields: (t) => ({
           owners: t.prismaField({
             type: ['Owner'],
-            query: () => collision.orm.Owner.orderBy((o) => o.id.asc()),
+            collection: () => collision.orm.Owner.orderBy((o) => o.id.asc()),
           }),
         }),
       });
@@ -215,7 +215,7 @@ describe('includes', () => {
           owners: t.prismaField({
             type: ['Owner'],
             nullable: { list: false, items: true },
-            query: () => collision.orm.Owner.orderBy((o) => o.id.asc()),
+            collection: () => collision.orm.Owner.orderBy((o) => o.id.asc()),
           }),
         }),
       });
@@ -300,7 +300,7 @@ describe('many-to-many relations', () => {
       fields: (t) => ({
         posts: t.prismaField({
           type: ['Post'] as never,
-          query: () => (junction.orm as unknown as { Post: never }).Post,
+          collection: () => (junction.orm as unknown as { Post: never }).Post,
         }),
       }),
     });
@@ -373,7 +373,7 @@ describe('relation queries', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.where({ id: 'u-alice' }),
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -444,7 +444,10 @@ describe('counts and aggregates', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        user: t.prismaField({ type: 'User', query: () => db.orm.User.where({ id: 'u-alice' }) }),
+        user: t.prismaField({
+          type: 'User',
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
       }),
     });
     const result = await run(builder.toSchema(), '{ user { stats countBigInt } }');
@@ -487,11 +490,11 @@ describe('aliases of one to-many relation', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.orderBy((u) => u.id.asc()),
+          collection: () => db.orm.User.orderBy((u) => u.id.asc()),
         }),
         posts: t.prismaField({
           type: ['Post'],
-          query: () => db.orm.Post.orderBy((p) => p.id.asc()).limit(2),
+          collection: () => db.orm.Post.orderBy((p) => p.id.asc()).limit(2),
         }),
       }),
     });
@@ -654,11 +657,11 @@ describe('to-one consumers', () => {
       fields: (t) => ({
         comments: t.prismaField({
           type: ['Comment'],
-          query: () => db.orm.Comment.where({ id: 'c-1' }),
+          collection: () => db.orm.Comment.where({ id: 'c-1' }),
         }),
         posts: t.prismaField({
           type: ['Post'],
-          query: () => db.orm.Post.where({ id: 'p-hello' }),
+          collection: () => db.orm.Post.where({ id: 'p-hello' }),
         }),
       }),
     });
@@ -795,7 +798,7 @@ describe('plugins that wrap resolvers', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -844,7 +847,7 @@ describe('plugins that wrap resolvers', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.where({ id: 'u-alice' }),
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -877,7 +880,7 @@ describe('plugins that wrap resolvers', () => {
       fields: (t) => ({
         views: t.prismaField({
           type: ['PostView'],
-          query: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
+          collection: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
         }),
       }),
     });
@@ -990,7 +993,7 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -1094,7 +1097,7 @@ describe('empty queries', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => db.orm.User.where({ id: 'u-alice' }),
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
         }),
       }),
     });
@@ -1128,7 +1131,7 @@ describe('aliases of one computed value', () => {
     fields: (t) => ({
       users: t.prismaField({
         type: ['User'],
-        query: () => db.orm.User.orderBy((user) => user.id.asc()),
+        collection: () => db.orm.User.orderBy((user) => user.id.asc()),
       }),
     }),
   });
@@ -1179,7 +1182,7 @@ describe("relationCount's query", () => {
     fields: (t) => ({
       users: t.prismaField({
         type: ['User'],
-        query: () => db.orm.User.where({ id: 'u-alice' }),
+        collection: () => db.orm.User.where({ id: 'u-alice' }),
       }),
     }),
   });
@@ -1219,7 +1222,7 @@ describe("a relation's query callback", () => {
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          query: () => client.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => client.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });

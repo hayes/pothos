@@ -261,12 +261,12 @@ describe('rejected cursors', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
-        posts: t.prismaConnection({ type: 'Post', resolve: () => db.orm.Post }),
+        users: t.prismaField({ type: ['User'], collection: () => db.orm.User }),
+        posts: t.prismaConnection({ type: 'Post', collection: () => db.orm.Post }),
         dated: t.prismaConnection({
           type: 'Post',
           query: { orderBy: { createdAt: 'asc' } },
-          resolve: () => db.orm.Post,
+          collection: () => db.orm.Post,
         }),
       }),
     });
@@ -349,12 +349,12 @@ describe('rejected cursors', () => {
           byText: t.prismaConnection({
             type: 'Note',
             query: { orderBy: { text: 'asc' } },
-            resolve: () => collision.orm.Note,
+            collection: () => collision.orm.Note,
           }),
           bySheet: t.prismaConnection({
             type: 'Note',
             query: { orderBy: { sheetId: 'asc' } },
-            resolve: () => collision.orm.Note,
+            collection: () => collision.orm.Note,
           }),
         }),
       });
@@ -443,7 +443,9 @@ describe('nullable cursor columns', () => {
         }),
       });
       builder.queryType({
-        fields: (t) => ({ users: t.prismaField({ type: ['User'], query: () => db.orm.User }) }),
+        fields: (t) => ({
+          users: t.prismaField({ type: ['User'], collection: () => db.orm.User }),
+        }),
       });
       for (const backward of [false, true]) {
         const result = await run(
@@ -473,7 +475,7 @@ describe('nullable cursor columns', () => {
         posts: t.prismaConnection({
           type: 'Post',
           query: { orderBy: { score: 'asc', id: 'asc' } },
-          resolve: () => db.orm.Post.where({ title: 'nullable-sort' }),
+          collection: () => db.orm.Post.where({ title: 'nullable-sort' }),
         }),
       }),
     });

@@ -13,7 +13,7 @@ function schema() {
   });
   builder.queryType({
     fields: (t) => ({
-      users: t.prismaField({ type: ['User'], query: () => db.orm.User }),
+      users: t.prismaField({ type: ['User'], collection: () => db.orm.User }),
     }),
   });
   return builder.toSchema();

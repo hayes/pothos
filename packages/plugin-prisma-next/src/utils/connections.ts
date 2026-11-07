@@ -81,8 +81,8 @@ export interface PageLoad {
 }
 
 /**
- * The paging every kind of connection shares: `t.prismaConnection` pages a collection its resolver
- * returns, and `t.relatedConnection` and the connection helpers page a to-many relation in the
+ * The paging every kind of connection shares: `t.prismaConnection` pages its `collection`, or
+ * the type's, and `t.relatedConnection` and the connection helpers page a to-many relation in the
  * parent's statement. Page sizes fall back to the plugin's defaults and, as in core, aren't
  * validated. `totalCount` is `true`, which uses the ORM's count aggregate, or a callback. A literal
  * `query` is checked here, and a callback's result when a request is planned.

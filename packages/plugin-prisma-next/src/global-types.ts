@@ -47,6 +47,7 @@ import type {
   Row,
 } from './types/models.js';
 import type { PrismaNextPluginOptions } from './types/plugin-options.js';
+import type { FieldQueryLiteral } from './types/relations.js';
 import type {
   InterfaceSelectShape,
   ShapeFromObjectSelect,
@@ -271,6 +272,7 @@ declare global {
         M extends ModelKey<Types> = ParamToModelKey<Types, Param>,
         ShapeForType = Row<Types, M>,
         Type extends TypeParam<Types> = ParamToTypeParam<Types, Param, ShapeForType>,
+        QueryLiteral extends FieldQueryLiteral<Types, M> = FieldQueryLiteral<Types, M>,
       >(
         options: PrismaNextRootFieldOptions<
           Types,
@@ -281,7 +283,9 @@ declare global {
           Args,
           ResolveShape,
           ResolveReturnShape,
-          Kind
+          Kind,
+          M,
+          QueryLiteral
         >,
       ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>;
 
@@ -302,6 +306,7 @@ declare global {
             M extends ModelKey<Types> = ParamToModelKey<Types, Param>,
             ShapeForType = Row<Types, M>,
             Type extends TypeParam<Types> = ParamToTypeParam<Types, Param, ShapeForType>,
+            QueryLiteral extends FieldQueryLiteral<Types, M> = FieldQueryLiteral<Types, M>,
           >(
             options: PrismaNextRootFieldWithInputOptions<
               Types,
@@ -315,7 +320,9 @@ declare global {
               ResolveShape,
               ResolveReturnShape,
               ArgRequired,
-              Kind
+              Kind,
+              M,
+              QueryLiteral
             >,
           ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>
         : '@pothos/plugin-with-input is required to use this method';

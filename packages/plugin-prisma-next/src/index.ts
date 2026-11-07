@@ -141,6 +141,7 @@ export type {
   PrismaNextRequestClient,
 } from './types/plugin-options.js';
 export type {
+  FieldQueryLiteral,
   OnNullRequired,
   PrismaNextRelationOptions,
   RelatedModel,

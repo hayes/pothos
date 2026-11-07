@@ -31,7 +31,7 @@ builder.queryFields((t) => ({
   viewer: t.prismaField({
     type: Viewer,
     nullable: true,
-    query: (_root, _args, ctx) => ctx.db.orm.User.where((user) => user.id.eq(ctx.userId)),
+    query: (_args, ctx) => ({ where: { id: ctx.userId } }),
   }),
 }));
 ```

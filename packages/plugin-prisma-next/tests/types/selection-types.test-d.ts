@@ -766,31 +766,31 @@ const PostInterface = builder.prismaInterface('Post', {
 });
 builder.queryType({
   fields: (t) => ({
-    users: t.prismaField({ type: ['User'], query: () => orm.User.orderBy((u) => u.id.asc()) }),
-    posts: t.prismaField({ type: [PostInterface], query: () => orm.Post }),
-    post: t.prismaField({ type: PostInterface, nullable: true, query: () => null }),
+    users: t.prismaField({ type: ['User'], collection: () => orm.User.orderBy((u) => u.id.asc()) }),
+    posts: t.prismaField({ type: [PostInterface], collection: () => orm.Post }),
+    post: t.prismaField({ type: PostInterface, nullable: true, collection: () => null }),
     wrongModel: t.prismaField({
       type: ['User'],
       // @ts-expect-error a Post collection can't resolve User rows
-      query: () => orm.Post,
+      collection: () => orm.Post,
     }),
     rows: t.prismaField({
       type: ['User'],
       // @ts-expect-error a root field returns a collection, so nested fields can add to what it loads
-      query: () => [{ id: '1', firstName: 'a', lastName: 'b', email: 'a@b' }],
+      collection: () => [{ id: '1', firstName: 'a', lastName: 'b', email: 'a@b' }],
     }),
     row: t.prismaField({
       type: 'User',
       // @ts-expect-error a root field returns a collection, not a row
-      query: () => ({ id: '1', firstName: 'a', lastName: 'b', email: 'a@b' }),
+      collection: () => ({ id: '1', firstName: 'a', lastName: 'b', email: 'a@b' }),
     }),
     materialized: t.prismaField({
       type: ['User'],
       // @ts-expect-error rows must be returned as an unexecuted Collection
-      query: () => orm.User.all(),
+      collection: () => orm.User.all(),
     }),
     // @ts-expect-error not a model in the contract
-    unknown: t.prismaField({ type: ['Tag'], query: () => orm.User }),
+    unknown: t.prismaField({ type: ['Tag'], collection: () => orm.User }),
   }),
 });
 
@@ -814,7 +814,7 @@ withInput.queryType({
       nullable: true,
       argOptions: { required: false },
       input: { email: t.input.string({ required: true }) },
-      query: (_root, args) => {
+      collection: (_root, args) => {
         expectTypeOf(args.input).toEqualTypeOf<{ email: string } | null | undefined>();
         if (args.input === null) {
           return null;
@@ -828,18 +828,18 @@ withInput.queryType({
       type: 'User',
       input: { email: t.input.string({ required: true }) },
       // @ts-expect-error `Post` rows can't resolve a `User` field
-      query: () => sqliteClient.orm.Post,
+      collection: () => sqliteClient.orm.Post,
     }),
     rightModel: t.prismaFieldWithInput({
       type: 'User',
       input: { email: t.input.string({ required: true }) },
-      query: () => sqliteClient.orm.User,
+      collection: () => sqliteClient.orm.User,
     }),
     required: t.prismaFieldWithInput({
       type: 'User',
       nullable: true,
       input: { email: t.input.string({ required: true }) },
-      query: (_root, args) => {
+      collection: (_root, args) => {
         expectTypeOf(args.input).toEqualTypeOf<{ email: string }>();
         return null;
       },
@@ -1449,11 +1449,11 @@ builder.prismaObject('Post', {
 // The plugin includes what the query selects, so a resolver's collection can't include relations.
 builder.queryFields((t) => ({
   // @ts-expect-error `posts` is already included
-  included: t.prismaField({ type: ['User'], query: () => orm.User.include('posts') }),
+  included: t.prismaField({ type: ['User'], collection: () => orm.User.include('posts') }),
   includedPage: t.prismaConnection({
     type: 'User',
     // @ts-expect-error `posts` is already included
-    resolve: () => orm.User.include('posts'),
+    collection: () => orm.User.include('posts'),
   }),
 }));
 

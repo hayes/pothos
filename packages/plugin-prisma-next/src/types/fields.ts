@@ -35,7 +35,7 @@ import type {
 import type { PrismaNextObjectFieldBuilder } from '../prisma-next-field-builder.js';
 import type { PlannedCollection, ResolverCollection, TypeCollection } from './collections.js';
 import type { FieldParentShape, IdFieldShape, ModelKey, ResolveTypeParent, Row } from './models.js';
-import type { RequiresNullable } from './relations.js';
+import type { FieldQueryLiteral, QueryOption, RequiresNullable } from './relations.js';
 import type {
   InterfaceNestedRow,
   PrismaNextFieldSelectForm,
@@ -220,6 +220,7 @@ export type PrismaNextRootFieldOptions<
   Kind extends FieldKind = FieldKind,
   // A defaulted generic so `resolve` doesn't infer `Param` as the bare model and reject `[Model]`.
   M extends ModelKey<Types> = ParamToModelKey<Types, Param>,
+  QueryLiteral = FieldQueryLiteral<Types, M>,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -239,13 +240,15 @@ export type PrismaNextRootFieldOptions<
     RootResolveParent<Types, ParentShape, ResolveShape, Kind>,
     InputShapeFromFields<Args>,
     NoInfer<M>,
-    ShapeFromTypeParam<Types, Type, Nullable>
+    ShapeFromTypeParam<Types, Type, Nullable>,
+    [Param] extends [[unknown]] ? true : false,
+    QueryLiteral
   >;
 
 /**
- * A `prismaField` takes `query` or `resolve`. `query` returns a collection, which the plugin loads
- * the field's selection from. `resolve` gets the type's collection with the selection planned, and
- * returns the rows a terminal such as `first()` or `create()` returns.
+ * A `prismaField` loads its rows from `collection`, which defaults to the type's, shaped by `query`,
+ * or takes `resolve`, which gets the type's collection planned and returns what a read or write on
+ * it returns. A single-row field sets at least one of them.
  */
 export type PrismaNextRootFieldResolver<
   Types extends SchemaTypes,
@@ -253,17 +256,15 @@ export type PrismaNextRootFieldResolver<
   ArgsShape,
   M extends ModelKey<Types>,
   Shape,
+  IsList extends boolean,
+  QueryLiteral,
 > =
-  | {
-      /** Returns a collection without `include()`: the plugin loads what the query selects. */
-      query: (
-        parent: Parent,
-        args: ArgsShape,
-        context: Types['Context'],
-        info: GraphQLResolveInfo,
-      ) => MaybePromise<ResolverCollection<Types, M> | Extract<Shape, null | undefined>>;
-      resolve?: never;
-    }
+  | (RootFieldLoad<Types, Parent, ArgsShape, M, Shape, QueryLiteral> &
+      ([IsList] extends [true]
+        ? {}
+        :
+            | SingleRowFieldNeedsCollectionQueryOrResolve<'query'>
+            | SingleRowFieldNeedsCollectionQueryOrResolve<'collection'>))
   | {
       /**
        * Gets `orm.<Model>`, or `orm.<Base>.variant(value)` for a variant, with the field's
@@ -279,8 +280,52 @@ export type PrismaNextRootFieldResolver<
         | MaybePromise<NoInfer<Shape>>
         | NoInfer<PlannedListResult<Shape>>
         | PromiseLike<NoInfer<Shape>>;
+      collection?: never;
       query?: never;
     };
+
+/** The options a `prismaField` loads its rows with, beside `resolve`. */
+type RootFieldLoad<
+  Types extends SchemaTypes,
+  Parent,
+  ArgsShape,
+  M extends ModelKey<Types>,
+  Shape,
+  QueryLiteral,
+> = {
+  /**
+   * Returns the collection to load from, without `include()`: the plugin loads what the query
+   * selects. It defaults to `orm.<Model>`, or `orm.<Base>.variant(value)` for a variant.
+   */
+  collection?: (
+    parent: Parent,
+    args: ArgsShape,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+  ) => MaybePromise<ResolverCollection<Types, M> | Extract<Shape, null | undefined>>;
+  /** Filters, orders and pages the collection. */
+  query?: QueryOption<
+    Types,
+    M,
+    ArgsShape,
+    QueryLiteral,
+    keyof FieldQueryLiteral<SchemaTypes, never>
+  >;
+  resolve?: ResolveExcludesCollectionAndQuery;
+};
+
+/** Names why `resolve` is rejected beside `collection` or `query`, where `never` says "undefined". */
+interface ResolveExcludesCollectionAndQuery {
+  readonly "resolve gets the type's collection, so it excludes collection and query": true;
+}
+
+/**
+ * Requires `collection` or `query` of a single-row field without `resolve`, named for the error a
+ * field without any of them gets.
+ */
+type SingleRowFieldNeedsCollectionQueryOrResolve<Option extends 'collection' | 'query'> = {
+  [K in Option]: {};
+};
 
 /** A list field's `all()` result, compared by its rows so a wrong row is reported directly. */
 type PlannedListResult<Shape> = Shape extends readonly (infer Item)[]
@@ -301,6 +346,7 @@ export type PrismaNextRootFieldWithInputOptions<
   ArgRequired extends boolean,
   Kind extends FieldKind = FieldKind,
   M extends ModelKey<Types> = ParamToModelKey<Types, Param>,
+  QueryLiteral = FieldQueryLiteral<Types, M>,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -330,7 +376,9 @@ export type PrismaNextRootFieldWithInputOptions<
         | (true extends ArgRequired ? never : null | undefined);
     },
     NoInfer<M>,
-    ShapeFromTypeParam<Types, Type, Nullable>
+    ShapeFromTypeParam<Types, Type, Nullable>,
+    [Param] extends [[unknown]] ? true : false,
+    QueryLiteral
   >;
 
 /**

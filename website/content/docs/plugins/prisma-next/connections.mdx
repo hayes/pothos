@@ -4,8 +4,7 @@ description: Relay connections backed by Prisma Collections
 ---
 
 Connections add cursor pagination to a list. They require the [Relay plugin](../relay). Use
-`t.prismaConnection` to paginate a Collection your resolver returns, and `t.relatedConnection` to
-paginate a relation.
+`t.prismaConnection` to paginate a model's rows, and `t.relatedConnection` to paginate a relation.
 
 ## Paginate a query field
 
@@ -13,23 +12,24 @@ paginate a relation.
 builder.queryFields((t) => ({
   posts: t.prismaConnection({
     type: 'Post',
-    query: { orderBy: { createdAt: 'desc' } },
+    query: { where: { published: 1 }, orderBy: { createdAt: 'desc' } },
     totalCount: true,
-    resolve: (_root, _args, ctx) => ctx.db.orm.Post.where({ published: 1 }),
   }),
 }));
 ```
 
-Return the Collection without `orderBy()` or `include()`; the plugin orders it by `query.orderBy`
-and the cursor, pages it, and adds what the query selects. `limit()`, `offset()` and `distinct()`
-aren't supported. `t.prismaConnection` takes:
+The plugin orders the model's Collection by `query.orderBy` and the cursor, pages it, and adds what
+the query selects. `t.prismaConnection` takes:
 
+- `collection`: `(parent, args, ctx, info) => Collection`, the rows to page instead of the model's,
+  such as `ctx.db.orm.Post.where({ authorId: ctx.userId })`. Return it without `orderBy()` or
+  `include()`. `limit()`, `offset()` and `distinct()` aren't supported.
 - `query`: `{ where, orderBy }`, or `(args, ctx) => ({ where, orderBy })`. `where` filters the
   Collection, and `orderBy` orders it, by the primary key when omitted. See
   [Ordering and cursors](#ordering-and-cursors).
 - `defaultSize` / `maxSize`: page sizes, or `(args, ctx) => number`. Default to the plugin's
   [connection size options](./setup#plugin-options).
-- `totalCount`: `true` counts the Collection, filtered by `query.where`, or pass
+- `totalCount`: `true` counts the rows, filtered by `query.where`, or pass
   `(parent, args, ctx, info) => number`. The count only runs when `totalCount` is selected.
 - `args`: extra arguments for filtering or sorting.
 
@@ -74,8 +74,8 @@ To paginate a relation, such as a user's posts, use `t.relatedConnection`:
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ users { fullName postConnection(first: 1) { totalCount edges { node { title } } pageInfo { endCursor hasNextPage } } } }"'>playground-examples/plugin-prisma-next/types/user.ts#user-post-connection</include>
 
-It takes the same options as `t.prismaConnection`. `totalCount` counts the rows matching
-`query.where`, unless [`filterConnectionTotalCount`](./setup#plugin-options) is `false`.
+It takes the same options as `t.prismaConnection` except `collection`. `totalCount` counts the rows
+matching `query.where`, unless [`filterConnectionTotalCount`](./setup#plugin-options) is `false`.
 
 Index the foreign key together with the order columns.
 

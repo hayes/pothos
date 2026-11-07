@@ -56,7 +56,7 @@ function schema() {
     fields: (t) => ({
       posts: t.prismaField({
         type: ['Post'] as never,
-        query: () =>
+        collection: () =>
           (
             client.orm as unknown as { public: { Post: { orderBy(f: unknown): never } } }
           ).public.Post.orderBy((row: { id: { asc(): unknown } }) => row.id.asc()),

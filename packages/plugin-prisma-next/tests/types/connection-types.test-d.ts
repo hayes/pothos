@@ -149,51 +149,51 @@ builder.queryType({
         expectTypeOf(context).not.toBeAny();
         return { orderBy: args.newest ? { title: 'desc', id: 'asc' } : { title: 'asc' } };
       },
-      resolve: () => orm.Post,
+      collection: () => orm.Post,
     }),
     nullsFirst: t.prismaConnection({
       type: 'Post',
       query: { orderBy: { score: { nulls: 'first' } } },
-      resolve: () => orm.Post,
+      collection: () => orm.Post,
     }),
     nullable: t.prismaConnection({
       type: 'Post',
       nullable: true,
-      resolve: () => null,
+      collection: () => null,
     }),
     required: t.prismaConnection({
       type: 'Post',
       nullable: false,
       // @ts-expect-error the field isn't nullable
-      resolve: () => null,
+      collection: () => null,
     }),
-    defaultOrder: t.prismaConnection({ type: 'Post', resolve: () => orm.Post }),
+    defaultOrder: t.prismaConnection({ type: 'Post', collection: () => orm.Post }),
     // @ts-expect-error a connection's type is one model's type, not a list
-    list: t.prismaConnection({ type: ['Post'], resolve: () => orm.Post }),
+    list: t.prismaConnection({ type: ['Post'], collection: () => orm.Post }),
     query: t.prismaConnection({
       type: 'User',
       query: () => ({ where: { email: 'a@example.com' } }),
-      resolve: () => orm.User,
+      collection: () => orm.User,
     }),
     unknownQueryKey: t.prismaConnection({
       type: 'User',
       // @ts-expect-error the connection args own the page size
       query: { limit: 5 },
-      resolve: () => orm.User,
+      collection: () => orm.User,
     }),
     edgesNullable: t.prismaConnection({
       type: 'User',
       // @ts-expect-error edges are always non-null
       edgesNullable: true,
-      resolve: () => orm.User,
+      collection: () => orm.User,
     }),
     unknownType: t.prismaConnection({
       // @ts-expect-error not a model in the contract
       type: 'Tag',
-      resolve: () => orm.Post,
+      collection: () => orm.Post,
     }),
     counted: t.prismaConnection(
-      { type: 'Post', totalCount: true, resolve: () => orm.Post },
+      { type: 'Post', totalCount: true, collection: () => orm.Post },
       {
         fields: (c) => ({
           totalCount: c.int({ nullable: true, resolve: (page) => page.totalCount }),
@@ -216,13 +216,13 @@ postgres.queryType({
     temporal: t.prismaConnection({
       type: 'Entry',
       query: { orderBy: { createdAt: 'desc', id: 'asc' } },
-      resolve: () => client.orm.public.Entry,
+      collection: () => client.orm.public.Entry,
     }),
     bytes: t.prismaConnection({
       type: 'Entry',
       // @ts-expect-error a bytes column can't order a connection
       query: { orderBy: { payload: 'asc' } },
-      resolve: () => client.orm.public.Entry,
+      collection: () => client.orm.public.Entry,
     }),
   }),
 });
@@ -233,26 +233,26 @@ builder.queryFields((t) => ({
     type: 'Post',
     // @ts-expect-error `nope` isn't a column of Post
     query: { orderBy: { nope: 'asc' } },
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
   unknownBesideKnown: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error `titel` isn't a column of Post
     query: { orderBy: { title: 'asc', titel: 'asc' } },
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
   unknownFromCallback: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error a callback's result is checked as well
     query: () => ({ orderBy: { title: 'asc', titel: 'asc' } }),
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
   unknownInBranch: t.prismaConnection({
     type: 'Post',
     args: { newest: t.arg.boolean() },
     // @ts-expect-error every branch is checked
     query: (args) => ({ orderBy: args.newest ? { titel: 'desc' } : { title: 'asc' } }),
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
   unknownBesideKeyInBranch: t.prismaConnection({
     type: 'Post',
@@ -261,44 +261,44 @@ builder.queryFields((t) => ({
     query: (args) => ({
       orderBy: args.newest ? { titel: 'desc', id: 'asc' } : { title: 'asc' },
     }),
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
   badDirection: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error a direction is `asc` or `desc`
     query: { orderBy: { title: 'sideways' } },
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
   badEntryKey: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error an entry takes `direction` and `nulls`
     query: { orderBy: { title: { dir: 'asc' } } },
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
   nullsOnRequired: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error a non-null column has no nulls to place
     query: { orderBy: { title: { direction: 'desc', nulls: 'first' } } },
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
   nullsOnRequiredFromCallback: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error a callback's result is checked as well
     query: () => ({ orderBy: { id: { nulls: 'last' } } }),
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
   // A computed key widens to `string`, which is checked when the request runs.
   computed: t.prismaConnection({
     type: 'Post',
     args: { sort: t.arg.string({ required: true }) },
     query: (args) => ({ orderBy: { [args.sort]: 'desc' } }),
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
   accessor: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error `orderBy` takes a declaration, not the ORM's accessor callback
     query: { orderBy: (post: { id: { asc(): unknown } }) => post.id.asc() },
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
 }));
 
@@ -557,35 +557,35 @@ const nonNullBuilder = new SchemaBuilder<{
 });
 nonNullBuilder.queryType({
   fields: (t) => {
-    const user = t.prismaField({ type: 'User', query: () => orm.User });
+    const user = t.prismaField({ type: 'User', collection: () => orm.User });
     expectTypeOf<null extends typeof user.$inferType ? true : false>().toEqualTypeOf<false>();
-    const posts = t.prismaConnection({ type: 'Post', resolve: () => orm.Post });
+    const posts = t.prismaConnection({ type: 'Post', collection: () => orm.Post });
     expectTypeOf(posts.$inferType.edges).not.toBeUnknown();
     expectTypeOf<null extends typeof posts.$inferType ? true : false>().toEqualTypeOf<false>();
     return {
       user,
       posts,
       // @ts-expect-error the field is non-null by default
-      nullUser: t.prismaField({ type: 'User', query: () => null }),
-      nullableUser: t.prismaField({ type: 'User', nullable: true, query: () => null }),
+      nullUser: t.prismaField({ type: 'User', collection: () => null }),
+      nullableUser: t.prismaField({ type: 'User', nullable: true, collection: () => null }),
       // @ts-expect-error the connection is non-null by default
-      nullPosts: t.prismaConnection({ type: 'Post', resolve: () => null }),
+      nullPosts: t.prismaConnection({ type: 'Post', collection: () => null }),
       nullablePosts: t.prismaConnection({
         type: 'Post',
         nullable: true,
-        resolve: () => null,
+        collection: () => null,
       }),
     };
   },
 });
 builder.queryFields((t) => {
   // Fields are nullable by default.
-  const user = t.prismaField({ type: 'User', query: () => null });
+  const user = t.prismaField({ type: 'User', collection: () => null });
   expectTypeOf<null extends typeof user.$inferType ? true : false>().toEqualTypeOf<true>();
   return { nullableByDefault: user };
 });
 
-// `totalCount` reads the same parent as `resolve`: a type's select narrows it, a subscription's
+// `totalCount` reads the same parent as `collection`: a type's select narrows it, a subscription's
 // is what `subscribe` yields, and on Query it is the root.
 builder.prismaObject('User', {
   name: 'TotalCountUser',
@@ -594,13 +594,13 @@ builder.prismaObject('User', {
     narrowed: t.prismaConnection({
       type: 'Post',
       totalCount: (user) => user.firstName.length,
-      resolve: () => orm.Post,
+      collection: () => orm.Post,
     }),
     unselected: t.prismaConnection({
       type: 'Post',
       // @ts-expect-error `email` is not in the type's select
       totalCount: (user) => user.email.length,
-      resolve: () => orm.Post,
+      collection: () => orm.Post,
     }),
   }),
 });
@@ -611,7 +611,7 @@ builder.prismaObject('User', {
     noSelect: t.prismaConnection({
       type: 'Post',
       totalCount: (user) => user.id.length,
-      resolve: () => orm.Post,
+      collection: () => orm.Post,
     }),
   }),
 });
@@ -624,7 +624,7 @@ builder.queryField('totalCountOnQuery', (t) =>
 
       return 0;
     },
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
 );
 
@@ -638,7 +638,7 @@ builder.subscriptionField('totalCountOnSubscription', (t) =>
 
       return count;
     },
-    resolve: () => orm.Post,
+    collection: () => orm.Post,
   }),
 );
 
@@ -666,32 +666,36 @@ builder.prismaObjectField('User', 'countedPosts', (t) =>
   ),
 );
 
-// A connection orders and pages its collection itself, so `resolve` can't return one that includes
-// a relation or is ordered. A filtered one is fine.
+// A connection orders and pages its collection itself, so `collection` can't return one that
+// includes a relation or is ordered. A filtered one is fine, and without it the connection pages
+// every row.
 builder.queryFields((t) => ({
+  everyPost: t.prismaConnection({ type: 'Post' }),
+  // @ts-expect-error a connection's rows come from `collection`, not `resolve`
+  resolvedPage: t.prismaConnection({ type: 'Post', resolve: () => orm.Post }),
   filteredPage: t.prismaConnection({
     type: 'Post',
-    resolve: () => orm.Post.where({ published: 1 }),
+    collection: () => orm.Post.where({ published: 1 }),
   }),
   asyncFilteredPage: t.prismaConnection({
     type: 'Post',
-    resolve: async () => orm.Post.where({ published: 1 }),
+    collection: async () => orm.Post.where({ published: 1 }),
   }),
   includedPage: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error `author` is already included
-    resolve: () => orm.Post.include('author'),
+    collection: () => orm.Post.include('author'),
   }),
   orderedPage: t.prismaConnection({
     type: 'Post',
     // @ts-expect-error the connection orders the collection
-    resolve: () => orm.Post.orderBy((post) => post.title.asc()),
+    collection: () => orm.Post.orderBy((post) => post.title.asc()),
   }),
   asyncOrderedPage: t.prismaConnection({
     type: 'Post',
     nullable: true,
     // @ts-expect-error the connection orders the collection
-    resolve: async () => orm.Post.where({ published: 1 }).orderBy((post) => post.title.asc()),
+    collection: async () => orm.Post.where({ published: 1 }).orderBy((post) => post.title.asc()),
   }),
 }));
 // A collection of another model is checked against the Post collection, so the error lists the
@@ -700,6 +704,6 @@ builder.queryField('wrongModelPage', (t) =>
   t.prismaConnection({
     type: 'Post',
     // @ts-expect-error a User row is missing Post's columns
-    resolve: () => orm.User.where({}),
+    collection: () => orm.User.where({}),
   }),
 );

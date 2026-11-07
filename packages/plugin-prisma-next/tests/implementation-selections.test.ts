@@ -25,7 +25,7 @@ describe("object fields reading an interface's select", () => {
       fields: (t) => ({
         users: t.prismaField({
           type: [User],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -80,7 +80,7 @@ describe("object fields reading an interface's select", () => {
       fields: (t) => ({
         users: t.prismaField({
           type: [User],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -114,7 +114,7 @@ describe("object fields reading an interface's select", () => {
       fields: (t) => ({
         users: t.prismaField({
           type: [User],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -172,7 +172,7 @@ describe("object fields reading an interface's select", () => {
       fields: (t) => ({
         posts: t.prismaField({
           type: ['Post'],
-          query: () => db.orm.Post.where({ id: 'p-hello' }),
+          collection: () => db.orm.Post.where({ id: 'p-hello' }),
         }),
       }),
     });

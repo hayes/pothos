@@ -15,13 +15,8 @@ import type { TotalCountFlag } from './aggregates.js';
 import type { ResolverCollection, UnorderedCollection } from './collections.js';
 import type { RootResolveParent } from './fields.js';
 import type { ModelKey, ObjectBaseShape, RelationKeys, Row } from './models.js';
-import type { OrderByColumnsCheck, RelationOrderBy } from './order-by.js';
-import type {
-  ExactQueryLiteral,
-  RelatedModel,
-  RelationTypeModel,
-  RelationWhere,
-} from './relations.js';
+import type { RelationOrderBy } from './order-by.js';
+import type { QueryOption, RelatedModel, RelationTypeModel, RelationWhere } from './relations.js';
 
 /**
  * What a connection applies before paging: its filter, and its order, which the model's key breaks
@@ -37,30 +32,16 @@ export type ConnectionQueryLiteral<Types extends SchemaTypes, M extends ModelKey
   orderBy?: RelationOrderBy<Types, M>;
 };
 
-/**
- * A connection's `query`. `Literal` is inferred from what's written, and only checked for unknown
- * keys, which a callback's result gets no excess property check for. Inferring the literal rather
- * than the whole option leaves the callback's `args` typed once `Args` is known.
- */
+/** A connection's `query`, as a {@link QueryOption} of its arguments and the connection's. */
 export type ConnectionQueryOption<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   Args extends InputFieldMap,
   Literal,
-> = (
-  | Literal
-  | ((
-      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-      context: Types['Context'],
-    ) => Literal | undefined)
-) &
-  NoInfer<UnknownConnectionQueryKeys<Literal> & OrderByColumnsCheck<Types, M, Literal>>;
-
-/**
- * Sits beside the whole option, so it fails for an object and a callback alike. Written beside
- * `Literal` in the callback's result, it stops TS 5.9 and 6 inferring it.
- */
-type UnknownConnectionQueryKeys<Literal> = ExactQueryLiteral<
+> = QueryOption<
+  Types,
+  M,
+  InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
   Literal,
   keyof ConnectionQueryLiteral<SchemaTypes, never>
 >;
@@ -136,13 +117,14 @@ export type PrismaNextConnectionFieldOptions<
     Args
   > & {
     type: Param;
-    /** Filters and orders the collection `resolve` returns. */
+    /** Filters and orders the collection. */
     query?: ConnectionQueryOption<Types, M, Args, QueryLiteral>;
     /**
-     * Returns a collection without `include()` or `orderBy()`: the connection orders it by its
-     * `query`'s `orderBy`.
+     * Returns the collection to page, without `include()` or `orderBy()`: the connection orders it
+     * by its `query`'s `orderBy`. It defaults to `orm.<Model>`, or `orm.<Base>.variant(value)` for
+     * a variant.
      */
-    resolve: (
+    collection?: (
       parent: RootResolveParent<Types, ParentShape, ResolveShape, Kind>,
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],

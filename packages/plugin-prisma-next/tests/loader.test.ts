@@ -48,16 +48,16 @@ function schema(options: SampleOptions & { defer?: boolean } = {}) {
     fields: (t) => ({
       posts: t.prismaField({
         type: ['Post'],
-        query: () => db.orm.Post.orderBy((p) => p.id.asc()),
+        collection: () => db.orm.Post.orderBy((p) => p.id.asc()),
       }),
       users: t.prismaField({
         type: ['User'],
-        query: () => db.orm.User.orderBy((u) => u.id.asc()),
+        collection: () => db.orm.User.orderBy((u) => u.id.asc()),
       }),
       wrapped: t.prismaField({
         type: ['Post'],
         errors: { types: [] },
-        query: () => db.orm.Post.where({ authorId: 'u-alice' }),
+        collection: () => db.orm.Post.where({ authorId: 'u-alice' }),
       }),
       plain: t.field({
         type: [Post],
@@ -379,7 +379,7 @@ describe('provenance', () => {
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaConnection({ type: 'User', resolve: () => db.orm.User }),
+        users: t.prismaConnection({ type: 'User', collection: () => db.orm.User }),
         // @ts-expect-error a row built by hand isn't planned; it reloads
         user: t.field({ type: User, resolve: () => ({ id: 'u-alice' }) }),
       }),
@@ -448,7 +448,10 @@ describe('deferred fragments', () => {
     });
     builder.queryType({
       fields: (t) => ({
-        user: t.prismaField({ type: 'User', query: () => db.orm.User.where({ id: 'u-alice' }) }),
+        user: t.prismaField({
+          type: 'User',
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
       }),
     });
     const result = await runIncremental(
@@ -485,11 +488,11 @@ describe('models without a key', () => {
       fields: (t) => ({
         posts: t.prismaField({
           type: ['Post'],
-          query: () => db.orm.Post.where({ id: 'p-hello' }),
+          collection: () => db.orm.Post.where({ id: 'p-hello' }),
         }),
         views: t.prismaField({
           type: ['PostView'],
-          query: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
+          collection: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
         }),
         plainViews: t.field({
           type: [View],
@@ -624,7 +627,7 @@ describe('reload isolation', () => {
         users: t.prismaField({
           type: [User],
           nullable: true,
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
         // Rows loaded elsewhere, holding every post.
         rawUsers: t.field({

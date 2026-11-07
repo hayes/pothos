@@ -62,16 +62,16 @@ function createSchema(seen: unknown[]) {
       post: t.prismaField({
         type: Post,
         nullable: true,
-        query: () => ctx.orm.Post.where({ id: 'p-hello' }),
+        collection: () => ctx.orm.Post.where({ id: 'p-hello' }),
       }),
       user: t.prismaField({
         type: 'User',
         nullable: true,
-        query: () => ctx.orm.User.where({ id: 'u-alice' }),
+        collection: () => ctx.orm.User.where({ id: 'u-alice' }),
       }),
       postPage: t.prismaConnection({
         type: Post,
-        resolve: () => ctx.orm.Post.where({ id: 'p-hello' }),
+        collection: () => ctx.orm.Post.where({ id: 'p-hello' }),
       }),
       // @ts-expect-error a row an ORM query loaded isn't planned; it reloads
       plainPost: t.field({ type: Post, nullable: true, resolve: fullRow }),
@@ -172,7 +172,7 @@ function createVariantSchema(seen: unknown[], ownerSelectedOn: 'Bug' | 'Task') {
     fields: (t) => ({
       users: t.prismaField({
         type: ['User'],
-        query: () => inheritanceDb.orm.User.orderBy((row) => row.id.asc()),
+        collection: () => inheritanceDb.orm.User.orderBy((row) => row.id.asc()),
       }),
     }),
   });
@@ -257,7 +257,7 @@ function createToOneVariantSchema(seen: unknown[]) {
     fields: (t) => ({
       notes: t.prismaField({
         type: ['Note'],
-        query: () => inheritanceDb.orm.Note.orderBy((row) => row.id.asc()),
+        collection: () => inheritanceDb.orm.Note.orderBy((row) => row.id.asc()),
       }),
     }),
   });

@@ -11,9 +11,9 @@ import { Callout } from 'fumadocs-ui/components/callout';
 </Callout>
 
 The Prisma Next plugin lets you build GraphQL types from the models in a
-[Prisma ORM 8](https://github.com/prisma/orm) contract. Your resolvers return a Prisma Collection
-without running it, and the plugin adds the columns and relations each GraphQL query asks for before
-running it. It supports relations, counts, variants, interfaces, and Relay nodes and connections.
+[Prisma ORM 8](https://github.com/prisma/orm) contract. Query fields load a model's rows, and the
+plugin adds the columns and relations each GraphQL query asks for in one statement. It supports
+relations, counts, variants, interfaces, and Relay nodes and connections.
 
 For Prisma ORM 7, use [`@pothos/plugin-prisma`](/docs/plugins/prisma) instead. The two can't be installed
 in the same project.
@@ -27,7 +27,7 @@ Here is a `User` type with a computed name and a list of published posts:
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next"'>playground-examples/plugin-prisma-next/types/user.ts#user</include>
 
-The `users` query field returns the Collection of users without running it:
+The `users` query field loads the users in the order its `query` gives:
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ users { fullName posts { title author { email } } } }"'>playground-examples/plugin-prisma-next/queries.ts#users-query</include>
 

@@ -223,35 +223,35 @@ inheritance.prismaObject('User', {
 });
 inheritance.queryType({
   fields: (t) => ({
-    bugs: t.prismaField({ type: ['Bug'], query: () => orm.Task.variant('bug') }),
+    bugs: t.prismaField({ type: ['Bug'], collection: () => orm.Task.variant('bug') }),
     // @ts-expect-error the base collection would load every variant
-    all: t.prismaField({ type: ['Bug'], query: () => orm.Task }),
+    all: t.prismaField({ type: ['Bug'], collection: () => orm.Task }),
     // @ts-expect-error another variant's rows
-    wrong: t.prismaField({ type: ['Bug'], query: () => orm.Task.variant('feature') }),
+    wrong: t.prismaField({ type: ['Bug'], collection: () => orm.Task.variant('feature') }),
     // @ts-expect-error a variant's own collection isn't narrowed to its rows
-    ownCollection: t.prismaField({ type: ['Bug'], query: () => orm.Bug }),
-    tasks: t.prismaField({ type: ['Task'], query: () => orm.Task }),
+    ownCollection: t.prismaField({ type: ['Bug'], collection: () => orm.Bug }),
+    tasks: t.prismaField({ type: ['Task'], collection: () => orm.Task }),
     // A base type takes a collection narrowed to one of its variants.
-    bugsAsTasks: t.prismaField({ type: ['Task'], query: () => orm.Task.variant('bug') }),
+    bugsAsTasks: t.prismaField({ type: ['Task'], collection: () => orm.Task.variant('bug') }),
     bugPage: t.prismaConnection({
       type: 'Bug',
       query: { orderBy: { title: 'asc' } },
-      resolve: () => orm.Task.variant('bug'),
+      collection: () => orm.Task.variant('bug'),
     }),
     bugPageFromOwn: t.prismaConnection({
       type: 'Bug',
       // @ts-expect-error a variant's own collection isn't narrowed to its rows
-      resolve: () => orm.Bug,
+      collection: () => orm.Bug,
     }),
     bugPageFromBase: t.prismaConnection({
       type: 'Bug',
       // @ts-expect-error the base collection would load every variant
-      resolve: () => orm.Task,
+      collection: () => orm.Task,
     }),
     bugPageFromSibling: t.prismaConnection({
       type: 'Bug',
       // @ts-expect-error another variant's rows
-      resolve: () => orm.Task.variant('feature'),
+      collection: () => orm.Task.variant('feature'),
     }),
     // @ts-expect-error a row built by hand, even holding the discriminator
     taskByKey: t.field({ type: task, resolve: () => ({ id: 't1', type: 'bug' as const }) }),
@@ -260,7 +260,7 @@ inheritance.queryType({
   }),
 });
 
-// `collection` takes the same collections as `resolve`.
+// A node's `collection` takes the same collections as a root field's.
 inheritance.prismaNode('Bug', {
   variant: 'NarrowedBugNode',
   id: { field: 'id' },

@@ -430,6 +430,33 @@ type UnknownQueryKeys<Literal, Known extends PropertyKey> = Exclude<
   Known
 >;
 
+/**
+ * A `query` of a root field or connection: a literal, or a callback of the args and context
+ * returning one. `Literal` is inferred, which leaves the callback's `args` typed, and checked for
+ * unknown keys and `orderBy` columns, which a callback's result gets no excess property check for.
+ * The check sits beside the whole option so it fails for a literal and a callback alike; beside
+ * `Literal` it stops TS 5.9 and 6 inferring it.
+ */
+export type QueryOption<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  ArgsShape,
+  Literal,
+  Known extends PropertyKey,
+> = (Literal | ((args: ArgsShape, context: Types['Context']) => Literal | undefined)) &
+  NoInfer<ExactQueryLiteral<Literal, Known> & OrderByColumnsCheck<Types, M, Literal>>;
+
+/**
+ * What a `prismaField`'s `query` takes, as a to-many relation's does. An alias rather than an
+ * interface for the reason `ConnectionQueryLiteral` is one.
+ */
+export type FieldQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> = {
+  where?: RelationWhere<Types, M>;
+  orderBy?: RelationOrderBy<Types, M>;
+  limit?: number;
+  offset?: number;
+};
+
 /** Names `Literal`'s unknown keys in a required property, which no object has, for the error. */
 export type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
   UnknownQueryKeys<Literal, Known>,

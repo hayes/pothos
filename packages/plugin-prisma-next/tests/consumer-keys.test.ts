@@ -63,7 +63,7 @@ function schema(stubs = 2) {
     fields: (t) => ({
       users: t.prismaField({
         type: [User],
-        query: () => db.orm.User.orderBy((user) => user.id.asc()),
+        collection: () => db.orm.User.orderBy((user) => user.id.asc()),
       }),
       // Rows the plugin didn't load, which every planned field reloads.
       stubs: t.field({
@@ -240,7 +240,7 @@ describe('interface fields', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: [I],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -309,7 +309,7 @@ describe('connections', () => {
     }));
     builder.queryType({
       fields: (t) => ({
-        users: t.prismaConnection({ type: User, resolve: () => db.orm.User }),
+        users: t.prismaConnection({ type: User, collection: () => db.orm.User }),
       }),
     });
     const result = await run(
@@ -351,7 +351,7 @@ describe('connections', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: [User],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -397,7 +397,7 @@ describe('a plugin that copies the parent', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: [User],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
@@ -440,7 +440,7 @@ describe('rows other fields return', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: [User],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
         payload: t.field({
           type: Payload,
@@ -495,7 +495,7 @@ describe('rows other fields return', () => {
       fields: (t) => ({
         users: t.prismaField({
           type: [User],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });

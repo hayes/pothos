@@ -70,11 +70,11 @@ describe("an implementation's override of an interface field", () => {
       fields: (t) => ({
         users: t.prismaField({
           type: [I],
-          query: () => db.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
         posts: t.prismaField({
           type: [P],
-          query: () => db.orm.Post.where({ published: 1 }).orderBy((post) => post.id.asc()),
+          collection: () => db.orm.Post.where({ published: 1 }).orderBy((post) => post.id.asc()),
         }),
       }),
     });

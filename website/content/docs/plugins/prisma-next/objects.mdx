@@ -129,23 +129,33 @@ a row of a variant model with its own table, the plugin reloads it by its key be
 ## Return a type from Query and Mutation fields
 
 Use `t.prismaField` for fields on `Query`, `Mutation`, or any other type that return your model
-types. Its `query` returns a Collection without running it. The plugin adds what the query selects,
-then runs it.
+types. The plugin loads what the query selects in one statement.
+
+To look up rows, pass a `query` with a `where`. It takes the same options as a relation's
+[`query`](./relations#filtering-and-sorting): `where`, `orderBy`, `limit` and `offset`, or a
+function of the field's arguments and context that returns them.
 
 ```ts
 builder.queryType({
   fields: (t) => ({
-    me: t.prismaField({
+    user: t.prismaField({
       type: 'User',
       nullable: true,
-      query: (_root, _args, ctx) => ctx.db.orm.User.where((user) => user.id.eq(ctx.userId)),
+      args: { id: t.arg.id({ required: true }) },
+      query: (args) => ({ where: { id: String(args.id) } }),
     }),
   }),
 });
 ```
 
-Filter, order and limit the Collection as usual, but don't call `.all()`, `.first()` or `.include()`
-on it yourself. To filter a relation, use its field's [`query`](./relations#filtering-and-sorting).
+A single-row field returns the first row the query finds, and needs `collection`, `query` or
+`resolve`. A list field without them loads every row:
+
+```ts
+builder.queryFields((t) => ({
+  users: t.prismaField({ type: ['User'] }),
+}));
+```
 
 ### Paginating a list
 
@@ -157,10 +167,11 @@ builder.queryFields((t) => ({
   posts: t.prismaField({
     type: ['Post'],
     args: { limit: t.arg.int(), offset: t.arg.int() },
-    query: (_root, args, ctx) =>
-      ctx.db.orm.Post.orderBy((post) => post.createdAt.desc())
-        .limit(args.limit ?? 10)
-        .offset(args.offset ?? 0),
+    query: (args) => ({
+      orderBy: { createdAt: 'desc' },
+      limit: args.limit ?? 10,
+      offset: args.offset ?? 0,
+    }),
   }),
 }));
 ```
@@ -168,13 +179,29 @@ builder.queryFields((t) => ({
 For cursor-based pagination with page info and total counts, use `t.prismaConnection` instead. See
 [Connections](./connections#paginate-a-query-field).
 
+### Choosing the rows to start from
+
+Rows load from the model's Collection, `orm.<Model>` from the plugin's `client`. To start from
+other rows, such as through a fragment or a filter that needs the context, return a Collection from
+`collection`. Don't call `.all()`, `.first()` or `.include()` on it; the plugin applies `query` and
+what the query selects, then runs it.
+
+```ts
+builder.queryFields((t) => ({
+  myPosts: t.prismaField({
+    type: ['Post'],
+    collection: (_root, _args, ctx) => ctx.db.orm.Post.where({ authorId: ctx.userId }),
+    query: { orderBy: { createdAt: 'desc' } },
+  }),
+}));
+```
+
 ### Mutations
 
-To run the Collection yourself, such as for a write, pass `resolve` instead of `query`. It gets the
-model's Collection from the plugin's `client`, with what the query selects already added, and
-returns what the Collection's methods return. Writes that return the row, such as `create`,
-`update`, `upsert` and `delete`, then return everything the response needs without reading it
-again:
+To run the Collection yourself, such as for a write, pass `resolve` instead of `collection` and
+`query`. It gets the model's Collection with what the query selects already added, and returns
+what the Collection's methods return. Writes that return the row, such as `create`, `update`,
+`upsert` and `delete`, then return everything the response needs without reading it again:
 
 ```ts
 builder.mutationType({
@@ -194,7 +221,9 @@ builder.mutationType({
 ```
 
 For a [variant](./variants) model, the Collection is its base's narrowed to it, such as
-`orm.Task.variant('bug')`. Rows loaded from another Collection are a type error.
+`orm.Task.variant('bug')`, both for `resolve` and when `collection` is left out. `resolve` must
+return rows of that Collection; rows loaded from another Collection are a type error naming
+[`Planned`](./relations#returning-rows-from-other-fields).
 
 When the mutation returns a payload, build the write's Collection with `collectionFromInfo`, which
 adds what the query selects, and pass the path to the row's field, such as `path: ['user']`. For an
@@ -231,8 +260,8 @@ See [Transactions](./setup#transactions) to run the write and the reads in one t
 ### `prismaFieldWithInput`
 
 With the [with-input plugin](/docs/plugins/with-input), `t.prismaFieldWithInput` combines
-`t.prismaField` with `t.fieldWithInput`, and takes `query` or `resolve` the same way. The `input`
-fields become an input object argument:
+`t.prismaField` with `t.fieldWithInput`, and takes `collection`, `query` or `resolve` the same way.
+The `input` fields become an input object argument:
 
 ```ts
 builder.mutationField('updateFirstName', (t) =>
