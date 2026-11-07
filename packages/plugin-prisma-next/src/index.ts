@@ -537,9 +537,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
   /**
    * Resolves a field with its parent when the plan that loaded the parent included the field, or,
-   * for a static selection of columns, when the parent holds what it and the type's `select`s
-   * name. Otherwise the loader reloads the parent with what the field needs. A field returning
-   * rows of a prisma type hands each on as the copy its type's readers see.
+   * for a static selection of columns, with the row the type's parent loader gives. Otherwise the
+   * loader reloads the parent with what the field needs. A field returning rows of a prisma type
+   * hands each on as the copy its type's readers see.
    */
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
@@ -617,10 +617,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       }
       // A plan that loaded the parent planned the field into it, unless the parent holds another
       // field's rows.
-      const parent = mapping && parentFor(row, mapping);
-      if (parent) {
-        setRowMappings(context, info, mapping!.nested);
-        return resolver(parent, args, context, info);
+      if (mapping) {
+        const parent = parentFor(row, mapping);
+        if (parent) {
+          setRowMappings(context, info, mapping.nested);
+          return resolver(parent, args, context, info);
+        }
       }
       // A static selection reads the row its type's checks read, reloaded only when it lacks a key
       // the field or the type's `select`s name.
@@ -685,12 +687,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     return data;
   }
 
-  /**
-   * The row scope-auth's checks see: the row as the `select`s of the type and its interfaces load
-   * it, with the columns the field being checked reads. A row without them is reloaded with every
-   * column and what those `select`s load, once per row per root field. The loader matches
-   * `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin doesn't import.
-   */
+  private readonly typeParentLoaders = new Map<
+    string,
+    (parent: unknown, context: object, info: GraphQLResolveInfo) => MaybePromise<unknown>
+  >();
+
+  /** The parent loader of a prisma type, made once per type. */
   private typeParentLoader(typeName: string) {
     let loader = this.typeParentLoaders.get(typeName);
     if (!loader) {
@@ -700,11 +702,13 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     return loader;
   }
 
-  private readonly typeParentLoaders = new Map<
-    string,
-    (parent: unknown, context: object, info: GraphQLResolveInfo) => MaybePromise<unknown>
-  >();
-
+  /**
+   * The row scope-auth's checks and a static selection's field see: the row as the `select`s of
+   * the type and its interfaces load it, with the columns the field reads. A row without them is
+   * reloaded with every column and what those `select`s load, once per row per root field. The
+   * loader matches `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin doesn't
+   * import.
+   */
   private createTypeParentLoader(typeName: string) {
     let type: GraphQLObjectType | undefined;
     return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {

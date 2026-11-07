@@ -327,6 +327,7 @@ export function prismaConnectionHelpers<
     const relations: Record<string, PrismaNextSelection> = {};
     let nodeRelation: string | undefined;
     for (const [name, entry] of selected.relations) {
+      // `splitSelect` reads the marker as any other object entry, a query.
       if (entry.query === nodeMarker) {
         nodeRelation = name;
       } else {
