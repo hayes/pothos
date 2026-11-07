@@ -45,6 +45,7 @@ import type {
   RelationFieldShape,
   RelationQuery,
   RelationTypeModel,
+  RelationWithoutOptionsCheck,
   ToManyRelationKeys,
 } from './types/relations.js';
 import type { MapperCollection } from './utils/adapter.js';
@@ -313,6 +314,13 @@ export class PrismaNextObjectFieldBuilder<
     return this.field(fieldOpts as never) as never;
   }
 
+  relation<RelName extends RelationKeys<Types, M>>(
+    name: RelName & RelationWithoutOptionsCheck<Types, M, RelName>,
+  ): FieldRef<
+    Types,
+    RelationFieldShape<Types, M, RelName, Types['DefaultFieldNullability']>,
+    'PrismaNextObject'
+  >;
   relation<
     RelName extends RelationKeys<Types, M>,
     Query extends RelationQuery<Types, M, RelName, Args> | undefined,
@@ -334,7 +342,11 @@ export class PrismaNextObjectFieldBuilder<
       Query,
       TypeModel
     >
-  ): FieldRef<Types, RelationFieldShape<Types, M, RelName, Nullable>, 'PrismaNextObject'> {
+  ): FieldRef<Types, RelationFieldShape<Types, M, RelName, Nullable>, 'PrismaNextObject'>;
+  relation(
+    name: RelationKeys<Types, M>,
+    ...allArgs: unknown[]
+  ): FieldRef<Types, unknown, 'PrismaNextObject'> {
     const [opts = {}] = allArgs as [
       {
         type?: object;

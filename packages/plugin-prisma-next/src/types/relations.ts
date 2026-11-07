@@ -18,6 +18,7 @@ import type { PrismaNextObjectRef } from '../object-ref.js';
 import type { IncludeRefinementCollection, WithNsId } from './collections.js';
 import type {
   BareModelName,
+  IsUnion,
   ModelKey,
   NamespacedModelKey,
   NamespaceOf,
@@ -269,6 +270,25 @@ type RelationNullReason<
         ? `${M & string}.${R & string} can be null`
         : never
       : `${TypeModel & string} filters out other variants of ${M & string}.${R & string}`;
+
+/**
+ * Checks the name `t.relation` is called with and no options: a non-null field over a relation that
+ * can be null needs `onNull`, which the error names the reason for. An unknown name leaves `R` as
+ * every relation, and is left to fail as itself.
+ */
+export type RelationWithoutOptionsCheck<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  R extends RelationKeys<Types, M>,
+> = [Types['DefaultFieldNullability'], IsUnion<R>] extends [false, false]
+  ? [RelationNullReason<Types, M, R, RelatedModel<Types, M, R>>] extends [
+      infer Reason extends string,
+    ]
+    ? [Reason] extends [never]
+      ? unknown
+      : OnNullRequired<Reason>
+    : unknown
+  : unknown;
 
 /**
  * The arguments of `t.relation`: `options` is required, with `onNull`, when the field is non-null
