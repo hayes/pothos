@@ -2005,3 +2005,62 @@ describe('prismaConnectionHelpers at the root', () => {
     expect(paged.statements[0].sql).not.toMatch(/count\(/i);
   });
 });
+
+describe('connection helpers around a load', () => {
+  // A connection that checks access before loading and records the rows after.
+  function aroundSchema() {
+    const builder = createBuilder<{ admin: boolean; seen?: string[] }>();
+    const Post = builder.prismaObject('Post', {
+      fields: (t) => ({ id: t.exposeID('id'), author: t.relation('author') }),
+    });
+    builder.prismaObject('User', { fields: (t) => ({ firstName: t.exposeString('firstName') }) });
+    const drafts = prismaConnectionHelpers(builder, Post, {
+      query: { orderBy: { createdAt: 'asc' } },
+      totalCount: true,
+    });
+    builder.queryType({
+      fields: (t) => ({
+        drafts: t.connection(
+          {
+            type: Post,
+            args: drafts.getArgs(),
+            resolve: async (_root, args, ctx, info) => {
+              if (!ctx.admin) {
+                throw new Error('Not allowed.');
+              }
+              const rows = await drafts.load(db.orm.Post.where({ published: 0 }), args, ctx, info);
+              const page = drafts.resolve(rows, args, ctx);
+              ctx.seen = page.edges.map((edge) => edge.node.id);
+              return page;
+            },
+          },
+          {
+            fields: (c) => ({ totalCount: c.int({ resolve: (page) => page.totalCount }) }),
+          },
+        ),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  const query = '{ drafts(first: 1) { totalCount edges { node { id author { firstName } } } } }';
+
+  it('runs code before and after loading the page', async () => {
+    const context: { admin: boolean; seen?: string[] } = { admin: true };
+    const result = await run(aroundSchema(), query, { context });
+    expect(result.errors).toBeUndefined();
+    expect(result.data.drafts).toEqual({
+      totalCount: 2,
+      edges: [{ node: { id: 'p-draft1', author: { firstName: 'Alice' } } }],
+    });
+    expect(context.seen).toEqual(['p-draft1']);
+    // The page with its authors, and the count.
+    expect(result.statements).toHaveLength(2);
+  });
+
+  it('loads nothing when the check fails', async () => {
+    const result = await run(aroundSchema(), query, { context: { admin: false } });
+    expect(result.errors?.[0]?.message).toBe('Not allowed.');
+    expect(result.statements).toHaveLength(0);
+  });
+});

@@ -35,6 +35,39 @@ aren't supported. `t.prismaConnection` takes:
 
 Connection and edge types can be customized as with the [Relay plugin](../relay).
 
+### Before or after loading
+
+`t.prismaConnection` loads the page itself. To run code before or after the load, such as a check or
+a side effect, build the connection with `t.connection` and
+[connection helpers](#custom-connections):
+
+```ts
+import { prismaConnectionHelpers } from '@pothos/plugin-prisma-next';
+
+const userPage = prismaConnectionHelpers(builder, 'User', {
+  query: { orderBy: { id: 'asc' } },
+  totalCount: true,
+});
+
+builder.queryField('users', (t) =>
+  t.connection({
+    type: User,
+    args: userPage.getArgs(),
+    resolve: async (_root, args, ctx, info) => {
+      if (!ctx.isAdmin) {
+        throw new Error('Not allowed.');
+      }
+      const rows = await userPage.load(ctx.db.orm.User, args, ctx, info);
+      // Read or change the rows here.
+      return userPage.resolve(rows, args, ctx);
+    },
+  }),
+);
+```
+
+`load` loads the page as `t.prismaConnection` does, with one row past it to set `hasNextPage`. Pass
+`resolve` the list `load` returned, or it doesn't set `totalCount`.
+
 ## Paginate a relation
 
 To paginate a relation, such as a user's posts, use `t.relatedConnection`:
