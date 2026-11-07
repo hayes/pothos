@@ -2,12 +2,7 @@ import type { Merge, SchemaTypes, Simplify } from '@pothos/core';
 import type { SqlStorage } from '@prisma/orm-family-sql/contract/types';
 import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
 import type { Contract } from '@prisma/orm-framework/contract/types';
-import type {
-  ModelBrand,
-  PlannedRowBrand,
-  prismaNextModelBrand,
-  ReturnRowsFromCollectionFromInfoOrTheParentsPlan,
-} from '../object-ref.js';
+import type { ModelBrand, Planned, PlannedRowBrand, prismaNextModelBrand } from '../object-ref.js';
 import type { IsToMany } from './relations.js';
 
 export type AnyContract = Contract<SqlStorage>;
@@ -356,10 +351,7 @@ type ResolveTypeShape<
  * outside it, or one an ORM query loaded, would skip the selection's relations and filters, so it
  * doesn't fit. A row planned for another model doesn't either.
  */
-export type ObjectReturnShape<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-> = ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
+export type ObjectReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>> = Planned<
   M | VariantModelKeys<Types['PrismaNextContract'], M>
 >;
 
@@ -377,10 +369,7 @@ export type DiscriminatorField<Types extends SchemaTypes, M extends ModelKey<Typ
  * before fields run. A row planned for another type of the model, such as one of its variants'
  * types, needn't hold it.
  */
-export type InterfaceReturnShape<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-> = ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
+export type InterfaceReturnShape<Types extends SchemaTypes, M extends ModelKey<Types>> = Planned<
   M | VariantModelKeys<Types['PrismaNextContract'], M>
 > &
   DiscriminatorRow<Types, M>;

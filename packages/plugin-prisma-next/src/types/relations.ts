@@ -14,10 +14,7 @@ import type {
 } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from '../interface-ref.js';
-import type {
-  PrismaNextObjectRef,
-  ReturnRowsFromCollectionFromInfoOrTheParentsPlan,
-} from '../object-ref.js';
+import type { Planned, PrismaNextObjectRef } from '../object-ref.js';
 import type { IncludeRefinementCollection, WithNsId } from './collections.js';
 import type {
   BareModelName,
@@ -272,10 +269,7 @@ export type RelationOnNull<
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => MaybePromise<
-      | Error
-      | ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
-          TypeModel | VariantModelKeys<Types['PrismaNextContract'], TypeModel>
-        >
+      Error | Planned<TypeModel | VariantModelKeys<Types['PrismaNextContract'], TypeModel>>
     >);
 
 /** Names why `nullable: false` isn't allowed in its error, as the type argument the error shows. */

@@ -12,7 +12,7 @@ export const prismaNextModelBrand = Symbol.for('Pothos.prismaNextModelBrand');
 export const prismaNextContractBrand = Symbol.for('Pothos.prismaNextContractBrand');
 
 /**
- * Type-only: marks the rows the loader planned, see `PlannedRow`. No row holds it at runtime. It is
+ * Type-only: marks the rows the loader planned, see `Planned`. No row holds it at runtime. It is
  * exported so that a module whose declarations name a planned row, such as an exported function
  * returning one without an annotation, can import it for declaration emit.
  */
@@ -27,10 +27,12 @@ export interface PlannedRowBrand<M> {
 }
 
 /**
- * What a field returning a type of model `M` resolves to, named for the error a row without the
- * brand gets. It is an interface so that the error names it rather than the brand.
+ * A row the plugin planned for model `M`, which is what a field returning a type of `M` resolves
+ * to: a row of a collection `collectionFromInfo`, `prismaField` or the connection helpers planned,
+ * the parent, or a relation row the parent's plan loaded. It is an interface so that errors name it
+ * rather than the brand.
  */
-export interface ReturnRowsFromCollectionFromInfoOrTheParentsPlan<M> extends PlannedRowBrand<M> {}
+export interface Planned<M> extends PlannedRowBrand<M> {}
 
 /** Marks a row shape with its model. It is an interface so that declaration emit can name it. */
 export interface ModelBrand<M> {
@@ -54,9 +56,7 @@ export class PrismaNextObjectRef<
 > extends ObjectRef<
   Types,
   // Not `ObjectReturnShape`, so that errors name the interface rather than the alias.
-  ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
-    M | VariantModelKeys<Types['PrismaNextContract'], M>
-  >,
+  Planned<M | VariantModelKeys<Types['PrismaNextContract'], M>>,
   Shape
 > {
   declare readonly [prismaNextModelBrand]: M;
@@ -64,9 +64,7 @@ export class PrismaNextObjectRef<
   declare readonly [prismaNextContractBrand]: Types['PrismaNextContract'];
 
   declare readonly [abstractReturnShapeKey]: WithBrand<
-    ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
-      M | VariantModelKeys<Types['PrismaNextContract'], M>
-    >
+    Planned<M | VariantModelKeys<Types['PrismaNextContract'], M>>
   >;
 
   readonly modelKey: M;
@@ -83,12 +81,8 @@ export class PrismaNextObjectRef<
    */
   addBrand<
     V extends
-      | ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
-          M | VariantModelKeys<Types['PrismaNextContract'], M>
-        >
-      | readonly ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
-          M | VariantModelKeys<Types['PrismaNextContract'], M>
-        >[],
+      | Planned<M | VariantModelKeys<Types['PrismaNextContract'], M>>
+      | readonly Planned<M | VariantModelKeys<Types['PrismaNextContract'], M>>[],
   >(value: V): Branded<V> {
     for (const row of Array.isArray(value) ? value : [value]) {
       brandWithType(row as object, this.name as never);

@@ -89,12 +89,12 @@ export { PrismaNextInterfaceRef, prismaNextInterfaceBrand } from './interface-re
 export { PrismaNextNodeRef, relayIDShapeBrand } from './node-ref.js';
 export {
   type ModelBrand,
+  type Planned,
   type PlannedRowBrand,
   PrismaNextObjectRef,
   plannedRowBrand,
   prismaNextContractBrand,
   prismaNextModelBrand,
-  type ReturnRowsFromCollectionFromInfoOrTheParentsPlan,
   type TypeBrand,
 } from './object-ref.js';
 export { PrismaNextObjectFieldBuilder } from './prisma-next-field-builder.js';

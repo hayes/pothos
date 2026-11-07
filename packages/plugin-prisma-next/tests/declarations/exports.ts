@@ -155,3 +155,6 @@ export const userPostCountField = ((t): FieldRef<Types, unknown> =>
 builder.prismaObjectField('User', 'postCount', userPostCountField);
 
 export const UserOrPost = builder.unionType('UserOrPost', { types: [User, PostWithAuthor] });
+
+// Names the planned-row type a field returning a User resolves to.
+export const brandUserRows = (rows: Parameters<typeof User.addBrand>[0]) => User.addBrand(rows);

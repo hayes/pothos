@@ -1,8 +1,5 @@
 import { InterfaceRef, type SchemaTypes } from '@pothos/core';
-import {
-  prismaNextContractBrand,
-  type ReturnRowsFromCollectionFromInfoOrTheParentsPlan,
-} from './object-ref.js';
+import { type Planned, prismaNextContractBrand } from './object-ref.js';
 import type {
   DiscriminatorRow,
   ModelKey,
@@ -19,10 +16,7 @@ export class PrismaNextInterfaceRef<
 > extends InterfaceRef<
   Types,
   // Not `InterfaceReturnShape`, so that errors name the interface rather than the alias.
-  ReturnRowsFromCollectionFromInfoOrTheParentsPlan<
-    M | VariantModelKeys<Types['PrismaNextContract'], M>
-  > &
-    DiscriminatorRow<Types, M>,
+  Planned<M | VariantModelKeys<Types['PrismaNextContract'], M>> & DiscriminatorRow<Types, M>,
   Shape
 > {
   declare readonly [prismaNextInterfaceBrand]: M;
