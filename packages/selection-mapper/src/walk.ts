@@ -20,6 +20,7 @@ import {
   type SelectionNode,
 } from 'graphql';
 import type { NodeBase } from './adapter.js';
+import { deepEqual } from './deep-equal.js';
 import { unexpectedError } from './errors.js';
 import { EMPTY_MAPPING, type Mapping, unionMappings } from './loader-map.js';
 import {
@@ -36,7 +37,13 @@ import {
 } from './matches.js';
 import type { Plan } from './plan.js';
 import { fieldShape, selectionShape } from './shape.js';
-import type { NestedSelection, Position, SelectFn, WalkedType } from './types.js';
+import type {
+  NestedSelection,
+  Position,
+  SelectedFieldNode,
+  SelectFn,
+  WalkedType,
+} from './types.js';
 
 /**
  * One select invocation's mapping record while the invocation runs: `pending` counts the nested
@@ -829,7 +836,8 @@ function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
  * The first field node selected at `path` beneath the field, seen through any wrapper on the
  * field's return type (an errors plugin result, for instance), whose own path leads to the type
  * the caller's path starts from. An empty path yields the field node itself, or the wrapper's
- * inner node.
+ * inner node. `args` reads the arguments of every field selected at the path, and throws when they
+ * differ: one plan can't serve fields asking for different things.
  *
  * A node selected only under a `@defer` is returned like any other, whatever the plan's deferred
  * setting says — an adapter gating a computed value on this over-reports rather than under-;
@@ -837,29 +845,56 @@ function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
  */
 function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
-  { field, node: fieldNode }: Position,
-) {
-  const { info } = plan;
+  position: Position,
+): SelectedFieldNode {
+  const { info, context } = plan;
+  const { field, node: fieldNode } = position;
+  const returnType = getNamedType(field.type);
+  const prefix = includeOf(returnType)?.path;
   let names: ReadonlySet<string> | undefined;
 
   function getSelection(): ReadonlySet<string>;
   function getSelection(path: string[]): FieldNode | null;
   function getSelection(path?: string[]): ReadonlySet<string> | FieldNode | null {
     if (path === undefined) {
-      names ??= collectSelectedFieldNames(info, getNamedType(field.type), [fieldNode]);
+      names ??= collectSelectedFieldNames(info, returnType, [fieldNode]);
       return names;
     }
-    const returnType = getNamedType(field.type);
+
     const match = firstMatch(
       info,
       returnType,
       fieldNode,
       path.map((name) => ({ name })),
-      { prefix: includeOf(returnType)?.path },
+      { prefix },
     );
 
     return match?.field ?? null;
   }
+
+  getSelection.args = (path: string[]) => {
+    const values = findMatches(info, returnType, fieldNode, [path.map((name) => ({ name }))], {
+      prefix,
+    }).map((match) =>
+      getMappedArgumentValues(match.definition ?? field, match.field, context, info),
+    );
+
+    if (values.length === 0) {
+      return null;
+    }
+
+    const agreed = (resolved: object[]) => {
+      if (resolved.some((value) => !deepEqual(value, resolved[0]))) {
+        throw unexpectedError(
+          `The fields selected at ${path.join('.')} beneath ${fieldName(position)} have different arguments.`,
+        );
+      }
+
+      return resolved[0];
+    };
+
+    return values.some(isThenable) ? Promise.all(values).then(agreed) : agreed(values as object[]);
+  };
 
   return getSelection;
 }
