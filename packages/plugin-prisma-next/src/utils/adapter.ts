@@ -19,6 +19,7 @@ import {
   PRISMA_NEXT_MODEL,
 } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
+import { branchName, consumerOfKey, relationName } from './branch-keys.js';
 import { appliesCursors, markCursors } from './cursors.js';
 import {
   getIdentityFields,
@@ -31,15 +32,12 @@ import {
   type ComputedSelection,
   compileTypeSelect,
   EMPTY,
-  ID_SEPARATOR,
-  KEY_SEPARATOR,
   loadsWholeRelation,
   type Narrowing,
   type PrismaNextSelectFn,
   type PrismaNextSelection,
   REFINE,
   type RelationArgs,
-  relationName,
   typeSelects,
 } from './selections.js';
 
@@ -300,14 +298,10 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       return entry;
     };
     for (const [key, child] of Object.entries(selection.relations ?? {})) {
-      const name = relationName(key);
-      consumersOf(name).rows.push([key.slice(name.length + 1), child]);
+      consumersOf(relationName(key)).rows.push([consumerOfKey(key), child]);
     }
-    // `relation:id:key`, whose key may itself start with the separator.
     for (const [key, value] of Object.entries(selection.computed ?? {})) {
-      const name = relationName(key);
-      const rest = key.slice(name.length + 1);
-      consumersOf(name).computed.push([rest.slice(0, rest.indexOf(KEY_SEPARATOR)), value]);
+      consumersOf(relationName(key)).computed.push([consumerOfKey(key), value]);
     }
     for (const [name, entry] of consumers) {
       const relation = relationOf(model, name);
@@ -351,14 +345,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       if (loadsWholeRelation(shared)) {
         return included;
       }
-      return this.combine(base, { [ids.join(ID_SEPARATOR)]: included }, branches);
+      return this.combine(base, [[ids, included]], branches);
     }
-    const slots: Record<string, unknown> = {};
-    for (const [ids, selection] of groups) {
-      slots[ids.join(ID_SEPARATOR)] = load(selection);
-    }
+    const slots: Branch[] = groups.map(([ids, selection]) => [ids, load(selection)]);
     for (const [ids, value] of shareComputed(computed)) {
-      slots[`${ids.join(ID_SEPARATOR)}${KEY_SEPARATOR}${value.key}`] = value[COMPUTE](base);
+      slots.push([ids, value[COMPUTE](base), value.key]);
     }
     return this.combine(base, slots, branches);
   }
@@ -372,12 +363,12 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    */
   private combine(
     base: MapperCollection,
-    slots: Record<string, unknown>,
+    slots: Branch[],
     branches: BranchNames,
   ): MapperCollection {
     const named: Record<string, unknown> = {};
-    for (const key of Object.keys(slots)) {
-      named[`${branches.next}/${key}`] = slots[key];
+    for (const [ids, loaded, key] of slots) {
+      named[branchName(branches.next, ids, key)] = loaded;
       branches.next += 1;
     }
     return base.combine(named);
@@ -408,6 +399,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     );
   }
 }
+
+/** A `combine()` branch: the consumers sharing it, what it loads, and its computed value's key. */
+type Branch = [ids: string[], loaded: unknown, key?: string];
 
 /** Numbers the `combine()` branches of one statement. */
 interface BranchNames {

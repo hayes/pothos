@@ -20,6 +20,7 @@ import {
 } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
+import { fieldOnlyKey, isFieldOnlyKey, parseBranch, rowsKey, valueKey } from './branch-keys.js';
 import { variantForRelationType } from './contract.js';
 import { type OrderByDecl, orderCollection, orderColumns } from './cursors.js';
 import { assertGraphQLJsInfo, checkReturned } from './errors.js';
@@ -38,10 +39,8 @@ import {
  * A consumer is one reader of a to-many relation's rows or computed values. A field's consumer id
  * is a short number (`consumerId`). Every type-level `select` uses `TYPE_CONSUMER`.
  *
- * In a selection, a to-many relation and its computed values are keyed `relation:id`, so each
- * consumer gets its own `combine()` branch. A branch is named `n/ids` for rows and `n/ids:key` for
- * a computed value, where `n` is unique in the statement (see `combine` in adapter.ts) and `ids`
- * are the ids of the consumers sharing it, joined with a space.
+ * In a selection, a to-many relation and its computed values are keyed by consumer, so each
+ * consumer gets its own `combine()` branch (see branch-keys.ts).
  *
  * Rows stay as the ORM returned them. A field returning rows hands each one on as a copy
  * (`typeCopy`): the `combine()` values come off the relation keys and go under `SLOTS`, and what
@@ -201,20 +200,11 @@ export function nestedPlan(
   return plan;
 }
 
-/** Separates a relation from a consumer id in a selection key, and ids from a computed key. */
-export const KEY_SEPARATOR = ':';
-/** Joins the ids of consumers that share a branch. */
-export const ID_SEPARATOR = ' ';
+/** The key a connection's count is computed under, as a value only its field reads. */
+export const COUNT_SLOT = fieldOnlyKey('count');
 
-/**
- * The key a connection's count is computed under. A computed key that starts with
- * `KEY_SEPARATOR` stays in the consumer's branch, which the field reads, rather than going onto
- * the parent.
- */
-export const COUNT_SLOT = `${KEY_SEPARATOR}count`;
-
-/** The key `relationCount` computes its count under, which stays in its branch. */
-export const VALUE_SLOT = `${KEY_SEPARATOR}value`;
+/** The key `relationCount` computes its count under, as a value only its field reads. */
+export const VALUE_SLOT = fieldOnlyKey('value');
 
 /**
  * The consumer id of every type-level `select`. The selects of a model agree, so they share their
@@ -323,11 +313,6 @@ export type NestedPlan = ReadonlyMap<string, NestedPlan>;
 
 const NO_NESTED: NestedPlan = new Map();
 
-/** The selection key a consumer uses for a to-many relation or its computed values. */
-function slotKey(relation: string, id: string) {
-  return `${relation}${KEY_SEPARATOR}${id}`;
-}
-
 /** Whether a relation load has every row of the relation, rather than a filtered or paged part. */
 export function loadsWholeRelation({ args }: PrismaNextSelection) {
   return (
@@ -337,18 +322,15 @@ export function loadsWholeRelation({ args }: PrismaNextSelection) {
   );
 }
 
-/** The relation a selection key refers to. */
-export function relationName(key: string) {
-  const separator = key.indexOf(KEY_SEPARATOR);
-  return separator < 0 ? key : key.slice(0, separator);
-}
-
 type Row = Record<string, unknown>;
 
 /** What the consumers of one to-many relation loaded through `combine()`, by consumer id. */
 interface RelationSlots {
   readonly rows: Record<string, unknown>;
+  /** Values written onto the parent. */
   readonly values: Record<string, Row>;
+  /** Values only the consumer's field reads. */
+  readonly own: Record<string, Row>;
 }
 
 /** The `combine()` values of an ORM row, by relation, and every consumer id with a branch. */
@@ -407,23 +389,20 @@ function slotsOf(row: object, model: PrismaNextModel): Slots {
     ) {
       continue;
     }
-    const rows: Record<string, unknown> = {};
-    const values: Record<string, Row> = {};
+    const slots: RelationSlots = { rows: {}, values: {}, own: {} };
     relations ??= {};
-    relations[name] = { rows, values };
+    relations[name] = slots;
     consumers ??= new Set();
     for (const [branch, loaded] of Object.entries(value)) {
-      // `n/ids` or `n/ids:key`. The number only keeps the ORM's aliases apart.
-      const named = branch.slice(branch.indexOf('/') + 1);
-      const separator = named.indexOf(KEY_SEPARATOR);
-      const ids = separator < 0 ? named : named.slice(0, separator);
-      for (const id of ids.split(ID_SEPARATOR)) {
+      const { ids, key } = parseBranch(branch);
+      for (const id of ids) {
         consumers.add(id);
-        if (separator < 0) {
-          rows[id] = loaded;
-        } else {
+        if (key !== undefined) {
+          const values = isFieldOnlyKey(key) ? slots.own : slots.values;
           values[id] ??= {};
-          values[id][named.slice(separator + 1)] = loaded;
+          values[id][key] = loaded;
+        } else {
+          slots.rows[id] = loaded;
         }
       }
     }
@@ -435,20 +414,15 @@ function slotsOf(row: object, model: PrismaNextModel): Slots {
 
 /**
  * Writes what consumer `id` loaded onto `target`: its rows on the relation's key, and its computed
- * values but those whose key starts with `KEY_SEPARATOR`.
+ * values but those only its field reads.
  */
 function lift(target: Row, { relations }: Slots, id: string) {
   for (const name of Object.keys(relations)) {
     const { rows, values } = relations[name]!;
-    const computed = values[id];
     if (Object.hasOwn(rows, id)) {
       target[name] = rows[id];
     }
-    for (const key of Object.keys(computed ?? {})) {
-      if (!key.startsWith(KEY_SEPARATOR)) {
-        target[key] = computed![key];
-      }
-    }
+    Object.assign(target, values[id]);
   }
 }
 
@@ -634,15 +608,18 @@ function writePages(copy: Row, { relations }: Slots, { id, position }: CopyField
   for (const [name, plan] of plannedPages.get(position) ?? []) {
     const loaded = relations[name];
     const rows = loaded && Object.hasOwn(loaded.rows, id) ? (loaded.rows[id] as unknown[]) : [];
-    const count = loaded?.values[id]?.[COUNT_SLOT] as number | undefined;
+    const count = loaded?.own[id]?.[COUNT_SLOT] as number | undefined;
     copy[name] = Object.assign([...rows], { [PAGE]: { plan, count } satisfies PageData });
   }
 }
 
-/** The value `key` the consumer of `parent`, a field's copy, computed from relation `name`. */
+/**
+ * The value `key`, only its field reads, that the consumer of `parent`, a field's copy, computed
+ * from relation `name`.
+ */
 export function fieldValue(parent: object, name: string, key: string): unknown {
   const held = (parent as Holder)[SLOTS];
-  return held?.field && held.slots.relations[name]?.values[held.field]?.[key];
+  return held?.field && held.slots.relations[name]?.own[held.field]?.[key];
 }
 
 /**
@@ -829,7 +806,7 @@ export function rowsSelection(
   child: MaybePromise<PrismaNextSelection>,
 ): MaybePromise<PrismaNextSelection> {
   return completeValue(child, (resolved) => ({
-    relations: { [relation.isToMany ? slotKey(name, id) : name]: resolved },
+    relations: { [relation.isToMany ? rowsKey(name, id) : name]: resolved },
   }));
 }
 
@@ -842,9 +819,7 @@ export function computedSelection(
   compute: Compute,
 ): PrismaNextSelection {
   return {
-    computed: {
-      [`${slotKey(name, id)}${KEY_SEPARATOR}${key}`]: { key, loadIdentity, [COMPUTE]: compute },
-    },
+    computed: { [valueKey(name, id, key)]: { key, loadIdentity, [COMPUTE]: compute } },
   };
 }
 
