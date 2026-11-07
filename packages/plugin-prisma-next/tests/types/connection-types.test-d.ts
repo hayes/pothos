@@ -51,6 +51,7 @@ builder.prismaObject('User', {
     }),
     published: t.relatedConnection('posts', { query: { where: { published: 1 } } }),
     defaultOrder: t.relatedConnection('posts', {}),
+    noOptions: t.relatedConnection('posts'),
     pair: t.relatedConnection('posts', { query: { orderBy: { title: 'desc', id: 'desc' } } }),
     notACondition: t.relatedConnection('posts', {
       // @ts-expect-error a where callback returns a condition

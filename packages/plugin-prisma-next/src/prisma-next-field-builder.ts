@@ -487,35 +487,40 @@ export class PrismaNextObjectFieldBuilder<
         > = ConnectionQueryLiteral<Types, RelatedModel<Types, M, RelName>>,
       >(
         name: RelName,
-        options: PrismaNextRelatedConnectionOptions<
-          Types,
-          M,
-          RelName,
-          Nullable,
-          Args,
-          RelatedShape,
-          Shape,
-          QueryLiteral
-        >,
-        connectionOptions?:
-          | PothosSchemaTypes.ConnectionObjectOptions<
+        ...args: NormalizeArgs<
+          [
+            options: PrismaNextRelatedConnectionOptions<
               Types,
-              PrismaNextObjectRef<Types, RelatedModel<Types, M, RelName>, RelatedShape>,
-              false,
-              false,
-              ConnectionResultShape<Shape, Args>,
-              ConnectionInterfaces
-            >
-          | ObjectRef<Types, unknown>,
-        edgeOptions?:
-          | PothosSchemaTypes.ConnectionEdgeObjectOptions<
-              Types,
-              PrismaNextObjectRef<Types, RelatedModel<Types, M, RelName>, RelatedShape>,
-              false,
-              ConnectionResultShape<Shape, Args>,
-              EdgeInterfaces
-            >
-          | ObjectRef<Types, unknown>,
+              M,
+              RelName,
+              Nullable,
+              Args,
+              RelatedShape,
+              Shape,
+              QueryLiteral
+            >,
+            connectionOptions?:
+              | PothosSchemaTypes.ConnectionObjectOptions<
+                  Types,
+                  PrismaNextObjectRef<Types, RelatedModel<Types, M, RelName>, RelatedShape>,
+                  false,
+                  false,
+                  ConnectionResultShape<Shape, Args>,
+                  ConnectionInterfaces
+                >
+              | ObjectRef<Types, unknown>,
+            edgeOptions?:
+              | PothosSchemaTypes.ConnectionEdgeObjectOptions<
+                  Types,
+                  PrismaNextObjectRef<Types, RelatedModel<Types, M, RelName>, RelatedShape>,
+                  false,
+                  ConnectionResultShape<Shape, Args>,
+                  EdgeInterfaces
+                >
+              | ObjectRef<Types, unknown>,
+          ],
+          0
+        >
       ) => FieldRef<
         Types,
         ShapeFromConnection<
@@ -534,7 +539,7 @@ export class PrismaNextObjectFieldBuilder<
       type?: { modelKey: string };
       extensions?: Record<string, unknown>;
       [key: string]: unknown;
-    },
+    } = {},
     connectionOptions: object = {},
     edgeOptions: object = {},
   ) {
