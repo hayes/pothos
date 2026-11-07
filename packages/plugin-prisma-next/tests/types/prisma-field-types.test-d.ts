@@ -227,6 +227,39 @@ inheritance.prismaObject('User', {
     highReviewPage: t.relatedConnection('reviews', { query: { where: { severity: 'high' } } }),
   }),
 });
+// A relation narrowed to a variant by `type` loads through the base's collection, as a root field of
+// the variant does: its predicate and `orderBy` take the variant's columns, its shorthand the base's.
+inheritance.prismaObjectFields('User', (t) => ({
+  highBugs: t.relation('tasks', {
+    type: 'Bug',
+    query: { where: (bug) => bug.severity.eq('high'), orderBy: { severity: 'asc' } },
+  }),
+  titledBugs: t.relation('tasks', { type: 'Bug', query: { where: { title: 'x' } } }),
+  bugsByArgs: t.relation('tasks', {
+    type: 'Bug',
+    args: { severity: t.arg.string({ required: true }) },
+    query: (args) => ({ where: (bug) => bug.severity.eq(args.severity) }),
+  }),
+  // @ts-expect-error `severity` is a column of the variant, not of the base
+  shorthandBugs: t.relation('tasks', { type: 'Bug', query: { where: { severity: 'high' } } }),
+  // @ts-expect-error `priority` is a column of another variant
+  featureOrder: t.relation('tasks', { type: 'Bug', query: { orderBy: { priority: 'asc' } } }),
+  bugPage: t.relatedConnection('tasks', {
+    type: 'Bug',
+    query: { where: (bug) => bug.severity.eq('high'), orderBy: { severity: 'asc' } },
+  }),
+  shorthandBugPage: t.relatedConnection('tasks', {
+    type: 'Bug',
+    // @ts-expect-error `severity` is a column of the variant, not of the base
+    query: { where: { severity: 'high' } },
+  }),
+  taskOrder: t.relation('tasks', {
+    // @ts-expect-error `severity` is a column of a variant
+    query: { orderBy: { severity: 'asc' } },
+  }),
+  // @ts-expect-error not a model of the relation's hierarchy
+  notTasks: t.relation('tasks', { type: 'User' }),
+}));
 inheritance.queryType({
   fields: (t) => ({
     bugs: t.prismaField({

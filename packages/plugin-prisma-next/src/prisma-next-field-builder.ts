@@ -27,9 +27,9 @@ import type {
   RelationCountQuery,
 } from './types/aggregates.js';
 import type {
-  ConnectionQueryLiteral,
   ConnectionResultShape,
   PrismaNextRelatedConnectionOptions,
+  RelatedConnectionQueryLiteral,
   ShapeFromConnection,
 } from './types/connections.js';
 import type {
@@ -68,7 +68,7 @@ import { modelDiscriminator, variantForRelationType } from './utils/contract.js'
 import { orderableProblem } from './utils/cursors.js';
 import { checkReturned, reloadFor } from './utils/errors.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
-import { getRefFromContractModel, refFor } from './utils/refs.js';
+import { refFor } from './utils/refs.js';
 import { fieldCopy, fieldValue, typeNested } from './utils/row-copies.js';
 import { type PrismaNextSelectFn, VALUE_SLOT } from './utils/selections.js';
 
@@ -317,7 +317,7 @@ export class PrismaNextObjectFieldBuilder<
   >;
   relation<
     RelName extends RelationKeys<Types, M>,
-    Query extends RelationQuery<Types, M, RelName, Args> | undefined,
+    Query extends RelationQuery<Types, M, RelName, Args, TypeModel> | undefined,
     // The model of `type`. A variant of the target narrows the rows.
     TypeModel extends RelationTypeModel<Types, M, RelName> = RelatedModel<Types, M, RelName>,
     Nullable extends boolean = Types['DefaultFieldNullability'],
@@ -343,7 +343,7 @@ export class PrismaNextObjectFieldBuilder<
   ): FieldRef<Types, unknown, 'PrismaNextObject'> {
     const [opts = {}] = allArgs as [
       {
-        type?: object;
+        type?: unknown;
         query?: unknown;
         onNull?:
           | 'error'
@@ -352,14 +352,16 @@ export class PrismaNextObjectFieldBuilder<
       }?,
     ];
     const relation = this.#relation(name as string);
-    const targetRef = opts.type ?? getRefFromContractModel(relation.targetModel, this.builder);
+    const targetRef = refFor(this.builder, opts.type ?? relation.targetModel);
     // Throws at build time for a type the relation can't return.
     const variant = variantForRelationType(
       this.contract as AnyContract,
       `t.relation('${name as string}') on '${this.modelKey as string}'`,
       relation.targetModel,
-      (targetRef as { modelKey?: string }).modelKey,
+      targetRef.modelKey,
     );
+    // Rows narrowed to a variant are queried by its columns.
+    const queryModel = variant === undefined ? relation.targetModel : targetRef.modelKey;
     const { type: _type, query, onNull, extensions, ...rest } = opts;
     const relationName = name as string;
     // A to-one relation loads whole, keyed on the row by its name, so a variant `type` narrows it
@@ -371,14 +373,11 @@ export class PrismaNextObjectFieldBuilder<
     // A literal query is checked here, and a callback's result through `checkReturned` when a
     // request is planned.
     const load = (value: unknown, problem?: Parameters<typeof relationLoad>[3]) =>
-      relationLoad(this.contract as AnyContract, relation.targetModel, value, problem);
+      relationLoad(this.contract as AnyContract, queryModel, value, problem);
     const literal =
       typeof query === 'function'
         ? undefined
-        : load(
-            query,
-            orderableProblem(getPluginConfig(this.builder).context, relation.targetModel),
-          );
+        : load(query, orderableProblem(getPluginConfig(this.builder).context, queryModel));
     const relationLoaded = (parent: object) =>
       (parent as Record<string, unknown>)[relationName] !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) =>
@@ -481,10 +480,13 @@ export class PrismaNextObjectFieldBuilder<
         RelatedShape = unknown,
         ConnectionInterfaces extends InterfaceParam<Types>[] = [],
         EdgeInterfaces extends InterfaceParam<Types>[] = [],
-        QueryLiteral extends ConnectionQueryLiteral<
+        // The model of `type`. A variant of the target narrows the rows.
+        TypeModel extends RelationTypeModel<Types, M, RelName> = RelatedModel<Types, M, RelName>,
+        QueryLiteral extends RelatedConnectionQueryLiteral<
           Types,
-          RelatedModel<Types, M, RelName>
-        > = ConnectionQueryLiteral<Types, RelatedModel<Types, M, RelName>>,
+          RelatedModel<Types, M, RelName>,
+          TypeModel
+        > = RelatedConnectionQueryLiteral<Types, RelatedModel<Types, M, RelName>, TypeModel>,
       >(
         name: RelName,
         ...args: NormalizeArgs<
@@ -497,6 +499,7 @@ export class PrismaNextObjectFieldBuilder<
               Args,
               RelatedShape,
               Shape,
+              TypeModel,
               QueryLiteral
             >,
             connectionOptions?:
@@ -536,7 +539,7 @@ export class PrismaNextObjectFieldBuilder<
     this: PrismaNextObjectFieldBuilder<SchemaTypes, ModelKey<SchemaTypes>>,
     name: string,
     options: ConnectionSettingsOptions & {
-      type?: { modelKey: string };
+      type?: unknown;
       extensions?: Record<string, unknown>;
       [key: string]: unknown;
     } = {},
@@ -546,21 +549,26 @@ export class PrismaNextObjectFieldBuilder<
     const relation = this.#relation(name);
     const config = getPluginConfig(this.builder);
     const relatedModel = relation.targetModel;
-    const targetRef = options.type ?? getRefFromContractModel(relatedModel, this.builder);
+    const targetRef = refFor(this.builder, options.type ?? relatedModel);
     const variant = variantForRelationType(
       config.contract,
       `t.relatedConnection('${name}') on '${this.modelKey as string}'`,
       relatedModel,
-      (targetRef as { modelKey?: string }).modelKey,
+      targetRef.modelKey,
     );
     const { type: _type, defaultSize, maxSize, query, totalCount, extensions, ...rest } = options;
-    const paging = connectionPaging(config, relatedModel, {
-      defaultSize,
-      maxSize,
-      totalCount,
-      query,
-    });
-    const include = connectionNodes((targetRef as { name?: string }).name ?? relatedModel);
+    // Rows narrowed to a variant are ordered and filtered by its columns.
+    const paging = connectionPaging(
+      config,
+      variant === undefined ? relatedModel : targetRef.modelKey,
+      {
+        defaultSize,
+        maxSize,
+        totalCount,
+        query,
+      },
+    );
+    const include = connectionNodes(targetRef.name);
     const filtered = config.filterConnectionTotalCount;
     const select: PrismaNextSelectFn = (args, ctx, nested, selected, position) =>
       paging.planPage(relation, name, { id: consumerId(position), selected, position }, args, ctx, {

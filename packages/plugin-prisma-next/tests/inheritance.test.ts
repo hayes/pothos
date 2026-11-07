@@ -2094,3 +2094,76 @@ describe('a relation targeting a variant model with a table of its own', () => {
     expect(result.data.users).toEqual([{ championCount: 1 }]);
   });
 });
+
+// A relation narrowed to a variant by `type` loads through the base's collection narrowed with
+// `.variant()`, which filters and orders by the variant's columns, as a root field of it does.
+describe("a relation's query by the columns of the variant it is narrowed to", () => {
+  const variantDb = useDatabase(
+    contract,
+    sql
+      .replace(
+        "('t2', 'feat1', 'feature', 'u1', NULL, 'u1')",
+        "('t2', 'feat1', 'feature', 'u1', NULL, 'u1'), ('t3', 'bug3', 'bug', 'u1', 'low', NULL), ('t4', 'bug4', 'bug', 'u1', 'mid', NULL), ('t5', 'feat5', 'feature', 'u1', NULL, NULL)",
+      )
+      .replace("('t2', 5, 'f2', 'u1');", "('t2', 5, 'f2', 'u1'), ('t5', 1, 'f5', NULL);"),
+  );
+  const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+    plugins: [RelayPlugin, PrismaNextPlugin],
+    relay: {},
+    prismaNext: { client: variantDb.client },
+  });
+  builder.prismaObject('Bug', { fields: (t) => ({ id: t.exposeID('id') }) });
+  builder.prismaObject('Feature', { fields: (t) => ({ id: t.exposeID('id') }) });
+  builder.prismaObject('User', {
+    fields: (t) => ({
+      bugs: t.relation('tasks', {
+        type: 'Bug',
+        query: { where: (bug) => bug.severity.in(['high', 'mid']), orderBy: { severity: 'desc' } },
+      }),
+      features: t.relation('tasks', {
+        type: 'Feature',
+        args: { min: t.arg.int({ required: true }) },
+        query: (args) => ({
+          where: (feature) => feature.priority.gte(args.min),
+          orderBy: { priority: 'asc' },
+        }),
+      }),
+      bugPage: t.relatedConnection('tasks', {
+        type: 'Bug',
+        query: { orderBy: { severity: 'asc' } },
+      }),
+      featurePage: t.relatedConnection('tasks', {
+        type: 'Feature',
+        query: { orderBy: { priority: 'desc' } },
+      }),
+    }),
+  });
+  builder.queryType({ fields: (t) => ({ users: t.prismaField({ type: ['User'] }) }) });
+  const schema = builder.toSchema();
+
+  it('filters and orders a relation', async () => {
+    const result = await run(schema, '{ users { bugs { id } features(min: 0) { id } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { bugs: [{ id: 't4' }, { id: 't1' }], features: [{ id: 't5' }, { id: 't2' }] },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('pages a connection in both directions', async () => {
+    const page = (field: string, args: string) =>
+      run(
+        schema,
+        `{ users { ${field}(${args}) { edges { node { id } } pageInfo { endCursor startCursor } } } }`,
+      );
+    const first = await page('bugPage', 'first: 2');
+    expect(first.errors).toBeUndefined();
+    const [{ bugPage }] = first.data.users;
+    expect(bugPage.edges).toEqual([{ node: { id: 't1' } }, { node: { id: 't3' } }]);
+    const next = await page('bugPage', `first: 2, after: "${bugPage.pageInfo.endCursor}"`);
+    expect(next.data.users[0].bugPage.edges).toEqual([{ node: { id: 't4' } }]);
+    const last = await page('featurePage', 'last: 1');
+    expect(last.errors).toBeUndefined();
+    expect(last.data.users[0].featurePage.edges).toEqual([{ node: { id: 't5' } }]);
+  });
+});

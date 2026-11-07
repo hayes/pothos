@@ -132,15 +132,19 @@ export interface RelationQueryLiteral<Types extends SchemaTypes, M extends Model
 
 /**
  * The literal `query` a to-many relation takes, and its entry in a `select`. A to-one relation is
- * loaded whole, so it takes none.
+ * loaded whole, so it takes none. Rows narrowed to a variant, `TypeModel`, take its columns as a
+ * root field of the variant does.
  */
 export type RelationQueryValue<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   R extends RelationKeys<Types, M>,
+  TypeModel extends ModelKey<Types> = RelatedModel<Types, M, R>,
 > =
   IsToMany<Types, M, R> extends true
-    ? RelationQueryLiteral<Types, RelatedModel<Types, M, R>>
+    ? [TypeModel] extends [RelatedModel<Types, M, R>]
+      ? RelationQueryLiteral<Types, TypeModel>
+      : FieldQueryLiteral<Types, TypeModel>
     : never;
 
 /**
@@ -165,16 +169,17 @@ export type RelationQuery<
   ParentModel extends ModelKey<Types>,
   RelName extends RelationKeys<Types, ParentModel>,
   Args extends InputFieldMap,
+  TypeModel extends ModelKey<Types> = RelatedModel<Types, ParentModel, RelName>,
 > =
   IsToMany<Types, ParentModel, RelName> extends true
     ?
-        | RelationQueryValue<Types, ParentModel, RelName>
+        | RelationQueryValue<Types, ParentModel, RelName, TypeModel>
         | ((
             args: InputShapeFromFields<Args>,
             context: Types['Context'],
           ) => MaybeAsyncSelection<
             Types,
-            | RelationQueryValue<Types, ParentModel, RelName>
+            | RelationQueryValue<Types, ParentModel, RelName, TypeModel>
             | RelationRefinement<Types, ParentModel, RelName>
             | undefined
           >)
@@ -254,17 +259,13 @@ type RelationBaseOptions<
   'type' | 'resolve' | InferredFieldOptionKeys
 > & {
   type?:
+    | TypeModel
     | PrismaNextObjectRef<Types, TypeModel, RelatedShape>
     | PrismaNextInterfaceRef<Types, TypeModel, RelatedShape>;
   query?: Query &
     QueryAsyncCheck<Types, Query> &
     NoInfer<
-      ExactQuery<
-        Types,
-        RelatedModel<Types, ParentModel, RelName>,
-        Query,
-        keyof RelationQueryValue<Types, ParentModel, RelName>
-      >
+      ExactQuery<Types, TypeModel, Query, keyof RelationQueryValue<Types, ParentModel, RelName>>
     >;
 };
 

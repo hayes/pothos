@@ -101,9 +101,9 @@ builder.queryType({
 
 - A `collection` for a variant's rows is `ctx.db.orm.Task.variant('bug')`, not `ctx.db.orm.Bug`,
   which Prisma doesn't filter by the discriminator.
-- The shorthand `where` of a root field or `prismaConnection` returning a variant takes only the
-  base's columns. Use the predicate form, `where: (bug) => bug.severity.eq('high')`, for the
-  variant's own.
+- The shorthand `where` of a root field, `prismaConnection`, or relation narrowed by `type`
+  returning a variant takes only the base's columns. Use the predicate form,
+  `where: (bug) => bug.severity.eq('high')`, for the variant's own. `orderBy` takes either.
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
 - A relation declared on a variant can't be in the variant type's `select`. Use a field's `select`
   or `t.relation`.
@@ -113,8 +113,8 @@ builder.queryType({
   request).
 - A relation to a variant that shares the base's table can't return an interface whose `select`
   loads a base model relation.
-- Pass a variant's ref as `type` to `t.relation` or `t.relatedConnection` to return only that
-  variant's rows. In a `select`, use the ref as the relation's entry: `select: { tasks: Bug }`.
+- Pass a variant's ref or model name as `type` to `t.relation` or `t.relatedConnection` to return
+  only that variant's rows. In a `select`, use the ref as the relation's entry: `select: { tasks: Bug }`.
   `{ tasks: true }` loads every task.
 - A row returned from a plain `t.field` must be
   [planned](./relations#returning-rows-from-other-fields) and hold the discriminator.

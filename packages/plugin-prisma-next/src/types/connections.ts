@@ -146,6 +146,18 @@ export type PrismaNextConnectionFieldOptions<
     >;
   };
 
+/**
+ * A related connection's `query`. Rows narrowed to a variant, `TypeModel`, take its columns as a
+ * `prismaConnection` of the variant does.
+ */
+export type RelatedConnectionQueryLiteral<
+  Types extends SchemaTypes,
+  RelatedModel extends ModelKey<Types>,
+  TypeModel extends ModelKey<Types>,
+> = [TypeModel] extends [RelatedModel]
+  ? ConnectionQueryLiteral<Types, TypeModel>
+  : RootConnectionQueryLiteral<Types, TypeModel>;
+
 export type PrismaNextRelatedConnectionOptions<
   Types extends SchemaTypes,
   ParentModel extends ModelKey<Types>,
@@ -154,7 +166,16 @@ export type PrismaNextRelatedConnectionOptions<
   Args extends InputFieldMap,
   RelatedShape = unknown,
   ParentShape = ObjectBaseShape<Types, ParentModel>,
-  QueryLiteral = ConnectionQueryLiteral<Types, RelatedModel<Types, ParentModel, RelName>>,
+  TypeModel extends RelationTypeModel<Types, ParentModel, RelName> = RelatedModel<
+    Types,
+    ParentModel,
+    RelName
+  >,
+  QueryLiteral = RelatedConnectionQueryLiteral<
+    Types,
+    RelatedModel<Types, ParentModel, RelName>,
+    TypeModel
+  >,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -182,14 +203,10 @@ export type PrismaNextRelatedConnectionOptions<
   > &
   ConnectionPagingOptions<Types, ParentShape, Args> & {
     type?:
-      | PrismaNextObjectRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>
-      | PrismaNextInterfaceRef<Types, RelationTypeModel<Types, ParentModel, RelName>, RelatedShape>;
-    query?: ConnectionQueryOption<
-      Types,
-      RelatedModel<Types, ParentModel, RelName>,
-      Args,
-      QueryLiteral
-    >;
+      | TypeModel
+      | PrismaNextObjectRef<Types, TypeModel, RelatedShape>
+      | PrismaNextInterfaceRef<Types, TypeModel, RelatedShape>;
+    query?: ConnectionQueryOption<Types, TypeModel, Args, QueryLiteral>;
   };
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
