@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import { execute, parse, subscribe } from 'graphql';
 import { describe, expect, it, vi } from 'vitest';
-import prismaNextPlugin, { collectionFromInfo } from '../src';
+import PrismaNextPlugin, { collectionFromInfo } from '../src';
 import { PrismaNextAdapter } from '../src/utils/adapter';
 import { detailOf, unexpected } from './fixtures/errors';
 import {
@@ -653,7 +653,7 @@ describe('reload isolation', () => {
       Context: { allow?: boolean };
       PrismaNextContract: typeof collision.contract;
     }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: collision.client },
     });
     const Sheet = builder.prismaObject('Sheet', {

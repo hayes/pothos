@@ -8,7 +8,7 @@ import postgresServerless from '@prisma/orm-postgres/serverless';
 import { graphql } from 'graphql';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import PrismaNextPlugin from '../src';
 import { isRefusedValue } from '../src/utils/errors';
 import { loadPostgresContract, postgresUrl as url } from './fixtures/helpers';
 import type { Contract } from './postgres/contract';
@@ -40,7 +40,7 @@ const raw = new Client({ connectionString: url });
 function createSchema(db: { orm: typeof client.orm } = client) {
   const { orm } = db;
   const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-    plugins: [RelayPlugin, prismaNextPlugin],
+    plugins: [RelayPlugin, PrismaNextPlugin],
     relay: {},
     prismaNext: { client: () => db, context: client.context },
   });
@@ -116,7 +116,7 @@ function createSchema(db: { orm: typeof client.orm } = client) {
 
 function nullableConnectionSchema(nulls: 'first' | 'last', direction: 'asc' | 'desc') {
   const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-    plugins: [RelayPlugin, prismaNextPlugin],
+    plugins: [RelayPlugin, PrismaNextPlugin],
     relay: {},
     prismaNext: { client },
   });
@@ -152,7 +152,7 @@ function createMutationSchema() {
     PrismaNextContract: Contract;
     Context: { orm: typeof client.orm };
   }>({
-    plugins: [prismaNextPlugin, WithInputPlugin],
+    plugins: [PrismaNextPlugin, WithInputPlugin],
     prismaNext: {
       // The request context carries the transaction's `orm`.
       client: (ctx) => {
@@ -528,7 +528,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
   describe('column codecs from the client context', () => {
     function eventSchema() {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-        plugins: [RelayPlugin, prismaNextPlugin],
+        plugins: [RelayPlugin, PrismaNextPlugin],
         relay: {},
         prismaNext: { client },
       });
@@ -592,7 +592,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
   describe('identities and IDs through column codecs', () => {
     function tokenSchema() {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-        plugins: [RelayPlugin, prismaNextPlugin],
+        plugins: [RelayPlugin, PrismaNextPlugin],
         relay: {},
         prismaNext: { client },
       });
@@ -663,7 +663,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
 
     it('serializes a compound ID with a wide integer for a custom id.parse', async () => {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-        plugins: [RelayPlugin, prismaNextPlugin],
+        plugins: [RelayPlugin, PrismaNextPlugin],
         relay: {},
         prismaNext: { client },
       });
@@ -701,7 +701,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
 
     it('fails only the node whose ID its column codec rejects', async () => {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-        plugins: [RelayPlugin, prismaNextPlugin],
+        plugins: [RelayPlugin, PrismaNextPlugin],
         relay: {},
         prismaNext: { client },
       });
@@ -735,7 +735,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
   describe('values the column codec accepts and the database refuses', () => {
     function textSchema() {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-        plugins: [RelayPlugin, prismaNextPlugin],
+        plugins: [RelayPlugin, PrismaNextPlugin],
         relay: {},
         prismaNext: { client },
       });
@@ -851,7 +851,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
 
   it('applies native null placement and the orderBy option in both directions', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client },
     });
@@ -946,7 +946,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       PrismaNextContract: Contract;
       Context: { tx: { orm: typeof client.orm } };
     }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: {
         client: (ctx) => {
           providerCalls += 1;

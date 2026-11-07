@@ -19,7 +19,7 @@ import {
   subscribe,
 } from 'graphql';
 import { afterAll, beforeAll, describe, expect, expectTypeOf, it } from 'vitest';
-import prismaNextPlugin, { type PothosPrismaNextPlugin, prismaConnectionHelpers } from '../src';
+import PrismaNextPlugin, { type PothosPrismaNextPlugin, prismaConnectionHelpers } from '../src';
 import { detailOf } from './fixtures/errors';
 import {
   type CapturedExecution,
@@ -69,7 +69,7 @@ function schema() {
     Context: { admin: boolean };
     AuthScopes: { admin: boolean };
   }>({
-    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    plugins: [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin],
     relay: {},
     scopeAuth: { authScopes: ({ admin }) => ({ admin }) },
     prismaNext: { client: ctx.client },
@@ -176,7 +176,7 @@ function _narrowedParentShapeSurvivesWithAuth() {
     Context: { admin: boolean };
     AuthScopes: { admin: boolean };
   }>({
-    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    plugins: [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin],
     relay: {},
     scopeAuth: { authScopes: ({ admin }) => ({ admin }) },
     prismaNext: { client: ctx.client },
@@ -201,7 +201,7 @@ function _fieldSelectWidensResolveOnly() {
     PrismaNextContract: SampleContract;
     AuthScopes: { admin: boolean };
   }>({
-    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    plugins: [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin],
     relay: {},
     scopeAuth: { authScopes: () => ({ admin: true }) },
     prismaNext: { client: ctx.client },
@@ -291,7 +291,7 @@ it('loads declared columns and the exposed column for authScopes', async () => {
     PrismaNextContract: SampleContract;
     AuthScopes: { open: boolean };
   }>({
-    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    plugins: [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin],
     relay: {},
     scopeAuth: { authScopes: () => ({ open: true }) },
     prismaNext: { client: ctx.client },
@@ -340,8 +340,8 @@ it('loads declared columns and the exposed column for authScopes', async () => {
 });
 
 const orders = [
-  ['scope-auth first', [ScopeAuthPlugin, prismaNextPlugin]],
-  ['prismaNext first', [prismaNextPlugin, ScopeAuthPlugin]],
+  ['scope-auth first', [ScopeAuthPlugin, PrismaNextPlugin]],
+  ['prismaNext first', [PrismaNextPlugin, ScopeAuthPlugin]],
 ] as const;
 
 describe.each(orders)("the type's parent loader (%s)", (_, plugins) => {
@@ -637,7 +637,7 @@ describe("a type's select before plugins listed first", () => {
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [ScopeAuthPlugin, prismaNextPlugin],
+      plugins: [ScopeAuthPlugin, PrismaNextPlugin],
       scopeAuth: { authScopes: () => ({ ok: true }) },
       prismaNext: { client: ctx.client },
     });
@@ -750,7 +750,7 @@ describe("a type's select before plugins listed first", () => {
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [ScopeAuthPlugin, prismaNextPlugin],
+      plugins: [ScopeAuthPlugin, PrismaNextPlugin],
       scopeAuth: { authScopes: () => ({ ok: true }) },
       prismaNext: { context: ctx.client.context, client: () => ({ orm: {} }) as never },
     });
@@ -783,7 +783,7 @@ describe("a type's select before plugins listed first", () => {
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [ScopeAuthPlugin, prismaNextPlugin],
+      plugins: [ScopeAuthPlugin, PrismaNextPlugin],
       scopeAuth: { authScopes: () => ({ ok: true }) },
       prismaNext: { client: ctx.client },
     });
@@ -824,7 +824,7 @@ describe("a type's select before plugins listed first", () => {
         PrismaNextContract: SampleContract;
         AuthScopes: { ok: boolean };
       }>({
-        plugins: [ScopeAuthPlugin, prismaNextPlugin],
+        plugins: [ScopeAuthPlugin, PrismaNextPlugin],
         scopeAuth: { authScopes: () => ({ ok: true }) },
         prismaNext: { client: db.client },
       });
@@ -857,7 +857,7 @@ describe("a type's select before plugins listed first", () => {
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [ScopeAuthPlugin, prismaNextPlugin],
+      plugins: [ScopeAuthPlugin, PrismaNextPlugin],
       scopeAuth: { authScopes: () => ({ ok: true }) },
       prismaNext: {
         context: ctx.client.context,
@@ -909,7 +909,7 @@ describe('rows another plugin rebuilt without what the type selects', () => {
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [ScopeAuthPlugin, 'prismaNextTestStripEmail' as never, prismaNextPlugin],
+      plugins: [ScopeAuthPlugin, 'prismaNextTestStripEmail' as never, PrismaNextPlugin],
       scopeAuth: { authScopes: () => ({ ok: true }) },
       prismaNext: { client: ctx.client },
     });
@@ -963,7 +963,7 @@ describe('rows another plugin rebuilt without what the type selects', () => {
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [ScopeAuthPlugin, 'prismaNextTestForgePosts' as never, prismaNextPlugin],
+      plugins: [ScopeAuthPlugin, 'prismaNextTestForgePosts' as never, PrismaNextPlugin],
       scopeAuth: { authScopes: () => ({ ok: true }) },
       prismaNext: { client: ctx.client },
     });
@@ -993,7 +993,7 @@ describe('rows a root connection pages', () => {
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+      plugins: [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin],
       relay: {},
       scopeAuth: { authScopes: () => ({ ok: true }) },
       prismaNext: { client: ctx.client },
@@ -1047,7 +1047,7 @@ describe("a connection helper's page of a variant with a table of its own", () =
       PrismaNextContract: InheritanceContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+      plugins: [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin],
       relay: {},
       scopeAuth: { authScopes: () => ({ ok: true }) },
       prismaNext: { client: inheritanceDb.client },
@@ -1099,7 +1099,7 @@ describe("a connection helper's page of a variant with a table of its own", () =
       PrismaNextContract: InheritanceContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+      plugins: [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin],
       relay: {},
       scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType: onType },
       prismaNext: { client: inheritanceDb.client },
@@ -1190,7 +1190,7 @@ describe('runScopesOnType on rows without what the type selects', () => {
         ScopeAuthPlugin,
         'prismaNextTestRecordScopeAuthParent' as never,
         RelayPlugin,
-        prismaNextPlugin,
+        PrismaNextPlugin,
       ],
       relay: {},
       scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType: true },
@@ -1303,7 +1303,7 @@ describe('runScopesOnType on rows without what the type selects', () => {
         ScopeAuthPlugin,
         'prismaNextTestRecordScopeAuthParent' as never,
         RelayPlugin,
-        prismaNextPlugin,
+        PrismaNextPlugin,
       ],
       relay: {},
       scopeAuth: { authScopes: () => ({ ok: true }), runScopesOnType: true },
@@ -1445,8 +1445,8 @@ describe.each(orders)('runScopesOnType through an interface (%s)', (_order, plug
 
 describe('rows another field filtered', () => {
   const orders = [
-    ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
-    ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
+    ['before', [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin]],
+    ['after', [RelayPlugin, PrismaNextPlugin, ScopeAuthPlugin]],
   ] as const;
 
   function auditBuilder(plugins: readonly unknown[]) {
@@ -1553,8 +1553,8 @@ describe('rows another field filtered', () => {
 // Selecting it differently is a build error, which tests/interfaces.test.ts covers.
 describe('a relation an interface and its implementation select alike', () => {
   describe.each([
-    ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
-    ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
+    ['before', [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin]],
+    ['after', [RelayPlugin, PrismaNextPlugin, ScopeAuthPlugin]],
   ] as const)('scope auth %s the prisma plugin', (_name, plugins) => {
     it('is what the type checks and fields of both see', async () => {
       const seen: string[] = [];
@@ -1614,8 +1614,8 @@ describe('a relation an interface and its implementation select alike', () => {
 // compute the same key differently would each pass their auth check on the other's.
 describe('a key an interface and its implementation both compute', () => {
   describe.each([
-    ['before', [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin]],
-    ['after', [RelayPlugin, prismaNextPlugin, ScopeAuthPlugin]],
+    ['before', [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin]],
+    ['after', [RelayPlugin, PrismaNextPlugin, ScopeAuthPlugin]],
   ] as const)('scope auth %s the prisma plugin', (_name, plugins) => {
     it('fails the schema build', () => {
       const builder = new SchemaBuilder<{
@@ -1659,7 +1659,7 @@ describe('slots beneath shared walks', () => {
       PrismaNextContract: SampleContract;
       AuthScopes: { ok: boolean };
     }>({
-      plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+      plugins: [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin],
       relay: { nodesOnConnection: true },
       scopeAuth: { authScopes: () => ({ ok: true }) },
       prismaNext: { client: ctx.client },
@@ -2204,7 +2204,7 @@ describe.each(orders)('a row two mutations return (%s)', (_, plugins) => {
 // A resolver on a row without what its type selects gets the type's data whichever plugins are
 // installed, and in whichever order.
 describe.each([
-  ['without scope-auth', [prismaNextPlugin]],
+  ['without scope-auth', [PrismaNextPlugin]],
   ...orders,
 ] as const)('resolvers on partial rows (%s)', (_, plugins) => {
   function partialSchema() {

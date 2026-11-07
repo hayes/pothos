@@ -22,14 +22,14 @@ npm install --save @pothos/core @pothos/plugin-prisma-next @pothos/plugin-relay 
 
 ```ts
 import SchemaBuilder from '@pothos/core';
-import prismaNextPlugin from '@pothos/plugin-prisma-next';
+import PrismaNextPlugin from '@pothos/plugin-prisma-next';
 import RelayPlugin from '@pothos/plugin-relay';
 import { contract, db } from './prisma/db';
 
 const builder = new SchemaBuilder<{
   PrismaNextContract: typeof contract;
 }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   prismaNext: { client: db },
 });
 ```

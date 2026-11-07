@@ -3,7 +3,7 @@ import RelayPlugin from '@pothos/plugin-relay';
 import postgres from '@prisma/orm-postgres/runtime';
 import { type GraphQLObjectType, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin, { type AnyContract, prismaConnectionHelpers } from '../src';
+import PrismaNextPlugin, { type AnyContract, prismaConnectionHelpers } from '../src';
 import {
   buildOnlyContext,
   createBuilder,
@@ -288,7 +288,7 @@ describe('contracts', () => {
       domain: { namespaces: { __unbound__: { models } } },
     } as unknown as AnyContract;
     const builder = new SchemaBuilder<{ PrismaNextContract: AnyContract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: noClient, context: buildOnlyContext(contract) },
     });
     const untyped = builder as unknown as {
@@ -338,7 +338,7 @@ describe('options validated when the schema is built', () => {
       uniques: [{ columns: ['score'] }],
     });
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: noClient, context: buildOnlyContext(contract) },
     });
@@ -366,7 +366,7 @@ describe('options validated when the schema is built', () => {
       },
     });
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: noClient, context: buildOnlyContext(contract) },
     });
@@ -395,7 +395,7 @@ describe('options validated when the schema is built', () => {
       url: postgresUrl,
     });
     const builder = new SchemaBuilder<{ PrismaNextContract: PostgresContract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: noClient, context },
     });

@@ -6,7 +6,7 @@ import { contractFromJson } from '@prisma/orm-mysql/static';
 import { graphql } from 'graphql';
 import { createConnection } from 'mariadb';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import PrismaNextPlugin from '../src';
 import type { Contract } from './mysql/contract';
 
 const url = process.env.POTHOS_PRISMA_NEXT_MYSQL_URL;
@@ -20,7 +20,7 @@ describe.skipIf(!url)('MySQL', () => {
 
   function createSchema() {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client },
     });

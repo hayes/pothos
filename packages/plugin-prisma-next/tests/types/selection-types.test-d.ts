@@ -5,7 +5,7 @@ import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
 import type { PostgresClient } from '@prisma/orm-postgres/runtime';
 import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, {
+import PrismaNextPlugin, {
   type CollectionFor,
   type ModelKey,
   type PrismaNextExecutionContext,
@@ -21,7 +21,7 @@ type UserRow = DefaultModelRow<Contract, 'User'>;
 type PostRow = DefaultModelRow<Contract, 'Post'>;
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract; AsyncSelections: true }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });
@@ -782,13 +782,13 @@ builder.queryType({
 builder.prismaObject('Tag', { fields: () => ({}) });
 
 // Without PrismaNextContract, model names collapse to a sentinel.
-new SchemaBuilder({ plugins: [prismaNextPlugin], prismaNext: { client: null as never } })
+new SchemaBuilder({ plugins: [PrismaNextPlugin], prismaNext: { client: null as never } })
   // @ts-expect-error without PrismaNextContract, model names collapse to a sentinel
   .prismaObject('User', { fields: () => ({}) });
 
 // prismaFieldWithInput: an optional input may be omitted as well as null.
 const withInput = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [WithInputPlugin, prismaNextPlugin],
+  plugins: [WithInputPlugin, PrismaNextPlugin],
   prismaNext: { client: null as never },
 });
 withInput.queryType({
@@ -836,29 +836,29 @@ withInput.queryType({
 type Context = { db: typeof db; tenantId: string };
 declare const db: { orm: typeof orm; context: PrismaNextExecutionContext<Contract> };
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: db },
 });
 declare const sqliteClient: SqliteClient<Contract>;
 declare const postgresClient: PostgresClient<PostgresContract>;
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: sqliteClient },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: {
     client: () => null as unknown as Parameters<Parameters<typeof sqliteClient.transaction>[0]>[0],
     context: sqliteClient.context,
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   // @ts-expect-error a client of another contract
   prismaNext: { client: postgresClient },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: {
     client: (ctx) => {
       expectTypeOf(ctx).toEqualTypeOf<Context>();
@@ -868,23 +868,23 @@ new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: Context }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   // A client function needs the execution context for building the schema.
   // @ts-expect-error Property 'context' is missing
   prismaNext: { client: (ctx) => ctx.db },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   // @ts-expect-error the client is required
   prismaNext: {},
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   // @ts-expect-error a client object carries its own context, so `context` is only for a function
   prismaNext: { client: db, context: db.context },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: {
     client: db,
     // @ts-expect-error unknown options are rejected
@@ -892,14 +892,14 @@ new SchemaBuilder<{ PrismaNextContract: Contract }>({
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: {
     // @ts-expect-error the client needs its execution context
     client: { orm: db.orm },
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: {
     // @ts-expect-error a client's collections belong to the contract's models
     client: { orm: { User: orm.Post }, context: db.context },
@@ -911,7 +911,7 @@ new SchemaBuilder<{ PrismaNextContract: Contract }>({
 declare const inhClient: SqliteClient<InheritanceContract>;
 type OtherDbContext = { db: typeof db; otherDb: typeof inhClient };
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: {
     // @ts-expect-error collections of another contract
     client: () => ({ orm: inhClient.orm }),
@@ -919,14 +919,14 @@ new SchemaBuilder<{ PrismaNextContract: Contract }>({
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: {
     // @ts-expect-error a collection of another contract's `User`
     client: { orm: { User: inhClient.orm.User }, context: db.context },
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: OtherDbContext }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: {
     // @ts-expect-error the request's client is of another contract
     client: (ctx) => ({ orm: ctx.otherDb.orm }),
@@ -934,19 +934,19 @@ new SchemaBuilder<{ PrismaNextContract: Contract; Context: OtherDbContext }>({
   },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: { db: typeof sqliteClient } }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: (ctx) => ctx.db, context: sqliteClient.context },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract; Context: OtherDbContext }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: (ctx) => ({ orm: ctx.db.orm }), context: sqliteClient.context },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: { orm: { User: sqliteClient.orm.User }, context: db.context } },
 });
 const inhBuilder = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: inhClient },
 });
 inhBuilder.prismaObject('Bug', {
@@ -956,16 +956,16 @@ inhBuilder.prismaObject('Bug', {
 });
 declare const sqliteTransaction: Parameters<Parameters<typeof sqliteClient.transaction>[0]>[0];
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: () => sqliteTransaction, context: sqliteClient.context },
 });
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: () => ({ orm: sqliteTransaction.orm }), context: sqliteClient.context },
 });
 declare const inhTransaction: Parameters<Parameters<typeof inhClient.transaction>[0]>[0];
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   // @ts-expect-error a transaction of another contract
   prismaNext: { client: () => inhTransaction, context: sqliteClient.context },
 });

@@ -5,7 +5,7 @@ import RelayPlugin from '@pothos/plugin-relay';
 import { contractFromJson } from '@prisma/orm-sqlite/static';
 import { GraphQLError, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin, { prismaConnectionHelpers } from '../src';
+import PrismaNextPlugin, { prismaConnectionHelpers } from '../src';
 import { getPluginConfig } from '../src/utils/config';
 import { buildConnectionPage, connectionOrder } from '../src/utils/cursors';
 import { detailOf } from './fixtures/errors';
@@ -28,7 +28,7 @@ const db = useDatabase(contract, sql);
 
 function createSchema() {
   const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-    plugins: [RelayPlugin, prismaNextPlugin],
+    plugins: [RelayPlugin, PrismaNextPlugin],
     relay: {},
     prismaNext: { client: db.client },
   });
@@ -72,7 +72,7 @@ function createSchema() {
 
 function createVariantSchema() {
   const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-    plugins: [RelayPlugin, prismaNextPlugin],
+    plugins: [RelayPlugin, PrismaNextPlugin],
     relay: {},
     prismaNext: { client: db.client },
   });
@@ -290,7 +290,7 @@ describe('native model inheritance', () => {
 
   it('narrows a to-one relation by its discriminator without a hierarchy interface', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: db.client },
     });
     const bug = builder.prismaObject('Bug', {
@@ -355,7 +355,7 @@ describe('native model inheritance', () => {
 
   it("names the base collection a variant's reload needs when the client lacks it", async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: {
         context: db.client.context,
@@ -377,7 +377,7 @@ describe('native model inheritance', () => {
 
   it("narrows a node's default collection to its variant", async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: db.client },
     });
@@ -421,7 +421,7 @@ describe('native model inheritance', () => {
     // the one a fragment entering it must carry.
     function createComponentSchema() {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-        plugins: [RelayPlugin, prismaNextPlugin],
+        plugins: [RelayPlugin, PrismaNextPlugin],
         relay: {},
         prismaNext: { client: db.client },
       });
@@ -580,7 +580,7 @@ describe('native model inheritance', () => {
       resolveType?: () => string,
     ) {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-        plugins: [prismaNextPlugin],
+        plugins: [PrismaNextPlugin],
         prismaNext: { client: db.client },
       });
       const task = builderTask(builder, resolveType);
@@ -723,7 +723,7 @@ describe('native model inheritance', () => {
 
     it('routes rows of an interface whose select is a column list', async () => {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-        plugins: [prismaNextPlugin],
+        plugins: [PrismaNextPlugin],
         prismaNext: { client: db.client },
       });
       const task = builder.prismaInterface('Task', {
@@ -763,7 +763,7 @@ describe('native model inheritance', () => {
 
   it('rejects a relation typed as a variant of another branch of its hierarchy', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: db.client },
     });
     const task = builder.prismaInterface('Task', {
@@ -785,7 +785,7 @@ describe('native model inheritance', () => {
   describe("a field select's relation typed as a variant of another branch", () => {
     function variantBuilder(select: unknown) {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-        plugins: [prismaNextPlugin],
+        plugins: [PrismaNextPlugin],
         prismaNext: { client: db.client },
       });
       const task = builder.prismaInterface('Task', {
@@ -833,7 +833,7 @@ describe('native model inheritance', () => {
 
   it('rejects a relation typed as a model outside its hierarchy', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: db.client },
     });
     const user = builder.prismaObject('User', {
@@ -857,7 +857,7 @@ describe('native model inheritance', () => {
     ['was loaded without', { id: 't1', title: 'bug1' }, /loaded without its discriminator 'type'/],
   ])('reports an interface row whose discriminator %s', async (_name, row, message) => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: db.client },
     });
     const task = builderTask(builder);
@@ -878,7 +878,7 @@ describe('native model inheritance', () => {
 
   it('resolves connection helpers made before the model is registered as an interface', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: db.client },
     });
@@ -915,7 +915,7 @@ describe('native model inheritance', () => {
 
   it("loads the discriminator into an interface's planned rows when the query selects no field", async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: db.client },
     });
@@ -974,7 +974,7 @@ describe('native model inheritance', () => {
     ],
   ] as const)('rejects a model used as %s', (_, first, then, message) => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: db.client },
     });
     const use = (kind: 'interface' | 'object') =>
@@ -987,7 +987,7 @@ describe('native model inheritance', () => {
 
   it("encodes a column a variant keeps in its own table through that column's codec", () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: db.client },
     });
@@ -1009,7 +1009,7 @@ describe("a variant's relations in a field's select", () => {
 
   function reviewBuilder() {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: db.client },
     });
@@ -1119,7 +1119,7 @@ describe("a variant's relations in a field's select", () => {
     const moved = contractFromJson(json) as unknown as Contract;
     const movedDb = useDatabase(moved, sql);
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: movedDb.client },
     });
@@ -1158,7 +1158,7 @@ describe("a variant's relations in a field's select", () => {
 
   it('reloads a computed value of a base relation beneath a relation targeting a variant', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: db.client },
     });
@@ -1189,7 +1189,7 @@ describe("a variant's relations in a field's select", () => {
     models.Bug.relations.bugNotes = models.Task.relations.notes;
     const movedDb = useDatabase(contractFromJson(json) as unknown as Contract, sql);
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: movedDb.client },
     });
@@ -1251,7 +1251,7 @@ describe('a relation name two variants declare', () => {
   );
   const createSharedBuilder = (bugFields: (t: never) => object = () => ({})) => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: sharedDb.client },
     });
     const task = builder.prismaInterface('Task', {
@@ -1316,7 +1316,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
   // the fields reading Task's columns and relations reload them.
   function createFeatureSchema(database = db) {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: database.client },
     });
@@ -1410,7 +1410,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
   describe("connection helpers whose nodes are a relation's rows", () => {
     function helperSchema() {
       const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-        plugins: [RelayPlugin, prismaNextPlugin],
+        plugins: [RelayPlugin, PrismaNextPlugin],
         relay: {},
         prismaNext: { client: db.client },
       });
@@ -1464,7 +1464,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
   });
 
   function selectBuilder(
-    plugins: (typeof ErrorsPlugin | typeof prismaNextPlugin)[] = [prismaNextPlugin],
+    plugins: (typeof ErrorsPlugin | typeof PrismaNextPlugin)[] = [PrismaNextPlugin],
   ) {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins,
@@ -1600,7 +1600,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
 
   function taskBuilder() {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: db.client },
     });
     const task = builder.prismaInterface('Task', {
@@ -1731,7 +1731,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     't.relatedConnection',
   ] as const)('rejects %s returning an interface of their model', (helper) => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: db.client },
     });
@@ -1765,7 +1765,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
   // can't include Task's relations, before the interface's resolveType reads them.
   function bugInterfaceBuilder(helper: 't.relation' | 't.relatedConnection', ownSelect: boolean) {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: db.client },
     });
@@ -1815,7 +1815,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
 
   it("rejects returning a single-table variant's interface whose select computes over a base relation", () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: db.client },
     });
     const task = builder.prismaInterface('Task', {
@@ -1846,7 +1846,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
   // An object type's fields reload what its select can't load through the variant model.
   it("loads a single-table variant object type's select of a base relation through a relation", async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: db.client },
     });
     const task = builder.prismaInterface('Task', {
@@ -1871,7 +1871,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
 
   it("rejects a field's select returning them through another plugin's type", () => {
     // plugin-errors changes the field's type after this plugin's onOutputFieldConfig runs.
-    const { builder, feature } = selectBuilder([ErrorsPlugin, prismaNextPlugin]);
+    const { builder, feature } = selectBuilder([ErrorsPlugin, PrismaNextPlugin]);
     builder.prismaObject('Note', {
       fields: (t) => ({
         selected: t.field({

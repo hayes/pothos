@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { beforeAll, describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import PrismaNextPlugin from '../src';
 import { getPluginConfig } from '../src/utils/config';
 import {
   applyCursorPagination,
@@ -339,7 +339,7 @@ describe('rejected cursors', () => {
 
     it('rejects a null value for a non-null cursor column', async () => {
       const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
-        plugins: [RelayPlugin, prismaNextPlugin],
+        plugins: [RelayPlugin, PrismaNextPlugin],
         relay: {},
         prismaNext: { client: collision.client },
       });

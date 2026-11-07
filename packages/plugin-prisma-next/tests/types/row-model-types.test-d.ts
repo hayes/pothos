@@ -3,7 +3,7 @@
 // measures as unused would accept any model's row.
 import SchemaBuilder from '@pothos/core';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, {
+import PrismaNextPlugin, {
   type CollectionFor,
   type IdentityFields,
   type OwnRow,
@@ -43,7 +43,7 @@ export async function firstTitles() {
 }
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: null as never },
 });
 
@@ -85,7 +85,7 @@ type InheritanceTypes = PothosSchemaTypes.ExtendDefaultTypes<{
 expectTypeOf<IdentityFields<InheritanceTypes, 'Feature'>>().toEqualTypeOf<'id'>();
 
 const collision = new SchemaBuilder<{ PrismaNextContract: CollisionContract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: null as never },
 });
 const TagRef = collision.prismaObject('Tag', {

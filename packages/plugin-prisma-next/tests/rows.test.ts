@@ -2,7 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { execute, parse } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin, { collectionFromInfo } from '../src';
+import PrismaNextPlugin, { collectionFromInfo } from '../src';
 import { createBuilder, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
@@ -571,7 +571,7 @@ describe('model members named like plugin slots', () => {
 
   function schema() {
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: collision.client },
     });

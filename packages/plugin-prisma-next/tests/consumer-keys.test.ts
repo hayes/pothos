@@ -5,7 +5,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import { type GraphQLFieldResolver, parse, subscribe } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin, { collectionFromInfo, prismaConnectionHelpers } from '../src';
+import PrismaNextPlugin, { collectionFromInfo, prismaConnectionHelpers } from '../src';
 import { createBuilder, run, type SampleContract, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
@@ -389,7 +389,7 @@ describe('a plugin that copies the parent', () => {
   it.each(['before', 'after'] as const)('reads a copy as the row (%s)', async (position) => {
     const copy = 'prismaNextTestConsumerCopy' as never;
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: position === 'before' ? [copy, prismaNextPlugin] : [prismaNextPlugin, copy],
+      plugins: position === 'before' ? [copy, PrismaNextPlugin] : [PrismaNextPlugin, copy],
       prismaNext: { client: db.client },
     });
     const { User } = define(builder as never);

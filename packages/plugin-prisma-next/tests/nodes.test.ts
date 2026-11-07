@@ -4,7 +4,7 @@ import { Collection } from '@prisma/orm-family-sql/orm-client';
 import sqlite from '@prisma/orm-sqlite/runtime';
 import { execute, type GraphQLObjectType, parse } from 'graphql';
 import { afterAll, describe, expect, expectTypeOf, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import PrismaNextPlugin from '../src';
 import { detailOf } from './fixtures/errors';
 import {
   createBuilder,
@@ -252,7 +252,7 @@ describe('node declarations', () => {
   it('requires id.field to be a complete non-null primary or unique key', () => {
     const node = (field: 'id' | 'text' | 'uniq' | ['id', 'text']) => {
       const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
-        plugins: [RelayPlugin, prismaNextPlugin],
+        plugins: [RelayPlugin, PrismaNextPlugin],
         relay: {},
         prismaNext: { client: collision.client },
       });
@@ -285,7 +285,7 @@ describe('node declarations', () => {
 
   it('decodes IDs for globalID arguments that name the node', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
-      plugins: [RelayPlugin, prismaNextPlugin],
+      plugins: [RelayPlugin, PrismaNextPlugin],
       relay: {},
       prismaNext: { client: collision.client },
     });
@@ -443,7 +443,7 @@ describe('the collection option', () => {
     try {
       expect(client.orm.User).toBeInstanceOf(UserCollection);
       const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-        plugins: [RelayPlugin, prismaNextPlugin],
+        plugins: [RelayPlugin, PrismaNextPlugin],
         relay: {},
         prismaNext: { client },
       });

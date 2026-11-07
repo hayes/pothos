@@ -15,7 +15,7 @@ import {
   specifiedDirectives,
 } from 'graphql';
 import { afterAll } from 'vitest';
-import prismaNextPlugin, {
+import PrismaNextPlugin, {
   type AnyContract,
   type PrismaNextExecutionContext,
   type PrismaNextPluginOptions,
@@ -128,7 +128,7 @@ export function createBuilder<Context extends object = object>({
 }: SampleOptions<Context> = {}) {
   const sample = sampleDb?.client ?? sqlite({ contract: sampleContract });
   return new SchemaBuilder<SampleTypes<Context>>({
-    plugins: [ErrorsPlugin, RelayPlugin, prismaNextPlugin],
+    plugins: [ErrorsPlugin, RelayPlugin, PrismaNextPlugin],
     relay: { nodesOnConnection: true },
     prismaNext:
       typeof client === 'function'

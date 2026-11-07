@@ -1,14 +1,14 @@
 // Each export's declaration must name only types the package exports from its entry.
 import SchemaBuilder, { type FieldMap, type FieldRef } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import prismaNextPlugin, {
+import PrismaNextPlugin, {
   type PrismaNextObjectRef,
   prismaConnectionHelpers,
 } from 'plugin-under-test';
 import type { Contract } from '../fixtures/sample-contract';
 
 export const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });

@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import WithInputPlugin from '@pothos/plugin-with-input';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import PrismaNextPlugin from '../src';
 import { createBuilder, run, type SampleContract, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
@@ -10,7 +10,7 @@ describe('plugin-with-input', () => {
   it('passes the input to prismaFieldWithInput, or undefined when an optional input is omitted', async () => {
     const seen: unknown[] = [];
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [WithInputPlugin, prismaNextPlugin],
+      plugins: [WithInputPlugin, PrismaNextPlugin],
       prismaNext: { client: db.client },
     });
     builder.prismaObject('User', {

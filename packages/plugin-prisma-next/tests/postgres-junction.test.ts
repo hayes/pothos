@@ -3,7 +3,7 @@ import postgres from '@prisma/orm-postgres/runtime';
 import { graphql } from 'graphql';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import PrismaNextPlugin from '../src';
 import { postgresUrl as url } from './fixtures/helpers';
 import { postgresJunctionContract, postgresJunctionTables } from './fixtures/junction';
 
@@ -30,7 +30,7 @@ const raw = new Client({ connectionString: url });
 // a loose view of it, as in the SQLite N:M test.
 function schema() {
   const builder = new SchemaBuilder<{ PrismaNextContract: typeof postgresJunctionContract }>({
-    plugins: [prismaNextPlugin],
+    plugins: [PrismaNextPlugin],
     prismaNext: { client },
   });
   const b = builder as unknown as {

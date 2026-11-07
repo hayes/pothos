@@ -1,7 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin, { type ComputedSelectEntry } from '../src';
+import PrismaNextPlugin, { type ComputedSelectEntry } from '../src';
 import {
   createBuilder,
   deferSchema,
@@ -336,7 +336,7 @@ describe('inherited selections', () => {
 
   it("loads a to-one select for resolveType and an implementation's fields through the interface", async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: collision.client },
     });
     const Account = builder.prismaInterface('Owner', {

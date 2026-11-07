@@ -6,7 +6,7 @@ import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute, type GraphQLSchema, parse } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import PrismaNextPlugin from '../src';
 import {
   type CapturedExecution,
   createSqliteRuntime,
@@ -36,7 +36,7 @@ function createSchema(seen: unknown[]) {
     PrismaNextContract: SampleContract;
     AuthScopes: { ok: boolean };
   }>({
-    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    plugins: [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin],
     relay: {},
     scopeAuth: { authScopes: () => ({ ok: true }) },
     prismaNext: { client: ctx.client },
@@ -140,7 +140,7 @@ function createVariantSchema(seen: unknown[], ownerSelectedOn: 'Bug' | 'Task') {
     PrismaNextContract: InheritanceContract;
     AuthScopes: { ok: boolean };
   }>({
-    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    plugins: [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin],
     relay: {},
     scopeAuth: { authScopes: () => ({ ok: true }) },
     prismaNext: { client: inheritanceDb.client },
@@ -224,7 +224,7 @@ function createToOneVariantSchema(seen: unknown[]) {
     PrismaNextContract: InheritanceContract;
     AuthScopes: { ok: boolean };
   }>({
-    plugins: [ScopeAuthPlugin, RelayPlugin, prismaNextPlugin],
+    plugins: [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin],
     relay: {},
     scopeAuth: { authScopes: () => ({ ok: true }) },
     prismaNext: { client: inheritanceDb.client },

@@ -3,7 +3,7 @@ import RelayPlugin from '@pothos/plugin-relay';
 import postgres from '@prisma/orm-postgres/runtime';
 import { getNamedType } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin, { type AnyContract, prismaConnectionHelpers } from '../src';
+import PrismaNextPlugin, { type AnyContract, prismaConnectionHelpers } from '../src';
 import { collectionForModel, resolveContractModel } from '../src/utils/contract';
 import { getModelIdentities } from '../src/utils/model';
 import { loadPostgresContract, postgresUrl as url } from './fixtures/helpers';
@@ -22,7 +22,7 @@ const inheritanceContract = loadPostgresContract<InheritanceContract>(
 
 function createBuilder() {
   return new SchemaBuilder<{ PrismaNextContract: Contract }>({
-    plugins: [RelayPlugin, prismaNextPlugin],
+    plugins: [RelayPlugin, PrismaNextPlugin],
     relay: {},
     prismaNext: { client },
   });

@@ -2,7 +2,7 @@
 // in the same program would load their global augmentations and enable these methods.
 import SchemaBuilder from '@pothos/core';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin from '../../src';
+import PrismaNextPlugin from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
 
 const relayRequired = '@pothos/plugin-relay is required to use this method';
@@ -10,7 +10,7 @@ const withInputRequired = '@pothos/plugin-with-input is required to use this met
 const scopeAuthRequired = '@pothos/plugin-scope-auth is required to use this method';
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: null as never },
 });
 

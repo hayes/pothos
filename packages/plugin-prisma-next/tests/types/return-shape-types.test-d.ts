@@ -8,7 +8,7 @@ import type { PostgresClient } from '@prisma/orm-postgres/runtime';
 import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import type { GraphQLResolveInfo } from 'graphql';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, {
+import PrismaNextPlugin, {
   type CollectionFor,
   type ConnectionHelperRow,
   collectionFromInfo,
@@ -28,7 +28,7 @@ declare const postRow: PostRow;
 declare const postWithAuthor: PostRow & { author: UserRow };
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });
@@ -122,7 +122,7 @@ builder.prismaInterface('User', {
 
 // A prismaInterface of a discriminated model also needs the discriminator.
 const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: null as never },
 });
 type TaskRow = DefaultModelRow<InheritanceContract, 'Task'>;

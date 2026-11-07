@@ -7,7 +7,7 @@ import type {
 } from '@prisma/orm-family-sql/orm-client';
 import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, {
+import PrismaNextPlugin, {
   type OnNullRequired,
   type RelatedModel,
   type RelationKeys,
@@ -25,7 +25,7 @@ const builder = new SchemaBuilder<{
   PrismaNextContract: Contract;
   Scalars: { BigInt: { Input: bigint; Output: bigint } };
 }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });
@@ -285,7 +285,7 @@ builder.prismaObject('User', {
 
 // A target without aggregates, such as MySQL, can't count, and the error says so.
 const mysql = new SchemaBuilder<{ PrismaNextContract: MysqlContract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: null as never },
 });
 mysql.prismaObject('Author', {
@@ -300,7 +300,7 @@ mysql.prismaObject('Author', {
 // A to-one relation is nullable when its contract relation is, as Bug.reviewer is. A variant's own
 // relation loads only in a field's select.
 const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: null as never },
 });
 inheritance.prismaObject('Bug', {
@@ -331,7 +331,7 @@ const strict = new SchemaBuilder<{
   PrismaNextContract: InheritanceContract;
   DefaultFieldNullability: false;
 }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: null as never },
   defaultFieldNullability: false,
 });
@@ -585,7 +585,7 @@ builder.prismaObject('Post', {
 });
 
 const asyncBuilder = new SchemaBuilder<{ PrismaNextContract: Contract; AsyncSelections: true }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });

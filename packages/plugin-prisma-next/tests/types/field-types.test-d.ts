@@ -8,7 +8,7 @@ import SchemaBuilder, {
 import RelayPlugin, { type ConnectionShape } from '@pothos/plugin-relay';
 import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, {
+import PrismaNextPlugin, {
   type CollectionFor,
   type PrismaNextInterfaceRef,
   type PrismaNextNodeRef,
@@ -47,7 +47,7 @@ declare global {
 }
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });
@@ -226,7 +226,7 @@ builder.queryFields((t) => {
   prismaConnectionHelpers(builder, Viewer, { query: { orderBy: { title: 'asc' } } });
 
   const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
-    plugins: [RelayPlugin, prismaNextPlugin],
+    plugins: [RelayPlugin, PrismaNextPlugin],
     relay: {},
     prismaNext: { client: null as never },
   });
@@ -334,7 +334,7 @@ export const typesDiffer: UserFieldBuilder<Narrow, Narrow> = otherTypes;
 // A root field's `type` takes refs of this builder's contract, not refs of another builder's.
 {
   const other = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
-    plugins: [RelayPlugin, prismaNextPlugin],
+    plugins: [RelayPlugin, PrismaNextPlugin],
     relay: {},
     prismaNext: { client: null as never },
   });
@@ -760,7 +760,7 @@ builder.queryFields((t) => ({
 // to. A to-one relation's rows load whole, so it can't.
 {
   const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
-    plugins: [prismaNextPlugin],
+    plugins: [PrismaNextPlugin],
     prismaNext: { client: null as never },
   });
   const Bug = inheritance.prismaObject('Bug', { fields: (t) => ({ id: t.exposeID('id') }) });

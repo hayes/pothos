@@ -1,11 +1,11 @@
 // Native inheritance: a base interface and variant objects selecting relations.
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import prismaNextPlugin from 'plugin-under-test';
+import PrismaNextPlugin from 'plugin-under-test';
 import type { Contract } from '../inheritance/contract';
 
 export const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });

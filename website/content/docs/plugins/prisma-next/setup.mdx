@@ -21,14 +21,14 @@ Pass your Prisma client to the plugin, and your contract's type as `PrismaNextCo
 
 ```ts
 import SchemaBuilder from '@pothos/core';
-import prismaNextPlugin from '@pothos/plugin-prisma-next';
+import PrismaNextPlugin from '@pothos/plugin-prisma-next';
 import { contract, db } from './prisma/db';
 
 const builder = new SchemaBuilder<{
   PrismaNextContract: typeof contract;
   Context: { db: typeof db; userId: string; isAdmin: boolean };
 }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: { client: db },
 });
 
@@ -156,7 +156,7 @@ const builder = new SchemaBuilder<{
   PrismaNextContract: typeof contract;
   Context: { db: PostgresQueryMembers<typeof contract> };
 }>({
-  plugins: [prismaNextPlugin],
+  plugins: [PrismaNextPlugin],
   prismaNext: {
     client: (ctx) => ctx.db,
     context: db.context,

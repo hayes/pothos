@@ -2,7 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { PostgresClient } from '@prisma/orm-postgres/runtime';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, {
+import PrismaNextPlugin, {
   type CollectionFor,
   type ConnectionHelperRow,
   type ConnectionQueryLiteral,
@@ -24,7 +24,7 @@ declare const orm: {
 };
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });
@@ -207,7 +207,7 @@ builder.queryType({
 // Temporal columns order with the client's codecs; bytes columns can't order a connection.
 declare const client: PostgresClient<PostgresContract>;
 const postgres = new SchemaBuilder<{ PrismaNextContract: PostgresContract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client },
 });
@@ -550,7 +550,7 @@ const nonNullBuilder = new SchemaBuilder<{
   PrismaNextContract: Contract;
   DefaultFieldNullability: false;
 }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   defaultFieldNullability: false,
   prismaNext: { client: null as never },

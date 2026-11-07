@@ -2,7 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute, type GraphQLSchema, parse } from 'graphql';
 import { afterAll, describe, expect, it } from 'vitest';
-import prismaNextPlugin, { collectionFromInfo } from '../src';
+import PrismaNextPlugin, { collectionFromInfo } from '../src';
 import {
   type CapturedExecution,
   createTestRuntime,
@@ -32,7 +32,7 @@ function schema() {
     Context: { signedIn: boolean };
     AuthScopes: { signedIn: boolean };
   }>({
-    plugins: [ScopeAuthPlugin, prismaNextPlugin],
+    plugins: [ScopeAuthPlugin, PrismaNextPlugin],
     scopeAuth: { authScopes: ({ signedIn }) => ({ signedIn }) },
     prismaNext: { client: db.client },
   });

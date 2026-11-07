@@ -2,12 +2,12 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, { type ModelKey } from '../../src';
+import PrismaNextPlugin, { type ModelKey } from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });
@@ -156,7 +156,7 @@ builder.prismaNode('User', {
 type Types = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: InheritanceContract }>;
 expectTypeOf<ModelKey<Types>>().toEqualTypeOf<'Bug' | 'Feature' | 'Note' | 'Task' | 'User'>();
 const inheritance = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });
@@ -297,7 +297,7 @@ const withContext = new SchemaBuilder<{
   Context: { viewerId: string };
   PrismaNextContract: InheritanceContract;
 }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client },
 });

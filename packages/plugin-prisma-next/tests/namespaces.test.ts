@@ -4,7 +4,7 @@ import postgres from '@prisma/orm-postgres/runtime';
 import { graphql } from 'graphql';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import PrismaNextPlugin from '../src';
 import { loadPostgresContract, postgresUrl as url } from './fixtures/helpers';
 import type { Contract as InheritanceContract } from './inheritance-namespaces/contract';
 import type { Contract } from './namespaces/contract';
@@ -19,7 +19,7 @@ const { nsa, nsb } = client.orm;
 
 function createBuilder() {
   return new SchemaBuilder<{ PrismaNextContract: Contract }>({
-    plugins: [RelayPlugin, prismaNextPlugin],
+    plugins: [RelayPlugin, PrismaNextPlugin],
     relay: {},
     prismaNext: { client },
   });
@@ -148,7 +148,7 @@ const { inha, inhb } = inheritanceClient.orm;
 
 function createInheritanceSchema(bugName?: string) {
   const builder = new SchemaBuilder<{ PrismaNextContract: InheritanceContract }>({
-    plugins: [RelayPlugin, prismaNextPlugin],
+    plugins: [RelayPlugin, PrismaNextPlugin],
     relay: {},
     prismaNext: { client: inheritanceClient },
   });

@@ -1,11 +1,11 @@
 // A contract with several namespaces names its models `namespace.Model`.
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import prismaNextPlugin, { prismaConnectionHelpers } from 'plugin-under-test';
+import PrismaNextPlugin, { prismaConnectionHelpers } from 'plugin-under-test';
 import type { Contract } from '../namespaces/contract';
 
 export const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });

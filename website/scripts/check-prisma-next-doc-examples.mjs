@@ -15,7 +15,7 @@ const readme = 'packages/plugin-prisma-next/README.md';
 const skip = /orm\.public\b|'auth\.|@prisma\/orm-postgres|new SchemaBuilder\b/;
 
 const preamble = (contract) => `import SchemaBuilder from '@pothos/core';
-import prismaNextPlugin from '@pothos/plugin-prisma-next';
+import PrismaNextPlugin from '@pothos/plugin-prisma-next';
 import RelayPlugin from '@pothos/plugin-relay';
 import sqlite from '@prisma/orm-sqlite/runtime';
 import { graphql, type GraphQLSchema } from 'graphql';
@@ -30,7 +30,7 @@ const builder = new SchemaBuilder<{
   PrismaNextContract: Contract;
   Context: { db: typeof db; userId: string; isAdmin: boolean };
 }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   prismaNext: { client: db },
 });
 `;

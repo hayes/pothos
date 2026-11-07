@@ -9,9 +9,9 @@ describe('loading @pothos/plugin-prisma in the same program', () => {
   it('fails to build a schema with plugin-prisma-next', async () => {
     vi.resetModules();
     const { default: SchemaBuilder } = await import('@pothos/core');
-    const { default: prismaNextPlugin } = await import('../src');
+    const { default: PrismaNextPlugin } = await import('../src');
     await import(pluginPrisma);
-    const builder = new SchemaBuilder({ plugins: [prismaNextPlugin] } as never);
+    const builder = new SchemaBuilder({ plugins: [PrismaNextPlugin] } as never);
     builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
     expect(() => builder.toSchema()).toThrow('cannot be used in the same program');
   });

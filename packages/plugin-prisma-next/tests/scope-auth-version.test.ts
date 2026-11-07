@@ -3,10 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Each test registers its own `scopeAuth` plugin, so each loads a fresh copy of core.
 async function build() {
   const { default: SchemaBuilder } = await import('@pothos/core');
-  const { default: prismaNextPlugin } = await import('../src');
+  const { default: PrismaNextPlugin } = await import('../src');
   const { sampleContract } = await import('./fixtures/runtime');
   const builder = new SchemaBuilder<{ PrismaNextContract: typeof sampleContract }>({
-    plugins: ['scopeAuth', prismaNextPlugin],
+    plugins: ['scopeAuth', PrismaNextPlugin],
     scopeAuth: { authScopes: () => ({}) },
     prismaNext: {
       client: () => {

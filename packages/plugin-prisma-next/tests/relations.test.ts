@@ -7,7 +7,7 @@ import { Collection } from '@prisma/orm-family-sql/orm-client';
 import sqlite from '@prisma/orm-sqlite/runtime';
 import { GraphQLError, type GraphQLFieldResolver, GraphQLScalarType, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import prismaNextPlugin from '../src';
+import PrismaNextPlugin from '../src';
 import { buildExampleSchema } from './example/schema';
 import { detailOf } from './fixtures/errors';
 import {
@@ -35,7 +35,7 @@ describe('includes', () => {
       PrismaNextContract: SampleContract;
       DefaultFieldNullability: false;
     }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: db.client },
       defaultFieldNullability: false,
     });
@@ -162,7 +162,7 @@ describe('includes', () => {
 
     function schema() {
       const builder = new SchemaBuilder<{ PrismaNextContract: typeof collision.contract }>({
-        plugins: [prismaNextPlugin],
+        plugins: [PrismaNextPlugin],
         prismaNext: { client: collision.client },
       });
       builder.prismaObject('Profile', {
@@ -199,7 +199,7 @@ describe('includes', () => {
         PrismaNextContract: typeof collision.contract;
         DefaultFieldNullability: false;
       }>({
-        plugins: [prismaNextPlugin],
+        plugins: [PrismaNextPlugin],
         prismaNext: { client: collision.client },
         defaultFieldNullability: false,
       });
@@ -275,7 +275,7 @@ describe('many-to-many relations', () => {
 
   function schema() {
     const builder = new SchemaBuilder<{ PrismaNextContract: typeof junctionContract }>({
-      plugins: [prismaNextPlugin],
+      plugins: [PrismaNextPlugin],
       prismaNext: { client: junction.client },
     });
     const b = builder as unknown as {
@@ -418,7 +418,7 @@ describe('counts and aggregates', () => {
     const builder = new SchemaBuilder<{
       PrismaNextContract: typeof db.contract;
       Scalars: { BigInt: { Input: bigint; Output: bigint } };
-    }>({ plugins: [prismaNextPlugin], prismaNext: { client: db.client } });
+    }>({ plugins: [PrismaNextPlugin], prismaNext: { client: db.client } });
     builder.addScalarType(
       'BigInt',
       new GraphQLScalarType({ name: 'BigInt', serialize: (value) => String(value) }),
@@ -779,7 +779,7 @@ describe('plugins that wrap resolvers', () => {
 
   it('resolves a filtered relation from its own rows when its resolver is wrapped', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: ['prismaNextTestWrapResolve' as never, prismaNextPlugin],
+      plugins: ['prismaNextTestWrapResolve' as never, PrismaNextPlugin],
       prismaNext: { client: db.client },
     });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
@@ -827,7 +827,7 @@ describe('plugins that wrap resolvers', () => {
   // A new object holds the row's columns, but not a helper's slots.
   it('reloads the parent of a field helper when another plugin replaced it', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin, 'prismaNextTestReplaceParent' as never],
+      plugins: [PrismaNextPlugin, 'prismaNextTestReplaceParent' as never],
       prismaNext: { client: db.client },
     });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
@@ -862,7 +862,7 @@ describe('plugins that wrap resolvers', () => {
   // A keyless row can't be reloaded: without a key every parent would read the first row.
   it('fails a field helper whose replaced parent has no key to reload it by', async () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [prismaNextPlugin, 'prismaNextTestReplaceParent' as never],
+      plugins: [PrismaNextPlugin, 'prismaNextTestReplaceParent' as never],
       prismaNext: { client: db.client },
     });
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
@@ -940,10 +940,10 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins:
         position === 'before'
-          ? [copy, prismaNextPlugin]
+          ? [copy, PrismaNextPlugin]
           : position === 'after'
-            ? [prismaNextPlugin, copy]
-            : [prismaNextPlugin],
+            ? [PrismaNextPlugin, copy]
+            : [PrismaNextPlugin],
       prismaNext: { client: db.client },
     });
     builder.prismaObject('Comment', { fields: (t) => ({ id: t.exposeID('id') }) });

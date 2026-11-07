@@ -3,7 +3,7 @@ import RelayPlugin from '@pothos/plugin-relay';
 import type { ModelCallbackTools } from '@prisma/orm-family-sql/orm-client';
 import type { NamespaceId } from '@prisma/orm-framework/contract/types';
 import { expectTypeOf } from 'vitest';
-import prismaNextPlugin, {
+import PrismaNextPlugin, {
   type CollectionFor,
   type ModelKey,
   prismaConnectionHelpers,
@@ -20,7 +20,7 @@ expectTypeOf<Row<Types, 'nsb.User'>>().toEqualTypeOf<{ id: string; name: string 
 expectTypeOf<Row<Types, 'nsa.User'>>().toEqualTypeOf<{ id: number; orgId: number }>();
 
 const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });
@@ -164,7 +164,7 @@ type Relocate<T> = T extends '__unbound__'
 type TenantContract = Relocate<SampleContract>;
 type TenantTypes = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: TenantContract }>;
 const tenant = new SchemaBuilder<{ PrismaNextContract: TenantContract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });
@@ -219,7 +219,7 @@ type SameValueTypes = PothosSchemaTypes.ExtendDefaultTypes<{
   PrismaNextContract: SameValueContract;
 }>;
 const sameValue = new SchemaBuilder<{ PrismaNextContract: SameValueContract }>({
-  plugins: [RelayPlugin, prismaNextPlugin],
+  plugins: [RelayPlugin, PrismaNextPlugin],
   relay: {},
   prismaNext: { client: null as never },
 });
