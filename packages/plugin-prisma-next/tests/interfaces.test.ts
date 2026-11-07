@@ -517,16 +517,24 @@ describe('inherited selections', () => {
       );
     });
 
-    it('with refining functions that are not the same function', () => {
+    type Posts = { where(where: object): unknown };
+    it.each([
+      ['', (refine: (posts: never) => unknown) => refine as unknown as true],
+      [
+        ' beside a nested select',
+        (refine: (posts: never) => unknown) =>
+          ({ query: refine, select: ['title'] }) as unknown as true,
+      ],
+    ])('with refining functions that are not the same function%s', (_, entry) => {
       const builder = createBuilder();
       const Named = builder.prismaInterface('User', {
         variant: 'Named',
-        select: { posts: (posts) => posts.where({ published: 1 }) },
+        select: { posts: entry((posts: Posts) => posts.where({ published: 1 })) },
         fields: () => ({}),
       });
       builder.prismaObject('User', {
         interfaces: [Named],
-        select: { posts: (posts) => posts.where({ published: 1 }) },
+        select: { posts: entry((posts: Posts) => posts.where({ published: 1 })) },
       });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(

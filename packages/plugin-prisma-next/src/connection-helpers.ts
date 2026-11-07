@@ -326,8 +326,8 @@ export function prismaConnectionHelpers<
     );
     const relations: Record<string, PrismaNextSelection> = {};
     let nodeRelation: string | undefined;
-    for (const [name, value] of selected.relations) {
-      if (value === nodeMarker) {
+    for (const [name, entry] of selected.relations) {
+      if (entry.query === nodeMarker) {
         nodeRelation = name;
       } else {
         relations[name] = EMPTY;

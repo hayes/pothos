@@ -52,7 +52,6 @@ import {
   nestedPlan,
   nestedSubject,
   type RawSelect,
-  relationEntry,
   type SplitSelect,
   splitSelect,
   type TypeSelect,
@@ -489,19 +488,14 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         );
       }
     };
-    for (const [name, value] of relations) {
-      // A type compares by its name.
-      const entry = relationEntry(value);
-      check(
-        name,
-        entry
-          ? { ...entry, type: entry.type?.name, query: definedQuery(entry.query) }
-          : typeof value === 'object'
-            ? definedQuery(value)
-            : value === true
-              ? undefined
-              : value,
-      );
+    for (const [name, entry] of relations) {
+      // A type compares by its name, and a query by what it loads.
+      const { type, query } = entry;
+      check(name, {
+        ...entry,
+        type: type?.name,
+        query: typeof query === 'object' ? definedQuery(query) : query,
+      });
     }
     for (const { key, relation, compute } of computed) {
       check(key, { [relation]: compute });
@@ -777,15 +771,14 @@ function assertRelationEntries(
   subject: string,
   readsRows: (relation: PrismaNextRelation) => boolean,
 ) {
-  for (const [name, value] of relations) {
+  for (const [name, entry] of relations) {
     const relation = model.relations[name]!;
-    if (loadsOwnTableVariantRows(relation, value) && !readsRows(relation)) {
+    if (loadsOwnTableVariantRows(relation, entry) && !readsRows(relation)) {
       throw ownTableVariantRowsError(subject, name, relation);
     }
-    const entry = relationEntry(value);
-    const query = entry ? entry.query : value;
-    const orderBy = typeof query === 'object' ? definedQuery(query)?.orderBy : undefined;
-    if (entry?.type) {
+    const orderBy =
+      typeof entry.query === 'object' ? definedQuery(entry.query)?.orderBy : undefined;
+    if (entry.type) {
       variantForRelationType(
         config.contract,
         `${subject} relation '${name}', which`,
@@ -793,7 +786,7 @@ function assertRelationEntries(
         entry.type.modelKey,
       );
     }
-    if (entry?.select) {
+    if (entry.select) {
       // The rows of a nested `select` are read only through its parent's.
       assertRelationEntries(
         config,
