@@ -970,6 +970,91 @@ inhBuilder.prismaObject('Bug', {
   // @ts-expect-error a to-one relation in a variant type's select takes only true
   select: { owner: { limit: 1 } },
 });
+
+// A relation entry can be a ref of the relation's target or one of its variants, which narrows the
+// rows to it, and types them as that model's.
+const refTask = inhBuilder.prismaInterface('Task', {
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+const refBug = inhBuilder.prismaObject('Bug', { interfaces: [refTask], fields: () => ({}) });
+const refFeature = inhBuilder.prismaObject('Feature', {
+  interfaces: [refTask],
+  fields: () => ({}),
+});
+const refUser = inhBuilder.prismaObject('User', { variant: 'RefUser', fields: () => ({}) });
+inhBuilder.prismaObject('User', {
+  variant: 'RefEntries',
+  // A type's select takes them too.
+  select: { reviews: refBug },
+  fields: (t) => ({
+    bugs: t.field({
+      type: [refBug],
+      select: { tasks: refBug },
+      resolve: (user) => {
+        expectTypeOf(user.tasks[0]!.severity).toEqualTypeOf<string>();
+        return user.tasks;
+      },
+    }),
+    reviewed: t.field({ type: [refBug], resolve: (user) => user.reviews }),
+    tasks: t.field({ type: [refTask], select: { tasks: refTask }, resolve: (user) => user.tasks }),
+    features: t.field({
+      type: [refFeature],
+      select: { tasks: refFeature },
+      resolve: (user) => user.tasks,
+    }),
+    newestBug: t.field({
+      type: [refBug],
+      select: { tasks: { type: refBug, query: { orderBy: { id: 'desc' }, limit: 1 } } },
+      resolve: (user) => user.tasks,
+    }),
+    reviewers: t.stringList({
+      // The nested select is of the type's model, so it takes the variant's relations.
+      select: { tasks: { type: refBug, select: { reviewer: true } } },
+      resolve: (user) => user.tasks.map((bug) => bug.reviewer?.email ?? bug.severity),
+    }),
+    allTasks: t.field({
+      type: [refBug],
+      select: { tasks: true },
+      // @ts-expect-error without a type, the rows are the relation's target's
+      resolve: (user) => user.tasks,
+    }),
+    unrelated: t.field({
+      type: [refBug],
+      // @ts-expect-error a ref of a model outside the relation's target's hierarchy
+      select: { tasks: refUser },
+      resolve: () => [],
+    }),
+    otherBranch: t.field({
+      type: [refFeature],
+      // @ts-expect-error a ref of a variant of another branch than the relation's target
+      select: { reviews: refFeature },
+      resolve: () => [],
+    }),
+    unrelatedInEntry: t.field({
+      type: [refBug],
+      // @ts-expect-error the object form checks its type the same way
+      select: { tasks: { type: refUser, query: { limit: 1 } } },
+      resolve: () => [],
+    }),
+    variantRelationOfBase: t.stringList({
+      // @ts-expect-error without the variant's type, the nested select is of the target's model
+      select: { tasks: { select: { reviewer: true } } },
+      resolve: () => [],
+    }),
+  }),
+});
+inhBuilder.prismaObject('Note', {
+  variant: 'RefNote',
+  fields: (t) => ({
+    task: t.field({ type: refTask, select: { task: refTask }, resolve: (note) => note.task }),
+    bug: t.field({
+      type: refBug,
+      // @ts-expect-error a to-one relation's row loads whole, so its type is the target's
+      select: { task: refBug },
+      resolve: () => null as never,
+    }),
+  }),
+});
 declare const sqliteTransaction: Parameters<Parameters<typeof sqliteClient.transaction>[0]>[0];
 new SchemaBuilder<{ PrismaNextContract: Contract }>({
   plugins: [PrismaNextPlugin],

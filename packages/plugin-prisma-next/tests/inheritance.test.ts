@@ -89,7 +89,7 @@ function createVariantSchema() {
       reviewer: t.relation('reviewer', { nullable: true }),
     }),
   });
-  builder.prismaNode('Feature', {
+  const feature = builder.prismaNode('Feature', {
     interfaces: [task],
     id: { field: 'id' },
     collection: () => db.orm.Task.variant('feature'),
@@ -122,8 +122,28 @@ function createVariantSchema() {
       }),
       staticBugs: t.field({
         type: [bug],
+        select: { tasks: bug },
+        resolve: (user) => user.tasks,
+      }),
+      // Loads every task, as written.
+      staticTasks: t.field({
+        type: [task],
         select: { tasks: true },
-        // @ts-expect-error the types don't narrow a static select's rows to the field's variant
+        resolve: (user) => user.tasks,
+      }),
+      newestBug: t.field({
+        type: [bug],
+        select: { tasks: { type: bug, query: { orderBy: { id: 'desc' }, limit: 1 } } },
+        resolve: (user) => user.tasks,
+      }),
+      bugReviewers: t.stringList({
+        select: { tasks: { type: bug, select: { reviewer: true } } },
+        resolve: (user) => user.tasks.map((bug) => bug.reviewer?.email ?? ''),
+      }),
+      // A variant with a table of its own.
+      staticFeatures: t.field({
+        type: [feature],
+        select: { tasks: feature },
         resolve: (user) => user.tasks,
       }),
     }),
@@ -257,11 +277,47 @@ describe('native model inheritance', () => {
     ['nestedBugs', 'title severity reviewer { email }', { reviewer: { email } }],
     // The rows load with every column, but nothing beneath them.
     ['staticBugs', 'title severity', {}],
-  ])("narrows a field select's to-many relation to the variant the field's type is (%s)", async (field, selection, more) => {
+    ['newestBug', 'title severity', {}],
+  ])("narrows a field select's to-many relation to the variant its entry names (%s)", async (field, selection, more) => {
     const result = await run(createVariantSchema(), `{ users { ${field} { ${selection} } } }`);
     expect(result.errors).toBeUndefined();
     expect(result.data.users).toEqual([
       { [field]: [{ title: 'bug1', severity: 'high', ...more }] },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it("loads a static select's to-many relation whole without a type", async () => {
+    const result = await run(
+      createVariantSchema(),
+      '{ users { staticTasks { __typename title } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      {
+        staticTasks: [
+          { __typename: 'Bug', title: 'bug1' },
+          { __typename: 'Feature', title: 'feat1' },
+        ],
+      },
+    ]);
+  });
+
+  it("loads a variant's relation in the nested select of an entry typed as that variant", async () => {
+    const result = await run(createVariantSchema(), '{ users { bugReviewers } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([{ bugReviewers: [email] }]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('narrows a static select entry to a variant with a table of its own', async () => {
+    const result = await run(
+      createVariantSchema(),
+      '{ users { staticFeatures { title priority typePriority } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { staticFeatures: [{ title: 'feat1', priority: 5, typePriority: 5 }] },
     ]);
     expect(result.statements).toHaveLength(1);
   });
@@ -813,12 +869,6 @@ describe('native model inheritance', () => {
       return builder;
     }
 
-    it('rejects a static select when the schema is built', () => {
-      expect(() => variantBuilder({ reviews: true }).toSchema()).toThrow(
-        /Field 'User\.reviewed' targets model 'Bug' but its type is backed by model 'Feature'/,
-      );
-    });
-
     it("rejects the request of nestedSelection's entry", async () => {
       const schema = variantBuilder(
         (_args: unknown, _ctx: unknown, nestedSelection: () => unknown) => ({
@@ -1003,6 +1053,67 @@ describe('native model inheritance', () => {
     const opaque = wrap({ id: 't2', priority: { value: 'opaque' } });
     expect(() => opaque.pageInfo.endCursor).toThrow();
     expect(wrap({ id: 't2', priority: 5 }).pageInfo.endCursor).toEqual(expect.any(String));
+  });
+});
+
+describe("a type's select entry typed as a variant", () => {
+  function typeSelectBuilder(otherSelect?: (bug: object) => { tasks: unknown }) {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [PrismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const task = builderTask(builder);
+    const bug = builder.prismaObject('Bug', {
+      interfaces: [task],
+      fields: (t) => ({ severity: t.exposeString('severity') }),
+    });
+    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    const user = builder.prismaObject('User', {
+      select: { tasks: bug },
+      fields: (t) => ({
+        email: t.exposeString('email'),
+        bugs: t.field({ type: [bug], resolve: (user) => user.tasks }),
+        severities: t.stringList({ resolve: (user) => user.tasks.map((bug) => bug.severity) }),
+      }),
+    });
+    if (otherSelect) {
+      builder.prismaObject('User', {
+        variant: 'Reviewer',
+        select: otherSelect(bug) as { tasks: true },
+        fields: (t) => ({ email: t.exposeString('email') }),
+      });
+    }
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: [user], resolve: () => db.orm.User }),
+      }),
+    });
+    return builder;
+  }
+
+  it('loads the rows narrowed to the variant with the parent', async () => {
+    const result = await run(
+      typeSelectBuilder().toSchema(),
+      '{ users { severities bugs { title severity } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { severities: ['high'], bugs: [{ title: 'bug1', severity: 'high' }] },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it.each([
+    ['the ref', (bug: object) => ({ tasks: bug })],
+    ['an entry of the ref', (bug: object) => ({ tasks: { type: bug } })],
+  ])("agrees with another type's select of %s", (_, select) => {
+    expect(() => typeSelectBuilder(select).toSchema()).not.toThrow();
+  });
+
+  it("rejects another type's select of the relation without the ref", () => {
+    expect(() => typeSelectBuilder(() => ({ tasks: true })).toSchema()).toThrow(
+      "'User' and 'Reviewer' both select 'tasks', with different definitions.",
+    );
   });
 });
 
@@ -1609,7 +1720,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
       fields: (t) => ({ title: t.exposeString('title') }),
     });
     builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
-    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    const feature = builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
     builder.queryType({
       fields: (t) => ({
         notes: t.prismaField({
@@ -1619,7 +1730,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
         users: t.prismaField({ type: ['User'], resolve: () => db.orm.User }),
       }),
     });
-    return { builder, task };
+    return { builder, task, feature };
   }
 
   // The rows load through `orm.Feature`, without Task's discriminator, which the interface's
@@ -1649,6 +1760,23 @@ describe('a relation targeting a variant model with a table of its own', () => {
           type: [task],
           select: { reviews: true, championed: true },
           resolve: (user) => [...user.reviews, ...user.championed],
+        }),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow(
+      "The select of field 'User.tasks' loads the rows of relation 'championed'",
+    );
+  });
+
+  it("rejects a field's static select entry typed as the variant that hands its rows to an interface", () => {
+    const { builder, task, feature } = taskBuilder();
+    builder.prismaObject('Note', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        tasks: t.field({
+          type: [task],
+          select: { championed: feature },
+          resolve: (user) => user.championed,
         }),
       }),
     });

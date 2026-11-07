@@ -47,14 +47,13 @@ import { canInclude } from './utils/adapter.js';
 import {
   compileFieldSelect,
   definedQuery,
-  isNestedSelect,
   loadsOwnTableVariantRows,
   nestedPlan,
   nestedSubject,
   type RawSelect,
+  relationEntry,
   type SplitSelect,
   splitSelect,
-  staticEntryVariant,
   type TypeSelect,
   typeSelects,
 } from './utils/compile-select.js';
@@ -356,9 +355,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
 
   /**
    * Checks a field's static `select`: rejects a relation entry whose rows its type can't read, as
-   * `assertRelationRows` explains, checks the columns its relation entries order by, and the
-   * variant its type narrows their rows to. Checked on the field's final config, since a plugin
-   * that runs later, such as plugin-errors, can change its type.
+   * `assertRelationRows` explains, and checks the columns its relation entries order by. Checked on
+   * the field's final config, since a plugin that runs later, such as plugin-errors, can change its
+   * type.
    */
   private assertFieldSelect(
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -377,16 +376,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
       (relation) => returnsRelationRowsAs(relation, returnConfig.kind, returnModel),
     );
-    // Throws for a type of another branch of the hierarchy of a relation entry's target.
-    for (const [name, value] of split.relations) {
-      staticEntryVariant(
-        contract,
-        `Field '${fieldConfig.parentType}.${fieldConfig.name}'`,
-        model.relations[name]!,
-        value,
-        returnModelKey,
-      );
-    }
   }
 
   /**
@@ -498,9 +487,17 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       }
     };
     for (const [name, value] of relations) {
+      // A type compares by its name.
+      const entry = relationEntry(value);
       check(
         name,
-        typeof value === 'object' ? definedQuery(value) : value === true ? undefined : value,
+        entry
+          ? { ...entry, type: entry.type?.name, query: definedQuery(entry.query) }
+          : typeof value === 'object'
+            ? definedQuery(value)
+            : value === true
+              ? undefined
+              : value,
       );
     }
     for (const { key, relation, compute } of computed) {
@@ -781,13 +778,14 @@ function assertRelationEntries(
     if (loadsOwnTableVariantRows(relation, value) && !readsRows(relation)) {
       throw ownTableVariantRowsError(subject, name, relation);
     }
-    const query = isNestedSelect(value) ? value.query : value;
+    const entry = relationEntry(value);
+    const query = entry ? entry.query : value;
     const orderBy = typeof query === 'object' ? definedQuery(query)?.orderBy : undefined;
-    if (isNestedSelect(value)) {
+    if (entry?.select) {
       // The rows of a nested `select` are read only through its parent's.
       assertRelationEntries(
         config,
-        splitSelect(value.select, relation.target),
+        splitSelect(entry.select, relation.target),
         relation.target,
         nestedSubject(subject, name),
         () => false,

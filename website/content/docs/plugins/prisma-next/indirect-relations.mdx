@@ -122,4 +122,5 @@ builder.prismaObject('User', {
 ```
 
 The `select` takes the same entries as any other, one level down, and everything loads in the
-parent's query.
+parent's query. Add `type`, a ref of a variant of the relation's model, to load only that variant's
+rows: `{ type: Bug, select: { reviewer: true } }`.

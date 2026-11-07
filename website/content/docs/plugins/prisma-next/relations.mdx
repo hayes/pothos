@@ -181,6 +181,21 @@ builder.prismaObject('Post', {
 });
 ```
 
+A relation entry can be a ref of the relation's model or one of its
+[variants](./interfaces#native-inheritance). The rows load as that variant only, typed as its rows:
+
+```ts
+const Bug = builder.prismaObject('Bug', {
+  fields: (t) => ({ severity: t.exposeString('severity') }),
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    bugs: t.field({ type: [Bug], select: { tasks: Bug }, resolve: (user) => user.tasks }),
+  }),
+});
+```
+
 `collectionFromInfo` loads everything the query selects beneath the field, relations and counts
 included, so the field loads in one query, like a `t.prismaField`. See
 [Mutations](./objects#mutations) for its `path` and `typeName` options:

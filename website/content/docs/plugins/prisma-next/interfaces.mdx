@@ -117,6 +117,7 @@ builder.queryType({
 - A relation to a variant that shares the base's table can't return an interface whose `select`
   loads a base model relation.
 - Pass a variant's ref as `type` to `t.relation` or `t.relatedConnection` to return only that
-  variant's rows.
+  variant's rows. In a `select`, use the ref as the relation's entry: `select: { tasks: Bug }`.
+  `{ tasks: true }` loads every task.
 - A row returned from a plain `t.field` must be
   [planned](./relations#returning-rows-from-other-fields) and hold the discriminator.
