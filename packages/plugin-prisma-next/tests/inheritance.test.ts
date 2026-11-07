@@ -925,6 +925,38 @@ describe('native model inheritance', () => {
     );
   });
 
+  type Selects = { select?: object; field?: object };
+  it.each([
+    ['a type', (user: unknown): Selects => ({ select: { tasks: user } })],
+    ['a field', (user: unknown): Selects => ({ field: { tasks: { type: user, query: {} } } })],
+  ])("rejects a static select's relation entry typed as another model on %s", (_, selects) => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [PrismaNextPlugin],
+      prismaNext: { client: db.client },
+    });
+    const plainUser = builder.prismaObject('User', {
+      variant: 'PlainUser',
+      fields: (t) => ({ email: t.exposeString('email') }),
+    });
+    const { select, field } = selects(plainUser);
+    builder.prismaObject('User', {
+      select: select as never,
+      fields: (t) => ({
+        email: t.exposeString('email'),
+        ...(field ? { taskCount: t.int({ select: field as never, resolve: () => 0 }) } : {}),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: ['User'], collection: () => db.orm.User }),
+        plain: t.prismaField({ type: [plainUser], collection: () => db.orm.User }),
+      }),
+    });
+    expect(() => builder.toSchema()).toThrow(
+      /loads relation 'tasks', which targets model 'Task' but its type is backed by unrelated model 'User'/,
+    );
+  });
+
   it.each([
     [
       'names no variant',

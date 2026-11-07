@@ -59,7 +59,7 @@ import {
   typeSelects,
 } from './utils/compile-select.js';
 import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
-import { resolveContractModel, rootModelKey } from './utils/contract.js';
+import { resolveContractModel, rootModelKey, variantForRelationType } from './utils/contract.js';
 import { orderableProblem, orderColumns } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
 import {
@@ -785,6 +785,14 @@ function assertRelationEntries(
     const entry = relationEntry(value);
     const query = entry ? entry.query : value;
     const orderBy = typeof query === 'object' ? definedQuery(query)?.orderBy : undefined;
+    if (entry?.type) {
+      variantForRelationType(
+        config.contract,
+        `${subject} relation '${name}', which`,
+        relation.targetModel,
+        entry.type.modelKey,
+      );
+    }
     if (entry?.select) {
       // The rows of a nested `select` are read only through its parent's.
       assertRelationEntries(
