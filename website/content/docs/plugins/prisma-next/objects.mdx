@@ -124,7 +124,7 @@ see:
 - on a `t.expose*` field, the exposed column
 
 Only `resolve` can read what a field's own `select` loads. If a row is missing any of this, such as
-one a resolver built itself, the plugin reloads it by its key before the check.
+a row of a variant model with its own table, the plugin reloads it by its key before the check.
 
 ## Return a type from Query and Mutation fields
 
