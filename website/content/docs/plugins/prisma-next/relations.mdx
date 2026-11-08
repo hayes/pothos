@@ -145,15 +145,15 @@ builder.prismaObject('User', {
 Count fields are always non-null, so if an auth check denies one, GraphQL nulls the parent instead.
 To hide a count from some users, use a nullable field with a `select`, as below.
 
-For sums and other aggregates, compute a value in a field's `select`: a key that isn't a column or
-relation holds one relation and a function of its Collection. The key is added to the parent row:
+For sums and other aggregates, give the relation a function in a field's `select`. It takes the
+relation's Collection and returns reducers by key, and each key is added to the parent row:
 
 ```ts
 builder.prismaObject('User', {
   fields: (t) => ({
     totalPostScore: t.float({
       nullable: true,
-      select: { totalPostScore: { posts: (posts) => posts.sum('score') } },
+      select: { posts: (posts) => ({ totalPostScore: posts.sum('score') }) },
       resolve: (user) => user.totalPostScore,
     }),
   }),
@@ -181,7 +181,7 @@ builder.prismaObject('Post', {
 });
 ```
 
-A relation entry can be a ref of the relation's model or one of its
+A relation entry's `type` can be a ref or model name of one of the relation's
 [variants](./interfaces#native-inheritance). The rows load as that variant only, typed as its rows:
 
 ```ts
@@ -191,7 +191,11 @@ const Bug = builder.prismaObject('Bug', {
 
 builder.prismaObject('User', {
   fields: (t) => ({
-    bugs: t.field({ type: [Bug], select: { tasks: Bug }, resolve: (user) => user.tasks }),
+    bugs: t.field({
+      type: [Bug],
+      select: { tasks: { type: Bug } },
+      resolve: (user) => user.tasks,
+    }),
   }),
 });
 ```

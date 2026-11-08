@@ -44,7 +44,7 @@ builder.prismaObject('User', {
     }),
     publishedPostCount: t.int({
       select: {
-        publishedCount: { posts: (posts) => posts.where({ published: 1 }).count() },
+        posts: (posts) => ({ publishedCount: posts.where({ published: 1 }).count() }),
       },
       resolve: (user) => user.publishedCount,
     }),
@@ -59,25 +59,22 @@ A `select` accepts:
 
 - Columns: `{ email: true }` or `['email']`.
 - Relations: `{ posts: true }`.
-- Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`,
-  or a function that refines the relation's Collection: `{ posts: (posts) => posts.with(published) }`.
-  `{ posts: { query: { limit: 5 } } }` is the same as `{ posts: { limit: 5 } }`. A to-one relation
-  takes only `true`.
-- Relations with a `select` of their own, in the same form, and a `query` taking the options
-  above: `{ comments: { query: { limit: 5 }, select: { post: true } } }`. A to-one relation takes
-  no `query`.
-- Computed values: any other key, holding one to-many relation and a function of its Collection,
-  such as `{ postCount: { posts: (posts) => posts.count() } }`. The key (`postCount`) is added to
-  the row, so it can't be a column or relation name.
+- Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`.
+  `where` also takes the ORM's predicate callback, as in `t.relation`'s `query`.
+- A `select` of the relation's rows, in the same form: `{ comments: { limit: 5, select: { post: true } } }`.
+- `type`, a ref or model name of a [variant](./variants) of the relation's target, which loads only
+  that variant's rows: `{ tasks: { type: Bug } }`.
+- In a field's `select` only, counts and aggregates of a to-many relation:
+  `{ posts: (posts) => ({ postCount: posts.count() }) }`. Each key (`postCount`) is added to the
+  row, so don't reuse a column or relation name.
 
-Read computed values in a resolver; `t.expose*` only works on columns.
+A to-one relation takes only `type` and `select`. Read aggregates in a resolver; `t.expose*` only
+works on columns.
 
-Every type of a model reads the same value for each relation or computed key a type-level `select`
-writes, so the type-level `select`s of one model, including its [variants](./variants) and
-[interfaces](./interfaces), can't define the same key differently; the schema build throws.
-Definitions are the same when their objects are equal and any functions in them are the same
-function, so share a function rather than writing it twice. Load another version with `t.relation`
-or a field's `select`.
+Every type of a model reads the same rows for each relation a type-level `select` names, so the
+type-level `select`s of one model, including its [variants](./variants) and
+[interfaces](./interfaces), must write each relation the same way, nested `select` included, or the
+schema build throws. Load another version with `t.relation` or a field's `select`.
 
 To filter a to-one relation, select it and return `null` from the resolver. Here a comment shows its
 post's title only when the post is published:

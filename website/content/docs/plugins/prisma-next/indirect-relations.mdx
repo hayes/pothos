@@ -17,7 +17,7 @@ builder.prismaObject('User', {
     publishedPosts: t.field({
       type: [Post],
       select: (args, ctx, nestedSelection) => ({
-        posts: nestedSelection({ query: { where: { published: 1 } } }),
+        posts: nestedSelection({ where: { published: 1 } }),
       }),
       resolve: (user) => user.posts,
     }),
@@ -29,11 +29,12 @@ Without it, `{ posts: true }` loads each post's columns but nothing the query se
 field, such as `author`, which then loads in an extra batched statement. Use `nestedSelection`
 whenever the field's type has relations or selects of its own, so they load in the parent's query.
 
-`nestedSelection` takes an optional object, `{ query, path, type }`. plugin-prisma's
-`nestedSelection` takes the same values as positional arguments.
+`nestedSelection` takes an optional object with what a [relation entry](./objects#selections)
+takes, and `path`:
 
-- `query`: what a relation's [`query`](./relations#filtering-and-sorting) takes. A to-one relation
-  takes none.
+- `where`, `orderBy`, `limit`, `offset`: the relation's
+  [query options](./relations#filtering-and-sorting). A to-one relation takes none.
+- `select`: what to load beneath the rows, besides what the query selects.
 - `path`: a field nested under the field's type to read the selection from. A segment can be
   written as `{ name, type }` to only read the field under a fragment on that type.
 - `type`: the type to read the selection as, when the field returns an interface or union. It
@@ -60,10 +61,7 @@ builder.prismaObject('User', {
       type: [PostPreview],
       select: (args, ctx, nestedSelection) => ({
         // What the query selects under `postPreviews.post`, for the 2 newest posts
-        posts: nestedSelection({
-          query: { orderBy: { createdAt: 'desc' }, limit: 2 },
-          path: ['post'],
-        }),
+        posts: nestedSelection({ orderBy: { createdAt: 'desc' }, limit: 2, path: ['post'] }),
       }),
       resolve: (user) => user.posts,
     }),
@@ -93,8 +91,8 @@ builder.prismaObject('User', {
     recentActivity: t.field({
       type: [Activity],
       select: (args, ctx, nestedSelection) => ({
-        posts: nestedSelection({ query: { limit: 5 }, type: Post }),
-        comments: nestedSelection({ query: { limit: 5 }, type: Comment }),
+        posts: nestedSelection({ limit: 5, type: Post }),
+        comments: nestedSelection({ limit: 5, type: Comment }),
       }),
       resolve: (user) => [...user.posts, ...user.comments],
     }),
@@ -116,10 +114,7 @@ builder.prismaObject('User', {
     commentedPosts: t.field({
       type: [Post],
       select: (args, ctx, nestedSelection) => ({
-        comments: {
-          query: { orderBy: { createdAt: 'desc' } },
-          select: { post: nestedSelection() },
-        },
+        comments: { orderBy: { createdAt: 'desc' }, select: { post: nestedSelection() } },
       }),
       resolve: (user) => user.comments.map((comment) => comment.post),
     }),
@@ -128,5 +123,5 @@ builder.prismaObject('User', {
 ```
 
 The `select` takes the same entries as any other, one level down, and everything loads in the
-parent's query. Add `type`, a ref of a variant of the relation's model, to load only that variant's
-rows: `{ type: Bug, select: { reviewer: true } }`.
+parent's query. Add `type`, a ref or model name of a variant of the relation's model, to load only
+that variant's rows: `{ type: Bug, select: { reviewer: true } }`.

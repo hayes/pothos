@@ -62,7 +62,8 @@ paginated connection:
 - `t.relation` has no `resolve`. Use `t.field` with a `select`, and
   [`nestedSelection`](/docs/plugins/prisma-next/indirect-relations) to load the relation's own
   selections.
-- `nestedSelection` takes an object, `{ query, path, type }`, instead of positional arguments.
+- `nestedSelection` takes an object, `{ where, orderBy, limit, offset, select, path, type }`, instead
+  of positional arguments.
 - A field returning a model's type must return rows the plugin planned, typed `Planned<'User'>`.
   Rows from a plain ORM query are a type error
   (see [Returning rows from other fields](/docs/plugins/prisma-next/relations#returning-rows-from-other-fields)).

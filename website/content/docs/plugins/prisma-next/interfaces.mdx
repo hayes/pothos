@@ -46,7 +46,7 @@ interface ref as `type`. Fields on an implementing type can read the interface's
 Implementing objects don't accept `isTypeOf`.
 
 `resolveType` sees the columns and to-one relations in the interface's `select`, but not its to-many
-relations, counts or aggregates.
+relations.
 
 To add fields to the interface from another file, use `prismaInterfaceField` or
 `prismaInterfaceFields`:
@@ -115,7 +115,7 @@ builder.queryType({
 - A relation to a variant that shares the base's table can't return an interface whose `select`
   loads a base model relation.
 - Pass a variant's ref or model name as `type` to `t.relation` or `t.relatedConnection` to return
-  only that variant's rows. In a `select`, use the ref as the relation's entry: `select: { tasks: Bug }`.
+  only that variant's rows. In a `select`, give the relation's entry a `type`: `select: { tasks: { type: Bug } }`.
   `{ tasks: true }` loads every task.
 - A row returned from a plain `t.field` must be
   [planned](./relations#returning-rows-from-other-fields) and hold the discriminator.
