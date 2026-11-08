@@ -3,7 +3,7 @@ import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { execute, parse, subscribe } from 'graphql';
 import DrizzlePlugin, { getSchemaConfig, queryFromInfo } from '../src';
-import { type DrizzleRelations, db, relations } from './example/db';
+import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
 
 // Executions sharing a context keep their loader mappings apart, so rows a later operation or
 // subscription event loaded elsewhere never resolve a filtered relation from the rows they hold.
@@ -34,6 +34,7 @@ builder.drizzleObject('posts', {
   name: 'Post',
   fields: (t) => ({
     published: t.exposeInt('published'),
+    author: t.relation('author'),
   }),
 });
 
@@ -71,6 +72,19 @@ builder.subscriptionType({
 
         return user as never;
       },
+    }),
+    // Loads each event in `subscribe` with the planned query, as a snapshot of a row since
+    // deleted: its id matches no row, so its fields can only resolve from what it holds.
+    deletedUser: t.field({
+      type: User,
+      subscribe: async function* (_root, _args, context, info) {
+        const snapshot = await db.query.users.findFirst(
+          queryFromInfo({ config: getSchemaConfig(builder), context, info, where: { id: 1 } }),
+        );
+
+        yield { ...snapshot, id: -1 };
+      },
+      resolve: (user) => user as never,
     }),
   }),
 });
@@ -131,5 +145,42 @@ describe('executions sharing a context', () => {
 
     expect(drafts(seen[0])).toBe(0);
     expect(seen[1]).toEqual(seen[0]);
+  });
+
+  it('resolves an event from what the subscribe that loaded it planned', async () => {
+    clearDrizzleLogs();
+
+    const events = await subscribe({
+      schema,
+      document: parse(
+        'subscription { deletedUser { publishedPosts { published author { allPosts { published } } } } }',
+      ),
+      contextValue: {},
+    });
+
+    if (!(Symbol.asyncIterator in events)) {
+      throw new Error(`Expected a subscription, got ${JSON.stringify(events)}`);
+    }
+
+    const seen: unknown[] = [];
+
+    for await (const event of events) {
+      seen.push(event);
+    }
+
+    const [{ errors, data }] = seen as {
+      errors?: unknown;
+      data: {
+        deletedUser: { publishedPosts: { published: number; author: { allPosts: unknown[] } }[] };
+      };
+    }[];
+    const [post] = data.deletedUser.publishedPosts;
+
+    expect(seen).toHaveLength(1);
+    expect(errors).toBeUndefined();
+    expect(drafts(data.deletedUser.publishedPosts.map(({ published }) => ({ published })))).toBe(0);
+    expect(drafts(post.author.allPosts)).toBeGreaterThan(0);
+    // The snapshot alone: nothing reloaded the deleted row.
+    expect(drizzleLogs).toHaveLength(1);
   });
 });

@@ -6,7 +6,7 @@ import SchemaBuilder, {
 import RelayPlugin from '@pothos/plugin-relay';
 import { getLoaderMapping } from '@pothos/selection-mapper';
 import { execute } from '@pothos/test-utils';
-import type { DocumentNode, GraphQLObjectType } from 'graphql';
+import type { DocumentNode, GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import { gql } from 'graphql-tag';
 import { vi } from 'vitest';
 import PrismaPlugin, { type PrismaTypesFromClient, prismaConnectionHelpers } from '../src';
@@ -45,6 +45,8 @@ interface Context {
   /** Promise count and call count of the resolvers wrapped by `spyResolvers`. */
   promises?: number;
   resolved?: number;
+  /** The info of the `user` root field, to look up what its execution recorded. */
+  info?: GraphQLResolveInfo;
 }
 
 const builder = new SchemaBuilder<{
@@ -61,14 +63,15 @@ const builder = new SchemaBuilder<{
 
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 1));
 
-function pathOf(...keys: (string | number)[]) {
-  let path: { prev: unknown; key: string | number; typename: undefined } | undefined;
+/** The info of the field at `keys` in the execution `info` is from. */
+function infoAt(info: GraphQLResolveInfo | undefined, ...keys: (string | number)[]) {
+  let path: GraphQLResolveInfo['path'] | undefined;
 
   for (const key of keys) {
     path = { prev: path, key, typename: undefined };
   }
 
-  return path as never;
+  return { ...info!, path: path! };
 }
 
 const Comment = builder.prismaObject('Comment', {
@@ -282,6 +285,15 @@ spyResolvers([
   ['Post', 'comments'],
 ]);
 
+const userField = (schema.getType('Query') as GraphQLObjectType).getFields().user;
+const resolveUser = userField.resolve!;
+
+userField.resolve = (parent, args, ctx: Context, info) => {
+  ctx.info = info;
+
+  return resolveUser(parent, args, ctx, info);
+};
+
 async function run(document: DocumentNode) {
   const contextValue: Context = { user: { id: 1 } };
   const result = await execute({ schema, document, contextValue });
@@ -424,7 +436,21 @@ describe('async selections', () => {
       'The selection function of User.discardedPosts returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.',
     ]);
     expect(result.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
-    expect(getLoaderMapping(context, pathOf('user', 'discardedPosts'), 'User')).toBe(null);
+    expect(context.info).toBeDefined();
+    expect(getLoaderMapping(context, infoAt(context.info, 'user', 'discardedPosts'), 'User')).toBe(
+      null,
+    );
+
+    // The same lookup finds what a plan that settled recorded.
+    const settled = await run(gql`{ user { discardedPosts: posts(limit: 1) { id } } }`);
+
+    expect(
+      getLoaderMapping(
+        settled.context,
+        infoAt(settled.context.info, 'user', 'discardedPosts'),
+        'User',
+      ),
+    ).not.toBe(null);
   });
 
   it('merges the sync sibling first when it conflicts with an async one', async () => {
