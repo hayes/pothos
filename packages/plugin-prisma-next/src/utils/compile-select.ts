@@ -270,15 +270,6 @@ export function typeSelects(type: {
   return (type.extensions?.[PRISMA_NEXT_TYPE_SELECTS] as TypeSelect[] | undefined) ?? [];
 }
 
-/**
- * Whether a `select` entry loads the rows of `relation` through a variant model with a table of its
- * own, which can't read the columns it inherits. A page entry doesn't hand over rows loaded that
- * way.
- */
-function loadsOwnTableVariantRows(relation: PrismaNextRelation, entry: RelationEntry) {
-  return !entry[CONNECTION_PAGE] && relation.targetVariantModel?.sharesTable === false;
-}
-
 interface SelectCompilation {
   contract: AnyContract;
   /** The config and request context a field's loads are interned for. A type's are all plain. */
@@ -304,7 +295,7 @@ interface SelectCompilation {
   at: string;
   /**
    * Whether the entries' reader takes the rows of a relation targeting a variant model with a table
-   * of its own, which load without the columns it inherits (see `loadsOwnTableVariantRows`). Set
+   * of its own, which load without the columns it inherits. A page entry doesn't hand rows over. Set
    * for what a select function returns, and for a static `select` when the schema is built.
    */
   readsRows?: (relation: PrismaNextRelation) => boolean;
@@ -338,7 +329,12 @@ function compileSelect(
     interning ? refOf(interning.config, interning.ctx, model, load) : { load };
   const parts = relations.map(([name, entry, split]): MaybePromise<Planned> => {
     const relation = model.relations[name]!;
-    if (readsRows && loadsOwnTableVariantRows(relation, entry) && !readsRows(relation)) {
+    if (
+      readsRows &&
+      !entry[CONNECTION_PAGE] &&
+      relation.targetVariantModel?.sharesTable === false &&
+      !readsRows(relation)
+    ) {
       throw ownTableVariantRowsError(subject, name, relation);
     }
     const page = entry[CONNECTION_PAGE];

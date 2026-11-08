@@ -67,12 +67,7 @@ import {
   record,
   refOf,
 } from './utils/loads.js';
-import {
-  getModel,
-  type PrismaNextModel,
-  type PrismaNextRelation,
-  sharedVariantRelationError,
-} from './utils/model.js';
+import { getModel, type PrismaNextModel, sharedVariantRelationError } from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import { readLoad } from './utils/rows.js';
 import {
@@ -350,7 +345,7 @@ export class PrismaNextObjectFieldBuilder<
         extensions?: Record<string, unknown>;
       }?,
     ];
-    const relation = this.#relation(name as string);
+    const { config, model, relation } = this.#relation(name as string);
     const targetRef = refFor(this.builder, opts.type ?? relation.targetModel);
     // Throws at build time for a type the relation can't return.
     const variant = variantForRelationType(
@@ -369,8 +364,6 @@ export class PrismaNextObjectFieldBuilder<
       variant === undefined || relation.isToMany
         ? undefined
         : modelDiscriminator(this.contract as AnyContract, relation.targetModel)!.field;
-    const config = getPluginConfig(this.builder);
-    const model = getModel(config.contract, this.modelKey as string);
     // Narrowed in the load, unless it is a to-one relation's, which loads whole.
     const loadVariant = discriminator === undefined ? variant : undefined;
     const select = relationSelect(
@@ -416,13 +409,11 @@ export class PrismaNextObjectFieldBuilder<
   ): FieldRef<Types, number, 'PrismaNextObject'> {
     const relationName = name as string;
     // Rejects a relation several variants declare, which the types can't tell apart.
-    const relation = this.#relation(relationName);
+    const { config, model, relation } = this.#relation(relationName);
     const { query, extensions, ...rest } = (options ?? {}) as {
       query?: unknown;
       extensions?: Record<string, unknown>;
     } & Record<string, unknown>;
-    const config = getPluginConfig(this.builder);
-    const model = getModel(config.contract, this.modelKey as string);
     // The types allow only `where`.
     const select = relationSelect(
       config,
@@ -531,8 +522,7 @@ export class PrismaNextObjectFieldBuilder<
     connectionOptions: object = {},
     edgeOptions: object = {},
   ) {
-    const relation = this.#relation(name);
-    const config = getPluginConfig(this.builder);
+    const { config, model, relation } = this.#relation(name);
     const relatedModel = relation.targetModel;
     const targetRef = refFor(this.builder, options.type ?? relatedModel);
     const variant = variantForRelationType(
@@ -549,7 +539,6 @@ export class PrismaNextObjectFieldBuilder<
       { defaultSize, maxSize, totalCount, query },
     );
     const include = connectionNodes(targetRef.name);
-    const model = getModel(config.contract, this.modelKey as string);
     const select: PrismaNextSelectFn = (args, ctx, nested, selected, position) =>
       completeValue(
         paging.pageLoads(ctx, model, relation, name, args, selected(), {
@@ -581,15 +570,17 @@ export class PrismaNextObjectFieldBuilder<
   } as never;
 
   /**
-   * The planner's relation, from the root model, which has every variant's relations. Throws for a
-   * name several variants declare, which the types can't tell apart from one variant's relation.
+   * The planner's relation, from the root model, which has every variant's relations, with the
+   * model and the plugin's config. Throws for a name several variants declare, which the types
+   * can't tell apart from one variant's relation.
    */
-  #relation(name: string): PrismaNextRelation {
-    const model = getModel(this.contract as AnyContract, this.modelKey as string);
+  #relation(name: string) {
+    const config = getPluginConfig(this.builder);
+    const model = getModel(config.contract, this.modelKey as string);
     if (model.sharedVariantRelations.has(name)) {
       throw sharedVariantRelationError(`model '${this.modelKey as string}'`, name, model);
     }
-    return model.relations[name]!;
+    return { config, model, relation: model.relations[name]! };
   }
 }
 
