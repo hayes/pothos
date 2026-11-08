@@ -218,47 +218,29 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   private withinCap(node: PrismaNextNode, selection: PrismaNextSelection): PrismaNextSelection {
     const held = this.toQuery(node);
     let total = loads(held);
-    const fits = (part: PrismaNextSelection) => {
+    return keepLoads(selection, selection.columns, (part) => {
       const added = loads(part, held);
       if (total + added > MAX_RELATION_LOADS) {
         return false;
       }
       total += added;
       return true;
-    };
-    const relations = Object.entries(selection.relations ?? {});
-    const computed = Object.entries(selection.computed ?? {});
-    const keptRelations = relations.filter(([key, child]) => fits({ relations: { [key]: child } }));
-    const keptComputed = computed.filter(([key, value]) => fits({ computed: { [key]: value } }));
-    return keptRelations.length === relations.length && keptComputed.length === computed.length
-      ? selection
-      : {
-          ...selection,
-          relations: Object.fromEntries(keptRelations),
-          computed: Object.fromEntries(keptComputed),
-        };
+    });
   }
 
   /** `selection`, itself when nothing changes, without what `node`'s level can't load. */
   private withoutUnloadable(selection: PrismaNextSelection, { model, args }: PrismaNextNode) {
     const narrowing = selection.args?.variant ?? (args as RelationArgs).variant;
-    const fits = ([key]: [string, unknown]) =>
-      canInclude(model.relations[splitKey(key)[0]]!, narrowing);
     const readable = readableColumns(model, narrowing);
-    const columnFits = (column: string) => !readable || readable.has(column);
-    const relations = Object.entries(selection.relations ?? {});
-    const computed = Object.entries(selection.computed ?? {});
-    return relations.every(fits) &&
-      computed.every(fits) &&
-      (selection.columns ?? []).every(columnFits)
-      ? selection
-      : {
-          ...selection,
-          // `null`, every column the level reads, stays as it is.
-          columns: selection.columns ? selection.columns.filter(columnFits) : selection.columns,
-          relations: Object.fromEntries(relations.filter(fits)),
-          computed: Object.fromEntries(computed.filter(fits)),
-        };
+    // `null`, every column the level reads, stays as it is.
+    const { columns } = selection;
+    return keepLoads(
+      selection,
+      readable && columns?.some((column) => !readable.has(column))
+        ? columns.filter((column) => readable.has(column))
+        : columns,
+      (_part, key) => canInclude(model.relations[splitKey(key)[0]]!, narrowing),
+    );
   }
 
   toQuery(node: PrismaNextNode): PrismaNextSelection {
@@ -392,6 +374,33 @@ function loads(selection: PrismaNextSelection, held?: PrismaNextSelection): numb
     count += (heldChild ? 0 : 1) + loads(child, heldChild);
   }
   return count;
+}
+
+/**
+ * `selection` with `columns`, and the relations and computed values `keep` keeps, each passed as a
+ * selection of its own. `selection` itself when nothing changes.
+ */
+function keepLoads(
+  selection: PrismaNextSelection,
+  columns: PrismaNextSelection['columns'],
+  keep: (part: PrismaNextSelection, key: string) => boolean,
+): PrismaNextSelection {
+  const relations = Object.entries(selection.relations ?? {});
+  const computed = Object.entries(selection.computed ?? {});
+  const keptRelations = relations.filter(([key, child]) =>
+    keep({ relations: { [key]: child } }, key),
+  );
+  const keptComputed = computed.filter(([key, value]) => keep({ computed: { [key]: value } }, key));
+  return columns === selection.columns &&
+    keptRelations.length === relations.length &&
+    keptComputed.length === computed.length
+    ? selection
+    : {
+        ...selection,
+        columns,
+        relations: Object.fromEntries(keptRelations),
+        computed: Object.fromEntries(keptComputed),
+      };
 }
 
 /**
