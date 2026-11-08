@@ -2,6 +2,7 @@ import {
   completeValue,
   type InputFieldMap,
   type InputShapeFromFields,
+  type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
 import type { PathSegment, SelectedFieldNode } from '@pothos/selection-mapper';
@@ -40,7 +41,7 @@ import { getPluginConfig } from './utils/config.js';
 import { CONNECTION_NODE_PATHS, connectionPaging } from './utils/connections.js';
 import { variantForRelationType } from './utils/contract.js';
 import { buildConnectionPage, type ConnectionPage } from './utils/cursors.js';
-import { initialSelection, nestedFromInfo, type PlanNested } from './utils/map-query.js';
+import { initialSelection, nestedFromInfo } from './utils/map-query.js';
 import { getIdentityFields, getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import { PAGE, type PageData } from './utils/row-copies.js';
@@ -161,13 +162,6 @@ type HelperPage<Node, PageRow, MaybeRow extends boolean> = [Node] extends [never
     : Omit<ConnectionPage<Node>, 'edges'> & {
         edges: (Omit<PageRow, 'node' | 'cursor'> & { node: Node; cursor: string })[];
       };
-
-/**
- * Where the nodes sit beneath the connection field. The selection mapper finds the node type there,
- * through any wrapper such as plugin-errors' result union. `getQuery` passes it to the field's
- * `nestedSelection`, which may prefix it, for a connection beneath the field.
- */
-const NODE_PATH = ['edges', 'node'];
 
 /**
  * The names selected on a connection at `prefix` beneath its field. Only `totalCount` is looked up
@@ -312,11 +306,13 @@ export function prismaConnectionHelpers<
   const identityFields = getIdentityFields(config.contract, modelKey);
   const nodeMarker: NodeSelection = { [NODE_SELECTION]: true };
 
-  /** The selection of each row of a page: what `select` loads, and the nodes. */
+  /**
+   * The selection of each row of a page: what `select` loads, and the nodes, whose selection
+   * `nodes` plans from a seed.
+   */
   const pageRows = (
     seed: PrismaNextSelection,
-    nested: PlanNested,
-    { path }: NestedEntry,
+    nodes: (seed: PrismaNextSelection) => MaybePromise<PrismaNextSelection>,
     args: object,
     ctx: object,
   ) => {
@@ -348,23 +344,37 @@ export function prismaConnectionHelpers<
           refine: undefined,
         }),
       };
-      return completeValue(nested(nodeSeed, path), (nodes) => ({
+      return completeValue(nodes(nodeSeed), (planned) => ({
         ...own,
-        relations: { ...relations, [nodeRelation]: nodes },
+        relations: { ...relations, [nodeRelation]: planned },
       }));
     }
     // Rows that `resolveNode` makes into something else aren't the nodes, so they load whole.
-    return resolveNode ? { ...own, columns: null } : nested(own, path);
+    return resolveNode ? { ...own, columns: null } : nodes(own);
   };
 
+  /**
+   * Plans a page for `getQuery`. `paths` are where the connection's nodes sit beneath the field,
+   * each of `CONNECTION_NODE_PATHS` as the field's `nestedSelection` prefixed it.
+   */
   const planPage =
-    (fieldArgs: object, ctx: object, entry: NestedEntry): PlanPage =>
+    (fieldArgs: object, ctx: object, paths: readonly PathSegment[][]): PlanPage =>
     (relation, name, field) => {
       // The names of the path before `edges`, where the connection sits beneath the field. The
       // connection pages by its own arguments, not those of the field it sits beneath.
-      const prefix = (entry.path ?? [])
-        .slice(0, -NODE_PATH.length)
+      const prefix = paths[0]!
+        .slice(0, -CONNECTION_NODE_PATHS[0]!.length)
         .map((segment) => (typeof segment === 'string' ? segment : segment.name));
+      // A path the connection doesn't select may not be in the schema, as `nodes` without
+      // relay's `nodesOnConnection`.
+      const selectedPaths = paths.filter(
+        (_path, i) => i === 0 || field.selected([...prefix, ...CONNECTION_NODE_PATHS[i]!]),
+      );
+      const nodes = (seed: PrismaNextSelection) =>
+        selectedPaths.reduce<MaybePromise<PrismaNextSelection>>(
+          (planned, path) => completeValue(planned, (selection) => field.nested(selection, path)),
+          seed,
+        );
       const connectionArgs = prefix.length ? field.selected.args(prefix) : fieldArgs;
       if (!connectionArgs) {
         return EMPTY;
@@ -383,7 +393,7 @@ export function prismaConnectionHelpers<
             identity: { source: planPage, args },
             variant: variantForRelationType(config.contract, owner, relation.targetModel, modelKey),
             filtered: true,
-            rows: (seed) => pageRows(seed, field.nested, entry, args, ctx),
+            rows: (seed) => pageRows(seed, nodes, args, ctx),
           },
         ),
       );
@@ -402,8 +412,12 @@ export function prismaConnectionHelpers<
       ctx: object,
       nestedSelection: (options: { path: readonly PathSegment[] }) => unknown,
     ) => {
-      const entry = nestedSelection({ path: NODE_PATH }) as { [NESTED_SELECTION]: NestedEntry };
-      return { [CONNECTION_PAGE]: planPage(args, ctx, entry[NESTED_SELECTION]) };
+      // The field's `nestedSelection` may prefix each path, for a connection beneath the field.
+      const paths = CONNECTION_NODE_PATHS.map((path) => {
+        const entry = nestedSelection({ path }) as { [NESTED_SELECTION]: NestedEntry };
+        return entry[NESTED_SELECTION].path ?? path;
+      });
+      return { [CONNECTION_PAGE]: planPage(args, ctx, paths) };
     },
     async load(
       collection: MapperCollection,
@@ -422,7 +436,6 @@ export function prismaConnectionHelpers<
             pageRows(
               initialSelection(paged, seed),
               nestedFromInfo(info, config, ctx, CONNECTION_NODE_PATHS),
-              {},
               args,
               ctx,
             ),

@@ -1414,6 +1414,20 @@ describe('prismaConnectionHelpers', () => {
     expect(result.statements).toHaveLength(1);
   });
 
+  it.each([
+    'nodes { title author { firstName } }',
+    'nodes { title } edges { node { author { firstName } } }',
+  ])('plans the selection beneath %s in the parent statement', async (selection) => {
+    const result = await run(
+      postsSchema(),
+      `{ users { postPage(first: 1, published: 1) { ${selection} } } }`,
+    );
+    expect(result.errors).toBeUndefined();
+    expect(JSON.stringify(result.data.users)).toContain('"Alice"');
+    expect(JSON.stringify(result.data.users)).toContain('"Hello, Pothos"');
+    expect(result.statements).toHaveLength(1);
+  });
+
   it('pages forward with the cursors it issues', async () => {
     const first = await run(
       postsSchema(),
@@ -1746,6 +1760,18 @@ describe('prismaConnectionHelpers', () => {
         },
       },
     ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it("plans a wrapped connection's nodes through a prefixed path", async () => {
+    const result = await run(
+      wrapperSchema(true),
+      '{ users { stats { posts { nodes { title } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0].stats).toEqual({
+      posts: { nodes: [{ title: 'Draft #1' }, { title: 'Hello, Pothos' }] },
+    });
     expect(result.statements).toHaveLength(1);
   });
 
