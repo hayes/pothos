@@ -48,6 +48,13 @@ export type BaseModelKey<TContract extends AnyContract, M extends string> =
     ? NamespacedModelKey<TContract, Ns, Base>
     : never;
 
+/** A variant's base model, or `M` itself for models that aren't variants. */
+export type BaseOrSelf<TContract extends AnyContract, M extends string> = [
+  BaseModelKey<TContract, M>,
+] extends [never]
+  ? M
+  : BaseModelKey<TContract, M>;
+
 export type ModelKeys<TContract extends AnyContract> = {
   [Ns in NamespaceIds<TContract>]: {
     [M in keyof TContract['domain']['namespaces'][Ns]['models'] & string]: NamespacedModelKey<
@@ -271,12 +278,7 @@ type ModelIdentityFields<C extends AnyContract, M extends string> =
 export type IdentityFields<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
-> = ModelIdentityFields<
-  Types['PrismaNextContract'],
-  [BaseModelKey<Types['PrismaNextContract'], M>] extends [never]
-    ? M
-    : BaseModelKey<Types['PrismaNextContract'], M>
->;
+> = ModelIdentityFields<Types['PrismaNextContract'], BaseOrSelf<Types['PrismaNextContract'], M>>;
 
 /** A model's table, as its namespace and name. */
 type StorageTable<C extends AnyContract, M extends string> =

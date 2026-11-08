@@ -15,27 +15,16 @@ import type {
 } from './models.js';
 
 /** The fields whose column codec can be ordered (bytes can't, for example). */
-type OrderableFields<C extends AnyContract, M extends string> = OrderableFieldNames<
-  C,
-  BareModelName<M>,
-  NamespaceOf<C, M>
->;
+type OrderableFields<C extends AnyContract, M extends string> = M extends string
+  ? OrderableFieldNames<C, BareModelName<M>, NamespaceOf<C, M>>
+  : never;
 
-type OrderableColumn<Types extends SchemaTypes, M extends ModelKey<Types>> =
-  | OrderableFields<Types['PrismaNextContract'], M>
-  | BaseOrderableColumn<Types['PrismaNextContract'], BaseModelKey<Types['PrismaNextContract'], M>>;
-
-type BaseOrderableColumn<TContract extends AnyContract, Base extends string> = [Base] extends [
-  never,
-]
-  ? never
-  : OrderableFields<TContract, Base>;
-
+/** The columns `M` can be ordered by, which include those of a variant's base. */
 type OrderableColumnName<Types extends SchemaTypes, M extends ModelKey<Types>> = keyof Row<
   Types,
   M
 > &
-  OrderableColumn<Types, M>;
+  OrderableFields<Types['PrismaNextContract'], M | BaseModelKey<Types['PrismaNextContract'], M>>;
 
 type OrderDirection = 'asc' | 'desc';
 

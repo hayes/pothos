@@ -13,7 +13,7 @@ import type { PrismaNextInterfaceRef } from '../interface-ref.js';
 import type { Planned, PrismaNextObjectRef } from '../object-ref.js';
 import type {
   BareModelName,
-  BaseModelKey,
+  BaseOrSelf,
   LoadedRow,
   ModelKey,
   NamespacedModelKey,
@@ -99,21 +99,14 @@ export type RelationWhere<Types extends SchemaTypes, M extends ModelKey<Types>> 
 export type RootWhere<Types extends SchemaTypes, M extends ModelKey<Types>> =
   | ShorthandWhereFilter<
       Types['PrismaNextContract'],
-      NamespaceOf<Types['PrismaNextContract'], ShorthandModel<Types, M>>,
-      BareModelName<ShorthandModel<Types, M>>
+      NamespaceOf<Types['PrismaNextContract'], BaseOrSelf<Types['PrismaNextContract'], M>>,
+      BareModelName<BaseOrSelf<Types['PrismaNextContract'], M>>
     >
   | RelationPredicate<
       Types['PrismaNextContract'],
       NamespaceOf<Types['PrismaNextContract'], M>,
       BareModelName<M>
     >;
-
-/** The model a root shorthand `where` of `M`'s rows is checked against: its base, for a variant. */
-type ShorthandModel<Types extends SchemaTypes, M extends ModelKey<Types>> = [
-  BaseModelKey<Types['PrismaNextContract'], M>,
-] extends [never]
-  ? M
-  : BaseModelKey<Types['PrismaNextContract'], M>;
 
 /** A to-many relation's literal `query`. */
 export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> {
