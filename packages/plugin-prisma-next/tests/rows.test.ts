@@ -3,7 +3,14 @@ import RelayPlugin from '@pothos/plugin-relay';
 import { execute, parse } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import PrismaNextPlugin, { collectionFromInfo } from '../src';
-import { createBuilder, run, useCollisionDb, useSampleDb } from './fixtures/helpers';
+import {
+  type CapturedExecution,
+  createBuilder,
+  run,
+  useCollisionDb,
+  useSampleDb,
+  withCapture,
+} from './fixtures/helpers';
 
 const db = useSampleDb();
 
@@ -216,6 +223,80 @@ describe('rows a resolver returns', () => {
     expect(published.errors).toBeUndefined();
     expect(published.data.user).toEqual({ publishedPosts: [{ id: 'p-hello' }] });
     expect(published.statements).toHaveLength(1);
+  });
+
+  describe('executions sharing a context', () => {
+    const document = parse(
+      'query ($published: Int!, $late: Boolean!) { user(late: $late) { posts(published: $published) { id } } }',
+    );
+
+    type Users = { where(where: object): { first(): Promise<object | null> } };
+    const shared = {};
+    const later = () => new Promise((resolve) => setTimeout(resolve, 10));
+
+    function schema(resolveUser: (users: Users, late: boolean) => Promise<object | null>) {
+      const builder = createBuilder();
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          posts: t.relation('posts', {
+            args: { published: t.arg.int({ required: true }) },
+            query: (args) => ({ where: { published: args.published } }),
+          }),
+        }),
+      });
+      builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.queryType({
+        fields: (t) => ({
+          user: t.prismaField({
+            type: 'User',
+            args: { late: t.arg.boolean({ required: true }) },
+            resolve: (users, _root, args) => resolveUser(users as never, args.late) as never,
+          }),
+        }),
+      });
+      return builder.toSchema();
+    }
+
+    const execution = (built: ReturnType<typeof schema>, published: number, late: boolean) =>
+      Promise.resolve(
+        execute({
+          schema: built,
+          document,
+          variableValues: { published, late },
+          contextValue: shared,
+        }),
+      );
+
+    it('read their own branches of one cached load, whichever reads first', async () => {
+      let cached: Promise<object | null> | undefined;
+      const built = schema(async (users, late) => {
+        cached ??= users.where({ id: 'u-alice' }).first();
+        const row = await cached;
+        if (late) {
+          await later();
+        }
+        return row;
+      });
+      // The first execution loads the row, the second reads it first.
+      const [drafts, published] = await Promise.all([
+        execution(built, 0, true),
+        execution(built, 1, false),
+      ]);
+      expect(drafts).toEqual({ data: { user: { posts: [{ id: 'p-draft1' }] } } });
+      expect(published).toEqual({ data: { user: { posts: [{ id: 'p-hello' }] } } });
+    });
+
+    it('read their own branches of one reload batch', async () => {
+      const built = schema(async () => ({ id: 'u-alice' }));
+      const statements: CapturedExecution[] = [];
+      const [drafts, published] = await withCapture(statements, () =>
+        Promise.all([execution(built, 0, false), execution(built, 1, false)]),
+      );
+      expect(drafts).toEqual({ data: { user: { posts: [{ id: 'p-draft1' }] } } });
+      expect(published).toEqual({ data: { user: { posts: [{ id: 'p-hello' }] } } });
+      // Both reloads are one batch: their consumers' ids differ, so each filter has its branch.
+      expect(statements).toHaveLength(1);
+    });
   });
 });
 
