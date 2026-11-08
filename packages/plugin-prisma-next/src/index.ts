@@ -70,6 +70,7 @@ import {
   executionKey,
   fieldCopy,
   type NestedPlan,
+  registerOwnLoads,
   rowOf,
   typeCopy,
   typeNested,
@@ -302,8 +303,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   ): PothosOutputFieldConfig<Types> {
     const extensions = fieldConfig.extensions ?? {};
     // Field helpers set their own selection.
-    if (extensions[PRISMA_NEXT_FIELD_SELECTION] !== undefined) {
-      return fieldConfig;
+    const own = extensions[PRISMA_NEXT_FIELD_SELECTION] as
+      | PrismaNextSelection
+      | PrismaNextSelectFn
+      | undefined;
+    if (own !== undefined) {
+      return typeof own === 'function' ? withSelection(fieldConfig, own) : fieldConfig;
     }
     // A field an interface without a model declares still resolves on the implementation's rows,
     // so it reads them as the implementation's `select`s load them.
@@ -355,15 +360,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           : typeSelects(this.buildCache.getTypeConfig(fieldConfig.parentType)).length
             ? EMPTY
             : undefined;
-    return selection
-      ? {
-          ...fieldConfig,
-          extensions: {
-            ...extensions,
-            [PRISMA_NEXT_FIELD_SELECTION]: selection,
-          },
-        }
-      : fieldConfig;
+    return selection ? withSelection(fieldConfig, selection) : fieldConfig;
   }
 
   /**
@@ -720,6 +717,30 @@ function holds(row: object, keys: readonly string[]) {
 /** The keys a type's split `select` writes on the parent: its columns and relations. */
 function selectedKeys({ columns, relations }: SplitSelect) {
   return [...columns, ...relations.map(([name]) => name)];
+}
+
+/**
+ * `fieldConfig` with `selection` as the selection the planner reads. A select function also records
+ * what it loads for its field, which `fieldCopy` checks the parent holds.
+ */
+function withSelection<Types extends SchemaTypes>(
+  fieldConfig: PothosOutputFieldConfig<Types>,
+  selection: PrismaNextSelection | PrismaNextSelectFn,
+): PothosOutputFieldConfig<Types> {
+  const recording: PrismaNextSelection | PrismaNextSelectFn =
+    typeof selection === 'function'
+      ? (args, ctx, nested, selected, position) =>
+          completeValue(selection(args, ctx, nested, selected, position), (planned) => {
+            if (planned) {
+              registerOwnLoads(position, planned);
+            }
+            return planned;
+          })
+      : selection;
+  return {
+    ...fieldConfig,
+    extensions: { ...fieldConfig.extensions, [PRISMA_NEXT_FIELD_SELECTION]: recording },
+  };
 }
 
 /** `value`, a field's result, with `copy` applied to each item, through promises and lists. */

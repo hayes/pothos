@@ -1,4 +1,3 @@
-import { completeValue } from '@pothos/core';
 import {
   deepEqual,
   type MergeOptions,
@@ -23,7 +22,6 @@ import type { AnyContract } from '../types/models.js';
 import { branchName, consumerOfKey, relationName } from './branch-keys.js';
 import { compileTypeSelect, typeSelects } from './compile-select.js';
 import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model.js';
-import { registerOwnLoads } from './row-copies.js';
 import {
   COMPUTE,
   type ComputedSelection,
@@ -153,9 +151,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       | PrismaNextSelection
       | PrismaNextSelectFn
       | undefined;
-    return typeof own === 'function'
-      ? recordingLoads(own)
-      : (own ?? (implementationsOf(type) ? EMPTY : undefined));
+    return own ?? (implementationsOf(type) ? EMPTY : undefined);
   }
 
   visitQuery(selection: PrismaNextSelection, model: PrismaNextModel, visit: Visitor) {
@@ -466,22 +462,4 @@ function implementationsOf(type: GraphQLNamedType) {
   return type.extensions?.[PRISMA_NEXT_IMPLEMENTATIONS] as
     | Map<string, PrismaNextSelection>
     | undefined;
-}
-
-const recording = new WeakMap<PrismaNextSelectFn, PrismaNextSelectFn>();
-
-/** `select`, recording what it loads for its field, which `fieldCopy` checks the parent holds. */
-function recordingLoads(select: PrismaNextSelectFn): PrismaNextSelectFn {
-  let recorded = recording.get(select);
-  if (!recorded) {
-    recorded = (args, ctx, nested, selected, position) =>
-      completeValue(select(args, ctx, nested, selected, position), (selection) => {
-        if (selection) {
-          registerOwnLoads(position, selection);
-        }
-        return selection;
-      });
-    recording.set(select, recorded);
-  }
-  return recorded;
 }
