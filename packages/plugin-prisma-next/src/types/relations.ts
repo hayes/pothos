@@ -172,7 +172,7 @@ export type RelationQuery<
             Types,
             TypedRelationQueryValue<Types, ParentModel, RelName, TypeModel> | undefined
           >)
-    : { readonly [K in `A to-one relation takes no query: ${RelName}`]: never };
+    : never;
 
 export type PrismaNextRelationOptions<
   Types extends SchemaTypes,
@@ -244,11 +244,6 @@ export type RelationOnNull<
     ) => MaybePromise<
       Error | Planned<TypeModel | VariantModelKeys<Types['PrismaNextContract'], TypeModel>>
     >);
-
-/** Names why `nullable: false` isn't allowed in its error, as the type argument the error shows. */
-export interface RequiresNullable<Reason extends string> {
-  readonly 'nullable: false is not allowed': Reason;
-}
 
 /**
  * Whether a to-one relation can resolve to null: the contract makes it nullable, or a variant
@@ -350,16 +345,13 @@ export type FieldQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Type
   offset?: number;
 };
 
-/** Names `Literal`'s unknown keys in a required property, which no object has, for the error. */
+/** `Literal`'s unknown keys as required `never` properties, which no object has. */
 export type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
   UnknownQueryKeys<Literal, Known>,
 ] extends [never]
   ? unknown
   : {
-      readonly [K in UnknownQueryKeys<
-        Literal,
-        Known
-      > as `Unknown query option: ${K & string}`]: never;
+      readonly [K in UnknownQueryKeys<Literal, Known>]: never;
     };
 
 /** Planned rows of a relation, as a list for a to-many relation and nullable as the field is. */

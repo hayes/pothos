@@ -55,23 +55,10 @@ export type HasAggregates<Types extends SchemaTypes> = string extends keyof Extr
   ? false
   : true;
 
-/**
- * The name `relationCount` takes: a to-many relation, on a target that has aggregates. Otherwise
- * a message, which the name is reported against.
- */
+/** The name `relationCount` takes: a to-many relation, on a target that has aggregates. */
 export type CountedRelationName<Types extends SchemaTypes, RelName> =
-  HasAggregates<Types> extends true
-    ? RelName
-    : 'relationCount runs a count aggregate, which this target (MySQL) lacks';
+  HasAggregates<Types> extends true ? RelName : never;
 
 /** `totalCount: true` runs a count aggregate, so it needs a target that has them. */
 export type TotalCountFlag<Types extends SchemaTypes> =
-  HasAggregates<Types> extends true ? boolean : false | (true & TotalCountNeedsAggregates);
-
-/**
- * Names the problem with `totalCount: true` on a target without aggregates, as
- * `true & TotalCountNeedsAggregates`. No written value matches it, and it stays a `boolean`.
- */
-interface TotalCountNeedsAggregates {
-  readonly 'totalCount: true runs a count aggregate, which this target (MySQL) lacks. Pass a callback': never;
-}
+  HasAggregates<Types> extends true ? boolean : false;

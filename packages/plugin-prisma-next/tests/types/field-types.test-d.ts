@@ -589,7 +589,7 @@ builder.queryFields((t) => ({
       unknownOption: t.field({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
-          // @ts-expect-error Unknown query option: take
+          // @ts-expect-error `take` isn't a query option
           posts: nestedSelection({ take: 1 }),
         }),
         resolve: (user) => user.posts,
@@ -666,7 +666,7 @@ builder.queryFields((t) => ({
         type: [NestedPost],
         // @ts-expect-error `take` isn't a key of `posts`
         select: (_args, _ctx, nestedSelection) => ({
-          // @ts-expect-error Unknown query option: take
+          // @ts-expect-error `take` isn't a query option
           posts: nestedSelection({ limit: 1, take: 1, path: [] }),
         }),
         resolve: (user) => user.posts,

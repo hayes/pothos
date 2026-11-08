@@ -160,7 +160,6 @@ export type {
   RelationQuery,
   RelationQueryLiteral,
   RelationWhere,
-  RequiresNullable,
 } from './types/relations.js';
 export type {
   AggregateSelect,

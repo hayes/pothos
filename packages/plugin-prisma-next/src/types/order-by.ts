@@ -45,21 +45,9 @@ export type RelationOrderBy<Types extends SchemaTypes, M extends ModelKey<Types>
     | {
         readonly direction?: OrderDirection;
         /** Where nulls sort. Only a nullable column has them. */
-        readonly nulls?: null extends Row<Types, M>[Column]
-          ? 'first' | 'last'
-          : ('first' | 'last') & NullsOnNonNullColumn<Column>;
+        readonly nulls?: null extends Row<Types, M>[Column] ? 'first' | 'last' : never;
       };
 };
-
-/**
- * Names the problem with `nulls` on a non-null column, where `never` would only say "not
- * assignable to undefined". A brand on the values rather than `never`, so the error reads
- * `'first' & NullsOnNonNullColumn<'title'>`, no written value matches it, and the option stays
- * assignable to what the runtime takes.
- */
-interface NullsOnNonNullColumn<Column> {
-  readonly 'A non-null column has no nulls to place': Column;
-}
 
 /** The columns a literal's `orderBy` names that `M` can't be ordered by. */
 export type UnknownOrderByColumns<
@@ -85,4 +73,4 @@ export type OrderByColumnsCheck<
   ? unknown
   : string extends Unknown
     ? unknown
-    : { readonly [K in Unknown & string as `Not an orderable column: ${K}`]: never };
+    : { readonly orderBy: { readonly [K in Unknown & string]: never } };

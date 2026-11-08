@@ -35,7 +35,7 @@ import type {
 import type { PrismaNextObjectFieldBuilder } from '../prisma-next-field-builder.js';
 import type { PlannedCollection, ResolverCollection, TypeCollection } from './collections.js';
 import type { FieldParentShape, IdFieldShape, ModelKey, ResolveTypeParent, Row } from './models.js';
-import type { FieldQueryLiteral, QueryOption, RequiresNullable } from './relations.js';
+import type { FieldQueryLiteral, QueryOption } from './relations.js';
 import type {
   InterfaceNestedRow,
   PrismaNextFieldSelectForm,
@@ -51,7 +51,7 @@ type VariantIsNullRequirement<Nullable extends boolean, IsNull> = [IsNull] exten
   ? {}
   : [Nullable] extends [true]
     ? {}
-    : { nullable: true | RequiresNullable<'isNull can resolve the field to null'> };
+    : { nullable: true };
 
 /** Field options for `t.variant`, which are object field options without those it sets itself. */
 export type PrismaNextVariantFieldOptions<
@@ -467,20 +467,13 @@ export type ParamToTypeParam<Types extends SchemaTypes, Param, Shape> = Param ex
     ? [PrismaNextObjectRef<Types, ParamToModelKey<Types, Param>, Shape>]
     : PrismaNextObjectRef<Types, ParamToModelKey<Types, Param>, Shape>;
 
-/** Names the requested type when no column fits it, where `never` says only "not assignable". */
-interface NoExposableColumn<Type> {
-  readonly 'No column of this model can be exposed as': Type;
-}
-
 /** The columns `t.expose*` accepts for a GraphQL type. */
 export type ExposableColumn<
   Types extends SchemaTypes,
   Shape,
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
-> = [CompatibleTypes<Types, Shape, Type, Nullable>] extends [never]
-  ? NoExposableColumn<Type>
-  : CompatibleTypes<Types, Shape, Type, Nullable>;
+> = CompatibleTypes<Types, Shape, Type, Nullable>;
 
 /** The `nullable` option `t.expose*` requires, or none while the column is rejected. */
 export type ExposeColumnNullability<

@@ -130,26 +130,23 @@ export type ResolverCollection<Types extends SchemaTypes, M extends ModelKey<Typ
     : VariantCollection<Types, M>);
 
 /**
- * An `include()` adds its relation to the collection's row. The columns are listed too, so a row
- * without relations shares a property with this type, which only has optional ones.
+ * Rejects an `include()`, which adds its relation to the collection's row: the plugin includes
+ * what the query selects. The columns are listed too, so a row without relations shares a property
+ * with this type, which only has optional ones.
  */
 type IncludeFreeRow<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   readonly [K in keyof Row<Types, M> | RelationKeys<Types, M>]?: K extends RelationKeys<Types, M>
-    ? `Return the collection without include('${K}'): the plugin includes what the query selects`
+    ? never
     : unknown;
 };
 
 /**
- * Rejects an ordered collection, naming why: a connection orders its collection by its `query`'s
- * `orderBy` and the cursor.
+ * Rejects an ordered collection: a connection orders its collection by its `query`'s `orderBy` and
+ * the cursor.
  */
 export type UnorderedCollection<Returned> = [Extract<Returned, HasOrderBy>] extends [never]
   ? unknown
-  : OrderedConnectionCollection;
-
-interface OrderedConnectionCollection {
-  readonly "A connection orders its collection by its query's orderBy, so the collection must not use orderBy()": true;
-}
+  : never;
 
 /**
  * The key of the model a collection's rows belong to: the model it reads, or the variant model

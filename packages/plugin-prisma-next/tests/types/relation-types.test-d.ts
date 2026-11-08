@@ -270,9 +270,7 @@ const mysql = new SchemaBuilder<{ PrismaNextContract: MysqlContract }>({
 });
 mysql.prismaObject('Author', {
   fields: (t) => ({
-    // '"books"' is not assignable to 'relationCount runs a count aggregate, which this target
-    // (MySQL) lacks'
-    // @ts-expect-error a count needs aggregates
+    // @ts-expect-error a count needs aggregates, which MySQL lacks
     bookCount: t.relationCount('books'),
   }),
 });
@@ -344,7 +342,7 @@ strict.prismaObject('Bug', {
       owner,
       variant,
       maybeVariant,
-      // @ts-expect-error RequiresNullable<'isNull can resolve the field to null'>
+      // @ts-expect-error `isNull` can resolve the field to null, so it must be nullable
       strictVariant: t.variant(strictBug, { isNull: () => false }),
       errorOnNull,
       fallback,
@@ -485,19 +483,17 @@ builder.prismaObject('User', {
 builder.prismaObject('Post', {
   variant: 'ToOneQueries',
   fields: (t) => ({
-    // @ts-expect-error A to-one relation takes no query: author
+    // @ts-expect-error a to-one relation takes no query
     where: t.relation('author', { query: { where: { firstName: 'Alice' } } }),
-    // @ts-expect-error A to-one relation takes no query: author
+    // @ts-expect-error a to-one relation takes no query
     whereCallback: t.relation('author', { query: () => ({ where: { firstName: 'Alice' } }) }),
-    // @ts-expect-error A to-one relation takes no query: author
+    // @ts-expect-error a to-one relation takes no query
     limited: t.relation('author', { query: { limit: 1 } }),
     // @ts-expect-error a to-one relation takes no refinement
     refined: t.relation('author', { query: () => (author: unknown) => author }),
   }),
 });
-expectTypeOf<RelationQuery<Types, 'Post', 'author', {}>>().toEqualTypeOf<{
-  readonly 'A to-one relation takes no query: author': never;
-}>();
+expectTypeOf<RelationQuery<Types, 'Post', 'author', {}>>().toBeNever();
 
 // Async `select`, `query` and count `query` callbacks need `AsyncSelections: true`.
 builder.prismaObject('User', {

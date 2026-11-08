@@ -67,15 +67,11 @@ type ConnectionHelperSelect<Types extends SchemaTypes, M extends ModelKey<Types>
     : true;
 };
 
-interface UnknownHelperSelectKey<Key> {
-  readonly 'Unknown key in select': Key;
-}
-
 /** Checks a helper's `select`, which is inferred from what the callback returns. */
 type HelperSelectCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = {
   readonly [K in keyof Select]: K extends keyof ConnectionHelperSelect<Types, M>
     ? ConnectionHelperSelect<Types, M>[K]
-    : UnknownHelperSelectKey<K>;
+    : never;
 };
 
 type SelectedRelations<

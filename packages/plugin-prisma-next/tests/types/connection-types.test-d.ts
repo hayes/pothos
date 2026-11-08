@@ -312,23 +312,17 @@ builder.queryFields((t) => ({
 
 expectTypeOf<ConnectionQueryLiteral<Types, 'Post'>>().toHaveProperty('where');
 expectTypeOf<RelationOrderBy<Types, 'Post'>>().toHaveProperty('title');
-// `nulls` on a non-null column names the problem instead of failing against `undefined`.
+// A non-null column has no nulls to place.
 expectTypeOf<
   Extract<NonNullable<RelationOrderBy<Types, 'Post'>['title']>, object>['nulls']
->().toEqualTypeOf<
-  (('first' | 'last') & { readonly 'A non-null column has no nulls to place': 'title' }) | undefined
->();
+>().toEqualTypeOf<undefined>();
 expectTypeOf<
   Extract<NonNullable<RelationOrderBy<Types, 'Post'>['score']>, object>['nulls']
 >().toEqualTypeOf<'first' | 'last' | undefined>();
-// `totalCount: true` on a target without aggregates, such as MySQL, names the problem.
+// `totalCount: true` needs a target with aggregates, which MySQL lacks.
 type MysqlTypes = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: MysqlContract }>;
-// `toEqualTypeOf` on `TotalCountFlag` crashes TypeScript 7.0's checker, so its parts are checked.
 expectTypeOf<true>().not.toExtend<TotalCountFlag<MysqlTypes>>();
 expectTypeOf<false>().toExtend<TotalCountFlag<MysqlTypes>>();
-expectTypeOf<Extract<TotalCountFlag<MysqlTypes>, true>>().toHaveProperty(
-  'totalCount: true runs a count aggregate, which this target (MySQL) lacks. Pass a callback',
-);
 // Bytes columns aren't orderable, so they aren't keys of the declaration.
 type EntryTypes = PothosSchemaTypes.ExtendDefaultTypes<{ PrismaNextContract: PostgresContract }>;
 expectTypeOf<

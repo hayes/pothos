@@ -47,11 +47,6 @@ export interface PrismaNextRequestClient<TContract extends AnyContract> {
   readonly orm: PrismaNextCollections<TContract>;
 }
 
-/** Names the problem when `context` is passed beside a client object. */
-interface ContextOnlyForClientFunction {
-  readonly 'prismaNext.context is only for a client function; a client object carries its own': never;
-}
-
 // TypeScript reports options matching neither client form against the last form with as many of
 // their keys, so the function form goes last: a client function without `context` is told
 // `context` is missing.
@@ -69,7 +64,7 @@ export type PrismaNextPluginOptions<Types extends SchemaTypes> = {
   | {
       readonly client: PrismaNextClient<Types['PrismaNextContract']>;
       /** A client object carries its own `context`, so this is only for a client function. */
-      readonly context?: ContextOnlyForClientFunction;
+      readonly context?: never;
     }
   | {
       readonly client: (
