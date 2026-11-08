@@ -74,14 +74,6 @@ export interface SelectedFieldNode {
   /** Lazily collect selected schema field names; aliases do not change the names. */
   (): ReadonlySet<string>;
   (path: string[]): FieldNode | null;
-  /**
-   * The arguments of the field selected at `path`, as its resolver gets them (a promise when an
-   * argument mapper returns one), or null when nothing is selected there. Throws when the fields
-   * selected there, such as two aliases, have different arguments. An empty path is the field
-   * itself, or the wrapper's inner field, when its type has one. Nothing calls it yet: it is for
-   * plugin-prisma-next's connection helpers (#1835), to page a wrapper's rows.
-   */
-  args(path: string[]): MaybePromise<object> | null;
 }
 
 /** A function field selection. A falsy result selects nothing. */

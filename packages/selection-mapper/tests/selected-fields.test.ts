@@ -1,7 +1,7 @@
 import { getNamedType } from 'graphql';
 import { expect, it } from 'vitest';
 import { Plan, selectedFieldNames } from '../src';
-import { createModels, createSchema, FakeAdapter, resolveInfo, unexpected } from './fake-adapter';
+import { createModels, createSchema, FakeAdapter, resolveInfo } from './fake-adapter';
 
 it.each([
   true,
@@ -63,65 +63,4 @@ it.each([
   expect(getNamedType(resolvedInfo.returnType).name).toBe('Result');
   expect(new Set(seen.flatMap((names) => [...names]))).toEqual(expected);
   expect(expected).toEqual(new Set(rows ? ['totalCount', 'pageSize'] : ['totalCount']));
-});
-
-async function argsAt(path: string[], selection: string, variableValues = {}) {
-  let read: () => unknown = () => undefined;
-  const models = createModels('User');
-  const schema = createSchema(
-    `
-    type Query { user: User }
-    type User { id: ID activity(take: Int): Result }
-    union Result = Success | Failure
-    type Success { data: Activity }
-    type Failure { message: String }
-    type Activity { posts(first: Int, after: String, size: Int = 5): Int }
-  `,
-    {
-      User: {
-        model: 'User',
-        select: { select: { id: true } },
-        fields: {
-          activity: (_args, _ctx, _nested, selected) => {
-            read = () => selected.args(path);
-            return { select: { id: true } };
-          },
-        },
-      },
-      Result: {
-        extensions: {
-          pothosIndirectInclude: {
-            getType: () => 'Activity',
-            path: [{ name: 'data', type: 'Success' }],
-          },
-        },
-      },
-    },
-  );
-  const source = `query ($first: Int, $after: String) {
-    user { activity(take: 3) { ... on Success { data { ${selection} } } } }
-  }`;
-  const info = await resolveInfo(schema, source, { variableValues });
-  const plan = await Plan.fromInfo(new FakeAdapter(models), { context: {}, info });
-  plan!.query();
-  return read();
-}
-
-it('reads the arguments of a field beneath the selection, through a wrapper', async () => {
-  const variables = { first: 2, after: 'abc' };
-  const posts = 'posts(first: $first, after: $after)';
-  expect(await argsAt([], posts, variables)).toEqual({});
-  expect(await argsAt(['posts'], posts, variables)).toEqual({ first: 2, after: 'abc', size: 5 });
-  expect(await argsAt(['missing'], posts, variables)).toBeNull();
-  expect(await argsAt(['posts'], `a: ${posts} b: ${posts}`, variables)).toEqual({
-    first: 2,
-    after: 'abc',
-    size: 5,
-  });
-});
-
-it('throws for fields at the path with different arguments', async () => {
-  await expect(argsAt(['posts'], 'a: posts(first: 1) b: posts(first: 5)')).rejects.toThrow(
-    unexpected('The fields selected at posts beneath User.activity have different arguments.'),
-  );
 });
