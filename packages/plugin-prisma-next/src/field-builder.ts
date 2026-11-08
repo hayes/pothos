@@ -76,9 +76,10 @@ function prismaFieldConfig(
           try {
             return await resolve(planned, parent, args, context, info);
           } catch (error) {
-            // The statement carries the selection the plugin planned, so its database errors are
-            // the plugin's, such as a write on an own-table variant returning the variant's columns.
-            throw SqlQueryError.is(error)
+            // A column the planned selection reads that the statement can't, as when a write on an
+            // own-table variant returns the variant's columns, is the plugin's error. Any other
+            // database error is the app's, as its own statements' are.
+            throw isUndefinedColumn(error)
               ? new InternalError(`${info.parentType.name}.${info.fieldName}: ${error.message}`, {
                   cause: error,
                 })
@@ -206,3 +207,13 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
     edgeOptions,
   );
 } as never;
+
+/** Whether `error` is the database refusing a column a statement names: Postgres, MySQL, SQLite. */
+function isUndefinedColumn(error: unknown): error is SqlQueryError {
+  return (
+    SqlQueryError.is(error) &&
+    (error.sqlState === '42703' ||
+      error.sqlState === '42S22' ||
+      error.message.startsWith('no such column'))
+  );
+}

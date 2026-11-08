@@ -1,6 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import WithInputPlugin from '@pothos/plugin-with-input';
+import { isUniqueConstraintViolation, SqlQueryError } from '@prisma/orm-family-sql/errors';
 import { describe, expect, it } from 'vitest';
 import PrismaNextPlugin from '../src';
 import {
@@ -159,6 +160,14 @@ describe('prismaField resolve', () => {
     const scalar = await run(built, 'mutation { createPost(id: "p-scalar") { title } }');
     expect(scalar.data.createPost).toEqual({ title: 'Created' });
     expect(scalar.statements.map((s) => s.sql.split(' ')[0])).toEqual(['INSERT']);
+  });
+
+  it("passes on a database error of the app's own write as it is", async () => {
+    const result = await run(built, 'mutation { createPost(id: "p-hello") { title } }');
+    const error = result.errors?.[0]?.originalError;
+    expect(SqlQueryError.is(error)).toBe(true);
+    expect(isUniqueConstraintViolation(error)).toBe(true);
+    expect(result.errors?.[0]?.message).not.toBe('Unexpected error.');
   });
 
   it('returns the rows createAll writes', async () => {
