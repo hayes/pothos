@@ -214,16 +214,24 @@ export interface PrismaNextConnectionHelpers<
     info: GraphQLResolveInfo,
   ): Promise<HelperRow<Types, M, Select, Ref>[]>;
   /**
-   * The connection of `rows`, paged by `args` as `getQuery` pages them. `totalCount` is only set
-   * when the rows are the list `getQuery` or `load` loaded. `parent` is passed on to the
+   * The connection of `rows`, paged by `args` as `getQuery` pages them. `totalCount` is the count
+   * `getQuery` or `load` loaded with the rows, unless one is passed. `parent` is passed on to the
    * connection.
    */
   resolve(
     rows: readonly HelperRow<Types, M, Select, Ref>[],
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
-    parent?: unknown,
+    options?: ConnectionHelperResolveOptions,
   ): HelperPage<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>;
+}
+
+/** What a connection helper's `resolve` passes on to the connection. */
+export interface ConnectionHelperResolveOptions {
+  /** The connection field's parent. */
+  parent?: unknown;
+  /** The connection's count, in place of one `getQuery` or `load` loaded. */
+  totalCount?: number;
 }
 
 export interface PrismaNextConnectionHelperOptions<
@@ -451,12 +459,11 @@ export function prismaConnectionHelpers<
       rows: readonly Record<string, unknown>[],
       args: PothosSchemaTypes.DefaultConnectionArguments,
       ctx: object,
-      parent?: unknown,
+      { parent, totalCount }: ConnectionHelperResolveOptions = {},
     ) {
-      // Only the list `getQuery` loaded carries its count.
-      const totalCount = (rows as { [PAGE]?: Pick<PageData, 'count'> })[PAGE]?.count;
+      // Only the list `getQuery` or `load` loaded carries its count.
       const page = buildConnectionPage(rows, paging.pagingPlan(args, ctx), args, {
-        totalCount,
+        totalCount: totalCount ?? (rows as { [PAGE]?: Pick<PageData, 'count'> })[PAGE]?.count,
         parent,
       });
       if (!resolveNode) {

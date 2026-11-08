@@ -1414,6 +1414,46 @@ describe('prismaConnectionHelpers', () => {
     expect(result.statements).toHaveLength(1);
   });
 
+  it('passes a count resolve is given in place of a loaded one', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ title: t.exposeString('title') }) });
+    const posts = prismaConnectionHelpers(builder, 'Post', {
+      query: { orderBy: { title: 'asc' } },
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        postPage: t.connection(
+          {
+            type: posts.ref,
+            select: (args, ctx, nestedSelection) => ({
+              posts: posts.getQuery(args, ctx, nestedSelection),
+            }),
+            resolve: (user, args, ctx) => posts.resolve(user.posts, args, ctx, { totalCount: 42 }),
+          },
+          { fields: (c) => ({ totalCount: c.int({ resolve: (page) => page.totalCount }) }) },
+        ),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ users { postPage(first: 1) { totalCount edges { node { title } } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0].postPage).toEqual({
+      totalCount: 42,
+      edges: [{ node: { title: 'Draft #1' } }],
+    });
+    expect(result.statements).toHaveLength(1);
+  });
+
   it.each([
     'nodes { title author { firstName } }',
     'nodes { title } edges { node { author { firstName } } }',
@@ -1489,12 +1529,9 @@ describe('prismaConnectionHelpers', () => {
               comments: commenters.getQuery(args, ctx, nestedSelection),
             }),
             resolve: (post, args, ctx) =>
-              commenters.resolve(
-                resolveRows(post.comments) as typeof post.comments,
-                args,
-                ctx,
-                post,
-              ),
+              commenters.resolve(resolveRows(post.comments) as typeof post.comments, args, ctx, {
+                parent: post,
+              }),
           },
           {
             fields: (c) => ({
