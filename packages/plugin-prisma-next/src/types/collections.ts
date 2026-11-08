@@ -39,14 +39,9 @@ type CombineRefinement<TContract extends AnyContract, ModelKey extends string> =
  * passes it: the include refinement collection, with the aggregate methods.
  */
 export type AggregateCollection<Types extends SchemaTypes, M extends ModelKey<Types>> = Omit<
-  Collection<
-    Types['PrismaNextContract'],
-    BareModelName<M>,
-    Row<Types, M>,
-    WithNsId<DefaultCollectionTypeState, NamespaceOf<Types['PrismaNextContract'], M>>
-  >,
+  CollectionFor<Types, M, Row<Types, M>>,
   Exclude<
-    keyof Collection<Types['PrismaNextContract'], BareModelName<M>>,
+    keyof CollectionFor<Types, M>,
     keyof CombineRefinement<Types['PrismaNextContract'], BareModelName<M>>
   >
 >;

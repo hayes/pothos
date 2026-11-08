@@ -36,7 +36,6 @@ import type {
   IsToMany,
   QueryKeys,
   RelatedModel,
-  RelationFieldShape,
   RelationQueryLiteral,
   RelationTypeModel,
   RelationWhere,
@@ -415,7 +414,7 @@ type EntryShape<
   K extends RelationKeys<Types, M>,
   Entry,
 > = Entry extends true
-  ? RelationShape<Types, M, K>
+  ? NestedRows<Types, M, K, LoadedRow<Types, RelatedModel<Types, M, K>>>
   : // A connection helper's page: the rows it loaded, which its `resolve` takes.
     Entry extends ConnectionPageEntry<unknown, infer PageRow>
     ? readonly PageRow[]
@@ -503,11 +502,7 @@ type OptionalSelectShape<Types extends SchemaTypes, M extends ModelKey<Types>, S
   keyof OptionalSelectEntries<S>,
 ] extends [never]
   ? unknown
-  : Partial<
-      SimpleColumnShape<Types, M, OptionalSelectEntries<S>> &
-        RelationEntriesShape<Types, M, OptionalSelectEntries<S>> &
-        AggregateShape<Types, M, OptionalSelectEntries<S>>
-    >;
+  : Partial<SelectAdds<Types, M, OptionalSelectEntries<S>>>;
 
 /** Not distributed over `Select`, so a conditional's branches all reach `SelectCheck`. */
 export type ValidateFieldSelect<Types extends SchemaTypes, ParentShape, Select> = [Select] extends [
@@ -748,13 +743,6 @@ type ModelMismatch<
       ]
     ? never
     : `${Source} plans ${Planned & string}, but ${K} loads ${RelatedModel<Types, M, K> & string}`;
-
-/** A to-one relation is nullable when the contract says so. */
-type RelationShape<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  R extends RelationKeys<Types, M>,
-> = RelationFieldShape<Types, M, R, DefaultRelationNullable<Types, M, R>>;
 
 /**
  * A function-form `select` contributes what it returns. When its branches return different
