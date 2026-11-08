@@ -15,7 +15,7 @@ import {
   readPage,
   withCursorValues,
 } from './cursors.js';
-import { checkReturned, InternalError } from './errors.js';
+import { checkReturned } from './errors.js';
 import type { PrismaNextRelation } from './model.js';
 import { markPlanned, PAGE, type PageData, registerPage } from './row-copies.js';
 import { COUNT_SLOT, EMPTY, type PrismaNextSelection } from './selections.js';
@@ -255,7 +255,8 @@ export function connectionPaging(
       info: GraphQLResolveInfo,
     ) {
       const { count } = selection(selectedFieldNames(ctx, info));
-      const page = pageOf(rows);
+      // The field's copy always holds what `planPage` recorded (see `writePages`).
+      const page = (rows as { [PAGE]?: PageData })[PAGE] as PageData & { plan: ConnectionPlan };
       const totalCount =
         count === 'aggregate' ? page.count : await count?.(parent, args, ctx, info);
       return buildConnectionPage(rows, page.plan, args, { totalCount, parent });
@@ -267,15 +268,6 @@ export function connectionPaging(
 export function pageLoaded(name: string) {
   return (parent: object) =>
     (parent as Record<string, { [PAGE]?: PageData } | undefined>)[name]?.[PAGE] !== undefined;
-}
-
-/** What `planPage` recorded on a page's rows. */
-function pageOf(rows: readonly unknown[]): { plan: ConnectionPlan; count?: number } {
-  const page = (rows as { [PAGE]?: PageData })[PAGE];
-  if (!page) {
-    throw new InternalError("A connection page's rows don't hold its plan.");
-  }
-  return page as { plan: ConnectionPlan; count?: number };
 }
 
 // A prebuilt connection ref can't be given new fields, so its own definition must add the field.
