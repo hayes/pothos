@@ -122,10 +122,10 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    * `isTypeOf`, auth checks and fields read it even when the query has no fragment on that type.
    *
    * They all fit one node. The type-level selects of a model agree and share their branches, and
-   * a to-one relation is always `true` in a type's `select`. A type's `select` can't name a relation
-   * only a variant declares, but a base model's relation can't be included beneath a relation that
-   * targets a variant model, nor a base column read beneath one that targets a variant with a table
-   * of its own. `mergeQuery` leaves those out of such a level.
+   * a to-one relation is keyed by its name, so every type's `select` shares it. A type's `select`
+   * can't name a relation only a variant declares, but a base model's relation can't be included
+   * beneath a relation that targets a variant model, nor a base column read beneath one that
+   * targets a variant with a table of its own. `mergeQuery` leaves those out of such a level.
    */
   typeSelection(type: GraphQLNamedType): PrismaNextSelection | undefined {
     const cached = this.typeSelections.get(type);
