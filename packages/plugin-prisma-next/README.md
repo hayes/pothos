@@ -1,8 +1,9 @@
 # Prisma Next Plugin for Pothos
 
 A Pothos plugin for [Prisma ORM 8](https://github.com/prisma/orm). It defines GraphQL types from
-the models in a Prisma contract. Your resolvers return Collections, and the plugin adds what each
-query selects before running them.
+the models in a Prisma contract. Query fields load rows through a `query`, a `collection` to start
+from, or a `resolve` that runs the Collection itself, and the plugin adds the columns and relations
+each GraphQL query selects in one statement.
 
 > [!WARNING]
 > **Experimental.** This plugin targets Prisma ORM `8.0.0-rc.22` exactly. Its API, and Prisma's,
