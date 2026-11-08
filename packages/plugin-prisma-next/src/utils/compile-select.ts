@@ -531,7 +531,7 @@ export function compileFieldSelect(
   typeOf: (type: unknown) => { name: string; model: string | undefined },
 ): PrismaNextSelection | PrismaNextSelectFn {
   if (typeof raw !== 'function') {
-    // A static select is checked when the schema is built, so it is split once, here.
+    // A static select is checked when the schema is built, so it is split here, not per request.
     const split = splitSelect(raw, model);
     if (split.relations.length === 0 && split.computed.length === 0) {
       return { columns: split.columns };

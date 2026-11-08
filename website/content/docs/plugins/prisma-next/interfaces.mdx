@@ -116,6 +116,6 @@ builder.queryType({
 - A relation to a variant that shares the base's table can't return an interface whose `select`
   loads a base model relation.
 - Pass a variant's ref or model name as `type` to `t.relation` or `t.relatedConnection`, or in a
-  relation entry of a `select`.
+  relation entry of a `select`, to load only that variant's rows.
 - A row returned from a plain `t.field` must be
   [planned](./relations#returning-rows-from-other-fields) and hold the discriminator.
