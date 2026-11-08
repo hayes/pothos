@@ -6,7 +6,6 @@ import type { AnyContract } from '../types/models.js';
 
 type SqlContractModel = ContractModelBase<SqlModelStorage>;
 
-/** A contract's model, with the forms the rest of the plugin reads. */
 interface ModelEntry {
   /** `Model` in a contract with one namespace, otherwise `namespace.Model`. */
   key: string;
@@ -23,7 +22,6 @@ interface ModelEntry {
 
 interface ContractIndex {
   byKey: Map<string, ModelEntry>;
-  /** By `namespace.Model`, for the `{ namespace, model }` references inside a contract. */
   byCoord: Map<string, ModelEntry>;
 }
 
@@ -92,7 +90,6 @@ function modelEntry(contract: AnyContract, modelKey: string): ModelEntry | undef
   return contractIndex(contract).byKey.get(modelKey);
 }
 
-/** The contract model, with a variant's inherited fields and relations merged in. */
 export function resolveContractModel(
   contract: AnyContract,
   modelKey: string,
@@ -100,10 +97,7 @@ export function resolveContractModel(
   return modelEntry(contract, modelKey)?.merged;
 }
 
-/**
- * The table and column a field is stored in. A variant's merged model carries its base's
- * storage, but the fields it declares live in its own table, under its own column names.
- */
+/** A variant's merged model carries its base's storage, but its own fields live in its table. */
 export function fieldStorage(
   contract: AnyContract,
   modelKey: string,
@@ -123,7 +117,6 @@ export function fieldStorage(
     : undefined;
 }
 
-/** The key of the model a `{ namespace, model }` reference points at. */
 export function relatedModelKey(
   contract: AnyContract,
   to: { readonly model: string; readonly namespace: string },
@@ -163,10 +156,7 @@ export function variantOf(
   return { root, field: discriminator.field, value, sharesTable: !own || own === table(root) };
 }
 
-/**
- * The fields a multi-table variant model's own accessor reads: those stored in its table and the
- * key it shares with its base. Undefined for any other model.
- */
+/** A multi-table variant's own fields and the key it shares with its base. */
 export function variantTableFields(contract: AnyContract, modelKey: string): string[] | undefined {
   const entry = modelEntry(contract, modelKey);
   const storage = entry?.raw.storage;
@@ -185,10 +175,7 @@ export function variantTableFields(contract: AnyContract, modelKey: string): str
   ];
 }
 
-/**
- * The variant a relation is narrowed to when its GraphQL type is backed by a variant of its
- * target. Throws for a type from the hierarchy the relation can't return.
- */
+/** The variant a relation narrows to when its GraphQL type is backed by a variant of its target. */
 export function variantForRelationType(
   contract: AnyContract,
   owner: string,
@@ -216,15 +203,11 @@ export function variantForRelationType(
   );
 }
 
-/** A model's default GraphQL name is its bare name, whichever namespace it is in. */
 export function defaultTypeName(modelKey: string): string {
   return modelKey.slice(modelKey.indexOf('.') + 1);
 }
 
-/**
- * The model's collection in a client. A client is `orm.<namespace>.<Model>`, except that SQLite
- * and MySQL clients are themselves the facet of their one namespace: `orm.<Model>`.
- */
+/** SQLite and MySQL clients are the facet of their one namespace: `orm.<Model>`. */
 export function collectionForModel(
   contract: AnyContract,
   collections: object,

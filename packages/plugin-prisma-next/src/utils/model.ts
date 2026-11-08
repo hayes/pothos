@@ -17,9 +17,8 @@ export interface PrismaNextRelation {
   /** The variant that declares the relation. It can only be included after `.variant(value)`. */
   readonly declaredByVariant?: string;
   /**
-   * Set when the relation targets a variant model. The ORM loads its rows through that model's
-   * own accessor, which lacks the base's relations and, when the variant shares the base's table,
-   * isn't filtered by the discriminator.
+   * The ORM loads a variant model's rows through its own accessor, which lacks the base's
+   * relations and, sharing the base's table, isn't filtered by the discriminator.
    */
   readonly targetVariantModel?: {
     readonly field: string;
@@ -32,36 +31,21 @@ export interface PrismaNextModel {
   /** The model key of the hierarchy's root. */
   readonly key: string;
   readonly relations: Record<string, PrismaNextRelation>;
-  /**
-   * Relation names several variants declare. A level of the query holds one relation of a name,
-   * so none of them is in `relations`, and the rest of the hierarchy loads without them.
-   */
+  /** Relation names several variants declare, which a query level can't hold, so none load. */
   readonly sharedVariantRelations: ReadonlySet<string>;
   readonly columns: ReadonlySet<string>;
-  /**
-   * The fields a row is reloaded by: the model's first identity (see `getModelIdentities`), which
-   * its variants share. Empty for a model without one.
-   */
+  /** The first identity, which variants share. Empty for a model without one. */
   readonly identity: readonly string[];
-  /**
-   * The columns each multi-table variant's own accessor reads, by discriminator value. A relation
-   * targeting such a variant model loads through it, so its rows lack the base's other columns.
-   */
+  /** The columns each multi-table variant's own accessor reads, by discriminator value. */
   readonly variantTableColumns: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
-/** The error for loading a relation name several variants of `model` declare. */
 export function sharedVariantRelationError(owner: string, name: string, model: PrismaNextModel) {
   return new PothosSchemaError(
     `Relation '${name}' on ${owner} is declared under the same name by several variants of model '${model.key}', so it can't be loaded. Give it a name no other variant uses.`,
   );
 }
 
-/**
- * The error for rows of relation `name` that need the base model's columns: the relation targets a
- * variant model with a table of its own, whose rows the ORM loads without them. `subject` says what
- * reads the rows.
- */
 export function ownTableVariantRowsError(
   subject: string,
   name: string,
@@ -73,9 +57,8 @@ export function ownTableVariantRowsError(
 }
 
 /**
- * Whether a field can return the rows of `relation` as a type of `kind` and `model`. The rows of a
- * variant with a table of its own lack the base model's columns, such as the discriminator an
- * interface's `resolveType` reads, so only an object type of the relation's target can take them.
+ * Own-table variant rows lack the base's columns (such as the discriminator `resolveType` reads),
+ * so only an object type of the relation's target can take them.
  */
 export function returnsRelationRowsAs(
   relation: PrismaNextRelation,
@@ -90,8 +73,7 @@ export function returnsRelationRowsAs(
 
 function buildColumnSet(contract: AnyContract, modelKey: string): ReadonlySet<string> {
   const fields = resolveContractModel(contract, modelKey)?.fields ?? {};
-  // A base collection also selects its variants' columns, so they count as the model's columns
-  // even though other variants' rows lack them.
+  // A base collection also selects its variants' columns.
   const variants = modelDiscriminator(contract, modelKey)?.variants ?? [];
   return new Set([
     ...Object.keys(fields),
@@ -101,10 +83,7 @@ function buildColumnSet(contract: AnyContract, modelKey: string): ReadonlySet<st
   ]);
 }
 
-/**
- * A model's identities: its non-null primary and unique keys, primary key first. Undefined for a
- * model without SQL storage.
- */
+/** Non-null primary and unique keys, primary first. Undefined without SQL storage. */
 export function getModelIdentities(
   contract: AnyContract,
   modelKey: string,
@@ -140,9 +119,8 @@ export function getModelIdentities(
 }
 
 /**
- * Timestamp codecs that read as a JavaScript `Date`, which holds milliseconds, with the precision
- * a column has when the contract leaves it out. Codecs don't expose the type they read as, so
- * these are listed by id. A bare MySQL `datetime` has whole seconds.
+ * Timestamp codecs that read as a `Date`, with their default precision. Codecs don't expose the
+ * type they read as, so these are listed by id.
  */
 const DATE_CODEC_DEFAULT_PRECISION = new Map([
   ['pg/timestamptz-date@1', 6],
@@ -150,10 +128,7 @@ const DATE_CODEC_DEFAULT_PRECISION = new Map([
   ['mysql/datetime@1', 0],
 ]);
 
-/**
- * Why a field's values can't place a row in a cursor or node ID, if they can't: a timestamp finer
- * than milliseconds comes back from a `Date` changed. Bare `DateTime` is `timestamptz(3)`.
- */
+/** A timestamp finer than milliseconds comes back from a `Date` changed, so can't be a cursor. */
 export function truncatedDateProblem(
   contract: AnyContract,
   modelKey: string,
@@ -195,7 +170,6 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
       relations,
       sharedVariantRelations,
       columns: buildColumnSet(contract, root),
-      // Computed on first use, once per model.
       get identity() {
         identity ??= getModelIdentities(contract, root)?.[0] ?? [];
         return identity;
@@ -242,7 +216,6 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
     };
 
     addRelations(root);
-    // Relations declared on variants are tagged with the variant they need.
     for (const { key: variant, value } of modelDiscriminator(contract, root)?.variants ?? []) {
       addRelations(variant, value);
     }

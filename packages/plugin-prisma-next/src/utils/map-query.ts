@@ -26,11 +26,7 @@ interface PlanTarget {
   typeName?: string;
 }
 
-/**
- * The query for the selection of the field `info` resolves, or of what `paths` lead to, with the
- * mappings its resolvers read recorded. Undefined when nothing is selected under `paths`. Returns a
- * promise only when a `select` callback beneath the field is async.
- */
+/** Undefined when nothing is selected under `paths`. A promise only for an async `select`. */
 function planSelection(
   info: GraphQLResolveInfo,
   config: PrismaNextConfig,
@@ -49,10 +45,7 @@ function planSelection(
   );
 }
 
-/**
- * The selection a plan of rows of `modelKey` starts from. A variant's rows are narrowed to it, so
- * the relations it declares can load.
- */
+/** A variant's rows are narrowed to it, so the relations it declares can load. */
 export function initialSelection(
   contract: AnyContract,
   modelKey: string | undefined,
@@ -62,10 +55,7 @@ export function initialSelection(
   return { ...seed, args: variant === undefined ? {} : { variant: { value: variant } } };
 }
 
-/**
- * The model of the type `collectionFromInfo` reads its root as: `typeName`'s, or that of the type
- * its one path leads to, through any indirect include. With several paths it isn't inferred.
- */
+/** `typeName`'s model, or that of the type its one path leads to. */
 function plannedModelKey(info: GraphQLResolveInfo, { typeName, path, paths }: PlanTarget) {
   const { schema } = info;
   const returnType = getNamedType(info.returnType);
@@ -92,10 +82,7 @@ function includeOf(type: GraphQLNamedType) {
   return type.extensions?.pothosIndirectInclude as IndirectInclude | undefined;
 }
 
-/**
- * Plans the selection at `paths` beneath the field `info` resolves from `seed`, as a field's
- * `nestedSelection` plans it beneath a relation. The seed alone when nothing is selected there.
- */
+/** Plans the selection at `paths` beneath the field from `seed`, or the seed alone. */
 export function nestedFromInfo(
   info: GraphQLResolveInfo,
   config: PrismaNextConfig,
@@ -109,11 +96,6 @@ export function nestedFromInfo(
     );
 }
 
-/**
- * Applies the selection of the field `info` resolves to `collection` of `modelKey`'s rows, as the
- * statement and whether it applies cursor values. Returns a promise only when a `select` callback
- * beneath the field is async.
- */
 export function applySelectionToCollection(
   collection: MapperCollection,
   modelKey: string,
@@ -140,17 +122,11 @@ export interface CollectionFromInfoOptions<C> extends PlanTarget {
 }
 
 /**
- * Applies the selection of the field `info` resolves to `collection`, for a resolver that loads rows
- * itself, such as a mutation's. With `path` or `paths` it applies the selection beneath them, such
- * as `['post']` for a payload's `post` field, and `typeName` names the type the rows resolve as
- * when the path leads to an interface or union, or the collection is narrowed by `variant()`. The
- * rows the returned collection's reads and writes return resolve the selection without loading
- * again.
- *
- * Returns a promise, since a `select` beneath the field may be async.
+ * Applies the selection of the field `info` resolves to `collection`, for a resolver that loads
+ * rows itself, such as a mutation's. `path`/`paths` select beneath the field (`['post']` for a
+ * payload's `post`), and `typeName` names the type the rows resolve as.
  */
-// The first overload takes a collection typed by a type parameter, whose `VariantTypeName` is
-// deferred.
+// The first overload takes a generic collection, whose `VariantTypeName` is deferred.
 export function collectionFromInfo<C extends HasNoVariant>(
   options: CollectionFromInfoOptions<C>,
 ): Promise<PlannedCollection<C>>;
@@ -172,8 +148,6 @@ export async function collectionFromInfo<C extends object>({
     target,
     initialSelection(config.contract, plannedModelKey(info, target), EMPTY),
   );
-  // The rows it returns are handed on as they are: the field returning them copies each for its
-  // type.
   return planned
     ? (config.adapter.emit(
         mapper,
@@ -185,7 +159,6 @@ export async function collectionFromInfo<C extends object>({
 
 const schemaConfigs = new WeakMap<GraphQLSchema, PrismaNextConfig>();
 
-/** The config of the builder that built `schema`, read from its prisma types. */
 function configFor(schema: GraphQLSchema): PrismaNextConfig {
   let config = schemaConfigs.get(schema);
   if (!config) {

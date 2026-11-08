@@ -44,11 +44,10 @@ export interface MapperCollection {
   limit(n: number): MapperCollection;
   offset(n: number): MapperCollection;
   variant(value: string): MapperCollection;
-  /** The count reducer for a `combine()` slot. Targets without aggregates, such as MySQL, lack it. */
+  /** Targets without aggregates, such as MySQL, lack it. */
   count(): unknown;
 }
 
-/** A statement a plan built, and whether it applies a connection's cursor values. */
 export interface PlannedQuery {
   query: MapperCollection;
   cursors: boolean;
@@ -59,18 +58,13 @@ export type PrismaNextPlan = Plan<PrismaNextModel, PrismaNextSelection>;
 
 type Visitor = QueryVisitor<PrismaNextModel, PrismaNextSelection>;
 
-/** The loads of one relation on a level: the plain one, and the others by id. */
 interface RelationLoads {
   plain?: PrismaNextSelection;
   keyed: [string, PrismaNextSelection][];
   computed: [string, ComputedSelection][];
 }
 
-/**
- * Reads Prisma Next selections into the selection-mapper's node tree and turns planned nodes into
- * collection calls. `NodeAdapter` decides how nodes merge and conflict. Loads of a relation are
- * keyed by what they load, so equal loads merge and others never conflict.
- */
+/** Loads are keyed by what they load, so equal loads merge and others never conflict. */
 export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSelection> {
   override readonly skipDeferredFragments: boolean;
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSelection>();
@@ -88,11 +82,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     return name === undefined ? undefined : getModel(this.contract, name);
   }
 
-  /**
-   * Records the selection of each object type that implements a prisma interface of the same
-   * model. A row loaded as the interface may resolve as any of them, so the interface loads what
-   * each of them selects.
-   */
+  /** A row loaded as an interface may resolve as any implementation, so loads what each selects. */
   registerImplementations(schema: GraphQLSchema) {
     for (const type of Object.values(schema.getTypeMap())) {
       const model = isInterfaceType(type) ? this.modelFor(type) : undefined;
@@ -108,15 +98,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   }
 
   /**
-   * A type's own `select`, each of its interfaces' selects and, for an interface, its
-   * implementations' selections: a row loaded as the interface is resolved as one of them, whose
-   * `isTypeOf`, auth checks and fields read it even when the query has no fragment on that type.
-   *
-   * They all fit one node: the type-level selects of a model agree, and load under the relations'
-   * names. A type's `select`
-   * can't name a relation only a variant declares, but a base model's relation can't be included
-   * beneath a relation that targets a variant model, nor a base column read beneath one that
-   * targets a variant with a table of its own. `mergeQuery` leaves those out of such a level.
+   * A type's own `select`, its interfaces' and, for an interface, its implementations' selections,
+   * whose `isTypeOf`, auth checks and fields read the row even without a fragment on that type.
+   * They fit one node because a model's type-level selects agree.
    */
   typeSelection(type: GraphQLNamedType): PrismaNextSelection | undefined {
     const cached = this.typeSelections.get(type);
@@ -162,9 +146,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   }
 
   /**
-   * A field's relations the ORM can't include on a level are left for the loader, and so is a field
-   * that would take a level past `MAX_RELATION_LOADS`. Each level a plan plays is checked, so no
-   * statement grows past it, however the document nests aliases with different arguments.
+   * A field the ORM can't include on a level, or that would take it past `MAX_RELATION_LOADS`, is
+   * left for the loader.
    */
   override canMergeQuery(
     node: PrismaNextNode,
@@ -184,10 +167,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   }
 
   /**
-   * Whether `node` can take the loads `selection` adds within `MAX_RELATION_LOADS`. A refused
-   * field reloads its parent, so a level of a model without an identity, which can't be reloaded,
-   * takes any selection. So does a level that loads nothing yet: a reload merges its field before
-   * the type's selection, so the field fits there however much it loads.
+   * A model without an identity can't be reloaded, so it takes any selection. So does a level that
+   * loads nothing yet: a reload merges its field first, so it fits however much it loads.
    */
   private withinLoadLimit(node: PrismaNextNode, selection: PrismaNextSelection) {
     if (!node.model.identity.length) {
@@ -199,11 +180,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   }
 
   /**
-   * A type's selection merges whatever level it lands on, so what that level can't load, a base
-   * relation beneath a relation targeting a variant model or a base column beneath one targeting a
-   * variant with a table of its own, is left out. So are the relations past `MAX_RELATION_LOADS`
-   * when it merges behind a reload's field. The type's fields, and scope-auth's checks, reload
-   * it.
+   * A type's selection merges whatever level it lands on, so what that level can't load (base
+   * relations or columns beneath a variant model) is left out, as are loads past
+   * `MAX_RELATION_LOADS` behind a reload's field. The type's fields and auth checks reload it.
    */
   override mergeQuery(
     node: PrismaNextNode,
@@ -214,7 +193,6 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     super.mergeQuery(node, options?.lenient ? this.withinCap(node, fits) : fits, options);
   }
 
-  /** `selection` without the top-level loads that would take `node` past `MAX_RELATION_LOADS`. */
   private withinCap(node: PrismaNextNode, selection: PrismaNextSelection): PrismaNextSelection {
     const held = this.toQuery(node);
     let total = loads(held);
@@ -228,11 +206,10 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     });
   }
 
-  /** `selection`, itself when nothing changes, without what `node`'s level can't load. */
+  /** Returns `selection` itself when nothing changes. */
   private withoutUnloadable(selection: PrismaNextSelection, { model, args }: PrismaNextNode) {
     const narrowing = selection.args?.variant ?? (args as RelationArgs).variant;
     const readable = readableColumns(model, narrowing);
-    // `null`, every column the level reads, stays as it is.
     const { columns } = selection;
     return keepLoads(
       selection,
@@ -260,7 +237,6 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     return selection;
   }
 
-  /** Applies `selection` to `collection`: selects its columns and includes each relation once. */
   emit(
     collection: MapperCollection,
     selection: PrismaNextSelection,
@@ -273,7 +249,6 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     collection: MapperCollection,
     selection: PrismaNextSelection,
     model: PrismaNextModel,
-    // Numbers the `combine()` branches of the statement.
     branches: { next: number },
   ): MapperCollection {
     let result = selection.columns?.length ? collection.select(...selection.columns) : collection;
@@ -301,11 +276,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   }
 
   /**
-   * Loads a relation's plain load as the include itself, or, beside other loads, as branches of
-   * one `combine()`: `n/_` for the plain load, `n/id` for another load or a count, and `n/id:key`
-   * for each value an aggregate computes. Each `n` is unique in the statement: the ORM aliases a
-   * branch by its name cut to 63 bytes, and renames the ones that then collide one at a time, which
-   * would cost time quadratic in their number where a shared walk repeats a load at each place.
+   * A plain load alone is the include itself; otherwise loads are `combine()` branches `n/_`,
+   * `n/id` and `n/id:key` (per aggregate value). `n` is unique per statement because the ORM cuts
+   * aliases to 63 bytes and renames collisions one at a time, which is quadratic.
    */
   private emitRelation(
     rel: MapperCollection,
@@ -328,7 +301,6 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       const refined = refine ? refine(narrowed) : narrowed;
       return this.emitLevel(refined, selection, relation.target, branches);
     };
-    // Every to-one load is plain.
     if (plain && !keyed.length && !computed.length) {
       return load(plain);
     }
@@ -356,14 +328,13 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
 }
 
 /**
- * The most relations and computed values one level of a statement loads, counting those beneath
- * it. Each to-many load with its own arguments is a `combine()` slot of its own, so a document
- * that nests aliases with different arguments doubles them at every level. Each slot is a table
- * of its relation's join, which MySQL caps at 61 tables and SQLite at 64.
+ * The most loads one level of a statement holds, counting those beneath it. Each is a joined
+ * table, which MySQL caps at 61 and SQLite at 64, and nested aliases with different arguments
+ * double them at every level.
  */
 const MAX_RELATION_LOADS = 61;
 
-/** The relations and computed values `selection` loads, and those beneath, that `held` lacks. */
+/** The loads `selection` adds beyond `held`, counting those beneath. */
 function loads(selection: PrismaNextSelection, held?: PrismaNextSelection): number {
   let count = 0;
   for (const key of Object.keys(selection.computed ?? {})) {
@@ -376,10 +347,7 @@ function loads(selection: PrismaNextSelection, held?: PrismaNextSelection): numb
   return count;
 }
 
-/**
- * `selection` with `columns`, and the relations and computed values `keep` keeps, each passed as a
- * selection of its own. `selection` itself when nothing changes.
- */
+/** Returns `selection` itself when nothing changes. */
 function keepLoads(
   selection: PrismaNextSelection,
   columns: PrismaNextSelection['columns'],
@@ -404,9 +372,8 @@ function keepLoads(
 }
 
 /**
- * Whether the ORM can include `relation` on a level narrowed to `narrowing`. A relation declared on
- * a variant needs a level narrowed to that variant. A relation of the base model can't be included
- * beneath a relation that targets a variant model, which only has that variant's relations.
+ * A variant's relation needs a level narrowed to it, and a base relation can't be included beneath
+ * a relation targeting a variant model, which only has that variant's relations.
  */
 export function canInclude(
   { declaredByVariant }: PrismaNextRelation,
@@ -417,17 +384,13 @@ export function canInclude(
     : declaredByVariant === narrowing?.value;
 }
 
-/**
- * The columns a level narrowed to `narrowing` can read, when it can't read all of the model's. A
- * multi-table variant model's own accessor reads only its own table and the key it shares.
- */
+/** A multi-table variant model's accessor reads only its own table and the key it shares. */
 function readableColumns(model: PrismaNextModel, narrowing: Narrowing | undefined) {
   return narrowing?.throughVariantModel
     ? model.variantTableColumns.get(narrowing.value)
     : undefined;
 }
 
-/** The registry of implementation selections a prisma interface carries. `onTypeConfig` adds it. */
 function implementationsOf(type: GraphQLNamedType) {
   return type.extensions?.[PRISMA_NEXT_IMPLEMENTATIONS] as
     | Map<string, PrismaNextSelection>

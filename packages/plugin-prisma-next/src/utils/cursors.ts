@@ -31,12 +31,10 @@ interface ComparableColumn {
 
 type Direction = 'asc' | 'desc';
 
-/** An `orderBy` as written: a direction per column, or `{ direction, nulls }`. */
 export type OrderByDecl = Readonly<
   Record<string, Direction | { direction?: Direction; nulls?: 'first' | 'last' } | undefined>
 >;
 
-/** A relation's `orderBy`: a declaration, or the ORM's selectors, passed to its `orderBy`. */
 export type OrderByOption = OrderByDecl | ((...args: never[]) => unknown) | readonly unknown[];
 
 export const isOrderByDecl = (orderBy: OrderByOption | undefined): orderBy is OrderByDecl =>
@@ -49,10 +47,6 @@ interface OrderColumn {
   readonly nulls?: 'first' | 'last';
 }
 
-/**
- * The order a connection pages by: its model's contract key and the columns, with each column's
- * effective direction and null placement.
- */
 interface CursorOrder {
   readonly model: string;
   readonly columns: readonly OrderColumn[];
@@ -63,7 +57,6 @@ export const cursorColumns = (order: CursorOrder): string[] =>
 
 type OrderProblem = (field: string) => string | undefined;
 
-/** Why the ORM can't order `modelKey`'s rows by `field`: it isn't a field, or its codec can't be. */
 export function orderableProblem(
   context: PrismaNextExecutionContext<AnyContract>,
   modelKey: string,
@@ -82,10 +75,8 @@ export function orderableProblem(
 }
 
 /**
- * Resolves an `orderBy` to its columns, each with its direction and null placement: nullable
- * columns put nulls last unless `nulls` says otherwise. Throws for a column `problem`
- * rejects. Without `problem`, only columns the model doesn't have are rejected: the types reject the
- * rest, and only a computed key can reach the runtime.
+ * Nullable columns put nulls last unless `nulls` says otherwise. Without `problem`, only unknown
+ * columns are rejected: the types reject the rest, so only a computed key reaches here.
  */
 export function orderColumns(
   contract: AnyContract,
@@ -114,7 +105,6 @@ export function orderColumns(
   return order;
 }
 
-/** Orders `collection` by `columns`, reversed when `inverted`. */
 export function orderCollection<C extends MapperCollection>(
   collection: C,
   columns: readonly OrderColumn[],
@@ -129,10 +119,8 @@ export function orderCollection<C extends MapperCollection>(
 }
 
 /**
- * Resolves a connection's `orderBy` to the order it pages by, as `orderColumns` does. Its columns
- * also need values a cursor can hold. The model's first non-null key of orderable columns is
- * appended in the last column's direction, unless the order covers a key already, so every row has
- * its own position. Throws when the schema is built for a model without such a key.
+ * The model's first non-null key of orderable columns is appended in the last column's direction,
+ * unless the order covers a key already, so every row has its own position.
  */
 export function connectionOrder(
   context: PrismaNextExecutionContext<AnyContract>,
@@ -171,7 +159,6 @@ function encodeValues(fields: readonly string[], values: readonly unknown[], cod
   return encoded.length === 1 ? encodeCursorChunk(encoded[0]) : encodeCursorTuple(encoded);
 }
 
-/** The values of `fields` in `payload`, or undefined when it doesn't hold them. */
 function decodeValues(
   fields: readonly string[],
   payload: string,
@@ -200,11 +187,8 @@ function decodeValues(
 }
 
 /**
- * Cursors have the form `PNC:<hash>:<chunk>`, and a multi-column cursor's chunk is a `T:` tuple.
- * The hash is of the order's model and, per column, its name, direction and null placement, so a
- * cursor from another model or any other order is refused rather than paging from a position that
- * means something else. It keeps column names out of the cursor and tells orders apart, and is not
- * tamper protection: the values are only base64 encoded.
+ * Cursors are `PNC:<hash>:<chunk>`. The hash of the order's model and columns refuses a cursor
+ * from another order. It is not tamper protection: the values are only base64 encoded.
  */
 const CURSOR_PREFIX = 'PNC:';
 
@@ -237,10 +221,7 @@ function encodeCursor(order: CursorOrder, row: Record<string, unknown>, codecs: 
   );
 }
 
-/**
- * Decodes a cursor boundary. A null is only valid on a column with a null placement. The message
- * never echoes the payload, which logs often capture verbatim.
- */
+/** A null is only valid on a column with a null placement. The error never echoes the payload. */
 function decodeCursor(
   order: CursorOrder,
   value: string,
@@ -260,8 +241,6 @@ function decodeCursor(
   return values;
 }
 
-// Compares rows with the cursor lexicographically. Each OR clause requires the earlier columns to
-// equal the cursor's values and compares the next column.
 function buildLexicographicPredicate(
   order: CursorOrder,
   values: Record<string, unknown>,
@@ -281,8 +260,8 @@ function buildLexicographicPredicate(
       const nullsBeyond = !!nulls && (op === 'gt') === (nulls === 'last');
       let comparison: unknown;
       if (v === null) {
-        // Nothing lies beyond a null boundary when nulls sort beyond it, and every non-null row
-        // does otherwise. `decodeCursor` only accepts a null on a column with a null placement.
+        // Nothing lies beyond a null boundary when nulls sort beyond it; every non-null row does
+        // otherwise.
         comparison = nullsBeyond
           ? and(col.isNull() as never, col.isNotNull() as never)
           : col.isNotNull();
@@ -298,10 +277,6 @@ function buildLexicographicPredicate(
   };
 }
 
-/**
- * How a connection pages for one request: its order, column codecs, page sizes, and the values of
- * its `after` and `before` cursors.
- */
 export interface CursorPlan {
   order: CursorOrder;
   codecs: FieldCodecs;
@@ -331,7 +306,6 @@ function buildPaginationParams(
   };
 }
 
-/** Orders `baseCollection`, filters it past the cursors and limits it to the page. */
 export function applyCursorPagination<C extends MapperCollection>(
   baseCollection: C,
   plan: CursorPlan,
@@ -350,7 +324,6 @@ export function applyCursorPagination<C extends MapperCollection>(
   return collection.limit(limit) as C;
 }
 
-/** `plan` with the values of the cursors in `args`. Throws for an invalid cursor or page size. */
 export function withCursorValues<Plan extends CursorPlan>(
   plan: Plan,
   args: PothosSchemaTypes.DefaultConnectionArguments,
@@ -363,15 +336,13 @@ export function withCursorValues<Plan extends CursorPlan>(
   };
 }
 
-/** Whether `plan` holds the values of a cursor. */
 export function hasCursorValues(plan: CursorPlan): boolean {
   return plan.afterValues !== undefined || plan.beforeValues !== undefined;
 }
 
 /**
- * `rows`, read by a statement that applies cursor values when `cursors` is true. Its column codecs
- * accept values the database may still refuse, such as text holding a NUL, so a refused value then
- * fails as the client's `Invalid cursor.`.
+ * Codecs accept cursor values the database may still refuse (text holding a NUL), which then
+ * fail as `Invalid cursor.`.
  */
 export function readPage<T>(rows: PromiseLike<T>, cursors: boolean): PromiseLike<T> {
   return cursors
@@ -392,7 +363,6 @@ export interface ConnectionPage<Row> {
   edges: Array<{ node: Row; cursor: string }>;
   pageInfo: PageInfo;
   totalCount?: number;
-  /** The connection field's parent and arguments, as the sibling plugins pass them. */
   parent?: unknown;
   args?: PothosSchemaTypes.DefaultConnectionArguments;
 }

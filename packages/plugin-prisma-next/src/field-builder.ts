@@ -36,11 +36,8 @@ type PrismaFieldOptions = {
 type Executable = MapperCollection & { all(): Promise<readonly unknown[]> };
 
 /**
- * Builds the config of a `prismaField`. A model name in `type` resolves to its ref. With `resolve`,
- * the resolver applies the field's selection to the type's collection and returns what `resolve`
- * returns for it. Otherwise it applies `query` and the selection to `collection`'s result, or to the
- * type's collection, and executes it, reading one row for a singular field. A literal `query` is
- * checked here, and a callback's result when a request runs.
+ * With `resolve`, the field's selection is applied to the type's collection and passed to it.
+ * Otherwise `query` and the selection are applied to the collection and executed.
  */
 function prismaFieldConfig(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,

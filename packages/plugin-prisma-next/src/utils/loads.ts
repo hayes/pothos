@@ -5,15 +5,14 @@ import { isOrderByDecl, type OrderByOption } from './cursors.js';
 import type { PrismaNextModel } from './model.js';
 
 /*
- * A load is named by what it loads: a plain descriptor compared with `deepEqual`, never by the
- * field, alias or type asking for it. A relation's plain load, the model's type-level one or the
- * whole relation, is keyed by the relation's name. Any other load gets an id interned per context,
- * keyed `relation:id`, so equal loads share a key, which the mapper merges, and a branch.
+ * A load is named by what it loads (a descriptor compared with `deepEqual`), never by the field,
+ * alias or type asking for it. A relation's plain load is keyed by the relation's name. Any other
+ * gets an id interned per context, keyed `relation:id`, so equal loads share a key and a branch.
  */
 
 export type LoadKind = 'rows' | 'count' | 'agg';
 
-/** What a load loads. Entries holding callbacks a select function builds per call use `fn`. */
+/** Entries holding callbacks a select function builds per call are identified by `fn`. */
 export interface Load {
   readonly kind: LoadKind;
   readonly relation: string;
@@ -22,11 +21,9 @@ export interface Load {
   readonly orderBy?: unknown;
   readonly limit?: number;
   readonly offset?: number;
-  /** The function that built the load's callbacks, and its arguments and place in a select. */
   readonly fn?: unknown;
   readonly args?: object;
   readonly at?: string;
-  /** A connection page: its order and sizes, resolved, and its paging arguments. */
   readonly page?: object;
 }
 
@@ -38,9 +35,8 @@ export interface DeclarativeQuery {
 }
 
 /**
- * The load of `query`, by its data: an `orderBy` declaration as its ordered entries, since rows
- * are ordered by its columns in the order written. When the query holds a callback `built` makes
- * anew on every call, the load is `built`'s.
+ * An `orderBy` declaration becomes its ordered entries, since key order matters. A query holding
+ * a callback built anew per call is identified by `built`.
  */
 export function queryLoad(
   kind: LoadKind,
@@ -78,7 +74,7 @@ const tables = createContextCache(() => ({
   byRelation: new Map<string, Load[]>(),
 }));
 
-/** The id of `load` in `ctx`: its index among the distinct loads of its relation seen there. */
+/** The index of `load` among the distinct loads of its relation seen in `ctx`. */
 function internLoad(ctx: object, model: PrismaNextModel, load: Load): number {
   const table = tables(ctx);
   let id = table.seen.get(load);
@@ -98,18 +94,13 @@ function internLoad(ctx: object, model: PrismaNextModel, load: Load): number {
 export interface LoadRef {
   readonly load: Load;
   readonly id?: number;
-  /** The loads a nested `select` writes on the rows, which the field's view reads. */
+  /** The loads a nested `select` writes on the rows. */
   readonly beneath?: FieldLoads;
-  /** A connection page's count. */
   readonly count?: LoadRef;
-  /**
-   * Set for a load the field didn't plan because its selection didn't need it. Another field node
-   * of its response key may have planned it.
-   */
+  /** Not planned by this field node; another node of its response key may have planned it. */
   readonly unplanned?: true;
 }
 
-/** What a field's select loads on its parent's rows, of `model`. */
 export interface FieldLoads {
   readonly refs: readonly LoadRef[];
   readonly model: PrismaNextModel;
@@ -117,15 +108,11 @@ export interface FieldLoads {
   readonly view: boolean;
 }
 
-/** The load of relation `relation` every reader of `model`'s rows reads under its name. */
 function plainLoad(config: PrismaNextConfig, model: PrismaNextModel, relation: string): Load {
   return config.typeLoads.get(model.key)?.get(relation)?.load ?? { kind: 'rows', relation };
 }
 
-/**
- * Where `load` of `model`'s rows sits: under its name when it's the relation's plain load, which
- * every to-one load is, or in a branch of its id in `ctx`.
- */
+/** Every to-one load is plain, read under the relation's name. */
 export function refOf(
   config: PrismaNextConfig,
   ctx: object,
@@ -138,12 +125,10 @@ export function refOf(
     : { load, id: internLoad(ctx, model, load) };
 }
 
-/** The selection key of the load `ref` reads. */
 export function keyOf({ load, id }: LoadRef) {
   return id === undefined ? load.relation : `${load.relation}:${id}`;
 }
 
-/** The loads of `model`'s rows `refs` read, with a view when any is not read by its plain name. */
 export function fieldLoads(model: PrismaNextModel, refs: readonly LoadRef[]): FieldLoads {
   return {
     refs,
@@ -156,7 +141,6 @@ export function fieldLoads(model: PrismaNextModel, refs: readonly LoadRef[]): Fi
 
 const loadsAt = new WeakMap<Position, FieldLoads>();
 
-/** Records what the field planned at `position` loads. */
 export function record(position: Position, loads: FieldLoads) {
   loadsAt.set(position, loads);
 }
@@ -165,7 +149,7 @@ export function recorded(position: Position | undefined): FieldLoads | undefined
   return position && loadsAt.get(position);
 }
 
-/** What the field executing at each `info.path` reads, set by its gate. */
+/** Set by each field's gate, by `info.path`. */
 const executing = new WeakMap<object, FieldLoads | undefined>();
 
 export function setOwnLoads(path: object, loads: FieldLoads | undefined) {

@@ -17,14 +17,13 @@ type CodecContext = Pick<PrismaNextExecutionContext<AnyContract>, 'contractCodec
 
 export type FieldCodecs = (field: string) => ColumnCodec;
 
-/** For a column the registry has no codec for: values are stored and compared as they are. */
 const rawCodec: ColumnCodec = {
   encode: (value) => value,
   decode: (stored) => stored,
   key: (value) => canonicalStringify(value),
 };
 
-/** The field's column codec. A registry may map no codec to a column, which gets `rawCodec`. */
+/** A registry may map no codec to a column, which then gets `rawCodec`. */
 export function getColumnCodec(
   contract: AnyContract,
   context: CodecContext,

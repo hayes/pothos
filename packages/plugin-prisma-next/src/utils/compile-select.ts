@@ -54,20 +54,17 @@ export const CONNECTION_PAGE = Symbol('prismaNextConnectionPage');
 /** Marks the relation of a connection helper's `select` that holds the nodes. */
 export const NODE_SELECTION = Symbol('prismaNextNodeSelection');
 
-/** The field a `select` function was invoked for, which a page entry plans beneath. */
 interface FieldPlanning {
   nested: NestedSelection<PrismaNextSelection>;
   selected: SelectedFieldNode;
   position: Position;
 }
 
-/** A selection, with where the field reads each load it planned. */
 export interface Planned {
   selection: PrismaNextSelection;
   ref?: LoadRef;
 }
 
-/** Plans the page a `select` entry loads from relation `name` of `model`'s rows. */
 export type PlanPage = (
   model: PrismaNextModel,
   relation: PrismaNextRelation,
@@ -79,11 +76,8 @@ export type PlanPage = (
 export const NESTED_SELECTION = Symbol('prismaNextNestedSelection');
 
 /**
- * A relation entry of a `select`, as `splitSelect` reads it: `{}` for `true`, or the object written.
- * `where`, `orderBy`, `limit` and `offset` load the relation's rows, `type` narrows them to a
- * variant of its target, and `select` loads what it names beneath them. A `nestedSelection` entry
- * plans the rows as `type` (by default the field's type) at `path` beneath the field, and a
- * connection helper's page entry plans a page.
+ * A relation entry of a `select` (`{}` for `true`). A `nestedSelection` entry plans the rows as
+ * `type` (by default the field's type) at `path` beneath the field.
  */
 export interface RelationEntry {
   where?: unknown;
@@ -97,14 +91,12 @@ export interface RelationEntry {
   [CONNECTION_PAGE]?: PlanPage;
 }
 
-/** The `nestedSelection` a field's select function is passed. */
 function nestedSelectionEntry(
   options: Omit<RelationEntry, typeof NESTED_SELECTION | typeof CONNECTION_PAGE> = {},
 ): RelationEntry {
   return Object.freeze({ ...options, [NESTED_SELECTION]: true as const });
 }
 
-/** The model of a relation entry's `type`: a ref's, or a model's name. */
 function entryTypeModel(type: unknown): string | undefined {
   return typeof type === 'string' ? type : (type as { modelKey?: string } | undefined)?.modelKey;
 }
@@ -115,17 +107,12 @@ function entryTypeModel(type: unknown): string | undefined {
  */
 export type RawSelect = readonly string[] | Record<string, unknown>;
 
-/** An aggregate of a `select`: `relation: compute`, whose keys are written onto the parent. */
 interface ComputedEntry {
   relation: string;
   compute: Compute;
 }
 
-/**
- * A declarative query without the options that load nothing different, or undefined when none is
- * left: an undefined option, and a `where` or `orderBy` that is an empty object or list. The types
- * check its shape.
- */
+/** Drops options that load nothing different (undefined, or an empty `where`/`orderBy`). */
 function definedQuery(value: unknown): DeclarativeQuery | undefined {
   if (!value) {
     return undefined;
@@ -143,9 +130,8 @@ function definedQuery(value: unknown): DeclarativeQuery | undefined {
 }
 
 /**
- * Applies `query` to the collection of `modelKey`'s rows. A declared order is resolved once, as
- * `orderColumns` resolves it: a literal's is checked when the schema is built, so by default only a
- * computed column fails here. The ORM's selectors go to the collection's `orderBy` as they are.
+ * A declared order is resolved once; a literal one is checked at build, so only a computed column
+ * fails here. The ORM's own selectors go to `orderBy` as they are.
  */
 function queryRefinement(
   contract: AnyContract,
@@ -176,11 +162,7 @@ function queryRefinement(
   };
 }
 
-/**
- * `value`, a declarative `query` of `modelKey`'s rows, without the options that load nothing
- * different, and how it refines their collection. Both undefined for a query that loads every row.
- * `problem` rejects the columns it orders by, as `orderColumns` checks them.
- */
+/** Both undefined for a query that loads every row. */
 export function relationLoad(
   contract: AnyContract,
   modelKey: string,
@@ -191,7 +173,6 @@ export function relationLoad(
   return { query, refine: query && queryRefinement(contract, modelKey, query, problem) };
 }
 
-/** The args of a relation load: `variant` narrows a relation typed as a variant of its target. */
 export function relationArgs(
   relation: PrismaNextRelation,
   {
@@ -211,22 +192,18 @@ export function relationArgs(
   };
 }
 
-/** The selection of what `ref` reads: `child`, the rows planned, under its key. */
 export function refSelection(ref: LoadRef, child: PrismaNextSelection): Planned {
   return { selection: { relations: { [keyOf(ref)]: child } }, ref };
 }
 
-/** The columns, relations and aggregates of a `select`, with each nested `select` split too. */
 export interface SplitSelect {
   columns: string[];
   relations: SplitRelation[];
   computed: ComputedEntry[];
 }
 
-/** A relation entry of a split `select`, with its nested `select` split. */
 type SplitRelation = [name: string, entry: RelationEntry, select: SplitSelect | undefined];
 
-/** Splits a `select` of `model`'s rows. The types check its entries. */
 export function splitSelect(raw: RawSelect, model: PrismaNextModel): SplitSelect {
   const columns: string[] = [];
   const relations: SplitRelation[] = [];
@@ -257,13 +234,9 @@ export function splitSelect(raw: RawSelect, model: PrismaNextModel): SplitSelect
   return { columns, relations, computed };
 }
 
-/** A type-level `select`, split, with the name of the type that declares it. */
 export type TypeSelect = SplitSelect & { name: string };
 
-/**
- * The `select`s of a type and of its interfaces, which `onTypeConfig` keeps to one model hierarchy.
- * The deepest interface comes first and the type itself last. None for a type without a model.
- */
+/** The `select`s of a type and its interfaces: the deepest interface first, the type last. */
 export function typeSelects(type: {
   readonly extensions?: Readonly<Record<string, unknown>> | null;
 }): readonly TypeSelect[] {
@@ -272,45 +245,37 @@ export function typeSelects(type: {
 
 interface SelectCompilation {
   contract: AnyContract;
-  /** The config and request context a field's loads are interned for. A type's are all plain. */
+  /** Set for a field's loads; a type's are all plain. */
   interning?: { config: PrismaNextConfig; ctx: object };
   args: object;
   /**
    * The select function the entries came from. It builds new callbacks on every call, so it
-   * identifies an aggregate, or a query with a callback, with `args` and the entry's place. A
-   * static select's entries identify themselves.
+   * identifies an aggregate or callback query together with `args` and the entry's place.
    */
   source?: unknown;
-  /** The field a field's `select` plans for. The types allow page and nested entries only there. */
   field?: FieldPlanning;
-  /** The model of the field's type, which `nestedSelection`'s to-many relation rows narrow to. */
   returnModelKey?: string;
-  /** The name and model of the type a nested entry names. */
   typeOf?: (type: unknown) => { name: string; model: string | undefined };
-  /** What loads the entries, which begins an error about them. */
+  /** Begins an error about the entries. */
   subject?: string;
-  /** Set when the schema is built, which checks the columns a static select's entries order by. */
+  /** Set at build, which checks the columns a static select orders by. */
   context?: PrismaNextExecutionContext<AnyContract>;
   /** The relations from the select's root to the entries, each followed by a dot. */
   at: string;
   /**
-   * Whether the entries' reader takes the rows of a relation targeting a variant model with a table
-   * of its own, which load without the columns it inherits. A page entry doesn't hand rows over. Set
-   * for what a select function returns, and for a static `select` when the schema is built.
+   * Whether the reader accepts rows of a variant model with its own table, which load without the
+   * columns it inherits.
    */
   readsRows?: (relation: PrismaNextRelation) => boolean;
 }
 
-/** A compiled `select`, and where its field reads each load. */
 interface Compiled {
   selection: PrismaNextSelection;
   refs: LoadRef[];
 }
 
-/** A static entry's load and args, made once. */
 const staticLoads = new WeakMap<RelationEntry, { load: Load; args: RelationArgs }>();
 
-/** Compiles a split `select`. */
 function compileSelect(
   { columns, relations, computed }: SplitSelect,
   model: PrismaNextModel,
@@ -324,7 +289,6 @@ function compileSelect(
     (field
       ? `The select of field '${field.position.type.name}.${field.position.field.name}' loads`
       : "A type's select loads");
-  // A type-level select's loads are the model's plain loads.
   const refFor = (load: Load): LoadRef =>
     interning ? refOf(interning.config, interning.ctx, model, load) : { load };
   const parts = relations.map(([name, entry, split]): MaybePromise<Planned> => {
@@ -341,17 +305,13 @@ function compileSelect(
     if (page) {
       return page(model, relation, name, field!);
     }
-    // A `nestedSelection` entry's rows are planned as the field's type, or as `type` at `path`
-    // beneath it. Rows of a to-many relation planned as a variant of its target, rather than at a
-    // path beneath, load that variant. Any other entry's `type` narrows its rows to that variant.
-    // A to-one relation loads whole.
+    // To-many rows planned as a variant (not at a path beneath) load that variant. A to-one
+    // relation always loads whole and is narrowed when read.
     const { path, type } = entry;
     const plans = NESTED_SELECTION in entry;
     const named = plans && type !== undefined ? typeOf!(type) : undefined;
     let loaded = source === undefined ? staticLoads.get(entry) : undefined;
     if (!loaded) {
-      // A to-one relation loads whole. A static select's `type` is checked when the schema is
-      // built.
       const typed = plans
         ? relation.isToMany && !path?.length
           ? variantForRelationType(
@@ -394,7 +354,6 @@ function compileSelect(
     }
     const ref = refFor(loaded.load);
     const rowArgs = loaded.args;
-    // The rows load whole, with what a nested `select` names.
     const target = relation.target;
     const rows: MaybePromise<Compiled> = split
       ? completeValue(
@@ -415,8 +374,7 @@ function compileSelect(
       refSelection(
         refs.length ? { ...ref, beneath: fieldLoads(target, refs) } : ref,
         plans
-          ? // The selection mapper reads a type only at a path, which is the field itself when
-            // empty.
+          ? // The mapper reads a type only at a path; an empty one is the field itself.
             field!.nested(
               selection,
               named ? (path ? [...path] : []) : path && [...path],
@@ -448,7 +406,6 @@ function compileSelect(
   }));
 }
 
-/** Compiles a type-level `select`. Its relations load every column, under their names. */
 export function compileTypeSelect(
   contract: AnyContract,
   split: SplitSelect,
@@ -457,13 +414,7 @@ export function compileTypeSelect(
   return (compileSelect(split, model, { contract, args: {}, at: '' }) as Compiled).selection;
 }
 
-/**
- * Compiles a static `select` of a type or field, which `subject` reads, when the schema is built,
- * which checks its entries: rows of a variant model with a table of its own load without the
- * columns it inherits, so only a reader `readsRows` accepts can take them, an entry's `type` must
- * be one its relation can return, and its order must be of columns the ORM can order by. Returns
- * where its loads are read, all plain for a type's.
- */
+/** Checks a static `select` at build: variant rows' readers, entry types and orderable columns. */
 export function checkStaticSelect(
   config: PrismaNextConfig,
   split: SplitSelect,
@@ -485,10 +436,8 @@ export function checkStaticSelect(
 }
 
 /**
- * Compiles a field's `select` for the planner. A select of columns alone becomes a static
- * selection. Anything else becomes a select function that records where the field reads each of
- * its loads. A select function is passed `nestedSelection`, whose entries plan the relation's rows
- * as the field's type.
+ * A select of columns alone becomes a static selection; anything else a select function that
+ * records where the field reads each load.
  */
 export function compileFieldSelect(
   config: PrismaNextConfig,
@@ -538,7 +487,6 @@ export function compileFieldSelect(
           return selection;
         },
       );
-    // A select function's result is compiled for a request, which may be the first to see it.
     return split
       ? compile(split)
       : completeValue(
@@ -550,9 +498,8 @@ export function compileFieldSelect(
 }
 
 /**
- * A type-level relation entry, split, as the data it loads by: its load, the model of its `type`,
- * and its nested `select` likewise, with a relation's `true` as `{}`. An aggregate of the nested
- * `select` is compared by its relation alone.
+ * A type-level relation entry as the data it loads by, for comparing entries. A nested aggregate
+ * is compared by its relation alone.
  */
 export function entryDefinition([name, entry, split]: SplitRelation): unknown {
   const { where, orderBy, limit, offset, type } = entry;

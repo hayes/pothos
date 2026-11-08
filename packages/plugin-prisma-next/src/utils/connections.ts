@@ -24,7 +24,6 @@ import { appliesCursors, COMPUTE, type PrismaNextSelection } from './selections.
 
 type SizeOption = number | ((args: never, ctx: never) => number);
 
-/** A connection's `totalCount` callback, which the plugin calls with the field's arguments. */
 type TotalCountCallback = (
   parent: unknown,
   args: unknown,
@@ -32,7 +31,6 @@ type TotalCountCallback = (
   info: GraphQLResolveInfo,
 ) => MaybePromise<number>;
 
-/** The options `connectionPaging` reads, as each kind of connection takes them. */
 export interface ConnectionSettingsOptions {
   defaultSize?: SizeOption;
   maxSize?: SizeOption;
@@ -40,7 +38,6 @@ export interface ConnectionSettingsOptions {
   query?: ConnectionQuery | ((args: never, ctx: never) => ConnectionQuery | undefined);
 }
 
-/** What a connection's `query` returns. */
 interface ConnectionQuery {
   where?: unknown;
   orderBy?: OrderByDecl;
@@ -49,15 +46,12 @@ interface ConnectionQuery {
 type ConnectionArgs = PothosSchemaTypes.DefaultConnectionArguments;
 type Rows = Record<string, unknown>[];
 
-/** Plans a page's rows from a seed that pages them, with the loads a helper's `select` writes. */
 type PageRows = (
   seed: PrismaNextSelection,
 ) => MaybePromise<{ selection: PrismaNextSelection; beneath?: FieldLoads }>;
 
-/** Where a connection's nodes sit in its selection. */
 export const CONNECTION_NODE_PATHS: string[][] = [['edges', 'node'], ['nodes']];
 
-/** Where the nodes of a connection whose node type is `typeName` sit in its selection. */
 export function connectionNodes(typeName: string): IndirectInclude {
   return {
     getType: () => typeName,
@@ -65,15 +59,12 @@ export function connectionNodes(typeName: string): IndirectInclude {
   };
 }
 
-/** A connection's paging for one request. */
 type ConnectionPlan = CursorPlan & { where: unknown };
 
 /**
- * The paging every kind of connection shares: `t.prismaConnection` and a helper's `load` page a
- * collection in a statement of their own, and `t.relatedConnection` and a helper's `getQuery` page
- * a to-many relation in the parent's. Page sizes fall back to the plugin's defaults and, as in
- * core, aren't validated. `totalCount` is `true`, which uses the ORM's count aggregate, or a
- * callback. A literal `query` is checked here, and a callback's result when a request is planned.
+ * The paging every kind of connection shares. Root connections page a collection in a statement
+ * of their own; related ones page a to-many relation in the parent's. As in core, page sizes
+ * aren't validated.
  */
 export function connectionPaging(
   config: PrismaNextConfig,
@@ -93,10 +84,8 @@ export function connectionPaging(
     totalCount === true ? 'aggregate' : totalCount || undefined;
 
   /**
-   * What selecting `names` asks of a connection: whether it needs rows, and where its count comes
-   * from, `'aggregate'` or the callback. With the `totalCount` option, a field named `totalCount`
-   * is the count, whether generated or user-defined, and needs no rows. Without it, a user's
-   * `totalCount` is an ordinary field. Other fields need rows, except `__typename`.
+   * With the `totalCount` option, a field named `totalCount` (generated or user-defined) is the
+   * count and needs no rows. Without it, a user's `totalCount` is an ordinary field.
    */
   const needs = (names: ReadonlySet<string>) => ({
     rows: [...names].some(
@@ -105,10 +94,7 @@ export function connectionPaging(
     count: names.has('totalCount') ? countSource : undefined,
   });
 
-  /**
-   * The connection's sizes, order and `where` for one request, which page a list of rows. The
-   * cursors' values are left out: only loading the page reads them.
-   */
+  /** Without the cursors' values: only loading the page reads them. */
   function plan(args: object, ctx: object): ConnectionPlan {
     const { where, order } =
       literal ??
@@ -126,18 +112,14 @@ export function connectionPaging(
   }
 
   return {
-    /** Adds the generated `totalCount` field to a connection's options. */
     connectionOptions<T extends object>(connectionOptions: T): T {
       return totalCount ? (withTotalCount(connectionOptions) as T) : connectionOptions;
     },
 
     /**
-     * Plans one page of to-many relation `relation` of `owner`'s rows, whose connection selects
-     * `names`: its rows unless the count alone is selected, and the count when it is selected and
-     * comes from the aggregate. The rows are identified by the page they load, so pages planned
-     * alike share them, and the count as `relationCount`'s is. A query callback builds a callback
-     * `where` anew on every call, which is identified by the arguments other than paging, so pages
-     * that differ only in paging share a count. The ref reads the rows, and the count beside them.
+     * Pages planned alike share their rows. A query callback builds its `where` anew on every
+     * call, so it is identified by the non-paging arguments, and pages differing only in paging
+     * share a count.
      */
     pageLoads(
       ctx: object,
@@ -158,8 +140,7 @@ export function connectionPaging(
         planned.where === undefined ? rel : rel.where(planned.where);
       const narrow = (rel: MapperCollection) =>
         variant === undefined ? rel : rel.variant(variant);
-      // Both are read even when this field node doesn't plan them, since another field node of the
-      // connection's response key may.
+      // Another field node of the same response key may plan what this one doesn't.
       const optional = (ref: LoadRef, plans: boolean): LoadRef =>
         plans ? ref : { ...ref, unplanned: true };
       const count = refOf(
@@ -211,12 +192,6 @@ export function connectionPaging(
       }));
     },
 
-    /**
-     * Loads one page of `collection`, filtered by `query`, for the root connection field `info`
-     * resolves: its rows, planned by `rows` from a seed holding the cursor columns, unless the
-     * count alone is selected, and its count when it is selected. Rows a helper's `select` writes
-     * loads on are its views.
-     */
     async rootPage(
       collection: MapperCollection,
       parent: unknown,
@@ -244,8 +219,7 @@ export function connectionPaging(
         );
         return beneath?.view ? loaded.map((row) => viewOf(parseRow(row, model), beneath)) : loaded;
       };
-      // Promise.all handles both rejections, so a later one isn't left unhandled. The count is of
-      // the collection filtered by `query`, before pagination.
+      // Promise.all handles both rejections, so a later one isn't left unhandled.
       const [loaded, totalCount] = await Promise.all([
         needsRows ? loadRows() : [],
         count === 'aggregate'
@@ -255,11 +229,7 @@ export function connectionPaging(
       return { rows: loaded as Rows, totalCount, plan: planned };
     },
 
-    /**
-     * The page `t.relatedConnection` planned with `pageLoads` for the field `info` resolves on
-     * `parent`, paged as its descriptor records. The count comes with the rows, or from the
-     * `totalCount` callback when it is selected.
-     */
+    /** The page `t.relatedConnection` planned with `pageLoads`. */
     async ownPage(parent: object, args: ConnectionArgs, ctx: object, info: GraphQLResolveInfo) {
       const { count } = needs(selectedFieldNames(ctx, info));
       const ref = ownRef(info)!;
@@ -275,7 +245,6 @@ export function connectionPaging(
       });
     },
 
-    /** The connection of `rows`, which `getQuery` or `load` loaded. */
     page(
       rows: readonly Record<string, unknown>[],
       args: ConnectionArgs,
@@ -309,12 +278,12 @@ function withTotalCount(connectionOptions: object): object {
   };
 }
 
-/** `collection`'s count. The types reject counts on a target without aggregates, such as MySQL. */
+/** The types reject counts on a target without aggregates, such as MySQL. */
 export function countOf(collection: object): unknown {
   return (collection as { count(): unknown }).count();
 }
 
-/** Counts the collection's rows. A synchronous throw becomes a rejection. */
+/** A synchronous throw becomes a rejection. */
 function aggregateCount(collection: unknown): Promise<number> {
   return Promise.resolve().then(() =>
     (

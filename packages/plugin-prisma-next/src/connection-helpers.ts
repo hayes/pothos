@@ -68,7 +68,6 @@ type ConnectionHelperSelect<Types extends SchemaTypes, M extends ModelKey<Types>
     : true;
 };
 
-/** Checks a helper's `select`, which is inferred from what the callback returns. */
 type HelperSelectCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = {
   readonly [K in keyof Select]: K extends keyof ConnectionHelperSelect<Types, M>
     ? ConnectionHelperSelect<Types, M>[K]
@@ -90,7 +89,6 @@ type SelectedRelations<
     : WholeRelation<Types, M, K>;
 };
 
-/** A relation a helper's `select` loads whole. */
 type WholeRelation<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
@@ -118,17 +116,13 @@ export type ConnectionHelperRow<
       Pick<Row<Types, M>, keyof Select & keyof Row<Types, M>> &
       SelectedRelations<Types, M, Select, true>;
 
-/** A row whose nodes aren't planned into it: every column, and what `select` loads. */
 type LoadedHelperRow<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = [
   keyof Select,
 ] extends [never]
   ? LoadedRow<Types, M>
   : LoadedRow<Types, M> & SelectedRelations<Types, M, Select, false>;
 
-/**
- * The row `resolveNode` gets. With a relation given `nodeSelection()`, it is planned. Otherwise the
- * selection beneath the nodes isn't planned into it, so it loads every column.
- */
+/** Planned with a `nodeSelection()` relation; otherwise it loads every column. */
 type NodeSourceRow<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = [
   {
     [K in keyof Select]: Select[K] extends NodeSelection ? K : never;
@@ -137,20 +131,14 @@ type NodeSourceRow<Types extends SchemaTypes, M extends ModelKey<Types>, Select>
   ? LoadedHelperRow<Types, M, Select>
   : ConnectionHelperRow<Types, M, Select>;
 
-/**
- * A planned row of the helpers' page. The rows of helpers made with a discriminated model's
- * `prismaInterface` also hold the discriminator, which the interface's selection includes.
- */
+/** Rows of helpers for a discriminated `prismaInterface` also hold the discriminator. */
 type HelperRow<Types extends SchemaTypes, M extends ModelKey<Types>, Select, Ref> = [Ref] extends [
   PrismaNextInterfaceRef<Types, M, unknown>,
 ]
   ? ConnectionHelperRow<Types, M, Select> & Pick<Row<Types, M>, DiscriminatorField<Types, M>>
   : ConnectionHelperRow<Types, M, Select>;
 
-/**
- * The connection `resolve` returns. Its nodes are what `resolveNode` returns, or the rows when it
- * isn't given. With `resolveNode`, each edge also holds its row's keys, for edge fields to read.
- */
+/** With `resolveNode`, each edge also holds its row's keys, for edge fields to read. */
 type HelperPage<Node, PageRow, MaybeRow extends boolean> = [Node] extends [never]
   ? ConnectionPage<PageRow>
   : MaybeRow extends true
@@ -174,34 +162,23 @@ export interface PrismaNextConnectionHelpers<
     : Ref;
   getArgs(): Args;
   /**
-   * The entry of a to-many relation of this model in a connection field's select function. It
-   * loads one page of the relation in the parent's query, with the selection beneath the
-   * connection's nodes, and its count when `totalCount` is selected. Pass the rows to `resolve`.
-   * `args` are the field's. For a connection beneath the field, at a prefixed path, they're
-   * ignored: it pages by the connection field's own arguments, and fails the request when aliases
-   * of that connection select different ones.
+   * The entry of a to-many relation in a connection field's select function. It loads one page of
+   * the relation in the parent's query; pass the rows to `resolve`. A connection beneath the field
+   * pages by its own arguments, not `args`.
    */
   getQuery(
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
     nestedSelection: (options: { path: readonly PathSegment[] }) => unknown,
   ): ConnectionPageEntry<M, HelperRow<Types, M, Select, Ref>>;
-  /**
-   * Loads one page of `collection`, a collection of this model, for the root connection field
-   * `info` resolves: filtered and paged as `getQuery` pages a relation, with the selection beneath
-   * the connection's nodes, and its count when `totalCount` is selected. Pass the rows to `resolve`.
-   */
+  /** Loads one page of `collection` for the root connection field `info` resolves. */
   load<C extends ResolverCollection<Types, M>>(
     collection: C & NoInfer<UnorderedCollection<C>>,
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
     info: GraphQLResolveInfo,
   ): Promise<HelperRow<Types, M, Select, Ref>[]>;
-  /**
-   * The connection of `rows`, paged by `args` as `getQuery` pages them. `totalCount` is the count
-   * `getQuery` or `load` loaded with the rows, unless one is passed. `parent` is passed on to the
-   * connection.
-   */
+  /** The connection of `rows`, paged by `args` as `getQuery` or `load` paged them. */
   resolve(
     rows: readonly HelperRow<Types, M, Select, Ref>[],
     args: ConnectionArgs<Args>,
@@ -210,9 +187,7 @@ export interface PrismaNextConnectionHelpers<
   ): HelperPage<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>;
 }
 
-/** What a connection helper's `resolve` passes on to the connection. */
 export interface ConnectionHelperResolveOptions {
-  /** The connection field's parent. */
   parent?: unknown;
   /** The connection's count, in place of one `getQuery` or `load` loaded. */
   totalCount?: number;
@@ -230,10 +205,7 @@ export interface PrismaNextConnectionHelperOptions<
   totalCount?: TotalCountFlag<Types>;
   /** Filters and orders the relation, like `t.relatedConnection`'s `query`. */
   query?: ConnectionQueryOption<Types, M, Args, QueryLiteral>;
-  /**
-   * What each row loads beside its key and cursor columns. A to-one relation given
-   * `nodeSelection()` holds the nodes: the selection beneath them is planned into it.
-   */
+  /** What each row loads. A to-one relation given `nodeSelection()` holds the nodes. */
   select?: (
     nodeSelection: () => NodeSelection,
     args: ConnectionArgs<Args>,
@@ -297,11 +269,6 @@ export function prismaConnectionHelpers<
   const { resolveNode } = options;
   const nodeMarker: NodeSelection = { [NODE_SELECTION]: true };
 
-  /**
-   * The selection of each row of a page: what `select` loads, and the nodes, whose selection
-   * `nodes` plans from a seed. A relation `select` loads whole but not by its name is read through
-   * a view of each row.
-   */
   const pageRows = (
     seed: PrismaNextSelection,
     nodes: (seed: PrismaNextSelection) => MaybePromise<PrismaNextSelection>,
@@ -324,8 +291,7 @@ export function prismaConnectionHelpers<
       relations,
     };
     if (nodeRelation) {
-      // The nodes' planning starts from the relation's narrowing, so beneath a relation targeting
-      // a variant model it leaves out what the variant model's own accessor can't load.
+      // Seeded with the relation's narrowing, so it leaves out what a variant model can't load.
       const nodeSeed: PrismaNextSelection = { args: relationArgs(model.relations[nodeRelation]!) };
       return completeValue(nodes(nodeSeed), (planned) => ({
         selection: { ...own, relations: { ...relations, [nodeRelation]: planned } },
@@ -339,20 +305,15 @@ export function prismaConnectionHelpers<
     }));
   };
 
-  /**
-   * Plans a page for `getQuery`. `paths` are where the connection's nodes sit beneath the field,
-   * each of `CONNECTION_NODE_PATHS` as the field's `nestedSelection` prefixed it.
-   */
+  /** `paths` are `CONNECTION_NODE_PATHS` as the field's `nestedSelection` prefixed them. */
   const planPage =
     (fieldArgs: object, ctx: object, paths: readonly PathSegment[][]): PlanPage =>
     (owner, relation, name, field) => {
-      // The names of the path before `edges`, where the connection sits beneath the field. The
-      // connection pages by its own arguments, not those of the field it sits beneath.
+      // Where the connection sits beneath the field; it pages by its own arguments there.
       const prefix = paths[0]!
         .slice(0, -CONNECTION_NODE_PATHS[0]!.length)
         .map((segment) => (typeof segment === 'string' ? segment : segment.name));
-      // A path the connection doesn't select may not be in the schema, as `nodes` without
-      // relay's `nodesOnConnection`.
+      // An unselected path may not be in the schema (`nodes` without `nodesOnConnection`).
       const selectedPaths = paths.filter(
         (_path, i) => i === 0 || field.selected([...prefix, ...CONNECTION_NODE_PATHS[i]!]),
       );
@@ -397,7 +358,6 @@ export function prismaConnectionHelpers<
       ctx: object,
       nestedSelection: (options: { path: readonly PathSegment[] }) => unknown,
     ) => {
-      // The field's `nestedSelection` may prefix each path, for a connection beneath the field.
       const paths = CONNECTION_NODE_PATHS.map((path) => {
         const nested = (nestedSelection({ path }) as RelationEntry).path;
         return nested ? [...nested] : path;
@@ -432,7 +392,7 @@ export function prismaConnectionHelpers<
       if (!resolveNode) {
         return page;
       }
-      // Each edge keeps its cursor, which is encoded from the row.
+      // Keep the cursor getter, which encodes from the row.
       const edges = page.edges.map((edge) =>
         Object.defineProperty(
           { ...edge.node, node: resolveNode(edge.node as never) },

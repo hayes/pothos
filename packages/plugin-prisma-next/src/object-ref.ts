@@ -11,26 +11,17 @@ export const prismaNextModelBrand = Symbol.for('Pothos.prismaNextModelBrand');
 /** Type-only: the contract a ref's builder was created with. */
 export const prismaNextContractBrand = Symbol.for('Pothos.prismaNextContractBrand');
 
-/**
- * Type-only: marks the rows the loader planned, see `Planned`. No row holds it at runtime. It is
- * exported so that a module whose declarations name a planned row, such as an exported function
- * returning one without an annotation, can import it for declaration emit.
- */
+/** Type-only: marks the rows the loader planned. Exported for declaration emit. */
 export const plannedRowBrand = Symbol.for('Pothos.prismaNextPlannedRowBrand');
 
-/**
- * Marks a row the loader planned as a row of model `M`. It is an interface so that declaration emit
- * can name it.
- */
+/** An interface so that declaration emit can name it. */
 export interface PlannedRowBrand<M> {
   readonly [plannedRowBrand]: M;
 }
 
 /**
- * A row the plugin planned for model `M`, which is what a field returning a type of `M` resolves
- * to: a row of a collection `collectionFromInfo`, `prismaField` or the connection helpers planned,
- * the parent, or a relation row the parent's plan loaded. It is an interface so that errors name it
- * rather than the brand.
+ * A row the plugin planned for model `M`, which a field returning a type of `M` resolves to. An
+ * interface so that errors name it rather than the brand.
  */
 export interface Planned<M> extends PlannedRowBrand<M> {}
 
@@ -74,11 +65,7 @@ export class PrismaNextObjectRef<
     this.modelKey = modelKey;
   }
 
-  /**
-   * Brands rows (or a list of them) as this type, for abstract positions such as unions or a
-   * non-prisma interface like relay's `Node`. A row must be one a field returning this type
-   * accepts.
-   */
+  /** Brands rows as this type, for abstract positions such as unions or relay's `Node`. */
   addBrand<
     V extends
       | Planned<M | VariantModelKeys<Types['PrismaNextContract'], M>>

@@ -2,13 +2,11 @@ import { PothosSchemaError, PothosValidationError } from '@pothos/core';
 import { SqlQueryError } from '@prisma/orm-family-sql/errors';
 import type { GraphQLResolveInfo } from 'graphql';
 
-/** What a client sees of an error this plugin raises while a request runs. */
 export const UNEXPECTED_ERROR = 'Unexpected error.';
 
 /**
- * An error this plugin raises while a request runs, for a problem in the app's schema or code
- * rather than in the request. Clients see only `Unexpected error.`: `detail` is the message of its
- * `cause`, which graphql-js leaves out of responses but loggers and debuggers show.
+ * A request-time problem in the app's schema or code. Clients see only `Unexpected error.`;
+ * `detail` goes in `cause`, which graphql-js leaves out of responses.
  */
 export class InternalError extends Error {
   constructor(detail: string, options?: { cause?: unknown }) {
@@ -16,10 +14,7 @@ export class InternalError extends Error {
   }
 }
 
-/**
- * Applies `check`, which runs the schema build's checks, to `value`, what an app's function
- * returned for a request. The client sees a `PothosSchemaError` it throws as `Unexpected error.`.
- */
+/** Runs build-time checks on what an app's function returned, hiding their detail from clients. */
 export function checkReturned<V, T>(value: V, check: (value: V) => T): T {
   try {
     return check(value);
@@ -36,12 +31,10 @@ export function checkReturned<V, T>(value: V, check: (value: V) => T): T {
  */
 const REFUSED_VALUE_STATES = new Set(['22021', '22P02', '22P05', '22007', '22008']);
 
-/** Whether `error` is the database refusing a value of a statement. */
 export function isRefusedValue(error: unknown): error is SqlQueryError {
   return SqlQueryError.is(error) && REFUSED_VALUE_STATES.has(error.sqlState ?? '');
 }
 
-/** `message`, a client-safe error such as `Invalid cursor.`, for `cause`, which `reloadFor` keeps. */
 export function refusedError(message: string, cause: Error): PothosValidationError {
   return keepError(
     Object.assign(new PothosValidationError(message, { originalError: cause }), { cause }),
@@ -49,14 +42,12 @@ export function refusedError(message: string, cause: Error): PothosValidationErr
 }
 
 /**
- * Errors `reloadFor` rethrows as they are: those of the app's code and the client, which keep their
- * class, client-safe errors such as `Invalid ID.`, and errors that already name their field. A
- * database error from a query the plugin issues isn't kept. Errors from running a collection a
- * resolver returned never pass through `reloadFor`.
+ * Errors `reloadFor` rethrows as they are: the app's and client's (which keep their class),
+ * client-safe ones such as `Invalid ID.`, and those that already name their field. A database
+ * error from the plugin's own query isn't kept.
  */
 const kept = new WeakSet<object>();
 
-/** Marks `error` to be rethrown as it is by `reloadFor`. */
 export function keepError<T>(error: T): T {
   if (typeof error === 'object' && error !== null) {
     kept.add(error);
@@ -64,15 +55,10 @@ export function keepError<T>(error: T): T {
   return error;
 }
 
-/**
- * `error`, from loading a parent or relation for `info`'s field. Any other error is the plugin's,
- * which the client sees only as `Unexpected error.`, with the field named in its `cause`.
- */
 function fieldError(info: GraphQLResolveInfo, error: unknown): unknown {
   if (typeof error === 'object' && error !== null && kept.has(error)) {
     return error;
   }
-  // An error already generic, such as the plugin's own, is named by the detail in its cause.
   const detail =
     error instanceof Error && error.message === UNEXPECTED_ERROR && error.cause instanceof Error
       ? error.cause.message
@@ -82,16 +68,11 @@ function fieldError(info: GraphQLResolveInfo, error: unknown): unknown {
   return keepError(fieldInternalError(info, detail, error));
 }
 
-/** The plugin's error from `info`'s field, named in the detail its client never sees. */
 export function fieldInternalError(info: GraphQLResolveInfo, detail: string, cause: unknown) {
   return new InternalError(`${info.parentType.name}.${info.fieldName}: ${detail}`, { cause });
 }
 
-/**
- * Runs `load`, a load this plugin runs for `info`'s field, and keeps the plugin's own errors in what
- * it throws or rejects with out of the response. Errors from the field's resolver aren't passed
- * through it.
- */
+/** Runs a load for `info`'s field, keeping the plugin's own error details out of the response. */
 export function reloadFor<T>(info: GraphQLResolveInfo, load: () => Promise<T>): Promise<T> {
   const rethrow = (error: unknown): never => {
     throw fieldError(info, error);

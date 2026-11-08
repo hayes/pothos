@@ -3,23 +3,19 @@ import { PrismaNextInterfaceRef } from '../interface-ref.js';
 import { PrismaNextObjectRef } from '../object-ref.js';
 import { defaultTypeName } from './contract.js';
 
-/** A prisma object or interface ref of any model. */
 export type AnyRef =
   | PrismaNextObjectRef<SchemaTypes, never, never>
   | PrismaNextInterfaceRef<SchemaTypes, never, never>;
 
-// Only refs for a model's default type name are cached. Types given a `variant` or `name` get their
-// own ref.
+// Only refs for a model's default type name are cached.
 const refMap = new WeakMap<object, Map<string, AnyRef>>();
 
 /** Refs made by a lookup without a kind before the model was registered. */
 const provisional = new WeakSet<AnyRef>();
 
 /**
- * The default ref for a model. With `kind`, it is a ref of that kind, and a model already
- * registered as the other kind throws. Without one, it is a ref of the kind the model was
- * registered as. If the model isn't registered yet, it is a provisional object ref that a later
- * lookup with `kind: 'Interface'` replaces.
+ * Without `kind` and before the model is registered, this is a provisional object ref that a
+ * later lookup with `kind: 'Interface'` replaces.
  */
 export function getRefFromContractModel<Types extends SchemaTypes>(
   modelKey: string,
@@ -66,7 +62,6 @@ function createRef(modelKey: string, kind: 'Interface' | 'Object'): AnyRef {
     : new PrismaNextObjectRef(defaultTypeName(modelKey), modelKey as never);
 }
 
-/** A prisma ref as given, or the default ref of the model a name names. */
 export function refFor(builder: object, type: unknown): AnyRef {
   return type instanceof PrismaNextObjectRef || type instanceof PrismaNextInterfaceRef
     ? (type as AnyRef)

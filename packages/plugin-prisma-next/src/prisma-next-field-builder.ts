@@ -126,9 +126,8 @@ const RootBuilder: {
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
 
-// The variance annotations stop TypeScript from measuring the builder's variance structurally,
-// which would walk every model's row types. `Shape` is left unannotated because helpers typed with
-// a wider shape rely on its measured variance.
+// Variance annotations avoid measuring variance structurally over every model's row types.
+// `Shape` stays unannotated: helpers typed with a wider shape rely on its measured variance.
 export class PrismaNextObjectFieldBuilder<
   in out Types extends SchemaTypes,
   in out M extends ModelKey<Types>,
@@ -347,7 +346,6 @@ export class PrismaNextObjectFieldBuilder<
     ];
     const { config, model, relation } = this.#relation(name as string);
     const targetRef = refFor(this.builder, opts.type ?? relation.targetModel);
-    // Throws at build time for a type the relation can't return.
     const variant = variantForRelationType(
       this.contract as AnyContract,
       `t.relation('${name as string}') on '${this.modelKey as string}'`,
@@ -358,13 +356,11 @@ export class PrismaNextObjectFieldBuilder<
     const queryModel = variant === undefined ? relation.targetModel : targetRef.modelKey;
     const { type: _type, query, onNull, extensions, ...rest } = opts;
     const relationName = name as string;
-    // A to-one relation loads whole, keyed on the row by its name, so a variant `type` narrows it
-    // by the discriminator when the field resolves rather than in the load.
+    // A to-one relation loads whole, so a variant `type` narrows it when the field resolves.
     const discriminator =
       variant === undefined || relation.isToMany
         ? undefined
         : modelDiscriminator(this.contract as AnyContract, relation.targetModel)!.field;
-    // Narrowed in the load, unless it is a to-one relation's, which loads whole.
     const loadVariant = discriminator === undefined ? variant : undefined;
     const select = relationSelect(
       config,
@@ -389,7 +385,6 @@ export class PrismaNextObjectFieldBuilder<
       },
       resolve: (parent: object, args: object, context: object, info: GraphQLResolveInfo) => {
         const rows = readLoad(parent, ownRef(info)!) as Record<string, unknown> | null | undefined;
-        // A variant type filters out a to-one relation's row of another variant.
         if (rows == null || (discriminator !== undefined && rows[discriminator] !== variant)) {
           return typeof onNull === 'function' ? onNull(parent, args, context, info) : null;
         }
@@ -408,7 +403,6 @@ export class PrismaNextObjectFieldBuilder<
     options?: PrismaNextRelationCountOptions<Types, M, RelName, Args, Shape, Query>,
   ): FieldRef<Types, number, 'PrismaNextObject'> {
     const relationName = name as string;
-    // Rejects a relation several variants declare, which the types can't tell apart.
     const { config, model, relation } = this.#relation(relationName);
     const { query, extensions, ...rest } = (options ?? {}) as {
       query?: unknown;
@@ -569,11 +563,7 @@ export class PrismaNextObjectFieldBuilder<
     ).connection(connectionConfig, paging.connectionOptions(connectionOptions), edgeOptions);
   } as never;
 
-  /**
-   * The planner's relation, from the root model, which has every variant's relations, with the
-   * model and the plugin's config. Throws for a name several variants declare, which the types
-   * can't tell apart from one variant's relation.
-   */
+  /** Throws for a name several variants declare, which the types can't tell apart. */
   #relation(name: string) {
     const config = getPluginConfig(this.builder);
     const model = getModel(config.contract, this.modelKey as string);
@@ -585,10 +575,8 @@ export class PrismaNextObjectFieldBuilder<
 }
 
 /**
- * The select of a field that loads relation `name` of `model`'s rows as its `query` asks, which
- * `selection` plans from the load's ref and refinement. A literal query is checked here, and a
- * callback's result through `checkReturned` when a request is planned. A callback query builds the
- * callbacks it returns anew on every call, so the field's query and its arguments identify those.
+ * A callback query builds its callbacks anew on every call, so the field's query and its
+ * arguments identify the load.
  */
 function relationSelect(
   config: PrismaNextConfig,

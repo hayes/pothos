@@ -42,8 +42,7 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelKey<Type
 ) {
   const { contract } = getPluginConfig(builder);
   const isInterface = kind === 'Interface';
-  // Only a variant is a type of its own. Any other registration is the model's default type, which
-  // `t.relation` and helpers given a model key resolve to, and `name` only renames it.
+  // Only a variant is a type of its own; otherwise this is the model's default type.
   const ref =
     options.variant === undefined
       ? getRefFromContractModel(modelKey as string, builder, kind)
@@ -78,7 +77,6 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelKey<Type
             const typeName = variantTypeNames(contract, info.schema, iface).get(value as string);
             // The row's value is left out of the message, which logs often capture.
             if (typeName === undefined) {
-              // A row without the discriminator was reloaded with it (see `wrapResolveType`).
               throw new InternalError(
                 `prismaInterface '${iface.name}' row has a discriminator '${discriminator.field}' that names no variant of model '${modelKey as string}'.`,
               );
@@ -139,10 +137,6 @@ schemaBuilderProto.prismaInterface = function prismaInterface<
   return definePrismaNextType<Types, M>(this, modelKey, options, 'Interface') as never;
 } as never;
 
-/**
- * Adds fields for `prismaObjectField(s)` and `prismaInterfaceField(s)`. A model name refers to the
- * model's default type.
- */
 function addPrismaNextFields(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   type:

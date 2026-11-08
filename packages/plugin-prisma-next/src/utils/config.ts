@@ -24,7 +24,6 @@ export interface PrismaNextConfig {
   readonly filterConnectionTotalCount: boolean;
   /** The type-level load of each relation, by root model, and the first type that selects it. */
   readonly typeLoads: Map<string, Map<string, { type: string; load: Load }>>;
-  /** The client for a request, read once per request context. */
   client(ctx: object): RequestClient;
   /** The root collection a model's rows load from (`orm.Bug` loads through `orm.Task`). */
   collection(ctx: object, modelKey: string): MapperCollection;
@@ -54,7 +53,6 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
           try {
             return clientOption(ctx as never);
           } catch (error) {
-            // The app's error, which reaches the field as it is.
             throw keepError(error);
           }
         })

@@ -5,31 +5,24 @@ import type { FieldLoads, LoadRef } from './loads.js';
 import type { PrismaNextModel } from './model.js';
 
 /*
- * Rows stay as the ORM returned them. A relation loaded more than one way comes back as a
- * `combine()` object of branches named `n/id`, `n/id:key` for a value an aggregate computes, and
- * `n/_` for the plain load. Readers see a parsed copy: the plain load under the relation's name and
- * the branches under `BRANCHES`, by id. A field whose select writes its own loads under their names
- * reads a view of that copy, which only its resolver sees.
+ * ORM rows are never mutated. Readers see a parsed copy: the plain load under the relation's name
+ * and the other `combine()` branches under `BRANCHES`, by id. A field whose select writes its own
+ * loads under their names reads a view of that copy, which only its resolver sees.
  */
 
 type Row = Record<string, unknown>;
 
 interface Held {
-  /** The ORM row the copy was made from. */
   readonly row: object;
   readonly loads: Record<string, Record<string, unknown>>;
 }
 
-/**
- * Enumerable, so `{ ...parent }` and `Object.assign` copies other plugins make keep what the copy
- * holds. JSON and structuredClone copies drop it, and reload.
- */
+/** Enumerable, so other plugins' spread copies keep it. JSON or structuredClone copies reload. */
 const BRANCHES = Symbol('prismaNextBranches');
 const VIEW_OF = Symbol('prismaNextViewOf');
 
 type Holder = { [BRANCHES]?: Held; [VIEW_OF]?: object };
 
-/** Where a page's rows hold the count loaded with them. */
 export const PAGE = Symbol('prismaNextPage');
 
 export interface PageData {
@@ -39,10 +32,8 @@ export interface PageData {
 const parsed = new WeakMap<object, object>();
 
 /**
- * `row`, a row of `model`, as its readers see it: the ORM row itself when nothing beneath it was
- * combined, otherwise one copy with the branches moved under `BRANCHES`. Every relation of the
- * model's hierarchy is read, so a row first read as an interface keeps a variant's branches, and
- * the plain loads beneath are parsed too, for the type-level selects that read them.
+ * The ORM row itself when nothing beneath it was combined. Every relation of the hierarchy is
+ * read, so a row first read as an interface keeps a variant's branches.
  */
 export function parseRow(row: object, model: PrismaNextModel): object {
   const done = parsed.get(row);
@@ -112,30 +103,25 @@ function parseValue(value: object, model: PrismaNextModel): unknown {
   return copy ?? value;
 }
 
-/** What `ref` reads on `row`, a parsed row. */
 export function readLoad(row: object, { load, id }: LoadRef): unknown {
   return id === undefined
     ? (row as Row)[load.relation]
     : (row as Holder)[BRANCHES]?.loads[load.relation]?.[id];
 }
 
-/** The ORM row `row`, a parsed row, was copied from. */
 export function sourceOf(row: object): object {
   return (row as Holder)[BRANCHES]?.row ?? row;
 }
 
-/** The parsed row `value`, a field's view, was made from, or `value`. */
 export function baseOf<T>(value: T): T {
   return ((value as Holder | null)?.[VIEW_OF] as T | undefined) ?? value;
 }
 
-/** The columns and relations, and those beneath, that type-level selects read. */
 export interface RowCheck {
   readonly columns: readonly string[];
   readonly relations: ReadonlyMap<string, RowCheck | undefined>;
 }
 
-/** What `selects`, split type-level selects, read. */
 export function rowCheck(selects: readonly SplitSelect[]): RowCheck {
   const columns = new Set<string>();
   const nested = new Map<string, SplitSelect[]>();
@@ -158,7 +144,7 @@ export function rowCheck(selects: readonly SplitSelect[]): RowCheck {
 
 const holding = new WeakMap<object, WeakMap<RowCheck, boolean>>();
 
-/** Whether `row`, a parsed row, holds what `check` reads. Parsed rows never change. */
+/** Memoised: parsed rows never change. */
 export function holdsType(row: object, check: RowCheck): boolean {
   const checks = holding.get(row) ?? holding.set(row, new WeakMap()).get(row)!;
   let held = checks.get(check);
@@ -186,13 +172,11 @@ function holds(value: unknown, check: RowCheck): boolean {
 }
 
 const views = new WeakMap<object, Map<FieldLoads, object>>();
-/** The loads whose views were checked to write each key once (see `viewOf`). */
 const checked = new WeakSet<FieldLoads>();
 
 /**
- * A copy of `row`, a parsed row, with what `loads` loaded under their names, cached per row so
- * per-row caches such as scope-auth's see one object. An aggregate's keys are known only once it
- * ran, so the first view of a field's loads checks that no two of them write one key.
+ * Cached per row so per-row caches such as scope-auth's see one object. An aggregate's keys are
+ * known only once it ran, so the first view of a field's loads checks no key is written twice.
  */
 export function viewOf(row: object, loads: FieldLoads): object {
   const byLoads = views.get(row) ?? views.set(row, new Map()).get(row)!;
@@ -242,11 +226,7 @@ function mapRows(value: unknown, loads: FieldLoads): unknown {
   return Array.isArray(value) ? value.map(view) : view(value);
 }
 
-/**
- * `loaded`, a row a reload returned, with the keys of `row`, the parent it reloads, that aren't
- * columns or relations of `model`, such as keys another plugin's copy added. It is copied only
- * when there are such keys.
- */
+/** Keeps keys of the reloaded parent that aren't the model's, such as another plugin's. */
 export function withOtherKeys(loaded: Row, row: object, model: PrismaNextModel): Row {
   let next: Row | undefined;
   for (const key of Object.keys(row)) {
@@ -262,7 +242,6 @@ export function withOtherKeys(loaded: Row, row: object, model: PrismaNextModel):
   return next ?? loaded;
 }
 
-/** Copies a row into a writable object with the same prototype and type brand. */
 function copyOf(row: object): Row {
   const copy = Object.assign(Object.create(Object.getPrototypeOf(row)) as Row, row);
   const brand = getTypeBrand(row);
