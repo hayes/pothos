@@ -110,7 +110,7 @@ describe('consumers of one relation with different arguments on one type', () =>
     expect(result.statements).toHaveLength(1);
   });
 
-  // Edge case 1: the same relation at two levels, with other arguments at each.
+  // The same relation at two levels, with other arguments at each.
   it('keeps the levels of a nested relation apart', async () => {
     const result = await run(
       schema(),
@@ -141,7 +141,7 @@ describe('consumers of one relation with different arguments on one type', () =>
     expect(renamedBranches(result.statements[0]!.sql)).toEqual([]);
   });
 
-  // Edge case 2: aliases with equal arguments load one branch.
+  // Aliases with equal arguments load one branch.
   it('shares one branch between aliases with equal arguments', async () => {
     const result = await run(
       schema(),
@@ -157,7 +157,7 @@ describe('consumers of one relation with different arguments on one type', () =>
     expect(postSubqueries(result.statements[0]!.sql)).toBe(2);
   });
 
-  // Edge case 2: reloads are batched, whatever the length of the list.
+  // Reloads are batched, whatever the length of the list.
   it.each([1, 2, 4])('reloads %i stubs in one statement', async (stubs) => {
     const result = await run(
       schema(stubs),
@@ -178,7 +178,7 @@ describe('consumers of one relation with different arguments on one type', () =>
     expect(result.statements).toHaveLength(1);
   });
 
-  // Edge case 4: a fragment used in two places shares its walk, and so its consumers.
+  // A fragment used in two places shares its walk, and so its consumers.
   it('reads a shared fragment beneath two aliases from each one', async () => {
     const result = await run(
       schema(),
@@ -297,7 +297,7 @@ describe('aliases whose orderBy lists the same columns in another order', () => 
   });
 });
 
-// Edge case 3: an inherited field is planned once, on the interface; an override and a fragment
+// An inherited field is planned once, on the interface; an override and a fragment
 // narrowed to an implementation are planned on the implementation.
 describe('interface fields', () => {
   function interfaceSchema() {
@@ -383,7 +383,7 @@ describe('interface fields', () => {
   });
 });
 
-// Edge case 5: rows beneath a connection helper's nodes and a relatedConnection's edges.
+// Rows beneath a connection helper's nodes and a relatedConnection's edges.
 describe('connections', () => {
   it('reads consumers beneath edges.node without reloading', async () => {
     const builder = createBuilder();
@@ -457,7 +457,7 @@ describe('connections', () => {
   });
 });
 
-// Edge case 6: another plugin's shallow copy keeps the combined values under their symbol.
+// Another plugin's shallow copy keeps the combined values under their symbol.
 describe('a plugin that copies the parent', () => {
   class CopyPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override wrapResolve(

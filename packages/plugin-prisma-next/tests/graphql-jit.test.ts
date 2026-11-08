@@ -1,4 +1,4 @@
-import type { GraphQLFieldResolver, GraphQLObjectType, GraphQLSchema } from 'graphql';
+import { rebuildResolverPaths } from '@pothos/test-utils';
 import { describe, expect, it } from 'vitest';
 import { detailOf } from './fixtures/errors';
 import { createBuilder, globalId, run, useSampleDb } from './fixtures/helpers';
@@ -19,20 +19,6 @@ function schema() {
   return builder.toSchema();
 }
 
-/** Passes the query's fields a path as graphql-jit builds it, without a `typename`. */
-function asGraphQLJit(schema: GraphQLSchema) {
-  const fields = (schema.getQueryType() as GraphQLObjectType).getFields();
-  for (const field of Object.values(fields)) {
-    const resolve = field.resolve as GraphQLFieldResolver<unknown, unknown>;
-    field.resolve = (parent, args, context, info) =>
-      resolve(parent, args, context, {
-        ...info,
-        path: { prev: info.path.prev, key: info.path.key } as never,
-      });
-  }
-  return schema;
-}
-
 describe('graphql-jit', () => {
   it.each([
     ['a prisma field', '{ users { firstName } }', undefined],
@@ -42,7 +28,9 @@ describe('graphql-jit', () => {
       { id: globalId('User', 'u-bob') },
     ],
   ])('fails %s closed', async (_name, source, variables) => {
-    const result = await run(asGraphQLJit(schema()), source, { variables });
+    const built = schema();
+    rebuildResolverPaths(built, () => true);
+    const result = await run(built, source, { variables });
     expect(result.errors).toHaveLength(1);
     expect(detailOf(result.errors?.[0])).toMatch(/graphql-jit/);
     expect(result.statements).toHaveLength(0);

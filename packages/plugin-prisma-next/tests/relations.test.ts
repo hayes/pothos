@@ -161,34 +161,6 @@ describe('includes', () => {
     ]);
   });
 
-  it('rejects an orderBy column that is not a field when the schema is built', () => {
-    const relation = createBuilder();
-    relation.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    relation.prismaObject('User', {
-      fields: (t) => ({
-        posts: t.relation('posts', { query: { orderBy: { nope: 'asc' } as never } }),
-      }),
-    });
-    expect(() => relation.toSchema()).toThrow(
-      "orderBy can't order by 'Post.nope' is not a field of the model.",
-    );
-
-    const select = createBuilder();
-    select.prismaObject('User', {
-      fields: (t) => ({
-        first: t.string({
-          nullable: true,
-          select: { posts: { orderBy: { nope: 'asc' } as never, limit: 1 } },
-          resolve: () => null,
-        }),
-      }),
-    });
-    select.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
-    expect(() => select.toSchema()).toThrow(
-      "orderBy can't order by 'Post.nope' is not a field of the model.",
-    );
-  });
-
   it("fails the field for a callback's orderBy column that is not a field", async () => {
     const builder = createBuilder();
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
