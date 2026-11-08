@@ -44,19 +44,21 @@ export function buildExampleSchema(db: TestRuntimeContext, options: SampleOption
       }),
       maxPublished: t.float({
         nullable: true,
-        select: { maxPublished: { posts: (sub) => sub.max('published') } },
+        select: { posts: (posts) => ({ maxPublished: posts.max('published') }) },
         resolve: (user) => user.maxPublished,
       }),
       minPublished: t.float({
         nullable: true,
-        select: { minPublished: { posts: (sub) => sub.min('published') } },
+        select: { posts: (posts) => ({ minPublished: posts.min('published') }) },
         resolve: (user) => user.minPublished,
       }),
       postStats: t.string({
         select: {
-          total: { posts: (sub) => sub.count() },
-          sumPublished: { posts: (sub) => sub.sum('published') },
-          drafts: { posts: (sub) => sub.where({ published: 0 }).count() },
+          posts: (posts) => ({
+            total: posts.count(),
+            sumPublished: posts.sum('published'),
+            drafts: posts.where({ published: 0 }).count(),
+          }),
         },
         resolve: (user) => `${user.total}/${user.sumPublished}/${user.drafts}`,
       }),

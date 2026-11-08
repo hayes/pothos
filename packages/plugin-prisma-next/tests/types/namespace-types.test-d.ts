@@ -199,7 +199,7 @@ tenant.prismaObject('User', {
     }),
     score: t.float({
       nullable: true,
-      select: { score: { posts: (posts) => posts.sum('score') } },
+      select: { posts: (posts) => ({ score: posts.sum('score') }) },
       resolve: (user) => {
         expectTypeOf(user.score).toEqualTypeOf<number | null>();
         return user.score;
@@ -266,18 +266,18 @@ sameValue.queryType({
   }),
 });
 
-// A select function's collection is the related model's, in its own namespace.
+// An aggregate's collection is the related model's, in its own namespace.
 builder.prismaObject('nsa.Org', {
   variant: 'OrgSelectFunctions',
   fields: (t) => ({
     members: t.int({
-      select: { members: { users: (sub) => sub.where({ orgId: 1 }).count() } },
+      select: { users: (users) => ({ members: users.where({ orgId: 1 }).count() }) },
       resolve: (org) => org.members,
     }),
     nsbColumn: t.int({
       select: {
         // @ts-expect-error `name` is a column of `nsb.User`, not of `nsa.User`
-        named: { users: (sub) => sub.where({ name: 'x' }).count() },
+        users: (users) => ({ named: users.where({ name: 'x' }).count() }),
       },
       resolve: () => 0,
     }),

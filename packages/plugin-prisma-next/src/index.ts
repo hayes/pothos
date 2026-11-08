@@ -48,10 +48,13 @@ import { canInclude } from './utils/adapter.js';
 import {
   compileFieldSelect,
   definedQuery,
+  entryTypeModel,
   loadsOwnTableVariantRows,
+  NESTED_SELECTION,
   nestedPlan,
   nestedSubject,
   type RawSelect,
+  type RelationEntry,
   type SplitSelect,
   splitSelect,
   type TypeSelect,
@@ -162,12 +165,13 @@ export type {
   RequiresNullable,
 } from './types/relations.js';
 export type {
-  ComputedSelectEntry,
+  AggregateSelect,
   ConnectionPageEntry,
   NestedSelectionEntry,
   NestedSelectionFn,
   NodeSelection,
   PrismaNextSelectSpec,
+  RelationSelect,
   SelectObjectSpec,
 } from './types/selections.js';
 export type { ConnectionPage } from './utils/cursors.js';
@@ -423,10 +427,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (!returnsRelationRowsAs(relation, typeConfig.kind, relation.target)) {
       throw ownTableVariantRowsError(`${subject} for`, rows.name, relation);
     }
-    // The rows are read as the interface's `select`s and those of its interfaces load them,
-    // including a value computed over a relation.
-    for (const { name: type, relations, computed } of typeSelects(typeConfig)) {
-      for (const key of [...relations.map(([key]) => key), ...computed.map((c) => c.relation)]) {
+    // The rows are read as the interface's `select`s and those of its interfaces load them.
+    for (const { name: type, relations } of typeSelects(typeConfig)) {
+      for (const [key] of relations) {
         if (!canInclude(relation.target.relations[key]!, narrowing)) {
           throw new PothosSchemaError(
             `${subject}, ${type === typeConfig.name ? 'whose select' : `whose interface '${type}' has a select that`} loads base relation '${key}', for the rows of relation '${rows.name}', which targets variant model '${relation.targetModel}'. Rows loaded through a variant model can't include the base model's relations. Return them as an object type, or read '${key}' in a field.`,
@@ -470,12 +473,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * Every row of a model, across its variant models, holds one value for each relation or computed
-   * key the type-level `select`s write, which the fields and auth checks of every type of the model
-   * read. So two of those `select`s that write one key must define it equally: compared with
-   * `deepEqual`, so a literal, including a nested `select`, compares by value and a function,
-   * anywhere in it, by identity. Two selects sharing a function share it by reference rather than
-   * writing it out twice.
+   * Every row of a model, across its variant models, holds one value for each relation the
+   * type-level `select`s write, which the fields and auth checks of every type of the model read.
+   * So two of those `select`s that write one relation must define it equally: compared as data,
+   * including its nested `select`, with a `where` callback compared by identity.
    */
   private assertSelectsAgree(
     type: string,
@@ -483,7 +484,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     model: PrismaNextModel,
     split: SplitSelect,
   ) {
-    const { relations, computed } = split;
     let definitions = this.selectDefinitions.get(root);
     if (!definitions) {
       definitions = new Map();
@@ -495,21 +495,12 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         definitions.set(key, { type, definition });
       } else if (!deepEqual(first.definition, definition)) {
         throw new PothosSchemaError(
-          `'${first.type}' and '${type}' both select '${key}', with different definitions. Every row of model '${root}' holds one value for it, which the fields and auth checks of every type of the model read. Define it the same way in both, sharing any function such as a where or a computed value's function, or load the other version in a field's select.`,
+          `'${first.type}' and '${type}' both select '${key}', with different definitions. Every row of model '${root}' holds one value for it, which the fields and auth checks of every type of the model read. Define it the same way in both, or load the other version in a field's select.`,
         );
       }
     };
-    for (const [name, entry] of relations) {
-      // A type compares by its name, and a query by what it loads.
-      const { type, query } = entry;
-      check(name, {
-        ...entry,
-        type: type?.name,
-        query: typeof query === 'object' ? definedQuery(query) : query,
-      });
-    }
-    for (const { key, relation, compute } of computed) {
-      check(key, { [relation]: compute });
+    for (const [name, entry] of split.relations) {
+      check(name, entryDefinition(entry));
     }
     for (const [name, nested] of nestedPlan(split, model) ?? []) {
       this.typeNestedOf(root).set(name, nested);
@@ -754,9 +745,32 @@ function holds(row: object, keys: readonly string[]) {
   return keys.every((key) => (row as Record<string, unknown>)[key] !== undefined);
 }
 
-/** The keys a split `select` writes on the parent: its columns, relations and computed values. */
-function selectedKeys({ columns, relations, computed }: SplitSelect) {
-  return [...columns, ...relations.map(([name]) => name), ...computed.map(({ key }) => key)];
+/** The keys a type's split `select` writes on the parent: its columns and relations. */
+function selectedKeys({ columns, relations }: SplitSelect) {
+  return [...columns, ...relations.map(([name]) => name)];
+}
+
+/**
+ * A type-level relation entry as the data it loads by: its query without the options that load
+ * nothing different, the model of its `type`, and its nested `select` likewise.
+ */
+function entryDefinition(entry: RelationEntry): unknown {
+  const { where, orderBy, limit, offset, type, select } = entry;
+  return {
+    query: definedQuery({ where, orderBy, limit, offset }),
+    type: entryTypeModel(type),
+    select:
+      select &&
+      Object.fromEntries(
+        (Array.isArray(select)
+          ? select.map((column: string) => [column, true])
+          : Object.entries(select).filter(([, value]) => value != null)
+        ).map(([key, value]) => [
+          key,
+          value === true ? true : entryDefinition(value as RelationEntry),
+        ]),
+      ),
+  };
 }
 
 /** `value`, a field's result, with `copy` applied to each item, through promises and lists. */
@@ -799,14 +813,13 @@ function assertRelationEntries(
     if (loadsOwnTableVariantRows(relation, entry) && !readsRows(relation)) {
       throw ownTableVariantRowsError(subject, name, relation);
     }
-    const orderBy =
-      typeof entry.query === 'object' ? definedQuery(entry.query)?.orderBy : undefined;
-    if (entry.type) {
+    const { orderBy } = entry;
+    if (entry.type !== undefined && !(NESTED_SELECTION in entry)) {
       variantForRelationType(
         config.contract,
         `${subject} relation '${name}', which`,
         relation.targetModel,
-        entry.type.modelKey,
+        entryTypeModel(entry.type),
       );
     }
     if (entry.select) {

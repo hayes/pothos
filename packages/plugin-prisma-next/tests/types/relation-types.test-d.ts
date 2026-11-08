@@ -17,7 +17,7 @@ import PrismaNextPlugin, {
   type SelectObjectSpec,
 } from '../../src';
 import type { QueryAsyncCheck, RelationWithoutOptionsCheck } from '../../src/types/relations';
-import type { SelectCheck, TypeSelectCheck } from '../../src/types/selections';
+import type { SelectCheck } from '../../src/types/selections';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 import type { Contract as MysqlContract } from '../mysql/contract';
@@ -144,7 +144,7 @@ builder.prismaObject('Post', {
   fields: () => ({}),
 });
 
-// A `select` takes only `true` for a to-one relation, and the error names it.
+// A to-one relation takes only `type` and `select`.
 builder.prismaObject('Post', {
   variant: 'FilteredAuthorInTypeSelect',
   // @ts-expect-error a select can't filter a to-one relation
@@ -152,68 +152,40 @@ builder.prismaObject('Post', {
   fields: () => ({}),
 });
 expectTypeOf<
-  NonNullable<TypeSelectCheck<Types, 'Post', { author: { where: { id: 'x' } } }>['select']>
->().toHaveProperty('A to-one relation takes no query: author');
+  keyof SelectCheck<Types, 'Post', { author: { where: { id: 'x' } } }, 'type'>
+>().toEqualTypeOf<'Unknown key in select: author.where'>();
 expectTypeOf<
-  'A to-one relation takes no query: author' extends keyof NonNullable<
-    TypeSelectCheck<Types, 'Post', { author: true }>['select']
-  >
-    ? 1
-    : 0
->().toEqualTypeOf<0>();
-
-// The select check rejects a to-one function.
-expectTypeOf<SelectCheck<Types, 'Post', { author: () => {} }>>().toEqualTypeOf<{
+  keyof SelectCheck<Types, 'Post', { author: { limit: 1 } }, 'field'>
+>().toEqualTypeOf<'Unknown key in select: author.limit'>();
+expectTypeOf<
+  keyof SelectCheck<Types, 'Post', { author: { nope: 1 } }, 'type'>
+>().toEqualTypeOf<'Unknown key in select: author.nope'>();
+expectTypeOf<
+  SelectCheck<Types, 'Post', { author: { select: { email: true } } }, 'type'>
+>().toEqualTypeOf<unknown>();
+// Functions are aggregates of a to-many relation, in a field's select only.
+expectTypeOf<SelectCheck<Types, 'Post', { author: () => {} }, 'field'>>().toEqualTypeOf<{
   'Invalid value in select: author': never;
 }>();
-// A to-one relation is loaded whole, so it takes no options.
 expectTypeOf<
-  keyof SelectCheck<Types, 'Post', { author: { where: { id: 'x' } } }>
->().toEqualTypeOf<'A to-one relation takes no query: author'>();
-expectTypeOf<
-  keyof SelectCheck<Types, 'Post', { author: { limit: 1 } }>
->().toEqualTypeOf<'A to-one relation takes no query: author'>();
-// Other objects are named as invalid values.
-expectTypeOf<
-  keyof SelectCheck<Types, 'Post', { author: { nope: 1 } }>
->().toEqualTypeOf<'Invalid value in select: author'>();
-// A to-one relation's nested `select` takes no query.
-expectTypeOf<
-  keyof SelectCheck<Types, 'Post', { author: { query: { limit: 1 }; select: { email: true } } }>
->().toEqualTypeOf<'A to-one relation takes no query: author'>();
-expectTypeOf<
-  SelectCheck<Types, 'Post', { author: { select: { email: true } } }>
->().toEqualTypeOf<unknown>();
-expectTypeOf<SelectCheck<Types, 'User', { posts: (sub: never) => never }>>().toEqualTypeOf<{
+  SelectCheck<Types, 'User', { posts: (sub: never) => never }, 'field'>
+>().toEqualTypeOf<{
   'Invalid value in select: posts': never;
 }>();
-// A computed value under a column's or relation's key is named as the collision.
 expectTypeOf<
-  SelectCheck<Types, 'Post', { title: { comments: (sub: never) => never } }>
->().toEqualTypeOf<{ "A computed key can't be a column or relation: title": never }>();
+  SelectCheck<Types, 'User', { posts: (posts: { count(): never }) => {} }, 'type'>
+>().toEqualTypeOf<{ 'Invalid value in select: posts': never }>();
 expectTypeOf<
-  SelectCheck<Types, 'User', { posts: { comments: (sub: never) => never } }>
->().toEqualTypeOf<{ "A computed key can't be a column or relation: posts": never }>();
-// A computed value reads exactly one to-many relation.
+  SelectCheck<Types, 'Post', { title: { comments: (sub: never) => never } }, 'field'>
+>().toEqualTypeOf<{ 'Invalid value in select: title': never }>();
 expectTypeOf<
-  keyof SelectCheck<
-    Types,
-    'User',
-    { n: { posts: (sub: never) => never; comments: (sub: never) => never } }
-  >
->().toEqualTypeOf<'A computed value reads one to-many relation, as { relation: (collection) => value }: n'>();
-expectTypeOf<
-  keyof SelectCheck<Types, 'Post', { n: { author: (sub: never) => never } }>
->().toEqualTypeOf<'A computed value reads one to-many relation, as { relation: (collection) => value }: n'>();
-// A key that is neither the model's nor a computed value is unknown.
-expectTypeOf<
-  keyof SelectCheck<Types, 'User', { emial: true }>
+  keyof SelectCheck<Types, 'User', { emial: true }, 'field'>
 >().toEqualTypeOf<'Unknown key in select: emial'>();
 
 builder.prismaObject('User', {
   variant: 'PostsRefinement',
   fields: (t) => ({
-    postTitles: t.stringList({
+    postTitles: t.int({
       select: {
         posts: (posts) => {
           // @ts-expect-error mutation terminals can't run inside an include refinement
@@ -239,10 +211,10 @@ builder.prismaObject('User', {
           expectTypeOf<Exclude<Upstream, Plugin>>().toEqualTypeOf<never>();
           expectTypeOf<Upstream>().not.toEqualTypeOf<never>();
           expectTypeOf<Exclude<ToManyOnly, Plugin>>().toEqualTypeOf<never>();
-          return posts.where({ published: 1 });
+          return { published: posts.where({ published: 1 }).count() };
         },
       },
-      resolve: (user) => user.posts.map((post) => post.title),
+      resolve: (user) => user.published,
     }),
   }),
 });

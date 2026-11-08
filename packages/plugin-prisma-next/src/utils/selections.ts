@@ -1,13 +1,14 @@
 import type { SelectFn } from '@pothos/selection-mapper';
 import type { MapperCollection } from './adapter.js';
-import { fieldOnlyKey } from './branch-keys.js';
+import { consumerOfKey, fieldOnlyKey } from './branch-keys.js';
+import { isNestedId } from './consumers.js';
 
 export const REFINE = Symbol('prismaNextRefine');
 export const COMPUTE = Symbol('prismaNextCompute');
 
 export type Refine = (rel: MapperCollection) => MapperCollection | null | undefined;
-/** Computes a value from a to-many relation's collection: a reducer, or a collection of rows. */
-export type Compute = (rel: MapperCollection) => unknown;
+/** Computes values from a to-many relation's collection, as `combine()` entries by key. */
+export type Compute = (rel: MapperCollection) => Record<string, unknown>;
 
 /**
  * The variant a level of the query is narrowed to. By default the base collection is narrowed with
@@ -27,16 +28,11 @@ export interface RelationArgs {
   /** A declarative query object, or the field that defines the load together with its arguments. */
   loadIdentity?: unknown;
   variant?: Narrowing;
-  /**
-   * Set for rows with a nested `select`, which load in a branch: rows of the relation loaded
-   * without it lack what it names.
-   */
-  nestedSelect?: true;
   [REFINE]?: Refine;
 }
 
 export interface ComputedSelection {
-  /** The key the value is written to on the parent. */
+  /** Tells apart the values one consumer computes from one relation. */
   key: string;
   /** Identifies the computed value, like `RelationArgs.loadIdentity`. */
   loadIdentity: unknown;
@@ -45,7 +41,7 @@ export interface ComputedSelection {
 
 /**
  * A selection on one model. Planned node trees are written back in the same shape. A to-many
- * relation is keyed `relation:id`, and a value computed from it `relation:id:key`. Consumers with
+ * relation is keyed `relation:id`, and values computed from it `relation:id:key`. Consumers with
  * different arguments then get separate `combine()` branches and still load in one statement. A
  * to-one relation is always loaded whole and keyed by its name, so every reader of the row sees it
  * there.
@@ -68,11 +64,16 @@ export const COUNT_SLOT = fieldOnlyKey('count');
 /** The key `relationCount` computes its count under, as a value only its field reads. */
 export const VALUE_SLOT = fieldOnlyKey('value');
 
-/** Whether a relation load has every row of the relation, rather than a filtered or paged part. */
-export function loadsWholeRelation({ args }: PrismaNextSelection) {
+/**
+ * Whether a relation load has every row of the relation, rather than a filtered or paged part, and
+ * nothing a nested `select` writes beneath them, which rows other plans load whole would lack.
+ */
+export function loadsWholeRelation({ args, relations, computed }: PrismaNextSelection) {
   return (
     args?.loadIdentity === undefined &&
-    !args?.nestedSelect &&
-    (!args?.variant || args.variant.throughVariantModel === true)
+    (!args?.variant || args.variant.throughVariantModel === true) &&
+    ![...Object.keys(relations ?? {}), ...Object.keys(computed ?? {})].some((key) =>
+      isNestedId(consumerOfKey(key)),
+    )
   );
 }

@@ -428,16 +428,18 @@ describe('counts and aggregates', () => {
       fields: (t) => ({
         stats: t.string({
           select: {
-            total: { posts: (sub) => sub.sum('score') },
-            average: { posts: (sub) => sub.avg('score') },
-            minimumTitle: { posts: (sub) => sub.min('title') },
-            missing: { posts: (sub) => sub.where({ id: 'absent' }).sum('score') },
+            posts: (posts) => ({
+              total: posts.sum('score'),
+              average: posts.avg('score'),
+              minimumTitle: posts.min('title'),
+              missing: posts.where({ id: 'absent' }).sum('score'),
+            }),
           },
           resolve: (user) => `${user.total}/${user.average}/${user.minimumTitle}/${user.missing}`,
         }),
         countBigInt: t.field({
           type: 'BigInt',
-          select: { countBigInt: { posts: (sub) => sub.countBigInt() } },
+          select: { posts: (posts) => ({ countBigInt: posts.countBigInt() }) },
           resolve: (user) => user.countBigInt,
         }),
       }),
@@ -621,7 +623,7 @@ describe('to-one consumers', () => {
         postCount: t.int({
           args: { published: t.arg.int({ required: true }) },
           select: (args) => ({
-            postCount: { posts: (sub) => sub.where({ published: args.published }).count() },
+            posts: (posts) => ({ postCount: posts.where({ published: args.published }).count() }),
           }),
           resolve: (user) => user.postCount,
         }),
@@ -1244,31 +1246,6 @@ describe('rows a resolver shares between aliases', () => {
       a: [{ id: 'p-hello' }],
       b: [{ all: [{ id: 'c-1' }, { id: 'c-2' }] }],
     });
-    expect(result.statements).toHaveLength(1);
-  });
-});
-
-describe('a relation entry of { query }', () => {
-  it('loads as the bare query, in a type and a field select', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', {
-      select: { posts: { query: { orderBy: { id: 'desc' }, limit: 1 } } },
-      fields: (t) => ({
-        lastPost: t.string({ resolve: (user) => user.posts[0]!.id }),
-        firstPost: t.string({
-          select: { posts: { query: { orderBy: { id: 'asc' }, limit: 1 } } },
-          resolve: (user) => user.posts[0]!.id,
-        }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        user: t.prismaField({ type: 'User', query: { where: { id: 'u-alice' } } }),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ user { lastPost firstPost } }');
-    expect(result.errors).toBeUndefined();
-    expect(result.data.user).toEqual({ lastPost: 'p-hello', firstPost: 'p-draft1' });
     expect(result.statements).toHaveLength(1);
   });
 });

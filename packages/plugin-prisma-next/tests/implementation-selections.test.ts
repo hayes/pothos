@@ -96,18 +96,18 @@ describe("object fields reading an interface's select", () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it("reads the interface's computed values", async () => {
+  it("reads the interface's relation entries", async () => {
     const builder = createBuilder();
     const Totals = builder.prismaInterface('User', {
       variant: 'UserTotals',
-      select: { total: { posts: (sub) => sub.count() } },
-      fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
+      select: { posts: { where: { published: 1 } } },
+      fields: (t) => ({ total: t.int({ resolve: (user) => user.posts.length }) }),
     });
     const User = builder.prismaObject('User', {
       interfaces: [Totals],
       fields: (t) => ({
         id: t.exposeID('id'),
-        doubled: t.int({ resolve: (user) => user.total * 2 }),
+        doubled: t.int({ resolve: (user) => user.posts.length * 2 }),
       }),
     });
     builder.queryType({
@@ -121,8 +121,8 @@ describe("object fields reading an interface's select", () => {
     const result = await run(builder.toSchema(), '{ users { id doubled } }');
     expect(result.errors).toBeUndefined();
     expect(result.data.users).toEqual([
-      { id: 'u-alice', doubled: 4 },
-      { id: 'u-bob', doubled: 4 },
+      { id: 'u-alice', doubled: 2 },
+      { id: 'u-bob', doubled: 2 },
     ]);
     expect(result.statements).toHaveLength(1);
   });

@@ -30,10 +30,9 @@ import type { ConnectionPageEntry, NodeSelection } from './types/selections.js';
 import type { MapperCollection } from './utils/adapter.js';
 import {
   CONNECTION_PAGE,
-  NESTED_SELECTION,
-  type NestedEntry,
   NODE_SELECTION,
   type PlanPage,
+  type RelationEntry,
   relationArgs,
   splitSelect,
 } from './utils/compile-select.js';
@@ -331,8 +330,7 @@ export function prismaConnectionHelpers<
     const relations: Record<string, PrismaNextSelection> = {};
     let nodeRelation: string | undefined;
     for (const [name, entry] of selected.relations) {
-      // `splitSelect` reads the marker as any other object entry, a query.
-      if (entry.query === nodeMarker) {
+      if (entry === nodeMarker) {
         nodeRelation = name;
       } else {
         relations[name] = EMPTY;
@@ -422,8 +420,8 @@ export function prismaConnectionHelpers<
     ) => {
       // The field's `nestedSelection` may prefix each path, for a connection beneath the field.
       const paths = CONNECTION_NODE_PATHS.map((path) => {
-        const entry = nestedSelection({ path }) as { [NESTED_SELECTION]: NestedEntry };
-        return entry[NESTED_SELECTION].path ?? path;
+        const nested = (nestedSelection({ path }) as RelationEntry).path;
+        return nested ? [...nested] : path;
       });
       return { [CONNECTION_PAGE]: planPage(args, ctx, paths) };
     },

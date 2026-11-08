@@ -122,7 +122,7 @@ function createVariantSchema() {
       }),
       staticBugs: t.field({
         type: [bug],
-        select: { tasks: bug },
+        select: { tasks: { type: bug } },
         resolve: (user) => user.tasks,
       }),
       // Planned as the interface, whose selection holds the discriminator.
@@ -139,7 +139,7 @@ function createVariantSchema() {
       }),
       newestBug: t.field({
         type: [bug],
-        select: { tasks: { type: bug, query: { orderBy: { id: 'desc' }, limit: 1 } } },
+        select: { tasks: { type: bug, orderBy: { id: 'desc' }, limit: 1 } },
         resolve: (user) => user.tasks,
       }),
       bugReviewers: t.stringList({
@@ -149,7 +149,7 @@ function createVariantSchema() {
       // A variant with a table of its own.
       staticFeatures: t.field({
         type: [feature],
-        select: { tasks: feature },
+        select: { tasks: { type: feature } },
         resolve: (user) => user.tasks,
       }),
     }),
@@ -927,8 +927,8 @@ describe('native model inheritance', () => {
 
   type Selects = { select?: object; field?: object };
   it.each([
-    ['a type', (user: unknown): Selects => ({ select: { tasks: user } })],
-    ['a field', (user: unknown): Selects => ({ field: { tasks: { type: user, query: {} } } })],
+    ['a type', (user: unknown): Selects => ({ select: { tasks: { type: user } } })],
+    ['a field', (user: unknown): Selects => ({ field: { tasks: { type: user, limit: 1 } } })],
   ])("rejects a static select's relation entry typed as another model on %s", (_, selects) => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [PrismaNextPlugin],
@@ -1126,7 +1126,7 @@ describe("a type's select entry typed as a variant", () => {
     });
     builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
     const user = builder.prismaObject('User', {
-      select: { tasks: bug },
+      select: { tasks: { type: bug } },
       fields: (t) => ({
         email: t.exposeString('email'),
         bugs: t.field({ type: [bug], resolve: (user) => user.tasks }),
@@ -1161,8 +1161,8 @@ describe("a type's select entry typed as a variant", () => {
   });
 
   it.each([
-    ['the ref', (bug: object) => ({ tasks: bug })],
     ['an entry of the ref', (bug: object) => ({ tasks: { type: bug } })],
+    ["an entry of the ref's model name", () => ({ tasks: { type: 'Bug' } })],
   ])("agrees with another type's select of %s", (_, select) => {
     expect(() => typeSelectBuilder(select).toSchema()).not.toThrow();
   });
@@ -1300,7 +1300,7 @@ describe("a variant's relations in a field's select", () => {
       interfaces: [task],
       fields: (t) => ({
         noteTotal: t.int({
-          select: { noteTotal: { notes: (sub) => sub.count() } },
+          select: { notes: (notes) => ({ noteTotal: notes.count() }) },
           resolve: (bug) => bug.noteTotal,
         }),
       }),
@@ -1337,8 +1337,12 @@ describe("a variant's relations in a field's select", () => {
     });
     builder.prismaObject('Bug', {
       interfaces: [task],
-      select: { noteTotal: { notes: (sub) => sub.count() } },
-      fields: (t) => ({ noteTotal: t.int({ resolve: (bug) => bug.noteTotal }) }),
+      fields: (t) => ({
+        noteTotal: t.int({
+          select: { notes: (notes) => ({ noteTotal: notes.count() }) },
+          resolve: (bug) => bug.noteTotal,
+        }),
+      }),
     });
     builder.prismaObject('Feature', { interfaces: [task] });
     builder.prismaObject('User', { fields: (t) => ({ reviews: t.relation('reviews') }) });
@@ -1368,16 +1372,18 @@ describe("a variant's relations in a field's select", () => {
     });
     builder.prismaObject('Bug', {
       interfaces: [task],
-      select: { baseTotal: { notes: (sub) => sub.count() } },
       fields: (t) => ({
         noteTotal: t.int({
           // The contract's type doesn't have `bugNotes`.
           select: {
-            noteTotal: { bugNotes: (sub: { count(): unknown }) => sub.count() },
+            bugNotes: (sub: { count(): unknown }) => ({ noteTotal: sub.count() }),
           } as never,
           resolve: (bug) => (bug as unknown as { noteTotal: number }).noteTotal,
         }),
-        baseTotal: t.int({ resolve: (bug) => bug.baseTotal }),
+        baseTotal: t.int({
+          select: { notes: (notes) => ({ baseTotal: notes.count() }) },
+          resolve: (bug) => bug.baseTotal,
+        }),
       }),
     });
     builder.prismaObject('Feature', { interfaces: [task] });
@@ -1832,7 +1838,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
       fields: (t) => ({
         tasks: t.field({
           type: [task],
-          select: { championed: feature },
+          select: { championed: { type: feature } },
           resolve: (user) => user.championed,
         }),
       }),
@@ -2000,7 +2006,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     );
   });
 
-  it("rejects returning a single-table variant's interface whose select computes over a base relation", () => {
+  it("rejects returning a single-table variant's interface whose select loads a base relation", () => {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [PrismaNextPlugin],
       prismaNext: { client: db.client },
@@ -2010,7 +2016,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     });
     const bugLike = builder.prismaInterface('Bug', {
       interfaces: [task],
-      select: { noteCount: { notes: (sub) => sub.count() } },
+      select: { notes: true },
       resolveType: () => 'PlainBug',
       fields: () => ({}),
     });
@@ -2081,7 +2087,7 @@ describe('a relation targeting a variant model with a table of its own', () => {
     builder.prismaObject('User', {
       fields: (t) => ({
         championCount: t.int({
-          select: { total: { championed: (sub) => sub.count() } },
+          select: { championed: (championed) => ({ total: championed.count() }) },
           resolve: (user) => user.total,
         }),
       }),

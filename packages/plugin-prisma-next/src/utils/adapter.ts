@@ -352,7 +352,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     }
     const slots: Branch[] = groups.map(([ids, selection]) => [ids, load(selection)]);
     for (const [ids, value] of shareComputed(computed)) {
-      slots.push([ids, value[COMPUTE](base), value.key]);
+      for (const [key, loaded] of Object.entries(value[COMPUTE](base))) {
+        slots.push([ids, loaded, key]);
+      }
     }
     return this.combine(base, slots, branches);
   }

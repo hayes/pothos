@@ -1660,9 +1660,9 @@ describe('a relation an interface and its implementation select alike', () => {
   });
 });
 
-// A row holds one value per computed key, so an interface and its implementation whose selects
-// compute the same key differently would each pass their auth check on the other's.
-describe('a key an interface and its implementation both compute', () => {
+// A row holds one version of a relation, so an interface and its implementation whose selects
+// load it differently would each pass their auth check on the other's.
+describe('a relation an interface and its implementation both select', () => {
   describe.each([
     ['before', [ScopeAuthPlugin, RelayPlugin, PrismaNextPlugin]],
     ['after', [RelayPlugin, PrismaNextPlugin, ScopeAuthPlugin]],
@@ -1679,19 +1679,19 @@ describe('a key an interface and its implementation both compute', () => {
       });
       const Limited = builder.prismaInterface('User', {
         variant: 'Limited',
-        select: { total: { posts: (sub) => sub.count() } },
-        authScopes: (user) => user.total <= 1,
+        select: { posts: true },
+        authScopes: (user) => user.posts.length <= 1,
         resolveType: () => 'User',
         fields: (t) => ({ id: t.exposeID('id') }),
       });
       builder.prismaObject('User', {
         interfaces: [Limited],
-        select: { total: { posts: (sub) => sub.where({ published: 1 }).count() } },
+        select: { posts: { where: { published: 1 } } },
         fields: (t) => ({ email: t.exposeString('email') }),
       });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(
-        "'Limited' and 'User' both select 'total', with different definitions.",
+        "'Limited' and 'User' both select 'posts', with different definitions.",
       );
     });
   });
@@ -1768,8 +1768,8 @@ describe('slots beneath shared walks', () => {
     b.prismaObject('User', {
       variant: 'U2',
       interfaces: [UI, L],
-      select: { firstName: true, total: { posts: (sub: any) => sub.count() } },
-      fields: (t: any) => ({ own: dra(t), total: t.int({ resolve: (u: any) => u.total }) }),
+      select: { firstName: true, posts: true },
+      fields: (t: any) => ({ own: dra(t), total: t.int({ resolve: (u: any) => u.posts.length }) }),
     });
     const Guarded = b.prismaObject('Post', {
       variant: 'GuardedPost',
@@ -2129,7 +2129,7 @@ describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
     });
     const Limited = builder.prismaInterface('User', {
       variant: 'Limited',
-      select: { total: { posts: (sub) => sub.count() } },
+      select: { posts: true },
       resolveType: () => 'User',
       fields: (t) => ({ id: t.exposeID('id') }),
     });
@@ -2162,7 +2162,7 @@ describe.each(orders)('a type check that cannot run (%s)', (_, plugins) => {
   });
 });
 
-// Another variant's slot for the same relation doesn't hold what this type's select computes.
+// A row another variant's select loaded doesn't hold what this type's select loads.
 describe.each(orders)("a row of another variant's select (%s)", (_, plugins) => {
   it.each([false, true])('reloads it for type checks (runScopesOnType: %s)', async (onType) => {
     const builder = new SchemaBuilder<{
@@ -2175,10 +2175,10 @@ describe.each(orders)("a row of another variant's select (%s)", (_, plugins) => 
     });
     const Drafts = builder.prismaObject('User', {
       variant: 'Drafts',
-      select: { drafts: { posts: (sub) => sub.where({ published: 0 }).count() } },
-      // Passes on a row without `drafts`.
-      authScopes: (user) => !(user.drafts > 0),
-      fields: (t) => ({ drafts: t.int({ resolve: (user) => user.drafts }) }),
+      select: { comments: true },
+      // Passes on a row without `comments`.
+      authScopes: (user) => !(user.comments?.length > 0),
+      fields: (t) => ({ drafts: t.int({ resolve: (user) => user.comments.length }) }),
     });
     const Published = builder.prismaObject('User', {
       variant: 'Published',
@@ -2469,48 +2469,45 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
 
   // Alice has two posts, one of them published.
   describe.each([false, true])('spread: %s', (spread) => {
-    const count = (sub: { count(): unknown }) => sub.count();
+    const comments = (user: Record<string, unknown>) =>
+      (user.comments as unknown[] | undefined)?.length ?? null;
 
-    it('reads the computed value both types select', async () => {
+    it('reads the relation both types select', async () => {
       const { schema: built, seen } = schema(
-        { a: { total: { posts: count } }, b: { total: { posts: count } } },
-        (user) => user.total,
+        { a: { comments: true }, b: { comments: true } },
+        comments,
         spread,
       );
       const result = await runCaptured(built, '{ user { value asB { value } } }');
       expect(result.errors).toBeUndefined();
-      expect(result.data.user).toEqual({ value: 2, asB: { value: 2 } });
-      expect(seen).toEqual([2]);
+      expect(result.data.user).toEqual({ value: 1, asB: { value: 1 } });
+      expect(seen).toEqual([1]);
       expect(result.statements).toHaveLength(1);
     });
 
-    // B selects no computed value, but the row holds A's, and the spread's own key stays.
-    it("reads the other type's computed value and keeps the keys a spread added", async () => {
-      const { schema: built, seen } = schema(
-        { a: { total: { posts: count } }, b: {} },
-        (user) => user.total ?? null,
-        spread,
-      );
+    // B selects no relation, but the row holds A's, and the spread's own key stays.
+    it("reads the other type's relation and keeps the keys a spread added", async () => {
+      const { schema: built, seen } = schema({ a: { comments: true }, b: {} }, comments, spread);
       const result = await runCaptured(built, '{ user { value asB { value nickname } } }');
       expect(result.errors).toBeUndefined();
       expect(result.data.user).toEqual({
-        value: 2,
-        asB: { value: 2, nickname: spread ? 'Al' : null },
+        value: 1,
+        asB: { value: 1, nickname: spread ? 'Al' : null },
       });
-      expect(seen).toEqual([2]);
+      expect(seen).toEqual([1]);
       expect(result.statements).toHaveLength(1);
     });
 
     it('keeps the keys a spread added when the row is reloaded', async () => {
       const { schema: built } = schema(
-        { a: { total: { posts: count } }, b: { total: { posts: count } } },
-        (user) => user.total,
+        { a: { comments: true }, b: { comments: true } },
+        comments,
         spread,
       );
       const result = await runCaptured(built, '{ user { asB { value label } } }');
       expect(result.errors).toBeUndefined();
       expect(result.data.user.asB).toEqual({
-        value: 2,
+        value: 1,
         label: `alice@example.com ${spread ? 'Al' : 'undefined'}`,
       });
     });
@@ -2531,11 +2528,6 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
   });
 
   it.each([
-    [
-      { total: { posts: (sub: { count(): unknown }) => sub.count() } },
-      { total: { posts: (sub: { count(): unknown }) => sub.count() } },
-      'total',
-    ],
     [{ posts: { where: { published: 0 } } }, { posts: { where: { published: 1 } } }, 'posts'],
     [{ posts: true }, { posts: { where: { published: 1 } } }, 'posts'],
   ])('rejects types that select a key differently: %j', (a, b, key) => {

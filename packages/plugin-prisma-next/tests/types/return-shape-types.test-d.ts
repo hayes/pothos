@@ -114,24 +114,18 @@ Titled.addBrand({ id: 'p', title: 'Hello' });
 Titled.addBrand(plannedPostRow);
 
 // resolveType reads what every row a field returning the interface holds, before any reload: the
-// columns and to-one relations of the interface's select, but not its to-many relations or
-// computed values.
+// columns and to-one relations of the interface's select, but not its to-many relations.
 builder.prismaInterface('Post', {
   variant: 'Routed',
-  select: {
-    title: true,
-    author: true,
-    comments: true,
-    viewCount: { views: (sub) => sub.count() },
-  },
+  select: { title: true, author: true, comments: true, views: { limit: 1 } },
   resolveType: (post) => {
     expectTypeOf(post.id).toEqualTypeOf<string>();
     expectTypeOf(post.title).toEqualTypeOf<string>();
     expectTypeOf(post.author).toEqualTypeOf<UserRow & PlannedRowBrand<'User'>>();
     // @ts-expect-error a returned row needn't hold a to-many relation
     post.comments;
-    // @ts-expect-error a returned row needn't hold a computed value
-    post.viewCount;
+    // @ts-expect-error a returned row needn't hold a filtered to-many relation
+    post.views;
     // @ts-expect-error not in the select
     post.published;
     return 'RoutedPost';

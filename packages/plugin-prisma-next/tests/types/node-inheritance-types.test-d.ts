@@ -204,10 +204,10 @@ const feature = inheritance.prismaObject('Feature', {
 const user = inheritance.prismaObject('User', { variant: 'UserRef', fields: () => ({}) });
 inheritance.prismaObject('User', {
   fields: (t) => ({
-    // A select function's rows of a variant carry its base's columns.
+    // A relation entry's rows of a variant carry its base's columns.
     reviewTitles: t.stringList({
-      select: { reviewRows: { reviews: (sub) => sub } },
-      resolve: (u) => u.reviewRows.map((review) => review.title),
+      select: { reviews: { limit: 2 } },
+      resolve: (u) => u.reviews.map((review) => review.title),
     }),
     bugs: t.relation('tasks', { type: bug }),
     bugPage: t.relatedConnection('tasks', { type: bug }),

@@ -455,8 +455,14 @@ export class PrismaNextObjectFieldBuilder<
         );
         // A callback builds a new query on every walk, so its definition and arguments identify it.
         const identity = typeof query === 'function' ? { source: query, args } : loadIdentity;
-        return computedSelection(relationName, consumerId(position), VALUE_SLOT, identity, (sub) =>
-          countOf(refine ? refine(sub) : sub),
+        return computedSelection(
+          relationName,
+          consumerId(position),
+          VALUE_SLOT,
+          identity,
+          (sub) => ({
+            [VALUE_SLOT]: countOf(refine ? refine(sub) : sub),
+          }),
         );
       });
     return this.field({

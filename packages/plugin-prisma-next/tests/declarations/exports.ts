@@ -22,8 +22,8 @@ export const UserWithPosts = builder.prismaInterface('User', {
 
 export const UserWithPostTitles = builder.prismaInterface('User', {
   variant: 'UserWithPostTitles',
-  select: { email: true, postRows: { posts: (sub) => sub.select('title') } },
-  fields: (t) => ({ postCount: t.int({ resolve: (user) => user.postRows.length }) }),
+  select: { email: true, comments: { limit: 1, select: ['body'] } },
+  fields: (t) => ({ postCount: t.int({ resolve: (user) => user.comments.length }) }),
 });
 
 export const User = builder.prismaObject('User', {
@@ -76,8 +76,8 @@ export const CompoundPostNode = builder.prismaNode('Post', {
 
 export const PostCounts = builder.prismaObject('Post', {
   variant: 'PostCounts',
-  select: { title: true, commentCount: { comments: (sub) => sub.count() }, views: true },
-  fields: (t) => ({ commentCount: t.int({ resolve: (post) => post.commentCount }) }),
+  select: { title: true, comments: { select: { author: true } }, views: true },
+  fields: (t) => ({ commentCount: t.int({ resolve: (post) => post.comments.length }) }),
 });
 
 export const searchPages = prismaConnectionHelpers(builder, 'User', {
@@ -89,12 +89,12 @@ export const searchPages = prismaConnectionHelpers(builder, 'User', {
 
 export const UserStats = builder.prismaObject('User', {
   variant: 'UserStats',
-  select: {
-    total: { posts: (sub) => sub.count() },
-    average: { posts: (sub) => sub.avg('published') },
-    publishedRows: { posts: (sub) => sub.where({ published: 1 }) },
-  },
-  fields: (t) => ({ total: t.int({ resolve: (user) => user.total }) }),
+  fields: (t) => ({
+    total: t.int({
+      select: { posts: (posts) => ({ total: posts.count(), average: posts.avg('published') }) },
+      resolve: (user) => user.total,
+    }),
+  }),
 });
 
 export const resolveUserPage = (rows: Parameters<typeof userPages.resolve>[0], ctx: object) =>
@@ -172,7 +172,7 @@ builder.prismaObjectField(User, 'posts', postsField);
 export const nestedPostsSelect = (
   _args: object,
   _ctx: object,
-  nestedSelection: NestedSelectionFn<Types, 'Post', object>,
+  nestedSelection: NestedSelectionFn<Types, 'Post'>,
 ) => ({ posts: nestedSelection() });
 
 builder.prismaObjectField(User, 'nestedPosts', (t) =>

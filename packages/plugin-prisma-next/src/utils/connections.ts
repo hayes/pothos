@@ -178,9 +178,9 @@ export function connectionPaging(
         variant === undefined ? rel : rel.variant(variant);
       const counted =
         count === 'aggregate'
-          ? computedSelection(name, id, COUNT_SLOT, loadIdentity, (sub) =>
-              countOf(filtered ? filter(narrow(sub)) : narrow(sub)),
-            )
+          ? computedSelection(name, id, COUNT_SLOT, loadIdentity, (sub) => ({
+              [COUNT_SLOT]: countOf(filtered ? filter(narrow(sub)) : narrow(sub)),
+            }))
           : EMPTY;
       if (!needsRows) {
         return counted;

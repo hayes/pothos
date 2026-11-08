@@ -9,6 +9,7 @@ import PrismaNextPlugin, {
   type CollectionFor,
   collectionFromInfo,
   type ModelKey,
+  type NestedSelectionEntry,
   type PlannedRow,
   type PlannedRowBrand,
   type PrismaNextExecutionContext,
@@ -155,131 +156,81 @@ builder.prismaNode('User', {
 declare const eitherSelect: readonly ['id'] | { readonly id: true };
 builder.prismaObject('User', { variant: 'SelectUnion', select: eitherSelect, fields: () => ({}) });
 
-// A computed key types `sub` as its relation's collection and puts its value on the row.
+// An aggregate types its collection as the relation's and writes the reducers it returns onto the
+// row, in a field's select only.
 builder.prismaObject('User', {
-  variant: 'FunctionSelects',
-  select: { postCount: { posts: (sub) => sub.count() } },
+  variant: 'Aggregates',
   fields: (t) => ({
-    postCount: t.int({
-      resolve: (user) => {
-        expectTypeOf(user.postCount).toEqualTypeOf<number>();
-        return user.postCount;
-      },
-    }),
     stats: t.field({
       type: 'Float',
       nullable: true,
       select: {
-        total: { posts: (sub) => sub.count() },
-        published: { posts: (sub) => sub.where((p) => p.published.eq(1)).count() },
-        avg: { posts: (sub) => sub.avg('published') },
-        max: { posts: (sub) => sub.max('score') },
-        rows: { posts: (sub) => sub.where({ published: 1 }) },
+        posts: (posts) => ({
+          total: posts.count(),
+          published: posts.where((p) => p.published.eq(1)).count(),
+          avg: posts.avg('published'),
+          max: posts.max('score'),
+        }),
       },
       resolve: (user) => {
         expectTypeOf(user.total).toEqualTypeOf<number>();
         expectTypeOf(user.published).toEqualTypeOf<number>();
         expectTypeOf(user.avg).toEqualTypeOf<number | null>();
         expectTypeOf(user.max).toEqualTypeOf<number | null>();
-        expectTypeOf(user.rows).toEqualTypeOf<readonly PostRow[]>();
+        // @ts-expect-error the aggregate's relation isn't loaded
+        user.posts;
         return user.avg;
       },
     }),
-  }),
-});
-builder.prismaObject('User', {
-  variant: 'FunctionSelectBadMethod',
-  // @ts-expect-error `sub` is typed, so an unknown method is rejected
-  select: { n: { posts: (sub) => sub.nope() } },
-  fields: () => ({}),
-});
-// A function under a relation refines the rows it loads.
-builder.prismaObject('User', {
-  variant: 'FunctionSelectRefine',
-  select: { posts: (sub) => sub.where({ published: 1 }) },
-  fields: (t) => ({
-    titles: t.stringList({
-      resolve: (user) => {
-        expectTypeOf(user.posts).toEqualTypeOf<readonly PlannedPostRow[]>();
-        return user.posts.map((post) => post.title);
-      },
+    badMethod: t.int({
+      // @ts-expect-error `posts` is typed, so an unknown method is rejected
+      select: { posts: (posts) => ({ n: posts.nope() }) },
+      resolve: () => 0,
+    }),
+    rows: t.int({
+      // @ts-expect-error an aggregate returns reducers, not rows
+      select: { posts: (posts) => ({ rows: posts.where({ published: 1 }) }) },
+      resolve: () => 0,
+    }),
+    notAValue: t.int({
+      // @ts-expect-error an aggregate returns reducers by key
+      select: { posts: () => 1 },
+      resolve: () => 0,
     }),
   }),
 });
 builder.prismaObject('User', {
-  variant: 'FunctionSelectReducer',
-  // @ts-expect-error a reducer goes under a computed key, not the relation's
-  select: { posts: (sub) => sub.count() },
+  variant: 'TypeAggregate',
+  // @ts-expect-error a type's select takes no aggregates
+  select: { posts: (posts) => ({ postCount: posts.count() }) },
   fields: () => ({}),
 });
+
+// Removed forms.
 builder.prismaObject('User', {
-  variant: 'ComputedKeyNamesColumn',
-  // @ts-expect-error a computed key can't be a column
-  select: { email: { posts: (sub) => sub.count() } },
-  fields: () => ({}),
-});
-builder.prismaObject('User', {
-  variant: 'ComputedKeyNamesRelation',
-  // @ts-expect-error a computed key can't be a relation
-  select: { comments: { posts: (sub) => sub.count() } },
-  fields: () => ({}),
-});
-// The misplaced entry still gets the relation's collection, so the only error is the collision,
-// reported on `select`, and `sub` is typed on the lines below it.
-builder.prismaObject('User', {
-  variant: 'ComputedKeyNamesColumnTyped',
-  // @ts-expect-error a computed key can't be a column
-  select: {
-    email: {
-      posts: (sub) => {
-        expectTypeOf(sub.where({ published: 1 }).count).toBeFunction();
-        return sub.count();
-      },
-    },
-  },
-  fields: () => ({}),
-});
-builder.prismaObject('User', {
-  variant: 'ComputedTwoRelations',
-  // @ts-expect-error a computed value reads exactly one relation
-  select: { n: { posts: (sub) => sub.count(), comments: (sub) => sub.count() } },
-  fields: () => ({}),
-});
-builder.prismaObject('User', {
-  variant: 'ComputedNoRelation',
-  // @ts-expect-error a computed value reads a relation
-  select: { n: {} },
-  fields: () => ({}),
-});
-builder.prismaObject('User', {
-  variant: 'ComputedUnknownRelation',
-  // @ts-expect-error a computed value reads a to-many relation of the model
-  select: { n: { psots: (sub: unknown) => sub } },
-  fields: () => ({}),
-});
-builder.prismaObject('Post', {
-  variant: 'ComputedToOne',
-  // @ts-expect-error a computed value reads a to-many relation
-  select: { n: { author: (sub: never) => sub } },
-  fields: () => ({}),
-});
-builder.prismaObject('User', {
-  variant: 'ComputedNotAValue',
-  // @ts-expect-error the function returns a collection or reducer
-  select: { n: { posts: () => 1 } },
-  fields: () => ({}),
-});
-builder.prismaInterface('User', {
-  name: 'InterfaceFunctionSelect',
-  select: { postCount: { posts: (sub) => sub.count() } },
-  fields: (t) => ({ postCount: t.int({ resolve: (user) => user.postCount }) }),
-});
-builder.prismaNode('User', {
-  variant: 'NodeFunctionSelect',
-  id: { field: 'id' },
-  collection,
-  select: { postCount: { posts: (sub) => sub.count() } },
-  fields: (t) => ({ postCount: t.int({ resolve: (user) => user.postCount }) }),
+  variant: 'RemovedRefinement',
+  fields: (t) => ({
+    refinement: t.int({
+      // @ts-expect-error a function refining a relation's rows
+      select: { posts: (posts) => posts.where({ published: 1 }) },
+      resolve: () => 0,
+    }),
+    computedKey: t.int({
+      // @ts-expect-error a computed key reading a relation
+      select: { postCount: { posts: (posts) => posts.count() } },
+      resolve: () => 0,
+    }),
+    queryEntry: t.int({
+      // @ts-expect-error a `{ query }` entry
+      select: { posts: { query: { limit: 1 } } },
+      resolve: () => 0,
+    }),
+    queryBesideSelect: t.int({
+      // @ts-expect-error a `query` key beside a nested select
+      select: { posts: { query: { limit: 1 }, select: { title: true } } },
+      resolve: () => 0,
+    }),
+  }),
 });
 
 // Every type's selection loads the primary key, so a parent passes through to another type of
@@ -324,16 +275,16 @@ builder.prismaObject('User', {
     computed: t.int({
       args: { published: t.arg.int({ required: true }) },
       select: (args) => ({
-        postCount: { posts: (sub) => sub.where({ published: args.published }).count() },
+        posts: (posts) => ({ postCount: posts.where({ published: args.published }).count() }),
       }),
       resolve: (user) => user.postCount,
     }),
     refined: t.int({
-      select: { posts: (sub) => sub.where({ published: 1 }) },
+      select: { posts: { where: { published: 1 } } },
       resolve: (user) => user.posts.length,
     }),
     collision: t.int({
-      // @ts-expect-error a computed key can't be a column
+      // @ts-expect-error a column takes `true`
       select: () => ({ email: { posts: (sub) => sub.count() } }),
       resolve: () => 0,
     }),
@@ -588,7 +539,7 @@ builder.prismaObject('Post', {
 });
 builder.prismaObject('Post', {
   variant: 'EmptyOptionsTypeSelect',
-  // @ts-expect-error empty options aren't `true`
+  // An entry without options loads as `true` does.
   select: { author: {} },
 });
 builder.prismaObject('Post', {
@@ -622,7 +573,7 @@ builder.prismaObject('User', {
   variant: 'ToManyTypeSelects',
   select: {
     posts: { where: { published: 1 }, limit: 1 },
-    commentTotal: { comments: (sub) => sub.count() },
+    comments: { orderBy: { id: 'desc' }, select: { post: true } },
   },
 });
 
@@ -972,8 +923,8 @@ inhBuilder.prismaObject('Bug', {
   select: { owner: { limit: 1 } },
 });
 
-// A relation entry can be a ref of the relation's target or one of its variants, which narrows the
-// rows to it, and types them as that model's.
+// A relation entry's `type` can be a ref of the relation's target or one of its variants, or its
+// model's name, which narrows the rows to it, and types them as that model's.
 const refTask = inhBuilder.prismaInterface('Task', {
   fields: (t) => ({ title: t.exposeString('title') }),
 });
@@ -986,26 +937,30 @@ const refUser = inhBuilder.prismaObject('User', { variant: 'RefUser', fields: ()
 inhBuilder.prismaObject('User', {
   variant: 'RefEntries',
   // A type's select takes them too.
-  select: { reviews: refBug },
+  select: { reviews: { type: refBug } },
   fields: (t) => ({
     bugs: t.field({
       type: [refBug],
-      select: { tasks: refBug },
+      select: { tasks: { type: refBug } },
       resolve: (user) => {
         expectTypeOf(user.tasks[0]!.severity).toEqualTypeOf<string>();
         return user.tasks;
       },
     }),
     reviewed: t.field({ type: [refBug], resolve: (user) => user.reviews }),
-    tasks: t.field({ type: [refTask], select: { tasks: refTask }, resolve: (user) => user.tasks }),
+    tasks: t.field({
+      type: [refTask],
+      select: { tasks: { type: refTask } },
+      resolve: (user) => user.tasks,
+    }),
     features: t.field({
       type: [refFeature],
-      select: { tasks: refFeature },
+      select: { tasks: { type: 'Feature' } },
       resolve: (user) => user.tasks,
     }),
     newestBug: t.field({
       type: [refBug],
-      select: { tasks: { type: refBug, query: { orderBy: { id: 'desc' }, limit: 1 } } },
+      select: { tasks: { type: refBug, orderBy: { id: 'desc' }, limit: 1 } },
       resolve: (user) => user.tasks,
     }),
     reviewers: t.stringList({
@@ -1022,19 +977,19 @@ inhBuilder.prismaObject('User', {
     unrelated: t.field({
       type: [refBug],
       // @ts-expect-error a ref of a model outside the relation's target's hierarchy
-      select: { tasks: refUser },
+      select: { tasks: { type: refUser } },
       resolve: () => [],
     }),
     otherBranch: t.field({
       type: [refFeature],
       // @ts-expect-error a ref of a variant of another branch than the relation's target
-      select: { reviews: refFeature },
+      select: { reviews: { type: refFeature } },
       resolve: () => [],
     }),
     unrelatedInEntry: t.field({
       type: [refBug],
-      // @ts-expect-error the object form checks its type the same way
-      select: { tasks: { type: refUser, query: { limit: 1 } } },
+      // @ts-expect-error a model name outside the relation's target's hierarchy
+      select: { tasks: { type: 'User', limit: 1 } },
       resolve: () => [],
     }),
     variantRelationOfBase: t.stringList({
@@ -1044,14 +999,14 @@ inhBuilder.prismaObject('User', {
     }),
     typeName: t.field({
       type: [refBug],
-      // @ts-expect-error a relation entry's type is a ref, not a type name
-      select: { tasks: { type: 'Bug' } },
+      // @ts-expect-error a relation entry's type is a ref or a model's name, not a type name
+      select: { tasks: { type: 'RefUser' } },
       resolve: () => [],
     }),
-    refList: t.field({
+    refShorthand: t.field({
       type: [refBug],
-      // @ts-expect-error a relation entry is one ref, not a list as a field's type is
-      select: { tasks: [refBug] },
+      // @ts-expect-error removed: a bare ref as the entry
+      select: { tasks: refBug },
       resolve: () => [],
     }),
   }),
@@ -1059,11 +1014,15 @@ inhBuilder.prismaObject('User', {
 inhBuilder.prismaObject('Note', {
   variant: 'RefNote',
   fields: (t) => ({
-    task: t.field({ type: refTask, select: { task: refTask }, resolve: (note) => note.task }),
+    task: t.field({
+      type: refTask,
+      select: { task: { type: refTask } },
+      resolve: (note) => note.task,
+    }),
     bug: t.field({
       type: refBug,
       // @ts-expect-error a to-one relation's row loads whole, so its type is the target's
-      select: { task: refBug },
+      select: { task: { type: refBug } },
       resolve: () => null as never,
     }),
   }),
@@ -1420,29 +1379,28 @@ builder.prismaObject('User', {
   }),
 });
 
-// Computed values are written onto the parent, so a computed key can't name a column or relation.
+// Aggregates sit under their relation's key, and write the keys they return onto the parent.
 builder.prismaObject('Post', {
-  variant: 'ComputedKeys',
+  variant: 'AggregateKeys',
   fields: (t) => ({
-    // @ts-expect-error `title` is a column of Post
+    // @ts-expect-error a column takes `true`
     column: t.int({ select: { title: { comments: (sub) => sub.count() } }, resolve: () => 0 }),
-    // @ts-expect-error `views` is a relation of Post
+    // @ts-expect-error a relation entry takes the relation's options
     relation: t.int({ select: { views: { comments: (sub) => sub.count() } }, resolve: () => 0 }),
     branch: t.int({
       // @ts-expect-error every branch is checked
       select: () =>
         flag
-          ? { n: { comments: (sub) => sub.count() } }
+          ? { comments: (comments) => ({ n: comments.count() }) }
           : { id: { comments: (sub: never) => sub } },
       resolve: () => 0,
     }),
     several: t.int({
       select: {
-        commentCount: { comments: (sub) => sub.count() },
-        firstComment: { comments: (sub) => sub.limit(1) },
-        viewCount: { views: (sub) => sub.count() },
+        comments: (comments) => ({ commentCount: comments.count() }),
+        views: (views) => ({ viewCount: views.count() }),
       },
-      resolve: (post) => post.commentCount + post.viewCount + post.firstComment.length,
+      resolve: (post) => post.commentCount + post.viewCount,
     }),
   }),
 });
@@ -1482,10 +1440,10 @@ prismaConnectionHelpers(inhBuilder, 'User', {
   },
 });
 
-// `{ query }` is a relation entry, the same as the bare query.
+// A to-many relation entry takes the relation's query options.
 builder.prismaObject('User', {
   variant: 'QueryEntryUser',
-  select: { posts: { query: { limit: 5 } } },
+  select: { posts: { limit: 5 } },
   fields: (t) => ({
     titles: t.string({
       resolve: (user) => {
@@ -1494,21 +1452,29 @@ builder.prismaObject('User', {
       },
     }),
     comments: t.string({
-      select: { comments: { query: { where: { authorId: 'u' }, orderBy: { id: 'asc' } } } },
+      select: { comments: { where: { authorId: 'u' }, orderBy: { id: 'asc' } } },
       resolve: (user) => {
         expectTypeOf(user.comments).toEqualTypeOf<readonly LoadedRow<Types, 'Comment'>[]>();
         return user.comments.map((comment) => comment.body).join();
       },
     }),
     unknownOption: t.string({
-      // @ts-expect-error Unknown key in select: comments.query.take
-      select: { comments: { query: { take: 1 } } },
+      // @ts-expect-error Unknown key in select: comments.take
+      select: { comments: { take: 1 } },
       resolve: () => '',
     }),
   }),
 });
 builder.prismaObject('Post', {
   variant: 'ToOneQueryEntryPost',
-  // @ts-expect-error A to-one relation takes no query: author
-  select: { author: { query: { limit: 1 } } },
+  // @ts-expect-error Unknown key in select: author.limit
+  select: { author: { limit: 1 } },
+});
+
+// A type's select takes no `nestedSelection` entry.
+declare const plannedPosts: NestedSelectionEntry<'Post', {}>;
+builder.prismaObject('User', {
+  variant: 'TypeNestedSelection',
+  // @ts-expect-error a type's select takes columns and relation entries
+  select: { posts: plannedPosts },
 });

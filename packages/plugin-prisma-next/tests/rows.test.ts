@@ -493,14 +493,14 @@ describe('rows the plugin loaded', () => {
     ]);
   });
 
-  it('reads type-level computed values across connection, relation and node boundaries', async () => {
+  it('reads type-level relations across connection, relation and node boundaries', async () => {
     const builder = createBuilder();
     builder.prismaNode('User', {
       id: { field: 'id' },
       collection: () => db.orm.User,
-      select: { total: { posts: (sub) => sub.count() } },
+      select: { posts: true },
       fields: (t) => ({
-        total: t.int({ resolve: (user) => user.total }),
+        total: t.int({ resolve: (user) => user.posts.length }),
         postsPage: t.relatedConnection('posts', {
           query: { where: { published: 1 } },
           totalCount: true,
@@ -508,10 +508,10 @@ describe('rows the plugin loaded', () => {
       }),
     });
     builder.prismaObject('Post', {
-      select: { commentsTotal: { comments: (sub) => sub.count() } },
+      select: { comments: true },
       fields: (t) => ({
         author: t.relation('author'),
-        commentsTotal: t.int({ resolve: (post) => post.commentsTotal }),
+        commentsTotal: t.int({ resolve: (post) => post.comments.length }),
       }),
     });
     builder.queryType({

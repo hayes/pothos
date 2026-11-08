@@ -134,14 +134,15 @@ describe('field select forms', () => {
         }),
         published: t.string({
           select: {
-            publishedRows: { posts: (sub) => sub.where({ published: 1 }) },
-            publishedCount: { posts: (sub) => sub.where({ published: 1 }).count() },
+            posts: (posts) => ({
+              publishedCount: posts.where({ published: 1 }).count(),
+              publishedSum: posts.sum('published'),
+            }),
           },
-          resolve: (user) =>
-            `${user.publishedCount}: ${user.publishedRows.map((post) => post.title).join(', ')}`,
+          resolve: (user) => `${user.publishedCount}/${user.publishedSum}`,
         }),
         refined: t.string({
-          select: { posts: (posts) => posts.where({ published: 0 }) },
+          select: { posts: { where: { published: 0 } } },
           resolve: (user) => user.posts.map((post) => post.title).join(', '),
         }),
         commentCount: t.int({ resolve: (user) => user.comments.length }),
@@ -182,7 +183,7 @@ describe('field select forms', () => {
         firstPostTitle: 'Hello, Pothos',
         latestTitle: 'Hello, Pothos',
         secondTitle: 'Hello, Pothos',
-        published: '1: Hello, Pothos',
+        published: '1/1',
         refined: 'Draft #1',
         commentCount: 1,
         posts: [{ title: 'Hello, Pothos' }, { title: 'Draft #1' }],
@@ -191,21 +192,6 @@ describe('field select forms', () => {
       },
     ]);
     expect(result.statements).toHaveLength(1);
-  });
-
-  it('rejects exposing a computed value when the schema is built', () => {
-    const builder = createBuilder();
-    const User = builder.prismaObject('User', {
-      select: { postCount: { posts: (sub) => sub.count() } },
-      fields: () => ({}),
-    });
-    builder.objectField(User, 'postCount', (t) => t.exposeInt('postCount'));
-    builder.queryType({
-      fields: (t) => ({ users: t.prismaField({ type: ['User'], collection: () => db.orm.User }) }),
-    });
-    expect(() => builder.toSchema()).toThrow(
-      /'User\.postCount' exposes 'postCount', which is not a column on model User/,
-    );
   });
 
   it('loads a relation selected with an empty object, as with true', async () => {
@@ -268,9 +254,11 @@ describe('async selects', () => {
     const later = <T>(value: T) => Promise.resolve().then(() => value);
     const Admin = builder.prismaObject('User', {
       variant: 'Admin',
-      select: { total: { posts: (sub) => sub.count() } },
       fields: (t) => ({
-        total: t.int({ resolve: (user) => user.total }),
+        total: t.int({
+          select: { posts: (posts) => ({ total: posts.count() }) },
+          resolve: (user) => user.total,
+        }),
         asyncLastName: t.string({
           select: () => later({ lastName: true } as const),
           resolve: (user) => (user as { lastName?: string }).lastName ?? 'missing',
@@ -295,9 +283,9 @@ describe('async selects', () => {
         pageCount: t.int({
           select: (() =>
             later({
-              pageCount: {
-                posts: (sub: { limit(n: number): { count(): unknown } }) => sub.limit(1).count(),
-              },
+              posts: (sub: { limit(n: number): { count(): unknown } }) => ({
+                pageCount: sub.limit(1).count(),
+              }),
             })) as never,
           resolve: (user) => (user as { pageCount?: number }).pageCount ?? -1,
         }),

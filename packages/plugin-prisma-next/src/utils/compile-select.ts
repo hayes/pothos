@@ -7,8 +7,6 @@ import type {
 } from '@pothos/selection-mapper';
 import { getNamedType, isObjectType } from 'graphql';
 import { PRISMA_NEXT_MODEL, PRISMA_NEXT_TYPE_SELECTS } from '../constants.js';
-import { PrismaNextInterfaceRef } from '../interface-ref.js';
-import { PrismaNextObjectRef } from '../object-ref.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import { rowsKey, valueKey } from './branch-keys.js';
@@ -32,7 +30,6 @@ import {
   type PrismaNextSelectFn,
   type PrismaNextSelection,
   REFINE,
-  type Refine,
   type RelationArgs,
 } from './selections.js';
 
@@ -61,56 +58,35 @@ export type PlanPage = (
 /** Marks a field `select` entry from `nestedSelection`. */
 export const NESTED_SELECTION = Symbol('prismaNextNestedSelection');
 
-/** What a `nestedSelection` entry plans: the relation's rows, as `type` at `path` beneath the field. */
-export interface NestedEntry {
-  query?: unknown;
-  path?: PathSegment[];
+/**
+ * A relation entry of a `select`, as `splitSelect` reads it: `{}` for `true`, or the object written.
+ * `where`, `orderBy`, `limit` and `offset` load the relation's rows, `type` narrows them to a
+ * variant of its target, and `select` loads what it names beneath them. A `nestedSelection` entry
+ * plans the rows as `type` (by default the field's type) at `path` beneath the field, and a
+ * connection helper's page entry plans a page.
+ */
+export interface RelationEntry {
+  where?: unknown;
+  orderBy?: OrderByDecl;
+  limit?: number;
+  offset?: number;
   type?: unknown;
+  select?: RawSelect;
+  path?: readonly PathSegment[];
+  [NESTED_SELECTION]?: true;
+  [CONNECTION_PAGE]?: PlanPage;
 }
 
 /** The `nestedSelection` a field's select function is passed. */
-export function nestedSelectionEntry({
-  query,
-  path,
-  type,
-}: Omit<NestedEntry, 'path'> & { path?: readonly PathSegment[] } = {}) {
-  return { [NESTED_SELECTION]: { query, path: path && [...path], type } as NestedEntry };
+export function nestedSelectionEntry(
+  options: Omit<RelationEntry, typeof NESTED_SELECTION | typeof CONNECTION_PAGE> = {},
+): RelationEntry {
+  return Object.freeze({ ...options, [NESTED_SELECTION]: true as const });
 }
 
-/**
- * A relation entry of a `select`, as `splitSelect` reads it: `true`, a query or a refining
- * function (`query`), a ref (`type`), `{ type?, query?, select? }`, a `nestedSelection` entry
- * (`nested`), or a connection helper's page (`page`). `type` narrows the rows to a variant of the
- * relation's target, and `select` loads what it names beneath them.
- */
-export interface RelationEntry {
-  type?: { readonly name: string; readonly modelKey: string };
-  query?: unknown;
-  select?: RawSelect;
-  nested?: NestedEntry;
-  page?: PlanPage;
-}
-
-/**
- * `value`, a relation entry of a `select`, as a `RelationEntry`. A query has no `type`, `query` or
- * `select` key.
- */
-function relationEntry(value: unknown): RelationEntry {
-  if (value instanceof PrismaNextObjectRef || value instanceof PrismaNextInterfaceRef) {
-    return { type: value };
-  }
-  if (typeof value !== 'object' || value === null) {
-    return value === true ? {} : { query: value };
-  }
-  if (CONNECTION_PAGE in value) {
-    return { page: value[CONNECTION_PAGE] as PlanPage };
-  }
-  if (NESTED_SELECTION in value) {
-    return { nested: value[NESTED_SELECTION] as NestedEntry };
-  }
-  return 'select' in value || 'type' in value || 'query' in value
-    ? (value as RelationEntry)
-    : { query: value };
+/** The model of a relation entry's `type`: a ref's, or a model's name. */
+export function entryTypeModel(type: unknown): string | undefined {
+  return typeof type === 'string' ? type : (type as { modelKey?: string } | undefined)?.modelKey;
 }
 
 /**
@@ -141,14 +117,13 @@ export function nestedPlan(
 }
 
 /**
- * Column names, or an object of columns (`true`), relations (`true`, a query, or a function that
- * refines the rows) and computed values (`{ relation: (collection) => value }`).
+ * Column names, or an object of columns (`true`), relations (`true` or a `RelationEntry`) and
+ * aggregates (`relation: (collection) => ({ key: reducer })`).
  */
 export type RawSelect = readonly string[] | Record<string, unknown>;
 
-/** A computed value of a `select`: `key: { relation: compute }`. */
+/** An aggregate of a `select`: `relation: compute`, whose keys are written onto the parent. */
 interface ComputedEntry {
-  key: string;
   relation: string;
   compute: Compute;
 }
@@ -212,21 +187,21 @@ export function queryRefinement(
 }
 
 /**
- * How `value`, a relation entry or the `query` of a relation's rows, loads the rows of `modelKey`:
- * a function refines them and is identified by `identify`, a declarative query refines them and
- * identifies itself, and anything else, such as `true`, loads them whole. Without `identify`, a
- * function's load has no identity.
+ * How `value`, the `query` of a relation's rows, loads the rows of `modelKey`: a function refines
+ * them and has no identity, a declarative query refines them and identifies itself, and anything
+ * else, such as `true`, loads them whole.
  */
 export function relationLoad(
   contract: AnyContract,
   modelKey: string,
   value: unknown,
   problem?: Parameters<typeof orderColumns>[3],
-  identify?: (refine: Refine) => unknown,
 ) {
   if (typeof value === 'function') {
-    const refine = value as (rel: MapperCollection) => MapperCollection;
-    return { loadIdentity: identify?.(refine), refine };
+    return {
+      loadIdentity: undefined as unknown,
+      refine: value as (rel: MapperCollection) => MapperCollection,
+    };
   }
   const query = definedQuery(value);
   return {
@@ -276,7 +251,10 @@ export function rowsSelection(
   }));
 }
 
-/** The value consumer `id` computes from relation `name` under `key`, identified by `loadIdentity`. */
+/**
+ * The values consumer `id` computes from relation `name`, each under the key `compute` returns it
+ * by. `key` and `loadIdentity` identify them.
+ */
 export function computedSelection(
   name: string,
   id: string,
@@ -289,19 +267,11 @@ export function computedSelection(
   };
 }
 
-/**
- * The columns, relations and computed values of a `select`. The types check its entries: a key
- * that isn't a column or relation holds a computed value, which reads one relation.
- */
+/** The columns, relations and aggregates of a `select`. The types check its entries. */
 export function splitSelect(raw: RawSelect, model: PrismaNextModel) {
   const columns: string[] = [];
   const relations: [string, RelationEntry][] = [];
   const computed: ComputedEntry[] = [];
-  const assertLoadable = (name: string) => {
-    if (model.sharedVariantRelations.has(name)) {
-      throw sharedVariantRelationError(`a select of model '${model.key}'`, name, model);
-    }
-  };
   for (const [key, value] of Array.isArray(raw)
     ? raw.map((column) => [column, true] as const)
     : Object.entries(raw)) {
@@ -309,16 +279,15 @@ export function splitSelect(raw: RawSelect, model: PrismaNextModel) {
     if (value == null) {
       continue;
     }
-    if (model.relations[key]) {
-      relations.push([key, relationEntry(value)]);
-    } else if (model.sharedVariantRelations.has(key)) {
-      assertLoadable(key);
-    } else if (typeof value === 'object') {
-      const [relation, compute] = Object.entries(value)[0]! as [string, Compute];
-      assertLoadable(relation);
-      computed.push({ key, relation, compute });
-    } else {
+    if (model.sharedVariantRelations.has(key)) {
+      throw sharedVariantRelationError(`a select of model '${model.key}'`, key, model);
+    }
+    if (!model.relations[key]) {
       columns.push(key);
+    } else if (typeof value === 'function') {
+      computed.push({ relation: key, compute: value as Compute });
+    } else {
+      relations.push([key, value === true ? {} : (value as RelationEntry)]);
     }
   }
   return { columns, relations, computed };
@@ -345,18 +314,17 @@ export function typeSelects(type: {
  * way.
  */
 export function loadsOwnTableVariantRows(relation: PrismaNextRelation, entry: RelationEntry) {
-  return !entry.page && relation.targetVariantModel?.sharesTable === false;
+  return !entry[CONNECTION_PAGE] && relation.targetVariantModel?.sharesTable === false;
 }
 
 interface SelectCompilation {
   contract: AnyContract;
   id: string;
   args: object;
-  /** The request's context, which a nested entry's query function is called with. */
-  ctx?: object;
   /**
-   * The select function the entries came from. A function builds new entries on every call, so
-   * it identifies their loads together with `args`. A static select's entries identify themselves.
+   * The select function the entries came from. It builds new functions on every call, so it
+   * identifies an aggregate, or a query with a callback, together with `args`. A static select's
+   * entries identify themselves.
    */
   source?: unknown;
   /** The field a field's `select` plans for. The types allow page and nested entries only there. */
@@ -378,15 +346,8 @@ function compileSelect(
   model: PrismaNextModel,
   compilation: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
-  const { contract, id, args, ctx, source, field, returnModelKey, typeOf, nested } = compilation;
-  const identity = (entry: unknown) => (source === undefined ? entry : { source, args });
+  const { contract, id, args, source, field, returnModelKey, typeOf, nested } = compilation;
   const owner = field && `Field '${field.position.type.name}.${field.position.field.name}'`;
-  // `true`, a declarative query, or a function refining the rows, narrowed to `variant`.
-  const load = (relation: PrismaNextRelation, value: unknown, variant?: string) =>
-    relationArgs(relation, {
-      ...relationLoad(contract, relation.targetModel, value, undefined, identity),
-      variant,
-    });
   const parts = relations.map(([name, entry]) => {
     const relation = model.relations[name]!;
     // Checked when the schema is built for a static `select`, and here for what a select function
@@ -394,81 +355,92 @@ function compileSelect(
     if (nested && loadsOwnTableVariantRows(relation, entry)) {
       throw ownTableVariantRowsError(nested, name, relation);
     }
-    if (entry.page) {
-      return entry.page(relation, name, field!);
+    const page = entry[CONNECTION_PAGE];
+    if (page) {
+      return page(relation, name, field!);
     }
-    if (entry.nested) {
-      // The rows are planned as the field's type, or as `type` at `path` beneath it. Rows of a
-      // to-many relation planned as a variant of its target, rather than at a path beneath, load
-      // that variant.
-      const { query, path, type } = entry.nested;
-      const named = type === undefined ? undefined : typeOf!(type);
-      const variant =
-        relation.isToMany && !path?.length
-          ? variantForRelationType(
-              contract,
-              owner!,
-              relation.targetModel,
-              named ? named.model : returnModelKey,
-            )
-          : undefined;
-      return completeOption(query ?? true, args, ctx!, (resolved) =>
-        rowsSelection(
-          relation,
-          name,
-          id,
-          field!.nested(
-            {
-              columns: null,
-              args: checkReturned(resolved, (q) => load(relation, q ?? true, variant)),
-            },
-            // The selection mapper reads a type only at a path, which is the field itself when
-            // empty.
-            named ? (path ?? []) : path,
-            named?.name,
-          ),
-        ),
-      );
-    }
-    // A type of a variant of the relation's target narrows its rows to that variant.
-    const variant =
-      entry.type &&
-      variantForRelationType(
-        contract,
-        owner ?? "A type's select",
-        relation.targetModel,
-        entry.type.modelKey,
-      );
-    const loaded = load(relation, entry.query ?? true, variant);
-    if (!entry.select) {
-      return rowsSelection(relation, name, id, { columns: null, args: loaded });
-    }
-    // The rows load whole, with what the nested `select` names as consumer `nestedId(id)`.
-    const target = relation.target;
-    const inner = compileSelect(splitSelect(entry.select, target), target, {
-      ...compilation,
-      id: nestedId(id),
-      nested: nestedSubject(
-        nested ??
-          (field
-            ? `The select of field '${field.position.type.name}.${field.position.field.name}' loads`
-            : "A type's select loads"),
-        name,
-      ),
+    // A `nestedSelection` entry's rows are planned as the field's type, or as `type` at `path`
+    // beneath it. Rows of a to-many relation planned as a variant of its target, rather than at a
+    // path beneath, load that variant. Any other entry's `type` narrows its rows to that variant.
+    const { path, type } = entry;
+    const plans = NESTED_SELECTION in entry;
+    const named = plans && type !== undefined ? typeOf!(type) : undefined;
+    const variant = plans
+      ? relation.isToMany && !path?.length
+        ? variantForRelationType(
+            contract,
+            owner!,
+            relation.targetModel,
+            named ? named.model : returnModelKey,
+          )
+        : undefined
+      : type === undefined
+        ? undefined
+        : variantForRelationType(
+            contract,
+            owner ?? "A type's select",
+            relation.targetModel,
+            entryTypeModel(type),
+          );
+    const query = definedQuery({
+      where: entry.where,
+      orderBy: entry.orderBy,
+      limit: entry.limit,
+      offset: entry.offset,
     });
+    const loaded = relationArgs(relation, {
+      // A select function builds a new callback on every call, so the function, its arguments and
+      // where the entry sits identify a query with one.
+      loadIdentity:
+        source !== undefined && query && Object.values(query).some((o) => typeof o === 'function')
+          ? { source, args, at: nested, name }
+          : query,
+      refine: query && queryRefinement(contract, relation.targetModel, query),
+      variant,
+    });
+    // The rows load whole, with what a nested `select` names as consumer `nestedId(id)`.
+    const target = relation.target;
+    const rows = entry.select
+      ? completeValue(
+          compileSelect(splitSelect(entry.select, target), target, {
+            ...compilation,
+            id: nestedId(id),
+            nested: nestedSubject(
+              nested ??
+                (field
+                  ? `The select of field '${field.position.type.name}.${field.position.field.name}' loads`
+                  : "A type's select loads"),
+              name,
+            ),
+          }),
+          (selection): PrismaNextSelection => ({
+            ...selection,
+            columns: null,
+            args: loaded,
+          }),
+        )
+      : { columns: null, args: loaded };
     return rowsSelection(
       relation,
       name,
       id,
-      completeValue(inner, (selection) => ({
-        ...selection,
-        columns: null,
-        args: { ...loaded, nestedSelect: true },
-      })),
+      plans
+        ? // The selection mapper reads a type only at a path, which is the field itself when
+          // empty.
+          field!.nested(rows, named ? (path ? [...path] : []) : path && [...path], named?.name)
+        : rows,
     );
   });
-  for (const { key, relation, compute } of computed) {
-    parts.push(computedSelection(relation, id, key, identity(compute), compute));
+  for (const { relation, compute } of computed) {
+    parts.push(
+      computedSelection(
+        relation,
+        id,
+        AGGREGATE,
+        source === undefined ? compute : { source, args },
+        compute,
+      ),
+    );
   }
   const settled = parts.some(isThenable) ? Promise.all(parts) : (parts as PrismaNextSelection[]);
   return completeValue(settled, (resolved) => ({
@@ -477,6 +449,9 @@ function compileSelect(
     computed: Object.assign({}, ...resolved.map((part) => part.computed)),
   }));
 }
+
+/** The key a field's aggregates are computed under, beside the keys they write on the parent. */
+const AGGREGATE = 'aggregate';
 
 /**
  * Begins an error about an entry of the nested `select` of relation `name`, beneath the `select`
@@ -539,11 +514,11 @@ export function compileFieldSelect(
       return { columns: split.columns };
     }
     const plan = nestedPlan(split, model);
-    return (args, ctx, nested, selected, position) => {
+    return (args, _ctx, nested, selected, position) => {
       const id = consumerId(position);
       const field: FieldPlanning = { id, nested, selected, position };
       registerNested(position, plan);
-      return compileSelect(split, model, { contract, id, args, ctx, field });
+      return compileSelect(split, model, { contract, id, args, field });
     };
   }
   return (args, ctx, nested, selected, position) => {
@@ -555,7 +530,6 @@ export function compileFieldSelect(
       contract,
       id,
       args,
-      ctx,
       source: raw,
       field,
       returnModelKey,

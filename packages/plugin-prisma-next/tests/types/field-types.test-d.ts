@@ -544,9 +544,7 @@ builder.queryFields((t) => ({
         type: [NestedPost],
         args: { published: t.arg.int({ required: true }) },
         select: (args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({
-            query: { where: { published: args.published }, orderBy: { id: 'asc' } },
-          }),
+          posts: nestedSelection({ where: { published: args.published }, orderBy: { id: 'asc' } }),
         }),
         resolve: (user) => {
           expectTypeOf(user.posts).toEqualTypeOf<readonly PlannedRow<Types, 'Post'>[]>();
@@ -557,7 +555,7 @@ builder.queryFields((t) => ({
         type: [NestedPost],
         args: { first: t.arg.int() },
         select: (args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({ query: args.first ? { limit: args.first } : undefined }),
+          posts: nestedSelection(args.first ? { limit: args.first } : {}),
         }),
         resolve: (user) => user.posts,
       }),
@@ -568,34 +566,65 @@ builder.queryFields((t) => ({
         }),
         resolve: (user) => user.posts,
       }),
-      refined: t.field({
-        type: [NestedPost],
-        select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({
-            query: () => (posts) => posts.orderBy((post) => post.id.asc()),
-          }),
-        }),
-        resolve: (user) => user.posts,
-      }),
       predicate: t.field({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({ query: { where: (post) => post.published.eq(1) } }),
+          posts: nestedSelection({ where: (post) => post.published.eq(1) }),
+        }),
+        resolve: (user) => user.posts,
+      }),
+      // What a nested `select` loads beneath the rows is added to them.
+      withSelect: t.field({
+        type: [NestedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          posts: nestedSelection({
+            limit: 1,
+            select: { content: true, comments: (comments) => ({ commentCount: comments.count() }) },
+          }),
+        }),
+        resolve: (user) => {
+          expectTypeOf(user.posts[0]!.commentCount).toEqualTypeOf<number>();
+          expectTypeOf(user.posts[0]!.content).toEqualTypeOf<string>();
+          return user.posts;
+        },
+      }),
+      unknownNestedSelectKey: t.field({
+        type: [NestedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          // @ts-expect-error Unknown key in select: nope
+          posts: nestedSelection({ select: { nope: true } }),
         }),
         resolve: (user) => user.posts,
       }),
       unknownOption: t.field({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
-          // @ts-expect-error the query takes a relation's query options
-          posts: nestedSelection({ query: { take: 1 } }),
+          // @ts-expect-error Unknown query option: take
+          posts: nestedSelection({ take: 1 }),
+        }),
+        resolve: (user) => user.posts,
+      }),
+      // Removed: the `query` key, a refinement, and positional arguments.
+      queryKey: t.field({
+        type: [NestedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          // @ts-expect-error nestedSelection takes the query options flat
+          posts: nestedSelection({ query: { limit: 1 } }),
+        }),
+        resolve: (user) => user.posts,
+      }),
+      positional: t.field({
+        type: [NestedPost],
+        select: (_args, _ctx, nestedSelection) => ({
+          // @ts-expect-error nestedSelection takes one options object
+          posts: nestedSelection({ limit: 1 }, ['posts']),
         }),
         resolve: (user) => user.posts,
       }),
       notOptions: t.field({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
-          // @ts-expect-error reported against the `{ query }` form: nestedSelection takes an object
+          // @ts-expect-error nestedSelection takes an object
           posts: nestedSelection(true),
         }),
         resolve: (user) => user.posts,
@@ -612,7 +641,9 @@ builder.queryFields((t) => ({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
           posts: nestedSelection({
-            query: { where: { published: 1 }, orderBy: { id: 'asc' }, limit: 1 },
+            where: { published: 1 },
+            orderBy: { id: 'asc' },
+            limit: 1,
             path: [],
           }),
         }),
@@ -621,37 +652,32 @@ builder.queryFields((t) => ({
       viaTypeQuery: t.field({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({
-            query: () => ({ where: { published: 1 }, limit: 1 }),
-            type: Wrapper,
-          }),
+          posts: nestedSelection({ where: { published: 1 }, limit: 1, type: Wrapper }),
         }),
         resolve: () => [],
       }),
       unknownWhereColumn: t.field({
         type: [NestedPost],
-        // @ts-expect-error Unknown key in select: posts.query.where.nope
+        // @ts-expect-error Unknown key in select: posts.where.nope
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({ query: { where: { nope: 1 } }, path: [] }),
+          posts: nestedSelection({ where: { nope: 1 }, path: [] }),
         }),
         resolve: (user) => user.posts,
       }),
       unknownOrderByColumn: t.field({
         type: [NestedPost],
-        // @ts-expect-error Unknown key in select: posts.query.orderBy.nope
+        // @ts-expect-error Unknown key in select: posts.orderBy.nope
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({
-            query: () => ({ orderBy: { id: 'asc', nope: 'asc' } }),
-            type: Wrapper,
-          }),
+          posts: nestedSelection({ orderBy: { id: 'asc', nope: 'asc' }, type: Wrapper }),
         }),
         resolve: () => [],
       }),
       unknownPathOption: t.field({
         type: [NestedPost],
-        // @ts-expect-error Unknown key in select: posts.query.take
+        // @ts-expect-error Unknown key in select: posts.take
         select: (_args, _ctx, nestedSelection) => ({
-          posts: nestedSelection({ query: () => ({ limit: 1, take: 1 }), path: [] }),
+          // @ts-expect-error Unknown query option: take
+          posts: nestedSelection({ limit: 1, take: 1, path: [] }),
         }),
         resolve: (user) => user.posts,
       }),
@@ -668,9 +694,9 @@ builder.queryFields((t) => ({
     }),
     queriedWriter: t.field({
       type: NestedUser,
-      // @ts-expect-error A to-one relation takes no query: author
+      // @ts-expect-error Unknown key in select: author.limit
       select: (_args, _ctx, nestedSelection) => ({
-        author: nestedSelection({ query: { limit: 1 } }),
+        author: nestedSelection({ limit: 1 }),
       }),
       resolve: (post) => post.author,
     }),
@@ -742,7 +768,7 @@ builder.queryFields((t) => ({
       commented: t.field({
         type: [JoinedPost],
         select: (_args, _ctx, nestedSelection) => ({
-          comments: { query: { limit: 2 }, select: { post: nestedSelection() } },
+          comments: { limit: 2, select: { post: nestedSelection() } },
         }),
         resolve: (user) => {
           expectTypeOf(user.comments[0]!.post).toEqualTypeOf<PlannedRow<Types, 'Post'>>();
@@ -753,12 +779,12 @@ builder.queryFields((t) => ({
       counted: t.string({
         select: {
           comments: {
-            query: { where: { body: 'x' } },
+            where: { body: 'x' },
             select: {
               post: {
                 select: {
-                  comments: { query: { limit: 1 }, select: {} },
-                  commentCount: { comments: (comments) => comments.count() },
+                  author: { select: { comments: { limit: 1, select: {} } } },
+                  comments: (comments) => ({ commentCount: comments.count() }),
                 },
               },
             },
@@ -766,7 +792,7 @@ builder.queryFields((t) => ({
         },
         resolve: (user) => {
           expectTypeOf(user.comments[0]!.post.commentCount).toEqualTypeOf<number>();
-          return user.comments[0]!.post.comments[0]!.body;
+          return user.comments[0]!.post.author.comments[0]!.body;
         },
       }),
       unknownKey: t.string({
@@ -775,13 +801,13 @@ builder.queryFields((t) => ({
         resolve: () => '',
       }),
       unknownQueryOption: t.string({
-        // @ts-expect-error Unknown key in select: comments.query.take
-        select: { comments: { query: { take: 1 }, select: { post: true } } },
+        // @ts-expect-error Unknown key in select: comments.take
+        select: { comments: { take: 1, select: { post: true } } },
         resolve: () => '',
       }),
       toOneQuery: t.string({
-        // @ts-expect-error A to-one relation takes no query: post
-        select: { comments: { select: { post: { query: { limit: 1 }, select: {} } } } },
+        // @ts-expect-error Unknown key in select: post.limit
+        select: { comments: { select: { post: { limit: 1, select: {} } } } },
         resolve: () => '',
       }),
       otherModel: t.field({

@@ -107,3 +107,8 @@ function consumerOf(position: Position): { id: string; table: ConsumerIds } {
 export function nestedId(id: string) {
   return `${id}.`;
 }
+
+/** Whether `id` is the id of a nested `select`'s entries. */
+export function isNestedId(id: string) {
+  return id.endsWith('.');
+}
