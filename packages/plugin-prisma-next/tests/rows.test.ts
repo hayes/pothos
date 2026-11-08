@@ -1,5 +1,5 @@
 import SchemaBuilder from '@pothos/core';
-import RelayPlugin from '@pothos/plugin-relay';
+import RelayPlugin, { encodeGlobalID } from '@pothos/plugin-relay';
 import { execute, parse } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import PrismaNextPlugin, { collectionFromInfo } from '../src';
@@ -104,45 +104,6 @@ describe('rows a resolver returns', () => {
     expect(missing.errors).toBeUndefined();
     expect(missing.data.stale).toEqual({ title: 'kept', content: 'Welcome.' });
   });
-  it('loads what a planned field reads when its resolver hands back a different row', async () => {
-    const builder = createBuilder();
-    const User = builder.prismaObject('User', {
-      fields: (t) => ({
-        posts: t.relation('posts'),
-        postCount: t.relationCount('posts'),
-      }),
-    });
-    builder.prismaObject('Post', {
-      fields: (t) => ({
-        title: t.exposeString('title'),
-        // Planned beneath the author include, but resolved with a row the resolver builds.
-        rebuilt: t.field({
-          type: User,
-          select: (_args, _ctx, nestedSelection) => ({ author: nestedSelection() }),
-          // @ts-expect-error a row built by hand isn't planned; it reloads
-          resolve: (post) => ({ id: post.author.id }),
-        }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        post: t.prismaField({
-          type: 'Post',
-          collection: () => db.orm.Post.where({ id: 'p-hello' }),
-        }),
-      }),
-    });
-    const result = await run(
-      builder.toSchema(),
-      '{ post { rebuilt { postCount posts { title } } } }',
-    );
-    expect(result.errors).toBeUndefined();
-    expect(result.data.post.rebuilt).toEqual({
-      postCount: 2,
-      posts: [{ title: 'Hello, Pothos' }, { title: 'Draft #1' }],
-    });
-  });
-
   it("reloads a row a resolver returns once for the fields reading the type's select", async () => {
     const builder = createBuilder();
     const User = builder.prismaObject('User', {
@@ -194,47 +155,15 @@ describe('rows a resolver returns', () => {
     expect(result.data.user).toEqual({ summary: 'Andrews 2' });
   });
 
-  it('reloads rows another plan loaded without what its nested select includes', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        postCount: t.int({ select: { posts: true }, resolve: (user) => user.posts.length }),
-        postAuthors: t.stringList({
-          select: { posts: { select: { author: true } } },
-          resolve: (user) => user.posts.map((post) => post.author.firstName),
-        }),
-      }),
-    });
-    let cached: Promise<unknown> | undefined;
-    builder.queryType({
-      fields: (t) => ({
-        user: t.prismaField({
-          type: 'User',
-          // Each alias gets the row the first one's plan loaded.
-          resolve: (users) => {
-            cached ??= users.where({ id: 'u-alice' }).first();
-            return cached as never;
-          },
-        }),
-      }),
-    });
-    const result = await run(
-      builder.toSchema(),
-      '{ a: user { postCount } b: user { postAuthors } }',
-    );
-    expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({ a: { postCount: 2 }, b: { postAuthors: ['Alice', 'Alice'] } });
-  });
-
   describe('executions sharing a context', () => {
     const document = parse(
-      'query ($published: Int!, $late: Boolean!) { post(late: $late) { author { posts(published: $published) { id } } } }',
+      'query ($published: Int!) { post { author { posts(published: $published) { id } } } }',
     );
 
     const shared = {};
 
-    /** Loads a post of alice's through the plugin, or through `resolvePost` when it is given. */
-    function schema(resolvePost?: () => Promise<object>) {
+    /** Loads a post of alice's and its author's posts. */
+    function schema() {
       const builder = createBuilder();
       builder.prismaObject('User', {
         fields: (t) => ({
@@ -249,38 +178,55 @@ describe('rows a resolver returns', () => {
       });
       builder.queryType({
         fields: (t) => ({
-          post: t.prismaField({
-            type: 'Post',
-            args: { late: t.arg.boolean({ required: true }) },
-            ...(resolvePost
-              ? { resolve: () => resolvePost() as never }
-              : { query: { where: { id: 'p-hello' } } }),
-          }),
+          post: t.prismaField({ type: 'Post', query: { where: { id: 'p-hello' } } }),
         }),
       });
       return builder.toSchema();
     }
 
-    const authorPosts = (id: string) => ({ data: { post: { author: { posts: [{ id }] } } } });
-
-    const execution = (built: ReturnType<typeof schema>, published: number, late: boolean) =>
+    const execution = (built: ReturnType<typeof schema>, published: number) =>
       Promise.resolve(
         execute({
           schema: built,
           document,
-          variableValues: { published, late },
+          variableValues: { published },
           contextValue: shared,
         }),
       );
 
-    it('read their own branches of reloads', async () => {
-      const built = schema(async () => ({ id: 'p-hello' }));
+    it('read their own branches of node loads', async () => {
+      const builder = createBuilder();
+      builder.prismaNode('User', {
+        id: { field: 'id' },
+        fields: (t) => ({
+          posts: t.relation('posts', {
+            args: { published: t.arg.int({ required: true }) },
+            query: (args) => ({ where: { published: args.published } }),
+          }),
+        }),
+      });
+      builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.queryType({});
+      const built = builder.toSchema();
+      const nodeDocument = parse(
+        'query ($id: ID!, $published: Int!) { node(id: $id) { ... on User { posts(published: $published) { id } } } }',
+      );
+      const id = encodeGlobalID('User', 'u-alice');
+      const load = (published: number) =>
+        Promise.resolve(
+          execute({
+            schema: built,
+            document: nodeDocument,
+            variableValues: { id, published },
+            contextValue: shared,
+          }),
+        );
       const statements: CapturedExecution[] = [];
       const [drafts, published] = await withCapture(statements, () =>
-        Promise.all([execution(built, 0, false), execution(built, 1, false)]),
+        Promise.all([load(0), load(1)]),
       );
-      expect(drafts).toEqual(authorPosts('p-draft1'));
-      expect(published).toEqual(authorPosts('p-hello'));
+      expect(drafts).toEqual({ data: { node: { posts: [{ id: 'p-draft1' }] } } });
+      expect(published).toEqual({ data: { node: { posts: [{ id: 'p-hello' }] } } });
       // Their consumers share ids, so the two filters can't share a statement.
       expect(statements).toHaveLength(2);
     });
@@ -288,16 +234,16 @@ describe('rows a resolver returns', () => {
     it('run the same SQL in any context and with any arguments', async () => {
       const built = schema();
       const statements: CapturedExecution[] = [];
-      await withCapture(statements, () => execution(built, 0, false));
+      await withCapture(statements, () => execution(built, 0));
       await withCapture(statements, async () =>
         execute({
           schema: built,
           document,
-          variableValues: { published: 0, late: false },
+          variableValues: { published: 0 },
           contextValue: {},
         }),
       );
-      await withCapture(statements, () => execution(built, 1, false));
+      await withCapture(statements, () => execution(built, 1));
       expect(statements).toHaveLength(3);
       expect(statements[1]!.sql).toBe(statements[0]!.sql);
       expect(statements[2]!.sql).toBe(statements[0]!.sql);

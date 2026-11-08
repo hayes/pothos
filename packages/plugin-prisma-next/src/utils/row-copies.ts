@@ -345,8 +345,7 @@ export function typeParent(copy: object, { checks }: TypePlan): object | undefin
 /**
  * The parent of a field planned at `position`: the type's, with what the field's consumer loaded
  * written onto a copy of it, which only the field's resolver and the plugins after this one see.
- * Undefined when the field planned rows or values of its own that the parent doesn't hold, as when
- * a resolver returned rows another field planned, so the parent is reloaded.
+ * Undefined when the type's copy is (see `typeParent`), so the parent is reloaded.
  */
 export function fieldCopy(
   value: object,
@@ -363,15 +362,11 @@ export function fieldCopy(
   const nested = plannedNested.get(position);
   if (!held?.slots.consumers.has(id)) {
     // A load of a whole relation, and a to-one relation's row, sit on the row unbranched, where
-    // any field loading them reads them.
-    const row = (held?.row ?? base) as Row;
-    // The type's copy hides such a load of a relation the type's selects read from their own.
+    // any field loading them reads them. The type's copy hides such a load of a relation the
+    // type's selects read from their own.
     let hidden = false;
-    for (const [name, beneath] of ownLoads.get(position) ?? []) {
-      if (!beneath || held?.slots.relations[name] || !holds(row[name], beneath)) {
-        return undefined;
-      }
-      hidden ||= (base as Row)[name] === undefined;
+    for (const [name, whole] of ownLoads.get(position) ?? []) {
+      hidden ||= whole && (base as Row)[name] === undefined;
     }
     if (!plannedPages.has(position) && !nested && !hidden) {
       return base;
@@ -384,61 +379,24 @@ export function fieldCopy(
   });
 }
 
-/** The to-one relations a load includes beneath its rows, each with those beneath it. */
-type ToOneLoads = ReadonlyMap<string, ToOneLoads>;
-
-/** The to-one relations `selection` includes, as keyed by their names. */
-function toOneLoads({ relations = {} }: PrismaNextSelection): ToOneLoads {
-  return new Map(
-    Object.entries(relations)
-      .filter(([key]) => relationName(key) === key)
-      .map(([key, child]) => [key, toOneLoads(child)]),
-  );
-}
-
-/** Whether `value`, a relation's rows or row, holds the to-one relations `loads` includes. */
-function holds(value: unknown, loads: ToOneLoads): boolean {
-  if (value === undefined) {
-    return false;
-  }
-  if (value === null || loads.size === 0) {
-    return true;
-  }
-  if (Array.isArray(value)) {
-    for (const row of value) {
-      if (!holds(row, loads)) {
-        return false;
-      }
-    }
-    return true;
-  }
-  for (const [name, beneath] of loads) {
-    if (!holds((value as Row)[name], beneath)) {
-      return false;
-    }
-  }
-  return true;
-}
-
 /**
- * The relations each field loads rows or computed values of: for a load of the relation's whole
- * rows, or a to-one relation's row, the to-one relations it includes beneath them, which rows
- * another plan loaded may lack. `false` for any other load.
+ * The relations each field loads rows or computed values of, each with whether it loads only the
+ * relation's whole rows or a to-one relation's row.
  */
-const ownLoads = new WeakMap<Position, ReadonlyMap<string, ToOneLoads | false>>();
+const ownLoads = new WeakMap<Position, ReadonlyMap<string, boolean>>();
 
 /** Records what `selection`, the selection of the field at `position`, loads of its own. */
 export function registerOwnLoads(position: Position, selection: PrismaNextSelection) {
   const id = consumerId(position);
-  let loads: Map<string, ToOneLoads | false> | undefined;
+  let loads: Map<string, boolean> | undefined;
   // A to-one relation is keyed by its name. A field planning fields beneath it on its parent's
   // row, as `t.variant` does, also returns their branches, which aren't its own.
   const add = (key: string, child?: PrismaNextSelection) => {
     const name = relationName(key);
     if (name === key || consumerOfKey(key) === id) {
-      const whole = child && (name === key || loadsWholeRelation(child)) && toOneLoads(child);
+      const whole = child !== undefined && (name === key || loadsWholeRelation(child));
       loads ??= new Map();
-      loads.set(name, loads.get(name) === false ? false : (whole ?? false));
+      loads.set(name, loads.get(name) !== false && whole);
     }
   };
   for (const [key, child] of Object.entries(selection.relations ?? {})) {
