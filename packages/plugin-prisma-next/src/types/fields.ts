@@ -35,7 +35,7 @@ import type {
 import type { PrismaNextObjectFieldBuilder } from '../prisma-next-field-builder.js';
 import type { PlannedCollection, ResolverCollection, TypeCollection } from './collections.js';
 import type { FieldParentShape, IdFieldShape, ModelKey, ResolveTypeParent, Row } from './models.js';
-import type { FieldQueryLiteral, QueryOption } from './relations.js';
+import type { FieldQueryLiteral, QueryKeys, QueryOption } from './relations.js';
 import type {
   InterfaceNestedRow,
   PrismaNextFieldSelectForm,
@@ -304,13 +304,7 @@ type RootFieldLoad<
     info: GraphQLResolveInfo,
   ) => MaybePromise<ResolverCollection<Types, M> | Extract<Shape, null | undefined>>;
   /** Filters, orders and pages the collection. */
-  query?: QueryOption<
-    Types,
-    M,
-    ArgsShape,
-    QueryLiteral,
-    keyof FieldQueryLiteral<SchemaTypes, never>
-  >;
+  query?: QueryOption<Types, M, ArgsShape, QueryLiteral, QueryKeys>;
   resolve?: ResolveExcludesCollectionAndQuery;
 };
 

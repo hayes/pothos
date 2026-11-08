@@ -108,6 +108,9 @@ export type RootWhere<Types extends SchemaTypes, M extends ModelKey<Types>> =
       BareModelName<M>
     >;
 
+/** The options of a to-many relation's `query`. */
+export type QueryKeys = 'where' | 'orderBy' | 'limit' | 'offset';
+
 /** A to-many relation's literal `query`. */
 export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> {
   where?: RelationWhere<Types, M>;
@@ -117,36 +120,9 @@ export interface RelationQueryLiteral<Types extends SchemaTypes, M extends Model
 }
 
 /**
- * The literal `query` a to-many relation takes, and its entry in a `select`. A to-one relation is
- * loaded whole, so it takes none.
- */
-export type RelationQueryValue<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  R extends RelationKeys<Types, M>,
-> =
-  IsToMany<Types, M, R> extends true
-    ? RelationQueryLiteral<Types, RelatedModel<Types, M, R>>
-    : never;
-
-/**
- * {@link RelationQueryValue} of rows of `TypeModel`. Rows narrowed to a variant of the target take
- * its columns as a root field of the variant does.
- */
-type TypedRelationQueryValue<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  R extends RelationKeys<Types, M>,
-  TypeModel extends ModelKey<Types>,
-> = [TypeModel] extends [RelatedModel<Types, M, R>]
-  ? RelationQueryValue<Types, M, R>
-  : IsToMany<Types, M, R> extends true
-    ? FieldQueryLiteral<Types, TypeModel>
-    : never;
-
-/**
  * A to-many relation's `query`: the literal, or a callback of the args and context returning it. A
- * to-one relation is loaded whole and takes none, which its error names.
+ * to-one relation is loaded whole and takes none, which its error names. Rows narrowed to a variant
+ * of the target take its columns as a root field of the variant does.
  */
 export type RelationQuery<
   Types extends SchemaTypes,
@@ -156,15 +132,18 @@ export type RelationQuery<
   TypeModel extends ModelKey<Types> = RelatedModel<Types, ParentModel, RelName>,
 > =
   IsToMany<Types, ParentModel, RelName> extends true
-    ?
-        | TypedRelationQueryValue<Types, ParentModel, RelName, TypeModel>
-        | ((
-            args: InputShapeFromFields<Args>,
-            context: Types['Context'],
-          ) => MaybeAsyncSelection<
-            Types,
-            TypedRelationQueryValue<Types, ParentModel, RelName, TypeModel> | undefined
-          >)
+    ? (
+        [TypeModel] extends [RelatedModel<Types, ParentModel, RelName>]
+          ? RelationQueryLiteral<Types, TypeModel>
+          : FieldQueryLiteral<Types, TypeModel>
+      ) extends infer Literal
+      ?
+          | Literal
+          | ((
+              args: InputShapeFromFields<Args>,
+              context: Types['Context'],
+            ) => MaybeAsyncSelection<Types, Literal | undefined>)
+      : never
     : never;
 
 export type PrismaNextRelationOptions<
@@ -199,9 +178,7 @@ export type PrismaNextRelationOptions<
     | PrismaNextInterfaceRef<Types, TypeModel, RelatedShape>;
   query?: Query &
     QueryAsyncCheck<Types, Query> &
-    NoInfer<
-      ExactQuery<Types, TypeModel, Query, keyof RelationQueryValue<Types, ParentModel, RelName>>
-    >;
+    NoInfer<ExactQuery<Types, TypeModel, Query, QueryKeys>>;
   /**
    * What a non-null field does when its relation resolves to null: `'error'` leaves the null for
    * GraphQL's non-null error, and a function returns a replacement or an error.
@@ -299,12 +276,8 @@ export type ExactQuery<
   : Query extends (...args: infer Args) => infer Result
     ? (
         ...args: Args
-      ) => MaybePromise<
-        | (ExactQueryLiteral<Awaited<Result>, Known> &
-            OrderByColumnsCheck<Types, M, Awaited<Result>>)
-        | undefined
-      >
-    : ExactQueryLiteral<Query, Known> & OrderByColumnsCheck<Types, M, Query>;
+      ) => MaybePromise<QueryLiteralCheck<Types, M, Awaited<Result>, Known> | undefined>
+    : QueryLiteralCheck<Types, M, Query, Known>;
 
 type UnknownQueryKeys<Literal, Known extends PropertyKey> = Exclude<
   Literal extends unknown ? keyof Literal : never,

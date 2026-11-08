@@ -56,7 +56,7 @@ export type ConnectionQueryOption<
   M,
   InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
   Literal,
-  keyof ConnectionQueryLiteral<SchemaTypes, never>
+  'where' | 'orderBy'
 >;
 
 type SizeOption<Types extends SchemaTypes, Args extends InputFieldMap> =

@@ -34,6 +34,7 @@ import type { RelationOrderBy, RelationOrderSelector } from './order-by.js';
 import type {
   DefaultRelationNullable,
   IsToMany,
+  QueryKeys,
   RelatedModel,
   RelationFieldShape,
   RelationQueryLiteral,
@@ -139,9 +140,6 @@ export type InterfaceNestedRow<Types extends SchemaTypes, Type> = Type extends r
 type ModelTypeRef<M> =
   | { readonly [prismaNextModelBrand]: M }
   | { readonly [prismaNextInterfaceBrand]: M };
-
-/** The query options of a to-many relation entry, as `t.relation`'s `query` takes them. */
-type QueryKeys = 'where' | 'orderBy' | 'limit' | 'offset';
 
 /**
  * A relation entry: its rows' query (a to-many relation's only), the `type` narrowing them to a
