@@ -63,10 +63,10 @@ builder.prismaInterfaceField(Person, 'displayName', (t) =>
 To return rows through `Node` or another interface from a plain field, see
 [Returning rows from other fields](./relations#returning-rows-from-other-fields).
 
-An object type from `builder.objectRef` can implement a `prismaInterface` if its shape includes
-`PlannedRowBrand` for the model, such as
-`builder.objectRef<{ id: string; email: string } & PlannedRowBrand<'User'>>`. The shape must include
-the interface's `select` columns, since its fields and `resolveType` read them.
+An object type from `builder.objectRef` can implement a `prismaInterface` if its shape is
+`Planned` for the model, such as `builder.objectRef<{ id: string; email: string } & Planned<'User'>>`.
+The shape must include the interface's `select` columns, since its fields and `resolveType` read
+them.
 
 ## Native inheritance
 
@@ -104,7 +104,8 @@ builder.queryType({
 - The shorthand `where` of a root field, `prismaConnection`, or `t.relation` or
   `t.relatedConnection` narrowed by `type` returning a variant takes only the base's columns. Use
   the predicate form, `where: (bug) => bug.severity.eq('high')`, for the variant's own. `orderBy`
-  takes either. A relation entry in a `select` takes the base's columns only.
+  takes either. In a `select`'s relation entry, `where` (both forms) and `orderBy` selectors take the
+  base's columns; a declared `orderBy` takes the variant's.
 - Each variant needs exactly one implementing type, unless the interface has a `resolveType`.
 - A relation declared on a variant can't be in the variant type's `select`. Use a field's `select`
   or `t.relation`.
@@ -114,8 +115,7 @@ builder.queryType({
   request).
 - A relation to a variant that shares the base's table can't return an interface whose `select`
   loads a base model relation.
-- Pass a variant's ref or model name as `type` to `t.relation` or `t.relatedConnection` to return
-  only that variant's rows. In a `select`, give the relation's entry a `type`: `select: { tasks: { type: Bug } }`.
-  `{ tasks: true }` loads every task.
+- Pass a variant's ref or model name as `type` to `t.relation` or `t.relatedConnection`, or in a
+  relation entry of a `select`.
 - A row returned from a plain `t.field` must be
   [planned](./relations#returning-rows-from-other-fields) and hold the discriminator.

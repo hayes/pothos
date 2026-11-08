@@ -63,8 +63,8 @@ A `select` accepts:
   `where` also takes the ORM's predicate callback, and `orderBy` its selectors, as in `t.relation`'s
   `query`.
 - A `select` of the relation's rows, in the same form: `{ comments: { limit: 5, select: { post: true } } }`.
-- `type`, a ref or model name of a [variant](./variants) of the relation's target, which loads only
-  that variant's rows: `{ tasks: { type: Bug } }`.
+- `type`, a ref or model name of a [variant](./interfaces#native-inheritance) of the relation's
+  target, which loads only that variant's rows: `{ tasks: { type: Bug } }`.
 - In a field's `select` only, counts and aggregates of a to-many relation:
   `{ posts: (posts) => ({ postCount: posts.count() }) }`. Each key (`postCount`) is added to the
   row, so don't reuse a column or relation name.
@@ -220,12 +220,9 @@ builder.mutationType({
 });
 ```
 
-For a [variant](./variants) model, the Collection is its base's narrowed to it, such as
-`orm.Task.variant('bug')`, both for `resolve` and when `collection` is left out. `resolve` must
-return rows of that Collection; rows loaded from another Collection are a type error naming
-[`Planned`](./relations#returning-rows-from-other-fields). Since that Collection is already filtered
-by the variant, `update()` and `delete()` type-check without a `where`, and then change the
-variant's first row, so add a `where` for single-row writes.
+For a [variant model](./interfaces#native-inheritance), the Collection is its base's narrowed to
+it, such as `orm.Task.variant('bug')`. `update()` and `delete()` on it change the variant's first
+row, so add a `where` for single-row writes.
 
 When the mutation returns a payload, build the write's Collection with `collectionFromInfo`, which
 adds what the query selects, and pass the path to the row's field, such as `path: ['user']`. For an
