@@ -354,6 +354,12 @@ interface SelectCompilation {
    * an error about them.
    */
   nested?: string;
+  /**
+   * Whether the entries' reader takes the rows of a relation targeting a variant model with a table
+   * of its own, which load without the columns it inherits (see `loadsOwnTableVariantRows`). Set
+   * for what a select function returns: a static `select` is checked when the schema is built.
+   */
+  readsRows?: (relation: PrismaNextRelation) => boolean;
 }
 
 /** Compiles a split `select`. Each relation entry is one consumer, `id`. */
@@ -362,17 +368,21 @@ function compileSelect(
   model: PrismaNextModel,
   compilation: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
-  const { contract, id, args, source, field, returnModelKey, typeOf, nested } = compilation;
+  const { contract, id, args, source, field, returnModelKey, typeOf, nested, readsRows } =
+    compilation;
   const owner = field && `Field '${field.position.type.name}.${field.position.field.name}'`;
+  const subject =
+    nested ??
+    (field
+      ? `The select of field '${field.position.type.name}.${field.position.field.name}' loads`
+      : "A type's select loads");
   // A select function builds new callbacks on every call, so the function, its arguments and where
   // the entry sits identify a query with a callback, or an aggregate.
   const callbackIdentity = (name: string) => ({ source, args, at: nested, name });
   const parts = relations.map(([name, entry]) => {
     const relation = model.relations[name]!;
-    // Checked when the schema is built for a static `select`, and here for what a select function
-    // returns, as for the entries of the field's own `select`.
-    if (nested && loadsOwnTableVariantRows(relation, entry)) {
-      throw ownTableVariantRowsError(nested, name, relation);
+    if (readsRows && loadsOwnTableVariantRows(relation, entry) && !readsRows(relation)) {
+      throw ownTableVariantRowsError(subject, name, relation);
     }
     const page = entry[CONNECTION_PAGE];
     if (page) {
@@ -418,13 +428,9 @@ function compileSelect(
           compileSelect(splitSelect(entry.select, target), target, {
             ...compilation,
             id: nestedId(id),
-            nested: nestedSubject(
-              nested ??
-                (field
-                  ? `The select of field '${field.position.type.name}.${field.position.field.name}' loads`
-                  : "A type's select loads"),
-              name,
-            ),
+            nested: nestedSubject(subject, name),
+            // The rows of a nested `select` are read only through its parent's.
+            readsRows: readsRows && (() => false),
           }),
           (selection): PrismaNextSelection => ({
             ...selection,
@@ -532,31 +538,18 @@ export function compileFieldSelect(
       field,
       returnModelKey,
       typeOf,
+      // An interface or union reads the rows before any field reloads them.
+      readsRows: (relation) =>
+        returnsRelationRowsAs(
+          relation,
+          isObjectType(returnType) ? 'Object' : 'Other',
+          returnModelKey === undefined ? undefined : getModel(contract, returnModelKey),
+        ),
     };
     // Compiled for a request, which may be the first to see what a select function returns.
     return completeValue(raw(args, ctx, nestedSelectionEntry), (value) =>
       checkReturned(value ?? {}, (returned) => {
         const split = splitSelect(returned, model);
-        // Rows of a variant model with a table of its own load without the columns it inherits,
-        // which an interface or union reads before any field reloads them. The plugin checks a
-        // static select when the schema is built, so this catches what a select function returns.
-        for (const [name, entry] of split.relations) {
-          const relation = model.relations[name]!;
-          if (
-            loadsOwnTableVariantRows(relation, entry) &&
-            !returnsRelationRowsAs(
-              relation,
-              isObjectType(returnType) ? 'Object' : 'Other',
-              returnModelKey === undefined ? undefined : getModel(contract, returnModelKey),
-            )
-          ) {
-            throw ownTableVariantRowsError(
-              `The select of field '${position.type.name}.${position.field.name}' loads`,
-              name,
-              relation,
-            );
-          }
-        }
         registerNested(position, nestedPlan(split, model));
         return compileSelect(split, model, select);
       }),
