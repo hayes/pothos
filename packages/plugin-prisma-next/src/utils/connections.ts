@@ -2,7 +2,7 @@ import { completeValue, type MaybePromise, ObjectRef, type SchemaTypes } from '@
 import { type IndirectInclude, type Position, selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PlannedQuery } from './adapter.js';
-import { computedSelection, relationArgs, rowsSelection } from './compile-select.js';
+import { computedSelection, relationArgs, relationLoad, rowsSelection } from './compile-select.js';
 import type { PrismaNextConfig } from './config.js';
 import {
   applyCursorPagination,
@@ -16,6 +16,7 @@ import {
   withCursorValues,
 } from './cursors.js';
 import { checkReturned } from './errors.js';
+import { contextIdentity } from './load-ids.js';
 import type { PrismaNextRelation } from './model.js';
 import { PAGE, type PageData, registerPage } from './row-copies.js';
 import { COUNT_SLOT, EMPTY, type PrismaNextSelection } from './selections.js';
@@ -69,8 +70,6 @@ interface PageField {
 
 /** How a page of a to-many relation loads, beside its plan and count. */
 interface PageLoad {
-  /** Identifies the load with the page's order, so consumers with equal ones share it. */
-  identity: unknown;
   variant: string | undefined;
   /** Whether the count applies the connection's `where`. */
   filtered: boolean;
@@ -154,6 +153,8 @@ export function connectionPaging(
      * Plans one page of to-many relation `name` for `field`: its rows unless the count alone is
      * selected, and the count when it is selected and comes from the aggregate. The plan is kept
      * for the field's copy of the parent, which writes it onto the page's rows (see `fieldCopy`).
+     * The rows are identified by the page they load, so pages of the relation planned alike share
+     * them, and the count as `relationCount`'s is, so it shares one with an equal count.
      */
     planPage(
       relation: PrismaNextRelation,
@@ -161,12 +162,28 @@ export function connectionPaging(
       { id, selected, position }: PageField,
       args: object,
       ctx: object,
-      { identity, variant, filtered, rows }: PageLoad,
+      { variant, filtered, rows }: PageLoad,
     ): MaybePromise<PrismaNextSelection> {
       const planned = plan(args, ctx);
       registerPage(position, name, planned);
-      // The order is part of the identity, so aliases that share a load share their order.
-      const loadIdentity = { identity, order: planned.order };
+      // A query callback builds a callback `where` anew on every call.
+      const where = relationLoad(
+        config.contract,
+        modelKey,
+        { where: planned.where },
+        {
+          built:
+            typeof query === 'function'
+              ? () => ({ source: query, args, context: contextIdentity(ctx) })
+              : undefined,
+        },
+      ).loadIdentity;
+      const { first, last, after, before } = args as PothosSchemaTypes.DefaultConnectionArguments;
+      const { order, defaultSize, maxSize } = planned;
+      const loadIdentity = {
+        page: { where, order, defaultSize, maxSize, first, last, after, before },
+      };
+      const counts = filtered ? where : undefined;
       const { needsRows, count } = selection(selected());
       const filter = (rel: MapperCollection) =>
         planned.where === undefined ? rel : rel.where(planned.where);
@@ -174,9 +191,15 @@ export function connectionPaging(
         variant === undefined ? rel : rel.variant(variant);
       const counted =
         count === 'aggregate'
-          ? computedSelection(name, id, COUNT_SLOT, loadIdentity, (sub) => ({
-              [COUNT_SLOT]: countOf(filtered ? filter(narrow(sub)) : narrow(sub)),
-            }))
+          ? computedSelection(
+              name,
+              id,
+              COUNT_SLOT,
+              variant === undefined ? counts : { where: counts, variant },
+              (sub) => ({
+                [COUNT_SLOT]: countOf(filtered ? filter(narrow(sub)) : narrow(sub)),
+              }),
+            )
           : EMPTY;
       if (!needsRows) {
         return counted;

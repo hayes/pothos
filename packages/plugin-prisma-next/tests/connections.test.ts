@@ -5,6 +5,7 @@ import { detailOf } from './fixtures/errors';
 import {
   createBuilder,
   deferSchema,
+  postSubqueries,
   run,
   runIncremental,
   type SampleOptions,
@@ -247,6 +248,53 @@ describe('related connections', () => {
       });
     }
     expect(result.statements).toHaveLength(1);
+  });
+
+  it('loads equal pages and counts of one relation once', async () => {
+    const result = await query(`{ users {
+      posts(first: 1) { totalCount edges { node { id } } }
+      postsAlt(first: 1) { totalCount edges { node { title } } }
+    } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0]).toEqual({
+      posts: { totalCount: 2, edges: [{ node: { id: 'p-draft1' } }] },
+      postsAlt: { totalCount: 2, edges: [{ node: { title: 'Draft #1' } }] },
+    });
+    // One subquery for the rows and one for the count.
+    expect(postSubqueries(result.statements[0].sql)).toBe(2);
+  });
+
+  it('counts a relation once for totalCount and relationCount', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relatedConnection('posts', { totalCount: true }),
+        postCount: t.relationCount('posts'),
+        published: t.relatedConnection('posts', {
+          totalCount: true,
+          query: { where: { published: 1 } },
+        }),
+        publishedCount: t.relationCount('posts', { query: { where: { published: 1 } } }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({ type: 'User', query: { where: { id: 'u-alice' } } }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ user { posts { totalCount } postCount published { totalCount } publishedCount } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user).toEqual({
+      posts: { totalCount: 2 },
+      postCount: 2,
+      published: { totalCount: 1 },
+      publishedCount: 1,
+    });
+    expect(postSubqueries(result.statements[0].sql)).toBe(2);
   });
 
   it('adds a count to the statement only when totalCount is selected', async () => {
@@ -1412,6 +1460,43 @@ describe('prismaConnectionHelpers', () => {
       },
     ]);
     expect(result.statements).toHaveLength(1);
+  });
+
+  it('shares a page with a related connection that pages the relation alike', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const posts = prismaConnectionHelpers(builder, 'Post', { totalCount: true });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        related: t.relatedConnection('posts', { totalCount: true }),
+        helped: t.connection(
+          {
+            type: posts.ref,
+            select: (args, ctx, nestedSelection) => ({
+              posts: posts.getQuery(args, ctx, nestedSelection),
+            }),
+            resolve: (user, args, ctx) => posts.resolve(user.posts, args, ctx),
+          },
+          { fields: (c) => ({ totalCount: c.int({ resolve: (page) => page.totalCount }) }) },
+        ),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({ type: 'User', query: { where: { id: 'u-alice' } } }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      `{ user {
+        related(first: 1) { totalCount edges { node { id } } }
+        helped(first: 1) { totalCount edges { node { id } } }
+      } }`,
+    );
+    expect(result.errors).toBeUndefined();
+    const page = { totalCount: 2, edges: [{ node: { id: 'p-draft1' } }] };
+    expect(result.data.user).toEqual({ related: page, helped: page });
+    expect(postSubqueries(result.statements[0].sql)).toBe(2);
   });
 
   it('passes a count resolve is given in place of a loaded one', async () => {

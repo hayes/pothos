@@ -72,7 +72,7 @@ import { contextIdentity } from './utils/load-ids.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import { fieldValue } from './utils/row-copies.js';
-import { type PrismaNextSelectFn, VALUE_SLOT } from './utils/selections.js';
+import { COUNT_SLOT, type PrismaNextSelectFn } from './utils/selections.js';
 
 type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
   PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
@@ -439,7 +439,7 @@ export class PrismaNextObjectFieldBuilder<
       extensions?: Record<string, unknown>;
     } & Record<string, unknown>;
     const countLoaded = (parent: object) =>
-      fieldValue(parent, relationName, VALUE_SLOT) !== undefined;
+      fieldValue(parent, relationName, COUNT_SLOT) !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
       completeOption(query, args, ctx, (value) => {
         // The types allow only `where`, which can't fail to refine. Identified as `t.relation`'s
@@ -458,10 +458,10 @@ export class PrismaNextObjectFieldBuilder<
         return computedSelection(
           relationName,
           consumerId(position),
-          VALUE_SLOT,
+          COUNT_SLOT,
           loadIdentity,
           (sub) => ({
-            [VALUE_SLOT]: countOf(refine ? refine(sub) : sub),
+            [COUNT_SLOT]: countOf(refine ? refine(sub) : sub),
           }),
         );
       });
@@ -475,7 +475,7 @@ export class PrismaNextObjectFieldBuilder<
       },
       resolve: (parent: object, _args: object, context: object, info: GraphQLResolveInfo) =>
         readOwn(this.builder, parent, context, info, countLoaded, (own) =>
-          fieldValue(own, relationName, VALUE_SLOT),
+          fieldValue(own, relationName, COUNT_SLOT),
         ),
     } as never) as never;
   }
@@ -587,7 +587,6 @@ export class PrismaNextObjectFieldBuilder<
     const filtered = config.filterConnectionTotalCount;
     const select: PrismaNextSelectFn = (args, ctx, nested, selected, position) =>
       paging.planPage(relation, name, { id: consumerId(position), selected, position }, args, ctx, {
-        identity: { source: select, args },
         variant,
         filtered,
         rows: (seed) => nested(seed, include),

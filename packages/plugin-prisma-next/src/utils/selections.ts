@@ -70,11 +70,11 @@ export function appliesCursors({ args, relations }: PrismaNextSelection): boolea
   );
 }
 
-/** The key a connection's count is computed under, as a value only its field reads. */
+/**
+ * The key a connection's count and `relationCount`'s are computed under, as a value only its field
+ * reads, so equal counts share one.
+ */
 export const COUNT_SLOT = fieldOnlyKey('count');
-
-/** The key `relationCount` computes its count under, as a value only its field reads. */
-export const VALUE_SLOT = fieldOnlyKey('value');
 
 /**
  * Whether a relation load has every row of the relation, rather than a filtered or paged part, and

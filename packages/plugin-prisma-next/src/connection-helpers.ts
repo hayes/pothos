@@ -386,7 +386,6 @@ export function prismaConnectionHelpers<
           args,
           ctx,
           {
-            identity: { source: planPage, args },
             variant: variantForRelationType(config.contract, owner, relation.targetModel, modelKey),
             filtered: true,
             rows: (seed) => pageRows(seed, nodes, args, ctx),
