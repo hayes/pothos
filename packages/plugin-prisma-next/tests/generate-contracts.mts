@@ -17,6 +17,8 @@ const targets = {
 const fixtures: [schema: string, output: string, target: keyof typeof targets][] = [
   ['fixtures/sample.prisma', 'fixtures/sample-contract', 'sqlite'],
   ['fixtures/collision.prisma', 'fixtures/collision-contract', 'sqlite'],
+  ['fixtures/docs.prisma', 'fixtures/docs-contract', 'postgres'],
+  ['fixtures/docs-namespaces.prisma', 'fixtures/docs-namespaces-contract', 'postgres'],
   ['inheritance/contract.prisma', 'inheritance/contract', 'sqlite'],
   ['inheritance-namespaces/contract.prisma', 'inheritance-namespaces/contract', 'postgres'],
   ['namespaces/contract.prisma', 'namespaces/contract', 'postgres'],

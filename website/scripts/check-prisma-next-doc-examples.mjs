@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { parseCodeBlocks } from './doc-code-blocks.mjs';
 
@@ -8,11 +8,40 @@ import { parseCodeBlocks } from './doc-code-blocks.mjs';
 //
 // Each page becomes one module, its blocks in order, so later blocks can use refs that earlier
 // blocks define. Blocks run against the plugin's SQLite test contract, or its inheritance contract
-// for Task variants. Postgres-only blocks (schema-grouped clients, `auth.User`) have no matching
-// contract and are skipped, as are blocks that create their own builder.
+// for Task variants. Blocks that create their own builder or only work on PostgreSQL
+// (schema-grouped clients, `auth.User`) each become a module of their own, against a PostgreSQL
+// docs contract with one namespace, or two for a block naming `auth.`.
 const pagesDirectory = 'website/content/docs/plugins/prisma-next';
 const readme = 'packages/plugin-prisma-next/README.md';
-const skip = /orm\.public\b|'auth\.|@prisma\/orm-postgres|new SchemaBuilder\b/;
+const ownModule = /orm\.public\b|'auth\.|@prisma\/orm-postgres|new SchemaBuilder\b/;
+
+// The modules of those blocks' clients: `./prisma/db`, which the docs import, and one for a
+// contract with two namespaces.
+const postgresDb = (contract) => `import postgres from '@prisma/orm-postgres/runtime';
+import type { Contract } from '../../tests/fixtures/${contract}';
+
+export declare const contract: Contract;
+export const db = postgres({ contract, url: 'postgres://unused' });
+`;
+
+// A block of its own, with the imports it leaves out and a builder unless it creates one.
+function blockModule(block) {
+  const lines = block.split('\n');
+  const imports = new Set([
+    "import SchemaBuilder from '@pothos/core';",
+    "import PrismaNextPlugin from '@pothos/plugin-prisma-next';",
+    `import { contract, db } from './prisma/${/'auth\./.test(block) ? 'namespaces-db' : 'db'}';`,
+    ...lines.filter((line) => line.startsWith('import ')),
+  ]);
+  const body = lines.filter((line) => !line.startsWith('import ')).join('\n');
+  const builder = /\bconst builder\b/.test(body)
+    ? ''
+    : `const builder = new SchemaBuilder<{ PrismaNextContract: typeof contract }>({
+  plugins: [PrismaNextPlugin],
+  prismaNext: { client: db },
+});`;
+  return [...imports, builder, body].join('\n');
+}
 
 const preamble = (contract) => `import SchemaBuilder from '@pothos/core';
 import PrismaNextPlugin from '@pothos/plugin-prisma-next';
@@ -86,7 +115,6 @@ export async function checkPrismaNextDocExamples(root, tsc) {
   // Inside the plugin, so the fixture resolves the ORM packages and contracts the plugin's tests use.
   const fixture = await mkdtemp(join(plugin, '.docs-check-'));
   let checked = 0;
-  let skipped = 0;
   try {
     const files = [];
     const pages = (await readdir(join(root, pagesDirectory)))
@@ -99,9 +127,13 @@ export async function checkPrismaNextDocExamples(root, tsc) {
         '',
       );
       const groups = { sample: [], inheritance: [] };
-      for (const block of parseCodeBlocks(source, ['ts', 'typescript'])) {
-        if (skip.test(block)) {
-          skipped++;
+      const name = page === readme ? 'README' : basename(page, '.mdx');
+      for (const [i, block] of parseCodeBlocks(source, ['ts', 'typescript']).entries()) {
+        if (ownModule.test(block)) {
+          const file = join(fixture, `${name}-${i}.ts`);
+          await writeFile(file, blockModule(block));
+          files.push(file);
+          checked++;
           continue;
         }
         groups[/'(?:Task|Bug|Feature)'/.test(block) ? 'inheritance' : 'sample'].push(block);
@@ -115,12 +147,17 @@ export async function checkPrismaNextDocExamples(root, tsc) {
           group === 'sample'
             ? '../tests/fixtures/sample-contract'
             : '../tests/inheritance/contract';
-        const name = page === readme ? 'README' : basename(page, '.mdx');
         const file = join(fixture, `${name}-${group}.ts`);
         await writeFile(file, pageModule(blocks, contract));
         files.push(file);
       }
     }
+    await mkdir(join(fixture, 'prisma'));
+    await writeFile(join(fixture, 'prisma/db.ts'), postgresDb('docs-contract'));
+    await writeFile(
+      join(fixture, 'prisma/namespaces-db.ts'),
+      postgresDb('docs-namespaces-contract'),
+    );
     await writeFile(
       join(fixture, 'tsconfig.json'),
       JSON.stringify({
@@ -145,5 +182,6 @@ export async function checkPrismaNextDocExamples(root, tsc) {
   } finally {
     await rm(fixture, { recursive: true, force: true });
   }
-  return { checked, skipped };
+  // Every block is checked; the caller still reports skipped ones.
+  return { checked, skipped: 0 };
 }

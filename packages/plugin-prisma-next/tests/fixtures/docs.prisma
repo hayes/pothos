@@ -1,0 +1,10 @@
+// use prisma-8
+// The PostgreSQL client setup.mdx's examples use, which groups models by schema.
+namespace public {
+  model User {
+    id    String @id
+    email String @unique
+
+    @@map("user")
+  }
+}
