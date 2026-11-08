@@ -9,7 +9,6 @@ import {
 } from '@pothos/core';
 import {
   cacheKey,
-  type Mapping,
   Plan,
   type PlayedPlan,
   setLoaderMappings,
@@ -24,7 +23,14 @@ import { variantOf } from './utils/contract.js';
 import { readPage } from './utils/cursors.js';
 import { InternalError, isRefusedValue, keepError, refusedError } from './utils/errors.js';
 import { getIdentityFields, type PrismaNextModel } from './utils/model.js';
-import { markPlanned, rowOf, withOtherKeys } from './utils/row-copies.js';
+import {
+  executionKey,
+  fieldCopy,
+  markPlanned,
+  rowOf,
+  typeNested,
+  withOtherKeys,
+} from './utils/row-copies.js';
 import { appliesCursors, type PrismaNextSelection } from './utils/selections.js';
 
 type Row = Record<string, unknown>;
@@ -133,11 +139,8 @@ export class ModelLoader {
     return selection;
   }
 
-  /** The parent row reloaded with what `info`'s field needs, and the field's mapping in that load. */
-  loadSelection(
-    info: GraphQLResolveInfo,
-    parent: object,
-  ): Promise<{ row: Row; mapping: Mapping | undefined }> {
+  /** The parent reloaded with what `info`'s field needs, as the field's copy of it. */
+  loadSelection(info: GraphQLResolveInfo, parent: object): Promise<object> {
     this.assertIdentity(info);
     // The selects of the field and those beneath it run here.
     const selection = this.cachedPlan(
@@ -161,14 +164,20 @@ export class ModelLoader {
         const row = markPlanned(withOtherKeys(reloaded!, parent, played.root.model), info);
         // The plan is walked from the parent type, so the field's own mapping is keyed by the
         // parent type and the field's response key.
-        const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
-        if (mapping) {
-          setRowFieldMapping(this.context, info, mapping, row);
-        }
-        return { row, mapping };
+        // A reload plans its field first, onto a level that loads nothing yet, so the field always
+        // fits, has a mapping and holds what it planned.
+        const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`]!;
+        setRowFieldMapping(this.context, info, mapping, row);
+        return fieldCopy(
+          row,
+          played.root.model,
+          typeNested(info.parentType),
+          mapping.position!,
+          executionKey(info),
+        )!;
       });
     };
-    return completeValue(selection, load) as Promise<{ row: Row; mapping: Mapping | undefined }>;
+    return completeValue(selection, load) as Promise<object>;
   }
 
   /**

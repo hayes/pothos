@@ -600,14 +600,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // no fields beneath it to record nested mappings for, so such a field looks up no mapping.
     const returnKind = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type)).kind;
     const needsMapping = !columnsOnly || (returnKind !== 'Scalar' && returnKind !== 'Enum');
-    const parentFor = (
-      row: object,
-      mapping: Mapping | null | undefined,
-      info: GraphQLResolveInfo,
-    ) =>
-      mapping?.position
-        ? fieldCopy(row, model, nested, mapping.position, executionKey(info))
-        : typeCopy(row, model, nested, executionKey(info));
     return (value, args, context, info) => {
       const row = value as object;
       let mapping: Mapping | null = null;
@@ -623,7 +615,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       // A plan that loaded the parent planned the field into it, unless the parent holds another
       // field's rows.
       if (mapping) {
-        const parent = parentFor(row, mapping, info);
+        const parent = mapping.position
+          ? fieldCopy(row, model, nested, mapping.position, executionKey(info))
+          : typeCopy(row, model, nested, executionKey(info));
         if (parent) {
           setRowMappings(context, info, mapping.nested);
           return resolver(parent, args, context, info);
@@ -638,9 +632,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         );
       }
       return reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, row)).then(
-        // A reload plans the field, so the reloaded row holds what it planned.
-        (reloaded) =>
-          resolver(parentFor(reloaded.row, reloaded.mapping, info)!, args, context, info),
+        (parent) => resolver(parent, args, context, info),
       );
     };
   }
