@@ -225,6 +225,38 @@ describe('rows a resolver returns', () => {
     expect(published.statements).toHaveLength(1);
   });
 
+  it('reloads rows another plan loaded without what its nested select includes', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        postCount: t.int({ select: { posts: true }, resolve: (user) => user.posts.length }),
+        postAuthors: t.stringList({
+          select: { posts: { select: { author: true } } },
+          resolve: (user) => user.posts.map((post) => post.author.firstName),
+        }),
+      }),
+    });
+    let cached: Promise<unknown> | undefined;
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: 'User',
+          // Each alias gets the row the first one's plan loaded.
+          resolve: (users) => {
+            cached ??= users.where({ id: 'u-alice' }).first();
+            return cached as never;
+          },
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ a: user { postCount } b: user { postAuthors } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ a: { postCount: 2 }, b: { postAuthors: ['Alice', 'Alice'] } });
+  });
+
   describe('executions sharing a context', () => {
     const document = parse(
       'query ($published: Int!, $late: Boolean!) { post(late: $late) { author { posts(published: $published) { id } } } }',

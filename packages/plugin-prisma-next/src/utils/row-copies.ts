@@ -316,8 +316,8 @@ export function fieldCopy(
     // A load of a whole relation, and a to-one relation's row, sit on the row unbranched, where
     // any field loading them reads them.
     const row = (held?.row ?? base) as Row;
-    for (const [name, whole] of ownLoads.get(position) ?? []) {
-      if (!whole || held?.slots.relations[name] || row[name] === undefined) {
+    for (const [name, beneath] of ownLoads.get(position) ?? []) {
+      if (!beneath || held?.slots.relations[name] || !holds(row[name], beneath)) {
         return undefined;
       }
     }
@@ -336,30 +336,57 @@ export function fieldCopy(
   });
 }
 
+/** The to-one relations a load includes beneath its rows, each with those beneath it. */
+type ToOneLoads = ReadonlyMap<string, ToOneLoads>;
+
+/** The to-one relations `selection` includes, as keyed by their names. */
+function toOneLoads({ relations = {} }: PrismaNextSelection): ToOneLoads {
+  return new Map(
+    Object.entries(relations)
+      .filter(([key]) => relationName(key) === key)
+      .map(([key, child]) => [key, toOneLoads(child)]),
+  );
+}
+
+/** Whether `value`, a relation's rows or row, holds the to-one relations `loads` includes. */
+function holds(value: unknown, loads: ToOneLoads): boolean {
+  if (value === undefined) {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return value.every((row) => holds(row, loads));
+  }
+  return (
+    value === null || [...loads].every(([name, beneath]) => holds((value as Row)[name], beneath))
+  );
+}
+
 /**
- * The relations each field loads rows or computed values of: `true` when it loads only the
- * relation's whole rows, or a to-one relation's row.
+ * The relations each field loads rows or computed values of: for a load of the relation's whole
+ * rows, or a to-one relation's row, the to-one relations it includes beneath them, which rows
+ * another plan loaded may lack. `false` for any other load.
  */
-const ownLoads = new WeakMap<Position, ReadonlyMap<string, boolean>>();
+const ownLoads = new WeakMap<Position, ReadonlyMap<string, ToOneLoads | false>>();
 
 /** Records what `selection`, the selection of the field at `position`, loads of its own. */
 export function registerOwnLoads(position: Position, selection: PrismaNextSelection) {
   const id = consumerId(position);
-  let loads: Map<string, boolean> | undefined;
+  let loads: Map<string, ToOneLoads | false> | undefined;
   // A to-one relation is keyed by its name. A field planning fields beneath it on its parent's
   // row, as `t.variant` does, also returns their branches, which aren't its own.
-  const add = (key: string, whole: boolean) => {
+  const add = (key: string, child?: PrismaNextSelection) => {
     const name = relationName(key);
     if (name === key || consumerOfKey(key) === id) {
+      const whole = child && (name === key || loadsWholeRelation(child)) && toOneLoads(child);
       loads ??= new Map();
-      loads.set(name, (loads.get(name) ?? true) && (name === key || whole));
+      loads.set(name, loads.get(name) === false ? false : (whole ?? false));
     }
   };
   for (const [key, child] of Object.entries(selection.relations ?? {})) {
-    add(key, loadsWholeRelation(child));
+    add(key, child);
   }
   for (const key of Object.keys(selection.computed ?? {})) {
-    add(key, false);
+    add(key);
   }
   if (loads) {
     ownLoads.set(position, loads);
