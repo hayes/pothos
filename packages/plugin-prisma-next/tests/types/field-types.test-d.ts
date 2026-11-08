@@ -198,6 +198,30 @@ builder.prismaObject('Post', {
   fields: () => ({}),
 });
 builder.prismaObject('Post', {
+  variant: 'PostBadDirection',
+  // @ts-expect-error `up` isn't a direction
+  select: { comments: { orderBy: { id: 'up' } } },
+  fields: (t) => ({
+    selected: t.string({
+      // @ts-expect-error `up` isn't a direction
+      select: { comments: { orderBy: { id: 'up' } } },
+      resolve: () => '',
+    }),
+    nested: t.string({
+      // @ts-expect-error `up` isn't a direction
+      select: (_args, _ctx, nestedSelection) => ({
+        comments: nestedSelection({ orderBy: { id: 'up' }, path: [] }),
+      }),
+      resolve: () => '',
+    }),
+    returned: t.string({
+      // @ts-expect-error `up` isn't a direction
+      select: () => ({ comments: { orderBy: { id: 'up' } } }),
+      resolve: () => '',
+    }),
+  }),
+});
+builder.prismaObject('Post', {
   variant: 'PostBadTypeOrdering',
   // @ts-expect-error `nope` isn't a column of Comment
   select: { comments: { orderBy: (comment) => comment.nope.asc() } },
@@ -274,7 +298,7 @@ builder.queryFields((t) => {
 // An array's unknown column is checked against the column names.
 type UserShape = ObjectBaseShape<Types, 'User'>;
 expectTypeOf<ValidateFieldSelect<Types, UserShape, readonly ['frstName']>>().toEqualTypeOf<
-  readonly ['id' | 'firstName' | 'lastName' | 'email']
+  readonly ('id' | 'firstName' | 'lastName' | 'email')[]
 >();
 builder.prismaObject('User', {
   variant: 'ArraySelectTypo',

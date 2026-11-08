@@ -322,8 +322,8 @@ type UnknownQueryKeys<Literal, Known extends PropertyKey> = Exclude<
  * A `query` of a root field or connection: a literal, or a callback of the args and context
  * returning one. `Literal` is inferred, which leaves the callback's `args` typed, and checked for
  * unknown keys and `orderBy` columns, which a callback's result gets no excess property check for.
- * The check sits beside the whole option so it fails for a literal and a callback alike; beside
- * `Literal` it stops TS 5.9 and 6 inferring it.
+ * The check sits beside the whole option, since beside `Literal` it stops TS 5.9 and 6 inferring
+ * it, and takes the option's form, so a callback's error names the key rather than the callback.
  */
 export type QueryOption<
   Types extends SchemaTypes,
@@ -331,8 +331,16 @@ export type QueryOption<
   ArgsShape,
   Literal,
   Known extends PropertyKey,
+  Check = QueryLiteralCheck<Types, M, Literal, Known>,
 > = (Literal | ((args: ArgsShape, context: Types['Context']) => Literal | undefined)) &
-  NoInfer<ExactQueryLiteral<Literal, Known> & OrderByColumnsCheck<Types, M, Literal>>;
+  NoInfer<Check | ((args: ArgsShape, context: Types['Context']) => Check | undefined)>;
+
+type QueryLiteralCheck<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  Literal,
+  Known extends PropertyKey,
+> = ExactQueryLiteral<Literal, Known> & OrderByColumnsCheck<Types, M, Literal>;
 
 /**
  * What a `prismaField`'s `query` takes, as a to-many relation's does. An alias rather than an

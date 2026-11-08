@@ -71,7 +71,12 @@ type FieldSelectColumn<Types extends SchemaTypes, ParentShape> =
  */
 type FieldSelectArray<Types extends SchemaTypes, ParentShape> =
   | readonly []
-  | readonly [FieldSelectColumn<Types, ParentShape>, ...FieldSelectColumn<Types, ParentShape>[]];
+  | readonly [FieldSelectEntry<Types, ParentShape>, ...FieldSelectEntry<Types, ParentShape>[]];
+
+/** A column, or any string, so an unknown one is reported by the check with its suggestions. */
+type FieldSelectEntry<Types extends SchemaTypes, ParentShape> =
+  | FieldSelectColumn<Types, ParentShape>
+  | (string & {});
 
 /**
  * A column array, a `select` object, or a function of the args, the context and `nestedSelection`
@@ -579,7 +584,7 @@ type SelectMirror<
 > = S extends (...args: never[]) => unknown
   ? never
   : S extends readonly unknown[]
-    ? { readonly [I in keyof S]: keyof Row<Types, M> & string }
+    ? readonly (keyof Row<Types, M> & string)[]
     : S extends object
       ? {
           readonly [K in keyof S]: [NonNullable<S[K]>] extends [never]
@@ -634,7 +639,8 @@ type EntryMirror<
         : never
       : E extends (...args: never[]) => unknown
         ? [Level, IsToMany<Types, M, K>] extends ['type', unknown] | [unknown, false]
-          ? never
+          ? // Not `never`, which would fail the whole `select` rather than the entry.
+            true
           : AggregateSelect<Types, M, K>
         : E extends object
           ? EntryOptionsMirror<
@@ -684,7 +690,7 @@ type EntryOptionsMirror<
         : P extends 'where'
           ? ColumnsMirror<E[P], keyof Row<Types, Target>>
           : P extends 'orderBy'
-            ? ColumnsMirror<E[P], keyof RelationOrderBy<Types, TM>>
+            ? OrderByMirror<NonNullable<E[P]>, RelationOrderBy<Types, TM>>
             : P extends 'limit' | 'offset'
               ? number | undefined
               : P extends 'type'
@@ -693,11 +699,26 @@ type EntryOptionsMirror<
       : never;
 };
 
-/** A literal `where` or declared `orderBy` with the columns outside `Columns` as `never`. */
+/** A literal `where` with the columns outside `Columns` as `never`. */
 type ColumnsMirror<V, Columns> =
-  NonNullable<V> extends ((...args: never[]) => unknown) | readonly unknown[]
+  NonNullable<V> extends (...args: never[]) => unknown
     ? unknown
     : { readonly [C in keyof NonNullable<V>]: C extends Columns ? unknown : never };
+
+/**
+ * A declared `orderBy` with each column it can't order by, or whose value `Decl` rejects, as
+ * `never`. Values are compared rather than intersected, since `'up' & { direction?: ... }` accepts
+ * `'up'`. The ORM's selectors pass.
+ */
+type OrderByMirror<V, Decl> = V extends ((...args: never[]) => unknown) | readonly unknown[]
+  ? unknown
+  : {
+      readonly [C in keyof V]: C extends keyof Decl
+        ? V[C] extends Decl[C]
+          ? unknown
+          : never
+        : never;
+    };
 
 /**
  * Names a relation entry whose rows are of a model relation `K` doesn't load: a `type` or a
