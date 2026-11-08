@@ -228,6 +228,65 @@ builder.prismaObject('Post', {
   fields: () => ({}),
 });
 
+builder.prismaObject('Post', {
+  variant: 'PostBadOrderByForm',
+  // @ts-expect-error `orderBy` takes a declaration or selectors, not column names
+  select: { comments: { orderBy: ['id'] } },
+  fields: (t) => ({
+    names: t.string({
+      // @ts-expect-error `orderBy` takes a declaration or selectors, not column names
+      select: { comments: { orderBy: ['id'] } },
+      resolve: () => '',
+    }),
+    name: t.string({
+      // @ts-expect-error `orderBy` takes a declaration or selectors, not a column name
+      select: { comments: { orderBy: 'id' } },
+      resolve: () => '',
+    }),
+    numbers: t.string({
+      // @ts-expect-error a selector array holds selectors
+      select: { comments: { orderBy: [1] } },
+      resolve: () => '',
+    }),
+    declarations: t.string({
+      // @ts-expect-error a selector array holds selectors, not declarations
+      select: { comments: { orderBy: [{ id: 'asc' }] } },
+      resolve: () => '',
+    }),
+    notAnItem: t.string({
+      // @ts-expect-error a selector returns an ordering, not a column
+      select: { comments: { orderBy: (comment) => comment.id } },
+      resolve: () => '',
+    }),
+    returned: t.string({
+      // @ts-expect-error `orderBy` takes a declaration or selectors, not column names
+      select: () => ({ comments: { orderBy: ['id'] } }),
+      resolve: () => '',
+    }),
+    nested: t.string({
+      // @ts-expect-error `orderBy` takes a declaration or selectors, not column names
+      select: (_args, _ctx, nestedSelection) => ({
+        comments: nestedSelection({ orderBy: ['id'], path: [] }),
+      }),
+      resolve: () => '',
+    }),
+    badWhere: t.string({
+      // @ts-expect-error a `where` predicate returns a condition
+      select: { comments: { where: (_comment) => 5 } },
+      resolve: () => '',
+    }),
+    whereAccessor: t.string({
+      // @ts-expect-error a predicate's accessor has only Comment's columns
+      select: { comments: { where: (comment) => comment.nope.eq('x') } },
+      resolve: () => '',
+    }),
+    goodWhere: t.string({
+      select: { comments: { where: (comment) => comment.id.eq('x') } },
+      resolve: () => '',
+    }),
+  }),
+});
+
 // The FieldRefs relation and connection fields return carry the rows they load.
 builder.prismaObject('Post', {
   variant: 'PostRefs',

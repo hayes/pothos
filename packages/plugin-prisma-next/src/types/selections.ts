@@ -38,6 +38,7 @@ import type {
   RelationFieldShape,
   RelationQueryLiteral,
   RelationTypeModel,
+  RelationWhere,
 } from './relations.js';
 
 /**
@@ -688,9 +689,13 @@ type EntryOptionsMirror<
       ? P extends 'select'
         ? SelectMirror<Types, TM, NonNullable<E[P]>, Level>
         : P extends 'where'
-          ? ColumnsMirror<E[P], keyof Row<Types, Target>>
+          ? ColumnsMirror<NonNullable<E[P]>, keyof Row<Types, Target>, RelationWhere<Types, Target>>
           : P extends 'orderBy'
-            ? OrderByMirror<NonNullable<E[P]>, RelationOrderBy<Types, TM>>
+            ? OrderByMirror<
+                NonNullable<E[P]>,
+                RelationOrderBy<Types, TM>,
+                RelationOrderSelector<Types, Target>
+              >
             : P extends 'limit' | 'offset'
               ? number | undefined
               : P extends 'type'
@@ -699,26 +704,29 @@ type EntryOptionsMirror<
       : never;
 };
 
-/** A literal `where` with the columns outside `Columns` as `never`. */
-type ColumnsMirror<V, Columns> =
-  NonNullable<V> extends (...args: never[]) => unknown
-    ? unknown
-    : { readonly [C in keyof NonNullable<V>]: C extends Columns ? unknown : never };
+/** A `where`: the ORM's predicate, or a literal with the columns outside `Columns` as `never`. */
+type ColumnsMirror<V, Columns, Where> = V extends (...args: never[]) => unknown
+  ? Extract<Where, (...args: never[]) => unknown>
+  : { readonly [C in keyof V]: C extends Columns ? unknown : never };
 
 /**
- * A declared `orderBy` with each column it can't order by, or whose value `Decl` rejects, as
- * `never`. Values are compared rather than intersected, since `'up' & { direction?: ... }` accepts
- * `'up'`. The ORM's selectors pass.
+ * An `orderBy`: the ORM's selectors, or a declaration with each column it can't order by, or whose
+ * value `Decl` rejects, as `never`. Values are compared rather than intersected, since
+ * `'up' & { direction?: ... }` accepts `'up'`.
  */
-type OrderByMirror<V, Decl> = V extends ((...args: never[]) => unknown) | readonly unknown[]
-  ? unknown
-  : {
-      readonly [C in keyof V]: C extends keyof Decl
-        ? V[C] extends Decl[C]
-          ? unknown
-          : never
-        : never;
-    };
+type OrderByMirror<V, Decl, Selector> = V extends (...args: never[]) => unknown
+  ? Selector
+  : V extends readonly unknown[]
+    ? readonly Selector[]
+    : V extends object
+      ? {
+          readonly [C in keyof V]: C extends keyof Decl
+            ? V[C] extends Decl[C]
+              ? unknown
+              : never
+            : never;
+        }
+      : never;
 
 /**
  * Names a relation entry whose rows are of a model relation `K` doesn't load: a `type` or a
