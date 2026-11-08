@@ -1,3 +1,4 @@
+import { infoAt } from '@pothos/test-utils';
 import type { GraphQLField, GraphQLNamedType, GraphQLResolveInfo } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import type { Position, SelectFn, WalkedType } from '../src';
@@ -7,7 +8,6 @@ import {
   createSchema,
   FakeAdapter,
   type FakeMap,
-  infoAt,
   mappingOf,
   mappingsOf,
   queryFromInfo,

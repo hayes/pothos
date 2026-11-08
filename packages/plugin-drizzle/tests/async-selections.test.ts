@@ -6,7 +6,7 @@ import SchemaBuilder, {
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { getLoaderMapping } from '@pothos/selection-mapper';
-import { execute } from '@pothos/test-utils';
+import { execute, infoAt } from '@pothos/test-utils';
 import { eq } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import type { DocumentNode, GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
@@ -68,17 +68,6 @@ const builder = new SchemaBuilder<{
 });
 
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 1));
-
-/** The info of the field at `keys` in the execution `info` is from. */
-function infoAt(info: GraphQLResolveInfo | undefined, ...keys: (string | number)[]) {
-  let path: GraphQLResolveInfo['path'] | undefined;
-
-  for (const key of keys) {
-    path = { prev: path, key, typename: undefined };
-  }
-
-  return { ...info!, path: path! };
-}
 
 const Comment = builder.drizzleObject('comments', {
   name: 'Comment',
@@ -470,7 +459,7 @@ describe('async selections', () => {
     ]);
     expect(result.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
     expect(context.info).toBeDefined();
-    expect(getLoaderMapping(context, infoAt(context.info, 'user', 'discardedPosts'), 'User')).toBe(
+    expect(getLoaderMapping(context, infoAt(context.info!, 'user', 'discardedPosts'), 'User')).toBe(
       null,
     );
 
@@ -480,7 +469,7 @@ describe('async selections', () => {
     expect(
       getLoaderMapping(
         settled.context,
-        infoAt(settled.context.info, 'user', 'discardedPosts'),
+        infoAt(settled.context.info!, 'user', 'discardedPosts'),
         'User',
       ),
     ).not.toBe(null);

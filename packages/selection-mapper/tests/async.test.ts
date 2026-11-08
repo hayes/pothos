@@ -1,11 +1,11 @@
 import { completeValue, isThenable } from '@pothos/core';
+import { infoAt } from '@pothos/test-utils';
 import type { GraphQLObjectType } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import { getLoaderMapping, Plan } from '../src';
 import {
   type FakeAdapter,
   type FakeMap,
-  infoAt,
   mappingOf,
   mappingsOf,
   queryFromInfo,
