@@ -5,7 +5,7 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
-import type { PathSegment, SelectedFieldNode } from '@pothos/selection-mapper';
+import type { PathSegment } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from './interface-ref.js';
 import type { PlannedRowBrand, PrismaNextObjectRef } from './object-ref.js';
@@ -39,13 +39,13 @@ import {
 import { getPluginConfig } from './utils/config.js';
 import { CONNECTION_NODE_PATHS, connectionPaging } from './utils/connections.js';
 import { variantForRelationType } from './utils/contract.js';
-import { buildConnectionPage, type ConnectionPage } from './utils/cursors.js';
+import type { ConnectionPage } from './utils/cursors.js';
 import { type FieldLoads, fieldLoads, keyOf, type LoadRef, refOf } from './utils/loads.js';
-import { initialSelection, nestedFromInfo } from './utils/map-query.js';
+import { nestedFromInfo } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
-import { PAGE, type PageData, parseRow, viewOf } from './utils/rows.js';
-import { appliesCursors, EMPTY, type PrismaNextSelection } from './utils/selections.js';
+import { PAGE, type PageData } from './utils/rows.js';
+import { EMPTY, type PrismaNextSelection } from './utils/selections.js';
 
 type ConnectionArgs<Args extends InputFieldMap> = InputShapeFromFields<Args> &
   PothosSchemaTypes.DefaultConnectionArguments;
@@ -158,18 +158,6 @@ type HelperPage<Node, PageRow, MaybeRow extends boolean> = [Node] extends [never
     : Omit<ConnectionPage<Node>, 'edges'> & {
         edges: (Omit<PageRow, 'node' | 'cursor'> & { node: Node; cursor: string })[];
       };
-
-/**
- * The names selected on a connection at `prefix` beneath its field. Only `totalCount` is looked up
- * there, so the page always loads rows.
- */
-function selectedBeneath(selected: SelectedFieldNode, prefix: string[]) {
-  const names = new Set(['edges']);
-  if (selected([...prefix, 'totalCount'])) {
-    names.add('totalCount');
-  }
-  return () => names;
-}
 
 export interface PrismaNextConnectionHelpers<
   Types extends SchemaTypes,
@@ -381,34 +369,25 @@ export function prismaConnectionHelpers<
           seed,
         );
       const connectionArgs = prefix.length ? field.selected.args(prefix) : fieldArgs;
+      // Beneath the field, only `totalCount` is looked up, so the page always loads rows.
+      const names = prefix.length
+        ? new Set(field.selected([...prefix, 'totalCount']) ? ['edges', 'totalCount'] : ['edges'])
+        : field.selected();
       if (!connectionArgs) {
         return { selection: EMPTY };
       }
+      const variant = variantForRelationType(
+        config.contract,
+        subject,
+        relation.targetModel,
+        modelKey,
+      );
       return completeValue(connectionArgs, (args) =>
-        completeValue(
-          paging.planPage(
-            ctx,
-            owner,
-            relation,
-            name,
-            prefix.length ? selectedBeneath(field.selected, prefix) : field.selected,
-            args,
-            {
-              variant: variantForRelationType(
-                config.contract,
-                subject,
-                relation.targetModel,
-                modelKey,
-              ),
-              filtered: true,
-              rows: (seed) => pageRows(seed, nodes, args, ctx),
-            },
-          ),
-          ({ selection, rows, count }) => ({
-            selection,
-            ref: count ? { ...rows, count } : rows,
-          }),
-        ),
+        paging.pageLoads(ctx, owner, relation, name, args, names, {
+          variant,
+          filtered: true,
+          rows: (seed) => pageRows(seed, nodes, args, ctx),
+        }),
       );
     };
 
@@ -438,47 +417,25 @@ export function prismaConnectionHelpers<
       ctx: object,
       info: GraphQLResolveInfo,
     ) {
-      let loads: FieldLoads | undefined;
-      const { rows, totalCount } = await paging.loadPage(
+      const nodes = nestedFromInfo(info, config, ctx, CONNECTION_NODE_PATHS);
+      const { rows, totalCount } = await paging.rootPage(
         collection,
         undefined,
         args,
         ctx,
         info,
-        (paged, seed) =>
-          completeValue(
-            pageRows(
-              initialSelection(config.contract, modelKey, seed),
-              nestedFromInfo(info, config, ctx, CONNECTION_NODE_PATHS),
-              args,
-              ctx,
-            ),
-            ({ selection, beneath }) => {
-              loads = beneath;
-              return {
-                query: config.adapter.emit(paged, selection, model),
-                cursors: appliesCursors(selection),
-              };
-            },
-          ),
+        (seed) => pageRows(seed, nodes, args, ctx),
       );
       // `resolve` pages the rows from (args, ctx), so they only carry the count.
-      return Object.assign(
-        loads?.view ? rows.map((row) => viewOf(parseRow(row, model), loads!)) : rows,
-        { [PAGE]: { count: totalCount } satisfies PageData },
-      );
+      return Object.assign(rows, { [PAGE]: { count: totalCount } satisfies PageData });
     },
     resolve(
       rows: readonly Record<string, unknown>[],
       args: PothosSchemaTypes.DefaultConnectionArguments,
       ctx: object,
-      { parent, totalCount }: ConnectionHelperResolveOptions = {},
+      options: ConnectionHelperResolveOptions = {},
     ) {
-      // Only the list `getQuery` or `load` loaded carries its count.
-      const page = buildConnectionPage(rows, paging.pagingPlan(args, ctx), args, {
-        totalCount: totalCount ?? (rows as { [PAGE]?: PageData })[PAGE]?.count,
-        parent,
-      });
+      const page = paging.page(rows, args, ctx, options);
       if (!resolveNode) {
         return page;
       }

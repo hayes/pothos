@@ -104,7 +104,7 @@ export interface LoadRef {
   readonly id?: number;
   /** The loads a nested `select` writes on the rows, which the field's view reads. */
   readonly beneath?: FieldLoads;
-  /** A connection helper's page's count. */
+  /** A connection page's count. */
   readonly count?: LoadRef;
   /**
    * Set for a load the field didn't plan because its selection didn't need it. Another field node
@@ -119,8 +119,6 @@ export interface FieldLoads {
   readonly model: PrismaNextModel;
   /** Whether the field reads a view of the parent with its loads under their names. */
   readonly view: boolean;
-  /** A `t.relatedConnection`'s paging. */
-  readonly plan?: unknown;
 }
 
 /** The load of relation `relation` every reader of `model`'s rows reads under its name. */
@@ -180,6 +178,7 @@ export function setOwnLoads(path: object, loads: FieldLoads | undefined) {
   }
 }
 
-export function ownLoads(path: object): FieldLoads | undefined {
-  return executing.get(path);
+/** The load of `t.relation`, `relationCount` or `t.relatedConnection` executing for `info`. */
+export function ownRef(info: { path: object }): LoadRef | undefined {
+  return executing.get(info.path)?.refs[0];
 }

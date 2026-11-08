@@ -1,8 +1,7 @@
 import { brandWithType, getTypeBrand } from '@pothos/core';
-import type { GraphQLResolveInfo } from 'graphql';
 import type { SplitSelect } from './compile-select.js';
 import { InternalError } from './errors.js';
-import { type FieldLoads, type LoadKind, type LoadRef, ownLoads } from './loads.js';
+import type { FieldLoads, LoadRef } from './loads.js';
 import type { PrismaNextModel } from './model.js';
 
 /*
@@ -121,12 +120,6 @@ export function readLoad(row: object, { load, id }: LoadRef): unknown {
   return id === undefined
     ? (row as Row)[load.relation]
     : (row as Holder)[BRANCHES]?.loads[load.relation]?.[id];
-}
-
-/** What the field `info` resolves loaded of `kind` on `parent` (see `setOwnLoads`). */
-export function readOwn(info: GraphQLResolveInfo, parent: object, kind: LoadKind): unknown {
-  const ref = ownLoads(info.path)?.refs.find((own) => own.load.kind === kind);
-  return ref && readLoad(parent, ref);
 }
 
 /** The ORM row `row`, a parsed row, was copied from. */

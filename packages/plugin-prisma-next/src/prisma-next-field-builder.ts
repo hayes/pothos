@@ -57,10 +57,10 @@ import {
 import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
 import { orderableProblem } from './utils/cursors.js';
 import { checkReturned } from './utils/errors.js';
-import { keyOf, queryLoad, record, refOf } from './utils/loads.js';
+import { keyOf, ownRef, queryLoad, record, refOf } from './utils/loads.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { refFor } from './utils/refs.js';
-import { readOwn } from './utils/rows.js';
+import { readLoad } from './utils/rows.js';
 import { COMPUTE, type PrismaNextSelectFn } from './utils/selections.js';
 
 type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
@@ -399,7 +399,7 @@ export class PrismaNextObjectFieldBuilder<
         [PRISMA_NEXT_RELATION_ROWS]: { name: relationName, type: targetRef },
       },
       resolve: (parent: object, args: object, context: object, info: GraphQLResolveInfo) => {
-        const rows = readOwn(info, parent, 'rows') as Record<string, unknown> | null | undefined;
+        const rows = readLoad(parent, ownRef(info)!) as Record<string, unknown> | null | undefined;
         // A variant type filters out a to-one relation's row of another variant.
         if (rows == null || (discriminator !== undefined && rows[discriminator] !== variant)) {
           return typeof onNull === 'function' ? onNull(parent, args, context, info) : null;
@@ -467,7 +467,7 @@ export class PrismaNextObjectFieldBuilder<
         [PRISMA_NEXT_FIELD_SELECTION]: select,
       },
       resolve: (parent: object, _args: object, _context: object, info: GraphQLResolveInfo) =>
-        readOwn(info, parent, 'count'),
+        readLoad(parent, ownRef(info)!),
     } as never) as never;
   }
 
@@ -567,34 +567,22 @@ export class PrismaNextObjectFieldBuilder<
     const paging = connectionPaging(
       config,
       variant === undefined ? relatedModel : targetRef.modelKey,
-      {
-        defaultSize,
-        maxSize,
-        totalCount,
-        query,
-      },
+      { defaultSize, maxSize, totalCount, query },
     );
     const include = connectionNodes(targetRef.name);
-    const filtered = config.filterConnectionTotalCount;
     const model = getModel(config.contract, this.modelKey as string);
     const select: PrismaNextSelectFn = (args, ctx, nested, selected, position) =>
       completeValue(
-        paging.planPage(ctx, model, relation, name, selected, args, {
+        paging.pageLoads(ctx, model, relation, name, args, selected(), {
           variant,
-          filtered,
+          filtered: config.filterConnectionTotalCount,
           rows: (seed) => completeValue(nested(seed, include), (selection) => ({ selection })),
         }),
-        ({ selection, rows, count, plan }) => {
-          record(position, {
-            refs: count ? [rows, count] : [rows],
-            model,
-            view: false,
-            plan,
-          });
+        ({ selection, ref }) => {
+          record(position, { refs: [ref], model, view: false });
           return selection;
         },
       );
-
     const connectionConfig = {
       ...rest,
       type: targetRef,
@@ -604,12 +592,7 @@ export class PrismaNextObjectFieldBuilder<
         [PRISMA_NEXT_FIELD_SELECTION]: select,
         [PRISMA_NEXT_RELATION_ROWS]: { name, type: targetRef },
       },
-      resolve: (
-        parent: object,
-        args: PothosSchemaTypes.DefaultConnectionArguments,
-        context: object,
-        info: GraphQLResolveInfo,
-      ) => paging.relationPage(parent, args, context, info),
+      resolve: paging.ownPage,
     };
     return (
       this as typeof this & {

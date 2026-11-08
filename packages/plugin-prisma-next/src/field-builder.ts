@@ -1,4 +1,5 @@
 import {
+  completeValue,
   type FieldKind,
   type InputFieldMap,
   type MaybePromise,
@@ -20,7 +21,7 @@ import {
 } from './utils/connections.js';
 import { buildConnectionPage, orderableProblem, readPage } from './utils/cursors.js';
 import { checkReturned, fieldInternalError } from './utils/errors.js';
-import { applySelectionToCollection } from './utils/map-query.js';
+import { applySelectionToCollection, nestedFromInfo } from './utils/map-query.js';
 import { type AnyRef, refFor } from './utils/refs.js';
 
 type FieldResolver = (...args: unknown[]) => unknown;
@@ -153,52 +154,33 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   edgeOptions: object = {},
 ) {
   const { type, defaultSize, maxSize, collection, totalCount, query, ...rest } =
-    options as ConnectionSettingsOptions & {
-      type: unknown;
-      collection?: (
-        parent: unknown,
-        args: unknown,
-        ctx: unknown,
-        info: GraphQLResolveInfo,
-      ) => MapperCollection | null | Promise<MapperCollection | null>;
-      [k: string]: unknown;
-    };
+    options as ConnectionSettingsOptions & { type: unknown; collection?: FieldResolver };
   const ref = refFor(this.builder, type);
   const config = getPluginConfig(this.builder);
   const modelKey = ref.modelKey as string;
   const paging = connectionPaging(config, modelKey, { defaultSize, maxSize, totalCount, query });
-
+  const resolve = async (
+    parent: unknown,
+    args: PothosSchemaTypes.DefaultConnectionArguments,
+    context: object,
+    info: GraphQLResolveInfo,
+  ) => {
+    const source = (
+      collection
+        ? await collection(parent, args, context, info)
+        : config.typeCollection(context, modelKey)
+    ) as MapperCollection | null;
+    if (source == null) {
+      return null;
+    }
+    const nodes = nestedFromInfo(info, config, context, CONNECTION_NODE_PATHS);
+    const page = await paging.rootPage(source, parent, args, context, info, (seed) =>
+      completeValue(nodes(seed), (selection) => ({ selection })),
+    );
+    return buildConnectionPage(page.rows, page.plan, args, { totalCount: page.totalCount, parent });
+  };
   return this.connection(
-    {
-      ...(rest as object),
-      type: ref,
-      resolve: (async (
-        parent: unknown,
-        args: PothosSchemaTypes.DefaultConnectionArguments,
-        context: object,
-        info: GraphQLResolveInfo,
-      ) => {
-        const userCollection = collection
-          ? await collection(parent, args, context, info)
-          : config.typeCollection(context, modelKey);
-        if (userCollection == null) {
-          return null;
-        }
-        const { rows, plan, totalCount } = await paging.loadPage(
-          userCollection,
-          parent,
-          args,
-          context,
-          info,
-          (paged, seed) =>
-            applySelectionToCollection(paged, modelKey, info, config, context, {
-              paths: CONNECTION_NODE_PATHS,
-              seed,
-            }),
-        );
-        return buildConnectionPage(rows, plan, args, { totalCount, parent });
-      }) as never,
-    } as never,
+    { ...rest, type: ref, resolve } as never,
     paging.connectionOptions(connectionOptions),
     edgeOptions,
   );

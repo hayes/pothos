@@ -26,11 +26,6 @@ interface PlanTarget {
   typeName?: string;
 }
 
-interface ApplySelectionOptions extends PlanTarget {
-  /** What the root loads whatever is selected, such as cursor columns. */
-  seed?: PrismaNextSelection;
-}
-
 /**
  * The query for the selection of the field `info` resolves, or of what `paths` lead to, with the
  * mappings its resolvers read recorded. Undefined when nothing is selected under `paths`. Returns a
@@ -125,11 +120,10 @@ export function applySelectionToCollection(
   info: GraphQLResolveInfo,
   config: PrismaNextConfig,
   context: object,
-  { seed = EMPTY, ...target }: ApplySelectionOptions = {},
 ): MaybePromise<PlannedQuery> {
   const model = getModel(config.contract, modelKey);
-  const initial = initialSelection(config.contract, modelKey, seed);
-  return completeValue(planSelection(info, config, context, target, initial), (planned) => {
+  const initial = initialSelection(config.contract, modelKey, EMPTY);
+  return completeValue(planSelection(info, config, context, {}, initial), (planned) => {
     const selection = planned?.selection ?? initial;
     return {
       query: config.adapter.emit(collection, selection, planned?.model ?? model),
