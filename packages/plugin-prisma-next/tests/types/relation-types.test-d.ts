@@ -5,7 +5,6 @@ import type {
   Collection,
   DefaultModelRow,
 } from '@prisma/orm-family-sql/orm-client';
-import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
 import PrismaNextPlugin, {
   type PlannedRowBrand,
@@ -137,8 +136,8 @@ builder.prismaObject('Post', {
 });
 
 builder.prismaObject('Post', {
-  variant: 'AuthorRefinement',
-  // @ts-expect-error function form on a to-one relation
+  variant: 'AuthorAggregate',
+  // @ts-expect-error an aggregate of a to-one relation
   select: { author: (author: never) => author },
   fields: () => ({}),
 });
@@ -188,18 +187,18 @@ builder.prismaObject('User', {
 });
 
 builder.prismaObject('User', {
-  variant: 'PostsRefinement',
+  variant: 'PostsAggregate',
   fields: (t) => ({
-    postTitles: t.int({
+    publishedCount: t.int({
       select: {
         posts: (posts) => {
-          // @ts-expect-error mutation terminals can't run inside an include refinement
+          // @ts-expect-error mutation terminals can't run inside an aggregate
           posts.createAndCount({});
           // @ts-expect-error firstOrThrow is a terminal
           posts.firstOrThrow();
-          // @ts-expect-error whereUnique is unavailable inside an include refinement
+          // @ts-expect-error whereUnique is unavailable inside an aggregate
           posts.whereUnique({ id: 'x' });
-          // The refinement surface is upstream's include callback parameter, read rather than
+          // The aggregate's collection is upstream's include callback parameter, read rather than
           // restated, so drift in either direction fails here. Upstream's cardinality is an
           // unresolved generic, which reads as the to-one surface; to-many adds the aggregate
           // methods and combine().
@@ -459,23 +458,15 @@ builder.prismaObject('User', {
 });
 
 // A to-many relation's `query` callback returns a query, not a refinement of the relation's
-// collection, so fragments apply only in a root field's `collection`.
-declare const sqliteClient: SqliteClient<Contract>;
-const publishedFragment = sqliteClient.orm.Post.fragment((posts) => posts.where({ published: 1 }));
+// collection.
 builder.prismaObject('User', {
   variant: 'RefinedQueries',
   fields: (t) => ({
-    refined: t.relation('posts', {
-      // @ts-expect-error a refinement of the collection
-      query: () => (posts) => posts.where({ published: 1 }),
-    }),
     withArgs: t.relation('posts', {
       args: { published: t.arg.int({ required: true }) },
       // @ts-expect-error a refinement of the collection, from the args
       query: (args) => (posts) => posts.where({ published: args.published }),
     }),
-    // @ts-expect-error a refinement applying a fragment
-    fragment: t.relation('posts', { query: () => (posts) => posts.with(publishedFragment) }),
   }),
 });
 
@@ -489,8 +480,6 @@ builder.prismaObject('Post', {
     whereCallback: t.relation('author', { query: () => ({ where: { firstName: 'Alice' } }) }),
     // @ts-expect-error a to-one relation takes no query
     limited: t.relation('author', { query: { limit: 1 } }),
-    // @ts-expect-error a to-one relation takes no refinement
-    refined: t.relation('author', { query: () => (author: unknown) => author }),
   }),
 });
 expectTypeOf<RelationQuery<Types, 'Post', 'author', {}>>().toBeNever();

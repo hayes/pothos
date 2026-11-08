@@ -362,7 +362,7 @@ describe('many-to-many relations', () => {
     return builder.toSchema();
   }
 
-  it('loads an N:M relation and a refined alias of it in one statement', async () => {
+  it('loads an N:M relation and a filtered alias of it in one statement', async () => {
     const result = await run(schema(), '{ posts { title tags { name } graphqlTags { name } } }');
     expect(result.errors).toBeUndefined();
     expect(
@@ -794,7 +794,7 @@ describe('to-one consumers', () => {
     });
   });
 
-  it('keeps variant static refinements apart from the base type', async () => {
+  it('keeps variant static filters apart from the base type', async () => {
     const result = await run(
       schema({ staticFilters: true }),
       '{ posts { author { posts { id } view { posts { id } } } } }',

@@ -92,7 +92,7 @@ describe('many-to-many relations on Postgres', () => {
     await raw.end();
   });
 
-  it('loads an N:M relation and a refined alias of it in one statement', async () => {
+  it('loads an N:M relation and a filtered alias of it in one statement', async () => {
     statements = 0;
     const result = await graphql({
       schema: schema(),

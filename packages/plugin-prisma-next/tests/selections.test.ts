@@ -141,7 +141,7 @@ describe('field select forms', () => {
           },
           resolve: (user) => `${user.publishedCount}/${user.publishedSum}`,
         }),
-        refined: t.string({
+        filtered: t.string({
           select: { posts: { where: { published: 0 } } },
           resolve: (user) => user.posts.map((post) => post.title).join(', '),
         }),
@@ -171,7 +171,7 @@ describe('field select forms', () => {
     const result = await run(
       schema(),
       `{ users {
-        fromArray fromObject firstPostTitle latestTitle secondTitle published refined
+        fromArray fromObject firstPostTitle latestTitle secondTitle published filtered
         commentCount posts { title } informal: greeting(formal: false) formal: greeting(formal: true)
       } }`,
     );
@@ -184,7 +184,7 @@ describe('field select forms', () => {
         latestTitle: 'Hello, Pothos',
         secondTitle: 'Hello, Pothos',
         published: '1/1',
-        refined: 'Draft #1',
+        filtered: 'Draft #1',
         commentCount: 1,
         posts: [{ title: 'Hello, Pothos' }, { title: 'Draft #1' }],
         informal: 'Hi Alice',
@@ -304,7 +304,7 @@ describe('async selects', () => {
 
   it.each([
     ['a relation', '{ users { posts { asyncTitle } } }', { posts: [titles[0], titles[1]] }],
-    ['a refined relation', '{ users { drafts { asyncTitle } } }', { drafts: [titles[1]] }],
+    ['a filtered relation', '{ users { drafts { asyncTitle } } }', { drafts: [titles[1]] }],
     [
       'a variant',
       '{ users { admin { total asyncLastName posts { asyncTitle } } } }',

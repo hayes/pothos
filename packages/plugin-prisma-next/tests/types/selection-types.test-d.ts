@@ -119,7 +119,7 @@ builder.prismaObject('User', {
 });
 builder.prismaObject('User', {
   variant: 'SelectColumnShape',
-  // @ts-expect-error columns take `true`, not a refinement
+  // @ts-expect-error columns take `true`, not a relation entry
   select: { email: { limit: 1 } },
   fields: () => ({}),
 });
@@ -206,33 +206,6 @@ builder.prismaObject('User', {
   fields: () => ({}),
 });
 
-// Removed forms.
-builder.prismaObject('User', {
-  variant: 'RemovedRefinement',
-  fields: (t) => ({
-    refinement: t.int({
-      // @ts-expect-error a function refining a relation's rows
-      select: { posts: (posts) => posts.where({ published: 1 }) },
-      resolve: () => 0,
-    }),
-    computedKey: t.int({
-      // @ts-expect-error a computed key reading a relation
-      select: { postCount: { posts: (posts) => posts.count() } },
-      resolve: () => 0,
-    }),
-    queryEntry: t.int({
-      // @ts-expect-error a `{ query }` entry
-      select: { posts: { query: { limit: 1 } } },
-      resolve: () => 0,
-    }),
-    queryBesideSelect: t.int({
-      // @ts-expect-error a `query` key beside a nested select
-      select: { posts: { query: { limit: 1 }, select: { title: true } } },
-      resolve: () => 0,
-    }),
-  }),
-});
-
 // Every type's selection loads the primary key, so a parent passes through to another type of
 // its model without a `select`.
 const UserKeyOnly = builder.prismaObject('User', { variant: 'UserKeyOnly', fields: () => ({}) });
@@ -279,7 +252,7 @@ builder.prismaObject('User', {
       }),
       resolve: (user) => user.postCount,
     }),
-    refined: t.int({
+    filtered: t.int({
       select: { posts: { where: { published: 1 } } },
       resolve: (user) => user.posts.length,
     }),

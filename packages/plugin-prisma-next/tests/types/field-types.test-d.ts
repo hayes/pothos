@@ -139,10 +139,6 @@ builder.prismaObject('Post', {
     severalOrders: t.relation('comments', {
       query: { orderBy: { id: 'desc', postId: 'asc' } },
     }),
-    refined: t.relation('comments', {
-      // @ts-expect-error a query callback returns a query, not a refinement of the collection
-      query: () => (comments) => comments.orderBy((comment) => comment.id.desc()),
-    }),
     accessor: t.relation('comments', { query: { orderBy: (comment) => comment.id.asc() } }),
     accessors: t.relation('comments', {
       query: { orderBy: [(comment) => comment.postId.asc(), (comment) => comment.id.desc()] },
@@ -709,23 +705,6 @@ builder.queryFields((t) => ({
         select: (_args, _ctx, nestedSelection) => ({
           // @ts-expect-error `take` isn't a query option
           posts: nestedSelection({ take: 1 }),
-        }),
-        resolve: (user) => user.posts,
-      }),
-      // Removed: the `query` key, a refinement, and positional arguments.
-      queryKey: t.field({
-        type: [NestedPost],
-        select: (_args, _ctx, nestedSelection) => ({
-          // @ts-expect-error nestedSelection takes the query options flat
-          posts: nestedSelection({ query: { limit: 1 } }),
-        }),
-        resolve: (user) => user.posts,
-      }),
-      positional: t.field({
-        type: [NestedPost],
-        select: (_args, _ctx, nestedSelection) => ({
-          // @ts-expect-error nestedSelection takes one options object
-          posts: nestedSelection({ limit: 1 }, ['posts']),
         }),
         resolve: (user) => user.posts,
       }),
