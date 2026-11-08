@@ -2,8 +2,7 @@
  * In a selection, a to-many relation is keyed `relation:id` and a value computed from it
  * `relation:id:key`, so each consumer gets its own `combine()` branch. A branch is named `n/ids`
  * for rows and `n/ids:key` for a computed value, where `n` is unique in the statement and `ids` are
- * the ids of the consumers sharing it, a field consumer's as its load id (see load-ids.ts), joined
- * with a space. A value only the consumer's field
+ * the ids of the consumers sharing it, joined with a space. A value only the consumer's field
  * reads, rather than its parent, has a key starting with the separator (`fieldOnlyKey`).
  */
 

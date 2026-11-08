@@ -13,7 +13,6 @@ import type { MapperCollection, PlannedQuery, PrismaNextPlan } from './adapter.j
 import type { PrismaNextConfig } from './config.js';
 import { registerPlanRoots } from './consumers.js';
 import { variantOf } from './contract.js';
-import { forExecution } from './load-ids.js';
 import { getModel, type PrismaNextModel } from './model.js';
 import { appliesCursors, EMPTY, type PrismaNextSelection } from './selections.js';
 
@@ -131,12 +130,7 @@ export function applySelectionToCollection(
   return completeValue(planSelection(info, config, context, target, initial), (planned) => {
     const selection = planned?.selection ?? initial;
     return {
-      query: config.adapter.emit(
-        collection,
-        selection,
-        planned?.model ?? model,
-        forExecution(info),
-      ),
+      query: config.adapter.emit(collection, selection, planned?.model ?? model),
       cursors: appliesCursors(selection),
     };
   });
@@ -180,7 +174,6 @@ export async function collectionFromInfo<C extends object>({
         mapper,
         planned.selection,
         planned.model,
-        forExecution(info),
       ) as unknown as PlannedCollection<C>)
     : (collection as PlannedCollection<C>);
 }

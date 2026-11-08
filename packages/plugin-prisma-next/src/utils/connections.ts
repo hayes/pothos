@@ -16,7 +16,6 @@ import {
   withCursorValues,
 } from './cursors.js';
 import { checkReturned } from './errors.js';
-import { contextIdentity } from './load-ids.js';
 import type { PrismaNextRelation } from './model.js';
 import { PAGE, type PageData, registerPage } from './row-copies.js';
 import { COUNT_SLOT, EMPTY, type PrismaNextSelection } from './selections.js';
@@ -172,10 +171,7 @@ export function connectionPaging(
         modelKey,
         { where: planned.where },
         {
-          built:
-            typeof query === 'function'
-              ? () => ({ source: query, args, context: contextIdentity(ctx) })
-              : undefined,
+          built: typeof query === 'function' ? () => ({ source: query, args }) : undefined,
         },
       ).loadIdentity;
       const { first, last, after, before } = args as PothosSchemaTypes.DefaultConnectionArguments;

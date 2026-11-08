@@ -1,10 +1,8 @@
 import { brandWithType, getTypeBrand } from '@pothos/core';
 import type { Position } from '@pothos/selection-mapper';
-import type { GraphQLResolveInfo } from 'graphql';
 import { PRISMA_NEXT_TYPE_PLAN } from '../constants.js';
 import { consumerOfKey, isFieldOnlyKey, parseBranch, relationName } from './branch-keys.js';
 import { consumerId, nestedId, TYPE_CONSUMER } from './consumers.js';
-import { consumerOfLoad, plannedLoadId } from './load-ids.js';
 import type { PrismaNextModel } from './model.js';
 import { COUNT_SLOT, loadsWholeRelation, type PrismaNextSelection } from './selections.js';
 
@@ -177,7 +175,7 @@ export function rowOf(value: object): object {
   return (value as Holder)[SLOTS]?.row ?? value;
 }
 
-/** The field a copy is made for: its load id and the position it was planned at. */
+/** The field a copy is made for: its consumer id and the position it was planned at. */
 interface CopyField {
   readonly id: string;
   readonly position: Position;
@@ -233,10 +231,9 @@ function copyWith(
 }
 
 /**
- * Replaces the rows of each relation in `plan` on `copy`, a copy for load `id`, with copies
+ * Replaces the rows of each relation in `plan` on `copy`, a copy for consumer `id`, with copies
  * holding what its nested `select` loaded. Like a field's copy, such a copy is made again from its
- * row for any other reader. The nested `select`'s keys carry its consumer id: the branch they are
- * in carries the load id.
+ * row for any other reader.
  */
 function liftNested(
   copy: Row,
@@ -245,7 +242,7 @@ function liftNested(
   plan: NestedPlan,
   reads: TypeReads | undefined,
 ) {
-  const inner = nestedId(consumerOfLoad(id));
+  const inner = nestedId(id);
   for (const [name, nested] of plan) {
     const target = model.relations[name]!.target;
     const copyRow = (value: unknown): unknown => {
@@ -349,22 +346,20 @@ export function typeParent(copy: object, { checks }: TypePlan): object | undefin
  * The parent of a field planned at `position`: the type's, with what the field's consumer loaded
  * written onto a copy of it, which only the field's resolver and the plugins after this one see.
  * Undefined when the field planned rows or values of its own that the parent doesn't hold, as when
- * a resolver returned rows another field planned, or that a plan other than `info`'s execution's
- * loaded with other arguments or less beneath them (see load-ids.ts), so the parent is reloaded.
+ * a resolver returned rows another field planned, so the parent is reloaded.
  */
 export function fieldCopy(
   value: object,
   model: PrismaNextModel,
   type: TypePlan,
   position: Position,
-  info: GraphQLResolveInfo,
 ): object | undefined {
   const base = typeParent(typeCopy(value, model, type), type);
   if (!base) {
     return undefined;
   }
   const held = (base as Holder)[SLOTS];
-  const id = plannedLoadId(info, consumerId(position), held?.slots.consumers ?? NO_SLOTS.consumers);
+  const id = consumerId(position);
   const nested = plannedNested.get(position);
   if (!held?.slots.consumers.has(id)) {
     // A load of a whole relation, and a to-one relation's row, sit on the row unbranched, where

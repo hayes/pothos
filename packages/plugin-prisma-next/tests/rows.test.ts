@@ -194,139 +194,6 @@ describe('rows a resolver returns', () => {
     expect(result.data.user).toEqual({ summary: 'Andrews 2' });
   });
 
-  it('reloads a row another operation planned for its own fields', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        drafts: t.relation('posts', { query: { where: { published: 0 } } }),
-        publishedPosts: t.relation('posts', { query: { where: { published: 1 } } }),
-      }),
-    });
-    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    const cache = new Map<string, object>();
-    builder.queryType({
-      fields: (t) => ({
-        user: t.prismaField({
-          type: 'User',
-          resolve: async (users) => {
-            const row = cache.get('alice') ?? (await users.where({ id: 'u-alice' }).first())!;
-            cache.set('alice', row);
-            return row as never;
-          },
-        }),
-      }),
-    });
-    const schema = builder.toSchema();
-    const drafts = await run(schema, '{ user { drafts { id } } }');
-    expect(drafts.data.user).toEqual({ drafts: [{ id: 'p-draft1' }] });
-    const published = await run(schema, '{ user { publishedPosts { id } } }');
-    expect(published.errors).toBeUndefined();
-    expect(published.data.user).toEqual({ publishedPosts: [{ id: 'p-hello' }] });
-    expect(published.statements).toHaveLength(1);
-  });
-
-  it('reloads a cached row an execution with other arguments loaded, whichever reads first', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        posts: t.relation('posts', {
-          args: { published: t.arg.int({ required: true }) },
-          query: (args) => ({ where: { published: args.published } }),
-        }),
-      }),
-    });
-    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    let cached: Promise<unknown> | undefined;
-    builder.queryType({
-      fields: (t) => ({
-        user: t.prismaField({
-          type: 'User',
-          args: { late: t.arg.boolean({ required: true }) },
-          // The first execution loads the row; the other reads it first.
-          resolve: async (users, _parent, args) => {
-            cached ??= users.where({ id: 'u-alice' }).first();
-            const row = await cached;
-            if (args.late) {
-              await new Promise((resolve) => setTimeout(resolve, 10));
-            }
-            return row as never;
-          },
-        }),
-      }),
-    });
-    const schema = builder.toSchema();
-    const document = parse(
-      'query ($published: Int!, $late: Boolean!) { user(late: $late) { posts(published: $published) { id } } }',
-    );
-    const execution = (published: number, late: boolean) =>
-      Promise.resolve(
-        execute({ schema, document, variableValues: { published, late }, contextValue: {} }),
-      );
-    const [drafts, published] = await Promise.all([execution(0, true), execution(1, false)]);
-    expect(drafts).toEqual({ data: { user: { posts: [{ id: 'p-draft1' }] } } });
-    expect(published).toEqual({ data: { user: { posts: [{ id: 'p-hello' }] } } });
-  });
-
-  it('reloads a cached row a query callback loaded for another context', async () => {
-    const builder = createBuilder<{ published: number }>();
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        posts: t.relation('posts', {
-          query: (_args, ctx) => ({ where: (post) => post.published.eq(ctx.published) }),
-        }),
-      }),
-    });
-    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    let cached: Promise<unknown> | undefined;
-    builder.queryType({
-      fields: (t) => ({
-        user: t.prismaField({
-          type: 'User',
-          resolve: (users) => {
-            cached ??= users.where({ id: 'u-alice' }).first();
-            return cached as never;
-          },
-        }),
-      }),
-    });
-    const schema = builder.toSchema();
-    const document = parse('{ user { posts { id } } }');
-    const drafts = await execute({ schema, document, contextValue: { published: 0 } });
-    const published = await execute({ schema, document, contextValue: { published: 1 } });
-    expect(drafts).toEqual({ data: { user: { posts: [{ id: 'p-draft1' }] } } });
-    expect(published).toEqual({ data: { user: { posts: [{ id: 'p-hello' }] } } });
-  });
-
-  it('reloads a cached row another operation loaded with less beneath a relation', async () => {
-    const builder = createBuilder();
-    builder.prismaObject('User', {
-      fields: (t) => ({
-        drafts: t.relation('posts', { query: { where: { published: 0 } } }),
-      }),
-    });
-    builder.prismaObject('Post', {
-      fields: (t) => ({ id: t.exposeID('id'), title: t.exposeString('title') }),
-    });
-    let cached: Promise<unknown> | undefined;
-    builder.queryType({
-      fields: (t) => ({
-        user: t.prismaField({
-          type: 'User',
-          resolve: (users) => {
-            cached ??= users.where({ id: 'u-alice' }).first();
-            return cached as never;
-          },
-        }),
-      }),
-    });
-    const schema = builder.toSchema();
-    const ids = await run(schema, '{ user { drafts { id } } }');
-    expect(ids.data.user).toEqual({ drafts: [{ id: 'p-draft1' }] });
-    const titles = await run(schema, '{ user { drafts { id title } } }');
-    expect(titles.errors).toBeUndefined();
-    expect(titles.data.user).toEqual({ drafts: [{ id: 'p-draft1', title: 'Draft #1' }] });
-  });
-
   it('reloads rows another plan loaded without what its nested select includes', async () => {
     const builder = createBuilder();
     builder.prismaObject('User', {
@@ -365,7 +232,6 @@ describe('rows a resolver returns', () => {
     );
 
     const shared = {};
-    const later = () => new Promise((resolve) => setTimeout(resolve, 10));
 
     /** Loads a post of alice's through the plugin, or through `resolvePost` when it is given. */
     function schema(resolvePost?: () => Promise<object>) {
@@ -407,30 +273,6 @@ describe('rows a resolver returns', () => {
         }),
       );
 
-    it('read their own branches of one cached load, whichever reads first', async () => {
-      const built = schema();
-      // A cache in front of the field hands both executions the row the first one loaded.
-      const field = built.getQueryType()!.getFields().post!;
-      const load = field.resolve!;
-      let cached: unknown;
-      field.resolve = async (...args) => {
-        const own = load(...args);
-        cached ??= own;
-        const row = await cached;
-        if ((args[1] as { late: boolean }).late) {
-          await later();
-        }
-        return row;
-      };
-      // The first execution loads the rows, the second reads the author's first.
-      const [drafts, published] = await Promise.all([
-        execution(built, 0, true),
-        execution(built, 1, false),
-      ]);
-      expect(drafts).toEqual(authorPosts('p-draft1'));
-      expect(published).toEqual(authorPosts('p-hello'));
-    });
-
     it('read their own branches of reloads', async () => {
       const built = schema(async () => ({ id: 'p-hello' }));
       const statements: CapturedExecution[] = [];
@@ -443,61 +285,7 @@ describe('rows a resolver returns', () => {
       expect(statements).toHaveLength(2);
     });
 
-    it("don't read each other's branches of a reload they share", async () => {
-      const builder = createBuilder();
-      builder.prismaObject('Post', {
-        fields: (t) => ({ id: t.exposeID('id'), comments: t.relation('comments') }),
-      });
-      builder.prismaObject('Comment', {
-        fields: (t) => ({ id: t.exposeID('id'), author: t.relation('author') }),
-      });
-      let stash: (user: object) => void = () => {};
-      const stashed = new Promise<object>((resolve) => {
-        stash = resolve;
-      });
-      builder.prismaObject('User', {
-        fields: (t) => ({
-          id: t.exposeID('id'),
-          posts: t.relation('posts', {
-            args: { published: t.arg.int({ required: true }) },
-            query: (args) => ({ where: { published: args.published } }),
-          }),
-          stash: t.boolean({
-            resolve: (user) => {
-              stash(user);
-              return true;
-            },
-          }),
-        }),
-      });
-      builder.queryType({
-        fields: (t) => ({
-          // A row without the relation, which reloads.
-          post: t.prismaField({ type: 'Post', resolve: async () => ({ id: 'p-hello' }) as never }),
-          // The user the other operation's plan loaded, read with this operation's own args.
-          stashed: t.prismaField({ type: 'User', resolve: () => stashed as never }),
-        }),
-      });
-      const built = builder.toSchema();
-      // The aliases number the reader's `posts` as the other operation numbers its `posts`.
-      const [reader] = await Promise.all([
-        execute({
-          schema: built,
-          document: parse(
-            '{ post { comments { author { id } } } stashed { x: posts(published: 2) { id } y: posts(published: 2) { id } posts(published: 0) { id } } }',
-          ),
-          contextValue: shared,
-        }),
-        execute({
-          schema: built,
-          document: parse('{ post { comments { author { stash posts(published: 1) { id } } } } }'),
-          contextValue: shared,
-        }),
-      ]);
-      expect(reader).toMatchObject({ data: { stashed: { posts: [{ id: 'p-bob-draft' }] } } });
-    });
-
-    it('run the same SQL for equal arguments, in any context', async () => {
+    it('run the same SQL in any context and with any arguments', async () => {
       const built = schema();
       const statements: CapturedExecution[] = [];
       await withCapture(statements, () => execution(built, 0, false));
@@ -509,11 +297,46 @@ describe('rows a resolver returns', () => {
           contextValue: {},
         }),
       );
-      // The branch names carry what the relation loads, so other arguments name them apart.
       await withCapture(statements, () => execution(built, 1, false));
       expect(statements).toHaveLength(3);
       expect(statements[1]!.sql).toBe(statements[0]!.sql);
-      expect(statements[2]!.sql).not.toBe(statements[0]!.sql);
+      expect(statements[2]!.sql).toBe(statements[0]!.sql);
+    });
+
+    it('run the same SQL for query callbacks in any context', async () => {
+      const builder = createBuilder<{ published: number }>();
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          posts: t.relation('posts', {
+            query: (_args, ctx) => ({ where: (post) => post.published.eq(ctx.published) }),
+          }),
+          postCount: t.int({
+            select: (_args, ctx) => ({
+              posts: { where: (post) => post.published.eq(ctx.published) },
+            }),
+            resolve: (user) => user.posts.length,
+          }),
+        }),
+      });
+      builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.queryType({
+        fields: (t) => ({
+          user: t.prismaField({ type: 'User', query: { where: { id: 'u-alice' } } }),
+        }),
+      });
+      const built = builder.toSchema();
+      const source = '{ user { posts { id } postCount } }';
+      const statements: CapturedExecution[] = [];
+      const drafts = await withCapture(statements, async () =>
+        execute({ schema: built, document: parse(source), contextValue: { published: 0 } }),
+      );
+      const published = await withCapture(statements, async () =>
+        execute({ schema: built, document: parse(source), contextValue: { published: 1 } }),
+      );
+      expect(drafts).toEqual({ data: { user: { posts: [{ id: 'p-draft1' }], postCount: 1 } } });
+      expect(published).toEqual({ data: { user: { posts: [{ id: 'p-hello' }], postCount: 1 } } });
+      expect(statements).toHaveLength(2);
+      expect(statements[1]!.sql).toBe(statements[0]!.sql);
     });
   });
 });

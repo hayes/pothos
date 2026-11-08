@@ -21,7 +21,6 @@ import {
 import type { AnyContract } from '../types/models.js';
 import { branchName, consumerOfKey, relationName } from './branch-keys.js';
 import { compileTypeSelect, typeSelects } from './compile-select.js';
-import { type Executions, loadIds, recordLoadIds } from './load-ids.js';
 import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model.js';
 import {
   COMPUTE,
@@ -257,17 +256,13 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     return selection;
   }
 
-  /**
-   * Applies `selection` to `collection`: selects its columns and includes each relation once. The
-   * branches of field consumers are named by their load ids, which `executions` record.
-   */
+  /** Applies `selection` to `collection`: selects its columns and includes each relation once. */
   emit(
     collection: MapperCollection,
     selection: PrismaNextSelection,
     model: PrismaNextModel,
-    executions: Executions,
   ): MapperCollection {
-    return this.emitLevel(collection, selection, model, { next: 0, executions });
+    return this.emitLevel(collection, selection, model, { next: 0 });
   }
 
   private emitLevel(
@@ -277,10 +272,6 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     branches: BranchNames,
   ): MapperCollection {
     let result = selection.columns?.length ? collection.select(...selection.columns) : collection;
-    const ids = loadIds(selection);
-    for (const [id, loadId] of ids) {
-      recordLoadIds(branches.executions, id, loadId);
-    }
     // The ORM includes a relation once, so all of its consumers share one include.
     const consumers = new Map<string, RelationConsumers>();
     const consumersOf = (name: string) => {
@@ -291,15 +282,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       }
       return entry;
     };
-    const idOf = (key: string) => {
-      const id = consumerOfKey(key);
-      return ids.get(id) ?? id;
-    };
     for (const [key, child] of Object.entries(selection.relations ?? {})) {
-      consumersOf(relationName(key)).rows.push([idOf(key), child]);
+      consumersOf(relationName(key)).rows.push([consumerOfKey(key), child]);
     }
     for (const [key, value] of Object.entries(selection.computed ?? {})) {
-      consumersOf(relationName(key)).computed.push([idOf(key), value]);
+      consumersOf(relationName(key)).computed.push([consumerOfKey(key), value]);
     }
     for (const [name, entry] of consumers) {
       const relation = relationOf(model, name);
@@ -402,10 +389,9 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
 /** A `combine()` branch: the consumers sharing it, what it loads, and its computed value's key. */
 type Branch = [ids: string[], loaded: unknown, key?: string];
 
-/** Numbers the `combine()` branches of one statement, and the executions it is built for. */
+/** Numbers the `combine()` branches of one statement. */
 interface BranchNames {
   next: number;
-  readonly executions: Executions;
 }
 
 /**

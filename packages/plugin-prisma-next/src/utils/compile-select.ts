@@ -21,7 +21,6 @@ import {
   orderColumns,
 } from './cursors.js';
 import { checkReturned } from './errors.js';
-import { contextIdentity } from './load-ids.js';
 import {
   getModel,
   ownTableVariantRowsError,
@@ -375,8 +374,6 @@ interface SelectCompilation {
    * entries identify themselves.
    */
   source?: unknown;
-  /** The context the select function was called with, which its callbacks may read. */
-  context?: object;
   /** The field a field's `select` plans for. The types allow page and nested entries only there. */
   field?: FieldPlanning;
   /** The model of the field's type, which `nestedSelection`'s to-many relation rows narrow to. */
@@ -402,7 +399,7 @@ function compileSelect(
   model: PrismaNextModel,
   compilation: SelectCompilation,
 ): MaybePromise<PrismaNextSelection> {
-  const { contract, id, args, source, context, field, returnModelKey, typeOf, nested, readsRows } =
+  const { contract, id, args, source, field, returnModelKey, typeOf, nested, readsRows } =
     compilation;
   const owner = field && `Field '${field.position.type.name}.${field.position.field.name}'`;
   const subject =
@@ -411,14 +408,8 @@ function compileSelect(
       ? `The select of field '${field.position.type.name}.${field.position.field.name}' loads`
       : "A type's select loads");
   // A select function builds new callbacks on every call, so the function, its arguments and
-  // context and where the entry sits identify a query with a callback, or an aggregate.
-  const callbackIdentity = (name: string) => ({
-    source,
-    args,
-    context: context && contextIdentity(context),
-    at: nested,
-    name,
-  });
+  // where the entry sits identify a query with a callback, or an aggregate.
+  const callbackIdentity = (name: string) => ({ source, args, at: nested, name });
   const parts = relations.map(([name, entry, split]) => {
     const relation = model.relations[name]!;
     if (readsRows && loadsOwnTableVariantRows(relation, entry) && !readsRows(relation)) {
@@ -575,7 +566,6 @@ export function compileFieldSelect(
       id,
       args,
       source: raw,
-      context: ctx,
       field,
       returnModelKey,
       typeOf,

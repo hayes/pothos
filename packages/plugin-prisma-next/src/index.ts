@@ -634,7 +634,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       // field's rows.
       if (mapping) {
         const parent = mapping.position
-          ? fieldCopy(row, model, type, mapping.position, info)
+          ? fieldCopy(row, model, type, mapping.position)
           : typeParent(typeCopy(row, model, type), type);
         if (parent) {
           setRowMappings(context, info, mapping.nested);
