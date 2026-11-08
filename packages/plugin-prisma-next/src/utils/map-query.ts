@@ -87,7 +87,7 @@ function plannedModelKey(info: GraphQLResolveInfo, { typeName, path, paths }: Pl
     }
     return type?.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
   };
-  const [first, ...rest] = (paths ?? [path ?? []]).map(modelAt);
+  const [first, ...rest] = (paths?.length ? paths : [path ?? []]).map(modelAt);
   return rest.every((model) => model === first) ? first : undefined;
 }
 

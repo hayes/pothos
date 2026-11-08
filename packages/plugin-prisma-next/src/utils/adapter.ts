@@ -327,7 +327,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       const narrowing = selection.args?.variant;
       const narrowed =
         narrowing && !narrowing.throughVariantModel ? base.variant(narrowing.value) : base;
-      const refined = selection.args?.[REFINE]?.(narrowed) ?? narrowed;
+      const refine = selection.args?.[REFINE];
+      const refined = refine ? refine(narrowed) : narrowed;
       return this.emitLevel(refined, selection, relation.target, branches);
     };
     if (!relation.isToMany) {

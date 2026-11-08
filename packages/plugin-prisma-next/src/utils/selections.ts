@@ -6,7 +6,7 @@ import { isNestedId } from './consumers.js';
 export const REFINE = Symbol('prismaNextRefine');
 export const COMPUTE = Symbol('prismaNextCompute');
 
-export type Refine = (rel: MapperCollection) => MapperCollection | null | undefined;
+export type Refine = (rel: MapperCollection) => MapperCollection;
 /** Computes values from a to-many relation's collection, as `combine()` entries by key. */
 export type Compute = (rel: MapperCollection) => Record<string, unknown>;
 
