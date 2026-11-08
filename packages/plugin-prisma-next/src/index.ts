@@ -424,7 +424,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           return resolveLoaded(parent, args, context, info);
         }
       }
-      const mapping = getLoaderMapping(context as object, info.path, info.parentType.name, parent);
+      const mapping = getLoaderMapping(context as object, info, info.parentType.name, parent);
       if (mapping) {
         setRowMappings(context as object, info, mapping.nested);
         return resolveLoaded(parent, args, context, info);
