@@ -170,12 +170,10 @@ export function recorded(position: Position | undefined): FieldLoads | undefined
 }
 
 /** What the field executing at each `info.path` reads, set by its gate. */
-const executing = new WeakMap<object, FieldLoads>();
+const executing = new WeakMap<object, FieldLoads | undefined>();
 
 export function setOwnLoads(path: object, loads: FieldLoads | undefined) {
-  if (loads) {
-    executing.set(path, loads);
-  }
+  executing.set(path, loads);
 }
 
 /** The load of `t.relation`, `relationCount` or `t.relatedConnection` executing for `info`. */

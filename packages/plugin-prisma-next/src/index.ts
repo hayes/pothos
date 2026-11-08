@@ -517,43 +517,31 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const modelKey = this.buildCache.getTypeConfig(fieldConfig.parentType).extensions?.[
       PRISMA_NEXT_MODEL
     ] as string | undefined;
-    const model = modelKey === undefined ? undefined : getModel(this.config.contract, modelKey);
+    const { contract } = this.config;
+    const model = modelKey === undefined ? undefined : getModel(contract, modelKey);
+    // Checked on the field's final config, since a plugin that runs later, such as plugin-errors,
+    // can change its type, which decides the relation rows it can read.
+    const returnConfig = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
+    const returnKey = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+    const returned = returnKey === undefined ? undefined : getModel(contract, returnKey);
     const { select } = fieldConfig.pothosOptions as { select?: unknown };
-    const split =
-      model && typeof select === 'object' && select !== null
-        ? splitSelect(select as RawSelect, model)
-        : undefined;
+    if (model && typeof select === 'object' && select !== null) {
+      checkStaticSelect(
+        this.config,
+        splitSelect(select as RawSelect, model),
+        model,
+        `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
+        (relation) => returnsRelationRowsAs(relation, returnConfig.kind, returned),
+      );
+    }
     if (model) {
-      if (split) {
-        // Checked on the field's final config, since a plugin that runs later, such as
-        // plugin-errors, can change its type, which decides the relation rows it can read.
-        const returnConfig = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
-        const returnModelKey = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-        checkStaticSelect(
-          this.config,
-          split,
-          model,
-          `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
-          (relation) =>
-            returnsRelationRowsAs(
-              relation,
-              returnConfig.kind,
-              returnModelKey === undefined
-                ? undefined
-                : getModel(this.config.contract, returnModelKey),
-            ),
-        );
-      }
       this.assertRelationRows(fieldConfig, model);
     }
-    const gated = this.gate(resolver, fieldConfig, modelKey);
+    const gated = this.gate(resolver, fieldConfig, modelKey, returnConfig.kind);
     // Through lists and promises. A connection's nodes are handed on by the edge's `node` field.
-    const returnKey = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type))
-      .extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    if (returnKey === undefined) {
+    if (!returned) {
       return gated;
     }
-    const returned = getModel(this.config.contract, returnKey);
     const parse = (row: unknown) =>
       row !== null && typeof row === 'object' ? parseRow(baseOf(row), returned) : row;
     return (parent, args, context, info) => copyResult(gated(parent, args, context, info), parse);
@@ -569,6 +557,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
     modelKey: string | undefined,
+    returnKind: string,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const extensions = fieldConfig.extensions ?? {};
     const selection = extensions[PRISMA_NEXT_FIELD_SELECTION] as
@@ -588,7 +577,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const parentTypes = [...mappingParentTypes(this.buildCache, fieldConfig, PRISMA_NEXT_MODEL)];
     // A static selection's mapping has no position, and a field returning a scalar or enum has
     // no fields beneath it to record nested mappings for, so such a field looks up no mapping.
-    const returnKind = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type)).kind;
     const needsMapping = !columnsOnly || (returnKind !== 'Scalar' && returnKind !== 'Enum');
     return (value, args, context, info) => {
       const resolve = (parent: object, loads: FieldLoads | undefined) => {
