@@ -1,5 +1,5 @@
-import { createContextCache, isThenable } from '@pothos/core';
-import type { GraphQLResolveInfo, OperationDefinitionNode } from 'graphql';
+import { createContextCache } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
 import type { Position } from './types.js';
 
 /**
@@ -83,9 +83,7 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
  * way pays nothing for the row tier.
  *
  * `scopes` and `rows` are keyed by `executionPath`, which keeps list indices to tell siblings
- * apart. `subscribed` is, for a subscription event, the execution of the `subscribe` that
- * yielded its payload: what that `subscribe` planned is what the payload holds. `planned` is set
- * when a plan's query is handed out, and cleared when a `subscribe` yields the payload it loaded.
+ * apart.
  */
 interface Cache {
   mappings: Map<string, Mapping>;
@@ -93,19 +91,10 @@ interface Cache {
   rows: WeakMap<object, Map<string, Map<string, Mapping>>>;
   rowScoped: boolean;
   scopes: Map<string, Mappings>;
-  operation: OperationDefinitionNode;
-  planned: boolean;
-  subscribed: Cache | null;
 }
 
-/**
- * Per context: the cache of each execution, and the `subscribe` execution each payload was
- * yielded by, or null for a payload two of them yielded.
- */
-const contextCaches = createContextCache(() => ({
-  executions: new WeakMap<object, Cache>(),
-  payloads: new WeakMap<object, Cache | null>(),
-}));
+/** Per context: the cache of each execution. */
+const contextCaches = createContextCache(() => new WeakMap<object, Cache>());
 
 /**
  * The object an executor makes once per execution and puts in the info of every resolver in it.
@@ -119,25 +108,19 @@ function executionOf(info: GraphQLResolveInfo): object {
 
 /** The cache of the execution `info` is in. */
 function cache(ctx: object, info: GraphQLResolveInfo): Cache {
-  const caches = contextCaches(ctx);
+  const executions = contextCaches(ctx);
   const execution = executionOf(info);
-  let cached = caches.executions.get(execution);
+  let cached = executions.get(execution);
 
   if (!cached) {
-    const payload = ownerOf(info.rootValue);
-    const subscribed = payload && caches.payloads.get(payload);
-
     cached = {
       mappings: new Map(),
       rehomed: new Map(),
       rows: new WeakMap(),
       rowScoped: false,
       scopes: new Map(),
-      operation: info.operation,
-      planned: false,
-      subscribed: subscribed?.operation === info.operation ? subscribed : null,
     };
-    caches.executions.set(execution, cached);
+    executions.set(execution, cached);
   }
 
   return cached;
@@ -291,7 +274,6 @@ export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mapping
   const at = executionPath(info.path);
   const previous = cached.scopes.get(at);
   cached.scopes.set(at, previous ? { ...previous, ...mappings } : mappings);
-  cached.planned = true;
 
   for (const key of Object.keys(mappings)) {
     cached.mappings.set(rehome(keys, key, prefix), mappings[key]);
@@ -353,7 +335,7 @@ export function setRowFieldMapping(
 /**
  * The mapping recorded for the field `info` resolves on `row`, preferring one recorded for that
  * row over the plan's. `row` is the value whose data the mapping describes — the resolver's
- * parent. A subscription event's resolvers fall back to what its `subscribe` recorded.
+ * parent.
  */
 export function getLoaderMapping(
   ctx: object,
@@ -385,80 +367,5 @@ export function getLoaderMapping(
     }
   }
 
-  const key = cacheKey(type, path);
-
-  return cached.mappings.get(key) ?? cached.subscribed?.mappings.get(key) ?? null;
-}
-
-/**
- * `events`, what a subscription field's `subscribe` returned, with the payloads it loaded linked
- * to that `subscribe`'s execution. The execution of an event, whose root value is its payload,
- * then falls back to the mappings that `subscribe` recorded: a payload it loaded with a planned
- * query holds what that plan selected.
- *
- * A planned query vouches for the one payload yielded after it was handed out, so a payload
- * yielded with no planned query since the previous one (a row from a pubsub, say) is not linked
- * and its resolvers load their own data. A payload yielded by two subscriptions sharing the
- * context is linked to neither, and a value that is not an async iterable is returned as is.
- */
-export function linkSubscriptionEvents(
-  ctx: object,
-  info: GraphQLResolveInfo,
-  events: unknown,
-): unknown {
-  if (isThenable(events)) {
-    return events.then((resolved) => linkSubscriptionEvents(ctx, info, resolved));
-  }
-
-  if (!isAsyncIterable(events)) {
-    return events;
-  }
-
-  const caches = contextCaches(ctx);
-  const subscribed = cache(ctx, info);
-  const link = (result: IteratorResult<unknown>) => {
-    if (result.done) {
-      return result;
-    }
-
-    const payload = subscribed.planned ? ownerOf(result.value) : null;
-
-    subscribed.planned = false;
-
-    if (payload) {
-      const held = caches.payloads.get(payload);
-
-      caches.payloads.set(payload, held === undefined || held === subscribed ? subscribed : null);
-    }
-
-    return result;
-  };
-
-  const linked: AsyncIterable<unknown> = {
-    [Symbol.asyncIterator]() {
-      const iterator = events[Symbol.asyncIterator]();
-      const wrapped: AsyncIterator<unknown> = {
-        next: (...args) => Promise.resolve(iterator.next(...args)).then(link),
-      };
-
-      const { return: end, throw: fail } = iterator;
-
-      // A generator can yield from a `catch` or `finally`, and executors still run that event.
-      if (end) {
-        wrapped.return = (value) => Promise.resolve(end.call(iterator, value)).then(link);
-      }
-
-      if (fail) {
-        wrapped.throw = (error) => Promise.resolve(fail.call(iterator, error)).then(link);
-      }
-
-      return wrapped;
-    },
-  };
-
-  return linked;
-}
-
-function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
-  return typeof value === 'object' && value !== null && Symbol.asyncIterator in value;
+  return cached.mappings.get(cacheKey(type, path)) ?? null;
 }

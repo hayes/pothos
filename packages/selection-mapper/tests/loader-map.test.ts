@@ -1,9 +1,8 @@
-import type { GraphQLResolveInfo, OperationDefinitionNode } from 'graphql';
+import type { GraphQLResolveInfo } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import {
   cacheKey,
   getLoaderMapping,
-  linkSubscriptionEvents,
   type Mapping,
   responsePath,
   setFieldMapping,
@@ -28,13 +27,11 @@ function child(prev: Path, ...keys: (string | number)[]): Path {
   }
   return path;
 }
-const query = { operation: 'query' } as OperationDefinitionNode;
-
 /**
  * The infos of one execution, as graphql-js 16 and graphql-jit build them: every resolver of the
  * execution gets the same coerced `variableValues`, and nothing else ties them together.
  */
-function execution(rootValue?: unknown, operation = query) {
+function execution() {
   const variableValues = {};
 
   return (path: Path, type = 'User') =>
@@ -42,8 +39,6 @@ function execution(rootValue?: unknown, operation = query) {
       parentType: { name: type },
       path,
       variableValues,
-      rootValue,
-      operation,
     }) as unknown as GraphQLResolveInfo;
 }
 
@@ -249,177 +244,6 @@ describe('loader map', () => {
     rows.forEach((row, i) => {
       expect(getLoaderMapping(ctx, info(paths[i]), 'User', row)).toBe(replanned);
     });
-  });
-});
-
-describe('linkSubscriptionEvents', () => {
-  const subscription = { operation: 'subscription' } as OperationDefinitionNode;
-  const planned: Mapping = { nested: {} };
-
-  async function* yielding(...payloads: unknown[]) {
-    yield* payloads;
-  }
-
-  async function drain(events: unknown) {
-    const seen: unknown[] = [];
-
-    for await (const payload of events as AsyncIterable<unknown>) {
-      seen.push(payload);
-    }
-
-    return seen;
-  }
-
-  /** A `subscribe` that planned the root field and yielded `payloads`, drained. */
-  async function subscribed(ctx: object, ...payloads: unknown[]) {
-    const subscribe = execution(undefined, subscription);
-    const events = linkSubscriptionEvents(ctx, subscribe(pathOf('user')), yielding(...payloads));
-
-    // A generator's body, which plans, runs on the first `next`, after the stream was linked.
-    setLoaderMappings(ctx, subscribe(pathOf('user')), { 'User@posts': planned });
-
-    expect(await drain(events)).toEqual(payloads);
-  }
-
-  it('lets an event find what the subscribe that yielded its payload recorded', async () => {
-    const ctx = {};
-    const snapshot = {};
-    const other = {};
-
-    await subscribed(ctx, snapshot, other, true);
-
-    const first = execution(snapshot, subscription);
-    expect(getLoaderMapping(ctx, first(pathOf('user', 'posts')), 'User')).toBe(planned);
-
-    // An event's own plan wins, and stays its own.
-    const second = execution(other, subscription);
-    const replanned: Mapping = { nested: {} };
-    setLoaderMappings(ctx, second(pathOf('user')), { 'User@posts': replanned });
-    expect(getLoaderMapping(ctx, second(pathOf('user', 'posts')), 'User')).toBe(replanned);
-    expect(getLoaderMapping(ctx, first(pathOf('user', 'posts')), 'User')).toBe(planned);
-
-    // A value that is not an object cannot be told from another event's, so links nothing.
-    const third = execution(true, subscription);
-    expect(getLoaderMapping(ctx, third(pathOf('user', 'posts')), 'User')).toBe(null);
-  });
-
-  it('links only a payload yielded after a planned query was handed out', async () => {
-    const ctx = {};
-    const subscribe = execution(undefined, subscription);
-    const snapshot = {};
-    const raw = {};
-    const replanned = {};
-
-    async function* stream() {
-      setLoaderMappings(ctx, subscribe(pathOf('user')), { 'User@posts': planned });
-      yield await Promise.resolve(snapshot);
-      // A row from a pubsub: nothing planned it, so its resolvers load their own data.
-      yield raw;
-      setLoaderMappings(ctx, subscribe(pathOf('user')), { 'User@posts': planned });
-      // A value that cannot be linked still uses up the plan handed out before it.
-      yield true;
-      yield {};
-      setLoaderMappings(ctx, subscribe(pathOf('user')), { 'User@posts': planned });
-      yield replanned;
-    }
-
-    await drain(linkSubscriptionEvents(ctx, subscribe(pathOf('user')), stream()));
-
-    const posts = (payload: unknown) =>
-      getLoaderMapping(ctx, execution(payload, subscription)(pathOf('user', 'posts')), 'User');
-
-    expect(posts(snapshot)).toBe(planned);
-    expect(posts(raw)).toBe(null);
-    expect(posts(replanned)).toBe(planned);
-  });
-
-  it('links what a generator yields from a finally when it is returned or thrown into', async () => {
-    const ctx = {};
-    const subscribe = execution(undefined, subscription);
-
-    for (const end of ['return', 'throw'] as const) {
-      const last = {};
-
-      async function* stream() {
-        try {
-          yield {};
-        } catch {
-          // Thrown into: carry on to the finally.
-        } finally {
-          setLoaderMappings(ctx, subscribe(pathOf('user')), { 'User@posts': planned });
-          yield await Promise.resolve(last);
-        }
-      }
-
-      const iterator = (
-        linkSubscriptionEvents(ctx, subscribe(pathOf('user')), stream()) as AsyncIterable<unknown>
-      )[Symbol.asyncIterator]();
-
-      await iterator.next();
-      expect(await iterator[end]!(undefined)).toEqual({ value: last, done: false });
-      expect(
-        getLoaderMapping(ctx, execution(last, subscription)(pathOf('user', 'posts')), 'User'),
-      ).toBe(planned);
-    }
-  });
-
-  it('links a payload yielded by two subscriptions sharing the context to neither', async () => {
-    const ctx = {};
-    const shared = {};
-
-    await subscribed(ctx, shared);
-    await subscribed(ctx, shared);
-
-    const event = execution(shared, subscription);
-    expect(getLoaderMapping(ctx, event(pathOf('user', 'posts')), 'User')).toBe(null);
-  });
-
-  it('links only the events of the same operation in the same context', async () => {
-    const ctx = {};
-    const snapshot = {};
-
-    await subscribed(ctx, snapshot);
-
-    // An operation whose root value happens to be the payload is not one of its events.
-    expect(getLoaderMapping(ctx, execution(snapshot)(pathOf('user', 'posts')), 'User')).toBe(null);
-    expect(
-      getLoaderMapping({}, execution(snapshot, subscription)(pathOf('user', 'posts')), 'User'),
-    ).toBe(null);
-  });
-
-  it('links a promised stream, passes on return, and leaves anything else as it is', async () => {
-    const ctx = {};
-    const subscribe = execution(undefined, subscription)(pathOf('user'));
-    const error = new Error('not a stream');
-    const snapshot = {};
-    let returned = false;
-
-    async function* stream() {
-      try {
-        yield await Promise.resolve(snapshot);
-        yield {};
-      } finally {
-        returned = true;
-      }
-    }
-
-    expect(linkSubscriptionEvents(ctx, subscribe, error)).toBe(error);
-
-    const events = (await linkSubscriptionEvents(
-      ctx,
-      subscribe,
-      Promise.resolve(stream()),
-    )) as AsyncIterable<unknown>;
-    const iterator = events[Symbol.asyncIterator]();
-
-    setLoaderMappings(ctx, subscribe, { 'User@posts': planned });
-
-    expect(await iterator.next()).toEqual({ value: snapshot, done: false });
-    await iterator.return?.();
-    expect(returned).toBe(true);
-    expect(
-      getLoaderMapping(ctx, execution(snapshot, subscription)(pathOf('user', 'posts')), 'User'),
-    ).toBe(planned);
   });
 });
 

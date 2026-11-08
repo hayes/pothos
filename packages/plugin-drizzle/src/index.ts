@@ -9,12 +9,7 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import {
-  getLoaderMapping,
-  linkSubscriptionEvents,
-  mappingParentTypes,
-  setFieldMapping,
-} from '@pothos/selection-mapper';
+import { getLoaderMapping, mappingParentTypes, setFieldMapping } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
@@ -124,18 +119,6 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     return {
       ...fieldConfig,
     };
-  }
-
-  // A `subscribe` may load the rows its events hand on with a planned query, so the resolvers of
-  // each event look up what that `subscribe` recorded, after what the event recorded itself.
-  override wrapSubscribe(
-    subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
-  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
-    return (
-      subscribe &&
-      ((parent, args, context, info) =>
-        linkSubscriptionEvents(context, info, subscribe(parent, args, context, info)))
-    );
   }
 
   override wrapResolve(
