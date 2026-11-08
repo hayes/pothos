@@ -186,6 +186,37 @@ describe('rows a resolver returns', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data.user).toEqual({ summary: 'Andrews 2' });
   });
+
+  it('reloads a row another operation planned for its own fields', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        drafts: t.relation('posts', { query: { where: { published: 0 } } }),
+        publishedPosts: t.relation('posts', { query: { where: { published: 1 } } }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const cache = new Map<string, object>();
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: 'User',
+          resolve: async (users) => {
+            const row = cache.get('alice') ?? (await users.where({ id: 'u-alice' }).first())!;
+            cache.set('alice', row);
+            return row as never;
+          },
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const drafts = await run(schema, '{ user { drafts { id } } }');
+    expect(drafts.data.user).toEqual({ drafts: [{ id: 'p-draft1' }] });
+    const published = await run(schema, '{ user { publishedPosts { id } } }');
+    expect(published.errors).toBeUndefined();
+    expect(published.data.user).toEqual({ publishedPosts: [{ id: 'p-hello' }] });
+    expect(published.statements).toHaveLength(1);
+  });
 });
 
 describe('rows the plugin loaded', () => {

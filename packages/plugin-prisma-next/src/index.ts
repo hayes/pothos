@@ -69,7 +69,14 @@ import {
   returnsRelationRowsAs,
 } from './utils/model.js';
 import { refFor } from './utils/refs.js';
-import { fieldCopy, type NestedPlan, rowOf, typeCopy, typeNested } from './utils/row-copies.js';
+import {
+  executionKey,
+  fieldCopy,
+  type NestedPlan,
+  rowOf,
+  typeCopy,
+  typeNested,
+} from './utils/row-copies.js';
 import {
   EMPTY,
   type Narrowing,
@@ -520,7 +527,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (!isTypeOf || !forType) {
       return isTypeOf;
     }
-    return (parent, context, info) => isTypeOf(forType(parent), context, info);
+    return (parent, context, info) => isTypeOf(forType(parent, info), context, info);
   }
 
   /** Passes `resolveType` the row as the interface's `select`s loaded it. */
@@ -532,7 +539,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (!forType) {
       return resolveType;
     }
-    return (parent, context, info, type) => resolveType(forType(parent), context, info, type);
+    return (parent, context, info, type) => resolveType(forType(parent, info), context, info, type);
   }
 
   /**
@@ -565,7 +572,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     if (!forType) {
       return gated;
     }
-    return (parent, args, context, info) => copyResult(gated(parent, args, context, info), forType);
+    return (parent, args, context, info) =>
+      copyResult(gated(parent, args, context, info), (row) => forType(row, info));
   }
 
   /**
@@ -599,10 +607,14 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // no fields beneath it to record nested mappings for, so such a field looks up no mapping.
     const returnKind = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type)).kind;
     const needsMapping = !columnsOnly || (returnKind !== 'Scalar' && returnKind !== 'Enum');
-    const parentFor = (row: object, mapping: Mapping | null | undefined) =>
+    const parentFor = (
+      row: object,
+      mapping: Mapping | null | undefined,
+      info: GraphQLResolveInfo,
+    ) =>
       mapping?.position
-        ? fieldCopy(row, model, nested, mapping.position)
-        : typeCopy(row, model, nested);
+        ? fieldCopy(row, model, nested, mapping.position, executionKey(info))
+        : typeCopy(row, model, nested, executionKey(info));
     return (value, args, context, info) => {
       const row = value as object;
       let mapping: Mapping | null = null;
@@ -618,7 +630,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       // A plan that loaded the parent planned the field into it, unless the parent holds another
       // field's rows.
       if (mapping) {
-        const parent = parentFor(row, mapping);
+        const parent = parentFor(row, mapping, info);
         if (parent) {
           setRowMappings(context, info, mapping.nested);
           return resolver(parent, args, context, info);
@@ -634,7 +646,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       }
       return reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, row)).then(
         // A reload plans the field, so the reloaded row holds what it planned.
-        (reloaded) => resolver(parentFor(reloaded.row, reloaded.mapping)!, args, context, info),
+        (reloaded) =>
+          resolver(parentFor(reloaded.row, reloaded.mapping, info)!, args, context, info),
       );
     };
   }
@@ -656,8 +669,10 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const model = getModel(this.config.contract, modelKey);
     const nested = typeNested(typeConfig);
-    return (row: unknown) =>
-      row !== null && typeof row === 'object' ? typeCopy(row, model, nested) : row;
+    return (row: unknown, info: GraphQLResolveInfo) =>
+      row !== null && typeof row === 'object'
+        ? typeCopy(row, model, nested, executionKey(info))
+        : row;
   }
 
   /** What `typeData` found for each prisma type. */
@@ -722,13 +737,13 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           : undefined;
       const columns = (typeof selection === 'function' ? undefined : selection?.columns) ?? [];
       // A prisma type's parent is always a row.
-      const typed = typeCopy(parent as object, model, nested);
+      const typed = typeCopy(parent as object, model, nested, executionKey(info));
       if (holds(typed, keys) && holds(typed, columns)) {
         return typed;
       }
       return reloadFor(info, () =>
         this.config.loader(context, modelKey).loadTypeRow(info, parent as object, type!),
-      ).then((row) => typeCopy(row, model, nested));
+      ).then((row) => typeCopy(row, model, nested, executionKey(info)));
     };
   }
 }

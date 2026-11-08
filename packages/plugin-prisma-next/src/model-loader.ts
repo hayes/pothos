@@ -24,7 +24,7 @@ import { variantOf } from './utils/contract.js';
 import { appliesCursors, readPage } from './utils/cursors.js';
 import { InternalError, isRefusedValue, keepError, refusedError } from './utils/errors.js';
 import { getIdentityFields, type PrismaNextModel } from './utils/model.js';
-import { rowOf, withOtherKeys } from './utils/row-copies.js';
+import { executionKey, markPlanned, rowOf, withOtherKeys } from './utils/row-copies.js';
 import type { PrismaNextSelection } from './utils/selections.js';
 
 type Row = Record<string, unknown>;
@@ -158,6 +158,8 @@ export class ModelLoader {
       const staged = this.stage(played.root, this.identity, values, { kind: 'parent' });
       return staged.then((reloaded) => {
         const row = withOtherKeys(reloaded!, parent, played.root.model);
+        // A batch can hand one row to several executions: each planned it.
+        markPlanned(row, executionKey(info));
         // The plan is walked from the parent type, so the field's own mapping is keyed by the
         // parent type and the field's response key.
         const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
