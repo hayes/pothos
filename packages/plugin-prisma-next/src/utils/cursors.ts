@@ -43,7 +43,7 @@ export const isOrderByDecl = (orderBy: OrderByOption | undefined): orderBy is Or
   typeof orderBy === 'object' && !Array.isArray(orderBy);
 
 /** One column of an order. Nullable columns always have a null placement. */
-export interface OrderColumn {
+interface OrderColumn {
   readonly field: string;
   readonly direction: Direction;
   readonly nulls?: 'first' | 'last';
@@ -331,10 +331,13 @@ function buildPaginationParams(
   };
 }
 
-function applyToCollection<C extends MapperCollection>(
+/** Orders `baseCollection`, filters it past the cursors and limits it to the page. */
+export function applyCursorPagination<C extends MapperCollection>(
   baseCollection: C,
-  { order, afterValues, beforeValues, limit, inverted }: CursorPaginationParams,
+  plan: CursorPlan,
+  args: PothosSchemaTypes.DefaultConnectionArguments,
 ): C {
+  const { order, afterValues, beforeValues, limit, inverted } = buildPaginationParams(plan, args);
   let collection: MapperCollection = orderCollection(baseCollection, order.columns, inverted);
   // The ORM's `cursor()` takes one boundary in the order's direction and can't place nulls, so
   // the boundaries are applied as filters.
@@ -376,15 +379,6 @@ export function readPage<T>(rows: PromiseLike<T>, cursors: boolean): PromiseLike
         throw isRefusedValue(error) ? refusedError('Invalid cursor.', error) : error;
       })
     : rows;
-}
-
-/** Orders `baseCollection`, filters it past the cursors and limits it to the page. */
-export function applyCursorPagination<C extends MapperCollection>(
-  baseCollection: C,
-  plan: CursorPlan,
-  args: PothosSchemaTypes.DefaultConnectionArguments,
-): C {
-  return applyToCollection(baseCollection, buildPaginationParams(plan, args));
 }
 
 interface PageInfo {

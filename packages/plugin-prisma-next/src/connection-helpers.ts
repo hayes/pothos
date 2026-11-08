@@ -339,12 +339,7 @@ export function prismaConnectionHelpers<
     if (nodeRelation) {
       // The nodes' planning starts from the relation's narrowing, so beneath a relation targeting
       // a variant model it leaves out what the variant model's own accessor can't load.
-      const nodeSeed: PrismaNextSelection = {
-        args: relationArgs(model.relations[nodeRelation]!, {
-          loadIdentity: undefined,
-          refine: undefined,
-        }),
-      };
+      const nodeSeed: PrismaNextSelection = { args: relationArgs(model.relations[nodeRelation]!) };
       return completeValue(nodes(nodeSeed), (planned) => ({
         ...own,
         relations: { ...relations, [nodeRelation]: planned },

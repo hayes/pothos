@@ -77,7 +77,6 @@ interface IdentityColumn {
  */
 export class ModelLoader {
   private readonly identity: readonly string[];
-  private readonly variant: string | undefined;
   /** A variant's rows load through the base narrowed to it, which can include its relations. */
   private readonly initial: PrismaNextSelection | undefined;
   /**
@@ -96,9 +95,8 @@ export class ModelLoader {
     private readonly modelKey: string,
   ) {
     this.identity = getModel(config.contract, modelKey).identity;
-    this.variant = variantOf(config.contract, modelKey)?.value;
-    this.initial =
-      this.variant === undefined ? undefined : { args: { variant: { value: this.variant } } };
+    const variant = variantOf(config.contract, modelKey)?.value;
+    this.initial = variant === undefined ? undefined : { args: { variant: { value: variant } } };
   }
 
   /** Without a key a reload would match every row, and each parent would read the first one. */

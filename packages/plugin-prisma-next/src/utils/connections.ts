@@ -56,10 +56,10 @@ export function connectionNodes(typeName: string): IndirectInclude {
 }
 
 /** A connection's paging for one request. */
-export type ConnectionPlan = CursorPlan & { where: unknown };
+type ConnectionPlan = CursorPlan & { where: unknown };
 
 /** The field a page is planned for. */
-export interface PageField {
+interface PageField {
   /** The consumer id of the field's position (see `consumerId`). */
   id: string;
   /** The names of the fields selected on the connection. */
@@ -68,7 +68,7 @@ export interface PageField {
 }
 
 /** How a page of a to-many relation loads, beside its plan and count. */
-export interface PageLoad {
+interface PageLoad {
   /** Identifies the load with the page's order, so consumers with equal ones share it. */
   identity: unknown;
   variant: string | undefined;
@@ -144,8 +144,6 @@ export function connectionPaging(
   }
 
   return {
-    selection,
-    plan,
     pagingPlan,
     /** Adds the generated `totalCount` field to a connection's options. */
     connectionOptions<T extends object>(connectionOptions: T): T {
@@ -294,7 +292,7 @@ export function countOf(collection: object): unknown {
 }
 
 /** Counts the collection's rows. A synchronous throw becomes a rejection. */
-export function aggregateCount(collection: unknown): Promise<number> {
+function aggregateCount(collection: unknown): Promise<number> {
   return Promise.resolve().then(() =>
     (
       collection as {

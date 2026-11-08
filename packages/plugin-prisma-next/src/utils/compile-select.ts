@@ -85,7 +85,7 @@ export interface RelationEntry {
 }
 
 /** The `nestedSelection` a field's select function is passed. */
-export function nestedSelectionEntry(
+function nestedSelectionEntry(
   options: Omit<RelationEntry, typeof NESTED_SELECTION | typeof CONNECTION_PAGE> = {},
 ): RelationEntry {
   return Object.freeze({ ...options, [NESTED_SELECTION]: true as const });
@@ -244,10 +244,10 @@ export function relationArgs(
     refine,
     variant,
   }: {
-    loadIdentity: unknown;
-    refine: ((rel: MapperCollection) => MapperCollection) | undefined;
+    loadIdentity?: unknown;
+    refine?: ((rel: MapperCollection) => MapperCollection) | undefined;
     variant?: string;
-  },
+  } = {},
 ): RelationArgs {
   const target = relation.targetVariantModel;
   const narrowing: Narrowing | undefined = target
