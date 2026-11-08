@@ -207,7 +207,10 @@ export type AggregateSelect<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   K extends RelationKeys<Types, M>,
-> = (collection: AggregateCollection<Types, RelatedModel<Types, M, K>>) => {
+> = (
+  // Inferring from the ORM's collection type would measure its variance, which costs a lot.
+  collection: NoInfer<AggregateCollection<Types, RelatedModel<Types, M, K>>>,
+) => {
   readonly [key: string]: IncludeScalar<unknown>;
 };
 
