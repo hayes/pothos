@@ -70,13 +70,6 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
 }
 
 /**
- * Where a field execution sits in its execution: its path link, where the executor builds one
- * per field execution and shares it with the resolvers beneath, or the path as a string, list
- * indices included, where it builds a new path for every resolver (graphql-jit).
- */
-type Place = GraphQLResolveInfo['path'] | string;
-
-/**
  * Per execution: the mappings recorded so far, and the keys they were recorded under, by
  * the path prefix that rehomed them. `responsePath` drops list indices, so every row of a list
  * rebuilds the same key strings; a prefix builds them once.
@@ -89,14 +82,17 @@ type Place = GraphQLResolveInfo['path'] | string;
  * false while nothing has been recorded there, so a request whose rows were all loaded the same
  * way pays nothing for the row tier.
  *
- * `scopes` and `rows` are keyed by `Place`, which tells sibling rows apart.
+ * `scopes` and `rows` are keyed by a field execution's place (see `placeOf`), which tells sibling
+ * rows apart, in weak maps: a `Map` holding every path link of a request tripled the time spent
+ * collecting garbage.
  */
 interface Cache {
   mappings: Map<string, Mapping>;
+  places: Map<string, object>;
   rehomed: Map<string, Map<string, string>>;
-  rows: WeakMap<object, Map<Place, Map<string, Mapping>>>;
+  rows: WeakMap<object, WeakMap<object, Map<string, Mapping>>>;
   rowScoped: boolean;
-  scopes: Map<Place, Mappings>;
+  scopes: WeakMap<object, Mappings>;
 }
 
 /** Per context: the cache of each execution, by `executionOf`. */
@@ -143,10 +139,11 @@ function cache(ctx: object, info: GraphQLResolveInfo): Cache {
   if (!cached) {
     cached = {
       mappings: new Map(),
+      places: new Map(),
       rehomed: new Map(),
       rows: new WeakMap(),
       rowScoped: false,
-      scopes: new Map(),
+      scopes: new WeakMap(),
     };
     executions.set(execution, cached);
   }
@@ -155,11 +152,25 @@ function cache(ctx: object, info: GraphQLResolveInfo): Cache {
 }
 
 /**
- * The place of `path`, a link of `info.path`. A field's link carries a `typename` unless its
- * executor rebuilds paths for every resolver.
+ * Where `path`, a link of `info.path`, sits in its execution: the link itself, where the executor
+ * builds one per field execution and shares it with the resolvers beneath, which a field's link
+ * carrying a `typename` tells. Where it builds a new path for every resolver (graphql-jit), an
+ * object standing for the path's keys, list indices included.
  */
-function placeOf(info: GraphQLResolveInfo, path: GraphQLResolveInfo['path']): Place {
-  return info.path.typename === undefined ? executionPath(path) : path;
+function placeOf(cached: Cache, info: GraphQLResolveInfo, path: GraphQLResolveInfo['path']) {
+  if (info.path.typename !== undefined) {
+    return path;
+  }
+
+  const at = executionPath(path);
+  let place = cached.places.get(at);
+
+  if (!place) {
+    place = {};
+    cached.places.set(at, place);
+  }
+
+  return place;
 }
 
 /**
@@ -271,7 +282,7 @@ function ownerOf(row: unknown): object | null {
  * disagree about gives the row a mapping of its own — or, with no row to hang it off, nothing, so
  * the resolvers beneath fall back and load their own data.
  */
-function claim(cached: Cache, key: string, mapping: Mapping, row: object | null, place: Place) {
+function claim(cached: Cache, key: string, mapping: Mapping, row: object | null, place: object) {
   const held = cached.mappings.get(key);
 
   if (held === undefined) {
@@ -288,10 +299,10 @@ function claim(cached: Cache, key: string, mapping: Mapping, row: object | null,
  * it had been. With no row to hang it off there is nothing to record, and the resolvers beneath
  * fall back and load their own data.
  */
-function claimForRow(cached: Cache, type: string, mapping: Mapping, row: object, place: Place) {
+function claimForRow(cached: Cache, type: string, mapping: Mapping, row: object, place: object) {
   let byPlace = cached.rows.get(row);
   if (!byPlace) {
-    byPlace = new Map();
+    byPlace = new WeakMap();
     cached.rows.set(row, byPlace);
     cached.rowScoped = true;
   }
@@ -313,7 +324,7 @@ export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mapping
   const cached = cache(ctx, info);
   const prefix = responsePath(info.path);
   const keys = rehomedKeys(cached, prefix);
-  const place = placeOf(info, info.path);
+  const place = placeOf(cached, info, info.path);
   const previous = cached.scopes.get(place);
   cached.scopes.set(place, previous ? { ...previous, ...mappings } : mappings);
 
@@ -328,7 +339,9 @@ export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mapping
  * a relation, connection wrapper, or list. The place keeps list indices to isolate siblings.
  */
 export function setRowMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
-  cache(ctx, info).scopes.set(placeOf(info, info.path), mappings);
+  const cached = cache(ctx, info);
+
+  cached.scopes.set(placeOf(cached, info, info.path), mappings);
 }
 
 /**
@@ -344,7 +357,7 @@ export function setFieldMapping(
   row: unknown,
 ) {
   const cached = cache(ctx, info);
-  const place = placeOf(info, info.path);
+  const place = placeOf(cached, info, info.path);
 
   claim(cached, cacheKey(info.parentType.name, info.path), mapping, ownerOf(row), place);
   cached.scopes.set(place, mapping.nested);
@@ -366,7 +379,7 @@ export function setRowFieldMapping(
 ) {
   const cached = cache(ctx, info);
   const owner = ownerOf(row);
-  const place = placeOf(info, info.path);
+  const place = placeOf(cached, info, info.path);
 
   if (owner) {
     claimForRow(cached, info.parentType.name, mapping, owner, place);
@@ -391,7 +404,12 @@ export function getLoaderMapping(
 
   if (cached.rowScoped) {
     const owner = ownerOf(row);
-    const own = owner && cached.rows.get(owner)?.get(placeOf(info, path))?.get(type);
+    const own =
+      owner &&
+      cached.rows
+        .get(owner)
+        ?.get(placeOf(cached, info, path))
+        ?.get(type);
 
     if (own) {
       return own;
@@ -399,7 +417,7 @@ export function getLoaderMapping(
   }
 
   for (let ancestor = path.prev; ancestor; ancestor = ancestor.prev) {
-    const scope = cached.scopes.get(placeOf(info, ancestor));
+    const scope = cached.scopes.get(placeOf(cached, info, ancestor));
 
     if (scope) {
       // A different plan may have omitted this field. Do not treat a sibling's shared mapping
