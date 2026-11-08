@@ -297,6 +297,38 @@ describe('related connections', () => {
     expect(postSubqueries(result.statements[0].sql)).toBe(2);
   });
 
+  it("shares the count of a query callback's pages that differ only in paging", async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        drafts: t.relatedConnection('posts', {
+          totalCount: true,
+          query: () => ({ where: (post) => post.published.eq(0) }),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({ type: 'User', query: { where: { id: 'u-alice' } } }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      `{ user {
+        a: drafts(first: 1) { totalCount edges { node { id } } }
+        b: drafts(first: 2) { totalCount edges { node { id } } }
+      } }`,
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user).toEqual({
+      a: { totalCount: 1, edges: [{ node: { id: 'p-draft1' } }] },
+      b: { totalCount: 1, edges: [{ node: { id: 'p-draft1' } }] },
+    });
+    // A subquery for each page and one for the count.
+    expect(postSubqueries(result.statements[0].sql)).toBe(3);
+  });
+
   it('adds a count to the statement only when totalCount is selected', async () => {
     const rows = await query('{ users { posts(first: 1) { edges { node { id } } } } }');
     expect(rows.errors).toBeUndefined();

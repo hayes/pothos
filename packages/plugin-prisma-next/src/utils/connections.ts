@@ -165,16 +165,19 @@ export function connectionPaging(
     ): MaybePromise<PrismaNextSelection> {
       const planned = plan(args, ctx);
       registerPage(position, name, planned);
-      // A query callback builds a callback `where` anew on every call.
+      const { first, last, after, before, ...filterArgs } =
+        args as PothosSchemaTypes.DefaultConnectionArguments;
+      // A query callback builds a callback `where` anew on every call. It is identified by the
+      // arguments other than paging, so pages that differ only in paging share a count.
       const where = relationLoad(
         config.contract,
         modelKey,
         { where: planned.where },
         {
-          built: typeof query === 'function' ? () => ({ source: query, args }) : undefined,
+          built:
+            typeof query === 'function' ? () => ({ source: query, args: filterArgs }) : undefined,
         },
       ).loadIdentity;
-      const { first, last, after, before } = args as PothosSchemaTypes.DefaultConnectionArguments;
       const { order, defaultSize, maxSize } = planned;
       const loadIdentity = {
         page: { where, order, defaultSize, maxSize, first, last, after, before },
