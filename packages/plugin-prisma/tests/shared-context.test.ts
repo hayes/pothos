@@ -99,6 +99,34 @@ builder.subscriptionType({
       },
       resolve: (user) => user,
     }),
+    // Publishes one payload object twice: planned the first time, loaded elsewhere the second.
+    republished: t.field({
+      type: User,
+      subscribe: async function* () {
+        const payload = { planned: true };
+
+        yield await Promise.resolve(payload);
+        payload.planned = false;
+        yield payload;
+      },
+      resolve: ({ planned }: { planned: boolean }, _args, context, info) =>
+        planned
+          ? prisma.user.findUniqueOrThrow({ ...queryFromInfo({ context, info }), where: { id: 1 } })
+          : prisma.user.findUniqueOrThrow(withAllPosts),
+    }),
+    // Plans in `subscribe`, then yields the root value it was handed to a resolver that loads
+    // the row elsewhere.
+    yieldsRoot: t.field({
+      type: User,
+      subscribe: async function* (root, _args, context, info) {
+        await prisma.user.findUniqueOrThrow({
+          ...queryFromInfo({ context, info }),
+          where: { id: 1 },
+        });
+        yield root;
+      },
+      resolve: () => prisma.user.findUniqueOrThrow(withAllPosts),
+    }),
     // Each event is a distinct payload whose user the resolver loads with the planned query.
     plannedEvents: t.field({
       type: User,
@@ -176,13 +204,17 @@ type Subscribe = (args: {
   schema: GraphQLSchema;
   document: DocumentNode;
   contextValue: object;
+  rootValue: object;
 }) => unknown;
 
 /** Every event of `source`, subscribed to with `subscribeWith` on a fresh context. */
 async function events(subscribeWith: Subscribe, source: string) {
-  const result = (await subscribeWith({ schema, document: parse(source), contextValue: {} })) as
-    | AsyncIterable<unknown>
-    | object;
+  const result = (await subscribeWith({
+    schema,
+    document: parse(source),
+    contextValue: {},
+    rootValue: {},
+  })) as AsyncIterable<unknown> | object;
 
   if (!(Symbol.asyncIterator in result)) {
     throw new Error(`Expected a subscription, got ${JSON.stringify(result)}`);
@@ -197,8 +229,9 @@ async function events(subscribeWith: Subscribe, source: string) {
   return seen;
 }
 
-// graphql-js gives each event its own `variableValues` (16) or `getAbortSignal` (17), while
-// @graphql-tools/executor (Yoga) hands every event and the `subscribe` the same ones.
+// graphql-js gives each event its own `getAbortSignal` (17), while @graphql-tools/executor (Yoga)
+// gives each event nothing of its own but its path, and its payload as `rootValue`, which a
+// subscription may publish more than once.
 describe.each([
   ['graphql-js', subscribe as Subscribe],
   ['@graphql-tools/executor', toolsSubscribe as Subscribe],
@@ -243,6 +276,27 @@ describe.each([
     expect(drafts(seen[0])).toBe(0);
     expect(drafts(seen[1])).toBe(0);
     expect(seen[1]).toEqual(seen[0]);
+  });
+
+  it('keeps the relation filter when one payload object is published twice', async () => {
+    const seen = await events(
+      subscribeWith,
+      'subscription { republished { publishedPosts { published } } }',
+    );
+
+    expect(seen).toHaveLength(2);
+    expect(drafts(seen[0])).toBe(0);
+    expect(seen[1]).toEqual(seen[0]);
+  });
+
+  it("keeps the relation filter on an event yielding its subscribe's root value", async () => {
+    const seen = await events(
+      subscribeWith,
+      'subscription { yieldsRoot { publishedPosts { published } } }',
+    );
+
+    expect(seen).toHaveLength(1);
+    expect(drafts(seen[0])).toBe(0);
   });
 
   it('resolves the relations of each event from the query it planned', async () => {

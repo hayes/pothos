@@ -3,9 +3,12 @@ import {
   execute,
   experimentalExecuteIncrementally,
   GraphQLDeferDirective,
+  type GraphQLFieldConfig,
+  GraphQLList,
   GraphQLObjectType,
   type GraphQLResolveInfo,
   GraphQLSchema,
+  GraphQLStreamDirective,
   GraphQLString,
   parse,
   specifiedDirectives,
@@ -40,23 +43,26 @@ function child(prev: Path, ...keys: (string | number)[]): Path {
   return path;
 }
 /**
- * The infos of one execution, as graphql-js 16 and graphql-jit build them: every resolver of the
- * execution gets the same coerced `variableValues`, and nothing else ties them together. A
- * subscription event's also carry its payload as `rootValue`.
+ * The infos of one execution, as graphql-jit builds them: every resolver of the execution gets the
+ * same coerced `variableValues`, and a path of its own without a `typename`.
  */
-function execution(
-  operation: 'query' | 'subscription' = 'query',
-  rootValue?: unknown,
-  variableValues = {},
-) {
+function execution(operation: 'query' | 'subscription' = 'query', variableValues = {}) {
   return (path: Path, type = 'User') =>
     ({
       operation: { operation },
       parentType: { name: type },
       path,
-      rootValue,
       variableValues,
     }) as unknown as GraphQLResolveInfo;
+}
+
+/** `keys` beneath `prev` as graphql-js 16 links them: a field's link carries its parent type. */
+function linked(prev: Path | undefined, ...keys: (string | number)[]): Path {
+  let path = prev;
+  for (const key of keys) {
+    path = { prev: path, key, typename: typeof key === 'string' ? 'Type' : undefined };
+  }
+  return path!;
 }
 
 const info = execution();
@@ -190,7 +196,7 @@ describe('loader map', () => {
     const variableValues = {};
     const event = () => {
       const getAbortSignal = () => undefined;
-      const payload = execution('subscription', {}, variableValues);
+      const payload = execution('subscription', variableValues);
 
       return (path: Path) => ({ ...payload(path), getAbortSignal }) as GraphQLResolveInfo;
     };
@@ -202,30 +208,40 @@ describe('loader map', () => {
     expect(getLoaderMapping(ctx, event()(pathOf('user', 'posts')), 'User')).toBe(null);
   });
 
-  it('tells subscription events apart by their payload where the variables are shared', () => {
-    // @graphql-tools/executor hands every event, and the `subscribe`, the same variables.
-    const variableValues = {};
+  it('tells executions apart by their root path link where the variables are shared', () => {
+    // @graphql-tools/executor hands every event, and the `subscribe`, the same variables, but
+    // builds each of them a path chain of its own.
+    const info = execution('subscription', {});
     const ctx = {};
     const planned: Mapping = { nested: {} };
-    const subscribed = execution('subscription', undefined, variableValues);
-    const first = execution('subscription', {}, variableValues);
-    const second = execution('subscription', {}, variableValues);
+    const subscribed = linked(undefined, 'user');
+    const first = linked(undefined, 'user');
 
-    setLoaderMappings(ctx, subscribed(pathOf('user')), { 'User@posts': planned });
-    expect(getLoaderMapping(ctx, first(pathOf('user', 'posts')), 'User')).toBe(null);
-    setLoaderMappings(ctx, first(pathOf('user')), { 'User@posts': planned });
-    expect(getLoaderMapping(ctx, first(pathOf('user', 'posts')), 'User')).toBe(planned);
-    expect(getLoaderMapping(ctx, second(pathOf('user', 'posts')), 'User')).toBe(null);
+    setLoaderMappings(ctx, info(subscribed), { 'User@posts': planned });
+    expect(getLoaderMapping(ctx, info(linked(first, 'posts')), 'User')).toBe(null);
+    setLoaderMappings(ctx, info(first), { 'User@posts': planned });
+    expect(getLoaderMapping(ctx, info(linked(first, 'posts')), 'User')).toBe(planned);
+    expect(getLoaderMapping(ctx, info(linked(linked(undefined, 'user'), 'posts')), 'User')).toBe(
+      null,
+    );
   });
 
-  it('records nothing for a subscription event whose payload is not an object', () => {
+  it('scopes a row by its path link where the executor shares links', () => {
     const ctx = {};
+    const users = linked(undefined, 'users');
+    // One link per field execution, shared with the resolvers beneath it.
+    const posts = [0, 1, 2].map((index) => linked(users, index, 'posts'));
     const planned: Mapping = { nested: {} };
-    const event = execution('subscription', 1);
-
-    setLoaderMappings(ctx, event(pathOf('user')), { 'User@posts': planned });
-    setFieldMapping(ctx, event(pathOf('user', 'posts')), planned, {});
-    expect(getLoaderMapping(ctx, event(pathOf('user', 'posts')), 'User')).toBe(null);
+    const own: Mapping = { nested: {} };
+    const loaded: Mapping = { nested: {} };
+    const row = {};
+    setLoaderMappings(ctx, info(users), { 'User@posts': planned, 'Post@posts.author': planned });
+    setRowFieldMapping(ctx, info(posts[0]), own, row);
+    setRowMappings(ctx, info(posts[1]), { 'Post@author': loaded });
+    expect(getLoaderMapping(ctx, info(posts[0]), 'User', row)).toBe(own);
+    expect(getLoaderMapping(ctx, info(posts[2]), 'User', row)).toBe(planned);
+    expect(getLoaderMapping(ctx, info(linked(posts[1], 0, 'author')), 'Post')).toBe(loaded);
+    expect(getLoaderMapping(ctx, info(linked(posts[2], 0, 'author')), 'Post')).toBe(planned);
   });
 
   it('finds the mappings of an execution whose executor builds a new path for each resolver', () => {
@@ -324,11 +340,11 @@ describe('unionMappings', () => {
 
 /**
  * A field `loadedBy` beneath `user`, telling whether the plan its execution recorded for `user`
- * was found. `subscribe` records a plan before yielding, as a snapshot loaded there would, and
- * an event's `user` records one when its payload says so. graphql-js runs a schema with @defer
- * only incrementally.
+ * was found. `user` records one when its parent says `planned`; `rawUser` never does. Each
+ * subscription field's `subscribe` records a plan, as a snapshot loaded there would, and then
+ * yields its events. graphql-js runs a schema with @defer or @stream only incrementally.
  */
-function loaderMapSchema(defer = false) {
+function loaderMapSchema(incremental = false) {
   const planned: Mapping = { nested: {} };
   const record = (ctx: object, info: GraphQLResolveInfo) =>
     setLoaderMappings(ctx, info, { 'User@loadedBy': planned });
@@ -345,32 +361,65 @@ function loaderMapSchema(defer = false) {
   const user = {
     type: User,
     resolve: (payload: unknown, _args: unknown, ctx: object, info: GraphQLResolveInfo) => {
-      if (payload === true || (payload as { planned?: boolean }).planned) {
+      if ((payload as { planned?: boolean }).planned) {
         record(ctx, info);
       }
 
       return {};
     },
   };
+  const subscription = (
+    events: (root: unknown) => AsyncGenerator<unknown>,
+  ): GraphQLFieldConfig<unknown, object> => ({
+    ...user,
+    subscribe: (root, _args, ctx, info) => {
+      record(ctx, info);
+
+      return events(root);
+    },
+  });
 
   return new GraphQLSchema({
-    query: new GraphQLObjectType({ name: 'Query', fields: { user } }),
-    subscription: new GraphQLObjectType({
-      name: 'Subscription',
+    query: new GraphQLObjectType({
+      name: 'Query',
       fields: {
-        user: {
-          ...user,
-          subscribe: async function* (_root: unknown, _args: unknown, ctx: object, info) {
-            record(ctx, info);
-            yield await Promise.resolve({ planned: true });
-            yield { planned: false };
-            // Planned, but with no identity to record it under.
-            yield true;
+        user,
+        rawUser: { type: User, resolve: () => ({}) },
+        users: {
+          type: new GraphQLList(User),
+          resolve: (_root, _args, ctx: object, info) => {
+            setLoaderMappings(ctx, info, { 'User@loadedBy': planned });
+
+            return [{}, {}];
           },
         },
       },
     }),
-    directives: defer ? [...specifiedDirectives, GraphQLDeferDirective] : specifiedDirectives,
+    subscription: new GraphQLObjectType({
+      name: 'Subscription',
+      fields: {
+        user: subscription(async function* () {
+          yield await Promise.resolve({ planned: true });
+          yield { planned: false };
+        }),
+        // One payload object published twice: planned the first time, loaded elsewhere the
+        // second.
+        republished: subscription(async function* () {
+          const payload = { planned: true };
+
+          yield await Promise.resolve(payload);
+          payload.planned = false;
+          yield payload;
+        }),
+        // Yields the root value its `subscribe` was handed, and whose plan it recorded.
+        yieldsRoot: subscription(async function* (root) {
+          yield await Promise.resolve(root);
+        }),
+      },
+    }),
+    directives: incremental
+      ? [...specifiedDirectives, GraphQLDeferDirective, GraphQLStreamDirective]
+      : specifiedDirectives,
   });
 }
 
@@ -381,53 +430,71 @@ describe('loader mappings through an executor', () => {
     schema: GraphQLSchema;
     document: ReturnType<typeof parse>;
     contextValue: object;
+    rootValue?: unknown;
   }) => unknown;
 
   describe.each([
     ['graphql-js', subscribe as Subscribe],
     ['@graphql-tools/executor', toolsSubscribe as Subscribe],
   ])('subscription events through %s', (_, subscribeWith) => {
-    it('finds only the plan each event recorded itself', async () => {
-      const events = (await subscribeWith({
+    async function events(field: string) {
+      const stream = (await subscribeWith({
         schema,
-        document: parse('subscription { user { loadedBy } }'),
+        document: parse(`subscription { ${field} { loadedBy } }`),
         contextValue: {},
+        rootValue: { planned: false },
       })) as AsyncIterable<unknown>;
       const seen: unknown[] = [];
 
-      for await (const event of events) {
-        seen.push(event);
+      for await (const event of stream) {
+        seen.push((event as { data: Record<string, unknown> }).data[field]);
       }
 
-      expect(seen).toEqual([
-        { data: { user: { loadedBy: 'plan' } } },
-        { data: { user: { loadedBy: 'reload' } } },
-        { data: { user: { loadedBy: 'reload' } } },
-      ]);
+      return seen;
+    }
+
+    it('finds only the plan each event recorded itself', async () => {
+      expect(await events('user')).toEqual([{ loadedBy: 'plan' }, { loadedBy: 'reload' }]);
+    });
+
+    it('keeps apart two events publishing the same payload object', async () => {
+      expect(await events('republished')).toEqual([{ loadedBy: 'plan' }, { loadedBy: 'reload' }]);
+    });
+
+    it("keeps an event yielding the root value apart from its subscribe's plan", async () => {
+      expect(await events('yieldsRoot')).toEqual([{ loadedBy: 'reload' }]);
     });
   });
 
   it.each([
     ['graphql-js', execute],
     ['@graphql-tools/executor', toolsExecute],
-  ])("finds a query's plan through %s", async (_, executeWith) => {
+  ])("finds each root field's plan through %s", async (_, executeWith) => {
     const result = await executeWith({
       schema,
-      document: parse('{ user { loadedBy } }'),
+      document: parse('{ user { loadedBy } rawUser { loadedBy } again: user { loadedBy } }'),
       rootValue: { planned: true },
       contextValue: {},
     });
 
-    expect(result).toEqual({ data: { user: { loadedBy: 'plan' } } });
+    expect(result).toEqual({
+      data: {
+        user: { loadedBy: 'plan' },
+        rawUser: { loadedBy: 'reload' },
+        again: { loadedBy: 'plan' },
+      },
+    });
   });
 
   it.each([
     ['graphql-js', experimentalExecuteIncrementally as typeof toolsExecute],
     ['@graphql-tools/executor', toolsExecute],
-  ])("finds a query's plan beneath @defer through %s", async (_, executeWith) => {
+  ])("finds a query's plan beneath @defer and @stream through %s", async (_, executeWith) => {
     const result = (await executeWith({
       schema: loaderMapSchema(true),
-      document: parse('{ user { ... @defer { loadedBy } } }'),
+      document: parse(
+        '{ user { ... @defer { loadedBy } } users @stream(initialCount: 1) { loadedBy } }',
+      ),
       rootValue: { planned: true },
       contextValue: {},
     })) as { initialResult: unknown; subsequentResults: AsyncIterable<unknown> };
@@ -438,6 +505,7 @@ describe('loader mappings through an executor', () => {
       payloads.push(payload);
     }
 
-    expect(JSON.stringify(payloads)).toContain('"loadedBy":"plan"');
+    expect(JSON.stringify([result.initialResult, payloads])).not.toContain('reload');
+    expect(JSON.stringify(payloads).match(/"loadedBy":"plan"/g)).toHaveLength(2);
   });
 });

@@ -70,6 +70,13 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
 }
 
 /**
+ * Where a field execution sits in its execution: its path link, where the executor builds one
+ * per field execution and shares it with the resolvers beneath, or the path as a string, list
+ * indices included, where it builds a new path for every resolver (graphql-jit).
+ */
+type Place = GraphQLResolveInfo['path'] | string;
+
+/**
  * Per execution: the mappings recorded so far, and the keys they were recorded under, by
  * the path prefix that rehomed them. `responsePath` drops list indices, so every row of a list
  * rebuilds the same key strings; a prefix builds them once.
@@ -82,61 +89,56 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
  * false while nothing has been recorded there, so a request whose rows were all loaded the same
  * way pays nothing for the row tier.
  *
- * `scopes` and `rows` are keyed by `executionPath`, which keeps list indices to tell siblings
- * apart.
+ * `scopes` and `rows` are keyed by `Place`, which tells sibling rows apart.
  */
 interface Cache {
   mappings: Map<string, Mapping>;
   rehomed: Map<string, Map<string, string>>;
-  rows: WeakMap<object, Map<string, Map<string, Mapping>>>;
+  rows: WeakMap<object, Map<Place, Map<string, Mapping>>>;
   rowScoped: boolean;
-  scopes: Map<string, Mappings>;
+  scopes: Map<Place, Mappings>;
 }
 
-/** Per context: the cache of each event of each execution. */
-const contextCaches = createContextCache(() => new WeakMap<object, WeakMap<object, Cache>>());
-
-/** The one event of a query or mutation. */
-const OPERATION = {};
+/** Per context: the cache of each execution, by `executionOf`. */
+const contextCaches = createContextCache(() => new WeakMap<object, Cache>());
 
 /**
- * The cache of the execution `info` is in, or null for a subscription event with nothing to tell
- * it apart: nothing is recorded for it and nothing found, so its resolvers load their own data.
+ * An object the executor builds once per execution, and once per event of a subscription, and
+ * hands to every resolver in it, @defer and @stream payloads included:
  *
- * Every executor builds an object once per execution and puts it in the info of every resolver
- * in it: graphql-js 17 a `getAbortSignal`, graphql-js 16, graphql-jit and @graphql-tools/executor
- * the coerced `variableValues`. @defer and @stream payloads reuse it, and they belong to the
- * execution. Not the path: graphql-jit builds a new one for every resolver.
- *
- * Subscription events need one more key. graphql-js and graphql-jit build that object afresh for
- * each event, but @graphql-tools/executor (Yoga, Envelop) reuses the `subscribe`'s for every
- * event, and gives each event nothing of its own but its payload, as `rootValue`. So an event is
- * keyed by its payload too, and a payload that isn't an object has no identity. The `subscribe`
- * resolver runs with the server's root value, usually undefined, so it records nothing; what it
- * would record is never read, since no resolver runs beneath it. Under @graphql-tools/executor,
- * events yielding the same payload object (or the server's root value) share a cache.
+ * - graphql-js 17: the `getAbortSignal` of the execution.
+ * - graphql-js 16 and @graphql-tools/executor (Yoga): the root link of the path. They build one
+ *   path chain per execution or event, linking each field to its parent's, so every resolver
+ *   beneath a root field shares its link, and the `subscribe` resolver has its own. Their fields'
+ *   links carry a `typename`. A root field doesn't share its link with the others, so each root
+ *   field has a cache of its own, which is all it reads.
+ * - graphql-jit: the coerced `variableValues`. It builds a new path, without `typename`, for every
+ *   resolver, but coerces the variables afresh for every execution and event.
  */
-function cache(ctx: object, info: GraphQLResolveInfo): Cache | null {
-  let event: object | null = OPERATION;
+function executionOf(info: GraphQLResolveInfo): object {
+  const signal = (info as { getAbortSignal?: object }).getAbortSignal;
 
-  if (info.operation.operation === 'subscription') {
-    event = ownerOf(info.rootValue);
-
-    if (!event) {
-      return null;
-    }
+  if (signal) {
+    return signal;
   }
 
+  let { path } = info;
+
+  if (path.typename === undefined) {
+    return info.variableValues;
+  }
+
+  while (path.prev) {
+    path = path.prev;
+  }
+
+  return path;
+}
+
+function cache(ctx: object, info: GraphQLResolveInfo): Cache {
   const executions = contextCaches(ctx);
-  const execution = (info as { getAbortSignal?: object }).getAbortSignal ?? info.variableValues;
-  let events = executions.get(execution);
-
-  if (!events) {
-    events = new WeakMap();
-    executions.set(execution, events);
-  }
-
-  let cached = events.get(event);
+  const execution = executionOf(info);
+  let cached = executions.get(execution);
 
   if (!cached) {
     cached = {
@@ -146,10 +148,18 @@ function cache(ctx: object, info: GraphQLResolveInfo): Cache | null {
       rowScoped: false,
       scopes: new Map(),
     };
-    events.set(event, cached);
+    executions.set(execution, cached);
   }
 
   return cached;
+}
+
+/**
+ * The place of `path`, a link of `info.path`. A field's link carries a `typename` unless its
+ * executor rebuilds paths for every resolver.
+ */
+function placeOf(info: GraphQLResolveInfo, path: GraphQLResolveInfo['path']): Place {
+  return info.path.typename === undefined ? executionPath(path) : path;
 }
 
 /**
@@ -198,14 +208,13 @@ export function responsePath(path: GraphQLResolveInfo['path'] | undefined): stri
   return key;
 }
 
-/** Memoised per path link, as `pathKeys` is. */
+/**
+ * Memoised per path link, as `pathKeys` is. Built only where paths are rebuilt for every resolver,
+ * so it saves the walk over a resolver's ancestors from building each prefix again.
+ */
 const executionPaths = new WeakMap<object, string>();
 
-/**
- * Every key of a response path, list indices included, joined by `.`: one field execution's
- * place in its execution. A string rather than the link itself, because graphql-jit builds a new
- * path for every resolver.
- */
+/** Every key of a response path, list indices included, joined by `.`. */
 function executionPath(path: GraphQLResolveInfo['path']): string {
   let key = executionPaths.get(path);
 
@@ -262,19 +271,13 @@ function ownerOf(row: unknown): object | null {
  * disagree about gives the row a mapping of its own — or, with no row to hang it off, nothing, so
  * the resolvers beneath fall back and load their own data.
  */
-function claim(
-  cached: Cache,
-  key: string,
-  mapping: Mapping,
-  row: object | null,
-  path: GraphQLResolveInfo['path'],
-) {
+function claim(cached: Cache, key: string, mapping: Mapping, row: object | null, place: Place) {
   const held = cached.mappings.get(key);
 
   if (held === undefined) {
     cached.mappings.set(key, mapping);
   } else if (held !== mapping && row) {
-    claimForRow(cached, key.slice(0, key.indexOf('@')), mapping, row, path);
+    claimForRow(cached, key.slice(0, key.indexOf('@')), mapping, row, place);
   }
 }
 
@@ -285,24 +288,17 @@ function claim(
  * it had been. With no row to hang it off there is nothing to record, and the resolvers beneath
  * fall back and load their own data.
  */
-function claimForRow(
-  cached: Cache,
-  type: string,
-  mapping: Mapping,
-  row: object,
-  path: GraphQLResolveInfo['path'],
-) {
-  let byPath = cached.rows.get(row);
-  if (!byPath) {
-    byPath = new Map();
-    cached.rows.set(row, byPath);
+function claimForRow(cached: Cache, type: string, mapping: Mapping, row: object, place: Place) {
+  let byPlace = cached.rows.get(row);
+  if (!byPlace) {
+    byPlace = new Map();
+    cached.rows.set(row, byPlace);
     cached.rowScoped = true;
   }
-  const at = executionPath(path);
-  let own = byPath.get(at);
+  let own = byPlace.get(place);
   if (!own) {
     own = new Map();
-    byPath.set(at, own);
+    byPlace.set(place, own);
   }
   own.set(type, mapping);
 }
@@ -315,16 +311,11 @@ function claimForRow(
  */
 export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
   const cached = cache(ctx, info);
-
-  if (!cached) {
-    return;
-  }
-
   const prefix = responsePath(info.path);
   const keys = rehomedKeys(cached, prefix);
-  const at = executionPath(info.path);
-  const previous = cached.scopes.get(at);
-  cached.scopes.set(at, previous ? { ...previous, ...mappings } : mappings);
+  const place = placeOf(info, info.path);
+  const previous = cached.scopes.get(place);
+  cached.scopes.set(place, previous ? { ...previous, ...mappings } : mappings);
 
   for (const key of Object.keys(mappings)) {
     cached.mappings.set(rehome(keys, key, prefix), mappings[key]);
@@ -334,10 +325,10 @@ export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mapping
 /**
  * Records a row's mappings and scopes its descendants to this concrete field execution. A
  * descendant's parent is a different object, so row identity alone cannot carry its plan through
- * a relation, connection wrapper, or list. The execution path retains indices to isolate siblings.
+ * a relation, connection wrapper, or list. The place keeps list indices to isolate siblings.
  */
 export function setRowMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
-  cache(ctx, info)?.scopes.set(executionPath(info.path), mappings);
+  cache(ctx, info).scopes.set(placeOf(info, info.path), mappings);
 }
 
 /**
@@ -353,15 +344,10 @@ export function setFieldMapping(
   row: unknown,
 ) {
   const cached = cache(ctx, info);
+  const place = placeOf(info, info.path);
 
-  if (!cached) {
-    return;
-  }
-
-  const owner = ownerOf(row);
-
-  claim(cached, cacheKey(info.parentType.name, info.path), mapping, owner, info.path);
-  cached.scopes.set(executionPath(info.path), mapping.nested);
+  claim(cached, cacheKey(info.parentType.name, info.path), mapping, ownerOf(row), place);
+  cached.scopes.set(place, mapping.nested);
 }
 
 /**
@@ -379,18 +365,14 @@ export function setRowFieldMapping(
   row: unknown,
 ) {
   const cached = cache(ctx, info);
-
-  if (!cached) {
-    return;
-  }
-
   const owner = ownerOf(row);
+  const place = placeOf(info, info.path);
 
   if (owner) {
-    claimForRow(cached, info.parentType.name, mapping, owner, info.path);
+    claimForRow(cached, info.parentType.name, mapping, owner, place);
   }
 
-  cached.scopes.set(executionPath(info.path), mapping.nested);
+  cached.scopes.set(place, mapping.nested);
 }
 
 /**
@@ -407,13 +389,9 @@ export function getLoaderMapping(
   const { path } = info;
   const cached = cache(ctx, info);
 
-  if (!cached) {
-    return null;
-  }
-
   if (cached.rowScoped) {
     const owner = ownerOf(row);
-    const own = owner && cached.rows.get(owner)?.get(executionPath(path))?.get(type);
+    const own = owner && cached.rows.get(owner)?.get(placeOf(info, path))?.get(type);
 
     if (own) {
       return own;
@@ -421,7 +399,7 @@ export function getLoaderMapping(
   }
 
   for (let ancestor = path.prev; ancestor; ancestor = ancestor.prev) {
-    const scope = cached.scopes.get(executionPath(ancestor));
+    const scope = cached.scopes.get(placeOf(info, ancestor));
 
     if (scope) {
       // A different plan may have omitted this field. Do not treat a sibling's shared mapping
