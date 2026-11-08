@@ -1199,7 +1199,7 @@ describe("a connection helper's page of a variant with a table of its own", () =
 describe('runScopesOnType on rows without what the type selects', () => {
   it("supplies a loader of scope-auth's type", () => {
     // The method is private, which an indexed access type still reads.
-    type Loader = ReturnType<PothosPrismaNextPlugin<SchemaTypes>['createTypeParentLoader']>;
+    type Loader = ReturnType<PothosPrismaNextPlugin<SchemaTypes>['typeParentLoader']>;
     expectTypeOf<Loader>().not.toBeAny();
     expectTypeOf<Loader>().toExtend<ScopeAuthParentLoader>();
   });

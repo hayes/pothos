@@ -561,7 +561,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       this.assertRelationRows(fieldConfig, model);
     }
     const gated = this.gate(resolver, fieldConfig, modelKey);
-    const forType = this.resultCopier(fieldConfig);
+    // A field returning rows of a prisma type copies each for the type, through lists and
+    // promises. A connection's nodes are copied by the edge's `node` field.
+    const forType = this.typeCopier(
+      this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type)),
+    );
     if (!forType) {
       return gated;
     }
@@ -590,7 +594,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { config } = this;
     const model = getModel(config.contract, modelKey);
-    const { nested } = this.typeData(fieldConfig.parentType);
+    const nested = typeNested(this.buildCache.getTypeConfig(fieldConfig.parentType));
     // A static selection, which names only columns, reads what its type's `select`s load and its
     // columns, which a row no plan loaded can hold. A select function reads what the plan that
     // loaded the parent planned for it.
@@ -637,15 +641,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     };
   }
 
-  /**
-   * What a field returning rows of a prisma type does to each: copies it for the type, through
-   * lists and promises. Undefined for a field returning anything else. A connection's nodes are
-   * copied by the edge's `node` field.
-   */
-  private resultCopier(fieldConfig: PothosOutputFieldConfig<Types>) {
-    return this.typeCopier(this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type)));
-  }
-
   /** Copies a row of a prisma type for the readers of the type. Undefined for any other type. */
   private typeCopier(typeConfig: PothosTypeConfig) {
     const modelKey = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
@@ -660,60 +655,47 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         : row;
   }
 
-  /** What `typeData` found for each prisma type. */
-  private readonly typeDataCache = new Map<
-    string,
-    { modelKey: string; model: PrismaNextModel; keys: string[]; nested: NestedPlan }
-  >();
-
-  /**
-   * The model of a prisma type, what a row must hold for the `select`s of the type and its
-   * interfaces, and what those `select`s write on their relations' rows.
-   */
-  private typeData(typeName: string) {
-    let data = this.typeDataCache.get(typeName);
-    if (!data) {
-      const typeConfig = this.buildCache.getTypeConfig(typeName);
-      const modelKey = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string;
-      const model = getModel(this.config.contract, modelKey);
-      data = {
-        modelKey,
-        model,
-        keys: [...new Set(typeSelects(typeConfig).flatMap(selectedKeys))],
-        nested: typeNested(typeConfig),
-      };
-      this.typeDataCache.set(typeName, data);
-    }
-    return data;
-  }
-
   private readonly typeParentLoaders = new Map<
     string,
     (parent: unknown, context: object, info: GraphQLResolveInfo) => MaybePromise<unknown>
   >();
 
-  /** The parent loader of a prisma type, made once per type. */
-  private typeParentLoader(typeName: string) {
-    let loader = this.typeParentLoaders.get(typeName);
-    if (!loader) {
-      loader = this.createTypeParentLoader(typeName);
-      this.typeParentLoaders.set(typeName, loader);
-    }
-    return loader;
-  }
-
   /**
    * The row scope-auth's checks and a static selection's field see: the row as the `select`s of
    * the type and its interfaces load it, with the columns the field reads. A row without them is
    * reloaded with every column and what those `select`s load, once per row per root field. The
-   * loader matches `ScopeAuthParentLoader` in @pothos/plugin-scope-auth, which this plugin doesn't
-   * import.
+   * loader is made once per type, and matches `ScopeAuthParentLoader` in @pothos/plugin-scope-auth,
+   * which this plugin doesn't import.
    */
-  private createTypeParentLoader(typeName: string) {
-    let type: GraphQLObjectType | undefined;
-    return (parent: unknown, context: object, info: GraphQLResolveInfo): MaybePromise<unknown> => {
-      const { modelKey, model, keys, nested } = this.typeData(typeName);
-      type ??= info.schema.getType(typeName) as GraphQLObjectType;
+  private typeParentLoader(typeName: string) {
+    let loader = this.typeParentLoaders.get(typeName);
+    if (loader) {
+      return loader;
+    }
+    // Read from the built schema on first use: the type's model, what a row must hold for the
+    // `select`s of the type and its interfaces, and what those write on their relations' rows.
+    let data:
+      | {
+          type: GraphQLObjectType;
+          modelKey: string;
+          model: PrismaNextModel;
+          keys: string[];
+          nested: NestedPlan;
+        }
+      | undefined;
+    loader = (parent, context, info) => {
+      if (!data) {
+        const type = info.schema.getType(typeName) as GraphQLObjectType;
+        const modelKey = type.extensions[PRISMA_NEXT_MODEL] as string;
+        data = {
+          type,
+          modelKey,
+          model: getModel(this.config.contract, modelKey),
+          keys: [...new Set(typeSelects(type).flatMap(selectedKeys))],
+          nested: typeNested(type),
+        };
+      }
+      const { type, modelKey, model, keys, nested } = data;
       const selection =
         info.parentType.name === typeName
           ? (info.parentType.getFields()[info.fieldName]?.extensions?.[
@@ -727,9 +709,11 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         return typed;
       }
       return reloadFor(info, () =>
-        this.config.loader(context, modelKey).loadTypeRow(info, parent as object, type!),
+        this.config.loader(context, modelKey).loadTypeRow(info, parent as object, type),
       ).then((row) => typeCopy(row, model, nested, executionKey(info)));
     };
+    this.typeParentLoaders.set(typeName, loader);
+    return loader;
   }
 }
 
