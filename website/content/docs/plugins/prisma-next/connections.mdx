@@ -51,18 +51,25 @@ const userPage = prismaConnectionHelpers(builder, 'User', {
 });
 
 builder.queryField('users', (t) =>
-  t.connection({
-    type: User,
-    args: userPage.getArgs(),
-    resolve: async (_root, args, ctx, info) => {
-      if (!ctx.isAdmin) {
-        throw new Error('Not allowed.');
-      }
-      const rows = await userPage.load(ctx.db.orm.User, args, ctx, info);
-      // Read or change the rows here.
-      return userPage.resolve(rows, args, ctx);
+  t.connection(
+    {
+      type: User,
+      args: userPage.getArgs(),
+      resolve: async (_root, args, ctx, info) => {
+        if (!ctx.isAdmin) {
+          throw new Error('Not allowed.');
+        }
+        const rows = await userPage.load(ctx.db.orm.User, args, ctx, info);
+        // Read or change the rows here.
+        return userPage.resolve(rows, args, ctx);
+      },
     },
-  }),
+    {
+      fields: (connection) => ({
+        totalCount: connection.int({ resolve: (page) => page.totalCount }),
+      }),
+    },
+  ),
 );
 ```
 
@@ -153,9 +160,9 @@ builder.prismaObjectField('Post', 'commenters', (t) =>
 ```
 
 `getQuery` loads one page of comments with the post, and its count when the connection selects a
-field named `totalCount`. `resolve` pages any list of rows by the field's arguments, as `getQuery`
-does. `totalCount` is set when the rows are the list `getQuery` or `load` loaded, or when you pass
-a count. Without `resolveNode`, the rows are the nodes.
+field named `totalCount`. `resolve` builds the page from rows `getQuery` or `load` loaded, or rows
+loaded with the same order and paging. `totalCount` is set when the rows are the list `getQuery` or
+`load` loaded, or when you pass a count. Without `resolveNode`, the rows are the nodes.
 
 To count the rows yourself, such as on MySQL, where Prisma can't count them yet, pass the count to
 `resolve`: `commenters.resolve(rows, args, ctx, { totalCount })`.
@@ -215,7 +222,11 @@ builder.queryField('postCommenters', (t) =>
         return commenters.resolve(rows, args, ctx);
       },
     },
-    {},
+    {
+      fields: (connection) => ({
+        totalCount: connection.int({ resolve: (page) => page.totalCount }),
+      }),
+    },
     {
       fields: (edge) => ({
         commentedAt: edge.string({ resolve: (comment) => comment.createdAt.toISOString() }),
