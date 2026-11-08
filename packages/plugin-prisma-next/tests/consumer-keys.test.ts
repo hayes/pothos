@@ -6,6 +6,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import {
   type DocumentNode,
+  experimentalExecuteIncrementally,
   type GraphQLFieldResolver,
   type GraphQLSchema,
   parse,
@@ -13,7 +14,14 @@ import {
 } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import PrismaNextPlugin, { collectionFromInfo, prismaConnectionHelpers } from '../src';
-import { createBuilder, run, type SampleContract, useSampleDb } from './fixtures/helpers';
+import {
+  createBuilder,
+  deferSchema,
+  run,
+  runIncremental,
+  type SampleContract,
+  useSampleDb,
+} from './fixtures/helpers';
 
 const db = useSampleDb();
 
@@ -642,9 +650,10 @@ type Subscribe = (args: {
   contextValue: object;
 }) => unknown;
 
-// GraphQL allows one response key different arguments in fragments on different object types.
+// GraphQL allows one response key different arguments in fragments on different object types,
+// and a reload batch hands one row to every request it merges.
 describe('one response key with different arguments', () => {
-  function positionSchema() {
+  function positionSchema(defer = false) {
     const builder = createBuilder();
     const I = builder.prismaInterface('User', {
       variant: 'I',
@@ -708,7 +717,7 @@ describe('one response key with different arguments', () => {
         }),
       }),
     });
-    return builder.toSchema();
+    return defer ? deferSchema(builder) : builder.toSchema();
   }
 
   const page = (published: number) =>
@@ -734,6 +743,52 @@ describe('one response key with different arguments', () => {
       { id: 'u-bob', x: bob },
     ]);
     expect(result.statements).toHaveLength(1);
+  });
+
+  it.each([
+    ['f(drafts: false)', 'f(drafts: true)', ['p-hello'], ['p-draft1']],
+    ['g(published: 1)', 'g(published: 0)', ['p-hello'], ['p-draft1']],
+    ['n(published: 1)', 'n(published: 0)', 1, 1],
+    [page(1), page(0), pageOf(['p-hello']), pageOf(['p-draft1'])],
+  ])('reads each deferred root its own: %s, %s', async (onA, onB, a, b) => {
+    const result = await runIncremental(
+      positionSchema(true),
+      `{ a: user { id ... @defer { x: ${onA} } } b: user { id ... @defer { x: ${onB} } } }`,
+    );
+    expect(result.patchErrors).toEqual([]);
+    expect(result.patches).toEqual(expect.arrayContaining([{ x: a }, { x: b }]));
+  });
+
+  it('reads each variable set its own when executions share a context', async () => {
+    const schema = positionSchema(true);
+    const document = parse(
+      'query($drafts: Boolean!) { user { id ... @defer { x: f(drafts: $drafts) } } }',
+    );
+    const contextValue = {};
+    const patches = (drafts: boolean) =>
+      Promise.resolve(
+        experimentalExecuteIncrementally({
+          schema,
+          document,
+          contextValue,
+          variableValues: { drafts },
+        }),
+      ).then(async (result) => {
+        if (!('initialResult' in result)) {
+          throw new Error('Expected an incremental result');
+        }
+        const seen: unknown[] = [];
+        for await (const patch of result.subsequentResults) {
+          for (const entry of patch.incremental ?? []) {
+            seen.push('data' in entry ? entry.data : entry.items);
+          }
+        }
+        return seen;
+      });
+    expect(await Promise.all([patches(false), patches(true)])).toEqual([
+      [{ x: ['p-hello'] }],
+      [{ x: ['p-draft1'] }],
+    ]);
   });
 
   it.each([

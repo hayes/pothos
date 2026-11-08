@@ -55,7 +55,8 @@ export function registerPlanRoots(info: GraphQLResolveInfo) {
  * - One response key in fragments on two object types, which may give it other arguments, is a
  *   consumer per type. A field walked once on an interface is the interface's consumer.
  * - Reloads of one field at several paths number their consumers alike, so a batch merges them
- *   rather than loading one copy of everything beneath per path.
+ *   rather than loading one copy of everything beneath per path. Their arguments may differ, so
+ *   a field's copy of a row is made per position (see `copyWith`).
  *
  * Reads `walkParent`, never `parent`, so numbering a consumer never keeps a walk from being shared.
  * Beneath a shared walk, every place reads the first place's positions, and so do its resolvers.

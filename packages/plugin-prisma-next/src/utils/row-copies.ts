@@ -111,8 +111,11 @@ const NO_SLOTS: Slots = Object.freeze({
 /** What `slotsOf` read off each ORM row. */
 const parsed = new WeakMap<object, Slots>();
 
-/** The copies of each row or type copy, by the consumer they lift. */
-const copies = new WeakMap<object, Map<string, object>>();
+/**
+ * The copies of each row or type copy, by the consumer they lift, or for a field's copy by its
+ * position: a reload batch hands one row to fields of one id with other arguments.
+ */
+const copies = new WeakMap<object, Map<string | Position, object>>();
 
 /**
  * The `combine()` values on `row`, an ORM row of `model`: what its to-many relation keys hold
@@ -158,10 +161,13 @@ function slotsOf(row: object, model: PrismaNextModel): Slots {
 
 /**
  * Writes what consumer `id` loaded onto `target`: its rows on the relation's key, and its computed
- * values but those only its field reads.
+ * values but those only its field reads. For a field, only of the relations it loads (`only`).
  */
-function lift(target: Row, { relations }: Slots, id: string) {
+function lift(target: Row, { relations }: Slots, id: string, only?: ReadonlyMap<string, boolean>) {
   for (const name of Object.keys(relations)) {
+    if (only && !only.has(name)) {
+      continue;
+    }
     const { rows, values } = relations[name]!;
     if (Object.hasOwn(rows, id)) {
       target[name] = rows[id];
@@ -195,9 +201,9 @@ interface CopyOptions {
 }
 
 /**
- * A copy of `base` with what consumer `id` loaded written onto it, cached per base and id so
- * per-row caches such as scope-auth's see one object. A copy of the ORM row itself leaves out the
- * `combine()` values its relation keys hold.
+ * A copy of `base` with what consumer `id` loaded written onto it, cached per base and id, or a
+ * field's position, so per-row caches such as scope-auth's see one object. A copy of the ORM row
+ * itself leaves out the `combine()` values its relation keys hold.
  */
 function copyWith(
   base: object,
@@ -211,10 +217,11 @@ function copyWith(
     byId = new Map();
     copies.set(base, byId);
   }
-  let copy = byId.get(id) as Row | undefined;
+  const cacheKey = field?.position ?? id;
+  let copy = byId.get(cacheKey) as Row | undefined;
   if (!copy) {
     copy = copyOf(base, base === row ? (key) => Object.hasOwn(slots.relations, key) : undefined);
-    lift(copy, slots, id);
+    lift(copy, slots, id, field && (ownLoads.get(field.position) ?? NO_LOADS));
     if (field) {
       liftWhole(copy, row, slots, field.position);
       writePages(copy, slots, field);
@@ -225,7 +232,7 @@ function copyWith(
     }
     const owner = field?.id ?? nestedIn;
     (copy as Holder)[SLOTS] = { row, slots, ...(owner === undefined ? {} : { field: owner }) };
-    byId.set(id, copy);
+    byId.set(cacheKey, copy);
   }
   return copy;
 }
@@ -384,6 +391,8 @@ export function fieldCopy(
  * relation's whole rows or a to-one relation's row.
  */
 const ownLoads = new WeakMap<Position, ReadonlyMap<string, boolean>>();
+
+const NO_LOADS: ReadonlyMap<string, boolean> = new Map();
 
 /** Records what `selection`, the selection of the field at `position`, loads of its own. */
 export function registerOwnLoads(position: Position, selection: PrismaNextSelection) {
