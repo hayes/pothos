@@ -60,7 +60,8 @@ A `select` accepts:
 - Columns: `{ email: true }` or `['email']`.
 - Relations: `{ posts: true }`.
 - Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`.
-  `where` also takes the ORM's predicate callback, as in `t.relation`'s `query`.
+  `where` also takes the ORM's predicate callback, and `orderBy` its selectors, as in `t.relation`'s
+  `query`.
 - A `select` of the relation's rows, in the same form: `{ comments: { limit: 5, select: { post: true } } }`.
 - `type`, a ref or model name of a [variant](./variants) of the relation's target, which loads only
   that variant's rows: `{ tasks: { type: Bug } }`.
