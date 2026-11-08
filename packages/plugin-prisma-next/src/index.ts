@@ -26,6 +26,7 @@ import {
 } from '@pothos/selection-mapper';
 import {
   type GraphQLFieldResolver,
+  type GraphQLInterfaceType,
   type GraphQLIsTypeOfFn,
   type GraphQLObjectType,
   type GraphQLResolveInfo,
@@ -524,30 +525,35 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * Passes an `isTypeOf` the row as the type's `select`s loaded it. Prisma types take no `isTypeOf`
-   * option, but plugins add one, such as scope-auth with `runScopesOnType`.
+   * Passes an `isTypeOf` the row its type's checks read (see `typeParentLoader`). Prisma types take
+   * no `isTypeOf` option, but plugins add one, such as scope-auth with `runScopesOnType`.
    */
   override wrapIsTypeOf(
     isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined,
     typeConfig: PothosObjectTypeConfig,
   ): GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined {
-    const forType = isTypeOf && this.typeCopier(typeConfig);
-    if (!isTypeOf || !forType) {
+    if (!isTypeOf || typeConfig.extensions?.[PRISMA_NEXT_MODEL] === undefined) {
       return isTypeOf;
     }
-    return (parent, context, info) => isTypeOf(forType(parent), context, info);
+    const load = this.typeParentLoader(typeConfig.name);
+    return (parent, context, info) =>
+      completeValue(load(parent, context, info), (row) => isTypeOf(row, context, info));
   }
 
-  /** Passes `resolveType` the row as the interface's `select`s loaded it. */
+  /**
+   * Passes `resolveType` the row the interface's checks read, reloaded when it lacks what the
+   * interface's `select`s load.
+   */
   override wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
     typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
   ): GraphQLTypeResolver<unknown, Types['Context']> {
-    const forType = this.typeCopier(typeConfig);
-    if (!forType) {
+    if (typeConfig.extensions?.[PRISMA_NEXT_MODEL] === undefined) {
       return resolveType;
     }
-    return (parent, context, info, type) => resolveType(forType(parent), context, info, type);
+    const load = this.typeParentLoader(typeConfig.name);
+    return (parent, context, info, type) =>
+      completeValue(load(parent, context, info), (row) => resolveType(row, context, info, type));
   }
 
   /**
@@ -673,8 +679,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   >();
 
   /**
-   * The row scope-auth's checks and a static selection's field see: the row as the `select`s of
-   * the type and its interfaces load it, with the columns the field reads. A row without them is
+   * The row scope-auth's checks, `isTypeOf`, `resolveType` and a static selection's field see: the
+   * row as the `select`s of the type and its interfaces load it, with the columns the field reads. A row without them is
    * reloaded with every column and what those `select`s load, once per row per root field. The
    * loader is made once per type, and matches `ScopeAuthParentLoader` in @pothos/plugin-scope-auth,
    * which this plugin doesn't import.
@@ -688,7 +694,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     // `select`s of the type and its interfaces, and what those write on their relations' rows.
     let data:
       | {
-          type: GraphQLObjectType;
+          type: GraphQLObjectType | GraphQLInterfaceType;
           modelKey: string;
           model: PrismaNextModel;
           keys: string[];
@@ -697,7 +703,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       | undefined;
     loader = (parent, context, info) => {
       if (!data) {
-        const type = info.schema.getType(typeName) as GraphQLObjectType;
+        const type = info.schema.getType(typeName) as GraphQLObjectType | GraphQLInterfaceType;
         const modelKey = type.extensions[PRISMA_NEXT_MODEL] as string;
         data = {
           type,

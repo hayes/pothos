@@ -78,10 +78,9 @@ function definePrismaNextType<Types extends SchemaTypes, M extends ModelKey<Type
             const typeName = variantTypeNames(contract, info.schema, iface).get(value as string);
             // The row's value is left out of the message, which logs often capture.
             if (typeName === undefined) {
+              // A row without the discriminator was reloaded with it (see `wrapResolveType`).
               throw new InternalError(
-                value === undefined
-                  ? `prismaInterface '${iface.name}' row was loaded without its discriminator '${discriminator.field}'. Return it from a prisma field, or include '${discriminator.field}' in the row.`
-                  : `prismaInterface '${iface.name}' row has a discriminator '${discriminator.field}' that names no variant of model '${modelKey as string}'.`,
+                `prismaInterface '${iface.name}' row has a discriminator '${discriminator.field}' that names no variant of model '${modelKey as string}'.`,
               );
             }
             return typeName;

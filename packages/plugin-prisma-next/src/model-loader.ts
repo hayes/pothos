@@ -16,7 +16,7 @@ import {
   setRowFieldMapping,
 } from '@pothos/selection-mapper';
 import { and, or } from '@prisma/orm-family-sql/orm-client';
-import type { GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
+import type { GraphQLInterfaceType, GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/adapter.js';
 import type { PrismaNextConfig } from './utils/config.js';
 import { registerPlanRoots } from './utils/consumers.js';
@@ -164,13 +164,18 @@ export class ModelLoader {
   }
 
   /**
-   * The parent row scope-auth's checks read, reloaded with every column and what the `select`s of
-   * `type` and its interfaces load. Unlike `loadSelection`, it plans none of the field, so every
-   * check of a row shares it, and every copy of the row. The row's keys that aren't the model's
-   * columns or relations are kept. Cached per root field of each execution, which graphql makes a new path for, so a row
-   * is reloaded again for a later mutation or subscription event.
+   * The parent row scope-auth's checks and `resolveType` read, reloaded with every column and what
+   * the `select`s of `type` and its interfaces load. Unlike `loadSelection`, it plans none of the
+   * field, so every check of a row shares it, and every copy of the row. The row's keys that aren't
+   * the model's columns or relations are kept. Cached per root field of each execution, which
+   * graphql makes a new path for, so a row is reloaded again for a later mutation or subscription
+   * event.
    */
-  loadTypeRow(info: GraphQLResolveInfo, parent: object, type: GraphQLObjectType): Promise<Row> {
+  loadTypeRow(
+    info: GraphQLResolveInfo,
+    parent: object,
+    type: GraphQLObjectType | GraphQLInterfaceType,
+  ): Promise<Row> {
     this.assertIdentity(info);
     const key = type.name;
     const root = rootPath(info);

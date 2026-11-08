@@ -146,6 +146,44 @@ describe('prismaInterface', () => {
     ]);
   });
 
+  it("reloads what an interface's resolveType reads when the returned row lacks it", async () => {
+    const builder = createBuilder();
+    const Named = builder.prismaInterface('User', {
+      variant: 'Named',
+      select: ['firstName'],
+      resolveType: (user) => (user.firstName === 'Alice' ? 'Alice' : 'Other'),
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    for (const name of ['Alice', 'Other']) {
+      builder.prismaObject('User', { variant: name, interfaces: [Named], fields: () => ({}) });
+    }
+    const Plain = builder.prismaObject('User', {
+      variant: 'Plain',
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        // A plain field plans nothing, so the row it returns holds only what its parent loaded.
+        self: t.field({ type: Named, resolve: (user) => user as never }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: [Plain],
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ users { self { __typename id } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { self: { __typename: 'Alice', id: 'u-alice' } },
+      { self: { __typename: 'Other', id: 'u-bob' } },
+    ]);
+    // The users, a batch reloading both rows as the interface for resolveType, and one reloading
+    // them as their types for `id`.
+    expect(result.statements).toHaveLength(3);
+  });
+
   it('merges fields into an interface variant through its ref', () => {
     const builder = createBuilder();
     const Base = builder.prismaInterface('User', {

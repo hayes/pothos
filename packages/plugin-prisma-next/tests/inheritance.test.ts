@@ -964,14 +964,7 @@ describe('native model inheritance', () => {
     );
   });
 
-  it.each([
-    [
-      'names no variant',
-      { id: 't9', title: 'plain', type: 'task' },
-      /discriminator 'type' that names no variant of model 'Task'/,
-    ],
-    ['was loaded without', { id: 't1', title: 'bug1' }, /loaded without its discriminator 'type'/],
-  ])('reports an interface row whose discriminator %s', async (_name, row, message) => {
+  function rowSchema(row: object) {
     const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
       plugins: [PrismaNextPlugin],
       prismaNext: { client: db.client },
@@ -980,11 +973,25 @@ describe('native model inheritance', () => {
     builder.prismaObject('Bug', { interfaces: [task], fields: () => ({}) });
     builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
     builder.queryType({
-      // The row is invalid on purpose, so no type would accept it.
       fields: (t) => ({ task: t.field({ type: task, resolve: () => row as never }) }),
     });
-    const result = await run(builder.toSchema(), '{ task { title } }');
-    expect(detailOf(result.errors?.[0])).toMatch(message);
+    return builder.toSchema();
+  }
+
+  it('reloads an interface row returned without its discriminator', async () => {
+    const result = await run(rowSchema({ id: 't1', title: 'bug1' }), '{ task { __typename } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ task: { __typename: 'Bug' } });
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('reports an interface row whose discriminator names no variant', async () => {
+    // The row is invalid on purpose, so no type would accept it.
+    const row = { id: 't9', title: 'plain', type: 'task' };
+    const result = await run(rowSchema(row), '{ task { title } }');
+    expect(detailOf(result.errors?.[0])).toMatch(
+      /discriminator 'type' that names no variant of model 'Task'/,
+    );
     // Logs often capture messages, so the row's value stays out of it.
     expect(result.errors?.[0].message).not.toContain('"task"');
     // A developer's error, which a server that masks errors hides from the client.

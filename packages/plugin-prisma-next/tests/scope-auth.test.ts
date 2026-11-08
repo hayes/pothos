@@ -1525,7 +1525,9 @@ describe('rows another field filtered', () => {
         variant: 'Audited',
         select: { posts: true },
         authScopes: (user) => {
-          seen.push(user.posts.map((post) => post.id).sort());
+          // Typed without `posts`. The row is reloaded with them, not the rows `drafts` filtered.
+          const { posts } = user as unknown as { posts: { id: string }[] };
+          seen.push(posts.map((post) => post.id).sort());
           return true;
         },
         fields: (t) => ({
@@ -1563,9 +1565,9 @@ describe('rows another field filtered', () => {
         variant: 'AuditedNode',
         select: { posts: true },
         resolveType: (user) => {
-          // Typed without `posts`, which a returned row needn't hold. Read to check it isn't the
-          // rows `drafts` filtered.
-          seen.push((user as { posts?: unknown }).posts);
+          // Typed without `posts`. The row is reloaded with them, not the rows `drafts` filtered.
+          const { posts } = user as unknown as { posts: { id: string }[] };
+          seen.push(posts.map((post) => post.id).sort());
           return 'AuditedUser';
         },
         fields: (t) => ({ id: t.exposeID('id') }),
@@ -1594,7 +1596,7 @@ describe('rows another field filtered', () => {
         '{ users { drafts { id } audited { id } } }',
       );
       expect(result.errors).toBeUndefined();
-      expect(seen).toEqual([undefined]);
+      expect(seen).toEqual([['p-draft1', 'p-hello']]);
     });
   });
 });
