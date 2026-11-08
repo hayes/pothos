@@ -1,5 +1,4 @@
 import {
-  deepEqual,
   type MergeOptions,
   type Node,
   NodeAdapter,
@@ -19,19 +18,18 @@ import {
   PRISMA_NEXT_MODEL,
 } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
-import { branchName, consumerOfKey, relationName } from './branch-keys.js';
 import { compileTypeSelect, typeSelects } from './compile-select.js';
 import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model.js';
 import {
   COMPUTE,
   type ComputedSelection,
   EMPTY,
-  loadsWholeRelation,
   type Narrowing,
   type PrismaNextSelectFn,
   type PrismaNextSelection,
   REFINE,
   type RelationArgs,
+  splitKey,
 } from './selections.js';
 
 /**
@@ -67,16 +65,17 @@ function relationOf(model: PrismaNextModel, name: string): PrismaNextRelation {
 
 type Visitor = QueryVisitor<PrismaNextModel, PrismaNextSelection>;
 
-/** The consumers of one relation on a level: their rows and computed values, by consumer id. */
-interface RelationConsumers {
-  rows: [string, PrismaNextSelection][];
+/** The loads of one relation on a level: the plain one, and the others by id. */
+interface RelationLoads {
+  plain?: PrismaNextSelection;
+  keyed: [string, PrismaNextSelection][];
   computed: [string, ComputedSelection][];
 }
 
 /**
  * Reads Prisma Next selections into the selection-mapper's node tree and turns planned nodes into
- * collection calls. `NodeAdapter` decides how nodes merge and conflict. Consumers of a to-many
- * relation never conflict, because each consumer has its own branch.
+ * collection calls. `NodeAdapter` decides how nodes merge and conflict. Loads of a relation are
+ * keyed by what they load, so equal loads merge and others never conflict.
  */
 export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSelection> {
   override readonly skipDeferredFragments: boolean;
@@ -119,8 +118,8 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    * implementations' selections: a row loaded as the interface is resolved as one of them, whose
    * `isTypeOf`, auth checks and fields read it even when the query has no fragment on that type.
    *
-   * They all fit one node. The type-level selects of a model agree and share their branches, and
-   * a to-one relation is keyed by its name, so every type's `select` shares it. A type's `select`
+   * They all fit one node: the type-level selects of a model agree, and load under the relations'
+   * names. A type's `select`
    * can't name a relation only a variant declares, but a base model's relation can't be included
    * beneath a relation that targets a variant model, nor a base column read beneath one that
    * targets a variant with a table of its own. `mergeQuery` leaves those out of such a level.
@@ -163,7 +162,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       }
     }
     for (const key of Object.keys(selection.relations ?? {})) {
-      visit.relation(key, relationOf(model, relationName(key)).target, selection.relations![key]);
+      visit.relation(key, relationOf(model, splitKey(key)[0]).target, selection.relations![key]);
     }
     for (const key of Object.keys(selection.computed ?? {})) {
       visit.computed(key, selection.computed![key], 'relation');
@@ -253,7 +252,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   private withoutUnloadable(selection: PrismaNextSelection, { model, args }: PrismaNextNode) {
     const narrowing = selection.args?.variant ?? (args as RelationArgs).variant;
     const fits = ([key]: [string, unknown]) =>
-      canInclude(relationOf(model, relationName(key)), narrowing);
+      canInclude(relationOf(model, splitKey(key)[0]), narrowing);
     const readable = readableColumns(model, narrowing);
     const columnFits = (column: string) => !readable || readable.has(column);
     const relations = Object.entries(selection.relations ?? {});
@@ -304,33 +303,46 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     branches: BranchNames,
   ): MapperCollection {
     let result = selection.columns?.length ? collection.select(...selection.columns) : collection;
-    // The ORM includes a relation once, so all of its consumers share one include.
-    const consumers = new Map<string, RelationConsumers>();
-    const consumersOf = (name: string) => {
-      let entry = consumers.get(name);
+    // The ORM includes a relation once, so all of its loads share one include.
+    const byRelation = new Map<string, RelationLoads>();
+    const loadsOf = (name: string) => {
+      let entry = byRelation.get(name);
       if (!entry) {
-        entry = { rows: [], computed: [] };
-        consumers.set(name, entry);
+        entry = { keyed: [], computed: [] };
+        byRelation.set(name, entry);
       }
       return entry;
     };
     for (const [key, child] of Object.entries(selection.relations ?? {})) {
-      consumersOf(relationName(key)).rows.push([consumerOfKey(key), child]);
+      const [name, id] = splitKey(key);
+      if (id === undefined) {
+        loadsOf(name).plain = child;
+      } else {
+        loadsOf(name).keyed.push([id, child]);
+      }
     }
     for (const [key, value] of Object.entries(selection.computed ?? {})) {
-      consumersOf(relationName(key)).computed.push([consumerOfKey(key), value]);
+      const [name, id] = splitKey(key);
+      loadsOf(name).computed.push([id!, value]);
     }
-    for (const [name, entry] of consumers) {
+    for (const [name, entry] of byRelation) {
       const relation = relationOf(model, name);
       result = result.include(name, (rel) => this.emitRelation(rel, relation, entry, branches));
     }
     return result;
   }
 
+  /**
+   * Loads a relation's plain load as the include itself, or, beside other loads, as branches of
+   * one `combine()`: `n/_` for the plain load, `n/id` for another load or a count, and `n/id:key`
+   * for each value an aggregate computes. Each `n` is unique in the statement: the ORM aliases a
+   * branch by its name cut to 63 bytes, and renames the ones that then collide one at a time, which
+   * would cost time quadratic in their number where a shared walk repeats a load at each place.
+   */
   private emitRelation(
     rel: MapperCollection,
     relation: PrismaNextRelation,
-    { rows, computed }: RelationConsumers,
+    { plain, keyed, computed }: RelationLoads,
     branches: BranchNames,
   ): MapperCollection {
     const target = relation.targetVariantModel;
@@ -348,78 +360,32 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       const refined = refine ? refine(narrowed) : narrowed;
       return this.emitLevel(refined, selection, relation.target, branches);
     };
-    if (!relation.isToMany) {
-      // A to-one relation is keyed by its name, so it has one consumer.
-      return load(rows[0]![1]);
+    // Every to-one load is plain.
+    if (plain && !keyed.length && !computed.length) {
+      return load(plain);
     }
-    const groups = this.shareRows(relation.target, rows);
-    if (groups.length === 1 && computed.length === 0) {
-      // Rows that are all of the relation can be read as `row[relation]` by anyone. Any others go
-      // in a branch of their consumers, so readers of other consumers can't mistake them for that.
-      const [ids, shared] = groups[0]!;
-      const included = load(shared);
-      if (loadsWholeRelation(shared)) {
-        return included;
-      }
-      return this.combine(base, [[ids, included]], branches);
+    const spec: Record<string, unknown> = {};
+    const name = (id: string, key?: string) =>
+      `${branches.next++}/${id}${key === undefined ? '' : `:${key}`}`;
+    if (plain) {
+      spec[name('_')] = load(plain);
     }
-    const slots: Branch[] = groups.map(([ids, selection]) => [ids, load(selection)]);
-    for (const [ids, value] of shareComputed(computed)) {
-      for (const [key, loaded] of Object.entries(value[COMPUTE](base))) {
-        slots.push([ids, loaded, key]);
-      }
+    for (const [id, selection] of keyed) {
+      spec[name(id)] = load(selection);
     }
-    return this.combine(base, slots, branches);
-  }
-
-  /**
-   * Loads `slots` through `combine()`, each named by a number unique in the statement and then its
-   * key. The ORM aliases a branch by its name cut to 63 bytes, and renames the ones that then
-   * collide one at a time. A walk shared by several places loads the same consumers at each, so
-   * without the number their names would repeat, and naming them would cost time quadratic in
-   * their number.
-   */
-  private combine(
-    base: MapperCollection,
-    slots: Branch[],
-    branches: BranchNames,
-  ): MapperCollection {
-    const named: Record<string, unknown> = {};
-    for (const [ids, loaded, key] of slots) {
-      named[branchName(branches.next, ids, key)] = loaded;
-      branches.next += 1;
-    }
-    return base.combine(named);
-  }
-
-  /**
-   * Groups the consumers of a relation whose selections agree, each group merged into one
-   * selection, so aliases with equal arguments load one branch whatever the others load.
-   */
-  private shareRows(model: PrismaNextModel, rows: [string, PrismaNextSelection][]) {
-    if (rows.length === 1) {
-      return [[[rows[0]![0]], rows[0]![1]] as [string[], PrismaNextSelection]];
-    }
-    const groups: { ids: string[]; node: PrismaNextNode }[] = [];
-    for (const [id, selection] of rows) {
-      const group = groups.find(({ node }) => this.canMergeQuery(node, selection));
-      if (group) {
-        this.mergeQuery(group.node, selection);
-        group.ids.push(id);
+    for (const [id, value] of computed) {
+      const loaded = value[COMPUTE](base);
+      if (value.kind === 'count') {
+        spec[name(id)] = loaded;
       } else {
-        const node = this.createNode(model);
-        this.mergeQuery(node, selection);
-        groups.push({ ids: [id], node });
+        for (const [key, reduced] of Object.entries(loaded as object)) {
+          spec[name(id, key)] = reduced;
+        }
       }
     }
-    return groups.map(
-      ({ ids, node }) => [ids, this.toQuery(node)] as [string[], PrismaNextSelection],
-    );
+    return base.combine(spec);
   }
 }
-
-/** A `combine()` branch: the consumers sharing it, what it loads, and its computed value's key. */
-type Branch = [ids: string[], loaded: unknown, key?: string];
 
 /** Numbers the `combine()` branches of one statement. */
 interface BranchNames {
@@ -428,7 +394,7 @@ interface BranchNames {
 
 /**
  * The most relations and computed values one level of a statement loads, counting those beneath
- * it. Each to-many consumer with its own arguments is a `combine()` slot of its own, so a document
+ * it. Each to-many load with its own arguments is a `combine()` slot of its own, so a document
  * that nests aliases with different arguments doubles them at every level. Each slot is a table
  * of its relation's join, which MySQL caps at 61 tables and SQLite at 64.
  */
@@ -445,25 +411,6 @@ function loads(selection: PrismaNextSelection, held?: PrismaNextSelection): numb
     count += (heldChild ? 0 : 1) + loads(child, heldChild);
   }
   return count;
-}
-
-/**
- * Groups the consumers of a relation that compute the same value under the same key, so each value
- * is computed once, however many aliases or agreeing type-level selects select it.
- */
-function shareComputed(computed: [string, ComputedSelection][]) {
-  const groups: [string[], ComputedSelection][] = [];
-  for (const [id, value] of computed) {
-    const group = groups.find(
-      ([, other]) => other.key === value.key && deepEqual(other.loadIdentity, value.loadIdentity),
-    );
-    if (group) {
-      group[0].push(id);
-    } else {
-      groups.push([[id], value]);
-    }
-  }
-  return groups;
 }
 
 /**

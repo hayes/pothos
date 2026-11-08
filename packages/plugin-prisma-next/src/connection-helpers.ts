@@ -40,10 +40,11 @@ import { getPluginConfig } from './utils/config.js';
 import { CONNECTION_NODE_PATHS, connectionPaging } from './utils/connections.js';
 import { variantForRelationType } from './utils/contract.js';
 import { buildConnectionPage, type ConnectionPage } from './utils/cursors.js';
+import { type FieldLoads, fieldLoads, keyOf, type LoadRef, refOf } from './utils/loads.js';
 import { initialSelection, nestedFromInfo } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
-import { PAGE, type PageData } from './utils/row-copies.js';
+import { PAGE, type PageData, parseRow, viewOf } from './utils/rows.js';
 import { appliesCursors, EMPTY, type PrismaNextSelection } from './utils/selections.js';
 
 type ConnectionArgs<Args extends InputFieldMap> = InputShapeFromFields<Args> &
@@ -303,34 +304,39 @@ export function prismaConnectionHelpers<
   const modelKey = ref.modelKey as string;
   const config = getPluginConfig(builder);
   const model = getModel(config.contract, modelKey);
-  const owner = `connection helpers for '${modelKey}'`;
+  const subject = `connection helpers for '${modelKey}'`;
   const paging = connectionPaging(config, modelKey, options);
   const { resolveNode } = options;
   const nodeMarker: NodeSelection = { [NODE_SELECTION]: true };
 
   /**
    * The selection of each row of a page: what `select` loads, and the nodes, whose selection
-   * `nodes` plans from a seed.
+   * `nodes` plans from a seed. A relation `select` loads whole but not by its name is read through
+   * a view of each row.
    */
   const pageRows = (
     seed: PrismaNextSelection,
     nodes: (seed: PrismaNextSelection) => MaybePromise<PrismaNextSelection>,
     args: object,
     ctx: object,
-  ) => {
+  ): MaybePromise<{ selection: PrismaNextSelection; beneath?: FieldLoads }> => {
     const selected = splitSelect(
       options.select?.(() => nodeMarker, args as never, ctx) ?? {},
       model,
     );
     const relations: Record<string, PrismaNextSelection> = {};
+    const refs: LoadRef[] = [];
     let nodeRelation: string | undefined;
     for (const [name, entry] of selected.relations) {
       if (entry === nodeMarker) {
         nodeRelation = name;
       } else {
-        relations[name] = EMPTY;
+        const ref = refOf(config, ctx, model, { kind: 'rows', relation: name });
+        relations[keyOf(ref)] = EMPTY;
+        refs.push(ref);
       }
     }
+    const beneath = refs.length ? fieldLoads(model, refs) : undefined;
     const own: PrismaNextSelection = {
       ...seed,
       columns: [...(seed.columns ?? []), ...selected.columns, ...model.identity],
@@ -341,12 +347,15 @@ export function prismaConnectionHelpers<
       // a variant model it leaves out what the variant model's own accessor can't load.
       const nodeSeed: PrismaNextSelection = { args: relationArgs(model.relations[nodeRelation]!) };
       return completeValue(nodes(nodeSeed), (planned) => ({
-        ...own,
-        relations: { ...relations, [nodeRelation]: planned },
+        selection: { ...own, relations: { ...relations, [nodeRelation]: planned } },
+        beneath,
       }));
     }
     // Rows that `resolveNode` makes into something else aren't the nodes, so they load whole.
-    return resolveNode ? { ...own, columns: null } : nodes(own);
+    return completeValue(resolveNode ? { ...own, columns: null } : nodes(own), (selection) => ({
+      selection,
+      beneath,
+    }));
   };
 
   /**
@@ -355,7 +364,7 @@ export function prismaConnectionHelpers<
    */
   const planPage =
     (fieldArgs: object, ctx: object, paths: readonly PathSegment[][]): PlanPage =>
-    (relation, name, field) => {
+    (owner, relation, name, field) => {
       // The names of the path before `edges`, where the connection sits beneath the field. The
       // connection pages by its own arguments, not those of the field it sits beneath.
       const prefix = paths[0]!
@@ -373,23 +382,32 @@ export function prismaConnectionHelpers<
         );
       const connectionArgs = prefix.length ? field.selected.args(prefix) : fieldArgs;
       if (!connectionArgs) {
-        return EMPTY;
+        return { selection: EMPTY };
       }
       return completeValue(connectionArgs, (args) =>
-        paging.planPage(
-          relation,
-          name,
-          {
-            ...field,
-            selected: prefix.length ? selectedBeneath(field.selected, prefix) : field.selected,
-          },
-          args,
-          ctx,
-          {
-            variant: variantForRelationType(config.contract, owner, relation.targetModel, modelKey),
-            filtered: true,
-            rows: (seed) => pageRows(seed, nodes, args, ctx),
-          },
+        completeValue(
+          paging.planPage(
+            ctx,
+            owner,
+            relation,
+            name,
+            prefix.length ? selectedBeneath(field.selected, prefix) : field.selected,
+            args,
+            {
+              variant: variantForRelationType(
+                config.contract,
+                subject,
+                relation.targetModel,
+                modelKey,
+              ),
+              filtered: true,
+              rows: (seed) => pageRows(seed, nodes, args, ctx),
+            },
+          ),
+          ({ selection, rows, count }) => ({
+            selection,
+            ref: count ? { ...rows, count } : rows,
+          }),
         ),
       );
     };
@@ -420,6 +438,7 @@ export function prismaConnectionHelpers<
       ctx: object,
       info: GraphQLResolveInfo,
     ) {
+      let loads: FieldLoads | undefined;
       const { rows, totalCount } = await paging.loadPage(
         collection,
         undefined,
@@ -434,16 +453,20 @@ export function prismaConnectionHelpers<
               args,
               ctx,
             ),
-            (selection) => ({
-              query: config.adapter.emit(paged, selection, model),
-              cursors: appliesCursors(selection),
-            }),
+            ({ selection, beneath }) => {
+              loads = beneath;
+              return {
+                query: config.adapter.emit(paged, selection, model),
+                cursors: appliesCursors(selection),
+              };
+            },
           ),
       );
       // `resolve` pages the rows from (args, ctx), so they only carry the count.
-      return Object.assign(rows, {
-        [PAGE]: { count: totalCount } satisfies Pick<PageData, 'count'>,
-      });
+      return Object.assign(
+        loads?.view ? rows.map((row) => viewOf(parseRow(row, model), loads!)) : rows,
+        { [PAGE]: { count: totalCount } satisfies PageData },
+      );
     },
     resolve(
       rows: readonly Record<string, unknown>[],
@@ -453,7 +476,7 @@ export function prismaConnectionHelpers<
     ) {
       // Only the list `getQuery` or `load` loaded carries its count.
       const page = buildConnectionPage(rows, paging.pagingPlan(args, ctx), args, {
-        totalCount: totalCount ?? (rows as { [PAGE]?: Pick<PageData, 'count'> })[PAGE]?.count,
+        totalCount: totalCount ?? (rows as { [PAGE]?: PageData })[PAGE]?.count,
         parent,
       });
       if (!resolveNode) {

@@ -1,14 +1,12 @@
 import type { SelectFn } from '@pothos/selection-mapper';
 import type { MapperCollection } from './adapter.js';
-import { consumerOfKey, fieldOnlyKey } from './branch-keys.js';
-import { isNestedId } from './consumers.js';
 
 export const REFINE = Symbol('prismaNextRefine');
 export const COMPUTE = Symbol('prismaNextCompute');
 
 export type Refine = (rel: MapperCollection) => MapperCollection;
-/** Computes values from a to-many relation's collection, as `combine()` entries by key. */
-export type Compute = (rel: MapperCollection) => Record<string, unknown>;
+/** Computes a count, or an aggregate's values by key, from a to-many relation's collection. */
+export type Compute = (rel: MapperCollection) => unknown;
 
 /**
  * The variant a level of the query is narrowed to. By default the base collection is narrowed with
@@ -21,35 +19,28 @@ export interface Narrowing {
 }
 
 /**
- * Identifies a relation load. Loads with structurally equal args share one include. The function
- * that applies the load is stored under a symbol key, which the comparison ignores.
+ * The args of a relation load. The selection key identifies the load (see loads.ts), so equal keys
+ * have equal args. The function that applies the load is under a symbol key, which the comparison
+ * ignores.
  */
 export interface RelationArgs {
-  /** A declarative query object, or the field that defines the load together with its arguments. */
-  loadIdentity?: unknown;
   variant?: Narrowing;
-  /**
-   * Set when the load applies a connection's cursor values, which the database may refuse. Loads
-   * that share it are of one page with the same cursors.
-   */
+  /** Set when the load applies a connection's cursor values, which the database may refuse. */
   cursors?: true;
+  /** Set beside `REFINE`, since the mapper keeps only args with a string key. */
+  refined?: true;
   [REFINE]?: Refine;
 }
 
 export interface ComputedSelection {
-  /** Tells apart the values one consumer computes from one relation. */
-  key: string;
-  /** Identifies the computed value, like `RelationArgs.loadIdentity`. */
-  loadIdentity: unknown;
+  kind: 'count' | 'agg';
   [COMPUTE]: Compute;
 }
 
 /**
- * A selection on one model. Planned node trees are written back in the same shape. A to-many
- * relation is keyed `relation:id`, and values computed from it `relation:id:key`. Consumers with
- * different arguments then get separate `combine()` branches and still load in one statement. A
- * to-one relation is always loaded whole and keyed by its name, so every reader of the row sees it
- * there.
+ * A selection on one model. Planned node trees are written back in the same shape. A relation's
+ * plain load is keyed by its name, and any other load of it, or value computed from it,
+ * `relation:id`. They load as `combine()` branches of one include.
  */
 export interface PrismaNextSelection {
   /** `null` selects every column. */
@@ -63,29 +54,15 @@ export type PrismaNextSelectFn = SelectFn<PrismaNextSelection>;
 
 export const EMPTY: PrismaNextSelection = Object.freeze({});
 
+/** The relation a selection key loads, and the id of a load other than its plain one. */
+export function splitKey(key: string): [relation: string, id?: string] {
+  const separator = key.indexOf(':');
+  return separator < 0 ? [key] : [key.slice(0, separator), key.slice(separator + 1)];
+}
+
 /** Whether a load of `selection` applies a connection's cursor values, at any level. */
 export function appliesCursors({ args, relations }: PrismaNextSelection): boolean {
   return (
     args?.cursors === true || Object.values(relations ?? {}).some((child) => appliesCursors(child))
-  );
-}
-
-/**
- * The key a connection's count and `relationCount`'s are computed under, as a value only its field
- * reads, so equal counts share one.
- */
-export const COUNT_SLOT = fieldOnlyKey('count');
-
-/**
- * Whether a relation load has every row of the relation, rather than a filtered or paged part, and
- * nothing a nested `select` writes beneath them, which rows other plans load whole would lack.
- */
-export function loadsWholeRelation({ args, relations, computed }: PrismaNextSelection) {
-  return (
-    args?.loadIdentity === undefined &&
-    (!args?.variant || args.variant.throughVariantModel === true) &&
-    ![...Object.keys(relations ?? {}), ...Object.keys(computed ?? {})].some((key) =>
-      isNestedId(consumerOfKey(key)),
-    )
   );
 }

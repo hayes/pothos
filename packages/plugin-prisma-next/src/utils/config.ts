@@ -10,6 +10,7 @@ import { type MapperCollection, PrismaNextAdapter } from './adapter.js';
 import { type FieldCodecs, getColumnCodec } from './codecs.js';
 import { collectionForModel, rootModelKey, variantOf } from './contract.js';
 import { InternalError, keepError } from './errors.js';
+import type { Load } from './loads.js';
 
 type RequestClient = PrismaNextRequestClient<AnyContract>;
 type ExecutionContext = PrismaNextExecutionContext<AnyContract>;
@@ -21,6 +22,8 @@ export interface PrismaNextConfig {
   readonly defaultConnectionSize: number | undefined;
   readonly maxConnectionSize: number | undefined;
   readonly filterConnectionTotalCount: boolean;
+  /** The type-level load of each relation, by root model, and the first type that selects it. */
+  readonly typeLoads: Map<string, Map<string, { type: string; load: Load }>>;
   /** The client for a request, read once per request context. */
   client(ctx: object): RequestClient;
   /** The root collection a model's rows load from (`orm.Bug` loads through `orm.Task`). */
@@ -86,6 +89,7 @@ export const getPluginConfig = createContextCache((builder: object): PrismaNextC
     defaultConnectionSize: options.defaultConnectionSize,
     maxConnectionSize: options.maxConnectionSize,
     filterConnectionTotalCount: options.filterConnectionTotalCount ?? true,
+    typeLoads: new Map(),
     client,
     collection,
     typeCollection,

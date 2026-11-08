@@ -10,6 +10,7 @@ import {
 import {
   cacheKey,
   forOperation,
+  type Mapping,
   Plan,
   type PlayedPlan,
   setLoaderMappings,
@@ -19,12 +20,11 @@ import { and, or } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLInterfaceType, GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/adapter.js';
 import type { PrismaNextConfig } from './utils/config.js';
-import { registerPlanRoots } from './utils/consumers.js';
 import { variantOf } from './utils/contract.js';
 import { readPage } from './utils/cursors.js';
-import { InternalError, keepError } from './utils/errors.js';
+import { assertGraphQLJsInfo, InternalError, keepError } from './utils/errors.js';
 import { getModel, type PrismaNextModel } from './utils/model.js';
-import { fieldCopy, rowOf, typePlan, withOtherKeys } from './utils/row-copies.js';
+import { sourceOf, withOtherKeys } from './utils/rows.js';
 import { appliesCursors, type PrismaNextSelection } from './utils/selections.js';
 
 type Row = Record<string, unknown>;
@@ -46,8 +46,6 @@ type Load =
   | { kind: 'parent'; typeName?: undefined; collection?: undefined };
 
 interface Batch {
-  /** Consumer ids are numbered per operation, so only its own plans merge into a batch. */
-  operation: object;
   load: Load;
   root: PrismaNextNode;
   fields: readonly string[];
@@ -119,7 +117,7 @@ export class ModelLoader {
     key: string,
     plan: () => MaybePromise<Played>,
   ): MaybePromise<Played> {
-    registerPlanRoots(info);
+    assertGraphQLJsInfo(info);
     const plans = forOperation(this.plans[kind], info);
     let selection = plans.get(key);
     if (!selection) {
@@ -129,8 +127,8 @@ export class ModelLoader {
     return selection;
   }
 
-  /** The parent reloaded with what `info`'s field needs, as the field's copy of it. */
-  loadSelection(info: GraphQLResolveInfo, parent: object): Promise<object> {
+  /** The parent reloaded with what `info`'s field needs, and the field's mapping. */
+  loadSelection(info: GraphQLResolveInfo, parent: object): Promise<{ row: Row; mapping: Mapping }> {
     this.assertIdentity(info);
     // The selects of the field and those beneath it run here.
     const selection = this.cachedPlan(
@@ -148,7 +146,7 @@ export class ModelLoader {
     );
     const load = (played: Played) => {
       const values = this.identity.map((field) => (parent as Row)[field]);
-      const staged = this.stage(info, played.root, this.identity, values, { kind: 'parent' });
+      const staged = this.stage(played.root, this.identity, values, { kind: 'parent' });
       return staged.then((reloaded) => {
         const row = withOtherKeys(reloaded!, parent, played.root.model);
         // The plan is walked from the parent type, so the field's own mapping is keyed by the
@@ -157,10 +155,10 @@ export class ModelLoader {
         // fits, has a mapping and holds what it planned.
         const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`]!;
         setRowFieldMapping(this.context, info, mapping, row);
-        return fieldCopy(row, played.root.model, typePlan(info.parentType), mapping.position!)!;
+        return { row, mapping };
       });
     };
-    return completeValue(selection, load) as Promise<object>;
+    return completeValue(selection, load) as Promise<{ row: Row; mapping: Mapping }>;
   }
 
   /**
@@ -184,7 +182,7 @@ export class ModelLoader {
       rows = new WeakMap();
       this.reloads.set(root, rows);
     }
-    const row = rowOf(parent);
+    const row = sourceOf(parent);
     let loads = rows.get(row);
     const loaded = loads?.get(key);
     if (loaded) {
@@ -205,7 +203,6 @@ export class ModelLoader {
     });
     const load = (played: Played) =>
       this.stage(
-        info,
         played.root,
         this.identity,
         this.identity.map((field) => (parent as Row)[field]),
@@ -245,7 +242,7 @@ export class ModelLoader {
     const load = (played: Played) => {
       setLoaderMappings(this.context, info, played.mappings);
       const load: Load = { kind: 'node', typeName, collection };
-      return this.stage(info, played.root, fields, values, load).then((row) => {
+      return this.stage(played.root, fields, values, load).then((row) => {
         if (row) {
           brandWithType(row, typeName as OutputType<SchemaTypes>);
         }
@@ -256,16 +253,14 @@ export class ModelLoader {
   }
 
   private stage(
-    info: GraphQLResolveInfo,
     root: PrismaNextNode,
     fields: readonly string[],
     values: readonly unknown[],
     load: Load,
   ): Promise<Row | null> {
-    const { operation } = info;
+    // Loads are keyed by what they load, per context, so plans of any operation merge.
     let batch = [...this.staged].find(
       (candidate) =>
-        candidate.operation === operation &&
         candidate.load.kind === load.kind &&
         candidate.load.typeName === load.typeName &&
         // Every row reloading through one selection stages the same root, which joins the batch
@@ -274,7 +269,6 @@ export class ModelLoader {
     );
     if (!batch) {
       const created: Batch = {
-        operation,
         load,
         root: this.config.adapter.createNode(root.model),
         fields,

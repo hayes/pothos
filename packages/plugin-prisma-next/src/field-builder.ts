@@ -59,7 +59,7 @@ function prismaFieldConfig(
   const literal =
     typeof query === 'function'
       ? undefined
-      : refinement(query, { problem: orderableProblem(config.context, modelKey) });
+      : refinement(query, orderableProblem(config.context, modelKey));
   const refine =
     typeof query === 'function'
       ? (args: unknown, context: object) =>

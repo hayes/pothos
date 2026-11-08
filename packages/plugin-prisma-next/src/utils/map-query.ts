@@ -12,8 +12,8 @@ import type { PlannedCollection, VariantTypeName } from '../types/collections.js
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection, PlannedQuery, PrismaNextPlan } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
-import { registerPlanRoots } from './consumers.js';
 import { variantOf } from './contract.js';
+import { assertGraphQLJsInfo } from './errors.js';
 import { getModel, type PrismaNextModel } from './model.js';
 import { appliesCursors, EMPTY, type PrismaNextSelection } from './selections.js';
 
@@ -43,7 +43,7 @@ function planSelection(
   target: PlanTarget,
   initial: PrismaNextSelection,
 ): MaybePromise<{ selection: PrismaNextSelection; model: PrismaNextModel } | undefined> {
-  registerPlanRoots(info);
+  assertGraphQLJsInfo(info);
   const plan = Plan.fromInfo(config.adapter, { context, info, ...target, initial });
   return (
     plan &&

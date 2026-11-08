@@ -1,8 +1,8 @@
 import { completeValue, type MaybePromise, ObjectRef, type SchemaTypes } from '@pothos/core';
-import { type IndirectInclude, type Position, selectedFieldNames } from '@pothos/selection-mapper';
+import { type IndirectInclude, selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { MapperCollection, PlannedQuery } from './adapter.js';
-import { computedSelection, relationArgs, relationLoad, rowsSelection } from './compile-select.js';
+import { refSelection, relationArgs, relationLoad } from './compile-select.js';
 import type { PrismaNextConfig } from './config.js';
 import {
   applyCursorPagination,
@@ -16,9 +16,10 @@ import {
   withCursorValues,
 } from './cursors.js';
 import { checkReturned } from './errors.js';
-import type { PrismaNextRelation } from './model.js';
-import { PAGE, type PageData, registerPage } from './row-copies.js';
-import { COUNT_SLOT, EMPTY, type PrismaNextSelection } from './selections.js';
+import { type FieldLoads, keyOf, type LoadRef, ownLoads, queryLoad, refOf } from './loads.js';
+import type { PrismaNextModel, PrismaNextRelation } from './model.js';
+import { readOwn } from './rows.js';
+import { COMPUTE, EMPTY, type PrismaNextSelection } from './selections.js';
 
 type SizeOption = number | ((args: never, ctx: never) => number);
 
@@ -58,22 +59,18 @@ export function connectionNodes(typeName: string): IndirectInclude {
 /** A connection's paging for one request. */
 type ConnectionPlan = CursorPlan & { where: unknown };
 
-/** The field a page is planned for. */
-interface PageField {
-  /** The consumer id of the field's position (see `consumerId`). */
-  id: string;
-  /** The names of the fields selected on the connection. */
-  selected: () => ReadonlySet<string>;
-  position: Position;
-}
-
 /** How a page of a to-many relation loads, beside its plan and count. */
 interface PageLoad {
   variant: string | undefined;
   /** Whether the count applies the connection's `where`. */
   filtered: boolean;
-  /** Plans the page's rows from a seed that pages them. */
-  rows: (seed: PrismaNextSelection) => MaybePromise<PrismaNextSelection>;
+  /**
+   * Plans the page's rows from a seed that pages them, with the loads a connection helper's
+   * `select` writes on them.
+   */
+  rows: (
+    seed: PrismaNextSelection,
+  ) => MaybePromise<{ selection: PrismaNextSelection; beneath?: FieldLoads }>;
 }
 
 /**
@@ -149,59 +146,76 @@ export function connectionPaging(
     },
 
     /**
-     * Plans one page of to-many relation `name` for `field`: its rows unless the count alone is
-     * selected, and the count when it is selected and comes from the aggregate. The plan is kept
-     * for the field's copy of the parent, which writes it onto the page's rows (see `fieldCopy`).
-     * The rows are identified by the page they load, so pages of the relation planned alike share
-     * them, and the count as `relationCount`'s is, so it shares one with an equal count.
+     * Plans one page of to-many relation `name` of `model`'s rows, whose connection selects
+     * `selected`: its rows unless the count alone is selected, and the count when it is selected
+     * and comes from the aggregate. The rows are identified by the page they load, so pages of the
+     * relation planned alike share them, and the count as `relationCount`'s is, so it shares one
+     * with an equal count. A query callback builds a callback `where` anew on every call, which is
+     * identified by the arguments other than paging, so pages that differ only in paging share a
+     * count.
      */
     planPage(
+      ctx: object,
+      model: PrismaNextModel,
       relation: PrismaNextRelation,
       name: string,
-      { id, selected, position }: PageField,
+      selected: () => ReadonlySet<string>,
       args: object,
-      ctx: object,
       { variant, filtered, rows }: PageLoad,
-    ): MaybePromise<PrismaNextSelection> {
+    ): MaybePromise<{
+      selection: PrismaNextSelection;
+      rows: LoadRef;
+      count?: LoadRef;
+      plan: ConnectionPlan;
+    }> {
       const planned = plan(args, ctx);
-      registerPage(position, name, planned);
       const { first, last, after, before, ...filterArgs } =
         args as PothosSchemaTypes.DefaultConnectionArguments;
-      // A query callback builds a callback `where` anew on every call. It is identified by the
-      // arguments other than paging, so pages that differ only in paging share a count.
-      const where = relationLoad(
-        config.contract,
-        modelKey,
-        { where: planned.where },
-        {
-          built:
-            typeof query === 'function' ? () => ({ source: query, args: filterArgs }) : undefined,
-        },
-      ).loadIdentity;
-      const { order, defaultSize, maxSize } = planned;
-      const loadIdentity = {
-        page: { where, order, defaultSize, maxSize, first, last, after, before },
-      };
-      const counts = filtered ? where : undefined;
+      const where = relationLoad(config.contract, modelKey, { where: planned.where }).query;
+      const built =
+        typeof query === 'function' ? () => ({ fn: query, args: filterArgs }) : undefined;
       const { needsRows, count } = selection(selected());
       const filter = (rel: MapperCollection) =>
         planned.where === undefined ? rel : rel.where(planned.where);
       const narrow = (rel: MapperCollection) =>
         variant === undefined ? rel : rel.variant(variant);
-      const counted =
+      // Both are referenced even when unselected, since another field node of the connection's
+      // response key, whose position the resolver may not read, may select them.
+      const countLoad = refOf(
+        config,
+        ctx,
+        model,
+        queryLoad('count', name, variant, filtered ? where : undefined, built),
+      );
+      const countRef =
+        countSource !== 'aggregate'
+          ? undefined
+          : count === 'aggregate'
+            ? countLoad
+            : { ...countLoad, unplanned: true as const };
+      const counted: PrismaNextSelection =
         count === 'aggregate'
-          ? computedSelection(
-              name,
-              id,
-              COUNT_SLOT,
-              variant === undefined ? counts : { where: counts, variant },
-              (sub) => ({
-                [COUNT_SLOT]: countOf(filtered ? filter(narrow(sub)) : narrow(sub)),
-              }),
-            )
+          ? {
+              computed: {
+                [keyOf(countLoad)]: {
+                  kind: 'count',
+                  [COMPUTE]: (sub) => countOf(filtered ? filter(narrow(sub)) : narrow(sub)),
+                },
+              },
+            }
           : EMPTY;
+      const { order, defaultSize, maxSize } = planned;
+      const rowsRef = refOf(config, ctx, model, {
+        ...queryLoad('rows', name, variant, where, built),
+        page: { order, defaultSize, maxSize, first, last, after, before },
+      });
       if (!needsRows) {
-        return counted;
+        return {
+          selection: counted,
+          rows: { ...rowsRef, unplanned: true },
+          count: countRef,
+          plan: planned,
+        };
       }
       const page = (rel: MapperCollection) =>
         applyCursorPagination(
@@ -212,13 +226,15 @@ export function connectionPaging(
       const seed: PrismaNextSelection = {
         columns: cursorColumns(planned.order),
         args: {
-          ...relationArgs(relation, { loadIdentity, refine: page, variant }),
+          ...relationArgs(relation, { refine: page, variant }),
           ...(hasCursorValues(planned) ? { cursors: true } : {}),
         },
       };
-      return completeValue(rowsSelection(relation, name, id, rows(seed)), (loaded) => ({
-        ...loaded,
-        ...counted,
+      return completeValue(rows(seed), ({ selection: loaded, beneath }) => ({
+        selection: { ...refSelection(rowsRef, loaded).selection, ...counted },
+        rows: beneath ? { ...rowsRef, beneath } : rowsRef,
+        count: countRef,
+        plan: planned,
       }));
     },
 
@@ -264,22 +280,25 @@ export function connectionPaging(
     },
 
     /**
-     * The page of `rows`, a page `planPage` planned, as the field's copy of the parent holds it.
-     * The count comes from them, or from the `totalCount` callback when it is selected.
+     * The page `t.relatedConnection` planned with `planPage` for the field `info` resolves on
+     * `parent`. The count comes with the rows, or from the `totalCount` callback when it is
+     * selected.
      */
     async relationPage(
-      rows: readonly Record<string, unknown>[],
-      parent: unknown,
+      parent: object,
       args: PothosSchemaTypes.DefaultConnectionArguments,
       ctx: object,
       info: GraphQLResolveInfo,
     ) {
       const { count } = selection(selectedFieldNames(ctx, info));
-      // The field's copy always holds what `planPage` recorded (see `writePages`).
-      const page = (rows as { [PAGE]?: PageData })[PAGE] as PageData & { plan: ConnectionPlan };
+      const rows = (readOwn(info, parent, 'rows') ?? []) as Record<string, unknown>[];
       const totalCount =
-        count === 'aggregate' ? page.count : await count?.(parent, args, ctx, info);
-      return buildConnectionPage(rows, page.plan, args, { totalCount, parent });
+        count === 'aggregate'
+          ? (readOwn(info, parent, 'count') as number)
+          : await count?.(parent, args, ctx, info);
+      // The gate records what the field planned before it resolves.
+      const { plan: planned } = ownLoads(info.path)!;
+      return buildConnectionPage(rows, planned as ConnectionPlan, args, { totalCount, parent });
     },
   };
 }

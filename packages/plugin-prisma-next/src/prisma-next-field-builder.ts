@@ -46,12 +46,7 @@ import type {
   RelationTypeModel,
   ToManyRelationKeys,
 } from './types/relations.js';
-import {
-  computedSelection,
-  relationArgs,
-  relationLoad,
-  rowsSelection,
-} from './utils/compile-select.js';
+import { refSelection, relationArgs, relationLoad } from './utils/compile-select.js';
 import { getPluginConfig } from './utils/config.js';
 import {
   type ConnectionSettingsOptions,
@@ -59,14 +54,14 @@ import {
   connectionPaging,
   countOf,
 } from './utils/connections.js';
-import { consumerId } from './utils/consumers.js';
 import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
 import { orderableProblem } from './utils/cursors.js';
 import { checkReturned } from './utils/errors.js';
+import { keyOf, queryLoad, record, refOf } from './utils/loads.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { refFor } from './utils/refs.js';
-import { fieldValue } from './utils/row-copies.js';
-import { COUNT_SLOT, type PrismaNextSelectFn } from './utils/selections.js';
+import { readOwn } from './utils/rows.js';
+import { COMPUTE, type PrismaNextSelectFn } from './utils/selections.js';
 
 type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
   PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
@@ -355,40 +350,44 @@ export class PrismaNextObjectFieldBuilder<
       variant === undefined || relation.isToMany
         ? undefined
         : modelDiscriminator(this.contract as AnyContract, relation.targetModel)!.field;
+    const config = getPluginConfig(this.builder);
+    const model = getModel(config.contract, this.modelKey as string);
+    // Narrowed in the load, unless it is a to-one relation's, which loads whole.
+    const loadVariant = discriminator === undefined ? variant : undefined;
     // A literal query is checked here, and a callback's result through `checkReturned` when a
     // request is planned.
-    const load = (value: unknown, options?: Parameters<typeof relationLoad>[3]) =>
-      relationLoad(this.contract as AnyContract, queryModel, value, options);
+    const prepare = (value: unknown, problem?: Parameters<typeof relationLoad>[3]) => {
+      const { query: loaded, refine } = relationLoad(config.contract, queryModel, value, problem);
+      return {
+        refine,
+        // A callback query builds the callbacks it returns anew on every call, so the field's
+        // query and its arguments identify those.
+        load: (args: object) =>
+          queryLoad(
+            'rows',
+            relationName,
+            loadVariant,
+            loaded,
+            typeof query === 'function' ? () => ({ fn: query, args }) : undefined,
+          ),
+      };
+    };
     const literal =
       typeof query === 'function'
         ? undefined
-        : load(query, {
-            problem: orderableProblem(getPluginConfig(this.builder).context, queryModel),
-          });
+        : prepare(query, orderableProblem(config.context, queryModel));
+    const literalLoad = literal?.load({});
     const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) =>
       completeOption(query as unknown, args, ctx, (value) => {
-        // A query is identified by its data, so equal queries, and equal `select` entries, share
-        // a load. A callback builds the callbacks it returns anew on every walk, so the field's
-        // query and its arguments identify those.
-        const { loadIdentity, refine } =
-          literal ??
-          checkReturned(value, (returned) =>
-            load(returned, {
-              built: () => ({ source: query, args }),
-            }),
-          );
-        return rowsSelection(
-          relation,
-          relationName,
-          consumerId(position),
+        const prepared = literal ?? checkReturned(value, (returned) => prepare(returned));
+        const ref = refOf(config, ctx, model, literalLoad ?? prepared.load(args));
+        record(position, { refs: [ref], model, view: false });
+        return completeValue(
           nested({
             columns: discriminator === undefined ? null : [discriminator],
-            args: relationArgs(relation, {
-              loadIdentity,
-              refine,
-              variant: discriminator === undefined ? variant : undefined,
-            }),
+            args: relationArgs(relation, { refine: prepared.refine, variant: loadVariant }),
           }),
+          (rows) => refSelection(ref, rows).selection,
         );
       });
     return this.field({
@@ -400,10 +399,7 @@ export class PrismaNextObjectFieldBuilder<
         [PRISMA_NEXT_RELATION_ROWS]: { name: relationName, type: targetRef },
       },
       resolve: (parent: object, args: object, context: object, info: GraphQLResolveInfo) => {
-        const rows = (parent as Record<string, unknown>)[relationName] as Record<
-          string,
-          unknown
-        > | null;
+        const rows = readOwn(info, parent, 'rows') as Record<string, unknown> | null | undefined;
         // A variant type filters out a to-one relation's row of another variant.
         if (rows == null || (discriminator !== undefined && rows[discriminator] !== variant)) {
           return typeof onNull === 'function' ? onNull(parent, args, context, info) : null;
@@ -429,27 +425,38 @@ export class PrismaNextObjectFieldBuilder<
       query?: unknown;
       extensions?: Record<string, unknown>;
     } & Record<string, unknown>;
+    const config = getPluginConfig(this.builder);
+    const model = getModel(config.contract, this.modelKey as string);
     const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
       completeOption(query, args, ctx, (value) => {
         // The types allow only `where`, which can't fail to refine. Identified as `t.relation`'s
         // query is.
-        const { loadIdentity, refine } = relationLoad(
-          this.contract as AnyContract,
+        const { query: loaded, refine } = relationLoad(
+          config.contract,
           relation.targetModel,
           value,
-          {
-            built: typeof query === 'function' ? () => ({ source: query, args }) : undefined,
+        );
+        const ref = refOf(
+          config,
+          ctx,
+          model,
+          queryLoad(
+            'count',
+            relationName,
+            undefined,
+            loaded,
+            typeof query === 'function' ? () => ({ fn: query, args }) : undefined,
+          ),
+        );
+        record(position, { refs: [ref], model, view: false });
+        return {
+          computed: {
+            [keyOf(ref)]: {
+              kind: 'count' as const,
+              [COMPUTE]: (sub) => countOf(refine ? refine(sub) : sub),
+            },
           },
-        );
-        return computedSelection(
-          relationName,
-          consumerId(position),
-          COUNT_SLOT,
-          loadIdentity,
-          (sub) => ({
-            [COUNT_SLOT]: countOf(refine ? refine(sub) : sub),
-          }),
-        );
+        };
       });
     return this.field({
       ...rest,
@@ -459,7 +466,8 @@ export class PrismaNextObjectFieldBuilder<
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
       },
-      resolve: (parent: object) => fieldValue(parent, relationName, COUNT_SLOT),
+      resolve: (parent: object, _args: object, _context: object, info: GraphQLResolveInfo) =>
+        readOwn(info, parent, 'count'),
     } as never) as never;
   }
 
@@ -568,12 +576,24 @@ export class PrismaNextObjectFieldBuilder<
     );
     const include = connectionNodes(targetRef.name);
     const filtered = config.filterConnectionTotalCount;
+    const model = getModel(config.contract, this.modelKey as string);
     const select: PrismaNextSelectFn = (args, ctx, nested, selected, position) =>
-      paging.planPage(relation, name, { id: consumerId(position), selected, position }, args, ctx, {
-        variant,
-        filtered,
-        rows: (seed) => nested(seed, include),
-      });
+      completeValue(
+        paging.planPage(ctx, model, relation, name, selected, args, {
+          variant,
+          filtered,
+          rows: (seed) => completeValue(nested(seed, include), (selection) => ({ selection })),
+        }),
+        ({ selection, rows, count, plan }) => {
+          record(position, {
+            refs: count ? [rows, count] : [rows],
+            model,
+            view: false,
+            plan,
+          });
+          return selection;
+        },
+      );
 
     const connectionConfig = {
       ...rest,
@@ -589,14 +609,7 @@ export class PrismaNextObjectFieldBuilder<
         args: PothosSchemaTypes.DefaultConnectionArguments,
         context: object,
         info: GraphQLResolveInfo,
-      ) =>
-        paging.relationPage(
-          (parent as Record<string, Record<string, unknown>[]>)[name]!,
-          parent,
-          args,
-          context,
-          info,
-        ),
+      ) => paging.relationPage(parent, args, context, info),
     };
     return (
       this as typeof this & {
