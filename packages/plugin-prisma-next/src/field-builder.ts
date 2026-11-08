@@ -27,6 +27,7 @@ import { checkReturned } from './utils/errors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
 import { type AnyRef, refFor } from './utils/refs.js';
+import { markPlanned } from './utils/row-copies.js';
 
 type FieldResolver = (...args: unknown[]) => unknown;
 
@@ -93,9 +94,12 @@ function prismaFieldConfig(
           }
           const shape = refine(args, context);
           const applied = await plan(shape ? shape(source) : source, info, context);
-          const rows = await readPage(
-            (isList ? applied : (applied.limit(1) as Executable)).all(),
-            appliesCursors(applied),
+          const rows = markPlanned(
+            await readPage(
+              (isList ? applied : (applied.limit(1) as Executable)).all(),
+              appliesCursors(applied),
+            ),
+            info,
           );
           return isList ? rows : (rows[0] ?? null);
         },

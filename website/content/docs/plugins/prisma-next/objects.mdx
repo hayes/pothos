@@ -257,6 +257,9 @@ builder.mutationField('renameUser', (t) =>
 
 See [Transactions](./setup#transactions) to run the write and the reads in one transaction.
 
+Rows you load from a Collection that `resolve` or `collectionFromInfo` gives you belong to that
+request. Don't share them with concurrent requests through a cache.
+
 ### `prismaFieldWithInput`
 
 With the [with-input plugin](/docs/plugins/with-input), `t.prismaFieldWithInput` combines

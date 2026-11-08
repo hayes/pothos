@@ -22,7 +22,6 @@ import {
 import type { AnyContract } from '../types/models.js';
 import { branchName, consumerOfKey, relationName } from './branch-keys.js';
 import { compileTypeSelect, typeSelects } from './compile-select.js';
-import { consumerId } from './consumers.js';
 import { appliesCursors, markCursors } from './cursors.js';
 import {
   getIdentityFields,
@@ -486,22 +485,17 @@ function implementationsOf(type: GraphQLNamedType) {
 
 const recording = new WeakMap<PrismaNextSelectFn, PrismaNextSelectFn>();
 
-/**
- * `select`, recording what it loads for its field, which `fieldCopy` checks the parent holds. The
- * field's consumer is numbered first, while the plan is still synchronous with `registerPlanRoots`.
- */
+/** `select`, recording what it loads for its field, which `fieldCopy` checks the parent holds. */
 function recordingLoads(select: PrismaNextSelectFn): PrismaNextSelectFn {
   let recorded = recording.get(select);
   if (!recorded) {
-    recorded = (args, ctx, nested, selected, position) => {
-      consumerId(position);
-      return completeValue(select(args, ctx, nested, selected, position), (selection) => {
+    recorded = (args, ctx, nested, selected, position) =>
+      completeValue(select(args, ctx, nested, selected, position), (selection) => {
         if (selection) {
           registerOwnLoads(position, selection);
         }
         return selection;
       });
-    };
     recording.set(select, recorded);
   }
   return recorded;
