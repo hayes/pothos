@@ -64,9 +64,10 @@ To return rows through `Node` or another interface from a plain field, see
 [Returning rows from other fields](./relations#returning-rows-from-other-fields).
 
 An object type from `builder.objectRef` can implement a `prismaInterface` if its shape is
-`Planned` for the model, such as `builder.objectRef<{ id: string; email: string } & Planned<'User'>>`.
-The shape must include the interface's `select` columns, since its fields and `resolveType` read
-them.
+`Planned` for the model, such as
+`builder.objectRef<{ id: string; email: string; firstName: string } & Planned<'User'>>`. The shape
+must include the interface's `select` columns and the columns its fields expose, since its fields
+and `resolveType` read them.
 
 ## Native inheritance
 
