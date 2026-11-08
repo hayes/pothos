@@ -305,7 +305,7 @@ interface SelectCompilation {
   /**
    * Whether the entries' reader takes the rows of a relation targeting a variant model with a table
    * of its own, which load without the columns it inherits (see `loadsOwnTableVariantRows`). Set
-   * for what a select function returns: a static `select` is checked when the schema is built.
+   * for what a select function returns, and for a static `select` when the schema is built.
    */
   readsRows?: (relation: PrismaNextRelation) => boolean;
 }
@@ -404,7 +404,7 @@ function compileSelect(
       ? completeValue(
           compileSelect(split, target, {
             ...compilation,
-            subject: nestedSubject(subject, name),
+            subject: `${subject} the rows of relation '${name}', whose nested select loads`,
             at: `${at}${name}.`,
             // The rows of a nested `select` are read only through its parent's.
             readsRows: readsRows && (() => false),
@@ -450,14 +450,6 @@ function compileSelect(
     },
     refs: resolved.flatMap((part) => (part.ref ? [part.ref] : [])),
   }));
-}
-
-/**
- * Begins an error about an entry of the nested `select` of relation `name`, beneath the `select`
- * whose error `subject` begins.
- */
-function nestedSubject(subject: string, name: string) {
-  return `${subject} the rows of relation '${name}', whose nested select loads`;
 }
 
 /** Compiles a type-level `select`. Its relations load every column, under their names. */

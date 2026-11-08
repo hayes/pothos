@@ -45,9 +45,6 @@ const parsed = new WeakMap<object, object>();
  * the plain loads beneath are parsed too, for the type-level selects that read them.
  */
 export function parseRow(row: object, model: PrismaNextModel): object {
-  if (Object.hasOwn(row, BRANCHES)) {
-    return row;
-  }
   const done = parsed.get(row);
   if (done) {
     return done;

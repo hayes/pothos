@@ -364,31 +364,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   /**
-   * Checks a field's static `select`: rejects a relation entry whose rows its type can't read, as
-   * `assertRelationRows` explains, and checks the columns its relation entries order by. Checked on
-   * the field's final config, since a plugin that runs later, such as plugin-errors, can change its
-   * type.
-   */
-  private assertFieldSelect(
-    fieldConfig: PothosOutputFieldConfig<Types>,
-    model: PrismaNextModel,
-    split: SplitSelect,
-  ) {
-    const { contract } = this.config;
-    const returnConfig = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
-    const returnModelKey = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    const returnModel =
-      returnModelKey === undefined ? undefined : getModel(contract, returnModelKey);
-    checkStaticSelect(
-      this.config,
-      split,
-      model,
-      `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
-      (relation) => returnsRelationRowsAs(relation, returnConfig.kind, returnModel),
-    );
-  }
-
-  /**
    * Rejects a `t.relation` or `t.relatedConnection` that hands rows of a relation targeting a
    * variant model to an interface that can't read them. Checked on the field's final config, since
    * a plugin that runs later, such as plugin-errors, can change its type.
@@ -550,7 +525,24 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         : undefined;
     if (model) {
       if (split) {
-        this.assertFieldSelect(fieldConfig, model, split);
+        // Checked on the field's final config, since a plugin that runs later, such as
+        // plugin-errors, can change its type, which decides the relation rows it can read.
+        const returnConfig = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
+        const returnModelKey = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+        checkStaticSelect(
+          this.config,
+          split,
+          model,
+          `The select of field '${fieldConfig.parentType}.${fieldConfig.name}' loads`,
+          (relation) =>
+            returnsRelationRowsAs(
+              relation,
+              returnConfig.kind,
+              returnModelKey === undefined
+                ? undefined
+                : getModel(this.config.contract, returnModelKey),
+            ),
+        );
       }
       this.assertRelationRows(fieldConfig, model);
     }
