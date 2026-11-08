@@ -2536,3 +2536,150 @@ describe.each(orders)('a row handed to another type of its model (%s)', (_, plug
     );
   });
 });
+
+// A type-level select's filtered relation is the type's own load. Another consumer's load of the
+// whole relation sits on the row unbranched, and the type's checks and fields must never read it.
+describe.each(orders)("a type's filtered relation beside a whole one (%s)", (_, plugins) => {
+  // Bob wrote 'Bob draft'. Alice wrote nothing by that title.
+  const bobDraft = { where: { title: 'Bob draft' } } as const;
+
+  function gatedSchema(posts?: { orderBy: { createdAt: 'desc' }; limit: number }) {
+    const seen: string[][] = [];
+    const record = (posts: readonly { id: string }[]) => {
+      seen.push(posts.map((post) => post.id).sort());
+    };
+    const builder = new SchemaBuilder<{
+      PrismaNextContract: SampleContract;
+      AuthScopes: { ok: boolean };
+    }>({
+      plugins: [...plugins],
+      scopeAuth: { authScopes: () => ({ ok: true }) },
+      prismaNext: { client: ctx.client },
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const Gated = builder.prismaObject('User', {
+      variant: 'GatedAuthor',
+      select: { posts: posts ?? bobDraft },
+      authScopes: (user) => {
+        record(user.posts);
+        return user.posts.length > 0;
+      },
+      fields: (t) => ({
+        email: t.exposeString('email'),
+        postIds: t.stringList({
+          nullable: true,
+          resolve: (user) => user.posts?.map((post) => post.id).sort() ?? null,
+        }),
+        // Loads a relation of its own, and reads the type's.
+        commentedPostIds: t.stringList({
+          nullable: true,
+          select: () => ({ comments: true }),
+          resolve: (user) => user.posts?.map((post) => post.id).sort() ?? null,
+        }),
+      }),
+    });
+    const GatedComment = builder.prismaObject('Comment', {
+      variant: 'GatedComment',
+      select: { author: { select: { posts: bobDraft } } },
+      authScopes: (comment) => {
+        record(comment.author.posts);
+        return comment.author.posts.length > 0;
+      },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        allPosts: t.relation('posts'),
+        gated: t.field({ type: Gated, nullable: true, resolve: (user) => user }),
+      }),
+    });
+    builder.prismaObject('Comment', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        writer: t.field({
+          type: Gated,
+          nullable: true,
+          select: { author: { select: { posts: true } } },
+          resolve: (comment) => comment.author,
+        }),
+        gated: t.field({
+          type: GatedComment,
+          nullable: true,
+          select: { author: { select: { posts: true } } },
+          resolve: (comment) => comment,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          collection: () => ctx.orm.User.orderBy((user) => user.id.asc()),
+        }),
+        comments: t.prismaField({
+          type: ['Comment'],
+          collection: () => ctx.orm.Comment.orderBy((comment) => comment.id.asc()),
+        }),
+      }),
+    });
+    return { schema: builder.toSchema(), seen };
+  }
+
+  // Type-level authScopes fail each field of the type. c-1 is Bob's comment, c-2 Alice's.
+  const denied = (result: { errors?: readonly { path?: unknown }[] }) =>
+    result.errors?.map((error) => error.path);
+
+  it("denies a row whose writer's whole relation another select loaded", async () => {
+    const { schema: built, seen } = gatedSchema();
+    const result = await runCaptured(built, '{ comments { id writer { email } } }');
+    expect(result.data.comments).toEqual([
+      { id: 'c-1', writer: { email: 'bob@example.com' } },
+      { id: 'c-2', writer: { email: null } },
+    ]);
+    expect(denied(result)).toEqual([['comments', 1, 'writer', 'email']]);
+    expect(seen.sort()).toEqual([[], ['p-bob-draft']]);
+  });
+
+  it('denies a row a sibling t.relation loaded the whole relation on', async () => {
+    const { schema: built, seen } = gatedSchema();
+    const result = await runCaptured(built, '{ users { allPosts { id } gated { postIds } } }');
+    expect(result.data.users[0].allPosts).toHaveLength(2);
+    expect(denied(result)).toEqual([['users', 0, 'gated', 'postIds']]);
+    expect(seen.sort()).toEqual([[], ['p-bob-draft']]);
+  });
+
+  // A field without a select of its own reads the row the type's checks read.
+  it("shows a field of the type the type's own rows", async () => {
+    const { schema: built } = gatedSchema();
+    const result = await runCaptured(built, '{ users { allPosts { id } gated { postIds } } }');
+    expect(result.data.users[1].gated).toEqual({ postIds: ['p-bob-draft'] });
+  });
+
+  it("shows a field with a select function the type's own rows", async () => {
+    const { schema: built } = gatedSchema();
+    const result = await runCaptured(
+      built,
+      '{ users { allPosts { id } gated { commentedPostIds } } }',
+    );
+    expect(result.data.users[1].gated).toEqual({ commentedPostIds: ['p-bob-draft'] });
+  });
+
+  // Each user's latest post: Alice's 'p-draft1', Bob's 'p-bob-draft'.
+  it("hands a limited, ordered relation's checks its own rows", async () => {
+    const { schema: built, seen } = gatedSchema({ orderBy: { createdAt: 'desc' }, limit: 1 });
+    const result = await runCaptured(built, '{ users { allPosts { id } gated { postIds } } }');
+    expect(result.errors).toBeUndefined();
+    expect(seen.sort()).toEqual([['p-bob-draft'], ['p-draft1']]);
+  });
+
+  it('denies a row whose filtered relation is beneath a to-one select', async () => {
+    const { schema: built, seen } = gatedSchema();
+    const result = await runCaptured(built, '{ comments { id gated { id } } }');
+    expect(result.data.comments).toEqual([
+      { id: 'c-1', gated: { id: 'c-1' } },
+      { id: 'c-2', gated: { id: null } },
+    ]);
+    expect(denied(result)).toEqual([['comments', 1, 'gated', 'id']]);
+    expect(seen.sort()).toEqual([[], ['p-bob-draft']]);
+  });
+});

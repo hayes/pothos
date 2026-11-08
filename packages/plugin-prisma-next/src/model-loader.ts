@@ -29,7 +29,7 @@ import {
   fieldCopy,
   markPlanned,
   rowOf,
-  typeNested,
+  typePlan,
   withOtherKeys,
 } from './utils/row-copies.js';
 import { appliesCursors, type PrismaNextSelection } from './utils/selections.js';
@@ -166,7 +166,7 @@ export class ModelLoader {
         return fieldCopy(
           row,
           played.root.model,
-          typeNested(info.parentType),
+          typePlan(info.parentType),
           mapping.position!,
           executionKey(info),
         )!;

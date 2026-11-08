@@ -1,7 +1,7 @@
 import { brandWithType, getTypeBrand } from '@pothos/core';
 import type { Position } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
-import { PRISMA_NEXT_TYPE_NESTED } from '../constants.js';
+import { PRISMA_NEXT_TYPE_PLAN } from '../constants.js';
 import { consumerOfKey, isFieldOnlyKey, parseBranch, relationName } from './branch-keys.js';
 import { consumerId, nestedId, TYPE_CONSUMER } from './consumers.js';
 import type { PrismaNextModel } from './model.js';
@@ -24,6 +24,50 @@ import { COUNT_SLOT, loadsWholeRelation, type PrismaNextSelection } from './sele
 export type NestedPlan = ReadonlyMap<string, NestedPlan>;
 
 export const NO_NESTED: NestedPlan = new Map();
+
+/**
+ * The relations of the type-level `select`s of a model that a copy for them reads from their own
+ * loads, each with whether its rows load in a branch, which a load other than of the whole relation
+ * writes them in, and the relations read so beneath them.
+ */
+export type TypeReads = ReadonlyMap<string, TypeRead>;
+
+export interface TypeRead {
+  readonly branched: boolean;
+  readonly beneath: TypeReads;
+}
+
+/** The relations `selection`, a compiled type-level `select`, reads from its own loads. */
+export function typeReads({ relations = {} }: PrismaNextSelection): Map<string, TypeRead> {
+  const reads = new Map<string, TypeRead>();
+  for (const [key, child] of Object.entries(relations)) {
+    // A to-many relation is keyed by consumer, and a to-one relation by its name.
+    const branched = relationName(key) !== key && !loadsWholeRelation(child);
+    const beneath = typeReads(child);
+    if (branched || beneath.size) {
+      reads.set(relationName(key), { branched, beneath });
+    }
+  }
+  return reads;
+}
+
+/**
+ * How a type's copies of its rows read what the type-level `select`s of its model load. Those
+ * `select`s agree, so `nested` and `reads` are the model's, which every type of it shares.
+ */
+export interface TypePlan {
+  /** The relation entries whose nested `select` writes branches on the relation's rows. */
+  readonly nested: NestedPlan;
+  /**
+   * The relations a copy reads from the `select`s' own loads. A copy without them, which holds
+   * another consumer's load of the relation or none, hides the relation.
+   */
+  readonly reads: TypeReads;
+  /** Those of `reads` the type's own `select`s and its interfaces' name, which its readers read. */
+  readonly checks: readonly string[];
+}
+
+const NO_TYPE_PLAN: TypePlan = { nested: NO_NESTED, reads: new Map(), checks: [] };
 
 type Row = Record<string, unknown>;
 
@@ -206,6 +250,8 @@ interface CopyOptions {
   readonly field?: CopyField;
   /** For a copy of a row beneath a nested `select`, the id of that `select`. */
   readonly nestedIn?: string;
+  /** For a copy for the type-level `select`s, the relations it reads from their own loads. */
+  readonly reads?: TypeReads;
   /** The key of the execution the copy is made in (see `executionKey`). */
   readonly execution: ExecutionKey;
 }
@@ -220,7 +266,7 @@ function copyWith(
   row: object,
   slots: Slots,
   id: string,
-  { model, nested, field, nestedIn, execution }: CopyOptions,
+  { model, nested, field, nestedIn, reads, execution }: CopyOptions,
 ) {
   let byId = copies.get(base);
   if (!byId) {
@@ -232,9 +278,13 @@ function copyWith(
     copy = copyOf(base, base === row ? (key) => Object.hasOwn(slots.relations, key) : undefined);
     lift(copy, slots, id);
     if (field) {
+      liftWhole(copy, row, slots, field.position);
       writePages(copy, slots, field);
     }
-    liftNested(copy, model, id, nested, execution);
+    liftNested(copy, model, id, nested, reads, execution);
+    if (reads) {
+      hideUnread(copy, slots, id, reads);
+    }
     const owner = field?.id ?? nestedIn;
     (copy as Holder)[SLOTS] = { row, slots, ...(owner === undefined ? {} : { field: owner }) };
     byId.set(id, copy);
@@ -252,6 +302,7 @@ function liftNested(
   model: PrismaNextModel,
   id: string,
   plan: NestedPlan,
+  reads: TypeReads | undefined,
   execution: ExecutionKey,
 ) {
   const inner = nestedId(id);
@@ -269,6 +320,7 @@ function liftNested(
         model: target,
         nested,
         nestedIn: inner,
+        reads: reads?.get(name)?.beneath,
         execution,
       });
     };
@@ -279,8 +331,56 @@ function liftNested(
 }
 
 /**
+ * Hides each relation of `reads` that `copy`, a copy for consumer `id`, doesn't hold as that
+ * consumer loaded it: rows that load in a branch without a branch of `id`, which leaves the plain
+ * value another consumer's load of the whole relation or none, and rows with such a relation hidden
+ * beneath them.
+ */
+function hideUnread(copy: Row, { relations }: Slots, id: string, reads: TypeReads) {
+  for (const [name, { branched, beneath }] of reads) {
+    const own =
+      !branched || (relations[name] !== undefined && Object.hasOwn(relations[name].rows, id));
+    if (!own || !holdsReads(copy[name], beneath)) {
+      copy[name] = undefined;
+    }
+  }
+}
+
+/** Whether `value`, a relation's rows or row, holds each of the relations `reads` names. */
+function holdsReads(value: unknown, reads: TypeReads): boolean {
+  if (value === undefined) {
+    return false;
+  }
+  if (value === null || reads.size === 0) {
+    return true;
+  }
+  if (Array.isArray(value)) {
+    return value.every((row) => holdsReads(row, reads));
+  }
+  for (const name of reads.keys()) {
+    if ((value as Row)[name] === undefined) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Writes the loads of the whole relation the field at `position` reads, which sit on `row`
+ * unbranched, onto `copy`, a copy of a type copy that hides them as the type's.
+ */
+function liftWhole(copy: Row, row: object, { relations }: Slots, position: Position) {
+  for (const [name, whole] of ownLoads.get(position) ?? []) {
+    if (whole && !relations[name]) {
+      copy[name] = (row as Row)[name];
+    }
+  }
+}
+
+/**
  * The parent every reader of a row of `model` sees: for an ORM row with `combine()` values, a copy
- * without them, holding them under `SLOTS`, with what the type-level selects loaded written on.
+ * without them, holding them under `SLOTS`, with what the type-level selects loaded written on, and
+ * without what they didn't load of the relations they read from their own loads.
  * The type-level selects of a model agree, which the schema build checks (see
  * `assertSelectsAgree` in index.ts), so one copy serves every type. A copy holding `SLOTS`, this
  * plugin's or another plugin's copy of it, is the parent as it is, but a field's copy is made again
@@ -290,7 +390,7 @@ function liftNested(
 export function typeCopy(
   value: object,
   model: PrismaNextModel,
-  nested: NestedPlan,
+  { nested, reads }: TypePlan,
   execution: ExecutionKey,
 ) {
   const held = (value as Holder)[SLOTS];
@@ -299,9 +399,17 @@ export function typeCopy(
   }
   const row = held ? held.row : value;
   const slots = held ? held.slots : slotsOf(row, model, execution);
-  return slots === NO_SLOTS && !nested.size
+  return slots === NO_SLOTS && !nested.size && !reads.size
     ? row
-    : copyWith(row, row, slots, TYPE_CONSUMER, { model, nested, execution });
+    : copyWith(row, row, slots, TYPE_CONSUMER, { model, nested, reads, execution });
+}
+
+/**
+ * `copy`, a type copy, unless it lacks a relation the type's readers read from the type-level
+ * `select`s' own loads, so the row is reloaded.
+ */
+export function typeParent(copy: object, { checks }: TypePlan): object | undefined {
+  return checks.every((name) => (copy as Row)[name] !== undefined) ? copy : undefined;
 }
 
 /**
@@ -314,11 +422,14 @@ export function typeCopy(
 export function fieldCopy(
   value: object,
   model: PrismaNextModel,
-  typeNested: NestedPlan,
+  type: TypePlan,
   position: Position,
   execution: ExecutionKey,
 ): object | undefined {
-  const base = typeCopy(value, model, typeNested, execution);
+  const base = typeParent(typeCopy(value, model, type, execution), type);
+  if (!base) {
+    return undefined;
+  }
   const held = (base as Holder)[SLOTS];
   const id = consumerId(position);
   const nested = plannedNested.get(position);
@@ -328,12 +439,15 @@ export function fieldCopy(
     // A load of a whole relation, and a to-one relation's row, sit on the row unbranched, where
     // any field loading them reads them.
     const row = (held?.row ?? base) as Row;
+    // The type's copy hides such a load of a relation the type's selects read from their own.
+    let hidden = false;
     for (const [name, beneath] of ownLoads.get(position) ?? []) {
       if (!beneath || held?.slots.relations[name] || !holds(row[name], beneath)) {
         return undefined;
       }
+      hidden ||= (base as Row)[name] === undefined;
     }
-    if (!plannedPages.has(position) && !nested) {
+    if (!plannedPages.has(position) && !nested && !hidden) {
       return base;
     }
     if (foreign) {
@@ -518,14 +632,11 @@ function copyOf(row: object, skip?: (key: string) => boolean): Row {
   return copy;
 }
 
-/**
- * The relation entries of the type-level `select`s of the type's model whose nested `select`
- * writes branches on the relation's rows.
- */
-export function typeNested(type: {
+/** How the type's copies of its rows read what the type-level `select`s of its model load. */
+export function typePlan(type: {
   readonly extensions?: Readonly<Record<string, unknown>> | null;
-}): NestedPlan {
-  return (type.extensions?.[PRISMA_NEXT_TYPE_NESTED] as NestedPlan | undefined) ?? NO_NESTED;
+}): TypePlan {
+  return (type.extensions?.[PRISMA_NEXT_TYPE_PLAN] as TypePlan | undefined) ?? NO_TYPE_PLAN;
 }
 
 /** Records the relations whose rows the nested `select`s of the field at `position` write on. */
