@@ -376,6 +376,21 @@ describe('inherited selections', () => {
     expect(result.statements).toHaveLength(1);
   });
 
+  it('agrees with selects that write a nested relation as true and as {}', () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      select: { posts: { select: { comments: true } } },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.prismaObject('User', {
+      variant: 'Viewer',
+      select: { posts: { select: { comments: {} } } },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    expect(() => builder.toSchema()).not.toThrow();
+  });
+
   // A row holds one version of a relation, which the fields and auth checks of every type of its
   // model read, so their selects can't load it differently.
   describe('rejects selects of one model that define a key differently', () => {

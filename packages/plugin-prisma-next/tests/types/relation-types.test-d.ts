@@ -181,6 +181,26 @@ expectTypeOf<
 expectTypeOf<
   keyof SelectCheck<Types, 'User', { emial: true }, 'field'>
 >().toEqualTypeOf<'Unknown key in select: emial'>();
+// A column given anything but `true` is named.
+expectTypeOf<
+  keyof SelectCheck<Types, 'User', { email: 1 }, 'field'>
+>().toEqualTypeOf<'Invalid value in select: email'>();
+expectTypeOf<
+  keyof SelectCheck<Types, 'User', { email: false }, 'type'>
+>().toEqualTypeOf<'Invalid value in select: email'>();
+// A nested `select` is a column array or an object.
+expectTypeOf<
+  keyof SelectCheck<Types, 'User', { posts: { select: 'title' } }, 'field'>
+>().toEqualTypeOf<'posts'>();
+expectTypeOf<
+  keyof SelectCheck<Types, 'User', { posts: { select: { author: { select: 1 } } } }, 'type'>
+>().toEqualTypeOf<'posts'>();
+builder.prismaObject('User', {
+  variant: 'NestedSelectString',
+  // @ts-expect-error a nested select isn't a column name
+  select: { posts: { select: 'title' } },
+  fields: () => ({}),
+});
 
 builder.prismaObject('User', {
   variant: 'PostsRefinement',

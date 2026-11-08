@@ -142,6 +142,12 @@ function createVariantSchema() {
         select: { tasks: { type: bug, orderBy: { id: 'desc' }, limit: 1 } },
         resolve: (user) => user.tasks,
       }),
+      // A variant's own column orders its rows.
+      severeBugs: t.field({
+        type: [bug],
+        select: { tasks: { type: bug, orderBy: { severity: 'desc' } } },
+        resolve: (user) => user.tasks,
+      }),
       bugReviewers: t.stringList({
         select: { tasks: { type: bug, select: { reviewer: true } } },
         resolve: (user) => user.tasks.map((bug) => bug.reviewer?.email ?? ''),
@@ -284,6 +290,7 @@ describe('native model inheritance', () => {
     // The rows load with every column, but nothing beneath them.
     ['staticBugs', 'title severity', {}],
     ['newestBug', 'title severity', {}],
+    ['severeBugs', 'title severity', {}],
   ])("narrows a field select's to-many relation to the variant its entry names (%s)", async (field, selection, more) => {
     const result = await run(createVariantSchema(), `{ users { ${field} { ${selection} } } }`);
     expect(result.errors).toBeUndefined();

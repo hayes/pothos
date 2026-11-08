@@ -52,7 +52,6 @@ import type {
   ToManyRelationKeys,
 } from './types/relations.js';
 import {
-  completeOption,
   computedSelection,
   relationArgs,
   relationLoad,
@@ -672,5 +671,20 @@ function readOwn<T>(
           )!,
         ),
       )
+  );
+}
+
+/** `option`, or what it returns for `args` and `ctx` when it's a function, passed to `next`. */
+function completeOption<T, R>(
+  option: T | ((args: object, ctx: object) => MaybePromise<T>),
+  args: object,
+  ctx: object,
+  next: (value: T) => R,
+) {
+  return completeValue(
+    typeof option === 'function'
+      ? (option as (args: object, ctx: object) => MaybePromise<T>)(args, ctx)
+      : option,
+    next,
   );
 }

@@ -50,7 +50,6 @@ import {
   definedQuery,
   entryTypeModel,
   loadsOwnTableVariantRows,
-  NESTED_SELECTION,
   nestedPlan,
   nestedSubject,
   type RawSelect,
@@ -500,7 +499,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       }
     };
     for (const [name, entry] of split.relations) {
-      check(name, entryDefinition(entry));
+      check(name, entryDefinition(entry, model.relations[name]!.target));
     }
     for (const [name, nested] of nestedPlan(split, model) ?? []) {
       this.typeNestedOf(root).set(name, nested);
@@ -751,10 +750,11 @@ function selectedKeys({ columns, relations }: SplitSelect) {
 }
 
 /**
- * A type-level relation entry as the data it loads by: its query without the options that load
- * nothing different, the model of its `type`, and its nested `select` likewise.
+ * A type-level relation entry of rows of `model` as the data it loads by: its query without the
+ * options that load nothing different, the model of its `type`, and its nested `select` likewise,
+ * with a relation's `true` as `{}`.
  */
-function entryDefinition(entry: RelationEntry): unknown {
+function entryDefinition(entry: RelationEntry, model: PrismaNextModel | undefined): unknown {
   const { where, orderBy, limit, offset, type, select } = entry;
   return {
     query: definedQuery({ where, orderBy, limit, offset }),
@@ -763,12 +763,17 @@ function entryDefinition(entry: RelationEntry): unknown {
       select &&
       Object.fromEntries(
         (Array.isArray(select)
-          ? select.map((column: string) => [column, true])
+          ? select.map((column: string) => [column, true] as const)
           : Object.entries(select).filter(([, value]) => value != null)
-        ).map(([key, value]) => [
-          key,
-          value === true ? true : entryDefinition(value as RelationEntry),
-        ]),
+        ).map(([key, value]) => {
+          const relation = model?.relations[key];
+          return [
+            key,
+            relation || value !== true
+              ? entryDefinition(value === true ? {} : (value as RelationEntry), relation?.target)
+              : true,
+          ];
+        }),
       ),
   };
 }
@@ -814,7 +819,7 @@ function assertRelationEntries(
       throw ownTableVariantRowsError(subject, name, relation);
     }
     const { orderBy } = entry;
-    if (entry.type !== undefined && !(NESTED_SELECTION in entry)) {
+    if (entry.type !== undefined) {
       variantForRelationType(
         config.contract,
         `${subject} relation '${name}', which`,
@@ -833,11 +838,12 @@ function assertRelationEntries(
       );
     }
     if (orderBy) {
+      const rowsModel = entryTypeModel(entry.type) ?? relation.targetModel;
       orderColumns(
         config.contract,
-        relation.targetModel,
+        rowsModel,
         orderBy,
-        orderableProblem(config.context, relation.targetModel),
+        orderableProblem(config.context, rowsModel),
       );
     }
   }

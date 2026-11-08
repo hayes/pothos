@@ -348,6 +348,9 @@ function compileSelect(
 ): MaybePromise<PrismaNextSelection> {
   const { contract, id, args, source, field, returnModelKey, typeOf, nested } = compilation;
   const owner = field && `Field '${field.position.type.name}.${field.position.field.name}'`;
+  // A select function builds new callbacks on every call, so the function, its arguments and where
+  // the entry sits identify a query with a callback, or an aggregate.
+  const callbackIdentity = (name: string) => ({ source, args, at: nested, name });
   const parts = relations.map(([name, entry]) => {
     const relation = model.relations[name]!;
     // Checked when the schema is built for a static `select`, and here for what a select function
@@ -389,13 +392,12 @@ function compileSelect(
       offset: entry.offset,
     });
     const loaded = relationArgs(relation, {
-      // A select function builds a new callback on every call, so the function, its arguments and
-      // where the entry sits identify a query with one.
       loadIdentity:
         source !== undefined && query && Object.values(query).some((o) => typeof o === 'function')
-          ? { source, args, at: nested, name }
+          ? callbackIdentity(name)
           : query,
-      refine: query && queryRefinement(contract, relation.targetModel, query),
+      refine:
+        query && queryRefinement(contract, entryTypeModel(type) ?? relation.targetModel, query),
       variant,
     });
     // The rows load whole, with what a nested `select` names as consumer `nestedId(id)`.
@@ -437,7 +439,7 @@ function compileSelect(
         relation,
         id,
         AGGREGATE,
-        source === undefined ? compute : { source, args },
+        source === undefined ? compute : callbackIdentity(relation),
         compute,
       ),
     );
@@ -472,21 +474,6 @@ export function compileTypeSelect(
     id: TYPE_CONSUMER,
     args: {},
   }) as PrismaNextSelection;
-}
-
-/** `option`, or what it returns for `args` and `ctx` when it's a function, passed to `next`. */
-export function completeOption<T, R>(
-  option: T | ((args: object, ctx: object) => MaybePromise<T>),
-  args: object,
-  ctx: object,
-  next: (value: T) => R,
-) {
-  return completeValue(
-    typeof option === 'function'
-      ? (option as (args: object, ctx: object) => MaybePromise<T>)(args, ctx)
-      : option,
-    next,
-  );
 }
 
 /**

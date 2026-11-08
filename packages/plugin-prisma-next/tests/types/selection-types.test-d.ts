@@ -963,6 +963,24 @@ inhBuilder.prismaObject('User', {
       select: { tasks: { type: refBug, orderBy: { id: 'desc' }, limit: 1 } },
       resolve: (user) => user.tasks,
     }),
+    // The type's model orders the rows. `where` stays the target's, so a callback beside the
+    // variants' entries keeps its type.
+    severeBugs: t.field({
+      type: [refBug],
+      select: { tasks: { type: 'Bug', orderBy: { severity: 'desc' } } },
+      resolve: (user) => user.tasks,
+    }),
+    titledTasks: t.field({
+      type: [refTask],
+      select: { tasks: { where: (task) => task.title.eq('x') } },
+      resolve: (user) => user.tasks,
+    }),
+    unnarrowedOrder: t.field({
+      type: [refTask],
+      // @ts-expect-error without a type, the rows are ordered by the target's columns
+      select: { tasks: { orderBy: { severity: 'desc' } } },
+      resolve: (user) => user.tasks,
+    }),
     reviewers: t.stringList({
       // The nested select is of the type's model, so it takes the variant's relations.
       select: { tasks: { type: refBug, select: { reviewer: true } } },
