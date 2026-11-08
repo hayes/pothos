@@ -95,26 +95,19 @@ function includeOf(type: GraphQLNamedType) {
   return type.extensions?.pothosIndirectInclude as IndirectInclude | undefined;
 }
 
-/** Plans the selection beneath a field at `path`, read as `type`, from `seed`. */
-export type PlanNested = (
-  seed: PrismaNextSelection,
-  path?: PathSegment[],
-  type?: string,
-) => MaybePromise<PrismaNextSelection>;
-
 /**
- * Plans the selection at `paths` beneath the field `info` resolves, as a field's `nestedSelection`
- * plans it beneath a relation. The seed alone when nothing is selected there.
+ * Plans the selection at `paths` beneath the field `info` resolves from `seed`, as a field's
+ * `nestedSelection` plans it beneath a relation. The seed alone when nothing is selected there.
  */
 export function nestedFromInfo(
   info: GraphQLResolveInfo,
   config: PrismaNextConfig,
   context: object,
   paths: PathSegment[][],
-): PlanNested {
-  return (seed, _path, typeName) =>
+) {
+  return (seed: PrismaNextSelection): MaybePromise<PrismaNextSelection> =>
     completeValue(
-      planSelection(info, config, context, { paths, typeName }, seed),
+      planSelection(info, config, context, { paths }, seed),
       (planned) => planned?.selection ?? seed,
     );
 }
