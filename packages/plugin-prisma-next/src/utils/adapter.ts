@@ -57,7 +57,6 @@ export interface MapperCollection {
   variant(value: string): MapperCollection;
   /** The count reducer for a `combine()` slot. Targets without aggregates, such as MySQL, lack it. */
   count(): unknown;
-  readonly state?: { readonly variantValue?: unknown };
 }
 
 export type PrismaNextNode = Node<PrismaNextModel>;

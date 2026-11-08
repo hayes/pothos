@@ -5,7 +5,7 @@ import RelayPlugin from '@pothos/plugin-relay';
 import { contractFromJson } from '@prisma/orm-sqlite/static';
 import { GraphQLError, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import PrismaNextPlugin, { prismaConnectionHelpers } from '../src';
+import PrismaNextPlugin, { collectionFromInfo, prismaConnectionHelpers } from '../src';
 import { getPluginConfig } from '../src/utils/config';
 import { buildConnectionPage, connectionOrder } from '../src/utils/cursors';
 import { detailOf } from './fixtures/errors';
@@ -1247,6 +1247,46 @@ describe("a variant's relations in a field's select", () => {
     const result = await run(reviewedSchema(), '{ bugs { severity reviewerEmail } }');
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ bugs: [{ severity: 'high', reviewerEmail: email }] });
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('loads in the one statement of collectionFromInfo beneath a path', async () => {
+    const { builder, task } = reviewBuilder();
+    const Bug = builder.prismaObject('Bug', {
+      interfaces: [task],
+      fields: (t) => ({
+        reviewerEmail: t.string({
+          nullable: true,
+          select: { reviewer: true },
+          resolve: (bug) => bug.reviewer?.email,
+        }),
+      }),
+    });
+    const Filed = builder.objectRef<{ bug: unknown }>('Filed').implement({
+      fields: (t) => ({
+        bug: t.field({ type: Bug, nullable: true, resolve: (parent) => parent.bug as never }),
+      }),
+    });
+    builder.mutationType({
+      fields: (t) => ({
+        file: t.field({
+          type: Filed,
+          // The plan's root is the type at the path, which narrows it to the variant.
+          resolve: async (_root, _args, context, info) => {
+            const bugs = await collectionFromInfo({
+              collection: db.orm.Task.variant('bug'),
+              context,
+              info,
+              path: ['bug'],
+            });
+            return { bug: await bugs.first() };
+          },
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), 'mutation { file { bug { reviewerEmail } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ file: { bug: { reviewerEmail: email } } });
     expect(result.statements).toHaveLength(1);
   });
 

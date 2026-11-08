@@ -1,11 +1,18 @@
 import { completeValue, type MaybePromise } from '@pothos/core';
-import { type PathSegment, Plan } from '@pothos/selection-mapper';
-import type { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
-import { PRISMA_NEXT_CONFIG } from '../constants.js';
+import { type IndirectInclude, type PathSegment, Plan } from '@pothos/selection-mapper';
+import {
+  type GraphQLNamedType,
+  type GraphQLResolveInfo,
+  type GraphQLSchema,
+  getNamedType,
+} from 'graphql';
+import { PRISMA_NEXT_CONFIG, PRISMA_NEXT_MODEL } from '../constants.js';
 import type { PlannedCollection } from '../types/collections.js';
+import type { AnyContract } from '../types/models.js';
 import type { MapperCollection, PrismaNextPlan } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
 import { registerPlanRoots } from './consumers.js';
+import { variantOf } from './contract.js';
 import type { PrismaNextModel } from './model.js';
 import { EMPTY, type PrismaNextSelection } from './selections.js';
 
@@ -46,13 +53,44 @@ function planSelection(
   );
 }
 
-/** The selection a collection starts from: relations declared on a variant need it narrowed. */
+/**
+ * The selection a plan of rows of `modelKey` starts from. A variant's rows are narrowed to it, so
+ * the relations it declares can load.
+ */
 export function initialSelection(
-  collection: MapperCollection,
+  contract: AnyContract,
+  modelKey: string | undefined,
   seed: PrismaNextSelection,
 ): PrismaNextSelection {
-  const variant = collection.state?.variantValue;
-  return { ...seed, args: typeof variant === 'string' ? { variant: { value: variant } } : {} };
+  const variant = modelKey === undefined ? undefined : variantOf(contract, modelKey)?.value;
+  return { ...seed, args: variant === undefined ? {} : { variant: { value: variant } } };
+}
+
+/**
+ * The model of the type a plan reads its root as, as `Plan.fromInfo` finds it: `typeName`, the type
+ * at the end of the first path, or the field's return type, through any indirect include.
+ */
+function plannedModelKey(info: GraphQLResolveInfo, { typeName, path, paths }: PlanTarget) {
+  const { schema } = info;
+  const returnType = getNamedType(info.returnType);
+  let type: GraphQLNamedType | undefined = typeName ? schema.getType(typeName) : returnType;
+  const steps = typeName ? undefined : (paths?.[0] ?? path);
+  if (steps?.length) {
+    for (const step of [...(includeOf(returnType)?.path ?? []), ...steps]) {
+      const { type: on, name } = typeof step === 'string' ? { name: step } : step;
+      const parent = on ? schema.getType(on) : type;
+      const field = parent && 'getFields' in parent ? parent.getFields()[name] : undefined;
+      type = field && getNamedType(field.type);
+    }
+  }
+  for (let include = type && includeOf(type); include; include = type && includeOf(type)) {
+    type = schema.getType(include.getType());
+  }
+  return type?.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+}
+
+function includeOf(type: GraphQLNamedType) {
+  return type.extensions?.pothosIndirectInclude as IndirectInclude | undefined;
 }
 
 /** Plans the selection beneath a field at `path`, read as `type`, from `seed`. */
@@ -91,7 +129,7 @@ export function applySelectionToCollection(
   context: object,
   { seed = EMPTY, ...target }: ApplySelectionOptions = {},
 ): MaybePromise<MapperCollection> {
-  const initial = initialSelection(collection, seed);
+  const initial = initialSelection(config.contract, plannedModelKey(info, target), seed);
   return completeValue(planSelection(info, config, context, target, initial), (planned) =>
     config.adapter.emit(collection, planned?.selection ?? initial, planned?.model ?? model),
   );
@@ -126,7 +164,7 @@ export async function collectionFromInfo<C extends object>({
     config,
     context,
     target,
-    initialSelection(mapper, EMPTY),
+    initialSelection(config.contract, plannedModelKey(info, target), EMPTY),
   );
   // The rows it returns are handed on as they are: the field returning them copies each for its
   // type.

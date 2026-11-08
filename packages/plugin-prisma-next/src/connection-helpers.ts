@@ -440,7 +440,7 @@ export function prismaConnectionHelpers<
         (paged, seed) =>
           completeValue(
             pageRows(
-              initialSelection(paged, seed),
+              initialSelection(config.contract, modelKey, seed),
               nestedFromInfo(info, config, ctx, CONNECTION_NODE_PATHS),
               args,
               ctx,
