@@ -2,7 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { execute, parse, subscribe } from 'graphql';
 import PrismaPlugin, { type PrismaTypesFromClient, queryFromInfo } from '../src';
-import { prisma } from './example/builder';
+import { prisma, queries } from './example/builder';
 import { getDatamodel } from './generated.js';
 
 // Executions sharing a context keep their loader mappings apart, so rows a later operation or
@@ -71,6 +71,20 @@ builder.subscriptionType({
         planned
           ? prisma.user.findUniqueOrThrow({ ...queryFromInfo({ context, info }), where: { id: 1 } })
           : prisma.user.findUniqueOrThrow(withAllPosts),
+    }),
+    // Loads each event in `subscribe` with the planned query, as a snapshot of a row since
+    // deleted: its id matches no row, so its fields can only resolve from what it holds.
+    deletedUser: t.field({
+      type: User,
+      subscribe: async function* (_root, _args, context, info) {
+        const snapshot = await prisma.user.findUniqueOrThrow({
+          ...queryFromInfo({ context, info }),
+          where: { id: 1 },
+        });
+
+        yield { ...snapshot, id: -1 };
+      },
+      resolve: (user) => user,
     }),
   }),
 });
@@ -150,5 +164,42 @@ describe('executions sharing a context', () => {
 
     expect(drafts(seen[0])).toBe(0);
     expect(seen[1]).toEqual(seen[0]);
+  });
+
+  it('resolves an event from what the subscribe that loaded it planned', async () => {
+    queries.length = 0;
+
+    const events = await subscribe({
+      schema,
+      document: parse(
+        'subscription { deletedUser { publishedPosts { published author { allPosts { published } } } } }',
+      ),
+      contextValue: {},
+    });
+
+    if (!(Symbol.asyncIterator in events)) {
+      throw new Error(`Expected a subscription, got ${JSON.stringify(events)}`);
+    }
+
+    const seen: unknown[] = [];
+
+    for await (const event of events) {
+      seen.push(event);
+    }
+
+    const [{ errors, data }] = seen as {
+      errors?: unknown;
+      data: {
+        deletedUser: { publishedPosts: { published: boolean; author: { allPosts: unknown[] } }[] };
+      };
+    }[];
+    const [post] = data.deletedUser.publishedPosts;
+
+    expect(seen).toHaveLength(1);
+    expect(errors).toBeUndefined();
+    expect(drafts(data.deletedUser.publishedPosts.map(({ published }) => ({ published })))).toBe(0);
+    expect(drafts(post.author.allPosts)).toBeGreaterThan(0);
+    // The snapshot alone: nothing reloaded the deleted row.
+    expect(queries).toHaveLength(1);
   });
 });

@@ -9,7 +9,12 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, mappingParentTypes, setFieldMapping } from '@pothos/selection-mapper';
+import {
+  getLoaderMapping,
+  linkSubscriptionEvents,
+  mappingParentTypes,
+  setFieldMapping,
+} from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
@@ -121,6 +126,18 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     };
   }
 
+  // A `subscribe` may load the rows its events hand on with a planned query, so the resolvers of
+  // each event look up what that `subscribe` recorded, after what the event recorded itself.
+  override wrapSubscribe(
+    subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    return (
+      subscribe &&
+      ((parent, args, context, info) =>
+        linkSubscriptionEvents(context, info, subscribe(parent, args, context, info)))
+    );
+  }
+
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object, unknown>,
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -150,11 +167,11 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     return (parent, args, context, info) => {
       // Asked of the row: a mapping recorded for this row wins over the plan's, which answers
       // for the rows the planned query loaded.
-      let mapping = getLoaderMapping(context, info.path, info.parentType.name, parent);
+      let mapping = getLoaderMapping(context, info, info.parentType.name, parent);
 
       if (!mapping) {
         for (const parentType of parentTypes) {
-          mapping = getLoaderMapping(context, info.path, parentType, parent);
+          mapping = getLoaderMapping(context, info, parentType, parent);
           if (mapping) {
             break;
           }
