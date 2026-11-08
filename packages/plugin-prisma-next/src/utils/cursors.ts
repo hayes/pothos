@@ -36,6 +36,12 @@ export type OrderByDecl = Readonly<
   Record<string, Direction | { direction?: Direction; nulls?: 'first' | 'last' } | undefined>
 >;
 
+/** A relation's `orderBy`: a declaration, or the ORM's selectors, passed to its `orderBy`. */
+export type OrderByOption = OrderByDecl | ((...args: never[]) => unknown) | readonly unknown[];
+
+export const isOrderByDecl = (orderBy: OrderByOption | undefined): orderBy is OrderByDecl =>
+  typeof orderBy === 'object' && !Array.isArray(orderBy);
+
 /** One column of an order. Nullable columns always have a null placement. */
 export interface OrderColumn {
   readonly field: string;

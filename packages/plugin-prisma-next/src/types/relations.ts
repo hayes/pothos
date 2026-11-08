@@ -23,7 +23,7 @@ import type {
   RelationsOfModel,
   VariantModelKeys,
 } from './models.js';
-import type { OrderByColumnsCheck, RelationOrderBy } from './order-by.js';
+import type { OrderByColumnsCheck, RelationQueryOrderBy } from './order-by.js';
 
 export type RelatedModel<
   Types extends SchemaTypes,
@@ -118,7 +118,7 @@ type ShorthandModel<Types extends SchemaTypes, M extends ModelKey<Types>> = [
 /** A to-many relation's literal `query`. */
 export interface RelationQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> {
   where?: RelationWhere<Types, M>;
-  orderBy?: RelationOrderBy<Types, M>;
+  orderBy?: RelationQueryOrderBy<Types, M>;
   limit?: number;
   offset?: number;
 }
@@ -340,7 +340,7 @@ export type QueryOption<
  */
 export type FieldQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   where?: RootWhere<Types, M>;
-  orderBy?: RelationOrderBy<Types, M>;
+  orderBy?: RelationQueryOrderBy<Types, M>;
   limit?: number;
   offset?: number;
 };

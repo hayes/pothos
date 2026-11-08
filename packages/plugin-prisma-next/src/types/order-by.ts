@@ -1,5 +1,10 @@
 import type { SchemaTypes } from '@pothos/core';
-import type { OrderableFieldNames } from '@prisma/orm-family-sql/orm-client';
+import type {
+  ModelAccessor,
+  ModelCallbackTools,
+  OrderableFieldNames,
+} from '@prisma/orm-family-sql/orm-client';
+import type { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import type {
   AnyContract,
   BareModelName,
@@ -49,13 +54,43 @@ export type RelationOrderBy<Types extends SchemaTypes, M extends ModelKey<Types>
       };
 };
 
-/** The columns a literal's `orderBy` names that `M` can't be ordered by. */
+/**
+ * One ordering of a relation's rows as the ORM's `orderBy` takes it, such as
+ * `(post) => post.createdAt.desc()`.
+ */
+export type RelationOrderSelector<Types extends SchemaTypes, M extends ModelKey<Types>> = (
+  accessor: ModelAccessor<
+    Types['PrismaNextContract'],
+    BareModelName<M>,
+    NamespaceOf<Types['PrismaNextContract'], M>
+  >,
+  tools: ModelCallbackTools<
+    Types['PrismaNextContract'],
+    BareModelName<M>,
+    NamespaceOf<Types['PrismaNextContract'], M>
+  >,
+) => OrderByItem;
+
+/**
+ * A relation's `orderBy`: a declaration, or the ORM's selectors, one or several applied in order. A
+ * connection pages by its columns, so it takes only a declaration.
+ */
+export type RelationQueryOrderBy<Types extends SchemaTypes, M extends ModelKey<Types>> =
+  | RelationOrderBy<Types, M>
+  | RelationOrderSelector<Types, M>
+  | readonly RelationOrderSelector<Types, M>[];
+
+/** The columns a literal's declared `orderBy` names that `M` can't be ordered by. */
 export type UnknownOrderByColumns<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   Literal,
 > = Exclude<
-  Literal extends { readonly orderBy?: infer OrderBy } ? keyof NonNullable<OrderBy> : never,
+  Literal extends { readonly orderBy?: infer OrderBy }
+    ? NonNullable<OrderBy> extends ((...args: never[]) => unknown) | readonly unknown[]
+      ? never
+      : keyof NonNullable<OrderBy>
+    : never,
   OrderableColumnName<Types, M>
 >;
 

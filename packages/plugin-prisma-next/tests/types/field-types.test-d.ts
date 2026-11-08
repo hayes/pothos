@@ -7,6 +7,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import RelayPlugin, { type ConnectionShape } from '@pothos/plugin-relay';
 import type { DefaultModelRow } from '@prisma/orm-family-sql/orm-client';
+import type { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import { expectTypeOf } from 'vitest';
 import PrismaNextPlugin, {
   type CollectionFor,
@@ -127,8 +128,8 @@ builder.prismaObject('User', {
   },
 });
 
-// A relation's `orderBy` is a declaration, like a connection's. Ordering by an expression goes
-// through a refinement.
+// A relation's `orderBy` is a declaration, or the ORM's selectors to order by an expression.
+const byIdDesc = (comment: { id: { desc(): OrderByItem } }) => comment.id.desc();
 builder.prismaObject('Post', {
   variant: 'PostOrdering',
   fields: (t) => ({
@@ -142,8 +143,20 @@ builder.prismaObject('Post', {
       // @ts-expect-error a query callback returns a query, not a refinement of the collection
       query: () => (comments) => comments.orderBy((comment) => comment.id.desc()),
     }),
-    // @ts-expect-error `orderBy` takes a declaration, not the ORM's accessor callback
     accessor: t.relation('comments', { query: { orderBy: (comment) => comment.id.asc() } }),
+    accessors: t.relation('comments', {
+      query: { orderBy: [(comment) => comment.postId.asc(), (comment) => comment.id.desc()] },
+    }),
+    accessorFromCallback: t.relation('comments', {
+      args: { last: t.arg.boolean() },
+      query: (args) => ({
+        orderBy: args.last ? (comment) => comment.id.desc() : (comment) => comment.id.asc(),
+      }),
+    }),
+    unknownAccessor: t.relation('comments', {
+      // @ts-expect-error a selector's accessor has only Comment's columns
+      query: { orderBy: (comment) => comment.nope.asc() },
+    }),
     // @ts-expect-error `nope` isn't a column of Comment
     unknownColumn: t.relation('comments', { query: { orderBy: { id: 'asc', nope: 'asc' } } }),
     unknownFromCallback: t.relation('comments', {
@@ -156,9 +169,19 @@ builder.prismaObject('Post', {
       select: { comments: { orderBy: { id: 'asc' }, limit: 1 } },
       resolve: (post) => post.comments[0]?.id ?? '',
     }),
+    selectedAccessor: t.string({
+      select: { comments: { orderBy: (comment) => comment.id.asc(), limit: 1 } },
+      resolve: (post) => post.comments[0]?.id ?? '',
+    }),
+    nestedAccessor: t.string({
+      select: (_args, _ctx, nestedSelection) => ({
+        comments: nestedSelection({ orderBy: [byIdDesc], path: [] }),
+      }),
+      resolve: () => '',
+    }),
     badSelected: t.string({
-      // @ts-expect-error a select's relation ordering is a declaration too
-      select: { comments: { orderBy: (comment: { id: { asc(): unknown } }) => comment.id.asc() } },
+      // @ts-expect-error `nope` isn't a column of Comment
+      select: { comments: { orderBy: [(comment) => comment.nope.asc()] } },
       resolve: () => '',
     }),
     unknownSelected: t.string({
@@ -167,6 +190,18 @@ builder.prismaObject('Post', {
       resolve: () => '',
     }),
   }),
+});
+
+builder.prismaObject('Post', {
+  variant: 'PostTypeOrdering',
+  select: { comments: { orderBy: byIdDesc } },
+  fields: () => ({}),
+});
+builder.prismaObject('Post', {
+  variant: 'PostBadTypeOrdering',
+  // @ts-expect-error `nope` isn't a column of Comment
+  select: { comments: { orderBy: (comment) => comment.nope.asc() } },
+  fields: () => ({}),
 });
 
 // The FieldRefs relation and connection fields return carry the rows they load.

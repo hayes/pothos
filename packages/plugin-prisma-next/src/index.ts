@@ -61,7 +61,7 @@ import {
 } from './utils/compile-select.js';
 import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
 import { resolveContractModel, rootModelKey, variantForRelationType } from './utils/contract.js';
-import { orderableProblem, orderColumns } from './utils/cursors.js';
+import { isOrderByDecl, orderableProblem, orderColumns } from './utils/cursors.js';
 import { reloadFor } from './utils/errors.js';
 import {
   getModel,
@@ -144,7 +144,11 @@ export type {
   RelationKeys,
   Row,
 } from './types/models.js';
-export type { RelationOrderBy } from './types/order-by.js';
+export type {
+  RelationOrderBy,
+  RelationOrderSelector,
+  RelationQueryOrderBy,
+} from './types/order-by.js';
 export type {
   PrismaNextClient,
   PrismaNextExecutionContext,
@@ -835,7 +839,7 @@ function assertRelationEntries(
         () => false,
       );
     }
-    if (orderBy) {
+    if (isOrderByDecl(orderBy)) {
       const rowsModel = entryTypeModel(entry.type) ?? relation.targetModel;
       orderColumns(
         config.contract,

@@ -30,7 +30,7 @@ import type {
   Row,
   VariantModelKeys,
 } from './models.js';
-import type { RelationOrderBy } from './order-by.js';
+import type { RelationOrderBy, RelationOrderSelector } from './order-by.js';
 import type {
   DefaultRelationNullable,
   IsToMany,
@@ -159,9 +159,9 @@ export type RelationSelect<
 
 /**
  * The query of a to-many relation entry whose rows are of `TM`, the relation's target or, named by
- * `type`, one of its variants, whose `orderBy` then takes the variant's columns. `where` is the
- * target's: a narrowed collection's shorthand filter knows only the base's columns, and callbacks
- * typed per member would leave a callback in the union untyped.
+ * `type`, one of its variants, whose declared `orderBy` then takes the variant's columns. `where`
+ * and `orderBy` selectors are the target's: a narrowed collection's shorthand filter knows only the
+ * base's columns, and callbacks typed per member would leave a callback in the union untyped.
  */
 type EntryQuery<
   Types extends SchemaTypes,
@@ -171,7 +171,10 @@ type EntryQuery<
   ? RelationQueryLiteral<Types, Target>
   : Omit<RelationQueryLiteral<Types, Target>, 'orderBy'> & {
       readonly type: unknown;
-      readonly orderBy?: RelationOrderBy<Types, TM>;
+      readonly orderBy?:
+        | RelationOrderBy<Types, TM>
+        | RelationOrderSelector<Types, Target>
+        | readonly RelationOrderSelector<Types, Target>[];
     };
 
 interface EntrySelect<
@@ -681,10 +684,7 @@ type EntryOptionsMirror<
         : P extends 'where'
           ? ColumnsMirror<E[P], keyof Row<Types, Target>>
           : P extends 'orderBy'
-            ? // A declaration, unlike `where`, which may be the ORM's predicate.
-              NonNullable<E[P]> extends (...args: never[]) => unknown
-              ? never
-              : ColumnsMirror<E[P], keyof RelationOrderBy<Types, TM>>
+            ? ColumnsMirror<E[P], keyof RelationOrderBy<Types, TM>>
             : P extends 'limit' | 'offset'
               ? number | undefined
               : P extends 'type'
@@ -693,9 +693,9 @@ type EntryOptionsMirror<
       : never;
 };
 
-/** A literal `where` or `orderBy` with the columns outside `Columns` as `never`. */
+/** A literal `where` or declared `orderBy` with the columns outside `Columns` as `never`. */
 type ColumnsMirror<V, Columns> =
-  NonNullable<V> extends (...args: never[]) => unknown
+  NonNullable<V> extends ((...args: never[]) => unknown) | readonly unknown[]
     ? unknown
     : { readonly [C in keyof NonNullable<V>]: C extends Columns ? unknown : never };
 

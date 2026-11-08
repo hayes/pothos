@@ -1,4 +1,5 @@
 import SchemaBuilder from '@pothos/core';
+import type { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import { printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import PrismaNextPlugin, { type PlannedRowBrand } from '../src';
@@ -446,6 +447,29 @@ describe('inherited selections', () => {
       });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(
+        "'User' and 'Viewer' both select 'posts', with different definitions.",
+      );
+    });
+
+    it('with orderBy selectors, which compare by identity', () => {
+      const build = (other: boolean) => {
+        const builder = createBuilder();
+        type PostColumns = { id: { asc(): OrderByItem } };
+        const byId = (post: PostColumns) => post.id.asc();
+        builder.prismaObject('User', {
+          select: { posts: { orderBy: byId } },
+          fields: (t) => ({ id: t.exposeID('id') }),
+        });
+        builder.prismaObject('User', {
+          variant: 'Viewer',
+          select: { posts: { orderBy: other ? (post: PostColumns) => post.id.asc() : byId } },
+          fields: (t) => ({ id: t.exposeID('id') }),
+        });
+        builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+        return () => builder.toSchema();
+      };
+      expect(build(false)).not.toThrow();
+      expect(build(true)).toThrow(
         "'User' and 'Viewer' both select 'posts', with different definitions.",
       );
     });

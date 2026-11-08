@@ -103,6 +103,64 @@ describe('includes', () => {
     expect(result.statements[0].sql).toMatch(/ASC NULLS FIRST/);
   });
 
+  it('orders by an expression through the ORM selectors of a query or a select entry', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relation('posts', {
+          query: {
+            orderBy: (post, { fns }) =>
+              fns.raw`abs(${post.score} - 2.5)`.returns('sqlite/real@1').asc(),
+          },
+        }),
+        reversed: t.relation('posts', {
+          query: () => ({
+            orderBy: [
+              (post, { fns }) => fns.raw`abs(${post.score} - 2.5)`.returns('sqlite/real@1').desc(),
+            ],
+          }),
+        }),
+        nearest: t.string({
+          nullable: true,
+          select: {
+            posts: {
+              orderBy: (post, { fns }) =>
+                fns.raw`abs(${post.score} - 2.5)`.returns('sqlite/real@1').asc(),
+              limit: 1,
+            },
+          },
+          resolve: (user) => user.posts[0]?.id,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ users { posts { id } reversed { id } nearest } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      {
+        posts: [{ id: 'p-draft1' }, { id: 'p-hello' }],
+        reversed: [{ id: 'p-hello' }, { id: 'p-draft1' }],
+        nearest: 'p-draft1',
+      },
+      {
+        posts: [{ id: 'p-bob1' }, { id: 'p-bob-draft' }],
+        reversed: [{ id: 'p-bob-draft' }, { id: 'p-bob1' }],
+        nearest: 'p-bob1',
+      },
+    ]);
+  });
+
   it('rejects an orderBy column that is not a field when the schema is built', () => {
     const relation = createBuilder();
     relation.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });

@@ -12,7 +12,7 @@ import type { MapperCollection } from './adapter.js';
 import { rowsKey, valueKey } from './branch-keys.js';
 import { consumerId, nestedId, TYPE_CONSUMER } from './consumers.js';
 import { variantForRelationType } from './contract.js';
-import { type OrderByDecl, orderCollection, orderColumns } from './cursors.js';
+import { isOrderByDecl, type OrderByOption, orderCollection, orderColumns } from './cursors.js';
 import { checkReturned } from './errors.js';
 import {
   getModel,
@@ -67,7 +67,7 @@ export const NESTED_SELECTION = Symbol('prismaNextNestedSelection');
  */
 export interface RelationEntry {
   where?: unknown;
-  orderBy?: OrderByDecl;
+  orderBy?: OrderByOption;
   limit?: number;
   offset?: number;
   type?: unknown;
@@ -130,7 +130,7 @@ interface ComputedEntry {
 
 interface DeclarativeQuery {
   where?: unknown;
-  orderBy?: OrderByDecl;
+  orderBy?: OrderByOption;
   limit?: number;
   offset?: number;
 }
@@ -157,9 +157,9 @@ export function definedQuery(value: unknown): DeclarativeQuery | undefined {
 }
 
 /**
- * Applies `query` to the collection of `modelKey`'s rows. Its order is resolved once, as
+ * Applies `query` to the collection of `modelKey`'s rows. A declared order is resolved once, as
  * `orderColumns` resolves it: a literal's is checked when the schema is built, so by default only a
- * computed column fails here.
+ * computed column fails here. The ORM's selectors go to the collection's `orderBy` as they are.
  */
 export function queryRefinement(
   contract: AnyContract,
@@ -167,7 +167,9 @@ export function queryRefinement(
   { where, orderBy, limit, offset }: DeclarativeQuery,
   problem?: Parameters<typeof orderColumns>[3],
 ) {
-  const order = orderBy && orderColumns(contract, modelKey, orderBy, problem);
+  const order = isOrderByDecl(orderBy)
+    ? orderColumns(contract, modelKey, orderBy, problem)
+    : undefined;
   return (collection: MapperCollection) => {
     let result = collection;
     if (where !== undefined) {
@@ -175,6 +177,8 @@ export function queryRefinement(
     }
     if (order?.length) {
       result = orderCollection(result, order);
+    } else if (!order && orderBy !== undefined) {
+      result = result.orderBy(orderBy);
     }
     if (limit !== undefined) {
       result = result.limit(limit);
@@ -208,7 +212,14 @@ export function relationLoad(
  * callback builds anew on every call. `built` then identifies it by where it was built.
  */
 export function queryIdentity(query: object | undefined, built?: () => unknown): unknown {
-  return built && query && Object.values(query).some((option) => typeof option === 'function')
+  // Only the top-level options, and an `orderBy`'s list of selectors, are checked for callbacks.
+  return built &&
+    query &&
+    Object.values(query).some(
+      (option) =>
+        typeof option === 'function' ||
+        (Array.isArray(option) && option.some((item) => typeof item === 'function')),
+    )
     ? built()
     : query;
 }

@@ -69,6 +69,17 @@ posts: t.relation('posts', {
 
 With `AsyncSelections: true` in the builder's types, the function can be async.
 
+To sort by an expression, pass `orderBy` what the Collection's `orderBy()` takes, one selector or an
+array of them:
+
+```ts
+posts: t.relation('posts', {
+  query: {
+    orderBy: (post, { fns }) => fns.raw`abs(${post.score} - 2.5)`.returns('sqlite/real@1').asc(),
+  },
+}),
+```
+
 The relation entries of a `select` take the same object, such as
 `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`.
 
