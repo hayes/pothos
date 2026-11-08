@@ -23,6 +23,7 @@ import { registerPlanRoots } from './utils/consumers.js';
 import { variantOf } from './utils/contract.js';
 import { readPage } from './utils/cursors.js';
 import { InternalError, isRefusedValue, keepError, refusedError } from './utils/errors.js';
+import { consumerIds } from './utils/load-ids.js';
 import { getModel, type PrismaNextModel } from './utils/model.js';
 import { fieldCopy, rowOf, typePlan, withOtherKeys } from './utils/row-copies.js';
 import { appliesCursors, type PrismaNextSelection } from './utils/selections.js';
@@ -34,6 +35,8 @@ interface Request {
   values: readonly unknown[];
   /** The execution the row is loaded for, by its variable values. */
   execution: GraphQLResolveInfo['variableValues'];
+  /** The consumers the execution's plan loads, which the statement names for it alone. */
+  consumers: ReadonlySet<string>;
   resolve: (row: Row | null) => void;
   reject: (error: unknown) => void;
 }
@@ -301,8 +304,26 @@ export class ModelLoader {
     }
     const { requests } = batch;
     return new Promise((resolve, reject) => {
-      requests.push({ values, execution: info.variableValues, resolve, reject });
+      requests.push({
+        values,
+        execution: info.variableValues,
+        consumers: this.consumersOf(root),
+        resolve,
+        reject,
+      });
     });
+  }
+
+  /** The consumers each staged plan root loads. */
+  private readonly rootConsumers = new WeakMap<PrismaNextNode, ReadonlySet<string>>();
+
+  private consumersOf(root: PrismaNextNode) {
+    let consumers = this.rootConsumers.get(root);
+    if (!consumers) {
+      consumers = consumerIds(this.config.adapter.toQuery(root));
+      this.rootConsumers.set(root, consumers);
+    }
+    return consumers;
   }
 
   private async flush(batch: Batch): Promise<void> {
@@ -362,7 +383,7 @@ export class ModelLoader {
           filtered,
           selection,
           batch.root.model,
-          keyed.map(({ request }) => request.execution),
+          keyed.map(({ request: { execution, consumers } }) => ({ execution, consumers })),
         ),
       ) as MapperCollection & { all(): Promise<readonly Row[]> };
       // A reload's database error is the plugin's, which `reloadFor` reports as `Unexpected error.`.

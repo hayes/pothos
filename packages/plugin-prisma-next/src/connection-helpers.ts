@@ -40,6 +40,7 @@ import { getPluginConfig } from './utils/config.js';
 import { CONNECTION_NODE_PATHS, connectionPaging } from './utils/connections.js';
 import { variantForRelationType } from './utils/contract.js';
 import { buildConnectionPage, type ConnectionPage } from './utils/cursors.js';
+import { forExecution } from './utils/load-ids.js';
 import { initialSelection, nestedFromInfo } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
@@ -435,7 +436,7 @@ export function prismaConnectionHelpers<
               ctx,
             ),
             (selection) => ({
-              query: config.adapter.emit(paged, selection, model, [info.variableValues]),
+              query: config.adapter.emit(paged, selection, model, forExecution(info)),
               cursors: appliesCursors(selection),
             }),
           ),

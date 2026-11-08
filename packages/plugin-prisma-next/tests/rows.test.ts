@@ -443,6 +443,60 @@ describe('rows a resolver returns', () => {
       expect(statements).toHaveLength(2);
     });
 
+    it("don't read each other's branches of a reload they share", async () => {
+      const builder = createBuilder();
+      builder.prismaObject('Post', {
+        fields: (t) => ({ id: t.exposeID('id'), comments: t.relation('comments') }),
+      });
+      builder.prismaObject('Comment', {
+        fields: (t) => ({ id: t.exposeID('id'), author: t.relation('author') }),
+      });
+      let stash: (user: object) => void = () => {};
+      const stashed = new Promise<object>((resolve) => {
+        stash = resolve;
+      });
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          id: t.exposeID('id'),
+          posts: t.relation('posts', {
+            args: { published: t.arg.int({ required: true }) },
+            query: (args) => ({ where: { published: args.published } }),
+          }),
+          stash: t.boolean({
+            resolve: (user) => {
+              stash(user);
+              return true;
+            },
+          }),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          // A row without the relation, which reloads.
+          post: t.prismaField({ type: 'Post', resolve: async () => ({ id: 'p-hello' }) as never }),
+          // The user the other operation's plan loaded, read with this operation's own args.
+          stashed: t.prismaField({ type: 'User', resolve: () => stashed as never }),
+        }),
+      });
+      const built = builder.toSchema();
+      // The aliases number the reader's `posts` as the other operation numbers its `posts`.
+      const [reader] = await Promise.all([
+        execute({
+          schema: built,
+          document: parse(
+            '{ post { comments { author { id } } } stashed { x: posts(published: 2) { id } y: posts(published: 2) { id } posts(published: 0) { id } } }',
+          ),
+          contextValue: shared,
+        }),
+        execute({
+          schema: built,
+          document: parse('{ post { comments { author { stash posts(published: 1) { id } } } } }'),
+          contextValue: shared,
+        }),
+      ]);
+      expect(reader).toMatchObject({ data: { stashed: { posts: [{ id: 'p-bob-draft' }] } } });
+    });
+
     it('run the same SQL for equal arguments, in any context', async () => {
       const built = schema();
       const statements: CapturedExecution[] = [];

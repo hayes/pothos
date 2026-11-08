@@ -18,8 +18,36 @@ import type { PrismaNextSelection } from './selections.js';
 
 const LOAD_SEPARATOR = '#';
 
-/** The executions a statement is built for, by their variable values, as `forOperation` keys. */
-export type Executions = readonly GraphQLResolveInfo['variableValues'][];
+/**
+ * The executions a statement is built for: each by its variable values, as `forOperation` keys,
+ * with the consumers it planned when the statement merges other executions' plans.
+ */
+export type Executions = readonly {
+  readonly execution: object;
+  readonly consumers?: ReadonlySet<string>;
+}[];
+
+/** The statement built for `info`'s execution alone. */
+export function forExecution(info: GraphQLResolveInfo): Executions {
+  return [{ execution: info.variableValues }];
+}
+
+/** The ids of the consumers whose to-many loads `selection` names, at any level. */
+export function consumerIds(
+  { relations = {}, computed = {} }: PrismaNextSelection,
+  ids = new Set<string>(),
+): Set<string> {
+  for (const [key, child] of Object.entries(relations)) {
+    if (relationName(key) !== key) {
+      ids.add(consumerOfKey(key));
+    }
+    consumerIds(child, ids);
+  }
+  for (const key of Object.keys(computed)) {
+    ids.add(consumerOfKey(key));
+  }
+  return ids;
+}
 
 /**
  * The load ids of the field consumers whose to-many loads `selection`, a level of a statement,
@@ -58,9 +86,15 @@ export function loadIds({ relations = {}, computed = {} }: PrismaNextSelection) 
 /** The load ids each execution's statements named, by consumer id. */
 const recorded = new WeakMap<object, Map<string, Set<string>>>();
 
-/** Records that statements of `executions` name consumer `id`'s branches `loadId`. */
+/**
+ * Records that a statement names consumer `id`'s branches `loadId`, for those of `executions` that
+ * planned it.
+ */
 export function recordLoadIds(executions: Executions, id: string, loadId: string) {
-  for (const execution of executions) {
+  for (const { execution, consumers } of executions) {
+    if (consumers && !consumers.has(id)) {
+      continue;
+    }
     let ids = recorded.get(execution);
     if (!ids) {
       ids = new Map();
