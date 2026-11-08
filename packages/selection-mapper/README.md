@@ -11,8 +11,9 @@ their own. Use the plugins.
 
 The surface is what those plugins import and nothing more: `Plan` (with the statics `Plan.fromInfo`
 and `Plan.forParentRow`), `Adapter` and `NodeAdapter`, the loader-map helpers (`cacheKey`,
-`getLoaderMapping`, `setFieldMapping`, `setLoaderMappings`, `setRowFieldMapping`,
-`setRowMappings`), `mappingParentTypes`, `selectedFieldNames` and `deepEqual`. Turning a plan
+`getLoaderMapping`, `linkSubscriptionEvents`, `setFieldMapping`, `setLoaderMappings`,
+`setRowFieldMapping`, `setRowMappings`), `mappingParentTypes`, `selectedFieldNames` and
+`deepEqual`. Turning a plan
 into the query a resolver is handed is each plugin's own job — prisma's `queryFromInfo` and
 drizzle's differ — so neither of them is here.
 
@@ -85,7 +86,11 @@ extends `Adapter` directly.
   this package and could only be copied by round-tripping it through the adapter on every field.
 - Every play records its loader mappings on the request context, which pothos requires to be an
   object, per execution: operations and subscription events sharing a context don't see each
-  other's. An adapter whose resolvers read a loaded row another way simply never looks them up.
+  other's. An execution is told apart by the `getAbortSignal` graphql-js 17 gives it, or by its
+  `variableValues`, not by its path, which graphql-jit builds afresh for every resolver. The
+  plugins pass `getLoaderMapping` the resolver's `info`, and wrap `subscribe` in
+  `linkSubscriptionEvents` so an event also sees what its `subscribe` recorded. An adapter whose
+  resolvers read a loaded row another way simply never looks them up.
 - Every select function is handed the `Position` of the field it plans: the field's node, the type
   it was walked on, and a link to the position of the field the plan hangs beneath. The walker
   reads none of it — an adapter that wants a path or a list of segments walks `parent` and

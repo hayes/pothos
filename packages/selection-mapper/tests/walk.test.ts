@@ -7,9 +7,9 @@ import {
   createSchema,
   FakeAdapter,
   type FakeMap,
+  infoAt,
   mappingOf,
   mappingsOf,
-  pathIn,
   queryFromInfo,
   resolveInfo,
   unexpected,
@@ -77,12 +77,12 @@ describe('queryFromInfo', () => {
       select: { posts: { take: 2, select: { author: { where: { x: 1 } } } }, profile: true },
     });
 
-    const posts = getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User');
+    const posts = getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User');
 
     expect(mappingsOf(posts!.nested)).toEqual({ 'Post@author': { nested: {} } });
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'profile'), 'User')?.nested).toEqual({});
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'profile'), 'User')?.nested).toEqual({});
     // Only the walked field's own mappings are recorded; deeper ones wait for their resolver.
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts', 0, 'author'), 'Post')).toBe(
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts', 0, 'author'), 'Post')).toBe(
       null,
     );
   });
@@ -117,7 +117,7 @@ describe('queryFromInfo', () => {
       select: { posts: { take: 2, select: { author: { where: { x: 1 } }, comments: true } } },
     });
 
-    const mapping = getLoaderMapping(context, pathIn(info, 'user', 'postsConnection'), 'User');
+    const mapping = getLoaderMapping(context, infoAt(info, 'user', 'postsConnection'), 'User');
 
     expect(Object.keys(mapping!.nested)).toEqual(['Post@nodes.author', 'Post@edges.node.comments']);
   });
@@ -149,7 +149,7 @@ describe('queryFromInfo', () => {
       select: { posts: { select: { author: { where: { x: 1 } } } } },
     });
     expect(
-      mappingsOf(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')!.nested),
+      mappingsOf(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')!.nested),
     ).toEqual({
       'Post@a1': { nested: {} },
     });
@@ -171,7 +171,7 @@ describe('queryFromInfo', () => {
       select: { posts: { select: { author: true, comments: true } } },
     });
     expect(
-      Object.keys(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')!.nested),
+      Object.keys(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')!.nested),
     ).toEqual(['Post@author', 'Post@comments']);
   });
 
@@ -181,7 +181,7 @@ describe('queryFromInfo', () => {
     const nothing = withSelects(['posts'], () => () => null);
 
     expect(queryFromInfo(nothing, { context, info })).toEqual({});
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')).toBe(null);
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')).toBe(null);
   });
 
   it('skips fields under @skip and deferred fragments by default', async () => {
@@ -267,14 +267,14 @@ describe('queryFromInfo', () => {
     ).toEqual({ select: { posts: { take: 5 }, profile: true } });
     expect(
       mappingOf(
-        getLoaderMapping(context, pathIn(info, 'entries', 3, 'appointment', 'posts'), 'User'),
+        getLoaderMapping(context, infoAt(info, 'entries', 3, 'appointment', 'posts'), 'User'),
       ),
     ).toEqual({
       nested: {},
     });
     expect(
       mappingOf(
-        getLoaderMapping(context, pathIn(info, 'entries', 'appointment', 'profile'), 'Viewer'),
+        getLoaderMapping(context, infoAt(info, 'entries', 'appointment', 'profile'), 'Viewer'),
       ),
     ).toEqual({
       nested: {},
@@ -306,7 +306,7 @@ describe('queryFromInfo', () => {
         queryFromInfo(adapter, { context, info, typeName: 'User', path: ['appointment'] }),
       ).toEqual({ select: { posts: { take: 5 } } });
       expect(
-        getLoaderMapping(context, pathIn(info, 'entries', 0, 'appointment', 'posts'), 'User'),
+        getLoaderMapping(context, infoAt(info, 'entries', 0, 'appointment', 'posts'), 'User'),
       ).toBe(null);
     }
   });
@@ -392,7 +392,7 @@ describe('queryFromInfo', () => {
 
     expect(queryFromInfo(adapter, { context, info })).toEqual({ select: { posts: true } });
     expect(
-      mappingOf(getLoaderMapping(context, pathIn(info, 'result', 'data', 'posts'), 'User')),
+      mappingOf(getLoaderMapping(context, infoAt(info, 'result', 'data', 'posts'), 'User')),
     ).toEqual({
       nested: {},
     });
@@ -424,7 +424,7 @@ describe('queryFromInfo', () => {
     expect(posts.type.name).toBe('User');
     expect(posts.field.name).toBe('posts');
     // The same position is recorded with the mapping, so a resolver reads what the select read.
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'myPosts'), 'User')?.position).toBe(
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'myPosts'), 'User')?.position).toBe(
       posts,
     );
   });
@@ -439,7 +439,7 @@ describe('queryFromInfo', () => {
     // `email` is a static map, `profile` a select function: only the latter ran a callback.
     expect(seen.map(([name]) => name)).toEqual(['profile']);
 
-    const email = getLoaderMapping(context, pathIn(info, 'viewer', 'email'), 'Viewer');
+    const email = getLoaderMapping(context, infoAt(info, 'viewer', 'email'), 'Viewer');
 
     // A frozen mapping is the walker's one shared constant: a static field allocates nothing.
     expect(email?.position).toBeUndefined();
@@ -530,7 +530,7 @@ describe('fragments', () => {
     expect(queryFromInfo(adapter, { context, info })).toEqual({
       select: { posts: { take: 5 }, id: true, email: true },
     });
-    expect(getLoaderMapping(context, pathIn(info, 'person', 'posts'), 'Person')).toBe(null);
+    expect(getLoaderMapping(context, infoAt(info, 'person', 'posts'), 'Person')).toBe(null);
   });
 
   it('walks fields and fragment fields in document order, so the first selection of a relation wins', async () => {
@@ -544,11 +544,11 @@ describe('fragments', () => {
       select: { posts: { take: 1 } },
     });
     expect(
-      mappingOf(getLoaderMapping(fragmentFirst, pathIn(info, 'user', 'first'), 'User')),
+      mappingOf(getLoaderMapping(fragmentFirst, infoAt(info, 'user', 'first'), 'User')),
     ).toEqual({
       nested: {},
     });
-    expect(getLoaderMapping(fragmentFirst, pathIn(info, 'user', 'second'), 'User')).toBe(null);
+    expect(getLoaderMapping(fragmentFirst, infoAt(info, 'user', 'second'), 'User')).toBe(null);
 
     const fieldFirst = {};
     const mirror = await resolveInfo(
@@ -560,11 +560,11 @@ describe('fragments', () => {
       select: { posts: { take: 2 } },
     });
     expect(
-      mappingOf(getLoaderMapping(fieldFirst, pathIn(mirror, 'user', 'second'), 'User')),
+      mappingOf(getLoaderMapping(fieldFirst, infoAt(mirror, 'user', 'second'), 'User')),
     ).toEqual({
       nested: {},
     });
-    expect(getLoaderMapping(fieldFirst, pathIn(mirror, 'user', 'first'), 'User')).toBe(null);
+    expect(getLoaderMapping(fieldFirst, infoAt(mirror, 'user', 'first'), 'User')).toBe(null);
   });
 
   it('honours @skip and @include on fragments', async () => {
@@ -596,7 +596,7 @@ describe('fragments', () => {
     );
 
     expect(queryFromInfo(adapter, { context, info })).toEqual({ select: { posts: true } });
-    expect(mappingOf(getLoaderMapping(context, pathIn(info, 'person', 'posts'), 'User'))).toEqual({
+    expect(mappingOf(getLoaderMapping(context, infoAt(info, 'person', 'posts'), 'User'))).toEqual({
       nested: {},
     });
   });
@@ -616,10 +616,10 @@ describe('fragments', () => {
     // User has no type-level selection (every column), so the query itself is unchanged; the
     // field is planned for User rows and mapped for them alone.
     queryFromInfo(named, { context, info });
-    expect(mappingOf(getLoaderMapping(context, pathIn(info, 'person', 'name'), 'User'))).toEqual({
+    expect(mappingOf(getLoaderMapping(context, infoAt(info, 'person', 'name'), 'User'))).toEqual({
       nested: {},
     });
-    expect(getLoaderMapping(context, pathIn(info, 'person', 'name'), 'Viewer')).toBeNull();
+    expect(getLoaderMapping(context, infoAt(info, 'person', 'name'), 'Viewer')).toBeNull();
   });
 
   describe('fragments on a model-less abstract type beneath a model interface', () => {
@@ -683,7 +683,7 @@ describe('fragments', () => {
         await plan('{ person { ... on User { id } ... on Viewer { id } } }'),
       );
       expect(
-        getLoaderMapping(context, pathIn(infos.get(context)!, 'person', 'id'), 'Admin'),
+        getLoaderMapping(context, infoAt(infos.get(context)!, 'person', 'id'), 'Admin'),
       ).toBeNull();
     });
 
@@ -727,9 +727,9 @@ describe('fragments', () => {
       expect(nested).toEqual({ select: { posts: { take: 5 } } });
       for (const type of ['User', 'Viewer', 'Admin']) {
         expect(
-          getLoaderMapping(nestedContext, pathIn(infos.get(nestedContext)!, 'person', 'id'), type),
+          getLoaderMapping(nestedContext, infoAt(infos.get(nestedContext)!, 'person', 'id'), type),
         ).toEqual(
-          getLoaderMapping(directContext, pathIn(infos.get(directContext)!, 'person', 'id'), type),
+          getLoaderMapping(directContext, infoAt(infos.get(directContext)!, 'person', 'id'), type),
         );
       }
     });
@@ -792,7 +792,7 @@ describe('fragments', () => {
       await plan('{ person { ... on Ranked { rank } } }', context);
       expect(
         mappingOf(
-          getLoaderMapping(context, pathIn(infos.get(context)!, 'person', 'rank'), 'Admin'),
+          getLoaderMapping(context, infoAt(infos.get(context)!, 'person', 'rank'), 'Admin'),
         ),
       ).toEqual({
         nested: {},
@@ -829,7 +829,7 @@ describe('fragments', () => {
     expect(queryFromInfo(adapter, { context, info })).toEqual({
       select: { posts: { take: 1 } },
     });
-    expect(mappingOf(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User'))).toEqual({
+    expect(mappingOf(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User'))).toEqual({
       nested: {},
     });
   });
@@ -858,7 +858,7 @@ describe('component fragments', () => {
       await plan('{ user { id posts(take: 1) { title author(x: 1) { id } } } }'),
     );
     expect(
-      mappingOf(getLoaderMapping(context, pathIn(infos.get(context)!, 'user', 'posts'), 'User')),
+      mappingOf(getLoaderMapping(context, infoAt(infos.get(context)!, 'user', 'posts'), 'User')),
     ).toEqual({
       nested: { 'Post@author': { nested: {} } },
     });
@@ -881,7 +881,7 @@ describe('component fragments', () => {
     );
     expect(
       mappingOf(
-        getLoaderMapping(context, pathIn(infos.get(context)!, 'person', 'posts'), 'Person'),
+        getLoaderMapping(context, infoAt(infos.get(context)!, 'person', 'posts'), 'Person'),
       ),
     ).toEqual({
       nested: { 'Post@author': { nested: {} } },
@@ -949,12 +949,12 @@ describe('repeated fragment spreads', () => {
     });
     // Under Viewer the field is keyed by the variant, under Person by the interface: the
     // resolver looks its mapping up by the runtime type, so both are needed.
-    expect(mappingOf(getLoaderMapping(context, pathIn(info, 'person', 'posts'), 'Viewer'))).toEqual(
+    expect(mappingOf(getLoaderMapping(context, infoAt(info, 'person', 'posts'), 'Viewer'))).toEqual(
       {
         nested: {},
       },
     );
-    expect(mappingOf(getLoaderMapping(context, pathIn(info, 'person', 'posts'), 'Person'))).toEqual(
+    expect(mappingOf(getLoaderMapping(context, infoAt(info, 'person', 'posts'), 'Person'))).toEqual(
       {
         nested: {},
       },
@@ -1003,7 +1003,7 @@ describe('a field selected more than once', () => {
       expect(queryFromInfo(adapter, { context, info })).toEqual({
         select: { posts: { take: 5 }, id: true, email: true },
       });
-      expect(getLoaderMapping(context, pathIn(info, 'person', 'posts'), 'Person')).toBe(null);
+      expect(getLoaderMapping(context, infoAt(info, 'person', 'posts'), 'Person')).toBe(null);
     }
   });
 
@@ -1024,7 +1024,7 @@ describe('a field selected more than once', () => {
       queryFromInfo(adapter, { context, info, typeName: 'User', path: ['appointment'] }),
     ).toEqual({ select: { posts: true } });
     expect(
-      mappingOf(getLoaderMapping(context, pathIn(info, 'entries', 'appointment', 'posts'), 'User')),
+      mappingOf(getLoaderMapping(context, infoAt(info, 'entries', 'appointment', 'posts'), 'User')),
     ).toEqual({
       nested: {},
     });
@@ -1131,7 +1131,7 @@ describe('adapter contract details', () => {
     // field's own map is merged as any other (Post is in all-columns mode here, so no change).
     expect(nested).toEqual({ select: { comments: true } });
     expect(query).toEqual(queryFromInfo(adapter, { context: {}, info }));
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')).toMatchObject({
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')).toMatchObject({
       nested: { 'Post@title': { nested: {} } },
     });
   });
@@ -1145,7 +1145,7 @@ describe('adapter contract details', () => {
     expect(queryFromInfo(adapter, { context, info: partial })).toEqual(
       queryFromInfo(adapter, { context: {}, info }),
     );
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')?.position?.parent).toBe(
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')?.position?.parent).toBe(
       undefined,
     );
   });
@@ -1160,7 +1160,7 @@ describe('Plan.fromInfo', () => {
 
     expect(adapter.toQuery(played.root)).toEqual({ select: { posts: true } });
     expect(mappingsOf(played.mappings)).toEqual({ 'User@posts': { nested: {} } });
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')).toBe(null);
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')).toBe(null);
   });
 
   it('returns undefined when paths are given and nothing is selected under them', async () => {
@@ -1197,7 +1197,7 @@ describe('plan.query(select)', () => {
     const context = {};
     const plan = Plan.fromInfo(adapter, { context, info })!;
 
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')).toBe(null);
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')).toBe(null);
 
     const query = plan.query(select);
 
@@ -1205,8 +1205,8 @@ describe('plan.query(select)', () => {
     // The caller's selection comes first, as `initial` does, so the query is the same
     // object key for key.
     expect(Object.keys(query.select!)).toEqual(Object.keys(expected.select!));
-    expect(mappingOf(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User'))).toEqual(
-      mappingOf(getLoaderMapping(expectedContext, pathIn(info, 'user', 'posts'), 'User')),
+    expect(mappingOf(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User'))).toEqual(
+      mappingOf(getLoaderMapping(expectedContext, infoAt(info, 'user', 'posts'), 'User')),
     );
   });
 
@@ -1220,8 +1220,8 @@ describe('plan.query(select)', () => {
 
     expect(plan.query(select)).toEqual(expected);
     // The document's `posts(take: 2)` lost the conflict: no mapping, it loads on its own.
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')).toBe(null);
-    expect(getLoaderMapping(expectedContext, pathIn(info, 'user', 'posts'), 'User')).toBe(null);
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')).toBe(null);
+    expect(getLoaderMapping(expectedContext, infoAt(info, 'user', 'posts'), 'User')).toBe(null);
     // The plan itself is untouched: emitting it again without a selection gives the plan.
     expect(plan.query()).toEqual(queryFromInfo(adapter, { context: {}, info }));
   });
@@ -1250,7 +1250,7 @@ describe('plan.query(select)', () => {
     expect(Plan.fromInfo(adapter, { context, info })!.query()).toEqual(
       queryFromInfo(adapter, { context: {}, info }),
     );
-    expect(mappingOf(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User'))).toEqual({
+    expect(mappingOf(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User'))).toEqual({
       nested: {},
     });
   });
@@ -1416,7 +1416,7 @@ describe('fragments that expand at every level', () => {
     queryFromInfo(new FakeAdapter(linkedModels), { context, info });
 
     for (const type of ['U1', 'U2', 'U3']) {
-      const posts = getLoaderMapping(context, pathIn(info, 'user', 'posts'), type);
+      const posts = getLoaderMapping(context, infoAt(info, 'user', 'posts'), type);
 
       expect(Object.keys(posts!.nested).sort()).toEqual(['P1@author', 'P2@author', 'P3@author']);
       expect(Object.keys(posts!.nested['P2@author'].nested).sort()).toEqual([
@@ -1449,10 +1449,10 @@ describe('fragments that expand at every level', () => {
     // Shared, the `b` and `take: 3` walks would make neither call.
     expect(calls).toEqual({ posts: 5, author: 4 });
     expect(
-      Object.keys(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'UserI')!.nested),
+      Object.keys(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'UserI')!.nested),
     ).toEqual(['PostI@a']);
     expect(
-      Object.keys(getLoaderMapping(context, pathIn(info, 'user', 'drafts'), 'UserI')!.nested),
+      Object.keys(getLoaderMapping(context, infoAt(info, 'user', 'drafts'), 'UserI')!.nested),
     ).toEqual(['PostI@b']);
   });
 
@@ -1479,9 +1479,9 @@ describe('fragments that expand at every level', () => {
     });
 
     // An implementation's resolver falls back to its interfaces.
-    const posts = getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'UserI');
+    const posts = getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'UserI');
 
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'U2')).toBeNull();
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'U2')).toBeNull();
     expect(Object.keys(posts!.nested)).toEqual(['PostI@author']);
     expect(Object.keys(posts!.nested['PostI@author'].nested)).toEqual(['UserI@posts']);
   });
@@ -1516,8 +1516,8 @@ describe('fragments that expand at every level', () => {
     expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
       select: { id: true, posts: { take: 1, select: { id: true } } },
     });
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'U1')).not.toBeNull();
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'U2')).toBeNull();
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'U1')).not.toBeNull();
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'U2')).toBeNull();
   });
 
   /** Replaces `name`'s select on each of `typeNames`. */
@@ -1999,9 +1999,9 @@ describe('fragments that expand at every level', () => {
         expect(queryFromInfo(new FakeAdapter(linkedModels), { context, info })).toEqual({
           select: { id: true, selected: true, posts: { take: 1 } },
         });
-        expect(getLoaderMapping(context, pathIn(info, 'user', 'first'), 'UserI')).toBeNull();
+        expect(getLoaderMapping(context, infoAt(info, 'user', 'first'), 'UserI')).toBeNull();
         expect(
-          getLoaderMapping(context, pathIn(info, 'user', 'selected'), 'Latest'),
+          getLoaderMapping(context, infoAt(info, 'user', 'selected'), 'Latest'),
         ).not.toBeNull();
       }
     });

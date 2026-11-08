@@ -8,3 +8,4 @@
 - `Plan.forParentRow` takes an options object: `forParentRow(adapter, { context, info, skipDeferredFragments, initial })`. The `Mapping` and `ParentRowOptions` types are exported.
 - Errors raised while planning a request, such as a conflict between the type-level selections of two variants or a select that returned before its nested selection settled, now reach clients as `Unexpected error.`, still a `PothosValidationError`. The detail is in the error's `cause`.
 - `mappingParentTypes` lists the types a field's resolver looks up loader mappings under: its parent type, and the interfaces with a model whose own field of that name it inherits.
+- `getLoaderMapping` takes the resolver's `info` in place of its path: `getLoaderMapping(context, info, type, row)`.

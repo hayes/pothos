@@ -5,9 +5,9 @@ import { getLoaderMapping, Plan } from '../src';
 import {
   type FakeAdapter,
   type FakeMap,
+  infoAt,
   mappingOf,
   mappingsOf,
-  pathIn,
   queryFromInfo,
   resolveInfo,
   unexpected,
@@ -64,7 +64,7 @@ async function sameAs(source: string, async: FakeAdapter, keys: [string, (string
 
   // Nothing is recorded until every pending merge has run.
   for (const [type, path] of keys) {
-    expect(getLoaderMapping(context, pathIn(info, ...path), type)).toBe(null);
+    expect(getLoaderMapping(context, infoAt(info, ...path), type)).toBe(null);
   }
 
   expect(await result).toEqual(expected);
@@ -72,8 +72,8 @@ async function sameAs(source: string, async: FakeAdapter, keys: [string, (string
   for (const [type, path] of keys) {
     // Positions aside: a key accepted from two occurrences records the position of whichever was
     // accepted first, which the async plan may reach in the other order.
-    expect(mappingOf(getLoaderMapping(context, pathIn(info, ...path), type))).toEqual(
-      mappingOf(getLoaderMapping(syncContext, pathIn(info, ...path), type)),
+    expect(mappingOf(getLoaderMapping(context, infoAt(info, ...path), type))).toEqual(
+      mappingOf(getLoaderMapping(syncContext, infoAt(info, ...path), type)),
     );
   }
 }
@@ -189,7 +189,7 @@ describe('async callbacks', () => {
       expect(seen).toEqual(['mapper']);
       expect(await result).toEqual({ select: { posts: { take: 20 } } });
       expect(seen).toEqual(['mapper', 'select:{"take":20}']);
-      expect(mappingOf(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User'))).toEqual({
+      expect(mappingOf(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User'))).toEqual({
         nested: {},
       });
     } finally {
@@ -229,10 +229,10 @@ describe('async callbacks', () => {
     expect(await queryFromInfo(syncWins, { context, info })).toEqual({
       select: { posts: { take: 2 } },
     });
-    expect(mappingOf(getLoaderMapping(context, pathIn(info, 'user', 'second'), 'User'))).toEqual({
+    expect(mappingOf(getLoaderMapping(context, infoAt(info, 'user', 'second'), 'User'))).toEqual({
       nested: {},
     });
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'first'), 'User')).toBe(null);
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'first'), 'User')).toBe(null);
 
     // Both async: `first` resolves last but was appended first, so it wins.
     const appendOrder = withSelects(['posts'], (select) => (args, ...rest) => {
@@ -247,10 +247,10 @@ describe('async callbacks', () => {
     expect(await queryFromInfo(appendOrder, { context: ordered, info })).toEqual({
       select: { posts: { take: 1 } },
     });
-    expect(mappingOf(getLoaderMapping(ordered, pathIn(info, 'user', 'first'), 'User'))).toEqual({
+    expect(mappingOf(getLoaderMapping(ordered, infoAt(info, 'user', 'first'), 'User'))).toEqual({
       nested: {},
     });
-    expect(getLoaderMapping(ordered, pathIn(info, 'user', 'second'), 'User')).toBe(null);
+    expect(getLoaderMapping(ordered, infoAt(info, 'user', 'second'), 'User')).toBe(null);
   });
 
   it('unions the mappings of a key accepted from an async and a sync plan', async () => {
@@ -272,7 +272,7 @@ describe('async callbacks', () => {
 
     // The sync plan was merged first; the async one unioned into its mapping.
     expect(
-      Object.keys(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')!.nested),
+      Object.keys(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')!.nested),
     ).toEqual(['Post@comments', 'Post@author']);
   });
 
@@ -339,8 +339,8 @@ describe('async callbacks', () => {
 
     expect(promises).toBe(0);
     expect(result).toEqual(expected);
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')).toEqual(
-      getLoaderMapping(syncContext, pathIn(info, 'user', 'posts'), 'User'),
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')).toEqual(
+      getLoaderMapping(syncContext, infoAt(info, 'user', 'posts'), 'User'),
     );
   });
 
@@ -421,7 +421,7 @@ describe('a nested selection that was not awaited', () => {
       expect(() =>
         queryFromInfo(withWraps({ posts: discarding, author: rejecting }), { context, info }),
       ).toThrow(unexpected(message));
-      expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')).toBe(null);
+      expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')).toBe(null);
     });
   });
 
@@ -435,7 +435,7 @@ describe('a nested selection that was not awaited', () => {
         info,
       });
       // The parent explicitly selected posts, but no failed nested author plan was published.
-      expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')?.nested).toEqual({});
+      expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')?.nested).toEqual({});
     });
   });
 
@@ -446,12 +446,12 @@ describe('a nested selection that was not awaited', () => {
       const late = withWraps({ posts: discardingAsync(1), author: asyncRelation(undefined, 20) });
 
       await expect(queryFromInfo(late, { context, info })).rejects.toThrow(unexpected(message));
-      expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')).toBe(null);
+      expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')).toBe(null);
 
       // The discarded plan completes after the invocation was refused: still nothing recorded.
       await sleep(25);
 
-      expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')).toBe(null);
+      expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')).toBe(null);
     });
   });
 
@@ -558,7 +558,7 @@ describe('the synchronous path', () => {
         profile: true,
       },
     });
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')).not.toBe(null);
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')).not.toBe(null);
   });
 
   it('creates no promise for the loader entry points', async () => {
@@ -593,7 +593,7 @@ describe('the synchronous path', () => {
 
     expect(promises).toBe(0);
     expect(result).toEqual(expected);
-    expect(getLoaderMapping(context, pathIn(info, 'user', 'posts'), 'User')).toBe(null);
+    expect(getLoaderMapping(context, infoAt(info, 'user', 'posts'), 'User')).toBe(null);
   });
 
   it('creates no promise for a plan settled before its resolver runs', async () => {

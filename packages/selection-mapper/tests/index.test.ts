@@ -13,6 +13,7 @@ it('exports only what the plugins use', () => {
       'cacheKey',
       'deepEqual',
       'getLoaderMapping',
+      'linkSubscriptionEvents',
       'mappingParentTypes',
       'selectedFieldNames',
       'setFieldMapping',

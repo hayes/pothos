@@ -43,28 +43,17 @@ export function queryFromInfo<Model, Query, NodeType extends NodeBase<Model> = N
 }
 
 /**
- * A response path in the execution `info` resolved in. Mappings are recorded per execution, keyed
- * on its root field's path link, so a lookup must share it.
+ * The info of the field at `keys` in the execution `info` resolved in: mappings are recorded per
+ * execution, so a lookup must be made in the same one.
  */
-export function pathIn(
-  info: GraphQLResolveInfo,
-  ...keys: (string | number)[]
-): GraphQLResolveInfo['path'] {
-  let path = info.path;
+export function infoAt(info: GraphQLResolveInfo, ...keys: (string | number)[]): GraphQLResolveInfo {
+  let path: GraphQLResolveInfo['path'] | undefined;
 
-  while (path.prev) {
-    path = path.prev;
-  }
-
-  if (path.key !== keys[0]) {
-    throw new Error(`The root field is ${path.key}, not ${keys[0]}`);
-  }
-
-  for (const key of keys.slice(1)) {
+  for (const key of keys) {
     path = { prev: path, key, typename: undefined };
   }
 
-  return path;
+  return { ...info, path: path! };
 }
 
 /** A model: one object per name, so identity is model identity. */

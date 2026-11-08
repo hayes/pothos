@@ -1,8 +1,9 @@
-import type { GraphQLResolveInfo } from 'graphql';
+import type { GraphQLResolveInfo, OperationDefinitionNode } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import {
   cacheKey,
   getLoaderMapping,
+  linkSubscriptionEvents,
   type Mapping,
   responsePath,
   setFieldMapping,
@@ -27,9 +28,26 @@ function child(prev: Path, ...keys: (string | number)[]): Path {
   }
   return path;
 }
-function info(path: Path, type = 'User') {
-  return { parentType: { name: type }, path } as GraphQLResolveInfo;
+const query = { operation: 'query' } as OperationDefinitionNode;
+
+/**
+ * The infos of one execution, as graphql-js 16 and graphql-jit build them: every resolver of the
+ * execution gets the same coerced `variableValues`, and nothing else ties them together.
+ */
+function execution(rootValue?: unknown, operation = query) {
+  const variableValues = {};
+
+  return (path: Path, type = 'User') =>
+    ({
+      parentType: { name: type },
+      path,
+      variableValues,
+      rootValue,
+      operation,
+    }) as unknown as GraphQLResolveInfo;
 }
+
+const info = execution();
 
 describe('loader map', () => {
   it('shares plan keys across list rows', () => {
@@ -47,12 +65,12 @@ describe('loader map', () => {
       'Post@nodes.author': author,
       'Post@edges.node.comments': comments,
     });
-    expect(getLoaderMapping(ctx, child(root, 'nodes', 1, 'author'), 'Post')).toBe(author);
-    expect(getLoaderMapping(ctx, child(root, 'edges', 0, 'node', 'comments'), 'Post')).toBe(
+    expect(getLoaderMapping(ctx, info(child(root, 'nodes', 1, 'author')), 'Post')).toBe(author);
+    expect(getLoaderMapping(ctx, info(child(root, 'edges', 0, 'node', 'comments')), 'Post')).toBe(
       comments,
     );
-    expect(getLoaderMapping(ctx, child(root, 'nodes', 1, 'author'), 'User')).toBe(null);
-    expect(getLoaderMapping({}, child(root, 'nodes', 1, 'author'), 'Post')).toBe(null);
+    expect(getLoaderMapping(ctx, info(child(root, 'nodes', 1, 'author')), 'User')).toBe(null);
+    expect(getLoaderMapping({}, info(child(root, 'nodes', 1, 'author')), 'Post')).toBe(null);
   });
 
   it('retains different model plans contributing to one Relay nodes list', () => {
@@ -62,8 +80,8 @@ describe('loader map', () => {
     const postAuthor: Mapping = { nested: {} };
     setLoaderMappings(ctx, info(root, 'Query'), { 'User@posts': userPosts });
     setLoaderMappings(ctx, info(root, 'Query'), { 'Post@author': postAuthor });
-    expect(getLoaderMapping(ctx, child(root, 0, 'posts'), 'User')).toBe(userPosts);
-    expect(getLoaderMapping(ctx, child(root, 1, 'author'), 'Post')).toBe(postAuthor);
+    expect(getLoaderMapping(ctx, info(child(root, 0, 'posts')), 'User')).toBe(userPosts);
+    expect(getLoaderMapping(ctx, info(child(root, 1, 'author')), 'Post')).toBe(postAuthor);
   });
 
   it('keeps fallback descendants isolated from planned siblings through lists and wrappers', () => {
@@ -74,11 +92,16 @@ describe('loader map', () => {
     setLoaderMappings(ctx, info(root), { 'Post@posts.edges.node.author': planned });
     const fallback = child(root, 0, 'posts');
     setRowMappings(ctx, info(fallback), { 'Post@edges.node.author': loaded });
-    expect(getLoaderMapping(ctx, child(fallback, 'edges', 2, 'node', 'author'), 'Post', {})).toBe(
-      loaded,
-    );
     expect(
-      getLoaderMapping(ctx, child(root, 1, 'posts', 'edges', 2, 'node', 'author'), 'Post', {}),
+      getLoaderMapping(ctx, info(child(fallback, 'edges', 2, 'node', 'author')), 'Post', {}),
+    ).toBe(loaded);
+    expect(
+      getLoaderMapping(
+        ctx,
+        info(child(root, 1, 'posts', 'edges', 2, 'node', 'author')),
+        'Post',
+        {},
+      ),
     ).toBe(planned);
   });
 
@@ -89,8 +112,8 @@ describe('loader map', () => {
     setLoaderMappings(ctx, info(root), { 'Post@posts.author': planned });
     const fallback = child(root, 0, 'posts');
     setRowMappings(ctx, info(fallback), {});
-    expect(getLoaderMapping(ctx, child(fallback, 0, 'author'), 'Post')).toBe(null);
-    expect(getLoaderMapping(ctx, child(root, 1, 'posts', 0, 'author'), 'Post')).toBe(planned);
+    expect(getLoaderMapping(ctx, info(child(fallback, 0, 'author')), 'Post')).toBe(null);
+    expect(getLoaderMapping(ctx, info(child(root, 1, 'posts', 0, 'author')), 'Post')).toBe(planned);
   });
 
   it('lets a nested query establish a new plan beneath an inherited empty scope', () => {
@@ -100,8 +123,8 @@ describe('loader map', () => {
     const posts = child(root, 0, 'posts');
     const author: Mapping = { nested: {} };
     setLoaderMappings(ctx, info(posts), { 'Post@author': author });
-    expect(getLoaderMapping(ctx, child(posts, 0, 'author'), 'Post')).toBe(author);
-    expect(getLoaderMapping(ctx, child(root, 1, 'posts', 0, 'author'), 'Post')).toBe(null);
+    expect(getLoaderMapping(ctx, info(child(posts, 0, 'author')), 'Post')).toBe(author);
+    expect(getLoaderMapping(ctx, info(child(root, 1, 'posts', 0, 'author')), 'Post')).toBe(null);
   });
 
   it('records a fallback field only for its loaded parent, while its children use its scope', () => {
@@ -111,9 +134,9 @@ describe('loader map', () => {
     const author: Mapping = { nested: {} };
     const loaded: Mapping = { nested: { 'Post@author': author } };
     setRowFieldMapping(ctx, info(field), loaded, row);
-    expect(getLoaderMapping(ctx, field, 'User', row)).toBe(loaded);
-    expect(getLoaderMapping(ctx, field, 'User', {})).toBe(null);
-    expect(getLoaderMapping(ctx, child(field, 2, 'author'), 'Post', {})).toBe(author);
+    expect(getLoaderMapping(ctx, info(field), 'User', row)).toBe(loaded);
+    expect(getLoaderMapping(ctx, info(field), 'User', {})).toBe(null);
+    expect(getLoaderMapping(ctx, info(child(field, 2, 'author')), 'Post', {})).toBe(author);
   });
 
   it('isolates aliases and occurrences even when a resolver reuses the same parent object', () => {
@@ -125,32 +148,76 @@ describe('loader map', () => {
     setLoaderMappings(ctx, info(root), { 'User@posts': planned, 'User@other': planned });
     const field = child(root, 0, 'posts');
     setRowFieldMapping(ctx, info(field), loaded, row);
-    expect(getLoaderMapping(ctx, field, 'User', row)).toBe(loaded);
-    expect(getLoaderMapping(ctx, child(root, 1, 'posts'), 'User', row)).toBe(planned);
-    expect(getLoaderMapping(ctx, child(root, 0, 'other'), 'User', row)).toBe(planned);
+    expect(getLoaderMapping(ctx, info(field), 'User', row)).toBe(loaded);
+    expect(getLoaderMapping(ctx, info(child(root, 1, 'posts')), 'User', row)).toBe(planned);
+    expect(getLoaderMapping(ctx, info(child(root, 0, 'other')), 'User', row)).toBe(planned);
   });
 
   it('does not retain a row override across executions reusing the context and parent', () => {
     const ctx = {};
     const row = {};
-    const first = pathOf('users');
-    const field = child(first, 0, 'posts');
     const loaded: Mapping = { nested: {} };
-    setRowFieldMapping(ctx, info(field), loaded, row);
-    const next = pathOf('users');
+    setRowFieldMapping(ctx, info(pathOf('users', 0, 'posts')), loaded, row);
+    const next = execution();
     const planned: Mapping = { nested: {} };
-    setLoaderMappings(ctx, info(next), { 'User@posts': planned });
-    expect(getLoaderMapping(ctx, child(next, 0, 'posts'), 'User', row)).toBe(planned);
+    setLoaderMappings(ctx, next(pathOf('users')), { 'User@posts': planned });
+    expect(getLoaderMapping(ctx, next(pathOf('users', 0, 'posts')), 'User', row)).toBe(planned);
   });
 
   it('keeps the mappings of one execution from another sharing its context', () => {
     const ctx = {};
-    const first = pathOf('users');
     const planned: Mapping = { nested: {} };
-    setLoaderMappings(ctx, info(first), { 'User@posts': planned });
-    expect(getLoaderMapping(ctx, child(first, 1, 'posts'), 'User')).toBe(planned);
-    // A later operation, or the next subscription event, resolves under a new root path.
-    expect(getLoaderMapping(ctx, child(pathOf('users'), 1, 'posts'), 'User')).toBe(null);
+    setLoaderMappings(ctx, info(pathOf('users')), { 'User@posts': planned });
+    expect(getLoaderMapping(ctx, info(pathOf('users', 1, 'posts')), 'User')).toBe(planned);
+    // A later operation, or the next subscription event, is another execution.
+    expect(getLoaderMapping(ctx, execution()(pathOf('users', 1, 'posts')), 'User')).toBe(null);
+  });
+
+  it('tells executions apart by their abort signal getter where graphql-js 17 passes one', () => {
+    // graphql-js 17 hands every event of a subscription the variables of its `subscribe`.
+    const variableValues = {};
+    const event = () => {
+      const getAbortSignal = () => undefined;
+
+      return (path: Path) =>
+        ({ ...info(path), variableValues, getAbortSignal }) as GraphQLResolveInfo;
+    };
+    const ctx = {};
+    const first = event();
+    const planned: Mapping = { nested: {} };
+    setLoaderMappings(ctx, first(pathOf('user')), { 'User@posts': planned });
+    expect(getLoaderMapping(ctx, first(pathOf('user', 'posts')), 'User')).toBe(planned);
+    expect(getLoaderMapping(ctx, event()(pathOf('user', 'posts')), 'User')).toBe(null);
+  });
+
+  it('finds the mappings of an execution whose executor builds a new path for each resolver', () => {
+    // graphql-jit shares no path link between resolvers, not even the root field's.
+    const ctx = {};
+    const planned: Mapping = { nested: {} };
+    const fallback: Mapping = { nested: {} };
+    const author: Mapping = { nested: {} };
+    setLoaderMappings(ctx, info(pathOf('users')), {
+      'User@posts': planned,
+      'Post@posts.author': author,
+    });
+    expect(getLoaderMapping(ctx, info(pathOf('users', 1, 'posts')), 'User')).toBe(planned);
+    expect(getLoaderMapping(ctx, info(pathOf('users', 1, 'posts', 0, 'author')), 'Post')).toBe(
+      author,
+    );
+    // A row scope applies by the field's place, list indices included, not by its path link.
+    setRowMappings(ctx, info(pathOf('users', 0, 'posts')), { 'Post@author': fallback });
+    expect(getLoaderMapping(ctx, info(pathOf('users', 0, 'posts', 3, 'author')), 'Post')).toBe(
+      fallback,
+    );
+    expect(getLoaderMapping(ctx, info(pathOf('users', 1, 'posts', 3, 'author')), 'Post')).toBe(
+      author,
+    );
+    // So does a row's own mapping.
+    const row = {};
+    const own: Mapping = { nested: {} };
+    setRowFieldMapping(ctx, info(pathOf('users', 2, 'posts')), own, row);
+    expect(getLoaderMapping(ctx, info(pathOf('users', 2, 'posts')), 'User', row)).toBe(own);
+    expect(getLoaderMapping(ctx, info(pathOf('users', 3, 'posts')), 'User', row)).toBe(planned);
   });
 
   it('keeps a disagreeing row mapping off the siblings that agreed with the first plan', () => {
@@ -162,9 +229,9 @@ describe('loader map', () => {
     const paths = rows.map((_, i) => child(root, i, 'posts'));
     setFieldMapping(ctx, info(paths[0]), planned, rows[0]);
     setFieldMapping(ctx, info(paths[1]), reloaded, rows[1]);
-    expect(getLoaderMapping(ctx, paths[1], 'User', rows[1])).toBe(reloaded);
-    expect(getLoaderMapping(ctx, paths[0], 'User', rows[0])).toBe(planned);
-    expect(getLoaderMapping(ctx, paths[2], 'User', rows[2])).toBe(planned);
+    expect(getLoaderMapping(ctx, info(paths[1]), 'User', rows[1])).toBe(reloaded);
+    expect(getLoaderMapping(ctx, info(paths[0]), 'User', rows[0])).toBe(planned);
+    expect(getLoaderMapping(ctx, info(paths[2]), 'User', rows[2])).toBe(planned);
   });
 
   it('does not give agreeing rows an override of their shared field mapping', () => {
@@ -180,8 +247,119 @@ describe('loader map', () => {
     });
     setLoaderMappings(ctx, info(root), { 'User@posts': replanned });
     rows.forEach((row, i) => {
-      expect(getLoaderMapping(ctx, paths[i], 'User', row)).toBe(replanned);
+      expect(getLoaderMapping(ctx, info(paths[i]), 'User', row)).toBe(replanned);
     });
+  });
+});
+
+describe('linkSubscriptionEvents', () => {
+  const subscription = { operation: 'subscription' } as OperationDefinitionNode;
+  const planned: Mapping = { nested: {} };
+
+  async function* yielding(...payloads: unknown[]) {
+    yield* payloads;
+  }
+
+  async function drain(events: unknown) {
+    const seen: unknown[] = [];
+
+    for await (const payload of events as AsyncIterable<unknown>) {
+      seen.push(payload);
+    }
+
+    return seen;
+  }
+
+  /** A `subscribe` that planned the root field and yielded `payloads`, drained. */
+  async function subscribed(ctx: object, ...payloads: unknown[]) {
+    const subscribe = execution(undefined, subscription);
+    const events = linkSubscriptionEvents(ctx, subscribe(pathOf('user')), yielding(...payloads));
+
+    // A generator's body, which plans, runs on the first `next`, after the stream was linked.
+    setLoaderMappings(ctx, subscribe(pathOf('user')), { 'User@posts': planned });
+
+    expect(await drain(events)).toEqual(payloads);
+  }
+
+  it('lets an event find what the subscribe that yielded its payload recorded', async () => {
+    const ctx = {};
+    const snapshot = {};
+    const other = {};
+
+    await subscribed(ctx, snapshot, other, true);
+
+    const first = execution(snapshot, subscription);
+    expect(getLoaderMapping(ctx, first(pathOf('user', 'posts')), 'User')).toBe(planned);
+
+    // An event's own plan wins, and stays its own.
+    const second = execution(other, subscription);
+    const replanned: Mapping = { nested: {} };
+    setLoaderMappings(ctx, second(pathOf('user')), { 'User@posts': replanned });
+    expect(getLoaderMapping(ctx, second(pathOf('user', 'posts')), 'User')).toBe(replanned);
+    expect(getLoaderMapping(ctx, first(pathOf('user', 'posts')), 'User')).toBe(planned);
+
+    // A value that is not an object cannot be told from another event's, so links nothing.
+    const third = execution(true, subscription);
+    expect(getLoaderMapping(ctx, third(pathOf('user', 'posts')), 'User')).toBe(null);
+  });
+
+  it('links a payload yielded by two subscriptions sharing the context to neither', async () => {
+    const ctx = {};
+    const shared = {};
+
+    await subscribed(ctx, shared);
+    await subscribed(ctx, shared);
+
+    const event = execution(shared, subscription);
+    expect(getLoaderMapping(ctx, event(pathOf('user', 'posts')), 'User')).toBe(null);
+  });
+
+  it('links only the events of the same operation in the same context', async () => {
+    const ctx = {};
+    const snapshot = {};
+
+    await subscribed(ctx, snapshot);
+
+    // An operation whose root value happens to be the payload is not one of its events.
+    expect(getLoaderMapping(ctx, execution(snapshot)(pathOf('user', 'posts')), 'User')).toBe(null);
+    expect(
+      getLoaderMapping({}, execution(snapshot, subscription)(pathOf('user', 'posts')), 'User'),
+    ).toBe(null);
+  });
+
+  it('links a promised stream, passes on return, and leaves anything else as it is', async () => {
+    const ctx = {};
+    const subscribe = execution(undefined, subscription)(pathOf('user'));
+    const error = new Error('not a stream');
+    const snapshot = {};
+    let returned = false;
+
+    async function* stream() {
+      try {
+        yield await Promise.resolve(snapshot);
+        yield {};
+      } finally {
+        returned = true;
+      }
+    }
+
+    expect(linkSubscriptionEvents(ctx, subscribe, error)).toBe(error);
+
+    const events = (await linkSubscriptionEvents(
+      ctx,
+      subscribe,
+      Promise.resolve(stream()),
+    )) as AsyncIterable<unknown>;
+    const iterator = events[Symbol.asyncIterator]();
+
+    setLoaderMappings(ctx, subscribe, { 'User@posts': planned });
+
+    expect(await iterator.next()).toEqual({ value: snapshot, done: false });
+    await iterator.return?.();
+    expect(returned).toBe(true);
+    expect(
+      getLoaderMapping(ctx, execution(snapshot, subscription)(pathOf('user', 'posts')), 'User'),
+    ).toBe(planned);
   });
 });
 
