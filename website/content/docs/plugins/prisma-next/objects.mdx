@@ -222,7 +222,9 @@ builder.mutationType({
 
 For a [variant model](./interfaces#native-inheritance), the Collection is its base's narrowed to
 it, such as `orm.Task.variant('bug')`. `update()` and `delete()` on it change the variant's first
-row, so add a `where` for single-row writes. For a variant with its own table, `update` and
+row, so add a `where` for single-row writes. `upsert()` on a variant that shares its base's table
+updates the row with the conflicting key even when it is another variant's, and returns that row
+as this variant. For a variant with its own table, `update` and
 `delete` return only the base table's columns, so a response selecting the variant's own fields
 fails. Write with `updateAndCount()` instead, then read the row with `first()`.
 
