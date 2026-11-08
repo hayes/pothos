@@ -75,8 +75,11 @@ works on columns.
 Every type of a model reads the same rows for each relation a type-level `select` names, so the
 type-level `select`s of one model, including its [variants](./variants) and
 [interfaces](./interfaces), must write each relation the same way, nested `select` included, or the
-schema build throws. A `where` or `orderBy` function is the same only when it's the same function, so
-share it. Load another version with `t.relation` or a field's `select`.
+schema build throws. This holds at any depth: a relation selected beneath another type's relation,
+such as `comments` in `select: { posts: { select: { comments: true } } }`, must be loaded the same
+way by every type-level `select` that names it. A `where` or `orderBy` function is the same only
+when it's the same function, so share it. Load another version with `t.relation` or a field's
+`select`.
 
 To filter a to-one relation, select it and return `null` from the resolver. Here a comment shows its
 post's title only when the post is published:
