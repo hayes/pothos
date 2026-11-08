@@ -303,6 +303,66 @@ describe('linkSubscriptionEvents', () => {
     expect(getLoaderMapping(ctx, third(pathOf('user', 'posts')), 'User')).toBe(null);
   });
 
+  it('links only a payload yielded after a planned query was handed out', async () => {
+    const ctx = {};
+    const subscribe = execution(undefined, subscription);
+    const snapshot = {};
+    const raw = {};
+    const replanned = {};
+
+    async function* stream() {
+      setLoaderMappings(ctx, subscribe(pathOf('user')), { 'User@posts': planned });
+      yield await Promise.resolve(snapshot);
+      // A row from a pubsub: nothing planned it, so its resolvers load their own data.
+      yield raw;
+      setLoaderMappings(ctx, subscribe(pathOf('user')), { 'User@posts': planned });
+      // A value that cannot be linked still uses up the plan handed out before it.
+      yield true;
+      yield {};
+      setLoaderMappings(ctx, subscribe(pathOf('user')), { 'User@posts': planned });
+      yield replanned;
+    }
+
+    await drain(linkSubscriptionEvents(ctx, subscribe(pathOf('user')), stream()));
+
+    const posts = (payload: unknown) =>
+      getLoaderMapping(ctx, execution(payload, subscription)(pathOf('user', 'posts')), 'User');
+
+    expect(posts(snapshot)).toBe(planned);
+    expect(posts(raw)).toBe(null);
+    expect(posts(replanned)).toBe(planned);
+  });
+
+  it('links what a generator yields from a finally when it is returned or thrown into', async () => {
+    const ctx = {};
+    const subscribe = execution(undefined, subscription);
+
+    for (const end of ['return', 'throw'] as const) {
+      const last = {};
+
+      async function* stream() {
+        try {
+          yield {};
+        } catch {
+          // Thrown into: carry on to the finally.
+        } finally {
+          setLoaderMappings(ctx, subscribe(pathOf('user')), { 'User@posts': planned });
+          yield await Promise.resolve(last);
+        }
+      }
+
+      const iterator = (
+        linkSubscriptionEvents(ctx, subscribe(pathOf('user')), stream()) as AsyncIterable<unknown>
+      )[Symbol.asyncIterator]();
+
+      await iterator.next();
+      expect(await iterator[end]!(undefined)).toEqual({ value: last, done: false });
+      expect(
+        getLoaderMapping(ctx, execution(last, subscription)(pathOf('user', 'posts')), 'User'),
+      ).toBe(planned);
+    }
+  });
+
   it('links a payload yielded by two subscriptions sharing the context to neither', async () => {
     const ctx = {};
     const shared = {};

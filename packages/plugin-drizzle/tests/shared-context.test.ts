@@ -86,6 +86,17 @@ builder.subscriptionType({
       },
       resolve: (user) => user as never,
     }),
+    // Yields a snapshot loaded with the planned query, then a row from elsewhere holding every post.
+    snapshotThenRaw: t.field({
+      type: User,
+      subscribe: async function* (_root, _args, context, info) {
+        yield await db.query.users.findFirst(
+          queryFromInfo({ config: getSchemaConfig(builder), context, info, where: { id: 1 } }),
+        );
+        yield await db.query.users.findFirst(withAllPosts);
+      },
+      resolve: (user) => user as never,
+    }),
   }),
 });
 
@@ -182,5 +193,28 @@ describe('executions sharing a context', () => {
     expect(drafts(post.author.allPosts)).toBeGreaterThan(0);
     // The snapshot alone: nothing reloaded the deleted row.
     expect(drizzleLogs).toHaveLength(1);
+  });
+
+  it('reloads a raw event yielded after a planned snapshot', async () => {
+    const events = await subscribe({
+      schema,
+      document: parse('subscription { snapshotThenRaw { publishedPosts { published } } }'),
+      contextValue: {},
+    });
+
+    if (!(Symbol.asyncIterator in events)) {
+      throw new Error(`Expected a subscription, got ${JSON.stringify(events)}`);
+    }
+
+    const seen: unknown[] = [];
+
+    for await (const event of events) {
+      seen.push(event);
+    }
+
+    expect(seen).toHaveLength(2);
+    expect(drafts(seen[0])).toBe(0);
+    expect(drafts(seen[1])).toBe(0);
+    expect(seen[1]).toEqual(seen[0]);
   });
 });

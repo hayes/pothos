@@ -84,7 +84,8 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
  *
  * `scopes` and `rows` are keyed by `executionPath`, which keeps list indices to tell siblings
  * apart. `subscribed` is, for a subscription event, the execution of the `subscribe` that
- * yielded its payload: what that `subscribe` planned is what the payload holds.
+ * yielded its payload: what that `subscribe` planned is what the payload holds. `planned` is set
+ * when a plan's query is handed out, and cleared when a `subscribe` yields the payload it loaded.
  */
 interface Cache {
   mappings: Map<string, Mapping>;
@@ -93,6 +94,7 @@ interface Cache {
   rowScoped: boolean;
   scopes: Map<string, Mappings>;
   operation: OperationDefinitionNode;
+  planned: boolean;
   subscribed: Cache | null;
 }
 
@@ -132,6 +134,7 @@ function cache(ctx: object, info: GraphQLResolveInfo): Cache {
       rowScoped: false,
       scopes: new Map(),
       operation: info.operation,
+      planned: false,
       subscribed: subscribed?.operation === info.operation ? subscribed : null,
     };
     caches.executions.set(execution, cached);
@@ -288,6 +291,7 @@ export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mapping
   const at = executionPath(info.path);
   const previous = cached.scopes.get(at);
   cached.scopes.set(at, previous ? { ...previous, ...mappings } : mappings);
+  cached.planned = true;
 
   for (const key of Object.keys(mappings)) {
     cached.mappings.set(rehome(keys, key, prefix), mappings[key]);
@@ -387,10 +391,14 @@ export function getLoaderMapping(
 }
 
 /**
- * `events`, what a subscription field's `subscribe` returned, with every payload it yields
- * linked to that `subscribe`'s execution. The execution of an event, whose root value is its
- * payload, then falls back to the mappings that `subscribe` recorded: a payload it loaded with a
- * planned query holds what that plan selected. A payload yielded by two subscriptions sharing the
+ * `events`, what a subscription field's `subscribe` returned, with the payloads it loaded linked
+ * to that `subscribe`'s execution. The execution of an event, whose root value is its payload,
+ * then falls back to the mappings that `subscribe` recorded: a payload it loaded with a planned
+ * query holds what that plan selected.
+ *
+ * A planned query vouches for the one payload yielded after it was handed out, so a payload
+ * yielded with no planned query since the previous one (a row from a pubsub, say) is not linked
+ * and its resolvers load their own data. A payload yielded by two subscriptions sharing the
  * context is linked to neither, and a value that is not an async iterable is returned as is.
  */
 export function linkSubscriptionEvents(
@@ -409,7 +417,13 @@ export function linkSubscriptionEvents(
   const caches = contextCaches(ctx);
   const subscribed = cache(ctx, info);
   const link = (result: IteratorResult<unknown>) => {
-    const payload = result.done ? null : ownerOf(result.value);
+    if (result.done) {
+      return result;
+    }
+
+    const payload = subscribed.planned ? ownerOf(result.value) : null;
+
+    subscribed.planned = false;
 
     if (payload) {
       const held = caches.payloads.get(payload);
@@ -429,12 +443,13 @@ export function linkSubscriptionEvents(
 
       const { return: end, throw: fail } = iterator;
 
+      // A generator can yield from a `catch` or `finally`, and executors still run that event.
       if (end) {
-        wrapped.return = (value) => end.call(iterator, value);
+        wrapped.return = (value) => Promise.resolve(end.call(iterator, value)).then(link);
       }
 
       if (fail) {
-        wrapped.throw = (error) => fail.call(iterator, error);
+        wrapped.throw = (error) => Promise.resolve(fail.call(iterator, error)).then(link);
       }
 
       return wrapped;
