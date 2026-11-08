@@ -281,12 +281,6 @@ export function connectionPaging(
   };
 }
 
-/** Whether `parent`, a field's copy, holds the page of relation `name` its field planned. */
-export function pageLoaded(name: string) {
-  return (parent: object) =>
-    (parent as Record<string, { [PAGE]?: PageData } | undefined>)[name]?.[PAGE] !== undefined;
-}
-
 // A prebuilt connection ref can't be given new fields, so its own definition must add the field.
 function withTotalCount(connectionOptions: object): object {
   if (connectionOptions instanceof ObjectRef) {

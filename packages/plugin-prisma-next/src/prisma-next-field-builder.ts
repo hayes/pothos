@@ -16,11 +16,7 @@ import {
   type TypeParam,
 } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
-import {
-  PRISMA_NEXT_FIELD_SELECTION,
-  PRISMA_NEXT_MODEL,
-  PRISMA_NEXT_RELATION_ROWS,
-} from './constants.js';
+import { PRISMA_NEXT_FIELD_SELECTION, PRISMA_NEXT_RELATION_ROWS } from './constants.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type {
   CountedRelationName,
@@ -62,12 +58,11 @@ import {
   connectionNodes,
   connectionPaging,
   countOf,
-  pageLoaded,
 } from './utils/connections.js';
 import { consumerId } from './utils/consumers.js';
 import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
 import { orderableProblem } from './utils/cursors.js';
-import { checkReturned, reloadFor } from './utils/errors.js';
+import { checkReturned } from './utils/errors.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import { fieldValue } from './utils/row-copies.js';
@@ -370,8 +365,6 @@ export class PrismaNextObjectFieldBuilder<
         : load(query, {
             problem: orderableProblem(getPluginConfig(this.builder).context, queryModel),
           });
-    const relationLoaded = (parent: object) =>
-      (parent as Record<string, unknown>)[relationName] !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) =>
       completeOption(query as unknown, args, ctx, (value) => {
         // A query is identified by its data, so equal queries, and equal `select` entries, share
@@ -406,18 +399,17 @@ export class PrismaNextObjectFieldBuilder<
         [PRISMA_NEXT_FIELD_SELECTION]: select,
         [PRISMA_NEXT_RELATION_ROWS]: { name: relationName, type: targetRef },
       },
-      resolve: (parent: object, args: object, context: object, info: GraphQLResolveInfo) =>
-        readOwn(this.builder, parent, context, info, relationLoaded, (own) => {
-          const rows = (own as Record<string, unknown>)[relationName] as Record<
-            string,
-            unknown
-          > | null;
-          // A variant type filters out a to-one relation's row of another variant.
-          if (rows == null || (discriminator !== undefined && rows[discriminator] !== variant)) {
-            return typeof onNull === 'function' ? onNull(parent, args, context, info) : null;
-          }
-          return rows;
-        }),
+      resolve: (parent: object, args: object, context: object, info: GraphQLResolveInfo) => {
+        const rows = (parent as Record<string, unknown>)[relationName] as Record<
+          string,
+          unknown
+        > | null;
+        // A variant type filters out a to-one relation's row of another variant.
+        if (rows == null || (discriminator !== undefined && rows[discriminator] !== variant)) {
+          return typeof onNull === 'function' ? onNull(parent, args, context, info) : null;
+        }
+        return rows;
+      },
     } as never) as never;
   }
 
@@ -437,8 +429,6 @@ export class PrismaNextObjectFieldBuilder<
       query?: unknown;
       extensions?: Record<string, unknown>;
     } & Record<string, unknown>;
-    const countLoaded = (parent: object) =>
-      fieldValue(parent, relationName, COUNT_SLOT) !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
       completeOption(query, args, ctx, (value) => {
         // The types allow only `where`, which can't fail to refine. Identified as `t.relation`'s
@@ -469,10 +459,7 @@ export class PrismaNextObjectFieldBuilder<
         ...extensions,
         [PRISMA_NEXT_FIELD_SELECTION]: select,
       },
-      resolve: (parent: object, _args: object, context: object, info: GraphQLResolveInfo) =>
-        readOwn(this.builder, parent, context, info, countLoaded, (own) =>
-          fieldValue(own, relationName, COUNT_SLOT),
-        ),
+      resolve: (parent: object) => fieldValue(parent, relationName, COUNT_SLOT),
     } as never) as never;
   }
 
@@ -603,14 +590,12 @@ export class PrismaNextObjectFieldBuilder<
         context: object,
         info: GraphQLResolveInfo,
       ) =>
-        readOwn(this.builder, parent, context, info, pageLoaded(name), (own) =>
-          paging.relationPage(
-            (own as Record<string, Record<string, unknown>[]>)[name]!,
-            parent,
-            args,
-            context,
-            info,
-          ),
+        paging.relationPage(
+          (parent as Record<string, Record<string, unknown>[]>)[name]!,
+          parent,
+          args,
+          context,
+          info,
         ),
     };
     return (
@@ -631,29 +616,6 @@ export class PrismaNextObjectFieldBuilder<
     }
     return model.relations[name]!;
   }
-}
-
-/**
- * Reads what a field helper loaded on its parent, which `wrapResolve` handed the resolver. A plugin
- * listed after this one can replace that parent with one that lacks it, which is reloaded with
- * what the helper selects.
- */
-function readOwn<T>(
-  builder: object,
-  parent: object,
-  context: object,
-  info: GraphQLResolveInfo,
-  loaded: (parent: object) => boolean,
-  read: (parent: object) => T,
-): MaybePromise<T> {
-  if (loaded(parent)) {
-    return read(parent);
-  }
-  const config = getPluginConfig(builder);
-  const modelKey = info.parentType.extensions?.[PRISMA_NEXT_MODEL] as string;
-  return reloadFor(info, () => config.loader(context, modelKey).loadSelection(info, parent)).then(
-    read,
-  );
 }
 
 /** `option`, or what it returns for `args` and `ctx` when it's a function, passed to `next`. */

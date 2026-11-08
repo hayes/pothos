@@ -3,7 +3,7 @@ import SchemaBuilder, {
   type PothosOutputFieldConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { GraphQLError, type GraphQLFieldResolver, GraphQLScalarType, printSchema } from 'graphql';
+import { type GraphQLFieldResolver, GraphQLScalarType, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import PrismaNextPlugin from '../src';
 import { buildExampleSchema } from './example/schema';
@@ -879,96 +879,6 @@ describe('plugins that wrap resolvers', () => {
       { postCount: 2, published: [{ id: 'p-hello' }] },
       { postCount: 2, published: [{ id: 'p-bob1' }] },
     ]);
-  });
-
-  // Listed after prismaNext, it wraps the resolver inside prismaNext's wrapper, and hands it a new
-  // object with the parent's columns.
-  class ReplaceParentPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    override wrapResolve(
-      resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-      fieldConfig: PothosOutputFieldConfig<Types>,
-    ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-      const columns = (parent: object) =>
-        Object.fromEntries(
-          Object.entries(parent).filter(([, value]) => value === null || typeof value !== 'object'),
-        );
-      return fieldConfig.name.startsWith('replaced')
-        ? (parent, args, context, info) => resolver(columns(parent as object), args, context, info)
-        : resolver;
-    }
-  }
-  SchemaBuilder.registerPlugin('prismaNextTestReplaceParent' as never, ReplaceParentPlugin);
-
-  // A new object holds the row's columns, but not a helper's slots.
-  it('reloads the parent of a field helper when another plugin replaced it', async () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [PrismaNextPlugin, 'prismaNextTestReplaceParent' as never],
-      prismaNext: { client: db.client },
-    });
-    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.prismaObject('User', {
-      select: { posts: true },
-      fields: (t) => ({
-        kept: t.relationCount('posts'),
-        replaced: t.relationCount('posts'),
-        replacedPublished: t.relation('posts', { query: { where: { published: 1 } } }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        users: t.prismaField({
-          type: ['User'],
-          collection: () => db.orm.User.where({ id: 'u-alice' }),
-        }),
-      }),
-    });
-    const result = await run(
-      builder.toSchema(),
-      '{ users { kept replaced replacedPublished { id } } }',
-    );
-    expect(result.errors).toBeUndefined();
-    expect(result.data.users).toEqual([
-      { kept: 2, replaced: 2, replacedPublished: [{ id: 'p-hello' }] },
-    ]);
-    // The two replaced parents reload in one batch.
-    expect(result.statements).toHaveLength(2);
-  });
-
-  // A keyless row can't be reloaded: without a key every parent would read the first row.
-  it('fails a field helper whose replaced parent has no key to reload it by', async () => {
-    const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
-      plugins: [PrismaNextPlugin, 'prismaNextTestReplaceParent' as never],
-      prismaNext: { client: db.client },
-    });
-    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
-    builder.prismaObject('PostView', {
-      fields: (t) => ({
-        viewer: t.exposeString('viewer'),
-        replacedPost: t.relation('post', { nullable: true }),
-      }),
-    });
-    builder.queryType({
-      fields: (t) => ({
-        views: t.prismaField({
-          type: ['PostView'],
-          collection: () => db.orm.PostView.orderBy((view) => view.viewer.asc()),
-        }),
-      }),
-    });
-    const result = await run(builder.toSchema(), '{ views { viewer replacedPost { id } } }');
-    expect(result.errors).toHaveLength(3);
-    for (const error of result.errors!) {
-      expect(detailOf(error)).toMatch(
-        /^Field 'PostView\.replacedPost' needs its parent reloaded, but model 'PostView' has no non-null primary or unique key/,
-      );
-      // A developer's error, which a server that masks errors hides from the client.
-      expect(error.originalError).toBeInstanceOf(Error);
-      expect(error.originalError).not.toBeInstanceOf(GraphQLError);
-    }
-    expect(result.data.views).toEqual(
-      ['Alice', 'Bob', 'Carol'].map((viewer) => ({ viewer, replacedPost: null })),
-    );
-    expect(result.statements).toHaveLength(1);
   });
 });
 
