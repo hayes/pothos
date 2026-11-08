@@ -9,4 +9,5 @@
 - Errors raised while planning a request, such as a conflict between the type-level selections of two variants or a select that returned before its nested selection settled, now reach clients as `Unexpected error.`, still a `PothosValidationError`. The detail is in the error's `cause`.
 - `mappingParentTypes` lists the types a field's resolver looks up loader mappings under: its parent type, and the interfaces with a model whose own field of that name it inherits.
 - `getLoaderMapping` takes the resolver's `info` in place of its path: `getLoaderMapping(context, info, type, row)`.
+- The `selectedFieldNode` a select function receives has `args(path)`, which returns the arguments of the field selected at `path`, seen through wrappers.
 - `forOperation(cache, info)` returns the entries of a `WeakMap` cache for the operation `info` is in, for plugins that cache plans per operation.
