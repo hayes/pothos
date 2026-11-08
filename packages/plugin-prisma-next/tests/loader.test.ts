@@ -1,5 +1,6 @@
+import { subscribe as toolsSubscribe } from '@graphql-tools/executor';
 import SchemaBuilder from '@pothos/core';
-import { execute, parse, subscribe } from 'graphql';
+import { type DocumentNode, execute, type GraphQLSchema, parse, subscribe } from 'graphql';
 import { describe, expect, it, vi } from 'vitest';
 import PrismaNextPlugin, { collectionFromInfo } from '../src';
 import { PrismaNextAdapter } from '../src/utils/adapter';
@@ -581,6 +582,8 @@ describe('reload isolation', () => {
             where: args.published == null ? undefined : { published: args.published },
           }),
         }),
+        // No arguments: @graphql-tools/executor coerces them with a graphql vitest doesn't inline.
+        publishedPosts: t.relation('posts', { query: { where: { published: 1 } } }),
         ok: t.relationCount('posts', {
           query: () => ({
             where: (post) => {
@@ -659,6 +662,22 @@ describe('reload isolation', () => {
                 info,
               })
             ).first())!,
+        }),
+        snapshotThenRaw: t.field({
+          type: User,
+          // A snapshot loaded with the planned query, then a row loaded elsewhere.
+          subscribe: async function* (_root, _args, context, info) {
+            yield (await (
+              await collectionFromInfo({
+                collection: db.orm.User.where({ id: 'u-alice' }),
+                context,
+                info,
+              })
+            ).first())!;
+            yield (await db.orm.User.include('posts').where({ id: 'u-alice' }).first())!;
+          },
+          // @ts-expect-error a row an ORM query loaded isn't planned; it reloads
+          resolve: (row) => row,
         }),
       }),
     });
@@ -754,22 +773,51 @@ describe('reload isolation', () => {
     ).toEqual(published);
   });
 
-  it('keeps the relation filter on a row a later subscription event loaded elsewhere', async () => {
-    const events = await subscribe({
-      schema: isolationSchema(),
-      document: parse('subscription { userChanged { posts(published: 1) { id } } }'),
-      contextValue: {},
+  // graphql-js gives each event its own `variableValues` (16) or `getAbortSignal` (17), while
+  // @graphql-tools/executor (Yoga) hands every event and the `subscribe` the same ones.
+  describe.each([
+    ['graphql-js', subscribe as Subscribe],
+    ['@graphql-tools/executor', toolsSubscribe as Subscribe],
+  ])('subscription events through %s', (_, subscribeWith) => {
+    const published = (field: string) => ({
+      data: { [field]: { publishedPosts: [{ id: 'p-hello' }] } },
     });
-    if (!(Symbol.asyncIterator in events)) {
-      throw new Error(`Expected a subscription, got ${JSON.stringify(events)}`);
+
+    it('keeps the relation filter on a row a later event loaded elsewhere', async () => {
+      expect(
+        await events(subscribeWith, 'subscription { userChanged { publishedPosts { id } } }'),
+      ).toEqual([published('userChanged'), published('userChanged')]);
+    });
+
+    it('keeps the relation filter on a raw event yielded after a planned snapshot', async () => {
+      expect(
+        await events(subscribeWith, 'subscription { snapshotThenRaw { publishedPosts { id } } }'),
+      ).toEqual([published('snapshotThenRaw'), published('snapshotThenRaw')]);
+    });
+  });
+
+  type Subscribe = (args: {
+    schema: GraphQLSchema;
+    document: DocumentNode;
+    contextValue: object;
+  }) => unknown;
+
+  /** Every event of `source`, subscribed to with `subscribeWith` on a fresh context. */
+  async function events(subscribeWith: Subscribe, source: string) {
+    const result = (await subscribeWith({
+      schema: isolationSchema(),
+      document: parse(source),
+      contextValue: {},
+    })) as AsyncIterable<unknown> | object;
+    if (!(Symbol.asyncIterator in result)) {
+      throw new Error(`Expected a subscription, got ${JSON.stringify(result)}`);
     }
     const seen: unknown[] = [];
-    for await (const event of events) {
+    for await (const event of result) {
       seen.push(event);
     }
-    const published = { data: { userChanged: { posts: [{ id: 'p-hello' }] } } };
-    expect(seen).toEqual([published, published]);
-  });
+    return seen;
+  }
 
   it('fails every field of a batch whose callback throws, like a parent query', async () => {
     const result = await run(
