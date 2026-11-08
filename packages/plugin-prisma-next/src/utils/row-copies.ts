@@ -67,72 +67,85 @@ const NO_SLOTS: Slots = Object.freeze({
 
 /** What `slotsOf` read off each ORM row. */
 const parsed = new WeakMap<object, Slots>();
+declare const executionKeyBrand: unique symbol;
+
+/** The key of an execution (see `executionKey`). */
+export type ExecutionKey = object & { readonly [executionKeyBrand]: true };
+
 /**
- * The executions whose plans loaded the `combine()` values of each ORM row holding some (see
- * `executionKey`). Consumer ids are numbered per operation, so the same id names another consumer
- * in another operation, or reads other arguments in another execution of this one.
+ * The executions whose plans loaded each ORM row (see `executionKey`). Consumer ids are numbered
+ * per operation, so the same id names another consumer in another operation, or reads other
+ * arguments in another execution of this one. The rows beneath a row share its set, which they are
+ * given when the row is first read (see `slotsOf`).
  */
-const plannedIn = new WeakMap<object, Set<object>>();
+const plannedIn = new WeakMap<object, Set<ExecutionKey>>();
 
 /**
  * The key of the execution `info` is in: its variable values, which graphql builds once per
  * execution. Every root field of an execution numbers its consumers alike, so they share rows.
  */
-export function executionKey(info: GraphQLResolveInfo): object {
-  return info.variableValues;
+export function executionKey(info: GraphQLResolveInfo): ExecutionKey {
+  return info.variableValues as object as ExecutionKey;
 }
 
 /**
- * Records that `info`'s execution planned `rows`, rows or a row the plugin loaded for it, and the
- * rows beneath them. Rows a resolver runs itself are planned in the execution that reads them first.
+ * Records that `info`'s execution planned `rows`, rows or a row the plugin loaded for it. Rows a
+ * resolver runs itself are planned in the execution that reads them first.
  */
 export function markPlanned<T>(rows: T, info: GraphQLResolveInfo): T {
   const execution = executionKey(info);
-  const mark = (value: unknown) => {
-    if (Array.isArray(value)) {
-      value.forEach(mark);
-      return;
+  for (const row of Array.isArray(rows) ? rows : [rows]) {
+    if (row !== null && typeof row === 'object') {
+      let executions = plannedIn.get(row);
+      if (!executions) {
+        executions = new Set();
+        plannedIn.set(row, executions);
+      }
+      executions.add(execution);
     }
-    const proto = value !== null && typeof value === 'object' && Object.getPrototypeOf(value);
-    if (proto !== Object.prototype && proto !== null) {
-      return;
-    }
-    let executions = plannedIn.get(value as object);
-    if (executions?.has(execution)) {
-      return;
-    }
-    executions ??= new Set();
-    plannedIn.set(value as object, executions);
-    executions.add(execution);
-    Object.values(value as object).forEach(mark);
-  };
-  mark(rows);
+  }
   return rows;
 }
+
+/** Gives the rows in `value` without executions of their own the set `executions`. */
+function share(value: unknown, executions: Set<ExecutionKey>) {
+  if (Array.isArray(value)) {
+    for (const row of value) {
+      share(row, executions);
+    }
+  } else if (value !== null && typeof value === 'object' && !plannedIn.has(value)) {
+    plannedIn.set(value, executions);
+  }
+}
+
 /** The copies of each row or type copy, by the consumer they lift. */
 const copies = new WeakMap<object, Map<string, object>>();
 
 /**
  * The `combine()` values on `row`, an ORM row of `model`: what its to-many relation keys hold
  * unless they hold an array. Read once per row, by the execution keyed `execution`, which a row no
- * execution marked planned (see `markPlanned`) is then planned in. Nothing beneath the row is
- * read: a row beneath is read when the field returning it resolves.
+ * execution marked planned (see `markPlanned`) is then planned in. The rows beneath it share its
+ * executions, and are read when the field returning them resolves.
  */
-function slotsOf(row: object, model: PrismaNextModel, execution: object): Slots {
+function slotsOf(row: object, model: PrismaNextModel, execution: ExecutionKey): Slots {
   let slots = parsed.get(row);
   if (slots) {
     return slots;
+  }
+  let executions = plannedIn.get(row);
+  if (!executions) {
+    executions = new Set([execution]);
+    plannedIn.set(row, executions);
   }
   let relations: Record<string, RelationSlots> | undefined;
   let consumers: Set<string> | undefined;
   for (const name in model.relations) {
     const value = (row as Row)[name];
-    if (
-      !model.relations[name]!.isToMany ||
-      !value ||
-      typeof value !== 'object' ||
-      Array.isArray(value)
-    ) {
+    if (!value || typeof value !== 'object') {
+      continue;
+    }
+    if (!model.relations[name]!.isToMany || Array.isArray(value)) {
+      share(value, executions);
       continue;
     }
     const slots: RelationSlots = { rows: {}, values: {}, own: {} };
@@ -149,15 +162,13 @@ function slotsOf(row: object, model: PrismaNextModel, execution: object): Slots 
           values[id][key] = loaded;
         } else {
           slots.rows[id] = loaded;
+          share(loaded, executions);
         }
       }
     }
   }
   slots = relations ? { relations, consumers: consumers! } : NO_SLOTS;
   parsed.set(row, slots);
-  if (relations && !plannedIn.has(row)) {
-    plannedIn.set(row, new Set([execution]));
-  }
   return slots;
 }
 
@@ -196,7 +207,7 @@ interface CopyOptions {
   /** For a copy of a row beneath a nested `select`, the id of that `select`. */
   readonly nestedIn?: string;
   /** The key of the execution the copy is made in (see `executionKey`). */
-  readonly execution: object;
+  readonly execution: ExecutionKey;
 }
 
 /**
@@ -241,7 +252,7 @@ function liftNested(
   model: PrismaNextModel,
   id: string,
   plan: NestedPlan,
-  execution: object,
+  execution: ExecutionKey,
 ) {
   const inner = nestedId(id);
   for (const [name, nested] of plan) {
@@ -280,7 +291,7 @@ export function typeCopy(
   value: object,
   model: PrismaNextModel,
   nested: NestedPlan,
-  execution: object,
+  execution: ExecutionKey,
 ) {
   const held = (value as Holder)[SLOTS];
   if (held && !held.field) {
@@ -305,13 +316,14 @@ export function fieldCopy(
   model: PrismaNextModel,
   typeNested: NestedPlan,
   position: Position,
-  execution: object,
+  execution: ExecutionKey,
 ): object | undefined {
   const base = typeCopy(value, model, typeNested, execution);
   const held = (base as Holder)[SLOTS];
   const id = consumerId(position);
   const nested = plannedNested.get(position);
-  const foreign = held?.slots.consumers.size && !plannedIn.get(held.row)?.has(execution);
+  const foreign =
+    held !== undefined && held.slots.consumers.size > 0 && !plannedIn.get(held.row)?.has(execution);
   if (foreign || !held?.slots.consumers.has(id)) {
     // A load of a whole relation, and a to-one relation's row, sit on the row unbranched, where
     // any field loading them reads them.
@@ -353,12 +365,23 @@ function holds(value: unknown, loads: ToOneLoads): boolean {
   if (value === undefined) {
     return false;
   }
-  if (Array.isArray(value)) {
-    return value.every((row) => holds(row, loads));
+  if (value === null || loads.size === 0) {
+    return true;
   }
-  return (
-    value === null || [...loads].every(([name, beneath]) => holds((value as Row)[name], beneath))
-  );
+  if (Array.isArray(value)) {
+    for (const row of value) {
+      if (!holds(row, loads)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  for (const [name, beneath] of loads) {
+    if (!holds((value as Row)[name], beneath)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
