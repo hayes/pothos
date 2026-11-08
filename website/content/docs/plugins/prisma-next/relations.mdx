@@ -67,6 +67,8 @@ posts: t.relation('posts', {
 }),
 ```
 
+With `AsyncSelections: true` in the builder's types, the function can be async.
+
 The relation entries of a `select` take the same object, such as
 `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`.
 
@@ -75,8 +77,6 @@ from the resolver.
 
 To reuse a filter across relations, share a `where` predicate rather than a fragment.
 `.with(fragment)` still works on the Collection a root field's `collection` returns.
-
-With `AsyncSelections: true` in the builder's types, the function can be async.
 
 ### Paginating a list
 

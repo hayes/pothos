@@ -158,12 +158,7 @@ does. `totalCount` is set when the rows are the list `getQuery` or `load` loaded
 a count. Without `resolveNode`, the rows are the nodes.
 
 To count the rows yourself, such as on MySQL, where Prisma can't count them yet, pass the count to
-`resolve`:
-
-```ts
-resolve: (post, args, ctx) =>
-  commenters.resolve(post.comments, args, ctx, { totalCount: post.commentCount }),
-```
+`resolve`: `commenters.resolve(rows, args, ctx, { totalCount })`.
 
 Put `getQuery` at the top level of a field's `select`, not inside another relation's entry. When
 the connection is beneath that field, such as on a wrapper type the field returns, prefix the path
