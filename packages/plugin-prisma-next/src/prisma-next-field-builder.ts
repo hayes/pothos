@@ -15,6 +15,7 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
+import type { NestedSelection } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import { PRISMA_NEXT_FIELD_SELECTION, PRISMA_NEXT_RELATION_ROWS } from './constants.js';
 import type { PrismaNextObjectRef } from './object-ref.js';
@@ -47,7 +48,7 @@ import type {
   ToManyRelationKeys,
 } from './types/relations.js';
 import { refSelection, relationArgs, relationLoad } from './utils/compile-select.js';
-import { getPluginConfig } from './utils/config.js';
+import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
 import {
   type ConnectionSettingsOptions,
   connectionNodes,
@@ -57,11 +58,29 @@ import {
 import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
 import { orderableProblem } from './utils/cursors.js';
 import { checkReturned } from './utils/errors.js';
-import { keyOf, ownRef, queryLoad, record, refOf } from './utils/loads.js';
-import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
+import {
+  keyOf,
+  type LoadKind,
+  type LoadRef,
+  ownRef,
+  queryLoad,
+  record,
+  refOf,
+} from './utils/loads.js';
+import {
+  getModel,
+  type PrismaNextModel,
+  type PrismaNextRelation,
+  sharedVariantRelationError,
+} from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import { readLoad } from './utils/rows.js';
-import { COMPUTE, type PrismaNextSelectFn } from './utils/selections.js';
+import {
+  COMPUTE,
+  type PrismaNextSelectFn,
+  type PrismaNextSelection,
+  type Refine,
+} from './utils/selections.js';
 
 type ContextForAuth<Types extends SchemaTypes, Scopes extends {} = {}> =
   PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
@@ -354,42 +373,19 @@ export class PrismaNextObjectFieldBuilder<
     const model = getModel(config.contract, this.modelKey as string);
     // Narrowed in the load, unless it is a to-one relation's, which loads whole.
     const loadVariant = discriminator === undefined ? variant : undefined;
-    // A literal query is checked here, and a callback's result through `checkReturned` when a
-    // request is planned.
-    const prepare = (value: unknown, problem?: Parameters<typeof relationLoad>[3]) => {
-      const { query: loaded, refine } = relationLoad(config.contract, queryModel, value, problem);
-      return {
-        refine,
-        // A callback query builds the callbacks it returns anew on every call, so the field's
-        // query and its arguments identify those.
-        load: (args: object) =>
-          queryLoad(
-            'rows',
-            relationName,
-            loadVariant,
-            loaded,
-            typeof query === 'function' ? () => ({ fn: query, args }) : undefined,
-          ),
-      };
-    };
-    const literal =
-      typeof query === 'function'
-        ? undefined
-        : prepare(query, orderableProblem(config.context, queryModel));
-    const literalLoad = literal?.load({});
-    const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) =>
-      completeOption(query as unknown, args, ctx, (value) => {
-        const prepared = literal ?? checkReturned(value, (returned) => prepare(returned));
-        const ref = refOf(config, ctx, model, literalLoad ?? prepared.load(args));
-        record(position, { refs: [ref], model, view: false });
-        return completeValue(
+    const select = relationSelect(
+      config,
+      model,
+      { kind: 'rows', name: relationName, variant: loadVariant, queryModel, query },
+      (ref, refine, nested) =>
+        completeValue(
           nested({
             columns: discriminator === undefined ? null : [discriminator],
-            args: relationArgs(relation, { refine: prepared.refine, variant: loadVariant }),
+            args: relationArgs(relation, { refine, variant: loadVariant }),
           }),
           (rows) => refSelection(ref, rows).selection,
-        );
-      });
+        ),
+    );
     return this.field({
       ...rest,
       type: relation.isToMany ? [targetRef] : targetRef,
@@ -427,37 +423,20 @@ export class PrismaNextObjectFieldBuilder<
     } & Record<string, unknown>;
     const config = getPluginConfig(this.builder);
     const model = getModel(config.contract, this.modelKey as string);
-    const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
-      completeOption(query, args, ctx, (value) => {
-        // The types allow only `where`, which can't fail to refine. Identified as `t.relation`'s
-        // query is.
-        const { query: loaded, refine } = relationLoad(
-          config.contract,
-          relation.targetModel,
-          value,
-        );
-        const ref = refOf(
-          config,
-          ctx,
-          model,
-          queryLoad(
-            'count',
-            relationName,
-            undefined,
-            loaded,
-            typeof query === 'function' ? () => ({ fn: query, args }) : undefined,
-          ),
-        );
-        record(position, { refs: [ref], model, view: false });
-        return {
-          computed: {
-            [keyOf(ref)]: {
-              kind: 'count' as const,
-              [COMPUTE]: (sub) => countOf(refine ? refine(sub) : sub),
-            },
+    // The types allow only `where`.
+    const select = relationSelect(
+      config,
+      model,
+      { kind: 'count', name: relationName, queryModel: relation.targetModel, query },
+      (ref, refine) => ({
+        computed: {
+          [keyOf(ref)]: {
+            kind: 'count' as const,
+            [COMPUTE]: (sub) => countOf(refine ? refine(sub) : sub),
           },
-        };
-      });
+        },
+      }),
+    );
     return this.field({
       ...rest,
       type: 'Int',
@@ -614,17 +593,55 @@ export class PrismaNextObjectFieldBuilder<
   }
 }
 
-/** `option`, or what it returns for `args` and `ctx` when it's a function, passed to `next`. */
-function completeOption<T, R>(
-  option: T | ((args: object, ctx: object) => MaybePromise<T>),
-  args: object,
-  ctx: object,
-  next: (value: T) => R,
-) {
-  return completeValue(
-    typeof option === 'function'
-      ? (option as (args: object, ctx: object) => MaybePromise<T>)(args, ctx)
-      : option,
-    next,
-  );
+/**
+ * The select of a field that loads relation `name` of `model`'s rows as its `query` asks, which
+ * `selection` plans from the load's ref and refinement. A literal query is checked here, and a
+ * callback's result through `checkReturned` when a request is planned. A callback query builds the
+ * callbacks it returns anew on every call, so the field's query and its arguments identify those.
+ */
+function relationSelect(
+  config: PrismaNextConfig,
+  model: PrismaNextModel,
+  {
+    kind,
+    name,
+    variant,
+    queryModel,
+    query,
+  }: { kind: LoadKind; name: string; variant?: string; queryModel: string; query: unknown },
+  selection: (
+    ref: LoadRef,
+    refine: Refine | undefined,
+    nested: NestedSelection<PrismaNextSelection>,
+  ) => MaybePromise<PrismaNextSelection>,
+): PrismaNextSelectFn {
+  const prepare = (value: unknown, problem?: Parameters<typeof relationLoad>[3]) => {
+    const { query: loaded, refine } = relationLoad(config.contract, queryModel, value, problem);
+    const load = (args: object) =>
+      queryLoad(
+        kind,
+        name,
+        variant,
+        loaded,
+        typeof query === 'function' ? () => ({ fn: query, args }) : undefined,
+      );
+    return { refine, load };
+  };
+  const literal =
+    typeof query === 'function'
+      ? undefined
+      : prepare(query, orderableProblem(config.context, queryModel));
+  const literalLoad = literal?.load({});
+  return (args, ctx, nested, _selected, position) =>
+    completeValue(
+      typeof query === 'function'
+        ? (query as (args: object, ctx: object) => unknown)(args, ctx)
+        : query,
+      (value) => {
+        const prepared = literal ?? checkReturned(value, (returned) => prepare(returned));
+        const ref = refOf(config, ctx, model, literalLoad ?? prepared.load(args));
+        record(position, { refs: [ref], model, view: false });
+        return selection(ref, prepared.refine, nested);
+      },
+    );
 }
