@@ -46,14 +46,13 @@ import {
 } from './constants.js';
 import { canInclude } from './utils/adapter.js';
 import {
-  assertRelationEntries,
+  checkStaticSelect,
   compileFieldSelect,
   entryDefinition,
   type RawSelect,
   type SplitSelect,
   splitSelect,
   type TypeSelect,
-  typeEntryLoad,
   typeSelects,
 } from './utils/compile-select.js';
 import { getPluginConfig } from './utils/config.js';
@@ -254,17 +253,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const raw = typeConfig.extensions?.[PRISMA_NEXT_TYPE_SELECT] as RawSelect | undefined;
     // Only a prisma type, which has a model of its own, has a `select`.
     const split = raw && splitSelect(raw, getModel(contract, model));
-    if (split) {
-      // A type's rows can load through the base model's collection, which can't read the columns
-      // a variant model with a table of its own inherits.
-      assertRelationEntries(
-        this.config,
-        split,
-        getModel(contract, model),
-        `The select of type '${typeConfig.name}' loads`,
-        () => false,
-      );
-    }
     const selects = new Map<string, TypeSelect>();
     for (const iface of interfaceConfigs) {
       for (const select of typeSelects(iface)) {
@@ -273,7 +261,16 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     if (split) {
       selects.set(typeConfig.name, { name: typeConfig.name, ...split });
-      this.assertSelectsAgree(typeConfig.name, root!, getModel(contract, model), split);
+      // A type's rows can load through the base model's collection, which can't read the columns
+      // a variant model with a table of its own inherits.
+      const refs = checkStaticSelect(
+        this.config,
+        split,
+        getModel(contract, model),
+        `The select of type '${typeConfig.name}' loads`,
+        () => false,
+      );
+      this.assertSelectsAgree(typeConfig.name, root!, split, refs);
     }
     const config = {
       ...typeConfig,
@@ -382,7 +379,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     const returnModelKey = returnConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
     const returnModel =
       returnModelKey === undefined ? undefined : getModel(contract, returnModelKey);
-    assertRelationEntries(
+    checkStaticSelect(
       this.config,
       split,
       model,
@@ -464,8 +461,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   private assertSelectsAgree(
     type: string,
     root: string,
-    model: PrismaNextModel,
     split: SplitSelect,
+    refs: readonly LoadRef[],
   ) {
     let definitions = this.selectDefinitions.get(root);
     if (!definitions) {
@@ -481,28 +478,23 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         throw disagreement(first.type, type, relation[0], root);
       }
     }
-    const { contract, typeLoads } = this.config;
-    const register = (on: PrismaNextModel, { relations }: SplitSelect) => {
-      let loads = typeLoads.get(on.key);
-      if (!loads) {
-        loads = new Map();
-        typeLoads.set(on.key, loads);
-      }
-      for (const relation of relations) {
-        const [name, , nested] = relation;
-        const load = typeEntryLoad(contract, on, relation);
-        const first = loads.get(name);
+    const { typeLoads } = this.config;
+    const register = (on: string, refs: readonly LoadRef[]) => {
+      const loads = typeLoads.get(on) ?? typeLoads.set(on, new Map()).get(on)!;
+      // Only relation entries have plain loads.
+      for (const { load, beneath } of refs.filter((ref) => ref.load.kind === 'rows')) {
+        const first = loads.get(load.relation);
         if (!first) {
-          loads.set(name, { type, load });
+          loads.set(load.relation, { type, load });
         } else if (!deepEqual(first.load, load)) {
-          throw disagreement(first.type, type, name, on.key);
+          throw disagreement(first.type, type, load.relation, on);
         }
-        if (nested) {
-          register(on.relations[name]!.target, nested);
+        if (beneath) {
+          register(beneath.model.key, beneath.refs);
         }
       }
     };
-    register(model, split);
+    register(root, refs);
   }
 
   /**

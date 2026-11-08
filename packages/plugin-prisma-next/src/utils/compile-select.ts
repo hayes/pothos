@@ -8,6 +8,7 @@ import type {
 import { getNamedType, isObjectType } from 'graphql';
 import { PRISMA_NEXT_MODEL, PRISMA_NEXT_TYPE_SELECTS } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
+import type { PrismaNextExecutionContext } from '../types/plugin-options.js';
 import type { MapperCollection } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
 import { variantForRelationType } from './contract.js';
@@ -295,11 +296,10 @@ interface SelectCompilation {
   returnModelKey?: string;
   /** The name and model of the type a nested entry names. */
   typeOf?: (type: unknown) => { name: string; model: string | undefined };
-  /**
-   * For the entries of a nested `select`, beneath a relation entry, what loads them, which begins
-   * an error about them.
-   */
-  nested?: string;
+  /** What loads the entries, which begins an error about them. */
+  subject?: string;
+  /** Set when the schema is built, which checks the columns a static select's entries order by. */
+  context?: PrismaNextExecutionContext<AnyContract>;
   /** The relations from the select's root to the entries, each followed by a dot. */
   at: string;
   /**
@@ -319,46 +319,17 @@ interface Compiled {
 /** A static entry's load and args, made once. */
 const staticLoads = new WeakMap<RelationEntry, { load: Load; args: RelationArgs }>();
 
-/** The load of a type-level relation entry of `model`'s rows, which `typeLoads` holds. */
-export function typeEntryLoad(
-  contract: AnyContract,
-  model: PrismaNextModel,
-  [name, entry]: SplitRelation,
-): Load {
-  const relation = model.relations[name]!;
-  const variant = relation.isToMany
-    ? variantForRelationType(
-        contract,
-        "A type's select",
-        relation.targetModel,
-        entryTypeModel(entry.type),
-      )
-    : undefined;
-  const { where, orderBy, limit, offset } = entry;
-  return queryLoad('rows', name, variant, definedQuery({ where, orderBy, limit, offset }));
-}
-
 /** Compiles a split `select`. */
 function compileSelect(
   { columns, relations, computed }: SplitSelect,
   model: PrismaNextModel,
   compilation: SelectCompilation,
 ): MaybePromise<Compiled> {
-  const {
-    contract,
-    interning,
-    args,
-    source,
-    field,
-    returnModelKey,
-    typeOf,
-    nested,
-    at,
-    readsRows,
-  } = compilation;
+  const { contract, interning, args, source, field, returnModelKey, typeOf, at, readsRows } =
+    compilation;
   const owner = field && `Field '${field.position.type.name}.${field.position.field.name}'`;
   const subject =
-    nested ??
+    compilation.subject ??
     (field
       ? `The select of field '${field.position.type.name}.${field.position.field.name}' loads`
       : "A type's select loads");
@@ -383,28 +354,33 @@ function compileSelect(
     const named = plans && type !== undefined ? typeOf!(type) : undefined;
     let loaded = source === undefined ? staticLoads.get(entry) : undefined;
     if (!loaded) {
-      const variant = !relation.isToMany
-        ? undefined
-        : plans
-          ? path?.length
-            ? undefined
-            : variantForRelationType(
-                contract,
-                owner!,
-                relation.targetModel,
-                named ? named.model : returnModelKey,
-              )
-          : variantForRelationType(
+      // A to-one relation loads whole. A static select's `type` is checked when the schema is
+      // built.
+      const typed = plans
+        ? relation.isToMany && !path?.length
+          ? variantForRelationType(
               contract,
-              owner ?? "A type's select",
+              owner!,
+              relation.targetModel,
+              named ? named.model : returnModelKey,
+            )
+          : undefined
+        : relation.isToMany || source === undefined
+          ? variantForRelationType(
+              contract,
+              owner ?? `${subject} relation '${name}', which`,
               relation.targetModel,
               entryTypeModel(type),
-            );
+            )
+          : undefined;
+      const variant = relation.isToMany ? typed : undefined;
       const { where, orderBy, limit, offset } = entry;
+      const rowsModel = entryTypeModel(type) ?? relation.targetModel;
       const { query, refine } = relationLoad(
         contract,
-        entryTypeModel(type) ?? relation.targetModel,
+        rowsModel,
         { where, orderBy, limit, offset },
+        compilation.context && orderableProblem(compilation.context, rowsModel),
       );
       loaded = {
         load: queryLoad(
@@ -428,7 +404,7 @@ function compileSelect(
       ? completeValue(
           compileSelect(split, target, {
             ...compilation,
-            nested: nestedSubject(subject, name),
+            subject: nestedSubject(subject, name),
             at: `${at}${name}.`,
             // The rows of a nested `select` are read only through its parent's.
             readsRows: readsRows && (() => false),
@@ -491,6 +467,33 @@ export function compileTypeSelect(
   model: PrismaNextModel,
 ) {
   return (compileSelect(split, model, { contract, args: {}, at: '' }) as Compiled).selection;
+}
+
+/**
+ * Compiles a static `select` of a type or field, which `subject` reads, when the schema is built,
+ * which checks its entries: rows of a variant model with a table of its own load without the
+ * columns it inherits, so only a reader `readsRows` accepts can take them, an entry's `type` must
+ * be one its relation can return, and its order must be of columns the ORM can order by. Returns
+ * where its loads are read, all plain for a type's.
+ */
+export function checkStaticSelect(
+  config: PrismaNextConfig,
+  split: SplitSelect,
+  model: PrismaNextModel,
+  subject: string,
+  readsRows: (relation: PrismaNextRelation) => boolean,
+): readonly LoadRef[] {
+  const { contract, context } = config;
+  return (
+    compileSelect(split, model, {
+      contract,
+      context,
+      args: {},
+      at: '',
+      subject,
+      readsRows,
+    }) as Compiled
+  ).refs;
 }
 
 /**
@@ -579,52 +582,4 @@ export function entryDefinition([name, entry, split]: SplitRelation): unknown {
       ...Object.fromEntries(split.computed.map(({ relation }) => [relation, {}])),
     },
   };
-}
-
-/**
- * Checks the relation entries of a static `select`, which `subject` reads: rows of a variant model
- * with a table of its own load without the columns it inherits, so only a reader `readsRows` accepts
- * can take them, and the columns each entry orders by.
- */
-export function assertRelationEntries(
-  config: PrismaNextConfig,
-  { relations }: SplitSelect,
-  model: PrismaNextModel,
-  subject: string,
-  readsRows: (relation: PrismaNextRelation) => boolean,
-) {
-  for (const [name, entry, split] of relations) {
-    const relation = model.relations[name]!;
-    if (loadsOwnTableVariantRows(relation, entry) && !readsRows(relation)) {
-      throw ownTableVariantRowsError(subject, name, relation);
-    }
-    const { orderBy } = entry;
-    if (entry.type !== undefined) {
-      variantForRelationType(
-        config.contract,
-        `${subject} relation '${name}', which`,
-        relation.targetModel,
-        entryTypeModel(entry.type),
-      );
-    }
-    if (split) {
-      // The rows of a nested `select` are read only through its parent's.
-      assertRelationEntries(
-        config,
-        split,
-        relation.target,
-        nestedSubject(subject, name),
-        () => false,
-      );
-    }
-    if (isOrderByDecl(orderBy)) {
-      const rowsModel = entryTypeModel(entry.type) ?? relation.targetModel;
-      orderColumns(
-        config.contract,
-        rowsModel,
-        orderBy,
-        orderableProblem(config.context, rowsModel),
-      );
-    }
-  }
 }
