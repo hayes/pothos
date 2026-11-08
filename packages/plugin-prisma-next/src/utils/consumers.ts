@@ -4,21 +4,21 @@ import { assertGraphQLJsInfo } from './errors.js';
 
 /*
  * A consumer is one reader of a to-many relation's rows or computed values. A field's consumer id
- * is a short hex string (`consumerId`). Every type-level `select` uses `TYPE_CONSUMER`. In a
- * selection, a to-many relation and its computed values are keyed by consumer, so each consumer
- * gets its own `combine()` branch (see branch-keys.ts).
+ * is a short number (`consumerId`). Every type-level `select` uses `TYPE_CONSUMER`. In a selection,
+ * a to-many relation and its computed values are keyed by consumer, so each consumer gets its own
+ * `combine()` branch (see branch-keys.ts).
  */
 
 /**
  * The consumer id of every type-level `select`. The selects of a model agree, so they share their
- * branches. It isn't hex, so it never collides with a field's id.
+ * branches. It isn't a number, so it never collides with a field's id.
  */
 export const TYPE_CONSUMER = 'type';
 
-/** The consumer ids of one operation, by key. */
+/** The interned consumer ids of one operation. */
 interface ConsumerIds {
   readonly ids: Map<string, string>;
-  readonly taken: Set<string>;
+  next: number;
 }
 
 /**
@@ -46,8 +46,7 @@ export function registerPlanRoots(info: GraphQLResolveInfo) {
 
 /**
  * The id of the consumer selected at `position`: its parent consumer's id, the type the field was
- * walked on, the field's name and its response key, hashed, so a document gives the same SQL text
- * whatever was planned before it. Ids are unique per operation: a rare collision takes a suffix.
+ * walked on, the field's name and its response key, interned to a short number per operation.
  * So:
  *
  * - The field nodes of one response key on one type (fragments that each select it) share one
@@ -77,33 +76,20 @@ function consumerOf(position: Position): { id: string; table: ConsumerIds } {
     const operation = rootOperations.get(node)!;
     table = operationIds.get(operation);
     if (!table) {
-      table = { ids: new Map(), taken: new Set() };
+      table = { ids: new Map(), next: 0 };
       operationIds.set(operation, table);
     }
   }
   const key = `${above?.id ?? ''}|${type.name}.${field.name}.${node.alias?.value ?? node.name.value}`;
   let id = table.ids.get(key);
   if (id === undefined) {
-    const hash = hashOf(key);
-    id = hash;
-    for (let n = 1; table.taken.has(id); n += 1) {
-      id = `${hash}-${n}`;
-    }
+    id = String(table.next);
+    table.next += 1;
     table.ids.set(key, id);
-    table.taken.add(id);
   }
   consumer = { id, table };
   positionIds.set(position, consumer);
   return consumer;
-}
-
-/** FNV-1a: 32 bits of `key`, in hex. */
-function hashOf(key: string) {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < key.length; i += 1) {
-    hash = Math.imul(hash ^ key.charCodeAt(i), 0x01000193);
-  }
-  return (hash >>> 0).toString(16);
 }
 
 /**
