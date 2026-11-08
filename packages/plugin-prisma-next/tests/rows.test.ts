@@ -264,6 +264,41 @@ describe('rows a resolver returns', () => {
       expect(comments).toEqual({ data: { node: { commentsTotal: 1 } } });
     });
 
+    it('run the same SQL text for a document whatever its earlier executions skipped', async () => {
+      const builder = createBuilder();
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          posts: t.relation('posts', {
+            args: { published: t.arg.int({ required: true }) },
+            query: (args) => ({ where: { published: args.published } }),
+          }),
+        }),
+      });
+      builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+      builder.queryType({
+        fields: (t) => ({
+          user: t.prismaField({ type: 'User', query: { where: { id: 'u-alice' } } }),
+        }),
+      });
+      const built = builder.toSchema();
+      const source = `query ($drafts: Boolean!) { user {
+        drafts: posts(published: 0) @include(if: $drafts) { id }
+        published: posts(published: 1) { id }
+      } }`;
+      const cached = parse(source);
+      const statements: CapturedExecution[] = [];
+      const load = (document: typeof cached, drafts: boolean) =>
+        withCapture(statements, async () =>
+          execute({ schema: built, document, variableValues: { drafts }, contextValue: {} }),
+        );
+      await load(cached, false);
+      const after = await load(cached, true);
+      const fresh = await load(parse(source), true);
+      expect(after).toEqual(fresh);
+      expect(statements).toHaveLength(3);
+      expect(statements[1]!.sql).toBe(statements[2]!.sql);
+    });
+
     it('run the same SQL in any context and with any arguments', async () => {
       const built = schema();
       const statements: CapturedExecution[] = [];
