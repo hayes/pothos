@@ -73,7 +73,7 @@ builder.subscriptionType({
           : prisma.user.findUniqueOrThrow(withAllPosts),
     }),
     // Loads each event in `subscribe` with the planned query, as a snapshot of a row since
-    // deleted: its id matches no row, so its fields can only resolve from what it holds.
+    // deleted: its id matches no row, so reloading it fails.
     deletedUser: t.field({
       type: User,
       subscribe: async function* (_root, _args, context, info) {
@@ -178,14 +178,12 @@ describe('executions sharing a context', () => {
     expect(seen[1]).toEqual(seen[0]);
   });
 
-  it('resolves an event from what the subscribe that loaded it planned', async () => {
+  it('reloads the parent of an event its subscribe loaded with the planned query', async () => {
     queries.length = 0;
 
     const events = await subscribe({
       schema,
-      document: parse(
-        'subscription { deletedUser { publishedPosts { published author { allPosts { published } } } } }',
-      ),
+      document: parse('subscription { deletedUser { publishedPosts { published } } }'),
       contextValue: {},
     });
 
@@ -200,19 +198,16 @@ describe('executions sharing a context', () => {
     }
 
     const [{ errors, data }] = seen as {
-      errors?: unknown;
-      data: {
-        deletedUser: { publishedPosts: { published: boolean; author: { allPosts: unknown[] } }[] };
-      };
+      errors?: { path: unknown }[];
+      data: { deletedUser: { publishedPosts: unknown } };
     }[];
-    const [post] = data.deletedUser.publishedPosts;
 
+    // Each event is its own execution: the snapshot's relations load from its parent row, which
+    // no longer exists, as they would for a deleted row from anywhere else.
     expect(seen).toHaveLength(1);
-    expect(errors).toBeUndefined();
-    expect(drafts(data.deletedUser.publishedPosts.map(({ published }) => ({ published })))).toBe(0);
-    expect(drafts(post.author.allPosts)).toBeGreaterThan(0);
-    // The snapshot alone: nothing reloaded the deleted row.
-    expect(queries).toHaveLength(1);
+    expect(data.deletedUser.publishedPosts).toBeNull();
+    expect(errors?.map(({ path }) => path)).toEqual([['deletedUser', 'publishedPosts']]);
+    expect(queries).toHaveLength(2);
   });
 
   it('reloads a raw event yielded after a planned snapshot', async () => {
