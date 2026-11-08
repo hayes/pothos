@@ -29,9 +29,6 @@ const operationIds = new WeakMap<object, ConsumerIds>();
 /** The operation of each field node a plan starts from, recorded by `registerPlanRoots`. */
 const rootOperations = new WeakMap<FieldNode, object>();
 const positionIds = new WeakMap<Position, { id: string; table: ConsumerIds }>();
-/** A number per field definition: Pothos builds an inherited field from the interface's options. */
-const definitionIds = new WeakMap<object, number>();
-let nextDefinitionId = 0;
 
 /**
  * Checks `info` is graphql-js's and records the operation of the fields a plan for it starts from,
@@ -48,14 +45,15 @@ export function registerPlanRoots(info: GraphQLResolveInfo) {
 }
 
 /**
- * The id of the consumer selected at `position`: its parent consumer's id, the field's definition
- * and its response key, hashed, so a document gives the same SQL text whatever was planned before
- * it. Ids are unique per operation: a rare collision takes a suffix. So:
+ * The id of the consumer selected at `position`: its parent consumer's id, the type the field was
+ * walked on, the field's name and its response key, hashed, so a document gives the same SQL text
+ * whatever was planned before it. Ids are unique per operation: a rare collision takes a suffix.
+ * So:
  *
- * - The field nodes of one response key (fragments that each select it) share one consumer, as
- *   their resolver finds one mapping.
- * - An implementation that inherits a field unchanged shares the interface's consumer, and an
- *   override has its own.
+ * - The field nodes of one response key on one type (fragments that each select it) share one
+ *   consumer, as their resolver finds one mapping.
+ * - One response key in fragments on two object types, which may give it other arguments, is a
+ *   consumer per type. A field walked once on an interface is the interface's consumer.
  * - Reloads of one field at several paths number their consumers alike, so a batch merges them
  *   rather than loading one copy of everything beneath per path.
  *
@@ -71,7 +69,7 @@ function consumerOf(position: Position): { id: string; table: ConsumerIds } {
   if (consumer) {
     return consumer;
   }
-  const { field, node, walkParent } = position;
+  const { type, field, node, walkParent } = position;
   const above = walkParent && consumerOf(walkParent);
   let table = above?.table;
   if (!table) {
@@ -82,14 +80,7 @@ function consumerOf(position: Position): { id: string; table: ConsumerIds } {
       operationIds.set(operation, table);
     }
   }
-  const definition: object = field.extensions?.pothosOptions ?? field;
-  let definitionId = definitionIds.get(definition);
-  if (definitionId === undefined) {
-    definitionId = nextDefinitionId;
-    nextDefinitionId += 1;
-    definitionIds.set(definition, definitionId);
-  }
-  const key = `${above?.id ?? ''}|${definitionId}.${node.alias?.value ?? node.name.value}`;
+  const key = `${above?.id ?? ''}|${type.name}.${field.name}.${node.alias?.value ?? node.name.value}`;
   let id = table.ids.get(key);
   if (id === undefined) {
     const hash = hashOf(key);

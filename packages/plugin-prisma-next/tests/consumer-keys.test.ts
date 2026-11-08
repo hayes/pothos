@@ -1,9 +1,16 @@
+import { subscribe as toolsSubscribe } from '@graphql-tools/executor';
 import SchemaBuilder, {
   BasePlugin,
   type PothosOutputFieldConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { type GraphQLFieldResolver, parse, subscribe } from 'graphql';
+import {
+  type DocumentNode,
+  type GraphQLFieldResolver,
+  type GraphQLSchema,
+  parse,
+  subscribe,
+} from 'graphql';
 import { describe, expect, it } from 'vitest';
 import PrismaNextPlugin, { collectionFromInfo, prismaConnectionHelpers } from '../src';
 import { createBuilder, run, type SampleContract, useSampleDb } from './fixtures/helpers';
@@ -626,5 +633,126 @@ describe('rows other fields return', () => {
       seen.push(event.data);
     }
     expect(seen).toEqual([{ user: aliceConsumers }, { user: aliceConsumers }]);
+  });
+});
+
+type Subscribe = (args: {
+  schema: GraphQLSchema;
+  document: DocumentNode;
+  contextValue: object;
+}) => unknown;
+
+// GraphQL allows one response key different arguments in fragments on different object types.
+describe('one response key with different arguments', () => {
+  function positionSchema() {
+    const builder = createBuilder();
+    const I = builder.prismaInterface('User', {
+      variant: 'I',
+      select: { posts: { where: { published: 1 } } },
+      resolveType: (row) => (row.id === 'u-bob' ? 'B' : 'A'),
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        // The type's posts, or with `drafts` its own.
+        f: t.stringList({
+          args: { drafts: t.arg.boolean({ required: true }) },
+          select: (args) =>
+            args.drafts ? { posts: { where: { published: 0 } } } : { comments: true },
+          resolve: (user) => user.posts.map((post) => post.id),
+        }),
+        g: t.stringList({
+          args: { published: t.arg.int({ required: true }) },
+          select: (args) => ({ posts: { where: { published: args.published } } }),
+          resolve: (user) => user.posts.map((post) => post.id),
+        }),
+        n: t.relationCount('posts', {
+          args: { published: t.arg.int({ required: true }) },
+          query: (args) => ({ where: { published: args.published } }),
+        }),
+        page: t.relatedConnection('posts', {
+          totalCount: true,
+          args: { published: t.arg.int({ required: true }) },
+          query: (args) => ({ where: { published: args.published }, orderBy: { id: 'asc' } }),
+        }),
+      }),
+    });
+    builder.prismaObject('User', { variant: 'A', interfaces: [I] });
+    builder.prismaObject('User', { variant: 'B', interfaces: [I] });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: [I],
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+        user: t.prismaField({
+          type: I,
+          nullable: true,
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    builder.subscriptionType({
+      fields: (t) => ({
+        user: t.field({
+          type: I,
+          subscribe: async function* (_root, _args, context, info) {
+            const users = await collectionFromInfo({
+              collection: db.orm.User.where({ id: 'u-alice' }),
+              context,
+              info,
+            });
+            yield await users.first();
+            yield await users.first();
+          },
+          resolve: (row) => row as never,
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  const page = (published: number) =>
+    `page(published: ${published}, first: 5) { totalCount edges { node { id } } }`;
+  const pageOf = (ids: string[]) => ({
+    totalCount: ids.length,
+    edges: ids.map((id) => ({ node: { id } })),
+  });
+
+  it.each([
+    ['f(drafts: false)', 'f(drafts: true)', ['p-hello'], ['p-bob-draft']],
+    ['g(published: 1)', 'g(published: 0)', ['p-hello'], ['p-bob-draft']],
+    ['n(published: 1)', 'n(published: 0)', 1, 1],
+    [page(0), page(1), pageOf(['p-draft1']), pageOf(['p-bob1'])],
+  ])('reads each object type its own in fragments: %s, %s', async (onA, onB, alice, bob) => {
+    const result = await run(
+      positionSchema(),
+      `{ users { id ... on A { x: ${onA} } ... on B { x: ${onB} } } }`,
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { id: 'u-alice', x: alice },
+      { id: 'u-bob', x: bob },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it.each([
+    ['graphql-js', subscribe as Subscribe],
+    ['@graphql-tools/executor', toolsSubscribe as Subscribe],
+  ])('reads each subscription event its own through %s', async (_, subscribeWith) => {
+    const events = (await subscribeWith({
+      schema: positionSchema(),
+      document: parse(
+        'subscription { user { ... on A { x: f(drafts: false) } ... on B { x: f(drafts: true) } } }',
+      ),
+      contextValue: {},
+    })) as AsyncIterable<{ errors?: unknown; data?: unknown }>;
+    const seen: unknown[] = [];
+    for await (const event of events) {
+      expect(event.errors).toBeUndefined();
+      seen.push(event.data);
+    }
+    const expected = { user: { x: ['p-hello'] } };
+    expect(seen).toEqual([expected, expected]);
   });
 });
