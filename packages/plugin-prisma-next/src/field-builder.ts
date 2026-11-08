@@ -5,6 +5,7 @@ import {
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
+import { SqlQueryError } from '@prisma/orm-family-sql/errors';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type { PrismaNextConnectionFieldOptions } from './types/connections.js';
@@ -18,7 +19,7 @@ import {
   connectionPaging,
 } from './utils/connections.js';
 import { buildConnectionPage, orderableProblem, readPage } from './utils/cursors.js';
-import { checkReturned } from './utils/errors.js';
+import { checkReturned, InternalError } from './utils/errors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { type AnyRef, refFor } from './utils/refs.js';
 import { markPlanned } from './utils/row-copies.js';
@@ -70,14 +71,21 @@ function prismaFieldConfig(
     ...options,
     type: isList ? [ref] : ref,
     resolve: resolve
-      ? async (parent: unknown, args: unknown, context: object, info: GraphQLResolveInfo) =>
-          resolve(
-            (await plan(config.typeCollection(context, modelKey), info, context)).query,
-            parent,
-            args,
-            context,
-            info,
-          )
+      ? async (parent: unknown, args: unknown, context: object, info: GraphQLResolveInfo) => {
+          const planned = (await plan(config.typeCollection(context, modelKey), info, context))
+            .query;
+          try {
+            return await resolve(planned, parent, args, context, info);
+          } catch (error) {
+            // The statement carries the selection the plugin planned, so its database errors are
+            // the plugin's, such as a write on an own-table variant returning the variant's columns.
+            throw SqlQueryError.is(error)
+              ? new InternalError(`${info.parentType.name}.${info.fieldName}: ${error.message}`, {
+                  cause: error,
+                })
+              : error;
+          }
+        }
       : async (parent: unknown, args: unknown, context: object, info: GraphQLResolveInfo) => {
           const source = (
             collection

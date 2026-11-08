@@ -222,7 +222,9 @@ builder.mutationType({
 
 For a [variant model](./interfaces#native-inheritance), the Collection is its base's narrowed to
 it, such as `orm.Task.variant('bug')`. `update()` and `delete()` on it change the variant's first
-row, so add a `where` for single-row writes.
+row, so add a `where` for single-row writes. For a variant with its own table, `update` and
+`delete` return only the base table's columns, so a response selecting the variant's own fields
+fails. Write with `updateAndCount()` instead, then read the row with `first()`.
 
 When the mutation returns a payload, build the write's Collection with `collectionFromInfo`, which
 adds what the query selects, and pass the path to the row's field, such as `path: ['user']`. For an

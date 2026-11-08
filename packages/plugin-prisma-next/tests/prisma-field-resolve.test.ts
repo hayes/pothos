@@ -300,6 +300,9 @@ describe('prismaField resolve on a variant type', () => {
       owner: t.relation('owner'),
     }),
   });
+  builder.prismaObject('Feature', {
+    fields: (t) => ({ title: t.exposeString('title'), priority: t.exposeInt('priority') }),
+  });
   builder.queryType({
     fields: (t) => ({
       bugs: t.prismaField({ type: ['Bug'], resolve: (bugs) => bugs.all() }),
@@ -324,6 +327,28 @@ describe('prismaField resolve on a variant type', () => {
             severity: 'low',
             reviewerId: null,
           }),
+      }),
+      updateFeature: t.prismaField({
+        type: 'Feature',
+        nullable: true,
+        resolve: (features) => features.where({ id: 't2' }).update({ title: 'feat2' }),
+      }),
+      updateFeatures: t.prismaField({
+        type: ['Feature'],
+        resolve: (features) => features.where({ id: 't2' }).updateAll({ title: 'feat3' }),
+      }),
+      renameFeature: t.prismaField({
+        type: 'Feature',
+        nullable: true,
+        resolve: async (features) => {
+          const feature = features.where({ id: 't2' });
+          await feature.updateAndCount({ title: 'feat4' });
+          return feature.first();
+        },
+      }),
+      deleteFeatures: t.prismaField({
+        type: ['Feature'],
+        resolve: (features) => features.where({ id: 'none' }).deleteAll(),
       }),
     }),
   });
@@ -367,5 +392,21 @@ describe('prismaField resolve on a variant type', () => {
     expect(result.statements[0]!.sql).toContain('"type"');
     const bugs = await run(built, '{ bugs { title } }');
     expect(bugs.data.bugs).toEqual([{ title: 'bug1' }, { title: 'bug2' }]);
+  });
+
+  it("reports an own-table variant's write that returns the variant's columns as unexpected", async () => {
+    // The ORM's RETURNING covers only the base table, so these writes fail in the database.
+    for (const field of ['updateFeature', 'updateFeatures', 'deleteFeatures']) {
+      const result = await run(built, `mutation { ${field} { title priority } }`);
+      expect(result.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
+      const cause = result.errors?.[0]?.originalError?.cause as Error;
+      expect(cause.message).toMatch(new RegExp(`^Mutation\\.${field}: .*priority`));
+    }
+    const base = await run(built, 'mutation { updateFeature { title } }');
+    expect(base.errors).toBeUndefined();
+    expect(base.data.updateFeature).toEqual({ title: 'feat2' });
+    const reread = await run(built, 'mutation { renameFeature { title priority } }');
+    expect(reread.errors).toBeUndefined();
+    expect(reread.data.renameFeature).toEqual({ title: 'feat4', priority: 5 });
   });
 });
