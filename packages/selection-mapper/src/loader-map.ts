@@ -153,6 +153,26 @@ function cache(ctx: object, info: GraphQLResolveInfo): Cache | null {
 }
 
 /**
+ * The entries of `cache` for the operation `info` is in. Keyed on its `variableValues`, which
+ * every executor coerces afresh for each operation, so operations sharing a context never share
+ * an entry. For plans, which depend on the operation and not on the event: the events of a
+ * subscription may share them, unlike their mappings.
+ */
+export function forOperation<T>(
+  cache: WeakMap<object, Map<string, T>>,
+  info: GraphQLResolveInfo,
+): Map<string, T> {
+  let entries = cache.get(info.variableValues);
+
+  if (!entries) {
+    entries = new Map();
+    cache.set(info.variableValues, entries);
+  }
+
+  return entries;
+}
+
+/**
  * Memoised per path link, which is created once per field per row and never mutated. graphql-js
  * shares the links above a list between every row of it, so the prefix of a field resolved for
  * each of N rows is built once rather than N times. Weak, so the links go with the request.
