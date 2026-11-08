@@ -677,6 +677,9 @@ importers:
         specifier: ^17.0.1
         version: 17.0.1
     devDependencies:
+      '@graphql-tools/executor':
+        specifier: ^1.5.2
+        version: 1.5.2(graphql@17.0.1)
       '@libsql/client':
         specifier: ^0.17.2
         version: 0.17.2(encoding@0.1.13)
@@ -860,6 +863,9 @@ importers:
         specifier: ^17.0.1
         version: 17.0.1
     devDependencies:
+      '@graphql-tools/executor':
+        specifier: ^1.5.2
+        version: 1.5.2(graphql@17.0.1)
       '@pothos/core':
         specifier: workspace:*
         version: link:../core
@@ -1206,6 +1212,9 @@ importers:
 
   packages/selection-mapper:
     devDependencies:
+      '@graphql-tools/executor':
+        specifier: ^1.5.2
+        version: 1.5.2(graphql@17.0.1)
       '@pothos/core':
         specifier: workspace:*
         version: link:../core

@@ -1,7 +1,8 @@
+import { subscribe as toolsSubscribe } from '@graphql-tools/executor';
 import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import { execute, parse, subscribe } from 'graphql';
+import { type DocumentNode, execute, type GraphQLSchema, parse, subscribe } from 'graphql';
 import DrizzlePlugin, { getSchemaConfig, queryFromInfo } from '../src';
 import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
 
@@ -97,6 +98,23 @@ builder.subscriptionType({
       },
       resolve: (user) => user as never,
     }),
+    // Each event is a distinct payload whose user the resolver loads with the planned query.
+    plannedEvents: t.field({
+      type: User,
+      subscribe: async function* () {
+        yield await Promise.resolve({ id: 1 });
+        yield { id: 1 };
+      },
+      resolve: async (payload: { id: number }, _args, context, info) =>
+        (await db.query.users.findFirst(
+          queryFromInfo({
+            config: getSchemaConfig(builder),
+            context,
+            info,
+            where: { id: payload.id },
+          }),
+        )) as never,
+    }),
   }),
 });
 
@@ -136,23 +154,44 @@ describe('executions sharing a context', () => {
     expect(drafts(await query('allPosts'))).toBeGreaterThan(0);
     expect(drafts(await query('publishedPosts'))).toBe(0);
   });
+});
 
-  it('keeps the relation filter on a row a later subscription event loaded elsewhere', async () => {
-    const events = await subscribe({
-      schema,
-      document: parse('subscription { user { publishedPosts { published } } }'),
-      contextValue: {},
-    });
+type Subscribe = (args: {
+  schema: GraphQLSchema;
+  document: DocumentNode;
+  contextValue: object;
+}) => unknown;
 
-    if (!(Symbol.asyncIterator in events)) {
-      throw new Error(`Expected a subscription, got ${JSON.stringify(events)}`);
-    }
+/** Every event of `source`, subscribed to with `subscribeWith` on a fresh context. */
+async function events(subscribeWith: Subscribe, source: string) {
+  const result = (await subscribeWith({ schema, document: parse(source), contextValue: {} })) as
+    | AsyncIterable<unknown>
+    | object;
 
-    const seen: unknown[] = [];
+  if (!(Symbol.asyncIterator in result)) {
+    throw new Error(`Expected a subscription, got ${JSON.stringify(result)}`);
+  }
 
-    for await (const event of events) {
-      seen.push(event);
-    }
+  const seen: unknown[] = [];
+
+  for await (const event of result) {
+    seen.push(event);
+  }
+
+  return seen;
+}
+
+// graphql-js gives each event its own `variableValues` (16) or `getAbortSignal` (17), while
+// @graphql-tools/executor (Yoga) hands every event and the `subscribe` the same ones.
+describe.each([
+  ['graphql-js', subscribe as Subscribe],
+  ['@graphql-tools/executor', toolsSubscribe as Subscribe],
+])('subscription events through %s', (_, subscribeWith) => {
+  it('keeps the relation filter on a row a later event loaded elsewhere', async () => {
+    const seen = await events(
+      subscribeWith,
+      'subscription { user { publishedPosts { published } } }',
+    );
 
     expect(drafts(seen[0])).toBe(0);
     expect(seen[1]).toEqual(seen[0]);
@@ -161,22 +200,10 @@ describe('executions sharing a context', () => {
   it('reloads the parent of an event its subscribe loaded with the planned query', async () => {
     clearDrizzleLogs();
 
-    const events = await subscribe({
-      schema,
-      document: parse('subscription { deletedUser { publishedPosts { published } } }'),
-      contextValue: {},
-    });
-
-    if (!(Symbol.asyncIterator in events)) {
-      throw new Error(`Expected a subscription, got ${JSON.stringify(events)}`);
-    }
-
-    const seen: unknown[] = [];
-
-    for await (const event of events) {
-      seen.push(event);
-    }
-
+    const seen = await events(
+      subscribeWith,
+      'subscription { deletedUser { publishedPosts { published } } }',
+    );
     const [{ errors, data }] = seen as {
       errors?: { path: unknown }[];
       data: { deletedUser: { publishedPosts: unknown } };
@@ -191,25 +218,28 @@ describe('executions sharing a context', () => {
   });
 
   it('reloads a raw event yielded after a planned snapshot', async () => {
-    const events = await subscribe({
-      schema,
-      document: parse('subscription { snapshotThenRaw { publishedPosts { published } } }'),
-      contextValue: {},
-    });
-
-    if (!(Symbol.asyncIterator in events)) {
-      throw new Error(`Expected a subscription, got ${JSON.stringify(events)}`);
-    }
-
-    const seen: unknown[] = [];
-
-    for await (const event of events) {
-      seen.push(event);
-    }
+    const seen = await events(
+      subscribeWith,
+      'subscription { snapshotThenRaw { publishedPosts { published } } }',
+    );
 
     expect(seen).toHaveLength(2);
     expect(drafts(seen[0])).toBe(0);
     expect(drafts(seen[1])).toBe(0);
     expect(seen[1]).toEqual(seen[0]);
+  });
+
+  it('resolves the relations of each event from the query it planned', async () => {
+    clearDrizzleLogs();
+
+    const seen = await events(
+      subscribeWith,
+      'subscription { plannedEvents { publishedPosts { published } } }',
+    );
+
+    expect(seen).toHaveLength(2);
+    expect(drafts(seen[0])).toBe(0);
+    expect(seen[1]).toEqual(seen[0]);
+    expect(drizzleLogs).toHaveLength(2);
   });
 });

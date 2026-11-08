@@ -1,4 +1,16 @@
-import type { GraphQLResolveInfo } from 'graphql';
+import { execute as toolsExecute, subscribe as toolsSubscribe } from '@graphql-tools/executor';
+import {
+  execute,
+  experimentalExecuteIncrementally,
+  GraphQLDeferDirective,
+  GraphQLObjectType,
+  type GraphQLResolveInfo,
+  GraphQLSchema,
+  GraphQLString,
+  parse,
+  specifiedDirectives,
+  subscribe,
+} from 'graphql';
 import { describe, expect, it } from 'vitest';
 import {
   cacheKey,
@@ -29,15 +41,20 @@ function child(prev: Path, ...keys: (string | number)[]): Path {
 }
 /**
  * The infos of one execution, as graphql-js 16 and graphql-jit build them: every resolver of the
- * execution gets the same coerced `variableValues`, and nothing else ties them together.
+ * execution gets the same coerced `variableValues`, and nothing else ties them together. A
+ * subscription event's also carry its payload as `rootValue`.
  */
-function execution() {
-  const variableValues = {};
-
+function execution(
+  operation: 'query' | 'subscription' = 'query',
+  rootValue?: unknown,
+  variableValues = {},
+) {
   return (path: Path, type = 'User') =>
     ({
+      operation: { operation },
       parentType: { name: type },
       path,
+      rootValue,
       variableValues,
     }) as unknown as GraphQLResolveInfo;
 }
@@ -173,9 +190,9 @@ describe('loader map', () => {
     const variableValues = {};
     const event = () => {
       const getAbortSignal = () => undefined;
+      const payload = execution('subscription', {}, variableValues);
 
-      return (path: Path) =>
-        ({ ...info(path), variableValues, getAbortSignal }) as GraphQLResolveInfo;
+      return (path: Path) => ({ ...payload(path), getAbortSignal }) as GraphQLResolveInfo;
     };
     const ctx = {};
     const first = event();
@@ -183,6 +200,32 @@ describe('loader map', () => {
     setLoaderMappings(ctx, first(pathOf('user')), { 'User@posts': planned });
     expect(getLoaderMapping(ctx, first(pathOf('user', 'posts')), 'User')).toBe(planned);
     expect(getLoaderMapping(ctx, event()(pathOf('user', 'posts')), 'User')).toBe(null);
+  });
+
+  it('tells subscription events apart by their payload where the variables are shared', () => {
+    // @graphql-tools/executor hands every event, and the `subscribe`, the same variables.
+    const variableValues = {};
+    const ctx = {};
+    const planned: Mapping = { nested: {} };
+    const subscribed = execution('subscription', undefined, variableValues);
+    const first = execution('subscription', {}, variableValues);
+    const second = execution('subscription', {}, variableValues);
+
+    setLoaderMappings(ctx, subscribed(pathOf('user')), { 'User@posts': planned });
+    expect(getLoaderMapping(ctx, first(pathOf('user', 'posts')), 'User')).toBe(null);
+    setLoaderMappings(ctx, first(pathOf('user')), { 'User@posts': planned });
+    expect(getLoaderMapping(ctx, first(pathOf('user', 'posts')), 'User')).toBe(planned);
+    expect(getLoaderMapping(ctx, second(pathOf('user', 'posts')), 'User')).toBe(null);
+  });
+
+  it('records nothing for a subscription event whose payload is not an object', () => {
+    const ctx = {};
+    const planned: Mapping = { nested: {} };
+    const event = execution('subscription', 1);
+
+    setLoaderMappings(ctx, event(pathOf('user')), { 'User@posts': planned });
+    setFieldMapping(ctx, event(pathOf('user', 'posts')), planned, {});
+    expect(getLoaderMapping(ctx, event(pathOf('user', 'posts')), 'User')).toBe(null);
   });
 
   it('finds the mappings of an execution whose executor builds a new path for each resolver', () => {
@@ -276,5 +319,125 @@ describe('unionMappings', () => {
     }
 
     expect(at.nested).toEqual({});
+  });
+});
+
+/**
+ * A field `loadedBy` beneath `user`, telling whether the plan its execution recorded for `user`
+ * was found. `subscribe` records a plan before yielding, as a snapshot loaded there would, and
+ * an event's `user` records one when its payload says so. graphql-js runs a schema with @defer
+ * only incrementally.
+ */
+function loaderMapSchema(defer = false) {
+  const planned: Mapping = { nested: {} };
+  const record = (ctx: object, info: GraphQLResolveInfo) =>
+    setLoaderMappings(ctx, info, { 'User@loadedBy': planned });
+  const User = new GraphQLObjectType({
+    name: 'User',
+    fields: {
+      loadedBy: {
+        type: GraphQLString,
+        resolve: (_row, _args, ctx: object, info) =>
+          getLoaderMapping(ctx, info, 'User') ? 'plan' : 'reload',
+      },
+    },
+  });
+  const user = {
+    type: User,
+    resolve: (payload: unknown, _args: unknown, ctx: object, info: GraphQLResolveInfo) => {
+      if (payload === true || (payload as { planned?: boolean }).planned) {
+        record(ctx, info);
+      }
+
+      return {};
+    },
+  };
+
+  return new GraphQLSchema({
+    query: new GraphQLObjectType({ name: 'Query', fields: { user } }),
+    subscription: new GraphQLObjectType({
+      name: 'Subscription',
+      fields: {
+        user: {
+          ...user,
+          subscribe: async function* (_root: unknown, _args: unknown, ctx: object, info) {
+            record(ctx, info);
+            yield await Promise.resolve({ planned: true });
+            yield { planned: false };
+            // Planned, but with no identity to record it under.
+            yield true;
+          },
+        },
+      },
+    }),
+    directives: defer ? [...specifiedDirectives, GraphQLDeferDirective] : specifiedDirectives,
+  });
+}
+
+describe('loader mappings through an executor', () => {
+  const schema = loaderMapSchema();
+
+  type Subscribe = (args: {
+    schema: GraphQLSchema;
+    document: ReturnType<typeof parse>;
+    contextValue: object;
+  }) => unknown;
+
+  describe.each([
+    ['graphql-js', subscribe as Subscribe],
+    ['@graphql-tools/executor', toolsSubscribe as Subscribe],
+  ])('subscription events through %s', (_, subscribeWith) => {
+    it('finds only the plan each event recorded itself', async () => {
+      const events = (await subscribeWith({
+        schema,
+        document: parse('subscription { user { loadedBy } }'),
+        contextValue: {},
+      })) as AsyncIterable<unknown>;
+      const seen: unknown[] = [];
+
+      for await (const event of events) {
+        seen.push(event);
+      }
+
+      expect(seen).toEqual([
+        { data: { user: { loadedBy: 'plan' } } },
+        { data: { user: { loadedBy: 'reload' } } },
+        { data: { user: { loadedBy: 'reload' } } },
+      ]);
+    });
+  });
+
+  it.each([
+    ['graphql-js', execute],
+    ['@graphql-tools/executor', toolsExecute],
+  ])("finds a query's plan through %s", async (_, executeWith) => {
+    const result = await executeWith({
+      schema,
+      document: parse('{ user { loadedBy } }'),
+      rootValue: { planned: true },
+      contextValue: {},
+    });
+
+    expect(result).toEqual({ data: { user: { loadedBy: 'plan' } } });
+  });
+
+  it.each([
+    ['graphql-js', experimentalExecuteIncrementally as typeof toolsExecute],
+    ['@graphql-tools/executor', toolsExecute],
+  ])("finds a query's plan beneath @defer through %s", async (_, executeWith) => {
+    const result = (await executeWith({
+      schema: loaderMapSchema(true),
+      document: parse('{ user { ... @defer { loadedBy } } }'),
+      rootValue: { planned: true },
+      contextValue: {},
+    })) as { initialResult: unknown; subsequentResults: AsyncIterable<unknown> };
+
+    const payloads: unknown[] = [];
+
+    for await (const payload of result.subsequentResults) {
+      payloads.push(payload);
+    }
+
+    expect(JSON.stringify(payloads)).toContain('"loadedBy":"plan"');
   });
 });
