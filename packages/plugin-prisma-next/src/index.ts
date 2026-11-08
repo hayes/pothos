@@ -361,7 +361,9 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
           : typeSelects(this.buildCache.getTypeConfig(fieldConfig.parentType)).length
             ? EMPTY
             : undefined;
-    return selection ? withSelection(fieldConfig, selection) : fieldConfig;
+    return selection
+      ? { ...fieldConfig, extensions: { ...extensions, [PRISMA_NEXT_FIELD_SELECTION]: selection } }
+      : fieldConfig;
   }
 
   /**
@@ -610,16 +612,13 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         return resolver(loads?.view ? viewOf(parent, loads) : parent, args, context, info);
       };
       const row = parseRow(baseOf(value as object), model);
-      let mapping: Mapping | null = null;
-      if (needsMapping) {
-        const source = sourceOf(row);
-        for (const type of parentTypes) {
-          mapping = getLoaderMapping(context, info, type, source);
-          if (mapping) {
-            break;
-          }
-        }
-      }
+      const source = sourceOf(row);
+      const mapping = needsMapping
+        ? parentTypes.reduce<Mapping | null>(
+            (found, type) => found ?? getLoaderMapping(context, info, type, source),
+            null,
+          )
+        : null;
       // A plan that loaded the parent planned the field into it, unless the row lacks what the
       // field or the type's `select`s read, as when it holds another field's rows.
       if (mapping && holdsType(row, check)) {
@@ -671,47 +670,32 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
    */
   private typeRow(typeName: string) {
     let loader = this.typeRows.get(typeName);
-    if (loader) {
-      return loader;
-    }
-    // Read from the built schema on first use.
-    let data:
-      | {
-          type: GraphQLObjectType | GraphQLInterfaceType;
-          modelKey: string;
-          model: PrismaNextModel;
-          check: RowCheck;
-        }
-      | undefined;
-    loader = (parent, context, info) => {
-      if (!data) {
+    if (!loader) {
+      let check: RowCheck | undefined;
+      loader = (parent, context, info) => {
+        // Read from the built schema.
         const type = info.schema.getType(typeName) as GraphQLObjectType | GraphQLInterfaceType;
         const modelKey = type.extensions[PRISMA_NEXT_MODEL] as string;
-        data = {
-          type,
-          modelKey,
-          model: getModel(this.config.contract, modelKey),
-          check: rowCheck(typeSelects(type)),
-        };
-      }
-      const { type, modelKey, model, check } = data;
-      const selection =
-        info.parentType.name === typeName
-          ? (info.parentType.getFields()[info.fieldName]?.extensions?.[
-              PRISMA_NEXT_FIELD_SELECTION
-            ] as PrismaNextSelection | PrismaNextSelectFn | undefined)
-          : undefined;
-      const columns = (typeof selection === 'function' ? undefined : selection?.columns) ?? [];
-      // A prisma type's parent is always a row.
-      const row = parseRow(baseOf(parent as object), model);
-      if (holdsType(row, check) && holds(row, columns)) {
-        return row;
-      }
-      return reloadFor(info, () =>
-        this.config.loader(context, modelKey).loadTypeRow(info, row, type),
-      ).then((reloaded) => parseRow(reloaded, model));
-    };
-    this.typeRows.set(typeName, loader);
+        const model = getModel(this.config.contract, modelKey);
+        check ??= rowCheck(typeSelects(type));
+        const selection =
+          info.parentType.name === typeName
+            ? (info.parentType.getFields()[info.fieldName]?.extensions?.[
+                PRISMA_NEXT_FIELD_SELECTION
+              ] as PrismaNextSelection | PrismaNextSelectFn | undefined)
+            : undefined;
+        const columns = (typeof selection === 'function' ? undefined : selection?.columns) ?? [];
+        // A prisma type's parent is always a row.
+        const row = parseRow(baseOf(parent as object), model) as Record<string, unknown>;
+        if (holdsType(row, check) && columns.every((column) => row[column] !== undefined)) {
+          return row;
+        }
+        return reloadFor(info, () =>
+          this.config.loader(context, modelKey).loadTypeRow(info, row, type),
+        ).then((reloaded) => parseRow(reloaded, model));
+      };
+      this.typeRows.set(typeName, loader);
+    }
     return loader;
   }
 }
@@ -728,24 +712,6 @@ function disagreement(first: string, type: string, key: string, model: string) {
   return new PothosSchemaError(
     `'${first}' and '${type}' both select '${key}', with different definitions. Every row of model '${model}' holds one value for it, which the fields and auth checks of every type of the model read. Define it the same way in both, or load the other version in a field's select.`,
   );
-}
-
-/** Whether none of `keys` is undefined on `row`. */
-function holds(row: object, keys: readonly string[]) {
-  return keys.every((key) => (row as Record<string, unknown>)[key] !== undefined);
-}
-
-/**
- * `fieldConfig` with `selection` as the selection the planner reads.
- */
-function withSelection<Types extends SchemaTypes>(
-  fieldConfig: PothosOutputFieldConfig<Types>,
-  selection: PrismaNextSelection | PrismaNextSelectFn,
-): PothosOutputFieldConfig<Types> {
-  return {
-    ...fieldConfig,
-    extensions: { ...fieldConfig.extensions, [PRISMA_NEXT_FIELD_SELECTION]: selection },
-  };
 }
 
 /** `value`, a field's result, with `copy` applied to each item, through promises and lists. */

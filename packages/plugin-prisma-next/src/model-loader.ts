@@ -54,14 +54,6 @@ interface Batch {
   requests: Request[];
 }
 
-type PlanCache = WeakMap<object, Map<string, MaybePromise<Played>>>;
-
-interface Plans {
-  parent: PlanCache;
-  node: PlanCache;
-  type: PlanCache;
-}
-
 interface IdentityColumn {
   eq(value: unknown): never;
   in(values: unknown[]): never;
@@ -79,11 +71,7 @@ export class ModelLoader {
    * Plans depend on the operation and its variables, which include `@skip` and `@include`
    * arguments, so they are cached per operation (see `forOperation`).
    */
-  private readonly plans: Plans = {
-    parent: new WeakMap(),
-    node: new WeakMap(),
-    type: new WeakMap(),
-  };
+  private readonly plans = new WeakMap<object, Map<string, MaybePromise<Played>>>();
   private readonly staged = new Set<Batch>();
   /** `loadTypeRow`'s loads, by root field path, row, then type. */
   private readonly reloads = new WeakMap<object, WeakMap<object, Map<string, Promise<Row>>>>();
@@ -110,15 +98,14 @@ export class ModelLoader {
     }
   }
 
-  /** The plan of `kind` cached under `key` for `info`'s operation, made by `plan` on first use. */
+  /** The plan cached under `key` for `info`'s operation, made by `plan` on first use. */
   private cachedPlan(
     info: GraphQLResolveInfo,
-    kind: keyof Plans,
     key: string,
     plan: () => MaybePromise<Played>,
   ): MaybePromise<Played> {
     assertGraphQLJsInfo(info);
-    const plans = forOperation(this.plans[kind], info);
+    const plans = forOperation(this.plans, info);
     let selection = plans.get(key);
     if (!selection) {
       selection = plan();
@@ -133,8 +120,7 @@ export class ModelLoader {
     // The selects of the field and those beneath it run here.
     const selection = this.cachedPlan(
       info,
-      'parent',
-      cacheKey(info.parentType.name, info.path),
+      `parent:${cacheKey(info.parentType.name, info.path)}`,
       () =>
         appPlan(() =>
           Plan.forParentRow(this.config.adapter, {
@@ -144,11 +130,8 @@ export class ModelLoader {
           }),
         ),
     );
-    const load = (played: Played) => {
-      const values = this.identity.map((field) => (parent as Row)[field]);
-      const staged = this.stage(played.root, this.identity, values, { kind: 'parent' });
-      return staged.then((reloaded) => {
-        const row = withOtherKeys(reloaded!, parent, played.root.model);
+    const load = (played: Played) =>
+      this.reloadParent(played, parent).then((row) => {
         // The plan is walked from the parent type, so the field's own mapping is keyed by the
         // parent type and the field's response key.
         // A reload plans its field first, onto a level that loads nothing yet, so the field always
@@ -157,7 +140,6 @@ export class ModelLoader {
         setRowFieldMapping(this.context, info, mapping, row);
         return { row, mapping };
       });
-    };
     return completeValue(selection, load) as Promise<{ row: Row; mapping: Mapping }>;
   }
 
@@ -177,18 +159,14 @@ export class ModelLoader {
     this.assertIdentity(info);
     const key = type.name;
     const root = rootPath(info);
-    let rows = this.reloads.get(root);
-    if (!rows) {
-      rows = new WeakMap();
-      this.reloads.set(root, rows);
-    }
+    const byRow = this.reloads.get(root) ?? this.reloads.set(root, new WeakMap()).get(root)!;
     const row = sourceOf(parent);
-    let loads = rows.get(row);
-    const loaded = loads?.get(key);
+    const byType = byRow.get(row) ?? byRow.set(row, new Map()).get(row)!;
+    const loaded = byType.get(key);
     if (loaded) {
       return loaded;
     }
-    const selection = this.cachedPlan(info, 'type', key, () => {
+    const selection = this.cachedPlan(info, `type:${key}`, () => {
       const plan = new Plan(
         this.config.adapter,
         { context: this.context, info },
@@ -201,19 +179,10 @@ export class ModelLoader {
         return played;
       });
     });
-    const load = (played: Played) =>
-      this.stage(
-        played.root,
-        this.identity,
-        this.identity.map((field) => (parent as Row)[field]),
-        { kind: 'parent' },
-      ).then((reloaded) => withOtherKeys(reloaded!, parent, played.root.model));
-    const reloaded = completeValue(selection, load) as Promise<Row>;
-    if (!loads) {
-      loads = new Map();
-      rows.set(row, loads);
-    }
-    loads.set(key, reloaded);
+    const reloaded = completeValue(selection, (played) =>
+      this.reloadParent(played, parent),
+    ) as Promise<Row>;
+    byType.set(key, reloaded);
     return reloaded;
   }
 
@@ -226,7 +195,7 @@ export class ModelLoader {
     collection: ((ctx: object) => MapperCollection) | undefined,
   ): Promise<Row | null> {
     // Keyed on the type rather than the model, because variants of a model select differently.
-    const selection = this.cachedPlan(info, 'node', cacheKey(typeName, info.path), () =>
+    const selection = this.cachedPlan(info, `node:${cacheKey(typeName, info.path)}`, () =>
       appPlan(() =>
         completeValue(
           Plan.fromInfo(this.config.adapter, {
@@ -250,6 +219,14 @@ export class ModelLoader {
       });
     };
     return completeValue(selection, load) as Promise<Row | null>;
+  }
+
+  /** `parent` reloaded by its identity with what `played` plans, keeping its other keys. */
+  private reloadParent(played: Played, parent: object): Promise<Row> {
+    const values = this.identity.map((field) => (parent as Row)[field]);
+    return this.stage(played.root, this.identity, values, { kind: 'parent' }).then((reloaded) =>
+      withOtherKeys(reloaded!, parent, played.root.model),
+    );
   }
 
   private stage(
