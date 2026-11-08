@@ -775,7 +775,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       return Buffer.from(`${prefix}S:${refused}`).toString('base64');
     }
 
-    it('fails only the node whose ID the database refuses', async () => {
+    it('fails the node batch holding an ID the database refuses with a generic error', async () => {
       const result = await graphql({
         schema: textSchema(),
         source: `query ($a: ID!, $b: ID!) {
@@ -788,12 +788,14 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
         },
         contextValue: {},
       });
-      expect(result.data).toEqual({ a: { name: 'Alice' }, b: null });
+      expect(result.data).toEqual({ a: null, b: null });
       expect(result.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
-        { message: 'Invalid ID.', path: ['b'] },
+        { message: 'Unexpected error.', path: ['a'] },
+        { message: 'Unexpected error.', path: ['b'] },
       ]);
-      expect(result.errors?.[0]?.originalError).toBeInstanceOf(PothosValidationError);
-      expect((result.errors?.[0]?.originalError as Error).cause).toBeInstanceOf(SqlQueryError);
+      const cause = result.errors?.[0]?.originalError?.cause as Error;
+      expect(cause.message).toMatch(/^Query\.node: invalid byte sequence/);
+      expect(cause.cause).toBeInstanceOf(SqlQueryError);
     });
 
     it('treats only values the database cannot represent as refused', () => {

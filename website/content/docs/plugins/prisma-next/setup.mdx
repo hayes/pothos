@@ -196,8 +196,8 @@ These go under `prismaNext` in the builder options.
 
 - On MySQL, Prisma reads rows but can't write them, count them or run aggregates yet. MongoDB isn't
   supported.
-- A bad ID or cursor, or one the database refuses, fails with `Invalid ID.` or `Invalid cursor.`,
-  which are safe to show. The plugin's own errors reach clients as `Unexpected error.`, with the
+- A bad ID or cursor, or a cursor the database refuses, fails with `Invalid ID.` or
+  `Invalid cursor.`, which are safe to show. The plugin's own errors reach clients as `Unexpected error.`, with the
   detail in the error's `cause`. So do database errors from reloading a parent row or loading a
   `node`, and from a `resolve` write that can't return a column the query selects. Other database
   errors, from a field's statement and the relations it loads, pass through unchanged, as do errors

@@ -41,7 +41,7 @@ export function isRefusedValue(error: unknown): error is SqlQueryError {
   return SqlQueryError.is(error) && REFUSED_VALUE_STATES.has(error.sqlState ?? '');
 }
 
-/** `message`, a client-safe error such as `Invalid ID.`, for `cause`, which `reloadFor` keeps. */
+/** `message`, a client-safe error such as `Invalid cursor.`, for `cause`, which `reloadFor` keeps. */
 export function refusedError(message: string, cause: Error): PothosValidationError {
   return keepError(
     Object.assign(new PothosValidationError(message, { originalError: cause }), { cause }),
