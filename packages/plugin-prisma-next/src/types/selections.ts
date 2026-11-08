@@ -30,10 +30,9 @@ import type {
   Row,
   VariantModelKeys,
 } from './models.js';
-import type { OrderByColumnsCheck, RelationOrderBy, UnknownOrderByColumns } from './order-by.js';
+import type { RelationOrderBy } from './order-by.js';
 import type {
   DefaultRelationNullable,
-  ExactQueryLiteral,
   IsToMany,
   RelatedModel,
   RelationFieldShape,
@@ -72,16 +71,7 @@ type FieldSelectColumn<Types extends SchemaTypes, ParentShape> =
  */
 type FieldSelectArray<Types extends SchemaTypes, ParentShape> =
   | readonly []
-  | readonly [FieldSelectEntry<Types, ParentShape>, ...FieldSelectEntry<Types, ParentShape>[]];
-
-/**
- * Any string, still completing the columns, so an unknown column reaches `ValidateFieldSelect`,
- * which names it. With only the columns here, an array of nothing but unknown columns fails as
- * `'titel'` not assignable to `never` on TypeScript 7.
- */
-type FieldSelectEntry<Types extends SchemaTypes, ParentShape> =
-  | FieldSelectColumn<Types, ParentShape>
-  | (string & {});
+  | readonly [FieldSelectColumn<Types, ParentShape>, ...FieldSelectColumn<Types, ParentShape>[]];
 
 /**
  * A column array, a `select` object, or a function of the args, the context and `nestedSelection`
@@ -190,8 +180,10 @@ interface EntrySelect<
   Level extends SelectLevel,
 > {
   readonly type?: TM | ModelTypeRef<TM>;
-  readonly select?: SelectOf<Types, TM, Level extends 'type' ? 'type' : 'nested'>;
+  readonly select?: SelectOf<Types, TM, NestedLevel<Level>>;
 }
+
+type NestedLevel<Level extends SelectLevel> = Level extends 'type' ? 'type' : 'nested';
 
 /** A `select`: a column array or an object. */
 type SelectOf<Types extends SchemaTypes, M extends ModelKey<Types>, Level extends SelectLevel> =
@@ -239,10 +231,7 @@ export type SelectObjectSpec<
                             ? ConnectionPageEntry<RelationTypeModel<Types, M, K>, unknown>
                             : never)
                     : never))
-    : // Any value, so `InvalidSelectValueCheck` names a column given anything but `true`.
-      K extends keyof Row<Types, M>
-      ? true | {}
-      : never;
+    : true;
 };
 
 /**
@@ -280,16 +269,16 @@ type NestedOptions<Types extends SchemaTypes, M extends ModelKey<Types>> = [M] e
     }
   : RelationQueryLiteral<Types, M> & { readonly select?: SelectOf<Types, M, 'nested'> };
 
-/** Checks what `nestedSelection` was given for rows of `M`: its keys, order and `select`. */
-type NestedOptionsCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Options> = [
-  M,
-] extends [never]
-  ? ExactQueryLiteral<Options, QueryKeys | 'path' | 'type'>
-  : ExactQueryLiteral<Options, QueryKeys | 'path' | 'type' | 'select'> &
-      OrderByColumnsCheck<Types, M, Options> &
-      (Options extends { readonly select: infer Nested }
-        ? { readonly select?: SelectCheck<Types, M, Nested, 'nested'> }
-        : unknown);
+/** Checks what `nestedSelection` was given for rows of `M`: its keys, `orderBy` and `select`. */
+type NestedOptionsCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Options> = (
+  [M] extends [never]
+    ? { readonly [P in keyof Options]?: P extends QueryKeys | 'path' | 'type' ? unknown : never }
+    : EntryOptionsMirror<Types, M, M, Options, QueryKeys | 'path' | 'type' | 'select', 'nested'>
+) extends infer Mirror
+  ? [Options] extends [Mirror]
+    ? unknown
+    : Mirror
+  : never;
 
 /**
  * Plans the selection beneath a field into a relation entry of its `select`: the relation's rows
@@ -377,18 +366,9 @@ type VariantRelationCheck<Types extends SchemaTypes, M extends ModelKey<Types>, 
   : [Select] extends [readonly unknown[]]
     ? unknown
     : {
-        [K in keyof Select &
-          keyof OwnRelationsOfModel<
-            Types['PrismaNextContract'],
-            M
-          > as `A variant's own relation loads only in a field's select, such as t.relation or t.field({ select }): ${K &
-          string}`]: never;
+        readonly [K in keyof Select &
+          keyof OwnRelationsOfModel<Types['PrismaNextContract'], M>]?: never;
       };
-
-/** The keys a `select` names as they are: the model's columns and relations. */
-type KnownSelectKeys<Types extends SchemaTypes, M extends ModelKey<Types>> =
-  | (keyof Row<Types, M> & string)
-  | RelationKeys<Types, M>;
 
 /** The model a relation entry's `type` names, or the relation's target for an entry without one. */
 type EntryModel<
@@ -523,46 +503,25 @@ type OptionalSelectShape<Types extends SchemaTypes, M extends ModelKey<Types>, S
 export type ValidateFieldSelect<Types extends SchemaTypes, ParentShape, Select> = [Select] extends [
   (...args: infer Args) => infer Result,
 ]
-  ? (...args: Args) => MaybePromise<ValidateSelectResult<Types, ParentShape, Awaited<Result>>>
+  ? // A promise, which has none of a `select`'s keys, would pass the check of its value.
+    (
+      ...args: Args
+    ) => [Result] extends [PromiseLike<unknown>]
+      ? Promise<ValidateSelectResult<Types, ParentShape, Awaited<Result>>>
+      : MaybePromise<ValidateSelectResult<Types, ParentShape, Awaited<Result>>>
   : ValidateSelectValue<Types, ParentShape, Select>;
 
 /**
- * Checks what a select function returns. `unknown` means no `select` to `SelectCheck`, but here it
- * would load nothing without saying so. `any` opts out of the check. A column array is a static
- * `select` only.
+ * A select function returns an object `select`, so a column array or `unknown` fails. `any` opts
+ * out of the check.
  */
-type ValidateSelectResult<Types extends SchemaTypes, ParentShape, Result> = [unknown] extends [
-  Result,
-]
-  ? 0 extends 1 & Result
-    ? unknown
-    : NotASelect<Result>
-  : [Extract<Result, readonly unknown[]>] extends [never]
-    ? ValidateSelectValue<Types, ParentShape, Result>
-    : NotASelect<Result>;
-
-/** Names an unknown column in an error, where a plain `never` would only say "not assignable". */
-interface UnknownSelectColumn<Column> {
-  readonly 'Unknown column in select': Column;
-}
-
-/**
- * Checks an array `select` entry. An unknown column becomes an object brand rather than `never` or
- * a message string, so the error names it (`'emial' & UnknownSelectColumn<'emial'>`) and the brand
- * is never offered as a string completion. A non-literal entry, such as the editor's placeholder
- * while completing, becomes the column names, so completions list only columns.
- */
-export type SelectColumnCheck<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  Column,
-> = Column extends keyof Row<Types, M> & string
-  ? Column
-  : Column extends string
-    ? string extends Column
-      ? keyof Row<Types, M> & string
-      : UnknownSelectColumn<Column>
-    : keyof Row<Types, M> & string;
+type ValidateSelectResult<Types extends SchemaTypes, ParentShape, Result> = 0 extends 1 & Result
+  ? unknown
+  : [unknown] extends [Result]
+    ? never
+    : [Extract<Result, readonly unknown[]>] extends [never]
+      ? ValidateSelectValue<Types, ParentShape, Result>
+      : never;
 
 type ValidateSelectValue<Types extends SchemaTypes, ParentShape, Select> =
   ExtractModel<Types, ParentShape> extends infer M
@@ -572,15 +531,16 @@ type ValidateSelectValue<Types extends SchemaTypes, ParentShape, Select> =
     : never;
 
 /**
- * Checks a field's or a type's `select`, which is inferred from the literal, not checked. Every
- * branch of a union must pass, so the branches' checks are intersected: as a union, a branch that
- * passes (`unknown`) would absorb one that doesn't.
+ * Checks a field's or a type's `select`, which is inferred from the literal, not checked. A branch
+ * that passes checks as `unknown`, and one that fails as its `SelectMirror`. The branches' checks
+ * are intersected, so every branch of a union must pass.
  */
 export type SelectCheck<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   Select,
   Level extends SelectLevel,
+  All = Select,
 > = unknown extends Select
   ? unknown
   : // Valid arrays, the common case, need no walk of their branches.
@@ -588,41 +548,102 @@ export type SelectCheck<
     ? unknown
     : (
           Select extends unknown
-            ? (check: [BranchSelectCheck<Types, M, Select, Level>]) => void
+            ? (
+                check: [
+                  SelectMirror<Types, M, Select, Level> extends infer Mirror
+                    ? [Select] extends [Mirror]
+                      ? unknown
+                      : // The other branches pass the check of this one.
+                        Mirror | Exclude<All, Select>
+                    : never,
+                ],
+              ) => void
             : never
         ) extends (check: [infer Check]) => void
       ? Check
       : never;
 
-type BranchSelectCheck<
+/**
+ * What each value of `S` may be: `true` for a column, the options of a relation entry, and `never`
+ * for an unknown key or a value its level doesn't take, so an error lands on the key. A branch can
+ * leave an entry undefined or null, which selects nothing.
+ */
+type SelectMirror<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
-  Select,
+  S,
   Level extends SelectLevel,
-> = Select extends readonly unknown[]
-  ? // Only an invalid array is mapped entry by entry, to name the unknown columns.
-    Select extends readonly (keyof Row<Types, M>)[]
-    ? unknown
-    : { readonly [K in keyof Select]: SelectColumnCheck<Types, M, Select[K]> }
-  : Select extends string | number | boolean | bigint | symbol | ((...args: never[]) => unknown)
-    ? NotASelect<Select>
-    : ExactSelectCheck<Types, M, Select, Level>;
+> = S extends (...args: never[]) => unknown
+  ? never
+  : S extends readonly unknown[]
+    ? { readonly [I in keyof S]: keyof Row<Types, M> & string }
+    : S extends object
+      ? {
+          readonly [K in keyof S]: [NonNullable<S[K]>] extends [never]
+            ? unknown
+            : K extends keyof Row<Types, M>
+              ? NonNullable<S[K]> extends true
+                ? true | null
+                : never
+              : K extends RelationKeys<Types, M>
+                ? EntryMirror<Types, M, K, NonNullable<S[K]>, Level> | null
+                : never;
+        }
+      : S extends null | undefined
+        ? S
+        : never;
 
-/** Names a primitive or function `select`, which the object spec's optional keys would accept. */
-interface NotASelect<Value> {
-  readonly 'A select is a column array or an object, not': Value;
-}
-
-/** Whether `Entry` is a relation entry written as an object, rather than `true` or a helper's. */
-type IsEntryObject<Entry> = Entry extends
-  | true
-  | ((...args: never[]) => unknown)
-  | NestedSelectionEntry<unknown, unknown, unknown>
-  | ConnectionPageEntry<unknown, unknown>
-  ? false
-  : Entry extends object
-    ? true
-    : false;
+/** What relation entry `E` of `K` may be at `Level`. */
+type EntryMirror<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  K extends RelationKeys<Types, M>,
+  E,
+  Level extends SelectLevel,
+> = E extends true
+  ? true
+  : E extends NestedSelectionEntry<infer TM, infer Options, unknown>
+    ? Level extends 'type'
+      ? never
+      : PlannedCheck<
+          ModelMismatch<Types, M, K, 'nestedSelection', TM>,
+          // The options were checked for rows of `TM`, but not as the relation's, or, for rows
+          // without a model, not against any model.
+          NestedSelectionEntry<
+            unknown,
+            ([TM] extends [never] ? RelatedModel<Types, M, K> : TM) extends infer OM extends
+              ModelKey<Types>
+              ? EntryOptionsMirror<
+                  Types,
+                  OM,
+                  OM,
+                  Pick<Options, WrittenKeys<Options>>,
+                  EntryKeys<Types, M, K> | 'path',
+                  'nested'
+                >
+              : never,
+            unknown
+          >
+        >
+    : E extends ConnectionPageEntry<infer TM, unknown>
+      ? Level extends 'field'
+        ? PlannedCheck<ModelMismatch<Types, M, K, 'getQuery', TM>, E>
+        : never
+      : E extends (...args: never[]) => unknown
+        ? [Level, IsToMany<Types, M, K>] extends ['type', unknown] | [unknown, false]
+          ? never
+          : AggregateSelect<Types, M, K>
+        : E extends object
+          ? EntryOptionsMirror<
+              Types,
+              RelatedModel<Types, M, K>,
+              EntryModel<Types, M, K, E>,
+              E,
+              EntryKeys<Types, M, K>,
+              NestedLevel<Level>,
+              PlannedCheck<ModelMismatch<Types, M, K, 'type', EntryModel<Types, M, K, E>>, unknown>
+            >
+          : never;
 
 /** The options a relation entry of `K` takes. */
 type EntryKeys<
@@ -631,190 +652,57 @@ type EntryKeys<
   K extends RelationKeys<Types, M>,
 > = 'type' | 'select' | (IsToMany<Types, M, K> extends true ? QueryKeys : never);
 
-/**
- * The unknown keys of a relation entry, and the columns its literal `where` and `orderBy` name that
- * its rows lack. A `nestedSelection` entry's query is checked here only for rows without a model,
- * whose query `nestedSelection` can't type.
- */
-type UnknownEntryKeys<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  K extends RelationKeys<Types, M> & string,
-  Entry,
-> =
-  Entry extends NestedSelectionEntry<infer TM, infer Options, unknown>
-    ?
-        | `${K}.${Exclude<WrittenKeys<Options>, EntryKeys<Types, M, K> | 'path'> & (string | number)}`
-        | ([TM] extends [never] ? UnknownQueryKeys<Types, M, K, Options> : never)
-    : IsEntryObject<Entry> extends true
-      ?
-          | `${K}.${Exclude<keyof Entry, EntryKeys<Types, M, K>> & (string | number)}`
-          | UnknownQueryKeys<Types, M, K, Entry>
-      : never;
-
-/**
- * The columns a relation entry's `orderBy` names that its rows lack, and those its literal `where`
- * names that the relation's target lacks.
- */
-type UnknownQueryKeys<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  K extends RelationKeys<Types, M> & string,
-  Query,
-> =
-  | `${K}.orderBy.${UnknownOrderByColumns<Types, EntryModel<Types, M, K, Query>, Query> & string}`
-  | (Query extends { readonly where?: infer Where }
-      ? NonNullable<Where> extends (...args: never[]) => unknown
-        ? never
-        : `${K}.where.${Exclude<keyof NonNullable<Where>, keyof Row<Types, RelatedModel<Types, M, K>>> & string}`
-      : never);
+type PlannedCheck<Mismatch, Ok> = [Mismatch] extends [never] ? Ok : Mismatch;
 
 /** The keys an inferred literal was written with, rather than optional ones of a constraint. */
 type WrittenKeys<Options> = {
   [P in keyof Options]-?: {} extends Pick<Options, P> ? never : P;
 }[keyof Options];
 
-type UnknownSelectKeys<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  Select,
-> = Select extends object
-  ?
-      | Exclude<keyof Select, KnownSelectKeys<Types, M>>
-      | {
-          [K in keyof Select & RelationKeys<Types, M> & string]: UnknownEntryKeys<
-            Types,
-            M,
-            K,
-            NonNullable<Select[K]>
-          >;
-        }[keyof Select & RelationKeys<Types, M> & string]
-  : never;
-
-/** An object `select`'s unknown keys, invalid values and nested `select`s. */
-type ExactSelectCheck<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  Select,
-  Level extends SelectLevel,
-> = ([UnknownSelectKeys<Types, M, Select>] extends [never]
-  ? unknown
-  : {
-      [K in UnknownSelectKeys<Types, M, Select> &
-        (string | number) as `Unknown key in select: ${K}`]: never;
-    }) &
-  InvalidSelectValueCheck<Types, M, Select, Level> &
-  NestedSelectCheck<Types, M, Select, Level>;
-
-/** Checks the nested `select` of each relation entry, as a `select` of its type's model. */
-type NestedSelectCheck<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  Select,
-  Level extends SelectLevel,
-> = {
-  [K in keyof Select & RelationKeys<Types, M> as unknown extends EntrySelectCheck<
-    Types,
-    M,
-    K,
-    NonNullable<Select[K]>,
-    Level
-  >
-    ? never
-    : K]?: { readonly select: EntrySelectCheck<Types, M, K, NonNullable<Select[K]>, Level> };
-} extends infer Check
-  ? [keyof Check] extends [never]
-    ? unknown
-    : Check
-  : never;
-
 /**
- * Checks the nested `select` of `Entry`, a relation entry of `K`, and reports one that isn't a
- * `select` at all. An entry a branch leaves undefined (`never` here) selects nothing.
+ * Mirrors a relation entry, or `nestedSelection`'s options, whose rows are of `TM`: `Target` or a
+ * variant of it. Keys outside `Known` and the columns a literal `where` or `orderBy` names that the
+ * rows lack are `never`. `Level` is the nested `select`'s.
  */
-type EntrySelectCheck<
+type EntryOptionsMirror<
   Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  K extends RelationKeys<Types, M>,
-  Entry,
+  Target extends ModelKey<Types>,
+  TM extends ModelKey<Types>,
+  E,
+  Known extends PropertyKey,
   Level extends SelectLevel,
-> = [Entry] extends [never]
-  ? unknown
-  : IsEntryObject<Entry> extends true
-    ? Entry extends { readonly select: infer Nested }
-      ? SelectCheck<
-          Types,
-          EntryModel<Types, M, K, Entry>,
-          Nested,
-          Level extends 'type' ? 'type' : 'nested'
-        >
-      : unknown
-    : unknown;
-
-/**
- * Names a key whose value doesn't fit the spec, such as `email: { limit: 1 }`,
- * `posts: (posts) => posts` or `posts: { limit: 'x' }`. Checking `Select` against the spec misses
- * these. The spec's relation options are all optional, so its intersection with an inferred
- * function accepts any function.
- */
-type InvalidSelectValueCheck<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  Select,
-  Level extends SelectLevel,
+  TypeCheck = unknown,
 > = {
-  // A branch's spread or normalized union can leave a key undefined, which selects nothing.
-  [K in keyof Select & KnownSelectKeys<Types, M>]: [NonNullable<Select[K]>] extends [never]
-    ? never
-    : (
-          K extends RelationKeys<Types, M>
-            ? IsEntryObject<NonNullable<Select[K]>> extends true
-              ? // Unknown keys are named as such, and the nested `select` is checked on its own.
-                Pick<
-                  NonNullable<Select[K]>,
-                  Exclude<EntryKeys<Types, M, K>, 'select'> & keyof NonNullable<Select[K]>
-                > extends RelationSelect<Types, M, K, Level>
-                ? true
-                : false
-              : NonNullable<Select[K]> extends NonNullable<SelectObjectSpec<Types, M, Level>[K]>
-                ? true
-                : false
-            : NonNullable<Select[K]> extends true
-              ? true
-              : false
-        ) extends true
-      ? never
-      : K;
-}[keyof Select & KnownSelectKeys<Types, M>] extends infer Invalid extends string
-  ? [Invalid] extends [never]
+  readonly [P in keyof E]: [NonNullable<E[P]>] extends [never]
     ? unknown
-    : {
-        [K in Invalid as K extends RelationKeys<Types, M>
-          ? [PlannedModelError<Types, M, K, NonNullable<Select[K & keyof Select]>>] extends [never]
-            ? `Invalid value in select: ${K}`
-            : PlannedModelError<Types, M, K, NonNullable<Select[K & keyof Select]>>
-          : `Invalid value in select: ${K}`]: never;
-      }
-  : unknown;
+    : P extends Known
+      ? P extends 'select'
+        ? SelectMirror<Types, TM, NonNullable<E[P]>, Level>
+        : P extends 'where'
+          ? ColumnsMirror<E[P], keyof Row<Types, Target>>
+          : P extends 'orderBy'
+            ? // A declaration, unlike `where`, which may be the ORM's predicate.
+              NonNullable<E[P]> extends (...args: never[]) => unknown
+              ? never
+              : ColumnsMirror<E[P], keyof RelationOrderBy<Types, TM>>
+            : P extends 'limit' | 'offset'
+              ? number | undefined
+              : P extends 'type'
+                ? TypeCheck
+                : unknown
+      : never;
+};
+
+/** A literal `where` or `orderBy` with the columns outside `Columns` as `never`. */
+type ColumnsMirror<V, Columns> =
+  NonNullable<V> extends (...args: never[]) => unknown
+    ? unknown
+    : { readonly [C in keyof NonNullable<V>]: C extends Columns ? unknown : never };
 
 /**
  * Names a relation entry whose rows are of a model relation `K` doesn't load: a `type` or a
  * `nestedSelection` or connection helper entry planning another model's rows.
  */
-type PlannedModelError<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  K extends RelationKeys<Types, M>,
-  Entry,
-> =
-  Entry extends NestedSelectionEntry<infer Planned, unknown, unknown>
-    ? ModelMismatch<Types, M, K, 'nestedSelection', Planned>
-    : Entry extends ConnectionPageEntry<infer Planned, unknown>
-      ? ModelMismatch<Types, M, K, 'getQuery', Planned>
-      : Entry extends { readonly type: unknown }
-        ? ModelMismatch<Types, M, K, 'type', EntryModel<Types, M, K, Entry>>
-        : never;
-
 type ModelMismatch<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
@@ -902,8 +790,8 @@ export type ShapeFromObjectSelect<
  */
 export type TypeSelectCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Select> = {
   // Picked by the form of `Select` rather than a union of both, which a failing object `select`
-  // is reported against as not assignable to `undefined`. The checks below name what a type's
-  // `select` can't take. While completing, `Select` is `unknown`, so both forms are offered.
+  // is reported against as not assignable to `undefined`. While completing, `Select` is
+  // `unknown`, so both forms are offered.
   select?: (unknown extends Select
     ? SelectOf<Types, M, 'type'>
     : [Select] extends [readonly unknown[]]

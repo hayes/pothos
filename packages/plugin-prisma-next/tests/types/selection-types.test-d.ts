@@ -1477,7 +1477,7 @@ builder.prismaObject('User', {
       },
     }),
     unknownOption: t.string({
-      // @ts-expect-error Unknown key in select: comments.take
+      // @ts-expect-error `take` isn't a key of `comments`
       select: { comments: { take: 1 } },
       resolve: () => '',
     }),
@@ -1485,7 +1485,7 @@ builder.prismaObject('User', {
 });
 builder.prismaObject('Post', {
   variant: 'ToOneQueryEntryPost',
-  // @ts-expect-error Unknown key in select: author.limit
+  // @ts-expect-error `limit` isn't a key of `author`
   select: { author: { limit: 1 } },
 });
 

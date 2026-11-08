@@ -151,50 +151,36 @@ builder.prismaObject('Post', {
   select: { author: { where: { id: 'x' } } },
   fields: () => ({}),
 });
-expectTypeOf<
-  keyof SelectCheck<Types, 'Post', { author: { where: { id: 'x' } } }, 'type'>
->().toEqualTypeOf<'Unknown key in select: author.where'>();
-expectTypeOf<
-  keyof SelectCheck<Types, 'Post', { author: { limit: 1 } }, 'field'>
->().toEqualTypeOf<'Unknown key in select: author.limit'>();
-expectTypeOf<
-  keyof SelectCheck<Types, 'Post', { author: { nope: 1 } }, 'type'>
->().toEqualTypeOf<'Unknown key in select: author.nope'>();
+/** Whether `SelectCheck` rejects a `select`, which then fails on the offending key. */
+type Rejected<M extends 'User' | 'Post', S, Level extends 'type' | 'field'> = [S] extends [
+  SelectCheck<Types, M, S, Level>,
+]
+  ? false
+  : true;
+expectTypeOf<Rejected<'Post', { author: { where: { id: 'x' } } }, 'type'>>().toEqualTypeOf<true>();
+expectTypeOf<Rejected<'Post', { author: { limit: 1 } }, 'field'>>().toEqualTypeOf<true>();
+expectTypeOf<Rejected<'Post', { author: { nope: 1 } }, 'type'>>().toEqualTypeOf<true>();
 expectTypeOf<
   SelectCheck<Types, 'Post', { author: { select: { email: true } } }, 'type'>
 >().toEqualTypeOf<unknown>();
 // Functions are aggregates of a to-many relation, in a field's select only.
-expectTypeOf<SelectCheck<Types, 'Post', { author: () => {} }, 'field'>>().toEqualTypeOf<{
-  'Invalid value in select: author': never;
-}>();
+expectTypeOf<Rejected<'Post', { author: () => {} }, 'field'>>().toEqualTypeOf<true>();
+expectTypeOf<Rejected<'User', { posts: (sub: never) => never }, 'field'>>().toEqualTypeOf<true>();
 expectTypeOf<
-  SelectCheck<Types, 'User', { posts: (sub: never) => never }, 'field'>
->().toEqualTypeOf<{
-  'Invalid value in select: posts': never;
-}>();
+  Rejected<'User', { posts: (posts: { count(): never }) => {} }, 'type'>
+>().toEqualTypeOf<true>();
 expectTypeOf<
-  SelectCheck<Types, 'User', { posts: (posts: { count(): never }) => {} }, 'type'>
->().toEqualTypeOf<{ 'Invalid value in select: posts': never }>();
-expectTypeOf<
-  SelectCheck<Types, 'Post', { title: { comments: (sub: never) => never } }, 'field'>
->().toEqualTypeOf<{ 'Invalid value in select: title': never }>();
-expectTypeOf<
-  keyof SelectCheck<Types, 'User', { emial: true }, 'field'>
->().toEqualTypeOf<'Unknown key in select: emial'>();
-// A column given anything but `true` is named.
-expectTypeOf<
-  keyof SelectCheck<Types, 'User', { email: 1 }, 'field'>
->().toEqualTypeOf<'Invalid value in select: email'>();
-expectTypeOf<
-  keyof SelectCheck<Types, 'User', { email: false }, 'type'>
->().toEqualTypeOf<'Invalid value in select: email'>();
+  Rejected<'Post', { title: { comments: (sub: never) => never } }, 'field'>
+>().toEqualTypeOf<true>();
+expectTypeOf<Rejected<'User', { emial: true }, 'field'>>().toEqualTypeOf<true>();
+// A column takes only `true`.
+expectTypeOf<Rejected<'User', { email: 1 }, 'field'>>().toEqualTypeOf<true>();
+expectTypeOf<Rejected<'User', { email: false }, 'type'>>().toEqualTypeOf<true>();
 // A nested `select` is a column array or an object.
+expectTypeOf<Rejected<'User', { posts: { select: 'title' } }, 'field'>>().toEqualTypeOf<true>();
 expectTypeOf<
-  keyof SelectCheck<Types, 'User', { posts: { select: 'title' } }, 'field'>
->().toEqualTypeOf<'posts'>();
-expectTypeOf<
-  keyof SelectCheck<Types, 'User', { posts: { select: { author: { select: 1 } } } }, 'type'>
->().toEqualTypeOf<'posts'>();
+  Rejected<'User', { posts: { select: { author: { select: 1 } } } }, 'type'>
+>().toEqualTypeOf<true>();
 builder.prismaObject('User', {
   variant: 'NestedSelectString',
   // @ts-expect-error a nested select isn't a column name

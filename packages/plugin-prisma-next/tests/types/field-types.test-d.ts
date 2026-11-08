@@ -19,11 +19,7 @@ import PrismaNextPlugin, {
 } from '../../src';
 import type { ExposableColumn } from '../../src/types/fields';
 import type { LoadedRow, ObjectBaseShape, PlannedRow } from '../../src/types/models';
-import type {
-  PrismaNextFieldSelect,
-  SelectColumnCheck,
-  ValidateFieldSelect,
-} from '../../src/types/selections';
+import type { ValidateFieldSelect } from '../../src/types/selections';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -240,17 +236,10 @@ builder.queryFields((t) => {
   expectTypeOf(bugs.ref).toEqualTypeOf(Bug);
 }
 
-// Completions: the editor's placeholder while completing a `select` entry gets the column names,
-// never a message string.
-expectTypeOf<SelectColumnCheck<Types, 'User', string>>().toEqualTypeOf<
-  'id' | 'firstName' | 'lastName' | 'email'
->();
-// A field's array takes any string, so an array of only unknown columns reaches the check, which
-// names them, instead of failing as `'frstName'` not assignable to `never`.
+// An array's unknown column is checked against the column names.
 type UserShape = ObjectBaseShape<Types, 'User'>;
-expectTypeOf<readonly ['frstName']>().toExtend<PrismaNextFieldSelect<Types, UserShape, {}>>();
 expectTypeOf<ValidateFieldSelect<Types, UserShape, readonly ['frstName']>>().toEqualTypeOf<
-  readonly [{ readonly 'Unknown column in select': 'frstName' }]
+  readonly ['id' | 'firstName' | 'lastName' | 'email']
 >();
 builder.prismaObject('User', {
   variant: 'ArraySelectTypo',
@@ -592,7 +581,7 @@ builder.queryFields((t) => ({
       unknownNestedSelectKey: t.field({
         type: [NestedPost],
         select: (_args, _ctx, nestedSelection) => ({
-          // @ts-expect-error Unknown key in select: nope
+          // @ts-expect-error `nope` isn't a key of the select
           posts: nestedSelection({ select: { nope: true } }),
         }),
         resolve: (user) => user.posts,
@@ -659,7 +648,7 @@ builder.queryFields((t) => ({
       }),
       unknownWhereColumn: t.field({
         type: [NestedPost],
-        // @ts-expect-error Unknown key in select: posts.where.nope
+        // @ts-expect-error `nope` isn't a key of `posts.where`
         select: (_args, _ctx, nestedSelection) => ({
           posts: nestedSelection({ where: { nope: 1 }, path: [] }),
         }),
@@ -667,7 +656,7 @@ builder.queryFields((t) => ({
       }),
       unknownOrderByColumn: t.field({
         type: [NestedPost],
-        // @ts-expect-error Unknown key in select: posts.orderBy.nope
+        // @ts-expect-error `nope` isn't a key of `posts.orderBy`
         select: (_args, _ctx, nestedSelection) => ({
           posts: nestedSelection({ orderBy: { id: 'asc', nope: 'asc' }, type: Wrapper }),
         }),
@@ -675,7 +664,7 @@ builder.queryFields((t) => ({
       }),
       unknownPathOption: t.field({
         type: [NestedPost],
-        // @ts-expect-error Unknown key in select: posts.take
+        // @ts-expect-error `take` isn't a key of `posts`
         select: (_args, _ctx, nestedSelection) => ({
           // @ts-expect-error Unknown query option: take
           posts: nestedSelection({ limit: 1, take: 1, path: [] }),
@@ -695,7 +684,7 @@ builder.queryFields((t) => ({
     }),
     queriedWriter: t.field({
       type: NestedUser,
-      // @ts-expect-error Unknown key in select: author.limit
+      // @ts-expect-error `limit` isn't a key of `author`
       select: (_args, _ctx, nestedSelection) => ({
         author: nestedSelection({ limit: 1 }),
       }),
@@ -797,17 +786,17 @@ builder.queryFields((t) => ({
         },
       }),
       unknownKey: t.string({
-        // @ts-expect-error Unknown key in select: nope
+        // @ts-expect-error `nope` isn't a key of the select
         select: { comments: { select: { nope: true } } },
         resolve: () => '',
       }),
       unknownQueryOption: t.string({
-        // @ts-expect-error Unknown key in select: comments.take
+        // @ts-expect-error `take` isn't a key of `comments`
         select: { comments: { take: 1, select: { post: true } } },
         resolve: () => '',
       }),
       toOneQuery: t.string({
-        // @ts-expect-error Unknown key in select: post.limit
+        // @ts-expect-error `limit` isn't a key of `post`
         select: { comments: { select: { post: { limit: 1, select: {} } } } },
         resolve: () => '',
       }),
@@ -857,7 +846,7 @@ builder.queryFields((t) => ({
     fields: (t) => ({
       bug: t.field({
         type: Bug,
-        // @ts-expect-error Invalid value in select: task
+        // @ts-expect-error nestedSelection plans Bug, but task loads Task
         select: (_args, _ctx, nestedSelection) => ({ task: nestedSelection() }),
         resolve: (note) => note.task,
       }),
