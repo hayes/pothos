@@ -14,7 +14,6 @@ import type { Planned, PrismaNextObjectRef } from '../object-ref.js';
 import type {
   BareModelName,
   BaseModelKey,
-  IsUnion,
   LoadedRow,
   ModelKey,
   NamespacedModelKey,
@@ -190,36 +189,6 @@ export type PrismaNextRelationOptions<
     ParentModel,
     RelName
   >,
-  OnNull = RelationOnNull<Types, ParentShape, Args, TypeModel>,
-> = RelationBaseOptions<
-  Types,
-  ParentModel,
-  RelName,
-  Nullable,
-  Args,
-  RelatedShape,
-  ParentShape,
-  Query,
-  TypeModel
-> & {
-  /**
-   * What a non-null field does when its relation resolves to null: `'error'` leaves the null for
-   * GraphQL's non-null error, and a function returns a replacement or an error.
-   */
-  onNull?: OnNull;
-};
-
-/** The options of `t.relation` other than `onNull`. */
-type RelationBaseOptions<
-  Types extends SchemaTypes,
-  ParentModel extends ModelKey<Types>,
-  RelName extends RelationKeys<Types, ParentModel>,
-  Nullable extends boolean,
-  Args extends InputFieldMap,
-  RelatedShape,
-  ParentShape,
-  Query,
-  TypeModel extends RelationTypeModel<Types, ParentModel, RelName>,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,
@@ -240,6 +209,11 @@ type RelationBaseOptions<
     NoInfer<
       ExactQuery<Types, TypeModel, Query, keyof RelationQueryValue<Types, ParentModel, RelName>>
     >;
+  /**
+   * What a non-null field does when its relation resolves to null: `'error'` leaves the null for
+   * GraphQL's non-null error, and a function returns a replacement or an error.
+   */
+  onNull?: RelationOnNull<Types, ParentShape, Args, TypeModel>;
 };
 
 /**
@@ -276,56 +250,25 @@ export interface RequiresNullable<Reason extends string> {
   readonly 'nullable: false is not allowed': Reason;
 }
 
-/** Names why a relation field can't take `onNull`, as the type argument the error shows. */
-export interface OnNullUnused<Reason extends string> {
-  readonly 'onNull is never used': Reason;
-}
-
-/** Names why a non-null relation field needs `onNull`, as the type argument the error shows. */
-export interface OnNullRequired<Reason extends string> {
-  readonly 'onNull is required': Reason;
-}
-
 /**
- * Why a to-one relation can resolve to null: the contract makes it nullable, or a variant `type`
- * filters out the rows of other variants. `never` when it can't.
+ * Whether a to-one relation can resolve to null: the contract makes it nullable, or a variant
+ * `type` filters out the rows of other variants.
  */
-type RelationNullReason<
+type RelationCanBeNull<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   R extends RelationKeys<Types, M>,
   TypeModel,
 > =
   IsToMany<Types, M, R> extends true
-    ? never
+    ? false
     : [TypeModel] extends [RelatedModel<Types, M, R>]
-      ? DefaultRelationNullable<Types, M, R> extends true
-        ? `${M & string}.${R & string} can be null`
-        : never
-      : `${TypeModel & string} filters out other variants of ${M & string}.${R & string}`;
-
-/**
- * Checks the name `t.relation` is called with and no options: a non-null field over a relation that
- * can be null needs `onNull`, which the error names the reason for. An unknown name leaves `R` as
- * every relation, and is left to fail as itself.
- */
-export type RelationWithoutOptionsCheck<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  R extends RelationKeys<Types, M>,
-> = [Types['DefaultFieldNullability'], IsUnion<R>] extends [false, false]
-  ? [RelationNullReason<Types, M, R, RelatedModel<Types, M, R>>] extends [
-      infer Reason extends string,
-    ]
-    ? [Reason] extends [never]
-      ? unknown
-      : OnNullRequired<Reason>
-    : unknown
-  : unknown;
+      ? DefaultRelationNullable<Types, M, R>
+      : true;
 
 /**
  * The arguments of `t.relation`: `options` is required, with `onNull`, when the field is non-null
- * and the relation can resolve to null. Otherwise `onNull` is never used, so it is rejected.
+ * and the relation can resolve to null.
  */
 export type RelationFieldArgs<
   Types extends SchemaTypes,
@@ -337,69 +280,20 @@ export type RelationFieldArgs<
   ParentShape,
   Query,
   TypeModel extends RelationTypeModel<Types, ParentModel, RelName>,
-> = [Nullable] extends [false]
-  ? [RelationNullReason<Types, ParentModel, RelName, TypeModel>] extends [
-      infer Reason extends string,
-    ]
-    ? [Reason] extends [never]
-      ? [
-          options?: PrismaNextRelationOptions<
-            Types,
-            ParentModel,
-            RelName,
-            Nullable,
-            Args,
-            RelatedShape,
-            ParentShape,
-            Query,
-            TypeModel,
-            OnNullUnused<`${ParentModel & string}.${RelName & string} can't be null`>
-          >,
-        ]
-      : [
-          options: PrismaNextRelationOptions<
-            Types,
-            ParentModel,
-            RelName,
-            Nullable,
-            Args,
-            RelatedShape,
-            ParentShape,
-            Query,
-            TypeModel,
-            RelationOnNull<Types, ParentShape, Args, TypeModel> | OnNullRequired<Reason>
-          > & {
-            onNull: RelationOnNull<Types, ParentShape, Args, TypeModel> | OnNullRequired<Reason>;
-          },
-        ]
-    : [
-        options?: PrismaNextRelationOptions<
-          Types,
-          ParentModel,
-          RelName,
-          Nullable,
-          Args,
-          RelatedShape,
-          ParentShape,
-          Query,
-          TypeModel,
-          RelationOnNull<Types, ParentShape, Args, TypeModel>
-        >,
-      ]
-  : [
-      options?: PrismaNextRelationOptions<
-        Types,
-        ParentModel,
-        RelName,
-        Nullable,
-        Args,
-        RelatedShape,
-        ParentShape,
-        Query,
-        TypeModel,
-        OnNullUnused<'the field is nullable'>
-      >,
-    ];
+  Options = PrismaNextRelationOptions<
+    Types,
+    ParentModel,
+    RelName,
+    Nullable,
+    Args,
+    RelatedShape,
+    ParentShape,
+    Query,
+    TypeModel
+  >,
+> = [Nullable, RelationCanBeNull<Types, ParentModel, RelName, TypeModel>] extends [false, true]
+  ? [options: Options & { onNull: RelationOnNull<Types, ParentShape, Args, TypeModel> }]
+  : [options?: Options];
 
 /**
  * `Query` is inferred from the literal rather than checked, and a callback's result gets no excess

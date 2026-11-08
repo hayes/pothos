@@ -8,7 +8,6 @@ import type {
 import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
 import PrismaNextPlugin, {
-  type OnNullRequired,
   type PlannedRowBrand,
   type RelatedModel,
   type RelationKeys,
@@ -16,7 +15,7 @@ import PrismaNextPlugin, {
   type RelationWhere,
   type SelectObjectSpec,
 } from '../../src';
-import type { QueryAsyncCheck, RelationWithoutOptionsCheck } from '../../src/types/relations';
+import type { QueryAsyncCheck } from '../../src/types/relations';
 import type { SelectCheck } from '../../src/types/selections';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
@@ -317,18 +316,6 @@ const strict = new SchemaBuilder<{
   prismaNext: { client: null as never },
   defaultFieldNullability: false,
 });
-type StrictTypes = PothosSchemaTypes.ExtendDefaultTypes<{
-  PrismaNextContract: InheritanceContract;
-  DefaultFieldNullability: false;
-}>;
-// Called with only a name, the name's error says why `onNull` is required.
-expectTypeOf<RelationWithoutOptionsCheck<StrictTypes, 'Bug', 'reviewer'>>().toEqualTypeOf<
-  OnNullRequired<'Bug.reviewer can be null'>
->();
-expectTypeOf<RelationWithoutOptionsCheck<StrictTypes, 'Bug', 'owner'>>().toEqualTypeOf<unknown>();
-expectTypeOf<
-  RelationWithoutOptionsCheck<StrictTypes, 'Bug', 'owner' | 'reviewer'>
->().toEqualTypeOf<unknown>();
 const strictBug = strict.prismaObject('Bug', { variant: 'StrictBug', fields: () => ({}) });
 const strictTask = strict.prismaObject('Task', { variant: 'StrictTask', fields: () => ({}) });
 strict.prismaObject('User', { variant: 'StrictUser', fields: () => ({}) });
@@ -362,11 +349,11 @@ strict.prismaObject('Bug', {
       errorOnNull,
       fallback,
       nullable,
-      // @ts-expect-error OnNullRequired<'Bug.reviewer can be null'>
+      // @ts-expect-error `Bug.reviewer` can be null, so the field needs `onNull`
       reviewer: t.relation('reviewer'),
-      // @ts-expect-error an unknown relation fails as itself, not as needing `onNull`
+      // @ts-expect-error not a relation
       typo: t.relation('nope'),
-      // @ts-expect-error OnNullRequired<'Bug.reviewer can be null'>
+      // @ts-expect-error `Bug.reviewer` can be null, so the field needs `onNull`
       explicit: t.relation('reviewer', { nullable: false }),
       // @ts-expect-error `onNull` returns a related row or an error
       badFallback: t.relation('reviewer', { onNull: () => 'nope' }),
@@ -394,13 +381,8 @@ strict.prismaObject('Note', {
       task,
       errorBug,
       bug,
-      // @ts-expect-error OnNullRequired<'Bug filters out other variants of Note.task'>
+      // @ts-expect-error `Bug` filters out other variants of `Note.task`, so it needs `onNull`
       requiredBug: t.relation('task', { type: strictBug }),
-      // `onNull` is rejected where it's never used.
-      // @ts-expect-error OnNullUnused<"Note.task can't be null">
-      neverNull: t.relation('task', { type: strictTask, onNull: 'error' }),
-      // @ts-expect-error OnNullUnused<'the field is nullable'>
-      nullableBug: t.relation('task', { type: strictBug, nullable: true, onNull: 'error' }),
     };
   },
 });
@@ -413,12 +395,7 @@ inheritance.prismaObject('Note', {
     expectTypeOf(bug.$inferType).toBeNullable();
     const requiredBug = t.relation('task', { type: bugRef, nullable: false, onNull: 'error' });
     expectTypeOf(requiredBug.$inferType).not.toBeNullable();
-    return {
-      bug,
-      requiredBug,
-      // @ts-expect-error OnNullUnused<'the field is nullable'>
-      nullable: t.relation('task', { type: bugRef, onNull: 'error' }),
-    };
+    return { bug, requiredBug };
   },
 });
 

@@ -153,7 +153,6 @@ export type {
 } from './types/plugin-options.js';
 export type {
   FieldQueryLiteral,
-  OnNullRequired,
   PrismaNextRelationOptions,
   RelatedModel,
   RelationFieldShape,
