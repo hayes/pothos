@@ -1937,18 +1937,21 @@ describe('prismaConnectionHelpers', () => {
     );
   });
 
-  it('fails the root field when aliases of the connection beneath a wrapper differ in arguments', async () => {
+  it.each([
+    ['one selection', (a: string, b: string) => `{ users { stats { ${a} ${b} } } }`],
+    [
+      'selections graphql merges',
+      (a: string, b: string) => `{ users { stats { ${a} } stats { ${b} } } }`,
+    ],
+  ] as const)('fails the root field when aliases of the connection beneath a wrapper differ in arguments, in %s', async (_, query) => {
     const schema = wrapperSchema(true);
-    const same = await run(
-      schema,
-      '{ users { stats { a: posts(first: 1) { edges { node { id } } } b: posts(first: 1) { edges { node { id } } } } } }',
-    );
+    const alias = (name: string, first: number) =>
+      `${name}: posts(first: ${first}) { edges { node { id } } }`;
+    const same = await run(schema, query(alias('a', 1), alias('b', 1)));
     expect(same.errors).toBeUndefined();
+    expect(ids(same.data.users[0].stats.a)).toEqual(['p-draft1']);
     expect(ids(same.data.users[0].stats.b)).toEqual(['p-draft1']);
-    const differing = await run(
-      schema,
-      '{ users { stats { a: posts(first: 1) { edges { node { id } } } b: posts(first: 2) { edges { node { id } } } } } }',
-    );
+    const differing = await run(schema, query(alias('a', 1), alias('b', 2)));
     expect(differing.data.users).toBeNull();
     expect(differing.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
     expect(differing.errors?.map(detailOf)).toEqual([

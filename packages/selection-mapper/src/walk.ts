@@ -191,14 +191,77 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
   }
 
   const invocations: Invocations = new Set();
+  const fields: SelectedField[] = [];
 
   for (const { type, selectionSets, indirectPath } of resolved) {
     const walked = new Set<string>();
 
     for (const selections of selectionSets) {
-      walkSelections(plan, type, selections, indirectPath, true, walked, invocations);
+      walkSelections(plan, type, selections, indirectPath, true, walked, fields);
     }
   }
+
+  for (const field of fields) {
+    walkField(
+      plan,
+      field.type,
+      field.node,
+      field.indirectPath,
+      invocations,
+      field.expandedFrom,
+      () => mergedNodes(plan, fields, field),
+    );
+  }
+}
+
+/** A field node `walkSelections` found, with the type it is walked as. */
+interface SelectedField {
+  type: WalkedType;
+  node: FieldNode;
+  indirectPath: string[];
+  expandedFrom?: WalkedType;
+}
+
+/**
+ * The nodes graphql merges into `field`'s response field: those of the walk with its response key
+ * and include path, on a type a row of `field`'s type can also be.
+ */
+function mergedNodes<Model, Query, NodeType extends NodeBase<Model>>(
+  { info }: Plan<Model, Query, NodeType>,
+  fields: readonly SelectedField[],
+  field: SelectedField,
+): FieldNode[] {
+  const key = responseKey(field.node);
+  const path = field.indirectPath.join('.');
+  const nodes = new Set<FieldNode>();
+
+  for (const other of fields) {
+    if (
+      responseKey(other.node) === key &&
+      other.indirectPath.join('.') === path &&
+      overlaps(info, field.type, other.type) &&
+      !isSkipped(info, other.node)
+    ) {
+      nodes.add(other.node);
+    }
+  }
+
+  return [...nodes];
+}
+
+function responseKey(node: FieldNode) {
+  return node.alias?.value ?? node.name.value;
+}
+
+/** Whether a row can be of both types: two object types never overlap. */
+function overlaps(info: GraphQLResolveInfo, a: WalkedType, b: WalkedType) {
+  if (a === b || !(isObjectType(a) || isObjectType(b))) {
+    return true;
+  }
+
+  return isObjectType(a)
+    ? !isObjectType(b) && info.schema.isSubType(b, a)
+    : info.schema.isSubType(a, b);
 }
 
 /**
@@ -346,9 +409,9 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * Second pass: walks `selections` in document order, a fragment's fields where the fragment
- * appears. Fields apply unless the enclosing fragment cannot apply to `type`; nested fragments
- * are always classified against `type`, so one may narrow back to it.
+ * Second pass: collects the fields of `selections` into `fields` in document order, a fragment's
+ * fields where the fragment appears. Fields apply unless the enclosing fragment cannot apply to
+ * `type`; nested fragments are always classified against `type`, so one may narrow back to it.
  */
 function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -357,13 +420,13 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
   indirectPath: string[],
   fieldsApply: boolean,
   visited: Set<string>,
-  invocations: Invocations,
+  fields: SelectedField[],
   expandedFrom?: WalkedType,
 ) {
   for (const selection of selections) {
     if (selection.kind === Kind.FIELD) {
       if (fieldsApply) {
-        walkField(plan, type, selection, indirectPath, invocations, expandedFrom);
+        fields.push({ type, node: selection, indirectPath, expandedFrom });
       }
 
       continue;
@@ -389,7 +452,7 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
         // An untyped fragment inherits; a typed one applies iff it can apply to `type`.
         fragment.typeCondition ? types.length > 0 : fieldsApply,
         visited,
-        invocations,
+        fields,
         isExpansion ? type : expandedFrom && keptBy(plan, expandedFrom, fragment),
       );
     }
@@ -505,7 +568,8 @@ function selectsFields(info: GraphQLResolveInfo, selections: readonly SelectionN
 
 /**
  * Collects what `fieldNode` (a field of `type`) selects. A select function is invoked once per
- * place in a walk; `invocations` holds the walk's, and without it every call invokes.
+ * place in a walk; `invocations` holds the walk's, and without it every call invokes. `nodes` are
+ * the nodes graphql merges with `fieldNode`, whose arguments beneath `selected.args` reads.
  *
  * Beneath an expansion of the model interface `expandedFrom`, a field an implementation inherits
  * unchanged (see `definitionOf`) is planned on the interface: invoked once rather than once per
@@ -521,6 +585,7 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   indirectPath: string[],
   invocations?: Invocations,
   expandedFrom?: WalkedType,
+  nodes: () => readonly FieldNode[] = () => [fieldNode],
 ) {
   const { info, context, adapter } = plan;
   const name = fieldNode.name.value;
@@ -579,8 +644,8 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
 
   // The select runs as soon as its own arguments are known; only its merge waits.
   const query = isThenable(args)
-    ? args.then((mapped) => runSelect(plan, select, mapped, position, mapping))
-    : runSelect(plan, select, args, position, mapping);
+    ? args.then((mapped) => runSelect(plan, select, mapped, position, mapping, nodes))
+    : runSelect(plan, select, args, position, mapping, nodes);
 
   if (isThenable(query)) {
     plan.chain(query as PromiseLike<Query | false | null | undefined>, (resolved) =>
@@ -597,12 +662,13 @@ function runSelect<Model, Query, NodeType extends NodeBase<Model>>(
   args: object,
   position: Position,
   mapping: Invocation,
+  nodes: () => readonly FieldNode[],
 ) {
   return select(
     args,
     plan.context,
     nestedSelectionFor(plan, args, position, mapping),
-    selectedFieldNodeFor(plan, position),
+    selectedFieldNodeFor(plan, position, nodes),
     position,
   );
 }
@@ -842,8 +908,9 @@ function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
  * The first field node selected at `path` beneath the field, seen through any wrapper on the
  * field's return type (an errors plugin result, for instance), whose own path leads to the type
  * the caller's path starts from. An empty path yields the field node itself, or the wrapper's
- * inner node. `args` reads the arguments of every field selected at the path, and throws when they
- * differ: one plan can't serve fields asking for different things.
+ * inner node. `args` reads the arguments of every field selected at the path, beneath every node
+ * graphql merges with the field's, and throws when they differ: one plan can't serve fields asking
+ * for different things.
  *
  * A node selected only under a `@defer` is returned like any other, whatever the plan's deferred
  * setting says — an adapter gating a computed value on this over-reports rather than under-;
@@ -852,6 +919,7 @@ function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
 function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   position: Position,
+  nodes: () => readonly FieldNode[],
 ): SelectedFieldNode {
   const { info, context } = plan;
   const { field, node: fieldNode } = position;
@@ -879,11 +947,13 @@ function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
   }
 
   getSelection.args = (path: string[]) => {
-    const values = findMatches(info, returnType, fieldNode, [path.map((name) => ({ name }))], {
-      prefix,
-    }).map((match) =>
-      getMappedArgumentValues(match.definition ?? field, match.field, context, info),
-    );
+    const values = nodes()
+      .flatMap((node) =>
+        findMatches(info, returnType, node, [path.map((name) => ({ name }))], { prefix }),
+      )
+      .map((match) =>
+        getMappedArgumentValues(match.definition ?? field, match.field, context, info),
+      );
 
     if (values.length === 0) {
       return null;

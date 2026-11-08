@@ -65,7 +65,7 @@ it.each([
   expect(expected).toEqual(new Set(rows ? ['totalCount', 'pageSize'] : ['totalCount']));
 });
 
-async function argsAt(path: string[], selection: string, variableValues = {}) {
+async function argsAt(path: string[], selection: string | string[], variableValues = {}) {
   let read: () => unknown = () => undefined;
   const models = createModels('User');
   const schema = createSchema(
@@ -98,8 +98,10 @@ async function argsAt(path: string[], selection: string, variableValues = {}) {
       },
     },
   );
+  // An array selects each part beneath its own node of the field, which graphql merges.
+  const activity = (part: string) => `activity(take: 3) { ... on Success { data { ${part} } } }`;
   const source = `query ($first: Int, $after: String) {
-    user { activity(take: 3) { ... on Success { data { ${selection} } } } }
+    user { ${(Array.isArray(selection) ? selection : [selection]).map(activity).join(' ')} }
   }`;
   const info = await resolveInfo(schema, source, { variableValues });
   const plan = await Plan.fromInfo(new FakeAdapter(models), { context: {}, info });
@@ -120,8 +122,18 @@ it('reads the arguments of a field beneath the selection, through a wrapper', as
   });
 });
 
-it('throws for fields at the path with different arguments', async () => {
-  await expect(argsAt(['posts'], 'a: posts(first: 1) b: posts(first: 5)')).rejects.toThrow(
+it.each([
+  ['one selection', 'a: posts(first: 1) b: posts(first: 5)'],
+  ['selections graphql merges', ['a: posts(first: 1)', 'b: posts(first: 5)']],
+])('throws for fields at the path with different arguments, in %s', async (_, selection) => {
+  await expect(argsAt(['posts'], selection)).rejects.toThrow(
     unexpected('The fields selected at posts beneath User.activity have different arguments.'),
   );
+});
+
+it('reads the arguments of fields at the path in selections graphql merges', async () => {
+  expect(await argsAt(['posts'], ['a: posts(first: 1)', 'b: posts(first: 1)'])).toEqual({
+    first: 1,
+    size: 5,
+  });
 });
