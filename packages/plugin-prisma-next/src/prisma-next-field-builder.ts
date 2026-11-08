@@ -53,6 +53,7 @@ import type {
 } from './types/relations.js';
 import {
   computedSelection,
+  queryIdentity,
   relationArgs,
   relationLoad,
   rowsSelection,
@@ -386,9 +387,13 @@ export class PrismaNextObjectFieldBuilder<
       completeOption(query as unknown, args, ctx, (value) => {
         const { loadIdentity, refine } =
           literal ?? checkReturned(value, (returned) => load(returned));
-        // A callback builds a new query on every walk, so its definition and arguments identify
-        // it.
-        const identity = literal ? loadIdentity : refine && { source: query, args };
+        // A query is identified by its data, so equal queries, and equal `select` entries, share
+        // a load. A callback builds the callbacks it returns anew on every walk, so the field's
+        // query and its arguments identify those.
+        const identity = queryIdentity(
+          loadIdentity,
+          literal ? undefined : () => ({ source: query, args }),
+        );
         return rowsSelection(
           relation,
           relationName,
@@ -452,8 +457,11 @@ export class PrismaNextObjectFieldBuilder<
           relation.targetModel,
           value,
         );
-        // A callback builds a new query on every walk, so its definition and arguments identify it.
-        const identity = typeof query === 'function' ? { source: query, args } : loadIdentity;
+        // Identified as `t.relation`'s query is.
+        const identity = queryIdentity(
+          loadIdentity,
+          typeof query === 'function' ? () => ({ source: query, args }) : undefined,
+        );
         return computedSelection(
           relationName,
           consumerId(position),

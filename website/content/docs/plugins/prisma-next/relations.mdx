@@ -73,16 +73,8 @@ The relation entries of a `select` take the same object, such as
 A to-one relation takes no `query`. To filter one, select it in a field's `select` and return `null`
 from the resolver.
 
-For a to-many relation, the `query` function can also return a function that takes the relation's
-Collection and returns a refined one. Use this to apply a fragment, or to order by an expression:
-
-```ts
-const published = db.orm.Post.fragment((posts) => posts.where({ published: 1 }));
-
-posts: t.relation('posts', {
-  query: () => (posts) => posts.with(published).orderBy((post) => post.createdAt.desc()),
-}),
-```
+To reuse a filter across relations, share a `where` predicate rather than a fragment.
+`.with(fragment)` still works on the Collection a root field's `collection` returns.
 
 With `AsyncSelections: true` in the builder's types, the function can be async.
 

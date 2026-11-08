@@ -143,6 +143,7 @@ builder.prismaObject('Post', {
       query: { orderBy: { id: 'desc', postId: 'asc' } },
     }),
     refined: t.relation('comments', {
+      // @ts-expect-error a query callback returns a query, not a refinement of the collection
       query: () => (comments) => comments.orderBy((comment) => comment.id.desc()),
     }),
     // @ts-expect-error `orderBy` takes a declaration, not the ORM's accessor callback

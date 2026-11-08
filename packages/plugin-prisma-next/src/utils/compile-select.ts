@@ -187,9 +187,8 @@ export function queryRefinement(
 }
 
 /**
- * How `value`, the `query` of a relation's rows, loads the rows of `modelKey`: a function refines
- * them and has no identity, a declarative query refines them and identifies itself, and anything
- * else, such as `true`, loads them whole.
+ * How `value`, a declarative `query` of `modelKey`'s rows, loads them: `refine` applies it and
+ * `loadIdentity` identifies it. Undefined for a query that loads every row.
  */
 export function relationLoad(
   contract: AnyContract,
@@ -197,17 +196,21 @@ export function relationLoad(
   value: unknown,
   problem?: Parameters<typeof orderColumns>[3],
 ) {
-  if (typeof value === 'function') {
-    return {
-      loadIdentity: undefined as unknown,
-      refine: value as (rel: MapperCollection) => MapperCollection,
-    };
-  }
   const query = definedQuery(value);
   return {
-    loadIdentity: query as unknown,
+    loadIdentity: query,
     refine: query && queryRefinement(contract, modelKey, query, problem),
   };
+}
+
+/**
+ * What identifies `query`: its data, unless it holds a callback that a select function or a query
+ * callback builds anew on every call. `built` then identifies it by where it was built.
+ */
+export function queryIdentity(query: object | undefined, built?: () => unknown): unknown {
+  return built && query && Object.values(query).some((option) => typeof option === 'function')
+    ? built()
+    : query;
 }
 
 /**
@@ -392,10 +395,10 @@ function compileSelect(
       offset: entry.offset,
     });
     const loaded = relationArgs(relation, {
-      loadIdentity:
-        source !== undefined && query && Object.values(query).some((o) => typeof o === 'function')
-          ? callbackIdentity(name)
-          : query,
+      loadIdentity: queryIdentity(
+        query,
+        source === undefined ? undefined : () => callbackIdentity(name),
+      ),
       refine:
         query && queryRefinement(contract, entryTypeModel(type) ?? relation.targetModel, query),
       variant,

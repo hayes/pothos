@@ -260,6 +260,8 @@ builder.prismaObject('User', {
     });
     // @ts-expect-error a `query` callback returns a query
     t.relationCount('posts', { query: () => 'oops' });
+    // @ts-expect-error a `query` callback returns a query, not a refinement of the collection
+    t.relationCount('posts', { query: () => (posts) => posts.where({ published: 1 }) });
     // @ts-expect-error a count takes only a `where`
     t.relationCount('posts', { query: { where: { published: 1 }, limit: 1 } });
     // @ts-expect-error a count takes only a `where`, from a callback too
@@ -495,25 +497,24 @@ builder.prismaObject('User', {
   }),
 });
 
-// A to-many relation's `query` callback may return a refinement of the relation's collection,
-// which can apply fragments.
+// A to-many relation's `query` callback returns a query, not a refinement of the relation's
+// collection, so fragments apply only in a root field's `collection`.
 declare const sqliteClient: SqliteClient<Contract>;
 const publishedFragment = sqliteClient.orm.Post.fragment((posts) => posts.where({ published: 1 }));
 builder.prismaObject('User', {
   variant: 'RefinedQueries',
   fields: (t) => ({
     refined: t.relation('posts', {
-      query: () => (posts) => posts.where({ published: 1 }).orderBy((post) => post.title.asc()),
+      // @ts-expect-error a refinement of the collection
+      query: () => (posts) => posts.where({ published: 1 }),
     }),
     withArgs: t.relation('posts', {
       args: { published: t.arg.int({ required: true }) },
+      // @ts-expect-error a refinement of the collection, from the args
       query: (args) => (posts) => posts.where({ published: args.published }),
     }),
+    // @ts-expect-error a refinement applying a fragment
     fragment: t.relation('posts', { query: () => (posts) => posts.with(publishedFragment) }),
-    // @ts-expect-error a refinement returns the relation's collection
-    notCollection: t.relation('posts', { query: () => () => 'nope' }),
-    // @ts-expect-error a refinement of another model's collection
-    otherModel: t.relation('posts', { query: () => () => sqliteClient.orm.User }),
   }),
 });
 
@@ -591,6 +592,7 @@ asyncBuilder.prismaObject('User', {
   fields: (t) => ({
     asyncQuery: t.relation('posts', { query: async () => ({ where: { published: 1 } }) }),
     asyncRefinement: t.relation('posts', {
+      // @ts-expect-error an async refinement of the collection
       query: async () => (posts) => posts.where({ published: 1 }),
     }),
     asyncCount: t.relationCount('posts', { query: async () => ({ where: { published: 1 } }) }),

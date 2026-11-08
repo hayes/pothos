@@ -242,6 +242,7 @@ inheritance.prismaObjectFields('User', (t) => ({
   }),
   refinedBugs: t.relation('tasks', {
     type: 'Bug',
+    // @ts-expect-error a query callback returns a query, not a refinement of the collection
     query: () => (bugs) => bugs.where((bug) => bug.severity.eq('high')),
   }),
   // @ts-expect-error `severity` is a column of the variant, not of the base

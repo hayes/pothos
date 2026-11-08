@@ -13,6 +13,7 @@ import type { IncludeScalar } from '@prisma/orm-family-sql/orm-client';
 import type { prismaNextInterfaceBrand } from '../interface-ref.js';
 import type { prismaNextModelBrand } from '../object-ref.js';
 import type { CONNECTION_PAGE, NESTED_SELECTION, NODE_SELECTION } from '../utils/compile-select.js';
+import type { AggregateCollection } from './collections.js';
 import type { ParamToModelKey } from './fields.js';
 import type {
   BaseModelKey,
@@ -37,7 +38,6 @@ import type {
   RelatedModel,
   RelationFieldShape,
   RelationQueryLiteral,
-  RelationRefinementCollection,
   RelationTypeModel,
 } from './relations.js';
 
@@ -206,7 +206,7 @@ export type AggregateSelect<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
   K extends RelationKeys<Types, M>,
-> = (collection: RelationRefinementCollection<Types, M, K>) => {
+> = (collection: AggregateCollection<Types, RelatedModel<Types, M, K>>) => {
   readonly [key: string]: IncludeScalar<unknown>;
 };
 

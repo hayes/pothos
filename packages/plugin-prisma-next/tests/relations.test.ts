@@ -3,8 +3,6 @@ import SchemaBuilder, {
   type PothosOutputFieldConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { Collection } from '@prisma/orm-family-sql/orm-client';
-import sqlite from '@prisma/orm-sqlite/runtime';
 import { GraphQLError, type GraphQLFieldResolver, GraphQLScalarType, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import PrismaNextPlugin from '../src';
@@ -16,7 +14,6 @@ import {
   run,
   type SampleContract,
   type SampleOptions,
-  sampleContract,
   useCollisionDb,
   useDatabase,
   useSampleDb,
@@ -1294,10 +1291,8 @@ describe("relationCount's query", () => {
 });
 
 describe("a relation's query callback", () => {
-  const published = db.orm.Post.fragment((posts) => posts.where({ published: 1 }));
-
-  function schema(query: unknown, client: typeof db.client = db.client) {
-    const builder = createBuilder({ client });
+  function schema(query: unknown) {
+    const builder = createBuilder();
     builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('User', {
       fields: (t) => ({
@@ -1305,33 +1300,31 @@ describe("a relation's query callback", () => {
           args: { published: t.arg.int() },
           query: query as never,
         }),
+        // The same query as `posts(published: 0)` returns, from a literal and from a select.
+        drafts: t.relation('posts', { query: { where: { published: 0 } } }),
+        draftIds: t.idList({
+          select: { posts: { where: { published: 0 }, select: { comments: true } } },
+          resolve: (user) => user.posts.map((post) => `${post.id}:${post.comments.length}`),
+        }),
       }),
     });
     builder.queryType({
       fields: (t) => ({
         users: t.prismaField({
           type: ['User'],
-          collection: () => client.orm.User.orderBy((user) => user.id.asc()),
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
         }),
       }),
     });
     return builder.toSchema();
   }
 
+  const byArgs = (args: { published?: number | null }) =>
+    args.published == null ? undefined : { where: { published: args.published } };
+
   it.each([
-    [
-      'a refinement',
-      () => (posts: typeof db.orm.Post) => posts.where({ published: 1 }).orderBy((p) => p.id.asc()),
-    ],
-    [
-      'a refinement applying a fragment',
-      () => (posts: typeof db.orm.Post) => posts.with(published),
-    ],
+    ['a literal', () => ({ where: { published: 1 }, orderBy: { id: 'asc' } })],
     ['an async literal', async () => ({ where: { published: 1 } })],
-    [
-      'an async refinement',
-      async () => (posts: typeof db.orm.Post) => posts.where({ published: 1 }),
-    ],
   ])('loads the relation with %s in one statement', async (_name, query) => {
     const result = await run(schema(query), '{ users { posts { id } } }');
     expect(result.errors).toBeUndefined();
@@ -1344,10 +1337,7 @@ describe("a relation's query callback", () => {
 
   it('reads the args, and keeps aliases with different args apart', async () => {
     const result = await run(
-      schema(
-        (args: { published?: number | null }) => (posts: typeof db.orm.Post) =>
-          args.published == null ? posts : posts.where({ published: args.published }),
-      ),
+      schema(byArgs),
       '{ users { drafts: posts(published: 0) { id } live: posts(published: 1) { id } } }',
     );
     expect(result.errors).toBeUndefined();
@@ -1356,35 +1346,48 @@ describe("a relation's query callback", () => {
       { drafts: [{ id: 'p-bob-draft' }], live: [{ id: 'p-bob1' }] },
     ]);
     expect(result.statements).toHaveLength(1);
+    expect(postSubqueries(result.statements[0]!.sql)).toBe(2);
   });
 
-  it("receives a custom collection's instance, so its methods apply", async () => {
-    class PostCollection extends Collection<SampleContract, 'Post'> {
-      live() {
-        return this.where({ published: 1 });
-      }
-    }
-    const client = sqlite({
-      contract: sampleContract,
-      path: db.path,
-      collections: { Post: PostCollection },
-    });
-    try {
-      // Upstream types an include refinement as the plain collection, so the method is cast to.
-      const result = await run(
-        schema(() => (posts: PostCollection) => posts.live(), client),
-        '{ users { posts { id } } }',
-      );
-      expect(result.errors).toBeUndefined();
-      expect(result.data.users).toEqual([
-        { posts: [{ id: 'p-hello' }] },
-        { posts: [{ id: 'p-bob1' }] },
-      ]);
-    } finally {
-      await client.close();
-    }
+  it('shares one branch between equal queries from a callback, a literal and a select', async () => {
+    const result = await run(
+      schema(byArgs),
+      '{ users { a: posts(published: 0) { id } b: posts(published: 0) { id } drafts { id } draftIds } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      {
+        a: [{ id: 'p-draft1' }],
+        b: [{ id: 'p-draft1' }],
+        drafts: [{ id: 'p-draft1' }],
+        draftIds: ['p-draft1:0'],
+      },
+      {
+        a: [{ id: 'p-bob-draft' }],
+        b: [{ id: 'p-bob-draft' }],
+        drafts: [{ id: 'p-bob-draft' }],
+        draftIds: ['p-bob-draft:0'],
+      },
+    ]);
+    expect(result.statements).toHaveLength(1);
+    expect(postSubqueries(result.statements[0]!.sql)).toBe(1);
+  });
+
+  it("keeps apart a callback's predicates, which it builds anew for each alias", async () => {
+    const result = await run(
+      schema((args: { published?: number | null }) => ({
+        where: (post: { published: { eq(value: unknown): unknown } }) =>
+          post.published.eq(args.published ?? 0),
+      })),
+      '{ users { a: posts(published: 0) { id } b: posts(published: 0) { id } c: posts(published: 1) { id } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual([
+      { a: [{ id: 'p-draft1' }], b: [{ id: 'p-draft1' }], c: [{ id: 'p-hello' }] },
+      { a: [{ id: 'p-bob-draft' }], b: [{ id: 'p-bob-draft' }], c: [{ id: 'p-bob1' }] },
+    ]);
+    expect(result.statements).toHaveLength(1);
+    // Equal args identify the callback's query, so `a` and `b` share a branch.
+    expect(postSubqueries(result.statements[0]!.sql)).toBe(2);
   });
 });
-
-// The types reject these, so they come from plain JS or a cast. Each would otherwise drop the
-// filter beside an unknown option or inside a promise.

@@ -34,15 +34,21 @@ type CombineRefinement<TContract extends AnyContract, ModelKey extends string> =
   IncludeScalar<unknown>
 >;
 
-// Only to-many relations take a refinement, so it keeps the aggregate methods and combine().
-export type IncludeRefinementCollection<
-  TContract extends AnyContract,
-  ModelKey extends string,
-  RowShape,
-  State extends CollectionTypeState,
-> = Omit<
-  Collection<TContract, ModelKey, RowShape, State>,
-  Exclude<keyof Collection<TContract, ModelKey>, keyof CombineRefinement<TContract, ModelKey>>
+/**
+ * The collection of a to-many relation to `M` that an aggregate entry reduces, as `combine()`
+ * passes it: the include refinement collection, with the aggregate methods.
+ */
+export type AggregateCollection<Types extends SchemaTypes, M extends ModelKey<Types>> = Omit<
+  Collection<
+    Types['PrismaNextContract'],
+    BareModelName<M>,
+    Row<Types, M>,
+    WithNsId<DefaultCollectionTypeState, NamespaceOf<Types['PrismaNextContract'], M>>
+  >,
+  Exclude<
+    keyof Collection<Types['PrismaNextContract'], BareModelName<M>>,
+    keyof CombineRefinement<Types['PrismaNextContract'], BareModelName<M>>
+  >
 >;
 
 /** The collection `orm.Task.variant('bug')` returns. The variant's own `orm.Bug` isn't filtered. */
@@ -104,27 +110,6 @@ export type TypeCollection<Types extends SchemaTypes, M extends ModelKey<Types>>
         >;
       }
     >;
-
-/**
- * The collection a refinement of a relation's rows narrowed to `M`, a variant, takes and returns:
- * the base's include collection narrowed by `.variant()`, as {@link TypeCollection} is.
- */
-export type VariantRefinementCollection<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-> = Omit<
-  TypeCollection<Types, M>,
-  Exclude<
-    keyof Collection<
-      Types['PrismaNextContract'],
-      BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>
-    >,
-    keyof CombineRefinement<
-      Types['PrismaNextContract'],
-      BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>
-    >
-  >
->;
 
 /**
  * The receiver type upstream's collection helpers take. It leaves out mutation input types, which

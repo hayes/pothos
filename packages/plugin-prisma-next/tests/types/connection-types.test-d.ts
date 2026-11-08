@@ -91,6 +91,14 @@ builder.prismaObject('User', {
       // @ts-expect-error a connection's query is planned synchronously
       query: async () => ({ where: { published: 1 } }),
     }),
+    accessorOrder: t.relatedConnection('posts', {
+      // @ts-expect-error `orderBy` takes a declaration, not the ORM's accessor callback
+      query: { orderBy: (post: { id: { asc(): unknown } }) => post.id.asc() },
+    }),
+    refinement: t.relatedConnection('posts', {
+      // @ts-expect-error a query callback returns a query, not a refinement of the collection
+      query: () => (posts: typeof orm.Post) => posts.where({ published: 1 }),
+    }),
     topLevelWhere: t.relatedConnection('posts', {
       // @ts-expect-error filters go in `query`
       where: { published: 1 },
@@ -352,6 +360,10 @@ prismaConnectionHelpers(builder, 'User', {
 prismaConnectionHelpers(builder, 'User', {
   // @ts-expect-error a where callback returns a condition
   query: { where: () => 'oops' },
+});
+prismaConnectionHelpers(builder, 'User', {
+  // @ts-expect-error `orderBy` takes a declaration, not the ORM's accessor callback
+  query: { orderBy: (user: { id: { asc(): unknown } }) => user.id.asc() },
 });
 prismaConnectionHelpers(builder, 'User', {
   // @ts-expect-error unknown query options are rejected in a callback's result too

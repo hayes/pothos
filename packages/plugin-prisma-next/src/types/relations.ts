@@ -7,19 +7,10 @@ import type {
   MaybePromise,
   SchemaTypes,
 } from '@pothos/core';
-import type {
-  DefaultCollectionTypeState,
-  RelationPredicate,
-  ShorthandWhereFilter,
-} from '@prisma/orm-family-sql/orm-client';
+import type { RelationPredicate, ShorthandWhereFilter } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextInterfaceRef } from '../interface-ref.js';
 import type { Planned, PrismaNextObjectRef } from '../object-ref.js';
-import type {
-  IncludeRefinementCollection,
-  VariantRefinementCollection,
-  WithNsId,
-} from './collections.js';
 import type {
   BareModelName,
   BaseModelKey,
@@ -31,7 +22,6 @@ import type {
   ObjectBaseShape,
   RelationKeys,
   RelationsOfModel,
-  Row,
   VariantModelKeys,
 } from './models.js';
 import type { OrderByColumnsCheck, RelationOrderBy } from './order-by.js';
@@ -163,21 +153,8 @@ type TypedRelationQueryValue<
     : never;
 
 /**
- * Refines a to-many relation's collection, as an `include()` refinement does, so it can apply
- * fragments (`posts.with(published)`) and the methods of custom collections.
- */
-export type RelationRefinement<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  R extends RelationKeys<Types, M>,
-> = (
-  collection: RelationRefinementCollection<Types, M, R>,
-) => RelationRefinementCollection<Types, M, R>;
-
-/**
- * A to-many relation's `query`: the literal, or a callback of the args and context returning it or
- * a refinement of the relation's collection. A to-one relation is loaded whole and takes none, which
- * its error names.
+ * A to-many relation's `query`: the literal, or a callback of the args and context returning it. A
+ * to-one relation is loaded whole and takes none, which its error names.
  */
 export type RelationQuery<
   Types extends SchemaTypes,
@@ -194,32 +171,9 @@ export type RelationQuery<
             context: Types['Context'],
           ) => MaybeAsyncSelection<
             Types,
-            | TypedRelationQueryValue<Types, ParentModel, RelName, TypeModel>
-            | ([TypeModel] extends [RelatedModel<Types, ParentModel, RelName>]
-                ? RelationRefinement<Types, ParentModel, RelName>
-                : (
-                    collection: VariantRefinementCollection<Types, TypeModel>,
-                  ) => VariantRefinementCollection<Types, TypeModel>)
-            | undefined
+            TypedRelationQueryValue<Types, ParentModel, RelName, TypeModel> | undefined
           >)
     : { readonly [K in `A to-one relation takes no query: ${RelName}`]: never };
-
-export type RelationRefinementCollection<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  R extends RelationKeys<Types, M>,
-> = ModelRefinementCollection<Types, RelatedModel<Types, M, R>>;
-
-/** The collection a refinement of a to-many relation to `M` takes and returns. */
-export type ModelRefinementCollection<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-> = IncludeRefinementCollection<
-  Types['PrismaNextContract'],
-  BareModelName<M>,
-  Row<Types, M>,
-  WithNsId<DefaultCollectionTypeState, NamespaceOf<Types['PrismaNextContract'], M>>
->;
 
 export type PrismaNextRelationOptions<
   Types extends SchemaTypes,

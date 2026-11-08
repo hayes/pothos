@@ -2143,7 +2143,7 @@ describe("a relation's query by the columns of the variant it is narrowed to", (
       }),
       highBugs: t.relation('tasks', {
         type: 'Bug',
-        query: () => (bugs) => bugs.where((bug) => bug.severity.eq('high')),
+        query: { where: (bug) => bug.severity.eq('high') },
       }),
       bugPage: t.relatedConnection('tasks', {
         type: 'Bug',
