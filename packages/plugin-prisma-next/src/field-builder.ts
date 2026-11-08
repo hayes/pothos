@@ -20,7 +20,6 @@ import {
 import { buildConnectionPage, orderableProblem, readPage } from './utils/cursors.js';
 import { checkReturned } from './utils/errors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
-import { getModel } from './utils/model.js';
 import { type AnyRef, refFor } from './utils/refs.js';
 import { markPlanned } from './utils/row-copies.js';
 
@@ -51,9 +50,8 @@ function prismaFieldConfig(
   const ref = refFor(builder, inner);
   const modelKey = ref.modelKey as string;
   const config = getPluginConfig(builder);
-  const model = getModel(config.contract, modelKey);
   const plan = (source: MapperCollection, info: GraphQLResolveInfo, context: object) =>
-    applySelectionToCollection(source, model, info, config, context) as MaybePromise<
+    applySelectionToCollection(source, modelKey, info, config, context) as MaybePromise<
       PlannedQuery & { query: Executable }
     >;
   const refinement = (value: unknown, problem?: Parameters<typeof relationLoad>[3]) =>
@@ -164,7 +162,6 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
   const ref = refFor(this.builder, type);
   const config = getPluginConfig(this.builder);
   const modelKey = ref.modelKey as string;
-  const model = getModel(config.contract, modelKey);
   const paging = connectionPaging(config, modelKey, { defaultSize, maxSize, totalCount, query });
 
   return this.connection(
@@ -190,7 +187,7 @@ rootFieldBuilderProto.prismaConnection = function prismaConnection<
           context,
           info,
           (paged, seed) =>
-            applySelectionToCollection(paged, model, info, config, context, {
+            applySelectionToCollection(paged, modelKey, info, config, context, {
               paths: CONNECTION_NODE_PATHS,
               seed,
             }),

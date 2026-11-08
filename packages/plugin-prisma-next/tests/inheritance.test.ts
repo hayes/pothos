@@ -1191,7 +1191,7 @@ describe("a variant's relations in a field's select", () => {
       prismaNext: { client: db.client },
     });
     const task = builderTask(builder);
-    builder.prismaObject('Feature', {
+    const feature = builder.prismaObject('Feature', {
       interfaces: [task],
       fields: (t) => ({ priority: t.exposeInt('priority') }),
     });
@@ -1205,7 +1205,7 @@ describe("a variant's relations in a field's select", () => {
         bugs: t.prismaField({ type: ['Bug'], collection: () => db.orm.Task.variant('bug') }),
       }),
     });
-    return { builder, task };
+    return { builder, task, feature };
   }
 
   function reviewedSchema() {
@@ -1288,6 +1288,54 @@ describe("a variant's relations in a field's select", () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ file: { bug: { reviewerEmail: email } } });
     expect(result.statements).toHaveLength(1);
+  });
+
+  it('narrows the root of collectionFromInfo only when every path leads to one variant', async () => {
+    const { builder, task, feature } = reviewBuilder();
+    const Bug = builder.prismaObject('Bug', {
+      interfaces: [task],
+      fields: (t) => ({ severity: t.exposeString('severity') }),
+    });
+    builder.prismaObjectField(feature, 'championEmail', (t) =>
+      t.string({
+        nullable: true,
+        select: { champion: true },
+        resolve: (row) => row.champion?.email,
+      }),
+    );
+    const Filed = builder.objectRef<{ task: unknown }>('Filed').implement({
+      fields: (t) => ({
+        bug: t.field({ type: Bug, nullable: true, resolve: (parent) => parent.task as never }),
+        feature: t.field({
+          type: feature,
+          nullable: true,
+          resolve: (parent) => parent.task as never,
+        }),
+      }),
+    });
+    builder.mutationType({
+      fields: (t) => ({
+        file: t.field({
+          type: Filed,
+          resolve: async (_root, _args, context, info) => {
+            const features = await collectionFromInfo({
+              collection: db.orm.Task.variant('feature'),
+              context,
+              info,
+              paths: [['bug'], ['feature']],
+            });
+            return { task: await features.first() };
+          },
+        }),
+      }),
+    });
+    // Only the second path is selected, so the root isn't narrowed to the first path's Bug.
+    const result = await run(
+      builder.toSchema(),
+      'mutation { file { feature { priority championEmail } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ file: { feature: { priority: 5, championEmail: email } } });
   });
 
   it('reloads through the variant beneath a root that is not narrowed', async () => {

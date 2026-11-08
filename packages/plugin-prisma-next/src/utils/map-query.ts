@@ -13,7 +13,7 @@ import type { MapperCollection, PlannedQuery, PrismaNextPlan } from './adapter.j
 import type { PrismaNextConfig } from './config.js';
 import { registerPlanRoots } from './consumers.js';
 import { variantOf } from './contract.js';
-import type { PrismaNextModel } from './model.js';
+import { getModel, type PrismaNextModel } from './model.js';
 import { appliesCursors, EMPTY, type PrismaNextSelection } from './selections.js';
 
 interface PlanTarget {
@@ -67,26 +67,28 @@ export function initialSelection(
 }
 
 /**
- * The model of the type a plan reads its root as, as `Plan.fromInfo` finds it: `typeName`, the type
- * at the end of the first path, or the field's return type, through any indirect include.
+ * The model of the type `collectionFromInfo` reads its root as: `typeName`'s, or that of the type
+ * every path leads to, through any indirect include. The mapper plans the first path the document
+ * selects, so paths leading to different models leave it undefined and the root isn't narrowed.
  */
 function plannedModelKey(info: GraphQLResolveInfo, { typeName, path, paths }: PlanTarget) {
   const { schema } = info;
   const returnType = getNamedType(info.returnType);
-  let type: GraphQLNamedType | undefined = typeName ? schema.getType(typeName) : returnType;
-  const steps = typeName ? undefined : (paths?.[0] ?? path);
-  if (steps?.length) {
-    for (const step of [...(includeOf(returnType)?.path ?? []), ...steps]) {
+  const modelAt = (steps: readonly PathSegment[]) => {
+    let type: GraphQLNamedType | undefined = typeName ? schema.getType(typeName) : returnType;
+    for (const step of typeName ? [] : [...(includeOf(returnType)?.path ?? []), ...steps]) {
       const { type: on, name } = typeof step === 'string' ? { name: step } : step;
       const parent = on ? schema.getType(on) : type;
       const field = parent && 'getFields' in parent ? parent.getFields()[name] : undefined;
       type = field && getNamedType(field.type);
     }
-  }
-  for (let include = type && includeOf(type); include; include = type && includeOf(type)) {
-    type = schema.getType(include.getType());
-  }
-  return type?.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+    for (let include = type && includeOf(type); include; include = type && includeOf(type)) {
+      type = schema.getType(include.getType());
+    }
+    return type?.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
+  };
+  const [first, ...rest] = (paths ?? [path ?? []]).map(modelAt);
+  return rest.every((model) => model === first) ? first : undefined;
 }
 
 function includeOf(type: GraphQLNamedType) {
@@ -118,19 +120,20 @@ export function nestedFromInfo(
 }
 
 /**
- * Applies the selection of the field `info` resolves to `collection` of `model`, as the statement
- * and whether it applies cursor values. Returns a promise only when a `select` callback beneath the
- * field is async.
+ * Applies the selection of the field `info` resolves to `collection` of `modelKey`'s rows, as the
+ * statement and whether it applies cursor values. Returns a promise only when a `select` callback
+ * beneath the field is async.
  */
 export function applySelectionToCollection(
   collection: MapperCollection,
-  model: PrismaNextModel,
+  modelKey: string,
   info: GraphQLResolveInfo,
   config: PrismaNextConfig,
   context: object,
   { seed = EMPTY, ...target }: ApplySelectionOptions = {},
 ): MaybePromise<PlannedQuery> {
-  const initial = initialSelection(config.contract, plannedModelKey(info, target), seed);
+  const model = getModel(config.contract, modelKey);
+  const initial = initialSelection(config.contract, modelKey, seed);
   return completeValue(planSelection(info, config, context, target, initial), (planned) => {
     const selection = planned?.selection ?? initial;
     return {
