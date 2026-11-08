@@ -3,6 +3,8 @@ title: Connections
 description: Relay connections backed by Prisma Collections
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+
 Connections add cursor pagination to a list. They require the [Relay plugin](../relay). Use
 `t.prismaConnection` to paginate a model's rows, and `t.relatedConnection` to paginate a relation.
 
@@ -23,7 +25,7 @@ the query selects. `t.prismaConnection` takes:
 
 - `collection`: `(parent, args, ctx, info) => Collection`, the rows to page instead of the model's,
   such as `ctx.db.orm.Post.where({ authorId: ctx.userId })`. Return it without `orderBy()` or
-  `include()`. `limit()`, `offset()` and `distinct()` aren't supported.
+  `include()`.
 - `query`: `{ where, orderBy }`, or `(args, ctx) => ({ where, orderBy })`. `where` filters the
   Collection, and `orderBy` orders it, by the primary key when omitted. See
   [Ordering and cursors](#ordering-and-cursors).
@@ -32,6 +34,13 @@ the query selects. `t.prismaConnection` takes:
 - `totalCount`: `true` counts the rows, filtered by `query.where`, or pass
   `(parent, args, ctx, info) => number`. The count only runs when `totalCount` is selected.
 - `args`: extra arguments for filtering or sorting.
+
+<Callout type="warn" title="Don't page the collection">
+
+A connection's `collection`, and the collection you pass a helper's `load`, must not call
+`limit()`, `offset()` or `distinct()`. The types allow them, but the pages come out wrong.
+
+</Callout>
 
 Connection and edge types can be customized as with the [Relay plugin](../relay), including
 `edgesNullable` and `nodeNullable`.
@@ -207,7 +216,8 @@ to the connection field with `args: commenters.getArgs()`.
 
 On a root field, `load` pages a collection of the helper's model. It loads the page with the
 nodes' selection in one statement, and the count when `totalCount` is selected. As with
-`t.prismaConnection`, the collection can't use `include()` or `orderBy()`. Pass the rows to
+`t.prismaConnection`, the collection can't use `include()` or `orderBy()`, or `limit()`,
+`offset()` and `distinct()`. Pass the rows to
 `resolve`. With `resolveNode`, each edge also holds its row, so edge fields can read it:
 
 ```ts
