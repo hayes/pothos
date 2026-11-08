@@ -79,9 +79,12 @@ function fieldError(info: GraphQLResolveInfo, error: unknown): unknown {
       : error instanceof Error
         ? error.message
         : String(error);
-  return keepError(
-    new InternalError(`${info.parentType.name}.${info.fieldName}: ${detail}`, { cause: error }),
-  );
+  return keepError(fieldInternalError(info, detail, error));
+}
+
+/** The plugin's error from `info`'s field, named in the detail its client never sees. */
+export function fieldInternalError(info: GraphQLResolveInfo, detail: string, cause: unknown) {
+  return new InternalError(`${info.parentType.name}.${info.fieldName}: ${detail}`, { cause });
 }
 
 /**

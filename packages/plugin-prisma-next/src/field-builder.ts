@@ -19,7 +19,7 @@ import {
   connectionPaging,
 } from './utils/connections.js';
 import { buildConnectionPage, orderableProblem, readPage } from './utils/cursors.js';
-import { checkReturned, InternalError } from './utils/errors.js';
+import { checkReturned, fieldInternalError } from './utils/errors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { type AnyRef, refFor } from './utils/refs.js';
 
@@ -79,11 +79,7 @@ function prismaFieldConfig(
             // A column the planned selection reads that the statement can't, as when a write on an
             // own-table variant returns the variant's columns, is the plugin's error. Any other
             // database error is the app's, as its own statements' are.
-            throw isUndefinedColumn(error)
-              ? new InternalError(`${info.parentType.name}.${info.fieldName}: ${error.message}`, {
-                  cause: error,
-                })
-              : error;
+            throw isUndefinedColumn(error) ? fieldInternalError(info, error.message, error) : error;
           }
         }
       : async (parent: unknown, args: unknown, context: object, info: GraphQLResolveInfo) => {
