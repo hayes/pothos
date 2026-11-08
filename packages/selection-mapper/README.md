@@ -86,9 +86,10 @@ extends `Adapter` directly.
 - Every play records its loader mappings on the request context, which pothos requires to be an
   object, per execution: operations and subscription events sharing a context don't see each
   other's. An execution is told apart by the `getAbortSignal` graphql-js 17 passes, or by the
-  root link of its path under graphql-js 16 and `@graphql-tools/executor` (Yoga), which build one
-  path chain per execution and per event. Under graphql-jit, which builds a new path for every
-  resolver, it is told apart by its `variableValues`, coerced afresh for each execution and
+  root link of its path under graphql-js 16 and `@graphql-tools/executor` (Yoga). There each root
+  field has a path chain, and so a cache, of its own, which is enough because a mapping is only
+  read beneath the root field that recorded it. Under graphql-jit, which builds a new path for
+  every resolver, it is told apart by its `variableValues`, coerced afresh for each execution and
   event. The plugins pass `getLoaderMapping` the resolver's `info`. An adapter whose resolvers
   read a loaded row another way simply never looks them up.
 - Every select function is handed the `Position` of the field it plans: the field's node, the type

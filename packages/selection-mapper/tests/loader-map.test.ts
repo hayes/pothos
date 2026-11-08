@@ -46,10 +46,9 @@ function child(prev: Path, ...keys: (string | number)[]): Path {
  * The infos of one execution, as graphql-jit builds them: every resolver of the execution gets the
  * same coerced `variableValues`, and a path of its own without a `typename`.
  */
-function execution(operation: 'query' | 'subscription' = 'query', variableValues = {}) {
+function execution(variableValues = {}) {
   return (path: Path, type = 'User') =>
     ({
-      operation: { operation },
       parentType: { name: type },
       path,
       variableValues,
@@ -196,7 +195,7 @@ describe('loader map', () => {
     const variableValues = {};
     const event = () => {
       const getAbortSignal = () => undefined;
-      const payload = execution('subscription', variableValues);
+      const payload = execution(variableValues);
 
       return (path: Path) => ({ ...payload(path), getAbortSignal }) as GraphQLResolveInfo;
     };
@@ -211,7 +210,7 @@ describe('loader map', () => {
   it('tells executions apart by their root path link where the variables are shared', () => {
     // @graphql-tools/executor hands every event, and the `subscribe`, the same variables, but
     // builds each of them a path chain of its own.
-    const info = execution('subscription', {});
+    const info = execution({});
     const ctx = {};
     const planned: Mapping = { nested: {} };
     const subscribed = linked(undefined, 'user');

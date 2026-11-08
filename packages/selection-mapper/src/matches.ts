@@ -36,6 +36,18 @@ export interface IndirectInclude {
   paths?: IndirectPathSegment[][];
 }
 
+/** The paths an include follows: `paths` when it has any, else `path`, else none. */
+export function includePaths<Segment>(include: {
+  path?: Segment[];
+  paths?: Segment[][];
+}): Segment[][] | undefined {
+  if (include.paths?.length) {
+    return include.paths;
+  }
+
+  return include.path?.length ? [include.path] : undefined;
+}
+
 export interface Match {
   /** The GraphQL type of the matched field's return type */
   type: GraphQLNamedType;

@@ -6,6 +6,7 @@ import {
   findMatches,
   type IndirectPathSegment,
   includeOf,
+  includePaths,
   matchesForModel,
   modelOf,
   type PathSegment,
@@ -120,11 +121,13 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     let rootType = target;
     let branches: Branch[];
 
-    if (paths?.length || path?.length) {
-      const includePaths = normalizePaths(paths?.length ? paths : [path!]);
+    const entryPaths = includePaths({ path, paths });
+
+    if (entryPaths) {
+      const normalized = normalizePaths(entryPaths);
       const prefix = includeOf(returnType)?.path;
       const found = info.fieldNodes.flatMap((fieldNode) =>
-        findMatches(info, returnType, fieldNode, includePaths, { prefix }),
+        findMatches(info, returnType, fieldNode, normalized, { prefix }),
       );
 
       if (found.length === 0) {

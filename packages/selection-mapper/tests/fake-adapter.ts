@@ -42,20 +42,6 @@ export function queryFromInfo<Model, Query, NodeType extends NodeBase<Model> = N
   ) as Query;
 }
 
-/**
- * The info of the field at `keys` in the execution `info` resolved in: mappings are recorded per
- * execution, so a lookup must be made in the same one.
- */
-export function infoAt(info: GraphQLResolveInfo, ...keys: (string | number)[]): GraphQLResolveInfo {
-  let path: GraphQLResolveInfo['path'] | undefined;
-
-  for (const key of keys) {
-    path = { prev: path, key, typename: undefined };
-  }
-
-  return { ...info, path: path! };
-}
-
 /** A model: one object per name, so identity is model identity. */
 export interface FakeModel {
   name: string;
