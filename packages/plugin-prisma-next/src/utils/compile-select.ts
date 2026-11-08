@@ -219,7 +219,7 @@ export function relationLoad(
  * What identifies `query`: its data, unless it holds a callback that a select function or a query
  * callback builds anew on every call. `built` then identifies it by where it was built.
  */
-function queryIdentity(query: object | undefined, built?: () => unknown): unknown {
+function queryIdentity(query: DeclarativeQuery | undefined, built?: () => unknown): unknown {
   // Only the top-level options, and an `orderBy`'s list of selectors, are checked for callbacks.
   return built &&
     query &&
@@ -229,6 +229,18 @@ function queryIdentity(query: object | undefined, built?: () => unknown): unknow
         (Array.isArray(option) && option.some((item) => typeof item === 'function')),
     )
     ? built()
+    : loadData(query);
+}
+
+/**
+ * `query` as data that compares equal only for queries that load the same rows in the same order:
+ * an `orderBy` declaration becomes its list of columns, since rows are ordered by them in the order
+ * they are written.
+ */
+function loadData(query: DeclarativeQuery | undefined) {
+  const { orderBy } = query ?? {};
+  return isOrderByDecl(orderBy)
+    ? { ...query, orderBy: Object.entries(orderBy).filter(([, direction]) => direction) }
     : query;
 }
 
@@ -577,14 +589,14 @@ export function compileFieldSelect(
 }
 
 /**
- * A type-level relation entry, split, as the data it loads by: its query without the options that
- * load nothing different, the model of its `type`, and its nested `select` likewise, with a
+ * A type-level relation entry, split, as the data it loads by: its query as `loadData` has it,
+ * the model of its `type`, and its nested `select` likewise, with a
  * relation's `true` as `{}`. An aggregate of the nested `select` is compared by its relation alone.
  */
 export function entryDefinition([, entry, split]: SplitRelation): unknown {
   const { where, orderBy, limit, offset, type } = entry;
   return {
-    query: definedQuery({ where, orderBy, limit, offset }),
+    query: loadData(definedQuery({ where, orderBy, limit, offset })),
     type: entryTypeModel(type),
     select: split && {
       ...Object.fromEntries(split.columns.map((column) => [column, true])),

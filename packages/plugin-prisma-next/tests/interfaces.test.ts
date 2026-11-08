@@ -451,6 +451,23 @@ describe('inherited selections', () => {
       );
     });
 
+    it('with an orderBy listing its columns in another order', () => {
+      const builder = createBuilder();
+      builder.prismaObject('User', {
+        select: { posts: { orderBy: { id: 'asc', createdAt: 'asc' }, limit: 1 } },
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+      builder.prismaObject('User', {
+        variant: 'Viewer',
+        select: { posts: { orderBy: { createdAt: 'asc', id: 'asc' }, limit: 1 } },
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+      builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+      expect(() => builder.toSchema()).toThrow(
+        "'User' and 'Viewer' both select 'posts', with different definitions.",
+      );
+    });
+
     it('with orderBy selectors, which compare by identity', () => {
       const build = (other: boolean) => {
         const builder = createBuilder();

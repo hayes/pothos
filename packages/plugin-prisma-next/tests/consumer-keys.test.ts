@@ -210,6 +210,93 @@ describe('consumers of one relation with different arguments on one type', () =>
   });
 });
 
+// SQL orders by an orderBy's keys in the order they are written, so it is part of what a load is.
+describe('aliases whose orderBy lists the same columns in another order', () => {
+  const byId = { orderBy: { id: 'asc', createdAt: 'asc' }, limit: 1 } as const;
+  const byDate = { orderBy: { createdAt: 'asc', id: 'asc' }, limit: 1 } as const;
+  it('load apart through t.relation', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        first: t.relation('posts', {
+          args: { byDate: t.arg.boolean({ required: true }) },
+          query: (args) => (args.byDate ? byDate : byId),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: [User], query: { where: { id: 'u-alice' } } }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ users { a: first(byDate: false) { id } b: first(byDate: true) { id } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0]).toEqual({ a: [{ id: 'p-draft1' }], b: [{ id: 'p-hello' }] });
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it("load apart through a field's select", async () => {
+    const builder = createBuilder();
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        first: t.stringList({
+          args: { byDate: t.arg.boolean({ required: true }) },
+          select: (args) => ({ posts: args.byDate ? byDate : byId }),
+          resolve: (user) => user.posts.map((post) => post.id),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: [User], query: { where: { id: 'u-alice' } } }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ users { a: first(byDate: false) b: first(byDate: true) } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0]).toEqual({ a: ['p-draft1'], b: ['p-hello'] });
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('load apart through nestedSelection', async () => {
+    const builder = createBuilder();
+    const Post = builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        first: t.field({
+          type: [Post],
+          args: { byDate: t.arg.boolean({ required: true }) },
+          select: (args, _ctx, nestedSelection) => ({
+            posts: nestedSelection(args.byDate ? byDate : byId),
+          }),
+          resolve: (user) => user.posts,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({ type: [User], query: { where: { id: 'u-alice' } } }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ users { a: first(byDate: false) { id } b: first(byDate: true) { id } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0]).toEqual({ a: [{ id: 'p-draft1' }], b: [{ id: 'p-hello' }] });
+    expect(result.statements).toHaveLength(1);
+  });
+});
+
 // Edge case 3: an inherited field is planned once, on the interface; an override and a fragment
 // narrowed to an implementation are planned on the implementation.
 describe('interface fields', () => {
