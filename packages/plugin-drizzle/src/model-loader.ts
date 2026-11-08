@@ -1,5 +1,11 @@
 import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
-import { cacheKey, Plan, setLoaderMappings, setRowFieldMapping } from '@pothos/selection-mapper';
+import {
+  cacheKey,
+  forOperation,
+  Plan,
+  setLoaderMappings,
+  setRowFieldMapping,
+} from '@pothos/selection-mapper';
 import {
   type AnyTable,
   type Column,
@@ -37,9 +43,9 @@ export class ModelLoader {
 
   // One plan per `Type@path` per operation, a promise while a select beneath the field is async.
   // A parent-row plan is played where it is made, since it is never played behind another
-  // selection; a field's plan is played per load, so no two loads share a node. Keyed on
-  // `info.variableValues`, which graphql-js creates once per operation, so an operation sharing
-  // the context never loads with another's plan.
+  // selection; a field's plan is played per load, so no two loads share a node. Kept per
+  // operation (see `forOperation`), so an operation sharing the context never loads with
+  // another's plan.
   rowCache = new WeakMap<object, Map<string, MaybePromise<DrizzlePlayedPlan>>>();
 
   planCache = new WeakMap<object, Map<string, MaybePromise<DrizzlePlan>>>();
@@ -379,15 +385,4 @@ function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {
   });
 
   return { promise, resolve: resolveFn, reject: rejectFn };
-}
-
-/** The plans of the operation `info` is in. */
-function forOperation<T>(cache: WeakMap<object, Map<string, T>>, info: GraphQLResolveInfo) {
-  let plans = cache.get(info.variableValues);
-  if (!plans) {
-    plans = new Map();
-    cache.set(info.variableValues, plans);
-  }
-
-  return plans;
 }

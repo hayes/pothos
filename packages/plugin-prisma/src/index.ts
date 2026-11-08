@@ -13,7 +13,12 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, mappingParentTypes, setRowMappings } from '@pothos/selection-mapper';
+import {
+  forOperation,
+  getLoaderMapping,
+  mappingParentTypes,
+  setRowMappings,
+} from '@pothos/selection-mapper';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
@@ -165,9 +170,9 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     // The fallback with one settled plan per `Type@path` per operation beside it, since it plans
     // this field again for every row of the list its parent came from. Allocated only for a field
     // that has a fallback, and scoped to the field config, so the plans of a request go with the
-    // request and the builder's own `skipDeferredFragments` is the one that applies. Keyed on
-    // `info.variableValues`, which graphql-js creates once per operation, so an operation sharing
-    // the context never plays another's plan.
+    // request and the builder's own `skipDeferredFragments` is the one that applies. Kept per
+    // operation (see `forOperation`), so an operation sharing the context never plays another's
+    // plan.
     const fallback = resolveFallback && {
       resolve: resolveFallback,
       plan: fallbackPlan,
@@ -199,16 +204,8 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       }
 
       if (fallback) {
-        const byOperation = fallback.plans(context);
-        let plans = byOperation.get(info.variableValues);
-
-        if (!plans) {
-          plans = new Map();
-          byOperation.set(info.variableValues, plans);
-        }
-
         const query = fallbackQueryFromInfo(
-          plans,
+          forOperation(fallback.plans(context), info),
           context,
           info,
           this.builder.options.prisma.skipDeferredFragments,

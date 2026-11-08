@@ -7,7 +7,7 @@ import {
   PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
-import { cacheKey, Plan, setRowMappings } from '@pothos/selection-mapper';
+import { cacheKey, forOperation, Plan, setRowMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from './types.js';
 import { type PrismaNode, type PrismaPlayedPlan, prismaAdapter } from './util/adapter.js';
@@ -31,9 +31,9 @@ export class ModelLoader {
   modelName: string;
 
   // One parent-row plan per `Type@path` per operation, played where it is made since it is never
-  // played behind another selection; a promise while a select beneath the field is async. Keyed
-  // on `info.variableValues`, which graphql-js creates once per operation, so an operation
-  // sharing the context never reloads with another's plan.
+  // played behind another selection; a promise while a select beneath the field is async. Kept
+  // per operation (see `forOperation`), so an operation sharing the context never reloads with
+  // another's plan.
   queryCache = new WeakMap<object, Map<string, MaybePromise<PrismaPlayedPlan>>>();
 
   // Each batch owns the node it accumulates into, so nothing a cached play holds is changed by a
@@ -232,12 +232,8 @@ export class ModelLoader {
   }
 
   getSelection(info: GraphQLResolveInfo) {
+    const plans = forOperation(this.queryCache, info);
     const key = cacheKey(info.parentType.name, info.path);
-    let plans = this.queryCache.get(info.variableValues);
-    if (!plans) {
-      plans = new Map();
-      this.queryCache.set(info.variableValues, plans);
-    }
     let plan = plans.get(key);
     if (!plan) {
       plan = Plan.forParentRow(prismaAdapter, {
