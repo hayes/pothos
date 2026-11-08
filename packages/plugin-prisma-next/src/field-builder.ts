@@ -54,12 +54,12 @@ function prismaFieldConfig(
     applySelectionToCollection(source, modelKey, info, config, context) as MaybePromise<
       PlannedQuery & { query: Executable }
     >;
-  const refinement = (value: unknown, problem?: Parameters<typeof relationLoad>[3]) =>
-    relationLoad(config.contract, modelKey, value, problem).refine;
+  const refinement = (value: unknown, options?: Parameters<typeof relationLoad>[3]) =>
+    relationLoad(config.contract, modelKey, value, options).refine;
   const literal =
     typeof query === 'function'
       ? undefined
-      : refinement(query, orderableProblem(config.context, modelKey));
+      : refinement(query, { problem: orderableProblem(config.context, modelKey) });
   const refine =
     typeof query === 'function'
       ? (args: unknown, context: object) =>

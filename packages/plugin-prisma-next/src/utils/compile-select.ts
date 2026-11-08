@@ -161,7 +161,7 @@ export function definedQuery(value: unknown): DeclarativeQuery | undefined {
  * `orderColumns` resolves it: a literal's is checked when the schema is built, so by default only a
  * computed column fails here. The ORM's selectors go to the collection's `orderBy` as they are.
  */
-export function queryRefinement(
+function queryRefinement(
   contract: AnyContract,
   modelKey: string,
   { where, orderBy, limit, offset }: DeclarativeQuery,
@@ -192,17 +192,19 @@ export function queryRefinement(
 
 /**
  * How `value`, a declarative `query` of `modelKey`'s rows, loads them: `refine` applies it and
- * `loadIdentity` identifies it. Undefined for a query that loads every row.
+ * `loadIdentity` identifies it. Both undefined for a query that loads every row. `problem` rejects
+ * the columns it orders by, as `orderColumns` checks them. `built` identifies a query built anew on
+ * every call (see `queryIdentity`).
  */
 export function relationLoad(
   contract: AnyContract,
   modelKey: string,
   value: unknown,
-  problem?: Parameters<typeof orderColumns>[3],
+  { problem, built }: { problem?: Parameters<typeof orderColumns>[3]; built?: () => unknown } = {},
 ) {
   const query = definedQuery(value);
   return {
-    loadIdentity: query,
+    loadIdentity: queryIdentity(query, built),
     refine: query && queryRefinement(contract, modelKey, query, problem),
   };
 }
@@ -211,7 +213,7 @@ export function relationLoad(
  * What identifies `query`: its data, unless it holds a callback that a select function or a query
  * callback builds anew on every call. `built` then identifies it by where it was built.
  */
-export function queryIdentity(query: object | undefined, built?: () => unknown): unknown {
+function queryIdentity(query: object | undefined, built?: () => unknown): unknown {
   // Only the top-level options, and an `orderBy`'s list of selectors, are checked for callbacks.
   return built &&
     query &&
@@ -399,19 +401,14 @@ function compileSelect(
             relation.targetModel,
             entryTypeModel(type),
           );
-    const query = definedQuery({
-      where: entry.where,
-      orderBy: entry.orderBy,
-      limit: entry.limit,
-      offset: entry.offset,
-    });
+    const { where, orderBy, limit, offset } = entry;
     const loaded = relationArgs(relation, {
-      loadIdentity: queryIdentity(
-        query,
-        source === undefined ? undefined : () => callbackIdentity(name),
+      ...relationLoad(
+        contract,
+        entryTypeModel(type) ?? relation.targetModel,
+        { where, orderBy, limit, offset },
+        { built: source === undefined ? undefined : () => callbackIdentity(name) },
       ),
-      refine:
-        query && queryRefinement(contract, entryTypeModel(type) ?? relation.targetModel, query),
       variant,
     });
     // The rows load whole, with what a nested `select` names as consumer `nestedId(id)`.

@@ -52,7 +52,6 @@ import type {
 } from './types/relations.js';
 import {
   computedSelection,
-  queryIdentity,
   relationArgs,
   relationLoad,
   rowsSelection,
@@ -363,25 +362,26 @@ export class PrismaNextObjectFieldBuilder<
         : modelDiscriminator(this.contract as AnyContract, relation.targetModel)!.field;
     // A literal query is checked here, and a callback's result through `checkReturned` when a
     // request is planned.
-    const load = (value: unknown, problem?: Parameters<typeof relationLoad>[3]) =>
-      relationLoad(this.contract as AnyContract, queryModel, value, problem);
+    const load = (value: unknown, options?: Parameters<typeof relationLoad>[3]) =>
+      relationLoad(this.contract as AnyContract, queryModel, value, options);
     const literal =
       typeof query === 'function'
         ? undefined
-        : load(query, orderableProblem(getPluginConfig(this.builder).context, queryModel));
+        : load(query, {
+            problem: orderableProblem(getPluginConfig(this.builder).context, queryModel),
+          });
     const relationLoaded = (parent: object) =>
       (parent as Record<string, unknown>)[relationName] !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, nested, _selected, position) =>
       completeOption(query as unknown, args, ctx, (value) => {
-        const { loadIdentity, refine } =
-          literal ?? checkReturned(value, (returned) => load(returned));
         // A query is identified by its data, so equal queries, and equal `select` entries, share
         // a load. A callback builds the callbacks it returns anew on every walk, so the field's
         // query and its arguments identify those.
-        const identity = queryIdentity(
-          loadIdentity,
-          literal ? undefined : () => ({ source: query, args }),
-        );
+        const { loadIdentity, refine } =
+          literal ??
+          checkReturned(value, (returned) =>
+            load(returned, { built: () => ({ source: query, args }) }),
+          );
         return rowsSelection(
           relation,
           relationName,
@@ -389,7 +389,7 @@ export class PrismaNextObjectFieldBuilder<
           nested({
             columns: discriminator === undefined ? null : [discriminator],
             args: relationArgs(relation, {
-              loadIdentity: identity,
+              loadIdentity,
               refine,
               variant: discriminator === undefined ? variant : undefined,
             }),
@@ -439,22 +439,19 @@ export class PrismaNextObjectFieldBuilder<
       fieldValue(parent, relationName, VALUE_SLOT) !== undefined;
     const select: PrismaNextSelectFn = (args, ctx, _nested, _selected, position) =>
       completeOption(query, args, ctx, (value) => {
-        // The types allow only `where`, which can't fail to refine.
+        // The types allow only `where`, which can't fail to refine. Identified as `t.relation`'s
+        // query is.
         const { loadIdentity, refine } = relationLoad(
           this.contract as AnyContract,
           relation.targetModel,
           value,
-        );
-        // Identified as `t.relation`'s query is.
-        const identity = queryIdentity(
-          loadIdentity,
-          typeof query === 'function' ? () => ({ source: query, args }) : undefined,
+          { built: typeof query === 'function' ? () => ({ source: query, args }) : undefined },
         );
         return computedSelection(
           relationName,
           consumerId(position),
           VALUE_SLOT,
-          identity,
+          loadIdentity,
           (sub) => ({
             [VALUE_SLOT]: countOf(refine ? refine(sub) : sub),
           }),
