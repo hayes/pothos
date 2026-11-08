@@ -4,7 +4,6 @@ import {
   NodeAdapter,
   type Plan,
   type QueryVisitor,
-  type WalkedType,
 } from '@pothos/selection-mapper';
 import {
   type GraphQLField,
@@ -57,11 +56,6 @@ export interface PlannedQuery {
 
 export type PrismaNextNode = Node<PrismaNextModel>;
 export type PrismaNextPlan = Plan<PrismaNextModel, PrismaNextSelection>;
-
-/** Every selection key the plugin plans names a relation of its level's model. */
-function relationOf(model: PrismaNextModel, name: string): PrismaNextRelation {
-  return model.relations[name]!;
-}
 
 type Visitor = QueryVisitor<PrismaNextModel, PrismaNextSelection>;
 
@@ -143,14 +137,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     return selection;
   }
 
-  fieldSelection(field: GraphQLField<unknown, unknown>, type: WalkedType) {
-    // An interface field counts as planned even without a select of its own. The implementation
-    // it resolves on then reads the branches the interface planned for it.
-    const own = field.extensions?.[PRISMA_NEXT_FIELD_SELECTION] as
+  fieldSelection(field: GraphQLField<unknown, unknown>) {
+    return field.extensions?.[PRISMA_NEXT_FIELD_SELECTION] as
       | PrismaNextSelection
       | PrismaNextSelectFn
       | undefined;
-    return own ?? (implementationsOf(type) ? EMPTY : undefined);
   }
 
   visitQuery(selection: PrismaNextSelection, model: PrismaNextModel, visit: Visitor) {
@@ -162,7 +153,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       }
     }
     for (const key of Object.keys(selection.relations ?? {})) {
-      visit.relation(key, relationOf(model, splitKey(key)[0]).target, selection.relations![key]);
+      visit.relation(key, model.relations[splitKey(key)[0]]!.target, selection.relations![key]);
     }
     for (const key of Object.keys(selection.computed ?? {})) {
       visit.computed(key, selection.computed![key], 'relation');
@@ -252,7 +243,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   private withoutUnloadable(selection: PrismaNextSelection, { model, args }: PrismaNextNode) {
     const narrowing = selection.args?.variant ?? (args as RelationArgs).variant;
     const fits = ([key]: [string, unknown]) =>
-      canInclude(relationOf(model, splitKey(key)[0]), narrowing);
+      canInclude(model.relations[splitKey(key)[0]]!, narrowing);
     const readable = readableColumns(model, narrowing);
     const columnFits = (column: string) => !readable || readable.has(column);
     const relations = Object.entries(selection.relations ?? {});
@@ -300,19 +291,14 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     collection: MapperCollection,
     selection: PrismaNextSelection,
     model: PrismaNextModel,
-    branches: BranchNames,
+    // Numbers the `combine()` branches of the statement.
+    branches: { next: number },
   ): MapperCollection {
     let result = selection.columns?.length ? collection.select(...selection.columns) : collection;
     // The ORM includes a relation once, so all of its loads share one include.
     const byRelation = new Map<string, RelationLoads>();
-    const loadsOf = (name: string) => {
-      let entry = byRelation.get(name);
-      if (!entry) {
-        entry = { keyed: [], computed: [] };
-        byRelation.set(name, entry);
-      }
-      return entry;
-    };
+    const loadsOf = (name: string) =>
+      byRelation.get(name) ?? byRelation.set(name, { keyed: [], computed: [] }).get(name)!;
     for (const [key, child] of Object.entries(selection.relations ?? {})) {
       const [name, id] = splitKey(key);
       if (id === undefined) {
@@ -326,7 +312,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
       loadsOf(name).computed.push([id!, value]);
     }
     for (const [name, entry] of byRelation) {
-      const relation = relationOf(model, name);
+      const relation = model.relations[name]!;
       result = result.include(name, (rel) => this.emitRelation(rel, relation, entry, branches));
     }
     return result;
@@ -343,7 +329,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     rel: MapperCollection,
     relation: PrismaNextRelation,
     { plain, keyed, computed }: RelationLoads,
-    branches: BranchNames,
+    branches: { next: number },
   ): MapperCollection {
     const target = relation.targetVariantModel;
     // The ORM reads a single-table variant's rows through the base table without filtering them.
@@ -385,11 +371,6 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     }
     return base.combine(spec);
   }
-}
-
-/** Numbers the `combine()` branches of one statement. */
-interface BranchNames {
-  next: number;
 }
 
 /**
