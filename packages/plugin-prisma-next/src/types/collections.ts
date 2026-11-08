@@ -57,6 +57,17 @@ type VariantCollection<Types extends SchemaTypes, M extends ModelKey<Types>> = H
   readonly modelName: BareModelName<BaseModelKey<Types['PrismaNextContract'], M>>;
 };
 
+/**
+ * Requires `typeName` of `collectionFromInfo` on a collection narrowed by `variant()`, which reads
+ * its rows as the variant's type.
+ */
+export type VariantTypeName<C> =
+  C extends HasTypeState<infer State extends CollectionTypeState>
+    ? State['variantValue'] extends string
+      ? { typeName: string }
+      : unknown
+    : unknown;
+
 // orm-client doesn't export `WithNsId`, which `CollectionFor` needs to match `db.orm.<Model>`.
 export type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<
   State,

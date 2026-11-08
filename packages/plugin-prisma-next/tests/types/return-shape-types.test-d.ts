@@ -323,6 +323,7 @@ export async function plannedCollections() {
     collection: inheritanceClient.orm.Task.variant('bug'),
     context: {},
     info,
+    typeName: 'Bug',
   });
   expectTypeOf((await bugs.first())!).toExtend<PlannedRowBrand<'Bug'>>();
   expectTypeOf((await bugs.first())!).not.toExtend<PlannedRowBrand<'Task'>>();
@@ -340,8 +341,27 @@ export async function plannedCollections() {
     collection: crossNamespace.orm.inha.Task.variant('chore'),
     context: {},
     info,
+    typeName: 'Chore',
   });
   expectTypeOf((await chores.first())!).toExtend<PlannedRowBrand<'inhb.Chore'>>();
+}
+
+// A collection narrowed to a variant names the type its rows resolve as.
+export async function narrowedCollectionWithoutTypeName() {
+  // @ts-expect-error typeName is required for a collection narrowed by variant()
+  await collectionFromInfo({
+    collection: inheritanceClient.orm.Task.variant('bug'),
+    context: {},
+    info,
+  });
+  // @ts-expect-error typeName is required beneath a path too
+  await collectionFromInfo({
+    collection: inheritanceClient.orm.Task.variant('bug'),
+    context: {},
+    info,
+    path: ['bug'],
+  });
+  await collectionFromInfo({ collection: inheritanceClient.orm.Task, context: {}, info });
 }
 
 // A collection typed by a type parameter keeps its methods.

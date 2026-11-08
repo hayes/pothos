@@ -230,7 +230,8 @@ fails. Write with `updateAndCount()` instead, then read the row with `first()`.
 
 When the mutation returns a payload, build the write's Collection with `collectionFromInfo`, which
 adds what the query selects, and pass the path to the row's field, such as `path: ['user']`. For an
-interface or union, pass `typeName` to pick the type:
+interface or union, pass `typeName` to pick the type. A Collection narrowed with `variant()` needs
+`typeName` too, naming the variant's type:
 
 ```ts
 import { collectionFromInfo } from '@pothos/plugin-prisma-next';

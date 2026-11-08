@@ -1271,13 +1271,13 @@ describe("a variant's relations in a field's select", () => {
       fields: (t) => ({
         file: t.field({
           type: Filed,
-          // The plan's root is the type at the path, which narrows it to the variant.
           resolve: async (_root, _args, context, info) => {
             const bugs = await collectionFromInfo({
               collection: db.orm.Task.variant('bug'),
               context,
               info,
               path: ['bug'],
+              typeName: 'Bug',
             });
             return { bug: await bugs.first() };
           },
@@ -1290,7 +1290,7 @@ describe("a variant's relations in a field's select", () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it('narrows the root of collectionFromInfo only when every path leads to one variant', async () => {
+  it('narrows the root of collectionFromInfo with several paths to the typeName', async () => {
     const { builder, task, feature } = reviewBuilder();
     const Bug = builder.prismaObject('Bug', {
       interfaces: [task],
@@ -1323,19 +1323,63 @@ describe("a variant's relations in a field's select", () => {
               context,
               info,
               paths: [['bug'], ['feature']],
+              typeName: 'Feature',
             });
             return { task: await features.first() };
           },
         }),
       }),
     });
-    // Only the second path is selected, so the root isn't narrowed to the first path's Bug.
     const result = await run(
       builder.toSchema(),
       'mutation { file { feature { priority championEmail } } }',
     );
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ file: { feature: { priority: 5, championEmail: email } } });
+  });
+
+  // The deleted row can't be reloaded, so the variant's relations load with the delete.
+  const deleteDb = useDatabase(contract, sql);
+
+  it("returns a deleted bug's variant-only relation through typeName", async () => {
+    const builder = new SchemaBuilder<{ PrismaNextContract: Contract }>({
+      plugins: [RelayPlugin, PrismaNextPlugin],
+      relay: {},
+      prismaNext: { client: deleteDb.client },
+    });
+    const task = builderTask(builder);
+    builder.prismaObject('Bug', {
+      interfaces: [task],
+      fields: (t) => ({ reviewer: t.relation('reviewer', { nullable: true }) }),
+    });
+    builder.prismaObject('Feature', { interfaces: [task], fields: () => ({}) });
+    builder.prismaObject('User', { fields: (t) => ({ email: t.exposeString('email') }) });
+    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    builder.mutationType({
+      fields: (t) => ({
+        deleteBug: t.field({
+          type: task,
+          nullable: true,
+          resolve: async (_root, _args, context, info) => {
+            const bugs = await collectionFromInfo({
+              collection: deleteDb.orm.Task.variant('bug').where({ id: 't1' }),
+              context,
+              info,
+              typeName: 'Bug',
+            });
+            return bugs.delete();
+          },
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      'mutation { deleteBug { title ... on Bug { reviewer { email } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ deleteBug: { title: 'bug1', reviewer: { email } } });
+    // The ORM's delete reads the row, then deletes it. Nothing reloads.
+    expect(result.statements).toHaveLength(2);
   });
 
   it('reloads through the variant beneath a root that is not narrowed', async () => {

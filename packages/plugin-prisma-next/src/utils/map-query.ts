@@ -1,5 +1,6 @@
 import { completeValue, type MaybePromise } from '@pothos/core';
 import { type IndirectInclude, type PathSegment, Plan } from '@pothos/selection-mapper';
+import type { HasNoVariant } from '@prisma/orm-family-sql/orm-client';
 import {
   type GraphQLNamedType,
   type GraphQLResolveInfo,
@@ -7,7 +8,7 @@ import {
   getNamedType,
 } from 'graphql';
 import { PRISMA_NEXT_CONFIG, PRISMA_NEXT_MODEL } from '../constants.js';
-import type { PlannedCollection } from '../types/collections.js';
+import type { PlannedCollection, VariantTypeName } from '../types/collections.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection, PlannedQuery, PrismaNextPlan } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
@@ -68,8 +69,7 @@ export function initialSelection(
 
 /**
  * The model of the type `collectionFromInfo` reads its root as: `typeName`'s, or that of the type
- * every path leads to, through any indirect include. The mapper plans the first path the document
- * selects, so paths leading to different models leave it undefined and the root isn't narrowed.
+ * its one path leads to, through any indirect include. With several paths it isn't inferred.
  */
 function plannedModelKey(info: GraphQLResolveInfo, { typeName, path, paths }: PlanTarget) {
   const { schema } = info;
@@ -87,8 +87,10 @@ function plannedModelKey(info: GraphQLResolveInfo, { typeName, path, paths }: Pl
     }
     return type?.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
   };
-  const [first, ...rest] = (paths?.length ? paths : [path ?? []]).map(modelAt);
-  return rest.every((model) => model === first) ? first : undefined;
+  if (!typeName && paths && paths.length > 1) {
+    return undefined;
+  }
+  return modelAt(paths?.[0] ?? path ?? []);
 }
 
 function includeOf(type: GraphQLNamedType) {
@@ -147,11 +149,20 @@ export interface CollectionFromInfoOptions<C> extends PlanTarget {
  * Applies the selection of the field `info` resolves to `collection`, for a resolver that loads rows
  * itself, such as a mutation's. With `path` or `paths` it applies the selection beneath them, such
  * as `['post']` for a payload's `post` field, and `typeName` names the type the rows resolve as
- * when the path leads to an interface or union. The rows the returned collection's reads and writes
- * return resolve the selection without loading again.
+ * when the path leads to an interface or union, or the collection is narrowed by `variant()`. The
+ * rows the returned collection's reads and writes return resolve the selection without loading
+ * again.
  *
  * Returns a promise, since a `select` beneath the field may be async.
  */
+// The first overload takes a collection typed by a type parameter, whose `VariantTypeName` is
+// deferred.
+export function collectionFromInfo<C extends HasNoVariant>(
+  options: CollectionFromInfoOptions<C>,
+): Promise<PlannedCollection<C>>;
+export function collectionFromInfo<C extends object>(
+  options: CollectionFromInfoOptions<C> & VariantTypeName<C>,
+): Promise<PlannedCollection<C>>;
 export async function collectionFromInfo<C extends object>({
   collection,
   context,
