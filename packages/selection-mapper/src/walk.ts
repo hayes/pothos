@@ -27,6 +27,7 @@ import {
   findMatches,
   firstMatch,
   includeOf,
+  includePaths,
   isDeferred,
   isSkipped,
   matchesForModel,
@@ -210,20 +211,15 @@ function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
 
   const { info, adapter } = plan;
   const include = includeOf(type);
+  const paths = include && includePaths(include);
   const beneath: ResolvedBranch[] = [];
 
-  if (include?.paths?.length || include?.path?.length) {
+  if (paths) {
     for (const fieldNode of fieldNodes) {
-      const matches = findMatches(
-        info,
-        type,
-        fieldNode,
-        include.paths?.length ? include.paths : [include.path!],
-        {
-          path: indirectPath,
-          deferred,
-        },
-      );
+      const matches = findMatches(info, type, fieldNode, paths, {
+        path: indirectPath,
+        deferred,
+      });
 
       for (const match of matches) {
         beneath.push(
@@ -687,11 +683,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
         return (query ?? ({} as Query)) as Query;
       }
 
-      const paths = include?.paths?.length
-        ? include.paths
-        : include?.path?.length
-          ? [include.path]
-          : undefined;
+      const paths = include && includePaths(include);
       // Everything a walk beneath this field node reads: the shape of its selection set, not the
       // node, so a fragment spread beneath many fields is walked once. The paths are data: an
       // include's segments are names and type names.
