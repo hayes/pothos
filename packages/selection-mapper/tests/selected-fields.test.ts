@@ -1,7 +1,7 @@
 import { getNamedType } from 'graphql';
 import { expect, it } from 'vitest';
 import { Plan, selectedFieldNames } from '../src';
-import { createModels, createSchema, FakeAdapter, resolveInfo } from './fake-adapter';
+import { createModels, createSchema, FakeAdapter, resolveInfo, unexpected } from './fake-adapter';
 
 it.each([
   true,
@@ -121,13 +121,7 @@ it('reads the arguments of a field beneath the selection, through a wrapper', as
 });
 
 it('throws for fields at the path with different arguments', async () => {
-  const read = argsAt(['posts'], 'a: posts(first: 1) b: posts(first: 5)');
-  const error = await read.then(
-    () => undefined,
-    (thrown: Error) => thrown,
-  );
-  expect(error?.message).toBe('Unexpected error.');
-  expect((error?.cause as Error).message).toBe(
-    'The fields selected at posts beneath User.activity have different arguments.',
+  await expect(argsAt(['posts'], 'a: posts(first: 1) b: posts(first: 5)')).rejects.toThrow(
+    unexpected('The fields selected at posts beneath User.activity have different arguments.'),
   );
 });

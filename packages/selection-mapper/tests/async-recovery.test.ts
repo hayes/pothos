@@ -8,6 +8,7 @@ import {
   type FakeMap,
   type FakeModel,
   resolveInfo,
+  unexpected,
 } from './fake-adapter';
 
 it('allows an async select to recover from an awaited nested query failure', async () => {
@@ -105,7 +106,9 @@ it('handles an already-started query when nested path validation throws', async 
   const onUnhandled = (error: unknown) => unhandled.push(error);
   process.on('unhandledRejection', onUnhandled);
   try {
-    expect(() => Plan.fromInfo(new FakeAdapter(models), { context: {}, info })).toThrow();
+    expect(() => Plan.fromInfo(new FakeAdapter(models), { context: {}, info })).toThrow(
+      unexpected('Expected ID to be an Object or Interface type'),
+    );
     rejectQuery(new Error('query failed'));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(unhandled).toEqual([]);

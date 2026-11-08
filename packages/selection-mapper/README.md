@@ -89,7 +89,8 @@ extends `Adapter` directly.
   other's. An execution is told apart by the `getAbortSignal` graphql-js 17 gives it, or by its
   `variableValues`, not by its path, which graphql-jit builds afresh for every resolver. The
   plugins pass `getLoaderMapping` the resolver's `info`, and wrap `subscribe` in
-  `linkSubscriptionEvents` so an event also sees what its `subscribe` recorded. An adapter whose
+  `linkSubscriptionEvents` so an event whose payload its `subscribe` loaded with a planned query
+  also sees what that `subscribe` recorded. An adapter whose
   resolvers read a loaded row another way simply never looks them up.
 - Every select function is handed the `Position` of the field it plans: the field's node, the type
   it was walked on, and a link to the position of the field the plan hangs beneath. The walker
