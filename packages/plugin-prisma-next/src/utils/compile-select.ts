@@ -10,9 +10,16 @@ import { PRISMA_NEXT_MODEL, PRISMA_NEXT_TYPE_SELECTS } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection } from './adapter.js';
 import { rowsKey, valueKey } from './branch-keys.js';
+import type { PrismaNextConfig } from './config.js';
 import { consumerId, nestedId, TYPE_CONSUMER } from './consumers.js';
 import { variantForRelationType } from './contract.js';
-import { isOrderByDecl, type OrderByOption, orderCollection, orderColumns } from './cursors.js';
+import {
+  isOrderByDecl,
+  type OrderByOption,
+  orderableProblem,
+  orderCollection,
+  orderColumns,
+} from './cursors.js';
 import { checkReturned } from './errors.js';
 import {
   getModel,
@@ -85,7 +92,7 @@ export function nestedSelectionEntry(
 }
 
 /** The model of a relation entry's `type`: a ref's, or a model's name. */
-export function entryTypeModel(type: unknown): string | undefined {
+function entryTypeModel(type: unknown): string | undefined {
   return typeof type === 'string' ? type : (type as { modelKey?: string } | undefined)?.modelKey;
 }
 
@@ -140,7 +147,7 @@ interface DeclarativeQuery {
  * left: an undefined option, and a `where` or `orderBy` that is an empty object or list. The types
  * check its shape.
  */
-export function definedQuery(value: unknown): DeclarativeQuery | undefined {
+function definedQuery(value: unknown): DeclarativeQuery | undefined {
   if (!value) {
     return undefined;
   }
@@ -329,7 +336,7 @@ export function typeSelects(type: {
  * own, which can't read the columns it inherits. A page entry doesn't hand over rows loaded that
  * way.
  */
-export function loadsOwnTableVariantRows(relation: PrismaNextRelation, entry: RelationEntry) {
+function loadsOwnTableVariantRows(relation: PrismaNextRelation, entry: RelationEntry) {
   return !entry[CONNECTION_PAGE] && relation.targetVariantModel?.sharesTable === false;
 }
 
@@ -476,7 +483,7 @@ const AGGREGATE = 'aggregate';
  * Begins an error about an entry of the nested `select` of relation `name`, beneath the `select`
  * whose error `subject` begins.
  */
-export function nestedSubject(subject: string, name: string) {
+function nestedSubject(subject: string, name: string) {
   return `${subject} the rows of relation '${name}', whose nested select loads`;
 }
 
@@ -555,4 +562,81 @@ export function compileFieldSelect(
       }),
     );
   };
+}
+
+/**
+ * A type-level relation entry of rows of `model` as the data it loads by: its query without the
+ * options that load nothing different, the model of its `type`, and its nested `select` likewise,
+ * with a relation's `true` as `{}`.
+ */
+export function entryDefinition(entry: RelationEntry, model: PrismaNextModel | undefined): unknown {
+  const { where, orderBy, limit, offset, type, select } = entry;
+  return {
+    query: definedQuery({ where, orderBy, limit, offset }),
+    type: entryTypeModel(type),
+    select:
+      select &&
+      Object.fromEntries(
+        (Array.isArray(select)
+          ? select.map((column: string) => [column, true] as const)
+          : Object.entries(select).filter(([, value]) => value != null)
+        ).map(([key, value]) => {
+          const relation = model?.relations[key];
+          return [
+            key,
+            relation || value !== true
+              ? entryDefinition(value === true ? {} : (value as RelationEntry), relation?.target)
+              : true,
+          ];
+        }),
+      ),
+  };
+}
+
+/**
+ * Checks the relation entries of a static `select`, which `subject` reads: rows of a variant model
+ * with a table of its own load without the columns it inherits, so only a reader `readsRows` accepts
+ * can take them, and the columns each entry orders by.
+ */
+export function assertRelationEntries(
+  config: PrismaNextConfig,
+  { relations }: SplitSelect,
+  model: PrismaNextModel,
+  subject: string,
+  readsRows: (relation: PrismaNextRelation) => boolean,
+) {
+  for (const [name, entry] of relations) {
+    const relation = model.relations[name]!;
+    if (loadsOwnTableVariantRows(relation, entry) && !readsRows(relation)) {
+      throw ownTableVariantRowsError(subject, name, relation);
+    }
+    const { orderBy } = entry;
+    if (entry.type !== undefined) {
+      variantForRelationType(
+        config.contract,
+        `${subject} relation '${name}', which`,
+        relation.targetModel,
+        entryTypeModel(entry.type),
+      );
+    }
+    if (entry.select) {
+      // The rows of a nested `select` are read only through its parent's.
+      assertRelationEntries(
+        config,
+        splitSelect(entry.select, relation.target),
+        relation.target,
+        nestedSubject(subject, name),
+        () => false,
+      );
+    }
+    if (isOrderByDecl(orderBy)) {
+      const rowsModel = entryTypeModel(entry.type) ?? relation.targetModel;
+      orderColumns(
+        config.contract,
+        rowsModel,
+        orderBy,
+        orderableProblem(config.context, rowsModel),
+      );
+    }
+  }
 }

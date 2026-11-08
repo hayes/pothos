@@ -46,28 +46,23 @@ import {
 } from './constants.js';
 import { canInclude } from './utils/adapter.js';
 import {
+  assertRelationEntries,
   compileFieldSelect,
-  definedQuery,
-  entryTypeModel,
-  loadsOwnTableVariantRows,
+  entryDefinition,
   nestedPlan,
-  nestedSubject,
   type RawSelect,
-  type RelationEntry,
   type SplitSelect,
   splitSelect,
   type TypeSelect,
   typeSelects,
 } from './utils/compile-select.js';
-import { getPluginConfig, type PrismaNextConfig } from './utils/config.js';
-import { resolveContractModel, rootModelKey, variantForRelationType } from './utils/contract.js';
-import { isOrderByDecl, orderableProblem, orderColumns } from './utils/cursors.js';
+import { getPluginConfig } from './utils/config.js';
+import { resolveContractModel, rootModelKey } from './utils/contract.js';
 import { reloadFor } from './utils/errors.js';
 import {
   getModel,
   ownTableVariantRowsError,
   type PrismaNextModel,
-  type PrismaNextRelation,
   returnsRelationRowsAs,
 } from './utils/model.js';
 import { refFor } from './utils/refs.js';
@@ -727,35 +722,6 @@ function selectedKeys({ columns, relations }: SplitSelect) {
   return [...columns, ...relations.map(([name]) => name)];
 }
 
-/**
- * A type-level relation entry of rows of `model` as the data it loads by: its query without the
- * options that load nothing different, the model of its `type`, and its nested `select` likewise,
- * with a relation's `true` as `{}`.
- */
-function entryDefinition(entry: RelationEntry, model: PrismaNextModel | undefined): unknown {
-  const { where, orderBy, limit, offset, type, select } = entry;
-  return {
-    query: definedQuery({ where, orderBy, limit, offset }),
-    type: entryTypeModel(type),
-    select:
-      select &&
-      Object.fromEntries(
-        (Array.isArray(select)
-          ? select.map((column: string) => [column, true] as const)
-          : Object.entries(select).filter(([, value]) => value != null)
-        ).map(([key, value]) => {
-          const relation = model?.relations[key];
-          return [
-            key,
-            relation || value !== true
-              ? entryDefinition(value === true ? {} : (value as RelationEntry), relation?.target)
-              : true,
-          ];
-        }),
-      ),
-  };
-}
-
 /** `value`, a field's result, with `copy` applied to each item, through promises and lists. */
 function copyResult(value: unknown, copy: (item: unknown) => unknown): unknown {
   if (value === null || typeof value !== 'object') {
@@ -776,54 +742,6 @@ function copyResult(value: unknown, copy: (item: unknown) => unknown): unknown {
 async function* copyEach(items: AsyncIterable<unknown>, copy: (item: unknown) => unknown) {
   for await (const item of items) {
     yield copyResult(item, copy);
-  }
-}
-
-/**
- * Checks the relation entries of a static `select`, which `subject` reads: rows of a variant model
- * with a table of its own load without the columns it inherits, so only a reader `readsRows` accepts
- * can take them, and the columns each entry orders by.
- */
-function assertRelationEntries(
-  config: PrismaNextConfig,
-  { relations }: SplitSelect,
-  model: PrismaNextModel,
-  subject: string,
-  readsRows: (relation: PrismaNextRelation) => boolean,
-) {
-  for (const [name, entry] of relations) {
-    const relation = model.relations[name]!;
-    if (loadsOwnTableVariantRows(relation, entry) && !readsRows(relation)) {
-      throw ownTableVariantRowsError(subject, name, relation);
-    }
-    const { orderBy } = entry;
-    if (entry.type !== undefined) {
-      variantForRelationType(
-        config.contract,
-        `${subject} relation '${name}', which`,
-        relation.targetModel,
-        entryTypeModel(entry.type),
-      );
-    }
-    if (entry.select) {
-      // The rows of a nested `select` are read only through its parent's.
-      assertRelationEntries(
-        config,
-        splitSelect(entry.select, relation.target),
-        relation.target,
-        nestedSubject(subject, name),
-        () => false,
-      );
-    }
-    if (isOrderByDecl(orderBy)) {
-      const rowsModel = entryTypeModel(entry.type) ?? relation.targetModel;
-      orderColumns(
-        config.contract,
-        rowsModel,
-        orderBy,
-        orderableProblem(config.context, rowsModel),
-      );
-    }
   }
 }
 
