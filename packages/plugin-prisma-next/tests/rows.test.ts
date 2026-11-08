@@ -299,25 +299,27 @@ describe('rows a resolver returns', () => {
       expect(statements[1]!.sql).toBe(statements[2]!.sql);
     });
 
-    it('run the same SQL in any context and with any arguments', async () => {
+    it('run the same SQL text for the same query shape, whatever the argument values or context', async () => {
+      // The same document with other variables, and in another context.
       const built = schema();
+      const author = (published: string) => ({
+        data: { post: { author: { posts: [{ id: published }] } } },
+      });
       const statements: CapturedExecution[] = [];
-      await withCapture(statements, () => execution(built, 0));
-      await withCapture(statements, async () =>
-        execute({
-          schema: built,
-          document,
-          variableValues: { published: 0 },
-          contextValue: {},
-        }),
-      );
-      await withCapture(statements, () => execution(built, 1));
-      expect(statements).toHaveLength(3);
-      expect(statements[1]!.sql).toBe(statements[0]!.sql);
-      expect(statements[2]!.sql).toBe(statements[0]!.sql);
-    });
+      expect(await withCapture(statements, () => execution(built, 0))).toEqual(author('p-draft1'));
+      expect(
+        await withCapture(statements, async () =>
+          execute({
+            schema: built,
+            document,
+            variableValues: { published: 0 },
+            contextValue: {},
+          }),
+        ),
+      ).toEqual(author('p-draft1'));
+      expect(await withCapture(statements, () => execution(built, 1))).toEqual(author('p-hello'));
 
-    it('run the same SQL for query callbacks in any context', async () => {
+      // Query callbacks reading another value of the context.
       const builder = createBuilder<{ published: number }>();
       builder.prismaObject('User', {
         fields: (t) => ({
@@ -338,19 +340,23 @@ describe('rows a resolver returns', () => {
           user: t.prismaField({ type: 'User', query: { where: { id: 'u-alice' } } }),
         }),
       });
-      const built = builder.toSchema();
+      const callbacks = builder.toSchema();
       const source = '{ user { posts { id } postCount } }';
-      const statements: CapturedExecution[] = [];
-      const drafts = await withCapture(statements, async () =>
-        execute({ schema: built, document: parse(source), contextValue: { published: 0 } }),
+      const callbackStatements: CapturedExecution[] = [];
+      const drafts = await withCapture(callbackStatements, async () =>
+        execute({ schema: callbacks, document: parse(source), contextValue: { published: 0 } }),
       );
-      const published = await withCapture(statements, async () =>
-        execute({ schema: built, document: parse(source), contextValue: { published: 1 } }),
+      const published = await withCapture(callbackStatements, async () =>
+        execute({ schema: callbacks, document: parse(source), contextValue: { published: 1 } }),
       );
       expect(drafts).toEqual({ data: { user: { posts: [{ id: 'p-draft1' }], postCount: 1 } } });
       expect(published).toEqual({ data: { user: { posts: [{ id: 'p-hello' }], postCount: 1 } } });
-      expect(statements).toHaveLength(2);
-      expect(statements[1]!.sql).toBe(statements[0]!.sql);
+
+      // Values are bound as parameters, so only the shape is in the text.
+      expect(statements).toHaveLength(3);
+      expect(new Set(statements.map(({ sql }) => sql)).size).toBe(1);
+      expect(callbackStatements).toHaveLength(2);
+      expect(new Set(callbackStatements.map(({ sql }) => sql)).size).toBe(1);
     });
   });
 });
