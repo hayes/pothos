@@ -9,6 +9,7 @@ import {
 } from '@pothos/core';
 import {
   cacheKey,
+  forOperation,
   Plan,
   type PlayedPlan,
   setLoaderMappings,
@@ -60,10 +61,12 @@ interface Batch {
   requests: Request[];
 }
 
+type PlanCache = WeakMap<object, Map<string, MaybePromise<Played>>>;
+
 interface Plans {
-  parent: Map<string, MaybePromise<Played>>;
-  node: Map<string, MaybePromise<Played>>;
-  type: Map<string, MaybePromise<Played>>;
+  parent: PlanCache;
+  node: PlanCache;
+  type: PlanCache;
 }
 
 interface IdentityColumn {
@@ -81,10 +84,13 @@ export class ModelLoader {
   private readonly initial: PrismaNextSelection | undefined;
   /**
    * Plans depend on the operation and its variables, which include `@skip` and `@include`
-   * arguments. They are cached per operation, keyed on `info.variableValues`, which graphql-js
-   * creates once per operation and shares across its subscription events.
+   * arguments, so they are cached per operation (see `forOperation`).
    */
-  private readonly plans = new WeakMap<object, Plans>();
+  private readonly plans: Plans = {
+    parent: new WeakMap(),
+    node: new WeakMap(),
+    type: new WeakMap(),
+  };
   private readonly staged = new Set<Batch>();
   /** `loadTypeRow`'s loads, by root field path, row, then type. */
   private readonly reloads = new WeakMap<object, WeakMap<object, Map<string, Promise<Row>>>>();
@@ -111,16 +117,6 @@ export class ModelLoader {
     }
   }
 
-  private plansFor(info: GraphQLResolveInfo): Plans {
-    registerPlanRoots(info);
-    let plans = this.plans.get(info.variableValues);
-    if (!plans) {
-      plans = { parent: new Map(), node: new Map(), type: new Map() };
-      this.plans.set(info.variableValues, plans);
-    }
-    return plans;
-  }
-
   /** The plan of `kind` cached under `key` for `info`'s operation, made by `plan` on first use. */
   private cachedPlan(
     info: GraphQLResolveInfo,
@@ -128,7 +124,8 @@ export class ModelLoader {
     key: string,
     plan: () => MaybePromise<Played>,
   ): MaybePromise<Played> {
-    const plans = this.plansFor(info)[kind];
+    registerPlanRoots(info);
+    const plans = forOperation(this.plans[kind], info);
     let selection = plans.get(key);
     if (!selection) {
       selection = plan();

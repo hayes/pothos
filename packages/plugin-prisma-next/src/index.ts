@@ -602,7 +602,7 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
       if (needsMapping) {
         const raw = rowOf(row);
         for (const type of parentTypes) {
-          mapping = getLoaderMapping(context, info.path, type, raw);
+          mapping = getLoaderMapping(context, info, type, raw);
           if (mapping) {
             break;
           }
