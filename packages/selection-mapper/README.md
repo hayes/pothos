@@ -86,9 +86,13 @@ extends `Adapter` directly.
 - Every play records its loader mappings on the request context, which pothos requires to be an
   object, per execution: operations and subscription events sharing a context don't see each
   other's. An execution is told apart by the `getAbortSignal` graphql-js 17 gives it, or by its
-  `variableValues`, not by its path, which graphql-jit builds afresh for every resolver. The
-  plugins pass `getLoaderMapping` the resolver's `info`. An adapter whose resolvers read a loaded
-  row another way simply never looks them up.
+  `variableValues`, not by its path, which graphql-jit builds afresh for every resolver.
+  `@graphql-tools/executor` (Yoga) hands every event of a subscription the same `variableValues`,
+  so a subscription event is also told apart by its payload, its `rootValue`. An event whose
+  payload isn't an object records nothing and finds nothing, so its relations load their own
+  data; under `@graphql-tools/executor`, events yielding the same payload object share their
+  mappings. The plugins pass `getLoaderMapping` the resolver's `info`. An adapter whose resolvers
+  read a loaded row another way simply never looks them up.
 - Every select function is handed the `Position` of the field it plans: the field's node, the type
   it was walked on, and a link to the position of the field the plan hangs beneath. The walker
   reads none of it — an adapter that wants a path or a list of segments walks `parent` and

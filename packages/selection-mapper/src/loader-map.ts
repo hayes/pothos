@@ -93,24 +93,50 @@ interface Cache {
   scopes: Map<string, Mappings>;
 }
 
-/** Per context: the cache of each execution. */
-const contextCaches = createContextCache(() => new WeakMap<object, Cache>());
+/** Per context: the cache of each event of each execution. */
+const contextCaches = createContextCache(() => new WeakMap<object, WeakMap<object, Cache>>());
+
+/** The one event of a query or mutation. */
+const OPERATION = {};
 
 /**
- * The object an executor makes once per execution and puts in the info of every resolver in it.
- * graphql-js 17 gives each execution, and each subscription event, its own `getAbortSignal`.
- * graphql-js 16 and graphql-jit have none, but coerce `variableValues` afresh for each execution
- * and each event. Not the path: graphql-jit builds a new one for every resolver.
+ * The cache of the execution `info` is in, or null for a subscription event with nothing to tell
+ * it apart: nothing is recorded for it and nothing found, so its resolvers load their own data.
+ *
+ * Every executor builds an object once per execution and puts it in the info of every resolver
+ * in it: graphql-js 17 a `getAbortSignal`, graphql-js 16, graphql-jit and @graphql-tools/executor
+ * the coerced `variableValues`. @defer and @stream payloads reuse it, and they belong to the
+ * execution. Not the path: graphql-jit builds a new one for every resolver.
+ *
+ * Subscription events need one more key. graphql-js and graphql-jit build that object afresh for
+ * each event, but @graphql-tools/executor (Yoga, Envelop) reuses the `subscribe`'s for every
+ * event, and gives each event nothing of its own but its payload, as `rootValue`. So an event is
+ * keyed by its payload too, and a payload that isn't an object has no identity. The `subscribe`
+ * resolver runs with the server's root value, usually undefined, so it records nothing; what it
+ * would record is never read, since no resolver runs beneath it. Under @graphql-tools/executor,
+ * events yielding the same payload object (or the server's root value) share a cache.
  */
-function executionOf(info: GraphQLResolveInfo): object {
-  return (info as { getAbortSignal?: object }).getAbortSignal ?? info.variableValues;
-}
+function cache(ctx: object, info: GraphQLResolveInfo): Cache | null {
+  let event: object | null = OPERATION;
 
-/** The cache of the execution `info` is in. */
-function cache(ctx: object, info: GraphQLResolveInfo): Cache {
+  if (info.operation.operation === 'subscription') {
+    event = ownerOf(info.rootValue);
+
+    if (!event) {
+      return null;
+    }
+  }
+
   const executions = contextCaches(ctx);
-  const execution = executionOf(info);
-  let cached = executions.get(execution);
+  const execution = (info as { getAbortSignal?: object }).getAbortSignal ?? info.variableValues;
+  let events = executions.get(execution);
+
+  if (!events) {
+    events = new WeakMap();
+    executions.set(execution, events);
+  }
+
+  let cached = events.get(event);
 
   if (!cached) {
     cached = {
@@ -120,7 +146,7 @@ function cache(ctx: object, info: GraphQLResolveInfo): Cache {
       rowScoped: false,
       scopes: new Map(),
     };
-    executions.set(execution, cached);
+    events.set(event, cached);
   }
 
   return cached;
@@ -269,6 +295,11 @@ function claimForRow(
  */
 export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
   const cached = cache(ctx, info);
+
+  if (!cached) {
+    return;
+  }
+
   const prefix = responsePath(info.path);
   const keys = rehomedKeys(cached, prefix);
   const at = executionPath(info.path);
@@ -286,7 +317,7 @@ export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mapping
  * a relation, connection wrapper, or list. The execution path retains indices to isolate siblings.
  */
 export function setRowMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
-  cache(ctx, info).scopes.set(executionPath(info.path), mappings);
+  cache(ctx, info)?.scopes.set(executionPath(info.path), mappings);
 }
 
 /**
@@ -302,6 +333,11 @@ export function setFieldMapping(
   row: unknown,
 ) {
   const cached = cache(ctx, info);
+
+  if (!cached) {
+    return;
+  }
+
   const owner = ownerOf(row);
 
   claim(cached, cacheKey(info.parentType.name, info.path), mapping, owner, info.path);
@@ -323,6 +359,11 @@ export function setRowFieldMapping(
   row: unknown,
 ) {
   const cached = cache(ctx, info);
+
+  if (!cached) {
+    return;
+  }
+
   const owner = ownerOf(row);
 
   if (owner) {
@@ -345,6 +386,10 @@ export function getLoaderMapping(
 ): Mapping | null {
   const { path } = info;
   const cached = cache(ctx, info);
+
+  if (!cached) {
+    return null;
+  }
 
   if (cached.rowScoped) {
     const owner = ownerOf(row);
