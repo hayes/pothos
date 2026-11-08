@@ -439,11 +439,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     split: SplitSelect,
     refs: readonly LoadRef[],
   ) {
-    let definitions = this.selectDefinitions.get(root);
-    if (!definitions) {
-      definitions = new Map();
-      this.selectDefinitions.set(root, definitions);
-    }
+    const definitions =
+      this.selectDefinitions.get(root) ?? this.selectDefinitions.set(root, new Map()).get(root)!;
     for (const relation of split.relations) {
       const first = definitions.get(relation[0]);
       const definition = entryDefinition(relation);
@@ -569,7 +566,18 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     const { config } = this;
     const model = getModel(config.contract, modelKey);
-    const check = this.rowCheckOf(fieldConfig.parentType);
+    // The relations the `select`s of the type and its interfaces read, which a planned row holds
+    // unless another field's rows replaced them. The plan loaded their columns, which only a row
+    // rebuilt by hand lacks. One per type, so rows memoise the check for every field.
+    const { parentType } = fieldConfig;
+    const check =
+      this.rowChecks.get(parentType) ??
+      this.rowChecks
+        .set(parentType, {
+          columns: [],
+          relations: rowCheck(typeSelects(this.buildCache.getTypeConfig(parentType))).relations,
+        })
+        .get(parentType)!;
     // A static selection, which names only columns, reads what its type's `select`s load and its
     // columns, which a row no plan loaded can hold. A select function reads what the plan that
     // loaded the parent planned for it.
@@ -613,20 +621,6 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   private readonly rowChecks = new Map<string, RowCheck>();
-
-  /**
-   * The relations the `select`s of type `name` and its interfaces read, which a gate checks a
-   * planned row holds. The plan loaded their columns, which only a row rebuilt by hand lacks.
-   */
-  private rowCheckOf(name: string) {
-    let check = this.rowChecks.get(name);
-    if (!check) {
-      const { relations } = rowCheck(typeSelects(this.buildCache.getTypeConfig(name)));
-      check = { columns: [], relations };
-      this.rowChecks.set(name, check);
-    }
-    return check;
-  }
 
   private readonly typeRows = new Map<
     string,

@@ -40,7 +40,7 @@ import { getPluginConfig } from './utils/config.js';
 import { CONNECTION_NODE_PATHS, connectionPaging } from './utils/connections.js';
 import { variantForRelationType } from './utils/contract.js';
 import type { ConnectionPage } from './utils/cursors.js';
-import { type FieldLoads, fieldLoads, keyOf, type LoadRef, refOf } from './utils/loads.js';
+import { type FieldLoads, fieldLoads, keyOf, refOf } from './utils/loads.js';
 import { nestedFromInfo } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
@@ -312,18 +312,11 @@ export function prismaConnectionHelpers<
       options.select?.(() => nodeMarker, args as never, ctx) ?? {},
       model,
     );
-    const relations: Record<string, PrismaNextSelection> = {};
-    const refs: LoadRef[] = [];
-    let nodeRelation: string | undefined;
-    for (const [name, entry] of selected.relations) {
-      if (entry === nodeMarker) {
-        nodeRelation = name;
-      } else {
-        const ref = refOf(config, ctx, model, { kind: 'rows', relation: name });
-        relations[keyOf(ref)] = EMPTY;
-        refs.push(ref);
-      }
-    }
+    const nodeRelation = selected.relations.find(([, entry]) => entry === nodeMarker)?.[0];
+    const refs = selected.relations
+      .filter(([, entry]) => entry !== nodeMarker)
+      .map(([name]) => refOf(config, ctx, model, { kind: 'rows', relation: name }));
+    const relations = Object.fromEntries(refs.map((ref) => [keyOf(ref), EMPTY]));
     const beneath = refs.length ? fieldLoads(model, refs) : undefined;
     const own: PrismaNextSelection = {
       ...seed,

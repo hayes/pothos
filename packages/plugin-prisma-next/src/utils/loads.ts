@@ -84,11 +84,7 @@ function internLoad(ctx: object, model: PrismaNextModel, load: Load): number {
   let id = table.seen.get(load);
   if (id === undefined) {
     const key = `${model.key}.${load.relation}`;
-    let loads = table.byRelation.get(key);
-    if (!loads) {
-      loads = [];
-      table.byRelation.set(key, loads);
-    }
+    const loads = table.byRelation.get(key) ?? table.byRelation.set(key, []).get(key)!;
     id = loads.findIndex((seen) => deepEqual(seen, load));
     if (id < 0) {
       id = loads.push(load) - 1;

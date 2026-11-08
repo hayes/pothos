@@ -160,11 +160,7 @@ const holding = new WeakMap<object, WeakMap<RowCheck, boolean>>();
 
 /** Whether `row`, a parsed row, holds what `check` reads. Parsed rows never change. */
 export function holdsType(row: object, check: RowCheck): boolean {
-  let checks = holding.get(row);
-  if (!checks) {
-    checks = new WeakMap();
-    holding.set(row, checks);
-  }
+  const checks = holding.get(row) ?? holding.set(row, new WeakMap()).get(row)!;
   let held = checks.get(check);
   if (held === undefined) {
     held = holds(row, check);
@@ -199,11 +195,7 @@ const checked = new WeakSet<FieldLoads>();
  * ran, so the first view of a field's loads checks that no two of them write one key.
  */
 export function viewOf(row: object, loads: FieldLoads): object {
-  let byLoads = views.get(row);
-  if (!byLoads) {
-    byLoads = new Map();
-    views.set(row, byLoads);
-  }
+  const byLoads = views.get(row) ?? views.set(row, new Map()).get(row)!;
   const cached = byLoads.get(loads);
   if (cached) {
     return cached;

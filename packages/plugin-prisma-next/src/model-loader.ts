@@ -106,12 +106,7 @@ export class ModelLoader {
   ): MaybePromise<Played> {
     assertGraphQLJsInfo(info);
     const plans = forOperation(this.plans, info);
-    let selection = plans.get(key);
-    if (!selection) {
-      selection = plan();
-      plans.set(key, selection);
-    }
-    return selection;
+    return plans.get(key) ?? plans.set(key, plan()).get(key)!;
   }
 
   /** The parent reloaded with what `info`'s field needs, and the field's mapping. */
