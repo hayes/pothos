@@ -502,55 +502,50 @@ export function compileFieldSelect(
   model: PrismaNextModel,
   typeOf: (type: unknown) => { name: string; model: string | undefined },
 ): PrismaNextSelection | PrismaNextSelectFn {
-  const planned = (position: Position, compiled: MaybePromise<Compiled>) =>
-    completeValue(compiled, ({ selection, refs }) => {
-      record(position, fieldLoads(model, refs));
-      return selection;
-    });
-  if (typeof raw !== 'function') {
-    // A static select is checked when the schema is built, so it is split here, not per request.
-    const split = splitSelect(raw, model);
-    if (split.relations.length === 0 && split.computed.length === 0) {
-      return { columns: split.columns };
-    }
-    return (args, ctx, nested, selected, position) =>
-      planned(
-        position,
-        compileSelect(split, model, {
-          contract: config.contract,
-          interning: { config, ctx },
-          args,
-          field: { nested, selected, position },
-          at: '',
-        }),
-      );
+  // A static select is checked when the schema is built, so it is split here, not per request.
+  const split = typeof raw === 'function' ? undefined : splitSelect(raw, model);
+  if (split && split.relations.length === 0 && split.computed.length === 0) {
+    return { columns: split.columns };
   }
   return (args, ctx, nested, selected, position) => {
     const returnType = getNamedType(position.field.type);
     const returnModelKey = returnType.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    const select: SelectCompilation = {
-      contract: config.contract,
-      interning: { config, ctx },
-      args,
-      source: raw,
-      field: { nested, selected, position },
-      returnModelKey,
-      typeOf,
-      at: '',
-      // An interface or union reads the rows before any field reloads them.
-      readsRows: (relation) =>
-        returnsRelationRowsAs(
-          relation,
-          isObjectType(returnType) ? 'Object' : 'Other',
-          returnModelKey === undefined ? undefined : getModel(config.contract, returnModelKey),
-        ),
-    };
-    // Compiled for a request, which may be the first to see what a select function returns.
-    return completeValue(raw(args, ctx, nestedSelectionEntry), (value) =>
-      checkReturned(value ?? {}, (returned) =>
-        planned(position, compileSelect(splitSelect(returned, model), model, select)),
-      ),
-    );
+    const compile = (select: SplitSelect) =>
+      completeValue(
+        compileSelect(select, model, {
+          contract: config.contract,
+          interning: { config, ctx },
+          args,
+          source: split ? undefined : raw,
+          field: { nested, selected, position },
+          returnModelKey,
+          typeOf,
+          at: '',
+          // An interface or union reads the rows before any field reloads them.
+          readsRows: split
+            ? undefined
+            : (relation) =>
+                returnsRelationRowsAs(
+                  relation,
+                  isObjectType(returnType) ? 'Object' : 'Other',
+                  returnModelKey === undefined
+                    ? undefined
+                    : getModel(config.contract, returnModelKey),
+                ),
+        }),
+        ({ selection, refs }) => {
+          record(position, fieldLoads(model, refs));
+          return selection;
+        },
+      );
+    // A select function's result is compiled for a request, which may be the first to see it.
+    return split
+      ? compile(split)
+      : completeValue(
+          (raw as Exclude<typeof raw, RawSelect>)(args, ctx, nestedSelectionEntry),
+          (value) =>
+            checkReturned(value ?? {}, (returned) => compile(splitSelect(returned, model))),
+        );
   };
 }
 
