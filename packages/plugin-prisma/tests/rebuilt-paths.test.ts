@@ -1,18 +1,13 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
-import {
-  defaultFieldResolver,
-  execute,
-  GraphQLObjectType,
-  type GraphQLResolveInfo,
-  parse,
-} from 'graphql';
+import { rebuildResolverPaths } from '@pothos/test-utils';
+import { execute, parse } from 'graphql';
 import PrismaPlugin, { type PrismaTypesFromClient } from '../src';
 import { prisma, queries } from './example/builder';
 import { getDatamodel } from './generated.js';
 
 // graphql-jit hands every resolver a path it builds afresh, sharing no link with any other
-// resolver's, and no `getAbortSignal`. Run that way, a document loads with the same queries.
+// resolver's and without a `typename`, and no `getAbortSignal`. Run that way, a document loads with the same queries.
 const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypesFromClient<typeof prisma>;
   Context: { rebuildPaths?: boolean };
@@ -63,29 +58,7 @@ builder.queryType({
 
 const schema = builder.toSchema();
 
-type Path = GraphQLResolveInfo['path'];
-
-function rebuilt(path: Path | undefined): Path | undefined {
-  return path && ({ key: path.key, prev: rebuilt(path.prev) } as Path);
-}
-
-for (const type of Object.values(schema.getTypeMap())) {
-  if (type instanceof GraphQLObjectType && !type.name.startsWith('__')) {
-    for (const field of Object.values(type.getFields())) {
-      const resolve = field.resolve ?? defaultFieldResolver;
-
-      field.resolve = (parent, args, context: { rebuildPaths?: boolean }, info) =>
-        resolve(
-          parent,
-          args,
-          context,
-          context.rebuildPaths
-            ? ({ ...info, path: rebuilt(info.path), getAbortSignal: undefined } as never)
-            : info,
-        );
-    }
-  }
-}
+rebuildResolverPaths(schema, (context: { rebuildPaths?: boolean }) => !!context.rebuildPaths);
 
 async function run(source: string, rebuildPaths: boolean) {
   queries.length = 0;
