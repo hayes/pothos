@@ -46,6 +46,8 @@ type Load =
   | { kind: 'parent'; typeName?: undefined; collection?: undefined };
 
 interface Batch {
+  /** Consumer ids are numbered per operation, so only its own plans merge into a batch. */
+  operation: object;
   load: Load;
   root: PrismaNextNode;
   fields: readonly string[];
@@ -146,7 +148,7 @@ export class ModelLoader {
     );
     const load = (played: Played) => {
       const values = this.identity.map((field) => (parent as Row)[field]);
-      const staged = this.stage(played.root, this.identity, values, { kind: 'parent' });
+      const staged = this.stage(info, played.root, this.identity, values, { kind: 'parent' });
       return staged.then((reloaded) => {
         const row = withOtherKeys(reloaded!, parent, played.root.model);
         // The plan is walked from the parent type, so the field's own mapping is keyed by the
@@ -198,6 +200,7 @@ export class ModelLoader {
     });
     const load = (played: Played) =>
       this.stage(
+        info,
         played.root,
         this.identity,
         this.identity.map((field) => (parent as Row)[field]),
@@ -237,7 +240,7 @@ export class ModelLoader {
     const load = (played: Played) => {
       setLoaderMappings(this.context, info, played.mappings);
       const load: Load = { kind: 'node', typeName, collection };
-      return this.stage(played.root, fields, values, load).then((row) => {
+      return this.stage(info, played.root, fields, values, load).then((row) => {
         if (row) {
           brandWithType(row, typeName as OutputType<SchemaTypes>);
         }
@@ -248,13 +251,16 @@ export class ModelLoader {
   }
 
   private stage(
+    info: GraphQLResolveInfo,
     root: PrismaNextNode,
     fields: readonly string[],
     values: readonly unknown[],
     load: Load,
   ): Promise<Row | null> {
+    const { operation } = info;
     let batch = [...this.staged].find(
       (candidate) =>
+        candidate.operation === operation &&
         candidate.load.kind === load.kind &&
         candidate.load.typeName === load.typeName &&
         // Every row reloading through one selection stages the same root, which joins the batch
@@ -263,6 +269,7 @@ export class ModelLoader {
     );
     if (!batch) {
       const created: Batch = {
+        operation,
         load,
         root: this.config.adapter.createNode(root.model),
         fields,

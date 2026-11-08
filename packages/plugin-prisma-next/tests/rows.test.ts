@@ -231,6 +231,39 @@ describe('rows a resolver returns', () => {
       expect(statements).toHaveLength(2);
     });
 
+    it('reload the nodes of different documents apart', async () => {
+      const builder = createBuilder();
+      builder.prismaNode('User', {
+        id: { field: 'id' },
+        fields: (t) => ({
+          // Both write `total` onto the parent, which only their own field reads.
+          postsTotal: t.int({
+            select: { posts: (posts) => ({ total: posts.count() }) },
+            resolve: (user) => user.total,
+          }),
+          commentsTotal: t.int({
+            select: { comments: (comments) => ({ total: comments.count() }) },
+            resolve: (user) => user.total,
+          }),
+        }),
+      });
+      builder.queryType({});
+      const built = builder.toSchema();
+      const id = encodeGlobalID('User', 'u-bob');
+      const load = (field: string) =>
+        Promise.resolve(
+          execute({
+            schema: built,
+            document: parse(`query ($id: ID!) { node(id: $id) { ... on User { ${field} } } }`),
+            variableValues: { id },
+            contextValue: shared,
+          }),
+        );
+      const [posts, comments] = await Promise.all([load('postsTotal'), load('commentsTotal')]);
+      expect(posts).toEqual({ data: { node: { postsTotal: 2 } } });
+      expect(comments).toEqual({ data: { node: { commentsTotal: 1 } } });
+    });
+
     it('run the same SQL in any context and with any arguments', async () => {
       const built = schema();
       const statements: CapturedExecution[] = [];
