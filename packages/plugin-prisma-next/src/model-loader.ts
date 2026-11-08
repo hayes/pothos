@@ -22,7 +22,7 @@ import { registerPlanRoots } from './utils/consumers.js';
 import { variantOf } from './utils/contract.js';
 import { readPage } from './utils/cursors.js';
 import { InternalError, isRefusedValue, keepError, refusedError } from './utils/errors.js';
-import { getIdentityFields, type PrismaNextModel } from './utils/model.js';
+import { getModel, type PrismaNextModel } from './utils/model.js';
 import {
   executionKey,
   fieldCopy,
@@ -95,7 +95,7 @@ export class ModelLoader {
     private readonly config: PrismaNextConfig,
     private readonly modelKey: string,
   ) {
-    this.identity = getIdentityFields(config.contract, modelKey);
+    this.identity = getModel(config.contract, modelKey).identity;
     this.variant = variantOf(config.contract, modelKey)?.value;
     this.initial =
       this.variant === undefined ? undefined : { args: { variant: { value: this.variant } } };

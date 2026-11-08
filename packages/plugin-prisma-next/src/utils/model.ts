@@ -39,6 +39,11 @@ export interface PrismaNextModel {
   readonly sharedVariantRelations: ReadonlySet<string>;
   readonly columns: ReadonlySet<string>;
   /**
+   * The fields a row is reloaded by: the model's first identity (see `getModelIdentities`), which
+   * its variants share. Empty for a model without one.
+   */
+  readonly identity: readonly string[];
+  /**
    * The columns each multi-table variant's own accessor reads, by discriminator value. A relation
    * targeting such a variant model loads through it, so its rows lack the base's other columns.
    */
@@ -163,10 +168,6 @@ export function truncatedDateProblem(
     : undefined;
 }
 
-export function getIdentityFields(contract: AnyContract, modelKey: string): string[] {
-  return getModelIdentities(contract, modelKey)?.[0] ?? [];
-}
-
 const modelCache = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
 
 /**
@@ -187,12 +188,18 @@ export function getModel(contract: AnyContract, key: string): PrismaNextModel {
   if (!model) {
     const relations: Record<string, PrismaNextRelation> = {};
     const sharedVariantRelations = new Set<string>();
+    let identity: readonly string[] | undefined;
 
     model = {
       key: root,
       relations,
       sharedVariantRelations,
       columns: buildColumnSet(contract, root),
+      // Computed on first use, once per model.
+      get identity() {
+        identity ??= getModelIdentities(contract, root)?.[0] ?? [];
+        return identity;
+      },
       variantTableColumns: new Map(
         (modelDiscriminator(contract, root)?.variants ?? []).flatMap(({ key, value }) => {
           const fields = variantTableFields(contract, key);

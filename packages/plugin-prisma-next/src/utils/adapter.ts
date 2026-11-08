@@ -22,12 +22,7 @@ import {
 import type { AnyContract } from '../types/models.js';
 import { branchName, consumerOfKey, relationName } from './branch-keys.js';
 import { compileTypeSelect, typeSelects } from './compile-select.js';
-import {
-  getIdentityFields,
-  getModel,
-  type PrismaNextModel,
-  type PrismaNextRelation,
-} from './model.js';
+import { getModel, type PrismaNextModel, type PrismaNextRelation } from './model.js';
 import { registerOwnLoads } from './row-copies.js';
 import {
   COMPUTE,
@@ -88,7 +83,6 @@ interface RelationConsumers {
 export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSelection> {
   override readonly skipDeferredFragments: boolean;
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaNextSelection>();
-  private readonly withoutIdentity = new WeakMap<PrismaNextModel, boolean>();
 
   constructor(
     readonly contract: AnyContract,
@@ -146,7 +140,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     for (const selection of implementationsOf(type)?.values() ?? []) {
       super.mergeQuery(node, selection);
     }
-    super.mergeQuery(node, { columns: getIdentityFields(this.contract, model.key) });
+    super.mergeQuery(node, { columns: model.identity });
     const selection = this.toQuery(node);
     this.typeSelections.set(type, selection);
     return selection;
@@ -205,12 +199,7 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
    * the type's selection, so the field fits there however much it loads.
    */
   private withinLoadLimit(node: PrismaNextNode, selection: PrismaNextSelection) {
-    let withoutIdentity = this.withoutIdentity.get(node.model);
-    if (withoutIdentity === undefined) {
-      withoutIdentity = !getIdentityFields(this.contract, node.model.key).length;
-      this.withoutIdentity.set(node.model, withoutIdentity);
-    }
-    if (withoutIdentity) {
+    if (!node.model.identity.length) {
       return true;
     }
     const held = this.toQuery(node);

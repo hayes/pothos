@@ -41,7 +41,7 @@ import { CONNECTION_NODE_PATHS, connectionPaging } from './utils/connections.js'
 import { variantForRelationType } from './utils/contract.js';
 import { buildConnectionPage, type ConnectionPage } from './utils/cursors.js';
 import { initialSelection, nestedFromInfo } from './utils/map-query.js';
-import { getIdentityFields, getModel } from './utils/model.js';
+import { getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import { PAGE, type PageData } from './utils/row-copies.js';
 import { appliesCursors, EMPTY, type PrismaNextSelection } from './utils/selections.js';
@@ -306,7 +306,6 @@ export function prismaConnectionHelpers<
   const owner = `connection helpers for '${modelKey}'`;
   const paging = connectionPaging(config, modelKey, options);
   const { resolveNode } = options;
-  const identityFields = getIdentityFields(config.contract, modelKey);
   const nodeMarker: NodeSelection = { [NODE_SELECTION]: true };
 
   /**
@@ -334,7 +333,7 @@ export function prismaConnectionHelpers<
     }
     const own: PrismaNextSelection = {
       ...seed,
-      columns: [...(seed.columns ?? []), ...selected.columns, ...identityFields],
+      columns: [...(seed.columns ?? []), ...selected.columns, ...model.identity],
       relations,
     };
     if (nodeRelation) {
