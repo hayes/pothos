@@ -11,7 +11,7 @@ their own. Use the plugins.
 
 The surface is what those plugins import and nothing more: `Plan` (with the statics `Plan.fromInfo`
 and `Plan.forParentRow`), `Adapter` and `NodeAdapter`, the loader-map helpers (`cacheKey`,
-`getLoaderMapping`, `setFieldMapping`, `setLoaderMappings`, `setRowFieldMapping`,
+`forOperation`, `getLoaderMapping`, `setFieldMapping`, `setLoaderMappings`, `setRowFieldMapping`,
 `setRowMappings`), `mappingParentTypes`, `selectedFieldNames` and `deepEqual`. Turning a plan
 into the query a resolver is handed is each plugin's own job — prisma's `queryFromInfo` and
 drizzle's differ — so neither of them is here.
@@ -84,7 +84,14 @@ extends `Adapter` directly.
   mutates it changes what a later play builds. Nothing copies it, because a query is opaque to
   this package and could only be copied by round-tripping it through the adapter on every field.
 - Every play records its loader mappings on the request context, which pothos requires to be an
-  object; an adapter whose resolvers read a loaded row another way simply never looks them up.
+  object, per execution: operations and subscription events sharing a context don't see each
+  other's. An execution is told apart by the `getAbortSignal` graphql-js 17 passes, or by the
+  root link of its path under graphql-js 16 and `@graphql-tools/executor` (Yoga). There each root
+  field has a path chain, and so a cache, of its own, which is enough because a mapping is only
+  read beneath the root field that recorded it. Under graphql-jit, which builds a new path for
+  every resolver, it is told apart by its `variableValues`, coerced afresh for each execution and
+  event. The plugins pass `getLoaderMapping` the resolver's `info`. An adapter whose resolvers
+  read a loaded row another way simply never looks them up.
 - Every select function is handed the `Position` of the field it plans: the field's node, the type
   it was walked on, and a link to the position of the field the plan hangs beneath. The walker
   reads none of it — an adapter that wants a path or a list of segments walks `parent` and

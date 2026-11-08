@@ -6,10 +6,10 @@ import SchemaBuilder, {
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { getLoaderMapping } from '@pothos/selection-mapper';
-import { execute } from '@pothos/test-utils';
+import { execute, infoAt } from '@pothos/test-utils';
 import { eq } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import type { DocumentNode, GraphQLObjectType } from 'graphql';
+import type { DocumentNode, GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
 import { gql } from 'graphql-tag';
 import DrizzlePlugin, { drizzleConnectionHelpers } from '../src';
 import { clearDrizzleLogs, type DrizzleRelations, db, drizzleLogs, relations } from './example/db';
@@ -47,6 +47,8 @@ interface Context {
   /** Promise count and call count of the resolvers wrapped by `spyResolvers`. */
   promises?: number;
   resolved?: number;
+  /** The info of the `user` root field, to look up what its execution recorded. */
+  info?: GraphQLResolveInfo;
 }
 
 const builder = new SchemaBuilder<{
@@ -66,16 +68,6 @@ const builder = new SchemaBuilder<{
 });
 
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 1));
-
-function pathOf(...keys: (string | number)[]) {
-  let path: { prev: unknown; key: string | number; typename: undefined } | undefined;
-
-  for (const key of keys) {
-    path = { prev: path, key, typename: undefined };
-  }
-
-  return path as never;
-}
 
 const Comment = builder.drizzleObject('comments', {
   name: 'Comment',
@@ -335,6 +327,15 @@ spyResolvers([
   ['Post', 'comments'],
 ]);
 
+const userField = (schema.getType('Query') as GraphQLObjectType).getFields().user;
+const resolveUser = userField.resolve!;
+
+userField.resolve = (parent, args, ctx: Context, info) => {
+  ctx.info = info;
+
+  return resolveUser(parent, args, ctx, info);
+};
+
 async function run(document: DocumentNode) {
   clearDrizzleLogs();
 
@@ -457,7 +458,21 @@ describe('async selections', () => {
       'The selection function of User.discardedPosts returned while a nested selection it started was still pending. Await nestedSelection() (or a helper built on it, such as getQuery) inside an async selection function.',
     ]);
     expect(result.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
-    expect(getLoaderMapping(context, pathOf('user', 'discardedPosts'), 'User')).toBe(null);
+    expect(context.info).toBeDefined();
+    expect(getLoaderMapping(context, infoAt(context.info!, 'user', 'discardedPosts'), 'User')).toBe(
+      null,
+    );
+
+    // The same lookup finds what a plan that settled recorded.
+    const settled = await run(gql`{ user { discardedPosts: posts(limit: 1) { id } } }`);
+
+    expect(
+      getLoaderMapping(
+        settled.context,
+        infoAt(settled.context.info!, 'user', 'discardedPosts'),
+        'User',
+      ),
+    ).not.toBe(null);
   });
 
   it('merges the sync sibling first when it conflicts with an async one', async () => {

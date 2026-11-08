@@ -150,11 +150,11 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     return (parent, args, context, info) => {
       // Asked of the row: a mapping recorded for this row wins over the plan's, which answers
       // for the rows the planned query loaded.
-      let mapping = getLoaderMapping(context, info.path, info.parentType.name, parent);
+      let mapping = getLoaderMapping(context, info, info.parentType.name, parent);
 
       if (!mapping) {
         for (const parentType of parentTypes) {
-          mapping = getLoaderMapping(context, info.path, parentType, parent);
+          mapping = getLoaderMapping(context, info, parentType, parent);
           if (mapping) {
             break;
           }

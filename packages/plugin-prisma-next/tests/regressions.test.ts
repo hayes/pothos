@@ -444,6 +444,7 @@ describe('refs cache + connection-options short-circuit + plugin assorted', () =
       ],
       returnType: { name: 'Unrelated' },
       fragments: {},
+      operation: { kind: 'OperationDefinition', operation: 'query' },
       variableValues: {},
       schema,
     } as never;

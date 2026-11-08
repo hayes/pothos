@@ -485,12 +485,7 @@ export class DrizzleObjectFieldBuilder<
           // loader mapping, so a `query` that branches on its path pages the rows it selected.
           // Asked of `parent`, because that is whose rows are being paged: a sibling row of the
           // same list may have been loaded by a different plan, at a different position.
-          const position = getLoaderMapping(
-            context,
-            info.path,
-            info.parentType.name,
-            parent,
-          )?.position;
+          const position = getLoaderMapping(context, info, info.parentType.name, parent)?.position;
           const fieldQuery = resolveFieldQuery(args, context, pathInfoFor(position));
 
           return isThenable(fieldQuery)

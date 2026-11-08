@@ -7,7 +7,7 @@ import {
   PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
-import { cacheKey, Plan, setRowMappings } from '@pothos/selection-mapper';
+import { cacheKey, forOperation, Plan, setRowMappings } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from './types.js';
 import { type PrismaNode, type PrismaPlayedPlan, prismaAdapter } from './util/adapter.js';
@@ -30,9 +30,11 @@ export class ModelLoader {
 
   modelName: string;
 
-  // One parent-row plan per `Type@path`, played where it is made since it is never played behind
-  // another selection; a promise while a select beneath the field is async.
-  queryCache = new Map<string, MaybePromise<PrismaPlayedPlan>>();
+  // One parent-row plan per `Type@path` per operation, played where it is made since it is never
+  // played behind another selection; a promise while a select beneath the field is async. Kept
+  // per operation (see `forOperation`), so an operation sharing the context never reloads with
+  // another's plan.
+  queryCache = new WeakMap<object, Map<string, MaybePromise<PrismaPlayedPlan>>>();
 
   // Each batch owns the node it accumulates into, so nothing a cached play holds is changed by a
   // row joining the batch.
@@ -230,19 +232,19 @@ export class ModelLoader {
   }
 
   getSelection(info: GraphQLResolveInfo) {
+    const plans = forOperation(this.queryCache, info);
     const key = cacheKey(info.parentType.name, info.path);
-    if (!this.queryCache.has(key)) {
-      this.queryCache.set(
-        key,
-        Plan.forParentRow(prismaAdapter, {
-          context: this.context,
-          info,
-          skipDeferredFragments: this.builder.options.prisma.skipDeferredFragments ?? true,
-        }),
-      );
+    let plan = plans.get(key);
+    if (!plan) {
+      plan = Plan.forParentRow(prismaAdapter, {
+        context: this.context,
+        info,
+        skipDeferredFragments: this.builder.options.prisma.skipDeferredFragments ?? true,
+      });
+      plans.set(key, plan);
     }
 
-    return this.queryCache.get(key)!;
+    return plan;
   }
 
   /**

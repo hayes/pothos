@@ -1,5 +1,11 @@
 import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
-import { cacheKey, Plan, setLoaderMappings, setRowFieldMapping } from '@pothos/selection-mapper';
+import {
+  cacheKey,
+  forOperation,
+  Plan,
+  setLoaderMappings,
+  setRowFieldMapping,
+} from '@pothos/selection-mapper';
 import {
   type AnyTable,
   type Column,
@@ -35,12 +41,14 @@ export class ModelLoader {
 
   modelName: string;
 
-  // One plan per `Type@path`, a promise while a select beneath the field is async. A parent-row
-  // plan is played where it is made, since it is never played behind another selection; a field's
-  // plan is played per load, so no two loads share a node.
-  rowCache = new Map<string, MaybePromise<DrizzlePlayedPlan>>();
+  // One plan per `Type@path` per operation, a promise while a select beneath the field is async.
+  // A parent-row plan is played where it is made, since it is never played behind another
+  // selection; a field's plan is played per load, so no two loads share a node. Kept per
+  // operation (see `forOperation`), so an operation sharing the context never loads with
+  // another's plan.
+  rowCache = new WeakMap<object, Map<string, MaybePromise<DrizzlePlayedPlan>>>();
 
-  planCache = new Map<string, MaybePromise<DrizzlePlan>>();
+  planCache = new WeakMap<object, Map<string, MaybePromise<DrizzlePlan>>>();
 
   // Each batch owns the node it accumulates into, so nothing a cached plan or play holds is
   // changed by a row joining the batch.
@@ -104,28 +112,28 @@ export class ModelLoader {
   }
 
   getSelection(info: GraphQLResolveInfo) {
+    const plans = forOperation(this.rowCache, info);
     const key = cacheKey(info.parentType.name, info.path);
-    if (!this.rowCache.has(key)) {
-      this.rowCache.set(
-        key,
-        Plan.forParentRow(drizzleAdapter(this.config), { context: this.context, info }),
-      );
+    let plan = plans.get(key);
+    if (!plan) {
+      plan = Plan.forParentRow(drizzleAdapter(this.config), { context: this.context, info });
+      plans.set(key, plan);
     }
 
-    return this.rowCache.get(key)!;
+    return plan;
   }
 
   getSelectionForField(info: GraphQLResolveInfo, typeName: string) {
+    const plans = forOperation(this.planCache, info);
     const key = cacheKey(typeName, info.path);
-    if (!this.planCache.has(key)) {
-      this.planCache.set(
-        key,
-        // Walked without paths, so there is always a plan.
-        planFromInfo({ config: this.config, context: this.context, info, typeName })!,
-      );
+    let plan = plans.get(key);
+    if (!plan) {
+      // Walked without paths, so there is always a plan.
+      plan = planFromInfo({ config: this.config, context: this.context, info, typeName })!;
+      plans.set(key, plan);
     }
 
-    return this.planCache.get(key)!;
+    return plan;
   }
 
   /**

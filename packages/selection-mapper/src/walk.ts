@@ -27,6 +27,7 @@ import {
   findMatches,
   firstMatch,
   includeOf,
+  includePaths,
   isDeferred,
   isSkipped,
   matchesForModel,
@@ -210,11 +211,12 @@ function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
 
   const { info, adapter } = plan;
   const include = includeOf(type);
+  const paths = include && includePaths(include);
   const beneath: ResolvedBranch[] = [];
 
-  if (include?.paths?.length || include?.path?.length) {
+  if (paths) {
     for (const fieldNode of fieldNodes) {
-      const matches = findMatches(info, type, fieldNode, include.paths ?? [include.path!], {
+      const matches = findMatches(info, type, fieldNode, paths, {
         path: indirectPath,
         deferred,
       });
@@ -653,7 +655,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
     try {
       const returnType = getNamedType(position.field.type);
       const include = Array.isArray(pathOrInclude)
-        ? normalizeInclude(
+        ? includeForPath(
             pathOrInclude,
             resolveType(info.schema, returnType),
             typeName ? info.schema.getType(typeName) : undefined,
@@ -681,11 +683,7 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
         return (query ?? ({} as Query)) as Query;
       }
 
-      const paths = include?.paths?.length
-        ? include.paths
-        : include?.path?.length
-          ? [include.path]
-          : undefined;
+      const paths = include && includePaths(include);
       // Everything a walk beneath this field node reads: the shape of its selection set, not the
       // node, so a fragment spread beneath many fields is walked once. The paths are data: an
       // include's segments are names and type names.
@@ -750,6 +748,18 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
       throw error;
     }
   };
+}
+
+/**
+ * `normalizeInclude` for a path an app's select passed while a request is planned. A path that
+ * doesn't fit the field's type is an error in the app, which clients see as `Unexpected error.`.
+ */
+function includeForPath(...args: Parameters<typeof normalizeInclude>) {
+  try {
+    return normalizeInclude(...args);
+  } catch (error) {
+    throw unexpectedError((error as Error).message);
+  }
 }
 
 /**

@@ -13,7 +13,12 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, mappingParentTypes, setRowMappings } from '@pothos/selection-mapper';
+import {
+  forOperation,
+  getLoaderMapping,
+  mappingParentTypes,
+  setRowMappings,
+} from '@pothos/selection-mapper';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
@@ -162,14 +167,16 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       | FallbackPlanRecipe
       | undefined;
 
-    // The fallback with one settled plan per `Type@path` per request beside it, since it plans
+    // The fallback with one settled plan per `Type@path` per operation beside it, since it plans
     // this field again for every row of the list its parent came from. Allocated only for a field
     // that has a fallback, and scoped to the field config, so the plans of a request go with the
-    // request and the builder's own `skipDeferredFragments` is the one that applies.
+    // request and the builder's own `skipDeferredFragments` is the one that applies. Kept per
+    // operation (see `forOperation`), so an operation sharing the context never plays another's
+    // plan.
     const fallback = resolveFallback && {
       resolve: resolveFallback,
       plan: fallbackPlan,
-      plans: createContextCache(() => new Map<string, MaybePromise<PrismaPlan>>()),
+      plans: createContextCache(() => new WeakMap<object, Map<string, MaybePromise<PrismaPlan>>>()),
     };
 
     const parentTypes = mappingParentTypes(this.buildCache, fieldConfig, 'pothosPrismaModel');
@@ -177,11 +184,11 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     return (parent, args, context, info) => {
       // Asked of the row: a mapping recorded for this row wins over the plan's, which answers
       // for the rows the planned query loaded.
-      let mapping = getLoaderMapping(context, info.path, info.parentType.name, parent);
+      let mapping = getLoaderMapping(context, info, info.parentType.name, parent);
 
       if (!mapping) {
         for (const parentType of parentTypes) {
-          mapping = getLoaderMapping(context, info.path, parentType, parent);
+          mapping = getLoaderMapping(context, info, parentType, parent);
           if (mapping) {
             break;
           }
@@ -198,7 +205,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
       if (fallback) {
         const query = fallbackQueryFromInfo(
-          fallback.plans(context),
+          forOperation(fallback.plans(context), info),
           context,
           info,
           this.builder.options.prisma.skipDeferredFragments,

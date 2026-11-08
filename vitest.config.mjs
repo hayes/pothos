@@ -5,6 +5,8 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     deps: {},
+    // Resolved by vite, so it shares the tests' `graphql` (the development build).
+    server: { deps: { inline: ['@graphql-tools/executor', '@graphql-tools/utils'] } },
     exclude: [
       'packages/plugin-authz/**/*',
       'packages/plugin-federation/**/*',
