@@ -1003,11 +1003,9 @@ describe('plugins that pass resolvers a shallow copy of the parent', () => {
       const result = await run(schema(position), query, { context: { dropHello: ['a'] } });
       expect(result.errors).toBeUndefined();
       const [alice] = result.data.users;
-      // A plugin listed before this one sees the parent without what the field's select loads, so
-      // its copy has no `posts` to change.
-      expect([...alice.a].sort()).toEqual(
-        position === 'after' ? ['p-draft1'] : ['p-draft1', 'p-hello'],
-      );
+      // The whole relation is the row's plain `posts`, which a plugin listed before this one sees
+      // too.
+      expect([...alice.a].sort()).toEqual(['p-draft1']);
       expect([...alice.b].sort()).toEqual(['p-draft1', 'p-hello']);
       expect(alice.ordered).toEqual([{ id: 'p-draft1' }, { id: 'p-hello' }]);
     }

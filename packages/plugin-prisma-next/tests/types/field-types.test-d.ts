@@ -947,6 +947,29 @@ builder.queryFields((t) => ({
         select: (_args, _ctx, nestedSelection) => ({ task: nestedSelection() }),
         resolve: (note) => note.task,
       }),
+      // A to-one entry loads whole, so its `type` can't name a variant, and nothing only a variant
+      // declares can be selected beneath it.
+      reviewer: t.string({
+        // @ts-expect-error a to-one entry's type is its target's
+        select: { task: { type: 'Bug', select: { reviewer: true } } },
+        resolve: () => '',
+      }),
+      severity: t.string({
+        // @ts-expect-error a to-one entry's type is its target's
+        select: { task: { type: Bug, select: ['severity'] } },
+        resolve: () => '',
+      }),
+      variantOnly: t.string({
+        // @ts-expect-error a variant's relation isn't the target's
+        select: { task: { select: { reviewer: true } } },
+        resolve: () => '',
+      }),
     }),
+  });
+  inheritance.prismaObject('Note', {
+    variant: 'TypedNote',
+    // @ts-expect-error a type-level to-one entry's type is its target's
+    select: { task: { type: 'Bug', select: { reviewer: true } } },
+    fields: (t) => ({ id: t.exposeID('id') }),
   });
 }

@@ -365,14 +365,22 @@ describe('reload batches within the limit', () => {
 });
 
 // An alias that repeats a to-one relation adds nothing the level doesn't hold, so the limit takes
-// it even on a full level. (Aliases of a to-many relation each load into a slot of their own.)
+// it even on a full level. (Aliases of a to-many relation with other arguments each load into a
+// slot of their own.)
 describe('aliases that repeat a to-one relation', () => {
   it('merges a repeated alias on a level at the limit', async () => {
     const builder = createBuilder();
     builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
     builder.prismaObject('PostView', { fields: (t) => ({ viewer: t.exposeString('viewer') }) });
     builder.prismaObject('Post', {
-      fields: (t) => ({ author: t.relation('author'), views: t.relation('views') }),
+      fields: (t) => ({
+        author: t.relation('author'),
+        // Aliases with other arguments each load into a slot of their own.
+        views: t.relation('views', {
+          args: { take: t.arg.int({ required: true }) },
+          query: (args) => ({ limit: args.take }),
+        }),
+      }),
     });
     builder.queryType({
       fields: (t) => ({
@@ -383,7 +391,10 @@ describe('aliases that repeat a to-one relation', () => {
       }),
     });
     // 60 slots of `views`, then `author`: the level loads exactly the limit.
-    const views = Array.from({ length: 60 }, (_, i) => `v${i}: views { viewer }`).join(' ');
+    const views = Array.from(
+      { length: 60 },
+      (_, i) => `v${i}: views(take: ${100 + i}) { viewer }`,
+    ).join(' ');
     const result = await run(
       builder.toSchema(),
       `{ post { ${views} x: author { id } y: author { id } } }`,
@@ -407,7 +418,10 @@ describe('a field past the limit beside a type-level relation', () => {
       fields: (t) => ({
         id: t.exposeID('id'),
         author: t.relation('author'),
-        views: t.relation('views'),
+        views: t.relation('views', {
+          args: { take: t.arg.int({ required: true }) },
+          query: (args) => ({ limit: args.take }),
+        }),
       }),
     });
     builder.queryType({
@@ -420,7 +434,10 @@ describe('a field past the limit beside a type-level relation', () => {
     });
     // `author` loads 1 + 1 + 61 beneath it (each `posts` level holds `comments`), so the outer
     // level, which holds `comments` too, refuses it.
-    const views = Array.from({ length: 60 }, (_, i) => `v${i}: views { viewer }`).join(' ');
+    const views = Array.from(
+      { length: 60 },
+      (_, i) => `v${i}: views(take: ${100 + i}) { viewer }`,
+    ).join(' ');
     const result = await run(
       builder.toSchema(),
       `{ post { id author { posts { id ${views} } } } }`,

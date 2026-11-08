@@ -6,6 +6,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import {
   type DocumentNode,
+  execute,
   experimentalExecuteIncrementally,
   type GraphQLFieldResolver,
   type GraphQLSchema,
@@ -14,13 +15,16 @@ import {
 } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import PrismaNextPlugin, { collectionFromInfo, prismaConnectionHelpers } from '../src';
+import { detailOf } from './fixtures/errors';
 import {
+  type CapturedExecution,
   createBuilder,
   deferSchema,
   run,
   runIncremental,
   type SampleContract,
   useSampleDb,
+  withCapture,
 } from './fixtures/helpers';
 
 const db = useSampleDb();
@@ -98,8 +102,8 @@ const alice = {
   drafts: [{ id: 'p-draft1' }],
 };
 
-describe('consumers of one relation with different arguments on one type', () => {
-  it('reads each consumer from its own branch in one statement', async () => {
+describe('loads of one relation with different arguments on one type', () => {
+  it('reads each load from its own branch in one statement', async () => {
     const result = await run(
       schema(),
       `{ users {
@@ -193,7 +197,7 @@ describe('consumers of one relation with different arguments on one type', () =>
     expect(result.statements).toHaveLength(1);
   });
 
-  // A fragment used in two places shares its walk, and so its consumers.
+  // A fragment used in two places shares its walk, and so its loads.
   it('reads a shared fragment beneath two aliases from each one', async () => {
     const result = await run(
       schema(),
@@ -213,8 +217,8 @@ describe('consumers of one relation with different arguments on one type', () =>
     expect(renamedBranches(result.statements[0]!.sql)).toEqual([]);
   });
 
-  // One response key selected by several fragments is one consumer: its resolver finds one mapping.
-  it('merges the field nodes of one response key into one consumer', async () => {
+  // One response key selected by several fragments is one field: its resolver finds one mapping.
+  it('merges the field nodes of one response key into one field', async () => {
     const result = await run(
       schema(),
       '{ users { p: posts(published: 1) { id } ... on User { p: posts(published: 1) { title } } } }',
@@ -400,7 +404,7 @@ describe('interface fields', () => {
 
 // Rows beneath a connection helper's nodes and a relatedConnection's edges.
 describe('connections', () => {
-  it('reads consumers beneath edges.node without reloading', async () => {
+  it('reads loads beneath edges.node without reloading', async () => {
     const builder = createBuilder();
     const { User } = define(builder);
     builder.prismaObjectFields(User, (t) => ({
@@ -433,7 +437,7 @@ describe('connections', () => {
     });
     expect(result.statements).toHaveLength(1);
   });
-  it("reads consumers beneath a connection helper's page", async () => {
+  it("reads loads beneath a connection helper's page", async () => {
     const builder = createBuilder();
     const { User } = define(builder);
     const authored = prismaConnectionHelpers(builder, 'Post', { totalCount: true });
@@ -486,10 +490,10 @@ describe('a plugin that copies the parent', () => {
         resolver({ ...(parent as object) }, args, context, info);
     }
   }
-  SchemaBuilder.registerPlugin('prismaNextTestConsumerCopy' as never, CopyPlugin);
+  SchemaBuilder.registerPlugin('prismaNextTestLoadCopy' as never, CopyPlugin);
 
   it.each(['before', 'after'] as const)('reads a copy as the row (%s)', async (position) => {
-    const copy = 'prismaNextTestConsumerCopy' as never;
+    const copy = 'prismaNextTestLoadCopy' as never;
     const builder = new SchemaBuilder<{ PrismaNextContract: SampleContract }>({
       plugins: position === 'before' ? [copy, PrismaNextPlugin] : [PrismaNextPlugin, copy],
       prismaNext: { client: db.client },
@@ -578,9 +582,9 @@ describe('rows other fields return', () => {
     return builder.toSchema();
   }
 
-  const consumers =
+  const loads =
     'publishedIds drafts { id } a: posts(published: 1) { id } n: postCount(published: 0)';
-  const aliceConsumers = {
+  const aliceLoads = {
     publishedIds: ['p-hello'],
     drafts: alice.drafts,
     a: alice.published,
@@ -607,29 +611,29 @@ describe('rows other fields return', () => {
     expect(result.statements).toHaveLength(1);
   });
 
-  it("reads consumers beneath a plain field's row", async () => {
+  it("reads loads beneath a plain field's row", async () => {
     const result = await run(
       otherSchema(),
-      `{ users { firstPublished { id author { ${consumers} } } } }`,
+      `{ users { firstPublished { id author { ${loads} } } } }`,
     );
     expect(result.errors).toBeUndefined();
     expect(result.data.users[0]).toEqual({
-      firstPublished: { id: 'p-hello', author: aliceConsumers },
+      firstPublished: { id: 'p-hello', author: aliceLoads },
     });
     expect(result.statements).toHaveLength(1);
   });
 
-  it('reads consumers beneath collectionFromInfo({ path })', async () => {
-    const result = await run(otherSchema(), `{ payload { user { ${consumers} } } }`);
+  it('reads loads beneath collectionFromInfo({ path })', async () => {
+    const result = await run(otherSchema(), `{ payload { user { ${loads} } } }`);
     expect(result.errors).toBeUndefined();
-    expect(result.data.payload.user).toEqual(aliceConsumers);
+    expect(result.data.payload.user).toEqual(aliceLoads);
     expect(result.statements).toHaveLength(1);
   });
 
-  it('reads consumers on rows a subscription yields', async () => {
+  it('reads loads on rows a subscription yields', async () => {
     const events = await subscribe({
       schema: otherSchema(),
-      document: parse(`subscription { user { ${consumers} } }`),
+      document: parse(`subscription { user { ${loads} } }`),
       contextValue: {},
     });
     if (!(Symbol.asyncIterator in events)) {
@@ -640,7 +644,7 @@ describe('rows other fields return', () => {
       expect(event.errors).toBeUndefined();
       seen.push(event.data);
     }
-    expect(seen).toEqual([{ user: aliceConsumers }, { user: aliceConsumers }]);
+    expect(seen).toEqual([{ user: aliceLoads }, { user: aliceLoads }]);
   });
 });
 
@@ -809,5 +813,127 @@ describe('one response key with different arguments', () => {
     }
     const expected = { user: { x: ['p-hello'] } };
     expect(seen).toEqual([expected, expected]);
+  });
+});
+
+// A load is named by what it loads, by an id each context gives it, never by the field or the
+// operation that asked for it.
+describe('load ids', () => {
+  it('shares one id for equal loads of two operations in one context', async () => {
+    const built = schema(1);
+    const contextValue = {};
+    const statements: CapturedExecution[] = [];
+    const [first, second] = await withCapture(statements, () =>
+      Promise.all([
+        execute({ schema: built, document: parse('{ stubs { drafts { id } } }'), contextValue }),
+        execute({ schema: built, document: parse('{ stubs { d: drafts { id } } }'), contextValue }),
+      ]),
+    );
+    expect(first).toEqual({ data: { stubs: [{ drafts: alice.drafts }] } });
+    expect(second).toEqual({ data: { stubs: [{ d: alice.drafts }] } });
+    expect(statements).toHaveLength(1);
+  });
+
+  it('reads keyed loads of rows returned through a union without reloading', async () => {
+    const builder = createBuilder();
+    const { User } = define(builder);
+    const Result = builder.unionType('Result', { types: [User], resolveType: () => 'User' });
+    builder.queryType({
+      fields: (t) => ({
+        search: t.field({
+          type: [Result],
+          resolve: async (_root, _args, context, info) => {
+            const users = await collectionFromInfo({
+              collection: db.orm.User.where({ id: 'u-alice' }),
+              context,
+              info,
+              typeName: 'User',
+            });
+            return (await users.all()) as never;
+          },
+        }),
+      }),
+    });
+    const result = await run(
+      builder.toSchema(),
+      '{ search { ... on User { publishedIds drafts { id } a: posts(published: 1) { id } } } }',
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.search).toEqual([
+      { publishedIds: ['p-hello'], drafts: alice.drafts, a: alice.published },
+    ]);
+    expect(result.statements).toHaveLength(1);
+  });
+
+  it('loads two to-one entries with different selects beneath once, each reading its own', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const ids = (posts: readonly { id: string }[]) => posts.map((post) => post.id).sort();
+    builder.prismaObject('Post', {
+      fields: (t) => ({
+        published: t.stringList({
+          select: { author: { select: { posts: { where: { published: 1 } } } } },
+          resolve: (post) => ids(post.author.posts),
+        }),
+        drafts: t.stringList({
+          select: { author: { select: { posts: { where: { published: 0 } } } } },
+          resolve: (post) => ids(post.author.posts),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        post: t.prismaField({
+          type: 'Post',
+          collection: () => db.orm.Post.where({ id: 'p-hello' }),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ post { published drafts } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.post).toEqual({ published: ['p-hello'], drafts: ['p-draft1'] });
+    expect(result.statements).toHaveLength(1);
+    expect(result.statements[0]!.sql.match(/FROM "user"/g)).toHaveLength(1);
+  });
+
+  it('fails a field whose aggregates write one key twice', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        total: t.int({
+          select: {
+            posts: (posts) => ({ total: posts.count() }),
+            comments: (comments) => ({ total: comments.count() }),
+          },
+          resolve: (user) => user.total,
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({ type: 'User', collection: () => db.orm.User }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ user { total } }');
+    expect(result.errors).toHaveLength(1);
+    expect(detailOf(result.errors![0])).toBe(
+      "A field's select writes 'total' on its parent twice.",
+    );
+  });
+
+  it('rejects two nested type-level entries of one relation that disagree', () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      select: { posts: { select: { comments: { where: { id: 'c-1' } } } } },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.prismaObject('Comment', {
+      select: { post: { select: { comments: { where: { id: 'c-2' } } } } },
+      fields: (t) => ({ id: t.exposeID('id') }),
+    });
+    builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+    expect(() => builder.toSchema()).toThrow(
+      "'User' and 'Comment' both select 'comments', with different definitions. Every row of model 'Post' holds one value for it",
+    );
   });
 });

@@ -609,11 +609,12 @@ describe.each(orders)('field-level authScopes (%s)', (_, plugins) => {
     return builder.toSchema();
   }
 
-  // In either order, the checks see what the type's select loads, as the types promise.
+  // In either order, the checks never see the field's filtered load. The whole relation, which
+  // another field loads, is the row's plain `posts`.
   it.each([
-    '{ users { publishedCount } }',
-    '{ users { publishedCount all { id } } }',
-  ])("see the type's select, not the field's: %s", async (query) => {
+    ['{ users { publishedCount } }', undefined],
+    ['{ users { publishedCount all { id } } }', 2],
+  ])("see the type's select, not the field's: %s", async (query, posts) => {
     const seen: unknown[] = [];
     const result = await runCaptured(fieldAuthSchema(seen), query);
     expect(result.errors).toBeUndefined();
@@ -621,8 +622,8 @@ describe.each(orders)('field-level authScopes (%s)', (_, plugins) => {
       result.data.users.map((user: { publishedCount: number }) => user.publishedCount),
     ).toEqual([1, 1]);
     expect(seen).toEqual([
-      ['alice@example.com', undefined],
-      ['bob@example.com', undefined],
+      ['alice@example.com', posts],
+      ['bob@example.com', posts],
     ]);
     expect(result.statements).toHaveLength(1);
   });
@@ -1199,7 +1200,7 @@ describe("a connection helper's page of a variant with a table of its own", () =
 describe('runScopesOnType on rows without what the type selects', () => {
   it("supplies a loader of scope-auth's type", () => {
     // The method is private, which an indexed access type still reads.
-    type Loader = ReturnType<PothosPrismaNextPlugin<SchemaTypes>['typeParentLoader']>;
+    type Loader = ReturnType<PothosPrismaNextPlugin<SchemaTypes>['typeRow']>;
     expectTypeOf<Loader>().not.toBeAny();
     expectTypeOf<Loader>().toExtend<ScopeAuthParentLoader>();
   });
@@ -2582,7 +2583,7 @@ describe.each(orders)("a type's filtered relation beside a whole one (%s)", (_, 
     });
     const GatedComment = builder.prismaObject('Comment', {
       variant: 'GatedComment',
-      select: { author: { select: { posts: bobDraft } } },
+      select: { author: { select: { posts: posts ?? bobDraft } } },
       authScopes: (comment) => {
         record(comment.author.posts);
         return comment.author.posts.length > 0;

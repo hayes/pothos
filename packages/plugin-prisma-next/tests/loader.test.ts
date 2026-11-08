@@ -396,8 +396,8 @@ describe('provenance', () => {
         nodes: [{ count: 0 }, { count: 0 }],
       },
     });
-    expect(connection.statements).toHaveLength(2);
-    expect(connection.statements[1].params).toEqual(expect.arrayContaining(['u-alice', 'u-bob']));
+    // The counts load apart by their arguments, both beside the users.
+    expect(connection.statements).toHaveLength(1);
 
     const counts = await run(
       s,

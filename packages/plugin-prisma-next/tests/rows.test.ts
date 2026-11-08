@@ -227,8 +227,8 @@ describe('rows a resolver returns', () => {
       );
       expect(drafts).toEqual({ data: { node: { posts: [{ id: 'p-draft1' }] } } });
       expect(published).toEqual({ data: { node: { posts: [{ id: 'p-hello' }] } } });
-      // Their consumers share ids, so the two filters can't share a statement.
-      expect(statements).toHaveLength(2);
+      // Their loads differ, so they get their own ids in the context and share one statement.
+      expect(statements).toHaveLength(1);
     });
 
     it('reload the nodes of different documents apart', async () => {
@@ -264,9 +264,11 @@ describe('rows a resolver returns', () => {
       expect(comments).toEqual({ data: { node: { commentsTotal: 1 } } });
     });
 
-    it('run the same SQL text for the same query shape, whatever the argument values or context', async () => {
+    it('run the same SQL text for the same query shape, whatever the argument values, in a fresh context', async () => {
       // The same document with other variables, and in another context.
       const built = schema();
+      const fresh = (published: number) =>
+        execute({ schema: built, document, variableValues: { published }, contextValue: {} });
       const author = (published: string) => ({
         data: { post: { author: { posts: [{ id: published }] } } },
       });
@@ -282,7 +284,14 @@ describe('rows a resolver returns', () => {
           }),
         ),
       ).toEqual(author('p-draft1'));
-      expect(await withCapture(statements, () => execution(built, 1))).toEqual(author('p-hello'));
+      expect(await withCapture(statements, async () => fresh(1))).toEqual(author('p-hello'));
+      // A context names each load it sees by an id, so another load in the same context differs
+      // only in the name of its branch.
+      const shared: CapturedExecution[] = [];
+      expect(await withCapture(shared, () => execution(built, 1))).toEqual(author('p-hello'));
+      expect(shared).toHaveLength(1);
+      expect(shared[0]!.sql).not.toBe(statements[0]!.sql);
+      expect(shared[0]!.sql.replaceAll('/1', '/0')).toBe(statements[0]!.sql);
 
       // Query callbacks reading another value of the context.
       const builder = createBuilder<{ published: number }>();
