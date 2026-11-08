@@ -289,6 +289,43 @@ describe('aliases nested beneath rows without a key', () => {
   });
 });
 
+// Each alias of a to-many relation with its own arguments is a table of the relation's join, which
+// MySQL caps at 61 tables and SQLite at 64. Past the limit, a field reloads its parent.
+describe('aliases with different arguments on one level', () => {
+  it.each([
+    [61, 1],
+    [62, 2],
+  ])('loads %i aliases in %i statements', async (count, statements) => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relation('posts', {
+          args: { published: t.arg.int({ required: true }) },
+          query: (args) => ({ where: { published: args.published } }),
+        }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: 'User',
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const aliases = Array.from(
+      { length: count },
+      (_, i) => `p${i}: posts(published: ${i}) { id }`,
+    ).join(' ');
+    const result = await run(builder.toSchema(), `{ user { ${aliases} } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user.p0).toEqual([{ id: 'p-draft1' }]);
+    expect(result.data.user[`p${count - 1}`]).toEqual([]);
+    expect(result.statements).toHaveLength(statements);
+  });
+});
+
 // An alias that repeats a to-one relation adds nothing the level doesn't hold, so the limit takes
 // it even on a full level. (Aliases of a to-many relation each load into a slot of their own.)
 describe('aliases that repeat a to-one relation', () => {
@@ -307,15 +344,15 @@ describe('aliases that repeat a to-one relation', () => {
         }),
       }),
     });
-    // 199 slots of `views`, then `author`: the level loads exactly the limit.
-    const views = Array.from({ length: 199 }, (_, i) => `v${i}: views { viewer }`).join(' ');
+    // 60 slots of `views`, then `author`: the level loads exactly the limit.
+    const views = Array.from({ length: 60 }, (_, i) => `v${i}: views { viewer }`).join(' ');
     const result = await run(
       builder.toSchema(),
       `{ post { ${views} x: author { id } y: author { id } } }`,
     );
     expect(result.errors).toBeUndefined();
     expect(result.data.post.y).toEqual({ id: 'u-alice' });
-    expect(result.data.post.v198).toEqual([{ viewer: 'Bob' }, { viewer: 'Carol' }]);
+    expect(result.data.post.v59).toEqual([{ viewer: 'Bob' }, { viewer: 'Carol' }]);
     expect(result.statements).toHaveLength(1);
   });
 });
@@ -343,16 +380,16 @@ describe('a field past the limit beside a type-level relation', () => {
         }),
       }),
     });
-    // `author` loads 1 + 1 + 200 beneath it (each `posts` level holds `comments`), so the outer
+    // `author` loads 1 + 1 + 61 beneath it (each `posts` level holds `comments`), so the outer
     // level, which holds `comments` too, refuses it.
-    const views = Array.from({ length: 199 }, (_, i) => `v${i}: views { viewer }`).join(' ');
+    const views = Array.from({ length: 60 }, (_, i) => `v${i}: views { viewer }`).join(' ');
     const result = await run(
       builder.toSchema(),
       `{ post { id author { posts { id ${views} } } } }`,
     );
     expect(result.errors).toBeUndefined();
     const posts = result.data.post.author.posts as Record<string, unknown>[];
-    expect(Object.fromEntries(posts.map((post) => [post.id, post.v198]))).toEqual({
+    expect(Object.fromEntries(posts.map((post) => [post.id, post.v59]))).toEqual({
       'p-draft1': [],
       'p-hello': [{ viewer: 'Bob' }, { viewer: 'Carol' }],
     });

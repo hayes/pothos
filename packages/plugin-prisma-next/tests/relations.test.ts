@@ -1095,10 +1095,11 @@ describe('aliases of one computed value', () => {
   const counts = (sql: string) => sql.match(/COUNT\(\*\)/g)?.length ?? 0;
 
   it('computes a value once for every alias that selects it the same way', async () => {
-    const aliases = Array.from({ length: 70 }, (_, i) => `a${i}: postCount`).join(' ');
+    // As many as a level loads (see MAX_RELATION_LOADS).
+    const aliases = Array.from({ length: 61 }, (_, i) => `a${i}: postCount`).join(' ');
     const result = await run(schema, `{ users { firstName ${aliases} } }`);
     expect(result.errors).toBeUndefined();
-    expect(result.data.users[0]).toMatchObject({ firstName: 'Alice', a0: 2, a69: 2 });
+    expect(result.data.users[0]).toMatchObject({ firstName: 'Alice', a0: 2, a60: 2 });
     expect(result.statements).toHaveLength(1);
     expect(counts(result.statements[0]!.sql)).toBe(1);
   });

@@ -116,6 +116,24 @@ describe.skipIf(!url)('MySQL', () => {
     });
   });
 
+  // MySQL joins at most 61 tables, and each alias with its own arguments is a table of the
+  // relation's join. Past that, a field reloads its parent.
+  it.each([61, 62])('loads %i aliases with different arguments', async (count) => {
+    const aliases = Array.from(
+      { length: count },
+      (_, i) => `b${i}: books(minPages: ${i}) { title }`,
+    ).join(' ');
+    const result = await run(`{ authors { name ${aliases} } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.authors).toMatchObject([
+      {
+        b0: [{ title: 'A1' }, { title: 'A2' }],
+        [`b${count - 1}`]: [{ title: 'A1' }, { title: 'A2' }],
+      },
+      { b0: [{ title: 'B1' }], [`b${count - 1}`]: [{ title: 'B1' }] },
+    ]);
+  });
+
   it('combines independent branches of one relation', async () => {
     const result = await run(
       '{ authors { all: books { title } long: books(minPages: 250) { title } } }',

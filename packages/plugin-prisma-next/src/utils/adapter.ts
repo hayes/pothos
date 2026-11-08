@@ -397,9 +397,10 @@ interface BranchNames {
 /**
  * The most relations and computed values one level of a statement loads, counting those beneath
  * it. Each to-many consumer with its own arguments is a `combine()` slot of its own, so a document
- * that nests aliases with different arguments doubles them at every level.
+ * that nests aliases with different arguments doubles them at every level. Each slot is a table
+ * of its relation's join, which MySQL caps at 61 tables and SQLite at 64.
  */
-const MAX_RELATION_LOADS = 200;
+const MAX_RELATION_LOADS = 61;
 
 /** The relations and computed values `selection` loads, and those beneath, that `held` lacks. */
 function loads(selection: PrismaNextSelection, held?: PrismaNextSelection): number {
