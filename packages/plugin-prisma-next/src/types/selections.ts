@@ -211,6 +211,15 @@ export type AggregateSelect<
   readonly [key: string]: IncludeScalar<unknown>;
 };
 
+/** An aggregate in a type's `select`, typed so the error says where aggregates go. */
+type TypeLevelAggregate<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  K extends RelationKeys<Types, M>,
+> = (
+  collection: NoInfer<AggregateCollection<Types, RelatedModel<Types, M, K>>>,
+) => 'Aggregates only work in a field-level select';
+
 export type SelectObjectSpec<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
@@ -224,7 +233,9 @@ export type SelectObjectSpec<
         | true
         | RelationSelect<Types, M, K, Level>
         | (Level extends 'type'
-            ? never
+            ? IsToMany<Types, M, K> extends true
+              ? TypeLevelAggregate<Types, M, K>
+              : never
             :
                 | NestedSelectionEntry<
                     IsToMany<Types, M, K> extends true
@@ -635,10 +646,12 @@ type EntryMirror<
         ? PlannedCheck<ModelMismatch<Types, M, K, 'getQuery', TM>, E>
         : never
       : E extends (...args: never[]) => unknown
-        ? [Level, IsToMany<Types, M, K>] extends ['type', unknown] | [unknown, false]
+        ? IsToMany<Types, M, K> extends false
           ? // Not `never`, which would fail the whole `select` rather than the entry.
             true
-          : AggregateSelect<Types, M, K>
+          : Level extends 'type'
+            ? TypeLevelAggregate<Types, M, K>
+            : AggregateSelect<Types, M, K>
         : E extends object
           ? EntryOptionsMirror<
               Types,
