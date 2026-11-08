@@ -131,7 +131,7 @@ export type ResolverCollection<Types extends SchemaTypes, M extends ModelKey<Typ
  */
 type IncludeFreeRow<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   readonly [K in keyof Row<Types, M> | RelationKeys<Types, M>]?: K extends RelationKeys<Types, M>
-    ? never
+    ? 'The plugin includes what the query selects: return the collection without include()'
     : unknown;
 };
 
@@ -141,7 +141,7 @@ type IncludeFreeRow<Types extends SchemaTypes, M extends ModelKey<Types>> = {
  */
 export type UnorderedCollection<Returned> = [Extract<Returned, HasOrderBy>] extends [never]
   ? unknown
-  : never;
+  : 'A connection orders its collection by query.orderBy: return the collection without orderBy()';
 
 /**
  * The key of the model a collection's rows belong to: the model it reads, or the variant model
