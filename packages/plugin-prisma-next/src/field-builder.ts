@@ -22,7 +22,6 @@ import { buildConnectionPage, orderableProblem, readPage } from './utils/cursors
 import { checkReturned, InternalError } from './utils/errors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { type AnyRef, refFor } from './utils/refs.js';
-import { markPlanned } from './utils/row-copies.js';
 
 type FieldResolver = (...args: unknown[]) => unknown;
 
@@ -101,9 +100,9 @@ function prismaFieldConfig(
             info,
             context,
           );
-          const rows = markPlanned(
-            await readPage((isList ? applied : (applied.limit(1) as Executable)).all(), cursors),
-            info,
+          const rows = await readPage(
+            (isList ? applied : (applied.limit(1) as Executable)).all(),
+            cursors,
           );
           return isList ? rows : (rows[0] ?? null);
         },

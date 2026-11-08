@@ -4,6 +4,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import { PRISMA_NEXT_TYPE_PLAN } from '../constants.js';
 import { consumerOfKey, isFieldOnlyKey, parseBranch, relationName } from './branch-keys.js';
 import { consumerId, nestedId, TYPE_CONSUMER } from './consumers.js';
+import { consumerOfLoad, plannedLoadId } from './load-ids.js';
 import type { PrismaNextModel } from './model.js';
 import { COUNT_SLOT, loadsWholeRelation, type PrismaNextSelection } from './selections.js';
 
@@ -111,75 +112,18 @@ const NO_SLOTS: Slots = Object.freeze({
 
 /** What `slotsOf` read off each ORM row. */
 const parsed = new WeakMap<object, Slots>();
-declare const executionKeyBrand: unique symbol;
-
-/** The key of an execution (see `executionKey`). */
-export type ExecutionKey = object & { readonly [executionKeyBrand]: true };
-
-/**
- * The executions whose plans loaded each ORM row (see `executionKey`). Consumer ids are numbered
- * per operation, so the same id names another consumer in another operation, or reads other
- * arguments in another execution of this one. The rows beneath a row share its set, which they are
- * given when the row is first read (see `slotsOf`).
- */
-const plannedIn = new WeakMap<object, Set<ExecutionKey>>();
-
-/**
- * The key of the execution `info` is in: its variable values, which graphql builds once per
- * execution. Every root field of an execution numbers its consumers alike, so they share rows.
- */
-export function executionKey(info: GraphQLResolveInfo): ExecutionKey {
-  return info.variableValues as object as ExecutionKey;
-}
-
-/**
- * Records that `info`'s execution planned `rows`, rows or a row the plugin loaded for it. Rows a
- * resolver runs itself are planned in the execution that reads them first.
- */
-export function markPlanned<T>(rows: T, info: GraphQLResolveInfo): T {
-  const execution = executionKey(info);
-  for (const row of Array.isArray(rows) ? rows : [rows]) {
-    if (row !== null && typeof row === 'object') {
-      let executions = plannedIn.get(row);
-      if (!executions) {
-        executions = new Set();
-        plannedIn.set(row, executions);
-      }
-      executions.add(execution);
-    }
-  }
-  return rows;
-}
-
-/** Gives the rows in `value` without executions of their own the set `executions`. */
-function share(value: unknown, executions: Set<ExecutionKey>) {
-  if (Array.isArray(value)) {
-    for (const row of value) {
-      share(row, executions);
-    }
-  } else if (value !== null && typeof value === 'object' && !plannedIn.has(value)) {
-    plannedIn.set(value, executions);
-  }
-}
 
 /** The copies of each row or type copy, by the consumer they lift. */
 const copies = new WeakMap<object, Map<string, object>>();
 
 /**
  * The `combine()` values on `row`, an ORM row of `model`: what its to-many relation keys hold
- * unless they hold an array. Read once per row, by the execution keyed `execution`, which a row no
- * execution marked planned (see `markPlanned`) is then planned in. The rows beneath it share its
- * executions, and are read when the field returning them resolves.
+ * unless they hold an array. Read once per row.
  */
-function slotsOf(row: object, model: PrismaNextModel, execution: ExecutionKey): Slots {
+function slotsOf(row: object, model: PrismaNextModel): Slots {
   let slots = parsed.get(row);
   if (slots) {
     return slots;
-  }
-  let executions = plannedIn.get(row);
-  if (!executions) {
-    executions = new Set([execution]);
-    plannedIn.set(row, executions);
   }
   let relations: Record<string, RelationSlots> | undefined;
   let consumers: Set<string> | undefined;
@@ -189,7 +133,6 @@ function slotsOf(row: object, model: PrismaNextModel, execution: ExecutionKey): 
       continue;
     }
     if (!model.relations[name]!.isToMany || Array.isArray(value)) {
-      share(value, executions);
       continue;
     }
     const slots: RelationSlots = { rows: {}, values: {}, own: {} };
@@ -206,7 +149,6 @@ function slotsOf(row: object, model: PrismaNextModel, execution: ExecutionKey): 
           values[id][key] = loaded;
         } else {
           slots.rows[id] = loaded;
-          share(loaded, executions);
         }
       }
     }
@@ -235,7 +177,7 @@ export function rowOf(value: object): object {
   return (value as Holder)[SLOTS]?.row ?? value;
 }
 
-/** The field a copy is made for: its consumer id and the position it was planned at. */
+/** The field a copy is made for: its load id and the position it was planned at. */
 interface CopyField {
   readonly id: string;
   readonly position: Position;
@@ -252,8 +194,6 @@ interface CopyOptions {
   readonly nestedIn?: string;
   /** For a copy for the type-level `select`s, the relations it reads from their own loads. */
   readonly reads?: TypeReads;
-  /** The key of the execution the copy is made in (see `executionKey`). */
-  readonly execution: ExecutionKey;
 }
 
 /**
@@ -266,7 +206,7 @@ function copyWith(
   row: object,
   slots: Slots,
   id: string,
-  { model, nested, field, nestedIn, reads, execution }: CopyOptions,
+  { model, nested, field, nestedIn, reads }: CopyOptions,
 ) {
   let byId = copies.get(base);
   if (!byId) {
@@ -281,7 +221,7 @@ function copyWith(
       liftWhole(copy, row, slots, field.position);
       writePages(copy, slots, field);
     }
-    liftNested(copy, model, id, nested, reads, execution);
+    liftNested(copy, model, id, nested, reads);
     if (reads) {
       hideUnread(copy, slots, id, reads);
     }
@@ -293,9 +233,10 @@ function copyWith(
 }
 
 /**
- * Replaces the rows of each relation in `plan` on `copy`, a copy for consumer `id`, with copies
+ * Replaces the rows of each relation in `plan` on `copy`, a copy for load `id`, with copies
  * holding what its nested `select` loaded. Like a field's copy, such a copy is made again from its
- * row for any other reader.
+ * row for any other reader. The nested `select`'s keys carry its consumer id: the branch they are
+ * in carries the load id.
  */
 function liftNested(
   copy: Row,
@@ -303,9 +244,8 @@ function liftNested(
   id: string,
   plan: NestedPlan,
   reads: TypeReads | undefined,
-  execution: ExecutionKey,
 ) {
-  const inner = nestedId(id);
+  const inner = nestedId(consumerOfLoad(id));
   for (const [name, nested] of plan) {
     const target = model.relations[name]!.target;
     const copyRow = (value: unknown): unknown => {
@@ -316,12 +256,11 @@ function liftNested(
         return value;
       }
       const row = rowOf(value);
-      return copyWith(row, row, slotsOf(row, target, execution), inner, {
+      return copyWith(row, row, slotsOf(row, target), inner, {
         model: target,
         nested,
         nestedIn: inner,
         reads: reads?.get(name)?.beneath,
-        execution,
       });
     };
     if (copy[name] !== undefined) {
@@ -384,24 +323,18 @@ function liftWhole(copy: Row, row: object, { relations }: Slots, position: Posit
  * The type-level selects of a model agree, which the schema build checks (see
  * `assertSelectsAgree` in index.ts), so one copy serves every type. A copy holding `SLOTS`, this
  * plugin's or another plugin's copy of it, is the parent as it is, but a field's copy is made again
- * from its row. The type's branches are the same in every execution, so any execution reads them.
- * `execution` is the key of the execution (see `executionKey`).
+ * from its row. The type's branches are the same in every plan, so any plan reads them.
  */
-export function typeCopy(
-  value: object,
-  model: PrismaNextModel,
-  { nested, reads }: TypePlan,
-  execution: ExecutionKey,
-) {
+export function typeCopy(value: object, model: PrismaNextModel, { nested, reads }: TypePlan) {
   const held = (value as Holder)[SLOTS];
   if (held && !held.field) {
     return value;
   }
   const row = held ? held.row : value;
-  const slots = held ? held.slots : slotsOf(row, model, execution);
+  const slots = held ? held.slots : slotsOf(row, model);
   return slots === NO_SLOTS && !nested.size && !reads.size
     ? row
-    : copyWith(row, row, slots, TYPE_CONSUMER, { model, nested, reads, execution });
+    : copyWith(row, row, slots, TYPE_CONSUMER, { model, nested, reads });
 }
 
 /**
@@ -416,26 +349,24 @@ export function typeParent(copy: object, { checks }: TypePlan): object | undefin
  * The parent of a field planned at `position`: the type's, with what the field's consumer loaded
  * written onto a copy of it, which only the field's resolver and the plugins after this one see.
  * Undefined when the field planned rows or values of its own that the parent doesn't hold, as when
- * a resolver returned rows another field planned, so the parent is reloaded. Branches another
- * execution's plan loaded aren't the parent's: their consumer ids may name other consumers.
+ * a resolver returned rows another field planned, or that a plan other than `info`'s execution's
+ * loaded with other arguments or less beneath them (see load-ids.ts), so the parent is reloaded.
  */
 export function fieldCopy(
   value: object,
   model: PrismaNextModel,
   type: TypePlan,
   position: Position,
-  execution: ExecutionKey,
+  info: GraphQLResolveInfo,
 ): object | undefined {
-  const base = typeParent(typeCopy(value, model, type, execution), type);
+  const base = typeParent(typeCopy(value, model, type), type);
   if (!base) {
     return undefined;
   }
   const held = (base as Holder)[SLOTS];
-  const id = consumerId(position);
+  const id = plannedLoadId(info, consumerId(position), held?.slots.consumers ?? NO_SLOTS.consumers);
   const nested = plannedNested.get(position);
-  const foreign =
-    held !== undefined && held.slots.consumers.size > 0 && !plannedIn.get(held.row)?.has(execution);
-  if (foreign || !held?.slots.consumers.has(id)) {
+  if (!held?.slots.consumers.has(id)) {
     // A load of a whole relation, and a to-one relation's row, sit on the row unbranched, where
     // any field loading them reads them.
     const row = (held?.row ?? base) as Row;
@@ -450,15 +381,11 @@ export function fieldCopy(
     if (!plannedPages.has(position) && !nested && !hidden) {
       return base;
     }
-    if (foreign) {
-      return undefined;
-    }
   }
   return copyWith(base, held?.row ?? base, held?.slots ?? NO_SLOTS, id, {
     model,
     nested: nested ?? NO_NESTED,
     field: { id, position },
-    execution,
   });
 }
 

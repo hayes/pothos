@@ -17,7 +17,7 @@ import {
 } from './cursors.js';
 import { checkReturned } from './errors.js';
 import type { PrismaNextRelation } from './model.js';
-import { markPlanned, PAGE, type PageData, registerPage } from './row-copies.js';
+import { PAGE, type PageData, registerPage } from './row-copies.js';
 import { COUNT_SLOT, EMPTY, type PrismaNextSelection } from './selections.js';
 
 type SizeOption = number | ((args: never, ctx: never) => number);
@@ -238,7 +238,7 @@ export function connectionPaging(
           : Promise.resolve().then(() => count?.(parent, args, ctx, info));
       // Promise.all handles both rejections, so a later one isn't left unhandled.
       const [rows, totalCount] = await Promise.all([rowsPromise, countPromise]);
-      return { rows: markPlanned(rows, info), plan: planned, totalCount };
+      return { rows, plan: planned, totalCount };
     },
 
     /**

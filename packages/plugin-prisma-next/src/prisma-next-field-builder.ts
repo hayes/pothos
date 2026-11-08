@@ -68,6 +68,7 @@ import { consumerId } from './utils/consumers.js';
 import { modelDiscriminator, variantForRelationType } from './utils/contract.js';
 import { orderableProblem } from './utils/cursors.js';
 import { checkReturned, reloadFor } from './utils/errors.js';
+import { contextIdentity } from './utils/load-ids.js';
 import { getModel, type PrismaNextRelation, sharedVariantRelationError } from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import { fieldValue } from './utils/row-copies.js';
@@ -380,7 +381,9 @@ export class PrismaNextObjectFieldBuilder<
         const { loadIdentity, refine } =
           literal ??
           checkReturned(value, (returned) =>
-            load(returned, { built: () => ({ source: query, args }) }),
+            load(returned, {
+              built: () => ({ source: query, args, context: contextIdentity(ctx) }),
+            }),
           );
         return rowsSelection(
           relation,
@@ -445,7 +448,12 @@ export class PrismaNextObjectFieldBuilder<
           this.contract as AnyContract,
           relation.targetModel,
           value,
-          { built: typeof query === 'function' ? () => ({ source: query, args }) : undefined },
+          {
+            built:
+              typeof query === 'function'
+                ? () => ({ source: query, args, context: contextIdentity(ctx) })
+                : undefined,
+          },
         );
         return computedSelection(
           relationName,

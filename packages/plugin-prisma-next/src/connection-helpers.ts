@@ -436,7 +436,7 @@ export function prismaConnectionHelpers<
               ctx,
             ),
             (selection) => ({
-              query: config.adapter.emit(paged, selection, model),
+              query: config.adapter.emit(paged, selection, model, [info.variableValues]),
               cursors: appliesCursors(selection),
             }),
           ),

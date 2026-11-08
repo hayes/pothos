@@ -130,7 +130,9 @@ export function applySelectionToCollection(
   return completeValue(planSelection(info, config, context, target, initial), (planned) => {
     const selection = planned?.selection ?? initial;
     return {
-      query: config.adapter.emit(collection, selection, planned?.model ?? model),
+      query: config.adapter.emit(collection, selection, planned?.model ?? model, [
+        info.variableValues,
+      ]),
       cursors: appliesCursors(selection),
     };
   });
@@ -170,11 +172,9 @@ export async function collectionFromInfo<C extends object>({
   // The rows it returns are handed on as they are: the field returning them copies each for its
   // type.
   return planned
-    ? (config.adapter.emit(
-        mapper,
-        planned.selection,
-        planned.model,
-      ) as unknown as PlannedCollection<C>)
+    ? (config.adapter.emit(mapper, planned.selection, planned.model, [
+        info.variableValues,
+      ]) as unknown as PlannedCollection<C>)
     : (collection as PlannedCollection<C>);
 }
 

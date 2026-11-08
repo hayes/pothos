@@ -24,14 +24,7 @@ import { variantOf } from './utils/contract.js';
 import { readPage } from './utils/cursors.js';
 import { InternalError, isRefusedValue, keepError, refusedError } from './utils/errors.js';
 import { getModel, type PrismaNextModel } from './utils/model.js';
-import {
-  executionKey,
-  fieldCopy,
-  markPlanned,
-  rowOf,
-  typePlan,
-  withOtherKeys,
-} from './utils/row-copies.js';
+import { fieldCopy, rowOf, typePlan, withOtherKeys } from './utils/row-copies.js';
 import { appliesCursors, type PrismaNextSelection } from './utils/selections.js';
 
 type Row = Record<string, unknown>;
@@ -39,6 +32,8 @@ type Played = PlayedPlan<PrismaNextModel, PrismaNextSelection>;
 
 interface Request {
   values: readonly unknown[];
+  /** The execution the row is loaded for, by its variable values. */
+  execution: GraphQLResolveInfo['variableValues'];
   resolve: (row: Row | null) => void;
   reject: (error: unknown) => void;
 }
@@ -153,10 +148,9 @@ export class ModelLoader {
     );
     const load = (played: Played) => {
       const values = this.identity.map((field) => (parent as Row)[field]);
-      const staged = this.stage(played.root, this.identity, values, { kind: 'parent' });
+      const staged = this.stage(info, played.root, this.identity, values, { kind: 'parent' });
       return staged.then((reloaded) => {
-        // A batch can hand one row to several executions: each planned it.
-        const row = markPlanned(withOtherKeys(reloaded!, parent, played.root.model), info);
+        const row = withOtherKeys(reloaded!, parent, played.root.model);
         // The plan is walked from the parent type, so the field's own mapping is keyed by the
         // parent type and the field's response key.
         // A reload plans its field first, onto a level that loads nothing yet, so the field always
@@ -168,7 +162,7 @@ export class ModelLoader {
           played.root.model,
           typePlan(info.parentType),
           mapping.position!,
-          executionKey(info),
+          info,
         )!;
       });
     };
@@ -212,11 +206,12 @@ export class ModelLoader {
     });
     const load = (played: Played) =>
       this.stage(
+        info,
         played.root,
         this.identity,
         this.identity.map((field) => (parent as Row)[field]),
         { kind: 'parent' },
-      ).then((reloaded) => markPlanned(withOtherKeys(reloaded!, parent, played.root.model), info));
+      ).then((reloaded) => withOtherKeys(reloaded!, parent, played.root.model));
     const reloaded = completeValue(selection, load) as Promise<Row>;
     if (!loads) {
       loads = new Map();
@@ -251,17 +246,18 @@ export class ModelLoader {
     const load = (played: Played) => {
       setLoaderMappings(this.context, info, played.mappings);
       const load: Load = { kind: 'node', typeName, collection };
-      return this.stage(played.root, fields, values, load).then((row) => {
+      return this.stage(info, played.root, fields, values, load).then((row) => {
         if (row) {
           brandWithType(row, typeName as OutputType<SchemaTypes>);
         }
-        return markPlanned(row, info);
+        return row;
       });
     };
     return completeValue(selection, load) as Promise<Row | null>;
   }
 
   private stage(
+    info: GraphQLResolveInfo,
     root: PrismaNextNode,
     fields: readonly string[],
     values: readonly unknown[],
@@ -305,7 +301,7 @@ export class ModelLoader {
     }
     const { requests } = batch;
     return new Promise((resolve, reject) => {
-      requests.push({ values, resolve, reject });
+      requests.push({ values, execution: info.variableValues, resolve, reject });
     });
   }
 
@@ -362,7 +358,12 @@ export class ModelLoader {
       const selection = this.config.adapter.toQuery(batch.root);
       // A query callback the statement runs fails every field of the batch, as in a parent query.
       const query = userCode(() =>
-        this.config.adapter.emit(filtered, selection, batch.root.model),
+        this.config.adapter.emit(
+          filtered,
+          selection,
+          batch.root.model,
+          keyed.map(({ request }) => request.execution),
+        ),
       ) as MapperCollection & { all(): Promise<readonly Row[]> };
       // A reload's database error is the plugin's, which `reloadFor` reports as `Unexpected error.`.
       // A refused cursor fails every request of the batch, including other fields' nodes.

@@ -597,6 +597,20 @@ describe('aliases of one to-many relation', () => {
     expect(postSubqueries(result.statements[0].sql)).toBe(1);
   });
 
+  it('reads many aliases sharing one branch, whose name the ORM shortens', async () => {
+    const aliases = Array.from({ length: 8 }, (_, i) => `a${i}: filtered(published: 1) { id }`);
+    const result = await run(
+      schema(),
+      `{ users { ${aliases.join(' ')} b: filtered(published: 0) { id } } }`,
+    );
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users[0]).toEqual({
+      ...Object.fromEntries(aliases.map((_, i) => [`a${i}`, [{ id: 'p-hello' }]])),
+      b: [{ id: 'p-draft1' }],
+    });
+    expect(postSubqueries(result.statements[0].sql)).toBe(2);
+  });
+
   it('keeps aliases with different arguments in separate subqueries', async () => {
     const result = await run(
       schema(),
