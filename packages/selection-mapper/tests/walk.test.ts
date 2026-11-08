@@ -14,7 +14,13 @@ import {
   resolveInfo,
   unexpected,
 } from './fake-adapter';
-import { createTestAdapter, createTestSchema, models, withSelects } from './schema';
+import {
+  createTestAdapter,
+  createTestSchema,
+  models,
+  userResultInclude,
+  withSelects,
+} from './schema';
 
 const schema = createTestSchema();
 const adapter = createTestAdapter();
@@ -396,6 +402,22 @@ describe('queryFromInfo', () => {
     ).toEqual({
       nested: {},
     });
+  });
+
+  it('follows the path of a type-level include whose paths are empty', async () => {
+    const context = {};
+    const withEmptyPaths = createTestSchema();
+    const wrapper = withEmptyPaths.getType('UserResult')!;
+    wrapper.extensions = {
+      ...wrapper.extensions,
+      pothosIndirectInclude: { ...userResultInclude, paths: [] },
+    };
+    const info = await resolveInfo(
+      withEmptyPaths,
+      '{ result { ... on UserSuccess { data { posts { id } } } ... on Failure { message } } }',
+    );
+
+    expect(queryFromInfo(adapter, { context, info })).toEqual({ select: { posts: true } });
   });
 
   it('hands every select function the position of its field', async () => {

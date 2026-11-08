@@ -221,10 +221,16 @@ function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
 
   if (include?.paths?.length || include?.path?.length) {
     for (const fieldNode of fieldNodes) {
-      const matches = findMatches(info, type, fieldNode, include.paths ?? [include.path!], {
-        path: indirectPath,
-        deferred,
-      });
+      const matches = findMatches(
+        info,
+        type,
+        fieldNode,
+        include.paths?.length ? include.paths : [include.path!],
+        {
+          path: indirectPath,
+          deferred,
+        },
+      );
 
       for (const match of matches) {
         beneath.push(
