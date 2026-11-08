@@ -134,6 +134,38 @@ describe.skipIf(!url)('MySQL', () => {
     ]);
   });
 
+  // The fields the limit refuses reload in batches, each within the limit too.
+  it("reloads 123 aliases past the limit within MySQL's join limit", async () => {
+    const aliases = Array.from(
+      { length: 123 },
+      (_, i) => `b${i}: books(minPages: ${i}) { title }`,
+    ).join(' ');
+    const result = await run(`{ authors { name ${aliases} } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.authors).toMatchObject([
+      { b0: [{ title: 'A1' }, { title: 'A2' }], b122: [{ title: 'A2' }] },
+      { b0: [{ title: 'B1' }], b122: [{ title: 'B1' }] },
+    ]);
+  });
+
+  it('reloads 92 aliases that each select author within the limit', async () => {
+    const aliases = Array.from(
+      { length: 92 },
+      (_, i) => `b${i}: books(minPages: ${i}) { title author { name } }`,
+    ).join(' ');
+    const result = await run(`{ authors { name ${aliases} } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.authors).toMatchObject([
+      {
+        b91: [
+          { title: 'A1', author: { name: 'Ann' } },
+          { title: 'A2', author: { name: 'Ann' } },
+        ],
+      },
+      { b91: [{ title: 'B1', author: { name: 'Bo' } }] },
+    ]);
+  });
+
   it('combines independent branches of one relation', async () => {
     const result = await run(
       '{ authors { all: books { title } long: books(minPages: 250) { title } } }',

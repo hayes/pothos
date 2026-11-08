@@ -326,6 +326,44 @@ describe('aliases with different arguments on one level', () => {
   });
 });
 
+// Every field the limit refuses reloads its parent, and the reloads batch, so a batch takes fields
+// within the limit too.
+describe('reload batches within the limit', () => {
+  it('reloads 125 aliases past the limit in statements SQLite takes', async () => {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        posts: t.relation('posts', {
+          args: { published: t.arg.int({ required: true }) },
+          query: (args) => ({ where: { published: args.published } }),
+        }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: 'User',
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const aliases = Array.from(
+      { length: 125 },
+      (_, i) => `p${i}: posts(published: ${i}) { id }`,
+    ).join(' ');
+    const result = await run(builder.toSchema(), `{ user { ${aliases} } }`);
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user.p0).toEqual([{ id: 'p-draft1' }]);
+    expect(result.data.user.p124).toEqual([]);
+    // 61 aliases load with the user, and the other 64 reload in batches of 61 and 3.
+    expect(result.statements).toHaveLength(3);
+    for (const statement of result.statements) {
+      expect(statement.sql.match(/FROM "post"/g)!.length).toBeLessThanOrEqual(61);
+    }
+  });
+});
+
 // An alias that repeats a to-one relation adds nothing the level doesn't hold, so the limit takes
 // it even on a full level. (Aliases of a to-many relation each load into a slot of their own.)
 describe('aliases that repeat a to-one relation', () => {

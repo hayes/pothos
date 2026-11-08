@@ -188,6 +188,11 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
     );
   }
 
+  /** Reloads batch, so a batch takes another reload's root within `MAX_RELATION_LOADS` too. */
+  override canMergeNode(into: PrismaNextNode, from: PrismaNextNode): boolean {
+    return super.canMergeNode(into, from) && this.withinLoadLimit(into, this.toQuery(from));
+  }
+
   /**
    * Whether `node` can take the loads `selection` adds within `MAX_RELATION_LOADS`. A refused
    * field reloads its parent, so a level of a model without an identity, which can't be reloaded,
@@ -206,15 +211,42 @@ export class PrismaNextAdapter extends NodeAdapter<PrismaNextModel, PrismaNextSe
   /**
    * A type's selection merges whatever level it lands on, so what that level can't load, a base
    * relation beneath a relation targeting a variant model or a base column beneath one targeting a
-   * variant with a table of its own, is left out. The type's fields, and scope-auth's checks,
-   * reload it.
+   * variant with a table of its own, is left out. So are the relations past `MAX_RELATION_LOADS`
+   * when it merges behind a reload's field. The type's fields, and scope-auth's checks, reload
+   * it.
    */
   override mergeQuery(
     node: PrismaNextNode,
     selection: PrismaNextSelection,
     options?: MergeOptions,
   ) {
-    super.mergeQuery(node, this.withoutUnloadable(selection, node), options);
+    const fits = this.withoutUnloadable(selection, node);
+    super.mergeQuery(node, options?.lenient ? this.withinCap(node, fits) : fits, options);
+  }
+
+  /** `selection` without the top-level loads that would take `node` past `MAX_RELATION_LOADS`. */
+  private withinCap(node: PrismaNextNode, selection: PrismaNextSelection): PrismaNextSelection {
+    const held = this.toQuery(node);
+    let total = loads(held);
+    const fits = (part: PrismaNextSelection) => {
+      const added = loads(part, held);
+      if (total + added > MAX_RELATION_LOADS) {
+        return false;
+      }
+      total += added;
+      return true;
+    };
+    const relations = Object.entries(selection.relations ?? {});
+    const computed = Object.entries(selection.computed ?? {});
+    const keptRelations = relations.filter(([key, child]) => fits({ relations: { [key]: child } }));
+    const keptComputed = computed.filter(([key, value]) => fits({ computed: { [key]: value } }));
+    return keptRelations.length === relations.length && keptComputed.length === computed.length
+      ? selection
+      : {
+          ...selection,
+          relations: Object.fromEntries(keptRelations),
+          computed: Object.fromEntries(keptComputed),
+        };
   }
 
   /** `selection`, itself when nothing changes, without what `node`'s level can't load. */
