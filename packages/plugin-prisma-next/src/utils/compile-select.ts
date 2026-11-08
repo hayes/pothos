@@ -105,10 +105,9 @@ export function nestedPlan(
   model: PrismaNextModel,
 ): NestedPlan | undefined {
   let plan: Map<string, NestedPlan> | undefined;
-  for (const [name, { select }] of relations) {
-    if (select) {
+  for (const [name, , split] of relations) {
+    if (split) {
       const target = model.relations[name]!.target;
-      const split = splitSelect(select, target);
       const inner = nestedPlan(split, target);
       if (
         inner ||
@@ -290,10 +289,20 @@ export function computedSelection(
   };
 }
 
-/** The columns, relations and aggregates of a `select`. The types check its entries. */
-export function splitSelect(raw: RawSelect, model: PrismaNextModel) {
+/** The columns, relations and aggregates of a `select`, with each nested `select` split too. */
+export interface SplitSelect {
+  columns: string[];
+  relations: SplitRelation[];
+  computed: ComputedEntry[];
+}
+
+/** A relation entry of a split `select`, with its nested `select` split. */
+type SplitRelation = [name: string, entry: RelationEntry, select: SplitSelect | undefined];
+
+/** Splits a `select` of `model`'s rows. The types check its entries. */
+export function splitSelect(raw: RawSelect, model: PrismaNextModel): SplitSelect {
   const columns: string[] = [];
-  const relations: [string, RelationEntry][] = [];
+  const relations: SplitRelation[] = [];
   const computed: ComputedEntry[] = [];
   for (const [key, value] of Array.isArray(raw)
     ? raw.map((column) => [column, true] as const)
@@ -310,13 +319,16 @@ export function splitSelect(raw: RawSelect, model: PrismaNextModel) {
     } else if (typeof value === 'function') {
       computed.push({ relation: key, compute: value as Compute });
     } else {
-      relations.push([key, value === true ? {} : (value as RelationEntry)]);
+      const entry = value === true ? {} : (value as RelationEntry);
+      relations.push([
+        key,
+        entry,
+        entry.select && splitSelect(entry.select, model.relations[key]!.target),
+      ]);
     }
   }
   return { columns, relations, computed };
 }
-
-export type SplitSelect = ReturnType<typeof splitSelect>;
 
 /** A type-level `select`, split, with the name of the type that declares it. */
 export type TypeSelect = SplitSelect & { name: string };
@@ -386,7 +398,7 @@ function compileSelect(
   // A select function builds new callbacks on every call, so the function, its arguments and where
   // the entry sits identify a query with a callback, or an aggregate.
   const callbackIdentity = (name: string) => ({ source, args, at: nested, name });
-  const parts = relations.map(([name, entry]) => {
+  const parts = relations.map(([name, entry, split]) => {
     const relation = model.relations[name]!;
     if (readsRows && loadsOwnTableVariantRows(relation, entry) && !readsRows(relation)) {
       throw ownTableVariantRowsError(subject, name, relation);
@@ -430,9 +442,9 @@ function compileSelect(
     });
     // The rows load whole, with what a nested `select` names as consumer `nestedId(id)`.
     const target = relation.target;
-    const rows = entry.select
+    const rows = split
       ? completeValue(
-          compileSelect(splitSelect(entry.select, target), target, {
+          compileSelect(split, target, {
             ...compilation,
             id: nestedId(id),
             nested: nestedSubject(subject, name),
@@ -565,31 +577,20 @@ export function compileFieldSelect(
 }
 
 /**
- * A type-level relation entry of rows of `model` as the data it loads by: its query without the
- * options that load nothing different, the model of its `type`, and its nested `select` likewise,
- * with a relation's `true` as `{}`.
+ * A type-level relation entry, split, as the data it loads by: its query without the options that
+ * load nothing different, the model of its `type`, and its nested `select` likewise, with a
+ * relation's `true` as `{}`. An aggregate of the nested `select` is compared by its relation alone.
  */
-export function entryDefinition(entry: RelationEntry, model: PrismaNextModel | undefined): unknown {
-  const { where, orderBy, limit, offset, type, select } = entry;
+export function entryDefinition([, entry, split]: SplitRelation): unknown {
+  const { where, orderBy, limit, offset, type } = entry;
   return {
     query: definedQuery({ where, orderBy, limit, offset }),
     type: entryTypeModel(type),
-    select:
-      select &&
-      Object.fromEntries(
-        (Array.isArray(select)
-          ? select.map((column: string) => [column, true] as const)
-          : Object.entries(select).filter(([, value]) => value != null)
-        ).map(([key, value]) => {
-          const relation = model?.relations[key];
-          return [
-            key,
-            relation || value !== true
-              ? entryDefinition(value === true ? {} : (value as RelationEntry), relation?.target)
-              : true,
-          ];
-        }),
-      ),
+    select: split && {
+      ...Object.fromEntries(split.columns.map((column) => [column, true])),
+      ...Object.fromEntries(split.relations.map((nested) => [nested[0], entryDefinition(nested)])),
+      ...Object.fromEntries(split.computed.map(({ relation }) => [relation, {}])),
+    },
   };
 }
 
@@ -605,7 +606,7 @@ export function assertRelationEntries(
   subject: string,
   readsRows: (relation: PrismaNextRelation) => boolean,
 ) {
-  for (const [name, entry] of relations) {
+  for (const [name, entry, split] of relations) {
     const relation = model.relations[name]!;
     if (loadsOwnTableVariantRows(relation, entry) && !readsRows(relation)) {
       throw ownTableVariantRowsError(subject, name, relation);
@@ -619,11 +620,11 @@ export function assertRelationEntries(
         entryTypeModel(entry.type),
       );
     }
-    if (entry.select) {
+    if (split) {
       // The rows of a nested `select` are read only through its parent's.
       assertRelationEntries(
         config,
-        splitSelect(entry.select, relation.target),
+        split,
         relation.target,
         nestedSubject(subject, name),
         () => false,

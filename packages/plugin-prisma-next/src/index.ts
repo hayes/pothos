@@ -492,8 +492,8 @@ export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugi
         );
       }
     };
-    for (const [name, entry] of split.relations) {
-      check(name, entryDefinition(entry, model.relations[name]!.target));
+    for (const relation of split.relations) {
+      check(relation[0], entryDefinition(relation));
     }
     for (const [name, nested] of nestedPlan(split, model) ?? []) {
       this.typeNestedOf(root).set(name, nested);
