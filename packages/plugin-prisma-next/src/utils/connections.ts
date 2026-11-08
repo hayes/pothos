@@ -1,18 +1,16 @@
 import { completeValue, type MaybePromise, ObjectRef, type SchemaTypes } from '@pothos/core';
 import { type IndirectInclude, type Position, selectedFieldNames } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
-import type { MapperCollection } from './adapter.js';
+import type { MapperCollection, PlannedQuery } from './adapter.js';
 import { computedSelection, relationArgs, rowsSelection } from './compile-select.js';
 import type { PrismaNextConfig } from './config.js';
 import {
-  appliesCursors,
   applyCursorPagination,
   buildConnectionPage,
   type CursorPlan,
   connectionOrder,
   cursorColumns,
   hasCursorValues,
-  markCursors,
   type OrderByDecl,
   readPage,
   withCursorValues,
@@ -191,12 +189,12 @@ export function connectionPaging(
           planned,
           args as PothosSchemaTypes.DefaultConnectionArguments,
         );
-      if (hasCursorValues(planned)) {
-        markCursors(page);
-      }
       const seed: PrismaNextSelection = {
         columns: cursorColumns(planned.order),
-        args: relationArgs(relation, { loadIdentity, refine: page, variant }),
+        args: {
+          ...relationArgs(relation, { loadIdentity, refine: page, variant }),
+          ...(hasCursorValues(planned) ? { cursors: true } : {}),
+        },
       };
       return completeValue(rowsSelection(relation, name, id, rows(seed)), (loaded) => ({
         ...loaded,
@@ -218,7 +216,7 @@ export function connectionPaging(
       applySelection: (
         paged: MapperCollection,
         seed: PrismaNextSelection,
-      ) => MaybePromise<MapperCollection>,
+      ) => MaybePromise<PlannedQuery>,
     ) {
       const planned = plan(args, ctx);
       const { needsRows, count } = selection(selectedFieldNames(ctx, info));
@@ -228,10 +226,10 @@ export function connectionPaging(
       const paged = applyCursorPagination(filtered, planned, args);
       const rowsPromise = needsRows
         ? Promise.resolve(applySelection(paged, { columns: cursorColumns(planned.order) })).then(
-            (applied) =>
+            ({ query, cursors }) =>
               readPage(
-                (applied as unknown as { all(): Promise<Record<string, unknown>[]> }).all(),
-                hasCursorValues(planned) || appliesCursors(applied),
+                (query as unknown as { all(): Promise<Record<string, unknown>[]> }).all(),
+                hasCursorValues(planned) || cursors,
               ),
           )
         : Promise.resolve([]);

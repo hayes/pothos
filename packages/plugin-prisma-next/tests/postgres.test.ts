@@ -850,6 +850,27 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       });
       expect(result.errors?.map(({ message }) => message)).toEqual(['Invalid cursor.']);
     });
+    it('refuses a cursor of aliases that share one branch', async () => {
+      const schema = textSchema();
+      const first = await graphql({
+        schema,
+        source: '{ list { entries(first: 1) { pageInfo { endCursor } } } }',
+        contextValue: {},
+      });
+      const [{ entries }] = first.data?.list as { entries: { pageInfo: { endCursor: string } } }[];
+      const page = 'entries(first: 1, after: $after) { edges { node { id } } }';
+      statements = 0;
+      const result = await graphql({
+        schema,
+        source: `query ($after: String) { list { a: ${page} b: ${page} } }`,
+        variableValues: { after: refusedCursor(entries.pageInfo.endCursor) },
+        contextValue: {},
+      });
+      expect(result.errors?.map(({ message, path }) => ({ message, path }))).toEqual([
+        { message: 'Invalid cursor.', path: ['list'] },
+      ]);
+      expect(statements).toBe(1);
+    });
   });
 
   it('applies native null placement and the orderBy option in both directions', async () => {

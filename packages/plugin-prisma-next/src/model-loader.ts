@@ -21,11 +21,11 @@ import type { MapperCollection, PrismaNextNode, PrismaNextPlan } from './utils/a
 import type { PrismaNextConfig } from './utils/config.js';
 import { registerPlanRoots } from './utils/consumers.js';
 import { variantOf } from './utils/contract.js';
-import { appliesCursors, readPage } from './utils/cursors.js';
+import { readPage } from './utils/cursors.js';
 import { InternalError, isRefusedValue, keepError, refusedError } from './utils/errors.js';
 import { getIdentityFields, type PrismaNextModel } from './utils/model.js';
 import { markPlanned, rowOf, withOtherKeys } from './utils/row-copies.js';
-import type { PrismaNextSelection } from './utils/selections.js';
+import { appliesCursors, type PrismaNextSelection } from './utils/selections.js';
 
 type Row = Record<string, unknown>;
 type Played = PlayedPlan<PrismaNextModel, PrismaNextSelection>;
@@ -355,17 +355,14 @@ export class ModelLoader {
               ),
             ),
       );
+      const selection = this.config.adapter.toQuery(batch.root);
       // A query callback the statement runs fails every field of the batch, as in a parent query.
       const query = userCode(() =>
-        this.config.adapter.emit(
-          filtered,
-          this.config.adapter.toQuery(batch.root),
-          batch.root.model,
-        ),
+        this.config.adapter.emit(filtered, selection, batch.root.model),
       ) as MapperCollection & { all(): Promise<readonly Row[]> };
       // A reload's database error is the plugin's, which `reloadFor` reports as `Unexpected error.`.
       // A refused cursor fails every request of the batch, including other fields' nodes.
-      rows = await readPage(query.all(), appliesCursors(query));
+      rows = await readPage(query.all(), appliesCursors(selection));
     } catch (error) {
       // Column codecs accept values the database may refuse, such as text holding a NUL. A node's
       // values come from the client's ID, so each ID of the batch loads alone and fails alone.

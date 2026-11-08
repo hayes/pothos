@@ -9,7 +9,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaNextObjectRef } from './object-ref.js';
 import type { PrismaNextConnectionFieldOptions } from './types/connections.js';
 import type { ModelKey } from './types/models.js';
-import type { MapperCollection } from './utils/adapter.js';
+import type { MapperCollection, PlannedQuery } from './utils/adapter.js';
 import { relationLoad } from './utils/compile-select.js';
 import { getPluginConfig } from './utils/config.js';
 import {
@@ -17,12 +17,7 @@ import {
   type ConnectionSettingsOptions,
   connectionPaging,
 } from './utils/connections.js';
-import {
-  appliesCursors,
-  buildConnectionPage,
-  orderableProblem,
-  readPage,
-} from './utils/cursors.js';
+import { buildConnectionPage, orderableProblem, readPage } from './utils/cursors.js';
 import { checkReturned } from './utils/errors.js';
 import { applySelectionToCollection } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
@@ -58,7 +53,9 @@ function prismaFieldConfig(
   const config = getPluginConfig(builder);
   const model = getModel(config.contract, modelKey);
   const plan = (source: MapperCollection, info: GraphQLResolveInfo, context: object) =>
-    applySelectionToCollection(source, model, info, config, context) as MaybePromise<Executable>;
+    applySelectionToCollection(source, model, info, config, context) as MaybePromise<
+      PlannedQuery & { query: Executable }
+    >;
   const refinement = (value: unknown, problem?: Parameters<typeof relationLoad>[3]) =>
     relationLoad(config.contract, modelKey, value, problem).refine;
   const literal =
@@ -77,7 +74,7 @@ function prismaFieldConfig(
     resolve: resolve
       ? async (parent: unknown, args: unknown, context: object, info: GraphQLResolveInfo) =>
           resolve(
-            await plan(config.typeCollection(context, modelKey), info, context),
+            (await plan(config.typeCollection(context, modelKey), info, context)).query,
             parent,
             args,
             context,
@@ -93,12 +90,13 @@ function prismaFieldConfig(
             return source;
           }
           const shape = refine(args, context);
-          const applied = await plan(shape ? shape(source) : source, info, context);
+          const { query: applied, cursors } = await plan(
+            shape ? shape(source) : source,
+            info,
+            context,
+          );
           const rows = markPlanned(
-            await readPage(
-              (isList ? applied : (applied.limit(1) as Executable)).all(),
-              appliesCursors(applied),
-            ),
+            await readPage((isList ? applied : (applied.limit(1) as Executable)).all(), cursors),
             info,
           );
           return isList ? rows : (rows[0] ?? null);

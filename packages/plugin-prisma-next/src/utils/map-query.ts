@@ -9,12 +9,12 @@ import {
 import { PRISMA_NEXT_CONFIG, PRISMA_NEXT_MODEL } from '../constants.js';
 import type { PlannedCollection } from '../types/collections.js';
 import type { AnyContract } from '../types/models.js';
-import type { MapperCollection, PrismaNextPlan } from './adapter.js';
+import type { MapperCollection, PlannedQuery, PrismaNextPlan } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
 import { registerPlanRoots } from './consumers.js';
 import { variantOf } from './contract.js';
 import type { PrismaNextModel } from './model.js';
-import { EMPTY, type PrismaNextSelection } from './selections.js';
+import { appliesCursors, EMPTY, type PrismaNextSelection } from './selections.js';
 
 interface PlanTarget {
   /** Paths to the selection from the field's return type (`[['edges', 'node'], ['nodes']]`). */
@@ -118,8 +118,9 @@ export function nestedFromInfo(
 }
 
 /**
- * Applies the selection of the field `info` resolves to `collection` of `model`. Returns a promise
- * only when a `select` callback beneath the field is async.
+ * Applies the selection of the field `info` resolves to `collection` of `model`, as the statement
+ * and whether it applies cursor values. Returns a promise only when a `select` callback beneath the
+ * field is async.
  */
 export function applySelectionToCollection(
   collection: MapperCollection,
@@ -128,11 +129,15 @@ export function applySelectionToCollection(
   config: PrismaNextConfig,
   context: object,
   { seed = EMPTY, ...target }: ApplySelectionOptions = {},
-): MaybePromise<MapperCollection> {
+): MaybePromise<PlannedQuery> {
   const initial = initialSelection(config.contract, plannedModelKey(info, target), seed);
-  return completeValue(planSelection(info, config, context, target, initial), (planned) =>
-    config.adapter.emit(collection, planned?.selection ?? initial, planned?.model ?? model),
-  );
+  return completeValue(planSelection(info, config, context, target, initial), (planned) => {
+    const selection = planned?.selection ?? initial;
+    return {
+      query: config.adapter.emit(collection, selection, planned?.model ?? model),
+      cursors: appliesCursors(selection),
+    };
+  });
 }
 
 export interface CollectionFromInfoOptions<C> extends PlanTarget {

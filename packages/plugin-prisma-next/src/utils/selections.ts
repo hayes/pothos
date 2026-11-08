@@ -28,6 +28,11 @@ export interface RelationArgs {
   /** A declarative query object, or the field that defines the load together with its arguments. */
   loadIdentity?: unknown;
   variant?: Narrowing;
+  /**
+   * Set when the load applies a connection's cursor values, which the database may refuse. Loads
+   * that share it are of one page with the same cursors.
+   */
+  cursors?: true;
   [REFINE]?: Refine;
 }
 
@@ -57,6 +62,13 @@ export interface PrismaNextSelection {
 export type PrismaNextSelectFn = SelectFn<PrismaNextSelection>;
 
 export const EMPTY: PrismaNextSelection = Object.freeze({});
+
+/** Whether a load of `selection` applies a connection's cursor values, at any level. */
+export function appliesCursors({ args, relations }: PrismaNextSelection): boolean {
+  return (
+    args?.cursors === true || Object.values(relations ?? {}).some((child) => appliesCursors(child))
+  );
+}
 
 /** The key a connection's count is computed under, as a value only its field reads. */
 export const COUNT_SLOT = fieldOnlyKey('count');

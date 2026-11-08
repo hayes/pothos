@@ -359,20 +359,6 @@ export function hasCursorValues(plan: CursorPlan): boolean {
   return plan.afterValues !== undefined || plan.beforeValues !== undefined;
 }
 
-/** The refines of relation pages, and the statements, that apply cursor values. */
-const cursorPages = new WeakSet<object>();
-
-/** Records that `value`, a relation page's refine or a statement, applies cursor values. */
-export function markCursors<T extends object>(value: T): T {
-  cursorPages.add(value);
-  return value;
-}
-
-/** Whether `value`, a relation page's refine or a statement, applies cursor values. */
-export function appliesCursors(value: object): boolean {
-  return cursorPages.has(value);
-}
-
 /**
  * `rows`, read by a statement that applies cursor values when `cursors` is true. Its column codecs
  * accept values the database may still refuse, such as text holding a NUL, so a refused value then

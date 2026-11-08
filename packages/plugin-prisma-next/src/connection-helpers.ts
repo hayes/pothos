@@ -44,7 +44,7 @@ import { initialSelection, nestedFromInfo } from './utils/map-query.js';
 import { getIdentityFields, getModel } from './utils/model.js';
 import { refFor } from './utils/refs.js';
 import { PAGE, type PageData } from './utils/row-copies.js';
-import { EMPTY, type PrismaNextSelection } from './utils/selections.js';
+import { appliesCursors, EMPTY, type PrismaNextSelection } from './utils/selections.js';
 
 type ConnectionArgs<Args extends InputFieldMap> = InputShapeFromFields<Args> &
   PothosSchemaTypes.DefaultConnectionArguments;
@@ -445,7 +445,10 @@ export function prismaConnectionHelpers<
               args,
               ctx,
             ),
-            (selection) => config.adapter.emit(paged, selection, model),
+            (selection) => ({
+              query: config.adapter.emit(paged, selection, model),
+              cursors: appliesCursors(selection),
+            }),
           ),
       );
       // `resolve` pages the rows from (args, ctx), so they only carry the count.
