@@ -183,7 +183,7 @@ export function contextIdentity(context: object): object {
   return identity;
 }
 
-/** Numbers for functions and objects that compare equal only to themselves. */
+/** Numbers for functions and classes, which are the same in every request. */
 const tokens = new WeakMap<object, number>();
 let nextToken = 0;
 
@@ -200,7 +200,7 @@ function token(value: object) {
 /**
  * `value`, the data of a load's identity, as a string that is equal for values `deepEqual` finds
  * equal. A function is the same function in every execution, as a query callback is. An object of
- * another class is told apart by its class and its string form, or by itself when it has none.
+ * another class is told apart by its class and its JSON or string form.
  */
 function canonicalValue(value: unknown): string {
   if (value === null || typeof value !== 'object') {
@@ -230,8 +230,17 @@ function canonicalValue(value: unknown): string {
   if (value instanceof Date) {
     return `D${value.getTime()}`;
   }
+  if (value instanceof ContextIdentity) {
+    return `@${token(value)}`;
+  }
+  const { toJSON } = value as { toJSON?: unknown };
+  if (typeof toJSON === 'function') {
+    return `@${token(prototype)}${canonicalValue(toJSON.call(value))}`;
+  }
   const text = String(value);
-  return `@${token(prototype)}${text.startsWith('[object ') ? `@${token(value)}` : JSON.stringify(text)}`;
+  // Without a string form of its own, an object is named by its class alone, so names stay the
+  // same in every request. Each execution reads only branches its own statements named.
+  return `@${token(prototype)}${text.startsWith('[object ') ? '' : JSON.stringify(text)}`;
 }
 
 /** A 64-bit hash of `text`, in base 36: cyrb53's mixing, keeping both halves. */
