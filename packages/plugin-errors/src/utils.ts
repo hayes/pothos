@@ -207,16 +207,24 @@ export function* yieldErrors(
 class NestedIteratorOwner {
   private active = new Set<AsyncGenerator<unknown>>();
   private closed = false;
+  private generation = 0;
+  private readonly parentGeneration: number | undefined;
 
-  constructor(private parent?: NestedIteratorOwner) {}
+  constructor(private parent?: NestedIteratorOwner) {
+    this.parentGeneration = parent?.generation;
+  }
 
   private get isClosed(): boolean {
-    return this.closed || (this.parent?.isClosed ?? false);
+    return (
+      this.closed ||
+      (this.parent !== undefined &&
+        (this.parent.isClosed || this.parent.generation !== this.parentGeneration))
+    );
   }
 
   async collect(nested: AsyncGenerator<unknown>): Promise<unknown[]> {
     if (this.isClosed) {
-      await this.closeChild(nested);
+      await nested.return(undefined);
       return [];
     }
     this.active.add(nested);
@@ -231,19 +239,14 @@ class NestedIteratorOwner {
     this.active.delete(nested);
   }
 
-  private async closeChild(child: AsyncGenerator<unknown>) {
-    let result: IteratorResult<unknown>;
-    do {
-      result = await child.return(undefined);
-    } while (this.isClosed && !result.done);
-  }
-
   async closeActive() {
+    // Children being closed cannot open new descendants during cleanup.
+    this.generation += 1;
     const children = [...this.active];
-    if (this.isClosed) {
-      this.active.clear();
-    }
-    const results = await Promise.allSettled(children.map((child) => this.closeChild(child)));
+    // Relinquish ownership before cleanup, including reentrant or failed cleanup.
+    // Like iterator closing, request return once without draining cleanup yields.
+    this.active.clear();
+    const results = await Promise.allSettled(children.map((child) => child.return(undefined)));
     for (const result of results) {
       if (result.status === 'rejected') {
         throw result.reason;

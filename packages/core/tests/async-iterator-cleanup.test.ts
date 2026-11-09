@@ -143,6 +143,28 @@ describe('async iterator terminal cleanup', () => {
     expect(close).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    'propagate',
+    'recover',
+  ] as const)('suppresses a concurrent read after return fails (%s)', async (policy) => {
+    const cleanup = Promise.withResolvers<IteratorResult<number>>();
+    const pending = deferred<IteratorResult<number>>();
+    const error = new Error('return failed');
+    const map = vi.fn((value: number) => value * 2);
+    const iterator = mapAsyncIterator(
+      { next: () => pending.promise, return: () => cleanup.promise },
+      map,
+      policy === 'recover' ? () => 'handled' : undefined,
+    );
+    const closing = iterator.return().catch((failure: unknown) => failure);
+    const read = iterator.next();
+    cleanup.reject(error);
+    expect(await closing).toEqual(policy === 'recover' ? { done: false, value: 'handled' } : error);
+    pending.resolve({ done: false, value: 1 });
+    expect(await read).toEqual({ done: true, value: undefined });
+    expect(map).not.toHaveBeenCalled();
+  });
+
   it('propagates owned cleanup failure when there is no primary source failure', async () => {
     const original = new Error('owned cleanup failure');
     const close = vi.fn(() => Promise.reject(original));

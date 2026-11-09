@@ -120,6 +120,7 @@ export function mapAsyncIterator<T, R, E = never>(
         if (yielded && !iterator) {
           return done();
         }
+        failed = true;
         // A failed mapping must not strand a source that yielded during cleanup.
         // Preserve the control or mapping error if either cleanup also fails.
         await Promise.allSettled([
