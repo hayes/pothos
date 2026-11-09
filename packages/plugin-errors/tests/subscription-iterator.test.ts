@@ -156,6 +156,17 @@ describe('subscription iterator', () => {
     await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true });
   });
 
+  it('reports a malformed source missing next as a TypeError', async () => {
+    const source = { return: vi.fn(() => Promise.resolve({ value: undefined, done: true })) };
+    const onError = vi.fn((error) => {
+      throw error;
+    });
+    const iterator = wrapSubscriptionIterator(source as unknown as AsyncIterator<unknown>, onError);
+    await expect(iterator.next('input')).rejects.toBeInstanceOf(TypeError);
+    expect(source.return).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledExactlyOnceWith(expect.any(TypeError));
+  });
+
   it('preserves an unhandled error even if source cleanup fails', async () => {
     const failure = new Error('unhandled');
     const source = {

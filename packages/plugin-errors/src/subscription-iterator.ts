@@ -26,6 +26,10 @@ export function wrapSubscriptionIterator(
     try {
       const operation = inner[method];
       if (!operation) {
+        if (method === 'next') {
+          throw new TypeError('Subscription iterator must implement next()');
+        }
+        // throw() is optional. Route its supplied error through cleanup and mapping.
         throw args[0];
       }
       const result = await operation.apply(inner, args);
