@@ -1,4 +1,4 @@
-import { sortClasses, typeBrandKey } from '@pothos/core';
+import { mapAsyncIterator, sortClasses, typeBrandKey } from '@pothos/core';
 import type { GetTypeName } from './types.js';
 
 export { typeBrandKey };
@@ -202,40 +202,136 @@ export function* yieldErrors(
   }
 }
 
-export async function* yieldAsyncErrors(
+// This scope owns children only; retained control methods must not retain the
+// mapping policy or its request callbacks after mapAsyncIterator releases them.
+class NestedIteratorOwner {
+  private active = new Set<AsyncGenerator<unknown>>();
+  private closed = false;
+
+  constructor(private parent?: NestedIteratorOwner) {}
+
+  private get isClosed(): boolean {
+    return this.closed || (this.parent?.isClosed ?? false);
+  }
+
+  async collect(nested: AsyncGenerator<unknown>): Promise<unknown[]> {
+    if (this.isClosed) {
+      await this.closeChild(nested);
+      return [];
+    }
+    this.active.add(nested);
+    const values: unknown[] = [];
+    for await (const value of nested) {
+      values.push(value);
+    }
+    return values;
+  }
+
+  release(nested: AsyncGenerator<unknown>) {
+    this.active.delete(nested);
+  }
+
+  private async closeChild(child: AsyncGenerator<unknown>) {
+    let result: IteratorResult<unknown>;
+    do {
+      result = await child.return(undefined);
+    } while (this.isClosed && !result.done);
+  }
+
+  async closeActive() {
+    const children = [...this.active];
+    if (this.isClosed) {
+      this.active.clear();
+    }
+    const results = await Promise.allSettled(children.map((child) => this.closeChild(child)));
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        throw result.reason;
+      }
+    }
+  }
+
+  close() {
+    this.closed = true;
+    this.parent = undefined;
+    return this.closeActive();
+  }
+}
+
+function closeNestedOnControl(
+  iterator: AsyncIterableIterator<unknown> & AsyncGenerator<unknown>,
+  owner: NestedIteratorOwner,
+) {
+  for (const method of ['return', 'throw'] as const) {
+    const operation = iterator[method].bind(iterator);
+    iterator[method] = (...args: [] | [unknown]) => {
+      const closing = owner.closeActive();
+      return Promise.allSettled([operation(...args), closing]).then(([result, cleanup]) => {
+        if (result.status === 'rejected') {
+          throw result.reason;
+        }
+        if (cleanup.status === 'rejected') {
+          throw cleanup.reason;
+        }
+        return result.value;
+      });
+    };
+  }
+  return iterator;
+}
+
+export function yieldAsyncErrors(
   result: AsyncIterable<unknown>,
   pothosErrors: (new (...args: never[]) => unknown)[],
   onResolvedError?: (error: Error) => void,
   depth = 0,
 ): AsyncGenerator<unknown> {
-  try {
-    for await (const item of result) {
-      if (
-        depth > 0 &&
-        item !== null &&
-        typeof item === 'object' &&
-        !(item instanceof Error) &&
-        Symbol.asyncIterator in item
-      ) {
-        const nestedResults: unknown[] = [];
-        for await (const nested of yieldAsyncErrors(
+  return createAsyncErrorIterator(result, pothosErrors, onResolvedError, depth);
+}
+
+function createAsyncErrorIterator(
+  result: AsyncIterable<unknown>,
+  pothosErrors: (new (...args: never[]) => unknown)[],
+  onResolvedError: ((error: Error) => void) | undefined,
+  depth: number,
+  parent?: NestedIteratorOwner,
+): AsyncIterableIterator<unknown> & AsyncGenerator<unknown> {
+  const owner = depth > 0 ? new NestedIteratorOwner(parent) : undefined;
+  const mapItem = (item: unknown) => {
+    if (
+      owner &&
+      item !== null &&
+      typeof item === 'object' &&
+      !(item instanceof Error) &&
+      Symbol.asyncIterator in item
+    ) {
+      return owner.collect(
+        createAsyncErrorIterator(
           item as AsyncIterable<unknown>,
           pothosErrors,
           onResolvedError,
           depth - 1,
-        )) {
-          nestedResults.push(nested);
-        }
-        yield nestedResults;
-      } else {
-        yield wrapItem(item, pothosErrors, onResolvedError, depth);
-      }
+          owner,
+        ),
+      );
     }
-  } catch (error: unknown) {
+    return wrapItem(item, pothosErrors, onResolvedError, depth);
+  };
+  const onError = (error: unknown) => {
     if (depth > 0) {
       throw error;
     }
-
-    yield wrapOrThrow(error, pothosErrors, onResolvedError);
+    return wrapOrThrow(error, pothosErrors, onResolvedError);
+  };
+  let mapped: AsyncIterableIterator<unknown> & AsyncGenerator<unknown>;
+  const onClose = () => {
+    parent?.release(mapped);
+    return owner?.close();
+  };
+  try {
+    mapped = mapAsyncIterator(result[Symbol.asyncIterator](), mapItem, onError, onClose);
+  } catch (error) {
+    mapped = mapAsyncIterator({ next: () => Promise.reject(error) }, mapItem, onError, onClose);
   }
+  return owner ? closeNestedOnControl(mapped, owner) : mapped;
 }

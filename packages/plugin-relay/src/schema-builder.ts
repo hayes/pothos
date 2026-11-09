@@ -10,6 +10,7 @@ import SchemaBuilder, {
   type InterfaceRef,
   isThenable,
   type MaybePromise,
+  mapAsyncIterator,
   type ObjectFieldsShape,
   ObjectRef,
   type OutputRef,
@@ -527,11 +528,13 @@ schemaBuilderProto.connectionObject = function connectionObject(
                   }
 
                   if ((edges as AsyncIterable<unknown>)[Symbol.asyncIterator]) {
-                    return (async function* () {
-                      for await (const edge of edges) {
-                        yield edge.node;
-                      }
-                    })();
+                    return {
+                      [Symbol.asyncIterator]: () =>
+                        mapAsyncIterator(
+                          (edges as AsyncIterable<{ node: unknown }>)[Symbol.asyncIterator](),
+                          (edge) => edge.node,
+                        ),
+                    };
                   }
 
                   return (function* () {

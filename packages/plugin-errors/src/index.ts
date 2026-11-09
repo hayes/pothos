@@ -6,6 +6,7 @@ import SchemaBuilder, {
   completeValue,
   type ImplementableObjectRef,
   type MaybePromise,
+  mapAsyncIterator,
   type Normalize,
   type PothosOutputFieldConfig,
   type PothosOutputFieldType,
@@ -15,7 +16,6 @@ import SchemaBuilder, {
   unwrapOutputFieldType,
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'graphql';
-import { wrapSubscriptionIterator } from './subscription-iterator.js';
 import type { ErrorFieldOptions, GetTypeName } from './types.js';
 import {
   defaultGetListItemResultName,
@@ -264,7 +264,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         if (!iterator) {
           try {
             const source = input![Symbol.asyncIterator]();
-            iterator = wrapSubscriptionIterator(source, handleError);
+            iterator = mapAsyncIterator(source, (value) => value, handleError);
           } catch (error) {
             iterator = setupError(error);
           } finally {

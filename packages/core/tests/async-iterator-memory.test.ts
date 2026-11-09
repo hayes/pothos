@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 import { setImmediate } from 'node:timers/promises';
 import { setFlagsFromString } from 'node:v8';
 import { runInNewContext } from 'node:vm';
-import { wrapSubscriptionIterator } from '../src/subscription-iterator';
+import { mapAsyncIterator } from '../src/utils/map-async-iterator';
 
 async function collect(gc: () => void) {
   for (let i = 0; i < 8; i += 1) {
@@ -30,7 +30,7 @@ function subscription(events: EventEmitter) {
     },
   };
   const onError = () => context;
-  const iterator = wrapSubscriptionIterator(source, onError);
+  const iterator = mapAsyncIterator(source, (value) => value, onError);
   return {
     iterator,
     source: new WeakRef(source),
@@ -38,6 +38,57 @@ function subscription(events: EventEmitter) {
     onError: new WeakRef(onError),
   };
 }
+
+function failingIterator(error: Error, cleanup: { calls: number }) {
+  const context = { payload: new Array(1_000).fill(42) };
+  const source = {
+    context,
+    next() {
+      throw error;
+    },
+    return() {
+      cleanup.calls += 1;
+      throw new Error('cleanup failure');
+    },
+  };
+  const map = () => context;
+  const onError = (failure: unknown) => {
+    // Model a policy callback that captures the request being completed.
+    context.payload.length;
+    throw failure;
+  };
+  const onClose = () => {
+    context.payload.length;
+    return Promise.reject(new Error('owned cleanup failure'));
+  };
+  return {
+    iterator: mapAsyncIterator(source, map, onError, onClose),
+    source: new WeakRef(source),
+    context: new WeakRef(context),
+    map: new WeakRef(map),
+    onError: new WeakRef(onError),
+    onClose: new WeakRef(onClose),
+  };
+}
+
+it('releases source and callback contexts after a terminal failure with failing cleanup', async () => {
+  setFlagsFromString('--expose_gc');
+  const gc = runInNewContext('gc') as () => void;
+  setFlagsFromString('--no-expose_gc');
+  const failure = new Error('read failure');
+  const cleanup = { calls: 0 };
+  const closed = failingIterator(failure, cleanup);
+  await expect(closed.iterator.next()).rejects.toBe(failure);
+  expect(cleanup.calls).toBe(1);
+  await collect(gc);
+  expect(closed.source.deref()).toBeUndefined();
+  expect(closed.context.deref()).toBeUndefined();
+  expect(closed.map.deref()).toBeUndefined();
+  expect(closed.onError.deref()).toBeUndefined();
+  expect(closed.onClose.deref()).toBeUndefined();
+  // Keep the completed wrapper alive while checking that its captured request is gone.
+  expect(await closed.iterator.next()).toEqual({ done: true, value: undefined });
+});
 
 it('releases closed subscription contexts and keeps subscription churn bounded', async () => {
   setFlagsFromString('--expose_gc');
