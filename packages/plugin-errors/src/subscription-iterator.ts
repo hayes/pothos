@@ -7,11 +7,18 @@ export function wrapSubscriptionIterator(
   source: AsyncIterator<unknown>,
   onError: (error: unknown) => unknown,
 ): AsyncIterableIterator<unknown> {
+  assertIteratorObject(source);
   let iterator: AsyncIterator<unknown> | undefined = source;
   let handleError: typeof onError | undefined = onError;
-  let cancelled = false;
+  // A source can yield during return(); old reads must stay cancelled if it resumes.
+  let cancellationVersion = 0;
   let failed = false;
   const done = (): IteratorResult<unknown> => ({ value: undefined, done: true });
+
+  function finish() {
+    iterator = undefined;
+    handleError = undefined;
+  }
 
   async function read(method: 'next' | 'throw', args: [] | [unknown]) {
     if (!iterator) {
@@ -23,44 +30,44 @@ export function wrapSubscriptionIterator(
 
     const inner = iterator;
     const mapError = handleError!;
+    const version = cancellationVersion;
     try {
       const operation = inner[method];
-      if (!operation) {
+      if (operation == null) {
         if (method === 'next') {
           throw new TypeError('Subscription iterator must implement next()');
         }
         // throw() is optional. Route its supplied error through cleanup and mapping.
         throw args[0];
       }
-      const result = await operation.apply(inner, args);
+      const result = await Reflect.apply(operation, inner, args);
+      assertIteratorObject(result);
       // Async generators await yielded values, including promises from pubsub.
       const value = result.done ? undefined : await result.value;
-      if (cancelled || failed) {
+      if (version !== cancellationVersion || failed) {
         return done();
       }
       if (result.done) {
-        iterator = undefined;
-        handleError = undefined;
+        finish();
       }
       return result.done ? result : { value, done: false };
     } catch (error) {
       // Claim the final error before awaiting cleanup, including concurrent reads.
-      if (cancelled || failed) {
+      if (version !== cancellationVersion || failed) {
         return done();
       }
       failed = true;
-      iterator = undefined;
-      handleError = undefined;
+      finish();
       try {
         await inner.return?.();
       } catch {
         // Preserve the source error if cleanup also fails.
       }
-      if (cancelled) {
+      if (version !== cancellationVersion) {
         return done();
       }
       const value = await mapError(error);
-      return cancelled ? done() : { value, done: false };
+      return version !== cancellationVersion ? done() : { value, done: false };
     }
   }
 
@@ -68,15 +75,23 @@ export function wrapSubscriptionIterator(
     next: (...args) => read('next', args),
     throw: (...args: [] | [unknown]) => read('throw', args),
     async return(...args) {
-      cancelled = true;
+      cancellationVersion += 1;
       const inner = iterator;
       const mapError = handleError;
-      iterator = undefined;
-      handleError = undefined;
       try {
         const cleanup = inner?.return;
-        return cleanup ? await cleanup.apply(inner, args) : { value: await args[0], done: true };
+        if (cleanup == null) {
+          finish();
+          return { value: await args[0], done: true };
+        }
+        const result = await Reflect.apply(cleanup, inner, args);
+        assertIteratorObject(result);
+        if (result.done) {
+          finish();
+        }
+        return result;
       } catch (error) {
+        finish();
         if (!mapError) {
           throw error;
         }
@@ -87,4 +102,10 @@ export function wrapSubscriptionIterator(
       return this;
     },
   };
+}
+
+function assertIteratorObject(value: unknown): asserts value is object {
+  if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+    throw new TypeError('Iterator methods must return an object');
+  }
 }

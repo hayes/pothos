@@ -257,17 +257,13 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     }
 
     const handleError = (error: unknown) => wrapOrThrow(error, pothosErrors, onResolvedError);
-    const wrap = (
-      iterable: AsyncIterable<unknown> | null | undefined,
-    ): AsyncIterableIterator<unknown> => {
-      let input = iterable;
+    const wrap = (iterable: AsyncIterable<unknown>): AsyncIterableIterator<unknown> => {
+      let input: AsyncIterable<unknown> | undefined = iterable;
       let iterator: AsyncIterableIterator<unknown> | undefined;
       const getIterator = () => {
         if (!iterator) {
           try {
-            const source = input?.[Symbol.asyncIterator]() ?? {
-              next: () => Promise.resolve({ value: undefined, done: true }),
-            };
+            const source = input![Symbol.asyncIterator]();
             iterator = wrapSubscriptionIterator(source, handleError);
           } catch (error) {
             iterator = setupError(error);
@@ -295,7 +291,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     return (...args) => {
       try {
         return completeValue(
-          subscribe(...args) as MaybePromise<AsyncIterable<unknown> | null | undefined>,
+          subscribe(...args) as MaybePromise<AsyncIterable<unknown>>,
           wrap,
           setupError,
         );

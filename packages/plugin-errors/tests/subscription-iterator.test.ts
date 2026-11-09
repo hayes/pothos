@@ -12,6 +12,52 @@ function deferred<T>() {
 }
 
 describe('subscription iterator', () => {
+  describe.each(['next', 'return', 'throw'] as const)('invalid %s methods', (method) => {
+    it.each([
+      false,
+      0,
+      '',
+      { apply: () => Promise.resolve({ value: undefined, done: true }) },
+    ])('rejects a present non-callable method %j', async (invalid) => {
+      const source = {
+        next: vi.fn(),
+        return: vi.fn().mockResolvedValue({ value: undefined, done: true }),
+        throw: vi.fn(),
+      };
+      Object.defineProperty(source, method, { value: invalid });
+      const iterator = wrapSubscriptionIterator(source, (error) => {
+        throw error;
+      });
+      await expect(iterator[method]!(new Error('caller error'))).rejects.toBeInstanceOf(TypeError);
+      await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true });
+    });
+  });
+
+  describe.each(['next', 'return', 'throw'] as const)('invalid %s results', (method) => {
+    it.each([
+      null,
+      undefined,
+      false,
+      0,
+      1,
+      '',
+      'event',
+    ])('reports invalid result %j as a TypeError and closes the wrapper', async (invalid) => {
+      const source = {
+        next: vi.fn(),
+        throw: vi.fn(),
+        return: vi.fn().mockResolvedValue({ value: undefined, done: true }),
+      };
+      source[method].mockResolvedValue(invalid);
+      const iterator = wrapSubscriptionIterator(source, (error) => {
+        throw error;
+      });
+      await expect(iterator[method]!()).rejects.toBeInstanceOf(TypeError);
+      expect(source.return).toHaveBeenCalledOnce();
+      await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true });
+    });
+  });
+
   it('awaits promise-valued events as an async generator would', async () => {
     const iterator = wrapSubscriptionIterator(
       { next: () => Promise.resolve({ value: Promise.resolve(42), done: false }) },
@@ -140,6 +186,81 @@ describe('subscription iterator', () => {
     await iterator.next();
     await expect(iterator.throw!(error)).resolves.toEqual({ value: 2, done: false });
     await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true });
+  });
+
+  it('allows finally cleanup to finish when return yields done:false', async () => {
+    let released = false;
+    async function* source() {
+      try {
+        yield await Promise.resolve(1);
+      } finally {
+        yield 2;
+        released = true;
+      }
+    }
+    const iterator = wrapSubscriptionIterator(source(), (error) => {
+      throw error;
+    });
+    await iterator.next();
+    await expect(iterator.return!('finished')).resolves.toEqual({ value: 2, done: false });
+    expect(released).toBe(false);
+    await expect(iterator.next()).resolves.toEqual({ value: 'finished', done: true });
+    expect(released).toBe(true);
+  });
+
+  it('lets concurrent returns finish a generator yielding during finally cleanup', async () => {
+    const started = deferred<void>();
+    const gate = deferred<void>();
+    let released = false;
+    async function* source() {
+      try {
+        yield await Promise.resolve(1);
+      } finally {
+        try {
+          started.resolve();
+          await gate.promise;
+          yield 2;
+        } finally {
+          released = true;
+        }
+      }
+    }
+    const iterator = wrapSubscriptionIterator(source(), (error) => {
+      throw error;
+    });
+    await iterator.next();
+    const first = iterator.return!('first');
+    await started.promise;
+    const second = iterator.return!('second');
+    gate.resolve();
+    await expect(first).resolves.toEqual({ value: 2, done: false });
+    await expect(second).resolves.toEqual({ value: 'second', done: true });
+    expect(released).toBe(true);
+    await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true });
+  });
+
+  it('keeps earlier reads cancelled when return allows new reads to continue', async () => {
+    const pending = deferred<IteratorResult<unknown>>();
+    const source = {
+      next: vi
+        .fn()
+        .mockReturnValueOnce(pending.promise)
+        .mockResolvedValueOnce({ value: 3, done: false }),
+      return: vi
+        .fn()
+        .mockResolvedValueOnce({ value: 2, done: false })
+        .mockResolvedValueOnce({ value: 'finished', done: true }),
+    };
+    const iterator = wrapSubscriptionIterator(source, (error) => {
+      throw error;
+    });
+    const oldRead = iterator.next();
+    await expect(iterator.return!()).resolves.toEqual({ value: 2, done: false });
+    await expect(iterator.next()).resolves.toEqual({ value: 3, done: false });
+    pending.resolve({ value: 1, done: false });
+    await expect(oldRead).resolves.toEqual({ value: undefined, done: true });
+    await expect(iterator.return!()).resolves.toEqual({ value: 'finished', done: true });
+    expect(source.return).toHaveBeenCalledTimes(2);
   });
 
   it('closes the source when throw is missing, then maps the original error', async () => {

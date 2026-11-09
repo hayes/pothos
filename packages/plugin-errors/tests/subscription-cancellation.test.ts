@@ -72,6 +72,49 @@ async function createSubscription(
 }
 
 describe('subscription cancellation', () => {
+  describe.each([false, true])('invalid subscription sources (async setup: %s)', (asyncSetup) => {
+    it.each([
+      null,
+      undefined,
+      false,
+      0,
+      '',
+      {},
+      [],
+    ])('reports invalid subscription result %j instead of an empty stream', async (invalid) => {
+      const source = invalid as unknown as AsyncIterable<number>;
+      const subscription = await createSubscription(() =>
+        asyncSetup ? Promise.resolve(source) : source,
+      );
+      await expect(subscription.next()).resolves.toMatchObject({
+        done: false,
+        value: { data: { test: { __typename: 'Error' } } },
+      });
+      await expect(subscription.next()).resolves.toEqual({ value: undefined, done: true });
+    });
+
+    it.each([
+      null,
+      undefined,
+      false,
+      0,
+      1,
+      'iterator',
+    ])('reports invalid async iterator result %j instead of an empty stream', async (invalid) => {
+      const source = {
+        [Symbol.asyncIterator]: () => invalid,
+      } as unknown as AsyncIterable<number>;
+      const subscription = await createSubscription(() =>
+        asyncSetup ? Promise.resolve(source) : source,
+      );
+      await expect(subscription.next()).resolves.toMatchObject({
+        done: false,
+        value: { data: { test: { __typename: 'Error' } } },
+      });
+      await expect(subscription.next()).resolves.toEqual({ value: undefined, done: true });
+    });
+  });
+
   it('releases listeners over repeated GraphQL subscriptions to a quiet channel', async () => {
     const events = new EventEmitter();
     for (let i = 0; i < 50; i += 1) {
