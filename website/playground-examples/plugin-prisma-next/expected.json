@@ -1,0 +1,71 @@
+{
+  "01-relations.graphql": {
+    "data": {
+      "recentPosts": [
+        {
+          "title": "Watering through summer",
+          "author": {
+            "fullName": "Leo Silva"
+          }
+        },
+        {
+          "title": "A guide to composting",
+          "author": {
+            "fullName": "Maya Chen"
+          }
+        },
+        {
+          "title": "Starting a seed library",
+          "author": {
+            "fullName": "Maya Chen"
+          }
+        }
+      ]
+    }
+  },
+  "02-connection.graphql": {
+    "data": {
+      "author": {
+        "fullName": "Maya Chen",
+        "postConnection": {
+          "totalCount": 2,
+          "pageInfo": {
+            "hasNextPage": true
+          },
+          "edges": [
+            {
+              "node": {
+                "title": "Starting a seed library"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "03-root-connection.graphql": {
+    "data": {
+      "posts": {
+        "totalCount": 3,
+        "edges": [
+          {
+            "node": {
+              "title": "Watering through summer",
+              "author": {
+                "fullName": "Leo Silva"
+              }
+            }
+          },
+          {
+            "node": {
+              "title": "A guide to composting",
+              "author": {
+                "fullName": "Maya Chen"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

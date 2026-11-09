@@ -1,0 +1,163 @@
+---
+title: Queries and selections
+description: Combining an ORM collection with field queries and selected data
+---
+
+Most query fields need only a type and a `query`. Use `collection` when you want to start from a
+native ORM query, and `select` on a custom field to declare the data its resolver reads.
+
+The examples use the builder and imported `db` from [Setup](./setup), with `User` and `Post` models, including
+`content`, `published` and `createdAt` fields on `Post`.
+
+## Choose rows and declare field dependencies
+
+```ts
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    preview: t.string({
+      select: ['content'],
+      resolve: (post) => post.content.slice(0, 100),
+    }),
+    author: t.relation('author'),
+  }),
+});
+
+builder.queryField('publishedPosts', (t) =>
+  t.prismaField({
+    type: ['Post'],
+    args: { authorId: t.arg.string() },
+    query: (args) => ({
+      where: args.authorId ? { published: 1, authorId: args.authorId } : { published: 1 },
+      orderBy: { createdAt: 'desc' },
+      limit: 10,
+    }),
+  }),
+);
+```
+
+For this query:
+
+```graphql
+{
+  publishedPosts(authorId: "u-alice") {
+    preview
+    author {
+      email
+    }
+  }
+}
+```
+
+The plugin filters published posts by author, orders them by creation date, and loads the content
+needed by `preview` plus the related author's email. `preview` is a GraphQL field,
+not a database column. Its `select` tells the plugin how to supply its resolver.
+
+| Piece | What it is | In this example |
+| --- | --- | --- |
+| `collection` | An optional `(parent, args, ctx, info) => Collection` callback supplying the starting ORM query | Omitted: the default Post Collection |
+| `query` | Filter, ordering and pagination options, or `(args, ctx) => options`, applied to the starting Collection | Published posts by the requested author, newest first |
+| Field `select` | Column names, a dependency object, or `(args, ctx, nestedSelection) => dependencies` | `content` when `preview` is requested |
+| GraphQL selection | The fields requested by the client | `preview` and the author's `email` |
+
+`args` contains the field's GraphQL arguments, and `ctx` is the request's context. A `collection`
+callback also receives the containing `parent` (the root value for a root field) and the field's
+`GraphQLResolveInfo` as `info`. For connections, `args` includes pagination arguments too.
+`nestedSelection` includes the dependencies and relations requested beneath a custom field returning
+objects; see [Indirect relations](./indirect-relations).
+
+`collection` runs during field resolution and may return a promise. Return the Collection without
+calling `all()`; the plugin applies `query`, adds exposed columns, declared dependencies and requested
+relations, then executes it. A nullable field's callback may return `null` to skip the query.
+
+## Query fields
+
+`t.prismaField` returns a model's objects and loads the data requested beneath the field. Use
+`type: ['Post']` for a list, or `type: 'Post'` for one object. `query` accepts `where`, `orderBy`,
+`limit` and `offset`, either as an object or a function of the field's arguments and context.
+
+For a single post lookup:
+
+```ts
+builder.queryField('post', (t) =>
+  t.prismaField({
+    type: 'Post',
+    nullable: true,
+    args: { id: t.arg.id({ required: true }) },
+    query: (args) => ({ where: { id: String(args.id) } }),
+  }),
+);
+```
+
+A single-row field returns the first row found and requires `query`, `collection` or `resolve`.
+A list field with no filters or pagination returns every row. Use `query.limit` or a connection
+to bound the result.
+
+## Paginating a list
+
+For simple offset pagination, apply the field's arguments with `limit` and `offset`. Always include
+an `orderBy` so pages are stable:
+
+```ts
+builder.queryFields((t) => ({
+  posts: t.prismaField({
+    type: ['Post'],
+    args: { limit: t.arg.int(), offset: t.arg.int() },
+    query: (args) => ({
+      orderBy: { createdAt: 'desc', id: 'desc' },
+      limit: args.limit ?? 10,
+      offset: args.offset ?? 0,
+    }),
+  }),
+}));
+```
+
+For cursor-based pagination with page info and total counts, use `t.prismaConnection` instead. See
+[Connections](./connections#paginate-a-query-field).
+
+## Using a custom Collection
+
+Rows load from the model's Collection, `orm.<Model>` from the plugin's `client`. To start from
+a reusable application scope or a query built with native ORM methods, return a Collection from
+`collection`. Don't call `.all()`, `.first()` or `.include()` on it; the plugin applies `query` and
+what the query selects, then runs it.
+
+```ts
+builder.queryFields((t) => ({
+  myPosts: t.prismaField({
+    type: ['Post'],
+    collection: (_root, _args, ctx) => db.orm.Post.where({ authorId: ctx.userId }),
+    query: { orderBy: { createdAt: 'desc' } },
+  }),
+}));
+```
+
+For writes or other logic that executes the query itself, use the field's `resolve` form instead.
+It receives the selected Collection. See [Mutations](./objects#mutations).
+
+## How options combine
+
+`query` refines the starting Collection; it does not replace it. The ORM's composition rules apply:
+
+- A `where` in `query` is added to filters already on `collection`. Both must match.
+- An `orderBy` in `query` is appended to ordering already on `collection`. It does not override it.
+- For an ordinary field, `query.limit` and `query.offset` set those values on the Collection. A
+  single-row `prismaField` ultimately limits the result to one row.
+
+For example, if `collection` already orders posts by title and `query` orders by creation date,
+title stays the primary sort and creation date breaks ties. Put ordering in one place unless you
+want that combination. For most fields, `query.orderBy` is the clearest place.
+
+A relation's `query` works similarly, but starts from that parent's related rows. Filtering
+`t.relation('posts')` does not filter the users themselves; it filters each user's posts.
+
+## Connections
+
+`t.prismaConnection` owns ordering and pagination so its cursors match the rows it loads. Put
+ordering in `query.orderBy` and page sizes in `first`/`last`. Incompatible starting Collections
+are rejected by TypeScript or at runtime before SQL. See [Connections](./connections) for the
+options, checks and cursor rules.
+
+For the full `select` syntax, shared type dependencies and resolver guarantees, see
+[Object selections](./objects#selections). Use [Indirect relations](./indirect-relations) when a
+custom field returns related objects.

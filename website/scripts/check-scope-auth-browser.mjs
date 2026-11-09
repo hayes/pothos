@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { chromium } from 'playwright';
+import { launchBrowser } from './launch-browser.mjs';
 
 const origin = process.argv[2] ?? 'http://localhost:4342';
-const browser = await chromium.launch({
-  executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
-});
+const browser = await launchBrowser();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 page.setDefaultTimeout(60000);
 const guide = await readFile(

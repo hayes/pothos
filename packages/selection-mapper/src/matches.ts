@@ -52,6 +52,8 @@ export interface Match {
   /** The GraphQL type of the matched field's return type */
   type: GraphQLNamedType;
   field: FieldNode;
+  /** The matched field's definition, or undefined when the match is the starting field itself. */
+  definition: GraphQLField<unknown, unknown> | undefined;
   /** Aliased field names from the starting selection to the matched field */
   path: string[];
   deferred: boolean;
@@ -298,6 +300,7 @@ function matchPath(
   at: number,
   onMatch: (match: Match) => boolean | void,
   memo: Set<string>,
+  definition?: GraphQLField<unknown, unknown>,
 ): boolean {
   const remaining = includePath.length - at;
 
@@ -306,6 +309,7 @@ function matchPath(
       onMatch({
         type: level.type,
         field: selection as FieldNode,
+        definition,
         path: level.path,
         deferred: level.deferred,
       }) === true
@@ -324,7 +328,8 @@ function matchPath(
         return false;
       }
 
-      const returnType = getNamedType(fieldOn(on.type, field.name.value).type);
+      const fieldDefinition = fieldOn(on.type, field.name.value);
+      const returnType = getNamedType(fieldDefinition.type);
 
       return matchPath(
         info,
@@ -339,6 +344,7 @@ function matchPath(
         at + 1,
         onMatch,
         memo,
+        fieldDefinition,
       );
     },
     memo,

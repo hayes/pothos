@@ -1,0 +1,261 @@
+{
+  "schemaVersion": "1",
+  "targetFamily": "sql",
+  "target": "mysql",
+  "profileHash": "5212eb1a1220f2d24de13f4efadd4c703f3a1098a5f57e09da0dc26ebb7201d0",
+  "roots": {
+    "pothos_next_author": {
+      "model": "Author",
+      "namespace": "__unbound__"
+    },
+    "pothos_next_book": {
+      "model": "Book",
+      "namespace": "__unbound__"
+    }
+  },
+  "domain": {
+    "namespaces": {
+      "__unbound__": {
+        "models": {
+          "Author": {
+            "fields": {
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mysql/int@1",
+                  "kind": "scalar"
+                }
+              },
+              "name": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sql/varchar@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "length": 191
+                  }
+                }
+              }
+            },
+            "relations": {
+              "books": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "authorId"
+                  ]
+                },
+                "to": {
+                  "model": "Book",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "id": {
+                  "column": "id"
+                },
+                "name": {
+                  "column": "name"
+                }
+              },
+              "namespaceId": "__unbound__",
+              "table": "pothos_next_author"
+            }
+          },
+          "Book": {
+            "fields": {
+              "authorId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mysql/int@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mysql/int@1",
+                  "kind": "scalar"
+                }
+              },
+              "pages": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mysql/int@1",
+                  "kind": "scalar"
+                }
+              },
+              "title": {
+                "nullable": false,
+                "type": {
+                  "codecId": "sql/varchar@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "length": 191
+                  }
+                }
+              }
+            },
+            "relations": {
+              "author": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "authorId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Author",
+                  "namespace": "__unbound__"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "authorId": {
+                  "column": "authorId"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "pages": {
+                  "column": "pages"
+                },
+                "title": {
+                  "column": "title"
+                }
+              },
+              "namespaceId": "__unbound__",
+              "table": "pothos_next_book"
+            }
+          }
+        }
+      }
+    }
+  },
+  "storage": {
+    "namespaces": {
+      "__unbound__": {
+        "entries": {
+          "table": {
+            "pothos_next_author": {
+              "columns": {
+                "id": {
+                  "codecId": "mysql/int@1",
+                  "dataType": "mysql/int",
+                  "nullable": false
+                },
+                "name": {
+                  "codecId": "sql/varchar@1",
+                  "dataType": "mysql/varchar",
+                  "nullable": false,
+                  "typeParams": {
+                    "length": 191
+                  }
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "pothos_next_book": {
+              "columns": {
+                "authorId": {
+                  "codecId": "mysql/int@1",
+                  "dataType": "mysql/int",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "mysql/int@1",
+                  "dataType": "mysql/int",
+                  "nullable": false
+                },
+                "pages": {
+                  "codecId": "mysql/int@1",
+                  "dataType": "mysql/int",
+                  "nullable": false
+                },
+                "title": {
+                  "codecId": "sql/varchar@1",
+                  "dataType": "mysql/varchar",
+                  "nullable": false,
+                  "typeParams": {
+                    "length": 191
+                  }
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "pothos_next_book_authorId_idx_e47547ed"
+                  },
+                  "source": {
+                    "columns": [
+                      "authorId"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "pothos_next_book"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "__unbound__",
+                    "tableName": "pothos_next_author"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "authorId"
+                  ],
+                  "name": "pothos_next_book_authorId_idx_e47547ed",
+                  "prefix": "pothos_next_book_authorId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            }
+          }
+        },
+        "id": "__unbound__"
+      }
+    },
+    "storageHash": "68d79abd1464c2054c7ecbcfe4e02d5c1b241a5e0ca9d6b19b251947dd5cd226"
+  },
+  "capabilities": {
+    "sql": {
+      "enums": true,
+      "foreignKeys": true,
+      "limit": true,
+      "orderBy": true
+    }
+  },
+  "extensions": {},
+  "meta": {},
+  "_generated": {
+    "warning": "⚠️  GENERATED FILE - DO NOT EDIT",
+    "message": "This file is automatically generated by \"prisma contract emit\".",
+    "regenerate": "To regenerate, run: prisma contract emit"
+  }
+}

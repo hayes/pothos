@@ -1,142 +1,95 @@
-/**
- * The model description the adapter's nodes carry: one object per contract model, so model
- * identity is model equality (what the walker's fragment and path rules compare). Built from the
- * contract on first use and cached per contract; relation targets resolve through the same
- * registry, so a cycle (`User.posts` → `Post.author` → `User`) closes on the same objects.
- */
 import { PothosSchemaError } from '@pothos/core';
 import { resolveStorageTable } from '@prisma/orm-family-sql/contract/resolve-storage-table';
-import type { AnyContract } from '../types.js';
-import { resolveContractModel } from './contract.js';
+import type { AnyContract } from '../types/models.js';
+import {
+  modelDiscriminator,
+  relatedModelKey,
+  resolveContractModel,
+  rootModelKey,
+  variantOf,
+  variantTableFields,
+} from './contract.js';
 
-/**
- * Junction descriptor for an N:M relation, mirroring prisma-next's
- * `ContractRelationThrough`. Present only on many-to-many relations; the
- * walker uses its presence as the "this is a junction relation" flag and
- * carries the columns for any future junction-aware stitching.
- */
-export interface PrismaNextRelationThrough {
-  /** Junction table name. */
-  readonly table: string;
-  /** Namespace that owns the junction table. */
-  readonly namespaceId: string;
-  /** Junction FK columns → parent. */
-  readonly parentColumns: readonly string[];
-  /** Junction FK columns → target. */
-  readonly childColumns: readonly string[];
-  /** Target PK columns referenced by `childColumns`. */
-  readonly targetColumns: readonly string[];
-}
-
-/**
- * Per-relation metadata baked into the type's extension at schema
- * build. Cardinality detection runs here once, fail-fast.
- */
-export interface PrismaNextRelationMeta {
+export interface PrismaRelation {
   readonly isToMany: boolean;
-  /**
-   * Parent-side columns the join keys against; augmented into the parent
-   * SELECT for depth-2+ stitching. For a reference relation these are the
-   * parent FK columns (`on.localFields`); for an N:M relation they are the
-   * parent columns the junction references (also `on.localFields`, which
-   * prisma-next resolves into `through.parentLocalColumns`).
-   */
-  readonly localFields: readonly string[];
-  /** Target model name in the contract. */
   readonly targetModel: string;
+  readonly target: PrismaModel;
+  /** The variant that declares the relation. It can only be included after `.variant(value)`. */
+  readonly declaredByVariant?: string;
   /**
-   * Junction descriptor for N:M relations; `undefined` for reference and
-   * embed relations. Its presence marks the relation as a junction join
-   * (prisma-next emits the junction query internally from the contract's
-   * `through`, so the walker just needs to know it exists).
+   * The ORM loads a variant model's rows through its own accessor, which lacks the base's
+   * relations and, sharing the base's table, isn't filtered by the discriminator.
    */
-  readonly through?: PrismaNextRelationThrough;
+  readonly targetVariantModel?: {
+    readonly field: string;
+    readonly value: string;
+    readonly sharesTable: boolean;
+  };
 }
 
-/** A relation as the adapter sees it: the metadata plus the target model itself. */
-export interface PrismaNextRelation extends PrismaNextRelationMeta {
-  readonly target: PrismaNextModel;
+export interface PrismaModel {
+  /** The model key of the hierarchy's root. */
+  readonly key: string;
+  readonly relations: Record<string, PrismaRelation>;
+  /** Relation names several variants declare, which a query level can't hold, so none load. */
+  readonly sharedVariantRelations: ReadonlySet<string>;
+  readonly columns: ReadonlySet<string>;
+  /** The first identity, which variants share. Empty for a model without one. */
+  readonly identity: readonly string[];
+  /** The columns each multi-table variant's own accessor reads, by discriminator value. */
+  readonly variantTableColumns: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
-export interface PrismaNextModel {
-  readonly name: string;
-  readonly relations: Record<string, PrismaNextRelation>;
-  /** The model's columns, or undefined when the contract does not describe the model. */
-  readonly columns: ReadonlySet<string> | undefined;
+export function sharedVariantRelationError(owner: string, name: string, model: PrismaModel) {
+  return new PothosSchemaError(
+    `${owner}: relation '${name}' is ambiguous across variants of '${model.key}'. Give each variant's relation a distinct name.`,
+  );
 }
 
-export function buildRelationMeta(
-  modelName: string,
+export function ownTableVariantRowsError(
+  location: string,
+  name: string,
+  { targetModel }: PrismaRelation,
+) {
+  return new PothosSchemaError(
+    `${location}: relation '${name}' loads the separate table of variant '${targetModel}', without base columns. Return its rows through a matching prismaObject or prismaInterface.`,
+  );
+}
+
+/**
+ * Own-table variant rows lack base columns. Model-backed object and interface types reload
+ * missing prerequisites before fields, auth checks and type resolution; other abstract types do not.
+ */
+export function returnsRelationRowsAs(
+  relation: PrismaRelation,
+  kind: string,
+  model: PrismaModel | undefined,
+) {
+  return (
+    relation.targetVariantModel?.sharesTable !== false ||
+    ((kind === 'Object' || kind === 'Interface') && model === relation.target)
+  );
+}
+
+function buildColumnSet(contract: AnyContract, modelKey: string): ReadonlySet<string> {
+  const fields = resolveContractModel(contract, modelKey)?.fields ?? {};
+  // A base collection also selects its variants' columns.
+  const variants = modelDiscriminator(contract, modelKey)?.variants ?? [];
+  return new Set([
+    ...Object.keys(fields),
+    ...variants.flatMap(({ key }) =>
+      Object.keys(resolveContractModel(contract, key)?.fields ?? {}),
+    ),
+  ]);
+}
+
+/** Non-null primary and unique keys, primary first. Undefined without SQL storage. */
+export function getModelIdentities(
   contract: AnyContract,
-  typeName: string,
-): Record<string, PrismaNextRelationMeta> | undefined {
-  const rels = resolveContractModel(contract, modelName)?.relations;
-  if (!rels) {
-    return undefined;
-  }
-  const out: Record<string, PrismaNextRelationMeta> = {};
-  for (const [name, rel] of Object.entries(rels)) {
-    // N:M is a to-many junction relation. As of prisma-next 0.14.0 the
-    // orm-client resolves the junction join internally from the
-    // relation's `through` block (see tests/prisma-next-m-n-upstream-pin),
-    // so `.include('<n:m rel>')` flattens the related rows in a single
-    // query. The plugin emits the include like any other to-many relation
-    // and carries the `through` descriptor as the junction marker. (The
-    // contract tags this 'N:M'; there is no 'M:N' spelling in either
-    // prisma-next package.)
-    const isToMany = rel.cardinality === '1:N' || rel.cardinality === 'N:M';
-    // Explicit allowlist: guards against new cardinality tags a future
-    // contract might grow. With today's union this leaves '1:1' / 'N:1'.
-    if (!isToMany && rel.cardinality !== '1:1' && rel.cardinality !== 'N:1') {
-      throw new PothosSchemaError(
-        `Relation '${typeName}.${name}' (model '${modelName}') has unknown cardinality ` +
-          `'${rel.cardinality}'. Expected '1:1' / 'N:1' / '1:N' / 'N:M'.`,
-      );
-    }
-    out[name] = {
-      isToMany,
-      // Embed relations carry no FK columns (`on`); reference and junction
-      // relations do. For N:M these are the parent columns the junction
-      // references (prisma-next resolves them into `through.parentLocalColumns`),
-      // so augmenting them into the parent SELECT is correct — the parent
-      // has no direct FK, but it does have the keyed columns the junction
-      // joins against.
-      localFields: 'on' in rel ? rel.on.localFields : [],
-      targetModel: rel.to.model,
-      // N:M relations carry a `through`; the union narrows to
-      // `ContractManyToManyRelation` on the cardinality check.
-      ...(rel.cardinality === 'N:M' ? { through: rel.through } : {}),
-    };
-  }
-  return out;
-}
-
-export function buildColumnSet(
-  modelName: string,
-  contract: AnyContract,
-): ReadonlySet<string> | undefined {
-  const fields = resolveContractModel(contract, modelName)?.fields;
-  if (!fields) {
-    return undefined;
-  }
-  return new Set(Object.keys(fields));
-}
-
-const registries = new WeakMap<AnyContract, Map<string, PrismaNextModel>>();
-
-/** Non-null unique keys in model field names, primary key first; undefined without SQL storage. */
-export function getModelUniqueKeys(
-  contract: AnyContract,
-  modelName: string,
+  modelKey: string,
 ): string[][] | undefined {
-  const model = resolveContractModel(contract, modelName);
-  const storage = model?.storage as
-    | {
-        table?: string;
-        namespaceId?: string;
-        fields?: Record<string, { column?: string }>;
-      }
-    | undefined;
+  const model = resolveContractModel(contract, modelKey);
+  const storage = model?.storage;
   const table = storage?.table
     ? resolveStorageTable(contract.storage, storage.table, storage.namespaceId)?.table
     : undefined;
@@ -150,7 +103,7 @@ export function getModelUniqueKeys(
       index.unique && !index.where && index.columns ? [index.columns] : [],
     ),
   ];
-  const uniqueKeys: string[][] = [];
+  const identities: string[][] = [];
   for (const columns of keys) {
     const fields = columns.map((column) =>
       Object.keys(model.fields).find(
@@ -159,42 +112,115 @@ export function getModelUniqueKeys(
       ),
     );
     if (fields.length && fields.every((field) => field !== undefined)) {
-      uniqueKeys.push(fields as string[]);
+      identities.push(fields as string[]);
     }
   }
-  return uniqueKeys;
+  return identities;
 }
 
-/** Prefer the primary key, then the first non-null unique key. */
-export function getIdentityFields(contract: AnyContract, modelName: string): string[] {
-  return getModelUniqueKeys(contract, modelName)?.[0] ?? [];
+/**
+ * Timestamp codecs that read as a `Date`, with their default precision. Codecs don't expose the
+ * type they read as, so these are listed by id.
+ */
+const DATE_CODEC_DEFAULT_PRECISION = new Map([
+  ['pg/timestamptz-date@1', 6],
+  ['pg/timestamp-date@1', 6],
+  ['mysql/datetime@1', 0],
+]);
+
+/** A timestamp finer than milliseconds comes back from a `Date` changed, so can't be a cursor. */
+export function truncatedDateProblem(
+  contract: AnyContract,
+  modelKey: string,
+  field: string,
+): string | undefined {
+  const type = resolveContractModel(contract, modelKey)?.fields[field]?.type as
+    | { codecId?: string; typeParams?: { precision?: number } }
+    | undefined;
+  const defaultPrecision = DATE_CODEC_DEFAULT_PRECISION.get(type?.codecId ?? '');
+  return defaultPrecision !== undefined && (type?.typeParams?.precision ?? defaultPrecision) > 3
+    ? `'${modelKey}.${field}' is a timestamp finer than milliseconds read as a JavaScript Date, which drops the rest. Declare it with a precision of 3 or less, or with a codec that reads a Temporal value, such as TimestamptzTemporal`
+    : undefined;
 }
 
-/** The one `PrismaNextModel` for `name` under `contract`. */
-export function getModel(contract: AnyContract, name: string): PrismaNextModel {
-  let models = registries.get(contract);
+const modelCache = new WeakMap<AnyContract, Map<string, PrismaModel>>();
+
+/**
+ * Cached per contract so model identity is object identity. A variant shares its base's model,
+ * so `... on Bug` beneath a `Task` plans into the same query.
+ */
+export function getModel(contract: AnyContract, key: string): PrismaModel {
+  const root = rootModelKey(contract, key) ?? key;
+  let models = modelCache.get(contract);
 
   if (!models) {
     models = new Map();
-    registries.set(contract, models);
+    modelCache.set(contract, models);
   }
 
-  let model = models.get(name);
+  let model = models.get(root);
 
   if (!model) {
-    const relations: Record<string, PrismaNextRelation> = {};
+    const relations: Record<string, PrismaRelation> = {};
+    const sharedVariantRelations = new Set<string>();
+    let identity: readonly string[] | undefined;
 
-    model = { name, relations, columns: buildColumnSet(name, contract) };
+    model = {
+      key: root,
+      relations,
+      sharedVariantRelations,
+      columns: buildColumnSet(contract, root),
+      get identity() {
+        identity ??= getModelIdentities(contract, root)?.[0] ?? [];
+        return identity;
+      },
+      variantTableColumns: new Map(
+        (modelDiscriminator(contract, root)?.variants ?? []).flatMap(({ key, value }) => {
+          const fields = variantTableFields(contract, key);
+          return fields ? [[value, new Set(fields)] as const] : [];
+        }),
+      ),
+    };
     // Registered before its relations resolve, so a cycle finds it.
-    models.set(name, model);
+    models.set(root, model);
 
-    const meta = buildRelationMeta(name, contract, name) ?? {};
+    const addRelations = (modelKey: string, variant?: string) => {
+      for (const [relationName, relation] of Object.entries(
+        resolveContractModel(contract, modelKey)?.relations ?? {},
+      )) {
+        if (variant !== undefined && relations[relationName]) {
+          if (relations[relationName].declaredByVariant !== undefined) {
+            sharedVariantRelations.add(relationName);
+          }
+          continue;
+        }
+        const targetModel = relatedModelKey(contract, relation.to)!;
+        const targetVariant = variantOf(contract, targetModel);
+        relations[relationName] = {
+          // orm-client resolves N:M junctions itself, so they include like any to-many relation.
+          isToMany: relation.cardinality === '1:N' || relation.cardinality === 'N:M',
+          targetModel,
+          target: getModel(contract, targetModel),
+          ...(variant === undefined ? {} : { declaredByVariant: variant }),
+          ...(targetVariant
+            ? {
+                targetVariantModel: {
+                  field: targetVariant.field,
+                  value: targetVariant.value,
+                  sharesTable: targetVariant.sharesTable,
+                },
+              }
+            : {}),
+        };
+      }
+    };
 
-    for (const relation of Object.keys(meta)) {
-      relations[relation] = {
-        ...meta[relation],
-        target: getModel(contract, meta[relation].targetModel),
-      };
+    addRelations(root);
+    for (const { key: variant, value } of modelDiscriminator(contract, root)?.variants ?? []) {
+      addRelations(variant, value);
+    }
+    for (const relationName of sharedVariantRelations) {
+      delete relations[relationName];
     }
   }
 

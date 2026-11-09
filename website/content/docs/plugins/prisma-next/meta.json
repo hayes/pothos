@@ -1,0 +1,19 @@
+{
+  "title": "Prisma Next",
+  "pages": [
+    "index",
+    "setup",
+    "queries",
+    "objects",
+    "relations",
+    "indirect-relations",
+    "connections",
+    "variants",
+    "interfaces",
+    "inheritance",
+    "relay",
+    "transactions",
+    "migrating-from-prisma",
+    "..."
+  ]
+}

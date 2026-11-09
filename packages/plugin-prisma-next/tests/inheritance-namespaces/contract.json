@@ -1,0 +1,492 @@
+{
+  "schemaVersion": "1",
+  "targetFamily": "sql",
+  "target": "postgres",
+  "profileHash": "3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2",
+  "roots": {
+    "inha.task": {
+      "model": "Task",
+      "namespace": "inha"
+    },
+    "inhb.task": {
+      "model": "Task",
+      "namespace": "inhb"
+    }
+  },
+  "domain": {
+    "namespaces": {
+      "inha": {
+        "models": {
+          "Bug": {
+            "base": {
+              "model": "Task",
+              "namespace": "inha"
+            },
+            "fields": {
+              "severity": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "severity": {
+                  "column": "severity"
+                }
+              },
+              "namespaceId": "inha",
+              "table": "task"
+            }
+          },
+          "Feature": {
+            "base": {
+              "model": "Task",
+              "namespace": "inha"
+            },
+            "fields": {
+              "priority": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "priority": {
+                  "column": "priority"
+                }
+              },
+              "namespaceId": "inha",
+              "table": "feature"
+            }
+          },
+          "Task": {
+            "discriminator": {
+              "field": "type"
+            },
+            "fields": {
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "title": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "type": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "id": {
+                  "column": "id"
+                },
+                "title": {
+                  "column": "title"
+                },
+                "type": {
+                  "column": "type"
+                }
+              },
+              "namespaceId": "inha",
+              "table": "task"
+            },
+            "variants": {
+              "bug": {
+                "model": "Bug",
+                "namespace": "inha"
+              },
+              "chore": {
+                "model": "Chore",
+                "namespace": "inhb"
+              },
+              "feature": {
+                "model": "Feature",
+                "namespace": "inha"
+              }
+            }
+          }
+        }
+      },
+      "inhb": {
+        "models": {
+          "Bug": {
+            "base": {
+              "model": "Task",
+              "namespace": "inhb"
+            },
+            "fields": {
+              "level": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "level": {
+                  "column": "level"
+                }
+              },
+              "namespaceId": "inhb",
+              "table": "task"
+            }
+          },
+          "Chore": {
+            "base": {
+              "model": "Task",
+              "namespace": "inha"
+            },
+            "fields": {
+              "note": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "note": {
+                  "column": "note"
+                }
+              },
+              "namespaceId": "inhb",
+              "table": "chore"
+            }
+          },
+          "Task": {
+            "discriminator": {
+              "field": "kind"
+            },
+            "fields": {
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "kind": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "label": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "id": {
+                  "column": "id"
+                },
+                "kind": {
+                  "column": "kind"
+                },
+                "label": {
+                  "column": "label"
+                }
+              },
+              "namespaceId": "inhb",
+              "table": "task"
+            },
+            "variants": {
+              "b": {
+                "model": "Bug",
+                "namespace": "inhb"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "storage": {
+    "namespaces": {
+      "inha": {
+        "entries": {
+          "table": {
+            "feature": {
+              "columns": {
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "priority": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "primaryKey": true
+                  },
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "inha",
+                    "tableName": "feature"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "inha",
+                    "tableName": "task"
+                  }
+                }
+              ],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "task": {
+              "checks": [
+                {
+                  "expression": "\"type\" IN ('bug', 'chore', 'feature')",
+                  "name": "task_type_check_ba122939",
+                  "prefix": "task_type_check"
+                }
+              ],
+              "columns": {
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "severity": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
+                "title": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "type": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "Task.type",
+                    "namespaceId": "inha",
+                    "plane": "storage"
+                  }
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            }
+          },
+          "valueSet": {
+            "Task.type": {
+              "kind": "valueSet",
+              "values": [
+                "bug",
+                "chore",
+                "feature"
+              ]
+            }
+          }
+        },
+        "id": "inha",
+        "kind": "postgres-schema"
+      },
+      "inhb": {
+        "entries": {
+          "table": {
+            "chore": {
+              "columns": {
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "note": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "primaryKey": true
+                  },
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "inhb",
+                    "tableName": "chore"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "inha",
+                    "tableName": "task"
+                  }
+                }
+              ],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "task": {
+              "checks": [
+                {
+                  "expression": "\"kind\" IN ('b')",
+                  "name": "task_kind_check_b0f4f0fd",
+                  "prefix": "task_kind_check"
+                }
+              ],
+              "columns": {
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "nullable": false
+                },
+                "kind": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "Task.kind",
+                    "namespaceId": "inhb",
+                    "plane": "storage"
+                  }
+                },
+                "label": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "level": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "nullable": true
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            }
+          },
+          "valueSet": {
+            "Task.kind": {
+              "kind": "valueSet",
+              "values": [
+                "b"
+              ]
+            }
+          }
+        },
+        "id": "inhb",
+        "kind": "postgres-schema"
+      },
+      "public": {
+        "entries": {
+          "table": {}
+        },
+        "id": "public",
+        "kind": "postgres-schema"
+      }
+    },
+    "storageHash": "d8061f483a9ce709770f487310f97a4f5df1f8a31d3ba6ed82f267d1de12a517"
+  },
+  "capabilities": {
+    "postgres": {
+      "distinctOn": true,
+      "forKeyShare": true,
+      "forNoKeyUpdate": true,
+      "jsonAgg": true,
+      "lateral": true,
+      "limit": true,
+      "orderBy": true,
+      "returning": true
+    },
+    "sql": {
+      "checkConstraint": true,
+      "defaultInInsert": true,
+      "enums": true,
+      "forShare": true,
+      "forUpdate": true,
+      "insertOnConflictSkip": true,
+      "insertOnConflictWithoutTarget": true,
+      "lateral": true,
+      "lockNowait": true,
+      "lockOf": true,
+      "lockSkipLocked": true,
+      "returning": true,
+      "scalarList": true
+    }
+  },
+  "extensions": {},
+  "meta": {},
+  "_generated": {
+    "warning": "⚠️  GENERATED FILE - DO NOT EDIT",
+    "message": "This file is automatically generated by \"prisma contract emit\".",
+    "regenerate": "To regenerate, run: prisma contract emit"
+  }
+}

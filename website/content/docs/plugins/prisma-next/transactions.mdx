@@ -1,0 +1,119 @@
+---
+title: Transactions
+description: Running mutations and GraphQL operations in a Prisma transaction
+---
+
+Use Prisma's `db.transaction` when several writes must succeed or fail together. The plugin works
+with your transaction client; your application controls when the transaction commits or rolls back.
+The examples use the imported `db` and builder from [Setup](./setup), and the `User` ref from your
+schema. They use the shorter SQLite client paths; on PostgreSQL, use `db.orm.public.User` and
+`tx.orm.public.User` for models in the public schema.
+
+## Write several rows atomically
+
+Pothos doesn't create transactions for you. To run a mutation's writes in one, call `transaction`
+in the mutation field, then load the result once it commits:
+
+```ts
+import { randomUUID } from 'node:crypto';
+
+builder.mutationField('signUp', (t) =>
+  t.prismaField({
+    type: 'User',
+    args: {
+      email: t.arg.string({ required: true }),
+      firstName: t.arg.string({ required: true }),
+      lastName: t.arg.string({ required: true }),
+    },
+    resolve: async (users, _root, args) => {
+      const id = await db.transaction(async (tx) => {
+        const user = await tx.orm.User.create({ ...args, id: randomUUID() });
+        await tx.orm.Post.create({
+          id: randomUUID(),
+          authorId: user.id,
+          title: 'Hello!',
+          content: '',
+          createdAt: new Date(),
+        });
+        return user.id;
+      });
+      return users.where({ id }).first();
+    },
+  }),
+);
+```
+
+To read the result inside the transaction too, build the last write with
+[`collectionFromInfo`](./objects#mutations) and return the row it writes:
+
+```ts
+import { collectionFromInfo } from '@pothos/plugin-prisma-next';
+
+builder.mutationField('renameUser', (t) =>
+  t.field({
+    type: User,
+    nullable: true,
+    args: { id: t.arg.id({ required: true }), firstName: t.arg.string({ required: true }) },
+    resolve: (_root, args, ctx, info) =>
+      db.transaction(async (tx) => {
+        const users = await collectionFromInfo({
+          collection: tx.orm.User.where({ id: String(args.id) }),
+          context: ctx,
+          info,
+        });
+        return users.update({ firstName: args.firstName });
+      }),
+  }),
+);
+```
+
+Don't return a `tx.orm` Collection from the callback: it runs after the transaction ends, and fails.
+
+## Share a transaction across an operation
+
+To give each request its own client, such as a transaction, pass a function as `client` along with
+the base client's `context`. Use this configuration before defining your types and building
+the schema:
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import PrismaNextPlugin from '@pothos/plugin-prisma-next';
+import { contract, db } from './prisma/db';
+import type { PostgresQueryMembers } from '@prisma/orm-postgres/runtime';
+
+const builder = new SchemaBuilder<{
+  PrismaContract: typeof contract;
+  Context: { db: PostgresQueryMembers<typeof contract> };
+}>({
+  plugins: [PrismaNextPlugin],
+  prisma: {
+    client: (ctx) => ctx.db,
+    context: db.context,
+  },
+});
+```
+
+The configured client applies to queries the plugin starts itself. In your own `collection` and
+`resolve` callbacks, use `ctx.db` in this mode too. Calls to the imported `db` use the base client
+and run outside this transaction.
+
+Call `graphql()` inside the transaction and pass `tx` in the GraphQL context:
+
+```ts
+const result = await db.transaction(async (tx) => {
+  const result = await graphql({
+    schema,
+    source,
+    contextValue: { db: tx },
+  });
+  // GraphQL reports errors in the result rather than rejecting, so throw to roll back.
+  if (result.errors?.length) {
+    throw result.errors[0];
+  }
+  return result;
+});
+```
+
+With `@defer` or `@stream`, read every incremental result inside the callback: they load after the
+initial result, and fail once the transaction has ended.
+

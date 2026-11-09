@@ -1,13 +1,8 @@
-import { chromium } from 'playwright';
 import { checkLandingMobile } from './check-landing-mobile.mjs';
+import { launchBrowser } from './launch-browser.mjs';
 
 (async () => {
-  const browser = await chromium.launch({
-    headless: true,
-    ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
-      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
-      : {}),
-  });
+  const browser = await launchBrowser();
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     page.setDefaultTimeout(60000);

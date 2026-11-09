@@ -74,3 +74,11 @@ jobs:
 
       - name: Run build
         run: pnpm run ci
+
+      - name: Check generated prisma-next contracts are committed
+        run: git diff --exit-code -- packages/plugin-prisma-next/tests
+
+      # Checks the published types against older TypeScript versions. They don't depend on Node.
+      - name: Check TypeScript compatibility
+        if: matrix.node == 24
+        run: pnpm turbo run type:compat

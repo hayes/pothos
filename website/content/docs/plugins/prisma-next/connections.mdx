@@ -1,0 +1,249 @@
+---
+title: Connections
+description: Relay connections backed by Prisma Collections
+---
+
+Connections add cursor pagination to a list. They require the [Relay plugin](../relay). Use
+`t.prismaConnection` to paginate a model's rows, and `t.relatedConnection` to paginate a relation.
+
+## Paginate a query field
+
+```ts
+builder.queryFields((t) => ({
+  posts: t.prismaConnection({
+    type: 'Post',
+    query: { where: { published: 1 }, orderBy: { createdAt: 'desc' } },
+    totalCount: true,
+  }),
+}));
+```
+
+Clients request pages with `first` and `after`, or `last` and `before`. For example:
+
+```graphql
+{
+  posts(first: 10) {
+    edges { node { title } }
+    pageInfo { endCursor hasNextPage }
+    totalCount
+  }
+}
+```
+
+## Paginate a relation
+
+To paginate a relation, such as a user's posts, use `t.relatedConnection`:
+
+<include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ author(id: 1) { fullName postConnection(first: 1) { totalCount edges { node { title } } pageInfo { endCursor hasNextPage } } } }"'>playground-examples/plugin-prisma-next/types/user.ts#user-post-connection</include>
+
+It takes the same options as `t.prismaConnection` except `collection`. `totalCount` counts the rows
+matching `query.where`, unless [`filterConnectionTotalCount`](./setup#plugin-options) is `false`.
+
+## Configure a connection
+
+The plugin orders the model's Collection by `query.orderBy` and the cursor, pages it, and adds what
+the query selects. `t.prismaConnection` takes:
+
+- `query`: `{ where, orderBy }`, or `(args, ctx) => ({ where, orderBy })`. `where` filters the
+  Collection, and `orderBy` orders it, by the primary key when omitted. See
+  [Ordering and cursors](#ordering-and-cursors).
+- `defaultSize` / `maxSize`: page sizes, or `(args, ctx) => number`. Default to the plugin's
+  [connection size options](./setup#plugin-options).
+- `totalCount`: `true` counts the rows, filtered by `query.where`, or pass
+  `(parent, args, ctx, info) => number`. The count only runs when `totalCount` is selected.
+- `args`: extra arguments for filtering or sorting. The Relay pagination arguments are added automatically.
+- `collection`: an optional starting ORM query, returned by `(parent, args, ctx, info) => Collection`.
+  See [Use a custom Collection](#use-a-custom-collection).
+
+An `orderBy()` or `include()` on the starting Collection is a TypeScript error. Invalid ORM
+collections also fail at runtime before any SQL, including for count-only queries. This catches
+`limit()`, `offset()`, `cursor()`, `distinct()` and `distinctOn()` too. The error's cause names the
+offending calls.
+
+Connection and edge types can be customized as with the [Relay plugin](../relay), including
+`edgesNullable` and `nodeNullable`.
+
+## Ordering and cursors
+
+A connection's `query.orderBy` takes columns of the model, each with a direction, as a
+[relation's](./relations#filtering-and-sorting) does. You can't order a connection by relation
+columns, aggregates or expressions. Nullable columns sort nulls last unless you set `nulls`:
+
+```ts
+query: { orderBy: { score: { direction: 'desc', nulls: 'first' } } },
+```
+
+If the order doesn't include a unique key:
+
+- The plugin adds the primary key to the end, in the same direction as the last column.
+- If the primary key can't be ordered, it uses the first non-null unique key that can.
+
+To let clients choose the order, pass a function of the arguments:
+
+<include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ posts(first: 2, newestFirst: true) { totalCount edges { node { title } } pageInfo { endCursor hasNextPage } } }"'>playground-examples/plugin-prisma-next/queries.ts#posts-query</include>
+
+Cursors contain the values of the order columns, readable by clients, so don't order by columns
+clients shouldn't see.
+
+- Columns the ORM can't order, such as bytes, can't be in the order.
+- A timestamp read as a JavaScript `Date` keeps only milliseconds, so you can't order by one with a
+  precision above 3. Bare `DateTime` is fine; on PostgreSQL, use `TimestamptzTemporal` for finer
+  timestamps.
+
+A `query` object whose `orderBy` breaks these rules fails the schema build. A `query` function
+fails each request that returns such an order.
+
+## Use a custom Collection
+
+Use `collection` for an existing ORM query or to run code before the connection loads. For example,
+check access before returning the query for draft posts:
+
+```ts
+builder.queryField('drafts', (t) =>
+  t.prismaConnection({
+    type: 'Post',
+    collection: (_root, _args, ctx) => {
+      if (!ctx.isAdmin) {
+        throw new Error('Not allowed.');
+      }
+      return db.orm.Post.where({ published: 0 });
+    },
+    query: { orderBy: { createdAt: 'desc' } },
+  }),
+);
+```
+
+The callback can be asynchronous. Return an unordered, unpaginated Collection; the connection
+applies its ordering, page size and selections. [Queries and selections](./queries) explains the
+callback arguments and how `collection` and `query` combine.
+
+## Custom connections
+
+Connection helpers are an escape hatch for custom resolvers: use them when the connection returns
+a different model than the rows being paged, or when your resolver needs to work with loaded rows.
+For ordinary model and relation pagination, use `t.prismaConnection` and `t.relatedConnection`.
+
+For example, a post's `commenters` connection pages comments but returns each comment's author.
+Use `t.connection` with `prismaConnectionHelpers` to describe that mapping. The helper takes a model
+name or a Prisma type ref, plus `query`, `defaultSize`, `maxSize`, `totalCount` and `args`.
+`totalCount` takes `true`, but not a function.
+
+Here each row is a `Comment`, and each node is that comment's author. `select` lists what each
+comment loads, and `nodeSelection()` marks `author` as the relation that holds the node.
+Mark only one relation with `nodeSelection()` in a helper. Other relations can be selected with
+`true` when your resolver needs their data.
+`resolveNode` returns the node for each comment:
+
+```ts
+import { prismaConnectionHelpers } from '@pothos/plugin-prisma-next';
+
+const commenters = prismaConnectionHelpers(builder, 'Comment', {
+  query: { orderBy: { createdAt: 'desc' } },
+  totalCount: true,
+  select: (nodeSelection) => ({ createdAt: true, author: nodeSelection() }),
+  resolveNode: (comment) => comment.author,
+});
+
+builder.prismaObjectField('Post', 'commenters', (t) =>
+  t.connection(
+    {
+      type: User,
+      select: (args, ctx, nestedSelection) => ({
+        comments: commenters.getQuery(args, ctx, nestedSelection),
+      }),
+      resolve: (post, args, ctx) => commenters.resolve(post.comments, args, ctx),
+    },
+    {
+      fields: (connection) => ({
+        totalCount: connection.int({ resolve: (page) => page.totalCount }),
+      }),
+    },
+  ),
+);
+```
+
+`getQuery` loads one page of comments with the post, and its count when the connection selects a
+field named `totalCount`. `resolve` builds the page from rows `getQuery` or `load` loaded, or rows
+loaded with the same order and paging. `totalCount` is set when the rows are the list `getQuery` or
+`load` loaded, or when you pass a count. Without `resolveNode`, the rows are the nodes; use the
+helper's `ref` as the connection type.
+
+To count the rows yourself, such as on MySQL, where Prisma can't count them yet, pass the count to
+`resolve`: `commenters.resolve(rows, args, ctx, { totalCount })`.
+
+### Load a page in your resolver
+
+On a root field, `load` pages a collection of the helper's model. It loads the page with the
+nodes' selection in one statement, and the count when `totalCount` is selected. As with
+`t.prismaConnection`, invalid starting collections are rejected before SQL. Put ordering in
+`query.orderBy` and pagination in `first`/`last`. Pass the rows to
+`resolve`. With `resolveNode`, each edge also holds its row, so edge fields can read it:
+
+```ts
+builder.queryField('postCommenters', (t) =>
+  t.connection(
+    {
+      type: User,
+      args: { ...commenters.getArgs(), postId: t.arg.id({ required: true }) },
+      resolve: async (_root, args, ctx, info) => {
+        const comments = db.orm.Comment.where({ postId: String(args.postId) });
+        const rows = await commenters.load(comments, args, ctx, info);
+        console.info('Loaded comments', { count: rows.length });
+        return commenters.resolve(rows, args, ctx);
+      },
+    },
+    {
+      fields: (connection) => ({
+        totalCount: connection.int({ resolve: (page) => page.totalCount }),
+      }),
+    },
+    {
+      fields: (edge) => ({
+        commentedAt: edge.string({ resolve: (comment) => comment.createdAt.toISOString() }),
+      }),
+    },
+  ),
+);
+```
+
+`load` returns one extra row to determine whether another page exists. Pass the returned list to
+`resolve` to build the connection and preserve its `totalCount`; the extra row is omitted from the
+response. Your resolver can log the load, as above, before returning the connection.
+
+### Put a connection inside a wrapper
+
+Put `getQuery` at the top level of a field's `select`, not inside another relation's entry. When
+the connection is beneath that field, such as on a wrapper type the field returns, prefix the path
+`getQuery` passes to `nestedSelection`:
+
+```ts
+const PostActivity = builder
+  .objectRef<{ comments: Parameters<typeof commenters.resolve>[0] }>('PostActivity')
+  .implement({
+    fields: (t) => ({
+      commenters: t.connection({
+        type: User,
+        args: commenters.getArgs(),
+        resolve: (activity, args, ctx) => commenters.resolve(activity.comments, args, ctx),
+      }),
+    }),
+  });
+
+builder.prismaObjectField('Post', 'activity', (t) =>
+  t.field({
+    type: PostActivity,
+    select: (args, ctx, nestedSelection) => ({
+      comments: commenters.getQuery(args, ctx, ({ path }) =>
+        nestedSelection({ path: ['commenters', ...path] }),
+      ),
+    }),
+    resolve: (post) => ({ comments: post.comments }),
+  }),
+);
+```
+
+The page follows the arguments of the connection field, `commenters`, not those of `activity`.
+Aliases of `commenters` beneath one `activity` must pass the same arguments, or the root field fails.
+
+`select` and `query` also receive the connection's arguments and context. Add the helper's `args`
+to the connection field with `args: commenters.getArgs()`.
