@@ -274,7 +274,8 @@ interface Compiled {
   refs: LoadRef[];
 }
 
-const staticLoads = new WeakMap<RelationEntry, { load: Load; args: RelationArgs }>();
+// Keyed by the split entry, not the entry object, which a select can reuse for several relations.
+const staticLoads = new WeakMap<SplitRelation, { load: Load; args: RelationArgs }>();
 
 function compileSelect(
   { columns, relations, computed }: SplitSelect,
@@ -291,7 +292,8 @@ function compileSelect(
       : "A type's select loads");
   const refFor = (load: Load): LoadRef =>
     interning ? refOf(interning.config, interning.ctx, model, load) : { load };
-  const parts = relations.map(([name, entry, split]): MaybePromise<Planned> => {
+  const parts = relations.map((splitEntry): MaybePromise<Planned> => {
+    const [name, entry, split] = splitEntry;
     const relation = model.relations[name]!;
     if (
       readsRows &&
@@ -310,7 +312,7 @@ function compileSelect(
     const { path, type } = entry;
     const plans = NESTED_SELECTION in entry;
     const named = plans && type !== undefined ? typeOf!(type) : undefined;
-    let loaded = source === undefined ? staticLoads.get(entry) : undefined;
+    let loaded = source === undefined ? staticLoads.get(splitEntry) : undefined;
     if (!loaded) {
       const typed = plans
         ? relation.isToMany && !path?.length
@@ -349,7 +351,7 @@ function compileSelect(
         args: relationArgs(relation, { refine, variant }),
       };
       if (source === undefined) {
-        staticLoads.set(entry, loaded);
+        staticLoads.set(splitEntry, loaded);
       }
     }
     const ref = refFor(loaded.load);

@@ -921,6 +921,97 @@ describe('load ids', () => {
     );
   });
 
+  it('loads one entry object reused for two relations of a field select', async () => {
+    const builder = createBuilder();
+    const recent = { limit: 5 } as const;
+    const ids = (rows: readonly { id: string }[]) => rows.map((row) => row.id).sort();
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        commentIds: t.stringList({
+          select: { posts: recent, comments: recent },
+          resolve: (user) => ids(user.comments),
+        }),
+        postIds: t.stringList({
+          select: { posts: recent, comments: recent },
+          resolve: (user) => ids(user.posts),
+        }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: User,
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ user { commentIds postIds } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user).toEqual({ commentIds: ['c-2'], postIds: ['p-draft1', 'p-hello'] });
+  });
+
+  it('loads one entry object reused for two relations of a type select', async () => {
+    const builder = createBuilder();
+    const recent = { limit: 5 } as const;
+    const ids = (rows: readonly { id: string }[]) => rows.map((row) => row.id).sort();
+    const User = builder.prismaObject('User', {
+      select: { posts: recent, comments: recent },
+      fields: (t) => ({
+        commentIds: t.stringList({ resolve: (user) => ids(user.comments) }),
+        postIds: t.stringList({ resolve: (user) => ids(user.posts) }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: User,
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ user { commentIds postIds } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user).toEqual({ commentIds: ['c-2'], postIds: ['p-draft1', 'p-hello'] });
+  });
+
+  it('loads one entry object reused by the selects of two models', async () => {
+    const builder = createBuilder();
+    const recent = { limit: 5 } as const;
+    const ids = (rows: readonly { id: string }[]) => rows.map((row) => row.id).sort();
+    const Post = builder.prismaObject('Post', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        commentIds: t.stringList({
+          select: { comments: recent },
+          resolve: (post) => ids(post.comments),
+        }),
+      }),
+    });
+    const User = builder.prismaObject('User', {
+      fields: (t) => ({
+        postIds: t.stringList({ select: { posts: recent }, resolve: (user) => ids(user.posts) }),
+        posts: t.relation('posts', { type: Post, query: { orderBy: { id: 'asc' } } }),
+      }),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: User,
+          collection: () => db.orm.User.where({ id: 'u-alice' }),
+        }),
+      }),
+    });
+    const result = await run(builder.toSchema(), '{ user { postIds posts { id commentIds } } }');
+    expect(result.errors).toBeUndefined();
+    expect(result.data.user).toEqual({
+      postIds: ['p-draft1', 'p-hello'],
+      posts: [
+        { id: 'p-draft1', commentIds: [] },
+        { id: 'p-hello', commentIds: ['c-1', 'c-2'] },
+      ],
+    });
+  });
+
   it('rejects two nested type-level entries of one relation that disagree', () => {
     const builder = createBuilder();
     builder.prismaObject('User', {

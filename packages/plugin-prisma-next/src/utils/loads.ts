@@ -69,21 +69,21 @@ export function queryLoad(
   };
 }
 
-const tables = createContextCache(() => ({
-  seen: new WeakMap<Load, number>(),
-  byRelation: new Map<string, Load[]>(),
-}));
+const tables = createContextCache(
+  () => new Map<string, { loads: Load[]; seen: WeakMap<Load, number> }>(),
+);
 
 /** The index of `load` among the distinct loads of its relation seen in `ctx`. */
 function internLoad(ctx: object, model: PrismaNextModel, load: Load): number {
-  const table = tables(ctx);
+  const tablesOf = tables(ctx);
+  const key = `${model.key}.${load.relation}`;
+  const table =
+    tablesOf.get(key) ?? tablesOf.set(key, { loads: [], seen: new WeakMap() }).get(key)!;
   let id = table.seen.get(load);
   if (id === undefined) {
-    const key = `${model.key}.${load.relation}`;
-    const loads = table.byRelation.get(key) ?? table.byRelation.set(key, []).get(key)!;
-    id = loads.findIndex((seen) => deepEqual(seen, load));
+    id = table.loads.findIndex((seen) => deepEqual(seen, load));
     if (id < 0) {
-      id = loads.push(load) - 1;
+      id = table.loads.push(load) - 1;
     }
     table.seen.set(load, id);
   }
