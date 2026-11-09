@@ -499,10 +499,7 @@ export function compileFieldSelect(
   };
 }
 
-/**
- * A type-level relation entry as the data it loads by, for comparing entries. A nested aggregate
- * is compared by its relation alone.
- */
+/** A type-level relation entry as the data it loads by, for comparing entries. */
 export function entryDefinition([name, entry, split]: SplitRelation): unknown {
   const { where, orderBy, limit, offset, type } = entry;
   return {
@@ -511,7 +508,6 @@ export function entryDefinition([name, entry, split]: SplitRelation): unknown {
     select: split && {
       ...Object.fromEntries(split.columns.map((column) => [column, true])),
       ...Object.fromEntries(split.relations.map((nested) => [nested[0], entryDefinition(nested)])),
-      ...Object.fromEntries(split.computed.map(({ relation }) => [relation, {}])),
     },
   };
 }

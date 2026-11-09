@@ -119,7 +119,7 @@ export function baseOf<T>(value: T): T {
 
 export interface RowCheck {
   readonly columns: readonly string[];
-  readonly relations: ReadonlyMap<string, RowCheck | undefined>;
+  readonly relations: readonly (readonly [string, RowCheck | undefined])[];
 }
 
 export function rowCheck(selects: readonly SplitSelect[]): RowCheck {
@@ -136,9 +136,10 @@ export function rowCheck(selects: readonly SplitSelect[]): RowCheck {
   }
   return {
     columns: [...columns],
-    relations: new Map(
-      [...nested].map(([name, splits]) => [name, splits.length ? rowCheck(splits) : undefined]),
-    ),
+    relations: [...nested].map(([name, splits]) => [
+      name,
+      splits.length ? rowCheck(splits) : undefined,
+    ]),
   };
 }
 
@@ -165,7 +166,7 @@ function holds(value: unknown, check: RowCheck): boolean {
   const row = value as Row;
   return (
     check.columns.every((column) => row[column] !== undefined) &&
-    [...check.relations].every(
+    check.relations.every(
       ([name, nested]) => row[name] !== undefined && (!nested || holds(row[name], nested)),
     )
   );
