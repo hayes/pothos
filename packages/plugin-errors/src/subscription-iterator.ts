@@ -43,14 +43,15 @@ export function wrapSubscriptionIterator(
       const result = await Reflect.apply(operation, inner, args);
       assertIteratorObject(result);
       // Async generators await yielded values, including promises from pubsub.
-      const value = result.done ? undefined : await result.value;
+      const completed = Boolean(result.done);
+      const value = completed ? undefined : await result.value;
       if (version !== cancellationVersion || failed) {
         return done();
       }
-      if (result.done) {
+      if (completed) {
         finish();
       }
-      return result.done ? result : { value, done: false };
+      return completed ? result : { value, done: false };
     } catch (error) {
       // Claim the final error before awaiting cleanup, including concurrent reads.
       if (version !== cancellationVersion || failed) {

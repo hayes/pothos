@@ -44,6 +44,8 @@ it('releases closed subscription contexts and keeps subscription churn bounded',
   const gc = runInNewContext('gc') as () => void;
   setFlagsFromString('--no-expose_gc');
   const events = new EventEmitter();
+  const unread = subscription(events);
+  await unread.iterator.return!();
   const closed = subscription(events);
   const read = closed.iterator.next();
   await closed.iterator.return!();
@@ -52,8 +54,12 @@ it('releases closed subscription contexts and keeps subscription churn bounded',
   expect(closed.source.deref()).toBeUndefined();
   expect(closed.context.deref()).toBeUndefined();
   expect(closed.onError.deref()).toBeUndefined();
+  expect(unread.source.deref()).toBeUndefined();
+  expect(unread.context.deref()).toBeUndefined();
+  expect(unread.onError.deref()).toBeUndefined();
   // Keep the closed wrapper rooted while checking that its request context is gone.
   await closed.iterator.next();
+  await unread.iterator.next();
 
   async function churn(count: number) {
     for (let i = 0; i < count; i += 1) {

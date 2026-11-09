@@ -12,6 +12,80 @@ function deferred<T>() {
 }
 
 describe('subscription iterator', () => {
+  it('uses one completion decision when the source flag is a stateful getter', async () => {
+    let lookups = 0;
+    const iterator = wrapSubscriptionIterator(
+      {
+        next: () =>
+          Promise.resolve({
+            value: 'event',
+            get done() {
+              return ++lookups > 1;
+            },
+          }),
+        return: () => Promise.resolve({ value: undefined, done: true }),
+      },
+      (error) => {
+        throw error;
+      },
+    );
+    const result = await iterator.next();
+    expect(result.done).toBe(false);
+    expect(result.value).toBe('event');
+    await iterator.return!();
+  });
+
+  it.each([false, true])('reads the source completion flag once (done: %s)', async (completed) => {
+    let lookups = 0;
+    const result = {
+      value: 1,
+      get done() {
+        lookups += 1;
+        return completed;
+      },
+    };
+    const iterator = wrapSubscriptionIterator(
+      {
+        next: () => Promise.resolve(result),
+        return: () => Promise.resolve({ value: undefined, done: true }),
+      },
+      (error) => {
+        throw error;
+      },
+    );
+    await iterator.next();
+    expect(lookups).toBe(1);
+    await iterator.return!();
+  });
+
+  it('allows a source to reenter next synchronously', async () => {
+    let wrapped: AsyncIterableIterator<unknown>;
+    let nested: Promise<IteratorResult<unknown>> | undefined;
+    let calls = 0;
+    wrapped = wrapSubscriptionIterator(
+      {
+        next() {
+          const value = ++calls;
+          if (value === 1) {
+            nested = wrapped.next();
+          }
+          return Promise.resolve({ value, done: false });
+        },
+      },
+      (error) => {
+        throw error;
+      },
+    );
+    const outer = wrapped.next();
+    // Attach rejection handlers to both reads before either can reject.
+    const results = await Promise.allSettled([outer, nested!]);
+    expect(results).toEqual([
+      { status: 'fulfilled', value: { value: 1, done: false } },
+      { status: 'fulfilled', value: { value: 2, done: false } },
+    ]);
+    await wrapped.return!();
+  });
+
   describe.each(['next', 'return', 'throw'] as const)('invalid %s methods', (method) => {
     it.each([
       false,
