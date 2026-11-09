@@ -207,41 +207,26 @@ export function* yieldErrors(
 class NestedIteratorOwner {
   private active = new Set<AsyncGenerator<unknown>>();
   private closed = false;
-  private generation = 0;
-  private readonly parentGeneration: number | undefined;
-
-  constructor(private parent?: NestedIteratorOwner) {
-    this.parentGeneration = parent?.generation;
-  }
-
-  private get isClosed(): boolean {
-    return (
-      this.closed ||
-      (this.parent !== undefined &&
-        (this.parent.isClosed || this.parent.generation !== this.parentGeneration))
-    );
-  }
 
   async collect(nested: AsyncGenerator<unknown>): Promise<unknown[]> {
-    if (this.isClosed) {
+    if (this.closed) {
       await nested.return(undefined);
       return [];
     }
     this.active.add(nested);
     const values: unknown[] = [];
-    for await (const value of nested) {
-      values.push(value);
+    try {
+      for await (const value of nested) {
+        values.push(value);
+      }
+      return values;
+    } finally {
+      this.active.delete(nested);
     }
-    return values;
   }
 
-  release(nested: AsyncGenerator<unknown>) {
-    this.active.delete(nested);
-  }
-
-  async closeActive() {
-    // Children being closed cannot open new descendants during cleanup.
-    this.generation += 1;
+  async close() {
+    this.closed = true;
     const children = [...this.active];
     // Relinquish ownership before cleanup, including reentrant or failed cleanup.
     // Like iterator closing, request return once without draining cleanup yields.
@@ -253,12 +238,35 @@ class NestedIteratorOwner {
       }
     }
   }
+}
 
-  close() {
-    this.closed = true;
-    this.parent = undefined;
-    return this.closeActive();
-  }
+// List cancellation follows for-await: close once and ignore cleanup yields.
+// Subscriptions use mapAsyncIterator directly and can resume after return yields.
+function createListSourceIterator(source: AsyncIterator<unknown>): AsyncIterator<unknown> {
+  let iterator: AsyncIterator<unknown> | undefined = source;
+  const close = () => {
+    const inner = iterator;
+    iterator = undefined;
+    return inner?.return?.();
+  };
+  return {
+    next: (...args) =>
+      iterator === undefined
+        ? Promise.resolve({ value: undefined, done: true })
+        : iterator.next(...args),
+    async return(value) {
+      await close();
+      return { value: await value, done: true };
+    },
+    async throw(error) {
+      try {
+        await close();
+      } catch {
+        // Preserve the injected error if cleanup also fails.
+      }
+      throw error;
+    },
+  };
 }
 
 function closeNestedOnControl(
@@ -268,7 +276,7 @@ function closeNestedOnControl(
   for (const method of ['return', 'throw'] as const) {
     const operation = iterator[method].bind(iterator);
     iterator[method] = (...args: [] | [unknown]) => {
-      const closing = owner.closeActive();
+      const closing = owner.close();
       return Promise.allSettled([operation(...args), closing]).then(([result, cleanup]) => {
         if (result.status === 'rejected') {
           throw result.reason;
@@ -289,17 +297,7 @@ export function yieldAsyncErrors(
   onResolvedError?: (error: Error) => void,
   depth = 0,
 ): AsyncGenerator<unknown> {
-  return createAsyncErrorIterator(result, pothosErrors, onResolvedError, depth);
-}
-
-function createAsyncErrorIterator(
-  result: AsyncIterable<unknown>,
-  pothosErrors: (new (...args: never[]) => unknown)[],
-  onResolvedError: ((error: Error) => void) | undefined,
-  depth: number,
-  parent?: NestedIteratorOwner,
-): AsyncIterableIterator<unknown> & AsyncGenerator<unknown> {
-  const owner = depth > 0 ? new NestedIteratorOwner(parent) : undefined;
+  const owner = depth > 0 ? new NestedIteratorOwner() : undefined;
   const mapItem = (item: unknown) => {
     if (
       owner &&
@@ -309,13 +307,7 @@ function createAsyncErrorIterator(
       Symbol.asyncIterator in item
     ) {
       return owner.collect(
-        createAsyncErrorIterator(
-          item as AsyncIterable<unknown>,
-          pothosErrors,
-          onResolvedError,
-          depth - 1,
-          owner,
-        ),
+        yieldAsyncErrors(item as AsyncIterable<unknown>, pothosErrors, onResolvedError, depth - 1),
       );
     }
     return wrapItem(item, pothosErrors, onResolvedError, depth);
@@ -327,12 +319,14 @@ function createAsyncErrorIterator(
     return wrapOrThrow(error, pothosErrors, onResolvedError);
   };
   let mapped: AsyncIterableIterator<unknown> & AsyncGenerator<unknown>;
-  const onClose = () => {
-    parent?.release(mapped);
-    return owner?.close();
-  };
+  const onClose = () => owner?.close();
   try {
-    mapped = mapAsyncIterator(result[Symbol.asyncIterator](), mapItem, onError, onClose);
+    mapped = mapAsyncIterator(
+      createListSourceIterator(result[Symbol.asyncIterator]()),
+      mapItem,
+      onError,
+      onClose,
+    );
   } catch (error) {
     mapped = mapAsyncIterator({ next: () => Promise.reject(error) }, mapItem, onError, onClose);
   }

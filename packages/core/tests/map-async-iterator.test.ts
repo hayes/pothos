@@ -100,7 +100,10 @@ describe('mapAsyncIterator', () => {
     expect(await read).toEqual({ done: true, value: undefined });
   });
 
-  it('suppresses a mapped value still pending when cancelled', async () => {
+  it.each([
+    'resolve',
+    'reject',
+  ] as const)('suppresses a pending mapper that settles with %s after cancellation', async (settle) => {
     const pending = deferred<string>();
     const map = vi.fn(() => pending.promise);
     const mapped = mapAsyncIterator(
@@ -110,7 +113,11 @@ describe('mapAsyncIterator', () => {
     const read = mapped.next();
     await vi.waitFor(() => expect(map).toHaveBeenCalledOnce());
     await mapped.return!();
-    pending.resolve('stale');
+    if (settle === 'resolve') {
+      pending.resolve('stale');
+    } else {
+      pending.reject(new Error('cancelled mapper'));
+    }
     expect(await read).toEqual({ done: true, value: undefined });
   });
 

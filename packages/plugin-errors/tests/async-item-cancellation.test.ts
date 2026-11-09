@@ -208,7 +208,7 @@ it.each([
 it.each([
   'return',
   'dispose',
-] as const)('closes a nested list started during native generator cleanup (%s)', async (method) => {
+] as const)('ignores nested lists yielded during native generator cleanup (%s)', async (method) => {
   const child = quietSource();
   const gate = Promise.withResolvers<void>();
   async function* source() {
@@ -221,164 +221,39 @@ it.each([
   }
   const iterator = yieldAsyncErrors(source(), [], undefined, 1);
   await iterator.next();
-  const first = iterator.return(undefined);
   const closing =
     method === 'return' ? iterator.return(undefined) : iterator[Symbol.asyncDispose]();
   gate.resolve();
-  try {
+  if (method === 'return') {
+    await expect(closing).resolves.toEqual({ value: undefined, done: true });
+  } else {
     await closing;
-    expect(child.next).toHaveBeenCalledOnce();
-    expect(child.return).toHaveBeenCalledOnce();
-    expect(await first).toEqual({ value: [], done: false });
-  } finally {
-    await child.return!();
-    await first;
   }
-});
-
-it('keeps nested ownership open after return yields and an older read is cancelled', async () => {
-  const child = quietSource();
-  async function* list(value: number) {
-    yield await Promise.resolve(value);
-  }
-  const outer = {
-    next: vi
-      .fn()
-      .mockResolvedValueOnce({ value: child, done: false })
-      .mockResolvedValueOnce({ value: list(3), done: false }),
-    return: vi
-      .fn()
-      .mockResolvedValueOnce({ value: list(2), done: false })
-      .mockResolvedValueOnce({ value: undefined, done: true }),
-    [Symbol.asyncIterator]() {
-      return this;
-    },
-  };
-  const iterator = yieldAsyncErrors(outer, [], undefined, 1);
-  const pending = iterator.next();
-  await vi.waitFor(() => expect(child.next).toHaveBeenCalledOnce());
-  await expect(iterator.return(undefined)).resolves.toEqual({ value: [2], done: false });
-  await expect(pending).resolves.toEqual({ value: undefined, done: true });
-  await expect(iterator.next()).resolves.toEqual({ value: [3], done: false });
-  await iterator.return(undefined);
-  expect(child.return).toHaveBeenCalledOnce();
+  expect(child.next).not.toHaveBeenCalled();
+  expect(child.return).not.toHaveBeenCalled();
 });
 
 it.each([
   false,
   true,
-])('requests child cleanup once without draining (parent yields: %s)', async (parentYields) => {
+])('requests child cleanup once without draining (source yields: %s)', async (sourceYields) => {
   const child = quietSource();
   const settleRead = child.return!.bind(child);
   child.return = vi.fn(async () => {
     await settleRead();
-    // A valid iterator can keep yielding from return indefinitely.
-    // Fail a duplicate call promptly rather than hanging a regressed test.
-    if (vi.mocked(child.return!).mock.calls.length > 1) {
-      throw new Error('child cleanup requested more than once');
-    }
     return { done: false, value: 0 };
   });
   const outer = quietSource();
   outer.next = vi.fn(async () => ({ done: false, value: child }));
-  if (parentYields) {
-    outer.return = vi
-      .fn()
-      .mockResolvedValueOnce({ done: false, value: 0 })
-      .mockResolvedValue({ done: true, value: undefined });
+  if (sourceYields) {
+    outer.return = vi.fn(async () => ({ done: false, value: 0 }));
   }
   const iterator = yieldAsyncErrors(outer, [], undefined, 1);
   const pending = iterator.next();
   await vi.waitFor(() => expect(child.next).toHaveBeenCalledOnce());
-  await expect(iterator.return(undefined)).resolves.toEqual(
-    parentYields ? { done: false, value: 0 } : { done: true, value: undefined },
-  );
+  await expect(iterator.return(undefined)).resolves.toEqual({ done: true, value: undefined });
   await expect(pending).resolves.toEqual({ done: true, value: undefined });
   await iterator.return(undefined);
+  expect(outer.return).toHaveBeenCalledOnce();
   expect(child.return).toHaveBeenCalledOnce();
-});
-
-it('closes late descendants after a nonterminal parent return without reading them', async () => {
-  const grandchild = quietSource();
-  grandchild.next = vi.fn(() => {
-    // Fail promptly if cleanup starts consuming an otherwise quiet descendant.
-    throw new Error('closed child opened a new descendant');
-  });
-  const child = quietSource();
-  const settleRead = child.return!.bind(child);
-  child.return = vi.fn(async () => {
-    await settleRead();
-    return { done: false, value: grandchild };
-  });
-  const outer = quietSource();
-  outer.next = vi.fn(async () => ({ done: false, value: child }));
-  outer.return = vi
-    .fn()
-    .mockResolvedValueOnce({ done: false, value: 0 })
-    .mockResolvedValue({ done: true, value: undefined });
-  const iterator = yieldAsyncErrors(outer, [], undefined, 2);
-  const pending = iterator.next();
-  await vi.waitFor(() => expect(child.next).toHaveBeenCalledOnce());
-
-  await expect(iterator.return(undefined)).resolves.toEqual({ done: false, value: 0 });
-  await expect(pending).resolves.toEqual({ done: true, value: undefined });
-  await iterator.return(undefined);
-  expect(child.return).toHaveBeenCalledOnce();
-  expect(grandchild.return).toHaveBeenCalledOnce();
-  expect(grandchild.next).not.toHaveBeenCalled();
-});
-
-it('closes descendants opened by cleanup after an ancestor terminates', async () => {
-  let resourceOpen = false;
-  const grandchildSource = quietSource();
-  const closeGrandchild = grandchildSource.return!.bind(grandchildSource);
-  grandchildSource.return = vi.fn(() => {
-    resourceOpen = false;
-    return closeGrandchild();
-  });
-  const grandchild = {
-    [Symbol.asyncIterator]() {
-      resourceOpen = true;
-      return grandchildSource;
-    },
-  };
-  const childRead = Promise.withResolvers<IteratorResult<unknown>>();
-  let returns = 0;
-  const child = {
-    next: vi.fn(() => childRead.promise),
-    return: vi.fn(() => {
-      childRead.resolve({ done: false, value: [] });
-      return Promise.resolve(
-        ++returns === 1 ? { done: false, value: grandchild } : { done: true, value: undefined },
-      );
-    }),
-    [Symbol.asyncIterator]() {
-      return this;
-    },
-  };
-  const error = new Error('parent failure');
-  const source = quietSource();
-  source.next = vi
-    .fn()
-    .mockResolvedValueOnce({ done: false, value: child })
-    .mockRejectedValue(error);
-  const iterator = yieldAsyncErrors(source, [], undefined, 2);
-  const pending = iterator.next();
-  await vi.waitFor(() => expect(child.next).toHaveBeenCalledOnce());
-  const failed = iterator.next().catch((failure: unknown) => failure);
-  try {
-    const outcome = await Promise.race([
-      failed.then((failure) => ({ failure })),
-      new Promise<undefined>((resolve) => setTimeout(resolve, 100)),
-    ]);
-    expect(outcome).toEqual({ failure: error });
-    expect(resourceOpen).toBe(false);
-    expect(grandchildSource.next).not.toHaveBeenCalled();
-    expect(grandchildSource.return).toHaveBeenCalledOnce();
-    expect(child.return).toHaveBeenCalledOnce();
-  } finally {
-    await grandchildSource.return!();
-    await failed;
-    await pending;
-  }
 });
