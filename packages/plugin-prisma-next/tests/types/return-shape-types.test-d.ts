@@ -364,6 +364,29 @@ export async function narrowedCollectionWithoutTypeName() {
   await collectionFromInfo({ collection: inheritanceClient.orm.Task, context: {}, info });
 }
 
+const bugCollection = () => inheritanceClient.orm.Task.variant('bug');
+type BugCollection = ReturnType<typeof bugCollection>;
+
+// A collection the compiler can't tell isn't narrowed by variant() needs typeName too.
+export async function genericCollections<C extends BugCollection, O extends object>(
+  bugs: C,
+  other: O,
+  flag: boolean,
+) {
+  await collectionFromInfo({ collection: bugs, context: {}, info, typeName: 'Bug' });
+  await collectionFromInfo({ collection: other, context: {}, info, typeName: 'Bug' });
+  // @ts-expect-error typeName is required for a generic collection that may be narrowed
+  await collectionFromInfo({ collection: bugs, context: {}, info });
+  // @ts-expect-error typeName is required for a collection that may be narrowed
+  await collectionFromInfo({ collection: other, context: {}, info });
+  // @ts-expect-error typeName is required for a union with a narrowed collection
+  await collectionFromInfo({
+    collection: flag ? inheritanceClient.orm.Task.variant('bug') : inheritanceClient.orm.Task,
+    context: {},
+    info,
+  });
+}
+
 // A collection typed by a type parameter keeps its methods.
 export async function plannedGeneric<C extends CollectionFor<Types, 'Post'>>(collection: C) {
   const planned = await collectionFromInfo({ collection, context: {}, info });

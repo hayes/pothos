@@ -8,7 +8,7 @@ import {
   getNamedType,
 } from 'graphql';
 import { PRISMA_NEXT_CONFIG, PRISMA_NEXT_MODEL } from '../constants.js';
-import type { PlannedCollection, VariantTypeName } from '../types/collections.js';
+import type { PlannedCollection } from '../types/collections.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection, PlannedQuery, PrismaNextPlan } from './adapter.js';
 import type { PrismaNextConfig } from './config.js';
@@ -126,12 +126,12 @@ export interface CollectionFromInfoOptions<C> extends PlanTarget {
  * rows itself, such as a mutation's. `path`/`paths` select beneath the field (`['post']` for a
  * payload's `post`), and `typeName` names the type the rows resolve as.
  */
-// The first overload takes a generic collection, whose `VariantTypeName` is deferred.
+// A collection narrowed by `variant()`, or one the compiler can't tell isn't, needs `typeName`.
 export function collectionFromInfo<C extends HasNoVariant>(
   options: CollectionFromInfoOptions<C>,
 ): Promise<PlannedCollection<C>>;
 export function collectionFromInfo<C extends object>(
-  options: CollectionFromInfoOptions<C> & VariantTypeName<C>,
+  options: CollectionFromInfoOptions<C> & { typeName: string },
 ): Promise<PlannedCollection<C>>;
 export async function collectionFromInfo<C extends object>({
   collection,
