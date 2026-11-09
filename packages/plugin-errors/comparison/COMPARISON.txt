@@ -1,0 +1,173 @@
+SUBSCRIPTION ITERATOR DESIGN COMPARISON
+
+Recommendation: ship the refined direct iterator, including the completion-flag
+regression tests. The complete generator alternatives are available for review;
+this recommendation follows implementation and testing, not the first prototype.
+
+Comparison scope
+
+Every candidate uses the same private interface:
+  wrapSubscriptionIterator(source, onError) -> AsyncIterableIterator
+
+The caller in src/index.ts is shared, including eager subscription setup, lazy
+iterator acquisition, and mapping setup errors. Dependencies remain in-process:
+JavaScript iterator behavior and the injected source/callback. No public core
+interface or third-party runtime dependency is added.
+
+The production implementation and PR #1838 were not changed for this comparison.
+The baseline is commit 96156c492. Alternative runtime files, the runner, and this
+report are kept separately under comparison/.
+
+The common suite contains all 186 existing passing errors-plugin tests, four
+existing skips, and five added comparisons: completion getter behavior, a stateful
+completion getter, synchronous reentry, and collection before the first read.
+The same tests run without alteration against each candidate. Types are checked
+with the repository compiler options. Biome checks the candidate sources.
+
+Results
+
+Results are identical on GraphQL 17.0.1 and 16.14.2, using Node v24.15.0.
+Line counts include comments and blank lines, formatted by the same formatter.
+The final column is a sequential-read microbenchmark median: milliseconds per
+100,000 reads, three samples after warmup, separate process per implementation.
+It measures helper overhead, not end-to-end GraphQL performance.
+
+Implementation                    Lines  Passed  Failed  ms / 100k reads
+Current PR baseline             111     188       3           11.57
+Refined direct iterator         112     191       0           11.32
+Async generator per read        116     191       0           56.85
+Synchronous generator           160     191       0           13.45
+Persistent for-await stream     136     174      17           25.29
+
+All variants have four existing skipped tests. Full test names and failure
+messages are in results.json and results.graphql16.json. Each runtime source is
+hashed there so the result can be tied to the file tested. Benchmark samples and
+retained-heap observations are in benchmark-results.json.
+
+What the failures mean
+
+1. Current PR baseline: its three new failures are one small underlying issue.
+   read() consults result.done three times. A stateful getter can report false on
+   the first read and true later, causing the wrapper to drop a real event.
+   The refined direct version snapshots Boolean(result.done) once and uses that
+   decision throughout the operation. It is one extra line and passes all cases.
+
+2. The per-read and synchronous generator variants pass the complete profile.
+   The synchronous version initially failed reentry; it now has an explicit
+   dispatching guard and a direct-call fallback for reentrant source requests.
+
+3. The persistent stream's 17 failures represent approximately three semantic
+   differences, not 17 independent production bugs:
+     - native generator reads serialize rather than preserving independent
+       completion of concurrent source reads;
+     - for-await does not forward next() arguments to the source;
+     - throw() goes into the wrapper generator rather than the source.
+   Most failures are parameterized consequences of the last difference.
+   The affected GraphQL integration case produces the correct one error event
+   and completion; it differs only in whether the source is called once or twice.
+   The stream passes actual GraphQL output, setup/cancellation timing, listener
+   removal, pending-payload cancellation, native finally-yield continuation,
+   concurrent returns, and collection tests. It is a valid narrower design.
+   It can nevertheless block a new source read behind an unresolved earlier read,
+   including the custom-source continuation case after return(done:false).
+
+Read the actual implementations
+
+  ../src/subscription-iterator.ts
+      Current PR baseline, retained as the comparison control.
+
+  subscription-iterator.direct.ts
+      The direct implementation plus the completion-flag snapshot.
+      Source operations, cancellation versions, and cleanup remain explicit.
+      No generator lifecycle has to be coordinated with the source lifecycle.
+
+  subscription-iterator.generator.ts
+      A complete async-generator alternative with the same passing profile.
+      normalize(result) builds a synthetic iterable and consumes one generator
+      step so native iteration validates the result and awaits its payload.
+      The original terminal result is boxed as the generator return value.
+      This still retains the direct iterator's lifecycle state and error path.
+      The synthetic iterable repeats the one result; callers deliberately consume
+      exactly one step. This constraint is part of its extra conceptual cost.
+
+  subscription-iterator.sync-generator.ts
+      A persistent synchronous generator dispatches source reads without waiting.
+      It needs generator priming, dispatcher state, and a reentry fallback.
+      It retains the original validation and lifecycle code. It works, but the
+      generator adds indirection rather than taking responsibility away.
+
+  subscription-iterator.stream-generator.ts
+      The natural for-await loop, developed beyond the incomplete short patch.
+      It needs three bridges beyond the simple generator body:
+        * box event payloads so the generator does not await them during yield;
+        * direct source cleanup plus detached internal-generator closure;
+        * record terminal source results because for-await discards that value.
+      It shares close() between implicit and explicit cleanup to avoid duplicate
+      source closure. Its interface differs in the three ways listed above.
+      The short readable loop does not remove the surrounding lifecycle work.
+
+Iteration history
+
+  - The issue author's short patch was reproduced with missed cleanup during
+    setup, duplicate cleanup between events, and no cleanup after a failed read.
+  - A roughly 45-line hardened generator fixed ordinary cases, but still blocked
+    return behind a pending payload and stranded finally-yield cleanup.
+  - We completed all three generator designs instead of stopping there.
+  - The async per-operation implementation was simplified from 124 to 116 lines,
+    removing nested failure ownership and terminal-capture bookkeeping.
+  - The persistent stream was rewritten as an actual for-await loop instead of
+    manually dispatching reads inside a generator.
+  - Synchronous reentry was fixed rather than left as a prototype limitation.
+  - The common comparison found the completion-getter improvement for the direct
+    implementation too. The baseline was not assumed to be correct.
+
+Readability and decision
+
+The line counts alone do not decide this. The direct version is easier to follow
+because a requested operation corresponds directly to the source method and its
+state transition. The generator-per-read version is functional but replaces a
+small assertion and await with a synthetic iterable, an extra iterator result,
+and a one-step consumption rule. The synchronous variant adds dispatcher state.
+The persistent stream adds boxes and an out-of-band close to work around its queue.
+
+The independent architecture audit and the generator-design author both recommend
+the refined direct implementation. This is an agent review, not human approval.
+For shipping, promote the completion getter regressions into the regular suite;
+keep these experimental alternatives as comparison evidence, outside production.
+
+Memory and limits
+
+Every final candidate passes the existing 20,000-subscription churn test and both
+weak-reference collection scenarios, including a retained closed wrapper. The
+microbenchmark shows no meaningful retained-memory distinction after collection.
+None forcibly cancels arbitrary user promises or repairs a source that fails to
+release its resources/settle pending reads. Cancellation assertions are at this
+wrapper's interface; they do not promise to abort an upstream GraphQL resolver.
+
+Reproduce from the repository root
+
+  All variants, existing plugin tests plus comparison contracts:
+    pnpm exec tsx packages/plugin-errors/comparison/compare.mts
+
+  One implementation:
+    POTHOS_ITERATOR_VARIANT=generator pnpm exec vitest run --config packages/plugin-errors/comparison/vitest.config.mts
+
+  Allowed variant names:
+    direct, direct-refined, generator, sync-generator, stream-generator
+
+  Alternate GraphQL version (absolute path to its installed index.mjs):
+    POTHOS_ITERATOR_GRAPHQL=/path/to/graphql/index.mjs pnpm exec tsx packages/plugin-errors/comparison/compare.mts
+
+  Strict typecheck:
+    pnpm exec tsc --project packages/plugin-errors/comparison/tsconfig.json
+
+  Lint:
+    pnpm exec biome check packages/plugin-errors/comparison
+
+  Benchmark one variant:
+    pnpm exec node --expose-gc --import tsx packages/plugin-errors/comparison/benchmark.mts direct-refined
+
+The comparison runner intentionally returns successfully when it finishes reporting
+all variants, even if a candidate has known differences. Direct vitest invocation
+returns a failing status for failed assertions. The comparison contracts use a
+.compare.ts filename so they are opt-in and do not alter the ordinary plugin suite.

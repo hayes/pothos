@@ -1,0 +1,138 @@
+{
+  "node": "v24.15.0",
+  "graphql": "17.0.1",
+  "results": [
+    {
+      "variant": "direct",
+      "implementation": "../src/subscription-iterator.ts",
+      "lines": 111,
+      "sha256": "6998a54c883da850ce9f405889570f93fe6c166f1521001e1fdf7c39bf3ad804",
+      "passed": 188,
+      "failed": 3,
+      "skipped": 4,
+      "failures": [
+        {
+          "name": "uses one completion decision when the source flag is a stateful getter",
+          "message": "AssertionError: expected true to be false // Object.is equality\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/comparison/contract.compare.ts:25:23\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        },
+        {
+          "name": "reads the source completion flag once (done: false)",
+          "message": "AssertionError: expected 3 to be 1 // Object.is equality\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/comparison/contract.compare.ts:49:19\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        },
+        {
+          "name": "reads the source completion flag once (done: true)",
+          "message": "AssertionError: expected 3 to be 1 // Object.is equality\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/comparison/contract.compare.ts:49:19\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        }
+      ]
+    },
+    {
+      "variant": "direct-refined",
+      "implementation": "./subscription-iterator.direct.ts",
+      "lines": 112,
+      "sha256": "a67b0fe099c4df9f43b73c00863d59cac7633217ea2d7e136561a77ecf92fd24",
+      "passed": 191,
+      "failed": 0,
+      "skipped": 4,
+      "failures": []
+    },
+    {
+      "variant": "generator",
+      "implementation": "./subscription-iterator.generator.ts",
+      "lines": 116,
+      "sha256": "b66c52fb95c482d4ea35961574d0a54b5fa89c9fdfa05ad4a5f8339b81454719",
+      "passed": 191,
+      "failed": 0,
+      "skipped": 4,
+      "failures": []
+    },
+    {
+      "variant": "sync-generator",
+      "implementation": "./subscription-iterator.sync-generator.ts",
+      "lines": 160,
+      "sha256": "f88f8cd9ffac1c398186666a08d7013644b28ae2f8c51d5cf7244536ba571bd2",
+      "passed": 191,
+      "failed": 0,
+      "skipped": 4,
+      "failures": []
+    },
+    {
+      "variant": "stream-generator",
+      "implementation": "./subscription-iterator.stream-generator.ts",
+      "lines": 136,
+      "sha256": "1ecc33d7cd0cca134ba3cc5c9dc9364f4532df60cd04c67cca91762a9f575c54",
+      "passed": 174,
+      "failed": 17,
+      "skipped": 4,
+      "failures": [
+        {
+          "name": "subscription cancellation emits a final error only once when concurrent source reads fail",
+          "message": "AssertionError: expected \"vi.fn()\" to be called 2 times, but got 1 times\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-cancellation.test.ts:323:35\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        },
+        {
+          "name": "subscription iterator invalid throw methods rejects a present non-callable method false",
+          "message": "Error: expected Error: caller error to be an instance of TypeError\n    at _Assertion.__VITEST_REJECTS__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:31:64\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@v"
+        },
+        {
+          "name": "subscription iterator invalid throw methods rejects a present non-callable method 0",
+          "message": "Error: expected Error: caller error to be an instance of TypeError\n    at _Assertion.__VITEST_REJECTS__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:31:64\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@v"
+        },
+        {
+          "name": "subscription iterator invalid throw methods rejects a present non-callable method \"\"",
+          "message": "Error: expected Error: caller error to be an instance of TypeError\n    at _Assertion.__VITEST_REJECTS__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:31:64\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@v"
+        },
+        {
+          "name": "subscription iterator invalid throw methods rejects a present non-callable method {}",
+          "message": "Error: expected Error: caller error to be an instance of TypeError\n    at _Assertion.__VITEST_REJECTS__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:31:64\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@v"
+        },
+        {
+          "name": "subscription iterator invalid throw results reports invalid result null as a TypeError and closes the wrapper",
+          "message": "Error: expected undefined to be an instance of TypeError\n    at _Assertion.__VITEST_REJECTS__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:55:39\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runn"
+        },
+        {
+          "name": "subscription iterator invalid throw results reports invalid result undefined as a TypeError and closes the wrapper",
+          "message": "Error: expected undefined to be an instance of TypeError\n    at _Assertion.__VITEST_REJECTS__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:55:39\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runn"
+        },
+        {
+          "name": "subscription iterator invalid throw results reports invalid result false as a TypeError and closes the wrapper",
+          "message": "Error: expected undefined to be an instance of TypeError\n    at _Assertion.__VITEST_REJECTS__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:55:39\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runn"
+        },
+        {
+          "name": "subscription iterator invalid throw results reports invalid result 0 as a TypeError and closes the wrapper",
+          "message": "Error: expected undefined to be an instance of TypeError\n    at _Assertion.__VITEST_REJECTS__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:55:39\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runn"
+        },
+        {
+          "name": "subscription iterator invalid throw results reports invalid result 1 as a TypeError and closes the wrapper",
+          "message": "Error: expected undefined to be an instance of TypeError\n    at _Assertion.__VITEST_REJECTS__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:55:39\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runn"
+        },
+        {
+          "name": "subscription iterator invalid throw results reports invalid result \"\" as a TypeError and closes the wrapper",
+          "message": "Error: expected undefined to be an instance of TypeError\n    at _Assertion.__VITEST_REJECTS__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:55:39\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runn"
+        },
+        {
+          "name": "subscription iterator invalid throw results reports invalid result \"event\" as a TypeError and closes the wrapper",
+          "message": "Error: expected undefined to be an instance of TypeError\n    at _Assertion.__VITEST_REJECTS__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:55:39\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runn"
+        },
+        {
+          "name": "subscription iterator does not lose concurrent values when a later read completes the source",
+          "message": "Error: STACK_TRACE_ERROR\n    at task (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:121:3\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist"
+        },
+        {
+          "name": "subscription iterator looks up next once and forwards arguments with the source receiver",
+          "message": "Error: expected { value: undefined, done: true } to deeply equal { value: 123, done: true }\n    at _Assertion.__VITEST_RESOLVES__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1710:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:170:40\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+r"
+        },
+        {
+          "name": "subscription iterator looks up throw once and forwards arguments with the source receiver",
+          "message": "Error: expected { value: 'error', done: false } to deeply equal { value: 123, done: true }\n    at _Assertion.__VITEST_RESOLVES__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1710:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:170:40\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+ru"
+        },
+        {
+          "name": "subscription iterator forwards throw to a source that can recover",
+          "message": "Error: expected { value: 'error', done: false } to deeply equal { value: 2, done: false }\n    at _Assertion.__VITEST_RESOLVES__ (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+expect@4.1.4/node_modules/@vitest/expect/dist/index.js:1710:17)\n    at _Assertion.propertyGetter (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1659:22)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:187:40\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        },
+        {
+          "name": "subscription iterator keeps earlier reads cancelled when return allows new reads to continue",
+          "message": "Error: STACK_TRACE_ERROR\n    at task (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at /Users/hayes/hayes/pothos/packages/plugin-errors/tests/subscription-iterator.test.ts:242:3\n    at file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///Users/hayes/hayes/pothos/node_modules/.pnpm/@vitest+runner@4.1.4/node_modules/@vitest/runner/dist"
+        }
+      ]
+    }
+  ]
+}

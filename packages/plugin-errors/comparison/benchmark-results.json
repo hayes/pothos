@@ -1,0 +1,101 @@
+{
+  "node": "v24.15.0",
+  "description": "Three sequential samples after warmup, 100000 reads per sample; synthetic helper overhead, not GraphQL throughput.",
+  "results": [
+    {
+      "variant": "direct",
+      "iterations": 100000,
+      "medianMilliseconds": 11.571792000000002,
+      "samples": [
+        {
+          "milliseconds": 11.627959000000004,
+          "retainedBytes": -3152
+        },
+        {
+          "milliseconds": 11.571792000000002,
+          "retainedBytes": 11968
+        },
+        {
+          "milliseconds": 11.465542,
+          "retainedBytes": 13520
+        }
+      ]
+    },
+    {
+      "variant": "direct-refined",
+      "iterations": 100000,
+      "medianMilliseconds": 11.317999999999998,
+      "samples": [
+        {
+          "milliseconds": 11.678291999999999,
+          "retainedBytes": -3664
+        },
+        {
+          "milliseconds": 11.317999999999998,
+          "retainedBytes": 11968
+        },
+        {
+          "milliseconds": 11.226375000000004,
+          "retainedBytes": 13520
+        }
+      ]
+    },
+    {
+      "variant": "generator",
+      "iterations": 100000,
+      "medianMilliseconds": 56.845583000000005,
+      "samples": [
+        {
+          "milliseconds": 57.63475,
+          "retainedBytes": -2560
+        },
+        {
+          "milliseconds": 56.845583000000005,
+          "retainedBytes": 12152
+        },
+        {
+          "milliseconds": 56.27120800000003,
+          "retainedBytes": 13896
+        }
+      ]
+    },
+    {
+      "variant": "sync-generator",
+      "iterations": 100000,
+      "medianMilliseconds": 13.454624999999993,
+      "samples": [
+        {
+          "milliseconds": 13.454624999999993,
+          "retainedBytes": -5176
+        },
+        {
+          "milliseconds": 13.219166999999999,
+          "retainedBytes": 11800
+        },
+        {
+          "milliseconds": 14.112625000000008,
+          "retainedBytes": 13520
+        }
+      ]
+    },
+    {
+      "variant": "stream-generator",
+      "iterations": 100000,
+      "medianMilliseconds": 25.288459000000017,
+      "samples": [
+        {
+          "milliseconds": 24.96041600000001,
+          "retainedBytes": -5944
+        },
+        {
+          "milliseconds": 26.707167,
+          "retainedBytes": 11800
+        },
+        {
+          "milliseconds": 25.288459000000017,
+          "retainedBytes": 13520
+        }
+      ]
+    }
+  ]
+}

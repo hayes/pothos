@@ -1,0 +1,8 @@
+{
+  "extends": "../tsconfig.type.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false
+  },
+  "include": ["*.ts", "*.mts", "../src/subscription-iterator.ts"]
+}
