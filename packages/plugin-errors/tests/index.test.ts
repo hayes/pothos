@@ -282,7 +282,7 @@ describe('errors plugin', () => {
     `);
   });
 
-  it('subscription null', async () => {
+  it('reports a null subscription source as an error', async () => {
     const result = await subscribe({
       schema,
       document: gql`
@@ -305,8 +305,16 @@ describe('errors plugin', () => {
       results.push(value);
     }
 
-    // biome-ignore lint/style/noUnusedTemplateLiteral: snapshot
-    expect(results).toMatchInlineSnapshot(`[]`);
+    expect(results).toEqual([
+      {
+        data: {
+          test: {
+            __typename: 'BaseError',
+            message: expect.stringContaining('asyncIterator'),
+          },
+        },
+      },
+    ]);
   });
 
   it('subscription error on subscribe', async () => {

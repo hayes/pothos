@@ -3,7 +3,9 @@ import './schema-builder.js';
 import './field-builder.js';
 import SchemaBuilder, {
   BasePlugin,
+  completeValue,
   type ImplementableObjectRef,
+  type MaybePromise,
   type Normalize,
   type PothosOutputFieldConfig,
   type PothosOutputFieldType,
@@ -13,6 +15,7 @@ import SchemaBuilder, {
   unwrapOutputFieldType,
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'graphql';
+import { wrapSubscriptionIterator } from './subscription-iterator.js';
 import type { ErrorFieldOptions, GetTypeName } from './types.js';
 import {
   defaultGetListItemResultName,
@@ -253,24 +256,48 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       return subscribe;
     }
 
-    return (...args) => {
-      async function* yieldSubscribeErrors() {
-        try {
-          const iter = (await subscribe(...args)) as AsyncIterableIterator<unknown>;
-
-          if (!iter) {
-            return iter;
+    const handleError = (error: unknown) => wrapOrThrow(error, pothosErrors, onResolvedError);
+    const wrap = (iterable: AsyncIterable<unknown>): AsyncIterableIterator<unknown> => {
+      let input: AsyncIterable<unknown> | undefined = iterable;
+      let iterator: AsyncIterableIterator<unknown> | undefined;
+      const getIterator = () => {
+        if (!iterator) {
+          try {
+            const source = input![Symbol.asyncIterator]();
+            iterator = wrapSubscriptionIterator(source, handleError);
+          } catch (error) {
+            iterator = setupError(error);
+          } finally {
+            input = undefined;
           }
-
-          for await (const value of iter) {
-            yield value;
-          }
-        } catch (error: unknown) {
-          yield wrapOrThrow(error, pothosErrors ?? [], onResolvedError);
         }
-      }
+        return iterator;
+      };
+      return {
+        next: (...args) => getIterator().next(...args),
+        return: (...args) => getIterator().return!(...args),
+        throw: (...args) => getIterator().throw!(...args),
+        [Symbol.asyncIterator]() {
+          getIterator();
+          return this;
+        },
+      };
+    };
 
-      return yieldSubscribeErrors();
+    async function* setupError(error: unknown) {
+      yield await handleError(error);
+    }
+
+    return (...args) => {
+      try {
+        return completeValue(
+          subscribe(...args) as MaybePromise<AsyncIterable<unknown>>,
+          wrap,
+          setupError,
+        );
+      } catch (error) {
+        return setupError(error);
+      }
     };
   }
 
