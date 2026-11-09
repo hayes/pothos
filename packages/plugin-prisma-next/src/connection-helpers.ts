@@ -162,23 +162,32 @@ export interface PrismaNextConnectionHelpers<
     : Ref;
   getArgs(): Args;
   /**
-   * The entry of a to-many relation in a connection field's select function. It loads one page of
-   * the relation in the parent's query; pass the rows to `resolve`. A connection beneath the field
-   * pages by its own arguments, not `args`.
+   * The entry of a to-many relation of this model in a connection field's select function. It
+   * loads one page of the relation in the parent's query, with the selection beneath the
+   * connection's nodes, and its count when `totalCount` is selected. Pass the rows to `resolve`.
+   * `args` are the field's. A connection beneath the field, at a prefixed path, ignores them: it
+   * pages by its own arguments, and fails the request when aliases of it select different ones.
    */
   getQuery(
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
     nestedSelection: (options: { path: readonly PathSegment[] }) => unknown,
   ): ConnectionPageEntry<M, HelperRow<Types, M, Select, Ref>>;
-  /** Loads one page of `collection` for the root connection field `info` resolves. */
+  /**
+   * Loads one page of `collection`, a collection of this model, for the root connection field
+   * `info` resolves: filtered and paged as `getQuery` pages a relation, with the selection beneath
+   * the connection's nodes, and its count when `totalCount` is selected. Pass the rows to `resolve`.
+   */
   load<C extends ResolverCollection<Types, M>>(
     collection: C & NoInfer<UnorderedCollection<C>>,
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
     info: GraphQLResolveInfo,
   ): Promise<HelperRow<Types, M, Select, Ref>[]>;
-  /** The connection of `rows`, paged by `args` as `getQuery` or `load` paged them. */
+  /**
+   * The connection of `rows`, paged by `args` as `getQuery` or `load` paged them. `totalCount` is
+   * the count they loaded with the rows, unless one is passed.
+   */
   resolve(
     rows: readonly HelperRow<Types, M, Select, Ref>[],
     args: ConnectionArgs<Args>,
@@ -187,7 +196,9 @@ export interface PrismaNextConnectionHelpers<
   ): HelperPage<Node, HelperRow<Types, M, Select, Ref>, MaybeRow>;
 }
 
+/** What a connection helper's `resolve` passes on to the connection. */
 export interface ConnectionHelperResolveOptions {
+  /** The connection field's parent. */
   parent?: unknown;
   /** The connection's count, in place of one `getQuery` or `load` loaded. */
   totalCount?: number;
@@ -205,7 +216,10 @@ export interface PrismaNextConnectionHelperOptions<
   totalCount?: TotalCountFlag<Types>;
   /** Filters and orders the relation, like `t.relatedConnection`'s `query`. */
   query?: ConnectionQueryOption<Types, M, Args, QueryLiteral>;
-  /** What each row loads. A to-one relation given `nodeSelection()` holds the nodes. */
+  /**
+   * What each row loads beside its key and cursor columns. A to-one relation given
+   * `nodeSelection()` holds the nodes: the selection beneath them is planned into it.
+   */
   select?: (
     nodeSelection: () => NodeSelection,
     args: ConnectionArgs<Args>,

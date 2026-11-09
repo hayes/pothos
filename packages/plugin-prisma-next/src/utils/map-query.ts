@@ -124,7 +124,9 @@ export interface CollectionFromInfoOptions<C> extends PlanTarget {
 /**
  * Applies the selection of the field `info` resolves to `collection`, for a resolver that loads
  * rows itself, such as a mutation's. `path`/`paths` select beneath the field (`['post']` for a
- * payload's `post`), and `typeName` names the type the rows resolve as.
+ * payload's `post`), and `typeName` names the type the rows resolve as when the path leads to an
+ * interface or union, or the collection is narrowed by `variant()`. The rows the returned
+ * collection's reads and writes return resolve the selection without loading again.
  */
 // A collection narrowed by `variant()`, or one the compiler can't tell isn't, needs `typeName`.
 export function collectionFromInfo<C extends HasNoVariant>(
