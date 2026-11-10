@@ -166,7 +166,10 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
         // The resolver reads the position it was planned at by `info.path`, whichever same-model
         // type the mapping was found under. The fields beneath answer from this row's plan: a
         // sibling row of the same list may have been loaded by another plan.
-        setPlannedPosition(info.path, mapping.position);
+        if (mapping.position) {
+          setPlannedPosition(info.path, mapping.position);
+        }
+
         setRowMappings(context, info, mapping.nested);
 
         return resolver(parent, args, context, info);

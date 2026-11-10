@@ -175,8 +175,9 @@ describe('relatedConnection inherited from a drizzle interface', () => {
     });
 
     expect(result.errors).toBeUndefined();
-    // The reload plans the field alone, so its path starts at the field.
-    expect(seenPaths.at(-1)).toEqual(seenPaths.at(-2));
+    // The reload plans the field alone, for the row's concrete type, so its path starts at the
+    // field.
+    expect(seenPaths).toEqual([['User.posts'], ['User.posts']]);
     expect(
       (result.data as { rawUser: { posts: Page } }).rawUser.posts.edges.map((edge) => edge.node.id),
     ).toEqual((await postIds(1, 'asc')).slice(0, 2));

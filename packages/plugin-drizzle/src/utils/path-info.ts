@@ -3,10 +3,10 @@ import { type GraphQLOutputType, isListType, isNonNullType } from 'graphql';
 import type { FieldPathInfo, PathInfo } from '../types.js';
 
 /** Set by each field's gate before its resolver runs, by `info.path`. */
-const plannedAt = new WeakMap<object, Position | undefined>();
+const plannedAt = new WeakMap<object, Position>();
 
-/** Records the position the field executing at `path` was planned at, if it ran a callback. */
-export function setPlannedPosition(path: object, position: Position | undefined) {
+/** Records the position the field executing at `path` was planned at. */
+export function setPlannedPosition(path: object, position: Position) {
   plannedAt.set(path, position);
 }
 

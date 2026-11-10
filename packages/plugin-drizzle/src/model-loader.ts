@@ -166,14 +166,15 @@ export class ModelLoader {
       if (result) {
         const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
 
-        // The field's resolver pages with the position of this load, not the one its parent was
-        // planned at.
-        setPlannedPosition(info.path, mapping?.position);
-
         if (mapping) {
-          // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
-          // with, along with the mappings of the fields beneath it. Against `result` alone: this
-          // load fetched one row, so the field's own mapping answers for that row's lookup only.
+          if (mapping.position) {
+            // The field's resolver pages with the position of this load, not the one its parent
+            // was planned at.
+            setPlannedPosition(info.path, mapping.position);
+          }
+
+          // The mappings of the fields beneath, against `result` alone: this load fetched one
+          // row, so the field's own mapping answers for that row's lookup only.
           setRowFieldMapping(this.context, info, mapping, result);
         }
       }
