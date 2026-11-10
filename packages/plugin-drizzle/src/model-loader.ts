@@ -267,7 +267,7 @@ export class ModelLoader {
             const rows = new Map<string, (typeof results)[number]>();
 
             for (const row of results) {
-              const key = rowKey(row as Record<string, unknown>, this.columnNames);
+              const key = rowKey(row, this.columnNames);
 
               if (key !== undefined && !rows.has(key)) {
                 rows.set(key, row);
