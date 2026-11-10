@@ -109,8 +109,13 @@ type Subscribe = (args: {
   contextValue: object;
 }) => unknown;
 
-async function events(subscribeWith: Subscribe, source: string) {
-  const result = (await subscribeWith({ schema, document: parse(source), contextValue: {} })) as
+async function events(
+  subscribeWith: Subscribe,
+  source: string,
+  on: GraphQLSchema = schema,
+  contextValue: object = {},
+) {
+  const result = (await subscribeWith({ schema: on, document: parse(source), contextValue })) as
     | AsyncIterable<unknown>
     | object;
 
@@ -224,5 +229,72 @@ describe('plans for one response path beneath different types', () => {
         {},
       ],
     });
+  });
+});
+
+// Each event sets `published` on the context before it is yielded, for the counts to filter by.
+const eventBuilder = new SchemaBuilder<{
+  PrismaTypes: PrismaTypesFromClient<typeof prisma>;
+  Context: { published: boolean };
+}>({
+  plugins: [PrismaPlugin],
+  prisma: {
+    client: () => prisma,
+    dmmf: getDatamodel(),
+  },
+});
+
+const EventUser = eventBuilder.prismaObject('User', {
+  fields: (t) => ({
+    // Loads through a reload of the parent.
+    n: t.relationCount('posts', { where: (_args, ctx) => ({ published: ctx.published }) }),
+    // Loads through the relation's own resolver, with a query planned for what is beneath it.
+    firstPost: t.relation('posts', {
+      query: { take: 1, orderBy: { id: 'asc' } },
+      resolve: (query, user) => prisma.post.findMany({ ...query, where: { authorId: user.id } }),
+    }),
+  }),
+});
+
+eventBuilder.prismaObject('Post', {
+  fields: (t) => ({ author: t.relation('author') }),
+});
+
+eventBuilder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+
+eventBuilder.subscriptionType({
+  fields: (t) => ({
+    user: t.field({
+      type: EventUser,
+      subscribe: async function* (_root, _args, context) {
+        for (const published of [true, false]) {
+          context.published = published;
+          yield await Promise.resolve(1);
+        }
+      },
+      // Loaded without the query, so what is beneath it loads on its own.
+      resolve: (id) => prisma.user.findUniqueOrThrow({ where: { id } }),
+    }),
+  }),
+});
+
+const eventSchema = eventBuilder.toSchema();
+
+describe.each([
+  ['graphql-js', subscribe as Subscribe],
+  ['@graphql-tools/executor', toolsSubscribe as Subscribe],
+])('plans for each subscription event through %s', (_, subscribeWith) => {
+  it('runs select callbacks again for each event', async () => {
+    expect(
+      await events(
+        subscribeWith,
+        'subscription { user { n firstPost { author { n } } } }',
+        eventSchema,
+        { published: false },
+      ),
+    ).toEqual([
+      { data: { user: { n: 149, firstPost: [{ author: { n: 149 } }] } } },
+      { data: { user: { n: 101, firstPost: [{ author: { n: 101 } }] } } },
+    ]);
   });
 });
