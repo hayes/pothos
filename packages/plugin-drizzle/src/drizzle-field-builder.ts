@@ -18,11 +18,7 @@ import {
   type ShapeFromTypeParam,
   type TypeParam,
 } from '@pothos/core';
-import {
-  getLoaderMapping,
-  type SelectedFieldNode,
-  selectedFieldNames,
-} from '@pothos/selection-mapper';
+import { type SelectedFieldNode, selectedFieldNames } from '@pothos/selection-mapper';
 import {
   and,
   type BuildQueryResult,
@@ -59,7 +55,7 @@ import {
   getCursorFormatter,
   wrapConnectionResult,
 } from './utils/cursors.js';
-import { pathInfoFor } from './utils/path-info.js';
+import { pathInfoFor, plannedPosition } from './utils/path-info.js';
 import { getRefFromModel } from './utils/refs.js';
 import { buildRelationFilter, type RelationQueryBuilder } from './utils/relation-filter.js';
 import type { SelectionMap } from './utils/selections.js';
@@ -481,12 +477,10 @@ export class DrizzleObjectFieldBuilder<
             };
           }
 
-          // The same position the select path planned this field at, recorded alongside its
-          // loader mapping, so a `query` that branches on its path pages the rows it selected.
-          // Asked of `parent`, because that is whose rows are being paged: a sibling row of the
-          // same list may have been loaded by a different plan, at a different position.
-          const position = getLoaderMapping(context, info, info.parentType.name, parent)?.position;
-          const fieldQuery = resolveFieldQuery(args, context, pathInfoFor(position));
+          // The position the rows on `parent` were planned at, recorded by the field's gate for
+          // this execution (or by the reload that fetched `parent`), so a `query` that branches on
+          // its path pages the rows it selected.
+          const fieldQuery = resolveFieldQuery(args, context, pathInfoFor(plannedPosition(info)));
 
           return isThenable(fieldQuery)
             ? fieldQuery.then((resolved) =>

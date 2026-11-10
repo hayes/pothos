@@ -1,4 +1,4 @@
-import { createContextCache, PothosValidationError } from '@pothos/core';
+import { createContextCache } from '@pothos/core';
 import {
   type Node,
   NodeAdapter,
@@ -11,6 +11,7 @@ import { getColumns, type Table, type TableRelationalConfig } from 'drizzle-orm'
 import type { GraphQLField, GraphQLNamedType } from 'graphql';
 import type { DrizzleFieldSelection, PathInfo } from '../types.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
+import { InternalError } from './errors.js';
 import { pathInfoFor } from './path-info.js';
 import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 
@@ -157,7 +158,8 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
         query.columns[column] = true;
       }
 
-      for (const column of this.config.getPrimaryKey(node.model.name)) {
+      // Read when a row is reloaded. A table without a key cannot be reloaded, with or without it.
+      for (const column of this.config.findPrimaryKey(node.model.name) ?? []) {
         query.columns[this.config.columnToTsName(column)] = true;
       }
     }
@@ -189,7 +191,7 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
       const relationConfig = model.relations[key];
 
       if (!relationConfig) {
-        throw new PothosValidationError(`Relation ${key} does not exist on ${model.name}`);
+        throw new UnknownRelationError(key, model.name);
       }
 
       visit.relation(
@@ -198,6 +200,16 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
         value === true ? ALL : (value as SelectionMap),
       );
     }
+  }
+}
+
+/** A select naming a relation its table does not have. */
+export class UnknownRelationError extends InternalError {
+  constructor(
+    readonly relation: string,
+    readonly table: string,
+  ) {
+    super(`Relation ${relation} does not exist on ${table}`);
   }
 }
 

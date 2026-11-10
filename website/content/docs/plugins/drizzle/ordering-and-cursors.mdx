@@ -49,9 +49,15 @@ so give them a tie breaker yourself.
 
 ### Nullable ordering columns
 
-A row whose ordering value is `null` cannot be paged past. `null` is not greater or less than
-anything in SQL, so no row compares as coming after it and the next page comes back empty. The same
-applies to an ordering expression that can evaluate to `null`.
+`null` is not greater or less than anything in SQL, so a cursor cannot page across the point where
+rows with a `null` ordering value meet rows with a value. A cursor taken from a row with a value
+never returns the `null` rows, and a cursor taken from a `null` row returns only the remaining `null`
+rows, or nothing when the ordering has no tie breaker. Depending on where the database sorts nulls
+and which way you page, the rows on the other side of that point are missing from every later page.
+A page requested without a cursor is complete.
+
+The same applies to an ordering expression that can evaluate to `null`. A nullable column later in
+the ordering loses rows the same way, among the rows that share the values of the columns before it.
 
 Order by columns that are `notNull()`, or give the expression a real value to fall back to with
 `coalesce`.
