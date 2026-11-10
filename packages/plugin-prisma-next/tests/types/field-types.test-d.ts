@@ -1036,3 +1036,28 @@ builder.queryFields((t) => ({
     fields: (t) => ({ id: t.exposeID('id') }),
   });
 }
+
+// Without a `PrismaContract` no model name is accepted, and the type that rejects it names the
+// setup. It is not a string literal, which editors would offer as a completion.
+type NoContractTypes = PothosSchemaTypes.ExtendDefaultTypes<{}>;
+expectTypeOf<ModelKey<NoContractTypes>>().toEqualTypeOf<
+  string & {
+    readonly missingPrismaContract: 'Set PrismaContract on SchemaTypes: new SchemaBuilder<{ PrismaContract: typeof contract }>(...)';
+  }
+>();
+const noContract = new SchemaBuilder<{}>({
+  plugins: [PrismaNextPlugin],
+  prisma: { client: null as never },
+});
+noContract.prismaObject(
+  // @ts-expect-error a model name needs a `PrismaContract`
+  'User',
+  { fields: () => ({}) },
+);
+noContract.queryField('users', (t) =>
+  t.prismaField({
+    // @ts-expect-error a model name needs a `PrismaContract`
+    type: ['User'],
+    collection: () => null as never,
+  }),
+);
