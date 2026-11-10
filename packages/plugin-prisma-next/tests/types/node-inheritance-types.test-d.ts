@@ -49,20 +49,20 @@ const CompoundNode = builder.prismaNode('Post', {
 });
 const ParsedNode = builder.prismaNode('Post', {
   variant: 'ParsedNode',
-  id: { field: 'id', parse: (id) => id.toLowerCase() },
+  id: { field: 'id', parse: (id) => id.toLowerCase(), resolve: (post) => post.id },
   fields: (t) => ({ title: t.exposeString('title') }),
 });
 // `id.parse` returns the values the node is loaded by: the column's value, or a tuple.
 builder.prismaNode('Post', {
   variant: 'WrongParseNode',
   // @ts-expect-error a single `id` column loads by a string, not an object
-  id: { field: 'id', parse: (id) => ({ id }) },
+  id: { field: 'id', parse: (id) => ({ id }), resolve: (post) => post.id },
   fields: () => ({}),
 });
 builder.prismaNode('Post', {
   variant: 'WrongTypeParseNode',
   // @ts-expect-error `id` is a string column
-  id: { field: 'id', parse: (id) => Number(id) },
+  id: { field: 'id', parse: (id) => Number(id), resolve: (post) => post.id },
   fields: () => ({}),
 });
 builder.prismaNode('Post', {
@@ -70,6 +70,7 @@ builder.prismaNode('Post', {
   id: {
     field: ['authorId', 'id'],
     parse: (id) => [id, id],
+    resolve: (post) => post.id,
   },
   fields: () => ({}),
 });
@@ -104,11 +105,18 @@ builder.prismaNode('User', {
   collection,
   fields: () => ({}),
 });
-// An ID `resolve` encodes, `parse` must decode, or `node(id:)` would find no row.
+// `parse` decodes what `resolve` encodes, so they are set together.
 builder.prismaNode('User', {
   variant: 'ResolveWithoutParse',
   // @ts-expect-error `resolve` needs `parse`
   id: { field: 'id', resolve: (user: { id: string }) => user.id },
+  collection,
+  fields: () => ({}),
+});
+builder.prismaNode('User', {
+  variant: 'ParseWithoutResolve',
+  // @ts-expect-error `parse` needs `resolve`
+  id: { field: 'id', parse: (id) => id },
   collection,
   fields: () => ({}),
 });

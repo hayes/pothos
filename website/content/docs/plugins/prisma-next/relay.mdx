@@ -48,7 +48,7 @@ builder.prismaNode('Comment', {
 `prismaNode` adds these options:
 
 - `id.field`: a column, or a list of columns, covering a non-null primary or unique key.
-- `id.parse` / `id.resolve`: custom ID serialization. `resolve` requires `parse`.
+- `id.parse` / `id.resolve`: custom ID serialization. Pass both or neither.
 - Other `id` options, such as `description`, are passed to the ID field.
 - `collection`: the Collection nodes load from. See [Filter node lookups](#filter-node-lookups).
 

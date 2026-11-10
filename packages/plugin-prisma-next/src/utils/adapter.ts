@@ -362,13 +362,7 @@ export class PrismaAdapter extends NodeAdapter<PrismaModel, PrismaSelection> {
       if (value.kind === 'count') {
         spec[name(id)] = loaded;
       } else {
-        const entries = Object.entries(loaded as object);
-        if (value.size !== undefined && entries.length !== value.size) {
-          throw new InternalError(
-            'An aggregate callback returned a different number of reducers during planning and emission. Return the same keys for the same arguments.',
-          );
-        }
-        for (const [key, reduced] of entries) {
+        for (const [key, reduced] of Object.entries(loaded as object)) {
           spec[name(id, key)] = reduced;
         }
       }

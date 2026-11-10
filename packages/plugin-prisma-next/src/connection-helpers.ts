@@ -41,7 +41,6 @@ import { getPluginConfig } from './utils/config.js';
 import { CONNECTION_NODE_PATHS, connectionPaging } from './utils/connections.js';
 import { variantForRelationType } from './utils/contract.js';
 import type { ConnectionPage } from './utils/cursors.js';
-import { InternalError } from './utils/errors.js';
 import { type FieldLoads, fieldLoads, keyOf, refOf } from './utils/loads.js';
 import { nestedFromInfo } from './utils/map-query.js';
 import { getModel } from './utils/model.js';
@@ -315,13 +314,9 @@ export function prismaConnectionHelpers<
       options.select?.(() => nodeMarker, args as never, ctx) ?? {},
       model,
     );
-    const nodeRelations = selected.relations.filter(({ entry }) => entry[NODE_SELECTION] === true);
-    if (nodeRelations.length > 1) {
-      throw new InternalError(
-        'A connection helper select must use nodeSelection() on only one relation.',
-      );
-    }
-    const nodeRelation = nodeRelations[0]?.name;
+    const nodeRelation = selected.relations.find(
+      ({ entry }) => entry[NODE_SELECTION] === true,
+    )?.name;
     const refs = selected.relations
       .filter(({ entry }) => entry[NODE_SELECTION] !== true)
       .map(({ name }) => refOf(config, ctx, model, { kind: 'rows', relation: name }));

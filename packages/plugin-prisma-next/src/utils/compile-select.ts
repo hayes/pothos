@@ -60,7 +60,7 @@ interface FieldPlanning {
   position: Position;
 }
 
-export interface CompiledLoad {
+interface CompiledLoad {
   selection: PrismaSelection;
   ref?: LoadRef;
 }

@@ -320,7 +320,7 @@ export type FieldQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Type
 };
 
 /** `Literal`'s unknown keys as required `never` properties, which no object has. */
-export type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
+type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
   UnknownQueryKeys<Literal, Known>,
 ] extends [never]
   ? unknown

@@ -2492,42 +2492,6 @@ describe('connection helper selection guarantees', () => {
     expect(result.data.users).toEqual([{ domain: 'example.com' }, { domain: 'example.com' }]);
     expect(result.statements).toHaveLength(1);
   });
-
-  it.each([
-    false,
-    true,
-  ])('rejects two nodeSelection relations before SQL, copied: %s', async (copied) => {
-    const builder = createBuilder();
-    const User = builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });
-    const helper = prismaConnectionHelpers(builder, 'Comment', {
-      select: (nodeSelection) => {
-        const select = {
-          author: copied ? { ...nodeSelection() } : nodeSelection(),
-        };
-        Object.assign(select, { post: copied ? { ...nodeSelection() } : nodeSelection() });
-        return select;
-      },
-      resolveNode: (row) => row.author,
-    });
-    builder.queryType({
-      fields: (t) => ({
-        commenters: t.connection({
-          type: User,
-          resolve: async (_root, args, ctx, info) =>
-            helper.resolve(await helper.load(db.orm.Comment, args, ctx, info), args, ctx),
-        }),
-      }),
-    });
-    const result = await run(
-      builder.toSchema(),
-      '{ commenters(first: 2) { edges { node { id } } } }',
-    );
-    expect(result.errors).toHaveLength(1);
-    expect(detailOf(result.errors![0])).toBe(
-      'A connection helper select must use nodeSelection() on only one relation.',
-    );
-    expect(result.statements).toHaveLength(0);
-  });
 });
 
 it('plans nested fields through a copied nodeSelection marker', async () => {

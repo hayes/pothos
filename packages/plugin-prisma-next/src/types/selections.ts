@@ -83,7 +83,7 @@ type FieldSelectEntry<Types extends SchemaTypes, ParentShape> =
  * returning a `select` object, which may be async with `AsyncSelections: true`. A function has one
  * form, the object.
  */
-export type PrismaFieldSelect<
+type PrismaFieldSelect<
   Types extends SchemaTypes,
   ParentShape,
   Args,

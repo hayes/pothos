@@ -1,7 +1,7 @@
 import { PothosSchemaError } from '@pothos/core';
 import type { GraphQLResolveInfo } from 'graphql';
 
-export const UNEXPECTED_ERROR = 'Unexpected error.';
+const UNEXPECTED_ERROR = 'Unexpected error.';
 
 /**
  * A request-time problem in the app's schema or code. Clients see only `Unexpected error.`;

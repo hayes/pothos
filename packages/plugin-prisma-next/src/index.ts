@@ -93,7 +93,7 @@ export type {
 } from './connection-helpers.js';
 export { prismaConnectionHelpers } from './connection-helpers.js';
 export { PrismaInterfaceRef, prismaInterfaceBrand } from './interface-ref.js';
-export { PrismaNodeRef, relayIDShapeBrand } from './node-ref.js';
+export { PrismaNodeRef, prismaRelayIDShapeBrand } from './node-ref.js';
 export {
   type ModelBrand,
   type Planned,
@@ -108,17 +108,14 @@ export { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
 export type {
   PrismaRelationCountOptions,
   RelationCountQuery,
-  RelationCountQueryLiteral,
 } from './types/aggregates.js';
 export type { CollectionFor, PlannedCollection, ResolverCollection } from './types/collections.js';
 export type {
   ConnectionQueryLiteral,
   PrismaConnectionFieldOptions,
   PrismaRelatedConnectionOptions,
-  RootConnectionQueryLiteral,
 } from './types/connections.js';
 export type {
-  NameOrVariant,
   PrismaInterfaceOptions,
   PrismaNodeOptions,
   PrismaObjectFieldOptions,
@@ -126,7 +123,6 @@ export type {
   PrismaRootFieldOptions,
   PrismaRootFieldWithInputOptions,
   PrismaVariantFieldOptions,
-  VariantFieldShape,
 } from './types/fields.js';
 export type {
   AnyContract,
@@ -139,11 +135,7 @@ export type {
   RelationKeys,
   Row,
 } from './types/models.js';
-export type {
-  RelationOrderBy,
-  RelationOrderSelector,
-  RelationQueryOrderBy,
-} from './types/order-by.js';
+export type { RelationOrderBy } from './types/order-by.js';
 export type {
   PrismaClient,
   PrismaExecutionContext,
@@ -151,22 +143,18 @@ export type {
   PrismaRequestClient,
 } from './types/plugin-options.js';
 export type {
-  FieldQueryLiteral,
   PrismaRelationOptions,
   RelatedModel,
   RelationFieldShape,
-  RelationOnNull,
   RelationQuery,
   RelationQueryLiteral,
   RelationWhere,
 } from './types/relations.js';
 export type {
-  AggregateSelect,
   ConnectionPageEntry,
   NestedSelectionEntry,
   NestedSelectionFn,
   NodeSelection,
-  PrismaSelectSpec,
   RelationSelect,
   SelectObjectSpec,
 } from './types/selections.js';

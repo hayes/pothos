@@ -118,7 +118,7 @@ export type PrismaInterfaceOptions<
  * The field options a `prismaNode`'s `id` takes beside its own, such as `description` or the
  * options other plugins add.
  */
-export type NodeIdFieldOptions<Types extends SchemaTypes, Shape> = Omit<
+type NodeIdFieldOptions<Types extends SchemaTypes, Shape> = Omit<
   FieldOptionsFromKind<
     Types,
     Shape,
@@ -150,12 +150,12 @@ export type PrismaNodeOptions<
       | { parse?: undefined; resolve?: undefined }
       | {
           /**
-           * Replaces the default decoding. IDs are then encoded as the plain value, or
-           * as a JSON tuple for a composite key, unless `resolve` encodes them.
+           * Decodes the ID `resolve` encodes, returning the column's value, or a tuple of
+           * values for a composite key. Set `parse` and `resolve` together.
            */
           parse: (id: string, ctx: Types['Context']) => IDShape;
-          /** Encodes the ID, which `parse` must decode, so it needs `parse`. */
-          resolve?: (
+          /** Encodes the ID, which `parse` decodes. Set `parse` and `resolve` together. */
+          resolve: (
             parent: Shape & IdFieldShape<Types, M, IDFields>,
             ctx: Types['Context'],
           ) => MaybePromise<OutputShape<Types, 'ID'>>;
@@ -246,7 +246,7 @@ export type PrismaRootFieldOptions<
  * or takes `resolve`, which gets the type's collection planned and returns what a read or write on
  * it returns. A single-row field sets at least one of them.
  */
-export type PrismaRootFieldResolver<
+type PrismaRootFieldResolver<
   Types extends SchemaTypes,
   Parent,
   ArgsShape,

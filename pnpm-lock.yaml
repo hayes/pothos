@@ -940,9 +940,6 @@ importers:
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      '@prisma/cli-engine':
-        specifier: 0.9.0
-        version: 0.9.0(@prisma/management-api-sdk@1.72.0)
       '@prisma/orm-family-sql':
         specifier: 8.0.0-rc.23
         version: 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))

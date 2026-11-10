@@ -2,7 +2,7 @@ import type { SchemaTypes } from '@pothos/core';
 import { PrismaObjectRef } from './object-ref.js';
 import type { ModelKey, ObjectBaseShape } from './types/models.js';
 
-export const relayIDShapeBrand = Symbol.for('Pothos.prismaRelayIDShapeBrand');
+export const prismaRelayIDShapeBrand = Symbol.for('Pothos.prismaRelayIDShapeBrand');
 
 export class PrismaNodeRef<
   Types extends SchemaTypes,
@@ -10,7 +10,7 @@ export class PrismaNodeRef<
   Shape = ObjectBaseShape<Types, M>,
   IDShape = string,
 > extends PrismaObjectRef<Types, M, Shape> {
-  declare readonly [relayIDShapeBrand]: IDShape;
+  declare readonly [prismaRelayIDShapeBrand]: IDShape;
   readonly parseId?: (id: string, ctx: object) => IDShape;
 
   constructor(

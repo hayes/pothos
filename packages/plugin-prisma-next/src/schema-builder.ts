@@ -263,16 +263,12 @@ schemaBuilderProto.prismaNode = function prismaNode<
         if (idOpts.resolve) {
           return idOpts.resolve(parent, ctx);
         }
-        const row = parent as Record<string, unknown>;
-        if (idOpts.parse) {
-          const values = idFields.map((field) => row[field]);
-          return isTuple
-            ? JSON.stringify(values, (_key, value) =>
-                typeof value === 'bigint' ? value.toString() : value,
-              )
-            : String(values[0]);
-        }
-        return encodeNodeId(nodeModelKey, idFields, row, config.codecs(nodeModelKey));
+        return encodeNodeId(
+          nodeModelKey,
+          idFields,
+          parent as Record<string, unknown>,
+          config.codecs(nodeModelKey),
+        );
       },
     },
     loadWithoutCache: (id: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {

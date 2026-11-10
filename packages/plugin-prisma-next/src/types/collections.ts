@@ -55,10 +55,7 @@ type VariantCollection<Types extends SchemaTypes, M extends ModelKey<Types>> = H
 };
 
 // orm-client doesn't export `WithNsId`, which `CollectionFor` needs to match `db.orm.<Model>`.
-export type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<
-  State,
-  'nsId'
-> & {
+type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<State, 'nsId'> & {
   readonly nsId: NsId;
 };
 
