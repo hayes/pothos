@@ -5,12 +5,13 @@
       "dependsOn": ["^build"],
       "outputs": [
         "prisma/client/**",
-        "prisma/generated.d.ts",
+        "prisma/generated.ts",
         "tests/client/**",
-        "tests/generated.d.ts",
-        "test/client/**",
-        "test/generated.d.ts",
-        "components/__generated__/**",
+        "tests/generated.ts",
+        "tests/prisma-types-from-client/client/**",
+        "tests/prisma-types-from-client/generated.ts",
+        "tests/examples/codegen/schema/prisma-inputs.ts",
+        "tests/examples/*/schema.graphql",
         "schema.graphql",
         "graphql-env.d.ts"
       ]

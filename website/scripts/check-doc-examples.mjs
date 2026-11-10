@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkDrizzleDocExamples } from './check-drizzle-doc-examples.mjs';
 import { checkPrismaNextDocExamples } from './check-prisma-next-doc-examples.mjs';
 import { docCodeBlocks } from './doc-code-blocks.mjs';
 
@@ -76,3 +77,7 @@ try {
 
 const prismaNext = await checkPrismaNextDocExamples(root, tsc);
 console.log(`PASS ${prismaNext.checked} Prisma Next doc blocks`);
+const drizzle = await checkDrizzleDocExamples(root, tsc);
+console.log(
+  `PASS ${drizzle.checked} Drizzle doc blocks (${drizzle.skipped} skipped, ${drizzle.knownFailures} known failures)`,
+);
