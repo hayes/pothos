@@ -25,10 +25,13 @@ export type QueryFromInfoResult<T> = Omit<T, keyof QueryFromInfoOptions<boolean>
 
 /**
  * The query `t.drizzleQueryFromInfo` returns. It is branded like the `query` of `drizzleField`, so
- * its rows can be returned from a field of the table's type.
+ * its rows can be returned from a field of the table's type. Extras that may be undefined add
+ * nothing to the rows, as in Drizzle's own types.
  */
-export type DrizzleQueryFromInfoResult<T, Table> = QueryFromInfoResult<T> & {
-  extras: { $pothosQueryFor: SQL<Table | undefined> };
+export type DrizzleQueryFromInfoResult<T, Table> = Omit<QueryFromInfoResult<T>, 'extras'> & {
+  extras: (T extends { extras: infer Extras extends object } ? Extras : unknown) & {
+    $pothosQueryFor: SQL<Table | undefined>;
+  };
 };
 
 /** A boolean async option must account for promises, just like Prisma's helper. */

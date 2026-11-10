@@ -246,6 +246,77 @@ it('reads the parent shape from an explicit table config', () => {
   expectTypeOf<Parameters<typeof postPages.resolve>[0]>().toEqualTypeOf<PostRow[]>();
 });
 
+it('reads an explicit table config that is only like the default as before', () => {
+  // biome-ignore lint/suspicious/noExplicitAny: an explicit config with an `any` part
+  type UsersAnyTable = Omit<DrizzleRelations['users'], 'table'> & { table: any };
+  // biome-ignore lint/suspicious/noExplicitAny: the parent shape main infers for an `any` config
+  type AnyShape = BuildQueryResult<DrizzleRelations, any, true> & DrizzleTableNameBrand<'users'>;
+  type AnyTableShape = BuildQueryResult<DrizzleRelations, UsersAnyTable, true> &
+    DrizzleTableNameBrand<'users'>;
+
+  // biome-ignore lint/suspicious/noExplicitAny: an explicit `any` config
+  builder.drizzleObjectField<'users', any>('users', 'o1', (t) => {
+    // biome-ignore lint/suspicious/noExplicitAny: the table config given
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{ table: any; shape: AnyShape }>();
+
+    return t.string({ resolve: (row) => String(row.anything) });
+  });
+  // biome-ignore lint/suspicious/noExplicitAny: an explicit `any` config
+  builder.drizzleObjectFields<'users', any>('users', (t) => {
+    // biome-ignore lint/suspicious/noExplicitAny: the table config given
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{ table: any; shape: AnyShape }>();
+
+    return { o2: t.string({ resolve: (row) => String(row.anything) }) };
+  });
+  // biome-ignore lint/suspicious/noExplicitAny: an explicit `any` config
+  builder.drizzleInterfaceField<'users', any>('users', 'o3', (t) => {
+    // biome-ignore lint/suspicious/noExplicitAny: the table config given
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{ table: any; shape: AnyShape }>();
+
+    return t.string({ resolve: (row) => String(row.anything) });
+  });
+  // biome-ignore lint/suspicious/noExplicitAny: an explicit `any` config
+  builder.drizzleInterfaceFields<'users', any>('users', (t) => {
+    // biome-ignore lint/suspicious/noExplicitAny: the table config given
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{ table: any; shape: AnyShape }>();
+
+    return { o4: t.string({ resolve: (row) => String(row.anything) }) };
+  });
+
+  builder.drizzleObjectField<'users', UsersAnyTable>('users', 'o5', (t) => {
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{
+      table: UsersAnyTable;
+      shape: AnyTableShape;
+    }>();
+
+    return t.string({ resolve: () => '' });
+  });
+  builder.drizzleObjectFields<'users', UsersAnyTable>('users', (t) => {
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{
+      table: UsersAnyTable;
+      shape: AnyTableShape;
+    }>();
+
+    return {};
+  });
+  builder.drizzleInterfaceField<'users', UsersAnyTable>('users', 'o6', (t) => {
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{
+      table: UsersAnyTable;
+      shape: AnyTableShape;
+    }>();
+
+    return t.string({ resolve: () => '' });
+  });
+  builder.drizzleInterfaceFields<'users', UsersAnyTable>('users', (t) => {
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{
+      table: UsersAnyTable;
+      shape: AnyTableShape;
+    }>();
+
+    return {};
+  });
+});
+
 it('reads a union of table names against all of their tables', () => {
   const tables = ['users', 'posts'] as const;
   type Tables = DrizzleRelations['users'] | DrizzleRelations['posts'];

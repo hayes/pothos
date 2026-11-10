@@ -109,6 +109,14 @@ it('returns rows loaded with drizzleQueryFromInfo from a field of the type', () 
         return db.query.users.findMany(t.drizzleQueryFromInfo('users', options));
       },
     }),
+    optionsVariableWithOtherKeys: t.field({
+      type: [User],
+      resolve: (_root, _args, context, info) => {
+        const options = { context, info, requestId: 'abc' };
+
+        return db.query.users.findMany(t.drizzleQueryFromInfo('users', options));
+      },
+    }),
   }));
 
   asyncBuilder.queryFields((t) => ({
@@ -168,6 +176,25 @@ it('types the query and rows like the query of drizzleField', () => {
         return users;
       },
     }),
+    maybeExtras: t.field({
+      type: [User],
+      args: { lower: t.arg.boolean() },
+      resolve: async (_root, args, context, info) => {
+        const rows = await db.query.users.findMany(
+          t.drizzleQueryFromInfo('users', {
+            context,
+            info,
+            extras: args.lower
+              ? { lower: (users) => sql<string>`lower(${users.username})` }
+              : undefined,
+          }),
+        );
+
+        expectTypeOf(rows).toEqualTypeOf<{ $pothosQueryFor: 'users' | undefined }[]>();
+
+        return rows;
+      },
+    }),
   }));
 });
 
@@ -199,6 +226,22 @@ it('still rejects rows the helper did not load', () => {
       resolve: (_root, _args, context, info) =>
         // @ts-expect-error rows the helper loaded for another table's type
         db.query.posts.findMany(t.drizzleQueryFromInfo(Post, { context, info })),
+    }),
+    undefinedExtras: t.field({
+      type: [Post],
+      resolve: (_root, _args, context, info) =>
+        // @ts-expect-error rows the helper loaded for another table, with no extras
+        db.query.users.findMany(
+          t.drizzleQueryFromInfo('users', { context, info, extras: undefined }),
+        ),
+    }),
+    unknownOption: t.field({
+      type: [User],
+      resolve: (_root, _args, context, info) =>
+        db.query.users.findMany(
+          // @ts-expect-error neither a query key nor an option
+          t.drizzleQueryFromInfo('users', { context, info, bogus: 1 }),
+        ),
     }),
     extrasReplaced: t.field({
       type: [User],
