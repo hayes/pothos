@@ -22,7 +22,7 @@ const builder = new SchemaBuilder<{
   },
 });
 
-const helperOrders = {
+const orders = {
   ID_ASC: { id: 'asc' },
   NONE: undefined,
   PUBLISHED_ASC: { published: 'asc' },
@@ -32,12 +32,9 @@ const helperOrders = {
   AUTHOR_EMPTY: { author: {} },
   // Prisma leaves out a key set to `undefined`, so this orders nothing.
   PUBLISHED_UNDEFINED: { published: undefined },
-} satisfies Record<string, Prisma.PostOrderByWithRelationInput | undefined>;
-
-// The helpers take a single ordering object, so a list is only tried on the related connection.
-const orders = {
-  ...helperOrders,
   PUBLISHED_THEN_ID: [{ published: 'asc' }, { id: 'desc' }],
+  // Names no unique column, so the cursor is appended in the direction of the last entry.
+  PUBLISHED_THEN_AUTHOR_ID: [{ published: 'desc' }, { authorId: 'asc' }],
 } satisfies Record<
   string,
   Prisma.PostOrderByWithRelationInput | Prisma.PostOrderByWithRelationInput[] | undefined
@@ -60,7 +57,7 @@ const PostOrder = builder.enumType('PostOrder', {
 });
 
 const HelperPostOrder = builder.enumType('HelperPostOrder', {
-  values: Object.keys(helperOrders) as (keyof typeof helperOrders)[],
+  values: Object.keys(orders) as (keyof typeof orders)[],
 });
 
 const FollowerOrder = builder.enumType('FollowerOrder', {
@@ -84,7 +81,7 @@ builder.prismaObject('Follow', {
 const postHelpers = prismaConnectionHelpers(builder, 'Post', {
   cursor: 'id',
   args: (t) => ({ order: t.field({ type: HelperPostOrder, required: true }) }),
-  query: (args) => ({ where, orderBy: helperOrders[args.order] }),
+  query: (args) => ({ where, orderBy: orders[args.order] }),
 });
 
 builder.prismaObject('User', {
@@ -123,7 +120,7 @@ const schema = builder.toSchema();
 
 const connections = {
   posts: { orderType: 'PostOrder', orders },
-  helperPosts: { orderType: 'HelperPostOrder', orders: helperOrders },
+  helperPosts: { orderType: 'HelperPostOrder', orders },
   followers: { orderType: 'FollowerOrder', orders: followerOrders },
 };
 
@@ -257,6 +254,9 @@ describe('pagination matrix', () => {
       }
       if (order === 'PUBLISHED_DESC') {
         expect(ids).toEqual([106, 105, 104, 103, 102, 101, 100, 99, 98, 97]);
+      }
+      if (order === 'PUBLISHED_THEN_AUTHOR_ID') {
+        expect(ids).toEqual([102, 103, 104, 105, 106, 97, 98, 99, 100, 101]);
       }
     });
   });
@@ -403,6 +403,22 @@ describe('pagination matrix', () => {
             },
           ],
         ],
+        "helperPosts PUBLISHED_THEN_AUTHOR_ID": [
+          [
+            {
+              "published": "desc",
+            },
+            {
+              "authorId": "asc",
+            },
+            {
+              "id": "asc",
+            },
+          ],
+        ],
+        "helperPosts PUBLISHED_THEN_ID": [
+          "unchanged",
+        ],
         "helperPosts PUBLISHED_UNDEFINED": [
           "unchanged",
         ],
@@ -451,6 +467,19 @@ describe('pagination matrix', () => {
             },
             {
               "id": "desc",
+            },
+          ],
+        ],
+        "posts PUBLISHED_THEN_AUTHOR_ID": [
+          [
+            {
+              "published": "desc",
+            },
+            {
+              "authorId": "asc",
+            },
+            {
+              "id": "asc",
             },
           ],
         ],

@@ -74,12 +74,12 @@ export function prismaConnectionHelpers<
           Types,
           {
             where?: Model['Where'];
-            orderBy?: Model['OrderBy'];
+            orderBy?: Model['OrderBy'] | Model['OrderBy'][];
           }
         >)
       | {
           where?: Model['Where'];
-          orderBy?: Model['OrderBy'];
+          orderBy?: Model['OrderBy'] | Model['OrderBy'][];
         };
     defaultSize?:
       | number
