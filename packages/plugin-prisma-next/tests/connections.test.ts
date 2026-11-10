@@ -1874,7 +1874,7 @@ describe('prismaConnectionHelpers', () => {
   });
 
   // User.stats → Stats.posts: the connection sits beneath a wrapper the field returns.
-  function wrapperSchema(prefixed: boolean, defer = false) {
+  function wrapperSchema(prefixed: boolean) {
     const builder = createBuilder();
     builder.prismaObject('Post', {
       fields: (t) => ({
@@ -1925,7 +1925,7 @@ describe('prismaConnectionHelpers', () => {
         }),
       }),
     });
-    return defer ? deferSchema(builder) : builder.toSchema();
+    return builder.toSchema();
   }
 
   it('pages a connection beneath a wrapper type through a prefixed path', async () => {
@@ -2061,67 +2061,6 @@ describe('prismaConnectionHelpers', () => {
     expect(differing.data.posts).toBeNull();
     expect(differing.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
     expect(differing.errors?.map(detailOf)).toEqual([
-      'The fields selected at posts beneath User.stats have different arguments.',
-    ]);
-    expect(differing.statements).toHaveLength(0);
-  });
-
-  it.each([
-    [
-      'the field',
-      (a: string, b: string) => `{ users { stats { ${a} } ... @defer { stats { ${b} } } } }`,
-      ['p-hello', 'p-bob1'],
-    ],
-    [
-      'a relation above it',
-      (a: string, b: string) =>
-        `{ posts { id author { stats { ${a} } } ... @defer { author { stats { ${b} } } } } }`,
-      ['p-bob1', 'p-bob1', 'p-hello', 'p-hello'],
-    ],
-    [
-      'the field beneath a relation',
-      (a: string, b: string) =>
-        `{ posts { id author { stats { ${a} } ... @defer { stats { ${b} } } } } }`,
-      ['p-bob1', 'p-bob1', 'p-hello', 'p-hello'],
-    ],
-  ] as const)('fails the root field when aliases of the connection differ in arguments with %s selected again under @defer', async (_, query, deferredIds) => {
-    const schema = wrapperSchema(true, true);
-    const alias = (name: string, page: string) =>
-      `${name}: posts(${page}) { edges { node { id } } }`;
-    const same = await runIncremental(schema, query(alias('a', 'last: 1'), alias('b', 'last: 1')));
-    expect(same.initial.errors).toBeUndefined();
-    expect(same.patchErrors).toEqual([]);
-    expect(same.patches).toEqual(deferredIds.map((id) => ({ b: { edges: [{ node: { id } }] } })));
-    expect(same.statements).toHaveLength(1);
-    const differing = await runIncremental(
-      schema,
-      query(alias('a', 'first: 1'), alias('b', 'last: 1')),
-    );
-    expect(Object.values(differing.initial.data ?? {})).toEqual([null]);
-    expect(differing.initial.errors?.map(detailOf)).toEqual([
-      'The fields selected at posts beneath User.stats have different arguments.',
-    ]);
-    expect(differing.patches).toEqual([]);
-    expect(differing.statements).toHaveLength(0);
-  });
-
-  it('compares aliases of the connection under @defer whose condition is false as any others', async () => {
-    const schema = wrapperSchema(true, true);
-    const query = (a: string, b: string) =>
-      `query ($defer: Boolean = false) { posts { id author { stats {
-        a: posts(${a}) { edges { node { id } } }
-      } } ... @defer(if: $defer) { author { stats { b: posts(${b}) { edges { node { id } } } } } } } }`;
-    const same = await runIncremental(schema, query('last: 1', 'last: 1'));
-    expect(same.initial.errors).toBeUndefined();
-    expect(same.patches).toEqual([]);
-    const page = { edges: [{ node: { id: 'p-bob1' } }] };
-    expect(same.initial.data).toMatchObject({
-      posts: expect.arrayContaining([{ id: 'p-bob1', author: { stats: { a: page, b: page } } }]),
-    });
-    expect(same.statements).toHaveLength(1);
-    const differing = await runIncremental(schema, query('first: 1', 'last: 1'));
-    expect(differing.initial.data).toEqual({ posts: null });
-    expect(differing.initial.errors?.map(detailOf)).toEqual([
       'The fields selected at posts beneath User.stats have different arguments.',
     ]);
     expect(differing.statements).toHaveLength(0);

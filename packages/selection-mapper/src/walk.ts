@@ -162,16 +162,14 @@ interface ResolvedBranch {
  *
  * `mergedWith` are the selections graphql merges with these: the other nodes of the field a nested
  * plan hangs from. Nothing of them is planned here (each is walked by its own node's invocation);
- * they are read only when a select function asks for `selected.args`, which reads beneath
- * deferred fragments too.
+ * they are read only when a select function asks for `selected.args`.
  */
 export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   branches: Branch[],
   mergedWith?: () => Branch[],
 ) {
-  const { skipDeferredFragments } = plan;
-  const resolved = branches.flatMap((branch) => resolveBranch(plan, branch, skipDeferredFragments));
+  const resolved = branches.flatMap((branch) => resolveBranch(plan, branch));
   const enteredTypes = new Set<WalkedType>();
   let firstType: WalkedType | undefined;
 
@@ -199,20 +197,7 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
   }
 
   const invocations: Invocations = new Set();
-  const fields = fieldsOf(plan, resolved, skipDeferredFragments);
-  // Every field graphql merges, deferred or not, of these selections and those merged with them.
-  let merged: SelectedField[] | undefined;
-  const mergedFields = () => {
-    merged ??= fieldsOf(
-      plan,
-      [...branches, ...(mergedWith?.() ?? [])].flatMap((branch) =>
-        resolveBranch(plan, branch, false),
-      ),
-      false,
-    );
-
-    return merged;
-  };
+  const fields = fieldsOf(plan, resolved);
 
   for (const field of fields) {
     walkField(
@@ -222,7 +207,7 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
       field.indirectPath,
       invocations,
       field.expandedFrom,
-      () => mergedNodes(plan, mergedFields(), field),
+      () => mergedNodes(plan, fields, field, mergedWith),
     );
   }
 }
@@ -231,7 +216,6 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
 function fieldsOf<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   resolved: ResolvedBranch[],
-  skipDeferred: boolean,
 ): SelectedField[] {
   const fields: SelectedField[] = [];
 
@@ -239,7 +223,7 @@ function fieldsOf<Model, Query, NodeType extends NodeBase<Model>>(
     const walked = new Set<string>();
 
     for (const selections of selectionSets) {
-      walkSelections(plan, type, selections, indirectPath, true, skipDeferred, walked, fields);
+      walkSelections(plan, type, selections, indirectPath, true, walked, fields);
     }
   }
 
@@ -255,19 +239,23 @@ interface SelectedField {
 }
 
 /**
- * The nodes graphql merges into `field`'s response field: those of `fields` with its response key
- * and include path, on a type a row of `field`'s type can also be.
+ * The nodes graphql merges into `field`'s response field: those with its response key and include
+ * path, on a type a row of `field`'s type can also be, in the walk and in the selections graphql
+ * merges with the walk's (`mergedWith`, see `walkBranches`).
  */
 function mergedNodes<Model, Query, NodeType extends NodeBase<Model>>(
-  { info }: Plan<Model, Query, NodeType>,
+  plan: Plan<Model, Query, NodeType>,
   fields: readonly SelectedField[],
   field: SelectedField,
+  mergedWith?: () => Branch[],
 ): FieldNode[] {
+  const { info } = plan;
   const key = responseKey(field.node);
   const path = field.indirectPath.join('.');
   const nodes = new Set<FieldNode>();
+  const beside = mergedWith?.().flatMap((branch) => resolveBranch(plan, branch));
 
-  for (const other of fields) {
+  for (const other of beside?.length ? [...fields, ...fieldsOf(plan, beside)] : fields) {
     if (
       responseKey(other.node) === key &&
       other.indirectPath.join('.') === path &&
@@ -341,7 +329,6 @@ function overlaps(info: GraphQLResolveInfo, a: WalkedType, b: WalkedType) {
 function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   { type, fieldNodes, indirectPath, deferred }: Branch,
-  skipDeferred: boolean,
 ): ResolvedBranch[] {
   // Every node selects the same field.
   if (fieldNodes.length === 0 || fieldNodes[0].name.value.startsWith('__')) {
@@ -362,16 +349,12 @@ function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
 
       for (const match of matches) {
         beneath.push(
-          ...resolveBranch(
-            plan,
-            {
-              type: match.type,
-              fieldNodes: [match.field],
-              indirectPath: match.path,
-              deferred: match.deferred,
-            },
-            skipDeferred,
-          ),
+          ...resolveBranch(plan, {
+            type: match.type,
+            fieldNodes: [match.field],
+            indirectPath: match.path,
+            deferred: match.deferred,
+          }),
         );
       }
     }
@@ -383,16 +366,12 @@ function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
       return beneath;
     }
   } else if (include) {
-    return resolveBranch(
-      plan,
-      {
-        type: info.schema.getType(include.getType())!,
-        fieldNodes,
-        indirectPath,
-        deferred,
-      },
-      skipDeferred,
-    );
+    return resolveBranch(plan, {
+      type: info.schema.getType(include.getType())!,
+      fieldNodes,
+      indirectPath,
+      deferred,
+    });
   }
 
   if (!(isObjectType(type) || isInterfaceType(type))) {
@@ -401,7 +380,7 @@ function resolveBranch<Model, Query, NodeType extends NodeBase<Model>>(
 
   // A deferred selection is entered but, when deferred fragments are skipped, not walked.
   const selectionSets =
-    deferred && skipDeferred
+    deferred && plan.skipDeferredFragments
       ? []
       : fieldNodes.flatMap((fieldNode) =>
           fieldNode.selectionSet ? [fieldNode.selectionSet.selections] : [],
@@ -456,7 +435,7 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
       continue;
     }
 
-    const fragment = applicableFragment(plan, selection, plan.skipDeferredFragments);
+    const fragment = applicableFragment(plan, selection);
 
     if (!fragment || visitedBefore(visited, `${origin.name}>${type.name}`, fragment)) {
       continue;
@@ -492,7 +471,6 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
   selections: readonly SelectionNode[],
   indirectPath: string[],
   fieldsApply: boolean,
-  skipDeferred: boolean,
   visited: Set<string>,
   fields: SelectedField[],
   expandedFrom?: WalkedType,
@@ -506,7 +484,7 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
       continue;
     }
 
-    const fragment = applicableFragment(plan, selection, skipDeferred);
+    const fragment = applicableFragment(plan, selection);
 
     if (
       !fragment ||
@@ -525,7 +503,6 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
         indirectPath,
         // An untyped fragment inherits; a typed one applies iff it can apply to `type`.
         fragment.typeCondition ? types.length > 0 : fieldsApply,
-        skipDeferred,
         visited,
         fields,
         isExpansion ? type : expandedFrom && keptBy(plan, expandedFrom, fragment),
@@ -551,14 +528,13 @@ function keptBy<Model, Query, NodeType extends NodeBase<Model>>(
 
 /**
  * The fragment a non-field selection stands for, or undefined when it does not apply: skipped by
- * a directive, or deferred while `skipDeferred` is set.
+ * a directive, or deferred while the plan skips deferred fragments.
  */
 function applicableFragment<Model, Query, NodeType extends NodeBase<Model>>(
-  { info }: Plan<Model, Query, NodeType>,
+  { info, skipDeferredFragments }: Plan<Model, Query, NodeType>,
   selection: FragmentSpreadNode | InlineFragmentNode,
-  skipDeferred: boolean,
 ): Fragment | undefined {
-  if (isSkipped(info, selection) || (skipDeferred && isDeferred(info, selection))) {
+  if (isSkipped(info, selection) || (skipDeferredFragments && isDeferred(info, selection))) {
     return undefined;
   }
 
