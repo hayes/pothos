@@ -1,5 +1,9 @@
 import { vi } from 'vitest';
-import { wrapSubscriptionIterator } from '../src/subscription-iterator';
+import { mapAsyncIterator } from '../src/utils/map-async-iterator';
+
+function wrapIterator(source: AsyncIterator<unknown>, onError: (error: unknown) => unknown) {
+  return mapAsyncIterator(source, (value) => value, onError);
+}
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -11,10 +15,10 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-describe('subscription iterator', () => {
+describe('async iterator protocol', () => {
   it('uses one completion decision when the source flag is a stateful getter', async () => {
     let lookups = 0;
-    const iterator = wrapSubscriptionIterator(
+    const iterator = wrapIterator(
       {
         next: () =>
           Promise.resolve({
@@ -44,7 +48,7 @@ describe('subscription iterator', () => {
         return completed;
       },
     };
-    const iterator = wrapSubscriptionIterator(
+    const iterator = wrapIterator(
       {
         next: () => Promise.resolve(result),
         return: () => Promise.resolve({ value: undefined, done: true }),
@@ -62,7 +66,7 @@ describe('subscription iterator', () => {
     let wrapped: AsyncIterableIterator<unknown>;
     let nested: Promise<IteratorResult<unknown>> | undefined;
     let calls = 0;
-    wrapped = wrapSubscriptionIterator(
+    wrapped = wrapIterator(
       {
         next() {
           const value = ++calls;
@@ -99,7 +103,7 @@ describe('subscription iterator', () => {
         throw: vi.fn(),
       };
       Object.defineProperty(source, method, { value: invalid });
-      const iterator = wrapSubscriptionIterator(source, (error) => {
+      const iterator = wrapIterator(source, (error) => {
         throw error;
       });
       await expect(iterator[method]!(new Error('caller error'))).rejects.toBeInstanceOf(TypeError);
@@ -123,7 +127,7 @@ describe('subscription iterator', () => {
         return: vi.fn().mockResolvedValue({ value: undefined, done: true }),
       };
       source[method].mockResolvedValue(invalid);
-      const iterator = wrapSubscriptionIterator(source, (error) => {
+      const iterator = wrapIterator(source, (error) => {
         throw error;
       });
       await expect(iterator[method]!()).rejects.toBeInstanceOf(TypeError);
@@ -133,7 +137,7 @@ describe('subscription iterator', () => {
   });
 
   it('awaits promise-valued events as an async generator would', async () => {
-    const iterator = wrapSubscriptionIterator(
+    const iterator = wrapIterator(
       { next: () => Promise.resolve({ value: Promise.resolve(42), done: false }) },
       () => 'error',
     );
@@ -148,7 +152,7 @@ describe('subscription iterator', () => {
       return: vi.fn(() => Promise.resolve({ value: undefined, done: true as const })),
     };
     const onError = vi.fn(() => 'handled');
-    const iterator = wrapSubscriptionIterator(source, onError);
+    const iterator = wrapIterator(source, onError);
     await expect(iterator.next()).resolves.toEqual({ value: 'handled', done: false });
     expect(onError).toHaveBeenCalledExactlyOnceWith(failure);
     expect(source.return).toHaveBeenCalledOnce();
@@ -169,7 +173,7 @@ describe('subscription iterator', () => {
       return: vi.fn(() => Promise.resolve({ value: undefined, done: true as const })),
     };
     const onError = vi.fn();
-    const iterator = wrapSubscriptionIterator(source, onError);
+    const iterator = wrapIterator(source, onError);
     const next = iterator.next();
     await delivered.promise;
     await iterator.return!();
@@ -185,7 +189,7 @@ describe('subscription iterator', () => {
       return 'finished';
     }
     const onError = vi.fn();
-    const iterator = wrapSubscriptionIterator(source(), onError);
+    const iterator = wrapIterator(source(), onError);
     expect(iterator[Symbol.asyncIterator]()).toBe(iterator);
     await expect(iterator.next()).resolves.toEqual({ value: 1, done: false });
     await expect(iterator.next()).resolves.toEqual({ value: 'finished', done: true });
@@ -195,7 +199,7 @@ describe('subscription iterator', () => {
   it('does not lose concurrent values when a later read completes the source', async () => {
     const first = deferred<IteratorResult<unknown>>();
     const second = deferred<IteratorResult<unknown>>();
-    const iterator = wrapSubscriptionIterator(
+    const iterator = wrapIterator(
       { next: vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise) },
       () => 'error',
     );
@@ -218,7 +222,7 @@ describe('subscription iterator', () => {
         .mockResolvedValueOnce({ value: undefined, done: true }),
       return: vi.fn(() => Promise.resolve({ value: undefined, done: true as const })),
     };
-    const iterator = wrapSubscriptionIterator(source, onError);
+    const iterator = wrapIterator(source, onError);
     const first = iterator.next();
     await iterator.next();
     event.reject(failure);
@@ -240,7 +244,7 @@ describe('subscription iterator', () => {
     });
     const lookup = vi.fn(() => operation);
     Object.defineProperty(source, method, { get: lookup });
-    const iterator = wrapSubscriptionIterator(source, () => 'error');
+    const iterator = wrapIterator(source, () => 'error');
     await expect(iterator[method]!(123)).resolves.toEqual({ value: 123, done: true });
     expect(lookup).toHaveBeenCalledOnce();
     expect(operation).toHaveBeenCalledExactlyOnceWith(123);
@@ -256,7 +260,7 @@ describe('subscription iterator', () => {
         yield 2;
       }
     }
-    const iterator = wrapSubscriptionIterator(source(), () => 'error');
+    const iterator = wrapIterator(source(), () => 'error');
     await iterator.next();
     await expect(iterator.throw!(error)).resolves.toEqual({ value: 2, done: false });
     await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true });
@@ -272,7 +276,7 @@ describe('subscription iterator', () => {
         released = true;
       }
     }
-    const iterator = wrapSubscriptionIterator(source(), (error) => {
+    const iterator = wrapIterator(source(), (error) => {
       throw error;
     });
     await iterator.next();
@@ -299,7 +303,7 @@ describe('subscription iterator', () => {
         }
       }
     }
-    const iterator = wrapSubscriptionIterator(source(), (error) => {
+    const iterator = wrapIterator(source(), (error) => {
       throw error;
     });
     await iterator.next();
@@ -325,7 +329,7 @@ describe('subscription iterator', () => {
         .mockResolvedValueOnce({ value: 2, done: false })
         .mockResolvedValueOnce({ value: 'finished', done: true }),
     };
-    const iterator = wrapSubscriptionIterator(source, (error) => {
+    const iterator = wrapIterator(source, (error) => {
       throw error;
     });
     const oldRead = iterator.next();
@@ -344,7 +348,7 @@ describe('subscription iterator', () => {
     };
     const failure = new Error('thrown');
     const onError = vi.fn(() => 'handled');
-    const iterator = wrapSubscriptionIterator(source, onError);
+    const iterator = wrapIterator(source, onError);
     await expect(iterator.throw!(failure)).resolves.toEqual({ value: 'handled', done: false });
     expect(source.return).toHaveBeenCalledOnce();
     expect(onError).toHaveBeenCalledExactlyOnceWith(failure);
@@ -356,7 +360,7 @@ describe('subscription iterator', () => {
     const onError = vi.fn((error) => {
       throw error;
     });
-    const iterator = wrapSubscriptionIterator(source as unknown as AsyncIterator<unknown>, onError);
+    const iterator = wrapIterator(source as unknown as AsyncIterator<unknown>, onError);
     await expect(iterator.next('input')).rejects.toBeInstanceOf(TypeError);
     expect(source.return).toHaveBeenCalledOnce();
     expect(onError).toHaveBeenCalledExactlyOnceWith(expect.any(TypeError));
@@ -368,7 +372,7 @@ describe('subscription iterator', () => {
       next: () => Promise.reject(failure),
       return: vi.fn(() => Promise.reject(new Error('cleanup failed'))),
     };
-    const iterator = wrapSubscriptionIterator(source, (error) => {
+    const iterator = wrapIterator(source, (error) => {
       throw error;
     });
     await expect(iterator.next()).rejects.toBe(failure);
@@ -384,7 +388,7 @@ describe('subscription iterator', () => {
       next: () => pending.promise,
       return: vi.fn(() => Promise.resolve({ value: undefined, done: true as const })),
     };
-    const iterator = wrapSubscriptionIterator(source, onError);
+    const iterator = wrapIterator(source, onError);
     const next = iterator.next();
     await iterator.return!();
     pending.reject(new Error('late failure'));
@@ -400,7 +404,7 @@ describe('subscription iterator', () => {
       next: vi.fn().mockRejectedValueOnce(failure).mockReturnValueOnce(pending.promise),
       return: vi.fn(() => Promise.resolve({ value: undefined, done: true as const })),
     };
-    const iterator = wrapSubscriptionIterator(source, () => 'handled');
+    const iterator = wrapIterator(source, () => 'handled');
     const first = iterator.next();
     const second = iterator.next();
     await expect(first).resolves.toEqual({ value: 'handled', done: false });
@@ -413,7 +417,7 @@ describe('subscription iterator', () => {
     const cleanup = deferred<IteratorResult<unknown>>();
     const started = deferred<void>();
     const onError = vi.fn();
-    const iterator = wrapSubscriptionIterator(
+    const iterator = wrapIterator(
       {
         next: () => Promise.reject(new Error('read failed')),
         return: () => {
@@ -433,7 +437,7 @@ describe('subscription iterator', () => {
 
   it('supports sources without return and awaits the final return argument', async () => {
     const source = { next: vi.fn() };
-    const iterator = wrapSubscriptionIterator(source, () => 'error');
+    const iterator = wrapIterator(source, () => 'error');
     await expect(iterator.return!(Promise.resolve('finished'))).resolves.toEqual({
       value: 'finished',
       done: true,
@@ -449,7 +453,7 @@ describe('subscription iterator', () => {
       next: () => Promise.resolve({ value: undefined, done: true as const }),
       return: vi.fn(),
     };
-    const iterator = wrapSubscriptionIterator(source, () => 'error');
+    const iterator = wrapIterator(source, () => 'error');
     await iterator.next();
     await iterator.return!();
     expect(source.return).not.toHaveBeenCalled();
@@ -462,7 +466,7 @@ describe('subscription iterator', () => {
       return: vi.fn(() => Promise.reject(failure)),
     };
     const onError = vi.fn(() => 'handled');
-    const iterator = wrapSubscriptionIterator(source, onError);
+    const iterator = wrapIterator(source, onError);
     await expect(iterator.return!()).resolves.toEqual({ value: 'handled', done: false });
     await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true });
     await iterator.return!();
@@ -472,7 +476,7 @@ describe('subscription iterator', () => {
 
   it('propagates unhandled cleanup errors and remains closed', async () => {
     const failure = new Error('cleanup failed');
-    const iterator = wrapSubscriptionIterator(
+    const iterator = wrapIterator(
       { next: vi.fn(), return: () => Promise.reject(failure) },
       (error) => {
         throw error;

@@ -26,6 +26,7 @@ export * from './context-cache.js';
 export * from './cursors.js';
 export * from './enums.js';
 export * from './input.js';
+export * from './map-async-iterator.js';
 export * from './params.js';
 export * from './sort-classes.js';
 
