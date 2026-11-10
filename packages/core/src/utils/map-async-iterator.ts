@@ -4,6 +4,9 @@ type MappedAsyncIterator<T> = AsyncIterableIterator<T> & AsyncGenerator<T>;
  * Map yielded values while forwarding cancellation immediately, even during a
  * pending read. An optional error handler can turn a terminal failure into one
  * final value. Cleanup yields are awaited and mapped like ordinary values.
+ * next(), throw(), and return() preserve source receivers and arguments; terminal
+ * source results pass through unchanged. A return() result with done: false keeps
+ * the iterator active so callers can resume it or request return() again.
  * The source owns settling pending operations when closed. onClose releases owned
  * resources on terminal completion or failure, including mapping failures.
  */

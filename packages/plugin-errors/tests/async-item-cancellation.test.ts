@@ -39,6 +39,33 @@ it.each([false, true])('closes an async item list promptly (read started: %s)', 
   }
 });
 
+it('returns the caller value and ignores source cleanup yields when closing a list', async () => {
+  const source = quietSource();
+  source.return = vi.fn(async () => ({ value: 'cleanup yield', done: false }));
+  const iterator = yieldAsyncErrors(source, []);
+
+  await expect(iterator.return(Promise.resolve('caller value'))).resolves.toEqual({
+    value: 'caller value',
+    done: true,
+  });
+  expect(source.return).toHaveBeenCalledExactlyOnceWith();
+  await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true });
+  expect(source.next).not.toHaveBeenCalled();
+});
+
+it('closes a list and preserves an injected error instead of recovering through source.throw', async () => {
+  const error = new Error('injected');
+  const source = quietSource();
+  source.throw = vi.fn(async () => ({ value: 'recovered', done: false }));
+  source.return = vi.fn(() => Promise.reject(new Error('cleanup failed')));
+  const iterator = yieldAsyncErrors(source, []);
+
+  await expect(iterator.throw(error)).rejects.toBe(error);
+  expect(source.return).toHaveBeenCalledOnce();
+  expect(source.throw).not.toHaveBeenCalled();
+  await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true });
+});
+
 it.each([
   { depth: 1, dispose: false },
   { depth: 2, dispose: false },

@@ -242,6 +242,8 @@ class NestedIteratorOwner {
 
 // List cancellation follows for-await: close once and ignore cleanup yields.
 // Subscriptions use mapAsyncIterator directly and can resume after return yields.
+// Control values belong to this list wrapper: return(value) finishes with value;
+// throw(error) closes the source and raises error instead of injecting it there.
 function createListSourceIterator(source: AsyncIterator<unknown>): AsyncIterator<unknown> {
   let iterator: AsyncIterator<unknown> | undefined = source;
   const close = () => {
