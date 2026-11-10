@@ -26,7 +26,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hayes/pothos.git",
-    "directory": "packages/plugin-add-graphql"
+    "directory": "packages/plugin-grafast"
   },
   "author": "Michael Hayes",
   "license": "ISC",
