@@ -170,8 +170,9 @@ function placeOf(cached: Cache, info: GraphQLResolveInfo, path: GraphQLResolveIn
 /**
  * The entries of `cache` for the operation `info` is in. Keyed on its `variableValues`, which
  * every executor coerces afresh for each operation, so operations sharing a context never share
- * an entry. The events of a subscription may share them, so a plan cached here runs its `select`
- * and `query` callbacks once for all of them; use `forExecution` where they read per-event state.
+ * an entry. The events of a subscription may share one, so a plan cached here runs its `select`
+ * and `query` callbacks once for all of them. Use `forExecution` if the callbacks read per-event
+ * state.
  */
 export function forOperation<T>(
   cache: WeakMap<object, Map<string, T>>,
@@ -181,9 +182,8 @@ export function forOperation<T>(
 }
 
 /**
- * The entries of `cache` for the execution `info` is in, by `executionOf`, as mappings are kept:
- * each event of a subscription gets its own, and @defer and @stream payloads share their
- * execution's.
+ * The entries of `cache` for the execution `info` is in. Each event of a subscription gets its own
+ * entries, and `@defer` and `@stream` payloads share the entries of their execution.
  */
 export function forExecution<T>(
   cache: WeakMap<object, Map<string, T>>,
@@ -256,12 +256,12 @@ const fieldNodeIds = new WeakMap<object, number>();
 let nextFieldNodeId = 0;
 
 /**
- * `cacheKey(type, info.path)` and the identity of every node in `info.fieldNodes`. The path keeps
- * each place in the response apart, list indices aside, so the root fields of a mutation, which run
- * in turn and whose callbacks may read what an earlier one changed, never share a plan. The nodes
- * decide what a plan loads: fragments on different types can merge different nodes into one
- * response path, so a plan keyed on the path alone would be reused for a field asking for
- * something else.
+ * The key to cache a field's plan under: `cacheKey(type, info.path)` plus an id for each node in
+ * `info.fieldNodes`. The path leaves out list indices, so the items of a list share a plan. The
+ * root fields of a mutation run in turn, and a callback may read what an earlier field changed.
+ * Their paths differ, so each gets its own plan. The nodes are part of the key because fragments on
+ * different types can merge different nodes into one response path, and a plan keyed on the path
+ * alone would be reused for a field that selects something else.
  */
 export function fieldKey(type: string, info: GraphQLResolveInfo): string {
   let key = cacheKey(type, info.path);
@@ -305,7 +305,7 @@ function claimForRow(cached: Cache, type: string, mapping: Mapping, row: object,
 
 /**
  * Records the mappings of a plan rooted at the field `info` resolves, under that field's path.
- * The plan loaded the whole field, so its mappings answer for everything resolved beneath this
+ * The plan loaded the whole field, so its mappings are used for everything resolved beneath this
  * execution of it. Multiple plans can contribute to one field (Relay nodes of different model
  * types share the list's path), so later contributions replace matching keys and retain others.
  */
@@ -328,9 +328,8 @@ export function setRowMappings(ctx: object, info: GraphQLResolveInfo, mappings: 
 }
 
 /**
- * Records the mapping of the field `info` resolves, from a plan that loaded `row` alone, against
- * `row`: the field's lookup on `row` answers from it whatever the field's other rows were loaded
- * with.
+ * Records a mapping for `row` only, for the field `info` resolves. Use it when the plan loaded
+ * `row` alone. The field's other rows don't use this mapping.
  *
  * Descendants inherit the mapping through this field's execution scope, even when their parent
  * is a child object or a connection wrapper rather than the row that was reloaded.
@@ -355,8 +354,9 @@ export function setRowFieldMapping(
 /**
  * The mapping recorded for the field `info` resolves on `row`, preferring one recorded for that
  * row over the plan's. `row` is the value whose data the mapping describes — the resolver's
- * parent. The plan's comes from the nearest field execution above that recorded one: with none
- * above, no plan loaded `row`, whatever was recorded for another row at the same path.
+ * parent. The plan's mapping comes from the nearest field execution above this one that recorded
+ * mappings. Returns `null` if there is none or it has no mapping for this field, even if a mapping
+ * was recorded for another row at the same path.
  */
 export function getLoaderMapping(
   ctx: object,
