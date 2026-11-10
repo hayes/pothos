@@ -237,9 +237,14 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     // An exposed scalar or enum reads only its field, and has no fields beneath it, so a row
     // holding a value for the field resolves it as it is.
     const field = fieldConfig.extensions?.pothosPrismaExposedField as string | false | undefined;
+
+    if (!field) {
+      return gated;
+    }
+
     const returnKind = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type)).kind;
 
-    if (!field || (returnKind !== 'Scalar' && returnKind !== 'Enum')) {
+    if (returnKind !== 'Scalar' && returnKind !== 'Enum') {
       return gated;
     }
 

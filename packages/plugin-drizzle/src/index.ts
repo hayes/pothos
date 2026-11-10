@@ -197,9 +197,14 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
     // An exposed scalar or enum reads only its column, and has no fields beneath it, so a row
     // holding a value for the column resolves it as it is.
     const column = fieldConfig.extensions?.pothosDrizzleExposedColumn as string | false | undefined;
+
+    if (!column) {
+      return gated;
+    }
+
     const returnKind = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type)).kind;
 
-    if (!column || (returnKind !== 'Scalar' && returnKind !== 'Enum')) {
+    if (returnKind !== 'Scalar' && returnKind !== 'Enum') {
       return gated;
     }
 
