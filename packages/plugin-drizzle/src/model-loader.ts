@@ -1,7 +1,7 @@
 import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
 import {
   fieldKey,
-  forOperation,
+  forExecution,
   Plan,
   setLoaderMappings,
   setRowFieldMapping,
@@ -41,11 +41,11 @@ export class ModelLoader {
 
   modelName: string;
 
-  // One plan per `fieldKey` per operation, a promise while a select beneath the field is async.
+  // One plan per `fieldKey` per execution, a promise while a select beneath the field is async.
   // A parent-row plan is played where it is made, since it is never played behind another
   // selection; a field's plan is played per load, so no two loads share a node. Kept per
-  // operation (see `forOperation`), so an operation sharing the context never loads with
-  // another's plan.
+  // execution (see `forExecution`), so neither an operation sharing the context nor a later
+  // subscription event loads with another's plan.
   rowCache = new WeakMap<object, Map<string, MaybePromise<DrizzlePlayedPlan>>>();
 
   planCache = new WeakMap<object, Map<string, MaybePromise<DrizzlePlan>>>();
@@ -112,7 +112,7 @@ export class ModelLoader {
   }
 
   getSelection(info: GraphQLResolveInfo) {
-    const plans = forOperation(this.rowCache, info);
+    const plans = forExecution(this.rowCache, info);
     const key = fieldKey(info.parentType.name, info);
     let plan = plans.get(key);
     if (!plan) {
@@ -124,7 +124,7 @@ export class ModelLoader {
   }
 
   getSelectionForField(info: GraphQLResolveInfo, typeName: string) {
-    const plans = forOperation(this.planCache, info);
+    const plans = forExecution(this.planCache, info);
     const key = fieldKey(typeName, info);
     let plan = plans.get(key);
     if (!plan) {

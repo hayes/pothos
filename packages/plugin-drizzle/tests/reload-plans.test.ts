@@ -104,8 +104,13 @@ type Subscribe = (args: {
   contextValue: object;
 }) => unknown;
 
-async function events(subscribeWith: Subscribe, source: string) {
-  const result = (await subscribeWith({ schema, document: parse(source), contextValue: {} })) as
+async function events(
+  subscribeWith: Subscribe,
+  source: string,
+  on: GraphQLSchema = schema,
+  contextValue: object = {},
+) {
+  const result = (await subscribeWith({ schema: on, document: parse(source), contextValue })) as
     | AsyncIterable<unknown>
     | object;
 
@@ -217,5 +222,74 @@ describe('plans for one response path beneath different types', () => {
         {},
       ],
     });
+  });
+});
+
+// Each event sets `published` on the context before it is yielded, for the counts to filter by.
+const eventBuilder = new SchemaBuilder<{
+  DrizzleRelations: DrizzleRelations;
+  Context: { published: number };
+}>({
+  plugins: [ScopeAuthPlugin, RelayPlugin, DrizzlePlugin],
+  drizzle: { client: () => db, getTableConfig, relations },
+  relay: {},
+  scopeAuth: { authScopes: () => ({}) },
+});
+
+const EventUser = eventBuilder.drizzleNode('users', {
+  name: 'EventUser',
+  id: { column: (user) => user.id },
+  fields: (t) => ({
+    n: t.relatedCount('posts', { where: (_args, ctx) => eq(posts.published, ctx.published) }),
+  }),
+});
+
+const Event = eventBuilder.objectRef<{ userId: number }>('Event').implement({
+  fields: (t) => ({
+    // Loaded without the query, so what is beneath it loads on its own.
+    user: t.drizzleField({
+      type: EventUser,
+      nullable: true,
+      resolve: (_query, event) => db.query.users.findFirst({ where: { id: event.userId } }),
+    }),
+    node: t.node({ id: (event) => ({ type: 'EventUser', id: String(event.userId) }) }),
+  }),
+});
+
+eventBuilder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+
+eventBuilder.subscriptionType({
+  fields: (t) => ({
+    event: t.field({
+      type: Event,
+      subscribe: async function* (_root, _args, context) {
+        for (const published of [1, 0]) {
+          context.published = published;
+          yield await Promise.resolve({ userId: 1 });
+        }
+      },
+      resolve: (event) => event,
+    }),
+  }),
+});
+
+const eventSchema = eventBuilder.toSchema();
+
+describe.each([
+  ['graphql-js', subscribe as Subscribe],
+  ['@graphql-tools/executor', toolsSubscribe as Subscribe],
+])('plans for each subscription event through %s', (_, subscribeWith) => {
+  it('runs select callbacks again for each event', async () => {
+    expect(
+      await events(
+        subscribeWith,
+        'subscription { event { user { n } node { ... on EventUser { n } } } }',
+        eventSchema,
+        { published: 0 },
+      ),
+    ).toEqual([
+      { data: { event: { user: { n: await count(1, 1) }, node: { n: await count(1, 1) } } } },
+      { data: { event: { user: { n: await count(1, 0) }, node: { n: await count(1, 0) } } } },
+    ]);
   });
 });
