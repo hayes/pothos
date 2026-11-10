@@ -1,7 +1,18 @@
 import type { RegisterOptions } from '../types.js';
 
 type Timer = ReturnType<typeof setTimeout>;
+interface SourceRegistration {
+  canceled: boolean;
+  started: boolean;
+  pending?: Promise<void>;
+  ready?: Promise<void>;
+  cleanup?: Promise<void>;
+  initialCleanup?: Promise<void>;
+}
+
 export default class SubscriptionManager implements AsyncIterator<object> {
+  private registrations = new Map<string, SourceRegistration>();
+
   activeSubscriptions = new Set<string>();
 
   nextSubscriptions = new Set<string>();
@@ -72,17 +83,92 @@ export default class SubscriptionManager implements AsyncIterator<object> {
       return;
     }
 
-    const maybePromise = this.subscribeToName(name, (err, value) => {
-      if (err) {
-        this.handleError(err);
-      } else {
-        this.handleValue(name, value);
+    const previous = this.registrations.get(name);
+    const registration: SourceRegistration = { canceled: false, started: false };
+    this.registrations.set(name, registration);
+
+    const start = () => {
+      if (registration.canceled || this.stopped) {
+        return;
+      }
+      registration.started = true;
+      let complete!: () => void;
+      registration.pending = new Promise<void>((resolve) => {
+        complete = resolve;
+      });
+      const finish = () => {
+        registration.pending = undefined;
+        complete();
+      };
+      try {
+        const maybePromise = this.subscribeToName(name, (err, value) => {
+          if (registration.canceled) {
+            return;
+          }
+          if (err) {
+            this.handleError(err);
+          } else {
+            this.handleValue(name, value);
+          }
+        });
+
+        if (maybePromise) {
+          Promise.resolve(maybePromise).then(finish, (error) => {
+            finish();
+            if (!registration.canceled) {
+              this.handleError(error);
+            }
+          });
+        } else {
+          finish();
+        }
+      } catch (error) {
+        finish();
+        throw error;
+      }
+    };
+
+    if (previous?.cleanup) {
+      // Finish the old generation before starting another source with the same name.
+      registration.ready = previous.cleanup.then(start);
+      registration.ready.catch((error) => this.handleError(error));
+    } else {
+      start();
+    }
+  }
+
+  private unsubscribe(name: string) {
+    const registration = this.registrations.get(name);
+    if (!registration) {
+      return Promise.resolve();
+    }
+    if (registration.initialCleanup) {
+      return registration.initialCleanup;
+    }
+    registration.canceled = true;
+    const pending = registration.pending;
+    const initialCleanup = registration.started
+      ? (async () => {
+          await this.unsubscribeFromName(name);
+        })()
+      : Promise.resolve();
+    registration.initialCleanup = initialCleanup;
+    registration.cleanup = initialCleanup.then(async () => {
+      if (registration.ready && !registration.started) {
+        await registration.ready;
+      }
+      if (pending) {
+        // Cancellation must not await the subscribe promise: iterator adapters keep
+        // it pending for the stream's lifetime. Clean up again if setup finishes late.
+        await pending;
+        await this.unsubscribeFromName(name);
+      }
+      if (this.registrations.get(name) === registration) {
+        this.registrations.delete(name);
       }
     });
-
-    if (maybePromise) {
-      maybePromise.catch((error) => this.handleError(error));
-    }
+    registration.cleanup.catch((error) => this.handleError(error));
+    return initialCleanup;
   }
 
   [Symbol.asyncIterator]() {
@@ -122,7 +208,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
 
     for (const name of this.activeSubscriptions) {
       if (!this.nextSubscriptions.has(name)) {
-        await this.unsubscribeFromName(name);
+        await this.unsubscribe(name);
       }
     }
 
@@ -206,7 +292,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
 
     for (const name of names) {
       try {
-        await this.unsubscribeFromName(name);
+        await this.unsubscribe(name);
       } catch (error: unknown) {
         errors.push(error);
       }
