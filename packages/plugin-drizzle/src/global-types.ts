@@ -36,6 +36,7 @@ import type {
   DrizzleObjectFieldOptions,
   DrizzleObjectOptions,
   DrizzlePluginOptions,
+  DrizzleRelationsHint,
   DrizzleTableNameBrand,
   ShapeFromConnection,
   ShapeFromIdColumns,
@@ -73,7 +74,7 @@ declare global {
           true extends Selection ? true : Selection & { columns: {} }
         >,
       >(
-        table: Table,
+        table: Table | DrizzleRelationsHint<Types>,
         options: DrizzleObjectOptions<Types, Table, Shape, Selection, Interfaces>,
       ) => DrizzleObjectRef<Types, Table, Shape>;
 
@@ -89,7 +90,7 @@ declare global {
           true extends Selection ? true : Selection & { columns: {} }
         >,
       >(
-        table: Table,
+        table: Table | DrizzleRelationsHint<Types>,
         options: DrizzleInterfaceOptions<Types, Table, Shape, Selection, Interfaces>,
       ) => DrizzleInterfaceRef<Types, Table, Shape>;
 
@@ -107,7 +108,7 @@ declare global {
               true extends Selection ? true : Selection & { columns: {} }
             >,
           >(
-            table: Table,
+            table: Table | DrizzleRelationsHint<Types>,
             options: DrizzleNodeOptions<Types, Table, Shape, Selection, Interfaces, IDColumns>,
           ) => DrizzleNodeRef<Types, Table, Shape, ShapeFromIdColumns<Types, Table, IDColumns>>
         : '@pothos/plugin-relay is required to use this method';
@@ -131,7 +132,7 @@ declare global {
             > &
               DrizzleTableNameBrand<Type>,
       >(
-        type: Type,
+        type: Type | DrizzleRelationsHint<Types>,
         fieldName: string,
         field: (
           t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>,
@@ -157,7 +158,7 @@ declare global {
             > &
               DrizzleTableNameBrand<Type>,
       >(
-        type: Type,
+        type: Type | DrizzleRelationsHint<Types>,
         fieldName: string,
         field: (
           t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>,
@@ -183,7 +184,7 @@ declare global {
             > &
               DrizzleTableNameBrand<Type>,
       >(
-        type: Type,
+        type: Type | DrizzleRelationsHint<Types>,
         fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldMap,
       ) => void;
 
@@ -206,7 +207,7 @@ declare global {
             > &
               DrizzleTableNameBrand<Type>,
       >(
-        type: Type,
+        type: Type | DrizzleRelationsHint<Types>,
         fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldMap,
       ) => void;
     }
@@ -249,7 +250,7 @@ declare global {
         > = {},
       >(
         // biome-ignore lint/suspicious/noExplicitAny: a ref from before `withAuth` replaced the context
-        type: Table | DrizzleRef<any, Table>,
+        type: Table | DrizzleRef<any, Table> | DrizzleRelationsHint<Types>,
         // The concrete query intersection contextually types callbacks while Selection retains literals.
         options: Selection &
           DBQueryConfig<'many', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]> &

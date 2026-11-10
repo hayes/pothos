@@ -17,7 +17,7 @@ import type {
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { DrizzleRef } from './interface-ref.js';
-import type { QueryForDrizzleConnection } from './types.js';
+import type { DrizzleRelationsHint, QueryForDrizzleConnection } from './types.js';
 import { drizzleAdapter } from './utils/adapter.js';
 import { checkAwaitSelections } from './utils/await-selections.js';
 import { getSchemaConfig } from './utils/config.js';
@@ -61,7 +61,7 @@ export function drizzleConnectionHelpers<
   ExtraArgs extends InputFieldMap = {},
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  refOrType: Type,
+  refOrType: Type | DrizzleRelationsHint<Types>,
   {
     select,
     resolveNode,

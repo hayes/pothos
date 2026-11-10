@@ -147,6 +147,27 @@ export interface DrizzleTableNameBrand<Table> {
   [drizzleTableName]?: Table;
 }
 
+/**
+ * Without `DrizzleRelations` there are no table names, and a name is checked against `never`. The
+ * name positions accept this hint as well, so the error names the missing setup. It is a branded
+ * string rather than a literal, so editors don't offer it, and `never` once `DrizzleRelations` is
+ * set. `List` adds the hint in a list, for the positions that take `[name]`.
+ */
+type MissingDrizzleRelations<Hint extends string> = string & {
+  readonly missingDrizzleRelations: Hint;
+};
+
+type DrizzleRelationsSetup =
+  'Set DrizzleRelations on SchemaTypes: new SchemaBuilder<{ DrizzleRelations: typeof relations }>(...)';
+
+export type DrizzleRelationsHint<Types extends SchemaTypes, List extends boolean = false> = [
+  keyof Types['DrizzleRelations'],
+] extends [never]
+  ?
+      | MissingDrizzleRelations<DrizzleRelationsSetup>
+      | (List extends true ? [MissingDrizzleRelations<DrizzleRelationsSetup>] : never)
+  : never;
+
 type NameOrVariant =
   | {
       name?: never;
@@ -278,7 +299,7 @@ export type DrizzleFieldOptions<
   >,
   'type' | InferredFieldOptionKeys
 > & {
-  type: Param;
+  type: Param | DrizzleRelationsHint<Types, true>;
   resolve: (
     query: <T = {}>(
       selection?: T & QueryForDrizzleField<Types, Param, Table>,
@@ -768,7 +789,7 @@ export type DrizzleConnectionFieldOptions<
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
-        type: Type;
+        type: Type | DrizzleRelationsHint<Types>;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         totalCount?: (
