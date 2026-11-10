@@ -221,13 +221,7 @@ export class PrismaObjectFieldBuilder<
 
     const formatCursor = getCursorFormatter(relationField.type, this.builder, cursorValue);
     const parseCursor = getCursorParser(relationField.type, this.builder, cursorValue);
-    const connectionOrderBy = getConnectionOrderBy(relationField.type, this.builder, cursorValue);
-    const withConnectionOrder = <Q extends {}>(query: Q): Q => {
-      const { orderBy } = query as { orderBy?: unknown };
-      const uniqueOrderBy = connectionOrderBy(orderBy);
-
-      return uniqueOrderBy === orderBy ? query : { ...query, orderBy: uniqueOrderBy };
-    };
+    const withConnectionOrder = getConnectionOrderBy(relationField.type, this.builder, cursorValue);
 
     // The field's `query` may be async, so the result is a promise when it is.
     const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {

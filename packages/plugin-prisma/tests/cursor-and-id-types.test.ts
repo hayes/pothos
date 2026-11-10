@@ -620,15 +620,14 @@ describe('connection order', () => {
   // A nullable unique column is not a key, but the order already names the cursor, so there is
   // nothing to append.
   it('returns an order that names every cursor field as it was given', () => {
-    const orderBy = { c: 'asc' };
+    const query = { orderBy: { c: 'asc' } };
 
-    expect(getConnectionOrderBy('Model', builder, 'c')(orderBy)).toBe(orderBy);
+    expect(getConnectionOrderBy('Model', builder, 'c')(query)).toBe(query);
   });
 
   it('appends the cursor ascending after an ordering that names no direction', () => {
-    expect(getConnectionOrderBy('Model', builder, 'c')({ author: {} })).toEqual([
-      { author: {} },
-      { c: 'asc' },
-    ]);
+    expect(getConnectionOrderBy('Model', builder, 'c')({ orderBy: { author: {} } })).toEqual({
+      orderBy: [{ author: {} }, { c: 'asc' }],
+    });
   });
 });

@@ -475,10 +475,10 @@ function orderDirection(value: unknown): unknown {
 }
 
 /**
- * Makes a connection's `orderBy` unique, so a backward page (which prisma reads by reversing the
- * order) holds the same rows as the forward list. An order that does not name a non-null unique
- * key gets the cursor's fields appended in the direction of its last column; any other order is
- * returned as it is.
+ * Makes a connection query's `orderBy` unique, so a backward page (which prisma reads by reversing
+ * the order) holds the same rows as the forward list. An order that does not name a non-null
+ * unique key gets the cursor's fields appended in the direction of its last column; a query with
+ * any other order is returned as it is.
  */
 export function getConnectionOrderBy<Types extends SchemaTypes>(
   name: string,
@@ -502,7 +502,8 @@ export function getConnectionOrderBy<Types extends SchemaTypes>(
       .map((field) => [field.name]),
   ].filter((key) => key.every((field) => fields.get(field)?.isRequired));
 
-  return <T>(orderBy: T): T | OrderByEntry[] => {
+  return <Q extends {}>(query: Q): Q => {
+    const { orderBy } = query as { orderBy?: unknown };
     const entries = (
       Array.isArray(orderBy) ? orderBy : orderBy == null ? [] : [orderBy]
     ) as OrderByEntry[];
@@ -512,24 +513,24 @@ export function getConnectionOrderBy<Types extends SchemaTypes>(
     );
 
     if (orderings.length === 0) {
-      return orderBy;
+      return query;
     }
 
     const named = new Set(orderings.map(([field]) => field));
 
     if (uniqueKeys.some((key) => key.every((field) => named.has(field)))) {
-      return orderBy;
+      return query;
     }
 
     const missing = cursorFields.filter((field) => !named.has(field));
 
     if (missing.length === 0) {
-      return orderBy;
+      return query;
     }
 
     const direction = orderDirection(orderings[orderings.length - 1][1]) ?? 'asc';
 
-    return [...entries, ...missing.map((field) => ({ [field]: direction }))];
+    return { ...query, orderBy: [...entries, ...missing.map((field) => ({ [field]: direction }))] };
   };
 }
 

@@ -240,12 +240,8 @@ export function prismaConnectionHelpers<
       prismaAdapter.mergeQuery(node, nestedSelect);
     }
 
-    const { orderBy } = baseQuery as { orderBy?: unknown };
-    const uniqueOrderBy = connectionOrderBy(orderBy);
-
     return {
-      ...baseQuery,
-      ...(uniqueOrderBy === orderBy ? {} : { orderBy: uniqueOrderBy }),
+      ...connectionOrderBy(baseQuery),
       ...getQueryArgs(args, ctx),
       ...prismaAdapter.toQuery(node),
     };
