@@ -62,7 +62,7 @@ interface FieldPlanning {
 
 interface CompiledLoad {
   selection: PrismaSelection;
-  ref?: LoadRef;
+  ref: LoadRef;
 }
 
 export type PlanPage = (
@@ -431,7 +431,7 @@ function compileSelect(
         relations: Object.assign({}, ...resolved.map((part) => part.selection.relations)),
         computed,
       },
-      refs: resolved.flatMap((part) => (part.ref ? [part.ref] : [])),
+      refs: resolved.map((part) => part.ref),
     };
   });
 }

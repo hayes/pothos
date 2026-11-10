@@ -1873,37 +1873,84 @@ describe('prismaConnectionHelpers', () => {
     expect(second.data.users[0].wrapped.edges).toEqual([{ node: { title: 'Hello, Pothos' } }]);
   });
 
-  // User.stats → Stats.posts: the connection sits beneath a wrapper the field returns.
-  function wrapperSchema(prefixed: boolean) {
+  it('pages aliases of a connection on a variant type by their own arguments', async () => {
     const builder = createBuilder();
     builder.prismaObject('Post', {
-      fields: (t) => ({ id: t.exposeID('id'), title: t.exposeString('title') }),
+      fields: (t) => ({ id: t.exposeID('id'), author: t.relation('author') }),
     });
     const posts = prismaConnectionHelpers(builder, 'Post', {
       query: { orderBy: { title: 'asc' } },
-      totalCount: true,
     });
+    const Stats = builder.prismaObject('User', {
+      variant: 'Stats',
+      fields: (t) => ({
+        posts: t.connection({
+          type: posts.ref,
+          select: (args, ctx, nestedSelection) => ({
+            posts: posts.getQuery(args, ctx, nestedSelection),
+          }),
+          resolve: (user, args, ctx) => posts.resolve(user.posts, args, ctx),
+        }),
+      }),
+    });
+    builder.prismaObject('User', { fields: (t) => ({ stats: t.variant(Stats) }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+        posts: t.prismaField({
+          type: ['Post'],
+          collection: () => db.orm.Post.orderBy((post) => post.id.asc()),
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+    const alias = (name: string, page: string) =>
+      `${name}: posts(${page}) { edges { node { id } } }`;
+
+    const users = await run(
+      schema,
+      `{ users { stats { ${alias('a', 'first: 1')} ${alias('b', 'last: 1')} } } }`,
+    );
+    expect(users.errors).toBeUndefined();
+    expect(ids(users.data.users[0].stats.a)).toEqual(['p-draft1']);
+    expect(ids(users.data.users[0].stats.b)).toEqual(['p-hello']);
+    expect(users.statements).toHaveLength(1);
+
+    const authors = await run(
+      schema,
+      `{ posts { id author { stats { ${alias('a', 'first: 1')} } } author { stats { ${alias('b', 'last: 1')} } } } }`,
+    );
+    expect(authors.errors).toBeUndefined();
+    const { stats } = authors.data.posts.find(
+      (post: { id: string }) => post.id === 'p-bob1',
+    ).author;
+    expect(ids(stats.a)).toEqual(['p-bob-draft']);
+    expect(ids(stats.b)).toEqual(['p-bob1']);
+    expect(authors.statements).toHaveLength(1);
+  });
+
+  it("fails the root field when the helper's connection is beneath the field's type", async () => {
+    const builder = createBuilder();
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    const posts = prismaConnectionHelpers(builder, 'Post', {});
     type PostRows = Parameters<typeof posts.resolve>[0];
     const Stats = builder.objectRef<{ rows: PostRows }>('Stats').implement({
       fields: (t) => ({
-        posts: t.connection(
-          {
-            type: posts.ref,
-            resolve: (stats, args, ctx) => posts.resolve(stats.rows, args, ctx),
-          },
-          { fields: (c) => ({ totalCount: c.int({ resolve: (page) => page.totalCount }) }) },
-        ),
+        posts: t.connection({
+          type: posts.ref,
+          resolve: (stats, args, ctx) => posts.resolve(stats.rows, args, ctx),
+        }),
       }),
     });
     builder.prismaObject('User', {
       fields: (t) => ({
         stats: t.field({
           type: Stats,
-          args: { first: t.arg.int(), last: t.arg.int() },
           select: (args, ctx, nestedSelection) => ({
-            posts: posts.getQuery(args, ctx, ({ path }) =>
-              nestedSelection({ path: prefixed ? ['posts', ...path] : path }),
-            ),
+            posts: posts.getQuery(args, ctx, nestedSelection),
           }),
           resolve: (user) => ({ rows: user.posts }),
         }),
@@ -1917,113 +1964,12 @@ describe('prismaConnectionHelpers', () => {
         }),
       }),
     });
-    return builder.toSchema();
-  }
-
-  it('pages a connection beneath a wrapper type through a prefixed path', async () => {
     const result = await run(
-      wrapperSchema(true),
-      '{ users { stats { posts { totalCount edges { node { title } } } } } }',
-    );
-    expect(result.errors).toBeUndefined();
-    expect(result.data.users.map((user: { stats: unknown }) => user.stats)).toEqual([
-      {
-        posts: {
-          totalCount: 2,
-          edges: [{ node: { title: 'Draft #1' } }, { node: { title: 'Hello, Pothos' } }],
-        },
-      },
-      {
-        posts: {
-          totalCount: 2,
-          edges: [{ node: { title: 'Bob draft' } }, { node: { title: 'Bob writes' } }],
-        },
-      },
-    ]);
-    expect(result.statements).toHaveLength(1);
-  });
-
-  it("plans a wrapped connection's nodes through a prefixed path", async () => {
-    const result = await run(
-      wrapperSchema(true),
-      '{ users { stats { posts { nodes { title } } } } }',
-    );
-    expect(result.errors).toBeUndefined();
-    expect(result.data.users[0].stats).toEqual({
-      posts: { nodes: [{ title: 'Draft #1' }, { title: 'Hello, Pothos' }] },
-    });
-    expect(result.statements).toHaveLength(1);
-  });
-
-  it.each([
-    ['forward', 'first', 'after', 'endCursor', 'hasNextPage'],
-    ['backward', 'last', 'before', 'startCursor', 'hasPreviousPage'],
-  ] as const)('pages %s to the end beneath a wrapper by the connection arguments', async (_, size, cursor, cursorField, more) => {
-    const schema = wrapperSchema(true);
-    const pages: { ids: string[]; hasNextPage: boolean; hasPreviousPage: boolean }[] = [];
-    let at: string | null = null;
-    do {
-      const result = await run(
-        schema,
-        `query ($cursor: String) { users { stats(first: 10, last: 10) {
-          posts(${size}: 1, ${cursor}: $cursor) {
-            edges { node { id } }
-            pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
-          }
-        } } }`,
-        { variables: { cursor: at } },
-      );
-      expect(result.errors).toBeUndefined();
-      const { edges, pageInfo } = result.data.users[0].stats.posts;
-      pages.push({
-        ids: ids({ edges }),
-        hasNextPage: pageInfo.hasNextPage,
-        hasPreviousPage: pageInfo.hasPreviousPage,
-      });
-      at = pageInfo[more] ? pageInfo[cursorField] : null;
-    } while (at !== null && pages.length < 5);
-    expect(pages).toEqual(
-      size === 'first'
-        ? [
-            { ids: ['p-draft1'], hasNextPage: true, hasPreviousPage: false },
-            { ids: ['p-hello'], hasNextPage: false, hasPreviousPage: true },
-          ]
-        : [
-            { ids: ['p-hello'], hasNextPage: false, hasPreviousPage: true },
-            { ids: ['p-draft1'], hasNextPage: true, hasPreviousPage: false },
-          ],
-    );
-  });
-
-  it.each([
-    ['one selection', (a: string, b: string) => `{ users { stats { ${a} ${b} } } }`],
-    [
-      'selections graphql merges',
-      (a: string, b: string) => `{ users { stats { ${a} } stats { ${b} } } }`,
-    ],
-  ] as const)('fails the root field when aliases of the connection beneath a wrapper differ in arguments, in %s', async (_, query) => {
-    const schema = wrapperSchema(true);
-    const alias = (name: string, first: number) =>
-      `${name}: posts(first: ${first}) { edges { node { id } } }`;
-    const same = await run(schema, query(alias('a', 1), alias('b', 1)));
-    expect(same.errors).toBeUndefined();
-    expect(ids(same.data.users[0].stats.a)).toEqual(['p-draft1']);
-    expect(ids(same.data.users[0].stats.b)).toEqual(['p-draft1']);
-    const differing = await run(schema, query(alias('a', 1), alias('b', 2)));
-    expect(differing.data.users).toBeNull();
-    expect(differing.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
-    expect(differing.errors?.map(detailOf)).toEqual([
-      'The fields selected at posts beneath User.stats have different arguments.',
-    ]);
-    expect(differing.statements).toHaveLength(0);
-  });
-
-  it('fails the root field with an unexpected error for a path the wrapper does not have', async () => {
-    const result = await run(
-      wrapperSchema(false),
-      '{ users { stats { posts { edges { node { title } } } } } }',
+      builder.toSchema(),
+      '{ users { stats { posts { edges { node { id } } } } } }',
     );
     expect(result.data.users).toBeNull();
+    expect(result.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
     expect(result.errors?.map(detailOf)).toEqual(['Expected Stats to have a field edges']);
     expect(result.statements).toHaveLength(0);
   });

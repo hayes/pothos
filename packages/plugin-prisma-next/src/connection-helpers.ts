@@ -5,7 +5,6 @@ import {
   type MaybePromise,
   type SchemaTypes,
 } from '@pothos/core';
-import type { PathSegment } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaInterfaceRef } from './interface-ref.js';
 import type { PlannedRowBrand, PrismaObjectRef } from './object-ref.js';
@@ -33,7 +32,6 @@ import {
   CONNECTION_PAGE,
   NODE_SELECTION,
   type PlanPage,
-  type RelationEntry,
   relationArgs,
   splitSelect,
 } from './utils/compile-select.js';
@@ -185,13 +183,12 @@ export interface PrismaConnectionHelpers<
    * The entry of a to-many relation of this model in a connection field's select function. It
    * loads one page of the relation in the parent's query, with the selection beneath the
    * connection's nodes, and its count when `totalCount` is selected. Pass the rows to `resolve`.
-   * `args` are the field's. A connection beneath the field, at a prefixed path, ignores them: it
-   * pages by its own arguments, and fails the request when aliases of it select different ones.
+   * `args` are the connection field's.
    */
   getQuery(
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
-    nestedSelection: (options: { path: readonly PathSegment[] }) => unknown,
+    nestedSelection: (...args: never[]) => unknown,
   ): ConnectionPageEntry<M, HelperRow<Types, M, Select, Ref>>;
   /**
    * Loads one page of `collection`, a collection of this model, for the root connection field
@@ -342,44 +339,28 @@ export function prismaConnectionHelpers<
     }));
   };
 
-  /** `paths` are `CONNECTION_NODE_PATHS` as the field's `nestedSelection` prefixed them. */
   const planPage =
-    (fieldArgs: object, ctx: object, paths: readonly PathSegment[][]): PlanPage =>
+    (args: object, ctx: object): PlanPage =>
     (owner, relation, name, field) => {
-      // Where the connection sits beneath the field; it pages by its own arguments there.
-      const prefix = paths[0]!
-        .slice(0, -CONNECTION_NODE_PATHS[0]!.length)
-        .map((segment) => (typeof segment === 'string' ? segment : segment.name));
+      const names = field.selected();
       // An unselected path may not be in the schema (`nodes` without `nodesOnConnection`).
-      const selectedPaths = paths.filter(
-        (_path, i) => i === 0 || field.selected([...prefix, ...CONNECTION_NODE_PATHS[i]!]),
-      );
+      const paths = CONNECTION_NODE_PATHS.filter((path, i) => i === 0 || names.has(path[0]!));
       const nodes = (seed: PrismaSelection) =>
-        selectedPaths.reduce<MaybePromise<PrismaSelection>>(
+        paths.reduce<MaybePromise<PrismaSelection>>(
           (planned, path) => completeValue(planned, (selection) => field.nested(selection, path)),
           seed,
         );
-      const connectionArgs = prefix.length ? field.selected.args(prefix) : fieldArgs;
-      // Beneath the field, only `totalCount` is looked up, so the page always loads rows.
-      const names = prefix.length
-        ? new Set(field.selected([...prefix, 'totalCount']) ? ['edges', 'totalCount'] : ['edges'])
-        : field.selected();
-      if (!connectionArgs) {
-        return { selection: EMPTY };
-      }
       const variant = variantForRelationType(
         config.contract,
         subject,
         relation.targetModel,
         modelKey,
       );
-      return completeValue(connectionArgs, (args) =>
-        paging.pageLoads(ctx, owner, relation, name, args, names, {
-          variant,
-          filtered: true,
-          rows: (seed) => pageRows(seed, nodes, args, ctx),
-        }),
-      );
+      return paging.pageLoads(ctx, owner, relation, name, args, names, {
+        variant,
+        filtered: true,
+        rows: (seed) => pageRows(seed, nodes, args, ctx),
+      });
     };
 
   let builtArgs: Args | undefined;
@@ -390,17 +371,7 @@ export function prismaConnectionHelpers<
         typeof options.args === 'function'
           ? builder.args(options.args)
           : (options.args ?? ({} as Args))),
-    getQuery: (
-      args: object,
-      ctx: object,
-      nestedSelection: (options: { path: readonly PathSegment[] }) => unknown,
-    ) => {
-      const paths = CONNECTION_NODE_PATHS.map((path) => {
-        const nested = (nestedSelection({ path }) as RelationEntry).path;
-        return nested ? [...nested] : path;
-      });
-      return { [CONNECTION_PAGE]: planPage(args, ctx, paths) };
-    },
+    getQuery: (args: object, ctx: object) => ({ [CONNECTION_PAGE]: planPage(args, ctx) }),
     async load(
       collection: MapperCollection,
       args: PothosSchemaTypes.DefaultConnectionArguments,
