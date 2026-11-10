@@ -148,7 +148,7 @@ export class PrismaObjectFieldBuilder<
   withAuth: 'scopeAuth' extends PluginName
     ? <Scopes extends FieldAuthScopes<Types, Shape, Record<string, unknown>>>(
         scopes: Scopes,
-      ) => PrismaObjectFieldBuilder<
+      ) => PothosSchemaTypes.PrismaObjectFieldBuilder<
         Omit<Types, 'Context'> & { Context: ContextForAuth<Types, Scopes> },
         M & ModelKey<Omit<Types, 'Context'> & { Context: ContextForAuth<Types, Scopes> }>,
         Shape,

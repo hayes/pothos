@@ -14,6 +14,7 @@ import type { Planned, PrismaObjectRef } from '../object-ref.js';
 import type {
   BareModelName,
   BaseOrSelf,
+  IsUnion,
   LoadedRow,
   ModelKey,
   NamespacedModelKey,
@@ -233,7 +234,8 @@ type RelationCanBeNull<
 
 /**
  * The arguments of `t.relation`: `options` is required, with `onNull`, when the field is non-null
- * and the relation can resolve to null.
+ * and the relation can resolve to null. While the name is rejected, `RelName` is its constraint, a
+ * union, and `options` stays optional so the error is reported at the name.
  */
 export type RelationFieldArgs<
   Types extends SchemaTypes,
@@ -256,9 +258,12 @@ export type RelationFieldArgs<
     Query,
     TypeModel
   >,
-> = [Nullable, RelationCanBeNull<Types, ParentModel, RelName, TypeModel>] extends [false, true]
-  ? [options: Options & { onNull: RelationOnNull<Types, ParentShape, Args, TypeModel> }]
-  : [options?: Options];
+> =
+  true extends IsUnion<RelName>
+    ? [options?: Options]
+    : [Nullable, RelationCanBeNull<Types, ParentModel, RelName, TypeModel>] extends [false, true]
+      ? [options: Options & { onNull: RelationOnNull<Types, ParentShape, Args, TypeModel> }]
+      : [options?: Options];
 
 /**
  * `Query` is inferred from the literal rather than checked, and a callback's result gets no excess

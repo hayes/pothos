@@ -28,7 +28,6 @@ import type { AsyncIterableResult } from '@prisma/orm-framework/components/runti
 import type { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
 import type { prismaInterfaceBrand } from '../interface-ref.js';
 import type { PrismaObjectRef, prismaContractBrand, prismaModelBrand } from '../object-ref.js';
-import type { PrismaObjectFieldBuilder } from '../prisma-field-builder.js';
 import type { PlannedCollection, ResolverCollection, TypeCollection } from './collections.js';
 import type { FieldParentShape, IdFieldShape, ModelKey, ResolveTypeParent, Row } from './models.js';
 import type { FieldQueryLiteral, QueryKeys, QueryOption } from './relations.js';
@@ -180,7 +179,7 @@ type PrismaTypeOptions<Types extends SchemaTypes, M extends ModelKey<Types>, Sha
     // Passed explicitly because some editors leave the default unresolved, and `t.expose*` then
     // demands `nullable: true` on every column. `NoInfer`, because `M` is already known, and
     // inferring from the row would measure the variance of upstream's row types (~20 ms).
-    t: PrismaObjectFieldBuilder<
+    t: PothosSchemaTypes.PrismaObjectFieldBuilder<
       Types,
       M,
       FieldParentShape<Types, M, Shape>,
@@ -465,14 +464,22 @@ export type ExposableColumn<
   Nullable extends FieldNullability<Type>,
 > = CompatibleTypes<Types, Shape, Type, Nullable>;
 
-/** The `nullable` option `t.expose*` requires, or none while the column is rejected. */
+/**
+ * The `nullable` option `t.expose*` requires, or none while the column is rejected. `Name` is
+ * `never` when no column fits the type, and the options then stay optional so the error is
+ * reported at the name.
+ */
 export type ExposeColumnNullability<
   Types extends SchemaTypes,
   Type extends TypeParam<Types>,
   Shape,
   Name,
   Nullable extends FieldNullability<Type>,
-> = Name extends keyof Shape ? ExposeNullability<Types, Type, Shape, Name, Nullable> : {};
+> = [Name] extends [never]
+  ? {}
+  : Name extends keyof Shape
+    ? ExposeNullability<Types, Type, Shape, Name, Nullable>
+    : {};
 
 /** What a model's root field or connection may name as its `type`. */
 export type ModelParam<Types extends SchemaTypes> =

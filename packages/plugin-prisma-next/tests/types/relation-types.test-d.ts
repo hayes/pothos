@@ -347,14 +347,26 @@ strict.prismaObject('Bug', {
       nullable,
       // @ts-expect-error `Bug.reviewer` can be null, so the field needs `onNull`
       reviewer: t.relation('reviewer'),
-      // @ts-expect-error not a relation
-      typo: t.relation('nope'),
+      // The error is at the name, not a missing `options`.
+      typo: t.relation(
+        // @ts-expect-error not a relation
+        'nope',
+      ),
       // @ts-expect-error `Bug.reviewer` can be null, so the field needs `onNull`
       explicit: t.relation('reviewer', { nullable: false }),
       // @ts-expect-error `onNull` returns a related row or an error
       badFallback: t.relation('reviewer', { onNull: () => 'nope' }),
     };
   },
+});
+strict.prismaObject('Feature', {
+  variant: 'StrictFeatureRelations',
+  fields: (t) => ({
+    typo: t.relation(
+      // @ts-expect-error not a relation
+      'nope',
+    ),
+  }),
 });
 strict.prismaObject('User', {
   variant: 'StrictUserLists',
