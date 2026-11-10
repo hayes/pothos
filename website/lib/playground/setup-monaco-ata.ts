@@ -35,7 +35,7 @@ let flushScheduled = false;
 // versioned specifier (e.g. `lodash@4.17.21`).
 const versionedAliases = new Map<string, Set<string>>();
 
-const SKIP_PATH = /^\/node_modules\/(?:@pothos\/|graphql(?:\/|$))/;
+const SKIP_PATH = /^\/node_modules\/(?:@pothos\/|@prisma\/orm-|graphql(?:\/|$))/;
 let databaseTypesBundled = false;
 const DATABASE_PATH = /^\/node_modules\/(?:drizzle-orm|sql\.js)(?:\/|$)/;
 
@@ -45,7 +45,7 @@ const DATABASE_PATH = /^\/node_modules\/(?:drizzle-orm|sql\.js)(?:\/|$)/;
 // registry. ATA's fetch still hits jsdelivr per import even when
 // receivedFile filters the result, so we strip them at the
 // source-rewrite stage.
-const ATA_SKIP_BARE = /^(?:@pothos\/[^/'"]+|readline)/;
+const ATA_SKIP_BARE = /^(?:@pothos\/[^/'"]+|@prisma\/orm-[^/'"]+|node:sqlite|readline)/;
 const DATABASE_IMPORT = /^(?:drizzle-orm(?:\/|$)|sql\.js$)/;
 
 function stripBundledImportsForAta(source: string): string {

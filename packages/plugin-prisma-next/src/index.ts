@@ -1,451 +1,709 @@
 import './global-types.js';
-import './prisma-next-connection.js';
-import './prisma-next-field-builder.js';
+import './field-builder.js';
 import './schema-builder.js';
 import SchemaBuilder, {
   BasePlugin,
-  createContextCache,
+  type BuildCache,
+  completeValue,
   isThenable,
+  type MaybePromise,
+  mapAsyncIterator,
+  type OutputType,
+  type PothosInterfaceTypeConfig,
+  type PothosObjectTypeConfig,
   type PothosOutputFieldConfig,
   PothosSchemaError,
   type PothosTypeConfig,
+  type PothosUnionTypeConfig,
   type SchemaTypes,
+  unwrapOutputFieldType,
 } from '@pothos/core';
-import { getLoaderMapping, setRowMappings } from '@pothos/selection-mapper';
-import { type GraphQLFieldResolver, type GraphQLResolveInfo, getNamedType } from 'graphql';
 import {
-  PRISMA_NEXT_FIELD_SELECT,
-  PRISMA_NEXT_MODEL,
-  PRISMA_NEXT_PREPARED,
-  PRISMA_NEXT_RELATIONS,
-  PRISMA_NEXT_SELECT,
+  deepEqual,
+  getLoaderMapping,
+  type Mapping,
+  mappingParentTypes,
+  setRowMappings,
+} from '@pothos/selection-mapper';
+import {
+  type GraphQLFieldResolver,
+  type GraphQLInterfaceType,
+  type GraphQLIsTypeOfFn,
+  type GraphQLObjectType,
+  type GraphQLResolveInfo,
+  type GraphQLSchema,
+  type GraphQLTypeResolver,
+  isInterfaceType,
+} from 'graphql';
+import {
+  PRISMA_CONFIG,
+  PRISMA_DISCRIMINATED,
+  PRISMA_FIELD_SELECTION,
+  PRISMA_IMPLEMENTATIONS,
+  PRISMA_MODEL,
+  PRISMA_RELATION_ROWS,
+  PRISMA_TYPE_SELECT,
+  PRISMA_TYPE_SELECTS,
 } from './constants.js';
-import type { PreparedFieldExtension } from './extensions.js';
-import { ModelLoader } from './model-loader.js';
-import type { AnyContract } from './types.js';
-import { fieldAliasPrefix, objectLevelFieldAlias, prismaNextAdapter } from './utils/adapter.js';
-import { createApply } from './utils/apply.js';
-import { resolveContractModel } from './utils/contract.js';
-import { buildRelationMeta, type PrismaNextRelationMeta } from './utils/model.js';
-import { mapperOptionsFromPluginOpts, readPluginOptions } from './utils/options.js';
+import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
+import type { ModelKey, Row } from './types/models.js';
+import { canInclude } from './utils/adapter.js';
+import {
+  checkStaticSelect,
+  compileFieldSelect,
+  entryDefinition,
+  type RawSelect,
+  type SplitSelect,
+  splitSelect,
+  type TypeSelect,
+  typeSelects,
+} from './utils/compile-select.js';
+import { getPluginConfig } from './utils/config.js';
+import { resolveContractModel, rootModelKey } from './utils/contract.js';
+import { type FieldLoads, type LoadRef, recorded, setOwnLoads } from './utils/loads.js';
+import {
+  getModel,
+  ownTableVariantRowsError,
+  type PrismaModel,
+  returnsRelationRowsAs,
+} from './utils/model.js';
+import { refFor } from './utils/refs.js';
+import {
+  baseOf,
+  holdsType,
+  parseRow,
+  type RowCheck,
+  readLoad,
+  rowCheck,
+  sourceOf,
+  viewOf,
+} from './utils/rows.js';
+import {
+  EMPTY,
+  type Narrowing,
+  type PrismaSelectFn,
+  type PrismaSelection,
+} from './utils/selections.js';
+import { variantTypeNames } from './utils/variant-types.js';
 
 export type {
-  AggregateBuilder,
-  AggregateResult,
-  AggregateSpec,
-  Collection,
-  CreateInput,
-  GroupedCollection,
-  ModelAccessor,
-  RelationFilterAccessor,
-  RelationPredicate,
-  ShorthandWhereFilter,
-  UniqueConstraintCriterion,
-} from '@prisma/orm-family-sql/orm-client';
-// `IncludeRefinementCollection` and `IsToManyRelation` are re-exported via
-// `export * from './types'` below — orm-client made them internal in 0.14.0,
-// so the plugin owns reconstructed copies. `IncludeRefinementResult` was
-// dropped (see the note in ./types).
-export { all, and, not, or } from '@prisma/orm-family-sql/orm-client';
-export type {
-  ConnectionNodeShape,
-  ConnectionWrapRows,
+  ConnectionHelperRef,
+  ConnectionHelperResolveOptions,
+  ConnectionHelperRow,
   PrismaConnectionHelperOptions,
   PrismaConnectionHelpers,
 } from './connection-helpers.js';
 export { prismaConnectionHelpers } from './connection-helpers.js';
-export { PRISMA_NEXT_MODEL, PRISMA_NEXT_PREPARED, PRISMA_NEXT_SELECT } from './constants.js';
-export type { PreparedFieldExtension, RefineCallback } from './extensions.js';
-export { PrismaNextInterfaceRef, prismaInterfaceKey } from './interface-ref.js';
-export { PrismaNextNodeRef, relayIDShapeKey } from './node-ref.js';
-export { PrismaNextObjectRef, prismaModelKey } from './object-ref.js';
-export { PrismaNextObjectFieldBuilder } from './prisma-next-object-field-builder.js';
-export * from './types.js';
+export { PrismaInterfaceRef, prismaInterfaceBrand } from './interface-ref.js';
+export { PrismaNodeRef, prismaRelayIDShapeBrand } from './node-ref.js';
 export {
-  type MapperCollection,
-  type PrismaNextSpec,
-  prismaNextAdapter,
-} from './utils/adapter.js';
-export type { Apply } from './utils/apply.js';
-export { createApply } from './utils/apply.js';
-export { rebrandForVariant } from './utils/branding.js';
-export {
-  type CursorValueCodec,
-  decodeCursor as parsePrismaNextCursor,
-  encodeCursor as formatPrismaNextCursor,
-} from './utils/cursors.js';
-export {
-  type ApplySelectionOptions,
-  applySelectionToCollection,
-  type IndirectInclude,
-} from './utils/map-query.js';
+  type ModelBrand,
+  type PlannedRowBrand,
+  PrismaObjectRef,
+  type PrismaPlanned,
+  plannedRowBrand,
+  prismaContractBrand,
+  prismaModelBrand,
+  type TypeBrand,
+} from './object-ref.js';
+/**
+ * The `t` of prisma type fields, with the methods other plugins add by declaration merging. Declare
+ * those with method syntax, so a builder stays assignable where a helper takes one.
+ */
+export type PrismaObjectFieldBuilder<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  Shape = unknown,
+  ExposableShape = Row<Types, M>,
+> = PothosSchemaTypes.PrismaObjectFieldBuilder<Types, M, Shape, ExposableShape>;
+export const PrismaObjectFieldBuilder = InternalPrismaObjectFieldBuilder as new <
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  Shape = unknown,
+  ExposableShape = Row<Types, M>,
+>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  modelKey: M,
+  contract: Types['PrismaContract'],
+  graphqlKind?: 'Interface' | 'Object',
+) => PothosSchemaTypes.PrismaObjectFieldBuilder<Types, M, Shape, ExposableShape>;
 export type {
-  PrismaNextModel,
-  PrismaNextRelation,
-  PrismaNextRelationMeta,
-  PrismaNextRelationThrough,
-} from './utils/model.js';
-export { getInterfaceRefFromContractModel, getRefFromContractModel } from './utils/refs.js';
+  PrismaRelationCountOptions,
+  RelationCountQuery,
+} from './types/aggregates.js';
+export type {
+  CollectionFor,
+  PrismaPlannedCollection,
+  ResolverCollection,
+  UnorderedCollection,
+} from './types/collections.js';
+export type {
+  ConnectionQueryLiteral,
+  PrismaConnectionFieldOptions,
+  PrismaRelatedConnectionOptions,
+  RootConnectionQueryLiteral,
+} from './types/connections.js';
+export type {
+  PrismaInterfaceOptions,
+  PrismaNodeOptions,
+  PrismaObjectFieldOptions,
+  PrismaObjectOptions,
+  PrismaRootFieldOptions,
+  PrismaRootFieldWithInputOptions,
+  PrismaVariantFieldOptions,
+  VariantFieldShape,
+} from './types/fields.js';
+export type {
+  AnyContract,
+  IdentityFields,
+  LoadedRow,
+  ModelKey,
+  ObjectBaseShape,
+  OwnRow,
+  PlannedRow,
+  RelationKeys,
+  Row,
+} from './types/models.js';
+export type { RelationOrderBy } from './types/order-by.js';
+export type {
+  PrismaClient,
+  PrismaExecutionContext,
+  PrismaPluginOptions,
+  PrismaRequestClient,
+} from './types/plugin-options.js';
+export type {
+  FieldQueryLiteral,
+  PrismaRelationOptions,
+  RelatedModel,
+  RelationFieldShape,
+  RelationQuery,
+  RelationQueryLiteral,
+  RelationWhere,
+} from './types/relations.js';
+export type {
+  ConnectionPageEntry,
+  NestedSelectionEntry,
+  NestedSelectionFn,
+  NodeSelection,
+  RelationSelect,
+  SelectObjectSpec,
+} from './types/selections.js';
+export type { ConnectionPage } from './utils/cursors.js';
+export { type CollectionFromInfoOptions, collectionFromInfo } from './utils/map-query.js';
 
 const pluginName = 'prismaNext';
 
 export default pluginName;
 
-/**
- * Duck-typed Collection detection. The orm-client's `Collection`
- * carries `.select` / `.include` / `.where` / `.all`. We require all
- * four — `.select` + `.all` alone would misdetect a user-defined DTO
- * that coincidentally exposes those method names.
- */
-function isOrmCollection(value: unknown): boolean {
-  if (value == null || typeof value !== 'object') {
-    return false;
-  }
-  const v = value as { select?: unknown; include?: unknown; where?: unknown; all?: unknown };
-  return (
-    typeof v.select === 'function' &&
-    typeof v.include === 'function' &&
-    typeof v.where === 'function' &&
-    typeof v.all === 'function'
-  );
-}
-
-async function materializeCollection(
-  collection: unknown,
-  info: GraphQLResolveInfo,
-  contract: AnyContract,
-  context: unknown,
-  mapperOpts: ReturnType<typeof mapperOptionsFromPluginOpts>,
-  wantsList: boolean,
-): Promise<unknown> {
-  const apply = createApply({ info, contract, context, mapperOpts });
-  // A promise only when a select callback beneath the field was async.
-  let applied = (await apply(collection)) as {
-    all: () => Promise<readonly unknown[]>;
-    limit?: (n: number) => unknown;
-  };
-  // Single-row fields: inject `.limit(1)` so we don't pull the whole
-  // collection just to read row 0. List fields take whatever the user
-  // returned.
-  if (!wantsList && typeof applied.limit === 'function') {
-    applied = applied.limit(1) as typeof applied;
-  }
-  // `.all()` resolves to a real array on every orm-client adapter
-  // we target — no async-iterable fallback path.
-  const rows = (await applied.all()) as readonly unknown[];
-  return wantsList ? rows : (rows[0] ?? null);
-}
-
-// Inherited by variant wrappers so later resolvers can still read the original combine maps.
-const sourceRow = Symbol('prismaNextSourceRow');
-
-// A shared to-one include scopes child consumers, while the single-include fast
-// path keeps them local. Candidates record those explicit planner alternatives;
-// they are carried with the row, never reconstructed from a GraphQL response path.
-const rowScopes = Symbol('prismaNextRowScopes');
-type ScopedRow = { [sourceRow]?: object; [rowScopes]?: readonly string[] };
-
-function childScopes(parent: object, alias: string): string[] {
-  return [...((parent as ScopedRow)[rowScopes] ?? []).map((scope) => `${scope}:${alias}`), alias];
-}
-
-function scopedRow(row: object, scopes: readonly string[]): object {
-  const wrapper = Object.create(row) as object;
-  Object.defineProperties(wrapper, {
-    [sourceRow]: { value: (row as ScopedRow)[sourceRow] ?? row },
-    [rowScopes]: { value: scopes },
-  });
-  return wrapper;
-}
-
-function selectedPrefix(slot: object, scopes: readonly string[]): string | undefined {
-  const keys = Object.keys(slot);
-  return scopes.map(fieldAliasPrefix).find((prefix) => keys.some((key) => key.startsWith(prefix)));
-}
-
-function liftSlots(overlay: object, slot: object, scopes: readonly string[]) {
-  const prefix = selectedPrefix(slot, scopes);
-  if (!prefix) {
-    return;
-  }
-  for (const key of Object.keys(slot)) {
-    if (key.startsWith(prefix)) {
-      Object.defineProperty(overlay, key.slice(prefix.length), {
-        value: (slot as Record<string, unknown>)[key],
-        enumerable: true,
-        configurable: true,
-        writable: true,
-      });
-    }
-  }
-}
-
-/** Present type-level selections without modifying the shared ORM row or its combine maps. */
-function normalizeParentForType(
-  parent: object,
-  relations: readonly string[],
-  alias: string,
-): Record<string, unknown> {
-  const overlay = Object.create(parent) as Record<string, unknown>;
-  const source = (parent as ScopedRow)[sourceRow] ?? parent;
-  Object.defineProperty(overlay, sourceRow, { value: source });
-  const scopes = childScopes(parent, alias);
-  for (const relation of relations) {
-    const slot = (source as Record<string, unknown>)[relation];
-    if (slot && typeof slot === 'object' && !Array.isArray(slot)) {
-      liftSlots(overlay, slot, scopes);
-    }
-  }
-  return overlay;
-}
-
 export class PothosPrismaNextPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  private readonly loaders = createContextCache(() => new Map<string, ModelLoader>());
+  constructor(buildCache: BuildCache<Types>, name: keyof PothosSchemaTypes.Plugins<Types>) {
+    super(buildCache, name);
+    // Both plugins install the same prisma* builder methods; whichever loads last would win.
+    if (Object.hasOwn((SchemaBuilder as unknown as { plugins: object }).plugins, 'prisma')) {
+      throw new PothosSchemaError(
+        '@pothos/plugin-prisma and @pothos/plugin-prisma-next both define builder.prismaObject, ' +
+          't.prismaField and the other prisma* methods, so they cannot be used in the same program.',
+      );
+    }
+  }
+
+  private get config() {
+    return getPluginConfig(this.builder);
+  }
+
+  /**
+   * Older scope-auth versions don't pass their checks what `pothosScopeAuthParent` returns, so
+   * they would see rows without what the type selects.
+   */
+  override beforeBuild() {
+    const names: readonly string[] | undefined = this.builder.options.plugins;
+    if (!names?.includes('scopeAuth')) {
+      return;
+    }
+    // Scope-auth is an optional peer this plugin doesn't import.
+    const { plugins } = this.builder.constructor as unknown as {
+      plugins: Record<string, { readsParentExtension?: boolean } | undefined>;
+    };
+    if (!plugins.scopeAuth?.readsParentExtension) {
+      throw new PothosSchemaError(
+        '@pothos/plugin-prisma-next requires @pothos/plugin-scope-auth 4.3.0 or newer.',
+      );
+    }
+  }
 
   override onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
     if (typeConfig.kind !== 'Object' && typeConfig.kind !== 'Interface') {
       return typeConfig;
     }
-    let model = typeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    for (const iface of typeConfig.interfaces) {
-      const ifaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
-      const ifaceModel = ifaceConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-      if (ifaceModel) {
-        if (model && model !== ifaceModel) {
-          throw new PothosSchemaError(
-            `prismaObject '${typeConfig.name}' is based on model '${model}' but implements ` +
-              `prismaInterface '${ifaceConfig.name}' which is based on '${ifaceModel}'. ` +
-              'PrismaObjects must share a contract model with the PrismaInterfaces they extend.',
-          );
-        }
-        model = ifaceModel;
+    const { contract } = this.config;
+    const ownModel = typeConfig.extensions?.[PRISMA_MODEL] as string | undefined;
+    const interfaceConfigs = typeConfig.interfaces.map((iface) =>
+      this.buildCache.getTypeConfig(iface, 'Interface'),
+    );
+    const interfaces = interfaceConfigs
+      .map((iface) => ({
+        name: iface.name,
+        model: iface.extensions?.[PRISMA_MODEL] as string | undefined,
+      }))
+      .filter((iface): iface is { name: string; model: string } => iface.model !== undefined);
+    // A type without its own model takes the most specific model of its interfaces.
+    const model =
+      ownModel ??
+      (
+        interfaces.find((iface) => rootModelKey(contract, iface.model) !== iface.model) ??
+        interfaces[0]
+      )?.model;
+    const root = model && (rootModelKey(contract, model) ?? model);
+    for (const iface of interfaces) {
+      if (iface.model !== model && iface.model !== root) {
+        throw new PothosSchemaError(
+          `'${typeConfig.name}' is of model '${model}' but implements prismaInterface '${iface.name}' of model '${iface.model}'. A type can only implement the prismaInterfaces of its model and of its model's root.`,
+        );
       }
     }
     if (model === undefined) {
       return typeConfig;
     }
-    // Precompute per-relation metadata + the model's column set at
-    // schema-build time so the walker doesn't probe the contract per
-    // request. Unknown-cardinality rejection also fires here (fail-fast),
-    // not on first request.
-    const opts = readPluginOptions<AnyContract>(this.builder);
-    const relations: Record<string, PrismaNextRelationMeta> | undefined = opts?.contract
-      ? buildRelationMeta(model, opts.contract, typeConfig.name)
-      : undefined;
-    return {
+    const raw = typeConfig.extensions?.[PRISMA_TYPE_SELECT] as RawSelect | undefined;
+    const split = raw && splitSelect(raw, getModel(contract, model));
+    const selects = new Map<string, TypeSelect>();
+    for (const iface of interfaceConfigs) {
+      for (const select of typeSelects(iface)) {
+        selects.set(select.name, select);
+      }
+    }
+    if (split) {
+      selects.set(typeConfig.name, { name: typeConfig.name, ...split });
+      // A type's rows can load through the base model's collection, which can't read the columns
+      // a variant model with a table of its own inherits.
+      const refs = checkStaticSelect(
+        this.config,
+        split,
+        getModel(contract, model),
+        `Type '${typeConfig.name}' select`,
+        () => false,
+      );
+      this.assertSelectsAgree(typeConfig.name, root!, split, refs);
+    }
+    const config = {
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
-        [PRISMA_NEXT_MODEL]: model,
-        ...(relations !== undefined ? { [PRISMA_NEXT_RELATIONS]: relations } : {}),
+        [PRISMA_TYPE_SELECTS]: [...selects.values()],
+        [PRISMA_MODEL]: model,
+        [PRISMA_CONFIG]: this.config,
+        ...(typeConfig.kind === 'Interface' ? { [PRISMA_IMPLEMENTATIONS]: new Map() } : {}),
+        // Read by scope-auth, whose checks can run before this plugin's `wrapResolve` reloads the
+        // row, such as from `isTypeOf` or when it is listed first.
+        ...(typeConfig.kind === 'Object'
+          ? { pothosScopeAuthParent: this.typeRow(typeConfig.name) }
+          : {}),
       },
     };
+    return config;
   }
 
-  override wrapResolve(
-    resolver: GraphQLFieldResolver<unknown, Types['Context'], object, unknown>,
+  /**
+   * A field with no `select` or exposed column on a type with a `select` gets an empty selection,
+   * so the plan records that the type's `select` was loaded for it.
+   */
+  override onOutputFieldConfig(
     fieldConfig: PothosOutputFieldConfig<Types>,
-  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    const ext = (fieldConfig.extensions ?? {}) as Record<string | symbol, unknown>;
+  ): PothosOutputFieldConfig<Types> {
+    const extensions = fieldConfig.extensions ?? {};
+    const own = extensions[PRISMA_FIELD_SELECTION] as PrismaSelection | PrismaSelectFn | undefined;
+    if (own !== undefined) {
+      return fieldConfig;
+    }
+    // A field of an interface without a model resolves on the implementation's rows.
+    const declaringConfig = this.buildCache.getTypeConfig(
+      fieldConfig.declaringType ?? fieldConfig.parentType,
+    );
+    const modelLessInterface = !declaringConfig.extensions?.[PRISMA_MODEL];
+    const declaring = modelLessInterface
+      ? this.buildCache.getTypeConfig(fieldConfig.parentType)
+      : declaringConfig;
+    const modelKey = declaring.extensions?.[PRISMA_MODEL] as string | undefined;
+    if (modelKey === undefined) {
+      return fieldConfig;
+    }
+    const { select } = fieldConfig.pothosOptions as {
+      select?: Parameters<typeof compileFieldSelect>[1];
+    };
+    const exposed = extensions.pothosExposedField;
+    const model = getModel(this.config.contract, modelKey);
+    const exposesColumn = typeof exposed === 'string' && model.columns.has(exposed);
+    // `t.expose*` accepts any key of the parent, such as a computed value, which no query can
+    // select. An interface without a model only knows its own shape.
+    if (
+      select === undefined &&
+      typeof exposed === 'string' &&
+      !exposesColumn &&
+      !modelLessInterface
+    ) {
+      throw new PothosSchemaError(
+        `Field '${declaring.name}.${fieldConfig.name}' exposes '${exposed}', which is not a column on model ${model.key}.`,
+      );
+    }
+    const selection =
+      select !== undefined
+        ? compileFieldSelect(this.config, select, model, (type) => {
+            // A model's name is its default ref, as for `t.prismaField`.
+            const config = this.buildCache.getTypeConfig(
+              typeof type === 'string' && resolveContractModel(this.config.contract, type)
+                ? refFor(this.builder, type)
+                : (type as OutputType<Types>),
+            );
+            return {
+              name: config.name,
+              model: config.extensions?.[PRISMA_MODEL] as string | undefined,
+            };
+          })
+        : exposesColumn
+          ? { columns: [exposed] }
+          : typeSelects(this.buildCache.getTypeConfig(fieldConfig.parentType)).length
+            ? EMPTY
+            : undefined;
+    return selection
+      ? { ...fieldConfig, extensions: { ...extensions, [PRISMA_FIELD_SELECTION]: selection } }
+      : fieldConfig;
+  }
 
-    if (ext[PRISMA_NEXT_PREPARED]) {
-      const prepared = ext[PRISMA_NEXT_PREPARED] as PreparedFieldExtension;
-      // Resolve plugin options once at schema-build time — `wrapResolve`
-      // runs per field; the returned closure runs per request.
-      const opts = readPluginOptions<AnyContract>(this.builder);
-      if (!opts) {
-        throw new PothosSchemaError('t.prismaField requires builder.options.prismaNext to be set.');
-      }
-      const mapperOpts = mapperOptionsFromPluginOpts(opts);
-      const contract = opts.contract;
-      return async (parent, args, context, info) => {
-        const raw = (
-          resolver as unknown as (
-            parent: unknown,
-            args: unknown,
-            context: unknown,
-            info: GraphQLResolveInfo,
-          ) => unknown
-        )(parent, args, context, info);
-        const result =
-          raw && typeof (raw as { then?: unknown }).then === 'function'
-            ? await (raw as Promise<unknown>)
-            : raw;
-
-        if (result == null) {
-          return result;
-        }
-        if (!isOrmCollection(result)) {
+  /**
+   * Model-backed interfaces hydrate missing variant prerequisites before resolving their type.
+   * Other abstract readers cannot hydrate those rows. Check the registered output config here.
+   */
+  private assertRelationRows(fieldConfig: PothosOutputFieldConfig<Types>, model: PrismaModel) {
+    const rows = fieldConfig.extensions?.[PRISMA_RELATION_ROWS] as
+      | { name: string; type: OutputType<Types> }
+      | undefined;
+    if (!rows) {
+      return;
+    }
+    const relation = model.relations[rows.name]!;
+    const target = relation.targetVariantModel;
+    if (!target) {
+      return;
+    }
+    const typeConfig = this.buildCache.getTypeConfig(rows.type);
+    const key = typeConfig.extensions?.[PRISMA_MODEL] as string | undefined;
+    if (
+      typeConfig.kind === 'Object' ||
+      (typeConfig.kind === 'Interface' &&
+        key !== undefined &&
+        getModel(this.config.contract, key) === relation.target)
+    ) {
+      return;
+    }
+    const narrowing: Narrowing = { value: target.value, throughVariantModel: true };
+    const subject = `Field '${fieldConfig.parentType}.${fieldConfig.name}' returns interface '${typeConfig.name}'`;
+    if (
+      !returnsRelationRowsAs(
+        relation,
+        typeConfig.kind,
+        key === undefined ? undefined : getModel(this.config.contract, key),
+      )
+    ) {
+      throw ownTableVariantRowsError(subject, rows.name, relation);
+    }
+    for (const { name: type, relations } of typeSelects(typeConfig)) {
+      for (const { name: key } of relations) {
+        if (!canInclude(relation.target.relations[key]!, narrowing)) {
           throw new PothosSchemaError(
-            `t.prismaField '${info.parentType.name}.${info.fieldName}' must return an ORM Collection or null. ` +
-              'Return the collection before executing it so the complete GraphQL selection can be applied.',
+            `${subject}: relation '${rows.name}' targets '${relation.targetModel}' and cannot load base relation '${type}.${key}'. Move '${key}' to a field select.`,
           );
         }
-        return materializeCollection(result, info, contract, context, mapperOpts, prepared.isList);
-      };
+      }
     }
+  }
 
-    // Object-form `select` on a `t.field` (or `t.relation` and friends),
-    // or a selection the plugin's sugar precompiled (`t.relatedConnection`):
-    // install an overlay wrap that lifts namespaced combine slots onto
-    // top-level properties on a per-resolve cloned parent.
-    //
-    // Fully dynamic — works for any spec shape (true / declarative /
-    // function-form / outer callback). The scan finds combine maps on
-    // parent and lifts keys with prefix `<alias>:`. Single-include
-    // (no combine) values pass through untouched.
-    const pothosOpts = (fieldConfig as unknown as { pothosOptions?: { select?: unknown } })
-      .pothosOptions;
-    const selectOpt = pothosOpts?.select;
-    const isObjectOrCallableSelect =
-      selectOpt !== undefined &&
-      ((typeof selectOpt === 'object' && selectOpt !== null && !Array.isArray(selectOpt)) ||
-        typeof selectOpt === 'function');
-    const parentTypeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
-    const declaringTypeConfig = fieldConfig.declaringType
-      ? this.buildCache.getTypeConfig(fieldConfig.declaringType, 'Interface')
-      : parentTypeConfig;
-    const typeSelect = declaringTypeConfig.extensions?.[PRISMA_NEXT_SELECT];
-    const modelName = parentTypeConfig.extensions?.[PRISMA_NEXT_MODEL] as string | undefined;
-    const pluginOptions = readPluginOptions<AnyContract>(this.builder);
-    const contract = pluginOptions?.contract;
-    const collections = pluginOptions?.collections;
-    const modelRelations =
-      contract && modelName ? resolveContractModel(contract, modelName)?.relations : undefined;
-    const toOneRelations = Object.entries(modelRelations ?? {})
-      .filter(([, relation]) => relation.cardinality !== '1:N' && relation.cardinality !== 'N:M')
-      .map(([name]) => name);
-    const typeRelations =
-      typeSelect && !Array.isArray(typeSelect) && typeof typeSelect === 'object'
-        ? Object.keys(typeSelect).filter((key) => modelRelations?.[key] !== undefined)
-        : [];
-    const typeAlias = objectLevelFieldAlias(declaringTypeConfig.name);
-    const hasTypeSelect = typeRelations.length > 0;
-    const hasFieldSelect = isObjectOrCallableSelect || !!ext[PRISMA_NEXT_FIELD_SELECT];
-    const indirect = ext.pothosIndirectInclude as
-      | { path?: unknown[]; paths?: unknown[] }
+  override afterBuild(schema: GraphQLSchema): GraphQLSchema {
+    const { contract, adapter } = this.config;
+    adapter.registerImplementations(schema);
+    for (const type of Object.values(schema.getTypeMap())) {
+      if (isInterfaceType(type) && type.extensions?.[PRISMA_DISCRIMINATED]) {
+        // Throws when a variant has no implementing type, or several.
+        variantTypeNames(contract, schema, type);
+      }
+    }
+    return schema;
+  }
+
+  private readonly selectDefinitions = new Map<
+    string,
+    Map<string, { type: string; definition: unknown }>
+  >();
+
+  /**
+   * A row holds one value per relation the type-level `select`s write, read by every type of the
+   * model, so every type-level entry of a relation, at any depth, must load alike.
+   */
+  private assertSelectsAgree(
+    type: string,
+    root: string,
+    split: SplitSelect,
+    refs: readonly LoadRef[],
+  ) {
+    const definitions =
+      this.selectDefinitions.get(root) ?? this.selectDefinitions.set(root, new Map()).get(root)!;
+    for (const relation of split.relations) {
+      const first = definitions.get(relation.name);
+      const definition = entryDefinition(relation);
+      if (!first || first.type === type) {
+        definitions.set(relation.name, { type, definition });
+      } else if (!deepEqual(first.definition, definition)) {
+        throw disagreement(first.type, type, relation.name, root);
+      }
+    }
+    const { typeLoads } = this.config;
+    const register = (on: string, refs: readonly LoadRef[]) => {
+      const loads = typeLoads.get(on) ?? typeLoads.set(on, new Map()).get(on)!;
+      for (const { load, beneath } of refs.filter((ref) => ref.load.kind === 'rows')) {
+        const first = loads.get(load.relation);
+        if (!first) {
+          loads.set(load.relation, { type, load });
+        } else if (!deepEqual(first.load, load)) {
+          throw disagreement(first.type, type, load.relation, on);
+        }
+        if (beneath) {
+          register(beneath.model.key, beneath.refs);
+        }
+      }
+    };
+    register(root, refs);
+  }
+
+  /** Prisma types take no `isTypeOf`, but plugins add one (scope-auth's `runScopesOnType`). */
+  override wrapIsTypeOf(
+    isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined,
+    typeConfig: PothosObjectTypeConfig,
+  ): GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined {
+    if (!isTypeOf || typeConfig.extensions?.[PRISMA_MODEL] === undefined) {
+      return isTypeOf;
+    }
+    const load = this.typeRow(typeConfig.name, true);
+    return (parent, context, info) =>
+      completeValue(load(parent, context, info), (row) => isTypeOf(row, context, info));
+  }
+
+  override wrapResolveType(
+    resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
+    typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
+  ): GraphQLTypeResolver<unknown, Types['Context']> {
+    if (typeConfig.extensions?.[PRISMA_MODEL] === undefined) {
+      return resolveType;
+    }
+    const load = this.typeRow(typeConfig.name, true);
+    return (parent, context, info, type) =>
+      completeValue(load(parent, context, info), (row) => resolveType(row, context, info, type));
+  }
+
+  /** A field returning prisma rows hands each on parsed, never as the field's view. */
+  override wrapResolve(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+    const modelKey = this.buildCache.getTypeConfig(fieldConfig.parentType).extensions?.[
+      PRISMA_MODEL
+    ] as string | undefined;
+    const { contract } = this.config;
+    const model = modelKey === undefined ? undefined : getModel(contract, modelKey);
+    // Checked on the final config, since a later plugin (plugin-errors) can change the type.
+    const returnConfig = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
+    const returnKey = returnConfig.extensions?.[PRISMA_MODEL] as string | undefined;
+    const returned = returnKey === undefined ? undefined : getModel(contract, returnKey);
+    const { select } = fieldConfig.pothosOptions as { select?: unknown };
+    if (model && typeof select === 'object' && select !== null) {
+      checkStaticSelect(
+        this.config,
+        splitSelect(select as RawSelect, model),
+        model,
+        `Field '${fieldConfig.parentType}.${fieldConfig.name}' select`,
+        (relation) => returnsRelationRowsAs(relation, returnConfig.kind, returned),
+      );
+    }
+    if (model) {
+      this.assertRelationRows(fieldConfig, model);
+    }
+    const gated = this.gate(resolver, fieldConfig, modelKey, returnConfig.kind);
+    // A connection's nodes are handed on by the edge's `node` field.
+    if (!returned) {
+      return gated;
+    }
+    const parse = (row: unknown) =>
+      row !== null && typeof row === 'object' ? parseRow(baseOf(row), returned) : row;
+    return (parent, args, context, info) => copyResult(gated(parent, args, context, info), parse);
+  }
+
+  /**
+   * Resolves with the parsed row (or the field's view) when the parent's plan included the field
+   * and the row holds what it reads. Otherwise a static selection of columns reads `typeRow`'s
+   * row, and anything else reloads the parent.
+   */
+  private gate(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
+    modelKey: string | undefined,
+    returnKind: string,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+    const extensions = fieldConfig.extensions ?? {};
+    const selection = extensions[PRISMA_FIELD_SELECTION] as
+      | PrismaSelection
+      | PrismaSelectFn
       | undefined;
-    const isSameRow = !!indirect && !indirect.path?.length && !indirect.paths?.length;
-    const needsNormalization = hasTypeSelect || hasFieldSelect || isSameRow;
-    if (!needsNormalization && !(modelName && collections)) {
+    if (selection === undefined || modelKey === undefined) {
       return resolver;
     }
-    const baseResolver = resolver;
-
-    const resolveLoaded: GraphQLFieldResolver<unknown, Types['Context'], object> = (
-      parent,
-      args,
-      context,
-      info,
+    const { config } = this;
+    const model = getModel(config.contract, modelKey);
+    // A planned row holds the type's relations unless another field's rows replaced them. One
+    // check per type, so rows memoise it for every field.
+    const { parentType } = fieldConfig;
+    const check =
+      this.rowChecks.get(parentType) ??
+      this.rowChecks
+        .set(parentType, {
+          columns: [],
+          relations: rowCheck(typeSelects(this.buildCache.getTypeConfig(parentType))).relations,
+        })
+        .get(parentType)!;
+    const columnsOnly = typeof selection !== 'function';
+    const parentTypes = [...mappingParentTypes(this.buildCache, fieldConfig, PRISMA_MODEL)];
+    // A static selection's mapping has no position, and a scalar has no nested mappings.
+    const needsMapping = !columnsOnly || (returnKind !== 'Scalar' && returnKind !== 'Enum');
+    const resolve = (
+      parent: object,
+      loads: FieldLoads | undefined,
+      args: object,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
     ) => {
-      if (!needsNormalization || parent == null || typeof parent !== 'object') {
-        return baseResolver(parent, args, context, info);
+      if (!loads) {
+        return resolver(parent, args, context, info);
       }
-      // The prefix the adapter wrote the combine slot under. `:` is GraphQL-forbidden, so it
-      // cannot collide with a user-defined alias or relation name.
-      const alias = info.fieldNodes[0]?.alias?.value ?? info.fieldName;
-      const scopes = childScopes(parent, alias);
-      const p = ((parent as { [sourceRow]?: object })[sourceRow] ?? parent) as Record<
-        string,
-        unknown
-      >;
-      // Object.create(parent) preserves the prototype chain so variant
-      // re-brands (which use Object.create to attach a type brand)
-      // still surface their inherited row props via overlay. Adding a
-      // top-level property on the overlay shadows that level only.
-      const overlay = normalizeParentForType(parent, typeRelations, typeAlias);
-      // `for...in` over `p` walks the prototype chain so we still find combine slots when
-      // `parent` is a variant wrapper from `rebrandForVariant` (which puts the row on the
-      // prototype). It never yields a shadowed name twice, so no visited set is needed.
-      for (const key in hasFieldSelect ? p : {}) {
-        const slot = p[key];
-        if (slot && typeof slot === 'object' && !Array.isArray(slot)) {
-          liftSlots(overlay, slot, scopes);
+      setOwnLoads(info.path, loads);
+      return resolver(loads.view ? viewOf(parent, loads) : parent, args, context, info);
+    };
+    return (value, args, context, info) => {
+      if (needsMapping) {
+        const row = parseRow(baseOf(value as object), model);
+        const source = sourceOf(row);
+        let mapping: Mapping | null = null;
+        for (const type of parentTypes) {
+          mapping ??= getLoaderMapping(context, info, type, source);
         }
-      }
-      // Scope model rows before other plugins transform the field's return shape.
-      // Errors success wrappers, for example, expose this same row via a data
-      // field even though their declared GraphQL return type is a union.
-      if (hasFieldSelect) {
-        for (const name of toOneRelations) {
-          const value = overlay[name];
-          if (value && typeof value === 'object' && !Array.isArray(value)) {
-            Object.defineProperty(overlay, name, {
-              value: scopedRow(value, scopes),
-              enumerable: true,
-              configurable: true,
-              writable: true,
-            });
+        if (mapping && holdsType(row, check)) {
+          const loads = recorded(mapping.position);
+          if (!loads || holdsLoads(row, loads)) {
+            setRowMappings(context, info, mapping.nested);
+            return resolve(row, loads, args, context, info);
           }
         }
-      }
-      const result = baseResolver(overlay, args, context, info);
-      const finish = (value: unknown) => {
-        if (!value || typeof value !== 'object' || value instanceof Error) {
-          return value;
-        }
-        if (Array.isArray(value)) {
-          // To-many branches own their rows; descendants use local namespaces.
-          return value.some(
-            (row) => row && typeof row === 'object' && (row as ScopedRow)[rowScopes],
-          )
-            ? value.map((row) => (row && typeof row === 'object' ? scopedRow(row, []) : row))
-            : value;
-        }
-        if (isSameRow) {
-          return scopedRow(value, scopes);
-        }
-        if (getNamedType(info.returnType).extensions?.[PRISMA_NEXT_MODEL]) {
-          return (value as ScopedRow)[rowScopes] === scopes ? value : scopedRow(value, scopes);
-        }
-        return value;
-      };
-      return isThenable(result) ? Promise.resolve(result).then(finish) : finish(result);
-    };
-    if (!modelName || !collections || !contract) {
-      return resolveLoaded;
-    }
-    const hasFieldDependencies =
-      isSameRow ||
-      !!ext[PRISMA_NEXT_FIELD_SELECT] ||
-      typeof ext.pothosExposedField === 'string' ||
-      typeof selectOpt === 'function' ||
-      (selectOpt != null && typeof selectOpt === 'object' && Object.keys(selectOpt).length > 0);
-    // Use the eager adapter so its type selection includes inherited prerequisites,
-    // but not the identity columns added solely to make fallback loading possible.
-    const dependencyAdapter = prismaNextAdapter(contract);
-    return (parent, args, context, info) => {
-      if (!parent || typeof parent !== 'object') {
-        return resolveLoaded(parent, args, context, info);
-      }
-      if (!hasFieldDependencies) {
-        const dependencies = dependencyAdapter.typeSelection(info.parentType);
-        if (!dependencies?.columns?.length && !Object.keys(dependencies?.relations ?? {}).length) {
-          return resolveLoaded(parent, args, context, info);
+        if (!columnsOnly) {
+          return config
+            .loader(context, modelKey)
+            .loadSelection(info, row)
+            .then(({ row: loaded, mapping: reloaded }) =>
+              resolve(parseRow(loaded, model), recorded(reloaded.position), args, context, info),
+            );
         }
       }
-      const mapping = getLoaderMapping(context as object, info, info.parentType.name, parent);
-      if (mapping) {
-        setRowMappings(context as object, info, mapping.nested);
-        return resolveLoaded(parent, args, context, info);
-      }
-      const loaders = this.loaders(context as object);
-      let loader = loaders.get(modelName);
-      if (!loader) {
-        loader = new ModelLoader(
-          context as object,
-          contract,
-          modelName,
-          () => (typeof collections === 'function' ? collections(context) : collections)[modelName],
-          pluginOptions.skipDeferredFragments ?? true,
-        );
-        loaders.set(modelName, loader);
-      }
-      return loader
-        .loadSelection(info, parent)
-        .then((row) => resolveLoaded(row, args, context, info));
+      return completeValue(this.typeRow(info.parentType.name)(value, context, info), (parent) =>
+        resolver(parent as object, args, context, info),
+      );
     };
   }
+
+  private readonly rowChecks = new Map<string, RowCheck>();
+
+  private readonly typeRows = new Map<
+    string,
+    (parent: unknown, context: object, info: GraphQLResolveInfo) => MaybePromise<unknown>
+  >();
+
+  /**
+   * The row scope-auth's checks and a static selection's field see, or with `toOne` the columns and
+   * to-one relations `isTypeOf` and `resolveType` are typed with: reloaded with what the type's
+   * `select`s load when it lacks it, once per row per root field. Matches `ScopeAuthParentLoader`.
+   */
+  private typeRow(typeName: string, toOne = false) {
+    const key = toOne ? `${typeName} to-one` : typeName;
+    let loader = this.typeRows.get(key);
+    if (!loader) {
+      const init = (schema: GraphQLSchema) => {
+        const type = schema.getType(typeName) as GraphQLObjectType | GraphQLInterfaceType;
+        const modelKey = type.extensions[PRISMA_MODEL] as string;
+        const model = getModel(this.config.contract, modelKey);
+        const check = rowCheck(typeSelects(type), toOne ? model : undefined);
+        return { type, modelKey, model, check };
+      };
+      let read: ReturnType<typeof init> | undefined;
+      loader = (parent, context, info) => {
+        read ??= init(info.schema);
+        const { type, modelKey, model, check } = read;
+        const selection =
+          info.parentType.name === typeName
+            ? (info.parentType.getFields()[info.fieldName]?.extensions?.[PRISMA_FIELD_SELECTION] as
+                | PrismaSelection
+                | PrismaSelectFn
+                | undefined)
+            : undefined;
+        const columns = (typeof selection === 'function' ? undefined : selection?.columns) ?? [];
+        const row = parseRow(baseOf(parent as object), model) as Record<string, unknown>;
+        if (holdsType(row, check) && columns.every((column) => row[column] !== undefined)) {
+          return row;
+        }
+        return this.config
+          .loader(context, modelKey)
+          .loadTypeRow(info, row, type)
+          .then((reloaded) => parseRow(reloaded, model));
+      };
+      this.typeRows.set(key, loader);
+    }
+    return loader;
+  }
+}
+
+function holdsLoads(row: object, { refs }: FieldLoads): boolean {
+  for (const ref of refs) {
+    if (!holdsLoad(row, ref)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function holdsLoad(row: object, ref: LoadRef): boolean {
+  return (
+    (ref.unplanned || readLoad(row, ref) !== undefined) && (!ref.count || holdsLoad(row, ref.count))
+  );
+}
+
+function disagreement(first: string, type: string, key: string, model: string) {
+  return new PothosSchemaError(
+    `'${first}' and '${type}' both select '${key}', with different definitions. Every row of model '${model}' holds one value for it, which the fields and auth checks of every type of the model read. Define it the same way in both, or load the other version in a field's select.`,
+  );
+}
+
+function copyResult(value: unknown, copy: (item: unknown) => unknown): unknown {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (isThenable(value)) {
+    return Promise.resolve(value).then((settled) => copyResult(settled, copy));
+  }
+  if (Array.isArray(value)) {
+    return value.map((item: unknown) => copyResult(item, copy));
+  }
+  if (Symbol.asyncIterator in value) {
+    return {
+      [Symbol.asyncIterator]: () =>
+        mapAsyncIterator((value as AsyncIterable<unknown>)[Symbol.asyncIterator](), (item) =>
+          copyResult(item, copy),
+        ),
+    };
+  }
+  return copy(value);
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosPrismaNextPlugin);

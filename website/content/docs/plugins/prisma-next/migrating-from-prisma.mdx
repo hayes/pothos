@@ -1,0 +1,94 @@
+---
+title: Migrating from the Prisma plugin
+description: Updating an existing Pothos schema for Prisma ORM 8
+---
+
+Start with your Prisma ORM 8 client and contract, then update Pothos to use
+`@pothos/plugin-prisma-next`. You can keep the structure of your GraphQL schema: `prismaObject`,
+`t.expose*`, `t.relation`, nodes and connections still define the fields your clients use.
+
+## Connect the new client
+
+Follow [Setup](./setup) to replace the plugin import, pass your contract as `PrismaContract`, and
+configure `prisma: { client: db }`. The new client replaces the Prisma ORM 7 client and the
+Pothos generator output used by `@pothos/plugin-prisma`. Use one plugin per program.
+
+## What changed
+
+- `take` and `skip` are now `limit` and `offset`.
+- `where` and `orderBy` use Prisma ORM 8's shapes, not Prisma Client's.
+- The `dmmf`, `exposeDescriptions` and `onUnusedQuery` plugin options are gone.
+- A `client` function also needs the base client's `context`; see
+  [Plugin options](./setup#plugin-options).
+- `prismaObject` and `prismaNode` take no `include` or `findUnique`; use `select`.
+- A connection helper's `getQuery` takes `(args, ctx)`, without `nestedSelection`.
+- `@pothos/plugin-prisma-utils` has no counterpart.
+
+## Declare data for computed fields
+
+Exposed fields and relations load their own data. If a custom resolver reads additional columns,
+declare those with `select` so they are loaded whenever the field is requested:
+
+```ts
+builder.prismaObjectField('User', 'fullName', (t) =>
+  t.string({
+    select: ['firstName', 'lastName'],
+    resolve: (user) => `${user.firstName} ${user.lastName}`,
+  }),
+);
+```
+
+Use a type-level `select` for data shared by every field or authorization check on that type.
+[Selections](./objects#selections) covers both forms.
+
+## Update queries and mutations
+
+For a read, `query` describes which rows to return. A field that previously spread the plugin's
+query into `findUnique` can become:
+
+```ts
+builder.queryField('me', (t) =>
+  t.prismaField({
+    type: 'User',
+    nullable: true,
+    query: (_args, ctx) => ({ where: { id: ctx.userId } }),
+  }),
+);
+```
+
+If you already compose a native ORM query, return it from `collection`, for example
+`collection: () => db.orm.Post.where({ published: 1 })` for published posts.
+For writes, `resolve` receives the selected ORM query and lets you call `create`, `update`, or
+`delete` on it. See [Mutations](./objects#mutations) for complete examples and
+[Transactions](./transactions) for multi-step operations.
+
+Custom `t.field` resolvers that return database rows should use
+[`collectionFromInfo`](./relations#returning-rows-from-other-fields) when loading those rows.
+That ensures the result includes the relations and other data requested by the GraphQL query.
+
+## Keep your connection queries
+
+GraphQL clients can keep using `first`, `after`, `last` and `before`. In the schema, replace a
+connection's `cursor` option with the order you want users to see:
+
+```ts
+builder.prismaObjectField('User', 'postsConnection', (t) =>
+  t.relatedConnection('posts', {
+    query: { orderBy: { createdAt: 'desc' } },
+  }),
+);
+```
+
+The plugin adds a unique key to break ties. See [Ordering and cursors](./connections#ordering-and-cursors)
+for nullable columns and supported sort fields. Root connections no longer take a `resolve` callback.
+Use [`collection`](./connections#use-a-custom-collection) for checks before loading, and
+[connection helpers](./connections#custom-connections) when a custom resolver needs the loaded rows.
+
+## Adapt custom relation fields
+
+A filtered count now takes `query: { where }`, for example
+`t.relationCount('posts', { query: { where: { published: 1 } } })`.
+
+For a relation with custom resolver logic, use `t.field` with a `select`.
+[`nestedSelection`](./indirect-relations) loads the relations requested beneath that field, and
+takes its options in one object, such as `nestedSelection({ path: ['post'] })`.

@@ -1,0 +1,133 @@
+---
+title: Indirect relations
+description: Loading relations for fields that aren't t.relation
+---
+
+Use [`t.relation`](./relations) for a direct relation, including a renamed or filtered field.
+Use a custom field when the result follows a join model, introduces a GraphQL wrapper, or needs
+other resolver logic. `nestedSelection` loads the related data requested beneath that field.
+
+A field's `select` function gets a third argument, `nestedSelection`. Use it as a relation's entry,
+and the relation's rows load with what the query selects on the field's type, in the parent's query:
+
+```ts
+const Post = builder.prismaObject('Post', {
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    publishedPosts: t.field({
+      type: [Post],
+      select: (args, ctx, nestedSelection) => ({
+        posts: nestedSelection({ where: { published: 1 } }),
+      }),
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
+For this filtered field alone, prefer
+`publishedPosts: t.relation('posts', { query: { where: { published: 1 } } })`.
+
+Without `nestedSelection`, `{ posts: true }` loads each post's columns but nothing the query
+selects beneath the field, such as `author`, which then loads in an extra batched statement. Use `nestedSelection`
+whenever the field's type has relations or selects of its own, so they load in the parent's query.
+
+`nestedSelection` takes an optional object with what a [relation entry](./objects#selections)
+takes, and `path`:
+
+- `where`, `orderBy`, `limit`, `offset`: the relation's
+  [query options](./relations#filtering-and-sorting). A to-one relation takes none.
+- `select`: what to load beneath the rows, besides what the query selects.
+- `path`: a field nested under the field's type to read the selection from. A segment can be
+  written as `{ name, type }` to only read the field under a fragment on that type.
+- `type`: the type to read the selection as, when the field returns an interface or union. It
+  takes what a field's `type` takes, or a model's name for its default type. The query and rows are
+  typed by that type's model, which must be the relation's target.
+
+The rows hold the primary key and what the selection loads, not every column.
+
+## Selecting fields from a nested GraphQL field
+
+When the field returns a type without a model, pass the `path` of a field beneath it that returns
+the model's type:
+
+```ts
+const PostPreview = builder.objectRef<typeof Post.$inferType>('PostPreview').implement({
+  fields: (t) => ({
+    post: t.field({ type: Post, resolve: (post) => post }),
+  }),
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    postPreviews: t.field({
+      type: [PostPreview],
+      select: (args, ctx, nestedSelection) => ({
+        // What the query selects under `postPreviews.post`, for the 2 newest posts
+        posts: nestedSelection({ orderBy: { createdAt: 'desc' }, limit: 2, path: ['post'] }),
+      }),
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
+## Selecting as a specific type
+
+When the field returns an interface or union, `type` names the object type to read the selection
+as. Fragments on other types are left out:
+
+```ts
+const Comment = builder.prismaObject('Comment', {
+  // Loaded whenever a Comment is queried, so resolveType can read it
+  select: ['postId'],
+  fields: (t) => ({ body: t.exposeString('body') }),
+});
+
+const Activity = builder.unionType('Activity', {
+  types: [Post, Comment],
+  resolveType: (row) => ('postId' in row ? 'Comment' : 'Post'),
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    recentActivity: t.field({
+      type: [Activity],
+      select: (args, ctx, nestedSelection) => ({
+        posts: nestedSelection({ limit: 5, type: Post }),
+        comments: nestedSelection({ limit: 5, type: Comment }),
+      }),
+      resolve: (user) => [...user.posts, ...user.comments],
+    }),
+  }),
+});
+```
+
+## Join models
+
+A relation defined with `rel.manyToMany` loads through its junction table, so `nestedSelection` and
+`t.relation` work on it like any to-many relation.
+
+For a join model of its own, give the relation entry a `select` of the join model's rows and put
+`nestedSelection` beneath it. Here comments join users to the posts they commented on:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    commentedPosts: t.field({
+      type: [Post],
+      select: (args, ctx, nestedSelection) => ({
+        comments: { orderBy: { createdAt: 'desc' }, select: { post: nestedSelection() } },
+      }),
+      resolve: (user) => user.comments.map((comment) => comment.post),
+    }),
+  }),
+});
+```
+
+The `select` takes the same entries as any other, one level down, and everything loads in the
+parent's query. Add `type`, a ref or model name of a variant of the relation's model, to load only
+that variant's rows: `{ type: Bug, select: { reviewer: true } }`.

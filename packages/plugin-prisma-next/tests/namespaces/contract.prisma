@@ -1,0 +1,37 @@
+// use prisma-8
+
+namespace nsa {
+  model User {
+    id    Int    @id
+    orgId Int
+    org   Org    @relation(fields: [orgId], references: [id])
+    posts Post[]
+
+    @@map("user")
+  }
+
+  model Post {
+    id     Int    @id
+    title  String
+    userId Int
+    user   User   @relation(fields: [userId], references: [id])
+
+    @@map("post")
+  }
+
+  model Org {
+    id    Int    @id
+    users User[]
+
+    @@map("org")
+  }
+}
+
+namespace nsb {
+  model User {
+    id   String @id
+    name String
+
+    @@map("user")
+  }
+}

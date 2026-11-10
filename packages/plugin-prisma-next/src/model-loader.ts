@@ -1,199 +1,310 @@
 import {
-  encodeCursorTuple,
-  isThenable,
+  brandWithType,
+  completeValue,
   type MaybePromise,
+  type OutputType,
   PothosValidationError,
+  type SchemaTypes,
 } from '@pothos/core';
-import { cacheKey, Plan, type PlayedPlan, setRowFieldMapping } from '@pothos/selection-mapper';
-import { and, or } from '@prisma/orm-family-sql/orm-client';
-import type { GraphQLResolveInfo } from 'graphql';
-import type { AnyContract } from './types.js';
 import {
-  emit,
-  type MapperCollection,
-  type PrismaNextNode,
-  type PrismaNextSpec,
-  prismaNextAdapter,
-} from './utils/adapter.js';
-import { getCollectionPaginationState } from './utils/collection-state.js';
-import { getIdentityFields, type PrismaNextModel } from './utils/model.js';
+  fieldKey,
+  forExecution,
+  type Mapping,
+  Plan,
+  type PlayedPlan,
+  setLoaderMappings,
+  setRowFieldMapping,
+} from '@pothos/selection-mapper';
+import { and, or } from '@prisma/orm-family-sql/orm-client';
+import type { GraphQLInterfaceType, GraphQLObjectType, GraphQLResolveInfo } from 'graphql';
+import type { MapperCollection, PrismaNode, PrismaPlan } from './utils/adapter.js';
+import type { PrismaConfig } from './utils/config.js';
+import { variantOf } from './utils/contract.js';
+import { assertGraphQLJsInfo, InternalError } from './utils/errors.js';
+import { getModel, type PrismaModel } from './utils/model.js';
+import { sourceOf, withOtherKeys } from './utils/rows.js';
+import type { PrismaSelection } from './utils/selections.js';
 
 type Row = Record<string, unknown>;
-type Played = PlayedPlan<PrismaNextModel, PrismaNextSpec, PrismaNextNode>;
-interface Pending {
-  promise: Promise<Row>;
-  resolve: (row: Row) => void;
+type Played = PlayedPlan<PrismaModel, PrismaSelection>;
+
+interface Request {
+  values: readonly unknown[];
+  resolve: (row: Row | null) => void;
   reject: (error: unknown) => void;
 }
+
+/** A node load resolves a missing row to null; for a parent load it is an error. */
+type Load =
+  | { kind: 'node'; typeName: string; collection: ((ctx: object) => MapperCollection) | undefined }
+  | { kind: 'parent'; typeName?: undefined; collection?: undefined };
+
 interface Batch {
-  root: PrismaNextNode;
-  parents: Map<object, Pending>;
+  load: Load;
+  root: PrismaNode;
+  fields: readonly string[];
+  merged: Set<PrismaNode>;
+  requests: Request[];
 }
-interface KeyColumn {
+
+interface IdentityColumn {
   eq(value: unknown): never;
   in(values: unknown[]): never;
 }
 
-/** Request-local compatible selection batches, following the Prisma and Drizzle loaders. */
+/** Loads rows by identity, batched per request: parent reloads, deferred fragments and nodes. */
 export class ModelLoader {
-  private readonly adapter;
   private readonly identity: readonly string[];
-  private readonly selections = new Map<string, MaybePromise<Played>>();
+  /** A variant's rows load through the base narrowed to it, which can include its relations. */
+  private readonly initial: PrismaSelection | undefined;
+  /**
+   * Plans depend on `@skip`/`@include` variables and on what `select` and `query` callbacks read
+   * from the context, so are cached per execution: each subscription event plans again.
+   */
+  private readonly plans = new WeakMap<object, Map<string, MaybePromise<Played>>>();
   private readonly staged = new Set<Batch>();
+  /** By root field path, row, then type. */
+  private readonly reloads = new WeakMap<object, WeakMap<object, Map<string, Promise<Row>>>>();
 
   constructor(
     private readonly context: object,
-    contract: AnyContract,
-    private readonly modelName: string,
-    private readonly collection: () => MapperCollection | undefined,
-    private readonly skipDeferredFragments: boolean,
+    private readonly config: PrismaConfig,
+    private readonly modelKey: string,
   ) {
-    this.adapter = prismaNextAdapter(contract, true);
-    this.identity = getIdentityFields(contract, modelName);
+    this.identity = getModel(config.contract, modelKey).identity;
+    const variant = variantOf(config.contract, modelKey)?.value;
+    this.initial = variant === undefined ? undefined : { args: { variant: { value: variant } } };
   }
 
-  loadSelection(info: GraphQLResolveInfo, parent: object): Promise<Row> {
-    const key = cacheKey(info.parentType.name, info.path);
-    let selection = this.selections.get(key);
-    if (!selection) {
-      selection = Plan.forParentRow(this.adapter, {
+  /** Without a key a reload would match every row, and each parent would read the first one. */
+  private assertIdentity(info: GraphQLResolveInfo) {
+    if (!this.identity.length) {
+      throw new InternalError(
+        `Field '${info.parentType.name}.${info.fieldName}' needs its parent reloaded, but model '${this.modelKey}' has no non-null primary or unique key to reload it by. Add one, or load its rows through prisma fields without @defer.`,
+      );
+    }
+  }
+
+  private cachedPlan(
+    info: GraphQLResolveInfo,
+    key: string,
+    plan: () => MaybePromise<Played>,
+  ): MaybePromise<Played> {
+    assertGraphQLJsInfo(info);
+    const plans = forExecution(this.plans, info);
+    return plans.get(key) ?? plans.set(key, plan()).get(key)!;
+  }
+
+  /** The parent reloaded with what `info`'s field needs, and the field's mapping. */
+  loadSelection(info: GraphQLResolveInfo, parent: object): Promise<{ row: Row; mapping: Mapping }> {
+    this.assertIdentity(info);
+    const selection = this.cachedPlan(info, `parent:${fieldKey(info.parentType.name, info)}`, () =>
+      Plan.forParentRow(this.config.adapter, {
         context: this.context,
         info,
-        skipDeferredFragments: this.skipDeferredFragments,
-      });
-      this.selections.set(key, selection);
-    }
+        initial: this.initial,
+      }),
+    );
     const load = (played: Played) =>
-      this.stage(played, parent).then((row) => {
-        const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
-        if (mapping) {
-          setRowFieldMapping(this.context, info, mapping, row);
+      this.reloadParent(played, parent).then((row) => {
+        // A reload plans its field first onto an empty level, so the field always has a mapping.
+        const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`]!;
+        setRowFieldMapping(this.context, info, mapping, row);
+        return { row, mapping };
+      });
+    return completeValue(selection, load) as Promise<{ row: Row; mapping: Mapping }>;
+  }
+
+  /**
+   * The row scope-auth's checks and `resolveType` read, with every column and what the type's
+   * `select`s load. It plans none of the field, so every check of a row shares it. Cached per root
+   * field path, so a later mutation or subscription event reloads again.
+   */
+  loadTypeRow(
+    info: GraphQLResolveInfo,
+    parent: object,
+    type: GraphQLObjectType | GraphQLInterfaceType,
+  ): Promise<Row> {
+    this.assertIdentity(info);
+    const key = type.name;
+    const root = rootPath(info);
+    const byRow = this.reloads.get(root) ?? this.reloads.set(root, new WeakMap()).get(root)!;
+    const row = sourceOf(parent);
+    const byType = byRow.get(row) ?? byRow.set(row, new Map()).get(row)!;
+    const loaded = byType.get(key);
+    if (loaded) {
+      return loaded;
+    }
+    const selection = this.cachedPlan(info, `type:${key}`, () => {
+      const plan = new Plan(
+        this.config.adapter,
+        { context: this.context, info },
+        type,
+        undefined,
+        this.initial,
+      );
+      return completeValue(plan.finish(plan.enterParentType, type), (played) => {
+        this.config.adapter.mergeQuery(played.root, { columns: null });
+        return played;
+      });
+    });
+    const reloaded = completeValue(selection, (played) =>
+      this.reloadParent(played, parent),
+    ) as Promise<Row>;
+    byType.set(key, reloaded);
+    return reloaded;
+  }
+
+  loadNode(
+    info: GraphQLResolveInfo,
+    typeName: string,
+    fields: readonly string[],
+    values: readonly unknown[],
+    collection: ((ctx: object) => MapperCollection) | undefined,
+  ): Promise<Row | null> {
+    // Keyed on the type rather than the model, because variants of a model select differently,
+    // and on the parent type, which the plan's root position is under.
+    const key = `node:${typeName}:${fieldKey(info.parentType.name, info)}`;
+    const selection = this.cachedPlan(info, key, () =>
+      completeValue(
+        Plan.fromInfo(this.config.adapter, {
+          context: this.context,
+          info,
+          typeName,
+          initial: this.initial,
+        }) as MaybePromise<PrismaPlan>,
+        (settled) => settled.play(),
+      ),
+    );
+    const load = (played: Played) => {
+      setLoaderMappings(this.context, info, played.mappings);
+      const load: Load = { kind: 'node', typeName, collection };
+      return this.stage(played.root, fields, values, load).then((row) => {
+        if (row) {
+          brandWithType(row, typeName as OutputType<SchemaTypes>);
         }
         return row;
       });
-    return isThenable(selection) ? Promise.resolve(selection).then(load) : load(selection);
+    };
+    return completeValue(selection, load) as Promise<Row | null>;
   }
 
-  private stage(played: Played, parent: object): Promise<Row> {
-    for (const batch of this.staged) {
-      if (this.adapter.canMergeNode(batch.root, played.root)) {
-        this.adapter.mergeNode(batch.root, played.root);
-        return this.addParent(batch, parent);
-      }
-    }
-    const root = this.adapter.createNode(played.root.model);
-    this.adapter.mergeNode(root, played.root);
-    const batch: Batch = { root, parents: new Map() };
-    this.staged.add(batch);
-    const result = this.addParent(batch, parent);
-    // Wait through asynchronous select callbacks, as the Drizzle loader does.
-    setTimeout(() => {
-      this.staged.delete(batch);
-      this.flush(batch).catch((error) => {
-        for (const pending of batch.parents.values()) {
-          pending.reject(error);
-        }
-      });
-    }, 0);
-    return result;
-  }
-
-  private addParent(batch: Batch, parent: object): Promise<Row> {
-    let pending = batch.parents.get(parent);
-    if (!pending) {
-      let resolve!: Pending['resolve'];
-      let reject!: Pending['reject'];
-      const promise = new Promise<Row>((yes, no) => {
-        resolve = yes;
-        reject = no;
-      });
-      pending = { promise, resolve, reject };
-      batch.parents.set(parent, pending);
-    }
-    return pending.promise;
-  }
-
-  private key(row: Row): string {
-    return encodeCursorTuple(
-      this.identity.map((field) => {
-        const value = row[field];
-        if (
-          value &&
-          typeof value === 'object' &&
-          !(value instanceof Date) &&
-          !(value instanceof Uint8Array)
-        ) {
-          // Opaque codec objects can all stringify as {}, which would join unrelated rows.
-          if (typeof (value as { toFixed?: unknown }).toFixed !== 'function') {
-            throw new PothosValidationError(
-              `Fallback identity '${this.modelName}.${field}' has an unsupported object value. Use a scalar, Date, bytes, or Decimal identity.`,
-            );
-          }
-        }
-        return value;
-      }),
+  private reloadParent(played: Played, parent: object): Promise<Row> {
+    const values = this.identity.map((field) => (parent as Row)[field]);
+    return this.stage(played.root, this.identity, values, { kind: 'parent' }).then((reloaded) =>
+      withOtherKeys(reloaded!, parent, played.root.model),
     );
+  }
+
+  private stage(
+    root: PrismaNode,
+    fields: readonly string[],
+    values: readonly unknown[],
+    load: Load,
+  ): Promise<Row | null> {
+    let batch = [...this.staged].find(
+      (candidate) =>
+        candidate.load.kind === load.kind &&
+        candidate.load.typeName === load.typeName &&
+        // Rows reloading through one selection stage the same root; skip re-checking the merge.
+        (candidate.merged.has(root) || this.config.adapter.canMergeNode(candidate.root, root)),
+    );
+    if (!batch) {
+      const created: Batch = {
+        load,
+        root: this.config.adapter.createNode(root.model),
+        fields,
+        merged: new Set(),
+        requests: [],
+      };
+      for (const field of fields) {
+        created.root.columns?.add(field);
+      }
+      this.staged.add(created);
+      // A macrotask, so requests from async select callbacks can join the batch.
+      setTimeout(() => {
+        this.staged.delete(created);
+        this.flush(created).catch((error: unknown) => {
+          for (const request of created.requests) {
+            request.reject(error);
+          }
+        });
+      }, 0);
+      batch = created;
+    }
+    if (!batch.merged.has(root)) {
+      batch.merged.add(root);
+      this.config.adapter.mergeNode(batch.root, root);
+    }
+    const { requests } = batch;
+    return new Promise((resolve, reject) => {
+      requests.push({ values, resolve, reject });
+    });
   }
 
   private async flush(batch: Batch): Promise<void> {
-    const base = this.collection();
-    if (!base) {
-      throw new PothosValidationError(
-        `Missing prismaNext.collections entry for model '${this.modelName}'.`,
-      );
-    }
-    if (getCollectionPaginationState(base).paginated) {
-      throw new PothosValidationError(
-        `Fallback collection for '${this.modelName}' must be unpaginated. Return a collection without limit(), offset(), or cursor().`,
-      );
-    }
-    if (!this.identity.length) {
-      throw new PothosValidationError(
-        `Fallback loading requires a non-null primary or unique key on model '${this.modelName}'.`,
-      );
-    }
-    const parents = [...batch.parents.keys()] as Row[];
-    for (const parent of parents) {
-      for (const field of this.identity) {
-        if (parent[field] == null) {
-          throw new PothosValidationError(
-            `Fallback loading requires identity field '${this.modelName}.${field}' on the parent row.`,
-          );
-        }
-        batch.root.columns.add(field);
+    const { collection } = batch.load;
+    const base = collection
+      ? collection(this.context)
+      : this.config.typeCollection(this.context, this.modelKey);
+    const { fields } = batch;
+    const codecs = this.config.codecs(this.modelKey);
+    const key = (values: readonly unknown[]) =>
+      JSON.stringify(values.map((value, i) => codecs(fields[i]!).key(value)));
+    // A value its codec rejects fails its own request, not the batch. A node's values come from
+    // the client's ID, so it fails with a client-safe error.
+    const keyed: { request: Request; key: string }[] = [];
+    for (const request of batch.requests) {
+      try {
+        keyed.push({ request, key: key(request.values) });
+      } catch (error) {
+        request.reject(
+          batch.load.kind === 'node' ? new PothosValidationError('Invalid ID.') : error,
+        );
       }
     }
-    const distinct = [...new Map(parents.map((row) => [this.key(row), row])).values()];
-    const filtered = base.where((model: Record<string, KeyColumn>) =>
-      this.identity.length === 1
-        ? model[this.identity[0]].in(distinct.map((parent) => parent[this.identity[0]]))
+    if (!keyed.length) {
+      return;
+    }
+    const distinct = [...new Map(keyed.map(({ request, key }) => [key, request.values])).values()];
+    const filtered = base.where((model: Record<string, IdentityColumn>) =>
+      fields.length === 1
+        ? model[fields[0]!]!.in(distinct.map((values) => values[0]))
         : or(
-            ...distinct.map((parent) =>
-              and(...this.identity.map((field) => model[field].eq(parent[field]))),
+            ...distinct.map((values) =>
+              and(...fields.map((field, i) => model[field]!.eq(values[i]))),
             ),
           ),
     );
-    const query = emit(
+    const selection = this.config.adapter.toQuery(batch.root);
+    const query = this.config.adapter.emit(
       filtered,
-      this.adapter.toQuery(batch.root),
+      selection,
       batch.root.model,
-      this.context,
     ) as MapperCollection & {
       all(): Promise<readonly Row[]>;
     };
     const rows = await query.all();
-    const byId = new Map(rows.map((row) => [this.key(row), row]));
-    for (const [parent, pending] of batch.parents) {
-      const row = byId.get(this.key(parent as Row));
-      if (row) {
-        pending.resolve(row);
+    const byKey = new Map(rows.map((row) => [key(fields.map((field) => row[field])), row]));
+    for (const { request, key } of keyed) {
+      const row = byKey.get(key);
+      if (row || batch.load.kind === 'node') {
+        request.resolve(row ?? null);
       } else {
-        pending.reject(
-          new PothosValidationError(
-            `Fallback loading could not find model '${this.modelName}' for the parent identity.`,
+        request.reject(
+          new InternalError(
+            `Reloading could not find the '${this.modelKey}' row of the parent's identity.`,
           ),
         );
       }
     }
   }
+}
+
+function rootPath(info: GraphQLResolveInfo) {
+  let root = info.path;
+  while (root.prev) {
+    root = root.prev;
+  }
+  return root;
 }

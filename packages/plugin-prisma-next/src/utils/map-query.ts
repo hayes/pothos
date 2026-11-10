@@ -1,75 +1,166 @@
-/**
- * The plugin's entry points into `@pothos/selection-mapper`: the plan of a resolver's `info`
- * emitted onto its collection.
- */
-import { isThenable, type MaybePromise, PothosSchemaError } from '@pothos/core';
+import { completeValue, type MaybePromise } from '@pothos/core';
 import { type IndirectInclude, type PathSegment, Plan } from '@pothos/selection-mapper';
-import type { GraphQLResolveInfo } from 'graphql';
-import type { AnyContract } from '../types.js';
-import { emit, type MapperCollection, type PrismaNextPlan, prismaNextAdapter } from './adapter.js';
+import type { HasNoVariant } from '@prisma/orm-family-sql/orm-client';
+import {
+  type GraphQLNamedType,
+  type GraphQLResolveInfo,
+  type GraphQLSchema,
+  getNamedType,
+} from 'graphql';
+import { PRISMA_CONFIG, PRISMA_MODEL } from '../constants.js';
+import type { PrismaPlannedCollection } from '../types/collections.js';
+import type { AnyContract } from '../types/models.js';
+import type { MapperCollection, PrismaPlan } from './adapter.js';
+import type { PrismaConfig } from './config.js';
+import { variantOf } from './contract.js';
+import { assertGraphQLJsInfo, InternalError } from './errors.js';
+import { getModel, type PrismaModel } from './model.js';
+import { EMPTY, type PrismaSelection } from './selections.js';
 
-export type { IndirectInclude };
-
-export interface ApplySelectionOptions {
-  skipDeferredFragments?: boolean;
-  /** @internal Set when the builder has a Collection provider for fallback loads. */
-  fallback?: boolean;
-  /** Descend through these paths from the field's return type (`[['edges', 'node'], ['nodes']]`). */
+interface PlanTarget {
+  /** Paths to the selection from the field's return type (`[['edges', 'node'], ['nodes']]`). */
   paths?: PathSegment[][];
+  /** One path to the selection, when `paths` isn't given. */
   path?: PathSegment[];
-  /** Columns always read on the root, ahead of anything the selection adds (cursor and id columns). */
-  extraColumns?: readonly string[];
-  /** Walk as this type instead of `info.returnType` (a `node(id:)` load of a concrete type). */
+  /** The type the selection is read as, when it isn't the field's return type. */
   typeName?: string;
 }
 
-/**
- * Walks the GraphQL info and emits the orm-client chain on `baseCollection`, returning the
- * augmented collection. The result is a promise only when a `select` callback beneath the
- * field returned one; a schema without async selections never sees one.
- */
-export function applySelectionToCollection(
-  baseCollection: MapperCollection,
+/** Undefined when nothing is selected under `paths`. A promise only for an async `select`. */
+function planSelection(
   info: GraphQLResolveInfo,
+  config: PrismaConfig,
+  context: object,
+  target: PlanTarget,
+  initial: PrismaSelection,
+): MaybePromise<{ selection: PrismaSelection; model: PrismaModel } | undefined> {
+  assertGraphQLJsInfo(info);
+  const plan = Plan.fromInfo(config.adapter, { context, info, ...target, initial });
+  return (
+    plan &&
+    completeValue(plan as MaybePromise<PrismaPlan>, (settled) => ({
+      selection: settled.query(),
+      model: settled.model,
+    }))
+  );
+}
+
+/** A variant's rows are narrowed to it, so the relations it declares can load. */
+export function initialSelection(
   contract: AnyContract,
-  context: unknown,
-  options: ApplySelectionOptions = {},
+  modelKey: string | undefined,
+  seed: PrismaSelection,
+): PrismaSelection {
+  const variant = modelKey === undefined ? undefined : variantOf(contract, modelKey)?.value;
+  return { ...seed, args: variant === undefined ? {} : { variant: { value: variant } } };
+}
+
+/** `typeName`'s model, or that of the type its one path leads to. */
+function plannedModelKey(info: GraphQLResolveInfo, { typeName, path, paths }: PlanTarget) {
+  const { schema } = info;
+  const returnType = getNamedType(info.returnType);
+  const modelAt = (steps: readonly PathSegment[]) => {
+    let type: GraphQLNamedType | undefined = typeName ? schema.getType(typeName) : returnType;
+    for (const step of typeName ? [] : [...(includeOf(returnType)?.path ?? []), ...steps]) {
+      const { type: on, name } = typeof step === 'string' ? { name: step } : step;
+      const parent = on ? schema.getType(on) : type;
+      const field = parent && 'getFields' in parent ? parent.getFields()[name] : undefined;
+      type = field && getNamedType(field.type);
+    }
+    for (let include = type && includeOf(type); include; include = type && includeOf(type)) {
+      type = schema.getType(include.getType());
+    }
+    return type?.extensions?.[PRISMA_MODEL] as string | undefined;
+  };
+  return !typeName && paths && paths.length > 1 ? undefined : modelAt(paths?.[0] ?? path ?? []);
+}
+
+function includeOf(type: GraphQLNamedType) {
+  return type.extensions?.pothosIndirectInclude as IndirectInclude | undefined;
+}
+
+/** Plans the selection at `paths` beneath the field from `seed`, or the seed alone. */
+export function nestedFromInfo(
+  info: GraphQLResolveInfo,
+  config: PrismaConfig,
+  context: object,
+  paths: PathSegment[][],
+) {
+  return (seed: PrismaSelection): MaybePromise<PrismaSelection> =>
+    completeValue(
+      planSelection(info, config, context, { paths }, seed),
+      (planned) => planned?.selection ?? seed,
+    );
+}
+
+export function applySelectionToCollection(
+  collection: MapperCollection,
+  modelKey: string,
+  info: GraphQLResolveInfo,
+  config: PrismaConfig,
+  context: object,
 ): MaybePromise<MapperCollection> {
-  if (options.skipDeferredFragments && !options.fallback) {
-    throw new PothosSchemaError(
-      'skipDeferredFragments requires a Collection provider for fallback loading.',
-    );
-  }
-  // Selection callbacks receive the application's original context.
-  const ctx = context as object;
-  const initial = options.extraColumns?.length ? { columns: options.extraColumns } : undefined;
-  const adapter = prismaNextAdapter(contract, options.fallback);
-  const plan = Plan.fromInfo(adapter, {
-    context: ctx,
-    info,
-    typeName: options.typeName,
-    path: options.path,
-    paths: options.paths,
-    initial,
-    skipDeferredFragments: options.skipDeferredFragments ?? options.fallback ?? false,
+  const model = getModel(config.contract, modelKey);
+  const initial = initialSelection(config.contract, modelKey, EMPTY);
+  return completeValue(planSelection(info, config, context, {}, initial), (planned) => {
+    const selection = planned?.selection ?? initial;
+    return config.adapter.emit(collection, selection, planned?.model ?? model);
   });
+}
 
-  if (!plan) {
-    // Nothing is selected under the paths: only the caller's own columns are read.
-    return emit(baseCollection, initial ?? {}, undefined, ctx);
+export interface CollectionFromInfoOptions<C> extends PlanTarget {
+  /** The collection to load the rows from, without `include()`: the selection includes relations. */
+  collection: C;
+  context: object;
+  info: GraphQLResolveInfo;
+}
+
+/**
+ * Applies the selection of the field `info` resolves to `collection`, for a resolver that loads
+ * rows itself, such as a mutation's. `path`/`paths` select beneath the field (`['post']` for a
+ * payload's `post`), and `typeName` names the type the rows resolve as when the path leads to an
+ * interface or union, or the collection is narrowed by `variant()`. The rows the returned
+ * collection's reads and writes return resolve the selection without loading again. In a
+ * subscription, call it in the event's `resolve`: rows loaded in `subscribe` load again.
+ */
+// A collection narrowed by `variant()`, or one the compiler can't tell isn't, needs `typeName`.
+export function collectionFromInfo<C extends HasNoVariant>(
+  options: CollectionFromInfoOptions<C>,
+): Promise<PrismaPlannedCollection<C>>;
+export function collectionFromInfo<C extends object>(
+  options: CollectionFromInfoOptions<C> & { typeName: string },
+): Promise<PrismaPlannedCollection<C>>;
+export async function collectionFromInfo<C extends object>({
+  collection,
+  context,
+  info,
+  ...target
+}: CollectionFromInfoOptions<C>): Promise<PrismaPlannedCollection<C>> {
+  const config = configFor(info.schema);
+  if (target.typeName && !info.schema.getType(target.typeName)) {
+    throw new InternalError(`collectionFromInfo's typeName '${target.typeName}' isn't a type.`);
   }
+  const modelKey = plannedModelKey(info, target);
+  const mapper = collection as unknown as MapperCollection;
+  const planned = await planSelection(
+    info,
+    config,
+    context,
+    target,
+    initialSelection(config.contract, modelKey, EMPTY),
+  );
+  const query = planned && config.adapter.emit(mapper, planned.selection, planned.model);
+  return (query ?? mapper) as unknown as PrismaPlannedCollection<C>;
+}
 
-  // Publish coverage for manual helper callers too. Context-free eager helpers
-  // retain their original behavior; fallback loading requires an object context.
-  const finish = (settled: PrismaNextPlan) =>
-    emit(
-      baseCollection,
-      ctx && typeof ctx === 'object' ? settled.query() : adapter.toQuery(settled.play().root),
-      settled.model,
-      ctx,
-    );
+const schemaConfigs = new WeakMap<GraphQLSchema, PrismaConfig>();
 
-  return isThenable(plan)
-    ? Promise.resolve(plan).then((settled) => finish(settled as PrismaNextPlan))
-    : finish(plan);
+function configFor(schema: GraphQLSchema): PrismaConfig {
+  let config = schemaConfigs.get(schema);
+  if (!config) {
+    config = Object.values(schema.getTypeMap()).find((type) => type.extensions?.[PRISMA_CONFIG])
+      ?.extensions?.[PRISMA_CONFIG] as PrismaConfig;
+    schemaConfigs.set(schema, config);
+  }
+  return config;
 }

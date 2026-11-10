@@ -1,0 +1,18 @@
+// use prisma-8
+// setup.mdx's contract with more than one namespace.
+namespace public {
+  model User {
+    id    String @id
+    email String @unique
+
+    @@map("user")
+  }
+}
+
+namespace auth {
+  model User {
+    id String @id
+
+    @@map("user")
+  }
+}

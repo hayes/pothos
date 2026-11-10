@@ -1,0 +1,84 @@
+---
+title: Interfaces
+description: GraphQL interfaces backed by contract models
+---
+
+An interface lets a field return different object types with common fields. Use
+`builder.prismaInterface` for types backed by Prisma models; it takes the same options as
+`builder.prismaObject`.
+
+Building on [Type variants](./variants), update the `User` and `Viewer` definitions to share a
+`Person` interface. Here `resolveType` chooses `Viewer` for the signed-in user's own row, and `User`
+for other authors:
+
+```ts
+const Person = builder.prismaInterface('User', {
+  variant: 'Person',
+  resolveType: (user, ctx) => (user.id === ctx.userId ? 'Viewer' : 'User'),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    firstName: t.exposeString('firstName'),
+  }),
+});
+
+builder.prismaObject('User', {
+  interfaces: [Person],
+  fields: (t) => ({
+    posts: t.relation('posts', { query: { where: { published: 1 } } }),
+  }),
+});
+
+builder.prismaObject('User', {
+  variant: 'Viewer',
+  interfaces: [Person],
+  fields: (t) => ({
+    email: t.exposeString('email'),
+    drafts: t.relation('posts', { query: { where: { published: 0 } } }),
+  }),
+});
+
+builder.queryField('author', (t) =>
+  t.prismaField({
+    type: Person,
+    nullable: true,
+    args: { id: t.arg.id({ required: true }) },
+    query: (args) => ({ where: { id: String(args.id) } }),
+  }),
+);
+```
+
+Implementing types must use the interface's Prisma model or one of its inherited models.
+
+`t.prismaField`, `t.prismaConnection`, `t.relation` and `t.relatedConnection` all accept an
+interface ref as `type`. Fields on an implementing type can read the interface's `select`.
+Implementing objects don't accept `isTypeOf`.
+
+`id` is available to `resolveType` automatically. If it needs other data, declare columns or
+to-one relations in the interface's `select`; to-many relations aren't available to it.
+
+To add fields to the interface from another file, use `prismaInterfaceField` or
+`prismaInterfaceFields`:
+
+```ts
+builder.prismaInterfaceField(Person, 'displayName', (t) =>
+  t.string({
+    select: ['firstName', 'lastName'],
+    resolve: (person) => `${person.firstName} ${person.lastName}`,
+  }),
+);
+```
+
+To return rows through `Node` or another interface from a plain field, see
+[Returning rows from other fields](./relations#returning-rows-from-other-fields).
+
+An object type from `builder.objectRef` can implement a `prismaInterface` if its shape is
+`PrismaPlanned` for the model, such as
+`builder.objectRef<{ id: string; email: string; firstName: string } & PrismaPlanned<'User'>>`. The
+shape must include the interface's `select` columns and the columns its fields expose, since its
+fields and `resolveType` read them.
+
+## Native inheritance
+
+When Prisma itself defines inherited models, such as `Task`, `Bug` and `Feature`, the plugin can
+choose the GraphQL type automatically. Continue with [Model inheritance](./inheritance) to expose
+those models through an interface.

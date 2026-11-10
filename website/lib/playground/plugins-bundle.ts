@@ -33,6 +33,19 @@ import * as DrizzleOrm from 'drizzle-orm';
 import * as DrizzleSqliteCore from 'drizzle-orm/sqlite-core';
 import { drizzleSqliteProxy } from './drizzle/sqlite-proxy';
 
+// The ORM is large and the example needs SQLite's WebAssembly before it runs, so these load only
+// when an example imports them. They share this bundle's @pothos/core instance.
+const loadPrismaNext = () => import('./prisma-next/modules').then(({ prepare }) => prepare());
+export const lazyPluginModules: Record<string, () => Promise<unknown>> = Object.fromEntries(
+  [
+    '@pothos/plugin-prisma-next',
+    '@prisma/orm-family-sql/orm-client',
+    '@prisma/orm-sqlite/runtime',
+    '@prisma/orm-sqlite/static',
+    'node:sqlite',
+  ].map((name) => [name, () => loadPrismaNext().then((modules) => modules[name])]),
+);
+
 export const pluginModules = {
   '@pothos/plugin-drizzle': DrizzleModule,
   'drizzle-orm': DrizzleOrm,

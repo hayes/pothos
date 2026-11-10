@@ -1,0 +1,154 @@
+---
+title: Setup
+description: Setting up the Prisma Next plugin
+---
+
+## Install
+
+Set up Prisma ORM 8 and your contract with the
+[Prisma ORM documentation](https://www.prisma.io/docs/orm), then install the plugin with its Prisma
+peers:
+
+```package-install
+npm install --save @pothos/core @pothos/plugin-prisma-next graphql @prisma/orm-family-sql@8.0.0-rc.23 @prisma/orm-framework@8.0.0-rc.23
+```
+
+The plugin targets Prisma ORM `8.0.0-rc.23` exactly. Install every `@prisma/orm-*` package,
+including your database's (such as `@prisma/orm-postgres`), at that version. A second copy of any
+of them breaks values passed between the two. The database packages also need `temporal-polyfill`,
+which npm and pnpm install automatically; with Yarn, add it yourself.
+
+Requires Node.js 22.20+ or 24.7+. This plugin and
+`@pothos/plugin-prisma` can't be used in the same program.
+If you use [`@pothos/plugin-scope-auth`](/docs/plugins/scope-auth), it needs to be 4.3.0 or newer.
+
+## Configure the builder
+
+Pass your Prisma client to the plugin, and your contract's type as `PrismaContract`:
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import PrismaNextPlugin from '@pothos/plugin-prisma-next';
+import { contract, db } from './prisma/db';
+
+const builder = new SchemaBuilder<{
+  PrismaContract: typeof contract;
+}>({
+  plugins: [PrismaNextPlugin],
+  prisma: { client: db },
+});
+
+const User = builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+});
+
+const Post = builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    recentPosts: t.prismaField({
+      type: ['Post'],
+      query: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 10 },
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+`User` and `Post` are type refs, which later examples pass as a field's `type`; a model name such
+as `'Post'` works too. Later pages add to these types, which you can also do with
+[`prismaObjectFields`](./objects#adding-fields).
+
+For nodes and connections, also install and add [`@pothos/plugin-relay`](/docs/plugins/relay).
+
+This example uses PostgreSQL:
+
+- The client groups models by schema (`db.orm.public.Post`). The plugin chooses that Collection
+  automatically for the field above.
+- SQLite and MySQL work the same way with their own Prisma packages. Their clients don't group
+  models, and the rest of these docs use that shorter form, `db.orm.Post`.
+
+Pass a context object, such as `contextValue: {}`, when you execute an operation. The plugin keeps
+per-request state on it.
+Examples using authentication assume context fields `userId: string` and `isAdmin: boolean`. Add
+`Context: YourContext` alongside `PrismaContract` in the builder's type parameter, and supply those
+values for each request. See [Context](../../guide/context) for configuring and typing it.
+
+## Models in several namespaces
+
+If your contract has more than one namespace, refer to models by their full name, such as
+`'auth.User'`. GraphQL type names leave the namespace out, so when two namespaces both have a
+`User`, give one of them a `name`:
+
+```ts
+builder.prismaObject('auth.User', {
+  name: 'AuthUser',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+```
+
+## Plugin options
+
+These go under `prisma` in the builder options.
+
+- `client`: your Prisma client. For a [request-scoped client](./transactions#share-a-transaction-across-an-operation),
+  pass `(ctx) => client` together with the base client's `context`. Required.
+- `skipDeferredFragments`: load `@defer` fragments when they execute instead of in the initial
+  query. Defaults to `true`.
+- `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes. Default to 20 and
+  100.
+- `filterConnectionTotalCount`: when `true` (the default), a `relatedConnection`'s `totalCount`
+  only counts rows matching its `query.where`.
+
+## Transactions
+
+For multi-step mutations and request-scoped clients, see the [Transactions guide](./transactions).
+
+## TypeScript and Temporal
+
+If you export refs that select Temporal columns, or have a Temporal primary key, and
+declaration emit fails with TS2742 or TS2883 mentioning `temporal-spec`, add `temporal-spec` as a
+direct dependency so TypeScript can name its types in your declarations:
+
+```package-install
+npm install --save temporal-spec
+```
+
+If TypeScript reports missing `Temporal` globals, import their declarations once in your project
+(for example in a `globals.d.ts` file):
+
+```ts
+import type {} from 'temporal-spec/global';
+```
+
+This provides types only. Your application still needs Temporal at runtime, either natively or
+through its configured polyfill.
+
+## Limitations
+
+- On MySQL, Prisma reads rows but can't write them, count them or run aggregates yet. MongoDB isn't
+  supported.
+- Malformed cursors fail with `Invalid cursor.`, and malformed IDs with `Invalid ID.` or the Relay
+  plugin's `Invalid global ID: …`. Errors the plugin detects in your runtime configuration reach clients as `Unexpected error.`, with detail in the error's
+  `cause`. ORM errors and errors from your code pass through unchanged and can name your models and
+  columns, so mask them in your GraphQL server.
+- Prisma's packages are ESM-only, so use `"moduleResolution": "nodenext"` or `"bundler"`. A
+  CommonJS project on `node16` gets TS1541 errors unless `skipLibCheck` is on.
+- graphql-jit isn't supported. Fields that load rows fail with `Unexpected error.` under it.
+
+## Next steps
+
+Read [Queries and selections](./queries) for how `collection`, `query` and `select` work together,
+then [Objects](./objects) and [Relations](./relations) for defining the rest of your schema.

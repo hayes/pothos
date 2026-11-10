@@ -1,21 +1,16 @@
 import assert from 'node:assert/strict';
 import { availableParallelism } from 'node:os';
-import { chromium } from 'playwright';
 import { checkPlaygroundGuide } from './check-playground-guide.mjs';
 import { checkPlaygroundMobile, checkPlaygroundMobileFiles } from './check-playground-mobile.mjs';
 import { checkPlaygroundProject } from './check-playground-project.mjs';
 import { checkPlaygroundTabs } from './check-playground-tabs.mjs';
 import { checkPlaygroundTracing } from './check-playground-tracing.mjs';
+import { launchBrowser } from './launch-browser.mjs';
 import { loadPlaygroundCases } from './playground-cases.mjs';
 
 const origin = process.argv[2] ?? 'http://localhost:3000';
 const examples = await loadPlaygroundCases();
-const browser = await chromium.launch({
-  headless: true,
-  ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
-    ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
-    : {}),
-});
+const browser = await launchBrowser();
 // Each example loads Monaco, the TypeScript worker, and esbuild-wasm in a fresh page, so examples
 // are checked concurrently. Every page still gets its own browser context.
 const concurrency = Number(

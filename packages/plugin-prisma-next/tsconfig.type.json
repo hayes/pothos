@@ -4,5 +4,14 @@
   },
   "extends": "../../tsconfig.options.json",
   "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["tests/scope-auth.test.ts"]
+  "exclude": [
+    "tests/native-interface-hydration.test.ts",
+    "tests/declarations/*.ts",
+    "tests/scope-auth.test.ts",
+    "tests/scope-auth-version.test.ts",
+    "tests/collection-from-info-scope-auth.test.ts",
+    "tests/returned-rows.test.ts",
+    "tests/type-cost/*.ts",
+    "tests/types/missing-plugins.test-d.ts"
+  ]
 }

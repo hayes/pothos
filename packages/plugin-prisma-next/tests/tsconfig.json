@@ -4,5 +4,13 @@
   "compilerOptions": {
     "skipLibCheck": true
   },
-  "exclude": ["scope-auth.test.ts"]
+  "exclude": [
+    "native-interface-hydration.test.ts",
+    "declarations/*.ts",
+    "scope-auth.test.ts",
+    "scope-auth-version.test.ts",
+    "collection-from-info-scope-auth.test.ts",
+    "type-cost/*.ts",
+    "types/missing-plugins.test-d.ts"
+  ]
 }

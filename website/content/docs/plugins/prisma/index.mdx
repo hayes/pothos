@@ -3,6 +3,13 @@ title: Prisma plugin
 description: Prisma plugin docs for Pothos
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="info" title="Prisma versions">
+  This plugin supports Prisma ORM 7 only; install `prisma@^7`. For Prisma ORM 8, see
+  [Prisma Next](/docs/plugins/prisma-next).
+</Callout>
+
 The Prisma plugin defines GraphQL types from Prisma models and builds selections for the data
 requested by a GraphQL query. It supports relations, counts, type variants, and Relay nodes and
 connections. GraphQL fields can have different names and shapes from the underlying models.

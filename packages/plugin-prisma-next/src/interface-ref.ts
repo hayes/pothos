@@ -1,18 +1,25 @@
 import { InterfaceRef, type SchemaTypes } from '@pothos/core';
-import type { ModelName, Row } from './types.js';
+import { type PrismaPlanned, prismaContractBrand } from './object-ref.js';
+import type { ModelKey, ObjectBaseShape, VariantModelKeys } from './types/models.js';
 
-export const prismaInterfaceKey = Symbol.for('Pothos.prismaNextInterfaceKey');
+export const prismaInterfaceBrand = Symbol.for('Pothos.prismaInterfaceBrand');
 
-export class PrismaNextInterfaceRef<
+export class PrismaInterfaceRef<
   Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  Shape = Row<Types, M>,
-> extends InterfaceRef<Types, Shape, Shape> {
-  declare readonly [prismaInterfaceKey]: M;
-  readonly modelName: M;
+  M extends ModelKey<Types>,
+  Shape = ObjectBaseShape<Types, M>,
+> extends InterfaceRef<
+  Types,
+  // Keep the planned-row marker named in diagnostics and emitted declarations.
+  PrismaPlanned<M | VariantModelKeys<Types['PrismaContract'], M>>,
+  Shape
+> {
+  declare readonly [prismaInterfaceBrand]: M;
+  declare readonly [prismaContractBrand]: Types['PrismaContract'];
+  readonly modelKey: M;
 
-  constructor(name: string, modelName: M) {
+  constructor(name: string, modelKey: M) {
     super(name);
-    this.modelName = modelName;
+    this.modelKey = modelKey;
   }
 }

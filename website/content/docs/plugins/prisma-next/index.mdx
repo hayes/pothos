@@ -1,0 +1,59 @@
+---
+title: Prisma Next plugin
+description: An experimental Pothos plugin for the Prisma ORM 8 collection client
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The Prisma Next plugin integrates [Prisma ORM 8](https://github.com/prisma/orm) with Pothos to build
+a strongly typed GraphQL API from your Prisma models. Expose database fields and relations, add
+computed fields, and support Relay nodes and paginated connections. Your GraphQL types and fields can
+have different names and shapes from the underlying models.
+
+Declare what each field needs, and the plugin combines those requirements with the incoming
+GraphQL query. Prisma loads related data together, often in a single SQL statement, so you don't
+need a separate resolver or database call for every relation. Field types are inferred from your
+Prisma contract.
+
+<Callout type="warn" title="Experimental">
+  This plugin targets Prisma ORM `8.0.0-rc.23` exactly. Its API, and Prisma's, may change in any
+  release. For Prisma ORM 7, use [the Prisma plugin](/docs/plugins/prisma).
+</Callout>
+
+The [playground example](/playground?example=plugin-prisma-next) runs the examples below against
+SQLite in the browser, and its **SQL** tab shows the statements each query runs.
+
+## Example
+
+With a [configured builder](/docs/plugins/prisma-next/setup), define the posts your API exposes
+and their author relation. These examples use the playground's `Post` and `User` models:
+
+<include cwd lang="typescript" meta='playground example="plugin-prisma-next"'>playground-examples/plugin-prisma-next/types/post.ts#post</include>
+
+The author's computed `fullName` declares the columns its resolver reads:
+
+<include cwd lang="typescript" meta='playground example="plugin-prisma-next"'>playground-examples/plugin-prisma-next/types/user.ts#user</include>
+
+Add a recent-posts query that returns the ten latest published posts:
+
+<include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ recentPosts { title author { fullName } } }"'>playground-examples/plugin-prisma-next/queries.ts#recent-posts-query</include>
+
+For `{ recentPosts { title author { fullName } } }`, the posts and their authors load in one SQL
+statement, including the columns needed to compute each author's name. Each root field usually
+runs as one statement, with its requested relations, counts and connection pages included.
+
+## Relay connections
+
+With the [Relay plugin](/docs/plugins/relay), `t.relatedConnection` adds a paginated list of
+published posts to an author profile:
+
+<include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ author(id: 1) { fullName postConnection(first: 1) { totalCount edges { node { title } } pageInfo { endCursor hasNextPage } } } }"'>playground-examples/plugin-prisma-next/types/user.ts#user-post-connection</include>
+
+`t.prismaConnection` does the same for query fields. See
+[Connections](/docs/plugins/prisma-next/connections).
+
+## Next steps
+
+To get started, follow [Setup](/docs/plugins/prisma-next/setup), then read
+[Queries and selections](/docs/plugins/prisma-next/queries), [Objects](/docs/plugins/prisma-next/objects) and [Relations](/docs/plugins/prisma-next/relations).
+For an existing Prisma ORM 7 schema, see [Migrating from the Prisma plugin](/docs/plugins/prisma-next/migrating-from-prisma).

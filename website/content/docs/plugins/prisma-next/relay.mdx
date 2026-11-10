@@ -1,0 +1,111 @@
+---
+title: Relay nodes
+description: Defining Relay nodes for contract-backed models
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+`builder.prismaNode` defines a model type that implements the Relay `Node` interface, so clients can
+fetch it by its global ID with the `node` and `nodes` query fields. You'll need the
+[Relay plugin](../relay). For pagination, see [Connections](./connections).
+
+## Define a node
+
+`builder.prismaNode` takes the same options as `builder.prismaObject`, plus an `id`:
+
+```ts
+builder.prismaNode('Post', {
+  id: { field: 'id' },
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+<Callout type="warn" title="Authorize node lookups">
+  Any client can load a node directly by its ID through `node` and `nodes`, so add auth checks on
+  the type, such as [Scope Auth's](/docs/plugins/scope-auth) `authScopes`, for rows not everyone
+  should read. Filtering lookups with [`collection`](#filter-node-lookups) or a per-request `client`
+  isn't access control.
+</Callout>
+
+The ID holds the column's value, as text, or a JSON array of the values when `id.field` lists
+several columns, as the [Prisma plugin's](/docs/plugins/prisma/relay) IDs do. To control the format
+of the global ID, pass `resolve` and `parse`:
+
+```ts
+builder.prismaNode('Comment', {
+  id: {
+    field: 'id',
+    resolve: (comment) => `comment:${comment.id}`,
+    parse: (id) => id.slice('comment:'.length),
+  },
+  fields: (t) => ({ body: t.exposeString('body') }),
+});
+```
+
+`prismaNode` adds these options:
+
+- `id.field`: a column, or a list of columns, covering a non-null primary or unique key.
+- `id.parse` / `id.resolve`: custom ID serialization. Pass both or neither.
+- Other `id` options, such as `description`, are passed to the ID field.
+- `collection`: the Collection nodes load from. See [Filter node lookups](#filter-node-lookups).
+
+A timestamp in `id.field` has the same precision limit as a
+[connection's order](./connections#ordering-and-cursors).
+
+## Filter node lookups
+
+To limit which rows `node` and `nodes` can return, pass `collection`. It receives the context, so it
+can filter by the current user. Here `node` only finds the current user's posts:
+
+```ts
+builder.prismaNode('Post', {
+  id: { field: 'id' },
+  collection: (ctx) => db.orm.Post.where({ authorId: ctx.userId }),
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+```
+
+`node` and `nodes` return `null` for rows the filter excludes. Only filter the collection; don't
+call `limit()`, `offset()`, `cursor()` or `include()` on it.
+
+`collection` only applies to `node` and `nodes`. Rows reached through relations and other fields
+don't pass through it.
+
+## Several node types for one model
+
+If you define more than one node type for a model, such as a `DraftPost` [variant](./variants) of
+`Post`, each type has its own global IDs. When one field can return more than one of these types,
+return a [`prismaInterface`](./interfaces) with a `resolveType`, or brand each row with its type's
+`addBrand`:
+
+```ts
+import { collectionFromInfo } from '@pothos/plugin-prisma-next';
+
+const DraftPost = builder.prismaNode('Post', {
+  variant: 'DraftPost',
+  id: { field: 'id' },
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+
+builder.queryField('latestDraft', (t) =>
+  t.field({
+    type: builder.nodeInterfaceRef(),
+    nullable: true,
+    resolve: async (_root, _args, ctx, info) => {
+      const drafts = await collectionFromInfo({
+        collection: db.orm.Post.where({ authorId: ctx.userId, published: 0 }).orderBy(
+          (post) => post.createdAt.desc(),
+        ),
+        context: ctx,
+        info,
+        typeName: 'DraftPost',
+      });
+      const post = await drafts.first();
+      return post && DraftPost.addBrand(post);
+    },
+  }),
+);
+```

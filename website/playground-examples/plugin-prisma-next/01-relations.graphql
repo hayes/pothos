@@ -1,0 +1,8 @@
+query RecentPosts {
+  recentPosts {
+    title
+    author {
+      fullName
+    }
+  }
+}

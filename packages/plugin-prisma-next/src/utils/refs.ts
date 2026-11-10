@@ -1,88 +1,72 @@
 import { PothosSchemaError, type SchemaTypes } from '@pothos/core';
-import { PrismaNextInterfaceRef } from '../interface-ref.js';
-import { PrismaNextObjectRef } from '../object-ref.js';
-import type { ModelName, Row } from '../types.js';
+import { PrismaInterfaceRef } from '../interface-ref.js';
+import { PrismaObjectRef } from '../object-ref.js';
+import { defaultTypeName } from './contract.js';
 
-// Per-builder ref cache. Keys are the *default* type name for a model
-// (which is the contract model name). Variants are NOT cached — they
-// always get a fresh ref keyed on the variant name.
-//
-// Consequence (matches plugin-drizzle): if only a variant is
-// registered for a model and another file references the model by
-// name (e.g. `t.relation('user')` from a sibling), the string-form
-// helper returns the cached default ref which never had a
-// registration. Pothos core surfaces this as an unresolved-ref error
-// at schema-build time.
-const objectRefMap = new WeakMap<
-  object,
-  Map<string, PrismaNextObjectRef<SchemaTypes, never, never>>
->();
-const interfaceRefMap = new WeakMap<
-  object,
-  Map<string, PrismaNextInterfaceRef<SchemaTypes, never, never>>
->();
+export type AnyRef =
+  | PrismaObjectRef<SchemaTypes, never, never>
+  | PrismaInterfaceRef<SchemaTypes, never, never>;
 
-export function getRefFromContractModel<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  Shape = Row<Types, M>,
->(
-  modelName: M,
+// Only refs for a model's default type name are cached.
+const refMap = new WeakMap<object, Map<string, AnyRef>>();
+
+/** Refs made by a lookup without a kind before the model was registered. */
+const provisional = new WeakSet<AnyRef>();
+
+/**
+ * Without `kind` and before the model is registered, this is a provisional object ref that a
+ * later lookup with `kind: 'Interface'` replaces.
+ */
+export function getRefFromContractModel<Types extends SchemaTypes>(
+  modelKey: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-): PrismaNextObjectRef<Types, M, Shape> {
-  let cache = objectRefMap.get(builder);
+  kind?: 'Interface' | 'Object',
+): AnyRef {
+  let cache = refMap.get(builder);
   if (!cache) {
     cache = new Map();
-    objectRefMap.set(builder, cache);
+    refMap.set(builder, cache);
   }
-  let ref = cache.get(modelName as string);
+  let ref = cache.get(modelKey);
   if (!ref) {
-    ref = new PrismaNextObjectRef(modelName as string, modelName) as PrismaNextObjectRef<
-      SchemaTypes,
-      never,
-      never
-    >;
-    cache.set(modelName as string, ref);
+    ref = createRef(modelKey, kind ?? 'Object');
+    cache.set(modelKey, ref);
+    if (!kind) {
+      provisional.add(ref);
+    }
   }
-  return ref as unknown as PrismaNextObjectRef<Types, M, Shape>;
+  if (kind && ref instanceof PrismaInterfaceRef !== (kind === 'Interface')) {
+    if (!provisional.has(ref)) {
+      const [first, then] =
+        kind === 'Interface' ? ['Object', 'Interface'] : ['Interface', 'Object'];
+      throw new PothosSchemaError(
+        `Model '${modelKey}' was used with prisma${first} or prisma${first}Field(s) and then ` +
+          `with prisma${then} or prisma${then}Field(s), so its default type would be both an ` +
+          "object and an interface. Use 'variant' instead of the default name on one of them.",
+      );
+    }
+    const replacement = createRef(modelKey, kind);
+    builder.configStore.associateParamWithRef(ref as never, replacement as never);
+    cache.set(modelKey, replacement);
+    ref = replacement;
+  }
+  if (kind) {
+    provisional.delete(ref);
+  }
+  return ref;
 }
 
-export function getInterfaceRefFromContractModel<
-  Types extends SchemaTypes,
-  M extends ModelName<Types>,
-  Shape = Row<Types, M>,
->(
-  modelName: M,
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-): PrismaNextInterfaceRef<Types, M, Shape> {
-  let cache = interfaceRefMap.get(builder);
-  if (!cache) {
-    cache = new Map();
-    interfaceRefMap.set(builder, cache);
-  }
-  let ref = cache.get(modelName as string);
-  if (!ref) {
-    ref = new PrismaNextInterfaceRef(modelName as string, modelName) as PrismaNextInterfaceRef<
-      SchemaTypes,
-      never,
-      never
-    >;
-    cache.set(modelName as string, ref);
-  }
-  return ref as unknown as PrismaNextInterfaceRef<Types, M, Shape>;
+function createRef(modelKey: string, kind: 'Interface' | 'Object'): AnyRef {
+  return kind === 'Interface'
+    ? new PrismaInterfaceRef(defaultTypeName(modelKey), modelKey as never)
+    : new PrismaObjectRef(defaultTypeName(modelKey), modelKey as never);
 }
 
-/** @internal — used by schema-builder to detect object/interface kind collision. */
-export function assertSameKindRegistration<Types extends SchemaTypes>(
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  modelName: string,
-  kind: 'object' | 'interface',
-): void {
-  const otherCache = kind === 'object' ? interfaceRefMap.get(builder) : objectRefMap.get(builder);
-  if (otherCache?.has(modelName)) {
-    throw new PothosSchemaError(
-      `Model '${modelName}' was registered as both a prismaObject and a prismaInterface. ` +
-        "Use 'variant' instead of the default name on one of the registrations.",
-    );
-  }
+export function refFor(builder: object, type: unknown): AnyRef {
+  return type instanceof PrismaObjectRef || type instanceof PrismaInterfaceRef
+    ? (type as AnyRef)
+    : getRefFromContractModel(
+        type as string,
+        builder as PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+      );
 }

@@ -4,10 +4,12 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkPrismaNextDocExamples } from './check-prisma-next-doc-examples.mjs';
 import { docCodeBlocks } from './doc-code-blocks.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const require = createRequire(join(root, 'package.json'));
+const tsc = join(dirname(require.resolve('typescript/package.json')), 'bin/tsc');
 const fixture = await mkdtemp(join(root, '.docs-check-'));
 
 const codeBlocks = (page, language) => docCodeBlocks(join(root, 'website'), page, language);
@@ -62,14 +64,7 @@ try {
     ),
   ]);
 
-  execFileSync(
-    process.execPath,
-    [join(dirname(require.resolve('typescript/package.json')), 'bin/tsc'), '-p', fixture],
-    {
-      cwd: root,
-      stdio: 'inherit',
-    },
-  );
+  execFileSync(process.execPath, [tsc, '-p', fixture], { cwd: root, stdio: 'inherit' });
   execFileSync(
     process.execPath,
     [require.resolve('tsx/cli'), '--tsconfig', join(fixture, 'tsconfig.json'), 'check.mjs'],
@@ -78,3 +73,6 @@ try {
 } finally {
   await rm(fixture, { recursive: true, force: true });
 }
+
+const prismaNext = await checkPrismaNextDocExamples(root, tsc);
+console.log(`PASS ${prismaNext.checked} Prisma Next doc blocks`);

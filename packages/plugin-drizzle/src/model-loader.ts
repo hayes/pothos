@@ -1,7 +1,7 @@
 import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
 import {
-  cacheKey,
-  forOperation,
+  fieldKey,
+  forExecution,
   Plan,
   setLoaderMappings,
   setRowFieldMapping,
@@ -41,11 +41,11 @@ export class ModelLoader {
 
   modelName: string;
 
-  // One plan per `Type@path` per operation, a promise while a select beneath the field is async.
+  // One plan per `fieldKey` per execution, a promise while a select beneath the field is async.
   // A parent-row plan is played where it is made, since it is never played behind another
   // selection; a field's plan is played per load, so no two loads share a node. Kept per
-  // operation (see `forOperation`), so an operation sharing the context never loads with
-  // another's plan.
+  // execution (see `forExecution`), so neither an operation sharing the context nor a later
+  // subscription event loads with another's plan.
   rowCache = new WeakMap<object, Map<string, MaybePromise<DrizzlePlayedPlan>>>();
 
   planCache = new WeakMap<object, Map<string, MaybePromise<DrizzlePlan>>>();
@@ -112,8 +112,8 @@ export class ModelLoader {
   }
 
   getSelection(info: GraphQLResolveInfo) {
-    const plans = forOperation(this.rowCache, info);
-    const key = cacheKey(info.parentType.name, info.path);
+    const plans = forExecution(this.rowCache, info);
+    const key = fieldKey(info.parentType.name, info);
     let plan = plans.get(key);
     if (!plan) {
       plan = Plan.forParentRow(drizzleAdapter(this.config), { context: this.context, info });
@@ -124,8 +124,9 @@ export class ModelLoader {
   }
 
   getSelectionForField(info: GraphQLResolveInfo, typeName: string) {
-    const plans = forOperation(this.planCache, info);
-    const key = cacheKey(typeName, info.path);
+    const plans = forExecution(this.planCache, info);
+    // Keyed on the parent type too, which the plan's root position is under.
+    const key = `${typeName}:${fieldKey(info.parentType.name, info)}`;
     let plan = plans.get(key);
     if (!plan) {
       // Walked without paths, so there is always a plan.
@@ -157,9 +158,7 @@ export class ModelLoader {
         if (mapping) {
           // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
           // with, along with the mappings of the fields beneath it. Against `result` alone: this
-          // load fetched one row, so the field's own mapping is not the whole field's to claim.
-          // A sibling row that falls back on a later tick would otherwise read it as proof of
-          // having been loaded and resolve against a row that never carried the data.
+          // load fetched one row, so the field's own mapping answers for that row's lookup only.
           setRowFieldMapping(this.context, info, mapping, result);
         }
       }
