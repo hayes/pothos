@@ -6,6 +6,7 @@ import {
   encodeCursorTuple,
   getConnectionPageSize,
   type MaybePromise,
+  PothosSchemaError,
   PothosValidationError,
   type SchemaTypes,
   validateConnectionArguments,
@@ -27,7 +28,9 @@ import {
 } from 'drizzle-orm';
 import type { ConnectionOrderBy, QueryForDrizzleConnection } from '../types.js';
 import type { DrizzlePlan } from './adapter.js';
+import { columnValues, INVALID, unsupportedIDColumn } from './column-values.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
+import { InternalError } from './errors.js';
 import { queryFromPlan } from './map-query.js';
 import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 
@@ -56,7 +59,7 @@ export function formatIDChunk(value: unknown) {
     case 'bigint':
       return `${value}`;
     default:
-      throw new PothosValidationError(`Unsupported ID type ${typeof value}`);
+      throw new InternalError(`A node ID column holds a ${typeof value}, which IDs can't encode`);
   }
 }
 
@@ -72,24 +75,9 @@ function formatCompoundIDValue(value: unknown) {
   return value;
 }
 
-function parseCompoundIDValue(value: unknown, field: Column) {
-  if (
-    field.dataType.startsWith('bigint') &&
-    (typeof value === 'string' || typeof value === 'number')
-  ) {
-    return BigInt(value);
-  }
-
-  if (field.dataType === 'object date' && typeof value === 'number') {
-    return new Date(value);
-  }
-
-  return value;
-}
-
 export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaConfig) {
   if (fields.length === 0) {
-    throw new PothosValidationError('Column serializer must have at least one field');
+    throw new PothosSchemaError('A node ID needs at least one column');
   }
 
   return (value: Record<string, unknown>) => {
@@ -117,7 +105,7 @@ export function getColumnSerializer(
   config: PothosDrizzleSchemaConfig,
 ) {
   if (fields.length === 0) {
-    throw new PothosValidationError('Column serializer must have at least one field');
+    throw new InternalError('A connection cursor needs at least one ordering column');
   }
 
   return (value: Record<string, unknown>) => {
@@ -135,10 +123,6 @@ export function getCursorFormatter(
   fields: readonly CursorField[],
   config: PothosDrizzleSchemaConfig,
 ) {
-  if (fields.length === 0) {
-    throw new PothosValidationError('Cursor must have at least one field');
-  }
-
   const serializer = getColumnSerializer(fields, config);
 
   return (value: Record<string, unknown>) => {
@@ -146,160 +130,132 @@ export function getCursorFormatter(
   };
 }
 
-export function parseDrizzleCursor(cursor: unknown) {
+const INVALID_ID = 'Invalid ID.';
+const INVALID_CURSOR = 'Invalid cursor.';
+
+// Every way a client's cursor or ID can be wrong gets the same message: it is the client's own
+// input, and naming the column or the expected shape tells it nothing it can act on.
+function invalidCursor(): never {
+  throw new PothosValidationError(INVALID_CURSOR);
+}
+
+function invalidID(): never {
+  throw new PothosValidationError(INVALID_ID);
+}
+
+/** A cursor's chunk, and whether it is a deprecated `J:` one, whose parts are untagged. */
+function parseDrizzleCursor(cursor: unknown) {
   if (typeof cursor !== 'string') {
-    throw new PothosValidationError('Cursor must be a string');
+    return invalidCursor();
   }
 
+  let decoded: string;
+  let value: unknown;
+
   try {
-    const decoded = decodeBase64(cursor);
+    decoded = decodeBase64(cursor);
+
     if (!decoded.startsWith('DC:')) {
-      throw new PothosValidationError('Invalid cursor');
+      return invalidCursor();
     }
 
-    return parseSerializedDrizzleColumn(decoded.slice(3));
-  } catch {
-    throw new PothosValidationError(`Invalid cursor: ${cursor}`);
-  }
-}
-
-export function parseSerializedDrizzleColumn(value: unknown): unknown {
-  if (typeof value !== 'string') {
-    throw new PothosValidationError('value must be a string');
-  }
-
-  try {
     // `@pothos/core`'s `decodeCursorChunk` reads every tag, including the `J:` a compound cursor
-    // used before each part carried one -- see `getCursorParser` for what happens to that array.
-    return decodeCursorChunk(value);
+    // used before each part carried one.
+    value = decodeCursorChunk(decoded.slice(3));
   } catch {
-    throw new PothosValidationError(`Invalid serialized data: ${value}`);
+    return invalidCursor();
   }
+
+  return { value, legacy: decoded.startsWith('DC:J:') };
 }
 
-export function parseSerializedIDColumn(id: string, field: Column): unknown {
-  if (!id) {
-    return id;
+function checked(value: unknown, onInvalid: () => never) {
+  return value === INVALID ? onInvalid() : value;
+}
+
+/** Parses a single-column ID, or refuses at build a column no ID was ever written for. */
+function idColumnParser(field: Column) {
+  const unsupported = unsupportedIDColumn(field);
+
+  if (unsupported === 'never-serializable') {
+    throw new PothosSchemaError(
+      `Column ${field.name} (${field.dataType}) can't be a node ID: no value it holds can be written as one`,
+    );
   }
 
-  try {
-    if (field.dataType.startsWith('number')) {
-      return Number(id);
-    }
-
-    if (field.dataType.startsWith('bigint')) {
-      return BigInt(id);
-    }
-
-    if (field.dataType.startsWith('string')) {
-      return id;
-    }
-
-    if (field.dataType === 'object date') {
-      // `formatIDChunk` writes the epoch milliseconds; `new Date` of that string is an Invalid
-      // Date, since it is not a date format `Date` parses.
-      return new Date(Number(id));
-    }
-
-    throw new PothosValidationError(`Unsupported ID type ${field.dataType}`);
-  } catch (error: unknown) {
-    if (error instanceof PothosValidationError) {
-      throw error;
-    }
-
-    throw new PothosValidationError(`Invalid serialized ID: ${id}`);
+  if (unsupported) {
+    return () => {
+      throw new InternalError(
+        `Node IDs for column ${field.name} (${field.dataType}) can't be parsed`,
+      );
+    };
   }
+
+  const { parseID } = columnValues(field);
+
+  return (id: string) => checked(parseID(id), invalidID);
 }
 
 // Keyed by the typescript name, as `getIDSerializer` reads by: the record is a row of the table,
 // and every consumer (the node ref's `parseId`, the model loader) looks columns up that way.
 export function getIDParser(fields: readonly Column[], config: PothosDrizzleSchemaConfig) {
   if (fields.length === 0) {
-    throw new PothosValidationError('Column parser must have at least one field');
+    throw new PothosSchemaError('A node ID needs at least one column');
   }
+
+  if (fields.length === 1) {
+    const key = config.columnToTsName(fields[0]);
+    const parse = idColumnParser(fields[0]);
+
+    return (value: string) => ({ [key]: parse(value) });
+  }
+
+  const parts = fields.map((field) => ({
+    key: config.columnToTsName(field),
+    parse: columnValues(field).parseIDPart,
+  }));
 
   return (value: string) => {
-    if (fields.length === 1) {
-      return { [config.columnToTsName(fields[0])]: parseSerializedIDColumn(value, fields[0]) };
-    }
+    let parsed: unknown;
 
     try {
-      const parsed = JSON.parse(value) as unknown[];
-
-      if (!Array.isArray(parsed)) {
-        throw new PothosValidationError(
-          `Expected compound ID to contain an array, but got ${value}`,
-        );
-      }
-
-      if (parsed.length !== fields.length) {
-        throw new PothosValidationError(
-          `Expected compound ID to contain ${fields.length} elements, but got ${parsed.length}`,
-        );
-      }
-
-      const record: Record<string, unknown> = {};
-
-      fields.forEach((field, i) => {
-        record[config.columnToTsName(field)] = parseCompoundIDValue(parsed[i], field);
-      });
-
-      return record;
-    } catch (error: unknown) {
-      if (error instanceof PothosValidationError) {
-        throw error;
-      }
-
-      throw new PothosValidationError(`Invalid serialized ID: ${value}`);
-    }
-  };
-}
-
-export function getColumnParser(fields: readonly Column[]) {
-  if (fields.length === 0) {
-    throw new PothosValidationError('Column parser must have at least one field');
-  }
-
-  return (value: unknown) => {
-    const parsed = parseSerializedDrizzleColumn(value) as unknown[];
-
-    if (fields.length === 1) {
-      return { [fields[0].name]: parsed };
+      parsed = JSON.parse(value);
+    } catch {
+      return invalidID();
     }
 
-    if (!Array.isArray(parsed)) {
-      throw new PothosValidationError(
-        `Expected compound cursor to contain an array, but got ${parsed}`,
-      );
-    }
-
-    if (parsed.length !== fields.length) {
-      throw new PothosValidationError(
-        `Expected compound cursor to contain ${fields.length} elements, but got ${parsed.length}`,
-      );
+    if (!Array.isArray(parsed) || parsed.length !== parts.length) {
+      return invalidID();
     }
 
     const record: Record<string, unknown> = {};
 
-    fields.forEach((field, i) => {
-      record[field.name] = parsed[i];
+    parts.forEach(({ key, parse }, i) => {
+      // a JSON null is no key value: a key column holds none, and it would match no row
+      record[key] = parsed[i] === null ? invalidID() : checked(parse(parsed[i]), invalidID);
     });
 
     return record;
   };
 }
 
-export function getCursorParser(keys: readonly string[]) {
+/**
+ * Reads a cursor into the values of the ordering it was issued for. `columns` holds the column
+ * of each key that is one, and each value is checked against it; a key ordered by an expression
+ * has none, and its value is passed on as it is.
+ */
+export function getCursorParser(
+  keys: readonly string[],
+  columns: readonly (Column | undefined)[] = [],
+) {
   if (keys.length === 0) {
-    throw new PothosValidationError('Cursor must have at least one field');
+    throw new InternalError('A connection cursor needs at least one ordering column');
   }
 
-  return (cursor: unknown) => {
-    const parsed = parseDrizzleCursor(cursor);
+  const entries = keys.map((key, i) => ({ key, column: columns[i] && columnValues(columns[i]) }));
 
-    if (keys.length === 1) {
-      return { [keys[0]]: parsed };
-    }
+  return (cursor: unknown) => {
+    const { value: parsed, legacy } = parseDrizzleCursor(cursor);
 
     // A cursor issued before a column joined the ordering only holds values for
     // the columns that came before it. Those still describe a position, just a
@@ -309,22 +265,25 @@ export function getCursorParser(keys: readonly string[]) {
     // The array is a `T:` chunk's values, each still its own type. A cursor issued before this
     // release decodes from a `J:` chunk instead, whose parts arrive as whatever plain JSON
     // preserved -- see the deprecated `J:` case in `@pothos/core`'s `decodeCursorChunk`.
-    const values = Array.isArray(parsed) ? parsed : [parsed];
+    const parts = keys.length > 1 && Array.isArray(parsed) ? parsed : [parsed];
 
-    if (values.length === 0) {
-      throw new PothosValidationError('Cursor contains no values');
-    }
-
-    if (values.length > keys.length) {
-      throw new PothosValidationError(
-        `Expected cursor to contain at most ${keys.length} values, but got ${values.length}`,
-      );
+    if (parts.length === 0 || parts.length > keys.length) {
+      return invalidCursor();
     }
 
     const record: Record<string, unknown> = {};
 
-    values.forEach((value, i) => {
-      record[keys[i]] = value;
+    parts.forEach((part, i) => {
+      const { key, column } = entries[i];
+
+      // a null orders as a position of its own, compared with `is null`
+      record[key] =
+        part === null || !column
+          ? part
+          : checked(
+              legacy ? column.parseLegacyCursor(part) : column.parseCursor(part),
+              invalidCursor,
+            );
     });
 
     return record;
@@ -528,7 +487,10 @@ function compareTo(entry: OrderByEntry, operator: 'gt' | 'lt' | 'eq', value: unk
 }
 
 function keysetFilter(entries: OrderByEntry[], cursor: string, paging: 'after' | 'before') {
-  const parsedCursor = getCursorParser(entries.map(({ key }) => key))(cursor);
+  const parsedCursor = getCursorParser(
+    entries.map(({ key }) => key),
+    entries.map(({ column }) => column),
+  )(cursor);
   const covered = entries.filter(({ key }) => key in parsedCursor);
 
   const parts = covered.map((entry, index) => {

@@ -156,7 +156,17 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
       context: SchemaTypes['Context'],
       info: GraphQLResolveInfo,
     ) => {
-      const record = await modelLoader(context).loadSelectionForField(info, idParser(id), typeName);
+      let parsed: Record<string, unknown>;
+
+      try {
+        parsed = idParser(id);
+      } catch (error) {
+        // Returned rather than thrown: graphql reports an Error value as the error of its own
+        // list item, so one bad ID fails only its entry of `nodes(ids:)`.
+        return error;
+      }
+
+      const record = await modelLoader(context).loadSelectionForField(info, parsed, typeName);
 
       if (record) {
         brandWithType(record, typeName as OutputType<SchemaTypes>);

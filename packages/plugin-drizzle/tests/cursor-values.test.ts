@@ -113,7 +113,7 @@ describe('cursor values', () => {
   it('rejects a cursor with no values', () => {
     const empty = Buffer.from('DC:J:[]').toString('base64');
 
-    expect(() => getCursorParser(['seq', 'id'])(empty)).toThrow('Cursor contains no values');
+    expect(() => getCursorParser(['seq', 'id'])(empty)).toThrow('Invalid cursor.');
   });
 });
 

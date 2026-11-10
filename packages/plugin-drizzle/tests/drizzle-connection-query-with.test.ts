@@ -14,7 +14,7 @@ const builder = new SchemaBuilder<{ DrizzleRelations: DrizzleRelations }>({
   drizzle: { client: () => db, getTableConfig, relations },
 });
 
-const User = builder.drizzleObject('users', {
+builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
     username: t.exposeString('username'),
@@ -22,7 +22,7 @@ const User = builder.drizzleObject('users', {
   }),
 });
 
-const Comment = builder.drizzleObject('comments', {
+builder.drizzleObject('comments', {
   name: 'Comment',
   fields: (t) => ({ id: t.exposeInt('id') }),
 });
@@ -82,10 +82,6 @@ builder.queryType({
     }),
   }),
 });
-
-// Referenced so the types are part of the schema.
-void User;
-void Comment;
 
 const schema = builder.toSchema();
 
