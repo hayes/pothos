@@ -1,0 +1,21 @@
+{
+  "private": true,
+  "$schema": "https://json.schemastore.org/package.json",
+  "version": "3.1.19",
+  "name": "@pothos-examples/required-typename",
+  "main": "src/server.ts",
+  "types": "src/server.ts",
+  "scripts": {
+    "start": "node -r @swc-node/register src/server.ts",
+    "test": "vitest",
+    "type": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pothos/core": "workspace:*",
+    "graphql": "^16.10.0",
+    "graphql-yoga": "5.15.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
