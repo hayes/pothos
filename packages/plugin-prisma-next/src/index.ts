@@ -114,6 +114,7 @@ export type {
   ConnectionQueryLiteral,
   PrismaConnectionFieldOptions,
   PrismaRelatedConnectionOptions,
+  RootConnectionQueryLiteral,
 } from './types/connections.js';
 export type {
   PrismaInterfaceOptions,
@@ -123,6 +124,7 @@ export type {
   PrismaRootFieldOptions,
   PrismaRootFieldWithInputOptions,
   PrismaVariantFieldOptions,
+  VariantFieldShape,
 } from './types/fields.js';
 export type {
   AnyContract,
@@ -143,6 +145,7 @@ export type {
   PrismaRequestClient,
 } from './types/plugin-options.js';
 export type {
+  FieldQueryLiteral,
   PrismaRelationOptions,
   RelatedModel,
   RelationFieldShape,

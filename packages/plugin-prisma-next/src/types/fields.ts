@@ -456,13 +456,16 @@ export type ParamToTypeParam<Types extends SchemaTypes, Param, Shape> = Param ex
     ? [PrismaObjectRef<Types, ParamToModelKey<Types, Param>, Shape>]
     : PrismaObjectRef<Types, ParamToModelKey<Types, Param>, Shape>;
 
-/** The columns `t.expose*` accepts for a GraphQL type. */
+/**
+ * The columns `t.expose*` accepts for a GraphQL type. Read through `infer`, so errors name the
+ * columns rather than this alias.
+ */
 export type ExposableColumn<
   Types extends SchemaTypes,
   Shape,
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
-> = CompatibleTypes<Types, Shape, Type, Nullable>;
+> = CompatibleTypes<Types, Shape, Type, Nullable> extends infer Column ? Column & string : never;
 
 /**
  * The `nullable` option `t.expose*` requires, or none while the column is rejected. `Name` is

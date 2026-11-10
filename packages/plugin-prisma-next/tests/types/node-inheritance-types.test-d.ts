@@ -2,7 +2,13 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
-import PrismaNextPlugin, { type ModelKey } from '../../src';
+import PrismaNextPlugin, {
+  type ConnectionQueryLiteral,
+  type FieldQueryLiteral,
+  type ModelKey,
+  type RelationQueryLiteral,
+  type RootConnectionQueryLiteral,
+} from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -267,6 +273,36 @@ inheritance.queryType({
     bugByKey: t.field({ type: bug, resolve: () => ({ id: 't1' }) }),
   }),
 });
+
+// A shared root `query` on a variant model is annotated with the root fields' literal types.
+const bugQuery: FieldQueryLiteral<Types, 'Bug'> = { where: { title: 'x' }, limit: 10 };
+const bugPageQuery: RootConnectionQueryLiteral<Types, 'Bug'> = { orderBy: { title: 'asc' } };
+const bugRelationQuery: RelationQueryLiteral<Types, 'Bug'> = { where: { severity: 'high' } };
+const bugConnectionQuery: ConnectionQueryLiteral<Types, 'Bug'> = { orderBy: { title: 'asc' } };
+inheritance.queryFields((t) => ({
+  sharedBugs: t.prismaField({
+    type: ['Bug'],
+    query: bugQuery,
+    collection: () => orm.Task.variant('bug'),
+  }),
+  sharedBugPage: t.prismaConnection({
+    type: 'Bug',
+    query: bugPageQuery,
+    collection: () => orm.Task.variant('bug'),
+  }),
+  relationQueryBugs: t.prismaField({
+    type: ['Bug'],
+    // @ts-expect-error a relation's `where` names the variant's own columns, which a root field's can't
+    query: bugRelationQuery,
+    collection: () => orm.Task.variant('bug'),
+  }),
+  connectionQueryBugPage: t.prismaConnection({
+    type: 'Bug',
+    // @ts-expect-error a related connection's `where` likewise
+    query: bugConnectionQuery,
+    collection: () => orm.Task.variant('bug'),
+  }),
+}));
 
 // A node's `collection` takes the same collections as a root field's.
 inheritance.prismaNode('Bug', {

@@ -172,6 +172,11 @@ export const postsField = (t: UserFieldBuilder) => t.relation('posts');
 
 builder.prismaObjectField(User, 'posts', postsField);
 
+// Its declaration names the variant field's shape.
+export const statsField = (t: UserFieldBuilder) => t.variant(UserStats);
+
+builder.prismaObjectField(User, 'stats', statsField);
+
 // A select function shared between fields: its declaration names `nestedSelection` and its entry.
 export const nestedPostsSelect = (
   _args: object,
