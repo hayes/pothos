@@ -10,7 +10,7 @@ const users = sqliteTable('users', {
 });
 const table = defineRelations({ users }).users;
 const fakeConfig = {
-  getPrimaryKey: () => [],
+  findPrimaryKey: () => null,
   columnToTsName: () => '',
   skipDeferredFragments: true,
   relations: {},

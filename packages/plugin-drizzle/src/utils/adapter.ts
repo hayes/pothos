@@ -157,7 +157,8 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
         query.columns[column] = true;
       }
 
-      for (const column of this.config.getPrimaryKey(node.model.name)) {
+      // Read when a row is reloaded. A table without a key cannot be reloaded, with or without it.
+      for (const column of this.config.findPrimaryKey(node.model.name) ?? []) {
         query.columns[this.config.columnToTsName(column)] = true;
       }
     }
