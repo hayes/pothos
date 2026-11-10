@@ -48,7 +48,12 @@ export function drizzleConnectionHelpers<
     infer S
   >
     ? S
-    : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true>,
+    : // Indexed by the key: while it is being completed, TableConfig is every table.
+      BuildQueryResult<
+        Types['DrizzleRelations'],
+        Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+        true
+      >,
   EdgeShape = true extends Selection
     ? Shape
     : BuildQueryResult<Types['DrizzleRelations'], TableConfig, Selection>,

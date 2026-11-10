@@ -123,7 +123,12 @@ declare global {
           infer S
         >
           ? S & DrizzleTableNameBrand<TableConfig['name']>
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+          : // Indexed by the key: while it is being completed, TableConfig is every table.
+            BuildQueryResult<
+              Types['DrizzleRelations'],
+              Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+              true
+            > &
               DrizzleTableNameBrand<Type>,
       >(
         type: Type,
@@ -144,7 +149,12 @@ declare global {
           infer S
         >
           ? S & DrizzleTableNameBrand<TableConfig['name']>
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+          : // Indexed by the key: while it is being completed, TableConfig is every table.
+            BuildQueryResult<
+              Types['DrizzleRelations'],
+              Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+              true
+            > &
               DrizzleTableNameBrand<Type>,
       >(
         type: Type,
@@ -165,7 +175,12 @@ declare global {
           infer S
         >
           ? S & DrizzleTableNameBrand<TableConfig['name']>
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+          : // Indexed by the key: while it is being completed, TableConfig is every table.
+            BuildQueryResult<
+              Types['DrizzleRelations'],
+              Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+              true
+            > &
               DrizzleTableNameBrand<Type>,
       >(
         type: Type,
@@ -183,7 +198,12 @@ declare global {
           infer S
         >
           ? S & DrizzleTableNameBrand<TableConfig['name']>
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+          : // Indexed by the key: while it is being completed, TableConfig is every table.
+            BuildQueryResult<
+              Types['DrizzleRelations'],
+              Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+              true
+            > &
               DrizzleTableNameBrand<Type>,
       >(
         type: Type,

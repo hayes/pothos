@@ -710,6 +710,19 @@ export type QueryForDrizzleConnection<
   orderBy?: ConnectionOrderBy<TableConfig> | ((table: Table) => ConnectionOrderBy<TableConfig>);
 };
 
+type TableColumns<T> = T extends { columns: infer Columns } ? Columns : never;
+
+/**
+ * The column names a table config has in common. Each table's columns are read on their own:
+ * while a table name is being completed the config is every table, and inferring one `columns`
+ * from all of them at once costs a comparison per pair of tables.
+ */
+type TableColumnKeys<T extends TableRelationalConfig> = [T['table']['_']] extends [
+  { columns: unknown },
+]
+  ? keyof TableColumns<T['table']['_']>
+  : never;
+
 export type ListRelation<T extends TableRelationalConfig> = {
   [K in keyof T['relations']]: T['relations'][K] extends Many<string> ? K : never;
 }[keyof T['relations']];
@@ -771,9 +784,7 @@ export type DrizzleConnectionFieldOptions<
           ) => Omit<T, 'orderBy' | 'columns' | 'extra'> & {
             columns: T extends { columns: infer C extends {} } ? C : {};
             orderBy: {
-              [K in TableConfig['table']['_'] extends { columns: infer Columns }
-                ? keyof Columns
-                : never]?: 'asc' | 'desc' | undefined;
+              [K in TableColumnKeys<TableConfig>]?: 'asc' | 'desc' | undefined;
             };
             extras: {
               $pothosQueryFor: () => SQL<TableConfig['name'] | undefined>;
@@ -845,9 +856,7 @@ export type ConnectionOrderBy<T extends TableRelationalConfig> =
   // keys name a column, or an extra the same query selects. `string & {}` keeps
   // the column names in autocomplete while letting extra names through
   | {
-      [K in
-        | (T['table']['_'] extends { columns: infer Columns } ? keyof Columns : never)
-        | (string & {})]?: 'asc' | 'desc' | undefined;
+      [K in TableColumnKeys<T> | (string & {})]?: 'asc' | 'desc' | undefined;
     };
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
