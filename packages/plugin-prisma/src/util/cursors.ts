@@ -502,12 +502,6 @@ export function getConnectionOrderBy<Types extends SchemaTypes>(
       .map((field) => [field.name]),
   ].filter((key) => key.every((field) => fields.get(field)?.isRequired));
 
-  const columns = new Set(
-    modelData.fields
-      .filter((field) => field.kind === 'scalar' || field.kind === 'enum')
-      .map((field) => field.name),
-  );
-
   return <T>(orderBy: T): T | OrderByEntry[] => {
     const entries = (
       Array.isArray(orderBy) ? orderBy : orderBy == null ? [] : [orderBy]
@@ -521,7 +515,7 @@ export function getConnectionOrderBy<Types extends SchemaTypes>(
       return orderBy;
     }
 
-    const named = new Set(orderings.map(([field]) => field).filter((field) => columns.has(field)));
+    const named = new Set(orderings.map(([field]) => field));
 
     if (uniqueKeys.some((key) => key.every((field) => named.has(field)))) {
       return orderBy;
