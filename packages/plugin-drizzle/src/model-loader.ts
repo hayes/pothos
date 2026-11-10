@@ -26,6 +26,7 @@ import {
 } from './utils/adapter.js';
 import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
 import { planFromInfo } from './utils/map-query.js';
+import { setPlannedPosition } from './utils/path-info.js';
 import type { SelectionMap } from './utils/selections.js';
 
 interface ResolvablePromise<T> {
@@ -154,6 +155,10 @@ export class ModelLoader {
     return this.stageQuery(played, model).then((result) => {
       if (result) {
         const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
+
+        // The field's resolver pages with the position of this load, not the one its parent was
+        // planned at.
+        setPlannedPosition(info.path, mapping?.position);
 
         if (mapping) {
           // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
