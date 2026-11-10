@@ -22,7 +22,7 @@ interface PlanTarget {
   paths?: PathSegment[][];
   /** One path to the selection, when `paths` isn't given. */
   path?: PathSegment[];
-  /** The type the selection is read as, when it isn't the field's return type. */
+  /** The type the rows resolve as. Defaults to the field's return type, or the type `path` leads to. */
   typeName?: string;
 }
 

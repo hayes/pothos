@@ -203,7 +203,7 @@ const user = await prisma.user.findUniqueOrThrow({
 When a query selects two variants of one model for the same row, either with a fragment on each
 under one field, or through a `t.variant` field, the request fails if their type-level
 `select`/`include` ask for the same relation with different arguments. The client sees
-`Unexpected error.`, and the error's `cause` explains the conflict:
+`Unexpected error.`. The original error is on `error.cause`:
 
 ```
 PothosValidationError: Type-level selections of Viewer and Admin conflict on relation "posts".

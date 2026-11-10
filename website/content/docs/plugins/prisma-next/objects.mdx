@@ -109,9 +109,9 @@ name: t.string({
 With `AsyncSelections: true` in the builder's types, the function can be async.
 
 The function's third argument, `nestedSelection`, is for custom fields that return objects. Use
-it for a relation to load what the query selects under the field. It also loads the relation's
-scalar columns, unless you pass it a `select`. See [Indirect relations](./indirect-relations) for
-examples.
+it for a relation to load what the query selects under the field. The rows only include the
+primary key and the selected columns, so pass it a `select` for anything else the resolver reads.
+See [Indirect relations](./indirect-relations) for examples.
 
 `select`, `query` and `where` functions are called while the plugin builds a query, not once per
 row. They can be called more than once in a request, so they shouldn't have side effects.

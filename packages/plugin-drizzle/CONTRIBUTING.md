@@ -45,8 +45,7 @@ pnpm vitest --run
 ```
 
 Most tests use the SQLite database in `tests/example/db/dev.db`, which is committed and already
-seeded by `tests/example/seed.ts`. `tests/postgres-relation-shapes.test.ts` and
-`tests/postgres-junction-keys.test.ts` need PostgreSQL at
+seeded by `tests/example/seed.ts`. The `tests/postgres-*.test.ts` files need PostgreSQL at
 `postgresql://prisma:prisma@localhost:5455/drizzle`, or at `POTHOS_DRIZZLE_TEST_DATABASE_URL`, and
 fail without it. They create their own tables and replace their rows. The repository's
 `docker-compose.yml` starts that database as the `db` service:
