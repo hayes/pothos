@@ -52,9 +52,9 @@ export function parsePrismaCursor(cursor: unknown) {
 // What `String` writes for an integer and for a finite number.
 const INTEGER = /^-?(0|[1-9]\d*)$/;
 const NUMBER = /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i;
-// `Date#toISOString`, with or without the fraction, and the `String(date)` form ids were written
-// in before it. The zone name in parentheses depends on the server's locale.
-const ISO_DATE = /^([+-]\d{6}|\d{4})-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+// `Date#toISOString`, and the `String(date)` form ids were written in before it. The zone name
+// in parentheses depends on the server's locale.
+const ISO_DATE = /^([+-]\d{6}|\d{4})-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const STRING_DATE =
   /^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} -?\d{4,6} \d{2}:\d{2}:\d{2} GMT[+-]\d{4}( \(.*\))?$/;
 const MIN_BIGINT = BigInt('-9223372036854775808');

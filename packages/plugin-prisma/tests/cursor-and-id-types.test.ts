@@ -382,7 +382,6 @@ describe('cursor values checked against the column type', () => {
       [
         [`D:${Number(at)}`, at],
         [`S:${at.toISOString()}`, at],
-        ['S:2023-11-14T22:13:20Z', new Date(1_700_000_000_000)],
       ],
       [
         'D:x',
@@ -532,7 +531,6 @@ describe('node ids checked against the field type', () => {
       'DateTime',
       [
         [at.toISOString(), at],
-        ['2023-11-14T22:13:20Z', at],
         [String(at), at],
         ['Tue Nov 14 2023 22:13:20 GMT+0000 (Coordinated Universal Time)', at],
         ['Tue Nov 14 2023 23:13:20 GMT+0100 (Mitteleuropäische Normalzeit)', at],
