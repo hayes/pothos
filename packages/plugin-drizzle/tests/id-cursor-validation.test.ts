@@ -136,7 +136,8 @@ describe('node IDs', () => {
   it('passes any string on for a string column', async () => {
     const result = await run(nodeQuery, { id: globalID('UserByUsername', ' 01 ') });
 
-    expect(result.errors?.map((error) => error.message)).not.toContain('Invalid ID.');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ node: null });
     expect(result.statements).toHaveLength(1);
   });
 
@@ -498,7 +499,8 @@ describe('column types', () => {
 
     // The row is not found: the loader binds the bigint to a tuple `in` without the column's
     // blob encoding. That is the loader's; the ID itself is accepted.
-    expect(result.errors?.map((error) => error.message)).not.toContain('Invalid ID.');
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ node: null });
     expect(result.statements).toHaveLength(1);
   });
 
