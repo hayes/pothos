@@ -18,6 +18,7 @@ import { userRoles, users } from './example/db/schema';
 const builder = new SchemaBuilder<{ DrizzleRelations: DrizzleRelations }>({
   plugins: [RelayPlugin, DrizzlePlugin],
   drizzle: { client: () => db, getTableConfig, relations },
+  scopeAuth: { authScopes: () => ({}) },
 });
 
 const User = builder.drizzleNode('users', {
@@ -257,7 +258,7 @@ describe('cursors', () => {
 
   it('accepts the cursors it writes, forward and backward', async () => {
     const first = await run(usersPage, { first: 2 });
-    const [, second] = (
+    const [firstEdge, second] = (
       first.data as { users: { edges: { cursor: string; node: { username: string } }[] } }
     ).users.edges;
 
@@ -267,7 +268,7 @@ describe('cursors', () => {
     expect(after.errors).toBeUndefined();
     expect(before.errors).toBeUndefined();
     expect(Buffer.from(second.cursor, 'base64').toString()).toBe('DC:N:2');
-    expect(before.data).toEqual({ users: { edges: [first.data!.users.edges[0]] } });
+    expect(before.data).toEqual({ users: { edges: [firstEdge] } });
   });
 
   it('accepts a null cursor value', async () => {
@@ -340,6 +341,7 @@ describe('column types', () => {
   const eventBuilder = new SchemaBuilder<{ DrizzleRelations: typeof eventRelations }>({
     plugins: [RelayPlugin, DrizzlePlugin],
     drizzle: { client: eventDb, relations: eventRelations, getTableConfig },
+    scopeAuth: { authScopes: () => ({}) },
   });
 
   eventBuilder.drizzleObject('events', {

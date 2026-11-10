@@ -12,6 +12,7 @@ import { type DrizzleRelations, db, relations } from './example/db';
 const builder = new SchemaBuilder<{ DrizzleRelations: DrizzleRelations }>({
   plugins: [RelayPlugin, DrizzlePlugin],
   drizzle: { client: () => db, getTableConfig, relations },
+  scopeAuth: { authScopes: () => ({}) },
 });
 
 builder.drizzleObject('users', {

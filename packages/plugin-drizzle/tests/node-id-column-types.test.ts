@@ -26,6 +26,7 @@ function createBuilder() {
   return new SchemaBuilder<{ DrizzleRelations: typeof relations }>({
     plugins: [RelayPlugin, DrizzlePlugin],
     drizzle: { client: db, relations, getTableConfig },
+    scopeAuth: { authScopes: () => ({}) },
   });
 }
 
