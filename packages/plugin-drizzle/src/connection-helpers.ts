@@ -17,7 +17,7 @@ import type {
 } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { DrizzleRef } from './interface-ref.js';
-import type { DrizzleRelationsHint, QueryForDrizzleConnection } from './types.js';
+import type { QueryForDrizzleConnection } from './types.js';
 import { drizzleAdapter } from './utils/adapter.js';
 import { checkAwaitSelections } from './utils/await-selections.js';
 import { getSchemaConfig } from './utils/config.js';
@@ -28,6 +28,7 @@ import {
   wrapConnectionResult,
 } from './utils/cursors.js';
 import { queryFromInfo } from './utils/map-query.js';
+import type { DrizzleRelationsHint } from './utils/refs.js';
 import { getRefFromModel } from './utils/refs.js';
 import { omitUndefinedKeys, type SelectionMap } from './utils/selections.js';
 
@@ -48,12 +49,7 @@ export function drizzleConnectionHelpers<
     infer S
   >
     ? S
-    : // Indexed by the key: while it is being completed, TableConfig is every table.
-      BuildQueryResult<
-        Types['DrizzleRelations'],
-        Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        true
-      >,
+    : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true>,
   EdgeShape = true extends Selection
     ? Shape
     : BuildQueryResult<Types['DrizzleRelations'], TableConfig, Selection>,

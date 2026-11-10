@@ -19,6 +19,7 @@ import { setPlannedPosition } from './utils/path-info.js';
 export { drizzleConnectionHelpers } from './connection-helpers.js';
 export { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
 export type { DrizzleNodeRef } from './node-ref.js';
+export type { drizzleTableKey } from './object-ref.js';
 export * from './types.js';
 export { drizzleTableName } from './types.js';
 export {
@@ -27,6 +28,7 @@ export {
   type PothosDrizzleSchemaConfig,
 } from './utils/config.js';
 export {
+  type DrizzleQueryFromInfoResult,
   type QueryFromInfoOptions,
   type QueryFromInfoResult,
   type QueryFromInfoReturn,

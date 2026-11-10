@@ -44,6 +44,7 @@ import type {
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
 import type { DrizzleRef } from './interface-ref.js';
+import type { DrizzleRelationsHint } from './utils/refs.js';
 import type { SelectionMap } from './utils/selections.js';
 
 /**
@@ -146,27 +147,6 @@ export const drizzleTableName = Symbol.for('Pothos.drizzleTableName');
 export interface DrizzleTableNameBrand<Table> {
   [drizzleTableName]?: Table;
 }
-
-/**
- * Without `DrizzleRelations` there are no table names, and a name is checked against `never`. The
- * name positions accept this hint as well, so the error names the missing setup. It is a branded
- * string rather than a literal, so editors don't offer it, and `never` once `DrizzleRelations` is
- * set. `List` adds the hint in a list, for the positions that take `[name]`.
- */
-type MissingDrizzleRelations<Hint extends string> = string & {
-  readonly missingDrizzleRelations: Hint;
-};
-
-type DrizzleRelationsSetup =
-  'Set DrizzleRelations on SchemaTypes: new SchemaBuilder<{ DrizzleRelations: typeof relations }>(...)';
-
-export type DrizzleRelationsHint<Types extends SchemaTypes, List extends boolean = false> = [
-  keyof Types['DrizzleRelations'],
-] extends [never]
-  ?
-      | MissingDrizzleRelations<DrizzleRelationsSetup>
-      | (List extends true ? [MissingDrizzleRelations<DrizzleRelationsSetup>] : never)
-  : never;
 
 type NameOrVariant =
   | {

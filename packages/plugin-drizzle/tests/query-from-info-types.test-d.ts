@@ -1,9 +1,10 @@
 // Rows loaded with `t.drizzleQueryFromInfo` can be returned from a field of the table's type, as
-// the docs show; rows from a query the helper did not build still can't.
+// the docs show; rows from a query the helper did not build, or built for another table, still
+// can't.
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
-import { sql } from 'drizzle-orm';
+import { type SQL, sql } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { expectTypeOf, it } from 'vitest';
 import DrizzlePlugin from '../src';
@@ -18,6 +19,11 @@ const builder = new SchemaBuilder<{ DrizzleRelations: DrizzleRelations }>({
 const User = builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({ id: t.exposeID('id') }),
+});
+
+const Post = builder.drizzleObject('posts', {
+  name: 'Post',
+  fields: (t) => ({ id: t.exposeID('postId') }),
 });
 
 const asyncBuilder = new SchemaBuilder<{
@@ -73,6 +79,38 @@ it('returns rows loaded with drizzleQueryFromInfo from a field of the type', () 
     }),
   }));
 
+  builder.queryFields((t) => ({
+    noQueryKeys: t.field({
+      type: [User],
+      resolve: (_root, _args, context, info) =>
+        db.query.users.findMany(t.drizzleQueryFromInfo('users', { context, info })),
+    }),
+    noQueryKeysFirst: t.field({
+      type: User,
+      nullable: true,
+      resolve: (_root, _args, context, info) =>
+        db.query.users.findFirst(t.drizzleQueryFromInfo('users', { context, info })),
+    }),
+    noQueryKeysRef: t.field({
+      type: [User],
+      resolve: (_root, _args, context, info) =>
+        db.query.users.findMany(t.drizzleQueryFromInfo(User, { context, info })),
+    }),
+    withPath: t.field({
+      type: [User],
+      resolve: (_root, _args, context, info) =>
+        db.query.users.findMany(t.drizzleQueryFromInfo('users', { context, info, path: ['x'] })),
+    }),
+    optionsVariable: t.field({
+      type: [User],
+      resolve: (_root, _args, context, info) => {
+        const options = { context, info };
+
+        return db.query.users.findMany(t.drizzleQueryFromInfo('users', options));
+      },
+    }),
+  }));
+
   asyncBuilder.queryFields((t) => ({
     user: t.field({
       type: AsyncUser,
@@ -86,6 +124,49 @@ it('returns rows loaded with drizzleQueryFromInfo from a field of the type', () 
             where: { id: args.id },
           }),
         ),
+    }),
+  }));
+});
+
+it('types the query and rows like the query of drizzleField', () => {
+  builder.queryFields((t) => ({
+    user: t.field({
+      type: User,
+      nullable: true,
+      resolve: async (_root, _args, context, info) => {
+        const query = t.drizzleQueryFromInfo('users', {
+          context,
+          info,
+          extras: { lower: (users) => sql<string>`lower(${users.username})` },
+          with: { posts: { columns: { title: true } } },
+        });
+
+        expectTypeOf(query.extras.$pothosQueryFor).toEqualTypeOf<SQL<'users' | undefined>>();
+
+        const user = await db.query.users.findFirst(query);
+
+        expectTypeOf(user).toEqualTypeOf<
+          | { lower: string; $pothosQueryFor: 'users' | undefined; posts: { title: string }[] }
+          | undefined
+        >();
+        expectTypeOf<keyof NonNullable<typeof user>>().toEqualTypeOf<
+          'lower' | '$pothosQueryFor' | 'posts'
+        >();
+
+        return user;
+      },
+    }),
+    users: t.field({
+      type: [User],
+      resolve: async (_root, _args, context, info) => {
+        const users = await db.query.users.findMany(
+          t.drizzleQueryFromInfo('users', { context, info }),
+        );
+
+        expectTypeOf(users).toEqualTypeOf<{ $pothosQueryFor: 'users' | undefined }[]>();
+
+        return users;
+      },
     }),
   }));
 });
@@ -112,6 +193,21 @@ it('still rejects rows the helper did not load', () => {
         db.query.posts.findFirst(
           t.drizzleQueryFromInfo('posts', { context, info, columns: { postId: true } }),
         ),
+    }),
+    otherTableRef: t.field({
+      type: [User],
+      resolve: (_root, _args, context, info) =>
+        // @ts-expect-error rows the helper loaded for another table's type
+        db.query.posts.findMany(t.drizzleQueryFromInfo(Post, { context, info })),
+    }),
+    extrasReplaced: t.field({
+      type: [User],
+      resolve: (_root, _args, context, info) =>
+        // @ts-expect-error the spread's extras replace the helper's
+        db.query.users.findMany({
+          ...t.drizzleQueryFromInfo('users', { context, info, limit: 1 }),
+          extras: { upper: sql<string>`1` },
+        }),
     }),
   }));
 });

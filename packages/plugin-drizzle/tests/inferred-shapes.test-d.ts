@@ -5,6 +5,7 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import WithInputPlugin from '@pothos/plugin-with-input';
+import type { BuildQueryResult, TableRelationalConfig } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { expectTypeOf, it } from 'vitest';
 import DrizzlePlugin, {
@@ -187,6 +188,103 @@ it('keeps explicit type arguments', () => {
 
     return {};
   });
+});
+
+it('reads the parent shape from an explicit table config', () => {
+  builder.drizzleObjectField<'users', DrizzleRelations['posts']>('users', 'h', (t) => {
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{
+      table: DrizzleRelations['posts'];
+      shape: PostRow & DrizzleTableNameBrand<'users'>;
+    }>();
+
+    return t.string({ resolve: (post) => post.title });
+  });
+
+  builder.drizzleObjectFields<'users', DrizzleRelations['posts']>('users', (t) => {
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{
+      table: DrizzleRelations['posts'];
+      shape: PostRow & DrizzleTableNameBrand<'users'>;
+    }>();
+
+    return { i: t.string({ resolve: (post) => post.title }) };
+  });
+
+  builder.drizzleInterfaceField<'users', DrizzleRelations['posts']>('users', 'j', (t) => {
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{
+      table: DrizzleRelations['posts'];
+      shape: PostRow & DrizzleTableNameBrand<'users'>;
+    }>();
+
+    return t.string({ resolve: (post) => post.title });
+  });
+
+  builder.drizzleInterfaceFields<'users', DrizzleRelations['posts']>('users', (t) => {
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{
+      table: DrizzleRelations['posts'];
+      shape: PostRow & DrizzleTableNameBrand<'users'>;
+    }>();
+
+    return { k: t.string({ resolve: (post) => post.title }) };
+  });
+
+  builder.drizzleObjectFields<'users', TableRelationalConfig>('users', (t) => {
+    expectTypeOf<BuilderOf<typeof t>>().toEqualTypeOf<{
+      table: TableRelationalConfig;
+      shape: BuildQueryResult<DrizzleRelations, TableRelationalConfig, true> &
+        DrizzleTableNameBrand<'users'>;
+    }>();
+
+    return { l: t.string({ resolve: (row) => String(row.anything) }) };
+  });
+
+  const postPages = drizzleConnectionHelpers<Types, 'users', true, DrizzleRelations['posts']>(
+    builder,
+    'users',
+    {},
+  );
+
+  expectTypeOf<Parameters<typeof postPages.resolve>[0]>().toEqualTypeOf<PostRow[]>();
+});
+
+it('reads a union of table names against all of their tables', () => {
+  const tables = ['users', 'posts'] as const;
+  type Tables = DrizzleRelations['users'] | DrizzleRelations['posts'];
+
+  for (const table of tables) {
+    builder.drizzleObjectFields(table, (t) => {
+      expectTypeOf<BuilderOf<typeof t>['table']>().toEqualTypeOf<Tables>();
+
+      return {
+        m: t.string({
+          resolve: (row) => {
+            expectTypeOf(row).toEqualTypeOf<{}>();
+            return table;
+          },
+        }),
+      };
+    });
+    builder.drizzleInterfaceField(table, 'n', (t) => {
+      expectTypeOf<BuilderOf<typeof t>['table']>().toEqualTypeOf<Tables>();
+
+      return t.string({ resolve: () => table });
+    });
+  }
+
+  const userOrPostPages = drizzleConnectionHelpers(builder, tables[0] as 'users' | 'posts', {});
+  const userWithPostsOrPostPages = drizzleConnectionHelpers(
+    builder,
+    UserWithPosts as typeof UserWithPosts | 'posts',
+    {},
+  );
+
+  expectTypeOf<Parameters<typeof userOrPostPages.resolve>[0][number]>().toEqualTypeOf<
+    BuildQueryResult<DrizzleRelations, Tables, true>
+  >();
+  expectTypeOf<Parameters<typeof userWithPostsOrPostPages.resolve>[0][number]>().toEqualTypeOf<
+    UserWithPostsShape | BuildQueryResult<DrizzleRelations, Tables, true>
+  >();
+
+  return (rows: UserRow[], ctx: object) => userWithPostsOrPostPages.resolve(rows, {}, ctx);
 });
 
 it('accepts a table name typed by a type parameter', () => {

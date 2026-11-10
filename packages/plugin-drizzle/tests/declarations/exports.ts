@@ -196,4 +196,16 @@ export const userQueryFromInfo = (
 export const userQuery = (context: object, info: GraphQLResolveInfo) =>
   queryFromInfo({ config: getSchemaConfig(builder), context, info, with: { posts: true } });
 
+export const allUsersQueryFromInfo = (
+  t: QueryFieldBuilder,
+  context: object,
+  info: GraphQLResolveInfo,
+) => t.drizzleQueryFromInfo(User, { context, info });
+
 export const schemaConfig = getSchemaConfig(builder);
+
+// The methods themselves, as a wrapper would re-export them: they name the table key of a ref.
+export const drizzleObjectFields = builder.drizzleObjectFields;
+export const drizzleObjectField = builder.drizzleObjectField;
+export const drizzleInterfaceFields = builder.drizzleInterfaceFields;
+export const drizzleInterfaceField = builder.drizzleInterfaceField;

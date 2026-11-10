@@ -6,7 +6,7 @@ import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import WithInputPlugin from '@pothos/plugin-with-input';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { expectTypeOf, it } from 'vitest';
-import DrizzlePlugin, { type DrizzleRelationsHint, drizzleConnectionHelpers } from '../src';
+import DrizzlePlugin, { drizzleConnectionHelpers } from '../src';
 import { type DrizzleRelations, db, relations } from './example/db';
 
 type Hint = string & {
@@ -25,7 +25,6 @@ type Types = typeof builder.$inferSchemaTypes;
 type QueryFieldBuilder = PothosSchemaTypes.QueryFieldBuilder<Types, {}>;
 
 it('names the missing setup where a table name is expected', () => {
-  expectTypeOf<DrizzleRelationsHint<Types>>().toEqualTypeOf<Hint>();
   // Each name position offers the hint. The @ts-expect-error lines below pin where the error lands.
   expectTypeOf<Parameters<typeof builder.drizzleObject>[0]>().toEqualTypeOf<Hint>();
   expectTypeOf<Parameters<typeof builder.drizzleInterface>[0]>().toEqualTypeOf<Hint>();
@@ -117,6 +116,10 @@ it('adds nothing once DrizzleRelations is set', () => {
     scopeAuth: { authScopes: () => ({}) },
   });
 
-  expectTypeOf<DrizzleRelationsHint<typeof typed.$inferSchemaTypes>>().toBeNever();
-  expectTypeOf<DrizzleRelationsHint<typeof typed.$inferSchemaTypes, true>>().toBeNever();
+  type TypedFieldBuilder = PothosSchemaTypes.QueryFieldBuilder<typeof typed.$inferSchemaTypes, {}>;
+
+  expectTypeOf<Parameters<typeof typed.drizzleObject>[0]>().toEqualTypeOf<keyof DrizzleRelations>();
+  expectTypeOf<Hint>().not.toExtend<Parameters<typeof typed.drizzleObjectFields>[0]>();
+  expectTypeOf<Hint>().not.toExtend<Parameters<TypedFieldBuilder['drizzleField']>[0]['type']>();
+  expectTypeOf<[Hint]>().not.toExtend<Parameters<TypedFieldBuilder['drizzleField']>[0]['type']>();
 });

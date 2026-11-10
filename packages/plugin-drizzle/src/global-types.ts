@@ -17,7 +17,6 @@ import type { PathSegment } from '@pothos/selection-mapper';
 import type {
   BuildQueryResult,
   DBQueryConfig,
-  SQL,
   TableRelationalConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm';
@@ -37,12 +36,12 @@ import type {
   DrizzleObjectFieldOptions,
   DrizzleObjectOptions,
   DrizzlePluginOptions,
-  DrizzleRelationsHint,
   DrizzleTableNameBrand,
   ShapeFromConnection,
   ShapeFromIdColumns,
 } from './types.js';
-import type { QueryFromInfoResult } from './utils/map-query.js';
+import type { DrizzleQueryFromInfoResult } from './utils/map-query.js';
+import type { DrizzleRelationsHint } from './utils/refs.js';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -119,19 +118,32 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleObjectRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        Shape extends {} = Type extends DrizzleObjectRef<
-          Types,
-          keyof Types['DrizzleRelations'],
-          infer S
-        >
-          ? S & DrizzleTableNameBrand<TableConfig['name']>
-          : // Indexed by the key: while it is being completed, TableConfig is every table.
-            BuildQueryResult<
-              Types['DrizzleRelations'],
-              Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-              true
-            > &
-              DrizzleTableNameBrand<Type>,
+        // While a name is being completed, Type and TableConfig are every table, and reading the
+        // rows from TableConfig compares each table with every other. When TableConfig is its
+        // default, each key's rows are read from its own table instead.
+        Shape extends {} = [
+          TableConfig,
+          Type extends DrizzleObjectRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+        ] extends [
+          Type extends DrizzleObjectRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+          TableConfig,
+        ]
+          ? Type extends DrizzleObjectRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<
+                Types['DrizzleRelations'],
+                Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+                true
+              > &
+                DrizzleTableNameBrand<Type>
+          : Type extends DrizzleObjectRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+                DrizzleTableNameBrand<Type>,
       >(
         type: Type | DrizzleRelationsHint<Types>,
         fieldName: string,
@@ -145,19 +157,32 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleInterfaceRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        Shape extends {} = Type extends DrizzleInterfaceRef<
-          Types,
-          keyof Types['DrizzleRelations'],
-          infer S
-        >
-          ? S & DrizzleTableNameBrand<TableConfig['name']>
-          : // Indexed by the key: while it is being completed, TableConfig is every table.
-            BuildQueryResult<
-              Types['DrizzleRelations'],
-              Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-              true
-            > &
-              DrizzleTableNameBrand<Type>,
+        // While a name is being completed, Type and TableConfig are every table, and reading the
+        // rows from TableConfig compares each table with every other. When TableConfig is its
+        // default, each key's rows are read from its own table instead.
+        Shape extends {} = [
+          TableConfig,
+          Type extends DrizzleInterfaceRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+        ] extends [
+          Type extends DrizzleInterfaceRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+          TableConfig,
+        ]
+          ? Type extends DrizzleInterfaceRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<
+                Types['DrizzleRelations'],
+                Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+                true
+              > &
+                DrizzleTableNameBrand<Type>
+          : Type extends DrizzleInterfaceRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+                DrizzleTableNameBrand<Type>,
       >(
         type: Type | DrizzleRelationsHint<Types>,
         fieldName: string,
@@ -171,19 +196,32 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleObjectRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        Shape extends {} = Type extends DrizzleObjectRef<
-          Types,
-          keyof Types['DrizzleRelations'],
-          infer S
-        >
-          ? S & DrizzleTableNameBrand<TableConfig['name']>
-          : // Indexed by the key: while it is being completed, TableConfig is every table.
-            BuildQueryResult<
-              Types['DrizzleRelations'],
-              Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-              true
-            > &
-              DrizzleTableNameBrand<Type>,
+        // While a name is being completed, Type and TableConfig are every table, and reading the
+        // rows from TableConfig compares each table with every other. When TableConfig is its
+        // default, each key's rows are read from its own table instead.
+        Shape extends {} = [
+          TableConfig,
+          Type extends DrizzleObjectRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+        ] extends [
+          Type extends DrizzleObjectRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+          TableConfig,
+        ]
+          ? Type extends DrizzleObjectRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<
+                Types['DrizzleRelations'],
+                Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+                true
+              > &
+                DrizzleTableNameBrand<Type>
+          : Type extends DrizzleObjectRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+                DrizzleTableNameBrand<Type>,
       >(
         type: Type | DrizzleRelationsHint<Types>,
         fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldMap,
@@ -194,19 +232,32 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleInterfaceRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        Shape extends {} = Type extends DrizzleInterfaceRef<
-          Types,
-          keyof Types['DrizzleRelations'],
-          infer S
-        >
-          ? S & DrizzleTableNameBrand<TableConfig['name']>
-          : // Indexed by the key: while it is being completed, TableConfig is every table.
-            BuildQueryResult<
-              Types['DrizzleRelations'],
-              Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-              true
-            > &
-              DrizzleTableNameBrand<Type>,
+        // While a name is being completed, Type and TableConfig are every table, and reading the
+        // rows from TableConfig compares each table with every other. When TableConfig is its
+        // default, each key's rows are read from its own table instead.
+        Shape extends {} = [
+          TableConfig,
+          Type extends DrizzleInterfaceRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+        ] extends [
+          Type extends DrizzleInterfaceRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+          TableConfig,
+        ]
+          ? Type extends DrizzleInterfaceRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<
+                Types['DrizzleRelations'],
+                Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+                true
+              > &
+                DrizzleTableNameBrand<Type>
+          : Type extends DrizzleInterfaceRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+                DrizzleTableNameBrand<Type>,
       >(
         type: Type | DrizzleRelationsHint<Types>,
         fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldMap,
@@ -244,11 +295,13 @@ declare global {
     > {
       drizzleQueryFromInfo: <
         Table extends keyof Types['DrizzleRelations'],
+        // The option keys are in the constraint: without them, options with no query keys share no
+        // key with the query config, and Selection would infer as the whole config.
         const Selection extends DBQueryConfig<
           'many',
           Types['DrizzleRelations'],
           Types['DrizzleRelations'][Table]
-        > = {},
+        > & { context?: unknown; info?: unknown; path?: unknown; paths?: unknown } = {},
       >(
         // biome-ignore lint/suspicious/noExplicitAny: a ref from before `withAuth` replaced the context
         type: Table | DrizzleRef<any, Table> | DrizzleRelationsHint<Types>,
@@ -267,12 +320,7 @@ declare global {
             path?: PathSegment[];
             paths?: PathSegment[][];
           },
-      ) => MaybeAsyncSelection<
-        Types,
-        // Branded like the `query` of `drizzleField`, so the rows can be returned from a field
-        // of the table's type.
-        QueryFromInfoResult<Selection> & { extras: { $pothosQueryFor: SQL<Table | undefined> } }
-      >;
+      ) => MaybeAsyncSelection<Types, DrizzleQueryFromInfoResult<Selection, Table>>;
 
       drizzleField: <
         Args extends InputFieldMap,
