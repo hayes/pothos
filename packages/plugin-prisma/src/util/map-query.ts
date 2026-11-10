@@ -1,5 +1,5 @@
 import { isThenable, type MaybePromise } from '@pothos/core';
-import { cacheKey, type PathSegment, Plan } from '@pothos/selection-mapper';
+import { fieldKey, type PathSegment, Plan } from '@pothos/selection-mapper';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from '../types.js';
 import { type PrismaPlan, prismaAdapter } from './adapter.js';
@@ -127,11 +127,11 @@ export type FallbackPlanRecipe = () => {
 };
 
 /**
- * The query for the field `info` resolves, from a plan `plans` holds per `Type@path`. The
- * fallback in `wrapResolve` runs once per row of the list its parent came from, so the plan is
- * walked and settled once and played per call: each caller still gets a query of its own, and
- * every row of a list records under the same mapping keys, since `responsePath` drops list
- * indices.
+ * The query for the field `info` resolves, from a plan `plans` holds per parent type and field
+ * nodes (see `fieldKey`). The fallback in `wrapResolve` runs once per row of the list its parent
+ * came from, so the plan is walked and settled once and played per call: each caller still gets
+ * a query of its own, and every row of a list records under the same mapping keys, since
+ * `responsePath` drops list indices.
  */
 export function fallbackQueryFromInfo(
   plans: Map<string, MaybePromise<PrismaPlan>>,
@@ -140,7 +140,7 @@ export function fallbackQueryFromInfo(
   skipDeferredFragments = true,
   recipe?: FallbackPlanRecipe,
 ): MaybePromise<SelectionMap> {
-  const key = cacheKey(info.parentType.name, info.path);
+  const key = fieldKey(info.parentType.name, info);
   let plan = plans.get(key);
 
   if (!plan) {

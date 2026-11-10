@@ -167,7 +167,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       | FallbackPlanRecipe
       | undefined;
 
-    // The fallback with one settled plan per `Type@path` per operation beside it, since it plans
+    // The fallback with one settled plan per `fieldKey` per operation beside it, since it plans
     // this field again for every row of the list its parent came from. Allocated only for a field
     // that has a fallback, and scoped to the field config, so the plans of a request go with the
     // request and the builder's own `skipDeferredFragments` is the one that applies. Kept per
