@@ -1,5 +1,37 @@
 # @pothos/plugin-drizzle
 
+## 0.20.4
+
+### Patch Changes
+
+- b9fd6f2: Fix `drizzleConnection` resolvers dropping `with` passed to `query()`. Those relations are now loaded on the rows.
+- 9d6b704: `t.expose*` fields are faster, and rows returned by your own resolvers are no longer reloaded for exposed columns they already have. Those fields now use the row's values, as they already did for rows the plugin loaded. If you use scope-auth, auth checks that read those columns now see the row's values too, instead of freshly loaded ones. Reloading many rows at once is also much faster.
+- b9fd6f2: Fix `pathInfo` being undefined in the `query` callback of a `t.relatedConnection` inherited from a `drizzleInterface`. The callback now gets the same `pathInfo` as when its rows were loaded, so its rows and cursors agree.
+- b9fd6f2: A type-level `select` on a table without a primary key no longer fails every request.
+- b9fd6f2: `node(id:)` for a row that does not exist now returns `null` instead of an error. In `nodes(ids:)`, a missing row or an invalid ID now only makes its own entry `null` instead of failing the whole field.
+- b9fd6f2: Hide the details of schema mistakes that are only found during a request. Clients now see `Unexpected error.`. The original message, such as `Relation followers does not exist on users`, is on the thrown error's `cause` (`originalError.cause` on the GraphQL error). This applies to:
+  - A field or connection `select` with a relation the table does not have
+  - An `orderBy` that names neither a column nor an extra
+  - A row returned without its primary key columns
+  - A table without a primary key where one is needed
+  - A parent row that no longer exists
+
+  Mistakes in a type definition fail when the type is defined:
+  - An unknown relation in the type-level `select` of a `drizzleObject` or `drizzleNode` already failed when the type was defined. It is now a `PothosSchemaError` that names the type.
+  - The same mistake in a `drizzleInterface` now fails when the interface is defined. Such a schema used to build, and only fields returning the interface failed. Fix the `select` before upgrading.
+  - A `drizzleNode` with a single boolean, bytes, geometry or array ID column now fails when it is defined. These columns can't be written as an ID, so it used to fail on every request.
+
+- 33cd52f: Speed up table name completion in `drizzleObjectField(s)`, `drizzleInterfaceField(s)` and `t.drizzleConnection`, list the valid names in errors for a mistyped column or relation, and explain how to set up `DrizzleRelations` when it's missing. Export the types needed to use node refs and connection helpers with `declaration: true`, and allow returning rows loaded with `t.drizzleQueryFromInfo` from a field of the table's type.
+- b9fd6f2: Validate node IDs, `t.arg.globalID({ for })` arguments and connection cursors against their column before any SQL runs. Clients have to send IDs and cursors exactly as the plugin returned them.
+  - Number, bigint, boolean, date, uuid, bytes and plain text columns are checked. A value of the wrong type or format fails with `Invalid ID.` or `Invalid cursor.`. These errors no longer include the input or the SQL.
+  - IDs such as `01`, `1e0` or `0x1` no longer load row 1. A string cursor for an integer column no longer returns the first page.
+  - A uuid has to be written with hyphens, like `b0000000-0000-4000-8000-000000000002`. Postgres also accepts it without hyphens or in braces, but those are now rejected.
+  - Compound IDs with a date that were generated before 0.19.1 now fail with `Invalid ID.`. They never found their row.
+  - Other values are still sent to the database, and its error is returned unchanged. This covers enums, json, custom types, array elements, network addresses, and numeric, date and time columns that are read as strings. It also covers cursor values for an `orderBy` on an `extras` expression, and values of the right type that the database rejects.
+
+- Updated dependencies [b9fd6f2]
+  - @pothos/selection-mapper@0.3.0
+
 ## 0.20.3
 
 ### Patch Changes

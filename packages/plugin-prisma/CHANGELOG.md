@@ -1,5 +1,29 @@
 # Change Log
 
+## 4.17.2
+
+### Patch Changes
+
+- ebb2973: Fix `relatedConnection` and `prismaConnectionHelpers` pages when `orderBy` is not unique
+  - When `orderBy` is not unique, the plugin now sorts by the cursor's fields last, in the direction of the last `orderBy` entry. Pages read backward with `last` match the pages read forward.
+  - Forward pages change too. Rows that tie on `orderBy` used to come back in whatever order the database chose, and now come back in cursor order.
+  - To choose the order of tied rows yourself, end `orderBy` with a unique, non-null column. An `orderBy` that is absent or already unique is not changed.
+  - With a non-unique `orderBy`, pages after a cursor are paged in SQL instead of in memory, which is much faster for most pages. An index that ends with the cursor key (for example `(authorId, postId, id)`) keeps them fast.
+  - A cursor issued before upgrading continues in the new order, so a client paging through tied rows during the upgrade can see a row twice or miss one.
+  - When `orderBy` is not unique, a connection helper's `getQuery` now returns `orderBy` as an array, and its type is `OrderBy | OrderBy[]`. Code that reads it as a single object (for example `getQuery(...).orderBy?.createdAt`) no longer compiles and needs to handle both. The helper's `query` option also accepts a list for `orderBy`.
+  - `first` together with `last` now pages forward by `first`, as `@pothos/core` does.
+
+- 9d6b704: `t.expose*` fields on types with a `select` are faster, and rows returned by your own resolvers are no longer reloaded for exposed fields they already have. Those fields now use the row's values, as they already did for rows the plugin loaded. If you use scope-auth, auth checks that read those columns now see the row's values too, instead of freshly loaded ones.
+- ebb2973: A `prismaNode` with a `select` whose `id.field` is a unique field or index other than the primary key now selects it. Its global IDs no longer read `Type:undefined`, and reloading its fields no longer fails.
+- ebb2973: Clients now see `Unexpected error.` for mistakes in the app that only show up during a request. The original message is on `error.cause`. This covers `Missing findUnique for <type>`, `Unable to find delegate for model <model>`, and `Unable to load totalCount for <field>: ...`. These errors are now plain `Error`s rather than `PothosError` or `GraphQLError` instances.
+- 33cd52f: Speed up model name completion in `prismaObjectField(s)` and `prismaInterfaceField(s)`, list the valid names in errors for a mistyped field or cursor, and explain how to set up `PrismaTypes` when it's missing. Export the types needed to use connection helpers and refs with `declaration: true`, and make methods added to `PothosSchemaTypes.PrismaObjectFieldBuilder` work in `prismaObject`, `prismaNode` and `prismaInterface` fields (the `PrismaObjectFieldBuilder` type export is now deprecated).
+- ebb2973: Cursors and node IDs are now checked against their column's type. A value that does not match fails with `Invalid cursor.` or `Invalid ID.`, and the message no longer includes the input. This includes the errors from `parsePrismaCursor`.
+
+  IDs such as `1abc` or `1.9` no longer resolve to row 1, and a Boolean ID must be `true` or `false`. Only IDs and cursors in the format the plugin generates are accepted. Hand-built values such as a compound ID with non-string parts (`[84,1]` instead of `["84","1"]`), a DateTime ID of `2012-12-12`, or a BigInt ID of `0x10` used to load a row and are now rejected.
+
+- Updated dependencies [b9fd6f2]
+  - @pothos/selection-mapper@0.3.0
+
 ## 4.17.1
 
 ### Patch Changes

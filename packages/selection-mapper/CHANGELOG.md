@@ -1,5 +1,11 @@
 # @pothos/selection-mapper
 
+## 0.3.0
+
+### Minor Changes
+
+- b9fd6f2: Remove the `setFieldMapping` export, which no Pothos plugin uses any more.
+
 ## 0.2.0
 
 ### Minor Changes
