@@ -1,12 +1,23 @@
-import { subscribe as toolsSubscribe } from '@graphql-tools/executor';
+import { execute as toolsExecute, subscribe as toolsSubscribe } from '@graphql-tools/executor';
 import SchemaBuilder from '@pothos/core';
-import { type DocumentNode, execute, type GraphQLSchema, parse, subscribe } from 'graphql';
+import {
+  type DocumentNode,
+  type ExecutionResult,
+  execute,
+  type GraphQLSchema,
+  parse,
+  subscribe,
+} from 'graphql';
 import PrismaPlugin, { type PrismaTypesFromClient } from '../src';
 import { prisma } from './example/builder';
 import { getDatamodel } from './generated.js';
 
 // Fragments on different types can merge different field nodes into one response path. A field
 // whose parent was loaded without its selection is planned for the nodes it was reached with.
+
+/** How many times a plan has asked `User.n` for its filter. */
+let nPlans = 0;
+
 const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypesFromClient<typeof prisma>;
   Context: object;
@@ -35,7 +46,10 @@ const User = builder.prismaObject('User', {
     // Loads through a reload of the parent.
     n: t.relationCount('posts', {
       args: { published: t.arg.boolean({ required: true }) },
-      where: (args) => ({ published: args.published }),
+      where: (args) => {
+        nPlans += 1;
+        return { published: args.published };
+      },
     }),
     // No arguments: @graphql-tools/executor coerces them with a graphql vitest doesn't inline.
     published: t.relationCount('posts', { where: { published: true } }),
@@ -72,16 +86,29 @@ for (const kind of ['A', 'B'] as const) {
   });
 }
 
+const items = (userId: number): Item[] => [
+  { kind: 'A', userId },
+  { kind: 'B', userId },
+];
+
+const Group = builder.objectRef<object>('Group').implement({
+  fields: (t) => ({
+    items: t.field({
+      type: [ItemRef],
+      args: { userId: t.arg.int({ required: true }) },
+      resolve: (_, { userId }) => items(userId),
+    }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
     items: t.field({
       type: [ItemRef],
       args: { userId: t.arg.int({ required: true }) },
-      resolve: (_, { userId }): Item[] => [
-        { kind: 'A', userId },
-        { kind: 'B', userId },
-      ],
+      resolve: (_, { userId }) => items(userId),
     }),
+    group: t.field({ type: Group, resolve: () => ({}) }),
   }),
 });
 
@@ -102,6 +129,12 @@ builder.subscriptionType({
 const schema = builder.toSchema();
 
 const run = (source: string) => execute({ schema, document: parse(source), contextValue: {} });
+
+type Execute = (args: {
+  schema: GraphQLSchema;
+  document: DocumentNode;
+  contextValue: object;
+}) => Promise<ExecutionResult>;
 
 type Subscribe = (args: {
   schema: GraphQLSchema;
@@ -192,7 +225,9 @@ describe('plans for one response path beneath different types', () => {
   });
 
   it('shares a plan between the paths one fragment is spread at', async () => {
-    const result = await run(`{ first: items(userId: 1) { ...F } second: items(userId: 2) { ...F } }
+    nPlans = 0;
+    const result =
+      await run(`{ group { first: items(userId: 1) { ...F } second: items(userId: 2) { ...F } } }
       fragment F on Item {
         ... on A {
           user {
@@ -205,7 +240,8 @@ describe('plans for one response path beneath different types', () => {
       }`);
 
     expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({
+    expect(nPlans).toBe(1);
+    expect(result.data?.group).toEqual({
       first: [
         {
           user: {
@@ -232,7 +268,8 @@ describe('plans for one response path beneath different types', () => {
   });
 });
 
-// Each event sets `published` on the context before it is yielded, for the counts to filter by.
+// Each event sets `published` on the context before it is yielded, and each of `publish` and
+// `unpublish` before it resolves, for the counts to filter by.
 const eventBuilder = new SchemaBuilder<{
   PrismaTypes: PrismaTypesFromClient<typeof prisma>;
   Context: { published: boolean };
@@ -278,7 +315,41 @@ eventBuilder.subscriptionType({
   }),
 });
 
+// No arguments, as above: each field sets its own `published`.
+eventBuilder.mutationType({
+  fields: (t) => {
+    const set = (published: boolean) =>
+      t.field({
+        type: EventUser,
+        resolve: (_root, _args, context) => {
+          context.published = published;
+          // Loaded without the query, so what is beneath it loads on its own.
+          return prisma.user.findUniqueOrThrow({ where: { id: 1 } });
+        },
+      });
+
+    return { publish: set(true), unpublish: set(false) };
+  },
+});
+
 const eventSchema = eventBuilder.toSchema();
+
+describe.each([
+  ['graphql-js', execute as Execute],
+  ['@graphql-tools/executor', toolsExecute as Execute],
+])('plans for serial mutation fields through %s', (_, executeWith) => {
+  it('runs select callbacks again for each root field a fragment is spread under', async () => {
+    const result = await executeWith({
+      schema: eventSchema,
+      document: parse(`mutation { a: publish { ...F } b: unpublish { ...F } }
+        fragment F on User { n }`),
+      contextValue: { published: false },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ a: { n: 149 }, b: { n: 101 } });
+  });
+});
 
 describe.each([
   ['graphql-js', subscribe as Subscribe],

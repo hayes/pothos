@@ -1,10 +1,17 @@
-import { subscribe as toolsSubscribe } from '@graphql-tools/executor';
+import { execute as toolsExecute, subscribe as toolsSubscribe } from '@graphql-tools/executor';
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { and, eq } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import { type DocumentNode, execute, type GraphQLSchema, parse, subscribe } from 'graphql';
+import {
+  type DocumentNode,
+  type ExecutionResult,
+  execute,
+  type GraphQLSchema,
+  parse,
+  subscribe,
+} from 'graphql';
 import DrizzlePlugin from '../src';
 import { type DrizzleRelations, db, relations } from './example/db';
 import { posts } from './example/db/schema';
@@ -12,6 +19,10 @@ import { posts } from './example/db/schema';
 // Fragments on different types can merge different field nodes into one response path. A field
 // whose parent was loaded without its selection, or a node, is planned for the nodes it was
 // reached with.
+
+/** How many times a plan has asked `User.posts` for its query. */
+let postsPlans = 0;
+
 const builder = new SchemaBuilder<{ DrizzleRelations: DrizzleRelations; Context: object }>({
   plugins: [ScopeAuthPlugin, RelayPlugin, DrizzlePlugin],
   drizzle: { client: () => db, getTableConfig, relations },
@@ -25,7 +36,10 @@ const User = builder.drizzleNode('users', {
   fields: (t) => ({
     posts: t.relation('posts', {
       args: { limit: t.arg.int({ required: true }) },
-      query: (args) => ({ limit: args.limit, orderBy: { postId: 'asc' } }),
+      query: (args) => {
+        postsPlans += 1;
+        return { limit: args.limit, orderBy: { postId: 'asc' } };
+      },
     }),
     n: t.relatedCount('posts', {
       args: { published: t.arg.int({ required: true }) },
@@ -67,16 +81,29 @@ for (const kind of ['A', 'B'] as const) {
   });
 }
 
+const items = (userId: number): Item[] => [
+  { kind: 'A', userId },
+  { kind: 'B', userId },
+];
+
+const Group = builder.objectRef<object>('Group').implement({
+  fields: (t) => ({
+    items: t.field({
+      type: [ItemRef],
+      args: { userId: t.arg.int({ required: true }) },
+      resolve: (_, { userId }) => items(userId),
+    }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
     items: t.field({
       type: [ItemRef],
       args: { userId: t.arg.int({ required: true }) },
-      resolve: (_, { userId }): Item[] => [
-        { kind: 'A', userId },
-        { kind: 'B', userId },
-      ],
+      resolve: (_, { userId }) => items(userId),
     }),
+    group: t.field({ type: Group, resolve: () => ({}) }),
   }),
 });
 
@@ -97,6 +124,12 @@ builder.subscriptionType({
 const schema = builder.toSchema();
 
 const run = (source: string) => execute({ schema, document: parse(source), contextValue: {} });
+
+type Execute = (args: {
+  schema: GraphQLSchema;
+  document: DocumentNode;
+  contextValue: object;
+}) => Promise<ExecutionResult>;
 
 type Subscribe = (args: {
   schema: GraphQLSchema;
@@ -197,7 +230,9 @@ describe('plans for one response path beneath different types', () => {
   });
 
   it('shares a plan between the paths one fragment is spread at', async () => {
-    const result = await run(`{ first: items(userId: 1) { ...F } second: items(userId: 2) { ...F } }
+    postsPlans = 0;
+    const result =
+      await run(`{ group { first: items(userId: 1) { ...F } second: items(userId: 2) { ...F } } }
       fragment F on Item {
         ... on A {
           user { x: n(published: 1) y: posts(limit: 1) { id } }
@@ -206,7 +241,9 @@ describe('plans for one response path beneath different types', () => {
       }`);
 
     expect(result.errors).toBeUndefined();
-    expect(result.data).toEqual({
+    // `user` plans its own query for each row; the parent reload and the node plan once each.
+    expect(postsPlans).toBe(4);
+    expect(result.data?.group).toEqual({
       first: [
         {
           user: { x: await count(1, 1), y: await postIds(1, 1) },
@@ -225,7 +262,8 @@ describe('plans for one response path beneath different types', () => {
   });
 });
 
-// Each event sets `published` on the context before it is yielded, for the counts to filter by.
+// Each event sets `published` on the context before it is yielded, and each of `publish` and
+// `unpublish` before it resolves, for the counts to filter by.
 const eventBuilder = new SchemaBuilder<{
   DrizzleRelations: DrizzleRelations;
   Context: { published: number };
@@ -257,6 +295,22 @@ const Event = eventBuilder.objectRef<{ userId: number }>('Event').implement({
 });
 
 eventBuilder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+
+// No arguments, as above: each field sets its own `published`.
+eventBuilder.mutationType({
+  fields: (t) => {
+    const set = (published: number) =>
+      t.field({
+        type: Event,
+        resolve: (_root, _args, context) => {
+          context.published = published;
+          return { userId: 1 };
+        },
+      });
+
+    return { publish: set(1), unpublish: set(0) };
+  },
+});
 
 eventBuilder.subscriptionType({
   fields: (t) => ({
@@ -291,5 +345,25 @@ describe.each([
       { data: { event: { user: { n: await count(1, 1) }, node: { n: await count(1, 1) } } } },
       { data: { event: { user: { n: await count(1, 0) }, node: { n: await count(1, 0) } } } },
     ]);
+  });
+});
+
+describe.each([
+  ['graphql-js', execute as Execute],
+  ['@graphql-tools/executor', toolsExecute as Execute],
+])('plans for serial mutation fields through %s', (_, executeWith) => {
+  it('runs select callbacks again for each root field a fragment is spread under', async () => {
+    const result = await executeWith({
+      schema: eventSchema,
+      document: parse(`mutation { a: publish { ...F } b: unpublish { ...F } }
+        fragment F on Event { user { n } node { ... on EventUser { n } } }`),
+      contextValue: { published: 0 },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      a: { user: { n: await count(1, 1) }, node: { n: await count(1, 1) } },
+      b: { user: { n: await count(1, 0) }, node: { n: await count(1, 0) } },
+    });
   });
 });

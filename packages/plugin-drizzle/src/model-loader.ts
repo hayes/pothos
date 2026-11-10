@@ -125,7 +125,8 @@ export class ModelLoader {
 
   getSelectionForField(info: GraphQLResolveInfo, typeName: string) {
     const plans = forExecution(this.planCache, info);
-    const key = fieldKey(typeName, info);
+    // Keyed on the parent type too, which the plan's root position is under.
+    const key = `${typeName}:${fieldKey(info.parentType.name, info)}`;
     let plan = plans.get(key);
     if (!plan) {
       // Walked without paths, so there is always a plan.

@@ -162,8 +162,10 @@ export class ModelLoader {
     values: readonly unknown[],
     collection: ((ctx: object) => MapperCollection) | undefined,
   ): Promise<Row | null> {
-    // Keyed on the type rather than the model, because variants of a model select differently.
-    const selection = this.cachedPlan(info, `node:${fieldKey(typeName, info)}`, () =>
+    // Keyed on the type rather than the model, because variants of a model select differently,
+    // and on the parent type, which the plan's root position is under.
+    const key = `node:${typeName}:${fieldKey(info.parentType.name, info)}`;
+    const selection = this.cachedPlan(info, key, () =>
       completeValue(
         Plan.fromInfo(this.config.adapter, {
           context: this.context,

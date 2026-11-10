@@ -1,10 +1,20 @@
-import { subscribe as toolsSubscribe } from '@graphql-tools/executor';
-import { type DocumentNode, type GraphQLSchema, parse, subscribe } from 'graphql';
+import { execute as toolsExecute, subscribe as toolsSubscribe } from '@graphql-tools/executor';
+import {
+  type DocumentNode,
+  type ExecutionResult,
+  execute,
+  type GraphQLSchema,
+  parse,
+  subscribe,
+} from 'graphql';
 import { describe, expect, it } from 'vitest';
 import { collectionFromInfo } from '../src';
 import { createBuilder, deferSchema, run, runIncremental, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
+
+/** How many times a plan has asked `User.posts` for its query. */
+let postsPlans = 0;
 
 interface Item {
   kind: 'A' | 'B';
@@ -20,7 +30,10 @@ function itemSchema(defer = false) {
       name: t.exposeString('firstName'),
       posts: t.relation('posts', {
         args: { limit: t.arg.int({ required: true }) },
-        query: (args) => ({ limit: args.limit, orderBy: { id: 'asc' } }),
+        query: (args) => {
+          postsPlans += 1;
+          return { limit: args.limit, orderBy: { id: 'asc' } };
+        },
       }),
       n: t.relationCount('posts', {
         args: { published: t.arg.int({ required: true }) },
@@ -52,16 +65,27 @@ function itemSchema(defer = false) {
       }),
     });
   }
+  const items = (userId: string): Item[] => [
+    { kind: 'A', userId },
+    { kind: 'B', userId },
+  ];
+  const Group = builder.objectRef<object>('Group').implement({
+    fields: (t) => ({
+      items: t.field({
+        type: [ItemRef],
+        args: { userId: t.arg.id({ required: true }) },
+        resolve: (_, { userId }) => items(String(userId)),
+      }),
+    }),
+  });
   builder.queryType({
     fields: (t) => ({
       items: t.field({
         type: [ItemRef],
         args: { userId: t.arg.id({ required: true }) },
-        resolve: (_, { userId }): Item[] => [
-          { kind: 'A', userId: String(userId) },
-          { kind: 'B', userId: String(userId) },
-        ],
+        resolve: (_, { userId }) => items(String(userId)),
       }),
+      group: t.field({ type: Group, resolve: () => ({}) }),
     }),
   });
   builder.subscriptionType({
@@ -79,6 +103,12 @@ function itemSchema(defer = false) {
   });
   return defer ? deferSchema(builder) : builder.toSchema();
 }
+
+type Execute = (args: {
+  schema: GraphQLSchema;
+  document: DocumentNode;
+  contextValue: object;
+}) => Promise<ExecutionResult>;
 
 type Subscribe = (args: {
   schema: GraphQLSchema;
@@ -167,9 +197,10 @@ describe('reload plans for one response path beneath different types', () => {
   });
 
   it('shares a plan between the paths one fragment is spread at', async () => {
+    postsPlans = 0;
     const result = await runIncremental(
       itemSchema(true),
-      `{ alice: items(userId: "u-alice") { ...F } bob: items(userId: "u-bob") { ...F } }
+      `{ group { alice: items(userId: "u-alice") { ...F } bob: items(userId: "u-bob") { ...F } } }
       fragment F on Item {
         kind
         ... on A {
@@ -182,7 +213,8 @@ describe('reload plans for one response path beneath different types', () => {
     expect(result.initial.errors).toBeUndefined();
     const alicePosts = [{ id: 'p-draft1', author: { name: 'Alice' } }];
     const bobPosts = [{ id: 'p-bob-draft', author: { name: 'Bob' } }];
-    expect(result.initial.data).toEqual({
+    expect(postsPlans).toBe(2);
+    expect(result.initial.data?.group).toEqual({
       alice: [{ kind: 'A', user: { name: 'Alice' }, node: { y: alicePosts } }, { kind: 'B' }],
       bob: [{ kind: 'A', user: { name: 'Bob' }, node: { y: bobPosts } }, { kind: 'B' }],
     });
@@ -191,7 +223,10 @@ describe('reload plans for one response path beneath different types', () => {
   });
 });
 
-/** Each event sets `published` on the context before it is yielded, for `n` to count by. */
+/**
+ * Each event sets `published` on the context before it is yielded, and each of `publish` and
+ * `unpublish` before it resolves, for `n` to count by.
+ */
 function eventSchema() {
   const builder = createBuilder<{ published: number }>();
   const User = builder.prismaNode('User', {
@@ -208,6 +243,19 @@ function eventSchema() {
     }),
   });
   builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+  builder.mutationType({
+    fields: (t) => {
+      const set = (published: number) =>
+        t.field({
+          type: Event,
+          resolve: (_root, _args, context) => {
+            context.published = published;
+            return { userId: 'u-alice' };
+          },
+        });
+      return { publish: set(1), unpublish: set(9) };
+    },
+  });
   builder.subscriptionType({
     fields: (t) => ({
       event: t.field({
@@ -261,5 +309,21 @@ describe.each([
     expect(
       await events(subscribeWith, eventSchema(), 'subscription { user { n } }', { published: 0 }),
     ).toEqual([{ data: { user: { n: 1 } } }, { data: { user: { n: 0 } } }]);
+  });
+});
+
+describe.each([
+  ['graphql-js', execute as Execute],
+  ['@graphql-tools/executor', toolsExecute as Execute],
+])('reload plans for serial mutation fields through %s', (_, executeWith) => {
+  it('runs query callbacks again for each root field a fragment is spread under', async () => {
+    const result = await executeWith({
+      schema: eventSchema(),
+      document: parse(`mutation { a: publish { ...F } b: unpublish { ...F } }
+        fragment F on Event { user { ... on User { n } } }`),
+      contextValue: { published: 0 },
+    });
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ a: { user: { n: 1 } }, b: { user: { n: 0 } } });
   });
 });

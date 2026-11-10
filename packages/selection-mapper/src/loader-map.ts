@@ -262,12 +262,36 @@ const fieldNodeIds = new WeakMap<object, number>();
 let nextFieldNodeId = 0;
 
 /**
- * `type` and the identity of every node in `info.fieldNodes`, which together decide what a plan
- * for the field loads. Fragments on different types can merge different nodes into one response
- * path, so a plan cached by path would be reused for a field asking for something else.
+ * The response key of the root field a path is beneath, memoised per path link as `pathKeys` is,
+ * so where the executor shares links the rows of a list find it with one lookup.
+ */
+const rootKeys = new WeakMap<object, string>();
+
+function rootKey(path: GraphQLResolveInfo['path']): string {
+  if (!path.prev) {
+    return String(path.key);
+  }
+
+  let key = rootKeys.get(path);
+
+  if (key === undefined) {
+    key = rootKey(path.prev);
+    rootKeys.set(path, key);
+  }
+
+  return key;
+}
+
+/**
+ * `type`, the root field the field is beneath, and the identity of every node in
+ * `info.fieldNodes`. The nodes decide what a plan for the field loads: fragments on different
+ * types can merge different nodes into one response path, so a plan cached by path would be
+ * reused for a field asking for something else. The root field is in the key because the root
+ * fields of a mutation run in turn, and a callback may read what an earlier one changed; beneath
+ * one root field, a fragment spread at several paths shares one plan.
  */
 export function fieldKey(type: string, info: GraphQLResolveInfo): string {
-  let key = type;
+  let key = `${type}@${rootKey(info.path)}`;
 
   for (const node of info.fieldNodes) {
     let id = fieldNodeIds.get(node);
