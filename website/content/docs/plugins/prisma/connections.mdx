@@ -36,7 +36,7 @@ builder.queryType({
 
 - `type`: the name of the prisma model being connected to
 - `cursor`: a `@unique` column of the model being connected to. This is used as the `cursor` option
-  passed to prisma.
+  passed to prisma. If the column is nullable, paging from a row where it is null fails.
 - `defaultSize`: (default: 20) The default page size to use if `first` and `last` are not provided.
 - `maxSize`: (default: 100) The maximum number of nodes returned for a connection.
 - `resolve`: Like the resolver for `prismaField`, the first argument is a `query` object that should
@@ -66,6 +66,9 @@ Queries for these combinations are not as useful, and generally requiring loadin
 between 2 cursors, or between a cursor and the end of the set. Generating query options for these
 cases is more complex and likely very inefficient, so they will currently throw an Error indicating
 the argument combinations are not supported.
+
+Paging from the cursor of a row that has since been deleted returns an empty page rather than an
+error.
 
 The `maxSize` and `defaultSize` can also be configured globally using `maxConnectionSize` and
 `defaultConnectionSize` options in the `prisma` plugin options.
