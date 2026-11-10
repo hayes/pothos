@@ -78,10 +78,9 @@ export interface SelectedFieldNode {
    * The arguments of the field selected at `path`, as its resolver gets them (a promise when an
    * argument mapper returns one), or null when nothing is selected there. Throws when the fields
    * selected there, such as two aliases, have different arguments, including beneath other
-   * selections of the field that graphql merges with this one, at any depth. Fields under
-   * fragments on types that never overlap are still compared, and an argument passed as `null`
-   * differs from one left out. An empty path is the field itself, or the wrapper's inner field,
-   * when its type has one. plugin-prisma-next's connection helpers use it to page a wrapper's rows.
+   * selections of the field that graphql merges with this one. An empty path is the field
+   * itself, or the wrapper's inner field, when its type has one. plugin-prisma-next's connection
+   * helpers use it to page a wrapper's rows.
    */
   args(path: string[]): MaybePromise<object> | null;
 }

@@ -159,15 +159,10 @@ interface ResolvedBranch {
  * fragments move to, are all collected before any field is, so type-level selections come first
  * in the merge list and the plan does not depend on which occurrence of a field, or which path
  * match, came first in the document.
- *
- * `mergedWith` are the selections graphql merges with these: the other nodes of the field a nested
- * plan hangs from. Nothing of them is planned here (each is walked by its own node's invocation);
- * they are read only when a select function asks for `selected.args`.
  */
 export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
   branches: Branch[],
-  mergedWith?: () => Branch[],
 ) {
   const resolved = branches.flatMap((branch) => resolveBranch(plan, branch));
   const enteredTypes = new Set<WalkedType>();
@@ -197,26 +192,6 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
   }
 
   const invocations: Invocations = new Set();
-  const fields = fieldsOf(plan, resolved);
-
-  for (const field of fields) {
-    walkField(
-      plan,
-      field.type,
-      field.node,
-      field.indirectPath,
-      invocations,
-      field.expandedFrom,
-      () => mergedNodes(plan, fields, field, mergedWith),
-    );
-  }
-}
-
-/** The fields of every branch, in the order they are walked. */
-function fieldsOf<Model, Query, NodeType extends NodeBase<Model>>(
-  plan: Plan<Model, Query, NodeType>,
-  resolved: ResolvedBranch[],
-): SelectedField[] {
   const fields: SelectedField[] = [];
 
   for (const { type, selectionSets, indirectPath } of resolved) {
@@ -227,7 +202,17 @@ function fieldsOf<Model, Query, NodeType extends NodeBase<Model>>(
     }
   }
 
-  return fields;
+  for (const field of fields) {
+    walkField(
+      plan,
+      field.type,
+      field.node,
+      field.indirectPath,
+      invocations,
+      field.expandedFrom,
+      () => mergedNodes(plan, fields, field),
+    );
+  }
 }
 
 /** A field node `walkSelections` found, with the type it is walked as. */
@@ -239,23 +224,19 @@ interface SelectedField {
 }
 
 /**
- * The nodes graphql merges into `field`'s response field: those with its response key and include
- * path, on a type a row of `field`'s type can also be, in the walk and in the selections graphql
- * merges with the walk's (`mergedWith`, see `walkBranches`).
+ * The nodes graphql merges into `field`'s response field: those of the walk with its response key
+ * and include path, on a type a row of `field`'s type can also be.
  */
 function mergedNodes<Model, Query, NodeType extends NodeBase<Model>>(
-  plan: Plan<Model, Query, NodeType>,
+  { info }: Plan<Model, Query, NodeType>,
   fields: readonly SelectedField[],
   field: SelectedField,
-  mergedWith?: () => Branch[],
 ): FieldNode[] {
-  const { info } = plan;
   const key = responseKey(field.node);
   const path = field.indirectPath.join('.');
   const nodes = new Set<FieldNode>();
-  const beside = mergedWith?.().flatMap((branch) => resolveBranch(plan, branch));
 
-  for (const other of beside?.length ? [...fields, ...fieldsOf(plan, beside)] : fields) {
+  for (const other of fields) {
     if (
       responseKey(other.node) === key &&
       other.indirectPath.join('.') === path &&
@@ -267,43 +248,6 @@ function mergedNodes<Model, Query, NodeType extends NodeBase<Model>>(
   }
 
   return [...nodes];
-}
-
-/**
- * The other nodes graphql merges with `fieldNode`, one per shape of selection set, by that shape.
- * A node whose selection set has `fieldNode`'s own shape selects nothing `fieldNode` does not.
- */
-function mergedBeside(
-  info: GraphQLResolveInfo,
-  fieldNode: FieldNode,
-  nodes: readonly FieldNode[],
-): Map<number, FieldNode> {
-  const own = selectionShape(info, fieldNode.selectionSet);
-  const beside = new Map<number, FieldNode>();
-
-  for (const node of nodes) {
-    const shape = selectionShape(info, node.selectionSet);
-
-    if (shape !== own) {
-      beside.set(shape, node);
-    }
-  }
-
-  return beside;
-}
-
-/**
- * What a walk beneath `fieldNode` that reads `selected.args` reads besides its own selection set:
- * the shapes of the selection sets graphql merges with it. Empty when there are none.
- */
-export function mergedKey(
-  info: GraphQLResolveInfo,
-  fieldNode: FieldNode,
-  nodes: readonly FieldNode[],
-): string {
-  const shapes = [...mergedBeside(info, fieldNode, nodes).keys()];
-
-  return shapes.length > 0 ? `+${shapes.sort((a, b) => a - b).join('+')}` : '';
 }
 
 function responseKey(node: FieldNode) {
@@ -719,7 +663,7 @@ function runSelect<Model, Query, NodeType extends NodeBase<Model>>(
   return select(
     args,
     plan.context,
-    nestedSelectionFor(plan, args, position, mapping, nodes),
+    nestedSelectionFor(plan, args, position, mapping),
     selectedFieldNodeFor(plan, position, nodes),
     position,
   );
@@ -772,7 +716,6 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
   args: object,
   position: Position,
   mapping: Invocation,
-  nodes: () => readonly FieldNode[],
 ): NestedSelection<Query> {
   const { adapter, context, info } = plan;
   const { node: fieldNode } = position;
@@ -819,21 +762,21 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
       // include's segments are names and type names.
       const walkKey = `${selectionShape(info, fieldNode.selectionSet)}:${returnType.name}:${target.name}:${paths ? JSON.stringify(paths) : ''}`;
 
-      const child = plan.nested(target, position, walkKey, nodes, (walked) => {
-        // The selection beneath one node of the field, as the branches a walk takes.
-        const branchesOf = (node: FieldNode): Branch[] => {
-          if (paths) {
-            // Each match is walked as its own type; the wrapper's selection set is not walked.
-            const matches = matchesForModel(
-              adapter,
-              info.schema,
-              findMatches(info, returnType, node, paths, {
-                prefix: includeOf(returnType)?.path,
-              }),
-              target,
-            );
+      const child = plan.nested(target, position, walkKey, (walked) => {
+        if (paths) {
+          // Each match is walked as its own type; the wrapper's selection set is not walked.
+          const matches = matchesForModel(
+            adapter,
+            info.schema,
+            findMatches(info, returnType, fieldNode, paths, {
+              prefix: includeOf(returnType)?.path,
+            }),
+            target,
+          );
 
-            return matches.map((match) => ({
+          walkBranches(
+            walked,
+            matches.map((match) => ({
               // As `Plan.fromInfo` does for its own paths: a matched type with a model is walked
               // with it, and one without (an interface, a wrapper) as the type asked for, so its
               // fields are found and a fragment narrowing to it applies.
@@ -841,22 +784,21 @@ function nestedSelectionFor<Model, Query, NodeType extends NodeBase<Model>>(
               fieldNodes: [match.field],
               indirectPath: match.path,
               deferred: match.deferred,
-            }));
-          }
-
+            })),
+          );
+        } else {
           const asType = (type: GraphQLNamedType): Branch => ({
             type,
-            fieldNodes: [node],
+            fieldNodes: [fieldNode],
             indirectPath: [],
             deferred: false,
           });
 
-          return [...(target === returnType ? [] : [asType(target)]), asType(returnType)];
-        };
-
-        walkBranches(walked, branchesOf(fieldNode), () =>
-          [...mergedBeside(info, fieldNode, nodes()).values()].flatMap(branchesOf),
-        );
+          walkBranches(walked, [
+            ...(target === returnType ? [] : [asType(target)]),
+            asType(returnType),
+          ]);
+        }
       });
 
       if (isThenable(query)) {
@@ -997,8 +939,6 @@ function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
   }
 
   getSelection.args = (path: string[]) => {
-    plan.argsRead = true;
-
     const values = nodes()
       .flatMap((node) =>
         findMatches(info, returnType, node, [path.map((name) => ({ name }))], { prefix }),
