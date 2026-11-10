@@ -169,7 +169,7 @@ helper's `ref` as the connection type.
 
 Call `getQuery` in the connection field's own `select`, at the top level, not inside another
 relation's entry. To put the connection on another type, make that type a [variant](./variants) of
-the model.
+the model the field is on.
 
 `select` and `query` also receive the field's arguments and context. Add the helper's `args` to the
 field with `args: commenters.getArgs()`.

@@ -1637,6 +1637,95 @@ describe('prismaConnectionHelpers', () => {
     expect(result.statements.map(({ sql }) => sql).join()).not.toMatch(/count\(/i);
   });
 
+  describe('behind an errors result', () => {
+    function errorsSchema() {
+      const builder = createBuilder();
+      builder.prismaObject('Post', {
+        fields: (t) => ({
+          title: t.exposeString('title'),
+          author: t.relation('author'),
+        }),
+      });
+      const posts = prismaConnectionHelpers(builder, 'Post', {
+        query: { orderBy: { title: 'asc' } },
+        totalCount: true,
+      });
+      builder.prismaObject('User', {
+        fields: (t) => ({
+          firstName: t.exposeString('firstName'),
+          postPage: t.connection(
+            {
+              type: posts.ref,
+              errors: { types: [] },
+              select: (args, ctx, nestedSelection) => ({
+                posts: posts.getQuery(args, ctx, nestedSelection),
+              }),
+              resolve: (user, args, ctx) => posts.resolve(user.posts, args, ctx),
+            },
+            { fields: (c) => ({ totalCount: c.int({ resolve: (page) => page.totalCount }) }) },
+          ),
+        }),
+      });
+      builder.queryType({
+        fields: (t) => ({
+          users: t.prismaField({
+            type: ['User'],
+            collection: () => db.orm.User.orderBy((user) => user.id.asc()),
+          }),
+        }),
+      });
+      return builder.toSchema();
+    }
+    const page = (args: string, body: string) =>
+      `postPage(${args}) { ... on UserPostPageSuccess { data { ${body} } } }`;
+
+    it('plans a relation beneath the nodes into the page', async () => {
+      const result = await run(
+        errorsSchema(),
+        `{ users { ${page('first: 1', 'totalCount edges { node { title author { firstName } } }')} } }`,
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.users).toEqual([
+        {
+          postPage: {
+            data: {
+              totalCount: 2,
+              edges: [{ node: { title: 'Draft #1', author: { firstName: 'Alice' } } }],
+            },
+          },
+        },
+        {
+          postPage: {
+            data: {
+              totalCount: 2,
+              edges: [{ node: { title: 'Bob draft', author: { firstName: 'Bob' } } }],
+            },
+          },
+        },
+      ]);
+      expect(result.statements).toHaveLength(1);
+    });
+
+    it('loads a page for each alias', async () => {
+      const result = await run(
+        errorsSchema(),
+        `{ users { a: ${page('first: 1', 'edges { node { title } }')} b: ${page('last: 1', 'edges { node { title } }')} } }`,
+      );
+      expect(result.errors).toBeUndefined();
+      expect(result.data.users).toEqual([
+        {
+          a: { data: { edges: [{ node: { title: 'Draft #1' } }] } },
+          b: { data: { edges: [{ node: { title: 'Hello, Pothos' } }] } },
+        },
+        {
+          a: { data: { edges: [{ node: { title: 'Bob draft' } }] } },
+          b: { data: { edges: [{ node: { title: 'Bob writes' } }] } },
+        },
+      ]);
+      expect(result.statements).toHaveLength(1);
+    });
+  });
+
   // Post.comments → Comment.author: the page follows the comments, while each node is a user.
   function commentersSchema({
     calls = { query: 0, select: 0 },
