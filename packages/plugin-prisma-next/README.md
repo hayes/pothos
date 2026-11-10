@@ -28,8 +28,9 @@ npm install --save @pothos/core @pothos/plugin-prisma-next @pothos/plugin-relay 
 ```
 
 Install every `@prisma/orm-*` package, including your database's (such as `@prisma/orm-postgres`),
-at `8.0.0-rc.23`. A second copy of any of them breaks values passed between the two. Requires Node.js 22.18+ or 24+, and for SQLite
-22.20+ or 24.7+.
+at `8.0.0-rc.23`. A second copy of any of them breaks values passed between the two. The database
+packages also need `temporal-polyfill`, which npm and pnpm install automatically; with Yarn, add it
+yourself. Requires Node.js 22.20+ or 24.7+.
 
 ```ts
 import SchemaBuilder from '@pothos/core';

@@ -15,9 +15,10 @@ npm install --save @pothos/core @pothos/plugin-prisma-next graphql @prisma/orm-f
 
 The plugin targets Prisma ORM `8.0.0-rc.23` exactly. Install every `@prisma/orm-*` package,
 including your database's (such as `@prisma/orm-postgres`), at that version. A second copy of any
-of them breaks values passed between the two.
+of them breaks values passed between the two. The database packages also need `temporal-polyfill`,
+which npm and pnpm install automatically; with Yarn, add it yourself.
 
-Requires Node.js 22.18+ or 24+, and for SQLite 22.20+ or 24.7+. This plugin and
+Requires Node.js 22.20+ or 24.7+. This plugin and
 `@pothos/plugin-prisma` can't be used in the same program.
 If you use [`@pothos/plugin-scope-auth`](/docs/plugins/scope-auth), it needs to be 4.3.0 or newer.
 
