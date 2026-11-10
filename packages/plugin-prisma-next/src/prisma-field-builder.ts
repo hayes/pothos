@@ -43,6 +43,7 @@ import type {
   RelatedModel,
   RelationFieldArgs,
   RelationFieldShape,
+  RelationNameWritten,
   RelationQuery,
   RelationTypeModel,
   ToManyRelationKeys,
@@ -320,8 +321,10 @@ export class PrismaObjectFieldBuilder<
     Nullable extends boolean = Types['DefaultFieldNullability'],
     Args extends InputFieldMap = {},
     RelatedShape = Row<Types, RelatedModel<Types, M, RelName>>,
+    // The name as written, which a rejected name leaves out of `RelName`.
+    Written extends string = RelName,
   >(
-    name: RelName,
+    name: RelName & RelationNameWritten<Written>,
     ...allArgs: RelationFieldArgs<
       Types,
       M,
@@ -331,7 +334,8 @@ export class PrismaObjectFieldBuilder<
       RelatedShape,
       Shape,
       Query,
-      TypeModel
+      TypeModel,
+      Written
     >
   ): FieldRef<Types, RelationFieldShape<Types, M, RelName, Nullable>, 'PrismaObject'> {
     const [opts = {}] = allArgs as [
@@ -344,18 +348,18 @@ export class PrismaObjectFieldBuilder<
         extensions?: Record<string, unknown>;
       }?,
     ];
-    const { config, model, relation } = this.#relation(name as string);
+    const relationName = name as RelName as string;
+    const { config, model, relation } = this.#relation(relationName);
     const targetRef = refFor(this.builder, opts.type ?? relation.targetModel);
     const variant = variantForRelationType(
       this.contract as AnyContract,
-      `t.relation('${name as string}') on '${this.modelKey as string}'`,
+      `t.relation('${relationName}') on '${this.modelKey as string}'`,
       relation.targetModel,
       targetRef.modelKey,
     );
     // Rows narrowed to a variant are queried by its columns.
     const queryModel = variant === undefined ? relation.targetModel : targetRef.modelKey;
     const { type: _type, query, onNull, extensions, ...rest } = opts;
-    const relationName = name as string;
     // A to-one relation loads whole, so a variant `type` narrows it when the field resolves.
     const discriminator =
       variant === undefined || relation.isToMany

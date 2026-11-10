@@ -233,9 +233,16 @@ type RelationCanBeNull<
       : true;
 
 /**
+ * Gives `t.relation` a second place to infer the name the caller wrote, and never narrows the
+ * parameter: `RelName & RelationNameWritten<Written>` is `RelName`.
+ */
+export type RelationNameWritten<Written> = [Written] extends [unknown] ? unknown : Written;
+
+/**
  * The arguments of `t.relation`: `options` is required, with `onNull`, when the field is non-null
- * and the relation can resolve to null. While the name is rejected, `RelName` is its constraint, a
- * union, and `options` stays optional so the error is reported at the name.
+ * and the relation can resolve to null. While the name is rejected, `RelName` is its constraint,
+ * which `Written` is no member of, and `options` stays optional so the error is reported at the
+ * name.
  */
 export type RelationFieldArgs<
   Types extends SchemaTypes,
@@ -247,6 +254,7 @@ export type RelationFieldArgs<
   ParentShape,
   Query,
   TypeModel extends RelationTypeModel<Types, ParentModel, RelName>,
+  Written,
   Options = PrismaRelationOptions<
     Types,
     ParentModel,
@@ -261,8 +269,10 @@ export type RelationFieldArgs<
 > =
   true extends IsUnion<RelName>
     ? [options?: Options]
-    : [Nullable, RelationCanBeNull<Types, ParentModel, RelName, TypeModel>] extends [false, true]
-      ? [options: Options & { onNull: RelationOnNull<Types, ParentShape, Args, TypeModel> }]
+    : [Written] extends [RelName]
+      ? [Nullable, RelationCanBeNull<Types, ParentModel, RelName, TypeModel>] extends [false, true]
+        ? [options: Options & { onNull: RelationOnNull<Types, ParentShape, Args, TypeModel> }]
+        : [options?: Options]
       : [options?: Options];
 
 /**
