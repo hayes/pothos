@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.8.2
+
+### Patch Changes
+
+- a62d1fc: Forward cancellation of async connection nodes to the edge iterator, even before the first read or while a read is pending.
+
 ## 4.8.1
 
 ### Patch Changes

@@ -1,5 +1,29 @@
 # @pothos/plugin-drizzle
 
+## 0.20.3
+
+### Patch Changes
+
+- bc9db37: - Fields in fragments on interfaces without a table (such as `... on Node` beneath a drizzle interface) are now loaded by the parent query instead of a separate query. If the type-level selections of the types they cover conflict, the query fails, as it does for fragments that name those types. A field whose selection conflicts with them is loaded by a separate query.
+  - A selection set repeated at many levels of a document is planned once, so planning time grows linearly with the document's depth. A field `select` or relation `query` that reads its path is still planned at each place it appears. Beneath a fragment on an interface without a table, a field the implementations inherit from the drizzle interface is planned once, with a path that names that interface.
+  - Temporal values in query arguments no longer throw. Objects in query arguments other than plain objects, arrays and Dates (a `Buffer`, a typed array) are compared with their `equals` method, or by identity.
+  - A variant whose type-level relation `select` conflicts with an interface field's `select` now returns the right data, sometimes with an extra query.
+  - A field that an implementation redefines (with other relation arguments, say) no longer resolves from what the interface's field loaded when the document selects it on the interface.
+  - When a type implements two drizzle interfaces that both define a field, a document selecting that field through the interface the type does not inherit it from now loads it with an extra query.
+  - A conflict between the type-level selections of two variants now reaches clients as `Unexpected error.`. The conflict is described in the error's `cause`.
+- 9edbcea: `drizzleConnection` now accepts a `drizzleObject` or `drizzleNode` ref as its `type` the same way it accepts a table name. Drizzle object field builders now have `t.withAuth`, as prisma object field builders do.
+- 8686c06: A field on a row a `drizzleField` returned without its `query` no longer reads a relation that was never loaded when another row at the same response path, reached through a fragment on a different type, was loaded with the `query`; it reloads the row instead.
+- 8686c06: A field whose parent was loaded without its selection, or a node, reached at one response path through fragments on different types, now loads what its own branch selects instead of reusing the query planned for the other branch.
+- 8686c06: On graphql 17 and `@graphql-tools/executor` (Yoga), a field reloaded for a subscription event, or a node loaded for one, now runs its `select` and `query` callbacks for that event, instead of reusing what they returned for the first event.
+- 9f9efbe: With graphql-js, graphql-jit or `@graphql-tools/executor` (Yoga), operations and subscription events that share a context no longer resolve a filtered relation from rows loaded outside the plan, which could include rows the filter excludes. This holds when a subscription publishes the same payload object twice, or yields its root value. Operations sharing a context also no longer reload rows with a selection planned for another operation. Under graphql-jit, relations a query planned no longer load again for every row. Subscription events no longer resolve relations from what their `subscribe` planned, so an event whose payload `subscribe` loaded with `queryFromInfo` now reloads its relations like any other event. A `nestedSelection` path that doesn't fit the field's type now reaches clients as `Unexpected error.`, with the detail in the error's `cause`.
+- df2d4c0: Reduce type-check time for large schemas: the `client` option no longer compares every table's `findMany` signature, and `relatedConnection` types its connection and edge options with the node shape instead of a list shape.
+- b6d657f: With scope-auth 4.3.0 or later, checks that read the parent now see what the type loads, even for a row returned from a plain `t.field`. Resolvers still get the original row.
+- Updated dependencies [f42670b]
+- Updated dependencies [8686c06]
+- Updated dependencies [9fbe606]
+- Updated dependencies [c2fa676]
+  - @pothos/selection-mapper@0.2.0
+
 ## 0.20.2
 
 ### Patch Changes
