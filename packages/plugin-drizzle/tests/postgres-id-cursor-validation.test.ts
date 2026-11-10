@@ -213,6 +213,11 @@ describe('cursors on postgres', () => {
     ['score', 'DC:O:{"a":1}'],
     ['mood', 'DC:O:[1]'],
     ['amount', 'DC:O:{}'],
+    // a number is refused for a column that holds text other than a number
+    ['uid', 'DC:N:1'],
+    ['label', 'DC:N:1'],
+    ['code', 'DC:N:1'],
+    ['mood', 'DC:N:1'],
   ] as const)('refuses a %s cursor %s before any SQL', async (order, payload) => {
     for (const connection of ['root', 'related'] as const) {
       const result = await run(DOCUMENTS[connection], {
@@ -224,6 +229,18 @@ describe('cursors on postgres', () => {
       expectRefused(result, 'Invalid cursor.');
     }
   });
+});
+
+it.each([
+  'root',
+  'related',
+] as const)('pages a %s connection by numeric from a cursor holding a number', async (connection) => {
+  const all = await page(connection, 'amount', { first: 100 });
+  // a cursor covering only the amount: the rows past 1.5, not the two equal to it
+  const after = await page(connection, 'amount', { first: 100, after: cursor('DC:N:1.5') });
+
+  expect(after.edges.map((edge) => edge.node.key)).toEqual([3, 2]);
+  expect(after.edges.map((edge) => edge.node)).toEqual(all.edges.slice(4).map((edge) => edge.node));
 });
 
 describe('node IDs on postgres', () => {

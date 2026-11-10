@@ -9,16 +9,27 @@ import {
   doublePrecision,
   pgEnum,
   integer as pgInteger,
+  numeric as pgNumeric,
   pgTable,
+  text as pgText,
+  uuid,
 } from 'drizzle-orm/pg-core';
-import { getTableConfig, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  getTableConfig,
+  integer,
+  numeric,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 import type { ExecutionResult } from 'graphql';
 import { gql } from 'graphql-tag';
 import DrizzlePlugin from '../src';
 import { getCursorParser } from '../src/utils/cursors';
 
 // Values the plugin can write into a cursor or ID are read back, whatever JS type a driver option
-// made the row value: the checks reject only what no row of the column holds.
+// made the row value: the checks reject only what no row of the column holds, and never pass a
+// value of the wrong type to SQL, where the database's error would carry the query.
 
 function cursor(payload: string) {
   return Buffer.from(payload).toString('base64');
@@ -35,6 +46,28 @@ describe('cursor values a driver option can produce', () => {
     big: bigint({ mode: 'bigint' }).notNull(),
     value: doublePrecision().notNull(),
     mood: mood().notNull(),
+    label: pgText().notNull(),
+    uid: uuid().notNull(),
+    amount: pgNumeric().notNull(),
+    bigText: bigint({ mode: 'string' }).notNull(),
+  });
+
+  it('accepts a number or bigint only for a column holding a number as text', () => {
+    for (const column of [readings.amount, readings.bigText]) {
+      const parse = getCursorParser(['value', 'id'], [column, readings.id]);
+
+      expect(parse(cursor('DC:T:["N:2","N:1"]'))).toEqual({ value: 2, id: 1 });
+      expect(parse(cursor('DC:T:["I:2","N:1"]'))).toEqual({ value: BigInt(2), id: 1 });
+      expect(parse(cursor('DC:J:[2,1]'))).toEqual({ value: 2, id: 1 });
+    }
+
+    for (const column of [readings.label, readings.uid, readings.mood]) {
+      const parse = getCursorParser(['value', 'id'], [column, readings.id]);
+
+      expect(() => parse(cursor('DC:T:["N:2","N:1"]'))).toThrow('Invalid cursor.');
+      expect(() => parse(cursor('DC:T:["I:2","N:1"]'))).toThrow('Invalid cursor.');
+      expect(() => parse(cursor('DC:J:[2,1]'))).toThrow('Invalid cursor.');
+    }
   });
 
   it('accepts an enum label the schema no longer lists', () => {
@@ -80,6 +113,7 @@ describe('connections and nodes', () => {
       seq: integer().notNull(),
       area: text(),
       code: text().notNull(),
+      amount: numeric().notNull(),
     },
     (t) => [uniqueIndex('items_area_code').on(t.area, t.code)],
   );
@@ -111,6 +145,10 @@ describe('connections and nodes', () => {
         type: 'items',
         resolve: (query) => db.query.items.findMany(query({ orderBy: { seq: 'asc' } })),
       }),
+      byAmount: t.drizzleConnection({
+        type: 'items',
+        resolve: (query) => db.query.items.findMany(query({ orderBy: { amount: 'asc' } })),
+      }),
     }),
   });
 
@@ -119,14 +157,14 @@ describe('connections and nodes', () => {
   beforeAll(async () => {
     await client.execute(
       `create table items (id integer primary key, name text not null, seq integer not null,
-        area text, code text not null)`,
+        area text, code text not null, amount numeric not null)`,
     );
     await client.execute('create unique index items_area_code on items (area, code)');
     await db.insert(items).values([
-      { id: 1, name: '1', seq: 1, area: 'north', code: 'a' },
-      { id: 2, name: '2', seq: 2, area: null, code: 'b' },
-      { id: 3, name: '3', seq: 3, area: 'south', code: 'c' },
-      { id: 4, name: '4', seq: 4, area: 'south', code: 'd' },
+      { id: 1, name: '1', seq: 1, area: 'north', code: 'a', amount: '1.5' },
+      { id: 2, name: '2', seq: 2, area: null, code: 'b', amount: '2' },
+      { id: 3, name: '3', seq: 3, area: 'south', code: 'c', amount: '3.25' },
+      { id: 4, name: '4', seq: 4, area: 'south', code: 'd', amount: '4' },
     ]);
     schema = builder.toSchema();
   });
@@ -152,8 +190,8 @@ describe('connections and nodes', () => {
     `query ($after: String) { ${field}(first: 2, after: $after) { edges { node { key } } } }`;
 
   it.each([
-    // a text column read as a number
-    ['byName', 'DC:N:2'],
+    // a numeric column read as a number
+    ['byAmount', 'DC:N:2'],
     // an integer column read as a bigint
     ['bySeq', 'DC:I:2'],
   ])('pages %s from a cursor holding %s', async (field, payload) => {
@@ -165,10 +203,24 @@ describe('connections and nodes', () => {
     });
   });
 
-  it('still rejects an object for a text column', async () => {
-    const result = await run(page('byName'), { after: cursor('DC:O:{"a":1}') });
+  it.each([
+    ['a number', 'DC:N:2'],
+    ['a bigint', 'DC:I:2'],
+    ['an object', 'DC:O:{"a":1}'],
+    ['an array, read as a one-part prefix', 'DC:O:[1]'],
+  ])('rejects %s for a plain text column', async (_name, payload) => {
+    const result = await run(page('byName'), { after: cursor(payload) });
 
     expect(result.errors?.map((error) => error.message)).toEqual(['Invalid cursor.']);
+    expect(result.statements).toEqual([]);
+  });
+
+  it('rejects a number for a plain text column in a compound ID', async () => {
+    const result = await run('query ($id: ID!) { node(id: $id) { id } }', {
+      id: globalID('Item', '[1,"a"]'),
+    });
+
+    expect(result.errors?.map((error) => error.message)).toEqual(['Invalid ID.']);
     expect(result.statements).toEqual([]);
   });
 

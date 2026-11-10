@@ -7,8 +7,9 @@ import type { Column } from 'drizzle-orm';
  *
  * The checks are conservative: they reject only values no row of the column can hold. Driver
  * options can change the JS type a row value arrives as (numeric read as a number, integers as
- * bigints, a string-mode bigint as a number), so string-family columns also take numbers and
- * bigints, number columns bigints, and bigint columns numbers and decimal strings.
+ * bigints, a string-mode bigint as a number), so string columns holding a number as text
+ * (`numeric`, `unumeric`, `int64`, `uint64`) also take numbers and bigints, number columns
+ * bigints, and bigint columns numbers and decimal strings. Other string columns take strings only.
  * `column.dataType` describes the value after drizzle's codecs, which is what both a root row and
  * a nested relation row hold.
  *
@@ -159,14 +160,19 @@ function bigintValues(constraint: string | undefined): ColumnValues {
   };
 }
 
-/** A string column's values, which a driver option can also read as a number or bigint. */
-function stringValues(check: (value: string) => boolean): ColumnValues {
+/**
+ * A string column's values. One holding a number as text (`numeric`, a string-mode bigint) can
+ * also be read as a number or bigint, through a driver option; any other holds only strings.
+ */
+function stringValues(check: (value: string) => boolean, numericText = false): ColumnValues {
   const parse = (value: unknown) => {
     if (typeof value === 'string') {
       return check(value) ? value : INVALID;
     }
 
-    return typeof value === 'number' || typeof value === 'bigint' ? value : INVALID;
+    return numericText && (typeof value === 'number' || typeof value === 'bigint')
+      ? value
+      : INVALID;
   };
 
   return {
@@ -178,6 +184,7 @@ function stringValues(check: (value: string) => boolean): ColumnValues {
 }
 
 const anyString = stringValues(() => true);
+const numericString = stringValues(() => true, true);
 
 const dateValues: ColumnValues = {
   parseID: (text) => (DECIMAL_INTEGER.test(text) ? parseCanonicalDate(Number(text)) : INVALID),
@@ -249,9 +256,15 @@ function valuesFor(column: Column): ColumnValues {
         case 'uuid':
           return stringValues((value) => UUID.test(value));
         case 'int64':
-          return stringValues((value) => DECIMAL_INTEGER.test(value));
+          return stringValues((value) => DECIMAL_INTEGER.test(value), true);
         case 'uint64':
-          return stringValues((value) => DECIMAL_INTEGER.test(value) && !value.startsWith('-'));
+          return stringValues(
+            (value) => DECIMAL_INTEGER.test(value) && !value.startsWith('-'),
+            true,
+          );
+        case 'numeric':
+        case 'unumeric':
+          return numericString;
         default:
           return anyString;
       }
