@@ -107,7 +107,8 @@ builder.prismaObject('User', {
 ```
 
 A type in include mode can also opt out of fallback queries with `findUnique: null`. A field that
-would need one will throw `Missing findUnique for User` instead of querying.
+would need one fails with `Unexpected error.` instead of querying, and the error's `cause` names
+the type.
 
 With `ScopeAuthPlugin`, scope checks that read the parent see what its type loads (its `select`, or
 every scalar and its `include`), even for a row returned from a plain `t.field`, unless the type

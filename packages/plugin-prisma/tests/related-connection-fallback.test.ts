@@ -493,8 +493,9 @@ describe('relatedConnection fallback review follow-ups', () => {
       ghostUser { detachedWithCount(first: 2) { totalCount edges { node { id } } } }
     }`);
 
-    expect(result.errors?.[0]?.message).toMatch(
-      /Unable to load totalCount for User\.detachedWithCount/,
+    expect(result.errors?.[0]?.message).toBe('Unexpected error.');
+    expect((result.errors?.[0]?.originalError?.cause as Error).message).toBe(
+      'Unable to load totalCount for User.detachedWithCount: no User row matches the parent this connection resolved from',
     );
   });
 

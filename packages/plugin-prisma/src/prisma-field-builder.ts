@@ -12,8 +12,6 @@ import {
   type NormalizeArgs,
   ObjectRef,
   type PluginName,
-  PothosSchemaError,
-  PothosValidationError,
   RootFieldBuilder,
   type SchemaTypes,
   type ShapeFromTypeParam,
@@ -47,6 +45,7 @@ import {
 } from './util/cursors.js';
 import { getDelegateFromModel, getRefFromModel, getRelation } from './util/datamodel.js';
 import { getFieldDescription } from './util/description.js';
+import { InternalError } from './util/errors.js';
 import { getClient } from './util/get-client.js';
 import type { FallbackPlanRecipe } from './util/map-query.js';
 
@@ -352,7 +351,7 @@ export class PrismaObjectFieldBuilder<
       const loader = loaderCache?.(context);
 
       if (!loader) {
-        throw new PothosSchemaError(
+        throw new InternalError(
           `Unable to load totalCount for ${field}: no loader for the parent type`,
         );
       }
@@ -375,7 +374,7 @@ export class PrismaObjectFieldBuilder<
           const count = row?._count?.[name];
 
           if (count === undefined) {
-            throw new PothosValidationError(
+            throw new InternalError(
               `Unable to load totalCount for ${field}: no ${loader.modelName} row matches the parent this connection resolved from`,
             );
           }

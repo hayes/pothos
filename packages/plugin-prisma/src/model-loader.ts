@@ -12,6 +12,7 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { SelectionMap } from './types.js';
 import { type PrismaNode, type PrismaPlayedPlan, prismaAdapter } from './util/adapter.js';
 import { getDelegateFromModel, getModel } from './util/datamodel.js';
+import { InternalError } from './util/errors.js';
 import { getClient } from './util/get-client.js';
 import type { FieldMap } from './util/relation-map.js';
 
@@ -74,7 +75,7 @@ export class ModelLoader {
           modelName,
           findUnique === null
             ? () => {
-                throw new PothosSchemaError(`Missing findUnique for ${ref.name}`);
+                throw new InternalError(`Missing findUnique for ${ref.name}`);
               }
             : (findUnique ??
                 ModelLoader.getFindUnique(ModelLoader.getDefaultFindBy(ref, modelName, builder))),

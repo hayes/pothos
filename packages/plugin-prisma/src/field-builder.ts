@@ -5,7 +5,6 @@ import {
   isThenable,
   type MaybePromise,
   ObjectRef,
-  PothosError,
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
@@ -24,6 +23,7 @@ import {
   resolvePrismaCursorConnection,
 } from './util/cursors.js';
 import { getRefFromModel } from './util/datamodel.js';
+import { InternalError } from './util/errors.js';
 import { queryFromInfo } from './util/map-query.js';
 import { isUsed } from './util/usage.js';
 
@@ -295,7 +295,7 @@ function checkIfQueryIsUsed<Types extends SchemaTypes, T>(
     const message = `Prisma query was unused in resolver for ${info.parentType.name}.${info.fieldName}`;
 
     if (onUnusedQuery === 'error') {
-      throw new PothosError(message);
+      throw new InternalError(message);
     }
     if (onUnusedQuery === 'warn') {
       console.warn(message);

@@ -18,7 +18,7 @@ const builder = new SchemaBuilder<{
   },
 });
 
-// `findUnique: null` makes the loader's `findUnique` throw `Missing findUnique for ...`, which is
+// `findUnique: null` makes the loader's `findUnique` throw (`Missing findUnique for ...`), which is
 // the reachable misconfiguration: the throw happens inside the tick, once per staged model.
 const User = builder.prismaObject('User', {
   findUnique: null,
@@ -71,8 +71,13 @@ describe('model loader errors', () => {
       contextValue: {},
     });
 
-    // Both rows staged in the same tick error; neither hangs.
+    // Both rows staged in the same tick error; neither hangs. Clients see a generic message, the
+    // detail is on `cause`.
     expect(result.errors?.map((error) => error.message)).toEqual([
+      'Unexpected error.',
+      'Unexpected error.',
+    ]);
+    expect(result.errors?.map((error) => (error.originalError?.cause as Error).message)).toEqual([
       'Missing findUnique for User',
       'Missing findUnique for User',
     ]);
