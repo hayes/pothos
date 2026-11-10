@@ -1,4 +1,5 @@
 import SchemaBuilder, { PothosSchemaError } from '@pothos/core';
+import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute } from '@pothos/test-utils';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
@@ -9,8 +10,9 @@ import { type DrizzleRelations, db, relations } from './example/db';
 
 function createBuilder() {
   return new SchemaBuilder<{ DrizzleRelations: DrizzleRelations }>({
-    plugins: [ScopeAuthPlugin, DrizzlePlugin],
+    plugins: [ScopeAuthPlugin, RelayPlugin, DrizzlePlugin],
     drizzle: { client: () => db, getTableConfig, relations },
+    relay: {},
     scopeAuth: { authScopes: () => ({}) },
   });
 }
@@ -40,6 +42,23 @@ describe('mistakes in the app that surface at request time', () => {
     expect(define).toThrow(PothosSchemaError);
     expect(define).toThrow(
       'The select of drizzleObject User includes relation "followers", which table users does not have',
+    );
+  });
+
+  it('names drizzleNode when a node select names a relation the table does not have', () => {
+    const builder = createBuilder();
+
+    const define = () =>
+      builder.drizzleNode('users', {
+        name: 'UserNode',
+        id: { column: (user) => user.id },
+        select: { with: { posts: true, followers: true } },
+        fields: (t) => ({ firstName: t.exposeString('firstName', { nullable: true }) }),
+      });
+
+    expect(define).toThrow(PothosSchemaError);
+    expect(define).toThrow(
+      'The select of drizzleNode UserNode includes relation "followers", which table users does not have',
     );
   });
 

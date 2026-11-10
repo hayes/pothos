@@ -44,6 +44,7 @@ function defineDrizzleType(
     extensions?: {};
   },
   kind: 'Interface' | 'Object',
+  method = `drizzle${kind}`,
 ) {
   const isInterface = kind === 'Interface';
   const name = options.variant ?? options.name ?? table;
@@ -66,7 +67,7 @@ function defineDrizzleType(
     drizzleAdapter(schemaConfig),
     schemaConfig.relations[table],
     typeSelect ?? {},
-    `drizzle${kind} ${name}`,
+    `${method} ${name}`,
   );
 
   const config = {
@@ -204,7 +205,13 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
     },
   };
 
-  const ref = this.drizzleObject(table, extendedOptions as never);
+  const ref = defineDrizzleType(
+    this,
+    table,
+    extendedOptions as never,
+    'Object',
+    'drizzleNode',
+  ) as DrizzleObjectRef<SchemaTypes>;
 
   if (options.interfaces) {
     ref.addInterfaces(options.interfaces);
