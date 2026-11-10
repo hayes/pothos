@@ -1,9 +1,0 @@
-import { InterfaceRef, type SchemaTypes } from '@pothos/core';
-import { type PrismaObjectRef, prismaModelKey } from './object-ref.js';
-import type { PrismaModelTypes } from './types.js';
-export type PrismaRef<Types extends SchemaTypes, Model extends PrismaModelTypes, T = {}> = PrismaInterfaceRef<Types, Model, T> | PrismaObjectRef<Types, Model, T>;
-export declare class PrismaInterfaceRef<Types extends SchemaTypes, Model extends PrismaModelTypes, T = {}> extends InterfaceRef<Types, T> {
-    [prismaModelKey]: Model;
-    modelName: string;
-    constructor(name: string, modelName: string);
-}
