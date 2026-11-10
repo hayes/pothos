@@ -38,6 +38,8 @@ const ORDERS = {
   label: { label: 'asc' },
   mood: { mood: 'asc' },
   code: { code: 'asc' },
+  // an integer array, compared element by element
+  tags: { tags: 'asc' },
 } as const;
 
 type Order = keyof typeof ORDERS;
@@ -227,6 +229,10 @@ describe('cursors on postgres', () => {
     ['label', 'DC:N:1'],
     ['code', 'DC:N:1'],
     ['mood', 'DC:N:1'],
+    // an array column's value is an array, in a tagged and a legacy cursor
+    ['tags', 'DC:S:x'],
+    ['tags', 'DC:N:1'],
+    ['tags', 'DC:J:1'],
   ] as const)('refuses a %s cursor %s before any SQL', async (order, payload) => {
     for (const connection of ['root', 'related'] as const) {
       const result = await run(DOCUMENTS[connection], {
@@ -250,6 +256,20 @@ it.each([
 
   expect(after.edges.map((edge) => edge.node.key)).toEqual([3, 2]);
   expect(after.edges.map((edge) => edge.node)).toEqual(all.edges.slice(4).map((edge) => edge.node));
+});
+
+it.each([
+  'root',
+  'related',
+] as const)('pages a %s connection by an array column from a cursor it wrote', async (connection) => {
+  const first = await page(connection, 'tags', { first: 2 });
+
+  expect(first.edges.map((edge) => edge.node.key)).toEqual([3, 2]);
+  expect(Buffer.from(first.edges[1].cursor, 'base64').toString()).toBe('DC:T:["O:[1,5]","N:2"]');
+
+  const next = await page(connection, 'tags', { first: 2, after: first.edges[1].cursor });
+
+  expect(next.edges.map((edge) => edge.node.key)).toEqual([5, 1]);
 });
 
 describe('node IDs on postgres', () => {
