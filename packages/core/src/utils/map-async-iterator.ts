@@ -1,14 +1,13 @@
 type MappedAsyncIterator<T> = AsyncIterableIterator<T> & AsyncGenerator<T>;
 
 /**
- * Map yielded values while forwarding cancellation immediately, even during a
- * pending read. An optional error handler can turn a terminal failure into one
- * final value. Cleanup yields are awaited and mapped like ordinary values.
- * next(), throw(), and return() preserve source receivers and arguments; terminal
- * source results pass through unchanged. A return() result with done: false keeps
- * the iterator active so callers can resume it or request return() again.
- * The source owns settling pending operations when closed. onClose releases owned
- * resources on terminal completion or failure, including mapping failures.
+ * Maps async iterator values and forwards return() without waiting for pending reads.
+ * Method arguments and completed results pass through unchanged. Values yielded
+ * by throw() or return() are mapped, and iteration can continue.
+ *
+ * onError may produce one final value. onClose runs once on completion or failure,
+ * after source and callback references are cleared. The source must settle its
+ * pending reads when closed.
  */
 export function mapAsyncIterator<T, R, E = never>(
   source: AsyncIterator<T>,
@@ -72,7 +71,7 @@ export function mapAsyncIterator<T, R, E = never>(
         return done();
       }
       failed = true;
-      // Start both cleanups immediately and preserve the read or mapping error.
+      // Start both cleanups before awaiting either; keep the original error.
       await Promise.allSettled([finish(), (async () => inner.return?.())()]);
       if (version !== cancellationVersion) {
         return done();
@@ -124,8 +123,8 @@ export function mapAsyncIterator<T, R, E = never>(
           return done();
         }
         failed = true;
-        // A failed mapping must not strand a source that yielded during cleanup.
-        // Preserve the control or mapping error if either cleanup also fails.
+        // If mapping a cleanup yield fails, close the source again.
+        // Cleanup failures must not replace the original error.
         await Promise.allSettled([
           finish(),
           ...(yielded ? [(async () => inner?.return?.())()] : []),

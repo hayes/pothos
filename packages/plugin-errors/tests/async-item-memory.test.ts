@@ -72,7 +72,7 @@ it('closes a late reentrant child and releases its request without another close
     await collect();
     expect.soft(sample.context.deref()).toBeUndefined();
   } finally {
-    // Regression cleanup only; the assertions require terminal failure to do this itself.
+    // Cleanup for a failing test; cancellation should already have closed the source.
     await sample.iterator.return(undefined);
     await sample.pending;
   }

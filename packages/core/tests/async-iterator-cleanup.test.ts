@@ -41,8 +41,7 @@ describe('async iterator terminal cleanup', () => {
     await entered.promise;
     await reentered.promise;
     expect(finished).toBe(false);
-    // Later terminal signals are independent; they cannot await the cleanup
-    // currently reentering them without creating a circular wait.
+    // Waiting for cleanup here would deadlock with its reentrant return().
     expect(await iterator.return(undefined)).toEqual({ done: true, value: undefined });
     expect(close).toHaveBeenCalledOnce();
     gate.resolve();

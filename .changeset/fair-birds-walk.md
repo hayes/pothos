@@ -1,5 +1,5 @@
 ---
-"@pothos/plugin-relay": patch
+'@pothos/plugin-relay': patch
 ---
 
-Forward cancellation of asynchronous connection nodes to their edge source immediately, including before the first read and while a read is pending.
+Forward cancellation of async connection nodes to the edge iterator, even before the first read or while a read is pending.

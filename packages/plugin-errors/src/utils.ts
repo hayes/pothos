@@ -202,8 +202,7 @@ export function* yieldErrors(
   }
 }
 
-// This scope owns children only; retained control methods must not retain the
-// mapping policy or its request callbacks after mapAsyncIterator releases them.
+// Control methods can outlive the request, so this object must not hold its callbacks.
 class NestedIteratorOwner {
   private active = new Set<AsyncGenerator<unknown>>();
   private closed = false;
@@ -228,8 +227,7 @@ class NestedIteratorOwner {
   async close() {
     this.closed = true;
     const children = [...this.active];
-    // Relinquish ownership before cleanup, including reentrant or failed cleanup.
-    // Like iterator closing, request return once without draining cleanup yields.
+    // Clear before calling return() so reentrant cleanup cannot close a child twice.
     this.active.clear();
     const results = await Promise.allSettled(children.map((child) => child.return(undefined)));
     for (const result of results) {
@@ -240,10 +238,8 @@ class NestedIteratorOwner {
   }
 }
 
-// List cancellation follows for-await: close once and ignore cleanup yields.
-// Subscriptions use mapAsyncIterator directly and can resume after return yields.
-// Control values belong to this list wrapper: return(value) finishes with value;
-// throw(error) closes the source and raises error instead of injecting it there.
+// Match for-await cancellation: close once, ignore cleanup yields, and do not forward throw().
+// Subscriptions use the core mapper directly so their control results pass through.
 function createListSourceIterator(source: AsyncIterator<unknown>): AsyncIterator<unknown> {
   let iterator: AsyncIterator<unknown> | undefined = source;
   const close = () => {
@@ -264,7 +260,7 @@ function createListSourceIterator(source: AsyncIterator<unknown>): AsyncIterator
       try {
         await close();
       } catch {
-        // Preserve the injected error if cleanup also fails.
+        // Keep the error passed to throw().
       }
       throw error;
     },

@@ -30,7 +30,7 @@ it.each([false, true])('closes an async item list promptly (read started: %s)', 
   try {
     expect(source.return).toHaveBeenCalledOnce();
   } finally {
-    // Make a regression fail without leaving a pending iterator behind.
+    // Always release the pending read, even if the assertion fails.
     await source.return!();
     await Promise.all([pending, closing]);
   }
@@ -39,7 +39,7 @@ it.each([false, true])('closes an async item list promptly (read started: %s)', 
   }
 });
 
-it('returns the caller value and ignores source cleanup yields when closing a list', async () => {
+it('uses the caller return value when closing a list', async () => {
   const source = quietSource();
   source.return = vi.fn(async () => ({ value: 'cleanup yield', done: false }));
   const iterator = yieldAsyncErrors(source, []);
@@ -53,7 +53,7 @@ it('returns the caller value and ignores source cleanup yields when closing a li
   expect(source.next).not.toHaveBeenCalled();
 });
 
-it('closes a list and preserves an injected error instead of recovering through source.throw', async () => {
+it('preserves list throw errors when cleanup fails', async () => {
   const error = new Error('injected');
   const source = quietSource();
   source.throw = vi.fn(async () => ({ value: 'recovered', done: false }));
@@ -81,7 +81,6 @@ it.each([
   outer.next = vi.fn(async () => ({ value: depth === 2 ? middle : inner, done: false }));
   const iterator = yieldAsyncErrors(outer, [Error], undefined, depth);
   const pending = iterator.next();
-  // Wait until the mapper has begun consuming the nested list.
   await vi.waitFor(() => expect(inner.next).toHaveBeenCalledOnce());
   const closing = dispose ? iterator[Symbol.asyncDispose]() : iterator.return(undefined);
   try {

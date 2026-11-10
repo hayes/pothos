@@ -53,7 +53,7 @@ function failingIterator(error: Error, cleanup: { calls: number }) {
   };
   const map = () => context;
   const onError = (failure: unknown) => {
-    // Model a policy callback that captures the request being completed.
+    // Keep the request context captured by the callback.
     context.payload.length;
     throw failure;
   };
@@ -86,7 +86,7 @@ it('releases source and callback contexts after a terminal failure with failing 
   expect(closed.map.deref()).toBeUndefined();
   expect(closed.onError.deref()).toBeUndefined();
   expect(closed.onClose.deref()).toBeUndefined();
-  // Keep the completed wrapper alive while checking that its captured request is gone.
+  // Keep the wrapper reachable during GC.
   expect(await closed.iterator.next()).toEqual({ done: true, value: undefined });
 });
 
@@ -108,7 +108,7 @@ it('releases closed subscription contexts and keeps subscription churn bounded',
   expect(unread.source.deref()).toBeUndefined();
   expect(unread.context.deref()).toBeUndefined();
   expect(unread.onError.deref()).toBeUndefined();
-  // Keep the closed wrapper rooted while checking that its request context is gone.
+  // Keep both wrappers reachable during GC.
   await closed.iterator.next();
   await unread.iterator.next();
 
