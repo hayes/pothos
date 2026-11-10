@@ -34,11 +34,8 @@ nullableFieldBuilder.queryType({
       resolve: () => null,
     }),
     nullableListError: t.booleanList({
-      resolve: () => [
-        false,
-        // @ts-expect-error testing default nullability
-        null,
-      ],
+      // @ts-expect-error testing default nullability
+      resolve: () => [false, null],
     }),
     nonNullableList: t.booleanList({
       nullable: false,
@@ -76,11 +73,8 @@ nullableFieldBuilder.queryType({
         items: false,
         list: true,
       },
-      resolve: () => [
-        true,
-        // @ts-expect-error testing default nullability
-        null,
-      ],
+      // @ts-expect-error testing default nullability
+      resolve: () => [true, null],
     }),
     bothNull: t.booleanList({
       nullable: {
@@ -158,11 +152,8 @@ nonNullableFieldBuilder.queryType({
     }),
     nullableListError: t.booleanList({
       nullable: true,
-      resolve: () => [
-        false,
-        // @ts-expect-error testing default nullability
-        null,
-      ],
+      // @ts-expect-error testing default nullability
+      resolve: () => [false, null],
     }),
     nonNullableList: t.booleanList({
       resolve: () => [false],
@@ -198,11 +189,8 @@ nonNullableFieldBuilder.queryType({
         items: false,
         list: true,
       },
-      resolve: () => [
-        true,
-        // @ts-expect-error testing default nullability
-        null,
-      ],
+      // @ts-expect-error testing default nullability
+      resolve: () => [true, null],
     }),
     bothNull: t.booleanList({
       nullable: {
