@@ -24,9 +24,8 @@ export type QueryFromInfoResult<T> = Omit<T, keyof QueryFromInfoOptions<boolean>
 };
 
 /**
- * The query `t.drizzleQueryFromInfo` returns. It is branded like the `query` of `drizzleField`, so
- * its rows can be returned from a field of the table's type. Extras that may be undefined add
- * nothing to the rows, as in Drizzle's own types.
+ * The query options returned by `t.drizzleQueryFromInfo`. Branded like the `query` passed to
+ * `t.drizzleField`, so the rows can be returned from a field of the table's type.
  */
 export type DrizzleQueryFromInfoResult<T, Table> = Omit<QueryFromInfoResult<T>, 'extras'> & {
   extras: (T extends { extras: infer Extras extends object } ? Extras : unknown) & {

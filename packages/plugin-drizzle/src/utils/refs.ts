@@ -36,10 +36,8 @@ export function getRefFromModel<Types extends SchemaTypes>(
 }
 
 /**
- * Without `DrizzleRelations` there are no table names, and a name is checked against `never`. The
- * name positions accept this hint as well, so the error names the missing setup. It is a branded
- * string rather than a literal, so editors don't offer it, and `never` once `DrizzleRelations` is
- * set. `List` adds the hint in a list, for the positions that take `[name]`.
+ * Added to table name parameters when `DrizzleRelations` isn't set, so the error says how to set
+ * it up instead of showing `never`. It's a branded string so editors don't suggest it.
  */
 type MissingDrizzleRelations<Hint extends string> = string & {
   readonly missingDrizzleRelations: Hint;

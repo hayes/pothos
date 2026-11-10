@@ -143,7 +143,7 @@ export type DrizzlePluginOptions<Types extends SchemaTypes> = DrizzlePluginBaseO
 
 export const drizzleTableName = Symbol.for('Pothos.drizzleTableName');
 
-/** Tags a parent shape with its table. Named, so emitted declarations can refer to it. */
+/** Marks a parent shape with its table name. */
 export interface DrizzleTableNameBrand<Table> {
   [drizzleTableName]?: Table;
 }
@@ -714,9 +714,8 @@ export type QueryForDrizzleConnection<
 type TableColumns<T> = T extends { columns: infer Columns } ? Columns : never;
 
 /**
- * The column names a table config has in common. Each table's columns are read on their own:
- * while a table name is being completed the config is every table, and inferring one `columns`
- * from all of them at once costs a comparison per pair of tables.
+ * The column names of a table config. Reads each table's columns separately, because inferring
+ * them from a union of every table made table name completion slow.
  */
 type TableColumnKeys<T extends TableRelationalConfig> = [T['table']['_']] extends [
   { columns: unknown },

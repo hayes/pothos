@@ -43,8 +43,8 @@ import type {
 import type { DrizzleQueryFromInfoResult } from './utils/map-query.js';
 import type { DrizzleRelationsHint } from './utils/refs.js';
 
-// True when Type is a union of names and TableConfig is exactly its default. A single name skips
-// the check: it reads the same rows either way, and a generic TableConfig would leave it unresolved.
+// True when Type is a union of names and TableConfig is exactly its default. A single name gets
+// the same shape either way, so it skips the check.
 type IsDefaultConfigOfNames<Type, TableConfig, Default> =
   IsUnion<Type> extends true
     ? (<T>() => T extends TableConfig ? 1 : 2) extends <T>() => T extends Default ? 1 : 2
@@ -129,9 +129,8 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleObjectRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        // While a name is being completed, Type and TableConfig are every table, and reading the
-        // rows from TableConfig compares each table with every other. When TableConfig is the
-        // default, each name's rows come from its own table instead.
+        // When TableConfig is the default, use each name's own table. Pairing every name with
+        // every table made table name completion very slow in large schemas.
         Shape extends {} = IsDefaultConfigOfNames<
           Type,
           TableConfig,
@@ -164,9 +163,8 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleInterfaceRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        // While a name is being completed, Type and TableConfig are every table, and reading the
-        // rows from TableConfig compares each table with every other. When TableConfig is the
-        // default, each name's rows come from its own table instead.
+        // When TableConfig is the default, use each name's own table. Pairing every name with
+        // every table made table name completion very slow in large schemas.
         Shape extends {} = IsDefaultConfigOfNames<
           Type,
           TableConfig,
@@ -199,9 +197,8 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleObjectRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        // While a name is being completed, Type and TableConfig are every table, and reading the
-        // rows from TableConfig compares each table with every other. When TableConfig is the
-        // default, each name's rows come from its own table instead.
+        // When TableConfig is the default, use each name's own table. Pairing every name with
+        // every table made table name completion very slow in large schemas.
         Shape extends {} = IsDefaultConfigOfNames<
           Type,
           TableConfig,
@@ -231,9 +228,8 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleInterfaceRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        // While a name is being completed, Type and TableConfig are every table, and reading the
-        // rows from TableConfig compares each table with every other. When TableConfig is the
-        // default, each name's rows come from its own table instead.
+        // When TableConfig is the default, use each name's own table. Pairing every name with
+        // every table made table name completion very slow in large schemas.
         Shape extends {} = IsDefaultConfigOfNames<
           Type,
           TableConfig,

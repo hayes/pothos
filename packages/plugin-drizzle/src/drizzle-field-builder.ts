@@ -138,7 +138,7 @@ export class DrizzleObjectFieldBuilder<
 
   relatedConnection: 'relay' extends PluginName
     ? <
-        // `& keyof` so a misspelled name's error lists the names, not the alias.
+        // `& keyof` so errors list the valid names instead of the type alias.
         Field extends ListRelation<TableConfig> & keyof TableConfig['relations'],
         Nullable extends boolean,
         Args extends InputFieldMap,
@@ -722,7 +722,7 @@ export class DrizzleObjectFieldBuilder<
   }
 
   relatedCount<
-    // `& keyof` so a misspelled name's error lists the names, not the alias.
+    // `& keyof` so errors list the valid names instead of the type alias.
     Field extends ListRelation<TableConfig> & keyof TableConfig['relations'],
     Args extends InputFieldMap,
     Where extends SQL | undefined,
@@ -800,7 +800,7 @@ export class DrizzleObjectFieldBuilder<
     Type extends TypeParam<Types>,
     Nullable extends boolean,
     ResolveReturnShape,
-    // `& keyof` so a misspelled name's error lists the names, not the alias.
+    // `& keyof` so errors list the valid names instead of the type alias.
     Name extends CompatibleTypes<Types, ExposableShape, Type, Nullable> & keyof ExposableShape,
   >(
     ...args: NormalizeArgs<
@@ -842,7 +842,7 @@ export class DrizzleObjectFieldBuilder<
     return <
       Nullable extends boolean,
       ResolveReturnShape,
-      // `& keyof` so a misspelled name's error lists the names, not the alias.
+      // `& keyof` so errors list the valid names instead of the type alias.
       Name extends CompatibleTypes<
         Types,
         ExposableShape,
