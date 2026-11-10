@@ -30,6 +30,8 @@ const helperOrders = {
   AUTHOR_NAME_DESC: { author: { name: 'desc' } },
   // Names no direction, so the cursor is appended ascending.
   AUTHOR_EMPTY: { author: {} },
+  // Prisma leaves out a key set to `undefined`, so this orders nothing.
+  PUBLISHED_UNDEFINED: { published: undefined },
 } satisfies Record<string, Prisma.PostOrderByWithRelationInput | undefined>;
 
 // The helpers take a single ordering object, so a list is only tried on the related connection.
@@ -46,6 +48,8 @@ const followerOrders = {
   NONE: undefined,
   KEY: [{ toId: 'asc' }, { fromId: 'desc' }],
   TO_ID_DESC: { toId: 'desc' },
+  // Names neither cursor column, so both are appended.
+  FROM_NAME_ASC: { from: { name: 'asc' } },
 } satisfies Record<
   string,
   Prisma.FollowOrderByWithRelationInput | Prisma.FollowOrderByWithRelationInput[] | undefined
@@ -320,6 +324,21 @@ describe('pagination matrix', () => {
 
     expect(orderBys).toMatchInlineSnapshot(`
       {
+        "followers FROM_NAME_ASC": [
+          [
+            {
+              "from": {
+                "name": "asc",
+              },
+            },
+            {
+              "fromId": "asc",
+            },
+            {
+              "toId": "asc",
+            },
+          ],
+        ],
         "followers KEY": [
           "unchanged",
         ],
@@ -384,6 +403,9 @@ describe('pagination matrix', () => {
             },
           ],
         ],
+        "helperPosts PUBLISHED_UNDEFINED": [
+          "unchanged",
+        ],
         "posts AUTHOR_EMPTY": [
           [
             {
@@ -435,7 +457,24 @@ describe('pagination matrix', () => {
         "posts PUBLISHED_THEN_ID": [
           "unchanged",
         ],
+        "posts PUBLISHED_UNDEFINED": [
+          "unchanged",
+        ],
       }
     `);
+  });
+
+  it('does not count a nullable unique column as making the order unique', () => {
+    // `c` is unique but nullable, and rows without one tie.
+    const helpers = prismaConnectionHelpers(builder, 'WithCompositeUnique', {
+      cursor: 'a_b',
+      query: { orderBy: { c: 'asc' } },
+    });
+
+    expect(helpers.getQuery({ first: 2 }, {}, () => true).orderBy).toEqual([
+      { c: 'asc' },
+      { a: 'asc' },
+      { b: 'asc' },
+    ]);
   });
 });
