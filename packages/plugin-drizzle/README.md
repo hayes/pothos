@@ -224,6 +224,8 @@ Adding `posts { title }` loads the public posts through the same root resolver.
 
 For a list field, use `type: ['users']` and `db.query.users.findMany(query())`. A plain lookup
 without arguments can pass no options to `query`; fields with filters pass those options to it.
+When the type's `select` also loads a relation named in the `with` passed to `query`, the rows the
+resolver gets back carry the type's version of it.
 
 #### Building a query from resolve info
 
@@ -377,8 +379,8 @@ Fallback queries are batched. Every row of a table that needs the same selection
 is loaded with one `findMany` filtered on the primary key, or on the first unique column for a
 table that has no primary key, and the rows are matched back to their parents. If the query does
 not return a row for a parent, because it was deleted since it was loaded, or never came from the
-table, that field rejects with `Model users(1) not found`, where the value in parentheses is the
-key that was looked up.
+table, that field fails with `Unexpected error.`, and the error's `cause` names the table and the
+key that was looked up, such as `Model users(1) not found`.
 
 The [alias query](https://pothos-graphql.dev/docs/plugins/drizzle/query-planning#compare-two-orderings-of-one-relation) demonstrates
 this fallback: newest and oldest cannot share one loaded posts list.

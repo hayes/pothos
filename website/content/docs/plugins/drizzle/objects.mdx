@@ -58,6 +58,8 @@ Adding `posts { title }` loads the public posts through the same root resolver.
 
 For a list field, use `type: ['users']` and `db.query.users.findMany(query())`. A plain lookup
 without arguments can pass no options to `query`; fields with filters pass those options to it.
+When the type's `select` also loads a relation named in the `with` passed to `query`, the rows the
+resolver gets back carry the type's version of it.
 
 ### `drizzleFieldWithInput`
 
