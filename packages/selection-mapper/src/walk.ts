@@ -20,7 +20,6 @@ import {
   type SelectionNode,
 } from 'graphql';
 import type { NodeBase } from './adapter.js';
-import { deepEqual } from './deep-equal.js';
 import { unexpectedError } from './errors.js';
 import { EMPTY_MAPPING, type Mapping, unionMappings } from './loader-map.js';
 import {
@@ -38,13 +37,7 @@ import {
 } from './matches.js';
 import type { Plan } from './plan.js';
 import { fieldShape, selectionShape } from './shape.js';
-import type {
-  NestedSelection,
-  Position,
-  SelectedFieldNode,
-  SelectFn,
-  WalkedType,
-} from './types.js';
+import type { NestedSelection, Position, SelectFn, WalkedType } from './types.js';
 
 /**
  * One select invocation's mapping record while the invocation runs: `pending` counts the nested
@@ -192,77 +185,14 @@ export function walkBranches<Model, Query, NodeType extends NodeBase<Model>>(
   }
 
   const invocations: Invocations = new Set();
-  const fields: SelectedField[] = [];
 
   for (const { type, selectionSets, indirectPath } of resolved) {
     const walked = new Set<string>();
 
     for (const selections of selectionSets) {
-      walkSelections(plan, type, selections, indirectPath, true, walked, fields);
+      walkSelections(plan, type, selections, indirectPath, true, walked, invocations);
     }
   }
-
-  for (const field of fields) {
-    walkField(
-      plan,
-      field.type,
-      field.node,
-      field.indirectPath,
-      invocations,
-      field.expandedFrom,
-      () => mergedNodes(plan, fields, field),
-    );
-  }
-}
-
-/** A field node `walkSelections` found, with the type it is walked as. */
-interface SelectedField {
-  type: WalkedType;
-  node: FieldNode;
-  indirectPath: string[];
-  expandedFrom?: WalkedType;
-}
-
-/**
- * The nodes graphql merges into `field`'s response field: those of the walk with its response key
- * and include path, on a type a row of `field`'s type can also be.
- */
-function mergedNodes<Model, Query, NodeType extends NodeBase<Model>>(
-  { info }: Plan<Model, Query, NodeType>,
-  fields: readonly SelectedField[],
-  field: SelectedField,
-): FieldNode[] {
-  const key = responseKey(field.node);
-  const path = field.indirectPath.join('.');
-  const nodes = new Set<FieldNode>();
-
-  for (const other of fields) {
-    if (
-      responseKey(other.node) === key &&
-      other.indirectPath.join('.') === path &&
-      overlaps(info, field.type, other.type) &&
-      !isSkipped(info, other.node)
-    ) {
-      nodes.add(other.node);
-    }
-  }
-
-  return [...nodes];
-}
-
-function responseKey(node: FieldNode) {
-  return node.alias?.value ?? node.name.value;
-}
-
-/** Whether a row can be of both types: two object types never overlap. */
-function overlaps(info: GraphQLResolveInfo, a: WalkedType, b: WalkedType) {
-  if (a === b || !(isObjectType(a) || isObjectType(b))) {
-    return true;
-  }
-
-  return isObjectType(a)
-    ? !isObjectType(b) && info.schema.isSubType(b, a)
-    : info.schema.isSubType(a, b);
 }
 
 /**
@@ -405,9 +335,9 @@ function enterVariants<Model, Query, NodeType extends NodeBase<Model>>(
 }
 
 /**
- * Second pass: collects the fields of `selections` into `fields` in document order, a fragment's
- * fields where the fragment appears. Fields apply unless the enclosing fragment cannot apply to
- * `type`; nested fragments are always classified against `type`, so one may narrow back to it.
+ * Second pass: walks `selections` in document order, a fragment's fields where the fragment
+ * appears. Fields apply unless the enclosing fragment cannot apply to `type`; nested fragments
+ * are always classified against `type`, so one may narrow back to it.
  */
 function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
@@ -416,13 +346,13 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
   indirectPath: string[],
   fieldsApply: boolean,
   visited: Set<string>,
-  fields: SelectedField[],
+  invocations: Invocations,
   expandedFrom?: WalkedType,
 ) {
   for (const selection of selections) {
     if (selection.kind === Kind.FIELD) {
       if (fieldsApply) {
-        fields.push({ type, node: selection, indirectPath, expandedFrom });
+        walkField(plan, type, selection, indirectPath, invocations, expandedFrom);
       }
 
       continue;
@@ -448,7 +378,7 @@ function walkSelections<Model, Query, NodeType extends NodeBase<Model>>(
         // An untyped fragment inherits; a typed one applies iff it can apply to `type`.
         fragment.typeCondition ? types.length > 0 : fieldsApply,
         visited,
-        fields,
+        invocations,
         isExpansion ? type : expandedFrom && keptBy(plan, expandedFrom, fragment),
       );
     }
@@ -564,8 +494,7 @@ function selectsFields(info: GraphQLResolveInfo, selections: readonly SelectionN
 
 /**
  * Collects what `fieldNode` (a field of `type`) selects. A select function is invoked once per
- * place in a walk; `invocations` holds the walk's, and without it every call invokes. `nodes` are
- * the nodes graphql merges with `fieldNode`, whose arguments beneath `selected.args` reads.
+ * place in a walk; `invocations` holds the walk's, and without it every call invokes.
  *
  * Beneath an expansion of the model interface `expandedFrom`, a field an implementation inherits
  * unchanged (see `definitionOf`) is planned on the interface: invoked once rather than once per
@@ -581,7 +510,6 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
   indirectPath: string[],
   invocations?: Invocations,
   expandedFrom?: WalkedType,
-  nodes: () => readonly FieldNode[] = () => [fieldNode],
 ) {
   const { info, context, adapter } = plan;
   const name = fieldNode.name.value;
@@ -640,8 +568,8 @@ export function walkField<Model, Query, NodeType extends NodeBase<Model>>(
 
   // The select runs as soon as its own arguments are known; only its merge waits.
   const query = isThenable(args)
-    ? args.then((mapped) => runSelect(plan, select, mapped, position, mapping, nodes))
-    : runSelect(plan, select, args, position, mapping, nodes);
+    ? args.then((mapped) => runSelect(plan, select, mapped, position, mapping))
+    : runSelect(plan, select, args, position, mapping);
 
   if (isThenable(query)) {
     plan.chain(query as PromiseLike<Query | false | null | undefined>, (resolved) =>
@@ -658,13 +586,12 @@ function runSelect<Model, Query, NodeType extends NodeBase<Model>>(
   args: object,
   position: Position,
   mapping: Invocation,
-  nodes: () => readonly FieldNode[],
 ) {
   return select(
     args,
     plan.context,
     nestedSelectionFor(plan, args, position, mapping),
-    selectedFieldNodeFor(plan, position, nodes),
+    selectedFieldNodeFor(plan, position),
     position,
   );
 }
@@ -900,9 +827,7 @@ function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
  * The first field node selected at `path` beneath the field, seen through any wrapper on the
  * field's return type (an errors plugin result, for instance), whose own path leads to the type
  * the caller's path starts from. An empty path yields the field node itself, or the wrapper's
- * inner node. `args` reads the arguments of every field selected at the path, beneath every node
- * graphql merges with the field's, and throws when they differ: one plan can't serve fields asking
- * for different things.
+ * inner node.
  *
  * A node selected only under a `@defer` is returned like any other, whatever the plan's deferred
  * setting says — an adapter gating a computed value on this over-reports rather than under-;
@@ -910,59 +835,29 @@ function mergeQuery<Model, Query, NodeType extends NodeBase<Model>>(
  */
 function selectedFieldNodeFor<Model, Query, NodeType extends NodeBase<Model>>(
   plan: Plan<Model, Query, NodeType>,
-  position: Position,
-  nodes: () => readonly FieldNode[],
-): SelectedFieldNode {
-  const { info, context } = plan;
-  const { field, node: fieldNode } = position;
-  const returnType = getNamedType(field.type);
-  const prefix = includeOf(returnType)?.path;
+  { field, node: fieldNode }: Position,
+) {
+  const { info } = plan;
   let names: ReadonlySet<string> | undefined;
 
   function getSelection(): ReadonlySet<string>;
   function getSelection(path: string[]): FieldNode | null;
   function getSelection(path?: string[]): ReadonlySet<string> | FieldNode | null {
     if (path === undefined) {
-      names ??= collectSelectedFieldNames(info, returnType, [fieldNode]);
+      names ??= collectSelectedFieldNames(info, getNamedType(field.type), [fieldNode]);
       return names;
     }
-
+    const returnType = getNamedType(field.type);
     const match = firstMatch(
       info,
       returnType,
       fieldNode,
       path.map((name) => ({ name })),
-      { prefix },
+      { prefix: includeOf(returnType)?.path },
     );
 
     return match?.field ?? null;
   }
-
-  getSelection.args = (path: string[]) => {
-    const values = nodes()
-      .flatMap((node) =>
-        findMatches(info, returnType, node, [path.map((name) => ({ name }))], { prefix }),
-      )
-      .map((match) =>
-        getMappedArgumentValues(match.definition ?? field, match.field, context, info),
-      );
-
-    if (values.length === 0) {
-      return null;
-    }
-
-    const agreed = (resolved: object[]) => {
-      if (resolved.some((value) => !deepEqual(value, resolved[0]))) {
-        throw unexpectedError(
-          `The fields selected at ${path.join('.')} beneath ${fieldName(position)} have different arguments.`,
-        );
-      }
-
-      return resolved[0];
-    };
-
-    return values.some(isThenable) ? Promise.all(values).then(agreed) : agreed(values as object[]);
-  };
 
   return getSelection;
 }
