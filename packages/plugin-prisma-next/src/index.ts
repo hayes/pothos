@@ -106,7 +106,10 @@ export {
   prismaModelBrand,
   type TypeBrand,
 } from './object-ref.js';
-/** The `t` of prisma type fields, with the methods other plugins add by declaration merging. */
+/**
+ * The `t` of prisma type fields, with the methods other plugins add by declaration merging. Declare
+ * those with method syntax, so a builder stays assignable where a helper takes one.
+ */
 export type PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,

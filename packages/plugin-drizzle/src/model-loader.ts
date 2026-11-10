@@ -158,9 +158,7 @@ export class ModelLoader {
         if (mapping) {
           // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
           // with, along with the mappings of the fields beneath it. Against `result` alone: this
-          // load fetched one row, so the field's own mapping is not the whole field's to claim.
-          // A sibling row that falls back on a later tick would otherwise read it as proof of
-          // having been loaded and resolve against a row that never carried the data.
+          // load fetched one row, so the field's own mapping answers for that row's lookup only.
           setRowFieldMapping(this.context, info, mapping, result);
         }
       }

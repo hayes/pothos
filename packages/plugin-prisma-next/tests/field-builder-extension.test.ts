@@ -12,7 +12,7 @@ declare global {
       in out ExposableShape = Row<Types, M>,
     > {
       /** Added by another plugin to the `t` of prisma type fields. */
-      testModelKey: () => M;
+      testModelKey(): M;
     }
   }
 }

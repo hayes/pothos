@@ -82,7 +82,7 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
  * with. `rowScoped` stays false while nothing has been recorded there, so a request whose rows
  * were all loaded the same way pays nothing for the row tier.
  *
- * `mappings` holds the mapping last recorded for each path, list indices dropped. It tells whether
+ * `mappings` holds a mapping recorded for each path, list indices dropped. It tells whether
  * the plans of a path's rows agree (see `claim`), and never answers a lookup: a row at the same
  * path that no plan loaded would read it as proof that one had.
  *
@@ -292,8 +292,8 @@ export function fieldKey(type: string, info: GraphQLResolveInfo): string {
 
 /**
  * The keys `mappings` is recorded under when it is rehomed beneath `prefix`. Built once per
- * prefix and shared by both tiers: the strings depend on the path and the plan's own keys, never
- * on which row is being recorded for.
+ * prefix: the strings depend on the path and the plan's own keys, never on which row is being
+ * recorded for.
  */
 function rehomedKeys(cached: Cache, prefix: string) {
   let keys = cached.rehomed.get(prefix);
@@ -328,8 +328,7 @@ function ownerOf(row: unknown): object | null {
 /**
  * Records `mapping` at `key` for `row`. An unclaimed key takes it, and a key already holding this
  * very mapping needs no write, so the rows after the first write nothing. Only a key two plans
- * disagree about gives the row a mapping of its own — or, with no row to hang it off, nothing, so
- * the resolvers beneath fall back and load their own data.
+ * disagree about gives the row a mapping of its own — or, with no row to hang it off, nothing.
  */
 function claim(cached: Cache, key: string, mapping: Mapping, row: object | null, place: object) {
   const held = cached.mappings.get(key);
@@ -410,8 +409,8 @@ export function setFieldMapping(
 
 /**
  * `setFieldMapping` for a plan that loaded `row` alone: the field's own mapping is recorded
- * against `row` rather than claimed for the whole field, so a sibling row the plan never loaded
- * keeps falling back instead of reading the entry and resolving against data it does not carry.
+ * against `row` rather than claimed for the whole field, so the field's lookup on `row` answers
+ * from it whatever the field's other rows were loaded with.
  *
  * Descendants inherit the mapping through this field's execution scope, even when their parent
  * is a child object or a connection wrapper rather than the row that was reloaded.

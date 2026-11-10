@@ -49,7 +49,7 @@ declare global {
       in out ExposableShape = Row<Types, M>,
     > {
       /** Added by another plugin to the `t` of prisma type fields. */
-      testPrismaFieldMethod: () => M;
+      testPrismaFieldMethod(model: M): Shape;
     }
   }
 }
@@ -76,26 +76,26 @@ const Viewer = builder.prismaObject('User', {
 builder.prismaObject('Post', {
   variant: 'MergedFieldBuilder',
   fields: (t) => {
-    expectTypeOf(t.testPrismaFieldMethod).returns.toEqualTypeOf<'Post'>();
+    expectTypeOf(t.testPrismaFieldMethod).parameter(0).toEqualTypeOf<'Post'>();
     return {};
   },
 });
 builder.prismaObjectField('User', 'mergedFieldBuilder', (t) => {
-  expectTypeOf(t.testPrismaFieldMethod).returns.toEqualTypeOf<'User'>();
+  expectTypeOf(t.testPrismaFieldMethod).parameter(0).toEqualTypeOf<'User'>();
   return t.exposeID('id');
 });
 // The exported constructor's instances, and annotations with the exported type, see merged methods.
-PrismaObjectFieldBuilder.prototype.testPrismaFieldMethod = function testPrismaFieldMethod(this: {
-  modelKey: string;
-}) {
-  return this.modelKey;
+PrismaObjectFieldBuilder.prototype.testPrismaFieldMethod = function testPrismaFieldMethod(
+  model: string,
+) {
+  return model;
 };
 expectTypeOf<PrismaObjectFieldBuilder<Types, 'User'>['testPrismaFieldMethod']>().toEqualTypeOf<
-  () => 'User'
+  (model: 'User') => unknown
 >();
 expectTypeOf(
   new PrismaObjectFieldBuilder<Types, 'User'>(builder, 'User', null as never).testPrismaFieldMethod,
-).toEqualTypeOf<() => 'User'>();
+).toEqualTypeOf<(model: 'User') => unknown>();
 // `variant` names a type that shares its model, so it can't be set beside `name`.
 // @ts-expect-error only one of `name` and `variant`
 builder.prismaObject('User', { name: 'A', variant: 'B', fields: () => ({}) });
