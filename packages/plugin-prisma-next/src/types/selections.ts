@@ -83,7 +83,7 @@ type FieldSelectEntry<Types extends SchemaTypes, ParentShape> =
  * returning a `select` object, which may be async with `AsyncSelections: true`. A function has one
  * form, the object.
  */
-export type PrismaFieldSelect<
+type PrismaFieldSelect<
   Types extends SchemaTypes,
   ParentShape,
   Args,
@@ -548,8 +548,16 @@ export type ShapeFromSelect<Types extends SchemaTypes, ParentShape, Select> = un
         >
     : ShapeFromSelectValue<Types, ParentShape, Select>;
 
+// A shape of several models is split by model, so each model's select reads only that model's
+// shape. An editor checks a call with every model key while completing the model name.
+type ShapeFromSelectValue<
+  Types extends SchemaTypes,
+  ParentShape,
+  Select,
+> = ParentShape extends unknown ? ShapeFromSelectValueOf<Types, ParentShape, Select> : never;
+
 // The unreachable `ParentShape` fallbacks make checks against a deferred shape cheaper.
-type ShapeFromSelectValue<Types extends SchemaTypes, ParentShape, Select> =
+type ShapeFromSelectValueOf<Types extends SchemaTypes, ParentShape, Select> =
   ExtractModel<Types, ParentShape> extends infer M
     ? M extends ModelKey<Types>
       ? Select extends readonly (infer K extends keyof Row<Types, M>)[]

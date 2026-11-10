@@ -1013,8 +1013,8 @@ describe('native model inheritance', () => {
       fields: (t) => ({
         tasks: t.connection({
           type: pages.ref,
-          select: (args, ctx, nestedSelection) => ({
-            tasks: pages.getQuery(args, ctx, nestedSelection),
+          select: (args, ctx) => ({
+            tasks: pages.getQuery(args, ctx),
           }),
           resolve: (user, args, ctx) => pages.resolve(user.tasks, args, ctx),
         }),
@@ -1054,8 +1054,8 @@ describe('native model inheritance', () => {
       fields: (t) => ({
         taskPage: t.connection({
           type: task,
-          select: (args, ctx, nestedSelection) => ({
-            tasks: tasks.getQuery(args, ctx, nestedSelection),
+          select: (args, ctx) => ({
+            tasks: tasks.getQuery(args, ctx),
           }),
           resolve: (user, args, ctx) => {
             loaded.push(...user.tasks);
@@ -1798,8 +1798,8 @@ describe('a relation targeting a variant model with a table of its own', () => {
         t.connection({
           type: Feature,
           nodeNullable: true,
-          select: (args, ctx, nestedSelection) => ({
-            featureNotes: features.getQuery(args, ctx, nestedSelection),
+          select: (args, ctx) => ({
+            featureNotes: features.getQuery(args, ctx),
           }),
           resolve: (feature, args, ctx) => features.resolve(feature.featureNotes, args, ctx),
         }),

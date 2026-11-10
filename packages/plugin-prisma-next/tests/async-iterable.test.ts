@@ -5,11 +5,11 @@ import {
   specifiedDirectives,
 } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import { collectionFromInfo, type Planned } from '../src';
+import { collectionFromInfo, type PrismaPlanned } from '../src';
 import { createBuilder, run, useSampleDb } from './fixtures/helpers';
 
 const db = useSampleDb();
-type UserRow = Planned<'User'> & { id: string };
+type UserRow = PrismaPlanned<'User'> & { id: string };
 
 function fixture(mode: 'normal' | 'pending' | 'late') {
   let rows: readonly UserRow[] = [];

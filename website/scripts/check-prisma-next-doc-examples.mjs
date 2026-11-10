@@ -184,6 +184,5 @@ export async function checkPrismaNextDocExamples(root, tsc) {
   } finally {
     await rm(fixture, { recursive: true, force: true });
   }
-  // Every block is checked; the caller still reports skipped ones.
-  return { checked, skipped: 0 };
+  return { checked };
 }

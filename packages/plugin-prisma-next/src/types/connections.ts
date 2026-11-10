@@ -96,7 +96,7 @@ export type PrismaConnectionFieldOptions<
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind,
   ResolveShape = ParentShape,
-  Returned extends ResolverCollection<Types, M> = ResolverCollection<Types, M>,
+  Returned extends ResolverCollection<Types, M> | null = ResolverCollection<Types, M>,
   EdgeNullability extends FieldNullability<[unknown]> = DefaultEdgesNullability<Types>,
   NodeNullability extends boolean = DefaultNodeNullability<Types>,
 > = Omit<
@@ -146,7 +146,7 @@ export type PrismaConnectionFieldOptions<
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => MaybePromise<
-      (Returned & NoInfer<UnorderedCollection<Returned>>) | (Nullable extends true ? null : never)
+      UnorderedCollection<Exclude<Returned, null>> | (Nullable extends true ? null : never)
     >;
   };
 

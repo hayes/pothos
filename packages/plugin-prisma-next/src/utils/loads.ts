@@ -69,21 +69,35 @@ export function queryLoad(
   };
 }
 
-const tables = createContextCache(
-  () => new Map<string, { loads: Load[]; seen: WeakMap<Load, number> }>(),
-);
+interface LoadTable {
+  size: number;
+  /** The loads seen and their indices, by `bucketOf`. */
+  buckets: Map<string, { load: Load; id: number }[]>;
+  seen: WeakMap<Load, number>;
+}
+
+const tables = createContextCache(() => new Map<string, LoadTable>());
+
+/** Loads that `deepEqual` share a bucket, so only a bucket is compared. */
+function bucketOf({ kind, variant, limit, offset }: Load) {
+  return `${kind}:${variant}:${limit}:${offset}`;
+}
 
 /** The index of `load` among the distinct loads of its relation seen in `ctx`. */
 function internLoad(ctx: object, model: PrismaModel, load: Load): number {
   const tablesOf = tables(ctx);
   const key = `${model.key}.${load.relation}`;
   const table =
-    tablesOf.get(key) ?? tablesOf.set(key, { loads: [], seen: new WeakMap() }).get(key)!;
+    tablesOf.get(key) ??
+    tablesOf.set(key, { size: 0, buckets: new Map(), seen: new WeakMap() }).get(key)!;
   let id = table.seen.get(load);
   if (id === undefined) {
-    id = table.loads.findIndex((seen) => deepEqual(seen, load));
-    if (id < 0) {
-      id = table.loads.push(load) - 1;
+    const bucket = bucketOf(load);
+    const seen = table.buckets.get(bucket) ?? table.buckets.set(bucket, []).get(bucket)!;
+    id = seen.find((entry) => deepEqual(entry.load, load))?.id;
+    if (id === undefined) {
+      id = table.size++;
+      seen.push({ load, id });
     }
     table.seen.set(load, id);
   }

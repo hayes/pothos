@@ -14,7 +14,7 @@ import type { PothosPrismaNextPlugin } from './index.js';
 import type { PrismaInterfaceRef } from './interface-ref.js';
 import type { PrismaNodeRef } from './node-ref.js';
 import type { PrismaObjectRef } from './object-ref.js';
-import type { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
+import type { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
 import type { ResolverCollection } from './types/collections.js';
 import type {
   ConnectionResultShape,
@@ -81,6 +81,14 @@ declare global {
     export interface PothosKindToGraphQLType {
       PrismaObject: 'Object';
     }
+
+    // The `t` of prisma type fields. Other plugins extend it by declaration merging.
+    export interface PrismaObjectFieldBuilder<
+      in out Types extends SchemaTypes,
+      in out M extends ModelKey<Types>,
+      Shape = unknown,
+      in out ExposableShape = Row<Types, M>,
+    > extends InternalPrismaObjectFieldBuilder<Types, M, Shape, ExposableShape> {}
 
     // Filled in by plugin-scope-auth when it's loaded.
     export interface ScopeAuthFieldAuthScopes<
@@ -343,7 +351,7 @@ declare global {
               Types,
               M
             >,
-            Returned extends ResolverCollection<Types, M> = ResolverCollection<Types, M>,
+            Returned extends ResolverCollection<Types, M> | null = ResolverCollection<Types, M>,
             EdgeNullability extends FieldNullability<[unknown]> = DefaultEdgesNullability<Types>,
             NodeNullability extends boolean = DefaultNodeNullability<Types>,
           >(

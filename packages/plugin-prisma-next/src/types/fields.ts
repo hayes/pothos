@@ -28,8 +28,7 @@ import type { AsyncIterableResult } from '@prisma/orm-framework/components/runti
 import type { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
 import type { prismaInterfaceBrand } from '../interface-ref.js';
 import type { PrismaObjectRef, prismaContractBrand, prismaModelBrand } from '../object-ref.js';
-import type { PrismaObjectFieldBuilder } from '../prisma-field-builder.js';
-import type { PlannedCollection, ResolverCollection, TypeCollection } from './collections.js';
+import type { PrismaPlannedCollection, ResolverCollection, TypeCollection } from './collections.js';
 import type { FieldParentShape, IdFieldShape, ModelKey, ResolveTypeParent, Row } from './models.js';
 import type { FieldQueryLiteral, QueryKeys, QueryOption } from './relations.js';
 import type {
@@ -118,7 +117,7 @@ export type PrismaInterfaceOptions<
  * The field options a `prismaNode`'s `id` takes beside its own, such as `description` or the
  * options other plugins add.
  */
-export type NodeIdFieldOptions<Types extends SchemaTypes, Shape> = Omit<
+type NodeIdFieldOptions<Types extends SchemaTypes, Shape> = Omit<
   FieldOptionsFromKind<
     Types,
     Shape,
@@ -150,12 +149,12 @@ export type PrismaNodeOptions<
       | { parse?: undefined; resolve?: undefined }
       | {
           /**
-           * Replaces the default decoding. IDs are then encoded as the plain value, or
-           * as a JSON tuple for a composite key, unless `resolve` encodes them.
+           * Decodes the ID `resolve` encodes, returning the column's value, or a tuple of
+           * values for a composite key. Set `parse` and `resolve` together.
            */
           parse: (id: string, ctx: Types['Context']) => IDShape;
-          /** Encodes the ID, which `parse` must decode, so it needs `parse`. */
-          resolve?: (
+          /** Encodes the ID, which `parse` decodes. Set `parse` and `resolve` together. */
+          resolve: (
             parent: Shape & IdFieldShape<Types, M, IDFields>,
             ctx: Types['Context'],
           ) => MaybePromise<OutputShape<Types, 'ID'>>;
@@ -180,7 +179,7 @@ type PrismaTypeOptions<Types extends SchemaTypes, M extends ModelKey<Types>, Sha
     // Passed explicitly because some editors leave the default unresolved, and `t.expose*` then
     // demands `nullable: true` on every column. `NoInfer`, because `M` is already known, and
     // inferring from the row would measure the variance of upstream's row types (~20 ms).
-    t: PrismaObjectFieldBuilder<
+    t: PothosSchemaTypes.PrismaObjectFieldBuilder<
       Types,
       M,
       FieldParentShape<Types, M, Shape>,
@@ -246,7 +245,7 @@ export type PrismaRootFieldOptions<
  * or takes `resolve`, which gets the type's collection planned and returns what a read or write on
  * it returns. A single-row field sets at least one of them.
  */
-export type PrismaRootFieldResolver<
+type PrismaRootFieldResolver<
   Types extends SchemaTypes,
   Parent,
   ArgsShape,
@@ -267,7 +266,7 @@ export type PrismaRootFieldResolver<
        * selection planned, and returns the rows its reads or writes return.
        */
       resolve: (
-        collection: PlannedCollection<TypeCollection<Types, M>>,
+        collection: PrismaPlannedCollection<TypeCollection<Types, M>>,
         parent: Parent,
         args: ArgsShape,
         context: Types['Context'],
@@ -457,22 +456,33 @@ export type ParamToTypeParam<Types extends SchemaTypes, Param, Shape> = Param ex
     ? [PrismaObjectRef<Types, ParamToModelKey<Types, Param>, Shape>]
     : PrismaObjectRef<Types, ParamToModelKey<Types, Param>, Shape>;
 
-/** The columns `t.expose*` accepts for a GraphQL type. */
+/**
+ * The columns `t.expose*` accepts for a GraphQL type. Read through `infer`, so errors name the
+ * columns rather than this alias.
+ */
 export type ExposableColumn<
   Types extends SchemaTypes,
   Shape,
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
-> = CompatibleTypes<Types, Shape, Type, Nullable>;
+> = CompatibleTypes<Types, Shape, Type, Nullable> extends infer Column ? Column & string : never;
 
-/** The `nullable` option `t.expose*` requires, or none while the column is rejected. */
+/**
+ * The `nullable` option `t.expose*` requires, or none while the column is rejected. `Name` is
+ * `never` when no column fits the type, and the options then stay optional so the error is
+ * reported at the name.
+ */
 export type ExposeColumnNullability<
   Types extends SchemaTypes,
   Type extends TypeParam<Types>,
   Shape,
   Name,
   Nullable extends FieldNullability<Type>,
-> = Name extends keyof Shape ? ExposeNullability<Types, Type, Shape, Name, Nullable> : {};
+> = [Name] extends [never]
+  ? {}
+  : Name extends keyof Shape
+    ? ExposeNullability<Types, Type, Shape, Name, Nullable>
+    : {};
 
 /** What a model's root field or connection may name as its `type`. */
 export type ModelParam<Types extends SchemaTypes> =

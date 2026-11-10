@@ -11,9 +11,10 @@ import type { OrderByItem } from '@prisma/orm-family-sql/relational-core/ast';
 import { expectTypeOf } from 'vitest';
 import PrismaNextPlugin, {
   type CollectionFor,
+  type ModelKey,
   type PrismaInterfaceRef,
   type PrismaNodeRef,
-  type PrismaObjectFieldBuilder,
+  PrismaObjectFieldBuilder,
   type PrismaObjectRef,
   prismaConnectionHelpers,
   type Row,
@@ -40,6 +41,16 @@ declare global {
       /** Added by another plugin. It exists only on query fields. */
       testQueryOption?: boolean;
     }
+
+    export interface PrismaObjectFieldBuilder<
+      in out Types extends SchemaTypes,
+      in out M extends ModelKey<Types>,
+      Shape = unknown,
+      in out ExposableShape = Row<Types, M>,
+    > {
+      /** Added by another plugin to the `t` of prisma type fields. */
+      testPrismaFieldMethod(model: M): Shape;
+    }
   }
 }
 
@@ -61,6 +72,30 @@ const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
   fields: (t) => ({ id: t.exposeID('id') }),
 });
+// Other plugins extend `t` by declaration merging.
+builder.prismaObject('Post', {
+  variant: 'MergedFieldBuilder',
+  fields: (t) => {
+    expectTypeOf(t.testPrismaFieldMethod).parameter(0).toEqualTypeOf<'Post'>();
+    return {};
+  },
+});
+builder.prismaObjectField('User', 'mergedFieldBuilder', (t) => {
+  expectTypeOf(t.testPrismaFieldMethod).parameter(0).toEqualTypeOf<'User'>();
+  return t.exposeID('id');
+});
+// The exported constructor's instances, and annotations with the exported type, see merged methods.
+PrismaObjectFieldBuilder.prototype.testPrismaFieldMethod = function testPrismaFieldMethod(
+  model: string,
+) {
+  return model;
+};
+expectTypeOf<PrismaObjectFieldBuilder<Types, 'User'>['testPrismaFieldMethod']>().toEqualTypeOf<
+  (model: 'User') => unknown
+>();
+expectTypeOf(
+  new PrismaObjectFieldBuilder<Types, 'User'>(builder, 'User', null as never).testPrismaFieldMethod,
+).toEqualTypeOf<(model: 'User') => unknown>();
 // `variant` names a type that shares its model, so it can't be set beside `name`.
 // @ts-expect-error only one of `name` and `variant`
 builder.prismaObject('User', { name: 'A', variant: 'B', fields: () => ({}) });
@@ -375,10 +410,19 @@ builder.prismaObject('User', {
       select: ['frstName'],
       resolve: () => '',
     }),
-    // @ts-expect-error User has no Int column
-    noInt: t.exposeInt('email'),
-    // @ts-expect-error `email` isn't a Boolean
-    wrongType: t.exposeBoolean('email'),
+    // With no column of the type, the error is at the name, not a missing `options`.
+    noInt: t.exposeInt(
+      // @ts-expect-error User has no Int column
+      'email',
+    ),
+    noIntList: t.exposeIntList(
+      // @ts-expect-error User has no Int list column
+      'email',
+    ),
+    wrongType: t.exposeBoolean(
+      // @ts-expect-error `email` isn't a Boolean
+      'email',
+    ),
   }),
 });
 // Completions for `t.exposeString`.
@@ -992,3 +1036,28 @@ builder.queryFields((t) => ({
     fields: (t) => ({ id: t.exposeID('id') }),
   });
 }
+
+// Without a `PrismaContract` no model name is accepted, and the type that rejects it names the
+// setup. It is not a string literal, which editors would offer as a completion.
+type NoContractTypes = PothosSchemaTypes.ExtendDefaultTypes<{}>;
+expectTypeOf<ModelKey<NoContractTypes>>().toEqualTypeOf<
+  string & {
+    readonly missingPrismaContract: 'Set PrismaContract on SchemaTypes: new SchemaBuilder<{ PrismaContract: typeof contract }>(...)';
+  }
+>();
+const noContract = new SchemaBuilder<{}>({
+  plugins: [PrismaNextPlugin],
+  prisma: { client: null as never },
+});
+noContract.prismaObject(
+  // @ts-expect-error a model name needs a `PrismaContract`
+  'User',
+  { fields: () => ({}) },
+);
+noContract.queryField('users', (t) =>
+  t.prismaField({
+    // @ts-expect-error a model name needs a `PrismaContract`
+    type: ['User'],
+    collection: () => null as never,
+  }),
+);

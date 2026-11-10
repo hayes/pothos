@@ -11,6 +11,7 @@
     "tests/scope-auth-version.test.ts",
     "tests/collection-from-info-scope-auth.test.ts",
     "tests/returned-rows.test.ts",
+    "tests/type-cost/*.ts",
     "tests/types/missing-plugins.test-d.ts"
   ]
 }

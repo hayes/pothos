@@ -594,13 +594,7 @@ describe('ID values', () => {
     expect(await roundTrip('User', rows, { field: 'id' })).toEqual(['42', '["a"]']);
   });
 
-  it('keeps the raw value for a custom parser or id resolver', async () => {
-    expect(
-      await roundTrip('User', [{ id: 'alice', label: 'A' }], {
-        field: 'id',
-        parse: (id: string) => id.toLowerCase(),
-      }),
-    ).toEqual(['alice']);
+  it('keeps the raw value for a custom parse and resolve', async () => {
     expect(
       await roundTrip('User', [{ id: 'u-42', label: 'A' }], {
         field: 'id',
@@ -608,18 +602,16 @@ describe('ID values', () => {
         resolve: (row: { id: string }) => row.id.slice(2),
       }),
     ).toEqual(['u-42']);
-    expect(
-      await roundTrip('User', [{ id: '42', label: 'A' }], {
-        field: 'id',
-        resolve: (row: { id: string }) => `${row.id}`,
-      }),
-    ).toEqual(['42']);
   });
 
   it('rejects a composite ID whose parser returns the wrong number of values', async () => {
     const builder = createBuilder();
     builder.prismaNode('Post', {
-      id: { field: ['authorId', 'id'], parse: (id) => id.split(':').slice(1) },
+      id: {
+        field: ['authorId', 'id'],
+        parse: (id) => id.split(':').slice(1),
+        resolve: (post) => `${post.authorId}:${post.id}`,
+      },
       collection: (() => {
         throw new Error('The query should not run');
       }) as never,
@@ -775,7 +767,7 @@ describe('node load errors', () => {
     const builder = createBuilder({ client: broken.client });
     builder.prismaNode('User', {
       // Parses to a value the text column's codec rejects when the batch keys it.
-      id: { field: 'id', parse: (id) => ({ value: id }) as never },
+      id: { field: 'id', parse: (id) => ({ value: id }) as never, resolve: (user) => user.id },
       fields: (t) => ({ firstName: t.exposeString('firstName') }),
     });
     builder.queryType({});

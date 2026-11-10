@@ -2,6 +2,7 @@ import { execute as toolsExecute, subscribe as toolsSubscribe } from '@graphql-t
 import {
   execute,
   experimentalExecuteIncrementally,
+  type FieldNode,
   GraphQLDeferDirective,
   type GraphQLFieldConfig,
   GraphQLList,
@@ -10,6 +11,7 @@ import {
   GraphQLSchema,
   GraphQLStreamDirective,
   GraphQLString,
+  Kind,
   parse,
   specifiedDirectives,
   subscribe,
@@ -17,6 +19,9 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   cacheKey,
+  fieldKey,
+  forExecution,
+  forOperation,
   getLoaderMapping,
   type Mapping,
   responsePath,
@@ -280,6 +285,7 @@ describe('loader map', () => {
     const reloaded: Mapping = { nested: {} };
     const rows = [{}, {}, {}];
     const paths = rows.map((_, i) => child(root, i, 'posts'));
+    setLoaderMappings(ctx, info(root), { 'User@posts': planned });
     setFieldMapping(ctx, info(paths[0]), planned, rows[0]);
     setFieldMapping(ctx, info(paths[1]), reloaded, rows[1]);
     expect(getLoaderMapping(ctx, info(paths[1]), 'User', rows[1])).toBe(reloaded);
@@ -302,6 +308,79 @@ describe('loader map', () => {
     rows.forEach((row, i) => {
       expect(getLoaderMapping(ctx, info(paths[i]), 'User', row)).toBe(replanned);
     });
+  });
+});
+
+describe('forExecution', () => {
+  it('gives each subscription event its own entries where the variables are shared', () => {
+    const variableValues = {};
+    // graphql-js 17: a getter of its own for each event.
+    const event = () => {
+      const getAbortSignal = () => undefined;
+      const payload = execution(variableValues);
+
+      return (path: Path) => ({ ...payload(path), getAbortSignal }) as GraphQLResolveInfo;
+    };
+    const cache = new WeakMap<object, Map<string, number>>();
+    const first = event();
+    const second = event();
+
+    expect(forExecution(cache, first(pathOf('user')))).toBe(
+      forExecution(cache, first(pathOf('user', 'posts'))),
+    );
+    expect(forExecution(cache, second(pathOf('user')))).not.toBe(
+      forExecution(cache, first(pathOf('user'))),
+    );
+    expect(forOperation(cache, second(pathOf('user')))).toBe(
+      forOperation(cache, first(pathOf('user'))),
+    );
+  });
+
+  it('tells events apart by their root path link where an executor passes no signal', () => {
+    // @graphql-tools/executor and graphql-js 16: a path chain of its own for each event.
+    const info = execution({});
+    const cache = new WeakMap<object, Map<string, number>>();
+    const first = linked(undefined, 'user');
+
+    expect(forExecution(cache, info(linked(first, 'posts')))).toBe(
+      forExecution(cache, info(first)),
+    );
+    expect(forExecution(cache, info(linked(undefined, 'user')))).not.toBe(
+      forExecution(cache, info(first)),
+    );
+  });
+});
+
+describe('fieldKey', () => {
+  const [a, b, c] = ['a', 'b', 'c'].map(
+    (value): FieldNode => ({ kind: Kind.FIELD, name: { kind: Kind.NAME, value } }),
+  );
+  const infoOf = (fieldNodes: FieldNode[], path = pathOf('items', 0, 'user')) =>
+    ({ fieldNodes, path }) as unknown as GraphQLResolveInfo;
+
+  it('keys a field on its type and every node graphql merged for it', () => {
+    expect(fieldKey('User', infoOf([a, b]))).toBe(fieldKey('User', infoOf([a, b])));
+    expect(fieldKey('User', infoOf([a, b]))).not.toBe(fieldKey('User', infoOf([a, c])));
+    expect(fieldKey('User', infoOf([a, b]))).not.toBe(fieldKey('User', infoOf([a])));
+    expect(fieldKey('User', infoOf([a]))).not.toBe(fieldKey('Post', infoOf([a])));
+  });
+
+  it('gives every row of a list the same key', () => {
+    expect(fieldKey('User', infoOf([a], pathOf('items', 0, 'user')))).toBe(
+      fieldKey('User', infoOf([a], pathOf('items', 1, 'user'))),
+    );
+  });
+
+  it('gives the same nodes at different response paths different keys', () => {
+    expect(fieldKey('User', infoOf([a], pathOf('group', 'alice', 'user')))).not.toBe(
+      fieldKey('User', infoOf([a], pathOf('group', 'bob', 0, 'user'))),
+    );
+    expect(fieldKey('User', infoOf([a], pathOf('a', 'user')))).not.toBe(
+      fieldKey('User', infoOf([a], pathOf('b', 'user'))),
+    );
+    expect(fieldKey('User', infoOf([a], pathOf('a')))).not.toBe(
+      fieldKey('User', infoOf([a], pathOf('b'))),
+    );
   });
 });
 
@@ -506,5 +585,26 @@ describe('loader mappings through an executor', () => {
 
     expect(JSON.stringify([result.initialResult, payloads])).not.toContain('reload');
     expect(JSON.stringify(payloads).match(/"loadedBy":"plan"/g)).toHaveLength(2);
+  });
+});
+
+describe('a row no plan loaded', () => {
+  it.each([
+    ['a path of its own for every resolver', child],
+    ['path links shared beneath a field', linked],
+  ] as const)('finds nothing recorded for a sibling at its response path, with %s', (_, to) => {
+    const ctx = {};
+    const items = to(pathOf('items'));
+    const posts: Mapping = { nested: {} };
+    const author: Mapping = { nested: {} };
+    const planned = to(items, 0, 'user');
+    const raw = to(items, 1, 'user');
+    // `items.0.user` was loaded by a plan; `items.1.user` is a row its resolver fetched itself.
+    setLoaderMappings(ctx, info(planned), { 'User@posts': posts });
+    setFieldMapping(ctx, info(to(planned, 'posts', 0, 'author'), 'Post'), author, {});
+
+    expect(getLoaderMapping(ctx, info(to(planned, 'posts')), 'User', {})).toBe(posts);
+    expect(getLoaderMapping(ctx, info(to(raw, 'posts')), 'User', {})).toBeNull();
+    expect(getLoaderMapping(ctx, info(to(raw, 'posts', 0, 'author')), 'Post', {})).toBeNull();
   });
 });

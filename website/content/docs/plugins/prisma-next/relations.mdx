@@ -158,11 +158,9 @@ builder.prismaObject('User', {
 });
 ```
 
-Aggregate callbacks run during planning and SQL construction. Keep them free of side effects and
-return the same reducer keys for the same arguments.
-
-A field's `select` can load at most 61 aggregate reducer keys at one level, across all its relations. Split larger summaries across fields;
-queries selecting several aggregate fields are batched to stay within the statement's join limit.
+Keep aggregate callbacks free of side effects, and return the same keys for the same arguments. A
+field's `select` can load at most 61 aggregate keys at one level, across its relations; split
+larger summaries across fields.
 
 ## Many-to-many
 
@@ -173,8 +171,8 @@ columns from the junction table, define the junction as its own model and use tw
 
 If a plain `t.field` returns a model's type, instead of `t.prismaField` or `t.relation`, it must
 return rows the plugin planned: the parent, the relation rows the parent's `select` loads, or rows
-from a query built with `collectionFromInfo`. These are typed `Planned<'User'>`. A row built by hand
-or loaded with a plain ORM query is a type error naming `Planned<'User'>`.
+from a query built with `collectionFromInfo`. These are typed `PrismaPlanned<'User'>`. A row built
+by hand or loaded with a plain ORM query is a type error naming `PrismaPlanned<'User'>`.
 
 ```ts
 builder.prismaObject('Post', {
@@ -186,7 +184,7 @@ builder.prismaObject('Post', {
 ```
 
 A relation entry's `type` can be a ref or model name of one of the relation's
-[variants](./interfaces#native-inheritance). The rows load as that variant only, typed as its rows:
+[variants](./inheritance). The rows load as that variant only, typed as its rows:
 
 ```ts
 const Bug = builder.prismaObject('Bug', {
@@ -226,6 +224,8 @@ builder.queryField('me', (t) =>
   }),
 );
 ```
+
+In a subscription, call it in `resolve`, which runs per event; rows from `subscribe` load again.
 
 To return a row through `Node`, or through an interface from `builder.interfaceRef()`:
 

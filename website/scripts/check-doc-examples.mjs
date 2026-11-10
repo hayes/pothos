@@ -75,6 +75,4 @@ try {
 }
 
 const prismaNext = await checkPrismaNextDocExamples(root, tsc);
-console.log(
-  `PASS ${prismaNext.checked} Prisma Next doc blocks (${prismaNext.skipped} Postgres-only skipped)`,
-);
+console.log(`PASS ${prismaNext.checked} Prisma Next doc blocks`);

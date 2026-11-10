@@ -256,8 +256,8 @@ function _fieldSelectWidensResolveOnly() {
     }),
     connection: t.connection({
       type: Comment,
-      select: (args, ctx, nestedSelection) => ({
-        comments: helper.getQuery(args, ctx, nestedSelection),
+      select: (args, ctx) => ({
+        comments: helper.getQuery(args, ctx),
       }),
       authScopes: (post) => {
         // @ts-expect-error the field's select loads after authScopes run
@@ -1114,8 +1114,8 @@ describe("a connection helper's page of a variant with a table of its own", () =
       fields: (t) => ({
         championPage: t.connection({
           type: Feature,
-          select: (args, ctx, nestedSelection) => ({
-            championed: helper.getQuery(args, ctx, nestedSelection),
+          select: (args, ctx) => ({
+            championed: helper.getQuery(args, ctx),
           }),
           resolve: (user, args, context) => helper.resolve(user.championed, args, context),
         }),
@@ -1170,8 +1170,8 @@ describe("a connection helper's page of a variant with a table of its own", () =
       fields: (t) => ({
         championPage: t.connection({
           type: Feature,
-          select: (args, ctx, nestedSelection) => ({
-            championed: helper.getQuery(args, ctx, nestedSelection),
+          select: (args, ctx) => ({
+            championed: helper.getQuery(args, ctx),
           }),
           resolve: (user, args, context) => helper.resolve(user.championed, args, context),
         }),
@@ -1371,8 +1371,8 @@ describe('runScopesOnType on rows without what the type selects', () => {
       fields: (t) => ({
         championPage: t.connection({
           type: Feature,
-          select: (args, ctx, nestedSelection) => ({
-            championed: helper.getQuery(args, ctx, nestedSelection),
+          select: (args, ctx) => ({
+            championed: helper.getQuery(args, ctx),
           }),
           resolve: (user, args, context) => helper.resolve(user.championed, args, context),
         }),

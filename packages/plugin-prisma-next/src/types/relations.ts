@@ -10,10 +10,11 @@ import type {
 import type { RelationPredicate, ShorthandWhereFilter } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaInterfaceRef } from '../interface-ref.js';
-import type { Planned, PrismaObjectRef } from '../object-ref.js';
+import type { PrismaObjectRef, PrismaPlanned } from '../object-ref.js';
 import type {
   BareModelName,
   BaseOrSelf,
+  IsUnion,
   LoadedRow,
   ModelKey,
   NamespacedModelKey,
@@ -45,7 +46,7 @@ export type RelationTypeModel<
   R extends RelationKeys<Types, M>,
 > =
   | RelatedModel<Types, M, R>
-  | (VariantModelKeys<Types['PrismaContract'], RelatedModel<Types, M, R>> & ModelKey<Types>);
+  | Extract<VariantModelKeys<Types['PrismaContract'], RelatedModel<Types, M, R>>, ModelKey<Types>>;
 
 export type IsToMany<
   Types extends SchemaTypes,
@@ -212,7 +213,7 @@ export type RelationOnNull<
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => MaybePromise<
-      Error | Planned<TypeModel | VariantModelKeys<Types['PrismaContract'], TypeModel>>
+      Error | PrismaPlanned<TypeModel | VariantModelKeys<Types['PrismaContract'], TypeModel>>
     >);
 
 /**
@@ -232,8 +233,16 @@ type RelationCanBeNull<
       : true;
 
 /**
+ * Gives `t.relation` a second place to infer the name the caller wrote, and never narrows the
+ * parameter: `RelName & RelationNameWritten<Written>` is `RelName`.
+ */
+export type RelationNameWritten<Written> = [Written] extends [unknown] ? unknown : Written;
+
+/**
  * The arguments of `t.relation`: `options` is required, with `onNull`, when the field is non-null
- * and the relation can resolve to null.
+ * and the relation can resolve to null. While the name is rejected, `RelName` is its constraint,
+ * which `Written` is no member of, and `options` stays optional so the error is reported at the
+ * name.
  */
 export type RelationFieldArgs<
   Types extends SchemaTypes,
@@ -245,6 +254,7 @@ export type RelationFieldArgs<
   ParentShape,
   Query,
   TypeModel extends RelationTypeModel<Types, ParentModel, RelName>,
+  Written,
   Options = PrismaRelationOptions<
     Types,
     ParentModel,
@@ -256,9 +266,14 @@ export type RelationFieldArgs<
     Query,
     TypeModel
   >,
-> = [Nullable, RelationCanBeNull<Types, ParentModel, RelName, TypeModel>] extends [false, true]
-  ? [options: Options & { onNull: RelationOnNull<Types, ParentShape, Args, TypeModel> }]
-  : [options?: Options];
+> =
+  true extends IsUnion<RelName>
+    ? [options?: Options]
+    : [Written] extends [RelName]
+      ? [Nullable, RelationCanBeNull<Types, ParentModel, RelName, TypeModel>] extends [false, true]
+        ? [options: Options & { onNull: RelationOnNull<Types, ParentShape, Args, TypeModel> }]
+        : [options?: Options]
+      : [options?: Options];
 
 /**
  * `Query` is inferred from the literal rather than checked, and a callback's result gets no excess
@@ -320,7 +335,7 @@ export type FieldQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Type
 };
 
 /** `Literal`'s unknown keys as required `never` properties, which no object has. */
-export type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
+type ExactQueryLiteral<Literal, Known extends PropertyKey> = [
   UnknownQueryKeys<Literal, Known>,
 ] extends [never]
   ? unknown

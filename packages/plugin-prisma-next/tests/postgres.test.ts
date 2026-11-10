@@ -663,7 +663,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       });
     });
 
-    it('serializes a compound ID with a wide integer for a custom id.parse', async () => {
+    it('round-trips a compound ID with a wide integer through a custom id.parse', async () => {
       const builder = new SchemaBuilder<{ PrismaContract: Contract }>({
         plugins: [RelayPlugin, PrismaNextPlugin],
         relay: {},
@@ -676,6 +676,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
             const [wide, label] = JSON.parse(id) as [string, string];
             return [BigInt(wide), label];
           },
+          resolve: (token) => JSON.stringify([token.wide.toString(), token.label]),
         },
         fields: (t) => ({ label: t.exposeString('label') }),
       });
@@ -709,7 +710,7 @@ describe('PostgreSQL through the shared SQL-family plugin', () => {
       });
       builder.prismaNode('Token', {
         variant: 'TokenByWide',
-        id: { field: 'wide', parse: (id) => BigInt(id) },
+        id: { field: 'wide', parse: (id) => BigInt(id), resolve: (token) => token.wide.toString() },
         fields: (t) => ({ label: t.exposeString('label') }),
       });
       builder.queryType({});

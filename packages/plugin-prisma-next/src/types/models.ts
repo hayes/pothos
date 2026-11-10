@@ -68,7 +68,7 @@ export type ModelKeys<TContract extends AnyContract> = {
 // Upstream's `RelationsOf` collapses to `Record<string, never>` in generic positions, so relations
 // are read from the model def. A model without relations emits `Record<string, never>`, whose index
 // signature would make every string a relation key, so it is dropped.
-export type OwnRelationsOfModel<TContract extends AnyContract, M extends string> =
+type OwnRelationsOfModel<TContract extends AnyContract, M extends string> =
   ModelDefOf<TContract, M> extends {
     readonly relations: infer Rels extends Record<string, unknown>;
   }
@@ -85,18 +85,22 @@ export type RelationsOfModel<TContract extends AnyContract, M extends string> = 
   ? OwnRelationsOfModel<TContract, M>
   : OwnRelationsOfModel<TContract, M> & OwnRelationsOfModel<TContract, BaseModelKey<TContract, M>>;
 
-// Without a `PrismaContract`, model names would widen to `string`. The sentinel points
-// autocomplete at the missing setup instead.
-type ModelKeySentinel =
+// Without a `PrismaContract`, model names would widen to `string`. The sentinel accepts no model
+// name and names the missing setup in the error. It is a branded string, not a string literal, so
+// editors never offer the hint as a completion. The hint is a type argument because errors print
+// an alias with its arguments.
+type MissingPrismaContract<Hint extends string> = string & { readonly missingPrismaContract: Hint };
+
+type SetupHint =
   'Set PrismaContract on SchemaTypes: new SchemaBuilder<{ PrismaContract: typeof contract }>(...)';
 
 export type ModelKey<Types extends SchemaTypes> = Types['PrismaContract'] extends AnyContract
   ? ModelKeys<Types['PrismaContract']> extends infer N extends string
     ? string extends N
-      ? ModelKeySentinel
+      ? MissingPrismaContract<SetupHint>
       : N
-    : ModelKeySentinel
-  : ModelKeySentinel;
+    : MissingPrismaContract<SetupHint>
+  : MissingPrismaContract<SetupHint>;
 
 /**
  * The row of a model's own fields, as the ORM client returns it, such as the rows of a relation

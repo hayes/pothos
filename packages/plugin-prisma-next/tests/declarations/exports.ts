@@ -6,8 +6,8 @@ import type { GraphQLResolveInfo } from 'graphql';
 import PrismaNextPlugin, {
   collectionFromInfo,
   type NestedSelectionFn,
-  type Planned,
   type PrismaObjectRef,
+  type PrismaPlanned,
   prismaConnectionHelpers,
 } from 'plugin-under-test';
 import type { Contract } from '../fixtures/sample-contract';
@@ -67,6 +67,9 @@ export const postPages = prismaConnectionHelpers(builder, 'Post', {
   resolveNode: (post) => ({ post, author: post.author }),
 });
 
+// Its declaration names the check that rejects an ordered collection.
+export const { load } = postPages;
+
 export const CompoundPostNode = builder.prismaNode('Post', {
   variant: 'CompoundPostNode',
   id: {
@@ -104,8 +107,7 @@ export const UserStats = builder.prismaObject('User', {
 export const resolveUserPage = (rows: Parameters<typeof userPages.resolve>[0], ctx: object) =>
   userPages.resolve(rows, {}, ctx);
 
-export const userPageEntry = (args: object, ctx: object) =>
-  userPages.getQuery(args, ctx, () => null);
+export const userPageEntry = (args: object, ctx: object) => userPages.getQuery(args, ctx);
 
 // Helpers made from refs: `ref`, `getQuery` and `resolve` carry the ref's type and its selection.
 export const postWithAuthorPages = prismaConnectionHelpers(builder, PostWithAuthor, {
@@ -172,6 +174,11 @@ export const postsField = (t: UserFieldBuilder) => t.relation('posts');
 
 builder.prismaObjectField(User, 'posts', postsField);
 
+// Its declaration names the variant field's shape.
+export const statsField = (t: UserFieldBuilder) => t.variant(UserStats);
+
+builder.prismaObjectField(User, 'stats', statsField);
+
 // A select function shared between fields: its declaration names `nestedSelection` and its entry.
 export const nestedPostsSelect = (
   _args: object,
@@ -189,7 +196,7 @@ export async function loadUser(
   context: object,
   info: GraphQLResolveInfo,
   collection: SqliteClient<Contract>['orm']['User'],
-): Promise<Planned<'User'> | null> {
+): Promise<PrismaPlanned<'User'> | null> {
   const users = await collectionFromInfo({ collection, context, info });
   return users.first();
 }

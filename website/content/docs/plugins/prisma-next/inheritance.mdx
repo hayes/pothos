@@ -101,9 +101,8 @@ builder.prismaObjectFields('User', (t) => ({
 }));
 ```
 
-The plugin loads the data each type needs, including selected base fields and relations, before
-custom type routing and authorization checks read the row. When rows reach an interface through a
-relation to a concrete variant, this can require additional batched queries.
+The plugin loads what each type needs before type routing and auth checks read the row, sometimes
+with an extra batched query.
 
 A relation targeting a variant stored in a separate table can filter and sort by that variant's
 own fields, but not inherited base fields. To query both, start from the base Collection narrowed

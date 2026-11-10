@@ -481,8 +481,8 @@ const commenters = prismaConnectionHelpers(builder, 'Comment', {
 builder.prismaObjectField('Post', 'commenters', (t) =>
   t.connection({
     type: Commenter,
-    select: (args, ctx, nestedSelection) => ({
-      comments: commenters.getQuery(args, ctx, nestedSelection),
+    select: (args, ctx) => ({
+      comments: commenters.getQuery(args, ctx),
     }),
     resolve: (post, args, ctx) => {
       expectTypeOf(post.comments).toEqualTypeOf<
@@ -492,12 +492,26 @@ builder.prismaObjectField('Post', 'commenters', (t) =>
     },
   }),
 );
+builder.prismaObjectField('Post', 'commentersWithNestedSelection', (t) =>
+  t.connection({
+    type: Commenter,
+    select: (args, ctx, nestedSelection) => ({
+      comments: commenters.getQuery(
+        args,
+        ctx,
+        // @ts-expect-error getQuery takes the args and the context
+        nestedSelection,
+      ),
+    }),
+    resolve: (post, args, ctx) => commenters.resolve(post.comments, args, ctx),
+  }),
+);
 builder.prismaObjectField('Post', 'commentersById', (t) =>
   t.connection({
     type: Commenter,
     // @ts-expect-error getQuery plans Comment, but views loads PostView
-    select: (args, ctx, nestedSelection) => ({
-      views: commenters.getQuery(args, ctx, nestedSelection),
+    select: (args, ctx) => ({
+      views: commenters.getQuery(args, ctx),
     }),
     resolve: () => null as never,
   }),
@@ -505,7 +519,7 @@ builder.prismaObjectField('Post', 'commentersById', (t) =>
 builder.prismaObject('Post', {
   variant: 'PostWithPagedComments',
   // @ts-expect-error a page loads for a field's connection, not with every row of a type
-  select: { comments: commenters.getQuery({}, {}, () => null) },
+  select: { comments: commenters.getQuery({}, {}) },
   fields: () => ({}),
 });
 prismaConnectionHelpers(builder, 'Post', {
@@ -532,6 +546,13 @@ builder.queryField('commenters', (t) =>
         const ordered = orm.Comment.orderBy((c) => c.id.asc());
         // @ts-expect-error the connection orders the collection by its query
         await commenters.load(ordered, args, ctx, info);
+        await commenters.load(
+          // @ts-expect-error the error is reported on the collection
+          ordered,
+          args,
+          ctx,
+          info,
+        );
         // @ts-expect-error a collection of another model
         await commenters.load(orm.Post, args, ctx, info);
         return commenters.resolve(rows, args, ctx);
@@ -654,8 +675,8 @@ builder.prismaObjectField('User', 'countedPosts', (t) =>
   t.connection(
     {
       type: counted.ref,
-      select: (args, ctx, nestedSelection) => ({
-        posts: counted.getQuery(args, ctx, nestedSelection),
+      select: (args, ctx) => ({
+        posts: counted.getQuery(args, ctx),
       }),
       resolve: (user, args, ctx) => counted.resolve(user.posts, args, ctx),
     },
@@ -713,6 +734,38 @@ builder.queryField('wrongModelPage', (t) =>
     collection: () => orm.User.where({}),
   }),
 );
+
+// The ordering error is reported on `collection`. The check needs the collection's type, so a
+// collection inferred as any collection of the model would pass it.
+builder.queryFields((t) => ({
+  orderedReturn: t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error the connection orders the collection
+    collection: () => {
+      return orm.Post.orderBy((post) => post.title.asc());
+    },
+  }),
+  filteredOrNull: t.prismaConnection({
+    type: 'Post',
+    nullable: true,
+    collection: (_root, args) => (args.first === 0 ? null : orm.Post.where({ published: 1 })),
+  }),
+  nullPage: t.prismaConnection({ type: 'Post', nullable: true, collection: () => null }),
+  orderedOrNull: t.prismaConnection({
+    type: 'Post',
+    nullable: true,
+    // @ts-expect-error the connection orders the collection
+    collection: (_root, args) =>
+      args.first === 0 ? null : orm.Post.orderBy((post) => post.title.asc()),
+  }),
+  asyncOrderedOrNull: t.prismaConnection({
+    type: 'Post',
+    nullable: true,
+    // @ts-expect-error the connection orders the collection
+    collection: async (_root, args) =>
+      args.first === 0 ? null : orm.Post.orderBy((post) => post.title.asc()),
+  }),
+}));
 
 // A helper named by model cannot infer the selected columns of that model's GraphQL type.
 const identityHelper = prismaConnectionHelpers(builder, 'User', {});

@@ -14,7 +14,7 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import {
-  forOperation,
+  forExecution,
   getLoaderMapping,
   mappingParentTypes,
   setRowMappings,
@@ -167,12 +167,12 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       | FallbackPlanRecipe
       | undefined;
 
-    // The fallback with one settled plan per `Type@path` per operation beside it, since it plans
+    // The fallback with one settled plan per `fieldKey` per execution beside it, since it plans
     // this field again for every row of the list its parent came from. Allocated only for a field
     // that has a fallback, and scoped to the field config, so the plans of a request go with the
     // request and the builder's own `skipDeferredFragments` is the one that applies. Kept per
-    // operation (see `forOperation`), so an operation sharing the context never plays another's
-    // plan.
+    // execution (see `forExecution`), so neither an operation sharing the context nor a later
+    // subscription event plays another's plan.
     const fallback = resolveFallback && {
       resolve: resolveFallback,
       plan: fallbackPlan,
@@ -205,7 +205,7 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
       if (fallback) {
         const query = fallbackQueryFromInfo(
-          forOperation(fallback.plans(context), info),
+          forExecution(fallback.plans(context), info),
           context,
           info,
           this.builder.options.prisma.skipDeferredFragments,

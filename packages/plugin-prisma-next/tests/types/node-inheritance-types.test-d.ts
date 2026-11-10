@@ -2,7 +2,13 @@ import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import type { SqliteClient } from '@prisma/orm-sqlite/runtime';
 import { expectTypeOf } from 'vitest';
-import PrismaNextPlugin, { type ModelKey } from '../../src';
+import PrismaNextPlugin, {
+  type ConnectionQueryLiteral,
+  type FieldQueryLiteral,
+  type ModelKey,
+  type RelationQueryLiteral,
+  type RootConnectionQueryLiteral,
+} from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 
@@ -49,20 +55,20 @@ const CompoundNode = builder.prismaNode('Post', {
 });
 const ParsedNode = builder.prismaNode('Post', {
   variant: 'ParsedNode',
-  id: { field: 'id', parse: (id) => id.toLowerCase() },
+  id: { field: 'id', parse: (id) => id.toLowerCase(), resolve: (post) => post.id },
   fields: (t) => ({ title: t.exposeString('title') }),
 });
 // `id.parse` returns the values the node is loaded by: the column's value, or a tuple.
 builder.prismaNode('Post', {
   variant: 'WrongParseNode',
   // @ts-expect-error a single `id` column loads by a string, not an object
-  id: { field: 'id', parse: (id) => ({ id }) },
+  id: { field: 'id', parse: (id) => ({ id }), resolve: (post) => post.id },
   fields: () => ({}),
 });
 builder.prismaNode('Post', {
   variant: 'WrongTypeParseNode',
   // @ts-expect-error `id` is a string column
-  id: { field: 'id', parse: (id) => Number(id) },
+  id: { field: 'id', parse: (id) => Number(id), resolve: (post) => post.id },
   fields: () => ({}),
 });
 builder.prismaNode('Post', {
@@ -70,6 +76,7 @@ builder.prismaNode('Post', {
   id: {
     field: ['authorId', 'id'],
     parse: (id) => [id, id],
+    resolve: (post) => post.id,
   },
   fields: () => ({}),
 });
@@ -104,11 +111,18 @@ builder.prismaNode('User', {
   collection,
   fields: () => ({}),
 });
-// An ID `resolve` encodes, `parse` must decode, or `node(id:)` would find no row.
+// `parse` decodes what `resolve` encodes, so they are set together.
 builder.prismaNode('User', {
   variant: 'ResolveWithoutParse',
   // @ts-expect-error `resolve` needs `parse`
   id: { field: 'id', resolve: (user: { id: string }) => user.id },
+  collection,
+  fields: () => ({}),
+});
+builder.prismaNode('User', {
+  variant: 'ParseWithoutResolve',
+  // @ts-expect-error `parse` needs `resolve`
+  id: { field: 'id', parse: (id) => id },
   collection,
   fields: () => ({}),
 });
@@ -259,6 +273,43 @@ inheritance.queryType({
     bugByKey: t.field({ type: bug, resolve: () => ({ id: 't1' }) }),
   }),
 });
+
+// A shared root `query` on a variant model is annotated with the root fields' literal types.
+const bugQuery: FieldQueryLiteral<Types, 'Bug'> = { where: { title: 'x' }, limit: 10 };
+const bugPageQuery: RootConnectionQueryLiteral<Types, 'Bug'> = { orderBy: { title: 'asc' } };
+const bugRelationQuery: RelationQueryLiteral<Types, 'Bug'> = { where: { severity: 'high' } };
+const bugConnectionQuery: ConnectionQueryLiteral<Types, 'Bug'> = { orderBy: { title: 'asc' } };
+inheritance.queryFields((t) => ({
+  sharedBugs: t.prismaField({
+    type: ['Bug'],
+    query: bugQuery,
+    collection: () => orm.Task.variant('bug'),
+  }),
+  sharedBugPage: t.prismaConnection({
+    type: 'Bug',
+    query: bugPageQuery,
+    collection: () => orm.Task.variant('bug'),
+  }),
+  relationQueryBugs: t.prismaField({
+    type: ['Bug'],
+    // @ts-expect-error a relation's `where` names the variant's own columns, which a root field's can't
+    query: bugRelationQuery,
+    collection: () => orm.Task.variant('bug'),
+  }),
+  connectionQueryBugPage: t.prismaConnection({
+    type: 'Bug',
+    // @ts-expect-error a related connection's `where` likewise
+    query: bugConnectionQuery,
+    collection: () => orm.Task.variant('bug'),
+  }),
+  orderedBugPage: t.prismaConnection({
+    type: 'Bug',
+    nullable: true,
+    // @ts-expect-error the connection orders the collection
+    collection: (_root, args) =>
+      args.first === 0 ? null : orm.Task.variant('bug').orderBy((bug) => bug.title.asc()),
+  }),
+}));
 
 // A node's `collection` takes the same collections as a root field's.
 inheritance.prismaNode('Bug', {

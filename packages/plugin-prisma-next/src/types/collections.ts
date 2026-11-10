@@ -55,10 +55,7 @@ type VariantCollection<Types extends SchemaTypes, M extends ModelKey<Types>> = H
 };
 
 // orm-client doesn't export `WithNsId`, which `CollectionFor` needs to match `db.orm.<Model>`.
-export type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<
-  State,
-  'nsId'
-> & {
+type WithNsId<State extends CollectionTypeState, NsId extends string> = Omit<State, 'nsId'> & {
   readonly nsId: NsId;
 };
 
@@ -134,10 +131,10 @@ type IncludeFreeRow<Types extends SchemaTypes, M extends ModelKey<Types>> = {
 
 /**
  * Rejects an ordered collection: a connection orders its collection by its `query`'s `orderBy` and
- * the cursor.
+ * the cursor. An unordered collection is its own type, so the parameter it types still infers it.
  */
 export type UnorderedCollection<Returned> = [Extract<Returned, HasOrderBy>] extends [never]
-  ? unknown
+  ? Returned
   : 'A connection orders its collection by query.orderBy: return the collection without orderBy()';
 
 /**
@@ -174,4 +171,4 @@ type PlannedRows<C> = C extends HasRow
  * the rows' columns with `select()` drops columns the selection planned, which the brand doesn't
  * track: return such rows only to types whose `select` they hold.
  */
-export type PlannedCollection<C> = C & PlannedRows<C>;
+export type PrismaPlannedCollection<C> = C & PlannedRows<C>;

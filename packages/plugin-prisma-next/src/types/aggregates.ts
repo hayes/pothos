@@ -49,7 +49,7 @@ export type PrismaRelationCountOptions<
 };
 
 /** Whether the target has aggregate operations. MySQL contracts emit `Record<string, never>`. */
-export type HasAggregates<Types extends SchemaTypes> = string extends keyof ExtractAggregateTypes<
+type HasAggregates<Types extends SchemaTypes> = string extends keyof ExtractAggregateTypes<
   Types['PrismaContract']
 >
   ? false

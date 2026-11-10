@@ -297,6 +297,7 @@ type ContractBase = Omit<
   };
   readonly capabilities: {
     readonly sql: {
+      readonly defaultInInsert: true;
       readonly enums: true;
       readonly foreignKeys: true;
       readonly limit: true;

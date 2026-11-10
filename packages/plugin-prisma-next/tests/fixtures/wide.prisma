@@ -1,0 +1,241 @@
+// use prisma-8
+model Model0 {
+  id String @id
+  title String
+  body String
+  @@map("model0")
+}
+model Model1 {
+  id String @id
+  title String
+  body String
+  @@map("model1")
+}
+model Model2 {
+  id String @id
+  title String
+  body String
+  @@map("model2")
+}
+model Model3 {
+  id String @id
+  title String
+  body String
+  @@map("model3")
+}
+model Model4 {
+  id String @id
+  title String
+  body String
+  @@map("model4")
+}
+model Model5 {
+  id String @id
+  title String
+  body String
+  @@map("model5")
+}
+model Model6 {
+  id String @id
+  title String
+  body String
+  @@map("model6")
+}
+model Model7 {
+  id String @id
+  title String
+  body String
+  @@map("model7")
+}
+model Model8 {
+  id String @id
+  title String
+  body String
+  @@map("model8")
+}
+model Model9 {
+  id String @id
+  title String
+  body String
+  @@map("model9")
+}
+model Model10 {
+  id String @id
+  title String
+  body String
+  @@map("model10")
+}
+model Model11 {
+  id String @id
+  title String
+  body String
+  @@map("model11")
+}
+model Model12 {
+  id String @id
+  title String
+  body String
+  @@map("model12")
+}
+model Model13 {
+  id String @id
+  title String
+  body String
+  @@map("model13")
+}
+model Model14 {
+  id String @id
+  title String
+  body String
+  @@map("model14")
+}
+model Model15 {
+  id String @id
+  title String
+  body String
+  @@map("model15")
+}
+model Model16 {
+  id String @id
+  title String
+  body String
+  @@map("model16")
+}
+model Model17 {
+  id String @id
+  title String
+  body String
+  @@map("model17")
+}
+model Model18 {
+  id String @id
+  title String
+  body String
+  @@map("model18")
+}
+model Model19 {
+  id String @id
+  title String
+  body String
+  @@map("model19")
+}
+model Model20 {
+  id String @id
+  title String
+  body String
+  @@map("model20")
+}
+model Model21 {
+  id String @id
+  title String
+  body String
+  @@map("model21")
+}
+model Model22 {
+  id String @id
+  title String
+  body String
+  @@map("model22")
+}
+model Model23 {
+  id String @id
+  title String
+  body String
+  @@map("model23")
+}
+model Model24 {
+  id String @id
+  title String
+  body String
+  @@map("model24")
+}
+model Model25 {
+  id String @id
+  title String
+  body String
+  @@map("model25")
+}
+model Model26 {
+  id String @id
+  title String
+  body String
+  @@map("model26")
+}
+model Model27 {
+  id String @id
+  title String
+  body String
+  @@map("model27")
+}
+model Model28 {
+  id String @id
+  title String
+  body String
+  @@map("model28")
+}
+model Model29 {
+  id String @id
+  title String
+  body String
+  @@map("model29")
+}
+model Model30 {
+  id String @id
+  title String
+  body String
+  @@map("model30")
+}
+model Model31 {
+  id String @id
+  title String
+  body String
+  @@map("model31")
+}
+model Model32 {
+  id String @id
+  title String
+  body String
+  @@map("model32")
+}
+model Model33 {
+  id String @id
+  title String
+  body String
+  @@map("model33")
+}
+model Model34 {
+  id String @id
+  title String
+  body String
+  @@map("model34")
+}
+model Model35 {
+  id String @id
+  title String
+  body String
+  @@map("model35")
+}
+model Model36 {
+  id String @id
+  title String
+  body String
+  @@map("model36")
+}
+model Model37 {
+  id String @id
+  title String
+  body String
+  @@map("model37")
+}
+model Model38 {
+  id String @id
+  title String
+  body String
+  @@map("model38")
+}
+model Model39 {
+  id String @id
+  title String
+  body String
+  @@map("model39")
+}

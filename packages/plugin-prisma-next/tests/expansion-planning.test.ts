@@ -1,7 +1,14 @@
+import { deepEqual } from '@pothos/selection-mapper';
 import { describe, expect, it, vi } from 'vitest';
 import { PrismaAdapter } from '../src/utils/adapter';
 import { detailOf } from './fixtures/errors';
 import { createBuilder, run, useSampleDb } from './fixtures/helpers';
+
+// Counts the comparisons the plugin makes; the package's own calls are not counted.
+vi.mock('@pothos/selection-mapper', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@pothos/selection-mapper')>();
+  return { ...original, deepEqual: vi.fn(original.deepEqual) };
+});
 
 const db = useSampleDb();
 
@@ -324,6 +331,85 @@ describe('aliases with different arguments on one level', () => {
     expect(result.data.user.p0).toEqual([{ id: 'p-draft1' }]);
     expect(result.data.user[`p${count - 1}`]).toEqual([]);
     expect(result.statements).toHaveLength(statements);
+  });
+});
+
+// Each alias's load is checked against the loads its level holds, which the limit keeps few, and
+// named among the loads seen with the same limit and offset, so aliases that differ in limit plan
+// at a cost that doesn't grow with how many came first.
+describe('many aliases of one relation with different limits', () => {
+  function aliasSchema() {
+    const builder = createBuilder();
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        posts: t.relation('posts', {
+          args: { limit: t.arg.int({ required: true }) },
+          query: (args) => ({ limit: args.limit, orderBy: { id: 'asc' } }),
+        }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        users: t.prismaField({
+          type: ['User'],
+          collection: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+      }),
+    });
+    return builder.toSchema();
+  }
+
+  const postsBy: Record<string, string[]> = {
+    'u-alice': ['p-draft1', 'p-hello'],
+    'u-bob': ['p-bob-draft', 'p-bob1'],
+  };
+
+  async function runAliases(count: number) {
+    const schema = aliasSchema();
+    const copies = vi.spyOn(PrismaAdapter.prototype, 'toQuery');
+    const comparisons = vi.mocked(deepEqual);
+    copies.mockClear();
+    comparisons.mockClear();
+    const aliases = Array.from(
+      { length: count },
+      (_, i) => `p${i}: posts(limit: ${i + 1}) { id }`,
+    ).join(' ');
+    const result = await run(schema, `{ users { id ${aliases} } }`);
+    const counts = { copies: copies.mock.calls.length, comparisons: comparisons.mock.calls.length };
+    copies.mockRestore();
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users).toEqual(
+      Object.entries(postsBy).map(([id, posts]) => ({
+        id,
+        ...Object.fromEntries(
+          Array.from({ length: count }, (_, i) => [
+            `p${i}`,
+            posts.slice(0, i + 1).map((post) => ({ id: post })),
+          ]),
+        ),
+      })),
+    );
+    return { ...counts, statements: result.statements.length };
+  }
+
+  // 61 aliases load with the users and the rest reload in batches of up to 61.
+  it.each([
+    [10, 1],
+    [50, 1],
+    [200, 4],
+  ])('loads %i aliases in %i statements', async (count, statements) => {
+    expect((await runAliases(count)).statements).toBe(statements);
+  });
+
+  // Both sizes are well past the limit, so both reload. Twice the aliases take a little over twice
+  // the copies and comparisons; work per alias that grows with the aliases before it takes four.
+  it('plans in work linear in the aliases', async () => {
+    const small = await runAliases(200);
+    const large = await runAliases(400);
+    expect(large.copies).toBeLessThan(small.copies * 3);
+    expect(large.comparisons).toBeLessThan(small.comparisons * 3);
   });
 });
 

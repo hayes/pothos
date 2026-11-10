@@ -70,11 +70,7 @@ export type RelationQueryOrderBy<Types extends SchemaTypes, M extends ModelKey<T
   | readonly RelationOrderSelector<Types, M>[];
 
 /** The columns a literal's declared `orderBy` names that `M` can't be ordered by. */
-export type UnknownOrderByColumns<
-  Types extends SchemaTypes,
-  M extends ModelKey<Types>,
-  Literal,
-> = Exclude<
+type UnknownOrderByColumns<Types extends SchemaTypes, M extends ModelKey<Types>, Literal> = Exclude<
   Literal extends { readonly orderBy?: infer OrderBy }
     ? NonNullable<OrderBy> extends ((...args: never[]) => unknown) | readonly unknown[]
       ? never

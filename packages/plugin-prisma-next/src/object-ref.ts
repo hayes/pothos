@@ -12,8 +12,9 @@ export const prismaModelBrand = Symbol.for('Pothos.prismaModelBrand');
 export const prismaContractBrand = Symbol.for('Pothos.prismaContractBrand');
 
 /**
- * Type-only: marks the rows the loader planned, see `Planned`. No row holds it at runtime. Exported
- * so that a module whose declarations name a planned row can import it for declaration emit.
+ * Type-only: marks the rows the loader planned, see `PrismaPlanned`. No row holds it at runtime.
+ * Exported so that a module whose declarations name a planned row can import it for declaration
+ * emit.
  */
 export const plannedRowBrand = Symbol.for('Pothos.prismaPlannedRowBrand');
 
@@ -31,7 +32,7 @@ export interface PlannedRowBrand<M> {
  * the parent, or a relation row the parent's plan loaded. An interface so that errors name it
  * rather than the brand.
  */
-export interface Planned<M> extends PlannedRowBrand<M> {}
+export interface PrismaPlanned<M> extends PlannedRowBrand<M> {}
 
 /** Marks a row shape with its model. It is an interface so that declaration emit can name it. */
 export interface ModelBrand<M> {
@@ -55,7 +56,7 @@ export class PrismaObjectRef<
 > extends ObjectRef<
   Types,
   // Keep the planned-row marker named in diagnostics and emitted declarations.
-  Planned<M | VariantModelKeys<Types['PrismaContract'], M>>,
+  PrismaPlanned<M | VariantModelKeys<Types['PrismaContract'], M>>,
   Shape
 > {
   declare readonly [prismaModelBrand]: M;
@@ -63,7 +64,7 @@ export class PrismaObjectRef<
   declare readonly [prismaContractBrand]: Types['PrismaContract'];
 
   declare readonly [abstractReturnShapeKey]: WithBrand<
-    Planned<M | VariantModelKeys<Types['PrismaContract'], M>>
+    PrismaPlanned<M | VariantModelKeys<Types['PrismaContract'], M>>
   >;
 
   readonly modelKey: M;
@@ -80,8 +81,8 @@ export class PrismaObjectRef<
    */
   addBrand<
     V extends
-      | Planned<M | VariantModelKeys<Types['PrismaContract'], M>>
-      | readonly Planned<M | VariantModelKeys<Types['PrismaContract'], M>>[],
+      | PrismaPlanned<M | VariantModelKeys<Types['PrismaContract'], M>>
+      | readonly PrismaPlanned<M | VariantModelKeys<Types['PrismaContract'], M>>[],
   >(value: V): Branded<V> {
     for (const row of Array.isArray(value) ? value : [value]) {
       brandWithType(row as object, this.name as never);

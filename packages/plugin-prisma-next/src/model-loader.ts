@@ -7,8 +7,8 @@ import {
   type SchemaTypes,
 } from '@pothos/core';
 import {
-  cacheKey,
-  forOperation,
+  fieldKey,
+  forExecution,
   type Mapping,
   Plan,
   type PlayedPlan,
@@ -57,7 +57,10 @@ export class ModelLoader {
   private readonly identity: readonly string[];
   /** A variant's rows load through the base narrowed to it, which can include its relations. */
   private readonly initial: PrismaSelection | undefined;
-  /** Plans depend on `@skip`/`@include` variables, so are cached per operation. */
+  /**
+   * Plans depend on `@skip`/`@include` variables and on what `select` and `query` callbacks read
+   * from the context, so are cached per execution: each subscription event plans again.
+   */
   private readonly plans = new WeakMap<object, Map<string, MaybePromise<Played>>>();
   private readonly staged = new Set<Batch>();
   /** By root field path, row, then type. */
@@ -88,22 +91,19 @@ export class ModelLoader {
     plan: () => MaybePromise<Played>,
   ): MaybePromise<Played> {
     assertGraphQLJsInfo(info);
-    const plans = forOperation(this.plans, info);
+    const plans = forExecution(this.plans, info);
     return plans.get(key) ?? plans.set(key, plan()).get(key)!;
   }
 
   /** The parent reloaded with what `info`'s field needs, and the field's mapping. */
   loadSelection(info: GraphQLResolveInfo, parent: object): Promise<{ row: Row; mapping: Mapping }> {
     this.assertIdentity(info);
-    const selection = this.cachedPlan(
-      info,
-      `parent:${cacheKey(info.parentType.name, info.path)}`,
-      () =>
-        Plan.forParentRow(this.config.adapter, {
-          context: this.context,
-          info,
-          initial: this.initial,
-        }),
+    const selection = this.cachedPlan(info, `parent:${fieldKey(info.parentType.name, info)}`, () =>
+      Plan.forParentRow(this.config.adapter, {
+        context: this.context,
+        info,
+        initial: this.initial,
+      }),
     );
     const load = (played: Played) =>
       this.reloadParent(played, parent).then((row) => {
@@ -162,8 +162,10 @@ export class ModelLoader {
     values: readonly unknown[],
     collection: ((ctx: object) => MapperCollection) | undefined,
   ): Promise<Row | null> {
-    // Keyed on the type rather than the model, because variants of a model select differently.
-    const selection = this.cachedPlan(info, `node:${cacheKey(typeName, info.path)}`, () =>
+    // Keyed on the type rather than the model, because variants of a model select differently,
+    // and on the parent type, which the plan's root position is under.
+    const key = `node:${typeName}:${fieldKey(info.parentType.name, info)}`;
+    const selection = this.cachedPlan(info, key, () =>
       completeValue(
         Plan.fromInfo(this.config.adapter, {
           context: this.context,

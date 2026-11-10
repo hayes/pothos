@@ -16,6 +16,7 @@ import PrismaNextPlugin, {
 } from '../../src';
 import type { QueryAsyncCheck } from '../../src/types/relations';
 import type { SelectCheck } from '../../src/types/selections';
+import type { Contract as CollisionContract } from '../fixtures/collision-contract';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
 import type { Contract as MysqlContract } from '../mysql/contract';
@@ -347,14 +348,61 @@ strict.prismaObject('Bug', {
       nullable,
       // @ts-expect-error `Bug.reviewer` can be null, so the field needs `onNull`
       reviewer: t.relation('reviewer'),
-      // @ts-expect-error not a relation
-      typo: t.relation('nope'),
+      // The error is at the name, not a missing `options`.
+      typo: t.relation(
+        // @ts-expect-error not a relation
+        'nope',
+      ),
       // @ts-expect-error `Bug.reviewer` can be null, so the field needs `onNull`
       explicit: t.relation('reviewer', { nullable: false }),
       // @ts-expect-error `onNull` returns a related row or an error
       badFallback: t.relation('reviewer', { onNull: () => 'nope' }),
     };
   },
+});
+strict.prismaObject('Feature', {
+  variant: 'StrictFeatureRelations',
+  fields: (t) => ({
+    typo: t.relation(
+      // @ts-expect-error not a relation
+      'nope',
+    ),
+  }),
+});
+// A model's only relation: a rejected name falls back to the one name `options` is required for.
+const strictCollision = new SchemaBuilder<{
+  PrismaContract: CollisionContract;
+  DefaultFieldNullability: false;
+}>({
+  plugins: [PrismaNextPlugin],
+  prisma: { client: null as never },
+  defaultFieldNullability: false,
+});
+strictCollision.prismaObject('Profile', { fields: () => ({}) });
+strictCollision.prismaObject('Owner', {
+  fields: (t) => ({
+    profile: t.relation('profile', { onNull: 'error' }),
+    // @ts-expect-error `Owner.profile` can be null, so the field needs `onNull`
+    required: t.relation('profile'),
+    typo: t.relation(
+      // @ts-expect-error not a relation
+      'nope',
+    ),
+    typoWithOptions: t.relation(
+      // @ts-expect-error not a relation
+      'nope',
+      {},
+    ),
+  }),
+});
+// No relations at all.
+strictCollision.prismaObject('Tag', {
+  fields: (t) => ({
+    typo: t.relation(
+      // @ts-expect-error not a relation
+      'nope',
+    ),
+  }),
 });
 strict.prismaObject('User', {
   variant: 'StrictUserLists',
