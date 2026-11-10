@@ -2,6 +2,7 @@ import SchemaBuilder, { type SchemaTypes } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
+import { afterAll, describe, expect, expectTypeOf, it } from 'vitest';
 import PrismaPlugin, {
   ObjectFieldBuilder,
   type PrismaModelTypes,
@@ -11,8 +12,8 @@ import { prisma } from './example/builder';
 import { getDatamodel } from './generated.js';
 
 declare global {
-  export namespace PothosSchemaTypes {
-    export interface PrismaObjectFieldBuilder<
+  namespace PothosSchemaTypes {
+    interface PrismaObjectFieldBuilder<
       Types extends SchemaTypes,
       Model extends PrismaModelTypes,
       Shape extends object = Model['Shape'],
