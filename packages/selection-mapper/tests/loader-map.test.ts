@@ -285,6 +285,7 @@ describe('loader map', () => {
     const reloaded: Mapping = { nested: {} };
     const rows = [{}, {}, {}];
     const paths = rows.map((_, i) => child(root, i, 'posts'));
+    setLoaderMappings(ctx, info(root), { 'User@posts': planned });
     setFieldMapping(ctx, info(paths[0]), planned, rows[0]);
     setFieldMapping(ctx, info(paths[1]), reloaded, rows[1]);
     expect(getLoaderMapping(ctx, info(paths[1]), 'User', rows[1])).toBe(reloaded);
@@ -584,5 +585,26 @@ describe('loader mappings through an executor', () => {
 
     expect(JSON.stringify([result.initialResult, payloads])).not.toContain('reload');
     expect(JSON.stringify(payloads).match(/"loadedBy":"plan"/g)).toHaveLength(2);
+  });
+});
+
+describe('a row no plan loaded', () => {
+  it.each([
+    ['a path of its own for every resolver', child],
+    ['path links shared beneath a field', linked],
+  ] as const)('finds nothing recorded for a sibling at its response path, with %s', (_, to) => {
+    const ctx = {};
+    const items = to(pathOf('items'));
+    const posts: Mapping = { nested: {} };
+    const author: Mapping = { nested: {} };
+    const planned = to(items, 0, 'user');
+    const raw = to(items, 1, 'user');
+    // `items.0.user` was loaded by a plan; `items.1.user` is a row its resolver fetched itself.
+    setLoaderMappings(ctx, info(planned), { 'User@posts': posts });
+    setFieldMapping(ctx, info(to(planned, 'posts', 0, 'author'), 'Post'), author, {});
+
+    expect(getLoaderMapping(ctx, info(to(planned, 'posts')), 'User', {})).toBe(posts);
+    expect(getLoaderMapping(ctx, info(to(raw, 'posts')), 'User', {})).toBeNull();
+    expect(getLoaderMapping(ctx, info(to(raw, 'posts', 0, 'author')), 'Post', {})).toBeNull();
   });
 });

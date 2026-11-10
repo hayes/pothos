@@ -74,13 +74,17 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
  * the path prefix that rehomed them. `responsePath` drops list indices, so every row of a list
  * rebuilds the same key strings; a prefix builds them once.
  *
- * `mappings` holds what a plan recorded for a whole field: every row of that field was loaded by
- * it, so one mapping per path answers for all of them. `rows` holds a mapping that answers for
- * one row only — because two plans disagreed about a key, or because the plan loaded that row
- * alone. A mapping carries the position a connection pages with, so a row answering from another
- * row's mapping would page with arguments its own data was never fetched with. `rowScoped` stays
- * false while nothing has been recorded there, so a request whose rows were all loaded the same
- * way pays nothing for the row tier.
+ * `scopes` holds what a plan recorded beneath a field execution: everything resolved beneath it
+ * was loaded by that plan, so it answers for all of it, and for nothing else. `rows` holds a
+ * mapping that answers for one row only — because two plans disagreed about a key, or because the
+ * plan loaded that row alone. A mapping carries the position a connection pages with, so a row
+ * answering from another row's mapping would page with arguments its own data was never fetched
+ * with. `rowScoped` stays false while nothing has been recorded there, so a request whose rows
+ * were all loaded the same way pays nothing for the row tier.
+ *
+ * `mappings` holds the mapping last recorded for each path, list indices dropped. It tells whether
+ * the plans of a path's rows agree (see `claim`), and never answers a lookup: a row at the same
+ * path that no plan loaded would read it as proof that one had.
  *
  * `scopes` and `rows` are keyed by a field execution's place (see `placeOf`), which tells sibling
  * rows apart, in weak maps: a `Map` holding every path link of a request tripled the time spent
@@ -338,11 +342,7 @@ function claim(cached: Cache, key: string, mapping: Mapping, row: object | null,
 }
 
 /**
- * Records `mapping` for this field execution against `row` alone, never in the shared tier. The caller loaded
- * `row` by itself, so an unclaimed key is not the caller's to take: the shared tier answers for
- * every row of a field, and a sibling that was never loaded would read the entry as proof that
- * it had been. With no row to hang it off there is nothing to record, and the resolvers beneath
- * fall back and load their own data.
+ * Records `mapping` for this field execution against `row` alone.
  */
 function claimForRow(cached: Cache, type: string, mapping: Mapping, row: object, place: object) {
   let byPlace = cached.rows.get(row);
@@ -361,8 +361,8 @@ function claimForRow(cached: Cache, type: string, mapping: Mapping, row: object,
 
 /**
  * Records the mappings of a plan rooted at the field `info` resolves, under that field's path.
- * The plan loaded the whole field, so its mappings answer for every row of it: they go to the
- * shared tier. Multiple plans can contribute to one field (Relay nodes of different model
+ * The plan loaded the whole field, so its mappings answer for everything resolved beneath this
+ * execution of it. Multiple plans can contribute to one field (Relay nodes of different model
  * types share the list's path), so later contributions replace matching keys and retain others.
  */
 export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
@@ -436,7 +436,8 @@ export function setRowFieldMapping(
 /**
  * The mapping recorded for the field `info` resolves on `row`, preferring one recorded for that
  * row over the plan's. `row` is the value whose data the mapping describes — the resolver's
- * parent.
+ * parent. The plan's comes from the nearest field execution above that recorded one: with none
+ * above, no plan loaded `row`, whatever was recorded for another row at the same path.
  */
 export function getLoaderMapping(
   ctx: object,
@@ -473,5 +474,5 @@ export function getLoaderMapping(
     }
   }
 
-  return cached.mappings.get(cacheKey(type, path)) ?? null;
+  return null;
 }
