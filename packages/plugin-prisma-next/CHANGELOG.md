@@ -1,5 +1,12 @@
 # @pothos/plugin-prisma-next
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [b9fd6f2]
+  - @pothos/selection-mapper@0.3.0
+
 ## 0.1.0
 
 ### Minor Changes
