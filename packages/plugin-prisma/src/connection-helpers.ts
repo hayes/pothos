@@ -150,7 +150,7 @@ export function prismaConnectionHelpers<
   /** The prisma query `getQuery` builds: the node selection, with the connection's own arguments. */
   type ConnectionQuery = (Model['Select'] extends Select ? {} : { select: Select }) & {
     where?: Model['Where'];
-    orderBy?: Model['OrderBy'];
+    orderBy?: Model['OrderBy'] | Model['OrderBy'][];
     skip?: number;
     take?: number;
     cursor?: Model['WhereUnique'];

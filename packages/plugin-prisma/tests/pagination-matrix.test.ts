@@ -477,4 +477,16 @@ describe('pagination matrix', () => {
       { b: 'asc' },
     ]);
   });
+
+  it("returns the helper's order as a list only when the cursor is appended", () => {
+    const query = (orderBy: Prisma.CommentOrderByWithRelationInput) =>
+      prismaConnectionHelpers(builder, 'Comment', { cursor: 'id', query: { orderBy } }).getQuery(
+        { first: 2 },
+        {},
+        () => true,
+      );
+
+    expect(query({ content: 'asc' }).orderBy).toEqual([{ content: 'asc' }, { id: 'asc' }]);
+    expect(query({ createdAt: 'desc' }).orderBy).toEqual({ createdAt: 'desc' });
+  });
 });
