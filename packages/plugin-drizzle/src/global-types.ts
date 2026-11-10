@@ -43,6 +43,17 @@ import type {
 import type { DrizzleQueryFromInfoResult } from './utils/map-query.js';
 import type { DrizzleRelationsHint } from './utils/refs.js';
 
+// True when Type is a union of names and TableConfig is exactly its default. A single name skips
+// the check: it reads the same rows either way, and a generic TableConfig would leave it unresolved.
+type IsDefaultConfigOfNames<Type, TableConfig, Default> =
+  IsUnion<Type> extends true
+    ? (<T>() => T extends TableConfig ? 1 : 2) extends <T>() => T extends Default ? 1 : 2
+      ? true
+      : false
+    : false;
+
+type IsUnion<T, All = T> = T extends unknown ? ([All] extends [T] ? false : true) : never;
+
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
@@ -119,16 +130,15 @@ declare global {
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
         // While a name is being completed, Type and TableConfig are every table, and reading the
-        // rows from TableConfig compares each table with every other. When TableConfig is its
-        // default (identical to it, so an explicit one like `any` is read as before), each key's
-        // rows are read from its own table instead.
-        Shape extends {} = (<T>() => T extends TableConfig ? 1 : 2) extends <T>() => T extends (
+        // rows from TableConfig compares each table with every other. When TableConfig is the
+        // default, each name's rows come from its own table instead.
+        Shape extends {} = IsDefaultConfigOfNames<
+          Type,
+          TableConfig,
           Type extends DrizzleObjectRef<Types>
             ? Type[typeof drizzleTableKey]
             : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']]
-        )
-          ? 1
-          : 2
+        > extends true
           ? Type extends DrizzleObjectRef<Types, keyof Types['DrizzleRelations'], infer S>
             ? S & DrizzleTableNameBrand<TableConfig['name']>
             : BuildQueryResult<
@@ -155,16 +165,15 @@ declare global {
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
         // While a name is being completed, Type and TableConfig are every table, and reading the
-        // rows from TableConfig compares each table with every other. When TableConfig is its
-        // default (identical to it, so an explicit one like `any` is read as before), each key's
-        // rows are read from its own table instead.
-        Shape extends {} = (<T>() => T extends TableConfig ? 1 : 2) extends <T>() => T extends (
+        // rows from TableConfig compares each table with every other. When TableConfig is the
+        // default, each name's rows come from its own table instead.
+        Shape extends {} = IsDefaultConfigOfNames<
+          Type,
+          TableConfig,
           Type extends DrizzleInterfaceRef<Types>
             ? Type[typeof drizzleTableKey]
             : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']]
-        )
-          ? 1
-          : 2
+        > extends true
           ? Type extends DrizzleInterfaceRef<Types, keyof Types['DrizzleRelations'], infer S>
             ? S & DrizzleTableNameBrand<TableConfig['name']>
             : BuildQueryResult<
@@ -191,16 +200,15 @@ declare global {
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
         // While a name is being completed, Type and TableConfig are every table, and reading the
-        // rows from TableConfig compares each table with every other. When TableConfig is its
-        // default (identical to it, so an explicit one like `any` is read as before), each key's
-        // rows are read from its own table instead.
-        Shape extends {} = (<T>() => T extends TableConfig ? 1 : 2) extends <T>() => T extends (
+        // rows from TableConfig compares each table with every other. When TableConfig is the
+        // default, each name's rows come from its own table instead.
+        Shape extends {} = IsDefaultConfigOfNames<
+          Type,
+          TableConfig,
           Type extends DrizzleObjectRef<Types>
             ? Type[typeof drizzleTableKey]
             : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']]
-        )
-          ? 1
-          : 2
+        > extends true
           ? Type extends DrizzleObjectRef<Types, keyof Types['DrizzleRelations'], infer S>
             ? S & DrizzleTableNameBrand<TableConfig['name']>
             : BuildQueryResult<
@@ -224,16 +232,15 @@ declare global {
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
         // While a name is being completed, Type and TableConfig are every table, and reading the
-        // rows from TableConfig compares each table with every other. When TableConfig is its
-        // default (identical to it, so an explicit one like `any` is read as before), each key's
-        // rows are read from its own table instead.
-        Shape extends {} = (<T>() => T extends TableConfig ? 1 : 2) extends <T>() => T extends (
+        // rows from TableConfig compares each table with every other. When TableConfig is the
+        // default, each name's rows come from its own table instead.
+        Shape extends {} = IsDefaultConfigOfNames<
+          Type,
+          TableConfig,
           Type extends DrizzleInterfaceRef<Types>
             ? Type[typeof drizzleTableKey]
             : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']]
-        )
-          ? 1
-          : 2
+        > extends true
           ? Type extends DrizzleInterfaceRef<Types, keyof Types['DrizzleRelations'], infer S>
             ? S & DrizzleTableNameBrand<TableConfig['name']>
             : BuildQueryResult<
@@ -309,7 +316,7 @@ declare global {
       ) => MaybeAsyncSelection<
         Types,
         DrizzleQueryFromInfoResult<
-          // Options with no query keys infer no Selection, which is then the whole config.
+          // With no query keys in the options, Selection falls back to the whole config.
           (<T>() => T extends Selection ? 1 : 2) extends <T>() => T extends DBQueryConfig<
             'many',
             Types['DrizzleRelations'],

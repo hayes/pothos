@@ -246,10 +246,10 @@ it('reads the parent shape from an explicit table config', () => {
   expectTypeOf<Parameters<typeof postPages.resolve>[0]>().toEqualTypeOf<PostRow[]>();
 });
 
-it('reads an explicit table config that is only like the default as before', () => {
+it('keeps the shape of an explicit config that only looks like the default', () => {
   // biome-ignore lint/suspicious/noExplicitAny: an explicit config with an `any` part
   type UsersAnyTable = Omit<DrizzleRelations['users'], 'table'> & { table: any };
-  // biome-ignore lint/suspicious/noExplicitAny: the parent shape main infers for an `any` config
+  // biome-ignore lint/suspicious/noExplicitAny: the shape an `any` config gets
   type AnyShape = BuildQueryResult<DrizzleRelations, any, true> & DrizzleTableNameBrand<'users'>;
   type AnyTableShape = BuildQueryResult<DrizzleRelations, UsersAnyTable, true> &
     DrizzleTableNameBrand<'users'>;
@@ -315,6 +315,28 @@ it('reads an explicit table config that is only like the default as before', () 
 
     return {};
   });
+});
+
+it('reads a generic table config like main, except with a union of names', () => {
+  function addFields<C extends TableRelationalConfig>() {
+    type Rows = BuildQueryResult<DrizzleRelations, C, true> & DrizzleTableNameBrand<'users'>;
+
+    builder.drizzleObjectFields<'users', C>('users', (t) => {
+      const shape: BuilderOf<typeof t>['shape'] = {} as Rows;
+
+      return { a: t.string({ resolve: () => String(shape) }) };
+    });
+
+    builder.drizzleObjectFields<'users' | 'posts', C>('users', (t) => {
+      // Differs from main, accepted: with a union of names the shape stays unresolved here.
+      // @ts-expect-error
+      const shape: BuilderOf<typeof t>['shape'] = {} as Rows;
+
+      return { b: t.string({ resolve: (row) => String(row) + String(shape) }) };
+    });
+  }
+
+  addFields();
 });
 
 it('reads a union of table names against all of their tables', () => {
