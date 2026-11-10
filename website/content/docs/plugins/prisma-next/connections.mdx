@@ -167,6 +167,13 @@ loaded with the same order and paging. `totalCount` is set when the rows are the
 `load` loaded, or when you pass a count. Without `resolveNode`, the rows are the nodes; use the
 helper's `ref` as the connection type.
 
+Call `getQuery` in the connection field's own `select`, at the top level, not inside another
+relation's entry. To put the connection on another type, make that type a [variant](./variants) of
+the model.
+
+`select` and `query` also receive the field's arguments and context. Add the helper's `args` to the
+field with `args: commenters.getArgs()`.
+
 To count the rows yourself, such as on MySQL, where Prisma can't count them yet, pass the count to
 `resolve`: `commenters.resolve(rows, args, ctx, { totalCount })`.
 
@@ -207,41 +214,3 @@ builder.queryField('postCommenters', (t) =>
 `load` returns one extra row to determine whether another page exists. Pass the returned list to
 `resolve` to build the connection and preserve its `totalCount`; the extra row is omitted from the
 response.
-
-### Put a connection inside a wrapper
-
-Put `getQuery` at the top level of a field's `select`, not inside another relation's entry. When
-the connection is beneath that field, such as on a wrapper type the field returns, prefix the path
-`getQuery` passes to `nestedSelection`:
-
-```ts
-const PostActivity = builder
-  .objectRef<{ comments: Parameters<typeof commenters.resolve>[0] }>('PostActivity')
-  .implement({
-    fields: (t) => ({
-      commenters: t.connection({
-        type: User,
-        args: commenters.getArgs(),
-        resolve: (activity, args, ctx) => commenters.resolve(activity.comments, args, ctx),
-      }),
-    }),
-  });
-
-builder.prismaObjectField('Post', 'activity', (t) =>
-  t.field({
-    type: PostActivity,
-    select: (args, ctx, nestedSelection) => ({
-      comments: commenters.getQuery(args, ctx, ({ path }) =>
-        nestedSelection({ path: ['commenters', ...path] }),
-      ),
-    }),
-    resolve: (post) => ({ comments: post.comments }),
-  }),
-);
-```
-
-The page follows the arguments of the connection field, `commenters`, not those of `activity`.
-Aliases of `commenters` beneath one `activity` must pass the same arguments, or the root field fails.
-
-`select` and `query` also receive the connection's arguments and context. Add the helper's `args`
-to the connection field with `args: commenters.getArgs()`.
