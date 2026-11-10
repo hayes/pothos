@@ -34,6 +34,14 @@ import {
   type ShapeFromSelection,
 } from './types.js';
 
+// Without `PrismaTypes`, model names would be checked against `never`. The model names are then
+// this sentinel, which accepts no name and names the missing setup in the error. It is a branded
+// string, not a string literal, so editors never offer it as a completion.
+type MissingPrismaTypes<Hint extends string> = string & { readonly missingPrismaTypes: Hint };
+
+type MissingPrismaTypesHint =
+  'Set PrismaTypes on SchemaTypes: new SchemaBuilder<{ PrismaTypes: PrismaTypes }>(...)';
+
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
@@ -79,7 +87,9 @@ declare global {
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      PrismaTypes: PartialTypes['PrismaTypes'] & {};
+      PrismaTypes: [keyof (PartialTypes['PrismaTypes'] & {})] extends [never]
+        ? { [Name in MissingPrismaTypes<MissingPrismaTypesHint>]: never }
+        : PartialTypes['PrismaTypes'] & {};
     }
 
     export interface PothosKindToGraphQLType {
