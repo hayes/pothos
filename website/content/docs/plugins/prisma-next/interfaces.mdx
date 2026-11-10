@@ -3,9 +3,8 @@ title: Interfaces
 description: GraphQL interfaces backed by contract models
 ---
 
-An interface lets a field return different object types with common fields. Use
-`builder.prismaInterface` for types backed by Prisma models; it takes the same options as
-`builder.prismaObject`.
+`builder.prismaInterface` defines a GraphQL interface for a Prisma model. It takes the same
+options as `builder.prismaObject`.
 
 Building on [Type variants](./variants), update the `User` and `Viewer` definitions to share a
 `Person` interface. Here `resolveType` chooses `Viewer` for the signed-in user's own row, and `User`
@@ -53,8 +52,8 @@ Implementing types must use the interface's Prisma model or one of its inherited
 interface ref as `type`. Fields on an implementing type can read the interface's `select`.
 Implementing objects don't accept `isTypeOf`.
 
-`id` is available to `resolveType` automatically. If it needs other data, declare columns or
-to-one relations in the interface's `select`; to-many relations aren't available to it.
+`resolveType` always has the row's `id`. If it needs other columns or to-one relations, add them
+to the interface's `select`. To-many relations aren't available to it.
 
 To add fields to the interface from another file, use `prismaInterfaceField` or
 `prismaInterfaceFields`:
@@ -74,11 +73,9 @@ To return rows through `Node` or another interface from a plain field, see
 An object type from `builder.objectRef` can implement a `prismaInterface` if its shape is
 `PrismaPlanned` for the model, such as
 `builder.objectRef<{ id: string; email: string; firstName: string } & PrismaPlanned<'User'>>`. The
-shape must include the interface's `select` columns and the columns its fields expose, since its
-fields and `resolveType` read them.
+shape must include the interface's `select` columns and the columns its fields expose.
 
 ## Native inheritance
 
 When Prisma itself defines inherited models, such as `Task`, `Bug` and `Feature`, the plugin can
-choose the GraphQL type automatically. Continue with [Model inheritance](./inheritance) to expose
-those models through an interface.
+choose the GraphQL type automatically. See [Model inheritance](./inheritance).

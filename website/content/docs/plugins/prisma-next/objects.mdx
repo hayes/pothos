@@ -28,8 +28,8 @@ To return these objects from a query field, use `t.prismaField`; see
 
 ## Selections
 
-A field that reads columns it doesn't expose, or data from a relation, declares them with `select`.
-The plugin then loads them along with the rest of the query.
+Use `select` when a resolver needs columns or relations that the field doesn't expose. The plugin
+loads them with the rest of the query:
 
 ```ts
 builder.prismaObject('User', {
@@ -54,30 +54,27 @@ builder.prismaObject('User', {
 });
 ```
 
-A `select` on the type is loaded whenever the type is queried, and every field can read it. A
-`select` on a field is loaded only when that field is queried. The primary key is always loaded.
-
 A `select` accepts:
 
 - Columns: `{ email: true }` or `['email']`.
 - Relations: `{ posts: true }`, which loads the relation's scalar columns.
 - Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`.
-  `where` also takes the ORM's predicate callback, and `orderBy` its selectors, as in `t.relation`'s
-  `query`.
-- A `select` of the relation's rows, in the same form: `{ comments: { limit: 5, select: { post: true } } }`.
-- `type`, a ref or model name of a [variant](./inheritance) of the relation's
-  target, which loads only that variant's rows: `{ tasks: { type: Bug } }`.
-- In a field's `select` only, counts and aggregates of a to-many relation:
+  `where` and `orderBy` take the same values as in `t.relation`'s `query`.
+- A nested `select` for the relation's rows: `{ comments: { limit: 5, select: { post: true } } }`.
+- `type`: a ref or model name for a [variant](./inheritance) of the related model. Only that
+  variant's rows are loaded: `{ tasks: { type: Bug } }`.
+- Counts and aggregates of a to-many relation, in a field's `select` only:
   `{ posts: (posts) => ({ postCount: posts.count() }) }`. Each key (`postCount`) is added to the
-  row, so don't reuse a column or relation name.
+  row, so don't use the name of a column or relation.
 
-A to-one relation takes only `type` and `select`. Read aggregates in a resolver; `t.expose*` only
-works on columns.
+A to-one relation only takes `type` and `select`. Aggregates have to be read in a resolver, because
+`t.expose*` only works on columns.
 
-The type-level `select`s of one model, including its [variants](./variants) and
-[interfaces](./interfaces), must load each relation they name the same way, at any depth, or the
-schema build throws. A `where` or `orderBy` function only matches itself, so share it between them.
-Load another version of a relation with `t.relation` or a field's `select`.
+A model's types (the object, its [variants](./variants) and [interfaces](./interfaces)) can each
+have a `select`. If two of them select the same relation, they have to use the same options,
+including in nested `select`s, or the schema build throws. `where` and `orderBy`
+functions are compared by reference, so share one function between the types. To load a relation
+with different options, use `t.relation` or a field's `select`.
 
 To filter a to-one relation, select it and return `null` from the resolver. Here a comment shows its
 post's title only when the post is published:
@@ -111,40 +108,40 @@ name: t.string({
 
 With `AsyncSelections: true` in the builder's types, the function can be async.
 
-Its third argument, `nestedSelection`, includes the dependencies and relations requested beneath a
-custom field returning objects. Without an explicit `select`, it loads scalar columns alongside
-those GraphQL requirements. An explicit `select` can start from a narrower set. See
-[Indirect relations](./indirect-relations) for examples.
+The function's third argument, `nestedSelection`, is for custom fields that return objects. Use
+it for a relation to load what the query selects under the field. It also loads the relation's
+scalar columns, unless you pass it a `select`. See [Indirect relations](./indirect-relations) for
+examples.
 
-`select`, `query` and `where` callbacks run while planning or building a query, rather than for
-each returned row. They can run more than once for reloads or aggregate planning, so keep them
-free of side effects.
+`select`, `query` and `where` functions are called while the plugin builds a query, not once per
+row. They can be called more than once in a request, so they shouldn't have side effects.
 
 ### Resolver data
 
-A resolver can read the model's primary or non-null unique key, the type's shared `select`, and
-its own field's `select`. Other columns aren't guaranteed to be loaded.
+A resolver can read the model's primary or non-null unique key, the type's `select`, and its own
+field's `select`. Other columns may not be loaded.
 
-Rows the plugin loads carry a type-only marker, such as `PrismaPlanned<'User'>`. For returning rows
-from custom resolvers, see
+The type of a row loaded by the plugin includes `PrismaPlanned<'User'>`. To return rows from custom
+resolvers, see
 [Returning rows from other fields](./relations#returning-rows-from-other-fields).
 
 ### Auth checks
 
-Auth checks on the type, and other plugins' field options such as `authScopes` and `grantScopes`,
-see:
+Auth checks on the type, and field options from other plugins such as `authScopes` and
+`grantScopes`, can read:
 
 - the primary key
 - the columns and relations in the `select`s of the type and its interfaces
 - on a `t.expose*` field, the exposed column
 
-Only `resolve` can read what a field's own `select` loads. If a row is missing any of this, such as
-a row of a variant model with its own table, the plugin reloads it by its key before the check.
+A field's own `select` is only available in `resolve`. If a row is missing any of these, the
+plugin reloads it by its key before the check.
 
 ## Mutations
 
-Use `resolve` for a field that writes data. It receives the model's Collection prepared for the
-GraphQL query. Filter it to the row you want to change, then call Prisma's write method:
+For a field that writes data, use `resolve`. Its first argument is the model's Collection, set up
+to load what the GraphQL query selects. Filter it to the row you want to change, then call one of
+Prisma's write methods:
 
 ```ts
 builder.mutationType({
@@ -163,7 +160,7 @@ builder.mutationType({
 });
 ```
 
-The updated row becomes the mutation result, with the fields requested by the client.
+The mutation returns the updated row with the fields the client selected.
 
 ### Return a payload
 
@@ -199,8 +196,8 @@ builder.mutationField('renameUser', (t) =>
 If the payload field is an interface or union, pass `typeName` to choose the GraphQL object type
 to load. For mutations on inherited models, see [Model inheritance](./inheritance#mutations).
 
-An exported function that returns rows from `collectionFromInfo` needs a return type, such as
-`Promise<PrismaPlanned<'User'> | null>`, for TypeScript to emit its declaration.
+If you export a function that returns rows from `collectionFromInfo`, give it a return type such
+as `Promise<PrismaPlanned<'User'> | null>` so TypeScript can emit its declaration.
 
 See [Transactions](./transactions) to run the write and the reads in one transaction.
 

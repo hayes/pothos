@@ -24,17 +24,17 @@ builder.prismaObject('Post', {
 });
 ```
 
-Relation fields follow the builder's
-[default field nullability](../../guide/changing-default-nullability), whatever the contract says, so
-a database change never changes the schema. Pass `nullable` to override.
+Relation fields use the builder's
+[default field nullability](../../guide/changing-default-nullability), whether or not the relation
+is optional in the contract. Pass `nullable` to override.
 
 ### Nullable relations and `onNull`
 
-A to-one relation can resolve to `null` when the contract makes it optional, or when a variant
-`type` filters the row out. To expose one as non-null, `t.relation` requires `onNull`. Setting it
-to `'error'` lets GraphQL raise the non-null error for the field. A function can return a
-replacement row from `collectionFromInfo` instead, or an `Error` to raise. This example uses the
-optional `Bug.reviewer` relation from [Model inheritance](./inheritance):
+A to-one relation can be `null` when it is optional in the contract, or when a variant `type`
+filters the row out. To expose one as a non-null field, you have to set `onNull`. `'error'` makes
+GraphQL raise its usual non-null error for the field. A function can return an `Error` to throw
+instead, or a replacement row loaded with `collectionFromInfo`. This example uses the optional
+`Bug.reviewer` relation from [Model inheritance](./inheritance):
 
 ```ts
 builder.prismaObject('Bug', {
@@ -70,8 +70,8 @@ posts: t.relation('posts', {
 
 With `AsyncSelections: true` in the builder's types, the function can be async.
 
-To sort by an expression, pass `orderBy` what the Collection's `orderBy()` takes, one selector or an
-array of them:
+To sort by an expression, `orderBy` also takes the selector functions that the Collection's
+`orderBy()` takes, one or an array of them:
 
 ```ts
 posts: t.relation('posts', {
@@ -104,7 +104,7 @@ For cursor-based pagination, use [`t.relatedConnection`](./connections#paginate-
 
 ### Aliases
 
-A query can select one relation field several times under aliases with different arguments:
+A query can select the same relation field more than once with different arguments:
 
 ```graphql
 {
@@ -115,8 +115,7 @@ A query can select one relation field several times under aliases with different
 }
 ```
 
-Each alias loads its own rows in the parent's query. Aliases with the same arguments share one
-load.
+Each alias loads its own rows in the parent's query.
 
 ## Counts and other aggregates
 
@@ -136,15 +135,14 @@ builder.prismaObject('User', {
 });
 ```
 
-`query` is an object or a function of the arguments and context, as on `t.relation`, but takes only
-`where`. `where` takes anything a relation's `query.where` takes, including a predicate:
+`query` works as it does on `t.relation`, but only takes `where`. `where` can also be a predicate:
 `query: { where: (post) => post.published.eq(1) }`.
 
-Count fields are always non-null, so if an auth check denies one, GraphQL nulls the parent instead.
-To hide a count from some users, use a nullable field with a `select`, as below.
+Count fields are always non-null. If an auth check on one fails, GraphQL sets the parent to `null`
+instead. To hide a count from some users, use a nullable field with a `select`, as below.
 
-For sums and other aggregates, give the relation a function in a field's `select`. It takes the
-relation's Collection and returns reducers by key, and each key is added to the parent row:
+For sums and other aggregates, use a function for the relation in a field's `select`. It gets the
+relation's Collection and returns an object of aggregates. Each key is added to the parent row:
 
 ```ts
 builder.prismaObject('User', {
@@ -158,9 +156,7 @@ builder.prismaObject('User', {
 });
 ```
 
-Keep aggregate callbacks free of side effects, and return the same keys for the same arguments. A
-field's `select` can load at most 61 aggregate keys at one level, across its relations; split
-larger summaries across fields.
+Aggregate functions shouldn't have side effects.
 
 ## Many-to-many
 
@@ -169,10 +165,10 @@ columns from the junction table, define the junction as its own model and use tw
 
 ## Returning rows from other fields
 
-If a plain `t.field` returns a model's type, instead of `t.prismaField` or `t.relation`, it must
-return rows the plugin planned: the parent, the relation rows the parent's `select` loads, or rows
-from a query built with `collectionFromInfo`. These are typed `PrismaPlanned<'User'>`. A row built
-by hand or loaded with a plain ORM query is a type error naming `PrismaPlanned<'User'>`.
+A plain `t.field` that returns a model's type has to return rows loaded by the plugin: the
+parent, relation rows loaded by a `select`, or rows from a query built with `collectionFromInfo`.
+These rows are typed as `PrismaPlanned<'User'>`. Returning a row you built by hand or loaded with
+a plain ORM query is a type error.
 
 ```ts
 builder.prismaObject('Post', {
@@ -183,8 +179,8 @@ builder.prismaObject('Post', {
 });
 ```
 
-A relation entry's `type` can be a ref or model name of one of the relation's
-[variants](./inheritance). The rows load as that variant only, typed as its rows:
+To load a relation as one of its [variants](./inheritance), set `type` to the variant's ref or
+model name. Only that variant's rows are loaded:
 
 ```ts
 const Bug = builder.prismaObject('Bug', {
@@ -202,9 +198,9 @@ builder.prismaObject('User', {
 });
 ```
 
-`collectionFromInfo` loads everything the query selects beneath the field, relations and counts
-included, so the field loads in one query, like a `t.prismaField`. See
-[Mutations](./objects#mutations) for its `path` and `typeName` options:
+`collectionFromInfo` loads everything the query selects under the field, including relations and
+counts, in one query, like a `t.prismaField`. See [Mutations](./objects#mutations) for its `path`
+and `typeName` options:
 
 ```ts
 import { collectionFromInfo } from '@pothos/plugin-prisma-next';
@@ -225,11 +221,12 @@ builder.queryField('me', (t) =>
 );
 ```
 
-In a subscription, call it in `resolve`, which runs per event; rows from `subscribe` load again.
+In a subscription, call it in `resolve`, which runs for each event. Rows returned from `subscribe`
+are loaded again.
 
-To return a row through `Node`, or through an interface from `builder.interfaceRef()`:
+To return a row from a field whose type is `Node` or an interface from `builder.interfaceRef()`:
 
-- Brand it with the type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
+- Brand it with the type's `addBrand`, such as `User.addBrand(row)`. Rows without a brand fail with
   `Abstract type ... must resolve`.
-- If you route a row yourself, with a `__typename` or a `resolveType` that returns a type name,
-  TypeScript doesn't check that the row is planned.
+- If you set `__typename` yourself, or use a `resolveType` that returns a type name, TypeScript
+  doesn't check that the row was loaded by the plugin.

@@ -18,9 +18,9 @@ Pothos generator output used by `@pothos/plugin-prisma`. Use one plugin per prog
 - `take` and `skip` are now `limit` and `offset`.
 - `where` and `orderBy` use Prisma ORM 8's shapes, not Prisma Client's.
 - The `dmmf`, `exposeDescriptions` and `onUnusedQuery` plugin options are gone.
-- A `client` function also needs the base client's `context`; see
+- A `client` function also needs the base client's `context`. See
   [Plugin options](./setup#plugin-options).
-- `prismaObject` and `prismaNode` take no `include` or `findUnique`; use `select`.
+- `prismaObject` and `prismaNode` take no `include` or `findUnique`. Use `select`.
 - A connection helper's `getQuery` takes `(args, ctx)`, without `nestedSelection`.
 - `@pothos/plugin-prisma-utils` has no counterpart.
 
@@ -64,7 +64,7 @@ For writes, `resolve` receives the selected ORM query and lets you call `create`
 
 Custom `t.field` resolvers that return database rows should use
 [`collectionFromInfo`](./relations#returning-rows-from-other-fields) when loading those rows.
-That ensures the result includes the relations and other data requested by the GraphQL query.
+This loads the relations and other data the GraphQL query selects.
 
 ## Keep your connection queries
 

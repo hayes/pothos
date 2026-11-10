@@ -47,9 +47,8 @@ builder.queryFields((t) => ({
 }));
 ```
 
-Define an implementing object for each variant in the contract. The plugin handles type
-resolution, so no custom `resolveType` is needed. Clients can query shared fields and add
-fragments for variant-specific fields:
+Define an object for each variant in the contract. You don't need a `resolveType`. Clients can
+query shared fields and add fragments for variant-specific fields:
 
 ```graphql
 {
@@ -67,15 +66,14 @@ fragments for variant-specific fields:
 }
 ```
 
-A variant's `select` declares data shared by its fields and authorization checks, just as on any
-other model type. Here `Bug` loads its reviewer so `reviewerEmail` can read it. Put dependencies in
-a field's own `select` when only that field needs them. The interface's selected data is available
-to its implementing types too.
+A variant's `select` works like it does on any other type. Here `Bug` loads its reviewer so
+`reviewerEmail` can read it. Anything in the interface's `select` is available to the types that
+implement it too.
 
 ## Query a variant
 
-Give a field the variant's type to return only rows of that variant. Use the ORM's predicate form
-to filter variant-specific fields:
+Use a variant's type on a field to return only that variant's rows. To filter on the variant's
+own fields, pass `where` as a function:
 
 ```ts
 builder.queryField('highSeverityBugs', (t) =>
@@ -86,8 +84,8 @@ builder.queryField('highSeverityBugs', (t) =>
 );
 ```
 
-When composing a native query yourself, start with the base model narrowed to the variant, such as
-`db.orm.Task.variant('bug')`. The plugin uses this form automatically when you omit `collection`.
+If you pass your own `collection`, start from the base model narrowed to the variant, such as
+`db.orm.Task.variant('bug')`. This is what the plugin uses when you omit `collection`.
 
 ## Expose related variants
 
@@ -101,22 +99,21 @@ builder.prismaObjectFields('User', (t) => ({
 }));
 ```
 
-The plugin loads what each type needs before type routing and auth checks read the row, sometimes
-with an extra batched query.
+The plugin sometimes runs an extra batched query to load what each variant's type needs.
 
-A relation targeting a variant stored in a separate table can filter and sort by that variant's
-own fields, but not inherited base fields. To query both, start from the base Collection narrowed
-with `variant()`, as in the previous section.
+When a variant is stored in its own table, a relation to it can filter and sort by the variant's
+own fields, but not by fields inherited from the base model. To use both, start from the base
+Collection narrowed with `variant()`, as in the previous section.
 
 Custom resolvers that load rows can use [collectionFromInfo](./relations#returning-rows-from-other-fields)
-to include the data their GraphQL result needs. Planned variant rows can also be returned through
-a compatible `prismaInterface`; the plugin loads missing data needed to resolve their type.
+to load what the query selects. Variant rows loaded this way can also be returned through a
+compatible `prismaInterface`. The plugin loads anything else it needs to resolve their type.
 
 ## Mutations
 
-When returning a `Bug` from `t.prismaField`, the resolver receives a Collection for
-`orm.Task.variant('bug')`. Keep a filter such as `where({ id })` when changing one task:
-`variant('bug')` chooses the kind of task, and `update()` or `delete()` acts on the first match.
+When a `t.prismaField` returns `Bug`, its resolver receives a Collection for
+`orm.Task.variant('bug')`. `variant('bug')` only narrows to bugs, and `update()` and `delete()` act
+on the first match, so add a filter such as `where({ id })` to change one task.
 
 ### Return an updated record
 
@@ -124,19 +121,19 @@ Some Prisma write methods return only the base model's columns when the variant 
 table. For example, an updated `Feature` may be missing its `priority`. Use `updateAndCount()`
 to make the change, then `first()` on the same filtered Collection to read the response.
 
-When returning the `Task` interface, the plugin may also need another read for a relation such as
-`Bug.reviewer`. Updates can load that data after the write.
+When the field returns the `Task` interface, the plugin may run another query after the update
+to load a relation such as `Bug.reviewer`.
 
 ### Return a deleted record
 
 A deleted row cannot be read again. To return a deleted bug with its reviewer, return the `Bug`
 object type, or prepare the query with `collectionFromInfo({ ..., typeName: 'Bug' })` before
-calling `delete()`. This loads the reviewer with the delete instead of reloading it afterward.
-A Collection using `variant('bug')` requires that `typeName` option with `collectionFromInfo`.
+calling `delete()`. Either way the reviewer is loaded as part of the delete.
+`collectionFromInfo` requires `typeName` for a Collection that uses `variant('bug')`.
 
 For a variant stored in its own table, Prisma's `delete()` result contains only the base model's
 columns too. Return an ID or a payload that does not need the missing fields. Avoid `@defer` on a
-deleted record: deferred fields may need a read after the row is gone.
+deleted record, because deferred fields may need to read the row after it is gone.
 
 ### Upsert a variant
 

@@ -5,10 +5,10 @@ a strongly typed GraphQL API from your Prisma models. Expose database fields and
 computed fields, and support Relay nodes and paginated connections. Your GraphQL types and fields can
 have different names and shapes from the underlying models.
 
-Declare what each field needs, and the plugin combines those requirements with the incoming
-GraphQL query. Prisma loads related data together, often in a single SQL statement, so you don't
-need a separate resolver or database call for every relation. Field types are inferred from your
-Prisma contract.
+Each field declares the columns and relations it needs, and the plugin loads what the incoming
+GraphQL query uses. Relations, counts and connection pages load with their parent, usually in one
+SQL statement per root field, so you don't need a resolver or database call for every relation.
+Field types are inferred from your Prisma contract.
 
 > [!WARNING]
 > **Experimental.** This plugin targets Prisma ORM `8.0.0-rc.23` exactly. Its API, and Prisma's,
@@ -27,10 +27,10 @@ Set up Prisma ORM 8 and your contract, then install the plugin with its Prisma p
 npm install --save @pothos/core @pothos/plugin-prisma-next @pothos/plugin-relay graphql @prisma/orm-family-sql@8.0.0-rc.23 @prisma/orm-framework@8.0.0-rc.23
 ```
 
-Install every `@prisma/orm-*` package, including your database's (such as `@prisma/orm-postgres`),
-at `8.0.0-rc.23`. A second copy of any of them breaks values passed between the two. The database
-packages also need `temporal-polyfill`, which npm and pnpm install automatically; with Yarn, add it
-yourself. Requires Node.js 22.20+ or 24.7+.
+Install every `@prisma/orm-*` package, including the one for your database (such as
+`@prisma/orm-postgres`), at `8.0.0-rc.23`. Two copies of the same package won't work together. The
+database packages need `temporal-polyfill`. npm and pnpm install it automatically, but with Yarn
+you have to add it yourself. Requires Node.js 22.20+ or 24.7+.
 
 ```ts
 import SchemaBuilder from '@pothos/core';
@@ -58,7 +58,7 @@ builder.prismaObject('Post', {
 });
 ```
 
-The author's computed `fullName` declares the columns its resolver reads:
+`fullName` is a computed field. Its `select` lists the columns the resolver reads:
 
 ```ts
 builder.prismaObject('User', {
@@ -117,26 +117,27 @@ posts: t.prismaConnection({
 }),
 ```
 
-`collection` chooses the starting ORM query; `query` adds field filters and ordering; a custom
-field's `select` declares the data its resolver reads. See
+`collection` sets the starting ORM query, `query` adds filters and ordering, and `select` on a
+custom field lists the data its resolver reads. See
 [Queries and selections](https://pothos-graphql.dev/docs/plugins/prisma-next/queries) for how they
-combine. The examples use an imported `db`; request-scoped clients and transaction lifetimes are
-covered in the [Transactions guide](https://pothos-graphql.dev/docs/plugins/prisma-next/transactions).
+combine. The examples use an imported `db`. For request-scoped clients and transactions, see the
+[Transactions guide](https://pothos-graphql.dev/docs/plugins/prisma-next/transactions).
 
 See the [Prisma Next plugin docs](https://pothos-graphql.dev/docs/plugins/prisma-next) and the
 [playground example](https://pothos-graphql.dev/playground?example=plugin-prisma-next).
 
 ## TypeScript and Temporal
 
-When exporting refs that select Temporal columns, or have a Temporal primary key, declaration emit
-may require `temporal-spec` as a direct dependency. If TypeScript reports missing `Temporal`
-globals, add `import type {} from 'temporal-spec/global'` to a declaration file in your project.
-This supplies types only; runtime Temporal support still comes from your runtime or polyfill. See
+If you use Temporal columns, declaration emit may need `temporal-spec` as a direct dependency. If
+TypeScript reports missing `Temporal` globals, add `import type {} from 'temporal-spec/global'` to
+a declaration file in your project. This only adds types. You still need Temporal at runtime,
+natively or from a polyfill. See
 [Setup](https://pothos-graphql.dev/docs/plugins/prisma-next/setup#typescript-and-temporal).
 
 ## Errors
 
-Malformed IDs and cursors fail with `Invalid ID.` or `Invalid cursor.`, and IDs that aren't global
-IDs with the Relay plugin's `Invalid global ID: …`. Errors the plugin detects in your runtime
-configuration use `Unexpected error.`, with detail in `cause`. ORM errors and errors from your code
-pass through unchanged and can name your models and columns, so mask them in your GraphQL server.
+Clients see `Invalid ID.` or `Invalid cursor.` for a malformed ID or cursor, and the Relay plugin's
+`Invalid global ID: …` for an ID that isn't a global ID. If the plugin finds a problem in your
+configuration while running a request, the field fails with `Unexpected error.`. The original error
+is on `error.cause`. Errors from the ORM and from your code are not changed and can include model and
+column names, so mask them in your GraphQL server.
