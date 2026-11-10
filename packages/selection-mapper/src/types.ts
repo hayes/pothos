@@ -81,7 +81,8 @@ export interface SelectedFieldNode {
    * selections of the field that graphql merges with this one, at any depth. Fields under
    * fragments on types that never overlap are still compared, and an argument passed as `null`
    * differs from one left out. An empty path is the field itself, or the wrapper's inner field,
-   * when its type has one. plugin-prisma-next's connection helpers use it to page a wrapper's rows.
+   * when its type has one. Read it while the select function runs. plugin-prisma-next's
+   * connection helpers use it to page a wrapper's rows.
    */
   args(path: string[]): MaybePromise<object> | null;
 }

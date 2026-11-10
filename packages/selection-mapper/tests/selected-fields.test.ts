@@ -66,7 +66,7 @@ it.each([
 });
 
 async function argsAt(path: string[], selection: string | string[], variableValues = {}) {
-  let read: () => unknown = () => undefined;
+  const seen: unknown[] = [];
   const models = createModels('User');
   const schema = createSchema(
     `
@@ -83,7 +83,7 @@ async function argsAt(path: string[], selection: string | string[], variableValu
         select: { select: { id: true } },
         fields: {
           activity: (_args, _ctx, _nested, selected) => {
-            read = () => selected.args(path);
+            seen.push(selected.args(path));
             return { select: { id: true } };
           },
         },
@@ -106,7 +106,9 @@ async function argsAt(path: string[], selection: string | string[], variableValu
   const info = await resolveInfo(schema, source, { variableValues });
   const plan = await Plan.fromInfo(new FakeAdapter(models), { context: {}, info });
   plan!.query();
-  return read();
+  // Each node of `activity` reads the same arguments.
+  expect(new Set(seen.map((args) => JSON.stringify(args))).size).toBe(1);
+  return seen[0];
 }
 
 it('reads the arguments of a field beneath the selection, through a wrapper', async () => {
@@ -139,13 +141,13 @@ it('reads the arguments of fields at the path in selections graphql merges', asy
 });
 
 /** Plans `selection` on a user, reading the arguments at `posts` while `activity` is selected. */
-async function plannedArgs(selection: string) {
+async function plannedArgs(selection: string, variableValues = {}) {
   const seen: unknown[] = [];
   const models = createModels('User');
   const schema = createSchema(
     `
     type Query { user: User }
-    type User { id: ID friend: User activity: Activity }
+    type User { id: ID friend: User safe: User activity: Activity }
     type Activity { posts(first: Int, last: Int): Int }
   `,
     {
@@ -154,6 +156,14 @@ async function plannedArgs(selection: string) {
         select: { select: { id: true } },
         fields: {
           friend: (_args, _ctx, nested) => ({ select: { friend: nested({}) } }),
+          // Selects nothing when the selection beneath it cannot be planned.
+          safe: (_args, _ctx, nested) => {
+            try {
+              return { select: { safe: nested({}) } };
+            } catch {
+              return false;
+            }
+          },
           activity: (_args, _ctx, _nested, selected) => {
             seen.push(selected.args(['posts']));
             return { select: { id: true } };
@@ -162,7 +172,11 @@ async function plannedArgs(selection: string) {
       },
     },
   );
-  const info = await resolveInfo(schema, `{ user { ${selection} } } ${FRAGMENTS}`);
+  const info = await resolveInfo(
+    schema,
+    `query ($on: Boolean = true) { user { ${selection} } } ${FRAGMENTS}`,
+    { variableValues },
+  );
   const plan = await Plan.fromInfo(new FakeAdapter(models), { context: {}, info });
   plan!.query();
   return seen;
@@ -180,6 +194,10 @@ const LAST = 'activity { b: posts(last: 1) }';
 it.each([
   ['one level down', `friend { ${FIRST} } friend { ${LAST} }`],
   ['two levels down', `friend { friend { ${FIRST} } } friend { friend { ${LAST} } }`],
+  [
+    'three levels down',
+    `friend { friend { friend { ${FIRST} } } } friend { friend { friend { ${LAST} } } }`,
+  ],
   ['a parent selected twice above another', `friend { friend { ${FIRST} } friend { ${LAST} } }`],
   ['inline fragments', `... on User { friend { ${FIRST} } } ... { friend { ${LAST} } }`],
   ['named fragments', '...FriendFirst ...FriendLast'],
@@ -188,6 +206,11 @@ it.each([
     'parents that each share a walk with another alias',
     `x: friend { ${FIRST} } y: friend { ${LAST} } friend { ${FIRST} } friend { ${LAST} }`,
   ],
+  [
+    'parents selected twice before other aliases that share their walks',
+    `friend { ${FIRST} } friend { ${LAST} } x: friend { ${FIRST} } y: friend { ${LAST} }`,
+  ],
+  ['a parent included by a variable', `friend { ${FIRST} } friend @include(if: $on) { ${LAST} }`],
 ])('throws for different arguments beneath a parent selected twice: %s', async (_, selection) => {
   await expect(plannedArgs(selection)).rejects.toThrow(
     unexpected('The fields selected at posts beneath User.activity have different arguments.'),
@@ -211,4 +234,26 @@ it('reads only the arguments beneath its own alias of the parent', async () => {
     { first: 1 },
     { last: 1 },
   ]);
+});
+
+it('reads only the arguments of a parent selected once when another is skipped', async () => {
+  expect(
+    await plannedArgs(`friend { ${FIRST} } friend @skip(if: $on) { ${LAST} }`, { on: true }),
+  ).toEqual([{ first: 1 }]);
+  expect(
+    await plannedArgs(`friend { ${FIRST} } friend @include(if: $on) { ${LAST} }`, { on: false }),
+  ).toEqual([{ first: 1 }]);
+});
+
+it.each([
+  [
+    'after',
+    `friend { safe { ${FIRST} } } friend { safe { ${LAST} } } x: friend { safe { ${FIRST} } }`,
+  ],
+  [
+    'before',
+    `x: friend { safe { ${FIRST} } } friend { safe { ${FIRST} } } friend { safe { ${LAST} } }`,
+  ],
+])('plans an alias %s parents whose conflict a select function caught', async (_, selection) => {
+  expect(await plannedArgs(selection)).toEqual([{ first: 1 }]);
 });
