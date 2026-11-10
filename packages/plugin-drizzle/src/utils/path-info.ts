@@ -2,6 +2,19 @@ import type { Position } from '@pothos/selection-mapper';
 import { type GraphQLOutputType, isListType, isNonNullType } from 'graphql';
 import type { FieldPathInfo, PathInfo } from '../types.js';
 
+/** Set by each field's gate before its resolver runs, by `info.path`. */
+const plannedAt = new WeakMap<object, Position>();
+
+/** Records the position the field executing at `path` was planned at. */
+export function setPlannedPosition(path: object, position: Position) {
+  plannedAt.set(path, position);
+}
+
+/** The position the field executing for `info` was planned at, as its gate recorded it. */
+export function plannedPosition(info: { path: object }): Position | undefined {
+  return plannedAt.get(info.path);
+}
+
 /**
  * The public `PathInfo` of a position: `path` as `Type.field` from the field the query was
  * planned for down to the field being planned, and one segment per step with the alias the

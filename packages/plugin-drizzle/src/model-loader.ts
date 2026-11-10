@@ -25,8 +25,12 @@ import {
   drizzleAdapter,
 } from './utils/adapter.js';
 import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
+import { InternalError } from './utils/errors.js';
 import { planFromInfo } from './utils/map-query.js';
-import type { SelectionMap } from './utils/selections.js';
+import { setPlannedPosition } from './utils/path-info.js';
+
+/** A load found no row for the key. A node load resolves `null` for it; a reload raises it. */
+class MissingRowError extends InternalError {}
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -105,7 +109,7 @@ export class ModelLoader {
         return model[columnName] as string | number;
       }
 
-      throw new Error(`Primary key column ${columnName} not found on ${this.modelName}`);
+      throw new InternalError(`Primary key column ${columnName} not found on ${this.modelName}`);
     });
 
     return this.columns.length > 1 ? values : values[0];
@@ -156,9 +160,14 @@ export class ModelLoader {
         const mapping = played.mappings[`${info.parentType.name}@${info.path.key}`];
 
         if (mapping) {
-          // Recorded for the field itself too, so its resolver finds the pathInfo it was planned
-          // with, along with the mappings of the fields beneath it. Against `result` alone: this
-          // load fetched one row, so the field's own mapping answers for that row's lookup only.
+          if (mapping.position) {
+            // The field's resolver pages with the position of this load, not the one its parent
+            // was planned at.
+            setPlannedPosition(info.path, mapping.position);
+          }
+
+          // The mappings of the fields beneath, against `result` alone: this load fetched one
+          // row, so the field's own mapping answers for that row's lookup only.
           setRowFieldMapping(this.context, info, mapping, result);
         }
       }
@@ -181,15 +190,22 @@ export class ModelLoader {
   }
 
   private loadFieldWith(played: DrizzlePlayedPlan, info: GraphQLResolveInfo, model: object) {
-    return this.stageQuery(played, model).then((result) => {
-      if (result) {
+    return this.stageQuery(played, model).then(
+      (result) => {
         // Relay nodes of different types share this field path. Each node plan contributes
         // its type-qualified mappings, as a queryFromInfo plan would.
         setLoaderMappings(this.context, info, played.mappings);
-      }
 
-      return result;
-    });
+        return result;
+      },
+      (error: unknown) => {
+        if (error instanceof MissingRowError) {
+          return null;
+        }
+
+        throw error;
+      },
+    );
   }
 
   stageQuery(played: Pick<DrizzlePlayedPlan, 'root'>, model: object) {
@@ -269,7 +285,9 @@ export class ModelLoader {
                 promise.resolve(result);
               } else {
                 promise.reject(
-                  new Error(`Model ${this.modelName}(${this.sqlForModel(model)}) not found`),
+                  new MissingRowError(
+                    `Model ${this.modelName}(${String(this.sqlForModel(model))}) not found`,
+                  ),
                 );
               }
             }
@@ -302,20 +320,16 @@ type ScopeAuthParentLoader = (
 
 /**
  * The parent scope-auth's checks see for a type: the row when it has every top-level key of the
- * type's selection, otherwise the row reloaded with it.
+ * type's selection (`root`, planned from it), otherwise the row reloaded with it.
  */
 export function typeParentLoader(
   loaders: (context: object) => ModelLoader,
-  adapter: DrizzleAdapter,
-  table: TableRelationalConfig,
-  selection: SelectionMap,
+  root: DrizzleNode,
 ): ScopeAuthParentLoader {
-  const root = adapter.createNode(table);
-  adapter.mergeQuery(root, selection);
   // Read from the node, which resolves a `columns` map that only excludes. A node without columns
   // selects every column.
   const keys = [
-    ...(root.columns ?? Object.keys(getColumns(table.table as Table))),
+    ...(root.columns ?? Object.keys(getColumns(root.model.table as Table))),
     ...root.relations.keys(),
     ...root.computed.keys(),
   ];
@@ -354,7 +368,9 @@ export function typeParentLoader(
         })
         .catch((error: unknown) => {
           // Clients see only a generic message.
-          throw new Error('Unexpected error.', { cause: error });
+          throw error instanceof InternalError
+            ? error
+            : new Error('Unexpected error.', { cause: error });
         });
       rows.set(row, load);
     }

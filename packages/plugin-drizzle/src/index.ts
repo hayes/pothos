@@ -9,11 +9,12 @@ import SchemaBuilder, {
   type PothosTypeConfig,
   type SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, mappingParentTypes, setFieldMapping } from '@pothos/selection-mapper';
+import { getLoaderMapping, mappingParentTypes, setRowMappings } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import type { ModelLoader } from './model-loader.js';
 import type { PathInfo } from './types.js';
+import { setPlannedPosition } from './utils/path-info.js';
 
 export { drizzleConnectionHelpers } from './connection-helpers.js';
 export { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
@@ -162,10 +163,14 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       }
 
       if ((!loadedCheck || loadedCheck(parent, info, context)) && mapping) {
-        // Recorded under the field's own parent type as well, so its resolver finds the pathInfo
-        // it was planned with, whichever same-model type the plan was made for. Against the row
-        // it resolves with: a sibling row of the same list may have been loaded by another plan.
-        setFieldMapping(context, info, mapping, parent);
+        // The resolver reads the position it was planned at by `info.path`, whichever same-model
+        // type the mapping was found under. The fields beneath answer from this row's plan: a
+        // sibling row of the same list may have been loaded by another plan.
+        if (mapping.position) {
+          setPlannedPosition(info.path, mapping.position);
+        }
+
+        setRowMappings(context, info, mapping.nested);
 
         return resolver(parent, args, context, info);
       }

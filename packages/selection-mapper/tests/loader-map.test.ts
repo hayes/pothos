@@ -25,7 +25,6 @@ import {
   getLoaderMapping,
   type Mapping,
   responsePath,
-  setFieldMapping,
   setLoaderMappings,
   setRowFieldMapping,
   setRowMappings,
@@ -278,7 +277,7 @@ describe('loader map', () => {
     expect(getLoaderMapping(ctx, info(pathOf('users', 3, 'posts')), 'User', row)).toBe(planned);
   });
 
-  it('keeps a disagreeing row mapping off the siblings that agreed with the first plan', () => {
+  it('keeps a reloaded row mapping off the siblings the plan loaded', () => {
     const ctx = {};
     const root = pathOf('users');
     const planned: Mapping = { nested: {} };
@@ -286,28 +285,11 @@ describe('loader map', () => {
     const rows = [{}, {}, {}];
     const paths = rows.map((_, i) => child(root, i, 'posts'));
     setLoaderMappings(ctx, info(root), { 'User@posts': planned });
-    setFieldMapping(ctx, info(paths[0]), planned, rows[0]);
-    setFieldMapping(ctx, info(paths[1]), reloaded, rows[1]);
+    setRowMappings(ctx, info(paths[0]), planned.nested);
+    setRowFieldMapping(ctx, info(paths[1]), reloaded, rows[1]);
     expect(getLoaderMapping(ctx, info(paths[1]), 'User', rows[1])).toBe(reloaded);
     expect(getLoaderMapping(ctx, info(paths[0]), 'User', rows[0])).toBe(planned);
     expect(getLoaderMapping(ctx, info(paths[2]), 'User', rows[2])).toBe(planned);
-  });
-
-  it('does not give agreeing rows an override of their shared field mapping', () => {
-    const ctx = {};
-    const root = pathOf('users');
-    const planned: Mapping = { nested: {} };
-    const replanned: Mapping = { nested: {} };
-    setLoaderMappings(ctx, info(root), { 'User@posts': planned });
-    const rows = [{}, {}, {}];
-    const paths = rows.map((_, i) => child(root, i, 'posts'));
-    rows.forEach((row, i) => {
-      setFieldMapping(ctx, info(paths[i]), planned, row);
-    });
-    setLoaderMappings(ctx, info(root), { 'User@posts': replanned });
-    rows.forEach((row, i) => {
-      expect(getLoaderMapping(ctx, info(paths[i]), 'User', row)).toBe(replanned);
-    });
   });
 });
 
@@ -601,7 +583,7 @@ describe('a row no plan loaded', () => {
     const raw = to(items, 1, 'user');
     // `items.0.user` was loaded by a plan; `items.1.user` is a row its resolver fetched itself.
     setLoaderMappings(ctx, info(planned), { 'User@posts': posts });
-    setFieldMapping(ctx, info(to(planned, 'posts', 0, 'author'), 'Post'), author, {});
+    setRowFieldMapping(ctx, info(to(planned, 'posts', 0, 'author'), 'Post'), author, {});
 
     expect(getLoaderMapping(ctx, info(to(planned, 'posts')), 'User', {})).toBe(posts);
     expect(getLoaderMapping(ctx, info(to(raw, 'posts')), 'User', {})).toBeNull();

@@ -224,6 +224,8 @@ Adding `posts { title }` loads the public posts through the same root resolver.
 
 For a list field, use `type: ['users']` and `db.query.users.findMany(query())`. A plain lookup
 without arguments can pass no options to `query`; fields with filters pass those options to it.
+When the type's `select` also loads a relation named in the `with` passed to `query`, that relation
+is loaded with the type's arguments.
 
 #### Building a query from resolve info
 
@@ -377,8 +379,8 @@ Fallback queries are batched. Every row of a table that needs the same selection
 is loaded with one `findMany` filtered on the primary key, or on the first unique column for a
 table that has no primary key, and the rows are matched back to their parents. If the query does
 not return a row for a parent, because it was deleted since it was loaded, or never came from the
-table, that field rejects with `Model users(1) not found`, where the value in parentheses is the
-key that was looked up.
+table, that field fails with `Unexpected error.`, and the error's `cause` names the table and the
+key that was looked up, such as `Model users(1) not found`.
 
 The [alias query](https://pothos-graphql.dev/docs/plugins/drizzle/query-planning#compare-two-orderings-of-one-relation) demonstrates
 this fallback: newest and oldest cannot share one loaded posts list.
@@ -794,9 +796,15 @@ so give them a tie breaker yourself.
 
 #### Nullable ordering columns
 
-A row whose ordering value is `null` cannot be paged past. `null` is not greater or less than
-anything in SQL, so no row compares as coming after it and the next page comes back empty. The same
-applies to an ordering expression that can evaluate to `null`.
+`null` is not greater or less than anything in SQL, so a cursor cannot page across the point where
+rows with a `null` ordering value meet rows with a value. A cursor taken from a row with a value
+never returns the `null` rows, and a cursor taken from a `null` row returns only the remaining `null`
+rows, or nothing when the ordering has no tie breaker. Depending on where the database sorts nulls
+and which way you page, the rows on the other side of that point are missing from every later page.
+A page requested without a cursor is complete.
+
+The same applies to an ordering expression that can evaluate to `null`. A nullable column later in
+the ordering loses rows the same way, among the rows that share the values of the columns before it.
 
 Order by columns that are `notNull()`, or give the expression a real value to fall back to with
 `coalesce`.
@@ -1196,11 +1204,18 @@ Any keys you pass in are kept as they were given, so `columns` passed to `nested
 still narrow the parent shape:
 
 ```ts
+const Post = builder.drizzleObject('posts', {
+  name: 'Post',
+  fields: (t) => ({
+    title: t.exposeString('title'),
+  }),
+});
+
 builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
     previewPosts: t.field({
-      type: ['posts'],
+      type: [Post],
       select: (args, ctx, nestedSelection) => {
         return {
           // what the query selects on the posts, limited to one
@@ -1439,11 +1454,18 @@ Pothos waits for these callbacks before executing the planned query. `t.relation
 resolver runs, and need no changes.
 
 ```ts
+const Post = builder.drizzleObject('posts', {
+  name: 'Post',
+  fields: (t) => ({
+    title: t.exposeString('title'),
+  }),
+});
+
 builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
     previewPosts: t.field({
-      type: ['posts'],
+      type: [Post],
       select: async (args, ctx, nestedSelection) => {
         return {
           with: {
