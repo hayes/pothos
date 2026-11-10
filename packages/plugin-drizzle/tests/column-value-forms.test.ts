@@ -44,12 +44,14 @@ describe('cursor values a driver option can produce', () => {
   const readings = pgTable('readings', {
     id: pgInteger().primaryKey(),
     big: bigint({ mode: 'bigint' }).notNull(),
+    bigNumeric: pgNumeric({ mode: 'bigint' }).notNull(),
     value: doublePrecision().notNull(),
     mood: mood().notNull(),
     label: pgText().notNull(),
     uid: uuid().notNull(),
     amount: pgNumeric().notNull(),
     bigText: bigint({ mode: 'string' }).notNull(),
+    tags: pgText().array().notNull(),
   });
 
   it('accepts a number or bigint only for a column holding a number as text', () => {
@@ -76,19 +78,42 @@ describe('cursor values a driver option can produce', () => {
     });
   });
 
-  it('accepts a number or digits for a bigint column', () => {
+  it('accepts only a bigint in 64 bits for a bigint column', () => {
     const parse = getCursorParser(['big'], [readings.big]);
 
-    expect(parse(cursor('DC:N:5'))).toEqual({ big: 5 });
-    expect(parse(cursor('DC:S:9007199254740993'))).toEqual({ big: BigInt('9007199254740993') });
+    expect(parse(cursor('DC:I:9223372036854775807'))).toEqual({
+      big: BigInt('9223372036854775807'),
+    });
+    expect(() => parse(cursor('DC:I:9223372036854775808'))).toThrow('Invalid cursor.');
+    expect(() => parse(cursor('DC:N:5'))).toThrow('Invalid cursor.');
+    expect(() => parse(cursor('DC:S:5'))).toThrow('Invalid cursor.');
     expect(() => parse(cursor('DC:N:1.5'))).toThrow('Invalid cursor.');
     expect(() => parse(cursor('DC:O:{"a":1}'))).toThrow('Invalid cursor.');
   });
 
-  it('accepts a bigint for an integer column', () => {
-    expect(getCursorParser(['id'], [readings.id])(cursor('DC:I:3'))).toEqual({
-      id: BigInt(3),
+  it('accepts a bigint beyond 64 bits for a numeric bigint column', () => {
+    const parse = getCursorParser(['bigNumeric'], [readings.bigNumeric]);
+
+    expect(parse(cursor('DC:I:99999999999999999999'))).toEqual({
+      bigNumeric: BigInt('99999999999999999999'),
     });
+    expect(() => parse(cursor('DC:N:5'))).toThrow('Invalid cursor.');
+  });
+
+  it("accepts a bigint in the column's range for an integer column", () => {
+    const parse = getCursorParser(['id'], [readings.id]);
+
+    expect(parse(cursor('DC:I:3'))).toEqual({ id: BigInt(3) });
+    expect(() => parse(cursor('DC:I:2147483648'))).toThrow('Invalid cursor.');
+  });
+
+  it('accepts only an array for an array column', () => {
+    const parse = getCursorParser(['tags', 'id'], [readings.tags, readings.id]);
+
+    expect(parse(cursor('DC:T:["O:[\\"a\\"]","N:1"]'))).toEqual({ tags: ['a'], id: 1 });
+    expect(parse(cursor('DC:J:[["a"],1]'))).toEqual({ tags: ['a'], id: 1 });
+    expect(() => parse(cursor('DC:T:["S:a","N:1"]'))).toThrow('Invalid cursor.');
+    expect(() => parse(cursor('DC:J:["a",1]'))).toThrow('Invalid cursor.');
   });
 
   it('accepts NaN as Postgres writes it in JSON, in a tagged and a legacy cursor', () => {

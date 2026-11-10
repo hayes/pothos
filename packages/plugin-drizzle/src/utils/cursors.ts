@@ -261,10 +261,7 @@ export function getIDParser(
  * of each key that is one, and each value is checked against it; a key ordered by an expression
  * has none, and its value is passed on as it is.
  */
-export function getCursorParser(
-  keys: readonly string[],
-  columns: readonly (Column | undefined)[] = [],
-) {
+export function getCursorParser(keys: readonly string[], columns: readonly (Column | undefined)[]) {
   if (keys.length === 0) {
     throw new InternalError('A connection cursor needs at least one ordering column');
   }

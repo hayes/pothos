@@ -81,10 +81,10 @@ describe('cursor payloads are the shared encoding', () => {
   });
 
   it('reads every part back with its type', () => {
-    const parsed = getCursorParser(names)(getCursorFormatter(names, noColumns)(VALUES)) as Record<
-      string,
-      unknown
-    >;
+    const parsed = getCursorParser(
+      names,
+      [],
+    )(getCursorFormatter(names, noColumns)(VALUES)) as Record<string, unknown>;
 
     expect(parsed.string).toBe('hello');
     expect(parsed.integer).toBe(42);
@@ -114,6 +114,6 @@ describe('a null cursor value', () => {
     const cursor = getCursorFormatter(['nothing'], noColumns)({ nothing: null });
 
     expect(Buffer.from(cursor, 'base64').toString()).toBe('DC:Z:');
-    expect(getCursorParser(['nothing'])(cursor)).toEqual({ nothing: null });
+    expect(getCursorParser(['nothing'], [])(cursor)).toEqual({ nothing: null });
   });
 });

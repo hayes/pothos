@@ -186,6 +186,7 @@ describe('node IDs', () => {
     ['too short', '[1]'],
     ['too long', '[1,2,3]'],
     ['a string for an integer column', '["abc",2]'],
+    ['digits for an integer column', '["99999999999999999999",1]'],
     ['a boolean for an integer column', '[1,true]'],
     ['an object element', '[1,{}]'],
   ])('rejects a compound ID that is %s', async (_name, id) => {
@@ -243,6 +244,7 @@ describe('cursors', () => {
     ['a date', cursor('DC:D:1')],
     ['a boolean', cursor('DC:O:true')],
     ['bytes', cursor('DC:B:AQ==')],
+    ['a bigint beyond 64 bits', cursor('DC:I:99999999999999999999999')],
   ])('rejects a cursor that is %s', async (_name, after) => {
     await expectRejected(usersPage, { first: 2, after }, 'Invalid cursor.');
     await expectRejected(usersPage, { last: 2, before: after }, 'Invalid cursor.');
@@ -469,6 +471,9 @@ describe('column types', () => {
     ['EventByIdAndBig', '[1,"abc"]'],
     ['EventByIdAndBig', '[1,"01"]'],
     ['EventByIdAndBig', '[1,1.5]'],
+    ['EventByIdAndBig', '[1,9007199254740993]'],
+    // what compound IDs held before 0.19.1, when JSON wrote the Date; they found no row
+    ['EventByIdAndDate', '[1,"2025-01-01T00:00:00.123Z"]'],
   ])('rejects the %s ID %s', async (type, id) => {
     const result = await runEvents(eventNode, { id: globalID(type, id) });
 
@@ -476,18 +481,12 @@ describe('column types', () => {
     expect(result.statements).toEqual([]);
   });
 
-  it.each([
-    '[1,1735689600123]',
-    // what compound IDs held before 0.19.1, when JSON wrote the Date
-    '[1,"2025-01-01T00:00:00.123Z"]',
-  ])('accepts the date compound ID %s', async (id) => {
-    const result = await runEvents(eventNode, { id: globalID('EventByIdAndDate', id) });
+  it('accepts the date compound ID it writes', async () => {
+    const id = globalID('EventByIdAndDate', '[1,1735689600123]');
+    const result = await runEvents(eventNode, { id });
 
     expect(result.errors).toBeUndefined();
-    // the node's own ID is written the current way
-    expect(result.data).toEqual({
-      node: { id: globalID('EventByIdAndDate', '[1,1735689600123]') },
-    });
+    expect(result.data).toEqual({ node: { id } });
   });
 
   it('accepts the bigint compound ID it writes', async () => {
@@ -511,6 +510,10 @@ describe('column types', () => {
     ['byDate', 'DC:D:abc'],
     ['byBig', 'DC:N:1.5'],
     ['byBig', 'DC:S:abc'],
+    // a bigint column's row value is always a bigint
+    ['byBig', 'DC:N:5'],
+    ['byBig', 'DC:S:5'],
+    ['byBig', 'DC:N:1e300'],
     ['byFlag', 'DC:N:1'],
     ['byFlag', 'DC:S:true'],
     ['byKey', 'DC:S:AQ=='],

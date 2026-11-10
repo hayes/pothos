@@ -23,6 +23,7 @@ import {
 // through JSON, and have to read back like a root row's.
 
 const ORDERS = {
+  id: { id: 'asc' },
   uid: { uid: 'asc' },
   bigNum: { bigNum: 'asc' },
   bigBig: { bigBig: 'asc' },
@@ -206,6 +207,14 @@ describe('cursors on postgres', () => {
     ['bigNum', 'DC:N:1.5'],
     ['bigBig', 'DC:S:abc'],
     ['bigBig', 'DC:N:1.5'],
+    // a bigint column's row value is a bigint, in 64 bits
+    ['bigBig', 'DC:N:5'],
+    ['bigBig', 'DC:N:1e300'],
+    ['bigBig', 'DC:S:99999999999999999999'],
+    ['bigBig', 'DC:I:9223372036854775808'],
+    // an integer column's bigint is in the column's range
+    ['id', 'DC:I:2147483648'],
+    ['id', 'DC:I:99999999999999999999999'],
     ['ts', 'DC:N:1'],
     ['ts', 'DC:S:2024-01-01'],
     ['tsz', 'DC:O:true'],
@@ -289,6 +298,8 @@ describe('node IDs on postgres', () => {
     ['ItemByBig', 'abc'],
     ['ItemByBig', '1.5'],
     ['ItemByBig', '01'],
+    ['ItemByBig', '9223372036854775808'],
+    ['ItemByBig', '-9223372036854775809'],
   ])('refuses the %s ID %s before any SQL', async (type, id) => {
     const result = await run(nodeQuery, { id: globalID(type, id) });
 

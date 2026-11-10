@@ -8,15 +8,18 @@ import type { Column } from 'drizzle-orm';
  * The checks are conservative: they reject only values no row of the column can hold. Driver
  * options can change the JS type a row value arrives as (numeric read as a number, integers as
  * bigints, a string-mode bigint as a number), so string columns holding a number as text
- * (`numeric`, `unumeric`, `int64`, `uint64`) also take numbers and bigints, number columns
- * bigints, and bigint columns numbers and decimal strings. Other string columns take strings only.
+ * (`numeric`, `unumeric`, `int64`, `uint64`) also take numbers and bigints, and number columns
+ * bigints within the column's range (64 bits where none applies). Bigint columns take a bigint,
+ * in range for a 64-bit integer column, written as its digits in an ID. Other string columns take
+ * strings only.
  * `column.dataType` describes the value after drizzle's codecs, which is what both a root row and
  * a nested relation row hold.
  *
- * Column types whose row values this can't pin down (json, custom types, arrays, geometry, and
- * bytes stored in a `string` column) are left unchecked, as are string formats a database parses
- * itself (numeric, date and time strings, network addresses) and enum labels: a database enum can
- * hold labels the schema's list no longer has, and drizzle reads them without checking.
+ * Column types whose row values this can't pin down (json, custom types, geometry, and bytes
+ * stored in a `string` column) are left unchecked, as are an array's elements, string formats a
+ * database parses itself (numeric, date and time strings, network addresses) and enum labels: a
+ * database enum can hold labels the schema's list no longer has, and drizzle reads them without
+ * checking.
  */
 
 export const INVALID = Symbol('invalid');
@@ -53,6 +56,8 @@ const INTEGER_RANGES: Record<string, [number, number]> = {
 };
 
 const ZERO = BigInt(0);
+const INT64 = [BigInt('-9223372036854775808'), BigInt('9223372036854775807')] as const;
+const UINT64 = [ZERO, BigInt('18446744073709551615')] as const;
 const DECIMAL_INTEGER = /^(0|-?[1-9]\d*)$/;
 const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 // Postgres writes a non-finite float inside JSON as a string, so a nested row holds one.
@@ -60,6 +65,10 @@ const NON_FINITE = new Set(['NaN', 'Infinity', '-Infinity']);
 
 function accept(value: unknown) {
   return value;
+}
+
+function inRange(value: bigint, [min, max]: readonly [number | bigint, number | bigint]) {
+  return value >= min && value <= max ? value : INVALID;
 }
 
 function parseCanonicalNumber(text: string) {
@@ -98,7 +107,7 @@ function numberValues(column: Column, constraint: string | undefined): ColumnVal
   const check = (value: unknown) => {
     // A driver can read integers as bigints (libsql's `intMode: 'bigint'`, `safeIntegers`).
     if (typeof value === 'bigint') {
-      return value;
+      return inRange(value, integer ?? INT64);
     }
 
     if (typeof value !== 'number') {
@@ -118,45 +127,31 @@ function numberValues(column: Column, constraint: string | undefined): ColumnVal
 
   return {
     parseID: (text) => check(parseCanonicalNumber(text)),
-    // A compound ID writes a bigint as its digits.
-    parseIDPart: (value) =>
-      typeof value === 'string' && DECIMAL_INTEGER.test(value) ? value : check(value),
+    parseIDPart: check,
     parseCursor: check,
     parseLegacyCursor: check,
   };
 }
 
-function bigintValues(constraint: string | undefined): ColumnValues {
-  const unsigned = constraint === 'uint64';
+function bigintValues(column: Column, constraint: string | undefined): ColumnValues {
+  // Numeric, decimal and SQLite blob bigints report `int64` too, but hold any integer.
+  const range = column.columnType.endsWith('64')
+    ? constraint === 'uint64'
+      ? UINT64
+      : INT64
+    : undefined;
+  const check = (value: bigint) => (range ? inRange(value, range) : value);
 
-  const parseText = (text: unknown) => {
-    if (typeof text !== 'string' || !DECIMAL_INTEGER.test(text)) {
-      return INVALID;
-    }
-
-    const value = BigInt(text);
-
-    return unsigned && value < ZERO ? INVALID : value;
-  };
-
-  // A driver option can read a bigint column as a number.
-  const parse = (value: unknown) => {
-    if (typeof value === 'bigint') {
-      return unsigned && value < ZERO ? INVALID : value;
-    }
-
-    if (typeof value === 'number') {
-      return Number.isInteger(value) && !(unsigned && value < 0) ? value : INVALID;
-    }
-
-    return parseText(value);
-  };
+  const parseText = (text: unknown) =>
+    typeof text === 'string' && DECIMAL_INTEGER.test(text) ? check(BigInt(text)) : INVALID;
 
   return {
     parseID: parseText,
-    parseIDPart: parse,
-    parseCursor: parse,
-    parseLegacyCursor: parse,
+    // A compound ID writes a bigint as its digits.
+    parseIDPart: parseText,
+    parseCursor: (value) => (typeof value === 'bigint' ? check(value) : INVALID),
+    // JSON can't write a bigint, so no legacy cursor holds one.
+    parseLegacyCursor: () => INVALID,
   };
 }
 
@@ -188,9 +183,7 @@ const numericString = stringValues(() => true, true);
 
 const dateValues: ColumnValues = {
   parseID: (text) => (DECIMAL_INTEGER.test(text) ? parseCanonicalDate(Number(text)) : INVALID),
-  // Compound IDs written before 0.19.1 hold the date as JSON wrote it.
-  parseIDPart: (value) =>
-    typeof value === 'string' ? parseISODate(value) : parseCanonicalDate(value),
+  parseIDPart: parseCanonicalDate,
   parseCursor: (value) =>
     value instanceof Date && !Number.isNaN(value.getTime()) ? value : INVALID,
   parseLegacyCursor: parseISODate,
@@ -227,10 +220,17 @@ const unchecked: ColumnValues = {
   parseLegacyCursor: accept,
 };
 
+const arrayOnly = (value: unknown) => (Array.isArray(value) ? value : INVALID);
+const arrayValues: ColumnValues = {
+  ...unchecked,
+  parseCursor: arrayOnly,
+  parseLegacyCursor: arrayOnly,
+};
+
 function valuesFor(column: Column): ColumnValues {
   // `.array()` keeps the element's data type and only sets `dimensions`.
   if ((column as { dimensions?: number }).dimensions) {
-    return unchecked;
+    return arrayValues;
   }
 
   const [type, constraint] = column.dataType.split(' ');
@@ -239,7 +239,7 @@ function valuesFor(column: Column): ColumnValues {
     case 'number':
       return numberValues(column, constraint);
     case 'bigint':
-      return bigintValues(constraint);
+      return bigintValues(column, constraint);
     case 'boolean':
       return booleanValues;
     case 'object':
