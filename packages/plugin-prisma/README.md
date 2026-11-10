@@ -271,8 +271,8 @@ the plugin can warn you when you are not using the query argument correctly.
 The `onUnusedQuery` option can be set to `warn` or `error` to enable this feature. When set to
 `warn` it will log a warning to the console if Pothos detects that you have not properly used the
 query in your resolver. Similarly if you set the option to `error` it will throw an error instead.
-The error's `cause` names the resolver. You can also pass a function which will receive the `info`
-object which can be used to log or throw your own error.
+You can also pass a function which will receive the `info` object which can be used to log or throw
+your own error.
 
 The check tracks access to properties on the query object. If no properties are accessed on the query object before the
 resolver returns, it will trigger the `onUnusedQuery` condition.
@@ -923,14 +923,15 @@ builder.queryType({
 
 - `type`: the name of the prisma model being connected to
 - `cursor`: a `@unique` column of the model being connected to. This is used as the `cursor` option
-  passed to prisma.
+  passed to prisma. If the column is nullable, paging from a row where it is null fails.
 - `defaultSize`: (default: 20) The default page size to use if `first` and `last` are not provided.
 - `maxSize`: (default: 100) The maximum number of nodes returned for a connection.
 - `resolve`: Like the resolver for `prismaField`, the first argument is a `query` object that should
   be spread into your prisma query. The `resolve` function should return an array of nodes for the
   connection. The `query` will contain the correct `take`, `skip`, and `cursor` options based on the
   connection arguments (`before`, `after`, `first`, `last`), along with `include` options for nested
-  selections.
+  selections. The `orderBy` you pass to prisma should end in a unique column, or pages read
+  backward with `last` may not match the pages read forward.
 - `totalCount`: A function for loading the total count for the connection. This will add a
   `totalCount` field to the connection object. The `totalCount` method will receive (`connection`,
   `args`, `context`, `info`) as arguments. Note that this will not work when using a shared
@@ -952,6 +953,9 @@ Queries for these combinations are not as useful, and generally requiring loadin
 between 2 cursors, or between a cursor and the end of the set. Generating query options for these
 cases is more complex and likely very inefficient, so they will currently throw an Error indicating
 the argument combinations are not supported.
+
+Paging from the cursor of a row that has since been deleted returns an empty page rather than an
+error.
 
 The `maxSize` and `defaultSize` can also be configured globally using `maxConnectionSize` and
 `defaultConnectionSize` options in the `prisma` plugin options.
@@ -997,7 +1001,10 @@ builder.prismaNode('User', {
 - `defaultSize`: (default: 20) The default page size to use if `first` and `last` are not provided.
 - `maxSize`: (default: 100) The maximum number of nodes returned for a connection.
 - `query`: A method that accepts the `args` and `context` for the connection field, and returns
-  filtering and sorting logic that will be merged into the query for the relation.
+  filtering and sorting logic that will be merged into the query for the relation. If the
+  `orderBy` is not unique, the cursor's fields are added as a final sort key, in the direction of
+  its last entry, so rows that tie keep the same order on every page. End `orderBy` with a unique
+  column to choose that order yourself.
 - `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
   [`relationCount`](https://pothos-graphql.dev/docs/plugins/prisma/relations#relationcount) for more details. Note that this will not work when
   using a shared connection object (see details below)
@@ -1199,6 +1206,10 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
   }),
 );
 ```
+
+An `orderBy` in the helper's `query` gets the same final sort key as `relatedConnection`, so
+`getQuery` may return it as an array. An `orderBy` set outside the helper, as in the previous
+example, is passed to prisma as written and should end in a unique column.
 
 #### Sharing Connections objects
 
