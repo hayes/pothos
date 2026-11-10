@@ -538,8 +538,8 @@ builder.prismaObject('User', {
 ```
 
 A type in include mode can also opt out of fallback queries with `findUnique: null`. A field that
-would need one fails with `Unexpected error.` instead of querying, and the error's `cause` names
-the type.
+would need one fails with `Unexpected error.` instead of querying. The original error
+(`Missing findUnique for User`) is on `error.cause`.
 
 With `ScopeAuthPlugin`, scope checks that read the parent see what its type loads (its `select`, or
 every scalar and its `include`), even for a row returned from a plain `t.field`, unless the type
@@ -1002,9 +1002,9 @@ builder.prismaNode('User', {
 - `maxSize`: (default: 100) The maximum number of nodes returned for a connection.
 - `query`: A method that accepts the `args` and `context` for the connection field, and returns
   filtering and sorting logic that will be merged into the query for the relation. If the
-  `orderBy` is not unique, the cursor's fields are added as a final sort key, in the direction of
-  its last entry, so rows that tie keep the same order on every page. End `orderBy` with a unique
-  column to choose that order yourself.
+  `orderBy` is not unique, the plugin also sorts by the cursor's fields last, in the direction of
+  the last `orderBy` entry, so tied rows keep the same order on every page. End `orderBy` with a
+  unique column to choose that order yourself.
 - `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
   [`relationCount`](https://pothos-graphql.dev/docs/plugins/prisma/relations#relationcount) for more details. Note that this will not work when
   using a shared connection object (see details below)
@@ -1207,9 +1207,10 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
 );
 ```
 
-An `orderBy` in the helper's `query` gets the same final sort key as `relatedConnection`, so
-`getQuery` may return it as an array. An `orderBy` set after spreading `getQuery`, as in the
-earlier example, is passed to prisma as written and should end in a unique column.
+If the `orderBy` in the helper's `query` is not unique, the plugin also sorts by the cursor's
+fields last, like `relatedConnection`, and `getQuery` returns `orderBy` as an array. If you set
+`orderBy` after spreading `getQuery`, as in the earlier example, the plugin does not change it. It
+should end in a unique column.
 
 #### Sharing Connections objects
 
