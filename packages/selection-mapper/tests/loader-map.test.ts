@@ -2,6 +2,7 @@ import { execute as toolsExecute, subscribe as toolsSubscribe } from '@graphql-t
 import {
   execute,
   experimentalExecuteIncrementally,
+  type FieldNode,
   GraphQLDeferDirective,
   type GraphQLFieldConfig,
   GraphQLList,
@@ -10,6 +11,7 @@ import {
   GraphQLSchema,
   GraphQLStreamDirective,
   GraphQLString,
+  Kind,
   parse,
   specifiedDirectives,
   subscribe,
@@ -17,6 +19,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   cacheKey,
+  fieldKey,
   getLoaderMapping,
   type Mapping,
   responsePath,
@@ -302,6 +305,27 @@ describe('loader map', () => {
     rows.forEach((row, i) => {
       expect(getLoaderMapping(ctx, info(paths[i]), 'User', row)).toBe(replanned);
     });
+  });
+});
+
+describe('fieldKey', () => {
+  const [a, b, c] = ['a', 'b', 'c'].map(
+    (value): FieldNode => ({ kind: Kind.FIELD, name: { kind: Kind.NAME, value } }),
+  );
+  const infoOf = (fieldNodes: FieldNode[], path = pathOf('items', 0, 'user')) =>
+    ({ fieldNodes, path }) as unknown as GraphQLResolveInfo;
+
+  it('keys a field on its type and every node graphql merged for it', () => {
+    expect(fieldKey('User', infoOf([a, b]))).toBe(fieldKey('User', infoOf([a, b])));
+    expect(fieldKey('User', infoOf([a, b]))).not.toBe(fieldKey('User', infoOf([a, c])));
+    expect(fieldKey('User', infoOf([a, b]))).not.toBe(fieldKey('User', infoOf([a])));
+    expect(fieldKey('User', infoOf([a]))).not.toBe(fieldKey('Post', infoOf([a])));
+  });
+
+  it('gives the same nodes the same key at any path', () => {
+    expect(fieldKey('User', infoOf([a], pathOf('alice', 'user')))).toBe(
+      fieldKey('User', infoOf([a], pathOf('bob', 0, 'user'))),
+    );
   });
 });
 

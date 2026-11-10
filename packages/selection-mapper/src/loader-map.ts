@@ -241,6 +241,32 @@ export function cacheKey(type: string, path: GraphQLResolveInfo['path']) {
   return `${type}@${responsePath(path)}`;
 }
 
+/** A number for each field node seen, by identity. Weak, so the nodes go with their document. */
+const fieldNodeIds = new WeakMap<object, number>();
+let nextFieldNodeId = 0;
+
+/**
+ * `type` and the identity of every node in `info.fieldNodes`, which together decide what a plan
+ * for the field loads. Fragments on different types can merge different nodes into one response
+ * path, so a plan cached by path would be reused for a field asking for something else.
+ */
+export function fieldKey(type: string, info: GraphQLResolveInfo): string {
+  let key = type;
+
+  for (const node of info.fieldNodes) {
+    let id = fieldNodeIds.get(node);
+
+    if (id === undefined) {
+      id = nextFieldNodeId++;
+      fieldNodeIds.set(node, id);
+    }
+
+    key += `:${id}`;
+  }
+
+  return key;
+}
+
 /**
  * The keys `mappings` is recorded under when it is rehomed beneath `prefix`. Built once per
  * prefix and shared by both tiers: the strings depend on the path and the plan's own keys, never

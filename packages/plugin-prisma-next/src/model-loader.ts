@@ -7,7 +7,7 @@ import {
   type SchemaTypes,
 } from '@pothos/core';
 import {
-  cacheKey,
+  fieldKey,
   forOperation,
   type Mapping,
   Plan,
@@ -95,15 +95,12 @@ export class ModelLoader {
   /** The parent reloaded with what `info`'s field needs, and the field's mapping. */
   loadSelection(info: GraphQLResolveInfo, parent: object): Promise<{ row: Row; mapping: Mapping }> {
     this.assertIdentity(info);
-    const selection = this.cachedPlan(
-      info,
-      `parent:${cacheKey(info.parentType.name, info.path)}`,
-      () =>
-        Plan.forParentRow(this.config.adapter, {
-          context: this.context,
-          info,
-          initial: this.initial,
-        }),
+    const selection = this.cachedPlan(info, `parent:${fieldKey(info.parentType.name, info)}`, () =>
+      Plan.forParentRow(this.config.adapter, {
+        context: this.context,
+        info,
+        initial: this.initial,
+      }),
     );
     const load = (played: Played) =>
       this.reloadParent(played, parent).then((row) => {
@@ -163,7 +160,7 @@ export class ModelLoader {
     collection: ((ctx: object) => MapperCollection) | undefined,
   ): Promise<Row | null> {
     // Keyed on the type rather than the model, because variants of a model select differently.
-    const selection = this.cachedPlan(info, `node:${cacheKey(typeName, info.path)}`, () =>
+    const selection = this.cachedPlan(info, `node:${fieldKey(typeName, info)}`, () =>
       completeValue(
         Plan.fromInfo(this.config.adapter, {
           context: this.context,

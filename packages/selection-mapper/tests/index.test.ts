@@ -11,6 +11,7 @@ it('exports only what the plugins use', () => {
       'Plan',
       'NodeAdapter',
       'cacheKey',
+      'fieldKey',
       'forOperation',
       'deepEqual',
       'getLoaderMapping',

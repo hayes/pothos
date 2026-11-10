@@ -7,6 +7,7 @@ export { Adapter } from './adapter.js';
 export { deepEqual } from './deep-equal.js';
 export {
   cacheKey,
+  fieldKey,
   forOperation,
   getLoaderMapping,
   type Mapping,
