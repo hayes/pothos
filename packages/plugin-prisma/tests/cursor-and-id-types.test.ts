@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatPrismaCursor,
+  getConnectionOrderBy,
   getCursorParser,
   getDefaultIDParser,
   getDefaultIDSerializer,
@@ -609,5 +610,27 @@ describe('node ids checked against the field type', () => {
     expect(parse(JSON.stringify([at.toISOString(), '1']))).toEqual({ at, n: 1 });
     expect(parse(JSON.stringify([String(at), '1']))).toEqual({ at, n: 1 });
     expect(() => parse(JSON.stringify([String(at), '1x']))).toThrow(/^Invalid ID$/);
+  });
+});
+
+describe('connection order', () => {
+  const builder = builderFor([
+    { name: 'id', type: 'Int', isId: true },
+    { name: 'c', type: 'String', isUnique: true, isRequired: false },
+  ]);
+
+  // A nullable unique column is not a key, but the order already names the cursor, so there is
+  // nothing to append.
+  it('returns an order that names every cursor field as it was given', () => {
+    const orderBy = { c: 'asc' };
+
+    expect(getConnectionOrderBy('Model', builder, 'c')(orderBy)).toBe(orderBy);
+  });
+
+  it('appends the cursor ascending after an ordering that names no direction', () => {
+    expect(getConnectionOrderBy('Model', builder, 'c')({ author: {} })).toEqual([
+      { author: {} },
+      { c: 'asc' },
+    ]);
   });
 });

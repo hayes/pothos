@@ -527,12 +527,15 @@ export function getConnectionOrderBy<Types extends SchemaTypes>(
       return orderBy;
     }
 
-    const direction = orderDirection(orderings[orderings.length - 1][1]);
+    const missing = cursorFields.filter((field) => !named.has(field));
 
-    return [
-      ...entries,
-      ...cursorFields.filter((field) => !named.has(field)).map((field) => ({ [field]: direction })),
-    ];
+    if (missing.length === 0) {
+      return orderBy;
+    }
+
+    const direction = orderDirection(orderings[orderings.length - 1][1]) ?? 'asc';
+
+    return [...entries, ...missing.map((field) => ({ [field]: direction }))];
   };
 }
 

@@ -28,6 +28,8 @@ const helperOrders = {
   PUBLISHED_ASC: { published: 'asc' },
   PUBLISHED_DESC: { published: 'desc' },
   AUTHOR_NAME_DESC: { author: { name: 'desc' } },
+  // Names no direction, so the cursor is appended ascending.
+  AUTHOR_EMPTY: { author: {} },
 } satisfies Record<string, Prisma.PostOrderByWithRelationInput | undefined>;
 
 // The helpers take a single ordering object, so a list is only tried on the related connection.
@@ -334,6 +336,16 @@ describe('pagination matrix', () => {
             },
           ],
         ],
+        "helperPosts AUTHOR_EMPTY": [
+          [
+            {
+              "author": {},
+            },
+            {
+              "id": "asc",
+            },
+          ],
+        ],
         "helperPosts AUTHOR_NAME_DESC": [
           [
             {
@@ -369,6 +381,16 @@ describe('pagination matrix', () => {
             },
             {
               "id": "desc",
+            },
+          ],
+        ],
+        "posts AUTHOR_EMPTY": [
+          [
+            {
+              "author": {},
+            },
+            {
+              "id": "asc",
             },
           ],
         ],
