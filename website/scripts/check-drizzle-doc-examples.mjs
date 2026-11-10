@@ -33,26 +33,7 @@ const skipped = [
 
 // Blocks with type errors that are not fixed yet, with every error each one has. The check fails
 // on any other error in them, and once a listed error no longer occurs.
-const knownFailures = [
-  // The query `t.drizzleQueryFromInfo` returns types its rows with only the listed columns (`{}`
-  // with none), and lacks the brand that lets a drizzle ref accept such rows, which the `query` of
-  // `t.drizzleField` has. The fix is in the plugin's types.
-  {
-    page: 'objects.mdx',
-    snippet: 'columns: { id: true },',
-    errors: [
-      {
-        code: 'TS2322',
-        text: `Type 'SQLiteAsyncRelationalQuery<"async", { id: number; } | undefined>' is not assignable`,
-      },
-    ],
-  },
-  {
-    page: 'objects.mdx',
-    snippet: 'await t.drizzleQueryFromInfo(',
-    errors: [{ code: 'TS2322', text: `Type 'Promise<{} | undefined>' is not assignable` }],
-  },
-];
+const knownFailures = [];
 
 // Blocks compiled in a module of their own, with the setup they need.
 const ownModule = [
