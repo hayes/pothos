@@ -8,6 +8,7 @@ import { parseCodeBlocksWithLines } from './doc-code-blocks.mjs';
 
 const include = /<include(?:regions)?\b[^>]*>[^<]*<\/include(?:regions)?>/g;
 const marker = /^\/\/ @doc (.+):(\d+):(\d+)$/;
+const endMarker = '// @doc end';
 
 /** The inline TypeScript blocks of each page. Source includes are left out: the playground checks them. */
 export async function readDocBlocks(root, pages) {
@@ -26,30 +27,45 @@ export async function readDocBlocks(root, pages) {
 
 /**
  * A block's code for a module, with a marker that maps compiler errors back to the page. Changes to
- * the code must keep its lines where they are, so imports are blanked rather than removed.
+ * the code must keep its lines where they are, so imports are blanked (`withoutImports`) and moved
+ * to the top of the module (`importSection`).
  */
 export function located(block, code = block.code) {
   const lines = code.trimEnd().split('\n');
   return `// @doc ${block.page}:${block.line}:${lines.length}\n${lines.join('\n')}\n`;
 }
 
-/** Splits a block into its import lines and its code with those lines blanked. */
-export function hoistImports(code) {
-  const lines = code.split('\n');
-  return {
-    imports: lines.filter((line) => line.startsWith('import ')),
-    body: lines.map((line) => (line.startsWith('import ') ? '' : line)).join('\n'),
-  };
+/** A block's code with its import lines blanked. */
+export function withoutImports(code) {
+  return code
+    .split('\n')
+    .map((line) => (line.startsWith('import ') ? '' : line))
+    .join('\n');
 }
 
-// Each entry names one block by page and a snippet of its code.
-function findBlock(blocks, entry, list) {
+/** The `known` import lines, then each block import not among them, marked with its page line. */
+export function importSection(known, blocks) {
+  const lines = [...known];
+  const seen = new Set(known);
+  for (const block of blocks) {
+    for (const [i, line] of block.code.split('\n').entries()) {
+      if (line.startsWith('import ') && !seen.has(line)) {
+        seen.add(line);
+        lines.push(`// @doc ${block.page}:${block.line + i}:1`, line);
+      }
+    }
+  }
+  return [...lines, endMarker].join('\n');
+}
+
+/** The one block an entry names by page file name and a snippet of its code. */
+export function findBlock(blocks, entry, list) {
   const matches = blocks.filter(
     (block) => block.page.endsWith(`/${entry.page}`) && block.code.includes(entry.snippet),
   );
   if (matches.length !== 1) {
     throw new Error(
-      `${list} entry for ${entry.page} matches ${matches.length} blocks, expected 1: ${JSON.stringify(entry.snippet)}`,
+      `${list} entry for ${entry.page} matches ${matches.length} blocks, expected 1: ${JSON.stringify(entry.snippet)}. If the block was fixed or removed, remove the entry; otherwise update its snippet.`,
     );
   }
   return matches[0];
@@ -74,6 +90,9 @@ function parseDiagnostics(output) {
 // Finds the block a line of a module belongs to from the nearest marker above it.
 function locate(lines, row) {
   for (let i = row - 1; i >= 0; i--) {
+    if (lines[i] === endMarker) {
+      return null;
+    }
     const match = lines[i].match(marker);
     if (match) {
       const [, page, start, length] = match;
@@ -94,8 +113,9 @@ function locate(lines, row) {
  * directory and returns `{ files, compilerOptions }`.
  *
  * `skipped` and `knownFailures` name blocks by `{ page, snippet }`, and each must match exactly one
- * block. Skipped blocks are not compiled. A known failure is compiled, and its errors are ignored
- * while one of them contains `error`; the check fails once none does.
+ * block. Skipped blocks are not compiled. A known failure is compiled and lists every error the
+ * block has as `errors: [{ code, text }]`. Each listed error ignores one error in the block with that
+ * code and text, other errors fail the check, and so does a listed error that no longer occurs.
  */
 export async function checkDocBlocks({
   root,
@@ -155,18 +175,21 @@ export async function checkDocBlocks({
       const lines = modules.get(path);
       diagnostics.push({ ...diagnostic, path, lines, where: locate(lines, diagnostic.row) });
     }
-    const inBlock = (entry, { where }) =>
-      where && entry.block.page === where.page && entry.block.line === where.start;
-    const failing = known.filter((entry) =>
-      diagnostics.some(
-        (diagnostic) => inBlock(entry, diagnostic) && diagnostic.message.includes(entry.error),
-      ),
-    );
+    const unmatched = known.flatMap((entry) => entry.errors.map((error) => ({ entry, error })));
     for (const diagnostic of diagnostics) {
-      if (failing.some((entry) => inBlock(entry, diagnostic))) {
+      const { path, lines, where } = diagnostic;
+      const listed = unmatched.find(
+        ({ entry, error }) =>
+          where?.inBlock &&
+          entry.block.page === where.page &&
+          entry.block.line === where.start &&
+          diagnostic.code === error.code &&
+          diagnostic.message.includes(error.text),
+      );
+      if (listed) {
+        unmatched.splice(unmatched.indexOf(listed), 1);
         continue;
       }
-      const { path, lines, where } = diagnostic;
       const text = `error ${diagnostic.code}: ${diagnostic.message}`;
       problems.push(
         !where
@@ -176,10 +199,13 @@ export async function checkDocBlocks({
             : `${where.page}:${where.start} (code the check adds around this block)\n  ${lines[diagnostic.row - 1].trim()}\n  ${text}`,
       );
     }
-    for (const entry of known.filter((entry) => !failing.includes(entry))) {
-      problems.push(
-        `${entry.block.page}:${entry.block.line} is listed in knownFailures but no longer fails with ${JSON.stringify(entry.error)}. Remove it from the list.`,
-      );
+    // With a syntax error, tsc reports nothing else, so listed errors are missing for that reason.
+    if (!diagnostics.some((diagnostic) => /^TS1\d{3}$/.test(diagnostic.code))) {
+      for (const { entry, error } of unmatched) {
+        problems.push(
+          `${entry.block.page}:${entry.block.line} is in knownFailures, but its ${error.code} ${JSON.stringify(error.text)} no longer occurs. If the block was fixed, remove the entry; otherwise update its errors.`,
+        );
+      }
     }
   } finally {
     await rm(fixture, { recursive: true, force: true });

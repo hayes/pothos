@@ -1,6 +1,12 @@
 import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import { checkDocBlocks, hoistImports, located, readDocBlocks } from './doc-block-check.mjs';
+import {
+  checkDocBlocks,
+  importSection,
+  located,
+  readDocBlocks,
+  withoutImports,
+} from './doc-block-check.mjs';
 
 // Type-check the inline TypeScript on the Prisma Next pages and the plugin's README. Source includes come from the
 // playground example, which `type:examples` already checks.
@@ -25,20 +31,22 @@ export const db = postgres({ contract, url: 'postgres://unused' });
 
 // A block of its own, with the imports it leaves out and a builder unless it creates one.
 function blockModule(block) {
-  const { imports, body } = hoistImports(block.code);
-  const header = new Set([
-    "import SchemaBuilder from '@pothos/core';",
-    "import PrismaNextPlugin from '@pothos/plugin-prisma-next';",
-    `import { contract, db } from './prisma/${/'auth\./.test(block.code) ? 'namespaces-db' : 'db'}';`,
-    ...imports,
-  ]);
+  const body = withoutImports(block.code);
+  const header = importSection(
+    [
+      "import SchemaBuilder from '@pothos/core';",
+      "import PrismaNextPlugin from '@pothos/plugin-prisma-next';",
+      `import { contract, db } from './prisma/${/'auth\./.test(block.code) ? 'namespaces-db' : 'db'}';`,
+    ],
+    [block],
+  );
   const builder = /\bconst builder\b/.test(body)
     ? ''
     : `const builder = new SchemaBuilder<{ PrismaContract: typeof contract }>({
   plugins: [PrismaNextPlugin],
   prisma: { client: db },
 });`;
-  return [...header, builder, located(block, body)].join('\n');
+  return [header, builder, located(block, body)].join('\n');
 }
 
 const preamble = (contract) => `import SchemaBuilder from '@pothos/core';
@@ -79,18 +87,11 @@ function wrapFragment(block, body) {
 }
 
 function pageModule(blocks, contract) {
-  const imports = new Set();
-  const body = blocks.map((block) => {
-    const hoisted = hoistImports(block.code);
-    for (const line of hoisted.imports) {
-      imports.add(line);
-    }
-    return wrapFragment(block, hoisted.body);
-  });
+  const body = blocks.map((block) => wrapFragment(block, withoutImports(block.code)));
   const declared = blocks.some((block) => /\bconst User\b/.test(block.code));
   return [
     preamble(contract),
-    ...imports,
+    importSection([], blocks),
     declared
       ? ''
       : `const User = builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });`,
