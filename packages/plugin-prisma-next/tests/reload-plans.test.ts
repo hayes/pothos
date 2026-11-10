@@ -1,9 +1,10 @@
 import { subscribe as toolsSubscribe } from '@graphql-tools/executor';
 import { type DocumentNode, type GraphQLSchema, parse, subscribe } from 'graphql';
 import { describe, expect, it } from 'vitest';
+import { collectionFromInfo } from '../src';
 import { createBuilder, deferSchema, run, runIncremental, useSampleDb } from './fixtures/helpers';
 
-useSampleDb();
+const db = useSampleDb();
 
 interface Item {
   kind: 'A' | 'B';
@@ -85,8 +86,13 @@ type Subscribe = (args: {
   contextValue: object;
 }) => unknown;
 
-async function events(subscribeWith: Subscribe, schema: GraphQLSchema, source: string) {
-  const result = (await subscribeWith({ schema, document: parse(source), contextValue: {} })) as
+async function events(
+  subscribeWith: Subscribe,
+  schema: GraphQLSchema,
+  source: string,
+  contextValue: object = {},
+) {
+  const result = (await subscribeWith({ schema, document: parse(source), contextValue })) as
     | AsyncIterable<unknown>
     | object;
   if (!(Symbol.asyncIterator in result)) {
@@ -182,5 +188,78 @@ describe('reload plans for one response path beneath different types', () => {
     });
     expect(result.patches).toHaveLength(2);
     expect(result.patches).toEqual(expect.arrayContaining([{ x: alicePosts }, { x: bobPosts }]));
+  });
+});
+
+/** Each event sets `published` on the context before it is yielded, for `n` to count by. */
+function eventSchema() {
+  const builder = createBuilder<{ published: number }>();
+  const User = builder.prismaNode('User', {
+    id: { field: 'id' },
+    fields: (t) => ({
+      n: t.relationCount('posts', {
+        query: (_args, ctx) => ({ where: { published: ctx.published } }),
+      }),
+    }),
+  });
+  const Event = builder.objectRef<{ userId: string }>('Event').implement({
+    fields: (t) => ({
+      user: t.node({ id: (event) => ({ type: 'User', id: event.userId }) }),
+    }),
+  });
+  builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
+  builder.subscriptionType({
+    fields: (t) => ({
+      event: t.field({
+        type: Event,
+        subscribe: async function* (_root, _args, context) {
+          for (const published of [1, 9]) {
+            context.published = published;
+            yield await Promise.resolve({ userId: 'u-alice' });
+          }
+        },
+        resolve: (event) => event,
+      }),
+      // Loads in `subscribe`, which plans for the subscription rather than for the event, so each
+      // event reloads its fields.
+      user: t.field({
+        type: User,
+        subscribe: async function* (_root, _args, context, info) {
+          for (const published of [1, 9]) {
+            context.published = published;
+            const users = await collectionFromInfo({
+              collection: db.orm.User.where({ id: 'u-alice' }),
+              context,
+              info,
+            });
+            yield (await users.first())!;
+          }
+        },
+        resolve: (user) => user,
+      }),
+    }),
+  });
+  return builder.toSchema();
+}
+
+describe.each([
+  ['graphql-js', subscribe as Subscribe],
+  ['@graphql-tools/executor', toolsSubscribe as Subscribe],
+])('reload plans for each subscription event through %s', (_, subscribeWith) => {
+  it('runs query callbacks again for each event', async () => {
+    expect(
+      await events(
+        subscribeWith,
+        eventSchema(),
+        'subscription { event { user { ... on User { n } } } }',
+        { published: 0 },
+      ),
+    ).toEqual([{ data: { event: { user: { n: 1 } } } }, { data: { event: { user: { n: 0 } } } }]);
+  });
+
+  it('runs query callbacks again for each event a subscribe loaded', async () => {
+    expect(
+      await events(subscribeWith, eventSchema(), 'subscription { user { n } }', { published: 0 }),
+    ).toEqual([{ data: { user: { n: 1 } } }, { data: { user: { n: 0 } } }]);
   });
 });

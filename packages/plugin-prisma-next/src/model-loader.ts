@@ -8,7 +8,7 @@ import {
 } from '@pothos/core';
 import {
   fieldKey,
-  forOperation,
+  forExecution,
   type Mapping,
   Plan,
   type PlayedPlan,
@@ -57,7 +57,10 @@ export class ModelLoader {
   private readonly identity: readonly string[];
   /** A variant's rows load through the base narrowed to it, which can include its relations. */
   private readonly initial: PrismaSelection | undefined;
-  /** Plans depend on `@skip`/`@include` variables, so are cached per operation. */
+  /**
+   * Plans depend on `@skip`/`@include` variables and on what `select` and `query` callbacks read
+   * from the context, so are cached per execution: each subscription event plans again.
+   */
   private readonly plans = new WeakMap<object, Map<string, MaybePromise<Played>>>();
   private readonly staged = new Set<Batch>();
   /** By root field path, row, then type. */
@@ -88,7 +91,7 @@ export class ModelLoader {
     plan: () => MaybePromise<Played>,
   ): MaybePromise<Played> {
     assertGraphQLJsInfo(info);
-    const plans = forOperation(this.plans, info);
+    const plans = forExecution(this.plans, info);
     return plans.get(key) ?? plans.set(key, plan()).get(key)!;
   }
 

@@ -176,18 +176,34 @@ function placeOf(cached: Cache, info: GraphQLResolveInfo, path: GraphQLResolveIn
 /**
  * The entries of `cache` for the operation `info` is in. Keyed on its `variableValues`, which
  * every executor coerces afresh for each operation, so operations sharing a context never share
- * an entry. For plans, which depend on the operation and not on the event: the events of a
- * subscription may share them, unlike their mappings.
+ * an entry. The events of a subscription may share them, so a plan cached here runs its `select`
+ * and `query` callbacks once for all of them; use `forExecution` where they read per-event state.
  */
 export function forOperation<T>(
   cache: WeakMap<object, Map<string, T>>,
   info: GraphQLResolveInfo,
 ): Map<string, T> {
-  let entries = cache.get(info.variableValues);
+  return entriesFor(cache, info.variableValues);
+}
+
+/**
+ * The entries of `cache` for the execution `info` is in, by `executionOf`, as mappings are kept:
+ * each event of a subscription gets its own, and @defer and @stream payloads share their
+ * execution's.
+ */
+export function forExecution<T>(
+  cache: WeakMap<object, Map<string, T>>,
+  info: GraphQLResolveInfo,
+): Map<string, T> {
+  return entriesFor(cache, executionOf(info));
+}
+
+function entriesFor<T>(cache: WeakMap<object, Map<string, T>>, key: object): Map<string, T> {
+  let entries = cache.get(key);
 
   if (!entries) {
     entries = new Map();
-    cache.set(info.variableValues, entries);
+    cache.set(key, entries);
   }
 
   return entries;

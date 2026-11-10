@@ -8,6 +8,7 @@ export { deepEqual } from './deep-equal.js';
 export {
   cacheKey,
   fieldKey,
+  forExecution,
   forOperation,
   getLoaderMapping,
   type Mapping,

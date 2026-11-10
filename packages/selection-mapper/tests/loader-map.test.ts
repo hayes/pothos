@@ -20,6 +20,8 @@ import { describe, expect, it } from 'vitest';
 import {
   cacheKey,
   fieldKey,
+  forExecution,
+  forOperation,
   getLoaderMapping,
   type Mapping,
   responsePath,
@@ -305,6 +307,46 @@ describe('loader map', () => {
     rows.forEach((row, i) => {
       expect(getLoaderMapping(ctx, info(paths[i]), 'User', row)).toBe(replanned);
     });
+  });
+});
+
+describe('forExecution', () => {
+  it('gives each subscription event its own entries where the variables are shared', () => {
+    const variableValues = {};
+    // graphql-js 17: a getter of its own for each event.
+    const event = () => {
+      const getAbortSignal = () => undefined;
+      const payload = execution(variableValues);
+
+      return (path: Path) => ({ ...payload(path), getAbortSignal }) as GraphQLResolveInfo;
+    };
+    const cache = new WeakMap<object, Map<string, number>>();
+    const first = event();
+    const second = event();
+
+    expect(forExecution(cache, first(pathOf('user')))).toBe(
+      forExecution(cache, first(pathOf('user', 'posts'))),
+    );
+    expect(forExecution(cache, second(pathOf('user')))).not.toBe(
+      forExecution(cache, first(pathOf('user'))),
+    );
+    expect(forOperation(cache, second(pathOf('user')))).toBe(
+      forOperation(cache, first(pathOf('user'))),
+    );
+  });
+
+  it('tells events apart by their root path link where an executor passes no signal', () => {
+    // @graphql-tools/executor and graphql-js 16: a path chain of its own for each event.
+    const info = execution({});
+    const cache = new WeakMap<object, Map<string, number>>();
+    const first = linked(undefined, 'user');
+
+    expect(forExecution(cache, info(linked(first, 'posts')))).toBe(
+      forExecution(cache, info(first)),
+    );
+    expect(forExecution(cache, info(linked(undefined, 'user')))).not.toBe(
+      forExecution(cache, info(first)),
+    );
   });
 });
 

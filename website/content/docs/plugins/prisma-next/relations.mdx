@@ -227,6 +227,8 @@ builder.queryField('me', (t) =>
 );
 ```
 
+In a subscription, call it in `resolve`, which runs per event; rows from `subscribe` load again.
+
 To return a row through `Node`, or through an interface from `builder.interfaceRef()`:
 
 - Brand it with the type's `addBrand`, such as `User.addBrand(row)`. Unbranded rows fail with
