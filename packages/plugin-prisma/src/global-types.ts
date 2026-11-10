@@ -151,6 +151,9 @@ declare global {
         ShapeFromSelection<Types, Model, { select: Select; include: Include }>
       >;
 
+      // While a name is being completed, `Type` is every name at once and `Model` every model. The
+      // `Shape` default reads each name's own shape when `Model` includes that name's model, rather
+      // than pairing every name with every model's shape. The same holds for the methods below.
       prismaObjectField: <
         Type extends PrismaObjectRef<Types, PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
         Model extends PrismaModelTypes = Type extends PrismaObjectRef<Types, infer M, {}>
@@ -158,9 +161,16 @@ declare global {
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
         Shape extends {} = Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
           ? S & { [prismaModelName]?: Model['Name'] }
-          : Model['Shape'] & {
-              [prismaModelName]?: Type;
-            },
+          : [PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]] extends [
+                Model,
+              ]
+            ? (PrismaModelTypes &
+                Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
+                [prismaModelName]?: Type;
+              }
+            : Model['Shape'] & {
+                [prismaModelName]?: Type;
+              },
       >(
         type: Type,
         fieldName: string,
@@ -174,9 +184,16 @@ declare global {
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
         Shape extends {} = Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
           ? S & { [prismaModelName]?: Model['Name'] }
-          : Model['Shape'] & {
-              [prismaModelName]?: Type;
-            },
+          : [PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]] extends [
+                Model,
+              ]
+            ? (PrismaModelTypes &
+                Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
+                [prismaModelName]?: Type;
+              }
+            : Model['Shape'] & {
+                [prismaModelName]?: Type;
+              },
       >(
         type: Type,
         fieldName: string,
@@ -190,9 +207,16 @@ declare global {
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
         Shape extends {} = Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
           ? S & { [prismaModelName]?: Model['Name'] }
-          : Model['Shape'] & {
-              [prismaModelName]?: Type;
-            },
+          : [PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]] extends [
+                Model,
+              ]
+            ? (PrismaModelTypes &
+                Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
+                [prismaModelName]?: Type;
+              }
+            : Model['Shape'] & {
+                [prismaModelName]?: Type;
+              },
       >(
         type: Type,
         fields: (t: PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldMap,
@@ -205,9 +229,16 @@ declare global {
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
         Shape extends {} = Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
           ? S & { [prismaModelName]?: Model['Name'] }
-          : Model['Shape'] & {
-              [prismaModelName]?: Type;
-            },
+          : [PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]] extends [
+                Model,
+              ]
+            ? (PrismaModelTypes &
+                Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
+                [prismaModelName]?: Type;
+              }
+            : Model['Shape'] & {
+                [prismaModelName]?: Type;
+              },
       >(
         type: Type,
         fields: (t: PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldMap,
