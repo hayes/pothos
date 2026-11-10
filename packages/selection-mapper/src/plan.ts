@@ -283,11 +283,6 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
         walk(created);
       } catch (error) {
         created.abandon();
-        // A select function in this walk may catch the error, and this walk still read `args`.
-        if (created.argsRead) {
-          this.argsRead = true;
-        }
-
         throw error;
       }
 
@@ -305,8 +300,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       walked = created;
     }
 
-    // A walk beneath this one read `args`, so this walk depends on the selections merged with its
-    // own field too.
+    // What the walk read of the selections merged with its field was found through this plan's.
     if (walked.argsRead) {
       this.argsRead = true;
     }
