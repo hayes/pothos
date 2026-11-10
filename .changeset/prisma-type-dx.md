@@ -2,4 +2,4 @@
 '@pothos/plugin-prisma': patch
 ---
 
-Type errors for a mistyped column, cursor or model name now list the valid names, a builder without `PrismaTypes` says to set it, and completing model names in `prismaObjectField(s)` and `prismaInterfaceField(s)` stays fast in large schemas. `t` in `prismaObject`, `prismaInterface` and `prismaNode` fields now has the methods other plugins add to `PothosSchemaTypes.PrismaObjectFieldBuilder`, and `PrismaRef`, `DMMFField` and `PothosPrismaDatamodelField` are exported, so exported refs and connection helpers compile with `declaration: true`.
+Completing model names in `prismaObjectField(s)` and `prismaInterfaceField(s)` is faster in large schemas, and exported connection helpers and refs now compile with `declaration: true`. Type errors for a mistyped column or cursor name now list the valid names, and a model name given to a builder without `PrismaTypes` says how to set it. Methods added to `PothosSchemaTypes.PrismaObjectFieldBuilder` are now available in `prismaObject`, `prismaNode` and `prismaInterface` fields, and the exported `PrismaObjectFieldBuilder` type alias is deprecated.
