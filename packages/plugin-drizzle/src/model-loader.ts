@@ -1,6 +1,6 @@
 import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
 import {
-  cacheKey,
+  fieldKey,
   forOperation,
   Plan,
   setLoaderMappings,
@@ -41,7 +41,7 @@ export class ModelLoader {
 
   modelName: string;
 
-  // One plan per `Type@path` per operation, a promise while a select beneath the field is async.
+  // One plan per `fieldKey` per operation, a promise while a select beneath the field is async.
   // A parent-row plan is played where it is made, since it is never played behind another
   // selection; a field's plan is played per load, so no two loads share a node. Kept per
   // operation (see `forOperation`), so an operation sharing the context never loads with
@@ -113,7 +113,7 @@ export class ModelLoader {
 
   getSelection(info: GraphQLResolveInfo) {
     const plans = forOperation(this.rowCache, info);
-    const key = cacheKey(info.parentType.name, info.path);
+    const key = fieldKey(info.parentType.name, info);
     let plan = plans.get(key);
     if (!plan) {
       plan = Plan.forParentRow(drizzleAdapter(this.config), { context: this.context, info });
@@ -125,7 +125,7 @@ export class ModelLoader {
 
   getSelectionForField(info: GraphQLResolveInfo, typeName: string) {
     const plans = forOperation(this.planCache, info);
-    const key = cacheKey(typeName, info.path);
+    const key = fieldKey(typeName, info);
     let plan = plans.get(key);
     if (!plan) {
       // Walked without paths, so there is always a plan.
