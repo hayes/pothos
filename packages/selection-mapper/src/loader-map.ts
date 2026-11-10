@@ -70,30 +70,21 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
 }
 
 /**
- * Per execution: the mappings recorded so far, and the keys they were recorded under, by
- * the path prefix that rehomed them. `responsePath` drops list indices, so every row of a list
- * rebuilds the same key strings; a prefix builds them once.
+ * Per execution: the mappings recorded so far.
  *
  * `scopes` holds what a plan recorded beneath a field execution: everything resolved beneath it
  * was loaded by that plan, so it answers for all of it, and for nothing else. `rows` holds a
- * mapping that answers for one row only — because two plans disagreed about a key, or because the
- * plan loaded that row alone. A mapping carries the position a connection pages with, so a row
+ * mapping from a plan that loaded one row alone, and answers for that row only. A mapping carries the position a connection pages with, so a row
  * answering from another row's mapping would page with arguments its own data was never fetched
  * with. `rowScoped` stays false while nothing has been recorded there, so a request whose rows
  * were all loaded the same way pays nothing for the row tier.
- *
- * `mappings` holds a mapping recorded for each path, list indices dropped. It tells whether
- * the plans of a path's rows agree (see `claim`), and never answers a lookup: a row at the same
- * path that no plan loaded would read it as proof that one had.
  *
  * `scopes` and `rows` are keyed by a field execution's place (see `placeOf`), which tells sibling
  * rows apart, in weak maps: a `Map` holding every path link of a request tripled the time spent
  * collecting garbage.
  */
 interface Cache {
-  mappings: Map<string, Mapping>;
   places: Map<string, object>;
-  rehomed: Map<string, Map<string, string>>;
   rows: WeakMap<object, WeakMap<object, Map<string, Mapping>>>;
   rowScoped: boolean;
   scopes: WeakMap<object, Mappings>;
@@ -142,9 +133,7 @@ function cache(ctx: object, info: GraphQLResolveInfo): Cache {
 
   if (!cached) {
     cached = {
-      mappings: new Map(),
       places: new Map(),
-      rehomed: new Map(),
       rows: new WeakMap(),
       rowScoped: false,
       scopes: new WeakMap(),
@@ -290,54 +279,9 @@ export function fieldKey(type: string, info: GraphQLResolveInfo): string {
   return key;
 }
 
-/**
- * The keys `mappings` is recorded under when it is rehomed beneath `prefix`. Built once per
- * prefix: the strings depend on the path and the plan's own keys, never on which row is being
- * recorded for.
- */
-function rehomedKeys(cached: Cache, prefix: string) {
-  let keys = cached.rehomed.get(prefix);
-
-  if (!keys) {
-    keys = new Map();
-    cached.rehomed.set(prefix, keys);
-  }
-
-  return keys;
-}
-
-/** `key`, a plan's own `Type@relative.path`, moved beneath `prefix`. Built once per prefix. */
-function rehome(keys: Map<string, string>, key: string, prefix: string) {
-  let under = keys.get(key);
-
-  if (under === undefined) {
-    const at = key.indexOf('@');
-
-    under = `${key.slice(0, at)}@${prefix}.${key.slice(at + 1)}`;
-    keys.set(key, under);
-  }
-
-  return under;
-}
-
 /** `row` if a mapping can be hung off it. A root field resolves with no parent value at all. */
 function ownerOf(row: unknown): object | null {
   return typeof row === 'object' && row !== null ? row : null;
-}
-
-/**
- * Records `mapping` at `key` for `row`. An unclaimed key takes it, and a key already holding this
- * very mapping needs no write, so the rows after the first write nothing. Only a key two plans
- * disagree about gives the row a mapping of its own — or, with no row to hang it off, nothing.
- */
-function claim(cached: Cache, key: string, mapping: Mapping, row: object | null, place: object) {
-  const held = cached.mappings.get(key);
-
-  if (held === undefined) {
-    cached.mappings.set(key, mapping);
-  } else if (held !== mapping && row) {
-    claimForRow(cached, key.slice(0, key.indexOf('@')), mapping, row, place);
-  }
 }
 
 /**
@@ -366,15 +310,9 @@ function claimForRow(cached: Cache, type: string, mapping: Mapping, row: object,
  */
 export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, mappings: Mappings) {
   const cached = cache(ctx, info);
-  const prefix = responsePath(info.path);
-  const keys = rehomedKeys(cached, prefix);
   const place = placeOf(cached, info, info.path);
   const previous = cached.scopes.get(place);
   cached.scopes.set(place, previous ? { ...previous, ...mappings } : mappings);
-
-  for (const key of Object.keys(mappings)) {
-    cached.mappings.set(rehome(keys, key, prefix), mappings[key]);
-  }
 }
 
 /**
@@ -389,28 +327,9 @@ export function setRowMappings(ctx: object, info: GraphQLResolveInfo, mappings: 
 }
 
 /**
- * Records the mapping of the field `info` resolves (under its own parent type) along with the
- * mappings beneath it, so both the field's resolver and the resolvers below it can look
- * themselves up. `row` is the value the field is about to resolve with: the parent row when it
- * was loaded by the planned query, and the reloaded row when the fallback loader fetched it.
- */
-export function setFieldMapping(
-  ctx: object,
-  info: GraphQLResolveInfo,
-  mapping: Mapping,
-  row: unknown,
-) {
-  const cached = cache(ctx, info);
-  const place = placeOf(cached, info, info.path);
-
-  claim(cached, cacheKey(info.parentType.name, info.path), mapping, ownerOf(row), place);
-  cached.scopes.set(place, mapping.nested);
-}
-
-/**
- * `setFieldMapping` for a plan that loaded `row` alone: the field's own mapping is recorded
- * against `row` rather than claimed for the whole field, so the field's lookup on `row` answers
- * from it whatever the field's other rows were loaded with.
+ * Records the mapping of the field `info` resolves, from a plan that loaded `row` alone, against
+ * `row`: the field's lookup on `row` answers from it whatever the field's other rows were loaded
+ * with.
  *
  * Descendants inherit the mapping through this field's execution scope, even when their parent
  * is a child object or a connection wrapper rather than the row that was reloaded.

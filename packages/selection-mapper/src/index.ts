@@ -13,7 +13,6 @@ export {
   getLoaderMapping,
   type Mapping,
   type Mappings,
-  setFieldMapping,
   setLoaderMappings,
   setRowFieldMapping,
   setRowMappings,

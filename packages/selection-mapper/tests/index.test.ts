@@ -18,7 +18,6 @@ it('exports only what the plugins use', () => {
       'getLoaderMapping',
       'mappingParentTypes',
       'selectedFieldNames',
-      'setFieldMapping',
       'setLoaderMappings',
       'setRowFieldMapping',
       'setRowMappings',
