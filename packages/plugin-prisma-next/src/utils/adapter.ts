@@ -104,6 +104,11 @@ interface RelationLoads {
 export class PrismaAdapter extends NodeAdapter<PrismaModel, PrismaSelection> {
   override readonly skipDeferredFragments: boolean;
   private readonly typeSelections = new WeakMap<GraphQLNamedType, PrismaSelection>();
+  /**
+   * The loads held beneath each node, kept as merges change it so a check never re-reads a level.
+   * A node without one is new from `relation()` and holds nothing.
+   */
+  private readonly heldLoads = new WeakMap<PrismaNode, number>();
 
   constructor(
     readonly contract: AnyContract,
@@ -193,26 +198,25 @@ export class PrismaAdapter extends NodeAdapter<PrismaModel, PrismaSelection> {
     return (
       super.canMergeQuery(node, selection, options) &&
       this.withoutUnloadable(selection, node) === selection &&
-      (loads(selection) === 0 || this.withinLoadLimit(node, selection))
+      (loads(selection) === 0 || this.withinLoadLimit(node, loads(selection, node)))
     );
   }
 
   /** Reloads batch, so a batch takes another reload's root within `MAX_RELATION_LOADS` too. */
   override canMergeNode(into: PrismaNode, from: PrismaNode): boolean {
-    return super.canMergeNode(into, from) && this.withinLoadLimit(into, this.toQuery(from));
+    return super.canMergeNode(into, from) && this.withinLoadLimit(into, this.nodeLoads(from, into));
   }
 
   /**
    * A model without an identity can't be reloaded, so it takes any selection. So does a level that
    * loads nothing yet: a reload merges its field first, so it fits however much it loads.
    */
-  private withinLoadLimit(node: PrismaNode, selection: PrismaSelection) {
+  private withinLoadLimit(node: PrismaNode, added: number) {
     if (!node.model.identity.length) {
       return true;
     }
-    const held = this.toQuery(node);
-    const total = loads(held);
-    return total === 0 || total + loads(selection, held) <= MAX_RELATION_LOADS;
+    const total = this.held(node);
+    return total === 0 || total + added <= MAX_RELATION_LOADS;
   }
 
   /**
@@ -222,14 +226,93 @@ export class PrismaAdapter extends NodeAdapter<PrismaModel, PrismaSelection> {
    */
   override mergeQuery(node: PrismaNode, selection: PrismaSelection, options?: MergeOptions) {
     const fits = this.withoutUnloadable(selection, node);
-    super.mergeQuery(node, options?.lenient ? this.withinCap(node, fits) : fits, options);
+    const merged = options?.lenient ? this.withinCap(node, fits) : fits;
+    this.uncount(node, merged);
+    super.mergeQuery(node, merged, options);
+    this.recount(node, merged);
+  }
+
+  /** Each level counts what it holds under the keys of `from` before and after the merge. */
+  override mergeNode(into: PrismaNode, from: PrismaNode) {
+    this.heldLoads.set(
+      into,
+      this.held(into) - this.heldUnder(into, from.computed.keys(), from.relations.keys()),
+    );
+    super.mergeNode(into, from);
+    this.heldLoads.set(
+      into,
+      this.held(into) + this.heldUnder(into, from.computed.keys(), from.relations.keys()),
+    );
+  }
+
+  private held(node: PrismaNode) {
+    return this.heldLoads.get(node) ?? 0;
+  }
+
+  /** The loads `node` holds under these keys, counting those beneath. */
+  private heldUnder(node: PrismaNode, computed: Iterable<string>, relations: Iterable<string>) {
+    let count = 0;
+    for (const key of computed) {
+      const value = node.computed.get(key) as ComputedSelection | undefined;
+      count += value === undefined ? 0 : (value.size ?? 1);
+    }
+    for (const key of relations) {
+      const child = node.relations.get(key);
+      count += child ? 1 + this.held(child) : 0;
+    }
+    return count;
+  }
+
+  /**
+   * Takes what each level `selection` reaches holds under its keys out of that level's count, top
+   * down, so each level reads its children's counts before they change.
+   */
+  private uncount(node: PrismaNode, selection: PrismaSelection) {
+    this.heldLoads.set(node, this.held(node) - this.heldUnderSelection(node, selection));
+    for (const [key, child] of Object.entries(selection.relations ?? {})) {
+      const held = node.relations.get(key);
+      if (held) {
+        this.uncount(held, child);
+      }
+    }
+  }
+
+  /** Adds back what each level holds under the keys of `selection` once merged, bottom up. */
+  private recount(node: PrismaNode, selection: PrismaSelection) {
+    for (const [key, child] of Object.entries(selection.relations ?? {})) {
+      const held = node.relations.get(key);
+      if (held) {
+        this.recount(held, child);
+      }
+    }
+    this.heldLoads.set(node, this.held(node) + this.heldUnderSelection(node, selection));
+  }
+
+  private heldUnderSelection(node: PrismaNode, selection: PrismaSelection) {
+    return this.heldUnder(
+      node,
+      Object.keys(selection.computed ?? {}),
+      Object.keys(selection.relations ?? {}),
+    );
+  }
+
+  /** The loads `from` adds beyond `into`, counting those beneath. */
+  private nodeLoads(from: PrismaNode, into: PrismaNode): number {
+    let count = 0;
+    for (const [key, value] of from.computed) {
+      count += into.computed.get(key) === undefined ? ((value as ComputedSelection).size ?? 1) : 0;
+    }
+    for (const [key, child] of from.relations) {
+      const held = into.relations.get(key);
+      count += held ? this.nodeLoads(child, held) : 1 + this.held(child);
+    }
+    return count;
   }
 
   private withinCap(node: PrismaNode, selection: PrismaSelection): PrismaSelection {
-    const held = this.toQuery(node);
-    let total = loads(held);
+    let total = this.held(node);
     return keepLoads(selection, selection.columns, (part) => {
-      const added = loads(part, held);
+      const added = loads(part, node);
       if (total + added > MAX_RELATION_LOADS) {
         return false;
       }
@@ -371,14 +454,14 @@ export class PrismaAdapter extends NodeAdapter<PrismaModel, PrismaSelection> {
   }
 }
 
-/** The loads `selection` adds beyond `held`, counting those beneath. */
-function loads(selection: PrismaSelection, held?: PrismaSelection): number {
+/** The loads `selection` adds beyond what `held` holds, counting those beneath. */
+function loads(selection: PrismaSelection, held?: PrismaNode): number {
   let count = 0;
   for (const key of Object.keys(selection.computed ?? {})) {
-    count += held?.computed?.[key] === undefined ? (selection.computed![key]!.size ?? 1) : 0;
+    count += held?.computed.get(key) === undefined ? (selection.computed![key]!.size ?? 1) : 0;
   }
   for (const [key, child] of Object.entries(selection.relations ?? {})) {
-    const heldChild = held?.relations?.[key];
+    const heldChild = held?.relations.get(key);
     count += (heldChild ? 0 : 1) + loads(child, heldChild);
   }
   return count;
