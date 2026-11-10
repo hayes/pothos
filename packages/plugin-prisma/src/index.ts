@@ -12,6 +12,7 @@ import SchemaBuilder, {
   PothosSchemaError,
   type PothosTypeConfig,
   type SchemaTypes,
+  unwrapOutputFieldType,
 } from '@pothos/core';
 import {
   forExecution,
@@ -185,7 +186,12 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
     const parentTypes = mappingParentTypes(this.buildCache, fieldConfig, 'pothosPrismaModel');
 
-    return (parent, args, context, info) => {
+    const gated: GraphQLFieldResolver<unknown, Types['Context'], object> = (
+      parent,
+      args,
+      context,
+      info,
+    ) => {
       // Asked of the row: a mapping recorded for this row wins over the plan's, which answers
       // for the rows the planned query loaded.
       let mapping = getLoaderMapping(context, info, info.parentType.name, parent);
@@ -226,6 +232,30 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       return loaderCache(context)
         .loadSelection(info, parent as object)
         .then((result) => resolver(result, args, context, info));
+    };
+
+    // An exposed scalar or enum reads only its field, and has no fields beneath it, so a row
+    // holding a value for the field resolves it as it is.
+    const field = fieldConfig.extensions?.pothosPrismaExposedField as string | false | undefined;
+
+    if (!field) {
+      return gated;
+    }
+
+    const returnKind = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type)).kind;
+
+    if (returnKind !== 'Scalar' && returnKind !== 'Enum') {
+      return gated;
+    }
+
+    return (parent, args, context, info) => {
+      const row = parent as Record<string, unknown>;
+
+      if (Object.hasOwn(row, field) && row[field] !== undefined) {
+        return resolver(parent, args, context, info);
+      }
+
+      return gated(parent, args, context, info);
     };
   }
 }

@@ -110,9 +110,8 @@ describe('an implementation that overrides an interface field', () => {
     expect(result.errors).toBeUndefined();
     expect(result.data).toEqual({ user: { [field]: overriding } });
     // The parent query loads the interface's selection, which the override does not read, and the
-    // override reloads the user. A static select plans nothing beneath it, so the posts it
-    // returns load their own `id` once more.
-    expect(drizzleLogs).toHaveLength(field === 'posts' ? 2 : 3);
+    // override reloads the user. The posts it returns already hold the `id` they expose.
+    expect(drizzleLogs).toHaveLength(2);
 
     clearDrizzleLogs();
 
@@ -124,6 +123,6 @@ describe('an implementation that overrides an interface field', () => {
 
     expect(inheriting.errors).toBeUndefined();
     expect(inheriting.data).toEqual({ user: { [field]: inherited } });
-    expect(drizzleLogs).toHaveLength(field === 'posts' ? 1 : 2);
+    expect(drizzleLogs).toHaveLength(1);
   });
 });

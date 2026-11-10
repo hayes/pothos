@@ -732,6 +732,7 @@ export class PrismaObjectFieldBuilder<
         pothosPrismaSelect: usingSelect && {
           [name as string]: true,
         },
+        pothosPrismaExposedField: usingSelect && name,
       },
     });
   }

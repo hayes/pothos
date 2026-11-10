@@ -834,6 +834,7 @@ export class DrizzleObjectFieldBuilder<
         pothosDrizzleSelect: usingSelect && {
           columns: { [name as string]: true },
         },
+        pothosDrizzleExposedColumn: usingSelect && name,
       },
     }) as FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, 'DrizzleObject'>;
   }

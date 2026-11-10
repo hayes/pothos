@@ -65,6 +65,8 @@ export class ModelLoader {
   adapter: DrizzleAdapter;
   table: TableRelationalConfig;
   columns: Column[];
+  // The TS names of `columns`, which rows are matched on.
+  private columnNames: string[];
   primaryKey: Column[];
   selectSQL: (table: AnyTable<{}>) => SQL;
 
@@ -82,6 +84,7 @@ export class ModelLoader {
     this.table = this.config.relations[modelName];
     this.primaryKey = this.config.getPrimaryKey(modelName);
     this.columns = columns ?? this.primaryKey;
+    this.columnNames = this.columns.map((column) => this.config.columnToTsName(column));
     this.selectSQL = (table) => {
       const columns = this.columns.map((column) =>
         Object.values(getColumns(table)).find(
@@ -258,28 +261,22 @@ export class ModelLoader {
 
         query.then(
           (results) => {
-            for (const [model, promise] of entry.models.entries()) {
-              // Matched on the columns the batch was keyed by, which are the columns a row of
-              // `entry.models` carries: a node loaded by a column other than the primary key
-              // has only that one.
-              const result = results.find((row) =>
-                this.columns.every((key) => {
-                  const name = this.config.columnToTsName(key);
-                  const actual = row[name as keyof typeof row];
-                  const expected = (model as Record<string, unknown>)[name];
+            // Matched on the columns the batch was keyed by, which are the columns a row of
+            // `entry.models` carries: a node loaded by a column other than the primary key
+            // has only that one. The first row with a key wins.
+            const rows = new Map<string, (typeof results)[number]>();
 
-                  return (
-                    actual === expected ||
-                    (actual instanceof Uint8Array &&
-                      expected instanceof Uint8Array &&
-                      actual.length === expected.length &&
-                      actual.every((byte, index) => byte === expected[index])) ||
-                    (actual instanceof Date &&
-                      expected instanceof Date &&
-                      actual.getTime() === expected.getTime())
-                  );
-                }),
-              );
+            for (const row of results) {
+              const key = rowKey(row, this.columnNames);
+
+              if (key !== undefined && !rows.has(key)) {
+                rows.set(key, row);
+              }
+            }
+
+            for (const [model, promise] of entry.models.entries()) {
+              const key = rowKey(model as Record<string, unknown>, this.columnNames);
+              const result = key === undefined ? undefined : rows.get(key);
 
               if (result) {
                 promise.resolve(result);
@@ -389,6 +386,32 @@ export function typeParentLoader(
 
     return row;
   };
+}
+
+/**
+ * The values of `names` on `row`, equal for two rows when each value is the same, a `Date` of the
+ * same time, or a `Uint8Array` of the same bytes. Each value is tagged with its kind, so values of
+ * different kinds never match. Any other object only matches itself, which a row from the
+ * database never holds, so a row with one has no key.
+ */
+function rowKey(row: Record<string, unknown>, names: string[]) {
+  const parts: string[] = [];
+
+  for (const name of names) {
+    const value = row[name];
+
+    if (value instanceof Date) {
+      parts.push('date', String(value.getTime()));
+    } else if (value instanceof Uint8Array) {
+      parts.push('bytes', value.join());
+    } else if (typeof value === 'object' && value !== null) {
+      return undefined;
+    } else {
+      parts.push(typeof value, String(value));
+    }
+  }
+
+  return JSON.stringify(parts);
 }
 
 function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {
