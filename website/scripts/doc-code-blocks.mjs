@@ -45,10 +45,15 @@ export async function docCodeBlocks(website, page, language, { includesOnly = fa
 
 /** Include indented fences inside callouts, tabs, and other MDX containers. */
 export function parseCodeBlocks(source, language) {
+  return parseCodeBlocksWithLines(source, language).map((block) => block.code);
+}
+
+/** Like `parseCodeBlocks`, with the source line of each block's first code line. */
+export function parseCodeBlocksWithLines(source, language) {
   const blocks = [];
   function visit(node) {
     if (node.type === 'code' && (!language || [language].flat().includes(node.lang))) {
-      blocks.push(`${node.value}\n`);
+      blocks.push({ code: `${node.value}\n`, line: node.position.start.line + 1 });
     }
     for (const child of node.children ?? []) {
       visit(child);
