@@ -6,5 +6,5 @@
   },
   "extends": "../../tsconfig.options.json",
   "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["tests/**/client/internal/**"]
+  "exclude": ["tests/**/client/internal/**", "tests/declarations/*.ts"]
 }

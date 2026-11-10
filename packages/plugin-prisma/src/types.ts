@@ -1089,7 +1089,8 @@ export type PrismaTypesFromClient<ClientType, PrismaUtils extends boolean = fals
   };
 };
 
-interface DMMFField {
+/** A field of a model in the datamodel the generator writes. */
+export interface PothosPrismaDatamodelField {
   type: string;
   kind: string;
   name: string;
@@ -1109,7 +1110,7 @@ export interface PothosPrismaDatamodel {
     models: Record<
       string,
       {
-        fields: readonly DMMFField[];
+        fields: readonly PothosPrismaDatamodelField[];
         primaryKey: { name: string | null; fields: readonly string[] } | null;
         uniqueIndexes: { name: string | null; fields: readonly string[] }[];
         documentation?: string;

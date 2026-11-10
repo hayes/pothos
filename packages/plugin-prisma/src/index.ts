@@ -30,11 +30,11 @@ import { type FallbackPlanRecipe, fallbackQueryFromInfo, queryFromInfo } from '.
 import type { FieldMap } from './util/relation-map.js';
 
 export { prismaConnectionHelpers } from './connection-helpers.js';
-export { PrismaInterfaceRef } from './interface-ref.js';
+export { PrismaInterfaceRef, type PrismaRef } from './interface-ref.js';
 export { PrismaNodeRef } from './node-ref.js';
 export { PrismaObjectRef, prismaModelKey } from './object-ref.js';
 export * from './types.js';
-export { prismaClientCache } from './util/get-client.js';
+export { type DMMFField, prismaClientCache } from './util/get-client.js';
 
 const pluginName = 'prisma';
 
