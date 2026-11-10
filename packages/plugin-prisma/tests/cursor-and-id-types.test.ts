@@ -337,9 +337,11 @@ describe('cursor values checked against the column type', () => {
       'BigInt',
       [
         ['I:9007199254740993', BigInt('9007199254740993')],
+        ['I:9223372036854775807', BigInt('9223372036854775807')],
+        ['I:-9223372036854775808', BigInt('-9223372036854775808')],
         ['N:7', 7],
       ],
-      ['S:7', 'N:7.5', 'N:x', 'Z:'],
+      ['S:7', 'N:7.5', 'N:x', 'Z:', 'I:9223372036854775808', 'I:-9223372036854775809'],
     ],
     [
       'Float',
@@ -374,13 +376,33 @@ describe('cursor values checked against the column type', () => {
       ],
       ['S:true', 'N:1', 'Z:'],
     ],
-    ['DateTime', [[`D:${Number(at)}`, at]], ['D:x', 'N:1700000000123', 'S:garbage', 'Z:']],
-    ['Bytes', [['B:AAH6', Buffer.from([0, 1, 250])]], ['S:AAH6', 'O:[0,1,250]', 'Z:']],
-    // An enum, and anything else the plugin has no rule for, is passed on unchecked.
     [
-      'Role',
+      'DateTime',
       [
-        ['S:ADMIN', 'ADMIN'],
+        [`D:${Number(at)}`, at],
+        [`S:${at.toISOString()}`, at],
+        ['S:2023-11-14T22:13:20Z', new Date(1_700_000_000_000)],
+      ],
+      [
+        'D:x',
+        'N:1700000000123',
+        'S:garbage',
+        'Z:',
+        'S:1',
+        'S:2020',
+        'S:2023-11-14',
+        'S:2023-13-14T22:13:20.123Z',
+        `S:${String(at)}`,
+      ],
+    ],
+    ['Bytes', [['B:AAH6', Buffer.from([0, 1, 250])]], ['S:AAH6', 'O:[0,1,250]', 'Z:']],
+    // An enum is a string; the datamodel the plugin reads does not list its values.
+    ['Role', [['S:ADMIN', 'ADMIN']], ['N:1', 'O:true', 'Z:']],
+    // A type the plugin has no rule for is passed on unchecked.
+    [
+      'Unsupported',
+      [
+        ['S:x', 'x'],
         ['N:1', 1],
       ],
       [],
@@ -388,7 +410,11 @@ describe('cursor values checked against the column type', () => {
   ];
 
   const parserFor = (type: string) =>
-    getCursorParser('Model', builderFor([{ name: 'v', type, isUnique: true }]), 'v');
+    getCursorParser(
+      'Model',
+      builderFor([{ name: 'v', type, kind: type === 'Role' ? 'enum' : 'scalar', isUnique: true }]),
+      'v',
+    );
 
   it.each(
     cases.flatMap(([type, accepted]) => accepted.map(([payload, value]) => [type, payload, value])),
@@ -423,8 +449,26 @@ describe('cursor values checked against the column type', () => {
     });
   });
 
+  it('checks an enum part of a compound cursor', () => {
+    const parse = getCursorParser(
+      'Model',
+      builderFor(
+        [
+          { name: 'role', type: 'Role', kind: 'enum' },
+          { name: 'n', type: 'Int' },
+        ],
+        { name: null, fields: ['role', 'n'] },
+      ),
+      'role_n',
+    );
+
+    expect(parse(encode('J:["ADMIN",2]'))).toEqual({ role_n: { role: 'ADMIN', n: 2 } });
+    expect(() => parse(encode('J:[1,2]'))).toThrow(/^Invalid cursor$/);
+  });
+
   it.each([
     'J:["not a date",2]',
+    'J:["2020",2]',
     'J:["2023-11-14T22:13:20.123Z","2"]',
     'J:["2023-11-14T22:13:20.123Z"]',
     'T:[null,"N:2"]',
@@ -451,8 +495,10 @@ describe('node ids checked against the field type', () => {
       [
         ['9007199254740993', BigInt('9007199254740993')],
         ['-1', BigInt(-1)],
+        ['9223372036854775807', BigInt('9223372036854775807')],
+        ['-9223372036854775808', BigInt('-9223372036854775808')],
       ],
-      ['', 'abc', '1n', '0x1', '1.5', ' 1'],
+      ['', 'abc', '1n', '0x1', '1.5', ' 1', '9223372036854775808', '-9223372036854775809'],
     ],
     [
       'Float',
@@ -485,9 +531,22 @@ describe('node ids checked against the field type', () => {
       'DateTime',
       [
         [at.toISOString(), at],
+        ['2023-11-14T22:13:20Z', at],
         [String(at), at],
+        ['Tue Nov 14 2023 22:13:20 GMT+0000 (Coordinated Universal Time)', at],
+        ['Tue Nov 14 2023 23:13:20 GMT+0100 (Mitteleuropäische Normalzeit)', at],
+        ['Tue Nov 14 2023 22:13:20 GMT+0000', at],
       ],
-      ['', 'garbage'],
+      [
+        '',
+        'garbage',
+        '1',
+        'foo 1',
+        '2020',
+        '2023-11-14',
+        'Tue Nov 14 2023',
+        '2023-13-14T22:13:20Z',
+      ],
     ],
     [
       'Bytes',
@@ -517,7 +576,11 @@ describe('node ids checked against the field type', () => {
   ];
 
   const parserFor = (type: string) =>
-    getDefaultIDParser('Model', 'v', builderFor([{ name: 'v', type, isId: true }]));
+    getDefaultIDParser(
+      'Model',
+      'v',
+      builderFor([{ name: 'v', type, kind: type === 'Role' ? 'enum' : 'scalar', isId: true }]),
+    );
 
   it.each(
     cases.flatMap(([type, accepted]) => accepted.map(([id, value]) => [type, id, value])),

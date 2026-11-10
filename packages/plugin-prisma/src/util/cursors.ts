@@ -52,27 +52,44 @@ export function parsePrismaCursor(cursor: unknown) {
 // What `String` writes for an integer and for a finite number.
 const INTEGER = /^-?(0|[1-9]\d*)$/;
 const NUMBER = /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i;
+// `Date#toISOString`, with or without the fraction, and the `String(date)` form ids were written
+// in before it. The zone name in parentheses depends on the server's locale.
+const ISO_DATE = /^([+-]\d{6}|\d{4})-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+const STRING_DATE =
+  /^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} -?\d{4,6} \d{2}:\d{2}:\d{2} GMT[+-]\d{4}( \(.*\))?$/;
+const MIN_BIGINT = BigInt('-9223372036854775808');
+const MAX_BIGINT = BigInt('9223372036854775807');
 
-function toDate(value: unknown) {
-  const date = value instanceof Date || typeof value === 'string' ? new Date(value) : undefined;
+function validDate(date: Date) {
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
 
-  return date && !Number.isNaN(date.getTime()) ? date : undefined;
+function toBigInt(value: bigint) {
+  return value >= MIN_BIGINT && value <= MAX_BIGINT ? value : undefined;
 }
 
 /**
- * Checks a decoded cursor value against its column's scalar type, returning what prisma is given,
- * or `undefined` when the value is not one the plugin writes for that type. A DateTime may be the
- * ISO string a `J:` compound cursor holds; any other type the plugin does not know is unchecked.
+ * Checks a decoded cursor value against its column's type, returning what prisma is given, or
+ * `undefined` when the value is not one the plugin writes for that type. A DateTime may be the ISO
+ * string a `J:` compound cursor holds; an enum is a string. Any other type is unchecked.
  */
-function cursorValueChecker(type: string | undefined): (value: unknown) => unknown {
-  switch (type) {
+function cursorValueChecker(field: DMMFField | undefined): (value: unknown) => unknown {
+  if (field?.kind === 'enum') {
+    return (value) => (typeof value === 'string' ? value : undefined);
+  }
+
+  switch (field?.type) {
     case 'String':
       return (value) => (typeof value === 'string' ? value : undefined);
     case 'Int':
       return (value) => (Number.isSafeInteger(value) ? value : undefined);
     case 'BigInt':
       return (value) =>
-        typeof value === 'bigint' || Number.isSafeInteger(value) ? value : undefined;
+        typeof value === 'bigint'
+          ? toBigInt(value)
+          : Number.isSafeInteger(value)
+            ? value
+            : undefined;
     case 'Float':
       return (value) => (Number.isFinite(value) ? value : undefined);
     case 'Decimal':
@@ -83,7 +100,12 @@ function cursorValueChecker(type: string | undefined): (value: unknown) => unkno
     case 'Boolean':
       return (value) => (typeof value === 'boolean' ? value : undefined);
     case 'DateTime':
-      return toDate;
+      return (value) =>
+        value instanceof Date
+          ? validDate(value)
+          : typeof value === 'string' && ISO_DATE.test(value)
+            ? validDate(new Date(value))
+            : undefined;
     case 'Bytes':
       return (value) => (value instanceof Uint8Array ? value : undefined);
     default:
@@ -99,16 +121,15 @@ function parseIDValue(id: string, dataType: string): unknown {
     case 'Int':
       return INTEGER.test(id) && Number.isSafeInteger(Number(id)) ? Number(id) : undefined;
     case 'BigInt':
-      return INTEGER.test(id) ? BigInt(id) : undefined;
+      return INTEGER.test(id) ? toBigInt(BigInt(id)) : undefined;
     case 'Boolean':
       return id === 'true' ? true : id === 'false' ? false : undefined;
     case 'Float':
       return NUMBER.test(id) && Number.isFinite(Number(id)) ? Number(id) : undefined;
     case 'Decimal':
       return NUMBER.test(id) ? id : undefined;
-    // An ISO string, or the `String(date)` form ids were written in before it.
     case 'DateTime':
-      return toDate(id);
+      return ISO_DATE.test(id) || STRING_DATE.test(id) ? validDate(new Date(id)) : undefined;
     case 'Json':
       try {
         return JSON.parse(id) as unknown;
@@ -527,7 +548,7 @@ export function getCursorParser<Types extends SchemaTypes>(
   );
   const compoundFields = primaryKey === cursor ? modelData.primaryKey!.fields : uniqueIndex?.fields;
   const checkerFor = (fieldName: string) =>
-    cursorValueChecker(modelData.fields.find((field) => field.name === fieldName)?.type);
+    cursorValueChecker(modelData.fields.find((field) => field.name === fieldName));
   const check = (checker: (value: unknown) => unknown, value: unknown) => {
     const checked = checker(value);
 

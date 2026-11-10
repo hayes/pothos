@@ -136,6 +136,8 @@ describe('malformed cursors', () => {
     ['a string', 'GPC:S:garbage'],
     ['a number', 'GPC:N:1355270400000'],
     ['an invalid date', 'GPC:D:abc'],
+    ['a string holding a number', 'GPC:S:1'],
+    ['a string holding a year', 'GPC:S:2020'],
   ])('rejects %s for a DateTime column', async (_name, payload) => {
     const result = await run(POSTS_BY_CREATED_AT, { after: cursor(payload) });
 
@@ -146,6 +148,8 @@ describe('malformed cursors', () => {
   it.each([
     ['text that is not an integer', 'GPC:S:7abc'],
     ['a fraction', 'GPC:N:1.5'],
+    ['a value past the 64-bit range', 'GPC:I:9223372036854775808'],
+    ['a value below the 64-bit range', 'GPC:I:-9223372036854775809'],
   ])('rejects %s for a BigInt column', async (_name, payload) => {
     const result = await run(POSTS_BY_BIGINT, { after: cursor(payload) });
 
