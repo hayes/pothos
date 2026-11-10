@@ -247,8 +247,9 @@ export function getIDParser(
     const record: Record<string, unknown> = {};
 
     parts.forEach(({ key, parse }, i) => {
-      // a JSON null is no key value: a key column holds none, and it would match no row
-      record[key] = parsed[i] === null ? invalidID() : checked(parse(parsed[i]), invalidID);
+      // A compound ID over a unique index with a nullable column holds a null, which matches no
+      // row, so the node is not found.
+      record[key] = parsed[i] === null ? null : checked(parse(parsed[i]), invalidID);
     });
 
     return record;

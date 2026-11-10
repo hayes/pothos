@@ -2,13 +2,20 @@ import type { Column } from 'drizzle-orm';
 
 /**
  * Checks for the values a client hands back inside a node ID or a cursor, by the column they are
- * for. Each accepts exactly the forms this plugin writes from a row value of that column, with any
- * driver, and rejects the rest before they reach SQL. `column.dataType` describes the value after
- * drizzle's codecs, which is what both a root row and a nested relation row hold.
+ * for, run before any SQL. Core's chunk decoding is lenient about the text; what is checked here
+ * is the type of the decoded value, and for some columns its format (uuid, integer digits, dates).
+ *
+ * The checks are conservative: they reject only values no row of the column can hold. Driver
+ * options can change the JS type a row value arrives as (numeric read as a number, integers as
+ * bigints, a string-mode bigint as a number), so string-family columns also take numbers and
+ * bigints, number columns bigints, and bigint columns numbers and decimal strings.
+ * `column.dataType` describes the value after drizzle's codecs, which is what both a root row and
+ * a nested relation row hold.
  *
  * Column types whose row values this can't pin down (json, custom types, arrays, geometry, and
  * bytes stored in a `string` column) are left unchecked, as are string formats a database parses
- * itself (numeric, date and time strings, network addresses).
+ * itself (numeric, date and time strings, network addresses) and enum labels: a database enum can
+ * hold labels the schema's list no longer has, and drizzle reads them without checking.
  */
 
 export const INVALID = Symbol('invalid');
@@ -88,8 +95,14 @@ function numberValues(column: Column, constraint: string | undefined): ColumnVal
   const integer = range && !column.columnType.startsWith('SQLite') ? range : undefined;
 
   const check = (value: unknown) => {
+    // A driver can read integers as bigints (libsql's `intMode: 'bigint'`, `safeIntegers`).
+    if (typeof value === 'bigint') {
+      return value;
+    }
+
     if (typeof value !== 'number') {
-      return INVALID;
+      // Postgres writes a non-finite float inside JSON as a string, so a nested row holds one.
+      return !range && typeof value === 'string' && NON_FINITE.has(value) ? value : INVALID;
     }
 
     if (integer) {
@@ -104,36 +117,57 @@ function numberValues(column: Column, constraint: string | undefined): ColumnVal
 
   return {
     parseID: (text) => check(parseCanonicalNumber(text)),
-    parseIDPart: check,
-    parseCursor: (value) =>
-      !range && typeof value === 'string' && NON_FINITE.has(value) ? value : check(value),
+    // A compound ID writes a bigint as its digits.
+    parseIDPart: (value) =>
+      typeof value === 'string' && DECIMAL_INTEGER.test(value) ? value : check(value),
+    parseCursor: check,
     parseLegacyCursor: check,
   };
 }
 
 function bigintValues(constraint: string | undefined): ColumnValues {
-  const parse = (text: unknown) => {
+  const unsigned = constraint === 'uint64';
+
+  const parseText = (text: unknown) => {
     if (typeof text !== 'string' || !DECIMAL_INTEGER.test(text)) {
       return INVALID;
     }
 
     const value = BigInt(text);
 
-    return constraint === 'uint64' && value < ZERO ? INVALID : value;
+    return unsigned && value < ZERO ? INVALID : value;
+  };
+
+  // A driver option can read a bigint column as a number.
+  const parse = (value: unknown) => {
+    if (typeof value === 'bigint') {
+      return unsigned && value < ZERO ? INVALID : value;
+    }
+
+    if (typeof value === 'number') {
+      return Number.isInteger(value) && !(unsigned && value < 0) ? value : INVALID;
+    }
+
+    return parseText(value);
   };
 
   return {
-    parseID: parse,
+    parseID: parseText,
     parseIDPart: parse,
-    parseCursor: (value) =>
-      typeof value === 'bigint' && !(constraint === 'uint64' && value < ZERO) ? value : INVALID,
-    // A plain JSON array can't hold a bigint, so no `J:` cursor ever had one.
-    parseLegacyCursor: () => INVALID,
+    parseCursor: parse,
+    parseLegacyCursor: parse,
   };
 }
 
+/** A string column's values, which a driver option can also read as a number or bigint. */
 function stringValues(check: (value: string) => boolean): ColumnValues {
-  const parse = (value: unknown) => (typeof value === 'string' && check(value) ? value : INVALID);
+  const parse = (value: unknown) => {
+    if (typeof value === 'string') {
+      return check(value) ? value : INVALID;
+    }
+
+    return typeof value === 'number' || typeof value === 'bigint' ? value : INVALID;
+  };
 
   return {
     parseID: parse,
@@ -218,15 +252,6 @@ function valuesFor(column: Column): ColumnValues {
           return stringValues((value) => DECIMAL_INTEGER.test(value));
         case 'uint64':
           return stringValues((value) => DECIMAL_INTEGER.test(value) && !value.startsWith('-'));
-        case 'enum': {
-          // Only a Postgres enum type refuses other values; an `enum` option on a text column is
-          // a TypeScript type, and MySQL stores `''` for a value outside its enum.
-          const values = column.enumValues;
-
-          return values && column.columnType.startsWith('PgEnum')
-            ? stringValues((value) => values.includes(value))
-            : anyString;
-        }
         default:
           return anyString;
       }
