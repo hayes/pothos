@@ -70,7 +70,7 @@ export function orderableProblem(
     return type.codecId &&
       context.codecDescriptors.descriptorFor(type.codecId)?.traits.includes('order')
       ? undefined
-      : `'${modelKey}.${field}', whose codec the ORM can't order`;
+      : `'${modelKey}.${field}' has a codec the ORM can't order by`;
   };
 }
 
@@ -96,7 +96,7 @@ export function orderColumns(
         ? undefined
         : `'${modelKey}.${field}' is not a field of the model`;
     if (reason) {
-      throw new PothosSchemaError(`orderBy can't order by ${reason}.`);
+      throw new PothosSchemaError(`Invalid orderBy: ${reason}.`);
     }
     const { direction = 'asc', nulls } = typeof entry === 'string' ? { direction: entry } : entry;
     const placement = nulls ?? (model.fields[field]!.nullable ? 'last' : undefined);
@@ -135,7 +135,7 @@ export function connectionOrder(
   if (!key) {
     const reason = keys[0]?.map(problem).find(Boolean);
     throw new PothosSchemaError(
-      `Connections of '${modelKey}' page by a non-null primary or unique key of orderable columns, which it doesn't have${reason ? `: ${reason}` : ''}.`,
+      `Connections of '${modelKey}' need a non-null primary or unique key of orderable columns, and the model has none${reason ? `: ${reason}` : ''}.`,
     );
   }
   return (decl) => {

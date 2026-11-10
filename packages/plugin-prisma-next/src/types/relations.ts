@@ -122,8 +122,8 @@ export interface RelationQueryLiteral<Types extends SchemaTypes, M extends Model
 
 /**
  * A to-many relation's `query`: the literal, or a callback of the args and context returning it. A
- * to-one relation is loaded whole and takes none, which its error names. Rows narrowed to a variant
- * of the target take its columns as a root field of the variant does.
+ * to-one relation is loaded whole and takes no `query`. Rows narrowed to a variant of the target
+ * take its columns as a root field of the variant does.
  */
 export type RelationQuery<
   Types extends SchemaTypes,
@@ -181,8 +181,8 @@ export type PrismaRelationOptions<
     QueryAsyncCheck<Types, Query> &
     NoInfer<ExactQuery<Types, TypeModel, Query, QueryKeys>>;
   /**
-   * What a non-null field does when its relation resolves to null: `'error'` leaves the null for
-   * GraphQL's non-null error, and a function returns a replacement or an error.
+   * What a non-null field does when its relation is null. `'error'` returns the null, so GraphQL
+   * reports its non-null error. A function returns a replacement row or an error.
    */
   onNull?: RelationOnNull<Types, ParentShape, Args, TypeModel>;
 };
@@ -323,10 +323,8 @@ type QueryLiteralCheck<
   Known extends PropertyKey,
 > = ExactQueryLiteral<Literal, Known> & OrderByColumnsCheck<Types, M, Literal>;
 
-/**
- * What a `prismaField`'s `query` takes, as a to-many relation's does. An alias rather than an
- * interface for the reason `ConnectionQueryLiteral` is one.
- */
+/** A `prismaField`'s `query`, which takes the same options as a to-many relation's. */
+// An alias rather than an interface, for the same reason as `ConnectionQueryLiteral`.
 export type FieldQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   where?: RootWhere<Types, M>;
   orderBy?: RelationQueryOrderBy<Types, M>;

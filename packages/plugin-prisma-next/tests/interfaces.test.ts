@@ -478,9 +478,9 @@ describe('inherited selections', () => {
       builder.prismaObject('User', { interfaces: [Named], select: { posts: true } });
       builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
       expect(() => builder.toSchema()).toThrow(
-        "'Named' and 'User' both select 'posts', with different definitions. Every row of " +
-          "model 'User' holds one value for it, which the fields and auth checks of every type " +
-          "of the model read. Define it the same way in both, or load the other version in a field's select.",
+        "'Named' and 'User' both select 'posts', with different definitions. Types of " +
+          "model 'User' share their rows, so 'posts' can only be loaded one way. " +
+          "Define it the same way in both, or load the other version in a field's select.",
       );
     });
 

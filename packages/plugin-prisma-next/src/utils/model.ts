@@ -139,7 +139,7 @@ export function truncatedDateProblem(
     | undefined;
   const defaultPrecision = DATE_CODEC_DEFAULT_PRECISION.get(type?.codecId ?? '');
   return defaultPrecision !== undefined && (type?.typeParams?.precision ?? defaultPrecision) > 3
-    ? `'${modelKey}.${field}' is a timestamp finer than milliseconds read as a JavaScript Date, which drops the rest. Declare it with a precision of 3 or less, or with a codec that reads a Temporal value, such as TimestamptzTemporal`
+    ? `'${modelKey}.${field}' is a timestamp with more than millisecond precision, but it is read as a JavaScript Date, which only keeps milliseconds. Declare it with a precision of 3 or less, or with a codec that reads a Temporal value, such as TimestamptzTemporal`
     : undefined;
 }
 

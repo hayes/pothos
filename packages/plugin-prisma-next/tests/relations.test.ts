@@ -180,7 +180,7 @@ describe('includes', () => {
     const result = await run(builder.toSchema(), '{ users { posts(sort: "nope") { id } } }');
     expect(result.errors?.[0].message).toBe('Unexpected error.');
     expect(detailOf(result.errors?.[0])).toBe(
-      "orderBy can't order by 'Post.nope' is not a field of the model.",
+      "Invalid orderBy: 'Post.nope' is not a field of the model.",
     );
   });
 

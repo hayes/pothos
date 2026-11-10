@@ -165,10 +165,10 @@ type PlannedRows<C> = C extends HasRow
   : unknown;
 
 /**
- * The collection `collectionFromInfo` returns: its reads and writes return rows the loader planned,
- * so they fit a field returning a type of their model, as a `PlannedRow` does. It is `C` itself
- * with the rows branded, so a collection typed by a type parameter keeps its methods. Narrowing
- * the rows' columns with `select()` drops columns the selection planned, which the brand doesn't
- * track: return such rows only to types whose `select` they hold.
+ * The collection `collectionFromInfo` returns. Rows from its reads and writes can be returned from
+ * a field returning a type of their model, like a `PlannedRow`. Calling `select()` on it can drop
+ * columns the query needs, and the types don't catch that. Only return those rows for a type if
+ * they still have the columns its `select` loads.
  */
+// `C` itself with the rows branded, so a collection typed by a type parameter keeps its methods.
 export type PrismaPlannedCollection<C> = C & PlannedRows<C>;

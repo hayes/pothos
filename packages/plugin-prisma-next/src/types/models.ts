@@ -105,12 +105,11 @@ export type ModelKey<Types extends SchemaTypes> = Types['PrismaContract'] extend
 /**
  * The row of a model's own fields, as the ORM client returns it, such as the rows of a relation
  * loaded with `select: { posts: true }`. A variant's `Row` also has its base's fields.
- *
- * TypeScript compares two instantiations of an alias by their arguments, and measures upstream's
- * `DefaultModelRow` as not depending on its model, so one model's row would pass as any other's.
- * The `out` annotation states the variance it can't measure: rows of different models don't
- * match, while errors and hovers keep naming `OwnRow<Types, M>`.
  */
+// TypeScript compares two instantiations of an alias by their arguments, and measures upstream's
+// `DefaultModelRow` as not depending on its model, so one model's row would pass as any other's.
+// The `out` annotation states the variance it can't measure: rows of different models don't
+// match, while errors and hovers keep naming `OwnRow<Types, M>`.
 export type OwnRow<Types extends SchemaTypes, out M extends ModelKey<Types>> = {
   [K in keyof DefaultModelRowOf<Types, M>]: DefaultModelRowOf<Types, M>[K];
 };
@@ -308,10 +307,10 @@ export type WholeRelationRow<Types extends SchemaTypes, M extends ModelKey<Types
     : OwnRow<Types, M> & Pick<Row<Types, M>, IdentityFields<Types, M>>;
 
 /**
- * A row the loader planned from a query, such as a row connection helpers load with `info`: its key
- * and what the query's selection needs, which includes the `select` of the type it resolves as. A
- * model without an identity loads its whole row. The type-only brand marks it as planned, which a
- * field returning a type of `M` requires.
+ * A row the plugin loaded for a query, such as a row the connection helpers load with `info`. It
+ * has its key and what the query selects, including the `select` of the type it resolves as. A
+ * model without a non-null primary or unique key loads its whole row. A field returning a type of
+ * `M` only accepts rows with this type-only brand.
  */
 export type PlannedRow<Types extends SchemaTypes, M extends ModelKey<Types>> = ([
   IdentityFields<Types, M>,

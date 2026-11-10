@@ -84,7 +84,7 @@ export function assertConnectionCollection(collection: MapperCollection): void {
   }
   if (methods.length) {
     throw new InternalError(
-      `A connection's starting collection uses ${methods.join(', ')}. Return it without these operations; use query.orderBy for ordering and first/last for page size. The connection loads requested relations.`,
+      `A connection's collection uses ${methods.join(', ')}. Remove them. Use query.orderBy for ordering and first/last for page size. The connection loads the relations the query selects.`,
     );
   }
 }

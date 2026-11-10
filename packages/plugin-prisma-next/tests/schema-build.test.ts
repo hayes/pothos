@@ -328,12 +328,12 @@ describe('options validated when the schema is built', () => {
     const builder = createBuilder();
     expect(() =>
       prismaConnectionHelpers(builder, 'User', { query: { orderBy: { nope: 'asc' } as never } }),
-    ).toThrow("orderBy can't order by 'User.nope' is not a field of the model.");
+    ).toThrow("Invalid orderBy: 'User.nope' is not a field of the model.");
     expect(() =>
       prismaConnectionHelpers(builder, 'User', { query: { orderBy: { firstName: 'asc' } } }),
     ).not.toThrow();
     expect(() => prismaConnectionHelpers(builder, 'PostView', {})).toThrow(
-      /'PostView' page by a non-null primary or unique key/,
+      /'PostView' need a non-null primary or unique key/,
     );
   });
 
@@ -385,7 +385,7 @@ describe('options validated when the schema is built', () => {
       });
     if (rejected) {
       expect(page).toThrow(/'Post\.createdAt' .*TimestamptzTemporal/);
-      expect(node).toThrow(/prismaNode 'Post' id\.field .*TimestamptzTemporal/);
+      expect(node).toThrow(/prismaNode 'Post' can't use this id\.field: .*TimestamptzTemporal/);
     } else {
       expect(page).not.toThrow();
       expect(node).not.toThrow();
@@ -409,7 +409,7 @@ describe('options validated when the schema is built', () => {
       prismaConnectionHelpers(builder, 'Entry', {
         query: { orderBy: { payload: 'asc' } as never },
       }),
-    ).toThrow("orderBy can't order by 'Entry.payload', whose codec the ORM can't order.");
+    ).toThrow("Invalid orderBy: 'Entry.payload' has a codec the ORM can't order by.");
     expect(() =>
       prismaConnectionHelpers(builder, 'Entry', { query: { orderBy: { id: 'asc' } } }),
     ).not.toThrow();

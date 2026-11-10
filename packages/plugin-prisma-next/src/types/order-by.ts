@@ -29,8 +29,8 @@ type OrderableColumnName<Types extends SchemaTypes, M extends ModelKey<Types>> =
 type OrderDirection = 'asc' | 'desc';
 
 /**
- * The `orderBy` of a `query`: a direction for each column, or `{ direction, nulls }` to place
- * nulls, which nullable columns put last by default. A connection appends the model's key to break
+ * The `orderBy` of a `query`: a direction for each column, or `{ direction, nulls }` to choose
+ * where nulls sort. Nulls sort last by default. A connection appends the model's key to break
  * ties.
  */
 export type RelationOrderBy<Types extends SchemaTypes, M extends ModelKey<Types>> = {
@@ -38,7 +38,7 @@ export type RelationOrderBy<Types extends SchemaTypes, M extends ModelKey<Types>
     | OrderDirection
     | {
         readonly direction?: OrderDirection;
-        /** Where nulls sort. Only a nullable column has them. */
+        /** Where nulls sort. Only allowed on a nullable column. */
         readonly nulls?: null extends Row<Types, M>[Column] ? 'first' | 'last' : never;
       };
 };
