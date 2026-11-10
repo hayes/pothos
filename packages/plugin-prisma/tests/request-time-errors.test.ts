@@ -9,7 +9,8 @@ import { prisma } from './example/builder';
 import { getDatamodel } from './generated.js';
 
 // Mistakes in the app that only show up while a request runs: clients see `Unexpected error.`,
-// and the detail is on the error's `cause`.
+// and the detail is on the error's `cause`. `onUnusedQuery: 'error'` is the exception: it exists
+// to tell the developer, so its message is the reason.
 const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypesFromClient<typeof prisma>;
   Context: { client: PrismaClient };

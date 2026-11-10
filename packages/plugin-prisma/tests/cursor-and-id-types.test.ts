@@ -544,7 +544,7 @@ describe('node ids checked against the field type', () => {
         '2020',
         '2023-11-14',
         'Tue Nov 14 2023',
-        '2023-13-14T22:13:20Z',
+        '2023-13-14T22:13:20.123Z',
       ],
     ],
     [
