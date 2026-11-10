@@ -1056,7 +1056,7 @@ describe('load ids', () => {
     });
     builder.queryType({ fields: (t) => ({ ok: t.boolean({ resolve: () => true }) }) });
     expect(() => builder.toSchema()).toThrow(
-      "'User' and 'Comment' both select 'comments', with different definitions. Every row of model 'Post' holds one value for it",
+      "'User' and 'Comment' both select 'comments', with different definitions. Types of model 'Post' share their rows, so 'comments' can only be loaded one way.",
     );
   });
 });

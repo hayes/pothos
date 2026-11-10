@@ -22,7 +22,7 @@ interface PlanTarget {
   paths?: PathSegment[][];
   /** One path to the selection, when `paths` isn't given. */
   path?: PathSegment[];
-  /** The type the selection is read as, when it isn't the field's return type. */
+  /** The type the rows resolve as. Defaults to the field's return type, or the type `path` leads to. */
   typeName?: string;
 }
 
@@ -109,19 +109,24 @@ export function applySelectionToCollection(
 }
 
 export interface CollectionFromInfoOptions<C> extends PlanTarget {
-  /** The collection to load the rows from, without `include()`: the selection includes relations. */
+  /**
+   * The collection to load the rows from, without `include()`. The plugin loads the relations the
+   * query selects.
+   */
   collection: C;
   context: object;
   info: GraphQLResolveInfo;
 }
 
 /**
- * Applies the selection of the field `info` resolves to `collection`, for a resolver that loads
- * rows itself, such as a mutation's. `path`/`paths` select beneath the field (`['post']` for a
- * payload's `post`), and `typeName` names the type the rows resolve as when the path leads to an
- * interface or union, or the collection is narrowed by `variant()`. The rows the returned
- * collection's reads and writes return resolve the selection without loading again. In a
- * subscription, call it in the event's `resolve`: rows loaded in `subscribe` load again.
+ * Returns `collection` with the selection of the field being resolved applied to it. Use it in a
+ * resolver that loads rows itself, such as a mutation's. Rows read or written through the returned
+ * collection resolve the query without loading again.
+ *
+ * Use `path` or `paths` when the rows are nested in the field's result (`['post']` for a payload's
+ * `post`). Set `typeName` to the type the rows resolve as when the path leads to an interface or
+ * union, or the collection is narrowed by `variant()`. In a subscription, call it in the event's
+ * `resolve`. Rows loaded in `subscribe` are loaded again.
  */
 // A collection narrowed by `variant()`, or one the compiler can't tell isn't, needs `typeName`.
 export function collectionFromInfo<C extends HasNoVariant>(

@@ -4,11 +4,12 @@ description: Loading relations for fields that aren't t.relation
 ---
 
 Use [`t.relation`](./relations) for a direct relation, including a renamed or filtered field.
-Use a custom field when the result follows a join model, introduces a GraphQL wrapper, or needs
-other resolver logic. `nestedSelection` loads the related data requested beneath that field.
+Use `t.field` with a `select` when the field goes through a join model, wraps the rows in another
+GraphQL type, or needs its own resolver logic.
 
-A field's `select` function gets a third argument, `nestedSelection`. Use it as a relation's entry,
-and the relation's rows load with what the query selects on the field's type, in the parent's query:
+A field's `select` function gets `nestedSelection` as its third argument. Use it as the value for
+a relation, and the plugin loads that relation in the parent's query, with whatever the client
+selects on the field's type:
 
 ```ts
 const Post = builder.prismaObject('Post', {
@@ -31,28 +32,28 @@ builder.prismaObject('User', {
 For this filtered field alone, prefer
 `publishedPosts: t.relation('posts', { query: { where: { published: 1 } } })`.
 
-Without `nestedSelection`, `{ posts: true }` loads each post's columns but nothing the query
-selects beneath the field, such as `author`, which then loads in an extra batched statement. Use `nestedSelection`
-whenever the field's type has relations or selects of its own, so they load in the parent's query.
+With `{ posts: true }` instead, the plugin only loads each post's columns. Anything selected
+under the field, such as a post's `author`, needs an extra batched query. Use `nestedSelection`
+whenever the field's type has relations or selects of its own.
 
-`nestedSelection` takes an optional object with what a [relation entry](./objects#selections)
-takes, and `path`:
+`nestedSelection` takes an optional object with the same options as a
+[relation entry](./objects#selections), plus `path`:
 
 - `where`, `orderBy`, `limit`, `offset`: the relation's
   [query options](./relations#filtering-and-sorting). A to-one relation takes none.
-- `select`: what to load beneath the rows, besides what the query selects.
-- `path`: a field nested under the field's type to read the selection from. A segment can be
-  written as `{ name, type }` to only read the field under a fragment on that type.
-- `type`: the type to read the selection as, when the field returns an interface or union. It
-  takes what a field's `type` takes, or a model's name for its default type. The query and rows are
-  typed by that type's model, which must be the relation's target.
+- `select`: anything else to load for each row, on top of what the query selects.
+- `path`: the path to a nested field to read the selection from. A segment can be written as
+  `{ name, type }` to only read the field inside a fragment on that type.
+- `type`: the type to read the selection as, when the field returns an interface or union. You can
+  pass anything a field's `type` takes, or a model's name for its default type. The type's model
+  must be the relation's target, and the query and rows are typed for that model.
 
-The rows hold the primary key and what the selection loads, not every column.
+The rows only include the primary key and the selected columns, not every column.
 
 ## Selecting fields from a nested GraphQL field
 
-When the field returns a type without a model, pass the `path` of a field beneath it that returns
-the model's type:
+When the field returns a plain object type that wraps the rows, pass the `path` to the field
+inside it that returns the relation's type:
 
 ```ts
 const PostPreview = builder.objectRef<typeof Post.$inferType>('PostPreview').implement({
@@ -66,7 +67,7 @@ builder.prismaObject('User', {
     postPreviews: t.field({
       type: [PostPreview],
       select: (args, ctx, nestedSelection) => ({
-        // What the query selects under `postPreviews.post`, for the 2 newest posts
+        // Load the selection under `postPreviews.post` for the 2 newest posts
         posts: nestedSelection({ orderBy: { createdAt: 'desc' }, limit: 2, path: ['post'] }),
       }),
       resolve: (user) => user.posts,
@@ -77,8 +78,8 @@ builder.prismaObject('User', {
 
 ## Selecting as a specific type
 
-When the field returns an interface or union, `type` names the object type to read the selection
-as. Fragments on other types are left out:
+When the field returns an interface or union, use `type` to pick the object type to read the
+selection as. Fragments on other types are ignored:
 
 ```ts
 const Comment = builder.prismaObject('Comment', {
@@ -108,11 +109,11 @@ builder.prismaObject('User', {
 
 ## Join models
 
-A relation defined with `rel.manyToMany` loads through its junction table, so `nestedSelection` and
-`t.relation` work on it like any to-many relation.
+Relations defined with `rel.manyToMany` work with `t.relation` and `nestedSelection` like any
+other to-many relation.
 
-For a join model of its own, give the relation entry a `select` of the join model's rows and put
-`nestedSelection` beneath it. Here comments join users to the posts they commented on:
+When the join table is its own model, give the relation to the join model a `select`, and use
+`nestedSelection` inside it. Here comments join users to the posts they commented on:
 
 ```ts
 builder.prismaObject('User', {
@@ -128,6 +129,6 @@ builder.prismaObject('User', {
 });
 ```
 
-The `select` takes the same entries as any other, one level down, and everything loads in the
-parent's query. Add `type`, a ref or model name of a variant of the relation's model, to load only
-that variant's rows: `{ type: Bug, select: { reviewer: true } }`.
+Everything still loads in the parent's query. To load only one variant of a relation's model, add
+`type` to the relation's entry, with the variant's ref or model name:
+`{ type: Bug, select: { reviewer: true } }`.

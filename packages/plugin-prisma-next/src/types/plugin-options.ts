@@ -63,14 +63,14 @@ export type PrismaPluginOptions<Types extends SchemaTypes> = {
 } & (
   | {
       readonly client: PrismaClient<Types['PrismaContract']>;
-      /** A client object carries its own `context`, so this is only for a client function. */
+      /** Only used when `client` is a function. A client object already has its `context`. */
       readonly context?: never;
     }
   | {
       readonly client: (ctx: Types['Context']) => PrismaRequestClient<Types['PrismaContract']>;
       /**
-       * The `context` of the client the function's clients come from, such as `db.context`. Its
-       * contract is read when the schema is built, before any request provides a client.
+       * The client's `context`, such as `db.context`. The plugin reads the contract from it when
+       * the schema is built, before any request provides a client.
        */
       readonly context: PrismaExecutionContext<Types['PrismaContract']>;
     }

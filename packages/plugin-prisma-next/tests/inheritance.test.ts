@@ -990,7 +990,7 @@ describe('native model inheritance', () => {
     const row = { id: 't9', title: 'plain', type: 'task' };
     const result = await run(rowSchema(row), '{ task { title } }');
     expect(detailOf(result.errors?.[0])).toMatch(
-      /discriminator 'type' that names no variant of model 'Task'/,
+      /discriminator 'type' does not match a variant of model 'Task'/,
     );
     // Logs often capture messages, so the row's value stays out of it.
     expect(result.errors?.[0].message).not.toContain('"task"');

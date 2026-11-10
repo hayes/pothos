@@ -114,7 +114,7 @@ function planTypeSelect(
   } catch (error) {
     if (error instanceof UnknownRelationError) {
       throw new PothosSchemaError(
-        `The select of ${definedBy} includes relation "${error.relation}", which table ${error.table} does not have`,
+        `${definedBy} selects relation "${error.relation}", which does not exist on table ${error.table}`,
       );
     }
 

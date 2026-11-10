@@ -37,9 +37,9 @@ builder.queryFields((t) => ({
 ## Switch to another variant
 
 `t.variant` adds a field that returns the same row as another variant, without another query. To
-return `null` for some rows, pass `isNull`, which needs a nullable field. It sees the primary key,
-the type's `select`, and the columns in the field's `select`. Here `User.viewer` returns the
-`Viewer` type only for the signed-in user:
+return `null` for some rows, pass `isNull`, which needs a nullable field. `isNull` can read the
+primary key, the type's `select`, and the columns in the field's `select`. Here `User.viewer`
+returns the `Viewer` type only for the signed-in user:
 
 ```ts
 builder.prismaObject('User', {

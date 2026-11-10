@@ -519,7 +519,7 @@ describe('orderBy', () => {
     );
     expect(result.data).toEqual({ a: { nodes: [{ id: 'p-hello' }] }, b: null });
     expect(result.errors?.map((error) => [error.path, detailOf(error)])).toEqual([
-      [['b'], "orderBy can't order by 'Post.nope' is not a field of the model."],
+      [['b'], "Invalid orderBy: 'Post.nope' is not a field of the model."],
     ]);
   });
 

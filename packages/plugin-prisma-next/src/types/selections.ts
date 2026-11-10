@@ -156,11 +156,11 @@ export type InterfaceNestedRow<Types extends SchemaTypes, Type> = Type extends r
 type ModelTypeRef<M> = { readonly [prismaModelBrand]: M } | { readonly [prismaInterfaceBrand]: M };
 
 /**
- * A relation entry: its rows' query (a to-many relation's only), the `type` narrowing them to a
- * variant of the target, by a ref or a model's name, and a `select` of what to load beneath them,
- * in the same form one level down. One member per model, so the query and nested `select` are
- * typed as that model's.
+ * A relation entry in a `select`. `where`, `orderBy`, `limit` and `offset` apply to a to-many
+ * relation's rows, `type` (a ref or a model's name) narrows them to a variant of the target, and
+ * `select` loads columns and relations on them.
  */
+// One member per model, so the query and nested `select` are typed as that model's.
 export type RelationSelect<
   Types extends SchemaTypes,
   M extends ModelKey<Types>,
@@ -270,9 +270,9 @@ export type SelectObjectSpec<
 };
 
 /**
- * A relation entry from `nestedSelection`: the relation's rows, planned as a type of model `M`
- * (`never` for the relation's target), with `Options` it was given. `Shape` is the type's shape,
- * or `never` for rows typed as planned rows of `M`.
+ * The relation entry `nestedSelection` returns. `M` is the model of the type its rows resolve as
+ * (`never` for the relation's target), `Options` are the options it was called with, and `Shape`
+ * is that type's shape (`never` for rows typed as planned rows of `M`).
  */
 export interface NestedSelectionEntry<M, Options, Shape = never> {
   /** Type-only: what the entry plans. */
@@ -321,11 +321,14 @@ type NestedOptionsCheck<Types extends SchemaTypes, M extends ModelKey<Types>, Op
   : never;
 
 /**
- * Plans the selection beneath a field into a relation entry of its `select`: the relation's rows
- * are loaded with the query options, and planned as `type` (by default the field's type) at
- * `path` beneath the field, with what `select` names loaded beneath them. `type` takes what a
- * field's `type` does, or a model's name for its default type. With a `path` and no `type`, the
- * rows are typed as the relation's target, and the `select` checks the query as the relation's.
+ * Returns a relation entry for a field's `select` that also loads what the query selects beneath
+ * the field. `where`, `orderBy`, `limit` and `offset` apply to the relation's rows, and `select`
+ * loads more columns and relations on them.
+ *
+ * By default the rows resolve as the field's type. Use `path` when they are nested in the field's
+ * result, and `type` when they resolve as another type. `type` takes what a field's `type` does,
+ * or a model's name for its default type. With a `path` and no `type`, the rows are typed as the
+ * relation's target, and the query options are checked by the `select` you put the entry in.
  */
 export interface NestedSelectionFn<
   Types extends SchemaTypes,
@@ -366,7 +369,7 @@ export interface ConnectionPageEntry<M, Row> {
   readonly [CONNECTION_PAGE]: { readonly model: M; readonly row: Row };
 }
 
-/** Where a connection helper's `select` loads the nodes: the node selection is planned there. */
+/** Returned by `nodeSelection()`. Marks the relation that holds a connection helper's nodes. */
 export interface NodeSelection {
   readonly [NODE_SELECTION]: true;
 }

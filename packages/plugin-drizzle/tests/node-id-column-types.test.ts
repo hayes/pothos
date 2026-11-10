@@ -56,7 +56,7 @@ it('refuses a node ID column whose values IDs never held', () => {
     }),
   ).toThrow(
     new PothosSchemaError(
-      "drizzleNode Thing can't use column flag (boolean) as its ID: no value it holds can be written as one. Use a number, bigint, string or date column, or more than one column",
+      "drizzleNode Thing can't use column flag (boolean) as its ID. Use a number, bigint, string or date column, or more than one column",
     ),
   );
 
@@ -68,7 +68,7 @@ it('refuses a node ID column whose values IDs never held', () => {
     }),
   ).toThrow(
     new PothosSchemaError(
-      "drizzleNode BytesThing can't use column bytes (object buffer) as its ID: no value it holds can be written as one. Use a number, bigint, string or date column",
+      "drizzleNode BytesThing can't use column bytes (object buffer) as its ID. Use a number, bigint, string or date column",
     ),
   );
 });
@@ -158,7 +158,7 @@ describe('a node ID column whose values may serialize', () => {
     });
     expect(result.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
     expect((result.errors?.[0].originalError?.cause as Error).message).toBe(
-      "A node ID column holds a value of type object, which IDs can't encode",
+      "Can't create a node ID from a column value of type object",
     );
   });
 

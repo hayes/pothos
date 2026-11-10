@@ -14,9 +14,9 @@ npm install --save @pothos/core @pothos/plugin-prisma-next graphql @prisma/orm-f
 ```
 
 The plugin targets Prisma ORM `8.0.0-rc.23` exactly. Install every `@prisma/orm-*` package,
-including your database's (such as `@prisma/orm-postgres`), at that version. A second copy of any
-of them breaks values passed between the two. The database packages also need `temporal-polyfill`,
-which npm and pnpm install automatically; with Yarn, add it yourself.
+including the one for your database (such as `@prisma/orm-postgres`), at that version. Two copies
+of the same package won't work together. The database packages need `temporal-polyfill`. npm and
+pnpm install it automatically, but with Yarn you have to add it yourself.
 
 Requires Node.js 22.20+ or 24.7+. This plugin and
 `@pothos/plugin-prisma` can't be used in the same program.
@@ -65,8 +65,8 @@ builder.queryType({
 export const schema = builder.toSchema();
 ```
 
-`User` and `Post` are type refs, which later examples pass as a field's `type`; a model name such
-as `'Post'` works too. Later pages add to these types, which you can also do with
+Later examples pass the `User` and `Post` refs as a field's `type`. A model name such as `'Post'`
+works too. Later pages add more fields to these types, which you can also do with
 [`prismaObjectFields`](./objects#adding-fields).
 
 For nodes and connections, also install and add [`@pothos/plugin-relay`](/docs/plugins/relay).
@@ -103,8 +103,8 @@ builder.prismaObject('auth.User', {
 
 These go under `prisma` in the builder options.
 
-- `client`: your Prisma client. For a [request-scoped client](./transactions#share-a-transaction-across-an-operation),
-  pass `(ctx) => client` together with the base client's `context`. Required.
+- `client`: your Prisma client. Required. For a [request-scoped client](./transactions#share-a-transaction-across-an-operation),
+  pass `(ctx) => client` and set `context` to the base client's `context`.
 - `skipDeferredFragments`: load `@defer` fragments when they execute instead of in the initial
   query. Defaults to `true`.
 - `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes. Default to 20 and
@@ -118,9 +118,8 @@ For multi-step mutations and request-scoped clients, see the [Transactions guide
 
 ## TypeScript and Temporal
 
-If you export refs that select Temporal columns, or have a Temporal primary key, and
-declaration emit fails with TS2742 or TS2883 mentioning `temporal-spec`, add `temporal-spec` as a
-direct dependency so TypeScript can name its types in your declarations:
+If you use Temporal columns and declaration emit fails with TS2742 or TS2883 mentioning
+`temporal-spec`, add it as a direct dependency:
 
 ```package-install
 npm install --save temporal-spec
@@ -133,17 +132,17 @@ If TypeScript reports missing `Temporal` globals, import their declarations once
 import type {} from 'temporal-spec/global';
 ```
 
-This provides types only. Your application still needs Temporal at runtime, either natively or
-through its configured polyfill.
+This only adds types. You still need Temporal at runtime, natively or from a polyfill.
 
 ## Limitations
 
 - On MySQL, Prisma reads rows but can't write them, count them or run aggregates yet. MongoDB isn't
   supported.
-- Malformed cursors fail with `Invalid cursor.`, and malformed IDs with `Invalid ID.` or the Relay
-  plugin's `Invalid global ID: …`. Errors the plugin detects in your runtime configuration reach clients as `Unexpected error.`, with detail in the error's
-  `cause`. ORM errors and errors from your code pass through unchanged and can name your models and
-  columns, so mask them in your GraphQL server.
+- Clients see `Invalid ID.` or `Invalid cursor.` for a malformed ID or cursor, and the Relay
+  plugin's `Invalid global ID: …` for an ID that isn't a global ID. If the plugin finds a problem
+  in your configuration while running a request, the field fails with `Unexpected error.`. The
+  original error is on `error.cause`. Errors from the ORM and from your code are not changed and
+  can include model and column names, so mask them in your GraphQL server.
 - Prisma's packages are ESM-only, so use `"moduleResolution": "nodenext"` or `"bundler"`. A
   CommonJS project on `node16` gets TS1541 errors unless `skipLibCheck` is on.
 - graphql-jit isn't supported. Fields that load rows fail with `Unexpected error.` under it.

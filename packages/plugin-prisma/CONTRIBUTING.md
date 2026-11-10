@@ -22,18 +22,18 @@ built, or leave it unsupported. Don't add a runtime branch around it.
 
 ## Errors
 
-New and changed code picks the error class by who has to act on it:
+Pick the error class by who has to act on it:
 
 - **The developer, while the schema is built:** `PothosSchemaError`, with the detail in its
   message.
-- **The API client, for bad input:** `PothosValidationError`, with a short fixed message that is
-  safe to show: nothing the client sent and no model or field names, such as `Invalid cursor.`
+- **The API client, for bad input:** `PothosValidationError`, with a short fixed message such as
+  `Invalid cursor.`. Don't include anything the client sent, or model or field names.
 - **The developer, during a request:** an `Error` with the message `Unexpected error.` and the
   detail in its `cause`.
 
-`PothosSchemaError` and `PothosValidationError` extend `GraphQLError`, which servers that mask
-errors, such as GraphQL Yoga, pass through to the client. Errors from Prisma and from application
-callbacks propagate unchanged.
+`PothosSchemaError` and `PothosValidationError` extend `GraphQLError`, so servers that mask
+errors, such as GraphQL Yoga, still send them to the client. Errors from Prisma and from application
+callbacks are not wrapped.
 
 ## Running the tests
 
@@ -45,8 +45,8 @@ from the repository root, which also runs `generate`. Then, from this package's 
 pnpm vitest --run
 ```
 
-The tests use the SQLite database in `prisma/dev.db`, which is committed with the data
-`prisma/seed.mjs` writes. Run `pnpm generate` again after changing `prisma/schema.prisma`.
+The tests use the SQLite database in `prisma/dev.db`, which is committed and already seeded by
+`prisma/seed.mjs`. Run `pnpm generate` again after changing `prisma/schema.prisma`.
 
 ## Type checks
 

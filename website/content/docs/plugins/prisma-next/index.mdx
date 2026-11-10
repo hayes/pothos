@@ -10,10 +10,10 @@ a strongly typed GraphQL API from your Prisma models. Expose database fields and
 computed fields, and support Relay nodes and paginated connections. Your GraphQL types and fields can
 have different names and shapes from the underlying models.
 
-Declare what each field needs, and the plugin combines those requirements with the incoming
-GraphQL query. Prisma loads related data together, often in a single SQL statement, so you don't
-need a separate resolver or database call for every relation. Field types are inferred from your
-Prisma contract.
+Each field declares the columns and relations it needs, and the plugin loads what the incoming
+GraphQL query uses. Relations, counts and connection pages load with their parent, usually in one
+SQL statement per root field, so you don't need a resolver or database call for every relation.
+Field types are inferred from your Prisma contract.
 
 <Callout type="warn" title="Experimental">
   This plugin targets Prisma ORM `8.0.0-rc.23` exactly. Its API, and Prisma's, may change in any
@@ -30,7 +30,7 @@ and their author relation. These examples use the playground's `Post` and `User`
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next"'>playground-examples/plugin-prisma-next/types/post.ts#post</include>
 
-The author's computed `fullName` declares the columns its resolver reads:
+`fullName` is a computed field. Its `select` lists the columns the resolver reads:
 
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next"'>playground-examples/plugin-prisma-next/types/user.ts#user</include>
 
@@ -39,8 +39,7 @@ Add a recent-posts query that returns the ten latest published posts:
 <include cwd lang="typescript" meta='playground example="plugin-prisma-next" query="{ recentPosts { title author { fullName } } }"'>playground-examples/plugin-prisma-next/queries.ts#recent-posts-query</include>
 
 For `{ recentPosts { title author { fullName } } }`, the posts and their authors load in one SQL
-statement, including the columns needed to compute each author's name. Each root field usually
-runs as one statement, with its requested relations, counts and connection pages included.
+statement, including the columns needed to compute each author's name.
 
 ## Relay connections
 

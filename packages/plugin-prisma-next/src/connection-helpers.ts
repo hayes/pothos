@@ -121,8 +121,8 @@ type WholeRelation<
         | (DefaultRelationNullable<Types, M, K> extends true ? null : never);
 
 /**
- * A row of a helper's page: its key, the columns and relations its `select` loads, and whatever the
- * selection beneath the nodes needs.
+ * A row the connection helpers load: its key, the columns and relations the helper's `select`
+ * loads, and whatever the query selects on the nodes.
  */
 export type ConnectionHelperRow<
   Types extends SchemaTypes,
@@ -176,24 +176,25 @@ export interface PrismaConnectionHelpers<
   MaybeRow extends boolean = false,
   Ref extends ConnectionHelperRef<Types, M> = ConnectionHelperRef<Types, M>,
 > {
-  /** The ref passed in. For a model name, `Ref` isn't inferred, so this is its default ref. */
+  /** The ref the helpers were created with, or the model's default ref for a model name. */
   ref: ConnectionHelperRef<Types, M> extends Ref ? PrismaObjectRef<Types, M> : Ref;
   getArgs(): Args;
   /**
-   * The entry of a to-many relation of this model in a connection field's select function. It
-   * loads one page of the relation in the parent's query, with the selection beneath the
-   * connection's nodes, and its count when `totalCount` is selected. Pass the rows to `resolve`.
-   * `args` are the connection field's.
+   * Returns the entry for a to-many relation of this model in a connection field's select
+   * function. It loads one page of the relation in the parent's query, with what the query selects
+   * on the connection's nodes, and the count when `totalCount` is selected. `args` are the
+   * connection field's. Pass the rows to `resolve`.
    */
   getQuery(
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
   ): ConnectionPageEntry<M, HelperRow<Types, M, Select, Ref>>;
   /**
-   * Loads one page of `collection`, a collection of this model, for the root connection field
-   * `info` resolves: filtered and paged as `getQuery` pages a relation, with the selection beneath
-   * the connection's nodes, and its count when `totalCount` is selected. Pass the rows to `resolve`.
-   * Rejects existing ordering, includes, pagination or distinct settings before SQL.
+   * Loads one page of `collection`, a collection of this model, for a root connection field. The
+   * page is filtered and paged the way `getQuery` pages a relation, with what the query selects on
+   * the connection's nodes, and the count when `totalCount` is selected. Pass the rows to
+   * `resolve`. Throws before running a query if the collection already has ordering, includes,
+   * pagination or distinct settings.
    */
   load<C extends ResolverCollection<Types, M>>(
     collection: UnorderedCollection<C>,
@@ -202,8 +203,8 @@ export interface PrismaConnectionHelpers<
     info: GraphQLResolveInfo,
   ): Promise<HelperRow<Types, M, Select, Ref>[]>;
   /**
-   * The connection of `rows`, paged by `args` as `getQuery` or `load` paged them. `totalCount` is
-   * the count they loaded with the rows, unless one is passed.
+   * Builds the connection from the rows `getQuery` or `load` loaded. Pass the same `args`.
+   * `totalCount` is the count loaded with the rows, unless you pass one in `options`.
    */
   resolve(
     rows: readonly HelperRow<Types, M, Select, Ref>[],
@@ -217,7 +218,7 @@ export interface PrismaConnectionHelpers<
 export interface ConnectionHelperResolveOptions {
   /** The connection field's parent. */
   parent?: unknown;
-  /** The connection's count, in place of one `getQuery` or `load` loaded. */
+  /** The connection's `totalCount`, used instead of the count `getQuery` or `load` loaded. */
   totalCount?: number;
 }
 
@@ -229,13 +230,13 @@ export interface PrismaConnectionHelperOptions<
   Select = {},
 > extends Pick<ConnectionPagingOptions<Types, unknown, Args>, 'defaultSize' | 'maxSize'> {
   args?: Args | ((t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Args);
-  /** Counts the rows `query` keeps, when the connection selects `totalCount`. */
+  /** Counts the rows that match `query` when the connection's `totalCount` is selected. */
   totalCount?: TotalCountFlag<Types>;
   /** Filters and orders the relation, like `t.relatedConnection`'s `query`. */
   query?: ConnectionQueryOption<Types, M, Args, QueryLiteral>;
   /**
-   * What each row loads beside its key and cursor columns. A to-one relation given
-   * `nodeSelection()` holds the nodes: the selection beneath them is planned into it.
+   * Columns and relations to load with each row, in addition to its key and cursor columns. Set the
+   * to-one relation that holds the connection's nodes to `nodeSelection()`.
    */
   select?: (
     nodeSelection: () => NodeSelection,

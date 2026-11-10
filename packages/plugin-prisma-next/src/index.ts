@@ -681,7 +681,7 @@ function holdsLoad(row: object, ref: LoadRef): boolean {
 
 function disagreement(first: string, type: string, key: string, model: string) {
   return new PothosSchemaError(
-    `'${first}' and '${type}' both select '${key}', with different definitions. Every row of model '${model}' holds one value for it, which the fields and auth checks of every type of the model read. Define it the same way in both, or load the other version in a field's select.`,
+    `'${first}' and '${type}' both select '${key}', with different definitions. Types of model '${model}' share their rows, so '${key}' can only be loaded one way. Define it the same way in both, or load the other version in a field's select.`,
   );
 }
 

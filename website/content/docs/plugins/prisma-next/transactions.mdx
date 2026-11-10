@@ -3,10 +3,9 @@ title: Transactions
 description: Running mutations and GraphQL operations in a Prisma transaction
 ---
 
-Use Prisma's `db.transaction` when several writes must succeed or fail together. The plugin works
-with your transaction client; your application controls when the transaction commits or rolls back.
+Use Prisma's `db.transaction` when several writes must succeed or fail together.
 The examples use the imported `db` and builder from [Setup](./setup), and the `User` ref from your
-schema. They use the shorter SQLite client paths; on PostgreSQL, use `db.orm.public.User` and
+schema. They use the shorter SQLite client paths. On PostgreSQL, use `db.orm.public.User` and
 `tx.orm.public.User` for models in the public schema.
 
 ## Write several rows atomically
@@ -67,13 +66,13 @@ builder.mutationField('renameUser', (t) =>
 );
 ```
 
-Don't return a `tx.orm` Collection from the callback: it runs after the transaction ends, and fails.
+Don't return a `tx.orm` Collection from the callback. It runs after the transaction ends, and
+fails.
 
 ## Share a transaction across an operation
 
 To give each request its own client, such as a transaction, pass a function as `client` along with
-the base client's `context`. Use this configuration before defining your types and building
-the schema:
+the base client's `context`:
 
 ```ts
 import SchemaBuilder from '@pothos/core';
@@ -93,9 +92,9 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-The configured client applies to queries the plugin starts itself. In your own `collection` and
-`resolve` callbacks, use `ctx.db` in this mode too. Calls to the imported `db` use the base client
-and run outside this transaction.
+The plugin uses this client for the queries it starts itself. In your own `collection` and
+`resolve` callbacks, use `ctx.db` too. Calls to the imported `db` use the base client and run
+outside this transaction.
 
 Call `graphql()` inside the transaction and pass `tx` in the GraphQL context:
 
@@ -114,6 +113,6 @@ const result = await db.transaction(async (tx) => {
 });
 ```
 
-With `@defer` or `@stream`, read every incremental result inside the callback: they load after the
-initial result, and fail once the transaction has ended.
+With `@defer` or `@stream`, read every incremental result inside the callback. They load after
+the initial result, and fail once the transaction has ended.
 

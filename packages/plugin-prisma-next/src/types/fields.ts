@@ -161,9 +161,8 @@ export type PrismaNodeOptions<
         }
     );
   /**
-   * Returns the collection `node` and `nodes` lookups load from, which is used as given.
-   * It defaults to the client's collection for the model, narrowed to the model's
-   * variant, as with `orm.Base.variant(value)`.
+   * Returns the collection `node` and `nodes` lookups load from. The plugin uses it as given.
+   * Defaults to `orm.<Model>`, or `orm.<Base>.variant(value)` for a variant.
    */
   collection?: (ctx: Types['Context']) => ResolverCollection<Types, NoInfer<M>>;
 } & TypeSelectCheck<Types, M, Select> &
@@ -262,8 +261,8 @@ type PrismaRootFieldResolver<
             | SingleRowFieldNeedsCollectionQueryOrResolve<'collection'>))
   | {
       /**
-       * Gets `orm.<Model>`, or `orm.<Base>.variant(value)` for a variant, with the field's
-       * selection planned, and returns the rows its reads or writes return.
+       * Called with `orm.<Model>`, or `orm.<Base>.variant(value)` for a variant, with the field's
+       * selection already applied. Return the rows from a read or write on it.
        */
       resolve: (
         collection: PrismaPlannedCollection<TypeCollection<Types, M>>,
@@ -289,8 +288,8 @@ type RootFieldLoad<
   QueryLiteral,
 > = {
   /**
-   * Returns the collection to load from, without `include()`: the plugin loads what the query
-   * selects. It defaults to `orm.<Model>`, or `orm.<Base>.variant(value)` for a variant.
+   * Returns the collection to load from, without `include()`. The plugin loads the relations the
+   * query selects. Defaults to `orm.<Model>`, or `orm.<Base>.variant(value)` for a variant.
    */
   collection?: (
     parent: Parent,
@@ -371,9 +370,9 @@ export type PrismaRootFieldWithInputOptions<
   >;
 
 /**
- * A field's `select` adds to the parent only its `resolve` sees. Other options, such as scope-auth's
- * `authScopes`, run before the field's `select` loads, so they see the type's shape: its key and
- * what the `select`s of the type and its interfaces load.
+ * A field's `select` is only loaded for its `resolve`. Other options, such as scope-auth's
+ * `authScopes`, run before it loads, so their parent only has the type's shape: its key and what
+ * the `select`s of the type and its interfaces load.
  */
 export type PrismaObjectFieldOptions<
   Types extends SchemaTypes,

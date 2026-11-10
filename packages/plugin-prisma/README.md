@@ -1,7 +1,7 @@
 # Prisma Plugin for Pothos
 
 > [!NOTE]
-> This plugin supports Prisma ORM 7 only; install `prisma@^7`. For Prisma ORM 8, see
+> This plugin only supports Prisma ORM 7 (`prisma@^7`). For Prisma ORM 8, see
 > [Prisma Next](https://pothos-graphql.dev/docs/plugins/prisma-next).
 
 The Prisma plugin defines GraphQL types from Prisma models and builds selections for the data
@@ -2632,7 +2632,7 @@ const user = await prisma.user.findUniqueOrThrow({
 When a query selects two variants of one model for the same row, either with a fragment on each
 under one field, or through a `t.variant` field, the request fails if their type-level
 `select`/`include` ask for the same relation with different arguments. The client sees
-`Unexpected error.`, and the error's `cause` explains the conflict:
+`Unexpected error.`. The original error is on `error.cause`:
 
 ```
 PothosValidationError: Type-level selections of Viewer and Admin conflict on relation "posts".

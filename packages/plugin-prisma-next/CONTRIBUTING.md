@@ -4,10 +4,9 @@ Notes for changing this package. The repository's `CONTRIBUTING.md` covers the r
 
 ## Runtime checks
 
-Pothos trusts its developers and its types. Don't check again at runtime what the types already
-enforce, such as model keys, relation names, option shapes or which plugins are loaded, and don't
-write tests that pass ill-typed values with `as never` to reach such a check. A stub that matches
-the types must work.
+Don't add runtime checks for things the types already enforce, such as model keys, relation
+names, option shapes or which plugins are loaded. Don't write tests that pass ill-typed values with
+`as never` to reach a check like that. A stub that matches the types must work.
 
 Check at runtime only:
 
@@ -25,17 +24,16 @@ Pick the error class by who has to act on it:
   message.
 - **The API client, for bad input:** `PothosValidationError`, with a message that is safe to show:
   no model or column names, and nothing the client sent, such as `Invalid cursor.` for a bad cursor.
-- **The developer, during a request:** `InternalError`. Clients see `Unexpected error.`, and the
-  detail, which leaves out row values, is in its `cause`.
+- **The developer, during a request:** `InternalError`. Clients see `Unexpected error.`. Pass the
+  detail to its constructor, without row values. It ends up on `cause`.
 
-`PothosSchemaError` and `PothosValidationError` extend `GraphQLError`, which servers that mask
-errors, such as GraphQL Yoga, pass through to the client. Checks shared by the build and a request
-throw `PothosSchemaError`. Request-time callers apply them through `checkReturned`
-(`utils/errors.ts`), which rethrows them as `InternalError`.
+`PothosSchemaError` and `PothosValidationError` extend `GraphQLError`, so servers that mask errors,
+such as GraphQL Yoga, still send their messages to the client. A check that runs both at build time
+and during a request throws `PothosSchemaError`. Request-time code calls it through `checkReturned`
+(`utils/errors.ts`), which rethrows it as `InternalError`.
 
-Errors from the ORM and application callbacks propagate unchanged. Do not classify database errors
-by SQLSTATE or wrap them as plugin errors. The generic request error above applies to checks the
-plugin itself performs.
+Don't catch or wrap errors from the ORM or from application callbacks, and don't classify database
+errors by SQLSTATE. `InternalError` is only for checks the plugin itself makes.
 
 ## Running the tests
 

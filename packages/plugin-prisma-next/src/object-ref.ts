@@ -27,11 +27,11 @@ export interface PlannedRowBrand<M> {
 }
 
 /**
- * A row the plugin planned for model `M`, which is what a field returning a type of `M` resolves
- * to: a row of a collection `collectionFromInfo`, `prismaField` or the connection helpers planned,
- * the parent, or a relation row the parent's plan loaded. An interface so that errors name it
- * rather than the brand.
+ * A row the plugin loaded for model `M`. A field returning a type of `M` resolves to one: a row
+ * loaded through `collectionFromInfo`, a `prismaField` or the connection helpers, the parent, or a
+ * relation row loaded with the parent.
  */
+// An interface so that errors name it rather than the brand.
 export interface PrismaPlanned<M> extends PlannedRowBrand<M> {}
 
 /** Marks a row shape with its model. It is an interface so that declaration emit can name it. */
@@ -75,9 +75,9 @@ export class PrismaObjectRef<
   }
 
   /**
-   * Brands rows (or a list of them) as this type, for abstract positions such as unions or a
-   * non-prisma interface like relay's `Node`. A row must be one a field returning this type
-   * accepts.
+   * Brands a row (or a list of rows) as this type, so it can be returned where the field's type
+   * is a union or a non-prisma interface like relay's `Node`. The row must be one a field
+   * returning this type accepts.
    */
   addBrand<
     V extends

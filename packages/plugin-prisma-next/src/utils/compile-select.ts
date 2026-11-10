@@ -416,7 +416,7 @@ function compileSelect(
     const reducers = Object.values(computed).reduce((sum, value) => sum + (value.size ?? 1), 0);
     if (compilation.mode === 'field' && reducers > MAX_RELATION_LOADS) {
       throw new InternalError(
-        `A field's select loads ${reducers} aggregate reducers at one level; at most ${MAX_RELATION_LOADS} fit. Split them across fields.`,
+        `A field's select loads ${reducers} aggregate reducers at one level, and the limit is ${MAX_RELATION_LOADS}. Split them across fields.`,
       );
     }
     return {

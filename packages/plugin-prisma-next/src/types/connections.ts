@@ -26,14 +26,13 @@ import type {
 } from './relations.js';
 
 /**
- * What a connection applies before paging: its filter, and its order, which the model's key breaks
- * ties in.
- *
- * An alias rather than an interface: it is both a type parameter's constraint and its default, and
- * TypeScript gives an interface constraint a `this` argument, so the default no longer matches it
- * by identity and checking it computes the variance of `RelationWhere` and of upstream's
- * `RelationPredicate`, which costs about 100 ms in each file with a connection.
+ * A connection's `query`: `where` filters the rows and `orderBy` orders them before paging. The
+ * model's key is appended to the order to break ties.
  */
+// An alias rather than an interface: it is both a type parameter's constraint and its default, and
+// TypeScript gives an interface constraint a `this` argument, so the default no longer matches it
+// by identity and checking it computes the variance of `RelationWhere` and of upstream's
+// `RelationPredicate`, which costs about 100 ms in each file with a connection.
 export type ConnectionQueryLiteral<Types extends SchemaTypes, M extends ModelKey<Types>> = {
   where?: RelationWhere<Types, M>;
   orderBy?: RelationOrderBy<Types, M>;
@@ -135,10 +134,11 @@ export type PrismaConnectionFieldOptions<
     /** Filters and orders the collection. */
     query?: ConnectionQueryOption<Types, M, Args, QueryLiteral>;
     /**
-     * Returns the collection to page, without `include()` or `orderBy()`: the connection orders it
-     * by its `query`'s `orderBy`. It defaults to `orm.<Model>`, or `orm.<Base>.variant(value)` for
-     * a variant. Called during field resolution with parent, args (including pagination), context
-     * and info; a promise is allowed. Existing pagination or distinct settings fail before SQL.
+     * Returns the collection to page. Defaults to `orm.<Model>`, or `orm.<Base>.variant(value)` for
+     * a variant. It is called with the parent, args (including pagination), context and info, and
+     * can return a promise. The connection orders the collection by its `query`'s `orderBy`, so
+     * return it without `include()` or `orderBy()`. Throws before running a query if it has
+     * pagination or distinct settings.
      */
     collection?: (
       parent: RootResolveParent<Types, ParentShape, ResolveShape, Kind>,

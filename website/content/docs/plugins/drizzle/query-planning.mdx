@@ -111,8 +111,8 @@ callbacks, helper options, and errors caused by unsettled promises.
 
 When a query selects two variants of one table for the same row, either with a fragment on each
 under one field, or through a `t.variant` field, the request fails if their `select` options ask
-for the same relation with different arguments. The client sees `Unexpected error.`, and the
-error's `cause` explains the conflict:
+for the same relation with different arguments. The client sees `Unexpected error.`. The
+original error is on `error.cause`:
 
 ```
 PothosValidationError: Type-level selections of Viewer and Admin conflict on relation "posts".

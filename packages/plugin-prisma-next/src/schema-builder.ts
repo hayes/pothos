@@ -78,7 +78,7 @@ function definePrismaType<Types extends SchemaTypes, M extends ModelKey<Types>>(
             // The row's value is left out of the message, which logs often capture.
             if (typeName === undefined) {
               throw new InternalError(
-                `prismaInterface '${iface.name}' row has a discriminator '${discriminator.field}' that names no variant of model '${modelKey as string}'.`,
+                `prismaInterface '${iface.name}' got a row whose discriminator '${discriminator.field}' does not match a variant of model '${modelKey as string}'.`,
               );
             }
             return typeName;
@@ -240,7 +240,7 @@ schemaBuilderProto.prismaNode = function prismaNode<
     .find(Boolean);
   if (truncated) {
     throw new PothosSchemaError(
-      `prismaNode '${nodeModelKey}' id.field can't load its row back: ${truncated}.`,
+      `prismaNode '${nodeModelKey}' can't use this id.field: ${truncated}.`,
     );
   }
 

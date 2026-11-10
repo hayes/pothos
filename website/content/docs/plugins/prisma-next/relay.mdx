@@ -30,9 +30,9 @@ builder.prismaNode('Post', {
   isn't access control.
 </Callout>
 
-The ID holds the column's value, as text, or a JSON array of the values when `id.field` lists
-several columns, as the [Prisma plugin's](/docs/plugins/prisma/relay) IDs do. To control the format
-of the global ID, pass `resolve` and `parse`:
+By default the ID is the column's value as a string, or a JSON array of the values when `id.field`
+lists several columns. This matches the [Prisma plugin's](/docs/plugins/prisma/relay) IDs. To
+change the format, pass `resolve` and `parse`:
 
 ```ts
 builder.prismaNode('Comment', {
@@ -68,11 +68,11 @@ builder.prismaNode('Post', {
 });
 ```
 
-`node` and `nodes` return `null` for rows the filter excludes. Only filter the collection; don't
-call `limit()`, `offset()`, `cursor()` or `include()` on it.
+`node` and `nodes` return `null` for rows the filter excludes. Only add filters to the Collection.
+Don't call `limit()`, `offset()`, `cursor()` or `include()` on it.
 
-`collection` only applies to `node` and `nodes`. Rows reached through relations and other fields
-don't pass through it.
+`collection` only applies to `node` and `nodes`. Rows loaded through relations and other fields
+aren't filtered by it.
 
 ## Several node types for one model
 

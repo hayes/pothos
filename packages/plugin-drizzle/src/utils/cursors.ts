@@ -59,9 +59,7 @@ export function formatIDChunk(value: unknown) {
     case 'bigint':
       return `${value}`;
     default:
-      throw new InternalError(
-        `A node ID column holds a value of type ${typeof value}, which IDs can't encode`,
-      );
+      throw new InternalError(`Can't create a node ID from a column value of type ${typeof value}`);
   }
 }
 
@@ -191,7 +189,7 @@ function idColumnParser(field: Column, config: PothosDrizzleSchemaConfig, typeNa
     // A compound ID writes each part as JSON, which holds a boolean but reads no other value of
     // these types back.
     throw new PothosSchemaError(
-      `drizzleNode ${typeName} can't use column ${config.columnToTsName(field)} (${field.dataType}) as its ID: no value it holds can be written as one. Use a number, bigint, string or date column${field.dataType === 'boolean' ? ', or more than one column' : ''}`,
+      `drizzleNode ${typeName} can't use column ${config.columnToTsName(field)} (${field.dataType}) as its ID. Use a number, bigint, string or date column${field.dataType === 'boolean' ? ', or more than one column' : ''}`,
     );
   }
 

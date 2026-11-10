@@ -41,7 +41,7 @@ describe('mistakes in the app that surface at request time', () => {
 
     expect(define).toThrow(PothosSchemaError);
     expect(define).toThrow(
-      'The select of drizzleObject User includes relation "followers", which table users does not have',
+      'drizzleObject User selects relation "followers", which does not exist on table users',
     );
   });
 
@@ -58,7 +58,7 @@ describe('mistakes in the app that surface at request time', () => {
 
     expect(define).toThrow(PothosSchemaError);
     expect(define).toThrow(
-      'The select of drizzleNode UserNode includes relation "followers", which table users does not have',
+      'drizzleNode UserNode selects relation "followers", which does not exist on table users',
     );
   });
 
@@ -74,7 +74,7 @@ describe('mistakes in the app that surface at request time', () => {
 
     expect(define).toThrow(PothosSchemaError);
     expect(define).toThrow(
-      'The select of drizzleInterface IUser includes relation "followers", which table users does not have',
+      'drizzleInterface IUser selects relation "followers", which does not exist on table users',
     );
   });
 
@@ -89,7 +89,7 @@ describe('mistakes in the app that surface at request time', () => {
       });
 
     expect(define).toThrow(
-      'The select of drizzleObject User includes relation "nope", which table posts does not have',
+      'drizzleObject User selects relation "nope", which does not exist on table posts',
     );
   });
 

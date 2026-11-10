@@ -2,4 +2,4 @@
 '@pothos/plugin-drizzle': patch
 ---
 
-`drizzleConnection` resolvers that pass `with` to `query()` now get those relations loaded on their rows; it used to be dropped.
+Fix `drizzleConnection` resolvers dropping `with` passed to `query()`. Those relations are now loaded on the rows.
