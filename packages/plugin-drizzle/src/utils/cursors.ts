@@ -77,9 +77,17 @@ function formatCompoundIDValue(value: unknown) {
   return value;
 }
 
-export function getIDSerializer(fields: Column[], config: PothosDrizzleSchemaConfig) {
+function noIDColumns(typeName: string): never {
+  throw new PothosSchemaError(`drizzleNode ${typeName} needs at least one ID column`);
+}
+
+export function getIDSerializer(
+  fields: Column[],
+  config: PothosDrizzleSchemaConfig,
+  typeName: string,
+) {
   if (fields.length === 0) {
-    throw new PothosSchemaError('A node ID needs at least one column');
+    noIDColumns(typeName);
   }
 
   return (value: Record<string, unknown>) => {
@@ -176,12 +184,14 @@ function checked(value: unknown, onInvalid: () => never) {
 }
 
 /** Parses a single-column ID, or refuses at build a column no ID was ever written for. */
-function idColumnParser(field: Column) {
+function idColumnParser(field: Column, config: PothosDrizzleSchemaConfig, typeName: string) {
   const unsupported = unsupportedIDColumn(field);
 
   if (unsupported === 'never-serializable') {
+    // A compound ID writes each part as JSON, which holds a boolean but reads no other value of
+    // these types back.
     throw new PothosSchemaError(
-      `Column ${field.name} (${field.dataType}) can't be a node ID: no value it holds can be written as one`,
+      `drizzleNode ${typeName} can't use column ${config.columnToTsName(field)} (${field.dataType}) as its ID: no value it holds can be written as one. Use a number, bigint, string or date column${field.dataType === 'boolean' ? ', or more than one column' : ''}`,
     );
   }
 
@@ -200,14 +210,18 @@ function idColumnParser(field: Column) {
 
 // Keyed by the typescript name, as `getIDSerializer` reads by: the record is a row of the table,
 // and every consumer (the node ref's `parseId`, the model loader) looks columns up that way.
-export function getIDParser(fields: readonly Column[], config: PothosDrizzleSchemaConfig) {
+export function getIDParser(
+  fields: readonly Column[],
+  config: PothosDrizzleSchemaConfig,
+  typeName: string,
+) {
   if (fields.length === 0) {
-    throw new PothosSchemaError('A node ID needs at least one column');
+    noIDColumns(typeName);
   }
 
   if (fields.length === 1) {
     const key = config.columnToTsName(fields[0]);
-    const parse = idColumnParser(fields[0]);
+    const parse = idColumnParser(fields[0], config, typeName);
 
     return (value: string) => ({ [key]: parse(value) });
   }

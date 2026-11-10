@@ -155,9 +155,9 @@ schemaBuilderProto.drizzleNode = function drizzleNode(
   const idColumn = typeof column === 'function' ? column(tableConfig.table) : column;
   const idColumns = Array.isArray(idColumn) ? idColumn : [idColumn];
   const interfaceRef = this.nodeInterfaceRef?.();
-  const resolve = getIDSerializer(idColumns, schemaConfig);
-  const idParser = getIDParser(idColumns, schemaConfig);
   const typeName = variant ?? name ?? table;
+  const resolve = getIDSerializer(idColumns, schemaConfig, typeName);
+  const idParser = getIDParser(idColumns, schemaConfig, typeName);
   const nodeRef = new DrizzleNodeRef(typeName, table, {
     parseId: (id) => {
       const parsed = idParser(id);

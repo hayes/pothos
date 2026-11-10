@@ -34,8 +34,8 @@ const builder = new SchemaBuilder<{ DrizzleRelations: typeof relations }>({
 
 const config = getSchemaConfig(builder);
 
-const serialize = (fields: Column[]) => getIDSerializer(fields, config);
-const parse = (fields: Column[]) => getIDParser(fields, config);
+const serialize = (fields: Column[]) => getIDSerializer(fields, config, 'IdTest');
+const parse = (fields: Column[]) => getIDParser(fields, config, 'IdTest');
 
 describe('already issued IDs', () => {
   it('serializes an integer scalar ID as its digits', () => {
