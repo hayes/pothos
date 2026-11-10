@@ -1,4 +1,5 @@
 import { execute } from '@pothos/test-utils';
+import type { GraphQLError } from 'graphql';
 import { gql } from 'graphql-tag';
 import { createContext } from './example/context';
 import { clearDrizzleLogs, db, drizzleLogs } from './example/db';
@@ -210,9 +211,13 @@ describe('connections ordered by a selected expression', () => {
         }
       `,
       contextValue: context,
-    })) as { errors?: readonly Error[] };
+    })) as { errors?: readonly GraphQLError[] };
 
-    expect(result.errors?.[0]?.message).toContain('has no such column');
+    // the schema's mistake, not the client's: the detail stays out of the response
+    expect(result.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
+    expect((result.errors?.[0]?.originalError?.cause as Error).message).toBe(
+      'Can\'t order by "notAColumn": posts has no such column, and the query passed to the connection declares no extra with that name',
+    );
   });
 });
 

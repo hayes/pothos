@@ -59,7 +59,9 @@ export function formatIDChunk(value: unknown) {
     case 'bigint':
       return `${value}`;
     default:
-      throw new InternalError(`A node ID column holds a ${typeof value}, which IDs can't encode`);
+      throw new InternalError(
+        `A node ID column holds a value of type ${typeof value}, which IDs can't encode`,
+      );
   }
 }
 
@@ -425,7 +427,7 @@ function parseOrderBy(
       const expression = extras?.[name];
 
       if (!expression) {
-        throw new PothosValidationError(
+        throw new InternalError(
           `Can't order by "${name}": ${table.name} has no such column, and the query passed to the connection declares no extra with that name`,
         );
       }
