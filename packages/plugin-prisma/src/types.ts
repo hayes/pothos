@@ -33,7 +33,6 @@ import type {
 } from '@pothos/selection-mapper';
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { PrismaInterfaceRef, PrismaRef } from './interface-ref.js';
-import type { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
 
 export interface PrismaDelegate {
   // biome-ignore lint/suspicious/noExplicitAny: this is fine
@@ -211,14 +210,14 @@ type PrismaObjectFieldsShape<
   Shape extends object,
   Select,
 > = Model['Select'] extends Select
-  ? (t: PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldMap
+  ? (t: PothosSchemaTypes.PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldMap
   : (t: PrismaSelectionFieldBuilder<Types, Model, Shape>) => FieldMap;
 
 type PrismaSelectionFieldBuilder<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Shape extends object,
-> = PrismaObjectFieldBuilder<Types, Model, Shape>;
+> = PothosSchemaTypes.PrismaObjectFieldBuilder<Types, Model, Shape>;
 
 interface BaseSelection {
   include?: unknown;

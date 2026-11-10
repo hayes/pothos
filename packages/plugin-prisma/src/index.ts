@@ -42,6 +42,10 @@ export default pluginName;
 
 export { formatPrismaCursor, getModel, getRefFromModel, parsePrismaCursor, queryFromInfo };
 
+/**
+ * @deprecated This is core's `ObjectFieldBuilder`, not the `t` prisma types' `fields` receive. Use
+ * `PothosSchemaTypes.PrismaObjectFieldBuilder` for that, and to add methods to it.
+ */
 export type PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
