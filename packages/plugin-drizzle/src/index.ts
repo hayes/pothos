@@ -8,6 +8,7 @@ import SchemaBuilder, {
   PothosSchemaError,
   type PothosTypeConfig,
   type SchemaTypes,
+  unwrapOutputFieldType,
 } from '@pothos/core';
 import { getLoaderMapping, mappingParentTypes, setRowMappings } from '@pothos/selection-mapper';
 import type { TableRelationalConfig } from 'drizzle-orm';
@@ -156,7 +157,12 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       throw new Error(`ModelLoader not found for type ${parentConfig.name}`);
     }
 
-    return (parent, args, context, info) => {
+    const gated: GraphQLFieldResolver<unknown, Types['Context'], object> = (
+      parent,
+      args,
+      context,
+      info,
+    ) => {
       // Asked of the row: a mapping recorded for this row wins over the plan's, which answers
       // for the rows the planned query loaded.
       let mapping = getLoaderMapping(context, info, info.parentType.name, parent);
@@ -186,6 +192,25 @@ export class PothosDrizzlePlugin<Types extends SchemaTypes> extends BasePlugin<T
       return modelLoader(context)
         .loadSelection(info, parent as object)
         .then((result) => resolver(result, args, context, info));
+    };
+
+    // An exposed scalar or enum reads only its column, and has no fields beneath it, so a row
+    // holding a value for the column resolves it as it is.
+    const column = fieldConfig.extensions?.pothosDrizzleExposedColumn as string | false | undefined;
+    const returnKind = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type)).kind;
+
+    if (!column || (returnKind !== 'Scalar' && returnKind !== 'Enum')) {
+      return gated;
+    }
+
+    return (parent, args, context, info) => {
+      const row = parent as Record<string, unknown>;
+
+      if (Object.hasOwn(row, column) && row[column] !== undefined) {
+        return resolver(parent, args, context, info);
+      }
+
+      return gated(parent, args, context, info);
     };
   }
 }
