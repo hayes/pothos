@@ -45,14 +45,12 @@ it('types the built orderBy as an ordering or a list of them', () => {
   >();
 
   // @ts-expect-error a list of orderings has no `content`
-  const direction: unknown = query.orderBy?.content;
-
-  expectTypeOf(direction).toBeUnknown();
+  query.orderBy?.content;
 });
 
 it('spreads the built query into findMany', () => {
   const listComments = () =>
     prisma.comment.findMany({ ...commentHelpers.getQuery({ first: 2 }, {}, () => true) });
 
-  expectTypeOf(listComments).returns.resolves.toMatchTypeOf<{ id: number }[]>();
+  expectTypeOf(listComments).returns.resolves.toExtend<{ id: number }[]>();
 });
