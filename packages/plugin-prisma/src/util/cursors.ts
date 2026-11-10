@@ -41,45 +41,100 @@ export function parsePrismaCursor(cursor: unknown) {
   try {
     const decoded = decodeBase64(cursor);
 
-    if (!decoded.startsWith('GPC:')) {
-      throw new PothosValidationError('Invalid cursor');
+    if (decoded.startsWith('GPC:')) {
+      return decodeCursorChunk(decoded.slice(4));
     }
+  } catch {}
 
-    return decodeCursorChunk(decoded.slice(4));
-  } catch {
-    throw new PothosValidationError(`Invalid cursor: ${cursor}`);
+  throw new PothosValidationError('Invalid cursor');
+}
+
+// What `String` writes for an integer and for a finite number.
+const INTEGER = /^-?(0|[1-9]\d*)$/;
+const NUMBER = /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i;
+
+function toDate(value: unknown) {
+  const date = value instanceof Date || typeof value === 'string' ? new Date(value) : undefined;
+
+  return date && !Number.isNaN(date.getTime()) ? date : undefined;
+}
+
+/**
+ * Checks a decoded cursor value against its column's scalar type, returning what prisma is given,
+ * or `undefined` when the value is not one the plugin writes for that type. A DateTime may be the
+ * ISO string a `J:` compound cursor holds; any other type the plugin does not know is unchecked.
+ */
+function cursorValueChecker(type: string | undefined): (value: unknown) => unknown {
+  switch (type) {
+    case 'String':
+      return (value) => (typeof value === 'string' ? value : undefined);
+    case 'Int':
+      return (value) => (Number.isSafeInteger(value) ? value : undefined);
+    case 'BigInt':
+      return (value) =>
+        typeof value === 'bigint' || Number.isSafeInteger(value) ? value : undefined;
+    case 'Float':
+      return (value) => (Number.isFinite(value) ? value : undefined);
+    case 'Decimal':
+      return (value) =>
+        Number.isFinite(value) || (typeof value === 'string' && NUMBER.test(value))
+          ? value
+          : undefined;
+    case 'Boolean':
+      return (value) => (typeof value === 'boolean' ? value : undefined);
+    case 'DateTime':
+      return toDate;
+    case 'Bytes':
+      return (value) => (value instanceof Uint8Array ? value : undefined);
+    default:
+      return (value) => value;
   }
 }
 
-export function parseID(id: string, dataType: string): unknown {
-  if (!id) {
-    return id;
-  }
-
+/** Reads an id back to the value `serializeID` wrote it from, or `undefined` if it is not one. */
+function parseIDValue(id: string, dataType: string): unknown {
   switch (dataType) {
     case 'String':
       return id;
     case 'Int':
-      return Number.parseInt(id, 10);
+      return INTEGER.test(id) && Number.isSafeInteger(Number(id)) ? Number(id) : undefined;
     case 'BigInt':
-      return BigInt(id);
+      return INTEGER.test(id) ? BigInt(id) : undefined;
     case 'Boolean':
-      return id !== 'false';
+      return id === 'true' ? true : id === 'false' ? false : undefined;
     case 'Float':
-      return Number.parseFloat(id);
+      return NUMBER.test(id) && Number.isFinite(Number(id)) ? Number(id) : undefined;
     case 'Decimal':
-      return id;
+      return NUMBER.test(id) ? id : undefined;
+    // An ISO string, or the `String(date)` form ids were written in before it.
     case 'DateTime':
-      return new Date(id);
+      return toDate(id);
     case 'Json':
-      return JSON.parse(id) as unknown;
+      try {
+        return JSON.parse(id) as unknown;
+      } catch {
+        return undefined;
+      }
     // `Bytes` is what the datamodel calls the type; `Byte` has never matched one.
     case 'Byte':
-    case 'Bytes':
-      return Buffer.from(id, 'base64');
+    case 'Bytes': {
+      const bytes = Buffer.from(id, 'base64');
+
+      return bytes.toString('base64') === id ? bytes : undefined;
+    }
     default:
       return id;
   }
+}
+
+export function parseID(id: string, dataType: string): unknown {
+  const value = parseIDValue(id, dataType);
+
+  if (value === undefined) {
+    throw new PothosValidationError('Invalid ID');
+  }
+
+  return value;
 }
 
 export function getDefaultIDSerializer<Types extends SchemaTypes>(
@@ -142,16 +197,24 @@ export function getDefaultIDParser<Types extends SchemaTypes>(
   }
 
   return (id) => {
-    const parts = JSON.parse(id) as unknown;
+    let parts: unknown;
 
-    if (!Array.isArray(parts)) {
-      throw new PothosValidationError(`Invalid id received for ${fieldName} of ${modelName}`);
+    try {
+      parts = JSON.parse(id);
+    } catch {}
+
+    if (
+      !Array.isArray(parts) ||
+      parts.length !== fields!.length ||
+      !parts.every((part) => typeof part === 'string')
+    ) {
+      throw new PothosValidationError('Invalid ID');
     }
 
     const result: Record<string, unknown> = {};
 
     for (let i = 0; i < fields!.length; i += 1) {
-      result[fields![i].name] = parseID(parts[i] as string, fields![i].type);
+      result[fields![i].name] = parseID(parts[i], fields![i].type);
     }
 
     return result;
@@ -183,20 +246,12 @@ export function parseCompositeCursor(fields: readonly string[]) {
     // A `T:` cursor hands back the values with their types intact. A cursor issued before this
     // release is a `J:` chunk, whose array holds whatever plain JSON preserved -- see the
     // deprecated `J:` case in `@pothos/core`'s `decodeCursorChunk`.
-    const parsed = parsePrismaCursor(cursor) as unknown[];
-
-    if (!Array.isArray(parsed)) {
-      throw new PothosValidationError(
-        `Expected compound cursor to contain an array, but got ${parsed}`,
-      );
-    }
+    const parsed = parsePrismaCursor(cursor);
 
     // A cursor of the wrong width would otherwise leave a key `undefined` (or silently drop an
     // extra), and prisma rejects the query that builds. The drizzle plugin checks the same.
-    if (parsed.length !== fields.length) {
-      throw new PothosValidationError(
-        `Expected compound cursor to contain ${fields.length} elements, but got ${parsed.length}`,
-      );
+    if (!Array.isArray(parsed) || parsed.length !== fields.length) {
+      throw new PothosValidationError('Invalid cursor');
     }
 
     const record: Record<string, unknown> = {};
@@ -467,22 +522,40 @@ export function getCursorParser<Types extends SchemaTypes>(
 ) {
   const modelData = getModel(name, builder);
   const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
+  const uniqueIndex = modelData.uniqueIndexes.find(
+    (idx) => (idx.name ?? idx.fields.join('_')) === cursor,
+  );
+  const compoundFields = primaryKey === cursor ? modelData.primaryKey!.fields : uniqueIndex?.fields;
+  const checkerFor = (fieldName: string) =>
+    cursorValueChecker(modelData.fields.find((field) => field.name === fieldName)?.type);
+  const check = (checker: (value: unknown) => unknown, value: unknown) => {
+    const checked = checker(value);
 
-  let parser = parsePrismaCursor;
-
-  if (primaryKey === cursor) {
-    parser = parseCompositeCursor(modelData.primaryKey!.fields);
-  } else {
-    const uniqueIndex = modelData.uniqueIndexes.find(
-      (idx) => (idx.name ?? idx.fields.join('_')) === cursor,
-    );
-
-    if (uniqueIndex) {
-      parser = parseCompositeCursor(uniqueIndex.fields);
+    if (checked === undefined) {
+      throw new PothosValidationError('Invalid cursor');
     }
+
+    return checked;
+  };
+
+  if (compoundFields) {
+    const parse = parseCompositeCursor(compoundFields);
+    const checkers = compoundFields.map(checkerFor);
+
+    return (rawCursor: string) => {
+      const record = parse(rawCursor);
+
+      compoundFields.forEach((field, i) => {
+        record[field] = check(checkers[i], record[field]);
+      });
+
+      return { [cursor]: record };
+    };
   }
 
+  const checker = checkerFor(cursor);
+
   return (rawCursor: string) => ({
-    [cursor]: parser(rawCursor),
+    [cursor]: check(checker, parsePrismaCursor(rawCursor)),
   });
 }
