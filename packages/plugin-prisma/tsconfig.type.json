@@ -6,5 +6,11 @@
   },
   "extends": "../../tsconfig.options.json",
   "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["tests/**/client/internal/**", "tests/declarations/*.ts", "tests/type-messages/*.ts"]
+  "exclude": [
+    "tests/**/client/internal/**",
+    "tests/declarations/*.ts",
+    "tests/type-messages/*.ts",
+    "tests/type-cost/*.ts",
+    "tests/missing-plugins.test-d.ts"
+  ]
 }
