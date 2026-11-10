@@ -21,6 +21,7 @@ Pothos generator output used by `@pothos/plugin-prisma`. Use one plugin per prog
 - A `client` function also needs the base client's `context`; see
   [Plugin options](./setup#plugin-options).
 - `prismaObject` and `prismaNode` take no `include` or `findUnique`; use `select`.
+- A connection helper's `getQuery` takes `(args, ctx)`, without `nestedSelection`.
 - `@pothos/plugin-prisma-utils` has no counterpart.
 
 ## Declare data for computed fields

@@ -107,8 +107,7 @@ export const UserStats = builder.prismaObject('User', {
 export const resolveUserPage = (rows: Parameters<typeof userPages.resolve>[0], ctx: object) =>
   userPages.resolve(rows, {}, ctx);
 
-export const userPageEntry = (args: object, ctx: object) =>
-  userPages.getQuery(args, ctx, () => null);
+export const userPageEntry = (args: object, ctx: object) => userPages.getQuery(args, ctx);
 
 // Helpers made from refs: `ref`, `getQuery` and `resolve` carry the ref's type and its selection.
 export const postWithAuthorPages = prismaConnectionHelpers(builder, PostWithAuthor, {

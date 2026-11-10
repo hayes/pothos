@@ -147,8 +147,8 @@ builder.prismaObjectField('Post', 'commenters', (t) =>
   t.connection(
     {
       type: User,
-      select: (args, ctx, nestedSelection) => ({
-        comments: commenters.getQuery(args, ctx, nestedSelection),
+      select: (args, ctx) => ({
+        comments: commenters.getQuery(args, ctx),
       }),
       resolve: (post, args, ctx) => commenters.resolve(post.comments, args, ctx),
     },

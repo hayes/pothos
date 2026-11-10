@@ -445,8 +445,8 @@ describe('connections', () => {
       authored: t.connection(
         {
           type: authored.ref,
-          select: (args, ctx, nestedSelection) => ({
-            posts: authored.getQuery(args, ctx, nestedSelection),
+          select: (args, ctx) => ({
+            posts: authored.getQuery(args, ctx),
           }),
           resolve: (user, args, ctx) => authored.resolve(user.posts, args, ctx),
         },

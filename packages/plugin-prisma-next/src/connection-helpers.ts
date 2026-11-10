@@ -188,7 +188,6 @@ export interface PrismaConnectionHelpers<
   getQuery(
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
-    nestedSelection: (...args: never[]) => unknown,
   ): ConnectionPageEntry<M, HelperRow<Types, M, Select, Ref>>;
   /**
    * Loads one page of `collection`, a collection of this model, for the root connection field

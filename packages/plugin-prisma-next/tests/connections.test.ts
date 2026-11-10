@@ -1471,8 +1471,8 @@ describe('prismaConnectionHelpers', () => {
           {
             type: posts.ref,
             args: posts.getArgs(),
-            select: (args, ctx, nestedSelection) => ({
-              posts: posts.getQuery(args, ctx, nestedSelection),
+            select: (args, ctx) => ({
+              posts: posts.getQuery(args, ctx),
             }),
             resolve: (user, args, ctx) => posts.resolve(user.posts, args, ctx),
           },
@@ -1530,8 +1530,8 @@ describe('prismaConnectionHelpers', () => {
         helped: t.connection(
           {
             type: posts.ref,
-            select: (args, ctx, nestedSelection) => ({
-              posts: posts.getQuery(args, ctx, nestedSelection),
+            select: (args, ctx) => ({
+              posts: posts.getQuery(args, ctx),
             }),
             resolve: (user, args, ctx) => posts.resolve(user.posts, args, ctx),
           },
@@ -1568,8 +1568,8 @@ describe('prismaConnectionHelpers', () => {
         postPage: t.connection(
           {
             type: posts.ref,
-            select: (args, ctx, nestedSelection) => ({
-              posts: posts.getQuery(args, ctx, nestedSelection),
+            select: (args, ctx) => ({
+              posts: posts.getQuery(args, ctx),
             }),
             resolve: (user, args, ctx) => posts.resolve(user.posts, args, ctx, { totalCount: 42 }),
           },
@@ -1657,8 +1657,8 @@ describe('prismaConnectionHelpers', () => {
             {
               type: posts.ref,
               errors: { types: [] },
-              select: (args, ctx, nestedSelection) => ({
-                posts: posts.getQuery(args, ctx, nestedSelection),
+              select: (args, ctx) => ({
+                posts: posts.getQuery(args, ctx),
               }),
               resolve: (user, args, ctx) => posts.resolve(user.posts, args, ctx),
             },
@@ -1757,8 +1757,8 @@ describe('prismaConnectionHelpers', () => {
         commenters: t.connection(
           {
             type: User,
-            select: (args, ctx, nestedSelection) => ({
-              comments: commenters.getQuery(args, ctx, nestedSelection),
+            select: (args, ctx) => ({
+              comments: commenters.getQuery(args, ctx),
             }),
             resolve: (post, args, ctx) =>
               commenters.resolve(resolveRows(post.comments) as typeof post.comments, args, ctx, {
@@ -1929,8 +1929,8 @@ describe('prismaConnectionHelpers', () => {
       fields: (t) => ({
         wrapped: t.connection({
           type: Wrapped,
-          select: (args, ctx, nestedSelection) => ({
-            posts: pages.getQuery(args, ctx, nestedSelection),
+          select: (args, ctx) => ({
+            posts: pages.getQuery(args, ctx),
           }),
           resolve: (user, args, ctx) => pages.resolve(user.posts, args, ctx),
         }),
@@ -1975,8 +1975,8 @@ describe('prismaConnectionHelpers', () => {
       fields: (t) => ({
         posts: t.connection({
           type: posts.ref,
-          select: (args, ctx, nestedSelection) => ({
-            posts: posts.getQuery(args, ctx, nestedSelection),
+          select: (args, ctx) => ({
+            posts: posts.getQuery(args, ctx),
           }),
           resolve: (user, args, ctx) => posts.resolve(user.posts, args, ctx),
         }),
@@ -2038,8 +2038,8 @@ describe('prismaConnectionHelpers', () => {
       fields: (t) => ({
         stats: t.field({
           type: Stats,
-          select: (args, ctx, nestedSelection) => ({
-            posts: posts.getQuery(args, ctx, nestedSelection),
+          select: (args, ctx) => ({
+            posts: posts.getQuery(args, ctx),
           }),
           resolve: (user) => ({ rows: user.posts }),
         }),
@@ -2078,8 +2078,8 @@ describe('prismaConnectionHelpers', () => {
       fields: (t) => ({
         commenters: t.connection({
           type: Card,
-          select: (args, ctx, nestedSelection) => ({
-            comments: commenters.getQuery(args, ctx, nestedSelection),
+          select: (args, ctx) => ({
+            comments: commenters.getQuery(args, ctx),
           }),
           resolve: (post, args, ctx) => commenters.resolve(post.comments, args, ctx),
         }),
