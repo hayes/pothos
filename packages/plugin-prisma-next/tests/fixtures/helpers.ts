@@ -174,10 +174,18 @@ export function runIncremental(schema: GraphQLSchema, source: string) {
       document: parse(source),
       contextValue: {},
     });
-    if (!('initialResult' in result)) {
-      throw new Error('Expected an incremental result');
-    }
     const initialStatements = statements.length;
+    // Nothing was deferred, or what holds every deferred fragment failed.
+    if (!('initialResult' in result)) {
+      return {
+        initial: result,
+        patches: [],
+        patchErrors: [],
+        completedErrors: [],
+        initialStatements,
+        statements,
+      };
+    }
     const patches: unknown[] = [];
     const patchErrors: unknown[] = [];
     const completedErrors: unknown[] = [];

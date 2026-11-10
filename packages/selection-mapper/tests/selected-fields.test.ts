@@ -146,6 +146,7 @@ async function plannedArgs(selection: string, variableValues = {}) {
   const models = createModels('User');
   const schema = createSchema(
     `
+    directive @defer(if: Boolean = true, label: String) on FRAGMENT_SPREAD | INLINE_FRAGMENT
     type Query { user: User }
     type User { id: ID friend: User safe: User activity: Activity }
     type Activity { posts(first: Int, last: Int): Int }
@@ -174,7 +175,7 @@ async function plannedArgs(selection: string, variableValues = {}) {
   );
   const info = await resolveInfo(
     schema,
-    `query ($on: Boolean = true) { user { ${selection} } } ${FRAGMENTS}`,
+    `query ($on: Boolean = true, $off: Boolean = false) { user { ${selection} } } ${FRAGMENTS}`,
     { variableValues },
   );
   const plan = await Plan.fromInfo(new FakeAdapter(models), { context: {}, info });
@@ -211,6 +212,16 @@ it.each([
     `friend { ${FIRST} } friend { ${LAST} } x: friend { ${FIRST} } y: friend { ${LAST} }`,
   ],
   ['a parent included by a variable', `friend { ${FIRST} } friend @include(if: $on) { ${LAST} }`],
+  ['a parent under @defer', `friend { ${FIRST} } ... @defer { friend { ${LAST} } }`],
+  ['a field under @defer', `friend { ${FIRST} ... @defer { ${LAST} } }`],
+  [
+    'a parent above another under @defer',
+    `friend { friend { ${FIRST} } } ... @defer { friend { friend { ${LAST} } } }`,
+  ],
+  [
+    'a parent under @defer whose condition is false',
+    `friend { ${FIRST} } ... @defer(if: $off) { friend { ${LAST} } }`,
+  ],
 ])('throws for different arguments beneath a parent selected twice: %s', async (_, selection) => {
   await expect(plannedArgs(selection)).rejects.toThrow(
     unexpected('The fields selected at posts beneath User.activity have different arguments.'),
@@ -222,6 +233,11 @@ it.each([
   ['another alias', `friend { ${FIRST} } friend { activity { c: posts(first: 1) } }`],
   ['a fragment spread twice', 'friend { ...First } friend { ...First }'],
   ['two levels down', `friend { friend { ...First } } friend { friend { ${FIRST} } }`],
+  ['a parent under @defer', `friend { ${FIRST} } ... @defer { friend { ${FIRST} } }`],
+  [
+    'a parent under @defer whose condition is false',
+    `friend { ${FIRST} } ... @defer(if: $off) { friend { ${FIRST} } }`,
+  ],
 ])('reads the same arguments beneath a parent selected twice: %s', async (_, selection) => {
   const seen = await plannedArgs(selection);
 
