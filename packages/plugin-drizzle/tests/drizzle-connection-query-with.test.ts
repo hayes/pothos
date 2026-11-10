@@ -17,6 +17,9 @@ const builder = new SchemaBuilder<{ DrizzleRelations: DrizzleRelations }>({
 
 builder.drizzleObject('users', {
   name: 'User',
+  // Only `id` by default, so a column the document doesn't select is on the row only if the
+  // resolver's `with` asked for it.
+  select: { columns: { id: true } },
   fields: (t) => ({
     username: t.exposeString('username'),
     firstName: t.exposeString('firstName', { nullable: true }),
