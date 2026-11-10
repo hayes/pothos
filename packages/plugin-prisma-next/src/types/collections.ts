@@ -171,4 +171,4 @@ type PlannedRows<C> = C extends HasRow
  * the rows' columns with `select()` drops columns the selection planned, which the brand doesn't
  * track: return such rows only to types whose `select` they hold.
  */
-export type PlannedCollection<C> = C & PlannedRows<C>;
+export type PrismaPlannedCollection<C> = C & PlannedRows<C>;

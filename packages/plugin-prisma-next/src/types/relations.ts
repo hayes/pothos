@@ -10,7 +10,7 @@ import type {
 import type { RelationPredicate, ShorthandWhereFilter } from '@prisma/orm-family-sql/orm-client';
 import type { GraphQLResolveInfo } from 'graphql';
 import type { PrismaInterfaceRef } from '../interface-ref.js';
-import type { Planned, PrismaObjectRef } from '../object-ref.js';
+import type { PrismaObjectRef, PrismaPlanned } from '../object-ref.js';
 import type {
   BareModelName,
   BaseOrSelf,
@@ -213,7 +213,7 @@ export type RelationOnNull<
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => MaybePromise<
-      Error | Planned<TypeModel | VariantModelKeys<Types['PrismaContract'], TypeModel>>
+      Error | PrismaPlanned<TypeModel | VariantModelKeys<Types['PrismaContract'], TypeModel>>
     >);
 
 /**

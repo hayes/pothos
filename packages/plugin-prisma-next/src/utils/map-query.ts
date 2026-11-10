@@ -8,7 +8,7 @@ import {
   getNamedType,
 } from 'graphql';
 import { PRISMA_CONFIG, PRISMA_MODEL } from '../constants.js';
-import type { PlannedCollection } from '../types/collections.js';
+import type { PrismaPlannedCollection } from '../types/collections.js';
 import type { AnyContract } from '../types/models.js';
 import type { MapperCollection, PrismaPlan } from './adapter.js';
 import type { PrismaConfig } from './config.js';
@@ -126,16 +126,16 @@ export interface CollectionFromInfoOptions<C> extends PlanTarget {
 // A collection narrowed by `variant()`, or one the compiler can't tell isn't, needs `typeName`.
 export function collectionFromInfo<C extends HasNoVariant>(
   options: CollectionFromInfoOptions<C>,
-): Promise<PlannedCollection<C>>;
+): Promise<PrismaPlannedCollection<C>>;
 export function collectionFromInfo<C extends object>(
   options: CollectionFromInfoOptions<C> & { typeName: string },
-): Promise<PlannedCollection<C>>;
+): Promise<PrismaPlannedCollection<C>>;
 export async function collectionFromInfo<C extends object>({
   collection,
   context,
   info,
   ...target
-}: CollectionFromInfoOptions<C>): Promise<PlannedCollection<C>> {
+}: CollectionFromInfoOptions<C>): Promise<PrismaPlannedCollection<C>> {
   const config = configFor(info.schema);
   if (target.typeName && !info.schema.getType(target.typeName)) {
     throw new InternalError(`collectionFromInfo's typeName '${target.typeName}' isn't a type.`);
@@ -150,7 +150,7 @@ export async function collectionFromInfo<C extends object>({
     initialSelection(config.contract, modelKey, EMPTY),
   );
   const query = planned && config.adapter.emit(mapper, planned.selection, planned.model);
-  return (query ?? mapper) as unknown as PlannedCollection<C>;
+  return (query ?? mapper) as unknown as PrismaPlannedCollection<C>;
 }
 
 const schemaConfigs = new WeakMap<GraphQLSchema, PrismaConfig>();

@@ -171,8 +171,8 @@ columns from the junction table, define the junction as its own model and use tw
 
 If a plain `t.field` returns a model's type, instead of `t.prismaField` or `t.relation`, it must
 return rows the plugin planned: the parent, the relation rows the parent's `select` loads, or rows
-from a query built with `collectionFromInfo`. These are typed `Planned<'User'>`. A row built by hand
-or loaded with a plain ORM query is a type error naming `Planned<'User'>`.
+from a query built with `collectionFromInfo`. These are typed `PrismaPlanned<'User'>`. A row built
+by hand or loaded with a plain ORM query is a type error naming `PrismaPlanned<'User'>`.
 
 ```ts
 builder.prismaObject('Post', {

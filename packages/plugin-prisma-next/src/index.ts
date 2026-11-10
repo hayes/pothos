@@ -96,9 +96,9 @@ export { PrismaInterfaceRef, prismaInterfaceBrand } from './interface-ref.js';
 export { PrismaNodeRef, prismaRelayIDShapeBrand } from './node-ref.js';
 export {
   type ModelBrand,
-  type Planned,
   type PlannedRowBrand,
   PrismaObjectRef,
+  type PrismaPlanned,
   plannedRowBrand,
   prismaContractBrand,
   prismaModelBrand,
@@ -109,7 +109,11 @@ export type {
   PrismaRelationCountOptions,
   RelationCountQuery,
 } from './types/aggregates.js';
-export type { CollectionFor, PlannedCollection, ResolverCollection } from './types/collections.js';
+export type {
+  CollectionFor,
+  PrismaPlannedCollection,
+  ResolverCollection,
+} from './types/collections.js';
 export type {
   ConnectionQueryLiteral,
   PrismaConnectionFieldOptions,

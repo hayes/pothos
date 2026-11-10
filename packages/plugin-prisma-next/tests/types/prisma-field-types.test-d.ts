@@ -9,8 +9,8 @@ import type { GraphQLResolveInfo } from 'graphql';
 import { expectTypeOf } from 'vitest';
 import PrismaNextPlugin, {
   type CollectionFor,
-  type PlannedCollection,
   type PlannedRowBrand,
+  type PrismaPlannedCollection,
 } from '../../src';
 import type { Contract } from '../fixtures/sample-contract';
 import type { Contract as InheritanceContract } from '../inheritance/contract';
@@ -52,7 +52,7 @@ builder.queryType({
       nullable: true,
       args: { id: t.arg.id({ required: true }) },
       resolve: (users, root, args, ctx, info) => {
-        expectTypeOf(users).toEqualTypeOf<PlannedCollection<CollectionFor<Types, 'User'>>>();
+        expectTypeOf(users).toEqualTypeOf<PrismaPlannedCollection<CollectionFor<Types, 'User'>>>();
         expectTypeOf(root).toEqualTypeOf<{}>();
         expectTypeOf(args.id).toEqualTypeOf<string>();
         expectTypeOf(ctx).toEqualTypeOf<Context>();

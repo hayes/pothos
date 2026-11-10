@@ -125,8 +125,9 @@ free of side effects.
 A resolver can read the model's primary or non-null unique key, the type's shared `select`, and
 its own field's `select`. Other columns aren't guaranteed to be loaded.
 
-Rows the plugin loads carry a type-only marker, such as `Planned<'User'>`. For returning rows from
-custom resolvers, see [Returning rows from other fields](./relations#returning-rows-from-other-fields).
+Rows the plugin loads carry a type-only marker, such as `PrismaPlanned<'User'>`. For returning rows
+from custom resolvers, see
+[Returning rows from other fields](./relations#returning-rows-from-other-fields).
 
 ### Auth checks
 
@@ -199,7 +200,7 @@ If the payload field is an interface or union, pass `typeName` to choose the Gra
 to load. For mutations on inherited models, see [Model inheritance](./inheritance#mutations).
 
 An exported function that returns rows from `collectionFromInfo` needs a return type, such as
-`Promise<Planned<'User'> | null>`, for TypeScript to emit its declaration.
+`Promise<PrismaPlanned<'User'> | null>`, for TypeScript to emit its declaration.
 
 See [Transactions](./transactions) to run the write and the reads in one transaction.
 

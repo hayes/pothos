@@ -6,8 +6,8 @@ import type { GraphQLResolveInfo } from 'graphql';
 import PrismaNextPlugin, {
   collectionFromInfo,
   type NestedSelectionFn,
-  type Planned,
   type PrismaObjectRef,
+  type PrismaPlanned,
   prismaConnectionHelpers,
 } from 'plugin-under-test';
 import type { Contract } from '../fixtures/sample-contract';
@@ -194,7 +194,7 @@ export async function loadUser(
   context: object,
   info: GraphQLResolveInfo,
   collection: SqliteClient<Contract>['orm']['User'],
-): Promise<Planned<'User'> | null> {
+): Promise<PrismaPlanned<'User'> | null> {
   const users = await collectionFromInfo({ collection, context, info });
   return users.first();
 }

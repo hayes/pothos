@@ -28,7 +28,7 @@ import type { AsyncIterableResult } from '@prisma/orm-framework/components/runti
 import type { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
 import type { prismaInterfaceBrand } from '../interface-ref.js';
 import type { PrismaObjectRef, prismaContractBrand, prismaModelBrand } from '../object-ref.js';
-import type { PlannedCollection, ResolverCollection, TypeCollection } from './collections.js';
+import type { PrismaPlannedCollection, ResolverCollection, TypeCollection } from './collections.js';
 import type { FieldParentShape, IdFieldShape, ModelKey, ResolveTypeParent, Row } from './models.js';
 import type { FieldQueryLiteral, QueryKeys, QueryOption } from './relations.js';
 import type {
@@ -266,7 +266,7 @@ type PrismaRootFieldResolver<
        * selection planned, and returns the rows its reads or writes return.
        */
       resolve: (
-        collection: PlannedCollection<TypeCollection<Types, M>>,
+        collection: PrismaPlannedCollection<TypeCollection<Types, M>>,
         parent: Parent,
         args: ArgsShape,
         context: Types['Context'],
