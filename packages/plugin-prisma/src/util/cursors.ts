@@ -380,6 +380,86 @@ export function getCursorFormatter<Types extends SchemaTypes>(
   return cursorFormatter(uniqueIndex?.fields ?? cursor);
 }
 
+type OrderByEntry = Record<string, unknown>;
+
+// The direction an ordering value sorts in: a direction, a `{ sort, nulls }`, or a relation or
+// aggregate ordering whose last value holds one.
+function orderDirection(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null) {
+    return value;
+  }
+
+  if ('sort' in value) {
+    return value.sort;
+  }
+
+  const values = Object.values(value);
+
+  return orderDirection(values[values.length - 1]);
+}
+
+/**
+ * Makes a connection's `orderBy` unique, so a backward page (which prisma reads by reversing the
+ * order) holds the same rows as the forward list. An order that does not name a non-null unique
+ * key gets the cursor's fields appended in the direction of its last column; any other order is
+ * returned as it is.
+ */
+export function getConnectionOrderBy<Types extends SchemaTypes>(
+  name: string,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  cursor: string,
+) {
+  const modelData = getModel(name, builder);
+  const fields = new Map(modelData.fields.map((field) => [field.name, field]));
+  const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
+  const cursorFields =
+    primaryKey === cursor
+      ? modelData.primaryKey!.fields
+      : (modelData.uniqueIndexes.find((idx) => (idx.name ?? idx.fields.join('_')) === cursor)
+          ?.fields ?? [cursor]);
+
+  const uniqueKeys = [
+    ...(modelData.primaryKey ? [modelData.primaryKey.fields] : []),
+    ...modelData.uniqueIndexes.map((idx) => idx.fields),
+    ...modelData.fields
+      .filter((field) => field.isId || field.isUnique)
+      .map((field) => [field.name]),
+  ].filter((key) => key.every((field) => fields.get(field)?.isRequired));
+
+  const columns = new Set(
+    modelData.fields
+      .filter((field) => field.kind === 'scalar' || field.kind === 'enum')
+      .map((field) => field.name),
+  );
+
+  return <T>(orderBy: T): T | OrderByEntry[] => {
+    const entries = (
+      Array.isArray(orderBy) ? orderBy : orderBy == null ? [] : [orderBy]
+    ) as OrderByEntry[];
+    // A key set to `undefined` is left out by prisma, so it orders nothing here either.
+    const orderings = entries.flatMap((entry) =>
+      Object.entries(entry).filter(([, value]) => value !== undefined),
+    );
+
+    if (orderings.length === 0) {
+      return orderBy;
+    }
+
+    const named = new Set(orderings.map(([field]) => field).filter((field) => columns.has(field)));
+
+    if (uniqueKeys.some((key) => key.every((field) => named.has(field)))) {
+      return orderBy;
+    }
+
+    const direction = orderDirection(orderings[orderings.length - 1][1]);
+
+    return [
+      ...entries,
+      ...cursorFields.filter((field) => !named.has(field)).map((field) => ({ [field]: direction })),
+    ];
+  };
+}
+
 export function getCursorParser<Types extends SchemaTypes>(
   name: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,

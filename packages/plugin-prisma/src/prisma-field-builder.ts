@@ -39,6 +39,7 @@ import type {
   VariantFieldOptions,
 } from './types.js';
 import {
+  getConnectionOrderBy,
   getCursorFormatter,
   getCursorParser,
   prismaCursorConnectionQuery,
@@ -221,6 +222,13 @@ export class PrismaObjectFieldBuilder<
 
     const formatCursor = getCursorFormatter(relationField.type, this.builder, cursorValue);
     const parseCursor = getCursorParser(relationField.type, this.builder, cursorValue);
+    const connectionOrderBy = getConnectionOrderBy(relationField.type, this.builder, cursorValue);
+    const withConnectionOrder = <Q extends {}>(query: Q): Q => {
+      const { orderBy } = query as { orderBy?: unknown };
+      const uniqueOrderBy = connectionOrderBy(orderBy);
+
+      return uniqueOrderBy === orderBy ? query : { ...query, orderBy: uniqueOrderBy };
+    };
 
     // The field's `query` may be async, so the result is a promise when it is.
     const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
@@ -239,9 +247,9 @@ export class PrismaObjectFieldBuilder<
 
       return isThenable(userQuery)
         ? (userQuery as PromiseLike<typeof connectionQuery | null | undefined>).then((resolved) =>
-            mergeConnectionQuery(resolved, connectionQuery),
+            withConnectionOrder(mergeConnectionQuery(resolved, connectionQuery)),
           )
-        : mergeConnectionQuery(userQuery, connectionQuery);
+        : withConnectionOrder(mergeConnectionQuery(userQuery, connectionQuery));
     };
 
     const cursorSelection = ModelLoader.getCursorSelection(

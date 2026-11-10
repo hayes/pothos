@@ -20,6 +20,7 @@ import type {
 import { prismaAdapter } from './util/adapter.js';
 import { checkAwaitSelections } from './util/await-selections.js';
 import {
+  getConnectionOrderBy,
   getCursorFormatter,
   getCursorParser,
   prismaCursorConnectionQuery,
@@ -102,6 +103,7 @@ export function prismaConnectionHelpers<
 
   const formatCursor = getCursorFormatter(modelName, builder, cursor);
   const parseCursor = getCursorParser(modelName, builder, cursor);
+  const connectionOrderBy = getConnectionOrderBy(modelName, builder, cursor);
   const cursorSelection = ModelLoader.getCursorSelection(ref, modelName, cursor, builder);
   const fieldMap = getRelationMap(getDMMF(builder)).get(modelName)!;
 
@@ -238,8 +240,12 @@ export function prismaConnectionHelpers<
       prismaAdapter.mergeQuery(node, nestedSelect);
     }
 
+    const { orderBy } = baseQuery as { orderBy?: unknown };
+    const uniqueOrderBy = connectionOrderBy(orderBy);
+
     return {
       ...baseQuery,
+      ...(uniqueOrderBy === orderBy ? {} : { orderBy: uniqueOrderBy }),
       ...getQueryArgs(args, ctx),
       ...prismaAdapter.toQuery(node),
     };
