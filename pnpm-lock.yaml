@@ -944,20 +944,20 @@ importers:
         specifier: 0.9.0
         version: 0.9.0(@prisma/management-api-sdk@1.72.0)
       '@prisma/orm-family-sql':
-        specifier: 8.0.0-rc.22
-        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+        specifier: 8.0.0-rc.23
+        version: 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@prisma/orm-framework':
-        specifier: 8.0.0-rc.22
-        version: 8.0.0-rc.22(typescript@7.0.2)
+        specifier: 8.0.0-rc.23
+        version: 8.0.0-rc.23(typescript@7.0.2)
       '@prisma/orm-mysql':
-        specifier: 8.0.0-rc.22
-        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+        specifier: 8.0.0-rc.23
+        version: 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@prisma/orm-postgres':
-        specifier: 8.0.0-rc.22
-        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+        specifier: 8.0.0-rc.23
+        version: 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@prisma/orm-sqlite':
-        specifier: 8.0.0-rc.22
-        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+        specifier: 8.0.0-rc.23
+        version: 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@types/pg':
         specifier: 8.20.4
         version: 8.20.4
@@ -1456,14 +1456,14 @@ importers:
         specifier: workspace:^
         version: link:../packages/plugin-zod
       '@prisma/orm-family-sql':
-        specifier: 8.0.0-rc.22
-        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+        specifier: 8.0.0-rc.23
+        version: 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@prisma/orm-framework':
-        specifier: 8.0.0-rc.22
-        version: 8.0.0-rc.22(typescript@6.0.2)
+        specifier: 8.0.0-rc.23
+        version: 8.0.0-rc.23(typescript@6.0.2)
       '@prisma/orm-sqlite':
-        specifier: 8.0.0-rc.22
-        version: 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+        specifier: 8.0.0-rc.23
+        version: 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@tailwindcss/postcss':
         specifier: ^4.2.2
         version: 4.2.2
@@ -4478,32 +4478,24 @@ packages:
   '@prisma/management-api-sdk@1.72.0':
     resolution: {integrity: sha512-Yjt3QBfNGWDE9z/4l6/8XWBMwqJGcAqfjqmrZzAyUL1EHu5bW3NOea+j0IXPXc0dZGF5wPqpjzG06T20SwLxbQ==}
 
-  '@prisma/orm-family-sql@8.0.0-rc.22':
-    resolution: {integrity: sha512-odUcc7ywa1VnY4wVtcroGdcp8GqG76eWB0X0jYYYZWgIovxFnZnEl0oYPH1HXfSIBKmCtLmQ2QJXlUUF/M0ryw==}
+  '@prisma/orm-family-sql@8.0.0-rc.23':
+    resolution: {integrity: sha512-BRHwT0f83dXRiYPY0YYyUNocwuRdyLvVJZYZ3BNVZBoqiY4vxN4nbEo+mQpdwhemvrQ9C8AzJdK5dJt8vuVsSQ==}
     peerDependencies:
       typescript: '>=5.9'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@prisma/orm-framework@8.0.0-rc.22':
-    resolution: {integrity: sha512-Av51rTKY/spAirW9FQvpNkqwKZ6EbHb2E1jo1zLhCLwTYeZ4l1aPvbeAy24i1D59nG0xzEcfFUUXPJofc/TVvA==}
+  '@prisma/orm-framework@8.0.0-rc.23':
+    resolution: {integrity: sha512-iwPh/qcrRG4TgB5C8vPyK/qD8spOqi8yeKxMbyFqtylhRQJAbcrEVMhGba9C/CUvCdAiVvTvaO0XhvvTPrdL5w==}
     peerDependencies:
       typescript: '>=5.9'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@prisma/orm-mysql@8.0.0-rc.22':
-    resolution: {integrity: sha512-16B3bUipWoZ5BasQPwAtydL7ijQurheEDpbAWeQPM12/Us/V+dQEi/hM0p/xWcbSeSs5AzkrLq/mxEqNG6u/kw==}
-    peerDependencies:
-      typescript: '>=5.9'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
-  '@prisma/orm-postgres@8.0.0-rc.22':
-    resolution: {integrity: sha512-z5yqcLLTIo4eMU+mAn2ojJZYk4LdOgyY35KEicFjOgxddQaf32yE1d5HuWDDZ3QomYsmz1tLX+8P7trAARuu7Q==}
+  '@prisma/orm-mysql@8.0.0-rc.23':
+    resolution: {integrity: sha512-67ovlcTZRMwsOrcc7bc/QNPDlV3zugEJSVEA9hGLTelga7K3Zc7Vh1aL30oHVAuMvEE6BLR/SZUxcnt8O/UyNA==}
     peerDependencies:
       temporal-polyfill: ^1.0.4
       typescript: '>=5.9'
@@ -4511,24 +4503,8 @@ packages:
       typescript:
         optional: true
 
-  '@prisma/orm-sqlite@8.0.0-rc.22':
-    resolution: {integrity: sha512-RhowhHLThKLtz4y2Bt53eFJ60zcFTGKT1RZt5U3r3SJdZQ94ZinZA5uA0K2+2yl+jTE0zusjNmNNTpUqodTCmg==}
-    peerDependencies:
-      typescript: '>=5.9'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
-  '@prisma/orm-target-mysql@8.0.0-rc.22':
-    resolution: {integrity: sha512-esk8Mf14lEkEufl8lRgkOJRv3WGoApePEw/46hxA+3dvgaWk1Dhkj2b8IVsLsrNxfDNDv7jKZYqUZaUJ/wkxGg==}
-    peerDependencies:
-      typescript: '>=5.9'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
-  '@prisma/orm-target-postgres@8.0.0-rc.22':
-    resolution: {integrity: sha512-gn5uEib8Ovonv5p2IHzZRCcKPvceiPIZQjA9b1ozjtaoVwYCeKM9z+aoThMWoA9h/DEBuwf2HHnfkSoE/rVwfA==}
+  '@prisma/orm-postgres@8.0.0-rc.23':
+    resolution: {integrity: sha512-RqhtQsmiuX2ULMG6MhCSeurD689OSHPLFOeBT622HItlLx6nXAazZTFaW+LvEBLQrdV0qIDcILX2CsWAK++ECQ==}
     peerDependencies:
       temporal-polyfill: ^1.0.4
       typescript: '>=5.9'
@@ -4536,16 +4512,44 @@ packages:
       typescript:
         optional: true
 
-  '@prisma/orm-target-sqlite@8.0.0-rc.22':
-    resolution: {integrity: sha512-h+zTvaDzMmBPjIbK0BoNWGnrxl4DN8BUfevmzp0pMz/Cxg9fhq1QEBQKIqnlfFH1IfpAkhJ33/EDx0j5cVEtSg==}
+  '@prisma/orm-sqlite@8.0.0-rc.23':
+    resolution: {integrity: sha512-vZqJm/NAFt7ugOqZWX4+WGe12x+WYwmSClB9Li8pOA9P7V+WrGgs/upga/CQuHFr6v07bt/cL3j8ikos+eWrmw==}
     peerDependencies:
+      temporal-polyfill: ^1.0.4
       typescript: '>=5.9'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@prisma/orm-toolchain@8.0.0-rc.22':
-    resolution: {integrity: sha512-gVGP5KFb3ZoOSglvpJ+MEjQQUJgqKXY1+z6RAiRLTXvOxypfSz/qNOSh4YjwOsJaBEy/Nb+n4yMs5IhWfl04rg==}
+  '@prisma/orm-target-mysql@8.0.0-rc.23':
+    resolution: {integrity: sha512-uMQGG5iSw3iLYPS+YPJJcxgusM4YNUyHFimPYIvqtFkt45IBanydtszcPaDNPN0ifNwOL9LliVAMhz0VibQyyQ==}
+    peerDependencies:
+      temporal-polyfill: ^1.0.4
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma/orm-target-postgres@8.0.0-rc.23':
+    resolution: {integrity: sha512-WUo8q5FCMLd0RLuCPIrnYrH0QVIvw37HHAgzkUmshhJBN72NDrjTc38r06DxCeRBE09cN6wchMVVRM1xUfAQ+w==}
+    peerDependencies:
+      temporal-polyfill: ^1.0.4
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma/orm-target-sqlite@8.0.0-rc.23':
+    resolution: {integrity: sha512-E8XOzj7KITYnMQL4uFpPPXsu/bX7o3+oFOhqJJdnaTgBHYI5HwCg0vEhWB878qV9C5eqviYoO3NC8SsLLWJAUw==}
+    peerDependencies:
+      temporal-polyfill: ^1.0.4
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma/orm-toolchain@8.0.0-rc.23':
+    resolution: {integrity: sha512-mctCtrOZbT/xHjtHSGA+dNOpzJeAgtcwbJsz7NuGdxHRy2gy5x1eOG0dekAdi/ij2JVZ8EwlXQDBNRPKrgQqeA==}
     peerDependencies:
       '@prisma/cli-engine': 0.9.0
       typescript: '>=5.9'
@@ -15388,10 +15392,10 @@ snapshots:
     dependencies:
       openapi-fetch: 0.14.0
 
-  '@prisma/orm-family-sql@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-family-sql@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@6.0.2)
-      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@6.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@standard-schema/spec': 1.1.0
       arktype: 2.2.9
       pathe: 2.0.3
@@ -15406,10 +15410,10 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-family-sql@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-family-sql@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
-      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@7.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@standard-schema/spec': 1.1.0
       arktype: 2.2.9
       pathe: 2.0.3
@@ -15424,34 +15428,38 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-framework@8.0.0-rc.22(typescript@6.0.2)':
+  '@prisma/orm-framework@8.0.0-rc.23(typescript@6.0.2)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       arktype: 2.2.9
       pathe: 2.0.3
+      temporal-spec: 1.0.1
       tinyglobby: 0.2.17
       uniku: 0.5.0
     optionalDependencies:
       typescript: 6.0.2
 
-  '@prisma/orm-framework@8.0.0-rc.22(typescript@7.0.2)':
+  '@prisma/orm-framework@8.0.0-rc.23(typescript@7.0.2)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       arktype: 2.2.9
       pathe: 2.0.3
+      temporal-spec: 1.0.1
       tinyglobby: 0.2.17
       uniku: 0.5.0
     optionalDependencies:
       typescript: 7.0.2
 
-  '@prisma/orm-mysql@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-mysql@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
-      '@prisma/orm-target-mysql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@7.0.2)
+      '@prisma/orm-target-mysql': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-toolchain': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       arktype: 2.2.9
       pathe: 2.0.3
+      temporal-polyfill: 1.0.6
+      temporal-spec: 1.0.1
     optionalDependencies:
       typescript: 7.0.2
     transitivePeerDependencies:
@@ -15460,12 +15468,12 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-postgres@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-postgres@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
-      '@prisma/orm-target-postgres': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@7.0.2)
+      '@prisma/orm-target-postgres': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-toolchain': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@types/node': 26.1.2
       '@types/pg': 8.20.4
       arktype: 2.2.9
@@ -15483,13 +15491,15 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-sqlite@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-sqlite@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@6.0.2)
-      '@prisma/orm-target-sqlite': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@6.0.2)
+      '@prisma/orm-target-sqlite': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-toolchain': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       pathe: 2.0.3
+      temporal-polyfill: 1.0.6
+      temporal-spec: 1.0.1
       tinyglobby: 0.2.17
     optionalDependencies:
       typescript: 6.0.2
@@ -15499,13 +15509,15 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-sqlite@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-sqlite@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
-      '@prisma/orm-target-sqlite': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@7.0.2)
+      '@prisma/orm-target-sqlite': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-toolchain': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       pathe: 2.0.3
+      temporal-polyfill: 1.0.6
+      temporal-spec: 1.0.1
       tinyglobby: 0.2.17
     optionalDependencies:
       typescript: 7.0.2
@@ -15515,14 +15527,16 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-target-mysql@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-target-mysql@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
-      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@7.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@standard-schema/spec': 1.1.0
       arktype: 2.2.9
       mariadb: 3.5.4
+      temporal-polyfill: 1.0.6
+      temporal-spec: 1.0.1
     optionalDependencies:
       typescript: 7.0.2
     transitivePeerDependencies:
@@ -15531,11 +15545,11 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-target-postgres@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-target-postgres@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
-      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@7.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@standard-schema/spec': 1.1.0
       '@types/node': 26.1.2
       '@types/pg': 8.20.4
@@ -15556,14 +15570,16 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-target-sqlite@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-target-sqlite@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@6.0.2)
-      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@6.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@standard-schema/spec': 1.1.0
       arktype: 2.2.9
       pathe: 2.0.3
+      temporal-polyfill: 1.0.6
+      temporal-spec: 1.0.1
     optionalDependencies:
       typescript: 6.0.2
     transitivePeerDependencies:
@@ -15572,14 +15588,16 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-target-sqlite@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-target-sqlite@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(temporal-polyfill@1.0.6)(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
-      '@prisma/orm-family-sql': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
-      '@prisma/orm-toolchain': 8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-family-sql': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@7.0.2)
+      '@prisma/orm-toolchain': 8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@standard-schema/spec': 1.1.0
       arktype: 2.2.9
       pathe: 2.0.3
+      temporal-polyfill: 1.0.6
+      temporal-spec: 1.0.1
     optionalDependencies:
       typescript: 7.0.2
     transitivePeerDependencies:
@@ -15588,10 +15606,10 @@ snapshots:
       - typanion
       - vite
 
-  '@prisma/orm-toolchain@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-toolchain@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@6.0.2)(vite@7.2.6(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
       '@prisma/cli-engine': 0.9.0(@prisma/management-api-sdk@1.72.0)
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@6.0.2)
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@6.0.2)
       '@vercel/detect-agent': 1.2.5
       arktype: 2.2.9
       c12: 3.3.4
@@ -15617,10 +15635,10 @@ snapshots:
       - magicast
       - typanion
 
-  '@prisma/orm-toolchain@8.0.0-rc.22(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
+  '@prisma/orm-toolchain@8.0.0-rc.23(@prisma/cli-engine@0.9.0(@prisma/management-api-sdk@1.72.0))(typanion@3.14.0)(typescript@7.0.2)(vite@7.2.6(@types/node@26.1.2)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
       '@prisma/cli-engine': 0.9.0(@prisma/management-api-sdk@1.72.0)
-      '@prisma/orm-framework': 8.0.0-rc.22(typescript@7.0.2)
+      '@prisma/orm-framework': 8.0.0-rc.23(typescript@7.0.2)
       '@vercel/detect-agent': 1.2.5
       arktype: 2.2.9
       c12: 3.3.4

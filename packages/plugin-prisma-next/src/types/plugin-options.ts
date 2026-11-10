@@ -6,7 +6,7 @@ type PrismaCollections<TContract extends AnyContract> =
   string extends keyof TContract['domain']['namespaces'] ? object : TypedCollections<TContract>;
 
 // Collections are matched by model name and by the contract on their `ctx`, not structurally.
-// `CollectionBase.ctx` is marked internal in rc.22, but Prisma's public types read it too.
+// `CollectionBase.ctx` is marked internal in rc.23, but Prisma's public types read it too.
 // Comparing each `Collection` against one built from `TContract` costs more than the rest of the
 // builder setup, while comparing the contract to itself is an identity check.
 interface CollectionOfModel<TContract extends AnyContract, M extends string> {

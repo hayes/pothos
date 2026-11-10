@@ -11,7 +11,7 @@ need a separate resolver or database call for every relation. Field types are in
 Prisma contract.
 
 > [!WARNING]
-> **Experimental.** This plugin targets Prisma ORM `8.0.0-rc.22` exactly. Its API, and Prisma's,
+> **Experimental.** This plugin targets Prisma ORM `8.0.0-rc.23` exactly. Its API, and Prisma's,
 > may change in any release.
 
 For Prisma ORM 7, use [`@pothos/plugin-prisma`](https://pothos-graphql.dev/docs/plugins/prisma)
