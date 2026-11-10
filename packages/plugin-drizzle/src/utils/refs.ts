@@ -34,3 +34,22 @@ export function getRefFromModel<Types extends SchemaTypes>(
 
   return ref;
 }
+
+/**
+ * Added to table name parameters when `DrizzleRelations` isn't set, so the error says how to set
+ * it up instead of showing `never`. It's a branded string so editors don't suggest it.
+ */
+type MissingDrizzleRelations<Hint extends string> = string & {
+  readonly missingDrizzleRelations: Hint;
+};
+
+type DrizzleRelationsSetup =
+  'Set DrizzleRelations on SchemaTypes: new SchemaBuilder<{ DrizzleRelations: typeof relations }>(...)';
+
+export type DrizzleRelationsHint<Types extends SchemaTypes, List extends boolean = false> = [
+  keyof Types['DrizzleRelations'],
+] extends [never]
+  ?
+      | MissingDrizzleRelations<DrizzleRelationsSetup>
+      | (List extends true ? [MissingDrizzleRelations<DrizzleRelationsSetup>] : never)
+  : never;

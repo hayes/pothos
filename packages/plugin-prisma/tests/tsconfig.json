@@ -1,5 +1,6 @@
 {
   "include": ["**/*"],
+  "exclude": ["declarations/**", "type-messages/**", "missing-plugins.test-d.ts"],
   "extends": "../../../tsconfig.options.json",
   "references": [
     {

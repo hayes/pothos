@@ -688,7 +688,10 @@ export class PrismaObjectFieldBuilder<
     Type extends TypeParam<Types>,
     Nullable extends boolean,
     ResolveReturnShape,
-    Name extends CompatibleTypes<Types, Model['Shape'], Type, true>,
+    // Mapped so errors list the valid names instead of the type alias.
+    Name extends {
+      [K in CompatibleTypes<Types, Model['Shape'], Type, true>]: K;
+    }[CompatibleTypes<Types, Model['Shape'], Type, true>],
   >(
     name: Name,
     ...args: NormalizeArgs<
@@ -737,12 +740,20 @@ export class PrismaObjectFieldBuilder<
     return <
       Nullable extends boolean,
       ResolveReturnShape,
-      Name extends CompatibleTypes<
+      // Mapped so errors list the valid names instead of the type alias.
+      Name extends {
+        [K in CompatibleTypes<
+          Types,
+          Model['Shape'],
+          Type,
+          Type extends [unknown] ? { list: true; items: true } : true
+        >]: K;
+      }[CompatibleTypes<
         Types,
         Model['Shape'],
         Type,
         Type extends [unknown] ? { list: true; items: true } : true
-      >,
+      >],
     >(
       name: Name,
       ...args: NormalizeArgs<

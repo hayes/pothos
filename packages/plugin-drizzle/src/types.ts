@@ -44,6 +44,7 @@ import type {
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
 import type { DrizzleRef } from './interface-ref.js';
+import type { DrizzleRelationsHint } from './utils/refs.js';
 import type { SelectionMap } from './utils/selections.js';
 
 /**
@@ -142,6 +143,11 @@ export type DrizzlePluginOptions<Types extends SchemaTypes> = DrizzlePluginBaseO
 
 export const drizzleTableName = Symbol.for('Pothos.drizzleTableName');
 
+/** Marks a parent shape with its table name. */
+export interface DrizzleTableNameBrand<Table> {
+  [drizzleTableName]?: Table;
+}
+
 type NameOrVariant =
   | {
       name?: never;
@@ -165,7 +171,7 @@ export type DrizzleObjectOptions<
       t: DrizzleObjectFieldBuilder<
         Types,
         Types['DrizzleRelations'][Table],
-        Shape & { [drizzleTableName]?: Table }
+        Shape & DrizzleTableNameBrand<Table>
       >,
     ) => FieldMap;
   };
@@ -183,7 +189,7 @@ export type DrizzleInterfaceOptions<
       t: DrizzleObjectFieldBuilder<
         Types,
         Types['DrizzleRelations'][Table],
-        Shape & { [drizzleTableName]?: Table }
+        Shape & DrizzleTableNameBrand<Table>
       >,
     ) => FieldMap;
   };
@@ -226,7 +232,7 @@ export type DrizzleNodeOptions<
       t: DrizzleObjectFieldBuilder<
         Types,
         Types['DrizzleRelations'][Table],
-        Shape & { [drizzleTableName]?: Table }
+        Shape & DrizzleTableNameBrand<Table>
       >,
     ) => FieldMap;
   } & NameOrVariant;
@@ -273,7 +279,7 @@ export type DrizzleFieldOptions<
   >,
   'type' | InferredFieldOptionKeys
 > & {
-  type: Param;
+  type: Param | DrizzleRelationsHint<Types, true>;
   resolve: (
     query: <T = {}>(
       selection?: T & QueryForDrizzleField<Types, Param, Table>,
@@ -705,6 +711,18 @@ export type QueryForDrizzleConnection<
   orderBy?: ConnectionOrderBy<TableConfig> | ((table: Table) => ConnectionOrderBy<TableConfig>);
 };
 
+type TableColumns<T> = T extends { columns: infer Columns } ? Columns : never;
+
+/**
+ * The column names of a table config. Reads each table's columns separately, because inferring
+ * them from a union of every table made table name completion slow.
+ */
+type TableColumnKeys<T extends TableRelationalConfig> = [T['table']['_']] extends [
+  { columns: unknown },
+]
+  ? keyof TableColumns<T['table']['_']>
+  : never;
+
 export type ListRelation<T extends TableRelationalConfig> = {
   [K in keyof T['relations']]: T['relations'][K] extends Many<string> ? K : never;
 }[keyof T['relations']];
@@ -750,7 +768,7 @@ export type DrizzleConnectionFieldOptions<
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
-        type: Type;
+        type: Type | DrizzleRelationsHint<Types>;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         totalCount?: (
@@ -766,9 +784,7 @@ export type DrizzleConnectionFieldOptions<
           ) => Omit<T, 'orderBy' | 'columns' | 'extra'> & {
             columns: T extends { columns: infer C extends {} } ? C : {};
             orderBy: {
-              [K in TableConfig['table']['_'] extends { columns: infer Columns }
-                ? keyof Columns
-                : never]?: 'asc' | 'desc' | undefined;
+              [K in TableColumnKeys<TableConfig>]?: 'asc' | 'desc' | undefined;
             };
             extras: {
               $pothosQueryFor: () => SQL<TableConfig['name'] | undefined>;
@@ -840,9 +856,7 @@ export type ConnectionOrderBy<T extends TableRelationalConfig> =
   // keys name a column, or an extra the same query selects. `string & {}` keeps
   // the column names in autocomplete while letting extra names through
   | {
-      [K in
-        | (T['table']['_'] extends { columns: infer Columns } ? keyof Columns : never)
-        | (string & {})]?: 'asc' | 'desc' | undefined;
+      [K in TableColumnKeys<T> | (string & {})]?: 'asc' | 'desc' | undefined;
     };
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;

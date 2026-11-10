@@ -28,6 +28,7 @@ import {
   wrapConnectionResult,
 } from './utils/cursors.js';
 import { queryFromInfo } from './utils/map-query.js';
+import type { DrizzleRelationsHint } from './utils/refs.js';
 import { getRefFromModel } from './utils/refs.js';
 import { omitUndefinedKeys, type SelectionMap } from './utils/selections.js';
 
@@ -56,7 +57,7 @@ export function drizzleConnectionHelpers<
   ExtraArgs extends InputFieldMap = {},
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  refOrType: Type,
+  refOrType: Type | DrizzleRelationsHint<Types>,
   {
     select,
     resolveNode,

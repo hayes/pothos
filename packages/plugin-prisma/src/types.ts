@@ -33,7 +33,6 @@ import type {
 } from '@pothos/selection-mapper';
 import type { FieldNode, GraphQLResolveInfo } from 'graphql';
 import type { PrismaInterfaceRef, PrismaRef } from './interface-ref.js';
-import type { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
 
 export interface PrismaDelegate {
   // biome-ignore lint/suspicious/noExplicitAny: this is fine
@@ -211,14 +210,14 @@ type PrismaObjectFieldsShape<
   Shape extends object,
   Select,
 > = Model['Select'] extends Select
-  ? (t: PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldMap
+  ? (t: PothosSchemaTypes.PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldMap
   : (t: PrismaSelectionFieldBuilder<Types, Model, Shape>) => FieldMap;
 
 type PrismaSelectionFieldBuilder<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Shape extends object,
-> = PrismaObjectFieldBuilder<Types, Model, Shape>;
+> = PothosSchemaTypes.PrismaObjectFieldBuilder<Types, Model, Shape>;
 
 interface BaseSelection {
   include?: unknown;
@@ -459,7 +458,9 @@ export type PrismaNodeOptions<
             resolve?: never;
             field: UniqueField extends UniqueFieldsFromWhereUnique<Model['WhereUnique']>
               ? UniqueField
-              : UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
+              : // `& string` so errors list the valid names and point at this property in
+                // generic code.
+                UniqueFieldsFromWhereUnique<Model['WhereUnique']> & string;
           }
       );
     fields?: PrismaObjectFieldsShape<
@@ -520,7 +521,8 @@ type CursorFromRelation<
 > = Field extends keyof Model['Include']
   ? Model['Include'][Field] extends infer Include
     ? Include extends { cursor?: infer T }
-      ? UniqueFieldsFromWhereUnique<T>
+      ? // `& string` so errors list the valid names.
+        UniqueFieldsFromWhereUnique<T> & string
       : never
     : never
   : never;
@@ -797,7 +799,8 @@ export type PrismaConnectionFieldOptions<
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
         type: Type;
-        cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
+        // `& string` so errors list the valid names and point at this property in generic code.
+        cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']> & string;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         resolve: (
@@ -1089,7 +1092,8 @@ export type PrismaTypesFromClient<ClientType, PrismaUtils extends boolean = fals
   };
 };
 
-interface DMMFField {
+/** A field of a model in the generated datamodel. */
+export interface PothosPrismaDatamodelField {
   type: string;
   kind: string;
   name: string;
@@ -1109,7 +1113,7 @@ export interface PothosPrismaDatamodel {
     models: Record<
       string,
       {
-        fields: readonly DMMFField[];
+        fields: readonly PothosPrismaDatamodelField[];
         primaryKey: { name: string | null; fields: readonly string[] } | null;
         uniqueIndexes: { name: string | null; fields: readonly string[] }[];
         documentation?: string;

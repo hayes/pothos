@@ -34,6 +34,25 @@ import {
   type ShapeFromSelection,
 } from './types.js';
 
+// Used as the model name type when PrismaTypes has no models, so the error says how to set it up
+// instead of showing `never`. It's a branded string so editors don't suggest it.
+type NoModelsInPrismaTypes<Hint extends string> = string & { readonly noModelsInPrismaTypes: Hint };
+
+type NoModelsInPrismaTypesHint =
+  'Set PrismaTypes to the generated types: new SchemaBuilder<{ PrismaTypes: PrismaTypes }>(...)';
+
+// True when `Names` is a union and `Model` is exactly `Default`. Checking assignability both ways
+// isn't enough, because `any` passes. A single name gets the same shape either way, so it skips the
+// check.
+type IsDefaultModelOfNames<Names, Model, Default> =
+  IsUnion<Names> extends true
+    ? (<T>() => T extends Model ? 1 : 2) extends <T>() => T extends Default ? 1 : 2
+      ? true
+      : false
+    : false;
+
+type IsUnion<T, All = T> = T extends unknown ? ([All] extends [T] ? false : true) : never;
+
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
@@ -79,7 +98,9 @@ declare global {
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      PrismaTypes: PartialTypes['PrismaTypes'] & {};
+      PrismaTypes: [keyof (PartialTypes['PrismaTypes'] & {})] extends [never]
+        ? { [Name in NoModelsInPrismaTypes<NoModelsInPrismaTypesHint>]: never }
+        : PartialTypes['PrismaTypes'] & {};
     }
 
     export interface PothosKindToGraphQLType {
@@ -151,16 +172,32 @@ declare global {
         ShapeFromSelection<Types, Model, { select: Select; include: Include }>
       >;
 
+      // When `Model` is the default, use each name's own shape. Pairing every name with every
+      // model's shape made model name completion very slow in large schemas. An explicit `Model`
+      // still gets `Model['Shape']`. Same for the methods below.
       prismaObjectField: <
         Type extends PrismaObjectRef<Types, PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
         Model extends PrismaModelTypes = Type extends PrismaObjectRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
-          ? S & { [prismaModelName]?: Model['Name'] }
-          : Model['Shape'] & {
-              [prismaModelName]?: Type;
-            },
+        Shape extends {} = IsDefaultModelOfNames<
+          Type,
+          Model,
+          Type extends PrismaObjectRef<Types, infer M, {}>
+            ? M
+            : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]
+        > extends true
+          ? Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : (PrismaModelTypes &
+                Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
+                [prismaModelName]?: Type;
+              }
+          : Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : Model['Shape'] & {
+                [prismaModelName]?: Type;
+              },
       >(
         type: Type,
         fieldName: string,
@@ -172,11 +209,24 @@ declare global {
         Model extends PrismaModelTypes = Type extends PrismaInterfaceRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
-          ? S & { [prismaModelName]?: Model['Name'] }
-          : Model['Shape'] & {
-              [prismaModelName]?: Type;
-            },
+        Shape extends {} = IsDefaultModelOfNames<
+          Type,
+          Model,
+          Type extends PrismaInterfaceRef<Types, infer M, {}>
+            ? M
+            : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]
+        > extends true
+          ? Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : (PrismaModelTypes &
+                Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
+                [prismaModelName]?: Type;
+              }
+          : Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : Model['Shape'] & {
+                [prismaModelName]?: Type;
+              },
       >(
         type: Type,
         fieldName: string,
@@ -188,11 +238,24 @@ declare global {
         Model extends PrismaModelTypes = Type extends PrismaObjectRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
-          ? S & { [prismaModelName]?: Model['Name'] }
-          : Model['Shape'] & {
-              [prismaModelName]?: Type;
-            },
+        Shape extends {} = IsDefaultModelOfNames<
+          Type,
+          Model,
+          Type extends PrismaObjectRef<Types, infer M, {}>
+            ? M
+            : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]
+        > extends true
+          ? Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : (PrismaModelTypes &
+                Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
+                [prismaModelName]?: Type;
+              }
+          : Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : Model['Shape'] & {
+                [prismaModelName]?: Type;
+              },
       >(
         type: Type,
         fields: (t: PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldMap,
@@ -203,11 +266,24 @@ declare global {
         Model extends PrismaModelTypes = Type extends PrismaInterfaceRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
-          ? S & { [prismaModelName]?: Model['Name'] }
-          : Model['Shape'] & {
-              [prismaModelName]?: Type;
-            },
+        Shape extends {} = IsDefaultModelOfNames<
+          Type,
+          Model,
+          Type extends PrismaInterfaceRef<Types, infer M, {}>
+            ? M
+            : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]
+        > extends true
+          ? Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : (PrismaModelTypes &
+                Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
+                [prismaModelName]?: Type;
+              }
+          : Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : Model['Shape'] & {
+                [prismaModelName]?: Type;
+              },
       >(
         type: Type,
         fields: (t: PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldMap,
@@ -455,8 +531,10 @@ declare global {
     > {}
     export interface ScopeAuthContextForAuth<Types extends SchemaTypes, Scopes extends {}> {}
 
+    // Declaring the variance of `Types` saves TypeScript from working it out through the whole
+    // schema builder, which cost about 25ms per program on TypeScript 7.
     export interface PrismaObjectFieldBuilder<
-      Types extends SchemaTypes,
+      in out Types extends SchemaTypes,
       Model extends PrismaModelTypes,
       Shape extends object = Model['Shape'],
     > extends InternalPrismaObjectFieldBuilder<Types, Model, Shape>,

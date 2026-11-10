@@ -1,6 +1,6 @@
 import { isThenable, type MaybePromise } from '@pothos/core';
 import { type PathSegment, Plan } from '@pothos/selection-mapper';
-import type { DBQueryConfig } from 'drizzle-orm';
+import type { DBQueryConfig, SQL } from 'drizzle-orm';
 import type { GraphQLResolveInfo } from 'graphql';
 import { type DrizzlePlan, drizzleAdapter } from './adapter.js';
 import { checkAwaitSelections } from './await-selections.js';
@@ -21,6 +21,16 @@ export interface QueryFromInfoOptions<Await extends boolean = false> {
 /** Only explicitly selected columns are guaranteed; planning metadata is not part of the query. */
 export type QueryFromInfoResult<T> = Omit<T, keyof QueryFromInfoOptions<boolean> | 'columns'> & {
   columns: T extends { columns: infer Columns extends {} } ? Columns : {};
+};
+
+/**
+ * The query options returned by `t.drizzleQueryFromInfo`. Branded like the `query` passed to
+ * `t.drizzleField`, so the rows can be returned from a field of the table's type.
+ */
+export type DrizzleQueryFromInfoResult<T, Table> = Omit<QueryFromInfoResult<T>, 'extras'> & {
+  extras: (T extends { extras: infer Extras extends object } ? Extras : unknown) & {
+    $pothosQueryFor: SQL<Table | undefined>;
+  };
 };
 
 /** A boolean async option must account for promises, just like Prisma's helper. */

@@ -36,11 +36,23 @@ import type {
   DrizzleObjectFieldOptions,
   DrizzleObjectOptions,
   DrizzlePluginOptions,
-  drizzleTableName,
+  DrizzleTableNameBrand,
   ShapeFromConnection,
   ShapeFromIdColumns,
 } from './types.js';
-import type { QueryFromInfoResult } from './utils/map-query.js';
+import type { DrizzleQueryFromInfoResult } from './utils/map-query.js';
+import type { DrizzleRelationsHint } from './utils/refs.js';
+
+// True when Type is a union of names and TableConfig is exactly its default. A single name gets
+// the same shape either way, so it skips the check.
+type IsDefaultConfigOfNames<Type, TableConfig, Default> =
+  IsUnion<Type> extends true
+    ? (<T>() => T extends TableConfig ? 1 : 2) extends <T>() => T extends Default ? 1 : 2
+      ? true
+      : false
+    : false;
+
+type IsUnion<T, All = T> = T extends unknown ? ([All] extends [T] ? false : true) : never;
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -73,7 +85,7 @@ declare global {
           true extends Selection ? true : Selection & { columns: {} }
         >,
       >(
-        table: Table,
+        table: Table | DrizzleRelationsHint<Types>,
         options: DrizzleObjectOptions<Types, Table, Shape, Selection, Interfaces>,
       ) => DrizzleObjectRef<Types, Table, Shape>;
 
@@ -89,7 +101,7 @@ declare global {
           true extends Selection ? true : Selection & { columns: {} }
         >,
       >(
-        table: Table,
+        table: Table | DrizzleRelationsHint<Types>,
         options: DrizzleInterfaceOptions<Types, Table, Shape, Selection, Interfaces>,
       ) => DrizzleInterfaceRef<Types, Table, Shape>;
 
@@ -107,7 +119,7 @@ declare global {
               true extends Selection ? true : Selection & { columns: {} }
             >,
           >(
-            table: Table,
+            table: Table | DrizzleRelationsHint<Types>,
             options: DrizzleNodeOptions<Types, Table, Shape, Selection, Interfaces, IDColumns>,
           ) => DrizzleNodeRef<Types, Table, Shape, ShapeFromIdColumns<Types, Table, IDColumns>>
         : '@pothos/plugin-relay is required to use this method';
@@ -117,17 +129,29 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleObjectRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        Shape extends {} = Type extends DrizzleObjectRef<
-          Types,
-          keyof Types['DrizzleRelations'],
-          infer S
-        >
-          ? S & { [drizzleTableName]?: TableConfig['name'] }
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
-              [drizzleTableName]?: Type;
-            },
+        // When TableConfig is the default, use each name's own table. Pairing every name with
+        // every table made table name completion very slow in large schemas.
+        Shape extends {} = IsDefaultConfigOfNames<
+          Type,
+          TableConfig,
+          Type extends DrizzleObjectRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']]
+        > extends true
+          ? Type extends DrizzleObjectRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<
+                Types['DrizzleRelations'],
+                Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+                true
+              > &
+                DrizzleTableNameBrand<Type>
+          : Type extends DrizzleObjectRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+                DrizzleTableNameBrand<Type>,
       >(
-        type: Type,
+        type: Type | DrizzleRelationsHint<Types>,
         fieldName: string,
         field: (
           t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>,
@@ -139,17 +163,29 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleInterfaceRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        Shape extends {} = Type extends DrizzleInterfaceRef<
-          Types,
-          keyof Types['DrizzleRelations'],
-          infer S
-        >
-          ? S & { [drizzleTableName]?: TableConfig['name'] }
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
-              [drizzleTableName]?: Type;
-            },
+        // When TableConfig is the default, use each name's own table. Pairing every name with
+        // every table made table name completion very slow in large schemas.
+        Shape extends {} = IsDefaultConfigOfNames<
+          Type,
+          TableConfig,
+          Type extends DrizzleInterfaceRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']]
+        > extends true
+          ? Type extends DrizzleInterfaceRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<
+                Types['DrizzleRelations'],
+                Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+                true
+              > &
+                DrizzleTableNameBrand<Type>
+          : Type extends DrizzleInterfaceRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+                DrizzleTableNameBrand<Type>,
       >(
-        type: Type,
+        type: Type | DrizzleRelationsHint<Types>,
         fieldName: string,
         field: (
           t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>,
@@ -161,17 +197,29 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleObjectRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        Shape extends {} = Type extends DrizzleObjectRef<
-          Types,
-          keyof Types['DrizzleRelations'],
-          infer S
-        >
-          ? S & { [drizzleTableName]?: TableConfig['name'] }
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
-              [drizzleTableName]?: Type;
-            },
+        // When TableConfig is the default, use each name's own table. Pairing every name with
+        // every table made table name completion very slow in large schemas.
+        Shape extends {} = IsDefaultConfigOfNames<
+          Type,
+          TableConfig,
+          Type extends DrizzleObjectRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']]
+        > extends true
+          ? Type extends DrizzleObjectRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<
+                Types['DrizzleRelations'],
+                Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+                true
+              > &
+                DrizzleTableNameBrand<Type>
+          : Type extends DrizzleObjectRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+                DrizzleTableNameBrand<Type>,
       >(
-        type: Type,
+        type: Type | DrizzleRelationsHint<Types>,
         fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldMap,
       ) => void;
 
@@ -180,17 +228,29 @@ declare global {
         TableConfig extends TableRelationalConfig = Type extends DrizzleInterfaceRef<Types>
           ? Type[typeof drizzleTableKey]
           : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
-        Shape extends {} = Type extends DrizzleInterfaceRef<
-          Types,
-          keyof Types['DrizzleRelations'],
-          infer S
-        >
-          ? S & { [drizzleTableName]?: TableConfig['name'] }
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
-              [drizzleTableName]?: Type;
-            },
+        // When TableConfig is the default, use each name's own table. Pairing every name with
+        // every table made table name completion very slow in large schemas.
+        Shape extends {} = IsDefaultConfigOfNames<
+          Type,
+          TableConfig,
+          Type extends DrizzleInterfaceRef<Types>
+            ? Type[typeof drizzleTableKey]
+            : Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']]
+        > extends true
+          ? Type extends DrizzleInterfaceRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<
+                Types['DrizzleRelations'],
+                Types['DrizzleRelations'][Type & keyof Types['DrizzleRelations']],
+                true
+              > &
+                DrizzleTableNameBrand<Type>
+          : Type extends DrizzleInterfaceRef<Types, keyof Types['DrizzleRelations'], infer S>
+            ? S & DrizzleTableNameBrand<TableConfig['name']>
+            : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+                DrizzleTableNameBrand<Type>,
       >(
-        type: Type,
+        type: Type | DrizzleRelationsHint<Types>,
         fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldMap,
       ) => void;
     }
@@ -233,7 +293,7 @@ declare global {
         > = {},
       >(
         // biome-ignore lint/suspicious/noExplicitAny: a ref from before `withAuth` replaced the context
-        type: Table | DrizzleRef<any, Table>,
+        type: Table | DrizzleRef<any, Table> | DrizzleRelationsHint<Types>,
         // The concrete query intersection contextually types callbacks while Selection retains literals.
         options: Selection &
           DBQueryConfig<'many', Types['DrizzleRelations'], Types['DrizzleRelations'][Table]> &
@@ -249,7 +309,22 @@ declare global {
             path?: PathSegment[];
             paths?: PathSegment[][];
           },
-      ) => MaybeAsyncSelection<Types, QueryFromInfoResult<Selection>>;
+      ) => MaybeAsyncSelection<
+        Types,
+        DrizzleQueryFromInfoResult<
+          // With no query keys in the options, Selection falls back to the whole config.
+          (<T>() => T extends Selection ? 1 : 2) extends <T>() => T extends DBQueryConfig<
+            'many',
+            Types['DrizzleRelations'],
+            Types['DrizzleRelations'][Table]
+          >
+            ? 1
+            : 2
+            ? {}
+            : Selection,
+          Table
+        >
+      >;
 
       drizzleField: <
         Args extends InputFieldMap,

@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.type.json",
+  "include": ["src/**/*", "tests/missing-plugins.test-d.ts"],
+  "exclude": ["tests/**/client/internal/**"]
+}
