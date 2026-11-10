@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.17.0
+
+### Minor Changes
+
+- a62d1fc: Add `mapAsyncIterator` to map async iterator values without delaying cancellation while a read is pending.
+
 ## 4.16.0
 
 ### Minor Changes

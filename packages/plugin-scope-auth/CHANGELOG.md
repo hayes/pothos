@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.0
+
+### Minor Changes
+
+- 21241c7: Scope and grant checks that read the parent can see the full parent row when a plugin such as `@pothos/plugin-prisma` or `@pothos/plugin-drizzle` supplies it, instead of only what the parent field returned. Resolvers still get the original parent.
+
 ## 4.2.2
 
 ### Patch Changes

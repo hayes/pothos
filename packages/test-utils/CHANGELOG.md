@@ -1,5 +1,13 @@
 # @giraphql/test-utils
 
+## 2.3.0
+
+### Minor Changes
+
+- 963ff0a: Add `rebuildResolverPaths`, which hands a schema's resolvers their info as graphql-jit builds it, for testing code that reads `info.path`.
+
+  Add `infoAt`, which builds the info of another field in the same execution, with the path its executor would give it.
+
 ## 2.2.1
 
 ### Patch Changes
