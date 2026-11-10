@@ -1,0 +1,11 @@
+{
+  "extends": "../../../../tsconfig.options.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "incremental": false,
+    "skipLibCheck": true
+  },
+  "include": [],
+  "files": ["names.ts"]
+}

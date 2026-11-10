@@ -4,5 +4,10 @@
   },
   "extends": "../../tsconfig.options.json",
   "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["tests/declarations/*.ts", "tests/missing-plugins.test-d.ts", "tests/type-cost/*.ts"]
+  "exclude": [
+    "tests/declarations/*.ts",
+    "tests/missing-plugins.test-d.ts",
+    "tests/type-cost/*.ts",
+    "tests/type-messages/*.ts"
+  ]
 }
