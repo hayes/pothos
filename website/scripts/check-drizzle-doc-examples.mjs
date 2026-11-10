@@ -34,26 +34,6 @@ const skipped = [
 // Blocks with type errors that are not fixed yet, with every error each one has. The check fails
 // on any other error in them, and once a listed error no longer occurs.
 const knownFailures = [
-  // These two are fixed by a pending docs fix. Remove them once it lands.
-  {
-    page: 'query-planning.mdx',
-    snippet: "type: ['posts'],",
-    errors: [
-      { code: 'TS2322', text: `Type '["posts"]' is not assignable` },
-      { code: 'TS2322', text: `Type 'string' is not assignable to type 'RelationsOrderDirection` },
-      { code: 'TS2339', text: "Property 'posts' does not exist" },
-    ],
-  },
-  {
-    page: 'async-selections.mdx',
-    snippet: "type: ['posts'],",
-    errors: [
-      { code: 'TS2322', text: `Type '["posts"]' is not assignable` },
-      { code: 'TS2322', text: `Type 'string' is not assignable to type 'RelationsOrderDirection` },
-      { code: 'TS2339', text: "Property 'posts' does not exist" },
-    ],
-  },
-
   // The query `t.drizzleQueryFromInfo` returns types its rows with only the listed columns (`{}`
   // with none), and lacks the brand that lets a drizzle ref accept such rows, which the `query` of
   // `t.drizzleField` has. The fix is in the plugin's types.
