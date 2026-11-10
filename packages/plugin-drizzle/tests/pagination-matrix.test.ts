@@ -38,6 +38,30 @@ const ORDERS = {
 
 type Order = keyof typeof ORDERS;
 
+// The same orderings written out for drizzle, with the tie-breaker the plugin appends: the primary
+// key, in the direction of the last column.
+const REFERENCE_ORDERS = {
+  idAsc: { postId: 'asc' },
+  idDesc: { postId: 'desc' },
+  publishedAsc: { published: 'asc', postId: 'asc' },
+  publishedDesc: { published: 'desc', postId: 'desc' },
+  twoColumns: { published: 'desc', title: 'asc', postId: 'asc' },
+} as const satisfies Record<Order, unknown>;
+
+// The rows each connection pages, fetched directly.
+async function referenceIds(connection: Connection, order: Order) {
+  const rows = await db.query.posts.findMany({
+    columns: { postId: true },
+    where:
+      connection === 'root'
+        ? { postId: { gte: 14, lte: 18 } }
+        : { authorId: 1, postId: { lte: 5 } },
+    orderBy: REFERENCE_ORDERS[order],
+  });
+
+  return rows.map((row) => row.postId);
+}
+
 builder.drizzleObject('posts', {
   name: 'Post',
   fields: (t) => ({ id: t.exposeInt('postId') }),
@@ -188,6 +212,9 @@ describe.each(['root', 'related'] as const)('%s connection', (connection) => {
     const [unpaged] = await pages(connection, order, [{ first: 100 }]);
 
     expect(unpaged.edges).toHaveLength(5);
+    expect(unpaged.edges.map((edge) => edge.node.id)).toEqual(
+      await referenceIds(connection, order),
+    );
     expect(unpaged.pageInfo.hasNextPage).toBe(false);
 
     const combinations = combinationsFor(unpaged.edges);

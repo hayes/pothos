@@ -36,6 +36,12 @@ builder.queryType({
       nullable: true,
       resolve: () => ({ id: 999_999 }),
     }),
+    // Rows without the fields' selects, so each is reloaded; the second does not exist.
+    someUsers: t.field({
+      type: [User],
+      nullable: { list: false, items: true },
+      resolve: () => [{ id: 1 }, { id: 999_999 }, { id: 2 }],
+    }),
   }),
 });
 
@@ -87,6 +93,65 @@ describe('rows that do not exist', () => {
         ],
       },
     });
+  });
+
+  it('resolves repeated IDs, found and missing, each in place', async () => {
+    const result = await execute({
+      schema,
+      document: gql`
+        query ($ids: [ID!]!) {
+          nodes(ids: $ids) {
+            id
+            ... on User {
+              firstName
+            }
+          }
+        }
+      `,
+      variableValues: { ids: [userId(1), userId(999_999), userId(1), userId(999_999)] },
+      contextValue: {},
+    });
+
+    expect(result).toEqual({
+      data: {
+        nodes: [
+          { id: userId(1), firstName: expect.any(String) },
+          null,
+          { id: userId(1), firstName: expect.any(String) },
+          null,
+        ],
+      },
+    });
+  });
+
+  it('reloads the rows of a list that exist, and fails only the one that does not', async () => {
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          someUsers {
+            id
+            firstName
+          }
+        }
+      `,
+      contextValue: {},
+    });
+
+    expect(result.data).toEqual({
+      someUsers: [
+        { id: userId(1), firstName: expect.any(String) },
+        { id: userId(999_999), firstName: null },
+        { id: userId(2), firstName: expect.any(String) },
+      ],
+    });
+    expect(result.errors).toHaveLength(1);
+
+    const [error] = result.errors as GraphQLError[];
+
+    expect(error.message).toBe('Unexpected error.');
+    expect(error.path).toEqual(['someUsers', 1, 'firstName']);
+    expect((error.originalError?.cause as Error).message).toBe('Model users(999999) not found');
   });
 
   it('fails a parent reload of a row that does not exist without naming it', async () => {
