@@ -191,7 +191,7 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
       const relationConfig = model.relations[key];
 
       if (!relationConfig) {
-        throw new InternalError(`Relation ${key} does not exist on ${model.name}`);
+        throw new UnknownRelationError(key, model.name);
       }
 
       visit.relation(
@@ -200,6 +200,16 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
         value === true ? ALL : (value as SelectionMap),
       );
     }
+  }
+}
+
+/** A select naming a relation its table does not have. */
+export class UnknownRelationError extends InternalError {
+  constructor(
+    readonly relation: string,
+    readonly table: string,
+  ) {
+    super(`Relation ${relation} does not exist on ${table}`);
   }
 }
 

@@ -6,6 +6,7 @@ import SchemaBuilder, {
   type ObjectRef,
   type OutputType,
   PothosError,
+  PothosSchemaError,
   type SchemaTypes,
 } from '@pothos/core';
 import type { Column, TableRelationalConfig } from 'drizzle-orm';
@@ -16,10 +17,11 @@ import { ModelLoader, typeParentLoader } from './model-loader.js';
 import { DrizzleNodeRef } from './node-ref.js';
 import { DrizzleObjectRef } from './object-ref.js';
 import type { DrizzleNodeOptions } from './types.js';
-import { drizzleAdapter } from './utils/adapter.js';
+import { type DrizzleAdapter, drizzleAdapter, UnknownRelationError } from './utils/adapter.js';
 import { getSchemaConfig } from './utils/config.js';
 import { getIDParser, getIDSerializer } from './utils/cursors.js';
 import { getRefFromModel } from './utils/refs.js';
+import type { SelectionMap } from './utils/selections.js';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -59,6 +61,13 @@ function defineDrizzleType(
   const schemaConfig = getSchemaConfig(builder);
   const typeSelect = typeof select === 'object' ? { columns: {}, ...select } : undefined;
   const loader = ModelLoader.forModel(table, builder);
+  // Planned once here, so a mistake in the type's `select` fails the build.
+  const typeNode = planTypeSelect(
+    drizzleAdapter(schemaConfig),
+    schemaConfig.relations[table],
+    typeSelect ?? {},
+    `drizzle${kind} ${name}`,
+  );
 
   const config = {
     ...options,
@@ -72,12 +81,7 @@ function defineDrizzleType(
       ...(isInterface
         ? {}
         : {
-            pothosScopeAuthParent: typeParentLoader(
-              loader,
-              drizzleAdapter(schemaConfig),
-              schemaConfig.relations[table],
-              typeSelect ?? {},
-            ),
+            pothosScopeAuthParent: typeParentLoader(loader, typeNode),
           }),
     },
     name,
@@ -93,6 +97,30 @@ function defineDrizzleType(
   }
 
   return ref;
+}
+
+/** The node of a type-level `select`, with a relation the table lacks as a schema error. */
+function planTypeSelect(
+  adapter: DrizzleAdapter,
+  table: TableRelationalConfig,
+  selection: SelectionMap,
+  definedBy: string,
+) {
+  const root = adapter.createNode(table);
+
+  try {
+    adapter.mergeQuery(root, selection);
+  } catch (error) {
+    if (error instanceof UnknownRelationError) {
+      throw new PothosSchemaError(
+        `The select of ${definedBy} includes relation "${error.relation}", which table ${error.table} does not have`,
+      );
+    }
+
+    throw error;
+  }
+
+  return root;
 }
 
 schemaBuilderProto.drizzleObject = function drizzleObject(table, options) {

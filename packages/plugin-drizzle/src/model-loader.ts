@@ -1,10 +1,4 @@
-import {
-  createContextCache,
-  isThenable,
-  type MaybePromise,
-  PothosSchemaError,
-  type SchemaTypes,
-} from '@pothos/core';
+import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
 import {
   fieldKey,
   forExecution,
@@ -34,7 +28,6 @@ import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './ut
 import { InternalError } from './utils/errors.js';
 import { planFromInfo } from './utils/map-query.js';
 import { setPlannedPosition } from './utils/path-info.js';
-import type { SelectionMap } from './utils/selections.js';
 
 /** A load found no row for the key. A node load resolves `null` for it; a reload raises it. */
 class MissingRowError extends InternalError {}
@@ -327,29 +320,16 @@ type ScopeAuthParentLoader = (
 
 /**
  * The parent scope-auth's checks see for a type: the row when it has every top-level key of the
- * type's selection, otherwise the row reloaded with it.
+ * type's selection (`root`, planned from it), otherwise the row reloaded with it.
  */
 export function typeParentLoader(
   loaders: (context: object) => ModelLoader,
-  adapter: DrizzleAdapter,
-  table: TableRelationalConfig,
-  selection: SelectionMap,
+  root: DrizzleNode,
 ): ScopeAuthParentLoader {
-  const root = adapter.createNode(table);
-
-  try {
-    adapter.mergeQuery(root, selection);
-  } catch (error) {
-    // The type's own `select` is planned here, at build, so a mistake in it is a schema error.
-    throw error instanceof InternalError
-      ? new PothosSchemaError((error.cause as Error).message)
-      : error;
-  }
-
   // Read from the node, which resolves a `columns` map that only excludes. A node without columns
   // selects every column.
   const keys = [
-    ...(root.columns ?? Object.keys(getColumns(table.table as Table))),
+    ...(root.columns ?? Object.keys(getColumns(root.model.table as Table))),
     ...root.relations.keys(),
     ...root.computed.keys(),
   ];

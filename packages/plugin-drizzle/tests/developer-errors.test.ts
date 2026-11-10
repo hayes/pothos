@@ -15,9 +15,6 @@ function createBuilder() {
   });
 }
 
-// Not a fresh object literal, so its extra key passes the `with` type.
-const withUnknownRelation = { posts: true as const, followers: true as const };
-
 async function runOne(
   schema: ReturnType<ReturnType<typeof createBuilder>['toSchema']>,
   query: string,
@@ -36,12 +33,45 @@ describe('mistakes in the app that surface at request time', () => {
     const define = () =>
       builder.drizzleObject('users', {
         name: 'User',
-        select: { with: withUnknownRelation },
+        select: { with: { posts: true, followers: true } },
         fields: (t) => ({ id: t.exposeID('id') }),
       });
 
     expect(define).toThrow(PothosSchemaError);
-    expect(define).toThrow('Relation followers does not exist on users');
+    expect(define).toThrow(
+      'The select of drizzleObject User includes relation "followers", which table users does not have',
+    );
+  });
+
+  it('rejects an interface select naming a relation the table does not have at build', () => {
+    const builder = createBuilder();
+
+    const define = () =>
+      builder.drizzleInterface('users', {
+        name: 'IUser',
+        select: { with: { posts: true, followers: true } },
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+
+    expect(define).toThrow(PothosSchemaError);
+    expect(define).toThrow(
+      'The select of drizzleInterface IUser includes relation "followers", which table users does not have',
+    );
+  });
+
+  it('names the table of a nested relation the select gets wrong', () => {
+    const builder = createBuilder();
+
+    const define = () =>
+      builder.drizzleObject('users', {
+        name: 'User',
+        select: { with: { posts: { with: { author: true, nope: true } } } },
+        fields: (t) => ({ id: t.exposeID('id') }),
+      });
+
+    expect(define).toThrow(
+      'The select of drizzleObject User includes relation "nope", which table posts does not have',
+    );
   });
 
   it('hides a field select naming a relation the table does not have', async () => {
@@ -50,7 +80,7 @@ describe('mistakes in the app that surface at request time', () => {
       name: 'User',
       fields: (t) => ({
         postCount: t.int({
-          select: { with: withUnknownRelation },
+          select: { with: { posts: true, followers: true } },
           resolve: (user) => user.posts.length,
         }),
       }),
