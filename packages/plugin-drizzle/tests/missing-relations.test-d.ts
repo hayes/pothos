@@ -21,9 +21,31 @@ const builder = new SchemaBuilder<{}>({
 
 builder.queryType({ fields: (t) => ({ hello: t.string({ resolve: () => 'world' }) }) });
 
+type Types = typeof builder.$inferSchemaTypes;
+type QueryFieldBuilder = PothosSchemaTypes.QueryFieldBuilder<Types, {}>;
+
 it('names the missing setup where a table name is expected', () => {
+  expectTypeOf<DrizzleRelationsHint<Types>>().toEqualTypeOf<Hint>();
+  // Each name position offers the hint. The @ts-expect-error lines below pin where the error lands.
   expectTypeOf<Parameters<typeof builder.drizzleObject>[0]>().toEqualTypeOf<Hint>();
-  expectTypeOf<DrizzleRelationsHint<typeof builder.$inferSchemaTypes>>().toEqualTypeOf<Hint>();
+  expectTypeOf<Parameters<typeof builder.drizzleInterface>[0]>().toEqualTypeOf<Hint>();
+  expectTypeOf<Parameters<Exclude<typeof builder.drizzleNode, string>>[0]>().toEqualTypeOf<Hint>();
+  expectTypeOf<Hint>().toExtend<Parameters<typeof builder.drizzleObjectField>[0]>();
+  expectTypeOf<Hint>().toExtend<Parameters<typeof builder.drizzleObjectFields>[0]>();
+  expectTypeOf<Hint>().toExtend<Parameters<typeof builder.drizzleInterfaceField>[0]>();
+  expectTypeOf<Hint>().toExtend<Parameters<typeof builder.drizzleInterfaceFields>[0]>();
+  expectTypeOf<Hint>().toExtend<
+    Parameters<typeof drizzleConnectionHelpers<Types, keyof Types['DrizzleRelations'], true>>[1]
+  >();
+  expectTypeOf<Hint>().toExtend<Parameters<QueryFieldBuilder['drizzleQueryFromInfo']>[0]>();
+  expectTypeOf<Hint>().toExtend<Parameters<QueryFieldBuilder['drizzleField']>[0]['type']>();
+  expectTypeOf<[Hint]>().toExtend<Parameters<QueryFieldBuilder['drizzleField']>[0]['type']>();
+  expectTypeOf<Hint>().toExtend<
+    Parameters<Exclude<QueryFieldBuilder['drizzleConnection'], string>>[0]['type']
+  >();
+  expectTypeOf<Hint>().toExtend<
+    Parameters<Exclude<QueryFieldBuilder['drizzleFieldWithInput'], string>>[0]['type']
+  >();
 
   // @ts-expect-error DrizzleRelations is not set
   builder.drizzleObject('users', { fields: () => ({}) });

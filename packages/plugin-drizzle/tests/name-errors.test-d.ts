@@ -1,5 +1,5 @@
-// A misspelled column, relation or table name is rejected at the name itself, with an error that
-// lists the names that fit.
+// A misspelled column, relation or table name is rejected at the name itself. (The message lists
+// the names that fit; these tests pin only where the error lands.)
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';

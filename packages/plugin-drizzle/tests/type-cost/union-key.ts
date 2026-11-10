@@ -1,5 +1,7 @@
 // While completing a table name, the editor checks the call with every table key at once. Each
-// key should then cost one check against its own table, not one against every table.
+// key should then cost one check against its own table, not one against every table. The
+// connection calls are linear in tsc either way; their pairwise cost on `orderBy` showed only in
+// the editor's completion request, which this count can't see.
 import { type DrizzleRef, drizzleConnectionHelpers } from '../../src';
 import { builder, db } from './builder';
 
