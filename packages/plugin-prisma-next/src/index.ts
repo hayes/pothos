@@ -45,6 +45,8 @@ import {
   PRISMA_TYPE_SELECT,
   PRISMA_TYPE_SELECTS,
 } from './constants.js';
+import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder.js';
+import type { ModelKey, Row } from './types/models.js';
 import { canInclude } from './utils/adapter.js';
 import {
   checkStaticSelect,
@@ -104,7 +106,24 @@ export {
   prismaModelBrand,
   type TypeBrand,
 } from './object-ref.js';
-export { PrismaObjectFieldBuilder } from './prisma-field-builder.js';
+/** The `t` of prisma type fields, with the methods other plugins add by declaration merging. */
+export type PrismaObjectFieldBuilder<
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  Shape = unknown,
+  ExposableShape = Row<Types, M>,
+> = PothosSchemaTypes.PrismaObjectFieldBuilder<Types, M, Shape, ExposableShape>;
+export const PrismaObjectFieldBuilder = InternalPrismaObjectFieldBuilder as new <
+  Types extends SchemaTypes,
+  M extends ModelKey<Types>,
+  Shape = unknown,
+  ExposableShape = Row<Types, M>,
+>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  modelKey: M,
+  contract: Types['PrismaContract'],
+  graphqlKind?: 'Interface' | 'Object',
+) => PothosSchemaTypes.PrismaObjectFieldBuilder<Types, M, Shape, ExposableShape>;
 export type {
   PrismaRelationCountOptions,
   RelationCountQuery,
