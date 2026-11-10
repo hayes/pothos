@@ -142,6 +142,11 @@ export type DrizzlePluginOptions<Types extends SchemaTypes> = DrizzlePluginBaseO
 
 export const drizzleTableName = Symbol.for('Pothos.drizzleTableName');
 
+/** Tags a parent shape with its table. An interface, so emitted declarations can name it. */
+export interface DrizzleTableNameBrand<Table> {
+  [drizzleTableName]?: Table;
+}
+
 type NameOrVariant =
   | {
       name?: never;
@@ -165,7 +170,7 @@ export type DrizzleObjectOptions<
       t: DrizzleObjectFieldBuilder<
         Types,
         Types['DrizzleRelations'][Table],
-        Shape & { [drizzleTableName]?: Table }
+        Shape & DrizzleTableNameBrand<Table>
       >,
     ) => FieldMap;
   };
@@ -183,7 +188,7 @@ export type DrizzleInterfaceOptions<
       t: DrizzleObjectFieldBuilder<
         Types,
         Types['DrizzleRelations'][Table],
-        Shape & { [drizzleTableName]?: Table }
+        Shape & DrizzleTableNameBrand<Table>
       >,
     ) => FieldMap;
   };
@@ -226,7 +231,7 @@ export type DrizzleNodeOptions<
       t: DrizzleObjectFieldBuilder<
         Types,
         Types['DrizzleRelations'][Table],
-        Shape & { [drizzleTableName]?: Table }
+        Shape & DrizzleTableNameBrand<Table>
       >,
     ) => FieldMap;
   } & NameOrVariant;

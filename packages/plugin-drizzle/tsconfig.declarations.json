@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.type.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "composite": false,
+    "incremental": false,
+    "skipLibCheck": false,
+    "rootDir": "tests",
+    "outDir": "tests/declarations/node_modules/.emitted"
+  },
+  "include": ["tests/declarations/*.ts"],
+  "exclude": []
+}

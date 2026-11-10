@@ -1,5 +1,6 @@
 {
   "include": ["**/*"],
+  "exclude": ["declarations/*.ts"],
   "extends": "../../../tsconfig.options.json",
   "compilerOptions": {
     "skipLibCheck": true

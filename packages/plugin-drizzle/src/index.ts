@@ -18,15 +18,21 @@ import { setPlannedPosition } from './utils/path-info.js';
 
 export { drizzleConnectionHelpers } from './connection-helpers.js';
 export { DrizzleObjectFieldBuilder } from './drizzle-field-builder.js';
+export type { DrizzleNodeRef } from './node-ref.js';
 export * from './types.js';
 export { drizzleTableName } from './types.js';
-export { drizzleClientCache, getSchemaConfig } from './utils/config.js';
+export {
+  drizzleClientCache,
+  getSchemaConfig,
+  type PothosDrizzleSchemaConfig,
+} from './utils/config.js';
 export {
   type QueryFromInfoOptions,
   type QueryFromInfoResult,
   type QueryFromInfoReturn,
   queryFromInfo,
 } from './utils/map-query.js';
+export type { SelectionMap } from './utils/selections.js';
 
 const pluginName = 'drizzle';
 

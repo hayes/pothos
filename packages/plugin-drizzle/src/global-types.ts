@@ -36,7 +36,7 @@ import type {
   DrizzleObjectFieldOptions,
   DrizzleObjectOptions,
   DrizzlePluginOptions,
-  drizzleTableName,
+  DrizzleTableNameBrand,
   ShapeFromConnection,
   ShapeFromIdColumns,
 } from './types.js';
@@ -122,10 +122,9 @@ declare global {
           keyof Types['DrizzleRelations'],
           infer S
         >
-          ? S & { [drizzleTableName]?: TableConfig['name'] }
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
-              [drizzleTableName]?: Type;
-            },
+          ? S & DrizzleTableNameBrand<TableConfig['name']>
+          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+              DrizzleTableNameBrand<Type>,
       >(
         type: Type,
         fieldName: string,
@@ -144,10 +143,9 @@ declare global {
           keyof Types['DrizzleRelations'],
           infer S
         >
-          ? S & { [drizzleTableName]?: TableConfig['name'] }
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
-              [drizzleTableName]?: Type;
-            },
+          ? S & DrizzleTableNameBrand<TableConfig['name']>
+          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+              DrizzleTableNameBrand<Type>,
       >(
         type: Type,
         fieldName: string,
@@ -166,10 +164,9 @@ declare global {
           keyof Types['DrizzleRelations'],
           infer S
         >
-          ? S & { [drizzleTableName]?: TableConfig['name'] }
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
-              [drizzleTableName]?: Type;
-            },
+          ? S & DrizzleTableNameBrand<TableConfig['name']>
+          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+              DrizzleTableNameBrand<Type>,
       >(
         type: Type,
         fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldMap,
@@ -185,10 +182,9 @@ declare global {
           keyof Types['DrizzleRelations'],
           infer S
         >
-          ? S & { [drizzleTableName]?: TableConfig['name'] }
-          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> & {
-              [drizzleTableName]?: Type;
-            },
+          ? S & DrizzleTableNameBrand<TableConfig['name']>
+          : BuildQueryResult<Types['DrizzleRelations'], TableConfig, true> &
+              DrizzleTableNameBrand<Type>,
       >(
         type: Type,
         fields: (t: DrizzleObjectFieldBuilder<Types, TableConfig, Shape>) => FieldMap,
