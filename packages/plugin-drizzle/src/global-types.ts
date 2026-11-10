@@ -17,6 +17,7 @@ import type { PathSegment } from '@pothos/selection-mapper';
 import type {
   BuildQueryResult,
   DBQueryConfig,
+  SQL,
   TableRelationalConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm';
@@ -266,7 +267,12 @@ declare global {
             path?: PathSegment[];
             paths?: PathSegment[][];
           },
-      ) => MaybeAsyncSelection<Types, QueryFromInfoResult<Selection>>;
+      ) => MaybeAsyncSelection<
+        Types,
+        // Branded like the `query` of `drizzleField`, so the rows can be returned from a field
+        // of the table's type.
+        QueryFromInfoResult<Selection> & { extras: { $pothosQueryFor: SQL<Table | undefined> } }
+      >;
 
       drizzleField: <
         Args extends InputFieldMap,
