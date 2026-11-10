@@ -43,6 +43,19 @@ type NoModelsInPrismaTypes<Hint extends string> = string & { readonly noModelsIn
 type NoModelsInPrismaTypesHint =
   'Set PrismaTypes to the generated types: new SchemaBuilder<{ PrismaTypes: PrismaTypes }>(...)';
 
+// `true` when `Names` is a union and `Model` is the same type as `Default`. Mutual assignability
+// is not enough: `any`, or a model that adds optional properties, is assignable both ways. A single
+// name reads the same shape either way, so it skips the comparison, which a generic `Model` would
+// leave unresolved.
+type IsDefaultModelOfNames<Names, Model, Default> =
+  IsUnion<Names> extends true
+    ? (<T>() => T extends Model ? 1 : 2) extends <T>() => T extends Default ? 1 : 2
+      ? true
+      : false
+    : false;
+
+type IsUnion<T, All = T> = T extends unknown ? ([All] extends [T] ? false : true) : never;
+
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
@@ -164,20 +177,20 @@ declare global {
 
       // While a name is being completed, `Type` is every name at once and `Model` every model. When
       // `Model` is its own default, the `Shape` default reads each name's own shape rather than
-      // pairing every name with every model's shape. An explicit `Model` keeps `Model['Shape']`.
-      // The same holds for the methods below.
+      // pairing every name with every model's shape. Any other explicit `Model` keeps
+      // `Model['Shape']`. The same holds for the methods below.
       prismaObjectField: <
         Type extends PrismaObjectRef<Types, PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
         Model extends PrismaModelTypes = Type extends PrismaObjectRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = [
+        Shape extends {} = IsDefaultModelOfNames<
+          Type,
           Model,
-          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        ] extends [
-          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-          Model,
-        ]
+          Type extends PrismaObjectRef<Types, infer M, {}>
+            ? M
+            : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]
+        > extends true
           ? Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
             ? S & { [prismaModelName]?: Model['Name'] }
             : (PrismaModelTypes &
@@ -200,13 +213,13 @@ declare global {
         Model extends PrismaModelTypes = Type extends PrismaInterfaceRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = [
+        Shape extends {} = IsDefaultModelOfNames<
+          Type,
           Model,
-          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        ] extends [
-          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-          Model,
-        ]
+          Type extends PrismaInterfaceRef<Types, infer M, {}>
+            ? M
+            : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]
+        > extends true
           ? Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
             ? S & { [prismaModelName]?: Model['Name'] }
             : (PrismaModelTypes &
@@ -229,13 +242,13 @@ declare global {
         Model extends PrismaModelTypes = Type extends PrismaObjectRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = [
+        Shape extends {} = IsDefaultModelOfNames<
+          Type,
           Model,
-          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        ] extends [
-          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-          Model,
-        ]
+          Type extends PrismaObjectRef<Types, infer M, {}>
+            ? M
+            : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]
+        > extends true
           ? Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
             ? S & { [prismaModelName]?: Model['Name'] }
             : (PrismaModelTypes &
@@ -257,13 +270,13 @@ declare global {
         Model extends PrismaModelTypes = Type extends PrismaInterfaceRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = [
+        Shape extends {} = IsDefaultModelOfNames<
+          Type,
           Model,
-          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        ] extends [
-          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-          Model,
-        ]
+          Type extends PrismaInterfaceRef<Types, infer M, {}>
+            ? M
+            : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]
+        > extends true
           ? Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
             ? S & { [prismaModelName]?: Model['Name'] }
             : (PrismaModelTypes &

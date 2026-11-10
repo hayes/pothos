@@ -223,3 +223,144 @@ it('accepts a name whose type is a union of names', () => {
     builder.prismaObjectFields(name, typenameFields);
   }
 });
+
+// biome-ignore lint/suspicious/noExplicitAny: an `any` model is one of the explicit models checked
+type AnyModel = any;
+type AnyModelFieldBuilder = FieldBuilder<AnyModel, AnyModel>;
+
+it('keeps the shape of an explicit model that only differs from the default in loose parts', () => {
+  type UserWithNick = Omit<PrismaTypes['User'], 'Shape'> & {
+    Shape: UserShape & { nick?: string };
+  };
+  type UserWithExtra = PrismaTypes['User'] & { Shape: { extra?: string } };
+  type UserWithAnyShape = Omit<PrismaTypes['User'], 'Shape'> & { Shape: AnyModel };
+
+  builder.prismaObjectFields<'User', AnyModel>('User', (t) => {
+    expectTypeOf(t).toEqualTypeOf<AnyModelFieldBuilder>();
+    return {
+      x1: t.string({
+        resolve: (user) => {
+          expectTypeOf(user).toBeAny();
+          return String(user.anything);
+        },
+      }),
+    };
+  });
+  builder.prismaObjectField<'User', AnyModel>('User', 'x1', (t) => {
+    expectTypeOf(t).toEqualTypeOf<AnyModelFieldBuilder>();
+    return t.string({ resolve: (user) => String(user.anything) });
+  });
+  builder.prismaInterfaceFields<'User', AnyModel>('User', (t) => {
+    expectTypeOf(t).toEqualTypeOf<AnyModelFieldBuilder>();
+    return { x1: t.string({ resolve: (user) => String(user.anything) }) };
+  });
+  builder.prismaInterfaceField<'User', AnyModel>('User', 'x1', (t) => {
+    expectTypeOf(t).toEqualTypeOf<AnyModelFieldBuilder>();
+    return t.string({ resolve: (user) => String(user.anything) });
+  });
+
+  builder.prismaObjectFields<'User', UserWithNick>('User', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithNick, Named<UserWithNick, 'User'>>>();
+    return {
+      x2: t.string({
+        nullable: true,
+        resolve: (user) => {
+          expectTypeOf(user).toEqualTypeOf<Named<UserWithNick, 'User'>>();
+          return user.nick;
+        },
+      }),
+    };
+  });
+  builder.prismaObjectField<'User', UserWithNick>('User', 'x2', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithNick, Named<UserWithNick, 'User'>>>();
+    return t.string({ nullable: true, resolve: (user) => user.nick });
+  });
+  builder.prismaInterfaceFields<'User', UserWithNick>('User', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithNick, Named<UserWithNick, 'User'>>>();
+    return { x2: t.string({ nullable: true, resolve: (user) => user.nick }) };
+  });
+  builder.prismaInterfaceField<'User', UserWithNick>('User', 'x2', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithNick, Named<UserWithNick, 'User'>>>();
+    return t.string({ nullable: true, resolve: (user) => user.nick });
+  });
+
+  builder.prismaObjectFields<'User', UserWithExtra>('User', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithExtra, Named<UserWithExtra, 'User'>>>();
+    return {
+      x3: t.string({
+        nullable: true,
+        resolve: (user) => {
+          expectTypeOf(user).toEqualTypeOf<Named<UserWithExtra, 'User'>>();
+          return user.extra;
+        },
+      }),
+    };
+  });
+  builder.prismaObjectField<'User', UserWithExtra>('User', 'x3', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithExtra, Named<UserWithExtra, 'User'>>>();
+    return t.string({ nullable: true, resolve: (user) => user.extra });
+  });
+  builder.prismaInterfaceFields<'User', UserWithExtra>('User', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithExtra, Named<UserWithExtra, 'User'>>>();
+    return { x3: t.string({ nullable: true, resolve: (user) => user.extra }) };
+  });
+  builder.prismaInterfaceField<'User', UserWithExtra>('User', 'x3', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithExtra, Named<UserWithExtra, 'User'>>>();
+    return t.string({ nullable: true, resolve: (user) => user.extra });
+  });
+
+  builder.prismaObjectFields<'User', UserWithAnyShape>('User', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithAnyShape, AnyModel>>();
+    return {
+      x4: t.string({
+        resolve: (user) => {
+          expectTypeOf(user).toBeAny();
+          return String(user.anything);
+        },
+      }),
+    };
+  });
+  builder.prismaObjectField<'User', UserWithAnyShape>('User', 'x4', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithAnyShape, AnyModel>>();
+    return t.string({ resolve: (user) => String(user.anything) });
+  });
+  builder.prismaInterfaceFields<'User', UserWithAnyShape>('User', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithAnyShape, AnyModel>>();
+    return { x4: t.string({ resolve: (user) => String(user.anything) }) };
+  });
+  builder.prismaInterfaceField<'User', UserWithAnyShape>('User', 'x4', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<UserWithAnyShape, AnyModel>>();
+    return t.string({ resolve: (user) => String(user.anything) });
+  });
+});
+
+it('keeps the shape of a generic model given for one name', () => {
+  function addId<Model extends PrismaModelTypes & { Shape: { id: number } }>(
+    fields: (t: FieldBuilder<Model, Named<Model, 'User'>>) => {},
+  ) {
+    builder.prismaObjectFields<'User', Model>('User', (t) => {
+      expectTypeOf(t).toEqualTypeOf<FieldBuilder<Model, Named<Model, 'User'>>>();
+      return {
+        g1: t.int({
+          resolve: (user) => {
+            const named: Named<Model, 'User'> = user;
+            const parent: typeof user = named;
+            return parent.id;
+          },
+        }),
+      };
+    });
+    builder.prismaObjectFields<'User', Model>('User', fields);
+    builder.prismaInterfaceFields<'User', Model>('User', fields);
+    builder.prismaObjectField<'User', Model>('User', 'g1', (t) => {
+      expectTypeOf(t).toEqualTypeOf<FieldBuilder<Model, Named<Model, 'User'>>>();
+      return t.int({ resolve: (user) => user.id });
+    });
+    builder.prismaInterfaceField<'User', Model>('User', 'g1', (t) => {
+      expectTypeOf(t).toEqualTypeOf<FieldBuilder<Model, Named<Model, 'User'>>>();
+      return t.int({ resolve: (user) => user.id });
+    });
+  }
+
+  addId<UserModel>(() => ({}));
+});
