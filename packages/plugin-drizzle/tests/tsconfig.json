@@ -1,6 +1,6 @@
 {
   "include": ["**/*"],
-  "exclude": ["declarations/*.ts"],
+  "exclude": ["declarations/*.ts", "missing-plugins.test-d.ts", "type-cost/*.ts"],
   "extends": "../../../tsconfig.options.json",
   "compilerOptions": {
     "skipLibCheck": true
