@@ -121,14 +121,14 @@ describe('malformed cursors', () => {
   ])('rejects %s', async (_name, payload) => {
     const result = await run(USERS, { after: cursor(payload) });
 
-    expectRejected(result, 'Invalid cursor', payload);
+    expectRejected(result, 'Invalid cursor.', payload);
     expectNoCursorQuery();
   });
 
   it('rejects a cursor that is not base64', async () => {
     const result = await run(USERS, { after: 'not a cursor!' });
 
-    expectRejected(result, 'Invalid cursor', 'not a cursor');
+    expectRejected(result, 'Invalid cursor.', 'not a cursor');
     expectNoCursorQuery();
   });
 
@@ -141,7 +141,7 @@ describe('malformed cursors', () => {
   ])('rejects %s for a DateTime column', async (_name, payload) => {
     const result = await run(POSTS_BY_CREATED_AT, { after: cursor(payload) });
 
-    expectRejected(result, 'Invalid cursor', payload);
+    expectRejected(result, 'Invalid cursor.', payload);
     expectNoCursorQuery();
   });
 
@@ -153,7 +153,7 @@ describe('malformed cursors', () => {
   ])('rejects %s for a BigInt column', async (_name, payload) => {
     const result = await run(POSTS_BY_BIGINT, { after: cursor(payload) });
 
-    expectRejected(result, 'Invalid cursor', payload);
+    expectRejected(result, 'Invalid cursor.', payload);
     expectNoCursorQuery();
   });
 
@@ -166,7 +166,7 @@ describe('malformed cursors', () => {
   ])('rejects a compound cursor that is %s', async (_name, payload) => {
     const result = await run(COMPOSITE_UNIQUE, { after: cursor(payload) });
 
-    expectRejected(result, 'Invalid cursor', payload);
+    expectRejected(result, 'Invalid cursor.', payload);
     expectNoCursorQuery();
   });
 
@@ -174,7 +174,7 @@ describe('malformed cursors', () => {
     const payload = 'GPC:J:["1",2]';
     const result = await run(FOLLOWING, { after: cursor(payload) });
 
-    expectRejected(result, 'Invalid cursor', payload);
+    expectRejected(result, 'Invalid cursor.', payload);
     expectNoCursorQuery();
   });
 
@@ -182,7 +182,7 @@ describe('malformed cursors', () => {
     const payload = 'GPC:S:abc';
     const result = await run(HELPER_COMMENTS, { after: cursor(payload) });
 
-    expectRejected(result, 'Invalid cursor', payload);
+    expectRejected(result, 'Invalid cursor.', payload);
     expectNoCursorQuery();
   });
 });
@@ -310,7 +310,7 @@ describe('malformed node ids', () => {
   ])('rejects an Int id that is %s', async (_name, id) => {
     const result = await run(NODE, { id: encodeGlobalID('User', id) });
 
-    expectRejected(result, 'Invalid ID', id);
+    expectRejected(result, 'Invalid ID.', id);
     expect(queries).toEqual([]);
   });
 
@@ -319,7 +319,7 @@ describe('malformed node ids', () => {
       ids: [encodeGlobalID('User', 1), encodeGlobalID('User', '1abc')],
     });
 
-    expect(result.errors?.map((error) => error.message)).toEqual(['Invalid ID']);
+    expect(result.errors?.map((error) => error.message)).toEqual(['Invalid ID.']);
     expect(serialized(result.errors)).not.toContain('1abc');
     expect(serialized(queries)).not.toContain('1abc');
   });
@@ -334,7 +334,7 @@ describe('malformed node ids', () => {
   ])('rejects a composite id that is %s', async (_name, id) => {
     const result = await run(NODE, { id: encodeGlobalID('WithCompositeIDNode', id) });
 
-    expectRejected(result, 'Invalid ID', id);
+    expectRejected(result, 'Invalid ID.', id);
     expect(queries).toEqual([]);
   });
 });

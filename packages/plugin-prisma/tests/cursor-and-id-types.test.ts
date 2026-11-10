@@ -121,7 +121,7 @@ describe('compound cursors', () => {
 
   it('rejects a cursor of the wrong width', () => {
     expect(() => parse(formatPrismaCursor({ a: 1, b: 2, c: 3 }, ['a', 'b', 'c']))).toThrow(
-      'Invalid cursor',
+      'Invalid cursor.',
     );
   });
 });
@@ -166,16 +166,16 @@ describe('cursors issued before this release', () => {
   it('still rejects a cursor of the wrong width', () => {
     const legacy = Buffer.from('GPC:J:[1,2,3]').toString('base64');
 
-    expect(() => parseCompositeCursor(['a', 'b'])(legacy)).toThrow('Invalid cursor');
+    expect(() => parseCompositeCursor(['a', 'b'])(legacy)).toThrow('Invalid cursor.');
   });
 
   it('still rejects a cursor that is not base64, and one with an unknown tag', () => {
-    expect(() => parsePrismaCursor('not a cursor')).toThrow(/^Invalid cursor$/);
+    expect(() => parsePrismaCursor('not a cursor')).toThrow(/^Invalid cursor\.$/);
     expect(() => parsePrismaCursor(Buffer.from('GPC:Q:1').toString('base64'))).toThrow(
-      'Invalid cursor',
+      'Invalid cursor.',
     );
     expect(() => parsePrismaCursor(Buffer.from('DC:N:1').toString('base64'))).toThrow(
-      'Invalid cursor',
+      'Invalid cursor.',
     );
   });
 });
@@ -426,7 +426,7 @@ describe('cursor values checked against the column type', () => {
   it.each(
     cases.flatMap(([type, , rejected]) => rejected.map((payload) => [type, payload])),
   )('%s rejects %s', (type, payload) => {
-    expect(() => parserFor(type)(encode(payload))).toThrow(/^Invalid cursor$/);
+    expect(() => parserFor(type)(encode(payload))).toThrow(/^Invalid cursor\.$/);
   });
 
   const compound = builderFor(
@@ -464,7 +464,7 @@ describe('cursor values checked against the column type', () => {
     );
 
     expect(parse(encode('J:["ADMIN",2]'))).toEqual({ role_n: { role: 'ADMIN', n: 2 } });
-    expect(() => parse(encode('J:[1,2]'))).toThrow(/^Invalid cursor$/);
+    expect(() => parse(encode('J:[1,2]'))).toThrow(/^Invalid cursor\.$/);
   });
 
   it.each([
@@ -475,7 +475,7 @@ describe('cursor values checked against the column type', () => {
     'T:[null,"N:2"]',
     'S:x',
   ])('rejects the compound cursor %s', (payload) => {
-    expect(() => parseCompound(encode(payload))).toThrow(/^Invalid cursor$/);
+    expect(() => parseCompound(encode(payload))).toThrow(/^Invalid cursor\.$/);
   });
 });
 
@@ -592,7 +592,7 @@ describe('node ids checked against the field type', () => {
   it.each(
     cases.flatMap(([type, , rejected]) => rejected.map((id) => [type, id])),
   )('%s rejects %j', (type, id) => {
-    expect(() => parserFor(type)(id)).toThrow(/^Invalid ID$/);
+    expect(() => parserFor(type)(id)).toThrow(/^Invalid ID\.$/);
   });
 
   // An id written before compound ids serialized each part by its type, when a date part was
@@ -609,7 +609,7 @@ describe('node ids checked against the field type', () => {
 
     expect(parse(JSON.stringify([at.toISOString(), '1']))).toEqual({ at, n: 1 });
     expect(parse(JSON.stringify([String(at), '1']))).toEqual({ at, n: 1 });
-    expect(() => parse(JSON.stringify([String(at), '1x']))).toThrow(/^Invalid ID$/);
+    expect(() => parse(JSON.stringify([String(at), '1x']))).toThrow(/^Invalid ID\.$/);
   });
 });
 

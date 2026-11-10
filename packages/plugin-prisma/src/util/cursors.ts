@@ -35,7 +35,7 @@ export function cursorFormatter(fields: string[] | string) {
 
 export function parsePrismaCursor(cursor: unknown) {
   if (typeof cursor !== 'string') {
-    throw new PothosValidationError('Cursor must be a string');
+    throw new PothosValidationError('Invalid cursor.');
   }
 
   try {
@@ -46,7 +46,7 @@ export function parsePrismaCursor(cursor: unknown) {
     }
   } catch {}
 
-  throw new PothosValidationError('Invalid cursor');
+  throw new PothosValidationError('Invalid cursor.');
 }
 
 // What `String` writes for an integer and for a finite number.
@@ -152,7 +152,7 @@ export function parseID(id: string, dataType: string): unknown {
   const value = parseIDValue(id, dataType);
 
   if (value === undefined) {
-    throw new PothosValidationError('Invalid ID');
+    throw new PothosValidationError('Invalid ID.');
   }
 
   return value;
@@ -229,7 +229,7 @@ export function getDefaultIDParser<Types extends SchemaTypes>(
       parts.length !== fields!.length ||
       !parts.every((part) => typeof part === 'string')
     ) {
-      throw new PothosValidationError('Invalid ID');
+      throw new PothosValidationError('Invalid ID.');
     }
 
     const result: Record<string, unknown> = {};
@@ -272,7 +272,7 @@ export function parseCompositeCursor(fields: readonly string[]) {
     // A cursor of the wrong width would otherwise leave a key `undefined` (or silently drop an
     // extra), and prisma rejects the query that builds. The drizzle plugin checks the same.
     if (!Array.isArray(parsed) || parsed.length !== fields.length) {
-      throw new PothosValidationError('Invalid cursor');
+      throw new PothosValidationError('Invalid cursor.');
     }
 
     const record: Record<string, unknown> = {};
@@ -556,7 +556,7 @@ export function getCursorParser<Types extends SchemaTypes>(
     const checked = checker(value);
 
     if (checked === undefined) {
-      throw new PothosValidationError('Invalid cursor');
+      throw new PothosValidationError('Invalid cursor.');
     }
 
     return checked;
