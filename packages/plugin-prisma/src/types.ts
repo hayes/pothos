@@ -458,8 +458,8 @@ export type PrismaNodeOptions<
             resolve?: never;
             field: UniqueField extends UniqueFieldsFromWhereUnique<Model['WhereUnique']>
               ? UniqueField
-              : // Intersected again, so an error lists the names rather than the alias, and lands
-                // on this property in generic code too.
+              : // `& string` so errors list the valid names and point at this property in
+                // generic code.
                 UniqueFieldsFromWhereUnique<Model['WhereUnique']> & string;
           }
       );
@@ -521,7 +521,7 @@ type CursorFromRelation<
 > = Field extends keyof Model['Include']
   ? Model['Include'][Field] extends infer Include
     ? Include extends { cursor?: infer T }
-      ? // Intersected again, so an error lists the names rather than the alias.
+      ? // `& string` so errors list the valid names.
         UniqueFieldsFromWhereUnique<T> & string
       : never
     : never
@@ -799,8 +799,7 @@ export type PrismaConnectionFieldOptions<
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
         type: Type;
-        // Intersected again, so an error lists the names rather than the alias, and lands on
-        // this property in generic code too.
+        // `& string` so errors list the valid names and point at this property in generic code.
         cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']> & string;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
@@ -1093,7 +1092,7 @@ export type PrismaTypesFromClient<ClientType, PrismaUtils extends boolean = fals
   };
 };
 
-/** A field of a model in the datamodel the generator writes. */
+/** A field of a model in the generated datamodel. */
 export interface PothosPrismaDatamodelField {
   type: string;
   kind: string;

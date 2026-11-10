@@ -34,19 +34,16 @@ import {
   type ShapeFromSelection,
 } from './types.js';
 
-// Without models in `PrismaTypes` (not set, or set to an empty type), model names would be checked
-// against `never`. The model names are then this sentinel, which accepts no name and names the
-// setup in the error. It is a branded string, not a string literal, so editors never offer it as a
-// completion.
+// Used as the model name type when PrismaTypes has no models, so the error says how to set it up
+// instead of showing `never`. It's a branded string so editors don't suggest it.
 type NoModelsInPrismaTypes<Hint extends string> = string & { readonly noModelsInPrismaTypes: Hint };
 
 type NoModelsInPrismaTypesHint =
   'Set PrismaTypes to the generated types: new SchemaBuilder<{ PrismaTypes: PrismaTypes }>(...)';
 
-// `true` when `Names` is a union and `Model` is the same type as `Default`. Mutual assignability
-// is not enough: `any`, or a model that adds optional properties, is assignable both ways. A single
-// name reads the same shape either way, so it skips the comparison, which a generic `Model` would
-// leave unresolved.
+// True when `Names` is a union and `Model` is exactly `Default`. Checking assignability both ways
+// isn't enough, because `any` passes. A single name gets the same shape either way, so it skips the
+// check.
 type IsDefaultModelOfNames<Names, Model, Default> =
   IsUnion<Names> extends true
     ? (<T>() => T extends Model ? 1 : 2) extends <T>() => T extends Default ? 1 : 2
@@ -175,10 +172,9 @@ declare global {
         ShapeFromSelection<Types, Model, { select: Select; include: Include }>
       >;
 
-      // While a name is being completed, `Type` is every name at once and `Model` every model. When
-      // `Model` is its own default, the `Shape` default reads each name's own shape rather than
-      // pairing every name with every model's shape. Any other explicit `Model` keeps
-      // `Model['Shape']`. The same holds for the methods below.
+      // When `Model` is the default, use each name's own shape. Pairing every name with every
+      // model's shape made model name completion very slow in large schemas. An explicit `Model`
+      // still gets `Model['Shape']`. Same for the methods below.
       prismaObjectField: <
         Type extends PrismaObjectRef<Types, PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
         Model extends PrismaModelTypes = Type extends PrismaObjectRef<Types, infer M, {}>
@@ -535,8 +531,8 @@ declare global {
     > {}
     export interface ScopeAuthContextForAuth<Types extends SchemaTypes, Scopes extends {}> {}
 
-    // `in out Types` is the variance TypeScript measures. Stating it saves measuring it through
-    // every method of the schema builder, a fixed cost per program (about 25 ms on TypeScript 7).
+    // Declaring the variance of `Types` saves TypeScript from working it out through the whole
+    // schema builder, which cost about 25ms per program on TypeScript 7.
     export interface PrismaObjectFieldBuilder<
       in out Types extends SchemaTypes,
       Model extends PrismaModelTypes,

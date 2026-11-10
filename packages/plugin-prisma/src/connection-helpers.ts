@@ -59,8 +59,7 @@ export function prismaConnectionHelpers<
     maxSize = builder.options.prisma?.maxConnectionSize,
     defaultSize = builder.options.prisma?.defaultConnectionSize,
   }: {
-    // Intersected again, so an error lists the names rather than the alias, and lands on this
-    // property in generic code too.
+    // `& string` so errors list the valid names and point at this property in generic code.
     cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']> & string;
     select?: (
       // The node's selection: its model is the connection field's, which the helper does not know.
