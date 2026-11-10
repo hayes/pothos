@@ -364,3 +364,25 @@ it('keeps the shape of a generic model given for one name', () => {
 
   addId<UserModel>(() => ({}));
 });
+
+// Differs from main, accepted: with several names and a generic model, the model's shape can't be
+// assigned back to the parent.
+it('reads a generic model given for several names', () => {
+  function addId<Model extends PrismaModelTypes & { Shape: { id: number } }>(
+    named: Named<Model, 'User'>,
+  ) {
+    builder.prismaObjectFields<'User' | 'Post', Model>('User', (t) => ({
+      g2: t.int({
+        resolve: (parent) => {
+          const shape: Model['Shape'] = parent;
+          // @ts-expect-error
+          const back: typeof parent = named;
+
+          return parent.id + shape.id + back.id;
+        },
+      }),
+    }));
+  }
+
+  addId<UserModel>({ id: 1, email: '', name: null });
+});
