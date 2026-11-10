@@ -1,10 +1,5 @@
 import { completeValue, isThenable, type MaybePromise } from '@pothos/core';
-import type {
-  NestedSelection,
-  PathSegment,
-  Position,
-  SelectedFieldNode,
-} from '@pothos/selection-mapper';
+import type { NestedSelection, PathSegment, SelectedFieldNode } from '@pothos/selection-mapper';
 import { getNamedType, isInterfaceType, isObjectType } from 'graphql';
 import { MAX_RELATION_LOADS, PRISMA_MODEL, PRISMA_TYPE_SELECTS } from '../constants.js';
 import type { AnyContract } from '../types/models.js';
@@ -57,7 +52,6 @@ export const NODE_SELECTION = Symbol('prismaNodeSelection');
 interface FieldPlanning {
   nested: NestedSelection<PrismaSelection>;
   selected: SelectedFieldNode;
-  position: Position;
 }
 
 interface CompiledLoad {
@@ -502,7 +496,7 @@ export function compileFieldSelect(
           location: `Field '${position.type.name}.${position.field.name}' select`,
           args,
           source: split ? undefined : raw,
-          field: { nested, selected, position },
+          field: { nested, selected },
           returnModelKey,
           typeOf,
           at: '',
