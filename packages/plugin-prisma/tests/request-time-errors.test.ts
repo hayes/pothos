@@ -1,4 +1,4 @@
-import SchemaBuilder from '@pothos/core';
+import SchemaBuilder, { PothosError } from '@pothos/core';
 import RelayPlugin, { encodeGlobalID } from '@pothos/plugin-relay';
 import { execute } from '@pothos/test-utils';
 import { gql } from 'graphql-tag';
@@ -120,7 +120,7 @@ describe('request-time errors', () => {
     );
   });
 
-  it('hides an unused query with onUnusedQuery: error', async () => {
+  it('reports an unused query with onUnusedQuery: error', async () => {
     const result = await execute({
       schema,
       document: gql`
@@ -135,9 +135,9 @@ describe('request-time errors', () => {
       contextValue: { client: prisma },
     });
 
-    expect(result.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
-    expect((result.errors?.[0]?.originalError?.cause as Error).message).toBe(
+    expect(result.errors?.map((error) => error.message)).toEqual([
       'Prisma query was unused in resolver for Query.ignoresQuery',
-    );
+    ]);
+    expect(result.errors?.[0]?.originalError).toBeInstanceOf(PothosError);
   });
 });
