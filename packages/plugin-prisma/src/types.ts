@@ -458,10 +458,9 @@ export type PrismaNodeOptions<
             resolve?: never;
             field: UniqueField extends UniqueFieldsFromWhereUnique<Model['WhereUnique']>
               ? UniqueField
-              : // Read through a mapped type, so an error lists the names rather than the alias.
-                {
-                  [K in UniqueFieldsFromWhereUnique<Model['WhereUnique']>]: K;
-                }[UniqueFieldsFromWhereUnique<Model['WhereUnique']>];
+              : // Intersected again, so an error lists the names rather than the alias, and lands
+                // on this property in generic code too.
+                UniqueFieldsFromWhereUnique<Model['WhereUnique']> & string;
           }
       );
     fields?: PrismaObjectFieldsShape<
@@ -522,8 +521,8 @@ type CursorFromRelation<
 > = Field extends keyof Model['Include']
   ? Model['Include'][Field] extends infer Include
     ? Include extends { cursor?: infer T }
-      ? // Read through a mapped type, so an error lists the names rather than the alias.
-        { [K in UniqueFieldsFromWhereUnique<T>]: K }[UniqueFieldsFromWhereUnique<T>]
+      ? // Intersected again, so an error lists the names rather than the alias.
+        UniqueFieldsFromWhereUnique<T> & string
       : never
     : never
   : never;
@@ -800,10 +799,9 @@ export type PrismaConnectionFieldOptions<
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
         type: Type;
-        // Read through a mapped type, so an error lists the names rather than the alias.
-        cursor: {
-          [K in UniqueFieldsFromWhereUnique<Model['WhereUnique']>]: K;
-        }[UniqueFieldsFromWhereUnique<Model['WhereUnique']>];
+        // Intersected again, so an error lists the names rather than the alias, and lands on
+        // this property in generic code too.
+        cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']> & string;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         resolve: (

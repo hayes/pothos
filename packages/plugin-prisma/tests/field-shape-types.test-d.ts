@@ -124,3 +124,102 @@ it('accepts explicit type arguments', () => {
     return t.exposeString('email');
   });
 });
+
+// An explicit `Model` other than the name's own keeps `Model['Shape']` as the parent.
+type AnyFieldBuilder = FieldBuilder<PrismaModelTypes, PrismaModelTypes['Shape']>;
+type PostOrComment = PrismaModelTypes & (PrismaTypes['Post'] | PrismaTypes['Comment']);
+type IdModel = PrismaModelTypes & { Shape: { id: number } };
+type Named<Model extends PrismaModelTypes, Name> = Model['Shape'] & { [prismaModelName]?: Name };
+
+const typename = (t: AnyFieldBuilder) => t.string({ resolve: () => 'x' });
+const typenameFields = (t: AnyFieldBuilder) => ({ kind: t.string({ resolve: () => 'x' }) });
+const createdAt = (t: FieldBuilder<PostOrComment, PostOrComment['Shape']>) =>
+  t.string({ resolve: (row) => row.createdAt.toISOString() });
+const createdAtFields = (t: FieldBuilder<PostOrComment, PostOrComment['Shape']>) => ({
+  createdAt: createdAt(t),
+});
+
+it('accepts callbacks written against a wider model', () => {
+  builder.prismaObjectField<'User', PrismaModelTypes>('User', 'w1', typename);
+  builder.prismaObjectFields<'User', PrismaModelTypes>('User', typenameFields);
+  builder.prismaInterfaceField<'User', PrismaModelTypes>('User', 'w1', typename);
+  builder.prismaInterfaceFields<'User', PrismaModelTypes>('User', typenameFields);
+
+  for (const name of ['User', 'Post'] as const) {
+    builder.prismaObjectField<typeof name, PrismaModelTypes>(name, 'w2', typename);
+    builder.prismaObjectFields<typeof name, PrismaModelTypes>(name, typenameFields);
+    builder.prismaInterfaceField<typeof name, PrismaModelTypes>(name, 'w2', typename);
+    builder.prismaInterfaceFields<typeof name, PrismaModelTypes>(name, typenameFields);
+  }
+
+  builder.prismaObjectField<'Post', PostOrComment>('Post', 'w3', createdAt);
+  builder.prismaObjectFields<'Post', PostOrComment>('Post', createdAtFields);
+  builder.prismaInterfaceField<'Post', PostOrComment>('Post', 'w3', createdAt);
+  builder.prismaInterfaceFields<'Post', PostOrComment>('Post', createdAtFields);
+});
+
+it('types `t` and the parent with an explicit wider model', () => {
+  builder.prismaObjectField<'User', PrismaModelTypes>('User', 'w4', (t) => {
+    expectTypeOf(t).toEqualTypeOf<
+      FieldBuilder<PrismaModelTypes, Named<PrismaModelTypes, 'User'>>
+    >();
+    return t.string({ resolve: () => 'x' });
+  });
+  builder.prismaObjectFields<'User', PrismaModelTypes>('User', (t) => {
+    expectTypeOf(t).toEqualTypeOf<
+      FieldBuilder<PrismaModelTypes, Named<PrismaModelTypes, 'User'>>
+    >();
+    return {};
+  });
+  builder.prismaInterfaceField<'Post', PostOrComment>('Post', 'w4', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<PostOrComment, Named<PostOrComment, 'Post'>>>();
+    return t.string({ resolve: (row) => row.createdAt.toISOString() });
+  });
+  builder.prismaInterfaceFields<'Post', PostOrComment>('Post', (t) => {
+    expectTypeOf(t).toEqualTypeOf<FieldBuilder<PostOrComment, Named<PostOrComment, 'Post'>>>();
+    return {};
+  });
+  builder.prismaObjectFields<'User' | 'Post', IdModel>('User', (t) => {
+    expectTypeOf(t).toEqualTypeOf<
+      FieldBuilder<IdModel, Named<IdModel, 'User'> | Named<IdModel, 'Post'>>
+    >();
+    return {
+      k: t.int({
+        resolve: (parent) => {
+          const row: typeof parent = { id: 1 };
+          return row.id;
+        },
+      }),
+    };
+  });
+  builder.prismaInterfaceField<'User' | 'Post', IdModel>('User', 'k', (t) => {
+    expectTypeOf(t).toEqualTypeOf<
+      FieldBuilder<IdModel, Named<IdModel, 'User'> | Named<IdModel, 'Post'>>
+    >();
+    return t.int({ resolve: (parent) => parent.id });
+  });
+});
+
+it('accepts a name whose type is a union of names', () => {
+  type UserOrPost =
+    | Named<PrismaModelTypes & (PrismaTypes['User'] | PrismaTypes['Post']), 'User'>
+    | Named<PrismaModelTypes & (PrismaTypes['User'] | PrismaTypes['Post']), 'Post'>;
+
+  for (const name of ['User', 'Post'] as const) {
+    builder.prismaObjectField(name, 'u1', (t) =>
+      t.int({
+        resolve: (parent) => {
+          const row: UserOrPost = parent;
+          return row.id;
+        },
+      }),
+    );
+    builder.prismaObjectFields(name, (t) => ({
+      u1: t.int({ resolve: (parent) => parent.id }),
+    }));
+    builder.prismaInterfaceField(name, 'u1', (t) => t.exposeInt('id'));
+    builder.prismaInterfaceFields(name, (t) => ({ u1: t.exposeID('id') }));
+    builder.prismaObjectField(name, 'u2', typename);
+    builder.prismaObjectFields(name, typenameFields);
+  }
+});

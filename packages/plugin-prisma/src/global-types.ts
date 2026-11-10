@@ -34,13 +34,14 @@ import {
   type ShapeFromSelection,
 } from './types.js';
 
-// Without `PrismaTypes`, model names would be checked against `never`. The model names are then
-// this sentinel, which accepts no name and names the missing setup in the error. It is a branded
-// string, not a string literal, so editors never offer it as a completion.
-type MissingPrismaTypes<Hint extends string> = string & { readonly missingPrismaTypes: Hint };
+// Without models in `PrismaTypes` (not set, or set to an empty type), model names would be checked
+// against `never`. The model names are then this sentinel, which accepts no name and names the
+// setup in the error. It is a branded string, not a string literal, so editors never offer it as a
+// completion.
+type NoModelsInPrismaTypes<Hint extends string> = string & { readonly noModelsInPrismaTypes: Hint };
 
-type MissingPrismaTypesHint =
-  'Set PrismaTypes on SchemaTypes: new SchemaBuilder<{ PrismaTypes: PrismaTypes }>(...)';
+type NoModelsInPrismaTypesHint =
+  'Set PrismaTypes to the generated types: new SchemaBuilder<{ PrismaTypes: PrismaTypes }>(...)';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -88,7 +89,7 @@ declare global {
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
       PrismaTypes: [keyof (PartialTypes['PrismaTypes'] & {})] extends [never]
-        ? { [Name in MissingPrismaTypes<MissingPrismaTypesHint>]: never }
+        ? { [Name in NoModelsInPrismaTypes<NoModelsInPrismaTypesHint>]: never }
         : PartialTypes['PrismaTypes'] & {};
     }
 
@@ -161,23 +162,30 @@ declare global {
         ShapeFromSelection<Types, Model, { select: Select; include: Include }>
       >;
 
-      // While a name is being completed, `Type` is every name at once and `Model` every model. The
-      // `Shape` default reads each name's own shape when `Model` includes that name's model, rather
-      // than pairing every name with every model's shape. The same holds for the methods below.
+      // While a name is being completed, `Type` is every name at once and `Model` every model. When
+      // `Model` is its own default, the `Shape` default reads each name's own shape rather than
+      // pairing every name with every model's shape. An explicit `Model` keeps `Model['Shape']`.
+      // The same holds for the methods below.
       prismaObjectField: <
         Type extends PrismaObjectRef<Types, PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
         Model extends PrismaModelTypes = Type extends PrismaObjectRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
-          ? S & { [prismaModelName]?: Model['Name'] }
-          : [PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]] extends [
-                Model,
-              ]
-            ? (PrismaModelTypes &
+        Shape extends {} = [
+          Model,
+          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+        ] extends [
+          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+          Model,
+        ]
+          ? Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : (PrismaModelTypes &
                 Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
                 [prismaModelName]?: Type;
               }
+          : Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
             : Model['Shape'] & {
                 [prismaModelName]?: Type;
               },
@@ -192,15 +200,21 @@ declare global {
         Model extends PrismaModelTypes = Type extends PrismaInterfaceRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
-          ? S & { [prismaModelName]?: Model['Name'] }
-          : [PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]] extends [
-                Model,
-              ]
-            ? (PrismaModelTypes &
+        Shape extends {} = [
+          Model,
+          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+        ] extends [
+          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+          Model,
+        ]
+          ? Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : (PrismaModelTypes &
                 Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
                 [prismaModelName]?: Type;
               }
+          : Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
             : Model['Shape'] & {
                 [prismaModelName]?: Type;
               },
@@ -215,15 +229,21 @@ declare global {
         Model extends PrismaModelTypes = Type extends PrismaObjectRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
-          ? S & { [prismaModelName]?: Model['Name'] }
-          : [PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]] extends [
-                Model,
-              ]
-            ? (PrismaModelTypes &
+        Shape extends {} = [
+          Model,
+          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+        ] extends [
+          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+          Model,
+        ]
+          ? Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : (PrismaModelTypes &
                 Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
                 [prismaModelName]?: Type;
               }
+          : Type extends PrismaObjectRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
             : Model['Shape'] & {
                 [prismaModelName]?: Type;
               },
@@ -237,15 +257,21 @@ declare global {
         Model extends PrismaModelTypes = Type extends PrismaInterfaceRef<Types, infer M, {}>
           ? M
           : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-        Shape extends {} = Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
-          ? S & { [prismaModelName]?: Model['Name'] }
-          : [PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']]] extends [
-                Model,
-              ]
-            ? (PrismaModelTypes &
+        Shape extends {} = [
+          Model,
+          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+        ] extends [
+          PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+          Model,
+        ]
+          ? Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
+            : (PrismaModelTypes &
                 Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'] & {
                 [prismaModelName]?: Type;
               }
+          : Type extends PrismaInterfaceRef<Types, PrismaModelTypes, infer S>
+            ? S & { [prismaModelName]?: Model['Name'] }
             : Model['Shape'] & {
                 [prismaModelName]?: Type;
               },
@@ -496,8 +522,10 @@ declare global {
     > {}
     export interface ScopeAuthContextForAuth<Types extends SchemaTypes, Scopes extends {}> {}
 
+    // `in out Types` is the variance TypeScript measures. Stating it saves measuring it through
+    // every method of the schema builder, a fixed cost per program (about 25 ms on TypeScript 7).
     export interface PrismaObjectFieldBuilder<
-      Types extends SchemaTypes,
+      in out Types extends SchemaTypes,
       Model extends PrismaModelTypes,
       Shape extends object = Model['Shape'],
     > extends InternalPrismaObjectFieldBuilder<Types, Model, Shape>,

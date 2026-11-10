@@ -7,6 +7,8 @@ export default defineConfig({
     server: { deps: { inline: ['@graphql-tools/executor'] } },
     typecheck: {
       enabled: true,
+      checker: 'tsc',
+      tsconfig: 'tsconfig.type.json',
     },
   },
 });

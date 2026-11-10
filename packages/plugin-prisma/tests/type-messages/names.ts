@@ -1,4 +1,5 @@
-// Mistyped names. Each line marked `lists:` must fail with a message naming the valid names.
+// Mistyped names. Each line marked `lists:` must fail with a message naming the valid names, and
+// each line marked `says:` with a message containing that text.
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import PrismaPlugin, { type PrismaTypesFromClient, prismaConnectionHelpers } from '../../src';
@@ -44,3 +45,20 @@ prismaConnectionHelpers(builder, 'Post', {
 });
 
 builder.prismaObjectFields('Usr', () => ({})); // lists: "User" "Post"
+
+// In generic code the names aren't known yet, and the error lands on the cursor.
+export function postOrCommentHelpers<Name extends 'Post' | 'Comment'>(name: Name) {
+  return prismaConnectionHelpers(builder, name, {
+    cursor: 'id', // says: Type 'string' is not assignable to type 'string & (UniqueFieldsExtendedWhereUnique<
+  });
+}
+
+export function postOrCommentPages<Name extends 'Post' | 'Comment'>(name: Name) {
+  builder.queryField(`${name}Pages`, (t) =>
+    t.prismaConnection({
+      type: name,
+      cursor: 'id', // says: Type 'string' is not assignable to type 'string & (UniqueFieldsExtendedWhereUnique<
+      resolve: () => [],
+    }),
+  );
+}

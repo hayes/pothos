@@ -7,5 +7,5 @@
     "skipLibCheck": true
   },
   "include": [],
-  "files": ["names.ts"]
+  "files": ["names.ts", "missing.ts"]
 }

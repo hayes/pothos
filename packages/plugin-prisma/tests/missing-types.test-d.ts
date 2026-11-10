@@ -1,4 +1,5 @@
-// A builder without `PrismaTypes` names the missing setup where a model name is given.
+// A builder without models in `PrismaTypes` names the setup where a model name is given. The
+// messages are pinned in `type-messages.test.ts`.
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { expectTypeOf, it } from 'vitest';
@@ -6,8 +7,8 @@ import PrismaPlugin, { prismaConnectionHelpers } from '../src';
 import { prisma } from './example/builder';
 import { getDatamodel } from './generated.js';
 
-type MissingPrismaTypes = string & {
-  readonly missingPrismaTypes: 'Set PrismaTypes on SchemaTypes: new SchemaBuilder<{ PrismaTypes: PrismaTypes }>(...)';
+type NoModelsInPrismaTypes = string & {
+  readonly noModelsInPrismaTypes: 'Set PrismaTypes to the generated types: new SchemaBuilder<{ PrismaTypes: PrismaTypes }>(...)';
 };
 
 const builder = new SchemaBuilder<{ Context: { userId: number } }>({
@@ -16,9 +17,19 @@ const builder = new SchemaBuilder<{ Context: { userId: number } }>({
   prisma: { client: () => prisma, dmmf: getDatamodel() },
 });
 
+const empty = new SchemaBuilder<{ PrismaTypes: {} }>({
+  plugins: [RelayPlugin, PrismaPlugin],
+  relay: {},
+  prisma: { client: () => prisma, dmmf: getDatamodel() },
+});
+
 it('takes the setup hint instead of a model name', () => {
-  expectTypeOf<Parameters<typeof builder.prismaObject>[0]>().toEqualTypeOf<MissingPrismaTypes>();
-  expectTypeOf<Parameters<typeof builder.prismaNode>[0]>().toEqualTypeOf<MissingPrismaTypes>();
+  expectTypeOf<Parameters<typeof builder.prismaObject>[0]>().toEqualTypeOf<NoModelsInPrismaTypes>();
+  expectTypeOf<
+    Parameters<typeof builder.prismaInterface>[0]
+  >().toEqualTypeOf<NoModelsInPrismaTypes>();
+  expectTypeOf<Parameters<typeof builder.prismaNode>[0]>().toEqualTypeOf<NoModelsInPrismaTypes>();
+  expectTypeOf<Parameters<typeof empty.prismaObject>[0]>().toEqualTypeOf<NoModelsInPrismaTypes>();
 });
 
 it('reports the missing setup at the model name', () => {
