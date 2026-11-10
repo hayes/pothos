@@ -100,7 +100,7 @@ publishedPostsCount: t.relatedCount('posts', {
 
     return eq(posts.published, true);
   },
-});
+}),
 ```
 
 For a many-to-many relation (one defined with `.through(...)`), `t.relatedCount` counts distinct

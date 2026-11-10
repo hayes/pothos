@@ -1,7 +1,12 @@
-import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { basename, dirname, join } from 'node:path';
-import { parseCodeBlocks } from './doc-code-blocks.mjs';
+import { mkdir, readdir, writeFile } from 'node:fs/promises';
+import { basename, join } from 'node:path';
+import {
+  checkDocBlocks,
+  importSection,
+  located,
+  readDocBlocks,
+  withoutImports,
+} from './doc-block-check.mjs';
 
 // Type-check the inline TypeScript on the Prisma Next pages and the plugin's README. Source includes come from the
 // playground example, which `type:examples` already checks.
@@ -26,21 +31,22 @@ export const db = postgres({ contract, url: 'postgres://unused' });
 
 // A block of its own, with the imports it leaves out and a builder unless it creates one.
 function blockModule(block) {
-  const lines = block.split('\n');
-  const imports = new Set([
-    "import SchemaBuilder from '@pothos/core';",
-    "import PrismaNextPlugin from '@pothos/plugin-prisma-next';",
-    `import { contract, db } from './prisma/${/'auth\./.test(block) ? 'namespaces-db' : 'db'}';`,
-    ...lines.filter((line) => line.startsWith('import ')),
-  ]);
-  const body = lines.filter((line) => !line.startsWith('import ')).join('\n');
+  const body = withoutImports(block.code);
+  const header = importSection(
+    [
+      "import SchemaBuilder from '@pothos/core';",
+      "import PrismaNextPlugin from '@pothos/plugin-prisma-next';",
+      `import { contract, db } from './prisma/${/'auth\./.test(block.code) ? 'namespaces-db' : 'db'}';`,
+    ],
+    [block],
+  );
   const builder = /\bconst builder\b/.test(body)
     ? ''
     : `const builder = new SchemaBuilder<{ PrismaContract: typeof contract }>({
   plugins: [PrismaNextPlugin],
   prisma: { client: db },
 });`;
-  return [...imports, builder, body].join('\n');
+  return [header, builder, located(block, body)].join('\n');
 }
 
 const preamble = (contract) => `import SchemaBuilder from '@pothos/core';
@@ -66,43 +72,26 @@ const builder = new SchemaBuilder<{
 `;
 
 // Field fragments, such as `posts: t.relation(...)`, go inside a type that has them.
-function wrapFragment(block) {
-  const lines = block.trimEnd().split('\n');
-  const start = lines.findIndex((line) => /^\w+: /.test(line));
-  if (start < 0) {
-    return block;
+function wrapFragment(block, body) {
+  const fragment = body.split('\n').find((line) => /^\w+: /.test(line));
+  if (!fragment) {
+    return located(block, body);
   }
-  const before = lines.slice(0, start).join('\n');
-  const fragment = lines.slice(start).join('\n');
-  const wrapped = fragment.startsWith('query:')
-    ? `builder.queryField('fragment', (t) =>
-  t.prismaConnection({
-    type: 'Post',
-    ${fragment}
-  }),
-);`
-    : `builder.prismaObject('User', {
-  fields: (t) => ({
-    ${fragment}
-  }),
-});`;
-  return `${before}\n${wrapped}\n`;
+  const [open, close] = fragment.startsWith('query:')
+    ? [
+        "builder.queryField('fragment', (t) =>\n  t.prismaConnection({\n    type: 'Post',",
+        '  }),\n);',
+      ]
+    : ["builder.prismaObject('User', {\n  fields: (t) => ({", '  }),\n});'];
+  return `${open}\n${located(block, body)}${close}\n`;
 }
 
 function pageModule(blocks, contract) {
-  const imports = new Set();
-  const body = blocks.map((block) =>
-    wrapFragment(
-      block
-        .split('\n')
-        .filter((line) => !(line.startsWith('import ') && imports.add(line)))
-        .join('\n'),
-    ),
-  );
-  const declared = body.join('\n').match(/\bconst User\b/);
+  const body = blocks.map((block) => wrapFragment(block, withoutImports(block.code)));
+  const declared = blocks.some((block) => /\bconst User\b/.test(block.code));
   return [
     preamble(contract),
-    ...imports,
+    importSection([], blocks),
     declared
       ? ''
       : `const User = builder.prismaObject('User', { fields: (t) => ({ id: t.exposeID('id') }) });`,
@@ -112,77 +101,68 @@ function pageModule(blocks, contract) {
 
 export async function checkPrismaNextDocExamples(root, tsc) {
   const plugin = join(root, 'packages/plugin-prisma-next');
-  // Inside the plugin, so the fixture resolves the ORM packages and contracts the plugin's tests use.
-  const fixture = await mkdtemp(join(plugin, '.docs-check-'));
-  let checked = 0;
-  try {
-    const files = [];
-    const pages = (await readdir(join(root, pagesDirectory)))
-      .filter((page) => page.endsWith('.mdx'))
-      .sort()
-      .map((page) => join(pagesDirectory, page));
-    for (const page of [...pages, readme]) {
-      const source = (await readFile(join(root, page), 'utf8')).replace(
-        /<include(?:regions)?\b[^>]*>[^<]*<\/include(?:regions)?>/g,
-        '',
-      );
-      const groups = { sample: [], inheritance: [] };
-      const name = page === readme ? 'README' : basename(page, '.mdx');
-      for (const [i, block] of parseCodeBlocks(source, ['ts', 'typescript']).entries()) {
-        if (ownModule.test(block)) {
-          const file = join(fixture, `${name}-${i}.ts`);
-          await writeFile(file, blockModule(block));
+  const pages = (await readdir(join(root, pagesDirectory)))
+    .filter((page) => page.endsWith('.mdx'))
+    .sort()
+    .map((page) => join(pagesDirectory, page));
+  return checkDocBlocks({
+    root,
+    tsc,
+    // Inside the plugin, so the fixture resolves the ORM packages and contracts the plugin's tests use.
+    fixtureIn: plugin,
+    blocks: await readDocBlocks(root, [...pages, readme]),
+    expected: 61,
+    build: async (blocks, fixture) => {
+      const files = [];
+      const pageNames = [...new Set(blocks.map((block) => block.page))];
+      for (const page of pageNames) {
+        const name = page === readme ? 'README' : basename(page, '.mdx');
+        const groups = { sample: [], inheritance: [] };
+        for (const [i, block] of blocks.filter((block) => block.page === page).entries()) {
+          if (ownModule.test(block.code)) {
+            const file = join(fixture, `${name}-${i}.ts`);
+            await writeFile(file, blockModule(block));
+            files.push(file);
+            continue;
+          }
+          groups[
+            name === 'inheritance' || /'(?:Task|Bug|Feature)'/.test(block.code)
+              ? 'inheritance'
+              : 'sample'
+          ].push(block);
+        }
+        for (const [group, grouped] of Object.entries(groups)) {
+          if (!grouped.length) {
+            continue;
+          }
+          const contract =
+            group === 'sample'
+              ? '../tests/fixtures/sample-contract'
+              : '../tests/inheritance/contract';
+          const file = join(fixture, `${name}-${group}.ts`);
+          await writeFile(file, pageModule(grouped, contract));
           files.push(file);
-          checked++;
-          continue;
         }
-        groups[
-          name === 'inheritance' || /'(?:Task|Bug|Feature)'/.test(block) ? 'inheritance' : 'sample'
-        ].push(block);
-        checked++;
       }
-      for (const [group, blocks] of Object.entries(groups)) {
-        if (!blocks.length) {
-          continue;
-        }
-        const contract =
-          group === 'sample'
-            ? '../tests/fixtures/sample-contract'
-            : '../tests/inheritance/contract';
-        const file = join(fixture, `${name}-${group}.ts`);
-        await writeFile(file, pageModule(blocks, contract));
-        files.push(file);
-      }
-    }
-    await mkdir(join(fixture, 'prisma'));
-    await writeFile(join(fixture, 'prisma/db.ts'), postgresDb('docs-contract'));
-    await writeFile(
-      join(fixture, 'prisma/namespaces-db.ts'),
-      postgresDb('docs-namespaces-contract'),
-    );
-    await writeFile(
-      join(fixture, 'tsconfig.json'),
-      JSON.stringify({
+      await mkdir(join(fixture, 'prisma'));
+      await writeFile(join(fixture, 'prisma/db.ts'), postgresDb('docs-contract'));
+      await writeFile(
+        join(fixture, 'prisma/namespaces-db.ts'),
+        postgresDb('docs-namespaces-contract'),
+      );
+      return {
+        files,
         compilerOptions: {
           target: 'ES2022',
           module: 'ESNext',
           moduleResolution: 'Bundler',
           esModuleInterop: true,
           strict: true,
-          noEmit: true,
           skipLibCheck: true,
           types: ['node'],
           paths: { '@pothos/plugin-prisma-next': [join(plugin, 'src/index.ts')] },
         },
-        files,
-      }),
-    );
-    execFileSync(process.execPath, [tsc, '-p', fixture], {
-      cwd: dirname(fixture),
-      stdio: 'inherit',
-    });
-  } finally {
-    await rm(fixture, { recursive: true, force: true });
-  }
-  return { checked };
+      };
+    },
+  });
 }

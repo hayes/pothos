@@ -4,3 +4,4 @@ tests
 babel.config.js
 *.tsbuildinfo
 tsconfig.*
+CONTRIBUTING.md
