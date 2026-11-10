@@ -127,11 +127,11 @@ export type FallbackPlanRecipe = () => {
 };
 
 /**
- * The query for the field `info` resolves, from a plan `plans` holds per parent type, root field
- * and field nodes (see `fieldKey`). The fallback in `wrapResolve` runs once per row of the list its parent
- * came from, so the plan is walked and settled once and played per call: each caller still gets
- * a query of its own, and every row of a list records under the same mapping keys, since
- * `responsePath` drops list indices.
+ * The query for the field `info` resolves, from a plan `plans` holds per parent type, response
+ * path and field nodes (see `fieldKey`). The fallback in `wrapResolve` runs once per row of the
+ * list its parent came from, so the plan is walked and settled once and played per call: each
+ * caller still gets a query of its own, and every row of a list records under the same mapping
+ * keys, since `responsePath` drops list indices.
  */
 export function fallbackQueryFromInfo(
   plans: Map<string, MaybePromise<PrismaPlan>>,

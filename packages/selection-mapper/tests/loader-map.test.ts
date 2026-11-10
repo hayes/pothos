@@ -364,18 +364,16 @@ describe('fieldKey', () => {
     expect(fieldKey('User', infoOf([a]))).not.toBe(fieldKey('Post', infoOf([a])));
   });
 
-  it('gives the same nodes the same key at any path beneath one root field', () => {
-    const root = pathOf('group');
-
-    expect(fieldKey('User', infoOf([a], child(root, 'alice', 'user')))).toBe(
-      fieldKey('User', infoOf([a], child(root, 'bob', 0, 'user'))),
-    );
-    expect(fieldKey('User', infoOf([a], pathOf('group', 'alice', 'user')))).toBe(
-      fieldKey('User', infoOf([a], pathOf('group', 'bob', 0, 'user'))),
+  it('gives every row of a list the same key', () => {
+    expect(fieldKey('User', infoOf([a], pathOf('items', 0, 'user')))).toBe(
+      fieldKey('User', infoOf([a], pathOf('items', 1, 'user'))),
     );
   });
 
-  it('gives the same nodes beneath different root fields different keys', () => {
+  it('gives the same nodes at different response paths different keys', () => {
+    expect(fieldKey('User', infoOf([a], pathOf('group', 'alice', 'user')))).not.toBe(
+      fieldKey('User', infoOf([a], pathOf('group', 'bob', 0, 'user'))),
+    );
     expect(fieldKey('User', infoOf([a], pathOf('a', 'user')))).not.toBe(
       fieldKey('User', infoOf([a], pathOf('b', 'user'))),
     );

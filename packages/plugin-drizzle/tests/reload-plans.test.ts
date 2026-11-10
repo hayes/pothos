@@ -229,7 +229,7 @@ describe('plans for one response path beneath different types', () => {
     });
   });
 
-  it('shares a plan between the paths one fragment is spread at', async () => {
+  it('plans a fragment spread at two paths once for each path', async () => {
     postsPlans = 0;
     const result =
       await run(`{ group { first: items(userId: 1) { ...F } second: items(userId: 2) { ...F } } }
@@ -241,8 +241,9 @@ describe('plans for one response path beneath different types', () => {
       }`);
 
     expect(result.errors).toBeUndefined();
-    // `user` plans its own query for each row; the parent reload and the node plan once each.
-    expect(postsPlans).toBe(4);
+    // `user` plans its own query for each row; the parent reload and the node plan once at each
+    // path.
+    expect(postsPlans).toBe(6);
     expect(result.data?.group).toEqual({
       first: [
         {

@@ -224,7 +224,7 @@ describe('plans for one response path beneath different types', () => {
     });
   });
 
-  it('shares a plan between the paths one fragment is spread at', async () => {
+  it('plans a fragment spread at two paths once for each path', async () => {
     nPlans = 0;
     const result =
       await run(`{ group { first: items(userId: 1) { ...F } second: items(userId: 2) { ...F } } }
@@ -240,7 +240,8 @@ describe('plans for one response path beneath different types', () => {
       }`);
 
     expect(result.errors).toBeUndefined();
-    expect(nPlans).toBe(1);
+    // The parent reload plans once at each path.
+    expect(nPlans).toBe(2);
     expect(result.data?.group).toEqual({
       first: [
         {

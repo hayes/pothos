@@ -196,7 +196,7 @@ describe('reload plans for one response path beneath different types', () => {
     });
   });
 
-  it('shares a plan between the paths one fragment is spread at', async () => {
+  it('plans a fragment spread at two paths once for each path', async () => {
     postsPlans = 0;
     const result = await runIncremental(
       itemSchema(true),
@@ -213,7 +213,8 @@ describe('reload plans for one response path beneath different types', () => {
     expect(result.initial.errors).toBeUndefined();
     const alicePosts = [{ id: 'p-draft1', author: { name: 'Alice' } }];
     const bobPosts = [{ id: 'p-bob-draft', author: { name: 'Bob' } }];
-    expect(postsPlans).toBe(2);
+    // The deferred `x` and the node's `y` plan once at each path.
+    expect(postsPlans).toBe(4);
     expect(result.initial.data?.group).toEqual({
       alice: [{ kind: 'A', user: { name: 'Alice' }, node: { y: alicePosts } }, { kind: 'B' }],
       bob: [{ kind: 'A', user: { name: 'Bob' }, node: { y: bobPosts } }, { kind: 'B' }],
