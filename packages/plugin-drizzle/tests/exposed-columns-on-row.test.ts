@@ -145,8 +145,50 @@ function createSchema(order: 'scope-auth first' | 'drizzle first', clientDb: Db 
     }),
   });
 
+  // Rows of this type need `postId` and `published`; the type's check reads `published`.
+  const PublishedPost = builder.drizzleObject('posts', {
+    variant: 'PublishedPost',
+    select: { columns: { postId: true, published: true } },
+    authScopes: (post) => {
+      seen.push(['published', post.postId, post.published]);
+      return post.published === 1;
+    },
+    fields: (t) => ({
+      postId: t.exposeInt('postId'),
+      title: t.exposeString('title'),
+    }),
+  });
+
   builder.queryType({
     fields: (t) => ({
+      retitledPost: t.field({
+        type: Post,
+        nullable: true,
+        args: { id: t.arg.int({ required: true }), title: t.arg.string({ required: true }) },
+        resolve: async (_root, { id, title }) => {
+          const row = await plainDb.query.posts.findFirst({ where: { postId: id } });
+
+          return row && { ...row, title };
+        },
+      }),
+      missingPost: t.field({
+        type: Post,
+        nullable: true,
+        resolve: () => missingPost,
+      }),
+      flippedPosts: t.field({
+        type: [PublishedPost],
+        nullable: { list: false, items: true },
+        args: { ids: t.arg.intList({ required: true }) },
+        resolve: async (_root, { ids }) => {
+          const rows = await plainDb.query.posts.findMany({
+            where: { postId: { in: ids } },
+            orderBy: { postId: 'asc' },
+          });
+
+          return rows.map((row) => ({ ...row, published: row.published === 1 ? 0 : 1 }));
+        },
+      }),
       posts: t.field({
         type: [Post],
         args: { ids: t.arg.intList({ required: true }) },
@@ -232,6 +274,14 @@ const fixtureUsers = await plainDb.query.users.findMany({
 const titled = { postId: 2, title: post(2).title };
 const undefinedTitle = { postId: 3, title: undefined };
 const handBuiltSlimPosts = [titled, undefinedTitle];
+
+// A complete row whose id no post has.
+const missingPostId = 999_999;
+const missingPost = {
+  ...(await plainDb.query.posts.findFirst({ where: { postId: 2 } }))!,
+  postId: missingPostId,
+  title: 'Not stored',
+};
 
 const schema = createSchema('scope-auth first');
 
@@ -418,6 +468,27 @@ describe('exposed columns on rows the plugin did not load', () => {
     });
   });
 
+  it('returns the value a row holds, not the stored one', async () => {
+    expect(post(2).title).not.toBe('Changed');
+
+    const result = await run('{ retitledPost(id: 2, title: "Changed") { postId title } }');
+
+    expect(result).toEqual({ data: { retitledPost: { postId: 2, title: 'Changed' } } });
+    expect(statements).toHaveLength(0);
+  });
+
+  it('reads exposed columns from a row that is not stored, and errors on a relation', async () => {
+    const result = await run('{ missingPost { postId title sameIdUser { username } } }');
+
+    expect(result.data).toEqual({
+      missingPost: { postId: missingPostId, title: 'Not stored', sameIdUser: null },
+    });
+    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
+      [['missingPost', 'sameIdUser'], 'Unexpected error.'],
+    ]);
+    expect(statements).toHaveLength(1);
+  });
+
   it('resolves a planned list beside unplanned rows of the same type', async () => {
     const result = await run(`{
       plannedPosts(ids: [1, 2]) { postId title author { username } }
@@ -472,6 +543,45 @@ describe.each([
     // One reload, for the columns the checks read.
     expect(statements).toHaveLength(1);
   });
+
+  it('passes the type check the published value the row holds', async () => {
+    expect([post(1).published, post(2).published]).toEqual([0, 1]);
+
+    const result = await run('{ flippedPosts(ids: [1, 2]) { postId title } }', authSchema);
+
+    expect(result.data).toEqual(flippedData);
+    expect(result.errors?.map((error) => [error.path, error.message])).toEqual(flippedErrors);
+    expect(seen).toEqual(flippedSeen);
+    expect(statements).toHaveLength(0);
+  });
+});
+
+// Post 1 is returned as published and post 2 as unpublished.
+const flippedData = {
+  flippedPosts: [
+    { postId: 1, title: post(1).title },
+    { postId: null, title: null },
+  ],
+};
+const flippedErrors = [
+  [['flippedPosts', 1, 'postId'], 'Not authorized to read fields for PublishedPost'],
+  [['flippedPosts', 1, 'title'], 'Not authorized to read fields for PublishedPost'],
+];
+const flippedSeen = [
+  ['published', 1, 1],
+  ['published', 2, 0],
+];
+
+it('gives the same type check result in either plugin order', async () => {
+  const results = [];
+
+  for (const order of ['scope-auth first', 'drizzle first'] as const) {
+    const result = await run('{ flippedPosts(ids: [1, 2]) { postId title } }', createSchema(order));
+
+    results.push({ result, seen: [...seen], statements: statements.length });
+  }
+
+  expect(results[1]).toEqual(results[0]);
 });
 
 describe('reloading many rows', () => {

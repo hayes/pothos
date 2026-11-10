@@ -55,6 +55,21 @@ function createSchema() {
 
   builder.queryType({
     fields: (t) => ({
+      renamedUser: t.field({
+        type: User,
+        nullable: true,
+        args: { id: t.arg.int({ required: true }), email: t.arg.string({ required: true }) },
+        resolve: async (_root, { id, email }) => {
+          const row = await prisma.user.findUnique({ where: { id } });
+
+          return row && { ...row, email };
+        },
+      }),
+      missingUser: t.field({
+        type: User,
+        nullable: true,
+        resolve: () => missingUser,
+      }),
       users: t.field({
         type: [User],
         args: { ids: t.arg.intList({ required: true }) },
@@ -116,6 +131,14 @@ const post = (id: number) => fixturePosts.find((row) => row.id === id)!;
 const withEmail = { id: 1, email: user(1).email };
 const undefinedEmail = { id: 2, email: undefined };
 const handBuiltUsers = [withEmail, undefinedEmail];
+
+// A complete row whose id no user has.
+const missingUserId = 999_999;
+const missingUser = {
+  ...(await prisma.user.findUniqueOrThrow({ where: { id: 1 } })),
+  id: missingUserId,
+  email: 'not-stored@example.com',
+};
 
 const schema = createSchema();
 
@@ -206,6 +229,28 @@ describe('exposed fields on rows the plugin did not load', () => {
       },
     });
     expect(reloads()).toHaveLength(3);
+  });
+
+  it('returns the value a row holds, not the stored one', async () => {
+    expect(user(1).email).not.toBe('changed@example.com');
+
+    const result = await run('{ renamedUser(id: 1, email: "changed@example.com") { id email } }');
+
+    expect(result).toEqual({ data: { renamedUser: { id: 1, email: 'changed@example.com' } } });
+    expect(reloads()).toHaveLength(0);
+  });
+
+  it('reads exposed fields from a row that is not stored, and errors on a relation', async () => {
+    const result = await run('{ missingUser { id email profile { bio } } }');
+
+    expect(result.data).toEqual({
+      missingUser: { id: missingUserId, email: 'not-stored@example.com', profile: null },
+    });
+    expect(result.errors?.map((error) => [error.path, error.message])).toEqual([
+      // Prisma's error for the reload, which ends with this line.
+      [['missingUser', 'profile'], expect.stringMatching(/No record was found for a query\.$/)],
+    ]);
+    expect(reloads()).toHaveLength(1);
   });
 
   it('reads planned rows of a type with a select, and reloads a partial row', async () => {
