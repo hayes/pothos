@@ -1196,11 +1196,18 @@ Any keys you pass in are kept as they were given, so `columns` passed to `nested
 still narrow the parent shape:
 
 ```ts
+const Post = builder.drizzleObject('posts', {
+  name: 'Post',
+  fields: (t) => ({
+    title: t.exposeString('title'),
+  }),
+});
+
 builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
     previewPosts: t.field({
-      type: ['posts'],
+      type: [Post],
       select: (args, ctx, nestedSelection) => {
         return {
           // what the query selects on the posts, limited to one
@@ -1439,11 +1446,18 @@ Pothos waits for these callbacks before executing the planned query. `t.relation
 resolver runs, and need no changes.
 
 ```ts
+const Post = builder.drizzleObject('posts', {
+  name: 'Post',
+  fields: (t) => ({
+    title: t.exposeString('title'),
+  }),
+});
+
 builder.drizzleObject('users', {
   name: 'User',
   fields: (t) => ({
     previewPosts: t.field({
-      type: ['posts'],
+      type: [Post],
       select: async (args, ctx, nestedSelection) => {
         return {
           with: {
