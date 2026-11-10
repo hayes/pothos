@@ -138,7 +138,7 @@ export class DrizzleObjectFieldBuilder<
 
   relatedConnection: 'relay' extends PluginName
     ? <
-        Field extends ListRelation<TableConfig>,
+        Field extends ListRelation<TableConfig> & keyof TableConfig['relations'],
         Nullable extends boolean,
         Args extends InputFieldMap,
         const ConnectionInterfaces extends InterfaceParam<Types>[] = [],
@@ -721,7 +721,7 @@ export class DrizzleObjectFieldBuilder<
   }
 
   relatedCount<
-    Field extends ListRelation<TableConfig>,
+    Field extends ListRelation<TableConfig> & keyof TableConfig['relations'],
     Args extends InputFieldMap,
     Where extends SQL | undefined,
   >(
@@ -798,7 +798,7 @@ export class DrizzleObjectFieldBuilder<
     Type extends TypeParam<Types>,
     Nullable extends boolean,
     ResolveReturnShape,
-    Name extends CompatibleTypes<Types, ExposableShape, Type, Nullable>,
+    Name extends CompatibleTypes<Types, ExposableShape, Type, Nullable> & keyof ExposableShape,
   >(
     ...args: NormalizeArgs<
       [
@@ -844,7 +844,8 @@ export class DrizzleObjectFieldBuilder<
         ExposableShape,
         Type,
         Type extends [unknown] ? { list: true; items: true } : true
-      >,
+      > &
+        keyof ExposableShape,
     >(
       ...args: NormalizeArgs<
         [
