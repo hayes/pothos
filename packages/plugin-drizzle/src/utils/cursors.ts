@@ -705,6 +705,7 @@ export async function resolveDrizzleCursorConnection<T extends {}>(
       plan,
       omitUndefinedKeys({
         ...connectionQuery,
+        with: q.with,
         extras: q.extras,
         columns: {
           ...q.columns,
