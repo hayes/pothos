@@ -1,6 +1,7 @@
 import { createContextCache, type SchemaTypes } from '@pothos/core';
 import { type AnyRelations, type Column, getColumns, isTable, type Table } from 'drizzle-orm';
 import type { DrizzleClient } from '../types.js';
+import { InternalError } from './errors.js';
 
 export interface PothosDrizzleSchemaConfig {
   skipDeferredFragments: boolean;
@@ -155,7 +156,9 @@ const configCache = createContextCache(
         const primaryKey = findPrimaryKey(tableName);
 
         if (!primaryKey) {
-          throw new Error(`Could not find primary key for table ${tableName}`);
+          // Asked for only while a request runs: by a reload, and by a connection's default
+          // ordering.
+          throw new InternalError(`Could not find primary key for table ${tableName}`);
         }
 
         return primaryKey;

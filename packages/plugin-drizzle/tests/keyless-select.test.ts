@@ -3,6 +3,7 @@ import RelayPlugin from '@pothos/plugin-relay';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { execute } from '@pothos/test-utils';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
+import type { GraphQLError } from 'graphql';
 import { gql } from 'graphql-tag';
 import DrizzlePlugin from '../src';
 import { type DrizzleRelations, db, relations, seed } from './keyless/db';
@@ -59,6 +60,20 @@ builder.queryType({
     logsConnection: t.drizzleConnection({
       type: Log,
       resolve: (query) => db.query.logs.findMany(query({ orderBy: { at: 'asc' } })),
+    }),
+    // A row without the type's field selects, so `message` reloads it.
+    rawLog: t.field({
+      type: Log,
+      resolve: () => ({ at: '2026-01-01' }),
+    }),
+    // No ordering: a connection orders by the primary key by default.
+    unorderedLogs: t.drizzleConnection({
+      type: Log,
+      resolve: (query) => db.query.logs.findMany(query()),
+    }),
+    emptyOrderLogs: t.drizzleConnection({
+      type: Log,
+      resolve: (query) => db.query.logs.findMany(query({ orderBy: {} })),
     }),
   }),
 });
@@ -149,5 +164,28 @@ describe('a type-level select on a table without a primary key', () => {
         },
       },
     });
+  });
+});
+
+describe('what needs a key on a table without one', () => {
+  it.each([
+    ['a reload', '{ rawLog { message } }', 'Could not find primary key for table logs'],
+    [
+      'a connection without an ordering',
+      '{ unorderedLogs(first: 1) { edges { node { at } } } }',
+      'Could not find primary key for table logs',
+    ],
+    [
+      'a connection with an empty ordering',
+      '{ emptyOrderLogs(first: 1) { edges { node { at } } } }',
+      'A connection cursor needs at least one ordering column',
+    ],
+  ])('hides why %s fails', async (_name, document, detail) => {
+    const result = await run(document);
+
+    expect(result.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
+    expect(((result.errors![0] as GraphQLError).originalError?.cause as Error).message).toBe(
+      detail,
+    );
   });
 });
