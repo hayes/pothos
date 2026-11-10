@@ -223,6 +223,11 @@ interface ResolvePrismaCursorConnectionOptions extends PrismaCursorConnectionQue
   totalCount?: number | (() => MaybePromise<number>);
 }
 
+// Compared against null rather than truthiness: `last: 0` is a backward page of zero rows.
+function isBackward({ before, first, last }: PothosSchemaTypes.DefaultConnectionArguments) {
+  return first == null && (before != null || last != null);
+}
+
 export function prismaCursorConnectionQuery({
   args,
   ctx,
@@ -263,12 +268,9 @@ export function prismaCursorConnectionQuery({
     maxSize: maxSizeForConnection,
   });
 
-  let take = limit;
-
-  // `last: 0` asks for the last zero rows, so it pages backwards like any other `last`.
-  if (before != null || last != null) {
-    take = -take;
-  }
+  // `last: 0` asks for the last zero rows, so it pages backwards like any other `last`. With
+  // `first` as well, `first` wins and the page runs forward, as in `@pothos/core`.
+  const take = isBackward(args) ? -limit : limit;
 
   return cursor == null
     ? { take, skip: 0 }
@@ -289,10 +291,9 @@ export function wrapConnectionResult<T extends {}>(
   resolveNode?: (node: unknown) => unknown,
 ) {
   const gotFullResults = results.length === Math.abs(take);
-  // Compared against null rather than truthiness: `last: 0` is a backward page of zero rows.
-  const backward = args.before != null || args.last != null;
-  const hasNextPage = args.before != null ? true : args.last != null ? false : gotFullResults;
-  const hasPreviousPage = args.after != null ? true : backward ? gotFullResults : false;
+  const backward = isBackward(args);
+  const hasNextPage = backward ? args.before != null : gotFullResults;
+  const hasPreviousPage = backward ? gotFullResults : args.after != null;
   const nodes = gotFullResults
     ? results.slice(take < 0 ? 1 : 0, take < 0 ? results.length : -1)
     : results;
