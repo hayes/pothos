@@ -392,6 +392,7 @@ describe('cursor values checked against the column type', () => {
         'S:2020',
         'S:2023-11-14',
         'S:2023-13-14T22:13:20.123Z',
+        'S:2023-11-14T22:13:20Z',
         `S:${String(at)}`,
       ],
     ],
@@ -545,6 +546,7 @@ describe('node ids checked against the field type', () => {
         '2023-11-14',
         'Tue Nov 14 2023',
         '2023-13-14T22:13:20.123Z',
+        '2023-11-14T22:13:20Z',
       ],
     ],
     [

@@ -1208,8 +1208,8 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
 ```
 
 An `orderBy` in the helper's `query` gets the same final sort key as `relatedConnection`, so
-`getQuery` may return it as an array. An `orderBy` set outside the helper, as in the previous
-example, is passed to prisma as written and should end in a unique column.
+`getQuery` may return it as an array. An `orderBy` set after spreading `getQuery`, as in the
+earlier example, is passed to prisma as written and should end in a unique column.
 
 #### Sharing Connections objects
 
