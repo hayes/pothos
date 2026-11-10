@@ -1170,7 +1170,7 @@ const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
   cursor: 'id',
   // define arguments for the connection helper, these will be available as the second argument of `select`
   args: (t) => ({
-    inverted: t.arg.boolean(),
+    inverted: t.boolean(),
   }),
   select: (nodeSelection, args) => ({
     media: nodeSelection({}),
@@ -1185,7 +1185,7 @@ const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
     // custom ordering including use of args
     orderBy: {
       post: {
-        createdAt: args.inverted ? 'desc' : 'asc',
+        createdAt: args.inverted ? ('desc' as const) : ('asc' as const),
       },
     },
   }),
