@@ -224,8 +224,8 @@ Adding `posts { title }` loads the public posts through the same root resolver.
 
 For a list field, use `type: ['users']` and `db.query.users.findMany(query())`. A plain lookup
 without arguments can pass no options to `query`; fields with filters pass those options to it.
-When the type's `select` also loads a relation named in the `with` passed to `query`, that relation
-is loaded with the type's arguments.
+If the `with` you pass to `query` names a relation the type's `select` also loads, the arguments
+from the type's `select` are used for that relation.
 
 #### Building a query from resolve info
 
@@ -379,8 +379,8 @@ Fallback queries are batched. Every row of a table that needs the same selection
 is loaded with one `findMany` filtered on the primary key, or on the first unique column for a
 table that has no primary key, and the rows are matched back to their parents. If the query does
 not return a row for a parent, because it was deleted since it was loaded, or never came from the
-table, that field fails with `Unexpected error.`, and the error's `cause` names the table and the
-key that was looked up, such as `Model users(1) not found`.
+table, that field fails with `Unexpected error.`. The original error (`Model users(1) not found`)
+is on `error.cause`.
 
 The [alias query](https://pothos-graphql.dev/docs/plugins/drizzle/query-planning#compare-two-orderings-of-one-relation) demonstrates
 this fallback: newest and oldest cannot share one loaded posts list.
@@ -796,15 +796,16 @@ so give them a tie breaker yourself.
 
 #### Nullable ordering columns
 
-`null` is not greater or less than anything in SQL, so a cursor cannot page across the point where
-rows with a `null` ordering value meet rows with a value. A cursor taken from a row with a value
-never returns the `null` rows, and a cursor taken from a `null` row returns only the remaining `null`
-rows, or nothing when the ordering has no tie breaker. Depending on where the database sorts nulls
-and which way you page, the rows on the other side of that point are missing from every later page.
-A page requested without a cursor is complete.
+If you order a connection by a nullable column, paging with a cursor loses rows. `null` is not
+greater or less than anything in SQL, so a cursor from a row with a value never returns the rows
+where the column is `null`. A cursor from a `null` row only returns the remaining `null` rows, or
+nothing when the ordering has no tie breaker. Which rows you lose depends on whether your database
+sorts nulls first or last, and on which direction you page. A page requested without a cursor is
+complete.
 
 The same applies to an ordering expression that can evaluate to `null`. A nullable column later in
-the ordering loses rows the same way, among the rows that share the values of the columns before it.
+the ordering loses rows the same way, but only among rows that have the same values in the columns
+before it.
 
 Order by columns that are `notNull()`, or give the expression a real value to fall back to with
 `coalesce`.

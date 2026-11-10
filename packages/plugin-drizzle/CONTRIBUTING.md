@@ -22,18 +22,18 @@ built, or leave it unsupported. Don't add a runtime branch around it.
 
 ## Errors
 
-New and changed code picks the error class by who has to act on it:
+Pick the error class by who has to act on it:
 
 - **The developer, while the schema is built:** `PothosSchemaError`, with the detail in its
   message.
-- **The API client, for bad input:** `PothosValidationError`, with a short fixed message that is
-  safe to show: nothing the client sent and no table or column names, such as `Invalid cursor.`
+- **The API client, for bad input:** `PothosValidationError`, with a short fixed message such as
+  `Invalid cursor.`. Don't include anything the client sent, or table or column names.
 - **The developer, during a request:** an `Error` with the message `Unexpected error.` and the
   detail in its `cause`.
 
-`PothosSchemaError` and `PothosValidationError` extend `GraphQLError`, which servers that mask
-errors, such as GraphQL Yoga, pass through to the client. Errors from Drizzle and from application
-callbacks propagate unchanged.
+`PothosSchemaError` and `PothosValidationError` extend `GraphQLError`, so servers that mask
+errors, such as GraphQL Yoga, still send them to the client. Errors from Drizzle and from
+application callbacks are not wrapped.
 
 ## Running the tests
 
@@ -44,8 +44,8 @@ this package's directory:
 pnpm vitest --run
 ```
 
-Most tests use the SQLite database in `tests/example/db/dev.db`, which is committed with the data
-`tests/example/seed.ts` writes. `tests/postgres-relation-shapes.test.ts` and
+Most tests use the SQLite database in `tests/example/db/dev.db`, which is committed and already
+seeded by `tests/example/seed.ts`. `tests/postgres-relation-shapes.test.ts` and
 `tests/postgres-junction-keys.test.ts` need PostgreSQL at
 `postgresql://prisma:prisma@localhost:5455/drizzle`, or at `POTHOS_DRIZZLE_TEST_DATABASE_URL`, and
 fail without it. They create their own tables and replace their rows. The repository's

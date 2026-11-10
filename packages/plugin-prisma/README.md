@@ -1,7 +1,7 @@
 # Prisma Plugin for Pothos
 
 > [!NOTE]
-> This plugin supports Prisma ORM 7 only; install `prisma@^7`. For Prisma ORM 8, see
+> This plugin only supports Prisma ORM 7 (`prisma@^7`). For Prisma ORM 8, see
 > [Prisma Next](https://pothos-graphql.dev/docs/plugins/prisma-next).
 
 The Prisma plugin defines GraphQL types from Prisma models and builds selections for the data
