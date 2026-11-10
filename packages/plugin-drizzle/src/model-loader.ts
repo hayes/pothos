@@ -25,9 +25,13 @@ import {
   drizzleAdapter,
 } from './utils/adapter.js';
 import { getClient, getSchemaConfig, type PothosDrizzleSchemaConfig } from './utils/config.js';
+import { InternalError } from './utils/errors.js';
 import { planFromInfo } from './utils/map-query.js';
 import { setPlannedPosition } from './utils/path-info.js';
 import type { SelectionMap } from './utils/selections.js';
+
+/** A load found no row for the key. A node load resolves `null` for it; a reload raises it. */
+class MissingRowError extends InternalError {}
 
 interface ResolvablePromise<T> {
   promise: Promise<T>;
@@ -186,15 +190,22 @@ export class ModelLoader {
   }
 
   private loadFieldWith(played: DrizzlePlayedPlan, info: GraphQLResolveInfo, model: object) {
-    return this.stageQuery(played, model).then((result) => {
-      if (result) {
+    return this.stageQuery(played, model).then(
+      (result) => {
         // Relay nodes of different types share this field path. Each node plan contributes
         // its type-qualified mappings, as a queryFromInfo plan would.
         setLoaderMappings(this.context, info, played.mappings);
-      }
 
-      return result;
-    });
+        return result;
+      },
+      (error: unknown) => {
+        if (error instanceof MissingRowError) {
+          return null;
+        }
+
+        throw error;
+      },
+    );
   }
 
   stageQuery(played: Pick<DrizzlePlayedPlan, 'root'>, model: object) {
@@ -274,7 +285,9 @@ export class ModelLoader {
                 promise.resolve(result);
               } else {
                 promise.reject(
-                  new Error(`Model ${this.modelName}(${this.sqlForModel(model)}) not found`),
+                  new MissingRowError(
+                    `Model ${this.modelName}(${String(this.sqlForModel(model))}) not found`,
+                  ),
                 );
               }
             }
@@ -359,7 +372,9 @@ export function typeParentLoader(
         })
         .catch((error: unknown) => {
           // Clients see only a generic message.
-          throw new Error('Unexpected error.', { cause: error });
+          throw error instanceof InternalError
+            ? error
+            : new Error('Unexpected error.', { cause: error });
         });
       rows.set(row, load);
     }
