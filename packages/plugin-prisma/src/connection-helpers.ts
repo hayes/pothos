@@ -20,6 +20,7 @@ import type {
 import { prismaAdapter } from './util/adapter.js';
 import { checkAwaitSelections } from './util/await-selections.js';
 import {
+  getConnectionOrderBy,
   getCursorFormatter,
   getCursorParser,
   prismaCursorConnectionQuery,
@@ -73,12 +74,12 @@ export function prismaConnectionHelpers<
           Types,
           {
             where?: Model['Where'];
-            orderBy?: Model['OrderBy'];
+            orderBy?: Model['OrderBy'] | Model['OrderBy'][];
           }
         >)
       | {
           where?: Model['Where'];
-          orderBy?: Model['OrderBy'];
+          orderBy?: Model['OrderBy'] | Model['OrderBy'][];
         };
     defaultSize?:
       | number
@@ -102,6 +103,7 @@ export function prismaConnectionHelpers<
 
   const formatCursor = getCursorFormatter(modelName, builder, cursor);
   const parseCursor = getCursorParser(modelName, builder, cursor);
+  const connectionOrderBy = getConnectionOrderBy(modelName, builder, cursor);
   const cursorSelection = ModelLoader.getCursorSelection(ref, modelName, cursor, builder);
   const fieldMap = getRelationMap(getDMMF(builder)).get(modelName)!;
 
@@ -148,7 +150,7 @@ export function prismaConnectionHelpers<
   /** The prisma query `getQuery` builds: the node selection, with the connection's own arguments. */
   type ConnectionQuery = (Model['Select'] extends Select ? {} : { select: Select }) & {
     where?: Model['Where'];
-    orderBy?: Model['OrderBy'];
+    orderBy?: Model['OrderBy'] | Model['OrderBy'][];
     skip?: number;
     take?: number;
     cursor?: Model['WhereUnique'];
@@ -239,7 +241,7 @@ export function prismaConnectionHelpers<
     }
 
     return {
-      ...baseQuery,
+      ...connectionOrderBy(baseQuery),
       ...getQueryArgs(args, ctx),
       ...prismaAdapter.toQuery(node),
     };

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatPrismaCursor,
+  getConnectionOrderBy,
+  getCursorParser,
   getDefaultIDParser,
   getDefaultIDSerializer,
   parseCompositeCursor,
@@ -119,7 +121,7 @@ describe('compound cursors', () => {
 
   it('rejects a cursor of the wrong width', () => {
     expect(() => parse(formatPrismaCursor({ a: 1, b: 2, c: 3 }, ['a', 'b', 'c']))).toThrow(
-      'Expected compound cursor to contain 2 elements, but got 3',
+      'Invalid cursor.',
     );
   });
 });
@@ -164,18 +166,16 @@ describe('cursors issued before this release', () => {
   it('still rejects a cursor of the wrong width', () => {
     const legacy = Buffer.from('GPC:J:[1,2,3]').toString('base64');
 
-    expect(() => parseCompositeCursor(['a', 'b'])(legacy)).toThrow(
-      'Expected compound cursor to contain 2 elements, but got 3',
-    );
+    expect(() => parseCompositeCursor(['a', 'b'])(legacy)).toThrow('Invalid cursor.');
   });
 
   it('still rejects a cursor that is not base64, and one with an unknown tag', () => {
-    expect(() => parsePrismaCursor('not a cursor')).toThrow('Invalid cursor: not a cursor');
+    expect(() => parsePrismaCursor('not a cursor')).toThrow(/^Invalid cursor\.$/);
     expect(() => parsePrismaCursor(Buffer.from('GPC:Q:1').toString('base64'))).toThrow(
-      'Invalid cursor',
+      'Invalid cursor.',
     );
     expect(() => parsePrismaCursor(Buffer.from('DC:N:1').toString('base64'))).toThrow(
-      'Invalid cursor',
+      'Invalid cursor.',
     );
   });
 });
@@ -315,5 +315,321 @@ describe('ids issued before this release', () => {
 
   it('reads a Decimal id back to the same value it always named', () => {
     expect(Number(getDefaultIDParser('Model', 'amount', decimalBuilder)('1.5'))).toBe(1.5);
+  });
+});
+
+const encode = (payload: string) => Buffer.from(`GPC:${payload}`).toString('base64');
+
+// Every scalar type a cursor column can have. Each accepted form is one the plugin writes, now or
+// in a cursor issued before compound values were tagged, and each reaches prisma unchanged except
+// a `J:` date string, which is read into the Date it names.
+describe('cursor values checked against the column type', () => {
+  const at = new Date(1_700_000_000_123);
+  const cases: [type: string, accepted: [string, unknown][], rejected: string[]][] = [
+    [
+      'Int',
+      [
+        ['N:42', 42],
+        ['N:-5', -5],
+      ],
+      ['S:42', 'N:1.5', 'N:9007199254740993', 'N:x', 'I:1', 'Z:', 'O:true'],
+    ],
+    [
+      'BigInt',
+      [
+        ['I:9007199254740993', BigInt('9007199254740993')],
+        ['I:9223372036854775807', BigInt('9223372036854775807')],
+        ['I:-9223372036854775808', BigInt('-9223372036854775808')],
+        ['N:7', 7],
+      ],
+      ['S:7', 'N:7.5', 'N:x', 'Z:', 'I:9223372036854775808', 'I:-9223372036854775809'],
+    ],
+    [
+      'Float',
+      [
+        ['N:1.75', 1.75],
+        ['N:1e+21', 1e21],
+      ],
+      ['S:1.75', 'N:Infinity', 'N:x', 'I:1'],
+    ],
+    [
+      'Decimal',
+      [
+        ['M:0.1234567890123456789012345', '0.1234567890123456789012345'],
+        ['M:-1.5', '-1.5'],
+        ['N:1.5', 1.5],
+      ],
+      ['M:abc', 'M:0x1', 'M:Infinity', 'S: 1', 'I:1'],
+    ],
+    [
+      'String',
+      [
+        ['S:hello', 'hello'],
+        ['S:', ''],
+      ],
+      ['N:1', 'O:true', 'Z:'],
+    ],
+    [
+      'Boolean',
+      [
+        ['O:true', true],
+        ['O:false', false],
+      ],
+      ['S:true', 'N:1', 'Z:'],
+    ],
+    [
+      'DateTime',
+      [
+        [`D:${Number(at)}`, at],
+        [`S:${at.toISOString()}`, at],
+      ],
+      [
+        'D:x',
+        'N:1700000000123',
+        'S:garbage',
+        'Z:',
+        'S:1',
+        'S:2020',
+        'S:2023-11-14',
+        'S:2023-13-14T22:13:20.123Z',
+        'S:2023-11-14T22:13:20Z',
+        `S:${String(at)}`,
+      ],
+    ],
+    ['Bytes', [['B:AAH6', Buffer.from([0, 1, 250])]], ['S:AAH6', 'O:[0,1,250]', 'Z:']],
+    // An enum is a string; the datamodel the plugin reads does not list its values.
+    ['Role', [['S:ADMIN', 'ADMIN']], ['N:1', 'O:true', 'Z:']],
+    // A type the plugin has no rule for is passed on unchecked.
+    [
+      'Unsupported',
+      [
+        ['S:x', 'x'],
+        ['N:1', 1],
+      ],
+      [],
+    ],
+  ];
+
+  const parserFor = (type: string) =>
+    getCursorParser(
+      'Model',
+      builderFor([{ name: 'v', type, kind: type === 'Role' ? 'enum' : 'scalar', isUnique: true }]),
+      'v',
+    );
+
+  it.each(
+    cases.flatMap(([type, accepted]) => accepted.map(([payload, value]) => [type, payload, value])),
+  )('%s accepts %s', (type, payload, value) => {
+    expect(parserFor(type as string)(encode(payload as string))).toEqual({ v: value });
+  });
+
+  it.each(
+    cases.flatMap(([type, , rejected]) => rejected.map((payload) => [type, payload])),
+  )('%s rejects %s', (type, payload) => {
+    expect(() => parserFor(type)(encode(payload))).toThrow(/^Invalid cursor\.$/);
+  });
+
+  const compound = builderFor(
+    [
+      { name: 'at', type: 'DateTime' },
+      { name: 'n', type: 'Int' },
+    ],
+    { name: null, fields: ['at', 'n'] },
+  );
+  const parseCompound = getCursorParser('Model', compound, 'at_n');
+
+  it('reads the date string in a J: compound cursor as that date', () => {
+    expect(parseCompound(encode('J:["2023-11-14T22:13:20.123Z",2]'))).toEqual({
+      at_n: { at: new Date('2023-11-14T22:13:20.123Z'), n: 2 },
+    });
+  });
+
+  it('reads a T: compound cursor', () => {
+    expect(parseCompound(formatPrismaCursor({ at, n: 2 }, ['at', 'n']))).toEqual({
+      at_n: { at, n: 2 },
+    });
+  });
+
+  it('checks an enum part of a compound cursor', () => {
+    const parse = getCursorParser(
+      'Model',
+      builderFor(
+        [
+          { name: 'role', type: 'Role', kind: 'enum' },
+          { name: 'n', type: 'Int' },
+        ],
+        { name: null, fields: ['role', 'n'] },
+      ),
+      'role_n',
+    );
+
+    expect(parse(encode('J:["ADMIN",2]'))).toEqual({ role_n: { role: 'ADMIN', n: 2 } });
+    expect(() => parse(encode('J:[1,2]'))).toThrow(/^Invalid cursor\.$/);
+  });
+
+  it.each([
+    'J:["not a date",2]',
+    'J:["2020",2]',
+    'J:["2023-11-14T22:13:20.123Z","2"]',
+    'J:["2023-11-14T22:13:20.123Z"]',
+    'T:[null,"N:2"]',
+    'S:x',
+  ])('rejects the compound cursor %s', (payload) => {
+    expect(() => parseCompound(encode(payload))).toThrow(/^Invalid cursor\.$/);
+  });
+});
+
+describe('node ids checked against the field type', () => {
+  const at = new Date(1_700_000_000_000);
+  const cases: [type: string, accepted: [string, unknown][], rejected: string[]][] = [
+    [
+      'Int',
+      [
+        ['42', 42],
+        ['-5', -5],
+        ['0', 0],
+      ],
+      ['', 'abc', '1abc', '1.9', '1e0', '01', ' 1', '9007199254740993'],
+    ],
+    [
+      'BigInt',
+      [
+        ['9007199254740993', BigInt('9007199254740993')],
+        ['-1', BigInt(-1)],
+        ['9223372036854775807', BigInt('9223372036854775807')],
+        ['-9223372036854775808', BigInt('-9223372036854775808')],
+      ],
+      ['', 'abc', '1n', '0x1', '1.5', ' 1', '9223372036854775808', '-9223372036854775809'],
+    ],
+    [
+      'Float',
+      [
+        ['1.75', 1.75],
+        ['1e+21', 1e21],
+        ['1e-7', 1e-7],
+        ['-2', -2],
+      ],
+      ['', 'abc', '1abc', 'Infinity', 'NaN', '1e400', '0x1'],
+    ],
+    [
+      'Decimal',
+      [
+        ['0.1234567890123456789012345', '0.1234567890123456789012345'],
+        ['1e-7', '1e-7'],
+        ['1.23e+21', '1.23e+21'],
+      ],
+      ['', 'abc', '1abc', 'Infinity', '0x1'],
+    ],
+    [
+      'Boolean',
+      [
+        ['true', true],
+        ['false', false],
+      ],
+      ['', 'TRUE', '1', 'yes'],
+    ],
+    [
+      'DateTime',
+      [
+        [at.toISOString(), at],
+        [String(at), at],
+        ['Tue Nov 14 2023 22:13:20 GMT+0000 (Coordinated Universal Time)', at],
+        ['Tue Nov 14 2023 23:13:20 GMT+0100 (Mitteleuropäische Normalzeit)', at],
+        ['Tue Nov 14 2023 22:13:20 GMT+0000', at],
+      ],
+      [
+        '',
+        'garbage',
+        '1',
+        'foo 1',
+        '2020',
+        '2023-11-14',
+        'Tue Nov 14 2023',
+        '2023-13-14T22:13:20.123Z',
+        '2023-11-14T22:13:20Z',
+      ],
+    ],
+    [
+      'Bytes',
+      [
+        ['AAH6', Buffer.from([0, 1, 250])],
+        ['', Buffer.from([])],
+      ],
+      ['AAH', '!!!!', 'AAH6\n'],
+    ],
+    [
+      'Json',
+      [
+        ['{"a":1}', { a: 1 }],
+        ['"x"', 'x'],
+      ],
+      ['', '{a:1}'],
+    ],
+    [
+      'String',
+      [
+        ['ada', 'ada'],
+        ['', ''],
+      ],
+      [],
+    ],
+    ['Role', [['ADMIN', 'ADMIN']], []],
+  ];
+
+  const parserFor = (type: string) =>
+    getDefaultIDParser(
+      'Model',
+      'v',
+      builderFor([{ name: 'v', type, kind: type === 'Role' ? 'enum' : 'scalar', isId: true }]),
+    );
+
+  it.each(
+    cases.flatMap(([type, accepted]) => accepted.map(([id, value]) => [type, id, value])),
+  )('%s accepts %j', (type, id, value) => {
+    expect(parserFor(type as string)(id as string)).toEqual(value);
+  });
+
+  it.each(
+    cases.flatMap(([type, , rejected]) => rejected.map((id) => [type, id])),
+  )('%s rejects %j', (type, id) => {
+    expect(() => parserFor(type)(id)).toThrow(/^Invalid ID\.$/);
+  });
+
+  // An id written before compound ids serialized each part by its type, when a date part was
+  // `String(date)`.
+  it('reads a compound id with a date part in either form', () => {
+    const builder = builderFor(
+      [
+        { name: 'at', type: 'DateTime' },
+        { name: 'n', type: 'Int' },
+      ],
+      { name: null, fields: ['at', 'n'] },
+    );
+    const parse = getDefaultIDParser('Model', 'at_n', builder);
+
+    expect(parse(JSON.stringify([at.toISOString(), '1']))).toEqual({ at, n: 1 });
+    expect(parse(JSON.stringify([String(at), '1']))).toEqual({ at, n: 1 });
+    expect(() => parse(JSON.stringify([String(at), '1x']))).toThrow(/^Invalid ID\.$/);
+  });
+});
+
+describe('connection order', () => {
+  const builder = builderFor([
+    { name: 'id', type: 'Int', isId: true },
+    { name: 'c', type: 'String', isUnique: true, isRequired: false },
+  ]);
+
+  // A nullable unique column is not a key, but the order already names the cursor, so there is
+  // nothing to append.
+  it('returns an order that names every cursor field as it was given', () => {
+    const query = { orderBy: { c: 'asc' } };
+
+    expect(getConnectionOrderBy('Model', builder, 'c')(query)).toBe(query);
+  });
+
+  it('appends the cursor ascending after an ordering that names no direction', () => {
+    expect(getConnectionOrderBy('Model', builder, 'c')({ orderBy: { author: {} } })).toEqual({
+      orderBy: [{ author: {} }, { c: 'asc' }],
+    });
   });
 });

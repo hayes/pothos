@@ -738,6 +738,69 @@ describe('prisma', () => {
     `);
   });
 
+  it('first with last pages forward by first', async () => {
+    const query = gql`
+      query {
+        userConnection(first: 3, last: 2) {
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+          }
+          edges {
+            node {
+              id
+              postsConnection(first: 2, last: 1) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                }
+                edges {
+                  node {
+                    createdAt
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result.errors).toBeUndefined();
+
+    const users = await prisma.user.findMany({
+      take: 3,
+      orderBy: { id: 'asc' },
+      select: {
+        id: true,
+        posts: { take: 2, orderBy: { createdAt: 'desc' }, select: { createdAt: true } },
+      },
+    });
+
+    expect(result.data).toEqual({
+      userConnection: {
+        pageInfo: { hasNextPage: true, hasPreviousPage: false },
+        edges: users.map((user) => ({
+          node: {
+            id: Buffer.from(`User:${user.id}`).toString('base64'),
+            postsConnection: {
+              pageInfo: { hasNextPage: true, hasPreviousPage: false },
+              edges: user.posts.map((post) => ({
+                node: { createdAt: post.createdAt.toISOString() },
+              })),
+            },
+          },
+        })),
+      },
+    });
+  });
+
   it('end', async () => {
     const query = gql`
       query {

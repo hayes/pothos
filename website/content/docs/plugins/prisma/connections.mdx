@@ -36,14 +36,15 @@ builder.queryType({
 
 - `type`: the name of the prisma model being connected to
 - `cursor`: a `@unique` column of the model being connected to. This is used as the `cursor` option
-  passed to prisma.
+  passed to prisma. If the column is nullable, paging from a row where it is null fails.
 - `defaultSize`: (default: 20) The default page size to use if `first` and `last` are not provided.
 - `maxSize`: (default: 100) The maximum number of nodes returned for a connection.
 - `resolve`: Like the resolver for `prismaField`, the first argument is a `query` object that should
   be spread into your prisma query. The `resolve` function should return an array of nodes for the
   connection. The `query` will contain the correct `take`, `skip`, and `cursor` options based on the
   connection arguments (`before`, `after`, `first`, `last`), along with `include` options for nested
-  selections.
+  selections. The `orderBy` you pass to prisma should end in a unique column, or pages read
+  backward with `last` may not match the pages read forward.
 - `totalCount`: A function for loading the total count for the connection. This will add a
   `totalCount` field to the connection object. The `totalCount` method will receive (`connection`,
   `args`, `context`, `info`) as arguments. Note that this will not work when using a shared
@@ -65,6 +66,9 @@ Queries for these combinations are not as useful, and generally requiring loadin
 between 2 cursors, or between a cursor and the end of the set. Generating query options for these
 cases is more complex and likely very inefficient, so they will currently throw an Error indicating
 the argument combinations are not supported.
+
+Paging from the cursor of a row that has since been deleted returns an empty page rather than an
+error.
 
 The `maxSize` and `defaultSize` can also be configured globally using `maxConnectionSize` and
 `defaultConnectionSize` options in the `prisma` plugin options.
@@ -110,7 +114,10 @@ builder.prismaNode('User', {
 - `defaultSize`: (default: 20) The default page size to use if `first` and `last` are not provided.
 - `maxSize`: (default: 100) The maximum number of nodes returned for a connection.
 - `query`: A method that accepts the `args` and `context` for the connection field, and returns
-  filtering and sorting logic that will be merged into the query for the relation.
+  filtering and sorting logic that will be merged into the query for the relation. If the
+  `orderBy` is not unique, the plugin also sorts by the cursor's fields last, in the direction of
+  the last `orderBy` entry, so tied rows keep the same order on every page. End `orderBy` with a
+  unique column to choose that order yourself.
 - `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
   [`relationCount`](./relations#relationcount) for more details. Note that this will not work when
   using a shared connection object (see details below)
@@ -238,7 +245,7 @@ const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
   cursor: 'id',
   // define arguments for the connection helper, these will be available as the second argument of `select`
   args: (t) => ({
-    inverted: t.arg.boolean(),
+    inverted: t.boolean(),
   }),
   select: (nodeSelection, args) => ({
     media: nodeSelection({}),
@@ -253,7 +260,7 @@ const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
     // custom ordering including use of args
     orderBy: {
       post: {
-        createdAt: args.inverted ? 'desc' : 'asc',
+        createdAt: args.inverted ? ('desc' as const) : ('asc' as const),
       },
     },
   }),
@@ -274,6 +281,11 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
   }),
 );
 ```
+
+If the `orderBy` in the helper's `query` is not unique, the plugin also sorts by the cursor's
+fields last, like `relatedConnection`, and `getQuery` returns `orderBy` as an array. If you set
+`orderBy` after spreading `getQuery`, as in the earlier example, the plugin does not change it. It
+should end in a unique column.
 
 ### Sharing Connections objects
 

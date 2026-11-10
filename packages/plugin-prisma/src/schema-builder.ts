@@ -146,6 +146,15 @@ schemaBuilderProto.prismaNode = function prismaNode(
 
   const extendedOptions = {
     ...options,
+    // The global ID and `findUnique` read `id.field`, which a type-level `select` only covers
+    // when it is the primary key.
+    select:
+      options.select && fieldName
+        ? {
+            ...ModelLoader.getCursorSelection(nodeRef, type, fieldName, this),
+            ...options.select,
+          }
+        : options.select,
     name,
     variant,
     findUnique,

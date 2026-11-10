@@ -2,6 +2,7 @@ import { PothosSchemaError, type SchemaTypes } from '@pothos/core';
 import { PrismaInterfaceRef, type PrismaRef } from '../interface-ref.js';
 import { PrismaObjectRef } from '../object-ref.js';
 import type { PrismaClient, PrismaDelegate, PrismaModelTypes } from '../types.js';
+import { InternalError } from './errors.js';
 import { getDMMF } from './get-client.js';
 
 export const refMap = new WeakMap<object, Map<string, PrismaRef<never, PrismaModelTypes>>>();
@@ -106,7 +107,7 @@ export function getDelegateFromModel(client: PrismaClient, model: string) {
     lowerCase in client ? (client as PrismaClient & Record<string, unknown>)[lowerCase] : null;
 
   if (!delegate) {
-    throw new PothosSchemaError(`Unable to find delegate for model ${model}`);
+    throw new InternalError(`Unable to find delegate for model ${model}`);
   }
 
   return delegate as PrismaDelegate;
