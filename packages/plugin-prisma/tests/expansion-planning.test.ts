@@ -112,14 +112,14 @@ describe('planning fragments that expand at every level', () => {
   }
 
   /**
-   * Runs `document`, bounding the planning work it costs: tree copies quadratic in its depth, by
-   * `perLevel` for each of the invocations a level makes.
+   * Runs `document`, bounding the planning work it costs by twice the tree copies it makes now:
+   * quadratic in its depth, and for a named document linear in the field nodes a level holds.
    */
   async function runBounded(
     implementations: number,
     depth: number,
     document: (depth: number, implementations: number) => string,
-    perLevel = 20,
+    copiesNow: (depth: number, implementations: number) => number,
   ) {
     const copies = vi.spyOn(prismaAdapter, 'toQuery');
     const { calls, schema } = cyclicSchema(implementations);
@@ -135,11 +135,14 @@ describe('planning fragments that expand at every level', () => {
 
     copies.mockRestore();
     expect(result.errors).toBeUndefined();
-    expect(toQueryCalls).toBeLessThan(perLevel * (implementations + 1) * depth * depth);
+    expect(toQueryCalls).toBeLessThanOrEqual(2 * copiesNow(depth, implementations));
     expect(queries).toHaveLength(1);
 
     return calls;
   }
+
+  // A copy per level for each level above it, however many implementations take the invocation.
+  const cyclicCopies = (depth: number) => ((depth + 1) * (depth + 2)) / 2;
 
   // Planning beneath every invocation, or a slot per implementation, ran out of time or heap here.
   // prisma-next also runs 6 implementations at depth 96, which plans the same here but nests deeper
@@ -153,9 +156,13 @@ describe('planning fragments that expand at every level', () => {
     [2, 36, 18],
     [6, 60, 30],
   ])('with %i implementations at depth %i it makes %i relation calls', async (implementations, depth, expected) => {
-    const calls = await runBounded(implementations, depth, cyclicDocument);
+    const calls = await runBounded(implementations, depth, cyclicDocument, cyclicCopies);
     expect(calls.posts).toBe(expected);
   });
+
+  // Each field node is invoked once, so the copies are as above for each field node a level holds.
+  const namedCopies = (depth: number, implementations: number) =>
+    ((depth + 1) * (implementations * depth + 2)) / 2;
 
   // A walk per field node made 44,286 relation calls at depth 10 and ran out of heap at 12.
   it.each([
@@ -164,8 +171,73 @@ describe('planning fragments that expand at every level', () => {
     [3, 40, 60],
     [2, 36, 36],
   ])('with a named fragment per level, %i implementations at depth %i make %i relation calls', async (implementations, depth, expected) => {
-    // Each field node is invoked once, so the copies are bounded as for one node per level.
-    const calls = await runBounded(implementations, depth, namedDocument);
+    const calls = await runBounded(implementations, depth, namedDocument, namedCopies);
     expect(calls.posts).toBe(expected);
+  });
+});
+
+describe('many aliases of one relation with different arguments', () => {
+  function aliasSchema() {
+    const builder = new SchemaBuilder<{
+      PrismaTypes: PrismaTypesFromClient<typeof prisma>;
+    }>({
+      plugins: [PrismaPlugin],
+      prisma: {
+        client: () => prisma,
+        dmmf: getDatamodel(),
+      },
+    });
+
+    builder.prismaObject('User', {
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        posts: t.relation('posts', {
+          args: { limit: t.arg.int({ required: true }) },
+          query: (args) => ({ take: args.limit, orderBy: { id: 'asc' } }),
+        }),
+      }),
+    });
+    builder.prismaObject('Post', { fields: (t) => ({ id: t.exposeID('id') }) });
+    builder.queryType({
+      fields: (t) => ({
+        user: t.prismaField({
+          type: 'User',
+          nullable: true,
+          resolve: (query) => prisma.user.findUnique({ ...query, where: { id: 1 } }),
+        }),
+      }),
+    });
+
+    return builder.toSchema();
+  }
+
+  async function copiesFor(count: number) {
+    const schema = aliasSchema();
+    const copies = vi.spyOn(prismaAdapter, 'toQuery');
+    copies.mockClear();
+    const aliases = Array.from(
+      { length: count },
+      (_, i) => `p${i}: posts(limit: ${i + 1}) { id }`,
+    ).join(' ');
+    const result = await execute({
+      schema,
+      document: gql(`{ user { id ${aliases} } }`),
+      contextValue: {},
+    });
+    const calls = copies.mock.calls.length;
+
+    copies.mockRestore();
+    expect(result.errors).toBeUndefined();
+
+    return calls;
+  }
+
+  // Each alias loads on its own. Twice the aliases take twice the copies (4 per alias); work per
+  // alias that grows with the aliases before it takes four times as many.
+  it('plans in work linear in the aliases', async () => {
+    const small = await copiesFor(100);
+    const large = await copiesFor(200);
+
+    expect(large).toBeLessThan(small * 3);
   });
 });
