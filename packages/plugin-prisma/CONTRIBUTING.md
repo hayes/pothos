@@ -51,4 +51,3 @@ The tests use the SQLite database in `prisma/dev.db`, which is committed with th
 ## Type checks
 
 `pnpm type` checks the source and the tests, including the type tests (`tests/**/*.test-d.ts`).
-Vitest also checks the type tests when it runs the suite.
