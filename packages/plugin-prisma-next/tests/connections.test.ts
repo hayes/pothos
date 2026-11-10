@@ -1877,7 +1877,11 @@ describe('prismaConnectionHelpers', () => {
   function wrapperSchema(prefixed: boolean) {
     const builder = createBuilder();
     builder.prismaObject('Post', {
-      fields: (t) => ({ id: t.exposeID('id'), title: t.exposeString('title') }),
+      fields: (t) => ({
+        id: t.exposeID('id'),
+        title: t.exposeString('title'),
+        author: t.relation('author'),
+      }),
     });
     const posts = prismaConnectionHelpers(builder, 'Post', {
       query: { orderBy: { title: 'asc' } },
@@ -1914,6 +1918,10 @@ describe('prismaConnectionHelpers', () => {
         users: t.prismaField({
           type: ['User'],
           collection: () => db.orm.User.orderBy((user) => user.id.asc()),
+        }),
+        posts: t.prismaField({
+          type: ['Post'],
+          collection: () => db.orm.Post.orderBy((post) => post.id.asc()),
         }),
       }),
     });
@@ -2011,6 +2019,46 @@ describe('prismaConnectionHelpers', () => {
     expect(ids(same.data.users[0].stats.b)).toEqual(['p-draft1']);
     const differing = await run(schema, query(alias('a', 1), alias('b', 2)));
     expect(differing.data.users).toBeNull();
+    expect(differing.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
+    expect(differing.errors?.map(detailOf)).toEqual([
+      'The fields selected at posts beneath User.stats have different arguments.',
+    ]);
+    expect(differing.statements).toHaveLength(0);
+  });
+
+  it.each([
+    [
+      'selections graphql merges',
+      (a: string, b: string) =>
+        `{ posts { id author { stats { ${a} } } author { stats { ${b} } } } }`,
+    ],
+    [
+      'inline fragments',
+      (a: string, b: string) =>
+        `{ posts { id ... on Post { author { stats { ${a} } } } ... { author { stats { ${b} } } } } }`,
+    ],
+    [
+      'named fragments',
+      (a: string, b: string) => `{ posts { id ...A ...B } }
+        fragment A on Post { author { stats { ${a} } } }
+        fragment B on Post { author { stats { ${b} } } }`,
+    ],
+  ] as const)('fails the root field when aliases of the connection differ in arguments beneath a relation selected twice, in %s', async (_, query) => {
+    const schema = wrapperSchema(true);
+    const alias = (name: string, page: string) =>
+      `${name}: posts(${page}) { edges { node { id } } }`;
+    const statsOf = (result: Awaited<ReturnType<typeof run>>) =>
+      result.data.posts.find((post: { id: string }) => post.id === 'p-bob1').author.stats;
+    const one = await run(schema, `{ posts { id author { stats { ${alias('b', 'last: 1')} } } } }`);
+    expect(one.errors).toBeUndefined();
+    expect(ids(statsOf(one).b)).toEqual(['p-bob1']);
+    const same = await run(schema, query(alias('a', 'last: 1'), alias('b', 'last: 1')));
+    expect(same.errors).toBeUndefined();
+    expect(ids(statsOf(same).a)).toEqual(['p-bob1']);
+    expect(ids(statsOf(same).b)).toEqual(['p-bob1']);
+    expect(same.statements).toHaveLength(1);
+    const differing = await run(schema, query(alias('a', 'first: 1'), alias('b', 'last: 1')));
+    expect(differing.data.posts).toBeNull();
     expect(differing.errors?.map((error) => error.message)).toEqual(['Unexpected error.']);
     expect(differing.errors?.map(detailOf)).toEqual([
       'The fields selected at posts beneath User.stats have different arguments.',

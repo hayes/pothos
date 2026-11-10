@@ -1,4 +1,9 @@
-import { type GraphQLNamedType, type GraphQLResolveInfo, getNamedType } from 'graphql';
+import {
+  type FieldNode,
+  type GraphQLNamedType,
+  type GraphQLResolveInfo,
+  getNamedType,
+} from 'graphql';
 import type { Adapter, NodeBase } from './adapter.js';
 import { unexpectedError } from './errors.js';
 import { type Mapping, type Mappings, setLoaderMappings, unionMappings } from './loader-map.js';
@@ -21,7 +26,7 @@ import type {
   TypeLevelConflict,
   WalkedType,
 } from './types.js';
-import { type Branch, walkBranches, walkField } from './walk.js';
+import { type Branch, mergedKey, walkBranches, walkField } from './walk.js';
 
 // Shared, since neither carries anything per merge.
 const AS_QUERY: MergeOptions = Object.freeze({ asQuery: true });
@@ -89,11 +94,17 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
   /** Whether a select function in this walk read the position above its own field. */
   positionRead = false;
 
+  /** Whether a select function in this walk, or in a walk beneath it, read `selected.args`. */
+  argsRead = false;
+
   /**
    * The walks beneath every field of the plans hanging from one root, by `nested`'s `key`. Shared
    * with the plan this one was created from, so the root creates it and every nested plan reads it.
    */
   private readonly walks: Map<string, Plan<Model, Query, NodeType>>;
+
+  /** The keys in `walks` whose walk read `selected.args`, shared the way `walks` is. */
+  private readonly argsKeys: Set<string>;
 
   /**
    * The play `settle` ran, which a later play takes whole when the seed conflicts with none of
@@ -219,6 +230,7 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
     this.info = source.info;
     this.skipDeferredFragments = source.skipDeferredFragments ?? adapter.skipDeferredFragments;
     this.walks = source instanceof Plan ? source.walks : new Map();
+    this.argsKeys = source instanceof Plan ? source.argsKeys : new Set();
 
     const model = modelOf(adapter, source.info.schema, type);
 
@@ -248,14 +260,21 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
    * any plan from the same root, shares a walk that did not. A walk that is still pending may yet
    * read it, so it is not shared. A walk that throws is not kept, so a select function that catches
    * the failure can retry it.
+   *
+   * A walk that read `selected.args`, itself or in a walk beneath it, also read the selection sets
+   * graphql merges with the field's (`nodes`, every node of the field), so it is shared under a key
+   * that names those too (see `mergedKey`). Only such a walk asks for `nodes`.
    */
   nested(
     type: GraphQLNamedType,
     position: Position,
     key: string,
+    nodes: () => readonly FieldNode[],
     walk: (plan: Plan<Model, Query, NodeType>) => void,
   ): Plan<Model, Query, NodeType> {
-    let walked = this.walks.get(key);
+    let walked = this.walks.get(
+      this.argsKeys.has(key) ? key + mergedKey(this.info, position.node, nodes()) : key,
+    );
 
     if (!walked) {
       const created = new Plan(this.adapter, this, type, position);
@@ -268,10 +287,22 @@ export class Plan<Model, Query, NodeType extends NodeBase<Model> = Node<Model>> 
       }
 
       if (!(created.positionRead || created.pending)) {
-        this.walks.set(key, created);
+        if (created.argsRead) {
+          this.argsKeys.add(key);
+        }
+
+        this.walks.set(
+          created.argsRead ? key + mergedKey(this.info, position.node, nodes()) : key,
+          created,
+        );
       }
 
       walked = created;
+    }
+
+    // What the walk read of the selections merged with its field was found through this plan's.
+    if (walked.argsRead) {
+      this.argsRead = true;
     }
 
     const plan = new Plan(this.adapter, this, type, position);
