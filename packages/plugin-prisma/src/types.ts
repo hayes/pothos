@@ -458,7 +458,10 @@ export type PrismaNodeOptions<
             resolve?: never;
             field: UniqueField extends UniqueFieldsFromWhereUnique<Model['WhereUnique']>
               ? UniqueField
-              : UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
+              : // Read through a mapped type, so an error lists the names rather than the alias.
+                {
+                  [K in UniqueFieldsFromWhereUnique<Model['WhereUnique']>]: K;
+                }[UniqueFieldsFromWhereUnique<Model['WhereUnique']>];
           }
       );
     fields?: PrismaObjectFieldsShape<
@@ -519,7 +522,8 @@ type CursorFromRelation<
 > = Field extends keyof Model['Include']
   ? Model['Include'][Field] extends infer Include
     ? Include extends { cursor?: infer T }
-      ? UniqueFieldsFromWhereUnique<T>
+      ? // Read through a mapped type, so an error lists the names rather than the alias.
+        { [K in UniqueFieldsFromWhereUnique<T>]: K }[UniqueFieldsFromWhereUnique<T>]
       : never
     : never
   : never;
@@ -796,7 +800,10 @@ export type PrismaConnectionFieldOptions<
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
         type: Type;
-        cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
+        // Read through a mapped type, so an error lists the names rather than the alias.
+        cursor: {
+          [K in UniqueFieldsFromWhereUnique<Model['WhereUnique']>]: K;
+        }[UniqueFieldsFromWhereUnique<Model['WhereUnique']>];
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         resolve: (

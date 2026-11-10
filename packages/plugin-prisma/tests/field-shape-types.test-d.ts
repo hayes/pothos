@@ -20,8 +20,10 @@ const builder = new SchemaBuilder<{ PrismaTypes: PrismaTypes }>({
 type Types = typeof builder.$inferSchemaTypes;
 type UserModel = PrismaModelTypes & PrismaTypes['User'];
 type UserShape = PrismaTypes['User']['Shape'];
-type FieldBuilder<Model extends PrismaModelTypes, Shape extends object> =
-  PothosSchemaTypes.PrismaObjectFieldBuilder<Types, Model, Shape>;
+type FieldBuilder<
+  Model extends PrismaModelTypes,
+  Shape extends object,
+> = PothosSchemaTypes.PrismaObjectFieldBuilder<Types, Model, Shape>;
 
 const User = builder.prismaObject('User', {
   fields: (t) => ({ id: t.exposeID('id') }),

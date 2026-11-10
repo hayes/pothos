@@ -59,7 +59,10 @@ export function prismaConnectionHelpers<
     maxSize = builder.options.prisma?.maxConnectionSize,
     defaultSize = builder.options.prisma?.defaultConnectionSize,
   }: {
-    cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
+    // Read through a mapped type, so an error lists the names rather than the alias.
+    cursor: {
+      [K in UniqueFieldsFromWhereUnique<Model['WhereUnique']>]: K;
+    }[UniqueFieldsFromWhereUnique<Model['WhereUnique']>];
     select?: (
       // The node's selection: its model is the connection field's, which the helper does not know.
       nestedSelection: <T extends true | {}>(selection?: T) => T,
