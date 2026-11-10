@@ -1,4 +1,4 @@
-import { PothosValidationError } from '@pothos/core';
+import { type MaybePromise, PothosValidationError } from '@pothos/core';
 import {
   type DocumentNode,
   type GraphQLResolveInfo,
@@ -8,6 +8,7 @@ import {
   parse,
 } from 'graphql';
 import { complexityFromSelectionSet } from './calculate-complexity.js';
+import type { ComplexityResult } from './types.js';
 import { complexityVariableValues } from './variable-values.js';
 
 export function complexityFromQuery(
@@ -17,7 +18,7 @@ export function complexityFromQuery(
     ctx?: object;
     variables?: Record<string, unknown>;
   },
-) {
+): MaybePromise<ComplexityResult> {
   const parsedQuery = typeof query === 'string' ? parse(query) : query;
 
   const operation = parsedQuery.definitions.find(

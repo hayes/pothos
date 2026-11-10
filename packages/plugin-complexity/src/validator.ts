@@ -1,4 +1,4 @@
-import { PothosValidationError } from '@pothos/core';
+import { isThenable, PothosValidationError } from '@pothos/core';
 import { type FragmentDefinitionNode, GraphQLError, Kind, type ValidationRule } from 'graphql';
 import { complexityFromSelectionSet } from './calculate-complexity.js';
 import { complexityVariableValues } from './variable-values.js';
@@ -106,6 +106,15 @@ export function createComplexityRule({
               node.selectionSet,
               type,
             );
+
+            if (isThenable(complexity)) {
+              // GraphQL validation is synchronous. The calculation has already
+              // started, so observe any rejection before reporting this limitation.
+              Promise.resolve(complexity).catch(() => {});
+              throw new PothosValidationError(
+                'createComplexityRule does not support asynchronous complexity calculations; await complexityFromQuery before execution instead',
+              );
+            }
 
             state.complexity += complexity.complexity;
             state.depth = Math.max(state.depth, complexity.depth);
