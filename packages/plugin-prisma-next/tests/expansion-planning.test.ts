@@ -334,9 +334,10 @@ describe('aliases with different arguments on one level', () => {
   });
 });
 
-// Each alias's load is checked against the level's count of loads and named among the loads seen
-// before it, at a cost that doesn't grow with how many aliases came first.
-describe('many aliases of one relation with different arguments', () => {
+// Each alias's load is checked against the loads its level holds, which the limit keeps few, and
+// named among the loads seen with the same limit and offset, so aliases that differ in limit plan
+// at a cost that doesn't grow with how many came first.
+describe('many aliases of one relation with different limits', () => {
   function aliasSchema() {
     const builder = createBuilder();
     builder.prismaObject('User', {
@@ -402,13 +403,13 @@ describe('many aliases of one relation with different arguments', () => {
     expect((await runAliases(count)).statements).toBe(statements);
   });
 
-  // Past the limit, so both sizes reload. Copying the level for each check, and comparing each
-  // load with every load before it, grew 25 and 19 times over for four times the aliases.
+  // Both sizes are well past the limit, so both reload. Twice the aliases take a little over twice
+  // the copies and comparisons; work per alias that grows with the aliases before it takes four.
   it('plans in work linear in the aliases', async () => {
-    const small = await runAliases(100);
+    const small = await runAliases(200);
     const large = await runAliases(400);
-    expect(large.copies).toBeLessThan(small.copies * 4 * 2);
-    expect(large.comparisons).toBeLessThan(small.comparisons * 4 * 2);
+    expect(large.copies).toBeLessThan(small.copies * 3);
+    expect(large.comparisons).toBeLessThan(small.comparisons * 3);
   });
 });
 
