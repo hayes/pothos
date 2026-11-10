@@ -60,12 +60,12 @@ A `select` on the type is loaded whenever the type is queried, and every field c
 A `select` accepts:
 
 - Columns: `{ email: true }` or `['email']`.
-- Relations: `{ posts: true }`.
+- Relations: `{ posts: true }`, which loads the relation's scalar columns.
 - Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`.
   `where` also takes the ORM's predicate callback, and `orderBy` its selectors, as in `t.relation`'s
   `query`.
 - A `select` of the relation's rows, in the same form: `{ comments: { limit: 5, select: { post: true } } }`.
-- `type`, a ref or model name of a [variant](./interfaces#native-inheritance) of the relation's
+- `type`, a ref or model name of a [variant](./inheritance) of the relation's
   target, which loads only that variant's rows: `{ tasks: { type: Bug } }`.
 - In a field's `select` only, counts and aggregates of a to-many relation:
   `{ posts: (posts) => ({ postCount: posts.count() }) }`. Each key (`postCount`) is added to the
@@ -74,17 +74,10 @@ A `select` accepts:
 A to-one relation takes only `type` and `select`. Read aggregates in a resolver; `t.expose*` only
 works on columns.
 
-A relation selected with `{ posts: true }` loads its scalar columns. Pothos `select` declarations
-are resolver dependencies; they are different from calling the ORM's `collection.select(...)` yourself.
-
-Every type of a model reads the same rows for each relation a type-level `select` names, so the
-type-level `select`s of one model, including its [variants](./variants) and
-[interfaces](./interfaces), must write each relation the same way, nested `select` included, or the
-schema build throws. This holds at any depth: a relation selected beneath another type's relation,
-such as `comments` in `select: { posts: { select: { comments: true } } }`, must be loaded the same
-way by every type-level `select` that names it. A `where` or `orderBy` function is the same only
-when it's the same function, so share it. Load another version with `t.relation` or a field's
-`select`.
+The type-level `select`s of one model, including its [variants](./variants) and
+[interfaces](./interfaces), must load each relation they name the same way, at any depth, or the
+schema build throws. A `where` or `orderBy` function only matches itself, so share it between them.
+Load another version of a relation with `t.relation` or a field's `select`.
 
 To filter a to-one relation, select it and return `null` from the resolver. Here a comment shows its
 post's title only when the post is published:
@@ -103,14 +96,16 @@ builder.prismaObject('Comment', {
 
 ### Selecting per request
 
-A field's `select` can also be a function of its arguments and context. Here only admins load the
-email. A column that only some branches select is optional on the parent:
+A field's `select` can also be a function of its arguments and context. Here the field selects
+`lastName` only when the client asks for the full name. A column that only some branches select is
+optional on the parent:
 
 ```ts
-email: t.string({
-  nullable: true,
-  select: (_args, ctx) => (ctx.isAdmin ? { email: true } : {}),
-  resolve: (user) => user.email ?? null,
+name: t.string({
+  args: { full: t.arg.boolean() },
+  select: (args) => (args.full ? { firstName: true, lastName: true } : { firstName: true }),
+  resolve: (user, args) =>
+    args.full && user.lastName ? `${user.firstName} ${user.lastName}` : user.firstName,
 }),
 ```
 
@@ -128,14 +123,10 @@ free of side effects.
 ### Resolver data
 
 A resolver can read the model's primary or non-null unique key, the type's shared `select`, and
-its own field's `select`.
-Those are its guaranteed inputs, even when the client requests different combinations of GraphQL
-fields. Extra model columns are not guaranteed just because they exist in the database.
+its own field's `select`. Other columns aren't guaranteed to be loaded.
 
-Rows returned from selection-aware queries carry the TypeScript marker `Planned<'User'>` for their
-model. It is not a runtime property or an exact list of loaded columns. The plugin still maps
-relation results to the field that requested them and reloads missing dependencies when needed.
-For returning rows from custom resolvers, see [Returning rows from other fields](./relations#returning-rows-from-other-fields).
+Rows the plugin loads carry a type-only marker, such as `Planned<'User'>`. For returning rows from
+custom resolvers, see [Returning rows from other fields](./relations#returning-rows-from-other-fields).
 
 ### Auth checks
 

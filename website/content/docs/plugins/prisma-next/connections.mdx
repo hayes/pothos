@@ -55,10 +55,9 @@ the query selects. `t.prismaConnection` takes:
 - `collection`: an optional starting ORM query, returned by `(parent, args, ctx, info) => Collection`.
   See [Use a custom Collection](#use-a-custom-collection).
 
-An `orderBy()` or `include()` on the starting Collection is a TypeScript error. Invalid ORM
-collections also fail at runtime before any SQL, including for count-only queries. This catches
-`limit()`, `offset()`, `cursor()`, `distinct()` and `distinctOn()` too. The error's cause names the
-offending calls.
+Return the starting Collection without `orderBy()` or `include()`, which are type errors, and
+without `limit()`, `offset()`, `cursor()`, `distinct()` or `distinctOn()`, which fail before any SQL
+runs.
 
 Connection and edge types can be customized as with the [Relay plugin](../relay), including
 `edgesNullable` and `nodeNullable`.
@@ -188,7 +187,6 @@ builder.queryField('postCommenters', (t) =>
       resolve: async (_root, args, ctx, info) => {
         const comments = db.orm.Comment.where({ postId: String(args.postId) });
         const rows = await commenters.load(comments, args, ctx, info);
-        console.info('Loaded comments', { count: rows.length });
         return commenters.resolve(rows, args, ctx);
       },
     },
@@ -208,7 +206,7 @@ builder.queryField('postCommenters', (t) =>
 
 `load` returns one extra row to determine whether another page exists. Pass the returned list to
 `resolve` to build the connection and preserve its `totalCount`; the extra row is omitted from the
-response. Your resolver can log the load, as above, before returning the connection.
+response.
 
 ### Put a connection inside a wrapper
 

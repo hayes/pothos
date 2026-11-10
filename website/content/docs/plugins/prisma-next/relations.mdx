@@ -158,11 +158,9 @@ builder.prismaObject('User', {
 });
 ```
 
-Aggregate callbacks run during planning and SQL construction. Keep them free of side effects and
-return the same reducer keys for the same arguments.
-
-A field's `select` can load at most 61 aggregate reducer keys at one level, across all its relations. Split larger summaries across fields;
-queries selecting several aggregate fields are batched to stay within the statement's join limit.
+Keep aggregate callbacks free of side effects, and return the same keys for the same arguments. A
+field's `select` can load at most 61 aggregate keys at one level, across its relations; split
+larger summaries across fields.
 
 ## Many-to-many
 
@@ -186,7 +184,7 @@ builder.prismaObject('Post', {
 ```
 
 A relation entry's `type` can be a ref or model name of one of the relation's
-[variants](./interfaces#native-inheritance). The rows load as that variant only, typed as its rows:
+[variants](./inheritance). The rows load as that variant only, typed as its rows:
 
 ```ts
 const Bug = builder.prismaObject('Bug', {

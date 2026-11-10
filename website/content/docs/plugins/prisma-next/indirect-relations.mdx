@@ -7,9 +7,8 @@ Use [`t.relation`](./relations) for a direct relation, including a renamed or fi
 Use a custom field when the result follows a join model, introduces a GraphQL wrapper, or needs
 other resolver logic. `nestedSelection` loads the related data requested beneath that field.
 
-The simple example below introduces the callback. A field's `select` function gets a third
-argument, `nestedSelection`. Use it as a relation's entry, and the relation's rows load with what
-the query selects on the field's type, in the parent's query:
+A field's `select` function gets a third argument, `nestedSelection`. Use it as a relation's entry,
+and the relation's rows load with what the query selects on the field's type, in the parent's query:
 
 ```ts
 const Post = builder.prismaObject('Post', {
@@ -31,7 +30,6 @@ builder.prismaObject('User', {
 
 For this filtered field alone, prefer
 `publishedPosts: t.relation('posts', { query: { where: { published: 1 } } })`.
-The wrapper and join-model examples below show where a custom resolver is useful.
 
 Without `nestedSelection`, `{ posts: true }` loads each post's columns but nothing the query
 selects beneath the field, such as `author`, which then loads in an extra batched statement. Use `nestedSelection`

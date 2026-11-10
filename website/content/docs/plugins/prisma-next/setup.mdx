@@ -5,15 +5,20 @@ description: Setting up the Prisma Next plugin
 
 ## Install
 
-Set up Prisma ORM 8 (`8.0.0-rc.23`) and your contract with the
-[Prisma ORM documentation](https://www.prisma.io/docs/orm), then install the plugin:
+Set up Prisma ORM 8 and your contract with the
+[Prisma ORM documentation](https://www.prisma.io/docs/orm), then install the plugin with its Prisma
+peers:
 
 ```package-install
-npm install --save @pothos/core @pothos/plugin-prisma-next graphql
+npm install --save @pothos/core @pothos/plugin-prisma-next graphql @prisma/orm-family-sql@8.0.0-rc.23 @prisma/orm-framework@8.0.0-rc.23
 ```
 
-Requires Node.js 22.18+ or 24+. This plugin and `@pothos/plugin-prisma` can't be used in the
-same program.
+The plugin targets Prisma ORM `8.0.0-rc.23` exactly. Install every `@prisma/orm-*` package,
+including your database's (such as `@prisma/orm-postgres`), at that version. A second copy of any
+of them breaks values passed between the two.
+
+Requires Node.js 22.18+ or 24+, and for SQLite 22.20+ or 24.7+. This plugin and
+`@pothos/plugin-prisma` can't be used in the same program.
 If you use [`@pothos/plugin-scope-auth`](/docs/plugins/scope-auth), it needs to be 4.3.0 or newer.
 
 ## Configure the builder
@@ -59,10 +64,9 @@ builder.queryType({
 export const schema = builder.toSchema();
 ```
 
-`User` and `Post` are type refs, which later examples pass as a field's `type`. A model name such
-as `'Post'` selects its default ref too. Later pages show alternatives and additions to these type
-definitions; update your definitions or use [`prismaObjectFields`](./objects#adding-fields) to extend
-them. Build the schema after registering its types and fields.
+`User` and `Post` are type refs, which later examples pass as a field's `type`; a model name such
+as `'Post'` works too. Later pages add to these types, which you can also do with
+[`prismaObjectFields`](./objects#adding-fields).
 
 For nodes and connections, also install and add [`@pothos/plugin-relay`](/docs/plugins/relay).
 
@@ -94,11 +98,6 @@ builder.prismaObject('auth.User', {
 });
 ```
 
-## Next steps
-
-Read [Queries and selections](./queries) for how `collection`, `query` and `select` work together,
-then [Objects](./objects) and [Relations](./relations) for defining the rest of your schema.
-
 ## Plugin options
 
 These go under `prisma` in the builder options.
@@ -118,9 +117,9 @@ For multi-step mutations and request-scoped clients, see the [Transactions guide
 
 ## TypeScript and Temporal
 
-If you export PostgreSQL refs selecting Temporal columns and declaration emit fails with TS2883
-mentioning `temporal-spec`, add `temporal-spec` as a direct dependency so TypeScript can name its
-types in your declarations:
+If you export refs that select Temporal columns, or have a Temporal primary key, and
+declaration emit fails with TS2742 or TS2883 mentioning `temporal-spec`, add `temporal-spec` as a
+direct dependency so TypeScript can name its types in your declarations:
 
 ```package-install
 npm install --save temporal-spec
@@ -140,10 +139,15 @@ through its configured polyfill.
 
 - On MySQL, Prisma reads rows but can't write them, count them or run aggregates yet. MongoDB isn't
   supported.
-- A malformed ID or cursor fails with `Invalid ID.` or `Invalid cursor.`. Errors the plugin
-  detects in your runtime configuration reach clients as `Unexpected error.`, with detail in
-  the error's `cause`. ORM errors and errors from your code pass through unchanged, including
-  errors from parent reloads and node batches. They can name your models and columns; use your
-  GraphQL server's error masking policy when appropriate.
-- Use `"moduleResolution": "nodenext"` or `"bundler"`, since Prisma's packages are ESM-only.
+- Malformed cursors fail with `Invalid cursor.`, and malformed IDs with `Invalid ID.` or the Relay
+  plugin's `Invalid global ID: …`. Errors the plugin detects in your runtime configuration reach clients as `Unexpected error.`, with detail in the error's
+  `cause`. ORM errors and errors from your code pass through unchanged and can name your models and
+  columns, so mask them in your GraphQL server.
+- Prisma's packages are ESM-only, so use `"moduleResolution": "nodenext"` or `"bundler"`. A
+  CommonJS project on `node16` gets TS1541 errors unless `skipLibCheck` is on.
 - graphql-jit isn't supported. Fields that load rows fail with `Unexpected error.` under it.
+
+## Next steps
+
+Read [Queries and selections](./queries) for how `collection`, `query` and `select` work together,
+then [Objects](./objects) and [Relations](./relations) for defining the rest of your schema.
