@@ -72,12 +72,13 @@ export function unionMappings(into: Mapping | undefined, from: Mapping): Mapping
 /**
  * Per execution: the mappings recorded so far.
  *
- * `scopes` holds what a plan recorded beneath a field execution: everything resolved beneath it
- * was loaded by that plan, so it answers for all of it, and for nothing else. `rows` holds a
- * mapping from a plan that loaded one row alone, and answers for that row only. A mapping carries the position a connection pages with, so a row
- * answering from another row's mapping would page with arguments its own data was never fetched
- * with. `rowScoped` stays false while nothing has been recorded there, so a request whose rows
- * were all loaded the same way pays nothing for the row tier.
+ * `scopes` holds what a plan recorded beneath a field execution: everything resolved beneath it was
+ * loaded by that plan, so it answers for all of it, and for nothing else. `rows` holds a mapping
+ * from a plan that loaded one row alone, and answers for that row only. A mapping carries the
+ * position a connection pages with, so a row answering from another row's mapping would page with
+ * arguments its own data was never fetched with. `rowScoped` stays false while nothing has been
+ * recorded there, so a request whose rows were all loaded the same way pays nothing for the row
+ * tier.
  *
  * `scopes` and `rows` are keyed by a field execution's place (see `placeOf`), which tells sibling
  * rows apart, in weak maps: a `Map` holding every path link of a request tripled the time spent
