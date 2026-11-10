@@ -1,4 +1,4 @@
-import { createContextCache, PothosValidationError } from '@pothos/core';
+import { createContextCache } from '@pothos/core';
 import {
   type Node,
   NodeAdapter,
@@ -11,6 +11,7 @@ import { getColumns, type Table, type TableRelationalConfig } from 'drizzle-orm'
 import type { GraphQLField, GraphQLNamedType } from 'graphql';
 import type { DrizzleFieldSelection, PathInfo } from '../types.js';
 import type { PothosDrizzleSchemaConfig } from './config.js';
+import { InternalError } from './errors.js';
 import { pathInfoFor } from './path-info.js';
 import { omitUndefinedKeys, type SelectionMap } from './selections.js';
 
@@ -190,7 +191,7 @@ export class DrizzleAdapter extends NodeAdapter<TableRelationalConfig, Selection
       const relationConfig = model.relations[key];
 
       if (!relationConfig) {
-        throw new PothosValidationError(`Relation ${key} does not exist on ${model.name}`);
+        throw new InternalError(`Relation ${key} does not exist on ${model.name}`);
       }
 
       visit.relation(

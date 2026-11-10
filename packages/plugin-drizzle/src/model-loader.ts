@@ -1,4 +1,10 @@
-import { createContextCache, isThenable, type MaybePromise, type SchemaTypes } from '@pothos/core';
+import {
+  createContextCache,
+  isThenable,
+  type MaybePromise,
+  PothosSchemaError,
+  type SchemaTypes,
+} from '@pothos/core';
 import {
   fieldKey,
   forExecution,
@@ -110,7 +116,7 @@ export class ModelLoader {
         return model[columnName] as string | number;
       }
 
-      throw new Error(`Primary key column ${columnName} not found on ${this.modelName}`);
+      throw new InternalError(`Primary key column ${columnName} not found on ${this.modelName}`);
     });
 
     return this.columns.length > 1 ? values : values[0];
@@ -329,7 +335,16 @@ export function typeParentLoader(
   selection: SelectionMap,
 ): ScopeAuthParentLoader {
   const root = adapter.createNode(table);
-  adapter.mergeQuery(root, selection);
+
+  try {
+    adapter.mergeQuery(root, selection);
+  } catch (error) {
+    // The type's own `select` is planned here, at build, so a mistake in it is a schema error.
+    throw error instanceof InternalError
+      ? new PothosSchemaError((error.cause as Error).message)
+      : error;
+  }
+
   // Read from the node, which resolves a `columns` map that only excludes. A node without columns
   // selects every column.
   const keys = [
