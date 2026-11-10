@@ -302,6 +302,13 @@ inheritance.queryFields((t) => ({
     query: bugConnectionQuery,
     collection: () => orm.Task.variant('bug'),
   }),
+  orderedBugPage: t.prismaConnection({
+    type: 'Bug',
+    nullable: true,
+    // @ts-expect-error the connection orders the collection
+    collection: (_root, args) =>
+      args.first === 0 ? null : orm.Task.variant('bug').orderBy((bug) => bug.title.asc()),
+  }),
 }));
 
 // A node's `collection` takes the same collections as a root field's.

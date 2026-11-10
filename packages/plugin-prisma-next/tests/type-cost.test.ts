@@ -32,4 +32,13 @@ describe('type cost', () => {
     // each model's shape.
     expect(typeCount('tsconfig.json') - builder).toBeLessThan(45_000);
   });
+
+  it('checks a connection collection against its own model', { timeout: 120_000 }, () => {
+    const builder = typeCount('tsconfig.relay-builder.json');
+
+    // About 5,000 types each for eight connections and eight `load` calls, and 23,000 to 29,000
+    // when each collection is checked against every model's collections.
+    expect(typeCount('tsconfig.connections.json') - builder).toBeLessThan(12_000);
+    expect(typeCount('tsconfig.loads.json') - builder).toBeLessThan(12_000);
+  });
 });

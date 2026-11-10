@@ -351,7 +351,7 @@ declare global {
               Types,
               M
             >,
-            Returned extends ResolverCollection<Types, M> = ResolverCollection<Types, M>,
+            Returned extends ResolverCollection<Types, M> | null = ResolverCollection<Types, M>,
             EdgeNullability extends FieldNullability<[unknown]> = DefaultEdgesNullability<Types>,
             NodeNullability extends boolean = DefaultNodeNullability<Types>,
           >(

@@ -736,6 +736,21 @@ builder.queryFields((t) => ({
     nullable: true,
     collection: (_root, args) => (args.first === 0 ? null : orm.Post.where({ published: 1 })),
   }),
+  nullPage: t.prismaConnection({ type: 'Post', nullable: true, collection: () => null }),
+  orderedOrNull: t.prismaConnection({
+    type: 'Post',
+    nullable: true,
+    // @ts-expect-error the connection orders the collection
+    collection: (_root, args) =>
+      args.first === 0 ? null : orm.Post.orderBy((post) => post.title.asc()),
+  }),
+  asyncOrderedOrNull: t.prismaConnection({
+    type: 'Post',
+    nullable: true,
+    // @ts-expect-error the connection orders the collection
+    collection: async (_root, args) =>
+      args.first === 0 ? null : orm.Post.orderBy((post) => post.title.asc()),
+  }),
 }));
 
 // A helper named by model cannot infer the selected columns of that model's GraphQL type.

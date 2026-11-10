@@ -113,6 +113,7 @@ export type {
   CollectionFor,
   PrismaPlannedCollection,
   ResolverCollection,
+  UnorderedCollection,
 } from './types/collections.js';
 export type {
   ConnectionQueryLiteral,

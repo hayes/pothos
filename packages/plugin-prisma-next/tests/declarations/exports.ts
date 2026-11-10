@@ -67,6 +67,9 @@ export const postPages = prismaConnectionHelpers(builder, 'Post', {
   resolveNode: (post) => ({ post, author: post.author }),
 });
 
+// Its declaration names the check that rejects an ordered collection.
+export const { load } = postPages;
+
 export const CompoundPostNode = builder.prismaNode('Post', {
   variant: 'CompoundPostNode',
   id: {
