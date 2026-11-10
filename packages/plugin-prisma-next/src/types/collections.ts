@@ -131,10 +131,10 @@ type IncludeFreeRow<Types extends SchemaTypes, M extends ModelKey<Types>> = {
 
 /**
  * Rejects an ordered collection: a connection orders its collection by its `query`'s `orderBy` and
- * the cursor.
+ * the cursor. An unordered collection is its own type, so the parameter it types still infers it.
  */
 export type UnorderedCollection<Returned> = [Extract<Returned, HasOrderBy>] extends [never]
-  ? unknown
+  ? Returned
   : 'A connection orders its collection by query.orderBy: return the collection without orderBy()';
 
 /**

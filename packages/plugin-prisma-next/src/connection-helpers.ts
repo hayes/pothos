@@ -200,7 +200,7 @@ export interface PrismaConnectionHelpers<
    * Rejects existing ordering, includes, pagination or distinct settings before SQL.
    */
   load<C extends ResolverCollection<Types, M>>(
-    collection: C & NoInfer<UnorderedCollection<C>>,
+    collection: UnorderedCollection<C>,
     args: ConnectionArgs<Args>,
     ctx: Types['Context'],
     info: GraphQLResolveInfo,

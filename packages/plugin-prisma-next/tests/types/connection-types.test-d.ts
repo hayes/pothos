@@ -532,6 +532,13 @@ builder.queryField('commenters', (t) =>
         const ordered = orm.Comment.orderBy((c) => c.id.asc());
         // @ts-expect-error the connection orders the collection by its query
         await commenters.load(ordered, args, ctx, info);
+        await commenters.load(
+          // @ts-expect-error the error is reported on the collection
+          ordered,
+          args,
+          ctx,
+          info,
+        );
         // @ts-expect-error a collection of another model
         await commenters.load(orm.Post, args, ctx, info);
         return commenters.resolve(rows, args, ctx);
@@ -713,6 +720,23 @@ builder.queryField('wrongModelPage', (t) =>
     collection: () => orm.User.where({}),
   }),
 );
+
+// The ordering error is reported on `collection`. The check needs the collection's type, so a
+// collection inferred as any collection of the model would pass it.
+builder.queryFields((t) => ({
+  orderedReturn: t.prismaConnection({
+    type: 'Post',
+    // @ts-expect-error the connection orders the collection
+    collection: () => {
+      return orm.Post.orderBy((post) => post.title.asc());
+    },
+  }),
+  filteredOrNull: t.prismaConnection({
+    type: 'Post',
+    nullable: true,
+    collection: (_root, args) => (args.first === 0 ? null : orm.Post.where({ published: 1 })),
+  }),
+}));
 
 // A helper named by model cannot infer the selected columns of that model's GraphQL type.
 const identityHelper = prismaConnectionHelpers(builder, 'User', {});

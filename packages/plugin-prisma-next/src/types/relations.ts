@@ -46,7 +46,7 @@ export type RelationTypeModel<
   R extends RelationKeys<Types, M>,
 > =
   | RelatedModel<Types, M, R>
-  | (VariantModelKeys<Types['PrismaContract'], RelatedModel<Types, M, R>> & ModelKey<Types>);
+  | Extract<VariantModelKeys<Types['PrismaContract'], RelatedModel<Types, M, R>>, ModelKey<Types>>;
 
 export type IsToMany<
   Types extends SchemaTypes,

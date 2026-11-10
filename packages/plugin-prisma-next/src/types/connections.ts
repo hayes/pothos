@@ -145,9 +145,7 @@ export type PrismaConnectionFieldOptions<
       args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
       info: GraphQLResolveInfo,
-    ) => MaybePromise<
-      (Returned & NoInfer<UnorderedCollection<Returned>>) | (Nullable extends true ? null : never)
-    >;
+    ) => MaybePromise<UnorderedCollection<Returned> | (Nullable extends true ? null : never)>;
   };
 
 /**
