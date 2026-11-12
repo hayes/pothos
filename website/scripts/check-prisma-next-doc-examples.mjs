@@ -8,7 +8,7 @@ import {
   withoutImports,
 } from './doc-block-check.mjs';
 
-// Type-check the inline TypeScript on the Prisma Next pages and the plugin's README. Source includes come from the
+// Type-check the inline TypeScript on the Prisma ORM 8 pages and the plugin's README. Source includes come from the
 // playground example, which `type:examples` already checks.
 //
 // Each page becomes one module, its blocks in order, so later blocks can use refs that earlier
@@ -35,7 +35,7 @@ function blockModule(block) {
   const header = importSection(
     [
       "import SchemaBuilder from '@pothos/core';",
-      "import PrismaNextPlugin from '@pothos/plugin-prisma-next';",
+      "import PrismaPlugin from '@pothos/plugin-prisma-next';",
       `import { contract, db } from './prisma/${/'auth\./.test(block.code) ? 'namespaces-db' : 'db'}';`,
     ],
     [block],
@@ -43,14 +43,14 @@ function blockModule(block) {
   const builder = /\bconst builder\b/.test(body)
     ? ''
     : `const builder = new SchemaBuilder<{ PrismaContract: typeof contract }>({
-  plugins: [PrismaNextPlugin],
+  plugins: [PrismaPlugin],
   prisma: { client: db },
 });`;
   return [header, builder, located(block, body)].join('\n');
 }
 
 const preamble = (contract) => `import SchemaBuilder from '@pothos/core';
-import PrismaNextPlugin from '@pothos/plugin-prisma-next';
+import PrismaPlugin from '@pothos/plugin-prisma-next';
 import RelayPlugin from '@pothos/plugin-relay';
 import WithInputPlugin from '@pothos/plugin-with-input';
 import sqlite from '@prisma/orm-sqlite/runtime';
@@ -66,7 +66,7 @@ const builder = new SchemaBuilder<{
   PrismaContract: Contract;
   Context: { userId: string; isAdmin: boolean };
 }>({
-  plugins: [RelayPlugin, WithInputPlugin, PrismaNextPlugin],
+  plugins: [RelayPlugin, WithInputPlugin, PrismaPlugin],
   prisma: { client: db },
 });
 `;

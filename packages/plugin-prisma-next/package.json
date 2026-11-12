@@ -38,7 +38,6 @@
     "schema",
     "typescript",
     "prisma",
-    "prisma-next",
     "plugin"
   ],
   "publishConfig": {

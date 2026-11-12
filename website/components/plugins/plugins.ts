@@ -61,7 +61,7 @@ export const PLUGINS: PluginEntry[] = [
   },
   {
     slug: 'prisma-next',
-    name: 'Prisma Next',
+    name: 'Prisma ORM 8',
     description: 'Experimental: build queries from GraphQL selections using Prisma ORM 8',
     icon: '◈',
     category: 'data',

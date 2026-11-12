@@ -78,9 +78,9 @@ plugin, and an accurate name for the payload mutation; all were addressed. Indep
 preservation review found missing setup imports, the Relay nodes setting, and a shared-media action
 that omitted one of the posts; all were addressed.
 
-Historical Prisma Next browser support was inspected at `0f2084405` and `47ac42ea2`, from the older
+Historical browser support for the pre-ORM 8 plugin was inspected at `0f2084405` and `47ac42ea2`, from the older
 `mh--plugin-prisma-next` work. It used SQL.js, pregenerated contracts, seed aliases, and SQL/AST panels.
-It targets Prisma Next 0.14/0.16, rather than the current private ORM8 RC9 plugin. Restoring that
+It targets the 0.14/0.16 client, rather than the current private ORM8 RC9 plugin. Restoring that
 runtime requires separate compatibility, contract-generation and lifecycle work; it is not included
 in this batch.
 
