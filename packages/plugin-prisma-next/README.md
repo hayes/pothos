@@ -1,6 +1,6 @@
-# Prisma Next Plugin for Pothos
+# Prisma ORM 8 Plugin for Pothos
 
-The Prisma Next plugin integrates [Prisma ORM 8](https://github.com/prisma/orm) with Pothos to build
+This plugin integrates [Prisma ORM 8](https://github.com/prisma/orm) with Pothos to build
 a strongly typed GraphQL API from your Prisma models. Expose database fields and relations, add
 computed fields, and support Relay nodes and paginated connections. Your GraphQL types and fields can
 have different names and shapes from the underlying models.
@@ -34,14 +34,14 @@ you have to add it yourself. Requires Node.js 22.20+ or 24.7+.
 
 ```ts
 import SchemaBuilder from '@pothos/core';
-import PrismaNextPlugin from '@pothos/plugin-prisma-next';
+import PrismaPlugin from '@pothos/plugin-prisma-next';
 import RelayPlugin from '@pothos/plugin-relay';
 import { contract, db } from './prisma/db';
 
 const builder = new SchemaBuilder<{
   PrismaContract: typeof contract;
 }>({
-  plugins: [RelayPlugin, PrismaNextPlugin],
+  plugins: [RelayPlugin, PrismaPlugin],
   prisma: { client: db },
 });
 ```
@@ -123,7 +123,7 @@ custom field lists the data its resolver reads. See
 combine. The examples use an imported `db`. For request-scoped clients and transactions, see the
 [Transactions guide](https://pothos-graphql.dev/docs/plugins/prisma-next/transactions).
 
-See the [Prisma Next plugin docs](https://pothos-graphql.dev/docs/plugins/prisma-next) and the
+See the [Prisma ORM 8 plugin docs](https://pothos-graphql.dev/docs/plugins/prisma-next) and the
 [playground example](https://pothos-graphql.dev/playground?example=plugin-prisma-next).
 
 ## TypeScript and Temporal

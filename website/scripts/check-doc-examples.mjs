@@ -76,7 +76,7 @@ try {
 }
 
 const prismaNext = await checkPrismaNextDocExamples(root, tsc);
-console.log(`PASS ${prismaNext.checked} Prisma Next doc blocks`);
+console.log(`PASS ${prismaNext.checked} Prisma ORM 8 doc blocks`);
 const drizzle = await checkDrizzleDocExamples(root, tsc);
 console.log(
   `PASS ${drizzle.checked} Drizzle doc blocks (${drizzle.skipped} skipped, ${drizzle.knownFailures} known failures)`,

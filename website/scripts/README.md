@@ -16,7 +16,7 @@ installation, NodeNext configuration, Yoga server, or every documentation snippe
 parts still need a fresh installation and HTTP check. `doc-example-assertions.mjs` runs inside the
 temporary fixture created by `check-doc-examples.mjs`.
 
-It also type-checks the inline TypeScript on the Prisma Next and Drizzle plugin pages. Errors point
+It also type-checks the inline TypeScript on the Prisma ORM 8 and Drizzle plugin pages. Errors point
 at the page and line of the block. Blocks the check leaves out, and blocks with known errors, are
 listed with a reason in `check-drizzle-doc-examples.mjs`.
 
