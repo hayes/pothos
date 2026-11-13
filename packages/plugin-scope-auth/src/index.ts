@@ -27,6 +27,7 @@ import {
   typeAuthScopesStepKey,
 } from './steps.js';
 import type {
+  FieldAuthScopes,
   ResolveStep,
   ScopeAuthParentLoader,
   TypeAuthScopes,
@@ -322,11 +323,21 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
 
     const fieldAuthScopes = fieldConfig.pothosOptions.authScopes;
     const fieldGrantScopes = fieldConfig.pothosOptions.grantScopes;
+    // `withAuth` scopes are kept separate so they run before the field's `authScopes`.
+    const withAuthScopes = (
+      fieldConfig.pothosOptions as { withAuthScopes?: FieldAuthScopes<Types, {}, {}>[] }
+    ).withAuthScopes;
 
     const steps: ResolveStep<Types>[] = [...stepsForType];
 
-    if (fieldAuthScopes && !authorizedOnSubscribe) {
-      steps.push(createFieldAuthScopesStep(fieldAuthScopes));
+    if (!authorizedOnSubscribe) {
+      for (const scopes of withAuthScopes ?? []) {
+        steps.push(createFieldAuthScopesStep(scopes));
+      }
+
+      if (fieldAuthScopes) {
+        steps.push(createFieldAuthScopesStep(fieldAuthScopes));
+      }
     }
 
     steps.push(createResolveStep(resolver));
@@ -361,8 +372,16 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     });
 
     const fieldAuthScopes = fieldConfig.pothosOptions.authScopes;
+    // `withAuth` scopes are kept separate so they run before the field's `authScopes`.
+    const withAuthScopes = (
+      fieldConfig.pothosOptions as { withAuthScopes?: FieldAuthScopes<Types, {}, {}>[] }
+    ).withAuthScopes;
 
     const steps: ResolveStep<Types>[] = [...stepsForType];
+
+    for (const scopes of withAuthScopes ?? []) {
+      steps.push(createFieldAuthScopesStep(scopes));
+    }
 
     if (fieldAuthScopes) {
       steps.push(createFieldAuthScopesStep(fieldAuthScopes));
