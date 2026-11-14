@@ -30,6 +30,16 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
     this.graphqlKind = graphqlKind;
   }
 
+  clone(): this {
+    return new (
+      this.constructor as new (
+        builder: PothosSchemaTypes.SchemaBuilder<Types>,
+        kind: Kind,
+        graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[Kind],
+      ) => this
+    )(this.builder, this.kind, this.graphqlKind);
+  }
+
   protected createField<
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>,

@@ -1,6 +1,5 @@
 import './global-types.js';
 import './schema-builder.js';
-import './field-builders.js';
 import SchemaBuilder, {
   BasePlugin,
   type FieldKind,
@@ -15,6 +14,7 @@ import SchemaBuilder, {
   type SchemaTypes,
 } from '@pothos/core';
 import type { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'graphql';
+import { WITH_AUTH_SCOPES_EXTENSION } from './field-builders.js';
 import { isTypeOfHelper } from './is-type-of-helper.js';
 import RequestCache from './request-cache.js';
 import { resolveHelper } from './resolve-helper.js';
@@ -325,8 +325,10 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     const fieldGrantScopes = fieldConfig.pothosOptions.grantScopes;
     // `withAuth` scopes are kept separate so they run before the field's `authScopes`.
     const withAuthScopes = (
-      fieldConfig.pothosOptions as { withAuthScopes?: FieldAuthScopes<Types, {}, {}>[] }
-    ).withAuthScopes;
+      fieldConfig.extensions as
+        | { [WITH_AUTH_SCOPES_EXTENSION]?: FieldAuthScopes<Types, {}, {}>[] }
+        | undefined
+    )?.[WITH_AUTH_SCOPES_EXTENSION];
 
     const steps: ResolveStep<Types>[] = [...stepsForType];
 
@@ -374,8 +376,10 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     const fieldAuthScopes = fieldConfig.pothosOptions.authScopes;
     // `withAuth` scopes are kept separate so they run before the field's `authScopes`.
     const withAuthScopes = (
-      fieldConfig.pothosOptions as { withAuthScopes?: FieldAuthScopes<Types, {}, {}>[] }
-    ).withAuthScopes;
+      fieldConfig.extensions as
+        | { [WITH_AUTH_SCOPES_EXTENSION]?: FieldAuthScopes<Types, {}, {}>[] }
+        | undefined
+    )?.[WITH_AUTH_SCOPES_EXTENSION];
 
     const steps: ResolveStep<Types>[] = [...stepsForType];
 

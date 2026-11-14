@@ -1,64 +1,36 @@
-import {
-  InterfaceFieldBuilder,
-  MutationFieldBuilder,
-  ObjectFieldBuilder,
-  QueryFieldBuilder,
-  type SchemaTypes,
-  SubscriptionFieldBuilder,
-} from '@pothos/core';
+import { type FieldKind, RootFieldBuilder, type SchemaTypes } from '@pothos/core';
 
-const objectFieldBuilder = ObjectFieldBuilder.prototype as PothosSchemaTypes.ObjectFieldBuilder<
+export const WITH_AUTH_SCOPES_EXTENSION = 'pothosWithAuthScopes';
+
+const rootFieldBuilder = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
-  {}
->;
-
-objectFieldBuilder.withAuth = function withAuth(scopes) {
-  return addScopes(scopes, new ObjectFieldBuilder(this.builder) as never, this as never);
+  unknown,
+  FieldKind
+> & {
+  withAuth: (scopes: unknown) => unknown;
 };
 
-const interfaceFieldBuilder =
-  InterfaceFieldBuilder.prototype as PothosSchemaTypes.InterfaceFieldBuilder<SchemaTypes, {}>;
-
-interfaceFieldBuilder.withAuth = function withAuth(scopes) {
-  return addScopes(scopes, new InterfaceFieldBuilder(this.builder) as never, this as never);
-};
-
-const queryFieldBuilder = QueryFieldBuilder.prototype as PothosSchemaTypes.QueryFieldBuilder<
-  SchemaTypes,
-  {}
->;
-
-queryFieldBuilder.withAuth = function withAuth(scopes) {
-  return addScopes(scopes, new QueryFieldBuilder(this.builder) as never, this as never);
-};
-
-const mutationFieldBuilder =
-  MutationFieldBuilder.prototype as PothosSchemaTypes.MutationFieldBuilder<SchemaTypes, {}>;
-
-mutationFieldBuilder.withAuth = function withAuth(scopes) {
-  return addScopes(scopes, new MutationFieldBuilder(this.builder) as never, this as never);
-};
-
-const subscriptionFieldBuilder =
-  SubscriptionFieldBuilder.prototype as PothosSchemaTypes.SubscriptionFieldBuilder<SchemaTypes, {}>;
-
-subscriptionFieldBuilder.withAuth = function withAuth(scopes) {
-  return addScopes(scopes, new SubscriptionFieldBuilder(this.builder) as never, this as never);
+rootFieldBuilder.withAuth = function withAuth(scopes) {
+  return addScopes(scopes, this as never, this.clone() as never);
 };
 
 function addScopes(
   scopes: unknown,
+  parent: { createField: (options: Record<string, unknown>) => unknown },
   builder: { createField: (options: Record<string, unknown>) => unknown },
-  parent?: { createField: (options: Record<string, unknown>) => unknown },
 ) {
-  const originalCreateField = parent?.createField ?? builder.createField;
-
   builder.createField = function createField(options) {
-    // Keep each `withAuth` call separate so the field's own `authScopes` option
-    // can run alongside them instead of overwriting the scopes from `withAuth`.
-    return originalCreateField.call(this, {
+    const extensions = (options.extensions ?? {}) as Record<string, unknown>;
+
+    return parent.createField.call(this, {
       ...options,
-      withAuthScopes: [...((options.withAuthScopes as unknown[] | undefined) ?? []), scopes],
+      extensions: {
+        ...extensions,
+        [WITH_AUTH_SCOPES_EXTENSION]: [
+          scopes,
+          ...((extensions[WITH_AUTH_SCOPES_EXTENSION] as unknown[] | undefined) ?? []),
+        ],
+      },
     });
   };
 

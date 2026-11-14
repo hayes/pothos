@@ -121,7 +121,7 @@ export class DrizzleObjectFieldBuilder<
 
   exposeStringList = this.createExpose(['String']);
 
-  withAuth: 'scopeAuth' extends PluginName
+  declare withAuth: 'scopeAuth' extends PluginName
     ? <Scopes extends FieldAuthScopes<Types, Shape, Record<string, unknown>>>(
         scopes: Scopes,
       ) => DrizzleObjectFieldBuilder<
@@ -130,7 +130,7 @@ export class DrizzleObjectFieldBuilder<
         Shape,
         ExposableShape
       >
-    : '@pothos/plugin-scope-auth is required to use this method' = withAuth as never;
+    : '@pothos/plugin-scope-auth is required to use this method';
 
   table: string;
 
@@ -526,6 +526,15 @@ export class DrizzleObjectFieldBuilder<
     this.typename = typename;
   }
 
+  override clone(): this {
+    return new DrizzleObjectFieldBuilder(
+      this.typename,
+      this.builder,
+      this.table,
+      this.graphqlKind,
+    ) as this;
+  }
+
   variant<
     // biome-ignore lint/suspicious/noExplicitAny: a ref from before `withAuth` replaced the context
     Variant extends DrizzleRef<any, TableConfig['name']> | TableConfig['name'],
@@ -897,24 +906,4 @@ function pickSelection(selection: { columns?: {}; extras?: unknown; with?: unkno
     extras: selection?.extras,
     with: selection?.with,
   };
-}
-
-/** A field builder of the same type whose fields all carry `scopes`. */
-function withAuth(
-  this: DrizzleObjectFieldBuilder<SchemaTypes, TableRelationalConfig, {}>,
-  scopes: {},
-) {
-  const builder = new DrizzleObjectFieldBuilder(
-    this.typename,
-    this.builder,
-    this.table,
-    this.graphqlKind,
-  ) as unknown as { createField: (options: Record<string, unknown>) => unknown };
-  const originalCreateField = builder.createField;
-
-  builder.createField = function createField(options) {
-    return originalCreateField.call(this, { authScopes: scopes, ...options });
-  };
-
-  return builder as never;
 }

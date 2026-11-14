@@ -110,7 +110,7 @@ export class PrismaObjectFieldBuilder<
 
   exposeStringList = this.createExpose(['String']);
 
-  withAuth: 'scopeAuth' extends PluginName
+  declare withAuth: 'scopeAuth' extends PluginName
     ? <Scopes extends FieldAuthScopes<Types, Shape, Record<string, unknown>>>(
         scopes: Scopes,
       ) => PothosSchemaTypes.PrismaObjectFieldBuilder<
@@ -118,7 +118,7 @@ export class PrismaObjectFieldBuilder<
         Model,
         Shape
       >
-    : '@pothos/plugin-scope-auth is required to use this method' = withAuth as never;
+    : '@pothos/plugin-scope-auth is required to use this method';
 
   relatedConnection: 'relay' extends PluginName
     ? <
@@ -528,6 +528,16 @@ export class PrismaObjectFieldBuilder<
     this.builder = builder;
   }
 
+  override clone(): this {
+    return new PrismaObjectFieldBuilder(
+      this.typename,
+      this.builder,
+      this.model,
+      this.prismaFieldMap,
+      this.graphqlKind,
+    ) as this;
+  }
+
   relation<
     Field extends Model['RelationName'],
     Nullable extends boolean,
@@ -808,21 +818,4 @@ function mergeConnectionQuery<Q extends { take: number; skip: number; cursor?: u
     skip,
     ...(cursor ? { cursor } : {}),
   } as Q;
-}
-
-/** A field builder of the same type whose fields all carry `scopes`. */
-function withAuth(this: PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, {}>, scopes: {}) {
-  const builder = new PrismaObjectFieldBuilder(
-    this.typename,
-    this.builder,
-    this.model,
-    this.prismaFieldMap,
-  ) as unknown as { createField: (options: Record<string, unknown>) => unknown };
-  const originalCreateField = builder.createField;
-
-  builder.createField = function createField(options) {
-    return originalCreateField.call(this, { authScopes: scopes, ...options });
-  };
-
-  return builder as never;
 }

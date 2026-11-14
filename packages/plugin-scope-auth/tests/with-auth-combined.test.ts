@@ -55,6 +55,10 @@ function createSchema() {
         authScopes: { permission: 'b' },
         resolve: () => 'duplicate',
       }),
+      chainedOrder: t
+        .withAuth({ permission: 'a' })
+        .withAuth({ permission: 'b' })
+        .string({ resolve: () => 'chainedOrder' }),
     }),
   });
 
@@ -135,6 +139,17 @@ describe('withAuth combined with authScopes', () => {
       duplicateKeys: 'duplicate',
     });
     expect(adminScopes).not.toHaveBeenCalled();
+  });
+
+  it('runs the first withAuth scopes first', async () => {
+    const { result, permission } = await run(
+      { loggedIn: true, admin: true, permissions: ['a', 'b'] },
+      '{ chainedOrder }',
+    );
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ chainedOrder: 'chainedOrder' });
+    expect(permission.mock.calls).toEqual([['a'], ['b']]);
   });
 
   it('evaluates colliding keys sequentially instead of overwriting them', async () => {
