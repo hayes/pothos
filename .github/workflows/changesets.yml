@@ -9,6 +9,7 @@ env:
 
 jobs:
   version:
+    environment: npm-release
     timeout-minutes: 15
     runs-on: ubuntu-latest
     permissions:
