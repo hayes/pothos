@@ -39,7 +39,8 @@ The `relay` options object passed to builder can contain the following propertie
 - `nodesQueryOptions`: Options for the `nodes` field on the query object, set to false to omit the
   field
 - `nodeTypeOptions`: Options for the `Node` interface type. Supports a `name` property to customize
-  the type name.
+  the type name. Options can also be passed to
+  [`builder.nodeInterfaceRef`](https://pothos-graphql.dev/docs/plugins/relay#extending-the-node-interface).
 - `pageInfoTypeOptions`: Options for the `PageInfo` object type. Supports a `name` property to
   customize the type name.
 - `clientMutationIdFieldOptions`: Options for the `clientMutationId` field on mutation payloads
@@ -97,9 +98,13 @@ Both options support all standard type options including `name`, `description`, 
 
 > [!WARNING]
 > Defining a node adds direct lookups through `node` and `nodes`. Filters or permission checks on
-> other root fields do not protect these lookups. Use Scope Auth to gate the lookup fields or apply
-> a shared policy to the Node interface, and enforce entity-specific access where needed. See
-> [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes) for safer defaults and their limits.
+> other root fields do not protect these lookups.
+>
+> With Scope Auth, require scopes on the `node` and `nodes` fields, put scopes on the `Node`
+> interface or each node type, or disable the lookup fields. You can also enforce visibility where the
+> node loads, so inaccessible records look missing. See
+> [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes) for each option and its
+> limits.
 
 To create objects that extend the `Node` interface, use `builder.node`. The `id` resolver supplies
 the local key, and `loadOne` uses that key to retrieve the record:
@@ -854,9 +859,10 @@ const ThingsConnection = builder.connectionObject({
 ### Extending the `Node` interface
 
 Use `relay.nodeTypeOptions` to configure the interface itself, including `authScopes` when using
-Scope Auth. See [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes#choose-a-default-policy)
-for how interface scopes apply to implementing types and how they differ from authorizing the root
-lookup fields.
+Scope Auth. Options that reference node types can be passed to `builder.nodeInterfaceRef` instead.
+Each option can be set once, in either place; `extensions` are merged. See
+[Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes#put-a-policy-on-the-node-interface) for how interface scopes apply to implementing types and how
+they differ from authorizing the root lookup fields.
 
 Use the `nodeInterfaceRef` method of your Builder to reference the interface.
 

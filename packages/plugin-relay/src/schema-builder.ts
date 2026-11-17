@@ -14,6 +14,7 @@ import SchemaBuilder, {
   type ObjectFieldsShape,
   ObjectRef,
   type OutputRef,
+  PothosSchemaError,
   PothosValidationError,
   type Resolver,
   type SchemaTypes,
@@ -35,6 +36,12 @@ const pageInfoRefMap = new WeakMap<
 const nodeInterfaceRefMap = new WeakMap<
   PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   InterfaceRef<SchemaTypes, {}>
+>();
+
+// Node interface options set by relay.nodeTypeOptions or nodeInterfaceRef(options).
+const nodeInterfaceOptionKeys = new WeakMap<
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  Set<string>
 >();
 
 export const connectionRefs = new WeakMap<
@@ -92,7 +99,66 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
   return ref;
 };
 
-schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
+schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef(options) {
+  const ref = createNodeInterfaceRef.call(this);
+
+  if (!options) {
+    return ref;
+  }
+
+  // Options left `undefined` are not set. `extensions` are merged; other options can be set once.
+  const defined = Object.fromEntries(
+    Object.entries(options).filter(([, value]) => value !== undefined),
+  );
+
+  if (!nodeInterfaceOptionKeys.has(this)) {
+    nodeInterfaceOptionKeys.set(
+      this,
+      new Set(
+        Object.entries(this.options.relay?.nodeTypeOptions ?? {})
+          .filter(([key, value]) => key !== 'name' && value !== undefined)
+          .map(([key]) => key),
+      ),
+    );
+  }
+
+  const setKeys = nodeInterfaceOptionKeys.get(this)!;
+
+  const keys = Object.keys(defined).filter((key) => key !== 'extensions');
+  const duplicate = keys.find((key) => setKeys.has(key));
+
+  if (duplicate) {
+    throw new PothosSchemaError(
+      `${ref.name} option "${duplicate}" is already set; set it in either relay.nodeTypeOptions or a single builder.nodeInterfaceRef call`,
+    );
+  }
+
+  for (const key of keys) {
+    setKeys.add(key);
+  }
+
+  ref.updateConfig((config) => {
+    const extensions = { ...config.extensions, ...options.extensions };
+    const pothosOptions = {
+      ...config.pothosOptions,
+      ...defined,
+      extensions,
+    } as PothosSchemaTypes.InterfaceTypeOptions<SchemaTypes, unknown>;
+
+    return {
+      ...config,
+      description: pothosOptions.description,
+      extensions,
+      resolveType: pothosOptions.resolveType as typeof config.resolveType,
+      astNode: pothosOptions.astNode,
+      pothosOptions,
+    };
+  });
+
+  return ref;
+};
+
+function createNodeInterfaceRef(this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) {
   if (nodeInterfaceRefMap.has(this)) {
     return nodeInterfaceRefMap.get(this)!;
   }
@@ -230,7 +296,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
   }
 
   return ref;
-};
+}
 
 schemaBuilderProto.nodeRef = function nodeRef(param, options) {
   if (typeof param === 'string') {

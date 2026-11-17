@@ -61,7 +61,11 @@ describe('pothosScopeAuthParent', () => {
 
     const allowed = await graphql({ schema, source, contextValue: { user: 'alice' } });
     expect(allowed).toEqual({ data: { item: { id: '1' } } });
-    expect(authScopes).toHaveBeenCalledWith({ id: '1', owner: 'alice' }, { user: 'alice' });
+    expect(authScopes).toHaveBeenCalledWith(
+      { id: '1', owner: 'alice' },
+      { user: 'alice' },
+      { parentType: schema.getType('Item'), schema },
+    );
     expect(loadParent).toHaveBeenCalledWith({ id: '1' }, { user: 'alice' }, expect.anything());
 
     const denied = await graphql({ schema, source, contextValue: { user: 'bob' } });
@@ -75,7 +79,10 @@ describe('pothosScopeAuthParent', () => {
     });
     const type = schema.getType('Item') as GraphQLObjectType;
 
-    expect(type.isTypeOf?.({ id: '1' }, { user: 'alice' }, {} as never)).toBe(true);
+    // The info of the field returning the object, as graphql-js passes it.
+    const info = { schema, parentType: schema.getQueryType() } as never;
+
+    expect(type.isTypeOf?.({ id: '1' }, { user: 'alice' }, info)).toBe(true);
   });
 
   it('awaits an async loader result', async () => {

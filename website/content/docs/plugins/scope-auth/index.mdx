@@ -3,12 +3,20 @@ title: Scope auth plugin
 description: Authorize fields and types with request scopes, permission loaders, and ownership checks.
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+
 The scope auth plugin checks authorization before a field resolver runs. Define named scopes for
 roles, permissions, or ownership checks, then require those scopes on fields and types. Checks and
 scope loaders are cached for the current request.
 
-For schemas using Relay, see [Relay node authorization](/docs/plugins/scope-auth/relay-nodes)
-for direct lookup policies and access granted through a parent field.
+<Callout title="Relay nodes">
+
+Relay's `node` and `nodes` fields can load any node by ID. Require scopes on those fields, put
+scopes on the `Node` interface or each node type, disable the lookup fields, or hide inaccessible
+records in the node loader. See
+[Relay node authorization](/docs/plugins/scope-auth/relay-nodes) for each option and its limits.
+
+</Callout>
 
 ## Usage
 
@@ -727,8 +735,8 @@ resolving a field without needing to evaluate additional scopes.
 
 ### Setting type level scopes based on the parent value
 
-You can also use a function in the authScopes option for types. This function will be invoked with
-the parent and the context as its arguments, and should return a scope map.
+You can also use a function in the authScopes option for types. This function receives the parent,
+the context, and an `info` object described below, and should return a scope map.
 
 ```typescript
 builder.objectType(Article, {
@@ -750,6 +758,24 @@ builder.objectType(Article, {
 ```
 
 This requires an employee for unpublished articles and a signed-in user for published articles.
+
+`info` has `parentType`, the object type being checked, and `schema`, for both `authScopes` and
+`grantScopes` functions. On an interface, `parentType` is the implementing type, so
+one interface can apply different rules to each of its types:
+
+```typescript
+const Content = builder.interfaceRef<{ id: string }>('Content');
+
+Content.implement({
+  authScopes: (content, context, info) =>
+    info.parentType.name === 'Article' ? { loggedIn: true } : { employee: true },
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
+```
+
+`info` is not the field's `GraphQLResolveInfo`: the result is cached for each object and type, so it
+does not depend on which field or path triggered the check. For the Relay `Node` interface, and a
+helper that narrows the parent by ref, see [Vary the policy by node type](/docs/plugins/scope-auth/relay-nodes#vary-the-policy-by-node-type).
 
 ### Setting scopes based on the return value of a field
 
@@ -959,10 +985,11 @@ Set the initializer in `scopeAuth.authScopes`, alongside options such as `defaul
 
 ### Object and Interface options
 
-- `authScopes`: `ScopeMap` or `function`, accepts `parent` and `context` returns
-  `MaybePromise<ScopeMap>`
+- `authScopes`: `ScopeMap` or `function`, accepts `parent`, `context` and `info`
+  (`{ parentType, schema }`), returns `MaybePromise<ScopeMap>`
 
-- `grantScopes`: `function`, accepts `parent` and `context` returns `MaybePromise<string[]>`
+- `grantScopes`: `function`, accepts `parent`, `context` and `info`, returns
+  `MaybePromise<string[]>`
 
 ### Field Options
 

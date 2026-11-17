@@ -13,6 +13,7 @@ import {
   type AuthScopeMap,
   type ScopeLoaderMap,
   type TypeAuthScopesFunction,
+  type TypeScopeInfo,
 } from './types.js';
 import { cacheKey, canCache } from './util.js';
 
@@ -430,6 +431,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     type: string,
     parent: unknown,
     info: GraphQLResolveInfo,
+    typeInfo: () => TypeScopeInfo,
   ) {
     const { typeCache } = this;
 
@@ -443,7 +445,7 @@ export default class RequestCache<Types extends SchemaTypes> {
       let result: ReturnType<TypeAuthScopesFunction<Types, unknown>>;
 
       try {
-        result = authScopes(parent, this.context);
+        result = authScopes(parent, this.context, typeInfo());
       } catch (error: unknown) {
         if (!this.treatErrorsAsUnauthorized) {
           throw error;
