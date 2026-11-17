@@ -3,7 +3,7 @@ import RelayPlugin from '@pothos/plugin-relay';
 import { graphql } from 'graphql';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import { getDatamodel } from '../prisma/generated';
-import ScopeAuthPlugin, { isParentType } from '../src';
+import ScopeAuthPlugin, { type TypeScopeInfo } from '../src';
 import { db } from './example/db';
 
 interface User {
@@ -43,6 +43,15 @@ function createSchema() {
     },
   });
 
+  // The helper from the docs.
+  function isType<T>(
+    ref: ObjectRef<typeof builder.$inferSchemaTypes, unknown, T>,
+    node: unknown,
+    info: TypeScopeInfo,
+  ): node is T {
+    return builder.configStore.getTypeConfig(ref).name === info.parentType.name;
+  }
+
   const UserRef = builder.objectRef<User>('User');
   const PostRef = builder.objectRef<Post>('Post');
 
@@ -61,11 +70,11 @@ function createSchema() {
   builder.nodeInterfaceOptions({
     authScopes: (node, _context, info) => {
       switch (true) {
-        case isParentType(UserRef, node, info):
+        case isType(UserRef, node, info):
           expectTypeOf(node).toEqualTypeOf<User>();
 
           return true;
-        case isParentType(PostRef, node, info):
+        case isType(PostRef, node, info):
           expectTypeOf(node).toEqualTypeOf<Post>();
 
           return node.isDraft ? { author: node.authorId } : { loggedIn: true };
@@ -90,7 +99,7 @@ const source = `
   }
 `;
 
-describe('isParentType', () => {
+describe('per-type interface scopes', () => {
   it('applies a different policy to each node type', async () => {
     const schema = createSchema();
 
@@ -114,17 +123,6 @@ describe('isParentType', () => {
     });
   });
 
-  it('rejects refs that are not object types', () => {
-    const builder = new SchemaBuilder<{ AuthScopes: {} }>({
-      plugins: [ScopeAuthPlugin],
-      prisma: { client: db, dmmf: getDatamodel() },
-      scopeAuth: { authScopes: () => ({}) },
-    });
-    const Named = builder.interfaceRef<{ name: string }>('Named');
-
-    expectTypeOf(isParentType).parameter(0).not.toMatchTypeOf(Named);
-  });
-
   it('matches a ref implemented under a different name', async () => {
     const builder = new SchemaBuilder<{ Context: Context; AuthScopes: { loggedIn: boolean } }>({
       plugins: [ScopeAuthPlugin],
@@ -141,7 +139,8 @@ describe('isParentType', () => {
     });
 
     Named.implement({
-      authScopes: (parent, _context, info) => isParentType(MemberRef, parent, info),
+      authScopes: (_parent, _context, info) =>
+        builder.configStore.getTypeConfig(MemberRef).name === info.parentType.name,
       fields: (t) => ({ id: t.exposeString('id') }),
     });
 
@@ -158,12 +157,15 @@ describe('isParentType', () => {
     expect(result).toEqual({ data: { member: { name: 'Ada' } } });
   });
 
-  it('narrows to the parent shape of refs with a different output shape', () => {
+  it('types the helper for refs with a different output shape', () => {
+    function isType<T>(ref: ObjectRef<SchemaTypes, unknown, T>, node: unknown): node is T {
+      return !!ref && !!node;
+    }
     const ref = new ObjectRef<SchemaTypes, { output: string }, { parent: number }>('Split');
-    const parent: unknown = {};
+    const node: unknown = {};
 
-    if (isParentType(ref, parent, { parentType: { name: 'Split' } } as never)) {
-      expectTypeOf(parent).toEqualTypeOf<{ parent: number }>();
+    if (isType(ref, node)) {
+      expectTypeOf(node).toEqualTypeOf<{ parent: number }>();
     }
   });
 });

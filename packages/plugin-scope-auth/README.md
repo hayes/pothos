@@ -756,30 +756,18 @@ This requires an employee for unpublished articles and a signed-in user for publ
 one interface can apply different rules to each of its types:
 
 ```typescript
-import { isParentType } from '@pothos/plugin-scope-auth';
-
 const Content = builder.interfaceRef<{ id: string }>('Content');
-
-builder.objectType(Article, {
-  interfaces: [Content],
-  fields: (t) => ({ title: t.exposeString('title') }),
-});
 
 Content.implement({
   authScopes: (content, context, info) =>
-    isParentType(Article, content, info) && content.published
-      ? { loggedIn: true }
-      : { employee: true },
+    info.parentType.name === 'Article' ? { loggedIn: true } : { employee: true },
   fields: (t) => ({ id: t.exposeID('id') }),
 });
 ```
 
-`isParentType` narrows `content` to the `Article` shape. It takes a ref; for a class, use the ref
-returned by `builder.objectType`. A failed check narrows away that shape, so check a type with the
-same shape as the interface last. `info` is not the field's `GraphQLResolveInfo`: the result is
-cached for each object and type, so it does not depend on which field or path triggered the check.
-For the Relay `Node` interface, see
-[Vary the policy by node type](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes#vary-the-policy-by-node-type).
+`info` is not the field's `GraphQLResolveInfo`: the result is cached for each object and type, so it
+does not depend on which field or path triggered the check. For the Relay `Node` interface, and a
+helper that narrows the parent by ref, see [Vary the policy by node type](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes#vary-the-policy-by-node-type).
 
 ### Setting scopes based on the return value of a field
 
@@ -994,9 +982,6 @@ Set the initializer in `scopeAuth.authScopes`, alongside options such as `defaul
 
 - `grantScopes`: `function`, accepts `parent`, `context` and `info`, returns
   `MaybePromise<string[]>`
-
-`isParentType(ref, parent, info)` checks whether `info.parentType` is `ref`'s type, narrowing
-`parent` to its shape.
 
 ### Field Options
 
