@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.9.0
+
+### Minor Changes
+
+- 4cbaa37: `builder.nodeInterfaceRef` accepts `Node` interface options, such as `authScopes`, so they can be set after the builder is created and reference node types. Each option can be set once, in either `relay.nodeTypeOptions` or one `nodeInterfaceRef` call; `extensions` are merged.
+
 ## 4.8.2
 
 ### Patch Changes
