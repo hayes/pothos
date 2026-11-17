@@ -102,8 +102,8 @@ builder.nodeInterfaceRef({
 ```
 
 Options passed to `builder.nodeInterfaceRef` are set after the builder is created, so they can
-reference node types defined elsewhere. It overrides the same options from `relay.nodeTypeOptions`
-and merges `extensions`. Call it before building the schema.
+reference node types defined elsewhere. Call it before building the schema. Each option can be set
+once, in either `relay.nodeTypeOptions` or one `nodeInterfaceRef` call; `extensions` are merged.
 
 Returning `false` by default means a new node type is denied until it is added to the policy. A
 failed `isType` check narrows away that type's shape, so check types whose shape matches another's

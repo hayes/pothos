@@ -1,5 +1,5 @@
 import SchemaBuilder from '@pothos/core';
-import { type GraphQLInterfaceType, graphql, printSchema } from 'graphql';
+import { type GraphQLInterfaceType, graphql } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import RelayPlugin from '../src';
 
@@ -43,18 +43,49 @@ describe('nodeInterfaceRef options', () => {
     expect(node.extensions).toMatchObject({ fromBuilder: true, first: true, second: true });
   });
 
-  it('replaces options set in the builder options', () => {
+  it('sets options not set in the builder options, including relay defaults', async () => {
     const builder = createBuilder();
 
-    builder.nodeInterfaceRef({ description: 'Set later' });
+    builder.nodeInterfaceRef({ description: undefined, resolveType: () => 'Item' });
+    builder.nodeInterfaceRef({ extensions: { later: true } });
 
-    expect(printSchema(builder.toSchema())).toContain('"""Set later"""\ninterface Entity');
+    const schema = builder.toSchema();
+    const node = schema.getType('Entity') as GraphQLInterfaceType;
+
+    expect(node.description).toBe('From the builder options');
+    expect(node.extensions).toMatchObject({ fromBuilder: true, later: true });
+
+    const result = await graphql({
+      schema,
+      contextValue: {},
+      source: `{ node(id: "${Buffer.from('Item:1').toString('base64')}") { __typename } }`,
+    });
+
+    expect(result).toEqual({ data: { node: { __typename: 'Item' } } });
+  });
+
+  it('throws when an option set in the builder options is set again', () => {
+    const builder = createBuilder();
+
+    expect(() => builder.nodeInterfaceRef({ description: 'Set later' })).toThrow(
+      'Entity option "description" is already set',
+    );
+  });
+
+  it('throws when an option is set by two calls', () => {
+    const builder = createBuilder();
+
+    builder.nodeInterfaceRef({ resolveType: () => 'Item' });
+
+    expect(() => builder.nodeInterfaceRef({ resolveType: () => 'Item' })).toThrow(
+      'Entity option "resolveType" is already set',
+    );
   });
 
   it('keeps resolving node types', async () => {
     const builder = createBuilder();
 
-    builder.nodeInterfaceRef({ description: 'Set later' });
+    builder.nodeInterfaceRef({ extensions: { later: true } });
 
     const result = await graphql({
       schema: builder.toSchema(),

@@ -859,10 +859,10 @@ const ThingsConnection = builder.connectionObject({
 ### Extending the `Node` interface
 
 Use `relay.nodeTypeOptions` to configure the interface itself, including `authScopes` when using
-Scope Auth. Options that reference node types can be passed to `builder.nodeInterfaceRef` later,
-overriding the same options from `relay.nodeTypeOptions`. See [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes#put-a-policy-on-the-node-interface) for
-how interface scopes apply to implementing types and how they differ from authorizing the root lookup
-fields.
+Scope Auth. Options that reference node types can be passed to `builder.nodeInterfaceRef` instead.
+Each option can be set once, in either place; `extensions` are merged. See
+[Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes#put-a-policy-on-the-node-interface) for how interface scopes apply to implementing types and how
+they differ from authorizing the root lookup fields.
 
 Use the `nodeInterfaceRef` method of your Builder to reference the interface.
 

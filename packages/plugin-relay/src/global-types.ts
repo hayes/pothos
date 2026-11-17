@@ -88,9 +88,8 @@ declare global {
     export interface SchemaBuilder<Types extends SchemaTypes> {
       pageInfoRef: () => ObjectRef<Types, PageInfoShape>;
       /**
-       * Returns the Node interface. Options passed here override the same options from
-       * `relay.nodeTypeOptions` or an earlier call, and `extensions` are merged. Use them for options
-       * that reference node types, which can't be imported into the builder's own options.
+       * Returns the Node interface. Options passed here are added to `relay.nodeTypeOptions`, so they
+       * can reference node types. Each option can be set once, except `extensions`, which are merged.
        */
       nodeInterfaceRef: (
         options?: Omit<

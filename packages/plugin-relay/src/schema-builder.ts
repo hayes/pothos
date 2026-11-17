@@ -14,6 +14,7 @@ import SchemaBuilder, {
   type ObjectFieldsShape,
   ObjectRef,
   type OutputRef,
+  PothosSchemaError,
   PothosValidationError,
   type Resolver,
   type SchemaTypes,
@@ -35,6 +36,12 @@ const pageInfoRefMap = new WeakMap<
 const nodeInterfaceRefMap = new WeakMap<
   PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   InterfaceRef<SchemaTypes, {}>
+>();
+
+// Node interface options set by relay.nodeTypeOptions or nodeInterfaceRef(options).
+const nodeInterfaceOptionKeys = new WeakMap<
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  Set<string>
 >();
 
 export const connectionRefs = new WeakMap<
@@ -99,10 +106,37 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef(options) {
     return ref;
   }
 
-  // Options left `undefined` keep their current value.
+  // Options left `undefined` are not set. `extensions` are merged; other options can be set once.
   const defined = Object.fromEntries(
     Object.entries(options).filter(([, value]) => value !== undefined),
   );
+
+  if (!nodeInterfaceOptionKeys.has(this)) {
+    nodeInterfaceOptionKeys.set(
+      this,
+      new Set(
+        Object.entries(this.options.relay?.nodeTypeOptions ?? {})
+          .filter(([key, value]) => key !== 'name' && value !== undefined)
+          .map(([key]) => key),
+      ),
+    );
+  }
+
+  const setKeys = nodeInterfaceOptionKeys.get(this)!;
+
+  for (const key of Object.keys(defined)) {
+    if (key === 'extensions') {
+      continue;
+    }
+
+    if (setKeys.has(key)) {
+      throw new PothosSchemaError(
+        `${ref.name} option "${key}" is already set; set it in either relay.nodeTypeOptions or a single builder.nodeInterfaceRef call`,
+      );
+    }
+
+    setKeys.add(key);
+  }
 
   ref.updateConfig((config) => {
     const extensions = { ...config.extensions, ...options.extensions };
