@@ -1,4 +1,4 @@
-import type { outputShapeKey } from '@pothos/core';
+import type { parentShapeKey } from '@pothos/core';
 import type { TypeScopeInfo } from './types.js';
 
 /**
@@ -6,9 +6,9 @@ import type { TypeScopeInfo } from './types.js';
  * that type's shape. Use it to apply different rules for each type implementing an interface.
  */
 export function isParentType<Shape>(
-  ref: { kind: 'Object'; name: string; [outputShapeKey]: Shape },
+  ref: { kind: 'Object'; name: string; [parentShapeKey]: Shape },
   parent: unknown,
-  info: TypeScopeInfo,
+  info: Pick<TypeScopeInfo, 'parentType'>,
 ): parent is Shape {
   return info.parentType.name === ref.name;
 }

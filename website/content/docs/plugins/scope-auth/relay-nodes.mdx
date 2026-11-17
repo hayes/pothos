@@ -12,15 +12,15 @@ This applies to `builder.node`, `builder.prismaNode`, and `builder.drizzleNode`.
 objects should be refetchable and what access a direct lookup should allow. A type can participate
 in a [connection](/docs/plugins/relay#creating-connections) without implementing `Node`.
 
-The options, which can be combined:
+You can combine these options:
 
 - [Gate the `node` and `nodes` fields](#choose-a-default-policy) so lookups require a scope before
   anything loads.
-- [Put scopes on the `Node` interface](#choose-a-default-policy), either one baseline for every
+- [Put scopes on the `Node` interface](#put-a-policy-on-the-node-interface), either one baseline for every
   type or a [policy for each node type](#vary-the-policy-by-node-type).
 - [Put scopes on each node type](#apply-a-policy-to-the-returned-object), which also protects it
   when reached through other fields.
-- [Disable `node` and `nodes`](#make-query-fields-private-by-default) if clients don't need direct
+- [Disable `node` and `nodes`](#disable-the-lookup-fields) if clients don't need direct
   refetching.
 - [Hide entities in the node loader](#decide-what-node-loading-may-reveal), so unauthorized ones
   look missing.
@@ -40,7 +40,9 @@ node loaders, even with a `__typename`-only selection. A successful login check 
 keep resource-specific permissions on the returned types or in their loaders. These options do not
 protect custom fields that return the same objects or use node-loading helpers themselves.
 
-You can also put a shared policy on the `Node` interface:
+### Put a policy on the Node interface
+
+A shared policy on the `Node` interface applies to every node type:
 
 <include cwd lang="typescript" meta='playground example="plugin-scope-auth-variant-private-nodes" op="2"'>playground-examples/plugin-scope-auth/variant-private-nodes/builder.ts#node-interface-policy</include>
 
@@ -59,10 +61,11 @@ An interface login requirement would also block the anonymous featured-article p
 guide. Its parent grant satisfies the article's own policy; it does not override a separate
 interface requirement. Choose a baseline that matches which parts of your API are public.
 
-### Vary the policy by node type
+#### Vary the policy by node type
 
 An `authScopes` function on the interface receives `info.parentType`, the node type being checked.
-`isParentType` compares it with a ref and narrows the node to that type's shape:
+`isParentType` compares it with a ref and narrows the node to that type's shape. Here `User` and
+`Post` are node refs, and `author` is a scope that takes a user ID:
 
 ```typescript
 import { isParentType } from '@pothos/plugin-scope-auth';
@@ -81,9 +84,12 @@ builder.nodeInterfaceOptions({
 });
 ```
 
-`builder.nodeInterfaceOptions` sets the same options as `relay.nodeTypeOptions`, after the builder
-is created, so it can reference node types defined elsewhere. Call it before building the schema.
+`builder.nodeInterfaceOptions` sets `Node` interface options after the builder is created, so it can
+reference node types defined elsewhere. It overrides the same options from `relay.nodeTypeOptions`
+and merges `extensions`. Call it before building the schema.
 Returning `false` by default means a new node type is denied until it is added to the policy.
+Like other type `authScopes` functions, its result is cached for each object, so don't combine it
+with [parent grants](#grant-access-through-a-particular-path).
 
 ### Make Query fields private by default
 
@@ -97,6 +103,8 @@ Subscription separately, and keep entity-level checks for access through other p
 still apply when `skipTypeScopes` is used; it only removes the parent type's requirement.
 `scopeAuth.defaultStrategy` controls whether scopes in a map use AND or OR, not whether unannotated
 fields are private.
+
+### Disable the lookup fields
 
 If direct refetching is not part of the API, set both `relay.nodeQueryOptions` and
 `relay.nodesQueryOptions` to `false`. Node types and their IDs can remain in the schema without

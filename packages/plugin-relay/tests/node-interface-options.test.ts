@@ -7,7 +7,11 @@ function createBuilder() {
   const builder = new SchemaBuilder({
     plugins: [RelayPlugin],
     relay: {
-      nodeTypeOptions: { name: 'Entity', description: 'From the builder options' },
+      nodeTypeOptions: {
+        name: 'Entity',
+        description: 'From the builder options',
+        extensions: { fromBuilder: true },
+      },
     },
   });
 
@@ -25,16 +29,18 @@ function createBuilder() {
 }
 
 describe('nodeInterfaceOptions', () => {
-  it('merges options over relay.nodeTypeOptions', () => {
+  it('keeps options it does not set and merges extensions', () => {
     const builder = createBuilder();
 
-    builder.nodeInterfaceOptions({ extensions: { policy: 'nodes' } });
+    const ref = builder.nodeInterfaceOptions({ extensions: { first: true } });
+    builder.nodeInterfaceOptions({ description: undefined, extensions: { second: true } });
 
     const schema = builder.toSchema();
     const node = schema.getType('Entity') as GraphQLInterfaceType;
 
+    expect(ref).toBe(builder.nodeInterfaceRef());
     expect(node.description).toBe('From the builder options');
-    expect(node.extensions).toMatchObject({ policy: 'nodes' });
+    expect(node.extensions).toMatchObject({ fromBuilder: true, first: true, second: true });
   });
 
   it('replaces options set in the builder options', () => {

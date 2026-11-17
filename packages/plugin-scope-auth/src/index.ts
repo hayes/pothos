@@ -72,12 +72,13 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     return schema;
   }
 
-  typeScopeInfoFor(objectType: string) {
-    let typeScopeInfo = this.typeScopeInfos.get(objectType);
+  typeScopeInfoFor(objectType: string, forField: boolean) {
+    const key = `${forField ? 'field' : 'type'}:${objectType}`;
+    let typeScopeInfo = this.typeScopeInfos.get(key);
 
     if (!typeScopeInfo) {
-      typeScopeInfo = createTypeScopeInfo(objectType, () => this.schema!);
-      this.typeScopeInfos.set(objectType, typeScopeInfo);
+      typeScopeInfo = createTypeScopeInfo(objectType, () => this.schema!, forField);
+      this.typeScopeInfos.set(key, typeScopeInfo);
     }
 
     return typeScopeInfo;
@@ -250,7 +251,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         : [];
 
     const steps: ResolveStep<Types>[] = [];
-    const typeScopeInfo = this.typeScopeInfoFor(objectType);
+    const typeScopeInfo = this.typeScopeInfoFor(objectType, forField);
 
     if (parentAuthScope && !skipTypeScopes) {
       steps.push(

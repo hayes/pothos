@@ -205,6 +205,9 @@ export class SchemaBuilder<Types extends SchemaTypes> {
         ? (param as ObjectRef<Types, OutputShape<Types, Param>, ParentShape<Types, Param>>)
         : new ObjectRef<Types, OutputShape<Types, Param>, ParentShape<Types, Param>>(name);
 
+    // Keep the ref's name in sync with a `name` option, as the root types do.
+    ref.name = name;
+
     ref.updateConfig({
       kind: 'Object',
       graphqlKind: 'Object',
@@ -448,6 +451,9 @@ export class SchemaBuilder<Types extends SchemaTypes> {
             AbstractReturnShape<Types, Param, ResolveType>,
             ParentShape<Types, Param>
           >(name);
+
+    // Keep the ref's name in sync with a `name` option, as the root types do.
+    ref.name = name;
 
     ref.updateConfig({
       kind: 'Interface',

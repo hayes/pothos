@@ -932,8 +932,11 @@ returns the same public fields as the author lookup, including only published po
 > root resolvers, so permission checks or visibility filters on a list or parent field do not protect
 > node refetches. An encoded global ID is an identifier, not proof of permission.
 >
-> Apply an access policy to node loading, the type, or its fields as appropriate. See
-> [Authorizing Relay nodes](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes) for scope patterns and their limits.
+> With Scope Auth, require scopes on the `node` and `nodes` fields, put scopes on the `Node`
+> interface or each node type, or disable the lookup fields. You can also enforce visibility where the
+> node loads, so inaccessible records look missing. See
+> [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes) for each option and its
+> limits.
 
 The public User type here can be refetched by anyone. Its
 [published-posts relation](https://pothos-graphql.dev/docs/plugins/drizzle/relations#published-posts-and-profiles) applies the publication filter

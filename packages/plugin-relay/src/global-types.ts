@@ -89,15 +89,16 @@ declare global {
       pageInfoRef: () => ObjectRef<Types, PageInfoShape>;
       nodeInterfaceRef: () => InterfaceRef<Types, unknown>;
       /**
-       * Adds options to the Node interface, merged over `relay.nodeTypeOptions`. Use it for options
-       * that reference node types, which can't be imported into the builder's own options.
+       * Sets options on the Node interface after the builder is created, overriding the same
+       * options from `relay.nodeTypeOptions` or an earlier call. `extensions` are merged. Use it for
+       * options that reference node types, which can't be imported into the builder's own options.
        */
       nodeInterfaceOptions: (
         options: Omit<
           PothosSchemaTypes.InterfaceTypeOptions<Types, unknown>,
           'fields' | 'interfaces' | 'name'
         >,
-      ) => void;
+      ) => InterfaceRef<Types, unknown>;
 
       nodeRef: <Shape, IDShape = string, Param extends string | ObjectRef<Types, Shape> = string>(
         param: Param,

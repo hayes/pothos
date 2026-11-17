@@ -1,4 +1,4 @@
-import SchemaBuilder from '@pothos/core';
+import SchemaBuilder, { ObjectRef, type SchemaTypes } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { graphql } from 'graphql';
 import { describe, expect, expectTypeOf, it } from 'vitest';
@@ -123,5 +123,47 @@ describe('isParentType', () => {
     const Named = builder.interfaceRef<{ name: string }>('Named');
 
     expectTypeOf(isParentType).parameter(0).not.toMatchTypeOf(Named);
+  });
+
+  it('matches a ref implemented under a different name', async () => {
+    const builder = new SchemaBuilder<{ Context: Context; AuthScopes: { loggedIn: boolean } }>({
+      plugins: [ScopeAuthPlugin],
+      prisma: { client: db, dmmf: getDatamodel() },
+      scopeAuth: { authScopes: (context) => ({ loggedIn: !!context.userId }) },
+    });
+    const Named = builder.interfaceRef<User>('Named');
+    const MemberRef = builder.objectRef<User>('UserRef');
+
+    builder.objectType(MemberRef, {
+      name: 'Member',
+      interfaces: [Named],
+      fields: (t) => ({ name: t.exposeString('name') }),
+    });
+
+    Named.implement({
+      authScopes: (parent, _context, info) => isParentType(MemberRef, parent, info),
+      fields: (t) => ({ id: t.exposeString('id') }),
+    });
+
+    builder.queryType({
+      fields: (t) => ({ member: t.field({ type: MemberRef, resolve: () => users[0] }) }),
+    });
+
+    const result = await graphql({
+      schema: builder.toSchema(),
+      source: '{ member { name } }',
+      contextValue: { userId: null },
+    });
+
+    expect(result).toEqual({ data: { member: { name: 'Ada' } } });
+  });
+
+  it('narrows to the parent shape of refs with a different output shape', () => {
+    const ref = new ObjectRef<SchemaTypes, { output: string }, { parent: number }>('Split');
+    const parent: unknown = {};
+
+    if (isParentType(ref, parent, { parentType: { name: 'Split' } } as never)) {
+      expectTypeOf(parent).toEqualTypeOf<{ parent: number }>();
+    }
   });
 });
