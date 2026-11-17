@@ -124,17 +124,16 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef(options) {
 
   const setKeys = nodeInterfaceOptionKeys.get(this)!;
 
-  for (const key of Object.keys(defined)) {
-    if (key === 'extensions') {
-      continue;
-    }
+  const keys = Object.keys(defined).filter((key) => key !== 'extensions');
+  const duplicate = keys.find((key) => setKeys.has(key));
 
-    if (setKeys.has(key)) {
-      throw new PothosSchemaError(
-        `${ref.name} option "${key}" is already set; set it in either relay.nodeTypeOptions or a single builder.nodeInterfaceRef call`,
-      );
-    }
+  if (duplicate) {
+    throw new PothosSchemaError(
+      `${ref.name} option "${duplicate}" is already set; set it in either relay.nodeTypeOptions or a single builder.nodeInterfaceRef call`,
+    );
+  }
 
+  for (const key of keys) {
     setKeys.add(key);
   }
 
@@ -143,7 +142,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef(options) {
     const pothosOptions = {
       ...config.pothosOptions,
       ...defined,
-      extensions: { ...config.pothosOptions.extensions, ...options.extensions },
+      extensions,
     } as PothosSchemaTypes.InterfaceTypeOptions<SchemaTypes, unknown>;
 
     return {

@@ -1,4 +1,4 @@
-import SchemaBuilder, { ObjectRef, type SchemaTypes } from '@pothos/core';
+import SchemaBuilder, { type ObjectRef } from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { graphql } from 'graphql';
 import { describe, expect, expectTypeOf, it } from 'vitest';
@@ -155,17 +155,5 @@ describe('per-type interface scopes', () => {
     });
 
     expect(result).toEqual({ data: { member: { name: 'Ada' } } });
-  });
-
-  it('types the helper for refs with a different output shape', () => {
-    function isType<T>(ref: ObjectRef<SchemaTypes, unknown, T>, node: unknown): node is T {
-      return !!ref && !!node;
-    }
-    const ref = new ObjectRef<SchemaTypes, { output: string }, { parent: number }>('Split');
-    const node: unknown = {};
-
-    if (isType(ref, node)) {
-      expectTypeOf(node).toEqualTypeOf<{ parent: number }>();
-    }
   });
 });

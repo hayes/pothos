@@ -72,6 +72,15 @@ describe('nodeInterfaceRef options', () => {
     );
   });
 
+  it('sets nothing from a call that throws', () => {
+    const builder = createBuilder();
+
+    expect(() =>
+      builder.nodeInterfaceRef({ resolveType: () => 'Item', description: 'Set later' }),
+    ).toThrow('Entity option "description" is already set');
+    expect(() => builder.nodeInterfaceRef({ resolveType: () => 'Item' })).not.toThrow();
+  });
+
   it('throws when an option is set by two calls', () => {
     const builder = createBuilder();
 

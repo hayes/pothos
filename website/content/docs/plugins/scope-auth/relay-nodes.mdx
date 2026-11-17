@@ -74,6 +74,7 @@ narrow the node to that type's shape:
 ```typescript
 import type { ObjectRef } from '@pothos/core';
 import type { TypeScopeInfo } from '@pothos/plugin-scope-auth';
+import { builder } from './builder';
 
 export function isType<T>(
   ref: ObjectRef<typeof builder.$inferSchemaTypes, unknown, T>,
