@@ -12,7 +12,8 @@ scope loaders are cached for the current request.
 <Callout title="Relay nodes">
 
 Relay's `node` and `nodes` fields can load any node by ID. Require scopes on those fields, put
-scopes on the `Node` interface or each node type, or disable the lookup fields. See
+scopes on the `Node` interface or each node type, disable the lookup fields, or hide inaccessible
+records in the node loader. See
 [Relay node authorization](/docs/plugins/scope-auth/relay-nodes) for each option and its limits.
 
 </Callout>
@@ -767,25 +768,25 @@ import { isParentType } from '@pothos/plugin-scope-auth';
 
 const Content = builder.interfaceRef<{ id: string }>('Content');
 
-const ArticleRef = builder.objectRef<Article>('Article').implement({
+builder.objectType(Article, {
   interfaces: [Content],
   fields: (t) => ({ title: t.exposeString('title') }),
 });
 
 Content.implement({
   authScopes: (content, context, info) =>
-    isParentType(ArticleRef, content, info) && content.published
+    isParentType(Article, content, info) && content.published
       ? { loggedIn: true }
       : { employee: true },
   fields: (t) => ({ id: t.exposeID('id') }),
 });
 ```
 
-`isParentType` narrows `content` to the `Article` shape. It takes refs, not classes or type names.
-Implement the interface after the types that implement it, so `authScopes` can reference their
-refs. `info` is not the field's
-`GraphQLResolveInfo`: the result is cached for each object and type, so it does not depend on which
-field or path triggered the check. For the Relay `Node` interface, see
+`isParentType` narrows `content` to the `Article` shape. It takes a ref; for a class, use the ref
+returned by `builder.objectType`. A failed check narrows away that shape, so check a type with the
+same shape as the interface last. `info` is not the field's `GraphQLResolveInfo`: the result is
+cached for each object and type, so it does not depend on which field or path triggered the check.
+For the Relay `Node` interface, see
 [Vary the policy by node type](/docs/plugins/scope-auth/relay-nodes#vary-the-policy-by-node-type).
 
 ### Setting scopes based on the return value of a field

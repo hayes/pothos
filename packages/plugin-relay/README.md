@@ -39,7 +39,7 @@ The `relay` options object passed to builder can contain the following propertie
 - `nodesQueryOptions`: Options for the `nodes` field on the query object, set to false to omit the
   field
 - `nodeTypeOptions`: Options for the `Node` interface type. Supports a `name` property to customize
-  the type name. See also `builder.nodeInterfaceOptions`.
+  the type name. See also [`builder.nodeInterfaceOptions`](https://pothos-graphql.dev/docs/plugins/relay#extending-the-node-interface).
 - `pageInfoTypeOptions`: Options for the `PageInfo` object type. Supports a `name` property to
   customize the type name.
 - `clientMutationIdFieldOptions`: Options for the `clientMutationId` field on mutation payloads
@@ -98,6 +98,7 @@ Both options support all standard type options including `name`, `description`, 
 > [!WARNING]
 > Defining a node adds direct lookups through `node` and `nodes`. Filters or permission checks on
 > other root fields do not protect these lookups.
+>
 > With Scope Auth, require scopes on the `node` and `nodes` fields, put scopes on the `Node`
 > interface or each node type, or disable the lookup fields. You can also enforce visibility where the
 > node loads, so inaccessible records look missing. See
@@ -858,8 +859,8 @@ const ThingsConnection = builder.connectionObject({
 
 Use `relay.nodeTypeOptions` to configure the interface itself, including `authScopes` when using
 Scope Auth. Options that reference node types can be set later with `builder.nodeInterfaceOptions`,
-which overrides the same options from `relay.nodeTypeOptions`. See [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes#choose-a-default-policy) for how
-interface scopes apply to implementing types and how they differ from authorizing the root lookup
+which overrides the same options from `relay.nodeTypeOptions`. See [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes#put-a-policy-on-the-node-interface) for
+how interface scopes apply to implementing types and how they differ from authorizing the root lookup
 fields.
 
 Use the `nodeInterfaceRef` method of your Builder to reference the interface.

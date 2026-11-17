@@ -12,20 +12,24 @@ This applies to `builder.node`, `builder.prismaNode`, and `builder.drizzleNode`.
 objects should be refetchable and what access a direct lookup should allow. A type can participate
 in a [connection](/docs/plugins/relay#creating-connections) without implementing `Node`.
 
-You can combine these options:
+The options, most of which can be combined:
 
-- [Gate the `node` and `nodes` fields](#choose-a-default-policy) so lookups require a scope before
+- [Gate the `node` and `nodes` fields](#gate-the-lookup-fields) so lookups require a scope before
   anything loads.
-- [Put scopes on the `Node` interface](#put-a-policy-on-the-node-interface), either one baseline for every
-  type or a [policy for each node type](#vary-the-policy-by-node-type).
-- [Put scopes on each node type](#apply-a-policy-to-the-returned-object), which also protects it
-  when reached through other fields.
+- [Put scopes on the `Node` interface](#put-a-policy-on-the-node-interface), either one baseline
+  for every type or a [policy for each node type](#vary-the-policy-by-node-type).
+- [Make Query private by default](#make-query-fields-private-by-default), which also covers `node`
+  and `nodes`.
 - [Disable `node` and `nodes`](#disable-the-lookup-fields) if clients don't need direct
   refetching.
+- [Put scopes on each node type](#apply-a-policy-to-the-returned-object), which also protects it
+  when reached through other fields.
 - [Hide entities in the node loader](#decide-what-node-loading-may-reveal), so unauthorized ones
   look missing.
 
 ## Choose a default policy
+
+### Gate the lookup fields
 
 For an API where direct refetches require a signed-in user, put that requirement on **both**
 generated lookup fields. These options belong in the builder's `relay` configuration, alongside
@@ -87,9 +91,10 @@ builder.nodeInterfaceOptions({
 `builder.nodeInterfaceOptions` sets `Node` interface options after the builder is created, so it can
 reference node types defined elsewhere. It overrides the same options from `relay.nodeTypeOptions`
 and merges `extensions`. Call it before building the schema.
-Returning `false` by default means a new node type is denied until it is added to the policy.
-Like other type `authScopes` functions, its result is cached for each object, so don't combine it
-with [parent grants](#grant-access-through-a-particular-path).
+
+Returning `false` by default means a new node type is denied until it is added to the policy. Like
+other type `authScopes` functions, its result is cached for each object, so it can't depend on
+[parent grants](#grant-access-through-a-particular-path); don't return `$granted` from it.
 
 ### Make Query fields private by default
 
