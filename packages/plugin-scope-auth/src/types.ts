@@ -42,9 +42,16 @@ export type ScopeAuthInitializer<Types extends SchemaTypes> = (
   context: Types['Context'],
 ) => MaybePromise<ScopeLoaderMap<Types>>;
 
+/**
+ * Passed to type `authScopes` and `grantScopes` functions. `parentType` is the object type being
+ * checked, including when the scopes are defined on an interface it implements.
+ */
+export type TypeScopeInfo = Pick<GraphQLResolveInfo, 'parentType' | 'schema'>;
+
 export type TypeAuthScopesFunction<Types extends SchemaTypes, Parent> = (
   parent: Parent,
   context: Types['Context'],
+  info: TypeScopeInfo,
 ) => MaybePromise<AuthScopeMap<Types> | boolean>;
 
 export type TypeAuthScopes<Types extends SchemaTypes, Parent> =
@@ -63,6 +70,7 @@ export type FieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {}> 
 export type TypeGrantScopes<Types extends SchemaTypes, Parent> = (
   parent: Parent,
   context: Types['Context'],
+  info: TypeScopeInfo,
 ) => MaybePromise<readonly string[]>;
 
 export type FieldGrantScopes<Types extends SchemaTypes, Parent, Args extends {}> =

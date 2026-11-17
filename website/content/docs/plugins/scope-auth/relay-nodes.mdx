@@ -36,6 +36,9 @@ returned through ordinary root fields, relationships, and connections. It adds t
 own scopes; satisfying one does not bypass the other. For example, a signed-in reader can still
 fail an article's separate `readArticle` permission check.
 
+A function on the interface can vary its policy by type, using `info.parentType`. See
+[type level scopes](/docs/plugins/scope-auth#setting-type-level-scopes-based-on-the-parent-value).
+
 Interface scopes are useful for a shared baseline, but their default execution still happens at
 the object's fields, after loading. They do not hide `__typename`. Use the root-field gates when
 you also want to reject anonymous node lookups before loading. The two configurations can be used

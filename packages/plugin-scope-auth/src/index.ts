@@ -14,7 +14,13 @@ import SchemaBuilder, {
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
-import type { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'graphql';
+import type {
+  GraphQLFieldResolver,
+  GraphQLIsTypeOfFn,
+  GraphQLResolveInfo,
+  GraphQLSchema,
+  GraphQLTypeResolver,
+} from 'graphql';
 import { isTypeOfHelper } from './is-type-of-helper.js';
 import RequestCache from './request-cache.js';
 import { resolveHelper } from './resolve-helper.js';
@@ -24,6 +30,7 @@ import {
   createResolveStep,
   createTypeAuthScopesStep,
   createTypeGrantScopesStep,
+  createTypeScopeInfo,
   typeAuthScopesStepKey,
 } from './steps.js';
 import type {
@@ -31,6 +38,7 @@ import type {
   ScopeAuthParentLoader,
   TypeAuthScopes,
   TypeGrantScopes,
+  TypeScopeInfo,
 } from './types.js';
 
 export * from './errors.js';
@@ -49,6 +57,30 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
    * importing this package or parsing versions.
    */
   static readonly readsParentExtension = true;
+
+  private schema?: GraphQLSchema;
+
+  private typeScopeInfos = new Map<
+    string,
+    (info: GraphQLResolveInfo | undefined) => TypeScopeInfo
+  >();
+
+  override afterBuild(schema: GraphQLSchema): GraphQLSchema {
+    this.schema = schema;
+
+    return schema;
+  }
+
+  typeScopeInfoFor(objectType: string) {
+    let typeScopeInfo = this.typeScopeInfos.get(objectType);
+
+    if (!typeScopeInfo) {
+      typeScopeInfo = createTypeScopeInfo(objectType, () => this.schema!);
+      this.typeScopeInfos.set(objectType, typeScopeInfo);
+    }
+
+    return typeScopeInfo;
+  }
 
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
@@ -177,7 +209,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       return isTypeOf;
     }
 
-    const steps = this.createStepsForType(typeConfig, { forField: false });
+    const steps = this.createStepsForType(typeConfig, typeConfig.name, { forField: false });
 
     if (steps.length === 0) {
       return isTypeOf;
@@ -201,6 +233,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       | PothosObjectTypeConfig
       | PothosQueryTypeConfig
       | PothosSubscriptionTypeConfig,
+    objectType: string,
     {
       skipTypeScopes,
       skipInterfaceScopes,
@@ -216,12 +249,15 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         : [];
 
     const steps: ResolveStep<Types>[] = [];
+    const typeScopeInfo = this.typeScopeInfoFor(objectType);
 
     if (parentAuthScope && !skipTypeScopes) {
       steps.push(
         createTypeAuthScopesStep(
           parentAuthScope as TypeAuthScopes<Types, unknown>,
           typeConfig.name,
+          objectType,
+          typeScopeInfo,
         ),
       );
     }
@@ -236,6 +272,8 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
             createTypeAuthScopesStep(
               interfaceConfig.pothosOptions.authScopes as TypeAuthScopes<Types, unknown>,
               interfaceConfig.name,
+              objectType,
+              typeScopeInfo,
             ),
           );
         }
@@ -247,6 +285,8 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         createTypeGrantScopesStep(
           parentGrantScopes as TypeGrantScopes<Types, unknown>,
           typeConfig.name,
+          objectType,
+          typeScopeInfo,
           forField,
         ),
       );
@@ -281,6 +321,8 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     };
 
     const inherited = !!ownerTypeConfig && ownerTypeConfig !== typeConfig;
+    // The type whose field this is; `typeConfig` is the interface declaring it when inherited.
+    const objectType = (ownerTypeConfig ?? typeConfig).name;
 
     const skipDeclaringInterfaceScopes =
       inherited &&
@@ -292,7 +334,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     if (!authorizedOnSubscribe) {
       if (shouldRunTypeScopes) {
         stepsForType.push(
-          ...this.createStepsForType(typeConfig, {
+          ...this.createStepsForType(typeConfig, objectType, {
             ...skipScopeOptions,
             skipTypeScopes: skipScopeOptions.skipTypeScopes || skipDeclaringInterfaceScopes,
             skipInterfaceScopes:
@@ -312,7 +354,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
           seen.add(step.key);
         }
 
-        for (const step of this.createStepsForType(ownerTypeConfig, skipScopeOptions)) {
+        for (const step of this.createStepsForType(ownerTypeConfig, objectType, skipScopeOptions)) {
           if (!step.key || !seen.has(step.key)) {
             stepsForType.push(step);
           }
@@ -348,7 +390,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       | PothosSubscriptionTypeConfig,
     subscriber: GraphQLFieldResolver<unknown, Types['Context'], object>,
   ): ResolveStep<Types>[] {
-    const stepsForType = this.createStepsForType(typeConfig, {
+    const stepsForType = this.createStepsForType(typeConfig, typeConfig.name, {
       skipTypeScopes:
         ((fieldConfig.graphqlKind === 'Interface' || fieldConfig.graphqlKind === 'Object') &&
           fieldConfig.pothosOptions.skipTypeScopes) ??

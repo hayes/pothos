@@ -748,6 +748,20 @@ builder.objectType(Article, {
 
 This requires an employee for unpublished articles and a signed-in user for published articles.
 
+Type `authScopes` and `grantScopes` functions also receive an `info` object with `parentType`, the
+object type being checked, and `schema`. On an interface, `parentType` is the implementing type, so
+one interface can apply different rules to each of its types:
+
+```typescript
+builder.interfaceType(Node, {
+  authScopes: (parent, context, info) =>
+    info.parentType.name === 'Article' ? { loggedIn: true } : { employee: true },
+});
+```
+
+This is not the field's `GraphQLResolveInfo`. The result is cached for each object and type, so it
+does not depend on which field or path triggered the check.
+
 ### Setting scopes based on the return value of a field
 
 This is a use that is not currently supported. The current work around is to move those checks down

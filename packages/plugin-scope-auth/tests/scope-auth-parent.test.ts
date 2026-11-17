@@ -61,7 +61,11 @@ describe('pothosScopeAuthParent', () => {
 
     const allowed = await graphql({ schema, source, contextValue: { user: 'alice' } });
     expect(allowed).toEqual({ data: { item: { id: '1' } } });
-    expect(authScopes).toHaveBeenCalledWith({ id: '1', owner: 'alice' }, { user: 'alice' });
+    expect(authScopes).toHaveBeenCalledWith(
+      { id: '1', owner: 'alice' },
+      { user: 'alice' },
+      { parentType: schema.getType('Item'), schema },
+    );
     expect(loadParent).toHaveBeenCalledWith({ id: '1' }, { user: 'alice' }, expect.anything());
 
     const denied = await graphql({ schema, source, contextValue: { user: 'bob' } });
