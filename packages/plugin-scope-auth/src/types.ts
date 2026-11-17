@@ -49,8 +49,7 @@ export type ScopeAuthInitializer<Types extends SchemaTypes> = (
 export interface TypeScopeInfo {
   /**
    * The object type being checked. For scopes defined on an interface, this is the implementing
-   * type. When graphql-jit runs checks from `isTypeOf` (`runScopesOnType`), only its `name` is
-   * guaranteed to match the schema being executed.
+   * type.
    */
   readonly parentType: GraphQLResolveInfo['parentType'];
   readonly schema: GraphQLResolveInfo['schema'];

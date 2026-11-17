@@ -92,9 +92,7 @@ builder.nodeInterfaceOptions({
 reference node types defined elsewhere. It overrides the same options from `relay.nodeTypeOptions`
 and merges `extensions`. Call it before building the schema.
 
-Returning `false` by default means a new node type is denied until it is added to the policy. Like
-other type `authScopes` functions, its result is cached for each object, so it can't depend on
-[parent grants](#grant-access-through-a-particular-path); don't return `$granted` from it.
+Returning `false` by default means a new node type is denied until it is added to the policy.
 
 ### Make Query fields private by default
 
@@ -179,11 +177,9 @@ with the article ID, and use that same permission policy on the object regardles
 grants for access that is intentionally tied to that path. Field scopes can then add stricter permissions for
 sensitive fields, such as an article's editorial notes, without restricting its public title.
 
-Use a static type scope map for this parent-grant pattern, as above. An `authScopes` function on
-a type caches its evaluated result for the returned object instance, so it is not suitable for
-combining a path-dependent grant with an object-dependent check. Field `authScopes` functions are
-another option when a check needs the current field's arguments or parent data. Avoid deriving
-path-dependent permissions in a cached type callback.
+A type `authScopes` function runs once for each object, so it cannot see which path returned it.
+The scope map it returns is still checked against each path, so `$granted` works there too. Field
+`authScopes` functions are another option when a check needs the current field's arguments.
 
 ## Decide what node loading may reveal
 

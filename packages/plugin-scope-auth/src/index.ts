@@ -18,7 +18,6 @@ import type {
   GraphQLFieldResolver,
   GraphQLIsTypeOfFn,
   GraphQLResolveInfo,
-  GraphQLSchema,
   GraphQLTypeResolver,
 } from 'graphql';
 import { isTypeOfHelper } from './is-type-of-helper.js';
@@ -27,6 +26,7 @@ import { resolveHelper } from './resolve-helper.js';
 import {
   createFieldAuthScopesStep,
   createFieldGrantScopesStep,
+  createFieldTypeScopeInfo,
   createResolveStep,
   createTypeAuthScopesStep,
   createTypeGrantScopesStep,
@@ -59,26 +59,20 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
    */
   static readonly readsParentExtension = true;
 
-  private schema?: GraphQLSchema;
+  private fieldTypeScopeInfo = createFieldTypeScopeInfo();
 
-  private typeScopeInfos = new Map<
-    string,
-    (info: GraphQLResolveInfo | undefined) => TypeScopeInfo
-  >();
-
-  override afterBuild(schema: GraphQLSchema): GraphQLSchema {
-    this.schema = schema;
-
-    return schema;
-  }
+  private typeScopeInfos = new Map<string, (info: GraphQLResolveInfo) => TypeScopeInfo>();
 
   typeScopeInfoFor(objectType: string, forField: boolean) {
-    const key = `${forField ? 'field' : 'type'}:${objectType}`;
-    let typeScopeInfo = this.typeScopeInfos.get(key);
+    if (forField) {
+      return this.fieldTypeScopeInfo;
+    }
+
+    let typeScopeInfo = this.typeScopeInfos.get(objectType);
 
     if (!typeScopeInfo) {
-      typeScopeInfo = createTypeScopeInfo(objectType, () => this.schema!, forField);
-      this.typeScopeInfos.set(key, typeScopeInfo);
+      typeScopeInfo = createTypeScopeInfo(objectType);
+      this.typeScopeInfos.set(objectType, typeScopeInfo);
     }
 
     return typeScopeInfo;

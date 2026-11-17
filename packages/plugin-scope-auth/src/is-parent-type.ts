@@ -1,4 +1,4 @@
-import type { parentShapeKey } from '@pothos/core';
+import { parentShapeKey } from '@pothos/core';
 import type { TypeScopeInfo } from './types.js';
 
 /**

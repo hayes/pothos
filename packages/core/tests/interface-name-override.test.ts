@@ -32,6 +32,24 @@ describe('interface name overrides', () => {
 
     expect(schema.getType('Public')).toBeDefined();
     expect(schema.getType('Internal')).toBeUndefined();
+    expect(ref.name).toBe('Public');
+  });
+
+  it('renames an object ref implemented with a name option', () => {
+    const builder = new SchemaBuilder({});
+    const ref = builder.objectRef<Thing>('Internal');
+
+    builder.objectType(ref, {
+      name: 'Public',
+      fields: (t) => ({ id: t.id({ resolve: (parent) => parent.id }) }),
+    });
+
+    builder.queryType({
+      fields: (t) => ({ thing: t.field({ type: ref, resolve: () => ({ id: '1' }) }) }),
+    });
+
+    expect(builder.toSchema().getType('Public')).toBeDefined();
+    expect(ref.name).toBe('Public');
   });
 
   it('uses the name from options when calling ref.implement', () => {

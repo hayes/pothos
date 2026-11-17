@@ -18,35 +18,35 @@ export function typeGrantScopesStepKey(type: string) {
 }
 
 /**
- * Builds the `info` passed to type scope functions for `objectType`. Field checks use the field's
- * `parentType`, which is the object being checked. Checks run from `isTypeOf` get the `info` of the
- * field returning the object, or none from graphql-jit, so the type is looked up by name, falling
- * back to the built schema.
+ * Builds the `info` passed to type scope functions run by field checks, where the field's
+ * `parentType` is the object being checked.
+ */
+export function createFieldTypeScopeInfo(): (info: GraphQLResolveInfo) => TypeScopeInfo {
+  let cached: TypeScopeInfo | undefined;
+
+  return (info) => {
+    if (cached?.parentType !== info.parentType) {
+      cached = { parentType: info.parentType, schema: info.schema };
+    }
+
+    return cached;
+  };
+}
+
+/**
+ * Builds the `info` passed to type scope functions run from `isTypeOf`, which gets the `info` of
+ * the field returning the object, so `objectType` is looked up by name.
  */
 export function createTypeScopeInfo(
   objectType: string,
-  getSchema: () => TypeScopeInfo['schema'],
-  forField: boolean,
-): (info: GraphQLResolveInfo | undefined) => TypeScopeInfo {
+): (info: GraphQLResolveInfo) => TypeScopeInfo {
   let cached: TypeScopeInfo | undefined;
 
-  if (forField) {
-    return (info) => {
-      if (cached?.parentType !== info!.parentType) {
-        cached = { parentType: info!.parentType, schema: info!.schema };
-      }
-
-      return cached;
-    };
-  }
-
   return (info) => {
-    const schema = info?.schema ?? getSchema();
-
-    if (cached?.schema !== schema) {
+    if (cached?.schema !== info.schema) {
       cached = {
-        schema,
-        parentType: schema.getType(objectType) as TypeScopeInfo['parentType'],
+        schema: info.schema,
+        parentType: info.schema.getType(objectType) as TypeScopeInfo['parentType'],
       };
     }
 
@@ -64,7 +64,7 @@ export function createTypeAuthScopesStep<Types extends SchemaTypes>(
   authScopes: TypeAuthScopes<Types, unknown>,
   type: string,
   objectType: string,
-  typeScopeInfo: (info: GraphQLResolveInfo | undefined) => TypeScopeInfo,
+  typeScopeInfo: (info: GraphQLResolveInfo) => TypeScopeInfo,
 ): ResolveStep<Types> {
   if (typeof authScopes === 'function') {
     const cacheKey = typeScopeCacheKey(type, objectType);
@@ -89,7 +89,7 @@ export function createTypeGrantScopesStep<Types extends SchemaTypes>(
   grantScopes: TypeGrantScopes<Types, unknown>,
   type: string,
   objectType: string,
-  typeScopeInfo: (info: GraphQLResolveInfo | undefined) => TypeScopeInfo,
+  typeScopeInfo: (info: GraphQLResolveInfo) => TypeScopeInfo,
   forField: boolean,
 ): ResolveStep<Types> {
   const cacheKey = typeScopeCacheKey(type, objectType);

@@ -100,15 +100,17 @@ schemaBuilderProto.nodeInterfaceOptions = function nodeInterfaceOptions(options)
   );
 
   ref.updateConfig((config) => {
+    const extensions = { ...config.extensions, ...options.extensions };
     const pothosOptions = {
       ...config.pothosOptions,
       ...defined,
+      extensions: { ...config.pothosOptions.extensions, ...options.extensions },
     } as PothosSchemaTypes.InterfaceTypeOptions<SchemaTypes, unknown>;
 
     return {
       ...config,
       description: pothosOptions.description,
-      extensions: { ...config.extensions, ...options.extensions },
+      extensions,
       resolveType: pothosOptions.resolveType as typeof config.resolveType,
       astNode: pothosOptions.astNode,
       pothosOptions,
