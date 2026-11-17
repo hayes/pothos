@@ -2,4 +2,4 @@
 '@pothos/plugin-relay': minor
 ---
 
-Add `builder.nodeInterfaceOptions` to set `Node` interface options, such as `authScopes`, after the builder is created, so they can reference node types. It overrides the same options from `relay.nodeTypeOptions` and merges `extensions`.
+`builder.nodeInterfaceRef` accepts `Node` interface options, such as `authScopes`, so they can be set after the builder is created and reference node types. They override the same options from `relay.nodeTypeOptions`, and `extensions` are merged.

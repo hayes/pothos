@@ -87,7 +87,7 @@ export function isType<T>(
 Here `User` and `Post` are node refs, and `author` is a scope that takes a user ID:
 
 ```typescript
-builder.nodeInterfaceOptions({
+builder.nodeInterfaceRef({
   authScopes: (node, context, info) => {
     switch (true) {
       case isType(User, node, info):
@@ -101,7 +101,7 @@ builder.nodeInterfaceOptions({
 });
 ```
 
-`builder.nodeInterfaceOptions` sets `Node` interface options after the builder is created, so it can
+Options passed to `builder.nodeInterfaceRef` are set after the builder is created, so they can
 reference node types defined elsewhere. It overrides the same options from `relay.nodeTypeOptions`
 and merges `extensions`. Call it before building the schema.
 

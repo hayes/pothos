@@ -67,7 +67,7 @@ function createSchema() {
     fields: (t) => ({ isDraft: t.exposeBoolean('isDraft') }),
   });
 
-  builder.nodeInterfaceOptions({
+  builder.nodeInterfaceRef({
     authScopes: (node, _context, info) => {
       switch (true) {
         case isType(UserRef, node, info):

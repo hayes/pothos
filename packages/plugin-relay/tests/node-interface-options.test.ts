@@ -28,12 +28,12 @@ function createBuilder() {
   return builder;
 }
 
-describe('nodeInterfaceOptions', () => {
+describe('nodeInterfaceRef options', () => {
   it('keeps options it does not set and merges extensions', () => {
     const builder = createBuilder();
 
-    const ref = builder.nodeInterfaceOptions({ extensions: { first: true } });
-    builder.nodeInterfaceOptions({ description: undefined, extensions: { second: true } });
+    const ref = builder.nodeInterfaceRef({ extensions: { first: true } });
+    builder.nodeInterfaceRef({ description: undefined, extensions: { second: true } });
 
     const schema = builder.toSchema();
     const node = schema.getType('Entity') as GraphQLInterfaceType;
@@ -46,7 +46,7 @@ describe('nodeInterfaceOptions', () => {
   it('replaces options set in the builder options', () => {
     const builder = createBuilder();
 
-    builder.nodeInterfaceOptions({ description: 'Set later' });
+    builder.nodeInterfaceRef({ description: 'Set later' });
 
     expect(printSchema(builder.toSchema())).toContain('"""Set later"""\ninterface Entity');
   });
@@ -54,7 +54,7 @@ describe('nodeInterfaceOptions', () => {
   it('keeps resolving node types', async () => {
     const builder = createBuilder();
 
-    builder.nodeInterfaceOptions({ description: 'Set later' });
+    builder.nodeInterfaceRef({ description: 'Set later' });
 
     const result = await graphql({
       schema: builder.toSchema(),

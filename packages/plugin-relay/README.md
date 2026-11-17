@@ -39,7 +39,8 @@ The `relay` options object passed to builder can contain the following propertie
 - `nodesQueryOptions`: Options for the `nodes` field on the query object, set to false to omit the
   field
 - `nodeTypeOptions`: Options for the `Node` interface type. Supports a `name` property to customize
-  the type name. See also [`builder.nodeInterfaceOptions`](https://pothos-graphql.dev/docs/plugins/relay#extending-the-node-interface).
+  the type name. Options can also be passed to
+  [`builder.nodeInterfaceRef`](https://pothos-graphql.dev/docs/plugins/relay#extending-the-node-interface).
 - `pageInfoTypeOptions`: Options for the `PageInfo` object type. Supports a `name` property to
   customize the type name.
 - `clientMutationIdFieldOptions`: Options for the `clientMutationId` field on mutation payloads
@@ -858,8 +859,8 @@ const ThingsConnection = builder.connectionObject({
 ### Extending the `Node` interface
 
 Use `relay.nodeTypeOptions` to configure the interface itself, including `authScopes` when using
-Scope Auth. Options that reference node types can be set later with `builder.nodeInterfaceOptions`,
-which overrides the same options from `relay.nodeTypeOptions`. See [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes#put-a-policy-on-the-node-interface) for
+Scope Auth. Options that reference node types can be passed to `builder.nodeInterfaceRef` later,
+overriding the same options from `relay.nodeTypeOptions`. See [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes#put-a-policy-on-the-node-interface) for
 how interface scopes apply to implementing types and how they differ from authorizing the root lookup
 fields.
 

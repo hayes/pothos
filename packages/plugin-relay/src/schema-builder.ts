@@ -92,8 +92,13 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
   return ref;
 };
 
-schemaBuilderProto.nodeInterfaceOptions = function nodeInterfaceOptions(options) {
-  const ref = this.nodeInterfaceRef();
+schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef(options) {
+  const ref = createNodeInterfaceRef.call(this);
+
+  if (!options) {
+    return ref;
+  }
+
   // Options left `undefined` keep their current value.
   const defined = Object.fromEntries(
     Object.entries(options).filter(([, value]) => value !== undefined),
@@ -120,7 +125,7 @@ schemaBuilderProto.nodeInterfaceOptions = function nodeInterfaceOptions(options)
   return ref;
 };
 
-schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
+function createNodeInterfaceRef(this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) {
   if (nodeInterfaceRefMap.has(this)) {
     return nodeInterfaceRefMap.get(this)!;
   }
@@ -258,7 +263,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
   }
 
   return ref;
-};
+}
 
 schemaBuilderProto.nodeRef = function nodeRef(param, options) {
   if (typeof param === 'string') {
