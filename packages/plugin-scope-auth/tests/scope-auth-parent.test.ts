@@ -79,7 +79,10 @@ describe('pothosScopeAuthParent', () => {
     });
     const type = schema.getType('Item') as GraphQLObjectType;
 
-    expect(type.isTypeOf?.({ id: '1' }, { user: 'alice' }, {} as never)).toBe(true);
+    // The info of the field returning the object, as graphql-js passes it.
+    const info = { schema, parentType: schema.getQueryType() } as never;
+
+    expect(type.isTypeOf?.({ id: '1' }, { user: 'alice' }, info)).toBe(true);
   });
 
   it('awaits an async loader result', async () => {

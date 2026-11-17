@@ -92,6 +92,24 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
   return ref;
 };
 
+schemaBuilderProto.nodeInterfaceOptions = function nodeInterfaceOptions(options) {
+  this.nodeInterfaceRef().updateConfig((config) => {
+    const pothosOptions = {
+      ...config.pothosOptions,
+      ...options,
+    } as PothosSchemaTypes.InterfaceTypeOptions<SchemaTypes, unknown>;
+
+    return {
+      ...config,
+      description: pothosOptions.description,
+      extensions: pothosOptions.extensions,
+      resolveType: pothosOptions.resolveType as typeof config.resolveType,
+      astNode: pothosOptions.astNode,
+      pothosOptions,
+    };
+  });
+};
+
 schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
   if (nodeInterfaceRefMap.has(this)) {
     return nodeInterfaceRefMap.get(this)!;

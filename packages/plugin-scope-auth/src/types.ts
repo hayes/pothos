@@ -43,10 +43,18 @@ export type ScopeAuthInitializer<Types extends SchemaTypes> = (
 ) => MaybePromise<ScopeLoaderMap<Types>>;
 
 /**
- * Passed to type `authScopes` and `grantScopes` functions. `parentType` is the object type being
- * checked, including when the scopes are defined on an interface it implements.
+ * Passed to type `authScopes` and `grantScopes` functions. A subset of `GraphQLResolveInfo`, so
+ * helpers typed with it also accept a field's `info`.
  */
-export type TypeScopeInfo = Pick<GraphQLResolveInfo, 'parentType' | 'schema'>;
+export interface TypeScopeInfo {
+  /**
+   * The object type being checked. For scopes defined on an interface, this is the implementing
+   * type. When graphql-jit runs checks from `isTypeOf` (`runScopesOnType`), only its `name` is
+   * guaranteed to match the schema being executed.
+   */
+  readonly parentType: GraphQLResolveInfo['parentType'];
+  readonly schema: GraphQLResolveInfo['schema'];
+}
 
 export type TypeAuthScopesFunction<Types extends SchemaTypes, Parent> = (
   parent: Parent,

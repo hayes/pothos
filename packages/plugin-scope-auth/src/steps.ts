@@ -18,8 +18,9 @@ export function typeGrantScopesStepKey(type: string) {
 }
 
 /**
- * Builds the `info` passed to type scope functions for `objectType`. `info` is missing when
- * graphql-jit calls `isTypeOf`, so the built schema is the fallback.
+ * Builds the `info` passed to type scope functions for `objectType`. Checks run from `isTypeOf` get
+ * the `info` of the field returning the object, or none from graphql-jit, so the type is looked up
+ * by name, falling back to the built schema.
  */
 export function createTypeScopeInfo(
   objectType: string,
@@ -28,6 +29,15 @@ export function createTypeScopeInfo(
   let cached: TypeScopeInfo | undefined;
 
   return (info) => {
+    // Field checks run with the object's own `info`.
+    if (info?.parentType.name === objectType) {
+      if (cached?.parentType !== info.parentType) {
+        cached = { parentType: info.parentType, schema: info.schema };
+      }
+
+      return cached;
+    }
+
     const schema = info?.schema ?? getSchema();
 
     if (cached?.schema !== schema) {

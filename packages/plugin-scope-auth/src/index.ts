@@ -42,6 +42,7 @@ import type {
 } from './types.js';
 
 export * from './errors.js';
+export { isParentType } from './is-parent-type.js';
 export * from './types.js';
 export { RequestCache };
 

@@ -753,14 +753,20 @@ object type being checked, and `schema`. On an interface, `parentType` is the im
 one interface can apply different rules to each of its types:
 
 ```typescript
-builder.interfaceType(Node, {
-  authScopes: (parent, context, info) =>
-    info.parentType.name === 'Article' ? { loggedIn: true } : { employee: true },
+import { isParentType } from '@pothos/plugin-scope-auth';
+
+builder.interfaceType(Content, {
+  authScopes: (content, context, info) =>
+    isParentType(Article, content, info) && content.published
+      ? { loggedIn: true }
+      : { employee: true },
 });
 ```
 
-This is not the field's `GraphQLResolveInfo`. The result is cached for each object and type, so it
-does not depend on which field or path triggered the check.
+`isParentType` narrows `content` to the `Article` shape. `info` is not the field's
+`GraphQLResolveInfo`: the result is cached for each object and type, so it does not depend on which
+field or path triggered the check. For the Relay `Node` interface, see
+[Vary the policy by node type](/docs/plugins/scope-auth/relay-nodes#vary-the-policy-by-node-type).
 
 ### Setting scopes based on the return value of a field
 

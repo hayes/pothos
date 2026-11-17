@@ -103,9 +103,9 @@ Both options support all standard type options including `name`, `description`, 
 <Callout type="warn" title="Authorize direct node lookups">
 
 Defining a node adds direct lookups through `node` and `nodes`. Filters or permission checks on
-other root fields do not protect these lookups. Use Scope Auth to gate the lookup fields or apply
-a shared policy to the Node interface, and enforce entity-specific access where needed. See
-[Relay node authorization](/docs/plugins/scope-auth/relay-nodes) for safer defaults and their limits.
+other root fields do not protect these lookups. With Scope Auth, require scopes on the `node` and
+`nodes` fields, put scopes on the `Node` interface or each node type, or disable the lookup fields.
+See [Relay node authorization](/docs/plugins/scope-auth/relay-nodes) for each option and their limits.
 
 </Callout>
 
@@ -823,7 +823,8 @@ const ThingsConnection = builder.connectionObject({
 ### Extending the `Node` interface
 
 Use `relay.nodeTypeOptions` to configure the interface itself, including `authScopes` when using
-Scope Auth. See [Relay node authorization](/docs/plugins/scope-auth/relay-nodes#choose-a-default-policy) for how interface
+Scope Auth. Options that reference node types can be set later with
+`builder.nodeInterfaceOptions`, which merges over `relay.nodeTypeOptions`. See [Relay node authorization](/docs/plugins/scope-auth/relay-nodes#choose-a-default-policy) for how interface
 scopes apply to implementing types and how they differ from authorizing the root lookup fields.
 
 Use the `nodeInterfaceRef` method of your Builder to reference the interface.

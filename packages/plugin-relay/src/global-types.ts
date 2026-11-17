@@ -88,6 +88,16 @@ declare global {
     export interface SchemaBuilder<Types extends SchemaTypes> {
       pageInfoRef: () => ObjectRef<Types, PageInfoShape>;
       nodeInterfaceRef: () => InterfaceRef<Types, unknown>;
+      /**
+       * Adds options to the Node interface, merged over `relay.nodeTypeOptions`. Use it for options
+       * that reference node types, which can't be imported into the builder's own options.
+       */
+      nodeInterfaceOptions: (
+        options: Omit<
+          PothosSchemaTypes.InterfaceTypeOptions<Types, unknown>,
+          'fields' | 'interfaces' | 'name'
+        >,
+      ) => void;
 
       nodeRef: <Shape, IDShape = string, Param extends string | ObjectRef<Types, Shape> = string>(
         param: Param,
