@@ -14,23 +14,16 @@ import SchemaBuilder, {
   RootFieldBuilder,
   type SchemaTypes,
 } from '@pothos/core';
-import type {
-  GraphQLFieldResolver,
-  GraphQLIsTypeOfFn,
-  GraphQLResolveInfo,
-  GraphQLTypeResolver,
-} from 'graphql';
+import type { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'graphql';
 import { isTypeOfHelper } from './is-type-of-helper.js';
 import RequestCache from './request-cache.js';
 import { resolveHelper } from './resolve-helper.js';
 import {
   createFieldAuthScopesStep,
   createFieldGrantScopesStep,
-  createFieldTypeScopeInfo,
   createResolveStep,
   createTypeAuthScopesStep,
   createTypeGrantScopesStep,
-  createTypeScopeInfo,
   typeAuthScopesStepKey,
 } from './steps.js';
 import type {
@@ -38,7 +31,6 @@ import type {
   ScopeAuthParentLoader,
   TypeAuthScopes,
   TypeGrantScopes,
-  TypeScopeInfo,
 } from './types.js';
 
 export * from './errors.js';
@@ -57,25 +49,6 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
    * importing this package or parsing versions.
    */
   static readonly readsParentExtension = true;
-
-  private fieldTypeScopeInfo = createFieldTypeScopeInfo();
-
-  private typeScopeInfos = new Map<string, (info: GraphQLResolveInfo) => TypeScopeInfo>();
-
-  typeScopeInfoFor(objectType: string, forField: boolean) {
-    if (forField) {
-      return this.fieldTypeScopeInfo;
-    }
-
-    let typeScopeInfo = this.typeScopeInfos.get(objectType);
-
-    if (!typeScopeInfo) {
-      typeScopeInfo = createTypeScopeInfo(objectType);
-      this.typeScopeInfos.set(objectType, typeScopeInfo);
-    }
-
-    return typeScopeInfo;
-  }
 
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
@@ -244,7 +217,6 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         : [];
 
     const steps: ResolveStep<Types>[] = [];
-    const typeScopeInfo = this.typeScopeInfoFor(objectType, forField);
 
     if (parentAuthScope && !skipTypeScopes) {
       steps.push(
@@ -252,7 +224,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
           parentAuthScope as TypeAuthScopes<Types, unknown>,
           typeConfig.name,
           objectType,
-          typeScopeInfo,
+          forField,
         ),
       );
     }
@@ -268,7 +240,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
               interfaceConfig.pothosOptions.authScopes as TypeAuthScopes<Types, unknown>,
               interfaceConfig.name,
               objectType,
-              typeScopeInfo,
+              forField,
             ),
           );
         }
@@ -281,7 +253,6 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
           parentGrantScopes as TypeGrantScopes<Types, unknown>,
           typeConfig.name,
           objectType,
-          typeScopeInfo,
           forField,
         ),
       );

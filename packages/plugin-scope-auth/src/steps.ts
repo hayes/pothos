@@ -18,40 +18,20 @@ export function typeGrantScopesStepKey(type: string) {
 }
 
 /**
- * Builds the `info` passed to type scope functions run by field checks, where the field's
- * `parentType` is the object being checked.
+ * The `info` passed to type scope functions. A field check's `info` already has the object being
+ * checked as its `parentType`; `isTypeOf` gets the `info` of the field returning the object.
  */
-export function createFieldTypeScopeInfo(): (info: GraphQLResolveInfo) => TypeScopeInfo {
-  let cached: TypeScopeInfo | undefined;
-
-  return (info) => {
-    if (cached?.parentType !== info.parentType) {
-      cached = { parentType: info.parentType, schema: info.schema };
-    }
-
-    return cached;
-  };
-}
-
-/**
- * Builds the `info` passed to type scope functions run from `isTypeOf`, which gets the `info` of
- * the field returning the object, so `objectType` is looked up by name.
- */
-export function createTypeScopeInfo(
+function typeScopeInfo(
+  info: GraphQLResolveInfo,
   objectType: string,
-): (info: GraphQLResolveInfo) => TypeScopeInfo {
-  let cached: TypeScopeInfo | undefined;
-
-  return (info) => {
-    if (cached?.schema !== info.schema) {
-      cached = {
+  forField: boolean,
+): TypeScopeInfo {
+  return forField
+    ? info
+    : {
         schema: info.schema,
         parentType: info.schema.getType(objectType) as TypeScopeInfo['parentType'],
       };
-    }
-
-    return cached;
-  };
 }
 
 // Scopes from an interface run once for each implementing object type, and their functions see
@@ -64,7 +44,7 @@ export function createTypeAuthScopesStep<Types extends SchemaTypes>(
   authScopes: TypeAuthScopes<Types, unknown>,
   type: string,
   objectType: string,
-  typeScopeInfo: (info: GraphQLResolveInfo) => TypeScopeInfo,
+  forField: boolean,
 ): ResolveStep<Types> {
   if (typeof authScopes === 'function') {
     const cacheKey = typeScopeCacheKey(type, objectType);
@@ -73,7 +53,9 @@ export function createTypeAuthScopesStep<Types extends SchemaTypes>(
       key: typeAuthScopesStepKey(type),
       readsParent: true,
       run: (state, parent, _args, _context, info) =>
-        state.evaluateTypeScopeFunction(authScopes, cacheKey, parent, info, typeScopeInfo(info)),
+        state.evaluateTypeScopeFunction(authScopes, cacheKey, parent, info, () =>
+          typeScopeInfo(info, objectType, forField),
+        ),
       errorMessage: `Not authorized to read fields for ${type}`,
     };
   }
@@ -89,7 +71,6 @@ export function createTypeGrantScopesStep<Types extends SchemaTypes>(
   grantScopes: TypeGrantScopes<Types, unknown>,
   type: string,
   objectType: string,
-  typeScopeInfo: (info: GraphQLResolveInfo) => TypeScopeInfo,
   forField: boolean,
 ): ResolveStep<Types> {
   const cacheKey = typeScopeCacheKey(type, objectType);
@@ -99,7 +80,7 @@ export function createTypeGrantScopesStep<Types extends SchemaTypes>(
     readsParent: true,
     run: (state, parent, _args, context, info) =>
       state.grantTypeScopes(cacheKey, parent, forField ? info.path.prev : info.path, () =>
-        grantScopes(parent, context, typeScopeInfo(info)),
+        grantScopes(parent, context, typeScopeInfo(info, objectType, forField)),
       ),
     errorMessage: `Unknown error creating grants for ${type}`,
   };
