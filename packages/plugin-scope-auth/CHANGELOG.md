@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.5.0
+
+### Minor Changes
+
+- a6a08f0: Run `withAuth` and `authScopes` checks sequentially instead of letting the field's `authScopes` overwrite the scopes from `withAuth`. Fields that use both now require both checks to pass, and chained `withAuth` calls all run. Upgrade `@pothos/core`, `@pothos/plugin-prisma`, `@pothos/plugin-prisma-next` and `@pothos/plugin-drizzle` at the same time.
+
 ## 4.4.0
 
 ### Minor Changes

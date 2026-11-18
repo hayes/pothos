@@ -1,5 +1,12 @@
 # Change Log
 
+## 4.17.3
+
+### Patch Changes
+
+- a6a08f0: Add `extendFieldBuilder` for plugins that derive field builders, such as `withAuth`. ORM field builders now keep their type-specific state through `withAuth`. Upgrade these packages together with `@pothos/plugin-scope-auth`.
+  - @pothos/selection-mapper@0.3.0
+
 ## 4.17.2
 
 ### Patch Changes
