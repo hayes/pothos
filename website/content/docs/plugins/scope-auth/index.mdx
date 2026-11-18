@@ -581,7 +581,8 @@ builder.queryField('currentId', (t) =>
 ```
 
 `t.withAuth` returns a field builder with scopes already applied. It also works with methods
-added by other plugins. With the same builder as above, an equivalent field is:
+added by other plugins, and if the field also sets `authScopes`, both checks must pass. With the
+same builder as above, an equivalent field is:
 
 ```typescript
 builder.queryField('viewerId', (t) =>

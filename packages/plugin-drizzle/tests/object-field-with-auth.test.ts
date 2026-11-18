@@ -34,7 +34,7 @@ const User = builder.drizzleNode('users', {
     firstName: t.withAuth({ allowed: true }).exposeString('firstName', { nullable: true }),
     posts: t.withAuth({ allowed: true }).relation('posts', { nullable: true }),
     postsConnection: t.withAuth({ allowed: true }).relatedConnection('posts', { nullable: true }),
-    // a field's own `authScopes` replace the ones from `withAuth`, as in scope-auth and prisma
+    // a field's own `authScopes` run after the ones from `withAuth`, and both must pass
     username: t.withAuth({ allowed: true }).exposeString('username', { authScopes: () => true }),
   }),
 });
@@ -105,11 +105,11 @@ it('resolves withAuth fields on a drizzle object when the scope passes', async (
 });
 
 it('rejects withAuth fields on a drizzle object when the scope fails', async () => {
-  const [user] = await db.query.users.findMany({ limit: 1, orderBy: { id: 'asc' } });
   const result = await execute({ schema, document, contextValue: { allowed: false } });
 
   expect(result.errors?.map((error) => error.message)).toEqual([
     'Not authorized to resolve User.firstName',
+    'Not authorized to resolve User.username',
     'Not authorized to resolve User.posts',
     'Not authorized to resolve User.postsConnection',
   ]);
@@ -117,7 +117,7 @@ it('rejects withAuth fields on a drizzle object when the scope fails', async () 
     users: {
       edges: [
         {
-          node: { firstName: null, username: user.username, posts: null, postsConnection: null },
+          node: { firstName: null, username: null, posts: null, postsConnection: null },
         },
       ],
     },

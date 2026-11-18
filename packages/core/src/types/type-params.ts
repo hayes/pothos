@@ -10,6 +10,8 @@ export const inputShapeKey = Symbol.for('Pothos.inputShapeKey');
 export const inputFieldShapeKey = Symbol.for('Pothos.inputFieldShapeKey');
 export const outputFieldShapeKey = Symbol.for('Pothos.outputFieldShapeKey');
 export const typeBrandKey = Symbol.for('Pothos.typeBrandKey');
+/** Copies a field builder, keeping any options mapping added by `extendFieldBuilder`. */
+export const fieldBuilderCloneKey = Symbol.for('Pothos.fieldBuilderCloneKey');
 
 export type OutputShape<Types extends SchemaTypes, T> = T extends {
   [outputShapeKey]: infer U;

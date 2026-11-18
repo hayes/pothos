@@ -44,6 +44,7 @@ import type {
 } from './types/index.js';
 
 export * from './errors.js';
+export { extendFieldBuilder, type FieldOptionsMapper } from './fieldUtils/extend.js';
 export * from './plugins/index.js';
 export * from './types/index.js';
 export * from './utils/index.js';

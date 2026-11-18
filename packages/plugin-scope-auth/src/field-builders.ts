@@ -1,63 +1,32 @@
 import {
-  InterfaceFieldBuilder,
-  MutationFieldBuilder,
-  ObjectFieldBuilder,
-  QueryFieldBuilder,
+  extendFieldBuilder,
+  type FieldKind,
+  RootFieldBuilder,
   type SchemaTypes,
-  SubscriptionFieldBuilder,
 } from '@pothos/core';
+import type { FieldAuthScopes } from './types.js';
 
-const objectFieldBuilder = ObjectFieldBuilder.prototype as PothosSchemaTypes.ObjectFieldBuilder<
-  SchemaTypes,
-  {}
->;
+export const WITH_AUTH_SCOPES_EXTENSION = 'pothosWithAuthScopes';
 
-objectFieldBuilder.withAuth = function withAuth(scopes) {
-  return addScopes(scopes, new ObjectFieldBuilder(this.builder) as never);
+type AnyFieldAuthScopes = FieldAuthScopes<SchemaTypes, {}, {}>;
+type AnyRootFieldBuilder = PothosSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;
+
+const rootFieldBuilder = RootFieldBuilder.prototype as AnyRootFieldBuilder & {
+  withAuth: (scopes: AnyFieldAuthScopes) => AnyRootFieldBuilder;
 };
 
-const interfaceFieldBuilder =
-  InterfaceFieldBuilder.prototype as PothosSchemaTypes.InterfaceFieldBuilder<SchemaTypes, {}>;
+rootFieldBuilder.withAuth = function withAuth(scopes) {
+  return extendFieldBuilder(this, (options) => {
+    const extensions = (options.extensions ?? {}) as {
+      [WITH_AUTH_SCOPES_EXTENSION]?: AnyFieldAuthScopes[];
+    };
 
-interfaceFieldBuilder.withAuth = function withAuth(scopes) {
-  return addScopes(scopes, new InterfaceFieldBuilder(this.builder) as never);
-};
-
-const queryFieldBuilder = QueryFieldBuilder.prototype as PothosSchemaTypes.QueryFieldBuilder<
-  SchemaTypes,
-  {}
->;
-
-queryFieldBuilder.withAuth = function withAuth(scopes) {
-  return addScopes(scopes, new QueryFieldBuilder(this.builder) as never);
-};
-
-const mutationFieldBuilder =
-  MutationFieldBuilder.prototype as PothosSchemaTypes.MutationFieldBuilder<SchemaTypes, {}>;
-
-mutationFieldBuilder.withAuth = function withAuth(scopes) {
-  return addScopes(scopes, new MutationFieldBuilder(this.builder) as never);
-};
-
-const subscriptionFieldBuilder =
-  SubscriptionFieldBuilder.prototype as PothosSchemaTypes.SubscriptionFieldBuilder<SchemaTypes, {}>;
-
-subscriptionFieldBuilder.withAuth = function withAuth(scopes) {
-  return addScopes(scopes, new SubscriptionFieldBuilder(this.builder) as never);
-};
-
-function addScopes(
-  scopes: unknown,
-  builder: { createField: (options: Record<string, unknown>) => unknown },
-) {
-  const originalCreateField = builder.createField;
-
-  builder.createField = function createField(options) {
-    return originalCreateField.call(this, {
-      authScopes: scopes,
+    return {
       ...options,
-    });
-  };
-
-  return builder as never;
-}
+      extensions: {
+        ...extensions,
+        [WITH_AUTH_SCOPES_EXTENSION]: [scopes, ...(extensions[WITH_AUTH_SCOPES_EXTENSION] ?? [])],
+      },
+    };
+  });
+};

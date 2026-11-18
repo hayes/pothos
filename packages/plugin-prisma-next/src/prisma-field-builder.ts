@@ -3,6 +3,7 @@ import {
   type FieldKind,
   type FieldNullability,
   type FieldRef,
+  fieldBuilderCloneKey,
   type InferredFieldOptionKeys,
   type InputFieldMap,
   type InterfaceParam,
@@ -94,31 +95,6 @@ type FieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {} = {}> =
     ? T
     : never;
 
-function addAuthScopes(scopes: unknown, builder: object): object {
-  const target = builder as { createField: (options: Record<string, unknown>) => unknown };
-  const originalCreateField = target.createField;
-  target.createField = function createField(options) {
-    return originalCreateField.call(this, {
-      authScopes: scopes,
-      ...options,
-    });
-  };
-  return builder;
-}
-
-function withAuthImpl<Types extends SchemaTypes, M extends ModelKey<Types>>(
-  this: PrismaObjectFieldBuilder<Types, M>,
-  scopes: object,
-): PrismaObjectFieldBuilder<Types, M> {
-  const next = new PrismaObjectFieldBuilder<Types, M>(
-    this.builder as PothosSchemaTypes.SchemaBuilder<Types>,
-    this.modelKey,
-    this.contract,
-    this.graphqlKind as 'Interface' | 'Object',
-  );
-  return addAuthScopes(scopes, next) as PrismaObjectFieldBuilder<Types, M>;
-}
-
 const RootBuilder: {
   new <Types extends SchemaTypes, Shape, Kind extends FieldKind>(
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -146,7 +122,7 @@ export class PrismaObjectFieldBuilder<
   exposeIDList = this.createExpose(['ID']);
   exposeStringList = this.createExpose(['String']);
 
-  withAuth: 'scopeAuth' extends PluginName
+  declare withAuth: 'scopeAuth' extends PluginName
     ? <Scopes extends FieldAuthScopes<Types, Shape, Record<string, unknown>>>(
         scopes: Scopes,
       ) => PothosSchemaTypes.PrismaObjectFieldBuilder<
@@ -155,7 +131,7 @@ export class PrismaObjectFieldBuilder<
         Shape,
         ExposableShape
       >
-    : '@pothos/plugin-scope-auth is required to use this method' = withAuthImpl as never;
+    : '@pothos/plugin-scope-auth is required to use this method';
 
   readonly modelKey: M;
   readonly contract: Types['PrismaContract'];
@@ -169,6 +145,15 @@ export class PrismaObjectFieldBuilder<
     super(builder, 'PrismaObject' as never, graphqlKind);
     this.modelKey = modelKey;
     this.contract = contract;
+  }
+
+  override [fieldBuilderCloneKey](): this {
+    return new PrismaObjectFieldBuilder(
+      this.builder as PothosSchemaTypes.SchemaBuilder<Types>,
+      this.modelKey,
+      this.contract,
+      this.graphqlKind as 'Interface' | 'Object',
+    ) as this;
   }
 
   expose<
