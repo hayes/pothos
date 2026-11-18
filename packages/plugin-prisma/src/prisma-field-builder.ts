@@ -4,6 +4,7 @@ import {
   type ExposeNullability,
   type FieldKind,
   type FieldRef,
+  fieldBuilderCloneKey,
   type InferredFieldOptionKeys,
   type InputFieldMap,
   type InterfaceParam,
@@ -528,7 +529,7 @@ export class PrismaObjectFieldBuilder<
     this.builder = builder;
   }
 
-  override clone(): this {
+  override [fieldBuilderCloneKey](): this {
     return new PrismaObjectFieldBuilder(
       this.typename,
       this.builder,

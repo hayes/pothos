@@ -11,6 +11,7 @@ import type {
   ShapeFromTypeParam,
   TypeParam,
 } from '../types/index.js';
+import { fieldBuilderCloneKey } from '../types/type-params.js';
 import { typeFromParam } from '../utils/index.js';
 
 export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
@@ -30,7 +31,7 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
     this.graphqlKind = graphqlKind;
   }
 
-  clone(): this {
+  [fieldBuilderCloneKey](): this {
     return new (
       this.constructor as new (
         builder: PothosSchemaTypes.SchemaBuilder<Types>,

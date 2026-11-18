@@ -1,38 +1,32 @@
-import { type FieldKind, RootFieldBuilder, type SchemaTypes } from '@pothos/core';
+import {
+  extendFieldBuilder,
+  type FieldKind,
+  RootFieldBuilder,
+  type SchemaTypes,
+} from '@pothos/core';
+import type { FieldAuthScopes } from './types.js';
 
 export const WITH_AUTH_SCOPES_EXTENSION = 'pothosWithAuthScopes';
 
-const rootFieldBuilder = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
-  SchemaTypes,
-  unknown,
-  FieldKind
-> & {
-  withAuth: (scopes: unknown) => unknown;
+type AnyFieldAuthScopes = FieldAuthScopes<SchemaTypes, {}, {}>;
+type AnyRootFieldBuilder = PothosSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;
+
+const rootFieldBuilder = RootFieldBuilder.prototype as AnyRootFieldBuilder & {
+  withAuth: (scopes: AnyFieldAuthScopes) => AnyRootFieldBuilder;
 };
 
 rootFieldBuilder.withAuth = function withAuth(scopes) {
-  return addScopes(scopes, this as never, this.clone() as never);
-};
+  return extendFieldBuilder(this, (options) => {
+    const extensions = (options.extensions ?? {}) as {
+      [WITH_AUTH_SCOPES_EXTENSION]?: AnyFieldAuthScopes[];
+    };
 
-function addScopes(
-  scopes: unknown,
-  parent: { createField: (options: Record<string, unknown>) => unknown },
-  builder: { createField: (options: Record<string, unknown>) => unknown },
-) {
-  builder.createField = function createField(options) {
-    const extensions = (options.extensions ?? {}) as Record<string, unknown>;
-
-    return parent.createField.call(this, {
+    return {
       ...options,
       extensions: {
         ...extensions,
-        [WITH_AUTH_SCOPES_EXTENSION]: [
-          scopes,
-          ...((extensions[WITH_AUTH_SCOPES_EXTENSION] as unknown[] | undefined) ?? []),
-        ],
+        [WITH_AUTH_SCOPES_EXTENSION]: [scopes, ...(extensions[WITH_AUTH_SCOPES_EXTENSION] ?? [])],
       },
-    });
-  };
-
-  return builder as never;
-}
+    };
+  });
+};

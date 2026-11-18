@@ -4,6 +4,7 @@ import {
   type ExposeNullability,
   type FieldKind,
   type FieldRef,
+  fieldBuilderCloneKey,
   type InferredFieldOptionKeys,
   type InputFieldMap,
   type InterfaceParam,
@@ -526,7 +527,7 @@ export class DrizzleObjectFieldBuilder<
     this.typename = typename;
   }
 
-  override clone(): this {
+  override [fieldBuilderCloneKey](): this {
     return new DrizzleObjectFieldBuilder(
       this.typename,
       this.builder,

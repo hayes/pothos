@@ -3,6 +3,7 @@ import {
   type FieldKind,
   type FieldNullability,
   type FieldRef,
+  fieldBuilderCloneKey,
   type InferredFieldOptionKeys,
   type InputFieldMap,
   type InterfaceParam,
@@ -146,7 +147,7 @@ export class PrismaObjectFieldBuilder<
     this.contract = contract;
   }
 
-  override clone(): this {
+  override [fieldBuilderCloneKey](): this {
     return new PrismaObjectFieldBuilder(
       this.builder as PothosSchemaTypes.SchemaBuilder<Types>,
       this.modelKey,

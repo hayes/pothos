@@ -5,4 +5,4 @@
 '@pothos/plugin-prisma-next': patch
 ---
 
-Add a `clone()` method to field builders and use it for `withAuth` so ORM field builders keep their type-specific state.
+Add `extendFieldBuilder` for plugins that derive field builders, such as `withAuth`. ORM field builders now keep their type-specific state through `withAuth`. Upgrade these packages together with `@pothos/plugin-scope-auth`.

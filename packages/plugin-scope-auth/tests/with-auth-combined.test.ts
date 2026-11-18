@@ -1,5 +1,5 @@
-import SchemaBuilder from '@pothos/core';
-import { graphql, parse, subscribe } from 'graphql';
+import SchemaBuilder, { fieldBuilderCloneKey } from '@pothos/core';
+import { type GraphQLObjectType, graphql, parse, subscribe } from 'graphql';
 import { vi } from 'vitest';
 import { getDatamodel } from '../prisma/generated';
 import ScopeAuthPlugin from '../src';
@@ -191,4 +191,32 @@ describe('withAuth combined with authScopes on subscriptions', () => {
       errors: [{ message: 'Not authorized to resolve Subscription.combinedSubscription' }],
     });
   });
+});
+
+it('stores each withAuth call once, in call order', () => {
+  const a = { loggedIn: true };
+  const b = { admin: true };
+  const builder = new SchemaBuilder<{ AuthScopes: { loggedIn: boolean; admin: boolean } }>({
+    plugins: [ScopeAuthPlugin],
+    prisma: { client: db, dmmf: getDatamodel() },
+    scopeAuth: { authScopes: () => ({ loggedIn: true, admin: true }) },
+  });
+
+  builder.queryType({
+    fields: (t) => ({
+      chained: t
+        .withAuth(a)
+        .withAuth(b)
+        .string({ resolve: () => '' }),
+      cloned: t
+        .withAuth(a)
+        [fieldBuilderCloneKey]()
+        .string({ resolve: () => '' }),
+    }),
+  });
+
+  const fields = (builder.toSchema().getType('Query') as GraphQLObjectType).getFields();
+
+  expect(fields.chained.extensions.pothosWithAuthScopes).toEqual([a, b]);
+  expect(fields.cloned.extensions.pothosWithAuthScopes).toEqual([a]);
 });
