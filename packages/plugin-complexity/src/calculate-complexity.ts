@@ -1,4 +1,10 @@
-import { getMappedArgumentValues, PothosValidationError } from '@pothos/core';
+import {
+  completeValue,
+  getMappedArgumentValues,
+  isThenable,
+  type MaybePromise,
+  PothosValidationError,
+} from '@pothos/core';
 import {
   type FieldNode,
   type FragmentDefinitionNode,
@@ -17,7 +23,7 @@ import {
   type SelectionSetNode,
 } from 'graphql';
 import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults.js';
-import type { ComplexityResult, FieldComplexity } from './index.js';
+import type { ComplexityResult, FieldComplexity, FieldComplexityValue } from './index.js';
 
 function isListType(type: GraphQLOutputType): boolean {
   if (type instanceof GraphQLList) {
@@ -37,13 +43,9 @@ function complexityFromField(
   selection: FieldNode,
   type: GraphQLNamedType,
   traversal: Traversal,
-): ComplexityResult {
-  let depth = 1;
-  let breadth = 1;
+): MaybePromise<ComplexityResult> {
   const fieldName = selection.name.value;
-
   const field = (isObjectType(type) || isInterfaceType(type)) && type.getFields()[fieldName]!;
-
   let complexityOption: FieldComplexity<object, object> | undefined;
   if (field) {
     complexityOption = field.extensions?.complexity as FieldComplexity<object, object> | undefined;
@@ -51,47 +53,42 @@ function complexityFromField(
     throw new PothosValidationError(`Unknown field selected (${type.name}.${fieldName})`);
   }
 
-  if (typeof complexityOption === 'function') {
-    const args = getMappedArgumentValues(
-      field as GraphQLField<unknown, unknown>,
-      selection,
-      ctx,
-      info,
-    ) as Record<string, unknown>;
+  const complexityValue =
+    typeof complexityOption === 'function'
+      ? completeValue(
+          getMappedArgumentValues(field as GraphQLField<unknown, unknown>, selection, ctx, info),
+          (args) => complexityOption(args, ctx, field as GraphQLField<unknown, object, object>),
+        )
+      : complexityOption;
 
-    complexityOption = complexityOption(args, ctx, field as GraphQLField<unknown, object, object>);
-  }
+  return completeValue(complexityValue, (option: FieldComplexityValue | undefined) => {
+    const multiplier =
+      typeof option === 'object' && option.multiplier !== undefined
+        ? option.multiplier
+        : field && isListType(field.type)
+          ? DEFAULT_LIST_MULTIPLIER
+          : 1;
+    const fieldComplexity =
+      typeof option === 'number' ? option : (option?.field ?? DEFAULT_COMPLEXITY);
+    const subSelection =
+      field && selection.selectionSet
+        ? complexityFromSelectionSet(
+            ctx,
+            info,
+            selection.selectionSet,
+            getNamedType(field.type),
+            traversal,
+          )
+        : { complexity: 0, depth: 0, breadth: 0 };
 
-  let fieldMultiplier: number;
-
-  if (typeof complexityOption === 'object' && complexityOption.multiplier !== undefined) {
-    fieldMultiplier = complexityOption.multiplier;
-  } else {
-    fieldMultiplier = field && isListType(field.type) ? DEFAULT_LIST_MULTIPLIER : 1;
-  }
-
-  let complexity = 0;
-
-  if (field && selection.selectionSet) {
-    const subSelection = complexityFromSelectionSet(
-      ctx,
-      info,
-      selection.selectionSet,
-      getNamedType(field.type),
-      traversal,
-    );
-
-    complexity += subSelection.complexity * Math.max(fieldMultiplier, 0);
-    depth += subSelection.depth;
-    breadth += subSelection.breadth;
-  }
-
-  complexity +=
-    typeof complexityOption === 'number'
-      ? complexityOption
-      : (complexityOption?.field ?? DEFAULT_COMPLEXITY);
-
-  return { complexity, depth, breadth };
+    return completeValue(subSelection, (children) => ({
+      complexity:
+        fieldComplexity +
+        (field && selection.selectionSet ? children.complexity * Math.max(multiplier, 0) : 0),
+      depth: 1 + children.depth,
+      breadth: 1 + children.breadth,
+    }));
+  });
 }
 
 export function calculateComplexity(ctx: object, info: GraphQLResolveInfo) {
@@ -116,7 +113,7 @@ function complexityFromFragment(
   fragment: FragmentDefinitionNode | InlineFragmentNode,
   type: GraphQLNamedType,
   traversal: Traversal,
-): ComplexityResult {
+): MaybePromise<ComplexityResult> {
   const fragmentType = fragment.typeCondition
     ? info.schema.getType(fragment.typeCondition.name.value)
     : type;
@@ -145,7 +142,7 @@ export function complexityFromSelectionSet(
   selectionSet: SelectionSetNode,
   type: GraphQLNamedType,
   traversal: Traversal = { active: new Set(), results: new Map() },
-): ComplexityResult {
+): MaybePromise<ComplexityResult> {
   const cached = traversal.results.get(selectionSet)?.get(type);
 
   if (cached) {
@@ -163,32 +160,59 @@ export function complexityFromSelectionSet(
     complexity: 0,
   };
 
-  for (const selection of selectionSet.selections) {
-    let selectionResult: ComplexityResult;
-    if (selection.kind === Kind.FIELD) {
-      selectionResult = complexityFromField(ctx, info, selection, type, traversal);
-    } else if (selection.kind === Kind.FRAGMENT_SPREAD) {
-      const fragment = info.fragments[selection.name.value];
-
-      if (!fragment) {
-        throw new PothosValidationError(`Missing fragment ${selection.name.value}`);
-      }
-
-      selectionResult = complexityFromFragment(ctx, info, fragment, type, traversal);
-    } else {
-      selectionResult = complexityFromFragment(ctx, info, selection, type, traversal);
-    }
-
+  function addSelection(selectionResult: ComplexityResult) {
     result.complexity += selectionResult.complexity;
     result.breadth += selectionResult.breadth;
     result.depth = Math.max(result.depth, selectionResult.depth);
   }
 
-  traversal.active.delete(selectionSet);
-  if (!traversal.results.has(selectionSet)) {
-    traversal.results.set(selectionSet, new Map());
-  }
-  traversal.results.get(selectionSet)!.set(type, result);
+  function next(index: number): MaybePromise<ComplexityResult> {
+    for (let i = index; i < selectionSet.selections.length; i += 1) {
+      const selection = selectionSet.selections[i];
+      let selectionResult: MaybePromise<ComplexityResult>;
+      if (selection.kind === Kind.FIELD) {
+        selectionResult = complexityFromField(ctx, info, selection, type, traversal);
+      } else if (selection.kind === Kind.FRAGMENT_SPREAD) {
+        const fragment = info.fragments[selection.name.value];
+        if (!fragment) {
+          throw new PothosValidationError(`Missing fragment ${selection.name.value}`);
+        }
+        selectionResult = complexityFromFragment(ctx, info, fragment, type, traversal);
+      } else {
+        selectionResult = complexityFromFragment(ctx, info, selection, type, traversal);
+      }
 
-  return result;
+      if (isThenable(selectionResult)) {
+        // Finish this branch before visiting its siblings so active paths remain
+        // ancestry paths, and shared fragments can reuse completed results.
+        return completeValue(selectionResult, (completed) => {
+          addSelection(completed);
+          return next(i + 1);
+        });
+      }
+      addSelection(selectionResult);
+    }
+    return result;
+  }
+
+  try {
+    return completeValue(
+      next(0),
+      (completed) => {
+        traversal.active.delete(selectionSet);
+        if (!traversal.results.has(selectionSet)) {
+          traversal.results.set(selectionSet, new Map());
+        }
+        traversal.results.get(selectionSet)!.set(type, completed);
+        return completed;
+      },
+      (error) => {
+        traversal.active.delete(selectionSet);
+        throw error;
+      },
+    );
+  } catch (error) {
+    traversal.active.delete(selectionSet);
+    throw error;
+  }
 }
