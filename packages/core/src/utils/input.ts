@@ -6,6 +6,7 @@ import type {
   PothosTypeConfig,
   SchemaTypes,
 } from '../types/index.js';
+import { createContextCache } from './context-cache.js';
 import { unwrapInputFieldType } from './params.js';
 
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
@@ -61,20 +62,33 @@ export function resolveInputTypeConfig<Types extends SchemaTypes>(
   );
 }
 
+const filterCaches = createContextCache(() => ({
+  filterMappings: new Map<unknown, unknown>(),
+  hasMappings: new Map<unknown, boolean>(),
+}));
+
 export function mapInputFields<Types extends SchemaTypes, T>(
   inputs: Record<string, PothosInputFieldConfig<Types>>,
   buildCache: BuildCache<Types>,
   mapper: (config: PothosInputFieldConfig<Types>) => T | null,
   cache: Map<string, InputTypeFieldsMapping<Types, T>> = new Map(),
 ): InputFieldsMapping<Types, T> | null {
-  const filterMappings = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>>();
-  const hasMappings = new Map<InputFieldsMapping<Types, T>, boolean>();
+  const { filterMappings, hasMappings } = filterCaches(cache) as {
+    filterMappings: Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T> | null>;
+    hasMappings: Map<InputFieldsMapping<Types, T>, boolean>;
+  };
 
-  return filterMapped(internalMapInputFields(inputs, buildCache, mapper, cache));
+  const root = internalMapInputFields(inputs, buildCache, mapper, cache);
+  const result = filterMapped(root);
 
-  function filterMapped(map: InputFieldsMapping<Types, T>) {
+  filterMappings.delete(root);
+  hasMappings.delete(root);
+
+  return result;
+
+  function filterMapped(map: InputFieldsMapping<Types, T>): InputFieldsMapping<Types, T> | null {
     if (filterMappings.has(map)) {
-      return filterMappings.get(map)!;
+      return filterMappings.get(map) ?? null;
     }
 
     const filtered = new Map<string, InputFieldMapping<Types, T>>();
@@ -104,7 +118,13 @@ export function mapInputFields<Types extends SchemaTypes, T>(
       }
     });
 
-    return filtered.size > 0 ? filtered : null;
+    if (filtered.size === 0) {
+      filterMappings.set(map, null);
+
+      return null;
+    }
+
+    return filtered;
   }
 
   function checkForMappings(map: InputFieldsMapping<Types, T>): boolean {
@@ -187,11 +207,10 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
       continue;
     }
 
-    const inputFieldConfigs = buildCache.getInputTypeFieldConfigs(
-      unwrapInputFieldType(inputField.type),
-    );
-
     if (!seenTypes.has(typeConfig.name)) {
+      const inputFieldConfigs = buildCache.getInputTypeFieldConfigs(
+        unwrapInputFieldType(inputField.type),
+      );
       const typeEntry = {
         configs: inputFieldConfigs,
         map: new Map<string, InputFieldMapping<Types, T>>(),

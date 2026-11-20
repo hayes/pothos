@@ -2,6 +2,7 @@ import './global-types.js';
 import './methods.js';
 import SchemaBuilder, {
   BasePlugin,
+  type InputTypeFieldsMapping,
   mapInputFields,
   type PothosInputFieldConfig,
   type PothosOutputFieldConfig,
@@ -20,6 +21,14 @@ export { InputValidationError, type StandardSchemaV1 };
 const pluginName = 'validation';
 
 export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  private mappingCache = new Map<
+    string,
+    InputTypeFieldsMapping<
+      Types,
+      { typeSchemas: StandardSchemaV1[]; fieldSchemas: StandardSchemaV1[] }
+    >
+  >();
+
   override onInputFieldConfig(
     fieldConfig: PothosInputFieldConfig<Types>,
   ): PothosInputFieldConfig<Types> {
@@ -81,29 +90,34 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
       ),
     );
 
-    const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (field) => {
-      const baseSchemas = field.extensions?.['@pothos/plugin-validation']?.schemas ?? [];
-      const argOptionsSchema = field.kind === 'Arg' && field.pothosOptions.validate;
-      const fieldSchemas = argOptionsSchema
-        ? [...baseSchemas.slice().reverse(), allowNullish(argOptionsSchema)]
-        : baseSchemas.slice().reverse();
+    const argMappings = mapInputFields(
+      fieldConfig.args,
+      this.buildCache,
+      (field) => {
+        const baseSchemas = field.extensions?.['@pothos/plugin-validation']?.schemas ?? [];
+        const argOptionsSchema = field.kind === 'Arg' && field.pothosOptions.validate;
+        const fieldSchemas = argOptionsSchema
+          ? [...baseSchemas.slice().reverse(), allowNullish(argOptionsSchema)]
+          : baseSchemas.slice().reverse();
 
-      const fieldTypeName = unwrapInputFieldType(field.type);
-      const typeConfig = this.buildCache.getTypeConfig(fieldTypeName);
+        const fieldTypeName = unwrapInputFieldType(field.type);
+        const typeConfig = this.buildCache.getTypeConfig(fieldTypeName);
 
-      const typeSchemas =
-        typeConfig.kind === 'InputObject'
-          ? (typeConfig.extensions?.['@pothos/plugin-validation']?.schemas?.slice().reverse() ??
-            null)
+        const typeSchemas =
+          typeConfig.kind === 'InputObject'
+            ? (typeConfig.extensions?.['@pothos/plugin-validation']?.schemas?.slice().reverse() ??
+              null)
+            : null;
+
+        return fieldSchemas.length > 0 || typeSchemas
+          ? {
+              fieldSchemas,
+              typeSchemas: typeSchemas ?? [],
+            }
           : null;
-
-      return fieldSchemas.length > 0 || typeSchemas
-        ? {
-            fieldSchemas,
-            typeSchemas: typeSchemas ?? [],
-          }
-        : null;
-    });
+      },
+      this.mappingCache,
+    );
 
     // Convert Set to Array and combine with argsSchema
     const allArgsSchemas = [...(argsSchema ? [argsSchema] : []), ...Array.from(argsSchemas)];
