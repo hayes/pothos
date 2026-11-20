@@ -67,14 +67,13 @@ export function mapInputFields<Types extends SchemaTypes, T>(
   mapper: (config: PothosInputFieldConfig<Types>) => T | null,
   cache: Map<string, InputTypeFieldsMapping<Types, T>> = new Map(),
 ): InputFieldsMapping<Types, T> | null {
-  const filterMappings = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>>();
-  const hasMappings = new Map<InputFieldsMapping<Types, T>, boolean>();
+  const { filterMappings, hasMappings } = getFilterCache(cache);
 
   return filterMapped(internalMapInputFields(inputs, buildCache, mapper, cache));
 
-  function filterMapped(map: InputFieldsMapping<Types, T>) {
+  function filterMapped(map: InputFieldsMapping<Types, T>): InputFieldsMapping<Types, T> | null {
     if (filterMappings.has(map)) {
-      return filterMappings.get(map)!;
+      return filterMappings.get(map) ?? null;
     }
 
     const filtered = new Map<string, InputFieldMapping<Types, T>>();
@@ -104,7 +103,14 @@ export function mapInputFields<Types extends SchemaTypes, T>(
       }
     });
 
-    return filtered.size > 0 ? filtered : null;
+    if (filtered.size === 0) {
+      // Keep later lookups consistent with this call's result
+      filterMappings.set(map, null);
+
+      return null;
+    }
+
+    return filtered;
   }
 
   function checkForMappings(map: InputFieldsMapping<Types, T>): boolean {
@@ -159,6 +165,29 @@ export function mapInputFields<Types extends SchemaTypes, T>(
 
     return visit(map).result;
   }
+}
+
+interface FilterCache<Types extends SchemaTypes, T> {
+  filterMappings: Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T> | null>;
+  hasMappings: Map<InputFieldsMapping<Types, T>, boolean>;
+}
+
+// Keyed by the caller's type mapping cache. Maps in that cache keep their identity across calls,
+// so their filtered form and whether they contain any mappings can be reused too. Without this,
+// every call re-walks every input type reachable from its args even when the mappings are cached.
+const filterCaches = new WeakMap<Map<string, unknown>, FilterCache<never, unknown>>();
+
+function getFilterCache<Types extends SchemaTypes, T>(
+  cache: Map<string, InputTypeFieldsMapping<Types, T>>,
+): FilterCache<Types, T> {
+  let filterCache = filterCaches.get(cache) as FilterCache<Types, T> | undefined;
+
+  if (!filterCache) {
+    filterCache = { filterMappings: new Map(), hasMappings: new Map() };
+    filterCaches.set(cache, filterCache as unknown as FilterCache<never, unknown>);
+  }
+
+  return filterCache;
 }
 
 function internalMapInputFields<Types extends SchemaTypes, T>(
