@@ -3,4 +3,4 @@
 '@pothos/core': patch
 ---
 
-Fix slow schema builds with plugin-validation on schemas with many interconnected input types. plugin-validation now shares its input type mappings between fields, and `mapInputFields` reuses its filtered results across calls that share a cache, so each input type is only processed once per schema build.
+Fix slow schema builds when input types are reused across many fields. plugin-validation now shares its input type mappings between fields, and `mapInputFields` reuses its filtered results across calls that share a cache and skips rebuilding field configs for input types it has already mapped. This also speeds up plugin-relay, plugin-zod and plugin-prisma-utils.

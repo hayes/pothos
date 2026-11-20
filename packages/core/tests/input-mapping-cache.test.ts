@@ -108,6 +108,7 @@ function buildSchema() {
       viaB: t.string({ args: { b: t.arg({ type: B }) }, resolve: () => '' }),
       viaBList: t.string({ args: { b: t.arg({ type: [B] }) }, resolve: () => '' }),
       unmapped: t.string({ args: { c: t.arg({ type: C }) }, resolve: () => '' }),
+      unmappedAgain: t.string({ args: { d: t.arg({ type: [D] }) }, resolve: () => '' }),
       wrapper1: t.string({ args: { w: t.arg({ type: Wrapper }) }, resolve: () => '' }),
       wrapper2: t.string({ args: { w: t.arg({ type: Wrapper }) }, resolve: () => '' }),
       marked1: t.string({ args: { marked: t.arg({ type: Marked }) }, resolve: () => '' }),
@@ -124,7 +125,7 @@ describe('mapInputFields with a shared cache', () => {
   });
 
   it('returns the same mappings as an uncached call for every field', () => {
-    expect(Object.keys(recorded)).toHaveLength(8);
+    expect(Object.keys(recorded)).toHaveLength(9);
 
     for (const [field, { shared, fresh }] of Object.entries(recorded)) {
       expect({ field, mapping: describeMapping(shared) }).toEqual({
@@ -155,6 +156,7 @@ describe('mapInputFields with a shared cache', () => {
 
   it('returns null for unmapped types, including cycles, on every call', () => {
     expect(recorded.unmapped.shared).toBeNull();
+    expect(recorded.unmappedAgain.shared).toBeNull();
   });
 
   it('keeps fields.map null for a mapped field whose type has no mappings on repeat calls', () => {

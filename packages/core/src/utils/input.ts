@@ -69,7 +69,14 @@ export function mapInputFields<Types extends SchemaTypes, T>(
 ): InputFieldsMapping<Types, T> | null {
   const { filterMappings, hasMappings } = getFilterCache(cache);
 
-  return filterMapped(internalMapInputFields(inputs, buildCache, mapper, cache));
+  const root = internalMapInputFields(inputs, buildCache, mapper, cache);
+  const result = filterMapped(root);
+
+  // The root map is new on every call and never looked up again, so don't keep it in the cache
+  filterMappings.delete(root);
+  hasMappings.delete(root);
+
+  return result;
 
   function filterMapped(map: InputFieldsMapping<Types, T>): InputFieldsMapping<Types, T> | null {
     if (filterMappings.has(map)) {
@@ -216,11 +223,10 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
       continue;
     }
 
-    const inputFieldConfigs = buildCache.getInputTypeFieldConfigs(
-      unwrapInputFieldType(inputField.type),
-    );
-
     if (!seenTypes.has(typeConfig.name)) {
+      const inputFieldConfigs = buildCache.getInputTypeFieldConfigs(
+        unwrapInputFieldType(inputField.type),
+      );
       const typeEntry = {
         configs: inputFieldConfigs,
         map: new Map<string, InputFieldMapping<Types, T>>(),
