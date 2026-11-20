@@ -1,5 +1,12 @@
 # @pothos-examples/simple-classes
 
+## 3.1.31
+
+### Patch Changes
+
+- Updated dependencies [f110ba2]
+  - @pothos/core@4.18.1
+
 ## 3.1.30
 
 ### Patch Changes

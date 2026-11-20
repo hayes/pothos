@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.18.1
+
+### Patch Changes
+
+- f110ba2: Fix slow schema builds when input types are reused across many fields. plugin-validation now shares its input type mappings between fields, and `mapInputFields` reuses its filtered results across calls that share a cache and skips rebuilding field configs for input types it has already mapped. This also speeds up plugin-relay, plugin-zod and plugin-prisma-utils.
+
 ## 4.18.0
 
 ### Minor Changes
