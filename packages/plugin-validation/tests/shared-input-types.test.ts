@@ -4,9 +4,6 @@ import { gql } from 'graphql-tag';
 import * as zod from 'zod';
 import '../src';
 
-// Input types are mapped once per schema build and shared between fields (#1854). Each field must
-// still validate every input type it can reach, however it reaches it.
-
 interface TreeShape {
   name: string;
   children?: TreeShape[] | null;
@@ -31,7 +28,6 @@ function buildSchema() {
     }),
   });
 
-  // Mapped field with no nested mappings, reached by several fields
   const Note = builder
     .inputType('Note', { fields: (t) => ({ text: t.string() }) })
     .validate(zod.object({ text: zod.string().max(5).nullish() }));
@@ -40,7 +36,6 @@ function buildSchema() {
     fields: (t) => ({ note: t.field({ type: Note }), extra: t.field({ type: Note }) }),
   });
 
-  // Not validated at all, must not break fields that also reach validated types
   const Plain = builder.inputType('Plain', { fields: (t) => ({ value: t.string() }) });
 
   builder.queryType({

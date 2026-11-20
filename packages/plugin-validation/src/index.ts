@@ -20,14 +20,14 @@ export { InputValidationError, type StandardSchemaV1 };
 
 const pluginName = 'validation';
 
-interface ValidationMapping {
-  typeSchemas: StandardSchemaV1[];
-  fieldSchemas: StandardSchemaV1[];
-}
-
 export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  // Shared across fields so each input type is only mapped once per schema build (see #1379)
-  private mappingCache = new Map<string, InputTypeFieldsMapping<Types, ValidationMapping>>();
+  private mappingCache = new Map<
+    string,
+    InputTypeFieldsMapping<
+      Types,
+      { typeSchemas: StandardSchemaV1[]; fieldSchemas: StandardSchemaV1[] }
+    >
+  >();
 
   override onInputFieldConfig(
     fieldConfig: PothosInputFieldConfig<Types>,
@@ -93,7 +93,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
     const argMappings = mapInputFields(
       fieldConfig.args,
       this.buildCache,
-      (field): ValidationMapping | null => {
+      (field) => {
         const baseSchemas = field.extensions?.['@pothos/plugin-validation']?.schemas ?? [];
         const argOptionsSchema = field.kind === 'Arg' && field.pothosOptions.validate;
         const fieldSchemas = argOptionsSchema

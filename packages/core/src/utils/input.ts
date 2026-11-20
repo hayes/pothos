@@ -6,6 +6,7 @@ import type {
   PothosTypeConfig,
   SchemaTypes,
 } from '../types/index.js';
+import { createContextCache } from './context-cache.js';
 import { unwrapInputFieldType } from './params.js';
 
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
@@ -61,18 +62,25 @@ export function resolveInputTypeConfig<Types extends SchemaTypes>(
   );
 }
 
+const filterCaches = createContextCache(() => ({
+  filterMappings: new Map<unknown, unknown>(),
+  hasMappings: new Map<unknown, boolean>(),
+}));
+
 export function mapInputFields<Types extends SchemaTypes, T>(
   inputs: Record<string, PothosInputFieldConfig<Types>>,
   buildCache: BuildCache<Types>,
   mapper: (config: PothosInputFieldConfig<Types>) => T | null,
   cache: Map<string, InputTypeFieldsMapping<Types, T>> = new Map(),
 ): InputFieldsMapping<Types, T> | null {
-  const { filterMappings, hasMappings } = getFilterCache(cache);
+  const { filterMappings, hasMappings } = filterCaches(cache) as {
+    filterMappings: Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T> | null>;
+    hasMappings: Map<InputFieldsMapping<Types, T>, boolean>;
+  };
 
   const root = internalMapInputFields(inputs, buildCache, mapper, cache);
   const result = filterMapped(root);
 
-  // The root map is new on every call and never looked up again, so don't keep it in the cache
   filterMappings.delete(root);
   hasMappings.delete(root);
 
@@ -111,7 +119,6 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     });
 
     if (filtered.size === 0) {
-      // Keep later lookups consistent with this call's result
       filterMappings.set(map, null);
 
       return null;
@@ -172,29 +179,6 @@ export function mapInputFields<Types extends SchemaTypes, T>(
 
     return visit(map).result;
   }
-}
-
-interface FilterCache<Types extends SchemaTypes, T> {
-  filterMappings: Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T> | null>;
-  hasMappings: Map<InputFieldsMapping<Types, T>, boolean>;
-}
-
-// Keyed by the caller's type mapping cache. Maps in that cache keep their identity across calls,
-// so their filtered form and whether they contain any mappings can be reused too. Without this,
-// every call re-walks every input type reachable from its args even when the mappings are cached.
-const filterCaches = new WeakMap<Map<string, unknown>, FilterCache<never, unknown>>();
-
-function getFilterCache<Types extends SchemaTypes, T>(
-  cache: Map<string, InputTypeFieldsMapping<Types, T>>,
-): FilterCache<Types, T> {
-  let filterCache = filterCaches.get(cache) as FilterCache<Types, T> | undefined;
-
-  if (!filterCache) {
-    filterCache = { filterMappings: new Map(), hasMappings: new Map() };
-    filterCaches.set(cache, filterCache as unknown as FilterCache<never, unknown>);
-  }
-
-  return filterCache;
 }
 
 function internalMapInputFields<Types extends SchemaTypes, T>(

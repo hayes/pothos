@@ -33,7 +33,6 @@ class RecordMappingsPlugin extends BasePlugin<SchemaTypes> {
     if (Object.keys(fieldConfig.args).length > 0) {
       recorded[fieldConfig.name] = {
         shared: mapInputFields(fieldConfig.args, this.buildCache, mapper, this.mappingCache),
-        // Same mapping without a cache, and without counting mapper calls
         fresh: mapInputFields(fieldConfig.args, this.buildCache, (field) =>
           field.name === 'leaf' || field.name === 'marked' ? field.name : null,
         ),
@@ -46,7 +45,6 @@ class RecordMappingsPlugin extends BasePlugin<SchemaTypes> {
 
 SchemaBuilder.registerPlugin(pluginName, RecordMappingsPlugin as never);
 
-// Reduce a mapping to plain data, cutting cycles, so shared and fresh results can be compared
 function describeMapping(map: Mapping, seen = new Set<unknown>()): unknown {
   if (!map) {
     return null;
@@ -78,20 +76,17 @@ function buildSchema() {
 
   const builder = new SchemaBuilder({ plugins: [pluginName] });
 
-  // A <-> B cycle with a mapped leaf on A
   const A = builder.inputRef<object>('A');
   const B = builder.inputRef<object>('B');
-  // C <-> D cycle with nothing mapped
   const C = builder.inputRef<object>('C');
   const D = builder.inputRef<object>('D');
-  // `marked` is mapped itself but its type has no mapped fields
   const Marked = builder.inputType('Marked', {
     fields: (t) => ({ plain: t.string() }),
   });
   const Wrapper = builder.inputType('Wrapper', {
     fields: (t) => ({
       marked: t.field({ type: Marked }),
-      unmappedList: t.field({ type: [[Marked]] }),
+      unmappedList: t.field({ type: t.listRef(t.listRef(Marked)) }),
       c: t.field({ type: C }),
     }),
   });
@@ -103,7 +98,6 @@ function buildSchema() {
 
   builder.queryType({
     fields: (t) => ({
-      // B is first reached through the cycle, then directly by later fields
       viaA: t.string({ args: { a: t.arg({ type: A }) }, resolve: () => '' }),
       viaB: t.string({ args: { b: t.arg({ type: B }) }, resolve: () => '' }),
       viaBList: t.string({ args: { b: t.arg({ type: [B] }) }, resolve: () => '' }),
