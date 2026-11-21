@@ -1,7 +1,7 @@
 import './global.css';
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
-import { JetBrains_Mono, Lato, Source_Serif_4 } from 'next/font/google';
+import localFont from 'next/font/local';
 import type { ReactNode } from 'react';
 import { ReviewProviderDevOnly } from '@/review-plugin/src/client';
 import { Providers } from '../components/Providers';
@@ -45,26 +45,76 @@ export const metadata: Metadata = {
   },
 };
 
-const readingSans = Lato({
-  subsets: ['latin'],
+// Fonts are bundled from the @fontsource packages instead of `next/font/google`, so
+// builds never download from Google Fonts (those downloads made CI flaky).
+const readingSans = localFont({
+  src: [
+    {
+      path: '../node_modules/@fontsource/lato/files/lato-latin-400-normal.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../node_modules/@fontsource/lato/files/lato-latin-400-italic.woff2',
+      weight: '400',
+      style: 'italic',
+    },
+    {
+      path: '../node_modules/@fontsource/lato/files/lato-latin-700-normal.woff2',
+      weight: '700',
+      style: 'normal',
+    },
+    {
+      path: '../node_modules/@fontsource/lato/files/lato-latin-700-italic.woff2',
+      weight: '700',
+      style: 'italic',
+    },
+  ],
   variable: '--font-reading-sans',
-  weight: ['400', '700'],
-  style: ['normal', 'italic'],
   display: 'swap',
 });
 
-const sourceSerif = Source_Serif_4({
-  subsets: ['latin'],
+const sourceSerif = localFont({
+  src: [
+    {
+      path: '../node_modules/@fontsource/source-serif-4/files/source-serif-4-latin-400-normal.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../node_modules/@fontsource/source-serif-4/files/source-serif-4-latin-400-italic.woff2',
+      weight: '400',
+      style: 'italic',
+    },
+    {
+      path: '../node_modules/@fontsource/source-serif-4/files/source-serif-4-latin-600-normal.woff2',
+      weight: '600',
+      style: 'normal',
+    },
+    {
+      path: '../node_modules/@fontsource/source-serif-4/files/source-serif-4-latin-600-italic.woff2',
+      weight: '600',
+      style: 'italic',
+    },
+  ],
   variable: '--font-source-serif',
-  weight: ['400', '600'],
-  style: ['normal', 'italic'],
   display: 'swap',
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
+const jetbrainsMono = localFont({
+  src: [
+    {
+      path: '../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2',
+      weight: '500',
+      style: 'normal',
+    },
+  ],
   variable: '--font-jetbrains-mono',
-  weight: ['400', '500'],
   display: 'swap',
 });
 
